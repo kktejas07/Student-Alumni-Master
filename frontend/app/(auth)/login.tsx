@@ -61,6 +61,8 @@ function LinkedInIn({ size = 18 }: { size?: number }) {
 export default function Login() {
   const router = useRouter();
   const toast = useToast();
+  const { width: winWidth } = useWindowDimensions();
+  const compact = winWidth < 980; // collapse brand pane on phones / narrow viewports
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -127,7 +129,8 @@ export default function Login() {
   if (IS_WEB) {
     return (
       <View style={styles.webShell}>
-        {/* LEFT brand pane — solid purple */}
+        {/* LEFT brand pane — solid purple (hidden on narrow viewports) */}
+        {!compact && (
         <View style={styles.webBrandPane}>
           <View pointerEvents="none" style={[styles.webOrb, { width: 280, height: 280, top: '-10%', right: '-15%', backgroundColor: 'rgba(139,92,246,0.18)' }]} />
           <View pointerEvents="none" style={[styles.webOrb, { width: 200, height: 200, bottom: '10%', left: '-10%', backgroundColor: 'rgba(109,40,217,0.16)' }]} />
@@ -155,9 +158,10 @@ export default function Login() {
             </View>
           ))}
         </View>
+        )}
 
         {/* RIGHT auth pane — solid near-black */}
-        <View style={styles.webCardPane}>
+        <View style={[styles.webCardPane, compact && { minWidth: 0, paddingHorizontal: 20, paddingVertical: 28 }]}>
           <ScrollView
             contentContainerStyle={styles.webCardScroll}
             keyboardShouldPersistTaps="handled"
