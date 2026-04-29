@@ -361,6 +361,205 @@ KNOWLEDGE_ROOMS_FULL = [
 ]
 
 
+HOUSING_FULL = [
+    # India — student PG / co-living (10)
+    ("India", "Stanza Living - Premium Co-living", "Stanza Living", "From ₹8,000/mo",
+     ["Bangalore", "Mumbai", "Delhi", "Pune"], "Premium furnished co-living for students across 25+ Indian cities.",
+     "https://www.stanzaliving.com", "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800"),
+    ("India", "OYO Life - PG Accommodation", "OYO Life", "From ₹6,500/mo",
+     ["Pune", "Hyderabad", "Bengaluru"], "Furnished PG accommodation near major colleges with daily housekeeping.",
+     "https://www.oyorooms.com/oyo-life", "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800"),
+    ("India", "Zolostays - Student Living", "Zolostays", "From ₹7,500/mo",
+     ["Bangalore", "Chennai", "Hyderabad"], "Verified student accommodations with WiFi, food and laundry.",
+     "https://zolostays.com", "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800"),
+    ("India", "CoHo - Student Co-Living", "CoHo", "From ₹9,000/mo",
+     ["Delhi NCR", "Gurgaon"], "Furnished private rooms with all amenities included.",
+     "https://www.coho.in", "https://images.unsplash.com/photo-1540518614846-7eded433c457?w=800"),
+    ("India", "Your-Space - PG for Girls", "Your-Space", "From ₹8,500/mo",
+     ["Delhi", "Noida"], "Safe, secure PG accommodation exclusively for female students.",
+     "https://yourspace.in", "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=800"),
+    ("India", "NestAway Student PG", "NestAway", "From ₹7,000/mo",
+     ["Bangalore", "Mumbai", "Pune", "Hyderabad"], "Fully managed PGs with online rent payment.",
+     "https://www.nestaway.com", "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800"),
+    ("India", "FlatChat — Roommate Finder", "FlatChat", "Find a flatmate",
+     ["All metros"], "Find verified flatmates and shared apartments across India.",
+     "https://www.flatchat.in", "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800"),
+    ("India", "Colive Premium PG", "Colive", "From ₹10,000/mo",
+     ["Bangalore", "Hyderabad"], "Premium PG with chef-curated meals + housekeeping.",
+     "https://www.colive.com", "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=800"),
+    ("India", "BookMyBai Hostel", "BookMyBai", "From ₹5,500/mo",
+     ["Mumbai", "Pune"], "Affordable verified hostels for students in Maharashtra.",
+     "https://www.bookmybai.com", "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800"),
+    ("India", "Helper4U Student Apartments", "Helper4U", "From ₹12,000/mo",
+     ["Bangalore", "Chennai"], "Furnished 1BHK + 2BHK apartments for student groups.",
+     "https://www.helper4u.in", "https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?w=800"),
+    # USA (8)
+    ("USA", "Amber Student Housing", "Amber", "From $600/mo",
+     ["Boston", "NYC", "SF Bay Area", "Chicago"], "Verified student housing across 100+ US universities.",
+     "https://amberstudent.com", "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800"),
+    ("USA", "Uniplaces — Student Rooms", "Uniplaces", "From $650/mo",
+     ["LA", "Boston", "Atlanta"], "Verified rooms near top US universities.",
+     "https://www.uniplaces.com", "https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85?w=800"),
+    ("USA", "American Campus Communities", "American Campus", "From $700/mo",
+     ["TX", "FL", "AZ", "CA"], "On-campus and near-campus apartments for US college students.",
+     "https://www.americancampus.com", "https://images.unsplash.com/photo-1518883024925-7b6906d4f0fa?w=800"),
+    ("USA", "RentSpree Student Finder", "RentSpree", "Roommate matching",
+     ["LA", "Seattle", "Denver"], "Apartment + roommate finder for US students.",
+     "https://rentspree.com", "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800"),
+    ("USA", "CoStar Student Apartments", "CoStar Apartments", "From $850/mo",
+     ["NY", "MA", "CA"], "Apartments and house shares specifically for US students.",
+     "https://www.apartments.com", "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800"),
+    ("USA", "Trulia Student Housing", "Trulia", "From $750/mo",
+     ["IL", "GA", "PA"], "Rentals filtered for US students.",
+     "https://www.trulia.com", "https://images.unsplash.com/photo-1554995207-c18c203602cb?w=800"),
+    ("USA", "CampusReel Student Living", "CampusReel", "From $720/mo",
+     ["NC", "VA", "TN"], "Student apartments near 100+ US college campuses.",
+     "https://www.campusreel.org", "https://images.unsplash.com/photo-1480074568708-e7b720bb3f09?w=800"),
+    ("USA", "ApartmentList Student", "ApartmentList", "From $680/mo",
+     ["Multiple"], "Smart-match student apartments with personalized recommendations.",
+     "https://www.apartmentlist.com", "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800"),
+    # UK (4)
+    ("UK", "Unite Students UK", "Unite Students", "From £180/wk",
+     ["London", "Manchester", "Edinburgh"], "UK's largest student accommodation provider.",
+     "https://www.unitestudents.com", "https://images.unsplash.com/photo-1519302959554-a75be0afc82a?w=800"),
+    ("UK", "iQ Student Accommodation", "iQ", "From £200/wk",
+     ["London", "Bristol", "Leeds"], "Premium student housing across 30+ UK cities.",
+     "https://www.iqstudentaccommodation.com", "https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=800"),
+    ("UK", "Student.com — UK Search", "Student.com", "From £160/wk",
+     ["UK-wide"], "Compare and book student housing across the UK.",
+     "https://www.student.com", "https://images.unsplash.com/photo-1480074568708-e7b720bb3f09?w=800"),
+    ("UK", "SpareRoom UK Student", "SpareRoom", "Roommate matching",
+     ["UK-wide"], "Find rooms in shared flats with student verification.",
+     "https://www.spareroom.co.uk", "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800"),
+    # Canada (4)
+    ("Canada", "Casita Student Housing", "Casita", "From CAD 700/mo",
+     ["Toronto", "Vancouver", "Montreal"], "Student housing across major Canadian cities.",
+     "https://casita.com", "https://images.unsplash.com/photo-1502672023488-cb6e6cc6cc8e?w=800"),
+    ("Canada", "Places4Students Canada", "Places4Students", "From CAD 650/mo",
+     ["Toronto", "Calgary", "Edmonton"], "Off-campus housing partnership with Canadian universities.",
+     "https://www.places4students.com", "https://images.unsplash.com/photo-1515263487990-61b07816b324?w=800"),
+    ("Canada", "Padmapper Student", "Padmapper", "From CAD 800/mo",
+     ["Toronto", "Vancouver"], "Map-based apartment search for Canadian students.",
+     "https://www.padmapper.com", "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800"),
+    ("Canada", "Hey Renter Student", "Hey Renter", "From CAD 600/mo",
+     ["Multiple"], "Verified student-friendly rental listings.",
+     "https://www.heyrenter.com", "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=800"),
+    # Australia + Germany (4)
+    ("Australia", "UniLodge Student Living", "UniLodge", "From AUD 320/wk",
+     ["Sydney", "Melbourne", "Brisbane"], "Premium on-campus & near-campus student housing in AU.",
+     "https://www.unilodge.com.au", "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800"),
+    ("Australia", "Iglu Student Living", "Iglu", "From AUD 350/wk",
+     ["Sydney", "Melbourne", "Brisbane"], "Modern student apartments across Australian cities.",
+     "https://www.iglu.com.au", "https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=800"),
+    ("Germany", "Studierendenwerk Wohnen", "Studierendenwerk", "From €280/mo",
+     ["Berlin", "Munich", "Hamburg"], "Govt-subsidized student housing in Germany.",
+     "https://www.studentenwerke.de", "https://images.unsplash.com/photo-1519302959554-a75be0afc82a?w=800"),
+    ("Germany", "Wunderflats Student", "Wunderflats", "From €600/mo",
+     ["Berlin", "Munich"], "Furnished student apartments with flexible leases.",
+     "https://wunderflats.com", "https://images.unsplash.com/photo-1502672023488-cb6e6cc6cc8e?w=800"),
+]
+
+
+INSURANCE_FULL = [
+    # Health / Medical (10)
+    ("medical", "Star Health Student Care", "Star Health", "₹2,500/year",
+     "Comprehensive health cover for students aged 16-25 with cashless treatment in 12000+ hospitals.",
+     "https://www.starhealth.in", "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=800"),
+    ("medical", "ICICI Lombard Health Booster", "ICICI Lombard", "₹3,200/year",
+     "Health insurance with maternity, OPD and preventive health checkups.",
+     "https://www.icicilombard.com", "https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=800"),
+    ("medical", "HDFC ERGO Health", "HDFC ERGO", "₹2,800/year",
+     "Coverage up to ₹10L with daycare procedures included.",
+     "https://www.hdfcergo.com", "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800"),
+    ("medical", "Max Bupa Health Insurance", "Max Bupa", "₹3,500/year",
+     "Day-1 cover for accidents, no copay, lifetime renewal.",
+     "https://www.maxbupa.com", "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=800"),
+    ("medical", "Bajaj Allianz Health Guard", "Bajaj Allianz", "₹2,900/year",
+     "Comprehensive cover with tax savings under Section 80D.",
+     "https://www.bajajallianz.com", "https://images.unsplash.com/photo-1583912267550-d6c2ac3196c0?w=800"),
+    ("medical", "Niva Bupa Aspire", "Niva Bupa", "₹3,800/year",
+     "Affordable health insurance for young adults with annual checkups.",
+     "https://www.nivabupa.com", "https://images.unsplash.com/photo-1559757175-5700dde675bc?w=800"),
+    ("medical", "Aditya Birla Activ Health", "Aditya Birla", "₹3,100/year",
+     "Health insurance + wellness rewards for staying fit.",
+     "https://www.adityabirlacapital.com", "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800"),
+    ("medical", "Care Health Insurance", "Care Health", "₹2,700/year",
+     "Comprehensive cover with global emergency assistance.",
+     "https://www.careinsurance.com", "https://images.unsplash.com/photo-1581595220892-b0739db3ba8c?w=800"),
+    ("medical", "ManipalCigna Lifestyle Plus", "ManipalCigna", "₹3,300/year",
+     "Lifestyle health insurance with mental wellness coverage.",
+     "https://www.manipalcigna.com", "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800"),
+    ("medical", "Reliance General Critical Illness", "Reliance General", "₹2,200/year",
+     "Critical illness cover with lump-sum payout.",
+     "https://www.reliancegeneral.co.in", "https://images.unsplash.com/photo-1530026405186-ed1f139313f8?w=800"),
+    # Travel / Study Abroad (8)
+    ("travel", "HDFC ERGO Student Travel", "HDFC ERGO", "From ₹5,000",
+     "Travel & study-abroad insurance for international students with $500K cover.",
+     "https://www.hdfcergo.com", "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800"),
+    ("travel", "ICICI Lombard Student Medical", "ICICI Lombard", "From ₹4,500",
+     "Designed for students going abroad, covers tuition fee in case of injury.",
+     "https://www.icicilombard.com", "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800"),
+    ("travel", "Bajaj Allianz Travel Plus", "Bajaj Allianz", "From ₹3,800",
+     "Trip cancellation, lost baggage, medical and emergency cover.",
+     "https://www.bajajallianz.com", "https://images.unsplash.com/photo-1503220317375-aaad61436b1b?w=800"),
+    ("travel", "TATA AIG Student Guard", "TATA AIG", "From ₹4,200",
+     "Comprehensive student travel insurance with Hindi customer support.",
+     "https://www.tataaig.com", "https://images.unsplash.com/photo-1518002171953-a080ee817e1f?w=800"),
+    ("travel", "Reliance Travel Insurance", "Reliance General", "From ₹3,500",
+     "Affordable cover for short-term student trips abroad.",
+     "https://www.reliancegeneral.co.in", "https://images.unsplash.com/photo-1452421822248-d4c2b47f0c81?w=800"),
+    ("travel", "SBI General Student Travel", "SBI General", "From ₹4,800",
+     "Cover for visa rejection refund + emergency medical evacuation.",
+     "https://www.sbigeneral.in", "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800"),
+    ("travel", "Royal Sundaram Schengen", "Royal Sundaram", "From ₹3,200",
+     "Schengen-approved student travel insurance for EU studies.",
+     "https://www.royalsundaram.in", "https://images.unsplash.com/photo-1493329306599-1bcfdca41bf3?w=800"),
+    ("travel", "Future Generali Travel Suraksha", "Future Generali", "From ₹3,900",
+     "Worldwide cover with Indian-English customer service.",
+     "https://general.futuregenerali.in", "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800"),
+    # Two-Wheeler / Bike (6)
+    ("bike", "Acko Two-Wheeler", "Acko", "From ₹999/year",
+     "100% digital bike insurance with instant claim guarantee.",
+     "https://www.acko.com", "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=800"),
+    ("bike", "Digit Bike Insurance", "Digit", "From ₹880/year",
+     "Smartphone-based claims with same-day approval.",
+     "https://www.godigit.com", "https://images.unsplash.com/photo-1591768793355-74d04bb6608f?w=800"),
+    ("bike", "Bajaj Allianz Bike Insurance", "Bajaj Allianz", "From ₹1,200/year",
+     "Comprehensive cover with engine protection.",
+     "https://www.bajajallianz.com", "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=800"),
+    ("bike", "ICICI Lombard Two-Wheeler", "ICICI Lombard", "From ₹1,100/year",
+     "Network garages with cashless repairs.",
+     "https://www.icicilombard.com", "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=800"),
+    ("bike", "TATA AIG Auto Secure", "TATA AIG", "From ₹950/year",
+     "Affordable third-party + own-damage cover.",
+     "https://www.tataaig.com", "https://images.unsplash.com/photo-1591768793355-74d04bb6608f?w=800"),
+    ("bike", "HDFC ERGO Two-Wheeler", "HDFC ERGO", "From ₹1,050/year",
+     "Add-ons including roadside assistance and zero depreciation.",
+     "https://www.hdfcergo.com", "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=800"),
+    # Loan Protection (4)
+    ("loan", "ICICI Lombard Loan Protect", "ICICI Lombard", "Optional add-on",
+     "Covers EMI in case of unexpected events like job loss or accident.",
+     "https://www.icicilombard.com", "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800"),
+    ("loan", "HDFC ERGO Loan Cover", "HDFC ERGO", "₹500/year + EMI",
+     "Education loan protection with disability coverage.",
+     "https://www.hdfcergo.com", "https://images.unsplash.com/photo-1551434678-e076c223a692?w=800"),
+    ("loan", "Bajaj Allianz Loan Care", "Bajaj Allianz", "Premium varies",
+     "Comprehensive loan protection insurance for education loans.",
+     "https://www.bajajallianz.com", "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800"),
+    ("loan", "SBI Life Education Insurance", "SBI Life", "Per year",
+     "Education insurance for parents to safeguard child's higher education.",
+     "https://www.sbilife.co.in", "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800"),
+    # Mobile / Gadget (2)
+    ("gadget", "OneAssist Mobile Protection", "OneAssist", "From ₹399/year",
+     "Liquid damage, theft, and accidental damage cover for student smartphones.",
+     "https://www.oneassist.in", "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=800"),
+    ("gadget", "Servify Care", "Servify", "From ₹499/year",
+     "Comprehensive mobile + laptop protection plans.",
+     "https://www.servify.tech", "https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=800"),
+]
+
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -624,6 +823,48 @@ async def seed_catalogs():
     # Knowledge rooms collection (for browsing)
     await db.rooms.delete_many({})
     await db.rooms.insert_many([dict(r) for r in KNOWLEDGE_ROOMS_FULL])
+
+    # Reset & seed housing (30 records: India PG + USA + UK + Canada + AU + DE)
+    await db.housing.delete_many({})
+    housing_docs = []
+    for idx, (country, title, provider, highlight, cities, description, url, image) in enumerate(HOUSING_FULL):
+        housing_docs.append({
+            "id": f"h{idx+1}",
+            "country": country,
+            "title": title,
+            "provider": provider,
+            "highlight": highlight,
+            "cities": cities,
+            "description": description,
+            "url": url,
+            "image": image,
+        })
+    await db.housing.insert_many(housing_docs)
+
+    # Reset & seed insurance (30 records: medical + travel + bike + loan + gadget)
+    await db.insurance.delete_many({})
+    insurance_docs = []
+    for idx, (kind, title, provider, highlight, description, url, image) in enumerate(INSURANCE_FULL):
+        insurance_docs.append({
+            "id": f"ins{idx+1}",
+            "kind": kind,
+            "title": title,
+            "provider": provider,
+            "highlight": highlight,
+            "description": description,
+            "url": url,
+            "image": image,
+        })
+    await db.insurance.insert_many(insurance_docs)
+
+    # Refresh legacy `resources` collection (used by /resources route) to reflect new seeds
+    await db.resources.delete_many({})
+    legacy = (
+        [{**i, "category": "insurance"} for i in insurance_docs]
+        + [{**h, "category": "housing"} for h in housing_docs]
+    )
+    if legacy:
+        await db.resources.insert_many(legacy)
 
 
 async def seed_bookings_and_messages(student_emails: List[str]):
