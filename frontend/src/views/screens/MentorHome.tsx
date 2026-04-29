@@ -83,7 +83,7 @@ export default function MentorHome() {
         api.notifications().catch(() => ({ unread: 0 })),
       ]);
       setBookings(b.bookings || []);
-      setReviews((r.reviews || []).slice(0, 3));
+      setReviews(((r.reviews || r.items) || []).slice(0, 3));
       setReviewStats(r.stats || null);
       setUnread(n.unread || 0);
     } finally {
