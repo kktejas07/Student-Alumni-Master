@@ -2,10 +2,11 @@
  * Shared web-only platform UI primitives — used by Student/Mentor/College dashboards.
  * NOT used on mobile.
  */
-import React from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput } from 'react-native';
+import React, { useRef } from 'react';
+import { View, Text, StyleSheet, Pressable, TextInput, Animated, Easing } from 'react-native';
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
+import { LucideIcon } from 'lucide-react-native';
 import { SA, SAGradients } from './tokens';
 
 // ─── Shield Logo ─────────────────────────────────────────────────────────────
@@ -198,7 +199,45 @@ export function EmptyState({ icon = '📭', title, sub }: { icon?: string; title
 }
 
 // ─── Sidebar ─────────────────────────────────────────────────────────────────
-export type NavItem = { id: string; emoji: string; label: string };
+export type NavItem = {
+  id: string;
+  Icon: LucideIcon;        // animated lucide icon (animate-ui style)
+  label: string;
+  color?: string;          // accent color used on hover/active states
+};
+
+// Per-item animated icon — scales up + tints on hover, "pulse" when active
+function AnimatedNavIcon({
+  Icon, color = '#A78BFA', size, active, hovered,
+}: {
+  Icon: LucideIcon; color?: string; size: number;
+  active: boolean; hovered: boolean;
+}) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const rotate = useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.spring(scale, {
+        toValue: active ? 1.12 : (hovered ? 1.18 : 1),
+        useNativeDriver: true, friction: 5, tension: 200,
+      }),
+      Animated.timing(rotate, {
+        toValue: hovered ? 1 : 0,
+        duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: true,
+      }),
+    ]).start();
+  }, [active, hovered]);
+
+  const rotateInterp = rotate.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '8deg'] });
+  const tint = active ? color : (hovered ? color : 'rgba(255,255,255,0.65)');
+
+  return (
+    <Animated.View style={{ transform: [{ scale }, { rotate: rotateInterp }] }}>
+      <Icon size={size} color={tint} strokeWidth={active ? 2.4 : 2} />
+    </Animated.View>
+  );
+}
 
 export function Sidebar({
   navItems,
@@ -271,21 +310,31 @@ export function Sidebar({
                 hovered && !active && { backgroundColor: 'rgba(255,255,255,0.05)' },
               ]}
             >
-              <Text style={{ fontSize: collapsed ? 18 : 16 }}>{n.emoji}</Text>
-              {!collapsed && (
-                <Text
-                  style={{
-                    fontSize: 13,
-                    color: active ? SA.white : SA.textFaint,
-                    fontFamily: active ? SA.fontBold : SA.fontMedium,
-                    flex: 1,
-                  }}
-                  numberOfLines={1}
-                >
-                  {n.label}
-                </Text>
+              {({ hovered }: any) => (
+                <>
+                  <AnimatedNavIcon
+                    Icon={n.Icon}
+                    color={n.color || '#A78BFA'}
+                    size={collapsed ? 20 : 17}
+                    active={active}
+                    hovered={!!hovered}
+                  />
+                  {!collapsed && (
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        color: active ? SA.white : SA.textFaint,
+                        fontFamily: active ? SA.fontBold : SA.fontMedium,
+                        flex: 1,
+                      }}
+                      numberOfLines={1}
+                    >
+                      {n.label}
+                    </Text>
+                  )}
+                  {!collapsed && active && <View style={{ width: 4, height: 16, borderRadius: 2, backgroundColor: railColor }} />}
+                </>
               )}
-              {!collapsed && active && <View style={{ width: 4, height: 16, borderRadius: 2, backgroundColor: railColor }} />}
             </Pressable>
           );
         })}

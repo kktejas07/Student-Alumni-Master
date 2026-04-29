@@ -7,6 +7,10 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Image, useWindowDimensio
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
+  Home as HomeIcon, Sparkles, Briefcase, BookOpen, Users, Calendar,
+  Wallet, Shield, Building2, Gift, User as UserIcon,
+} from 'lucide-react-native';
+import {
   Sidebar, GlassCard, KpiTile, Avatar, Badge, SearchBar, ProgressStrip,
   StatusBanner, EmptyState, PageHeader, BellIcon, SectionLabel, NavItem,
 } from './components';
@@ -19,17 +23,17 @@ import {
 import { StudentDashboardView } from '@/src/views/web/StudentDashboardView';
 
 const NAV: NavItem[] = [
-  { id: 'home',         emoji: '🏠', label: 'Dashboard' },
-  { id: 'career',       emoji: '🤖', label: 'Career AI' },
-  { id: 'internships',  emoji: '💼', label: 'Internships' },
-  { id: 'courses',      emoji: '📚', label: 'Courses' },
-  { id: 'network',      emoji: '👥', label: 'Network' },
-  { id: 'events',       emoji: '🗓️', label: 'Events' },
-  { id: 'financial',    emoji: '💰', label: 'Financial' },
-  { id: 'insurance',    emoji: '🛡️', label: 'Insurance' },
-  { id: 'housing',      emoji: '🏘️', label: 'Housing' },
-  { id: 'deals',        emoji: '🎁', label: 'Deals' },
-  { id: 'profile',      emoji: '👤', label: 'Profile' },
+  { id: 'home',         Icon: HomeIcon,    label: 'Dashboard',   color: '#A78BFA' },
+  { id: 'career',       Icon: Sparkles,    label: 'Career AI',   color: '#A78BFA' },
+  { id: 'internships',  Icon: Briefcase,   label: 'Internships', color: '#34D399' },
+  { id: 'courses',      Icon: BookOpen,    label: 'Courses',     color: '#22D3EE' },
+  { id: 'network',      Icon: Users,       label: 'Network',     color: '#F472B6' },
+  { id: 'events',       Icon: Calendar,    label: 'Events',      color: '#FB923C' },
+  { id: 'financial',    Icon: Wallet,      label: 'Financial',   color: '#FCD34D' },
+  { id: 'insurance',    Icon: Shield,      label: 'Insurance',   color: '#60A5FA' },
+  { id: 'housing',      Icon: Building2,   label: 'Housing',     color: '#A78BFA' },
+  { id: 'deals',        Icon: Gift,        label: 'Deals',       color: '#F472B6' },
+  { id: 'profile',      Icon: UserIcon,    label: 'Profile',     color: '#A78BFA' },
 ];
 
 export default function StudentPlatform() {
