@@ -1,36 +1,53 @@
 /**
- * Profile Tab — purple/Material rebrand + admin queue link + REAL stats
- *
- * Stats (booking count, sessions completed) are fetched from /api/bookings/me
- * for both students and mentors.
+ * Profile Tab — wired to REAL data:
+ *   - Booking history from /api/bookings/me (full list, last 5 shown inline)
+ *   - Hours mentored aggregated from completed sessions
+ *   - Reviews summary for mentors (count + average from /api/mentors/{id}/reviews)
+ *   - Notification inbox row with unread badge
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import {
   LogOut, Sparkles, Settings, Shield, HelpCircle, ChevronRight,
   Briefcase, Home as HomeIcon, CreditCard, ShieldCheck, Calendar,
-  Users as UsersIcon,
+  Users as UsersIcon, Star, Bell, Clock, TrendingUp,
 } from 'lucide-react-native';
-import { Colors as C, Spacing, Typography } from '@/src/theme';
-import { Button, Card, SALogo } from '@/src/views/components';
+import { Colors as C, Spacing, Typography, Radius } from '@/src/theme';
+import { Button, Card, AnimatedCard, SALogo } from '@/src/views/components';
 import { useAuth } from '@/src/viewmodels/hooks';
 import { api } from '@/src/models/services/api';
 
 export default function ProfileTab() {
   const router = useRouter();
   const { user, logout } = useAuth();
-  const [bookingsCount, setBookingsCount] = useState(0);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [reviewStats, setReviewStats] = useState<any>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  // Fetch real bookings to power live stats (instead of mock numbers)
-  useEffect(() => {
-    if (user?.role === 'student' || user?.role === 'mentor') {
-      api.myBookings()
-        .then((res) => setBookingsCount(res.bookings?.length || 0))
-        .catch(() => {});
+  const refresh = useCallback(async () => {
+    if (!user) return;
+    // Bookings
+    try {
+      const r = await api.myBookings();
+      setBookings(r.bookings || []);
+    } catch {}
+    // Reviews (only for mentors)
+    if (user.role === 'mentor') {
+      try {
+        const r = await api.mentorReviews(user.id);
+        setReviewStats(r.stats);
+      } catch {}
     }
-  }, [user?.role]);
+    // Notifications unread badge
+    try {
+      const r = await api.notifications();
+      setUnreadCount(r.unread || 0);
+    } catch {}
+  }, [user]);
+
+  useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
 
   const handleLogout = async () => {
     await logout();
@@ -40,12 +57,35 @@ export default function ProfileTab() {
   if (!user) return null;
   const initial = user.full_name?.[0]?.toUpperCase() || 'U';
 
+  // Real metrics
+  const completedBookings = bookings.filter((b: any) => b.status === 'completed');
+  const upcomingBookings = bookings.filter((b: any) =>
+    b.status === 'pending' || b.status === 'confirmed'
+  );
+  const totalMinutes = completedBookings.reduce((sum: number, b: any) =>
+    sum + (b.duration_minutes || 30), 0);
+  const totalHours = (totalMinutes / 60).toFixed(1);
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.headerRow}>
           <Text style={styles.title}>Profile</Text>
-          <SALogo size={28} variant="gradient" />
+          <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+            <TouchableOpacity
+              onPress={() => router.push('/notifications' as any)}
+              style={styles.bellBtn}
+              testID="profile-bell-btn"
+            >
+              <Bell size={20} color={C.deepPurple} />
+              {unreadCount > 0 && (
+                <View style={styles.bellBadge}>
+                  <Text style={styles.bellBadgeText}>{unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <SALogo size={28} variant="gradient" />
+          </View>
         </View>
 
         {/* User card with avatar */}
@@ -69,29 +109,83 @@ export default function ProfileTab() {
             </View>
           </View>
 
-          {/* Real stats grid */}
+          {/* Real stats — wired to bookings + reviews */}
           {(user.role === 'student' || user.role === 'mentor') && (
             <View style={styles.statsGrid}>
               <View style={styles.statBox}>
                 <Calendar size={16} color={C.brandPurple} />
-                <Text style={styles.statValue}>{bookingsCount}</Text>
+                <Text style={styles.statValue}>{bookings.length}</Text>
                 <Text style={styles.statLabel}>
                   {user.role === 'mentor' ? 'SESSIONS' : 'BOOKINGS'}
                 </Text>
               </View>
               <View style={styles.statBox}>
-                <UsersIcon size={16} color={C.brandPurple} />
-                <Text style={styles.statValue}>{user.interests?.length || 0}</Text>
-                <Text style={styles.statLabel}>INTERESTS</Text>
+                <Clock size={16} color={C.brandPurple} />
+                <Text style={styles.statValue}>{totalHours}h</Text>
+                <Text style={styles.statLabel}>
+                  {user.role === 'mentor' ? 'MENTORED' : 'COMPLETED'}
+                </Text>
               </View>
-              <View style={styles.statBox}>
-                <Briefcase size={16} color={C.brandPurple} />
-                <Text style={styles.statValue}>{user.skills?.length || 0}</Text>
-                <Text style={styles.statLabel}>SKILLS</Text>
-              </View>
+              {user.role === 'mentor' && reviewStats?.total > 0 ? (
+                <View style={styles.statBox}>
+                  <Star size={16} color={C.warning} fill={C.warning} />
+                  <Text style={styles.statValue}>{reviewStats.average}</Text>
+                  <Text style={styles.statLabel}>{reviewStats.total} REVIEWS</Text>
+                </View>
+              ) : (
+                <View style={styles.statBox}>
+                  <Briefcase size={16} color={C.brandPurple} />
+                  <Text style={styles.statValue}>{user.skills?.length || 0}</Text>
+                  <Text style={styles.statLabel}>SKILLS</Text>
+                </View>
+              )}
             </View>
           )}
         </Card>
+
+        {/* Recent Bookings — REAL DATA */}
+        {bookings.length > 0 && (
+          <>
+            <View style={styles.sectionRow}>
+              <Text style={styles.sectionTitle}>
+                {user.role === 'mentor' ? 'Recent sessions' : 'Recent bookings'}
+              </Text>
+              {upcomingBookings.length > 0 && (
+                <View style={styles.upcomingPill}>
+                  <Text style={styles.upcomingPillText}>{upcomingBookings.length} upcoming</Text>
+                </View>
+              )}
+            </View>
+            <View style={{ gap: 8 }}>
+              {bookings.slice(0, 5).map((b: any, idx: number) => (
+                <AnimatedCard
+                  key={b.id || idx}
+                  style={styles.bookingCard}
+                  index={idx}
+                  testID={`profile-booking-${idx}`}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={[Typography.bodyBold, { color: C.textPrimary }]} numberOfLines={1}>
+                      {user.role === 'mentor' ? b.student_name : b.mentor_name}
+                    </Text>
+                    <Text style={[Typography.bodySm, { color: C.textSecondary }]} numberOfLines={1}>
+                      {b.topic}
+                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                      <Calendar size={11} color={C.textMuted} />
+                      <Text style={[Typography.bodySm, { color: C.textMuted, fontSize: 11 }]}>
+                        {formatBookingDate(b.scheduled_at || b.slot_start_iso)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={[styles.statusPill, statusStyle(b.status)]}>
+                    <Text style={styles.statusText}>{(b.status || 'pending').toUpperCase()}</Text>
+                  </View>
+                </AnimatedCard>
+              ))}
+            </View>
+          </>
+        )}
 
         {/* QR + Unique ID */}
         {user.qr_code_base64 && (
@@ -137,6 +231,16 @@ export default function ProfileTab() {
         {/* Quick links */}
         <Text style={styles.sectionTitle}>Quick links</Text>
         <View style={{ gap: 10 }}>
+          {(user.role === 'admin' || user.role === 'mentor' || user.role === 'college') && (
+            <Row icon={TrendingUp} label="Analytics dashboard"
+              onPress={() => router.push('/analytics' as any)}
+              tint="#00A78E"
+              testID="profile-row-analytics" />
+          )}
+          <Row icon={Bell} label="Notifications"
+            badge={unreadCount > 0 ? String(unreadCount) : undefined}
+            onPress={() => router.push('/notifications' as any)}
+            testID="profile-row-notifications" />
           <Row icon={Sparkles} label="My AI Career Roadmap"
             onPress={() => router.push('/(tabs)')} testID="profile-row-roadmap" />
           <Row icon={Calendar} label="My Bookings"
@@ -145,11 +249,9 @@ export default function ProfileTab() {
             onPress={() => router.push('/internships')} testID="profile-row-internships" />
           <Row icon={HomeIcon} label="Housing & Insurance"
             onPress={() => router.push('/resources')} testID="profile-row-resources" />
-          <Row icon={CreditCard} label="Education Loans"
-            onPress={() => router.push('/resources?cat=loans')} testID="profile-row-loans" />
         </View>
 
-        {/* Admin-only section: mentor approval queue */}
+        {/* Admin-only section */}
         {user.role === 'admin' && (
           <>
             <Text style={styles.sectionTitle}>Admin</Text>
@@ -162,7 +264,9 @@ export default function ProfileTab() {
 
         <Text style={styles.sectionTitle}>Account</Text>
         <View style={{ gap: 10 }}>
-          <Row icon={Settings} label="Settings" onPress={() => {}} testID="profile-row-settings" />
+          <Row icon={Settings} label="Edit Preferences"
+            onPress={() => router.push('/preferences' as any)}
+            testID="profile-row-settings" />
           <Row icon={Shield} label="Privacy & Security" onPress={() => {}} testID="profile-row-privacy" />
           <Row icon={HelpCircle} label="Help & Support" onPress={() => {}} testID="profile-row-help" />
         </View>

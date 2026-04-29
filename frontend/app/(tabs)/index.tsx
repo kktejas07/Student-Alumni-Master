@@ -293,6 +293,33 @@ export default function HomeTab() {
           </AnimatedCard>
         )}
 
+        {/* ===== Analytics CTA for admin/mentor/college roles ===== */}
+        {(user?.role === 'admin' || user?.role === 'mentor' || user?.role === 'college') && (
+          <AnimatedCard
+            onPress={() => router.push('/analytics' as any)}
+            style={styles.analyticsBanner}
+            index={0}
+            testID="banner-analytics"
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={styles.analyticsIcon}>
+                <TrendingUp size={20} color={C.white} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[Typography.bodyBold, { color: C.deepPurple }]}>
+                  {user?.role === 'admin' ? 'Platform analytics' : user?.role === 'mentor' ? 'Your mentor analytics' : 'Institution analytics'}
+                </Text>
+                <Text style={[Typography.bodySm, { color: C.textSecondary, marginTop: 2 }]}>
+                  {user?.role === 'admin' ? 'KPIs · growth · top colleges · revenue' :
+                    user?.role === 'mentor' ? 'Bookings · earnings · top topics · sessions' :
+                    'Students · alumni · enrollments · top alumni'}
+                </Text>
+              </View>
+              <ArrowRight size={20} color={C.brandPurple} />
+            </View>
+          </AnimatedCard>
+        )}
+
         {/* ===== Alumni transition CTA ===== */}
         {personalization?.can_transition_alumni && (
           <AnimatedCard
@@ -782,6 +809,21 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: C.brandPurple,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  analyticsBanner: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    backgroundColor: C.palePurple,
+    borderLeftWidth: 4,
+    borderLeftColor: '#00A78E',
+  },
+  analyticsIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#00A78E',
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -34,7 +34,7 @@ import secrets
 import random
 import string
 from datetime import datetime, timezone, timedelta
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Dict, Any
 
 import bcrypt
 import jwt
@@ -51,6 +51,24 @@ from personalization import (
     track_module_click,
     transition_to_alumni,
     CAREER_PATH_TO_MENTOR_CATEGORY,
+)
+
+# Role-based analytics + external API integrations
+from analytics import get_analytics_for, super_admin_analytics, college_analytics, mentor_analytics
+from integrations import (
+    fetch_coursera_courses, fetch_udemy_courses, fetch_adzuna_internships,
+    sync_courses_to_db, sync_internships_to_db, integrations_status,
+)
+
+# Mentor reviews/ratings + Push notifications
+from reviews import (
+    create_review, list_mentor_reviews, get_mentor_rating_stats,
+    seed_sample_reviews, refresh_mentor_rating,
+)
+from notifications import (
+    register_push_token, deregister_push_token, send_push, list_inbox,
+    mark_inbox_read, unread_count, notify_booking_created, notify_booking_confirmed,
+    notify_event_registered, notify_mentor_approved, notify_review_received,
 )
 
 # ----------------------------------------------------------------------------
@@ -976,6 +994,15 @@ async def create_booking(req: BookingRequest, user: dict = Depends(get_current_u
     result = await db.bookings.insert_one(booking)
     booking["id"] = str(result.inserted_id)
     booking.pop("_id", None)
+    # Best-effort notify the mentor about the new booking
+    try:
+        await notify_booking_created(
+            db, mentor_id=req.mentor_id,
+            student_name=user["full_name"], topic=req.topic,
+            when=req.slot_start_iso,
+        )
+    except Exception:
+        pass
     return booking
 
 
@@ -1168,6 +1195,187 @@ async def track_click(payload: dict, user: dict = Depends(get_current_user)):
         raise HTTPException(400, "module_id is required")
     await track_module_click(db, str(user["_id"]), module_id)
     return {"status": "tracked", "module_id": module_id}
+
+
+# ----------------------------------------------------------------------------
+# Analytics — role-aware dashboards
+# ----------------------------------------------------------------------------
+@api_router.get("/analytics")
+async def analytics_dispatcher(user: dict = Depends(get_current_user)):
+    """Returns the analytics payload appropriate for the caller's role.
+    Admin/super_admin -> platform-wide. College -> their institution. Mentor -> their bookings."""
+    return await get_analytics_for(db, user)
+
+
+@api_router.get("/analytics/super-admin")
+async def analytics_super_admin(user: dict = Depends(get_current_user)):
+    if user["role"] != "admin":
+        raise HTTPException(403, "Super admin access required")
+    return await super_admin_analytics(db, include_revenue=True)
+
+
+@api_router.get("/analytics/admin")
+async def analytics_admin_endpoint(user: dict = Depends(get_current_user)):
+    if user["role"] not in ("admin",):
+        raise HTTPException(403, "Admin access required")
+    return await super_admin_analytics(db, include_revenue=False)
+
+
+@api_router.get("/analytics/college")
+async def analytics_college_endpoint(user: dict = Depends(get_current_user),
+                                      institution_name: Optional[str] = None):
+    if user["role"] not in ("college", "admin"):
+        raise HTTPException(403, "College / admin access required")
+    inst = institution_name or (user.get("school_info") or {}).get("institution_name") or user.get("full_name")
+    return await college_analytics(db, inst)
+
+
+@api_router.get("/analytics/mentor")
+async def analytics_mentor_endpoint(user: dict = Depends(get_current_user),
+                                     mentor_id: Optional[str] = None):
+    if user["role"] == "admin" and mentor_id:
+        return await mentor_analytics(db, mentor_id)
+    if user["role"] != "mentor":
+        raise HTTPException(403, "Mentor access required")
+    return await mentor_analytics(db, str(user["_id"]))
+
+
+# ----------------------------------------------------------------------------
+# External API Integrations — Coursera / Udemy / Adzuna
+# Mock-mode by default; real-mode activates when env vars are set.
+# ----------------------------------------------------------------------------
+@api_router.get("/integrations/status")
+async def get_integrations_status():
+    """Returns which integrations are running in 'live' vs 'mock' mode."""
+    return integrations_status()
+
+
+@api_router.get("/integrations/courses")
+async def integrations_courses(query: str = "computer science", limit: int = 10):
+    """Live fetch of courses from Coursera + Udemy (mock fallback if no keys)."""
+    coursera = await fetch_coursera_courses(query, limit)
+    udemy = await fetch_udemy_courses(query, limit)
+    return {"items": coursera + udemy, "status": integrations_status()}
+
+
+@api_router.get("/integrations/internships")
+async def integrations_internships(query: str = "internship", country: str = "in", limit: int = 10):
+    items = await fetch_adzuna_internships(query, country, limit)
+    return {"items": items, "status": integrations_status()}
+
+
+@api_router.post("/integrations/sync/courses")
+async def sync_courses(user: dict = Depends(get_current_user)):
+    """Admin-only: pull Coursera + Udemy data into our courses collection."""
+    if user["role"] != "admin":
+        raise HTTPException(403, "Admin access required")
+    res = await sync_courses_to_db(db)
+    return {"synced": res, "status": integrations_status()}
+
+
+@api_router.post("/integrations/sync/internships")
+async def sync_internships(user: dict = Depends(get_current_user)):
+    """Admin-only: pull Adzuna data into our internships collection."""
+    if user["role"] != "admin":
+        raise HTTPException(403, "Admin access required")
+    res = await sync_internships_to_db(db)
+    return {"synced": res, "status": integrations_status()}
+
+
+# ----------------------------------------------------------------------------
+# Mentor Reviews — students rate completed sessions
+# ----------------------------------------------------------------------------
+class ReviewIn(BaseModel):
+    mentor_id: str
+    rating: int = Field(..., ge=1, le=5)
+    comment: Optional[str] = ""
+    booking_id: Optional[str] = None
+
+
+@api_router.post("/reviews")
+async def post_review(req: ReviewIn, user: dict = Depends(get_current_user)):
+    """Submit a review — only students can review mentors. One review per booking_id."""
+    if user["role"] not in ("student", "alumni"):
+        raise HTTPException(403, "Only students/alumni can review mentors")
+    review = await create_review(
+        db,
+        mentor_id=req.mentor_id,
+        student_id=str(user["_id"]),
+        student_name=user.get("full_name", "Student"),
+        rating=req.rating,
+        comment=req.comment or "",
+        booking_id=req.booking_id,
+    )
+    # Best-effort notify mentor
+    try:
+        await notify_review_received(db, mentor_id=req.mentor_id,
+                                      rating=req.rating,
+                                      student_name=user.get("full_name", "Student"))
+    except Exception:
+        pass
+    if isinstance(review.get("created_at"), datetime):
+        review["created_at"] = review["created_at"].isoformat()
+    return review
+
+
+@api_router.get("/mentors/{mentor_id}/reviews")
+async def get_reviews(mentor_id: str, limit: int = 20):
+    """Public — returns review list + aggregate stats for a mentor."""
+    items = await list_mentor_reviews(db, mentor_id, limit)
+    stats = await get_mentor_rating_stats(db, mentor_id)
+    return {"items": items, "stats": stats}
+
+
+# ----------------------------------------------------------------------------
+# Push Notifications — register tokens, fetch in-app inbox
+# ----------------------------------------------------------------------------
+class PushTokenRegister(BaseModel):
+    token: str
+    platform: Optional[str] = "unknown"
+
+
+@api_router.post("/notifications/register")
+async def notifications_register(req: PushTokenRegister, user: dict = Depends(get_current_user)):
+    """Save the device's Expo push token. Called from client on first launch."""
+    return await register_push_token(db, str(user["_id"]), req.token, req.platform or "unknown")
+
+
+@api_router.delete("/notifications/register")
+async def notifications_deregister(req: PushTokenRegister, user: dict = Depends(get_current_user)):
+    """Remove a push token (e.g. on logout)."""
+    n = await deregister_push_token(db, req.token)
+    return {"removed": n}
+
+
+@api_router.get("/notifications")
+async def notifications_inbox(user: dict = Depends(get_current_user), limit: int = 30):
+    """Returns the in-app notification inbox + unread count."""
+    items = await list_inbox(db, str(user["_id"]), limit)
+    unread = await unread_count(db, str(user["_id"]))
+    return {"items": items, "unread": unread}
+
+
+@api_router.post("/notifications/mark-read")
+async def notifications_mark_read(payload: Optional[dict] = None,
+                                   user: dict = Depends(get_current_user)):
+    ids = (payload or {}).get("ids") if payload else None
+    n = await mark_inbox_read(db, str(user["_id"]), ids)
+    return {"updated": n}
+
+
+# Admin-only: send a manual broadcast (for announcements)
+class ManualPushIn(BaseModel):
+    user_id: str
+    title: str
+    body: str
+    data: Optional[Dict[str, Any]] = None
+
+
+@api_router.post("/notifications/send")
+async def notifications_send_manual(req: ManualPushIn, user: dict = Depends(get_current_user)):
+    if user["role"] != "admin":
+        raise HTTPException(403, "Admin only")
+    return await send_push(db, user_id=req.user_id, title=req.title, body=req.body, data=req.data)
 
 
 # ----------------------------------------------------------------------------

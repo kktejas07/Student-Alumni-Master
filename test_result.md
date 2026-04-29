@@ -298,6 +298,45 @@ backend:
             30 events (with relative deadlines), 30 courses, 30 internships, 30 deals,
             12 knowledge rooms, 25 bookings, 60 room messages.
             All TestPass@123. Updated /app/memory/test_credentials.md with full credential map.
+
+  - task: "Role-Based Analytics Engine — /api/analytics dispatcher + 4 dashboards"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/analytics.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: |
+            New analytics module with role-aware dispatcher.
+            Admin -> platform KPIs (94 users, role splits, pending mentors), 14-day growth line, donut role-distribution, top 8 colleges, mentor-categories bar (4 spec-aligned), MOCKED revenue card.
+            College -> institution-scoped: students/alumni/mentors/bookings KPIs, education-level + career-path distributions, top alumni list, 14-day enrollment trend.
+            Mentor -> personal: bookings/sessions/hours/earnings/rating KPIs, 8-week trend, top topics, upcoming sessions list.
+            Endpoints: GET /api/analytics (dispatcher), /analytics/super-admin, /admin, /college, /mentor.
+            Manual verification with admin@careerpath.app, mentor01@test.com, iith@university.in: all 3 roles return correctly shaped payloads. Integrated into dashboard via "Platform/Mentor/Institution analytics" CTA banner.
+
+  - task: "External API Integrations — Coursera/Udemy/Adzuna mock-fallback"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/integrations.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: |
+            Three connectors that auto-fallback to curated mocks when API key envs absent.
+            - Coursera (env: COURSERA_API_TOKEN) — falls back to 5 curated picks
+            - Udemy (env: UDEMY_CLIENT_ID + UDEMY_CLIENT_SECRET) — falls back to 5 curated picks
+            - Adzuna (env: ADZUNA_APP_ID + ADZUNA_APP_KEY) — falls back to 6 internships
+            Endpoints: GET /api/integrations/status, /courses, /internships; admin POSTs /sync/courses + /sync/internships to merge into DB.
+            Each item carries source field: 'coursera|udemy|adzuna|manual' for UI badging.
+            Verified: status returns {coursera:'mock', udemy:'mock', adzuna:'mock'}. /courses returns 4 items (2 coursera + 2 udemy). /internships returns Adzuna mocks. To go LIVE just set the env vars; no code change needed.
+
+
         - working: true
           agent: "testing"
           comment: |

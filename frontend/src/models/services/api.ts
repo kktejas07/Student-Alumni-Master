@@ -202,6 +202,29 @@ export const api = {
 
   trackModuleClick: (module_id: string) =>
     request<any>('/dashboard/track-click', { method: 'POST', body: { module_id } }),
+
+  // Analytics — adapts payload to caller's role (admin/college/mentor)
+  analytics: () => request<any>('/analytics'),
+
+  // Integrations status + live fetches
+  integrationsStatus: () => request<any>('/integrations/status'),
+  liveCourses: (q?: string) => request<any>(`/integrations/courses${q ? `?query=${encodeURIComponent(q)}` : ''}`),
+  liveInternships: (q?: string) => request<any>(`/integrations/internships${q ? `?query=${encodeURIComponent(q)}` : ''}`),
+
+  // Bookings
+  myBookings: () => request<any>('/bookings/me'),
+
+  // Reviews
+  postReview: (payload: { mentor_id: string; rating: number; comment?: string; booking_id?: string }) =>
+    request<any>('/reviews', { method: 'POST', body: payload }),
+  mentorReviews: (mentor_id: string) => request<any>(`/mentors/${mentor_id}/reviews`),
+
+  // Notifications
+  registerPushToken: (token: string, platform = 'unknown') =>
+    request<any>('/notifications/register', { method: 'POST', body: { token, platform } }),
+  notifications: () => request<any>('/notifications'),
+  markNotificationsRead: (ids?: string[]) =>
+    request<any>('/notifications/mark-read', { method: 'POST', body: { ids } }),
 };
 
 export { BASE_URL };
