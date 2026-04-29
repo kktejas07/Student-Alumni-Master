@@ -45,6 +45,14 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr, field_validator
 
+# Content prioritization engine — implements interest + edu-level + deadline + frequency scoring
+from personalization import (
+    build_personalized_dashboard,
+    track_module_click,
+    transition_to_alumni,
+    CAREER_PATH_TO_MENTOR_CATEGORY,
+)
+
 # ----------------------------------------------------------------------------
 # Setup & Configuration
 # ----------------------------------------------------------------------------
@@ -934,60 +942,72 @@ async def post_room_message(room_id: str, payload: dict, user: dict = Depends(ge
 # ----------------------------------------------------------------------------
 @api_router.get("/dashboard")
 async def dashboard(user: dict = Depends(get_current_user)):
-    """Unified dashboard payload. Implements the content-prioritization logic per spec.
-
-    Logic:
-    - Filter content by user's career_path (interest-based prioritization)
-    - For Class 11/12 students → prioritize scholarships + campus tours
-    - For university students → prioritize internships, hackathons, higher ed
-    - Surface real-time events with deadlines first
     """
-    role = user["role"]
-    career = user.get("career_path")
-    student = user.get("student_info") or {}
-    edu = student.get("education_level", "")
+    Unified dashboard endpoint with full content prioritization.
+    See personalization.py for the scoring engine. The payload combines:
+      - Module priority order (PhonePe-style grid order)
+      - "Recommended For You" hand-picks (mentor + urgent event + course)
+      - "Closing Soon" rail (deadlines within 7 days)
+      - Featured items per module (filtered by career_path)
+      - Personalization metadata (education_level, can_transition_alumni, etc.)
+    """
+    payload = await build_personalized_dashboard(db, user)
+    payload["user"] = serialize_user(user)
+    return payload
 
-    # ---- Education-level segmentation ----
-    is_school_student = edu in ("plus_one", "plus_two")  # Class 11 / 12
 
-    # Interest-based filter for content
-    course_q = {"career_paths": career} if career else {}
+# Preferences editor — the spec mandates "simple filters and dropdown menus"
+# for changing focus / education_level / interests. This is the endpoint that
+# powers them. AI re-prioritization happens automatically because the dashboard
+# is recomputed on every fetch.
+class PreferencesUpdate(BaseModel):
+    career_path: Optional[CareerPath] = None
+    education_level: Optional[EducationLevel] = None
+    interests: Optional[List[str]] = None
+    skills: Optional[List[str]] = None
 
-    courses = await db.courses.find(course_q, {"_id": 0}).limit(4).to_list(4)
-    deals = await db.deals.find({}, {"_id": 0}).limit(4).to_list(4)
-    internships = await db.internships.find(course_q, {"_id": 0}).limit(4).to_list(4)
-    # Real-time events: nearest first
-    events = await db.events.find({}, {"_id": 0}).sort("start_date", 1).limit(4).to_list(4)
 
-    cached = await db.career_suggestions.find_one({"user_id": str(user["_id"])}, {"_id": 0})
+@api_router.patch("/users/me/preferences", response_model=UserResponse)
+async def update_preferences(req: PreferencesUpdate, user: dict = Depends(get_current_user)):
+    """Quick-update for career path / education level / interests via dropdowns."""
+    update: dict = {}
+    if req.career_path is not None:
+        update["career_path"] = req.career_path
+    if req.interests is not None:
+        update["interests"] = req.interests
+    if req.skills is not None:
+        update["skills"] = req.skills
+    if req.education_level is not None:
+        # Update the nested student_info field
+        student_info = user.get("student_info") or {}
+        student_info["education_level"] = req.education_level
+        update["student_info"] = student_info
+    if update:
+        update["updated_at"] = datetime.now(timezone.utc)
+        await db.users.update_one({"_id": user["_id"]}, {"$set": update})
+    fresh = await db.users.find_one({"_id": user["_id"]})
+    return UserResponse(**serialize_user(fresh))
 
-    return {
-        "user": serialize_user(user),
-        "stats": {
-            "courses_available": await db.courses.count_documents({}),
-            "mentors_available": await db.sample_mentors.count_documents({}),
-            "internships_available": await db.internships.count_documents({}),
-            "deals_available": await db.deals.count_documents({}),
-            "events_available": await db.events.count_documents({}),
-        },
-        "featured_courses": courses,
-        "featured_deals": deals,
-        "featured_internships": internships,
-        "featured_events": events,
-        "career_suggestions": cached or None,
-        # Personalization metadata for the frontend to adapt the dashboard
-        "personalization": {
-            "career_path": career,
-            "education_level": edu,
-            "is_school_student": is_school_student,
-            # Module priority order for the dashboard cards
-            "priority_modules": (
-                ["events", "scholarships", "courses", "campus_tours", "deals", "insurance", "housing"]
-                if is_school_student
-                else ["career_guidelines", "events", "courses", "networking", "financial", "insurance", "housing", "deals"]
-            ),
-        },
-    }
+
+@api_router.post("/users/me/transition-alumni", response_model=UserResponse)
+async def transition_alumni_endpoint(user: dict = Depends(get_current_user)):
+    """Convert a student account into an alumni account (B.Tech complete).
+    Per spec: this unlocks Knowledge Rooms emphasis + mentor application path."""
+    if user.get("role") not in ("student", "alumni"):
+        raise HTTPException(403, "Only students can transition to alumni")
+    fresh = await transition_to_alumni(db, user)
+    return UserResponse(**serialize_user(fresh))
+
+
+@api_router.post("/dashboard/track-click")
+async def track_click(payload: dict, user: dict = Depends(get_current_user)):
+    """Increment usage counter for a dashboard module — powers the
+    'frequency of use' weight in the priority engine."""
+    module_id = (payload or {}).get("module_id")
+    if not module_id:
+        raise HTTPException(400, "module_id is required")
+    await track_module_click(db, str(user["_id"]), module_id)
+    return {"status": "tracked", "module_id": module_id}
 
 
 # ----------------------------------------------------------------------------

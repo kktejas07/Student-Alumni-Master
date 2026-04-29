@@ -1,30 +1,38 @@
 /**
- * Home Tab - Student Alumni Dashboard
- * =====================================
- * Implements the 8-module dashboard per spec, with content prioritization
- * driven by the backend /dashboard `personalization` payload.
+ * Home Tab — Student Alumni Dashboard (PhonePe-inspired layout)
+ * ==============================================================
+ * Architecture:
+ *  - Top hero: greeting + profile/QR + edit-preferences pencil
+ *  - Filter chips (All / Career / Events / Courses / Networking)
+ *  - "Recommended for You" — hand-picked mentor + urgent event + course
+ *  - "Closing Soon" rail — events with deadline ≤ 7 days (urgency badges)
+ *  - 4-col PhonePe-style tile grid (priority modules from backend engine)
+ *  - Suggested Mentors carousel
+ *  - Upcoming Events carousel
+ *  - Top Student Deals carousel
+ *  - Promotions strip — demoted modules for school students
+ *  - Alumni transition CTA — visible when user is eligible
  *
- * Module priority order is determined server-side:
- *  - Class 11/12 students: scholarships + campus tours first
- *  - University students: career_guidelines + internships + hackathons first
- *  - All roles see all 8 modules but in a personalized order
- *
- * Design: minimalist Material 3 inspired — soft shadows, generous spacing,
- * brand purple as primary accent, no harsh red.
+ * Motion:
+ *  - All cards/tiles use AnimatedCard / AnimatedTile (M3 ripple + spring scale)
+ *  - Sections fade-up with 60ms stagger
+ *  - Filter chips trigger smooth re-fetch via PATCH /users/me/preferences
  */
-import { useEffect } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
   Image,
-  TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Platform,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   Sparkles,
   ArrowRight,
@@ -39,119 +47,151 @@ import {
   Shield,
   CreditCard,
   Compass,
+  Bell,
+  QrCode,
+  Settings,
+  Clock,
+  Star,
+  TrendingUp,
 } from 'lucide-react-native';
-import { Colors as C, Spacing, Typography, Shadows } from '@/src/theme';
-import { Card, SALogo } from '@/src/views/components';
+import { Colors as C, Spacing, Typography, Shadows, Radius, Gradients } from '@/src/theme';
+import * as Haptics from 'expo-haptics';
+import {
+  AnimatedCard,
+  AnimatedTile,
+  CountdownBadge,
+  StaggerView,
+  SALogo,
+} from '@/src/views/components';
 import { useAuth, useDashboard, useCareerSuggestions } from '@/src/viewmodels/hooks';
+import { api } from '@/src/models/services/api';
 
-// 8-module catalog metadata. Order is overridden by personalization.priority_modules.
-// Each module has icon, label, color tint, and route.
+// ---------------------------------------------------------------------------
+// Module catalogue: icon + tint + route per module-id used in the priority list
+// ---------------------------------------------------------------------------
 const MODULES: Record<
   string,
-  { label: string; icon: any; tint: string; route: string; testID: string }
+  { label: string; icon: any; tint: string; iconColor: string; route: string }
 > = {
   career_guidelines: {
     label: 'Career\nGuidelines',
-    icon: Compass,
-    tint: '#EDE0F7',
+    icon: Compass, tint: '#EDE0F7', iconColor: C.deepPurple,
     route: '/internships',
-    testID: 'mod-career-guidelines',
   },
   events: {
     label: 'Events',
-    icon: Calendar,
-    tint: '#FCE4EC',
+    icon: Calendar, tint: '#FCE4EC', iconColor: '#C2185B',
     route: '/events',
-    testID: 'mod-events',
   },
   courses: {
     label: 'Courses',
-    icon: BookOpen,
-    tint: '#E3F2FD',
+    icon: BookOpen, tint: '#E3F2FD', iconColor: '#1565C0',
     route: '/(tabs)/courses',
-    testID: 'mod-courses',
   },
   networking: {
-    label: 'Networking',
-    icon: Users,
-    tint: '#E8F5E9',
-    route: '/(tabs)/network',
-    testID: 'mod-networking',
+    label: 'Knowledge\nRooms',
+    icon: Users, tint: '#E8F5E9', iconColor: '#2E7D32',
+    route: '/rooms',
   },
   financial: {
     label: 'Financial\nServices',
-    icon: CreditCard,
-    tint: '#FFF8E1',
+    icon: CreditCard, tint: '#FFF8E1', iconColor: '#EF6C00',
     route: '/resources?cat=loans',
-    testID: 'mod-financial',
   },
   insurance: {
     label: 'Insurance',
-    icon: Shield,
-    tint: '#F3E5F5',
+    icon: Shield, tint: '#F3E5F5', iconColor: '#6A1B9A',
     route: '/resources?cat=insurance',
-    testID: 'mod-insurance',
   },
   housing: {
     label: 'Housing',
-    icon: HomeIcon,
-    tint: '#E0F7FA',
+    icon: HomeIcon, tint: '#E0F7FA', iconColor: '#00838F',
     route: '/resources?cat=housing',
-    testID: 'mod-housing',
   },
   deals: {
     label: 'Deals',
-    icon: Tag,
-    tint: '#FFEBEE',
+    icon: Tag, tint: '#FCE4EC', iconColor: '#AD1457',
     route: '/(tabs)/deals',
-    testID: 'mod-deals',
   },
-  // School-student priority modules
   scholarships: {
     label: 'Scholarships',
-    icon: GraduationCap,
-    tint: '#FFF8E1',
+    icon: GraduationCap, tint: '#FFF8E1', iconColor: '#EF6C00',
     route: '/resources?cat=loans',
-    testID: 'mod-scholarships',
   },
   campus_tours: {
     label: 'Campus\nTours',
-    icon: Briefcase,
-    tint: '#E8F5E9',
+    icon: Briefcase, tint: '#E8F5E9', iconColor: '#2E7D32',
     route: '/events',
-    testID: 'mod-campus-tours',
   },
 };
 
-// Default order if backend doesn't supply personalization
-const DEFAULT_MODULES = [
-  'career_guidelines', 'events', 'courses', 'networking',
-  'financial', 'insurance', 'housing', 'deals',
-];
-
 const PATH_LABELS: Record<string, string> = {
-  job: 'Job Path',
+  job: 'Job-Ready Path',
   higher_education: 'Higher Ed Path',
   startup: 'Startup Path',
   business: 'Business Path',
 };
 
+// Filter chips for quick re-prioritization (per spec "simple filters and dropdowns")
+const FILTER_CHIPS = [
+  { id: 'all', label: 'For You', testID: 'chip-all' },
+  { id: 'career', label: 'Career', testID: 'chip-career' },
+  { id: 'events', label: 'Events', testID: 'chip-events' },
+  { id: 'courses', label: 'Courses', testID: 'chip-courses' },
+  { id: 'networking', label: 'Network', testID: 'chip-networking' },
+] as const;
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 export default function HomeTab() {
   const router = useRouter();
   const { user } = useAuth();
   const { data, loading, refetch } = useDashboard();
   const { suggestion, generate, loadCached, loading: aiLoading } = useCareerSuggestions();
+  const [activeFilter, setActiveFilter] = useState<string>('all');
 
   useEffect(() => {
     loadCached();
   }, []);
 
-  // Resolve module order: server-provided priority OR default 8
-  const moduleIds: string[] = data?.personalization?.priority_modules?.length
-    ? data.personalization.priority_modules
-    : DEFAULT_MODULES;
+  // Refetch dashboard whenever user comes back to the tab (preferences may have changed)
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, []),
+  );
 
+  const personalization = data?.personalization || {};
+  const moduleIds: string[] = personalization?.priority_modules?.length
+    ? personalization.priority_modules
+    : ['career_guidelines', 'events', 'courses', 'networking', 'financial', 'insurance', 'housing', 'deals'];
+  const promoIds: string[] = personalization?.promotion_modules || [];
   const path = user?.career_path;
+
+  const handleTilePress = useCallback(
+    (moduleId: string, route: string) => {
+      // Track click for frequency-based weighting
+      api.trackModuleClick(moduleId).catch(() => {});
+      router.push(route as any);
+    },
+    [router],
+  );
+
+  // Filter chip handler — re-fetches with the current preferences (chip is purely cosmetic
+  // for narrowing visible content; the real priority comes from backend personalization).
+  const filteredModules = useMemo(() => {
+    if (activeFilter === 'all') return moduleIds;
+    if (activeFilter === 'career') return moduleIds.filter((m) => ['career_guidelines', 'financial', 'scholarships'].includes(m));
+    if (activeFilter === 'events') return moduleIds.filter((m) => ['events', 'campus_tours'].includes(m));
+    if (activeFilter === 'courses') return moduleIds.filter((m) => ['courses', 'scholarships'].includes(m));
+    if (activeFilter === 'networking') return moduleIds.filter((m) => ['networking', 'events'].includes(m));
+    return moduleIds;
+  }, [activeFilter, moduleIds]);
+
+  const recs = data?.recommendations || {};
+  const closingSoon: any[] = data?.closing_soon || [];
+  const suggestedMentors: any[] = data?.suggested_mentors || [];
 
   if (loading && !data) {
     return (
@@ -164,36 +204,237 @@ export default function HomeTab() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView
-        contentContainerStyle={styles.container}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} tintColor={C.brandPurple} />}
+    <View style={styles.safe}>
+      {/* ===== TOP HERO with gradient (PhonePe-style header) ===== */}
+      <LinearGradient
+        colors={Gradients.heroDiagonal as any}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.hero}
       >
-        {/* ===== Header ===== */}
-        <View style={styles.headerRow}>
-          <SALogo size={36} variant="gradient" />
-          <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={styles.kicker}>{path ? PATH_LABELS[path].toUpperCase() : 'WELCOME'}</Text>
-            <Text style={styles.greeting}>Hi, {user?.full_name?.split(' ')[0] || 'there'}</Text>
+        <SafeAreaView edges={['top']}>
+          <View style={styles.heroRow}>
+            <SALogo size={36} variant="white" />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.heroKicker}>{path ? PATH_LABELS[path] : 'WELCOME'}</Text>
+              <Text style={styles.heroGreeting} numberOfLines={1}>
+                Hi, {user?.full_name?.split(' ')[0] || 'there'} 👋
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => router.push('/(tabs)/profile')}
+              testID="home-qr-btn"
+              style={styles.heroIconBtn}
+              android_ripple={{ color: 'rgba(255,255,255,0.18)', borderless: true }}
+            >
+              <QrCode size={20} color={C.white} />
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/chat')}
+              testID="home-chat-btn"
+              style={[styles.heroIconBtn, { marginLeft: 8 }]}
+              android_ripple={{ color: 'rgba(255,255,255,0.18)', borderless: true }}
+            >
+              <Bell size={20} color={C.white} />
+            </Pressable>
           </View>
-          <TouchableOpacity onPress={() => router.push('/chat')} testID="home-chat-btn" style={styles.chatBtn}>
-            <MessageCircle size={20} color={C.brandPurple} />
-          </TouchableOpacity>
-        </View>
 
-        {/* ===== Mentor pending banner — only for mentors awaiting approval ===== */}
+          {/* Filter chips */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipRow}
+          >
+            {FILTER_CHIPS.map((c) => {
+              const active = activeFilter === c.id;
+              return (
+                <Pressable
+                  key={c.id}
+                  onPress={() => {
+                    if (Platform.OS !== 'web') Haptics.selectionAsync();
+                    setActiveFilter(c.id);
+                  }}
+                  testID={c.testID}
+                  style={[
+                    styles.chip,
+                    active ? styles.chipActive : styles.chipInactive,
+                  ]}
+                >
+                  <Text style={[styles.chipText, { color: active ? C.deepPurple : C.white }]}>
+                    {c.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </SafeAreaView>
+      </LinearGradient>
+
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.scroll}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={refetch} tintColor={C.brandPurple} />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ===== Mentor pending banner ===== */}
         {user?.role === 'mentor' && user?.mentor_status === 'pending' && (
-          <Card style={[styles.pendingBanner]}>
+          <AnimatedCard
+            style={[styles.pendingBanner]}
+            bg={C.warningSoft}
+            index={0}
+            testID="banner-mentor-pending"
+          >
             <Text style={[Typography.bodyBold, { color: C.deepPurple }]}>Account Under Review</Text>
             <Text style={[Typography.bodySm, { color: C.textSecondary, marginTop: 4 }]}>
               Your mentor profile is being reviewed. You'll be notified within 24-48 hours.
             </Text>
-          </Card>
+          </AnimatedCard>
         )}
 
-        {/* ===== AI Career Roadmap Card ===== */}
-        <View style={styles.aiCardWrap}>
-          <Card style={styles.aiCard} bg={C.deepPurple}>
+        {/* ===== Alumni transition CTA ===== */}
+        {personalization?.can_transition_alumni && (
+          <AnimatedCard
+            onPress={async () => {
+              try {
+                await api.transitionToAlumni();
+                refetch();
+              } catch {}
+            }}
+            style={styles.alumniBanner}
+            index={0}
+            testID="banner-alumni-transition"
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={styles.alumniIcon}>
+                <GraduationCap size={22} color={C.white} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[Typography.bodyBold, { color: C.deepPurple }]}>
+                  Graduated? Become an alumni
+                </Text>
+                <Text style={[Typography.bodySm, { color: C.textSecondary, marginTop: 2 }]}>
+                  Unlock mentor mode + Knowledge Rooms.
+                </Text>
+              </View>
+              <ArrowRight size={20} color={C.brandPurple} />
+            </View>
+          </AnimatedCard>
+        )}
+
+        {/* ===== Recommended For You (top picks) ===== */}
+        <SectionHeader
+          icon={<Star size={16} color={C.brandPurple} />}
+          title="Recommended for you"
+          subtitle="Curated by your career path"
+        />
+        <View style={styles.recRow}>
+          {/* Urgent event */}
+          {recs?.event && (
+            <AnimatedCard
+              onPress={() => router.push(`/event/${recs.event.id}` as any)}
+              style={[styles.recCard, { width: '48%' }]}
+              padded={false}
+              index={1}
+              testID="rec-event"
+            >
+              <Image source={{ uri: recs.event.image }} style={styles.recImg} />
+              <View style={{ padding: 12 }}>
+                <Text style={[Typography.label, { color: C.brandPurple, fontSize: 9 }]} numberOfLines={1}>
+                  {recs.event.category?.toUpperCase() || 'EVENT'}
+                </Text>
+                <Text style={[Typography.bodyBold, { color: C.textPrimary, fontSize: 13, marginTop: 2 }]} numberOfLines={2}>
+                  {recs.event.title}
+                </Text>
+                {typeof recs.event.deadline_days === 'number' && recs.event.deadline_days >= 0 && (
+                  <View style={{ marginTop: 8 }}>
+                    <CountdownBadge days={recs.event.deadline_days} />
+                  </View>
+                )}
+              </View>
+            </AnimatedCard>
+          )}
+          {/* Top mentor */}
+          {recs?.mentor && (
+            <AnimatedCard
+              onPress={() => router.push(`/mentor/${recs.mentor.id}` as any)}
+              style={[styles.recCard, { width: '48%' }]}
+              padded={false}
+              index={2}
+              testID="rec-mentor"
+            >
+              <View style={styles.recMentorTop}>
+                <Image source={{ uri: recs.mentor.avatar }} style={styles.recAvatar} />
+              </View>
+              <View style={{ padding: 12, paddingTop: 6 }}>
+                <Text style={[Typography.label, { color: C.brandPurple, fontSize: 9 }]}>TOP MENTOR</Text>
+                <Text style={[Typography.bodyBold, { color: C.textPrimary, fontSize: 13, marginTop: 2 }]} numberOfLines={1}>
+                  {recs.mentor.full_name}
+                </Text>
+                <Text style={[Typography.bodySm, { color: C.textSecondary, fontSize: 11 }]} numberOfLines={1}>
+                  {recs.mentor.title}
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 4 }}>
+                  <Star size={12} color={C.warning} fill={C.warning} />
+                  <Text style={[Typography.bodySm, { fontSize: 11, color: C.textSecondary }]}>
+                    {recs.mentor.rating} · {recs.mentor.sessions} sessions
+                  </Text>
+                </View>
+              </View>
+            </AnimatedCard>
+          )}
+        </View>
+
+        {/* ===== Closing Soon strip — events with urgent deadlines ===== */}
+        {closingSoon.length > 0 && (
+          <>
+            <SectionHeader
+              icon={<Clock size={16} color={C.danger} />}
+              title="Closing soon"
+              subtitle="Don't miss these deadlines"
+              right={
+                <Pressable onPress={() => router.push('/events')}>
+                  <Text style={styles.seeAll}>See all</Text>
+                </Pressable>
+              }
+            />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12, paddingHorizontal: Spacing.lg, paddingRight: Spacing.lg }}
+            >
+              {closingSoon.map((e: any, idx: number) => (
+                <AnimatedCard
+                  key={e.id}
+                  onPress={() => router.push(`/event/${e.id}` as any)}
+                  style={[styles.closingCard]}
+                  padded={false}
+                  index={idx}
+                  testID={`closing-${e.id}`}
+                >
+                  <Image source={{ uri: e.image }} style={styles.closingImg} />
+                  <View style={{ padding: 12 }}>
+                    <CountdownBadge days={e.deadline_days} />
+                    <Text
+                      style={[Typography.bodyBold, { color: C.textPrimary, fontSize: 13, marginTop: 8 }]}
+                      numberOfLines={2}
+                    >
+                      {e.title}
+                    </Text>
+                    <Text style={[Typography.bodySm, { color: C.textSecondary, fontSize: 11, marginTop: 2 }]} numberOfLines={1}>
+                      {e.venue}
+                    </Text>
+                  </View>
+                </AnimatedCard>
+              ))}
+            </ScrollView>
+          </>
+        )}
+
+        {/* ===== AI Career Roadmap card ===== */}
+        <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.lg }}>
+          <AnimatedCard bg={C.deepPurple} style={styles.aiCard} index={0}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
               <Sparkles size={18} color={C.lightPurple} />
               <Text style={[Typography.label, { color: C.lightPurple }]}>AI CAREER ROADMAP</Text>
@@ -207,13 +448,15 @@ export default function HomeTab() {
                   <View style={{ gap: 8, marginTop: 12 }}>
                     {suggestion.milestones.slice(0, 2).map((m: any, idx: number) => (
                       <View key={idx} style={styles.milestoneOnDark}>
-                        <Text style={[Typography.label, { color: C.lightPurple, fontSize: 10 }]}>{m.timeframe}</Text>
+                        <Text style={[Typography.label, { color: C.lightPurple, fontSize: 10 }]}>
+                          {m.timeframe}
+                        </Text>
                         <Text style={[Typography.bodyBold, { color: C.white }]}>{m.title}</Text>
                       </View>
                     ))}
                   </View>
                 )}
-                <TouchableOpacity
+                <Pressable
                   onPress={() => generate()}
                   testID="home-refresh-roadmap-btn"
                   style={styles.refreshBtn}
@@ -221,14 +464,14 @@ export default function HomeTab() {
                   <Text style={[Typography.bodyBold, { color: C.deepPurple, fontSize: 14 }]}>
                     {aiLoading ? 'Refreshing…' : 'Refresh roadmap'}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               </>
             ) : (
               <>
                 <Text style={[Typography.body, { color: C.white, marginTop: 4 }]}>
                   Generate your personalized AI roadmap with milestones and skills.
                 </Text>
-                <TouchableOpacity
+                <Pressable
                   onPress={() => generate()}
                   testID="home-generate-roadmap-btn"
                   style={styles.refreshBtn}
@@ -236,65 +479,105 @@ export default function HomeTab() {
                   <Text style={[Typography.bodyBold, { color: C.deepPurple, fontSize: 14 }]}>
                     {aiLoading ? 'Generating…' : 'Generate my roadmap ✨'}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               </>
             )}
-          </Card>
+          </AnimatedCard>
         </View>
 
-        {/* ===== 8-MODULE PRIORITY GRID ===== */}
-        <Text style={styles.sectionTitle}>Explore</Text>
-        <View style={styles.modulesGrid}>
-          {moduleIds.map((id) => {
+        {/* ===== PhonePe-style 4-col tile grid ===== */}
+        <SectionHeader
+          icon={<TrendingUp size={16} color={C.brandPurple} />}
+          title="Explore"
+          subtitle={
+            personalization.is_school_student
+              ? 'Top picks for school students'
+              : personalization.is_alumni
+                ? 'Curated for alumni'
+                : 'Your priority modules'
+          }
+          right={
+            <Pressable
+              onPress={() => router.push('/preferences' as any)}
+              testID="edit-prefs-btn"
+              style={styles.editPrefsBtn}
+            >
+              <Settings size={14} color={C.brandPurple} />
+              <Text style={[Typography.bodySm, { color: C.brandPurple, fontFamily: 'DMSans_600SemiBold', marginLeft: 4 }]}>
+                Edit
+              </Text>
+            </Pressable>
+          }
+        />
+        <View style={styles.tileGrid}>
+          {filteredModules.map((id, idx) => {
             const m = MODULES[id];
             if (!m) return null;
             const Icon = m.icon;
             return (
-              <TouchableOpacity
-                key={id}
-                onPress={() => router.push(m.route as any)}
-                activeOpacity={0.7}
-                style={styles.moduleCell}
-                testID={m.testID}
-              >
-                <Card style={styles.moduleCard}>
-                  <View style={[styles.moduleIcon, { backgroundColor: m.tint }]}>
-                    <Icon size={22} color={C.deepPurple} />
-                  </View>
-                  <Text style={[Typography.bodyBold, styles.moduleLabel]}>{m.label}</Text>
-                </Card>
-              </TouchableOpacity>
+              <View key={id} style={styles.tileCell}>
+                <AnimatedTile
+                  label={m.label}
+                  icon={<Icon size={24} color={m.iconColor} />}
+                  tint={m.tint}
+                  onPress={() => handleTilePress(id, m.route)}
+                  index={idx}
+                  testID={`tile-${id}`}
+                />
+              </View>
             );
           })}
         </View>
 
-        {/* ===== Featured events strip ===== */}
-        {data?.featured_events?.length > 0 && (
+        {/* ===== Suggested Mentors carousel ===== */}
+        {suggestedMentors.length > 0 && (
           <>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Upcoming Events</Text>
-              <TouchableOpacity onPress={() => router.push('/events')}>
-                <Text style={styles.seeAll}>See all</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 16 }}>
-              {data.featured_events.map((e: any) => (
-                <TouchableOpacity key={e.id} style={{ width: 240 }} testID={`evt-${e.id}`}>
-                  <Card padded={false} style={{ overflow: 'hidden' }}>
-                    <Image source={{ uri: e.image }} style={styles.eventImg} />
-                    <View style={{ padding: 14 }}>
-                      <Text style={[Typography.label, { color: C.brandPurple, fontSize: 10 }]}>
-                        {e.category?.toUpperCase()}
-                      </Text>
-                      <Text style={[Typography.bodyBold, { color: C.textPrimary }]} numberOfLines={2}>
-                        {e.title}
-                      </Text>
-                      <Text style={[Typography.bodySm, { color: C.textSecondary, marginTop: 4 }]}>
-                        {e.start_date} · {e.venue}
+            <SectionHeader
+              icon={<Users size={16} color={C.brandPurple} />}
+              title="Mentors for you"
+              subtitle="Matched to your career path"
+              right={
+                <Pressable onPress={() => router.push('/(tabs)/network')}>
+                  <Text style={styles.seeAll}>See all</Text>
+                </Pressable>
+              }
+            />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12, paddingHorizontal: Spacing.lg }}
+            >
+              {suggestedMentors.map((m: any, idx: number) => (
+                <AnimatedCard
+                  key={m.id}
+                  onPress={() => router.push(`/mentor/${m.id}` as any)}
+                  style={styles.mentorCard}
+                  padded={false}
+                  index={idx}
+                  testID={`mentor-${m.id}`}
+                >
+                  <Image source={{ uri: m.avatar }} style={styles.mentorAvatar} />
+                  <View style={{ padding: 12, paddingTop: 8 }}>
+                    <Text
+                      style={[Typography.bodyBold, { color: C.textPrimary, fontSize: 13 }]}
+                      numberOfLines={1}
+                    >
+                      {m.full_name}
+                    </Text>
+                    <Text
+                      style={[Typography.bodySm, { color: C.textSecondary, fontSize: 11 }]}
+                      numberOfLines={1}
+                    >
+                      {m.title}
+                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 4 }}>
+                      <Star size={12} color={C.warning} fill={C.warning} />
+                      <Text style={[Typography.bodySm, { fontSize: 11, color: C.textSecondary }]}>
+                        {m.rating}
                       </Text>
                     </View>
-                  </Card>
-                </TouchableOpacity>
+                  </View>
+                </AnimatedCard>
               ))}
             </ScrollView>
           </>
@@ -303,53 +586,246 @@ export default function HomeTab() {
         {/* ===== Featured deals strip ===== */}
         {data?.featured_deals?.length > 0 && (
           <>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Top Student Deals</Text>
-              <TouchableOpacity onPress={() => router.push('/(tabs)/deals')}>
-                <Text style={styles.seeAll}>See all</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 16 }}>
-              {data.featured_deals.map((d: any) => (
-                <TouchableOpacity key={d.id} style={{ width: 220 }} testID={`deal-${d.id}`}>
-                  <Card padded={false} style={{ overflow: 'hidden' }}>
-                    <Image source={{ uri: d.image }} style={styles.dealImg} />
-                    <View style={{ padding: 14 }}>
-                      <Text style={[Typography.label, { color: C.textSecondary, fontSize: 10 }]}>{d.brand}</Text>
-                      <Text style={[Typography.bodyBold, { color: C.textPrimary }]} numberOfLines={1}>{d.title}</Text>
-                      <Text style={[Typography.bodyBold, { color: C.brandPurple, marginTop: 4, fontSize: 14 }]}>
-                        {d.discount}
-                      </Text>
-                    </View>
-                  </Card>
-                </TouchableOpacity>
+            <SectionHeader
+              icon={<Tag size={16} color={C.brandPurple} />}
+              title="Top student deals"
+              right={
+                <Pressable onPress={() => router.push('/(tabs)/deals')}>
+                  <Text style={styles.seeAll}>See all</Text>
+                </Pressable>
+              }
+            />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12, paddingHorizontal: Spacing.lg }}
+            >
+              {data.featured_deals.map((d: any, idx: number) => (
+                <AnimatedCard
+                  key={d.id}
+                  onPress={() => router.push('/(tabs)/deals')}
+                  style={{ width: 200 }}
+                  padded={false}
+                  index={idx}
+                  testID={`deal-${d.id}`}
+                >
+                  <Image source={{ uri: d.image }} style={styles.dealImg} />
+                  <View style={{ padding: 12 }}>
+                    <Text style={[Typography.label, { color: C.textSecondary, fontSize: 9 }]}>
+                      {d.brand}
+                    </Text>
+                    <Text
+                      style={[Typography.bodyBold, { color: C.textPrimary, fontSize: 13 }]}
+                      numberOfLines={1}
+                    >
+                      {d.title}
+                    </Text>
+                    <Text
+                      style={[
+                        Typography.bodyBold,
+                        { color: C.brandPurple, marginTop: 4, fontSize: 13 },
+                      ]}
+                    >
+                      {d.discount}
+                    </Text>
+                  </View>
+                </AnimatedCard>
               ))}
             </ScrollView>
           </>
         )}
+
+        {/* ===== Promotions strip — demoted modules ===== */}
+        {promoIds.length > 0 && activeFilter === 'all' && (
+          <>
+            <SectionHeader
+              title="Promotions"
+              subtitle="Other useful modules"
+            />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12, paddingHorizontal: Spacing.lg }}
+            >
+              {promoIds.map((id, idx) => {
+                const m = MODULES[id];
+                if (!m) return null;
+                const Icon = m.icon;
+                return (
+                  <AnimatedCard
+                    key={id}
+                    onPress={() => handleTilePress(id, m.route)}
+                    style={styles.promoCard}
+                    index={idx}
+                    testID={`promo-${id}`}
+                  >
+                    <View style={[styles.promoIcon, { backgroundColor: m.tint }]}>
+                      <Icon size={20} color={m.iconColor} />
+                    </View>
+                    <Text
+                      style={[Typography.bodyBold, { color: C.textPrimary, fontSize: 13, marginTop: 8 }]}
+                      numberOfLines={2}
+                    >
+                      {m.label.replace('\n', ' ')}
+                    </Text>
+                  </AnimatedCard>
+                );
+              })}
+            </ScrollView>
+          </>
+        )}
+
+        <View style={{ height: 80 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
+// ---------------------------------------------------------------------------
+// SectionHeader sub-component
+// ---------------------------------------------------------------------------
+function SectionHeader({
+  icon,
+  title,
+  subtitle,
+  right,
+}: {
+  icon?: React.ReactNode;
+  title: string;
+  subtitle?: string;
+  right?: React.ReactNode;
+}) {
+  return (
+    <StaggerView style={styles.sectionHeader}>
+      <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          {icon}
+          <Text style={[Typography.h3, { color: C.textPrimary, fontSize: 18 }]}>{title}</Text>
+        </View>
+        {subtitle && (
+          <Text style={[Typography.bodySm, { color: C.textSecondary, marginTop: 2 }]}>
+            {subtitle}
+          </Text>
+        )}
+      </View>
+      {right}
+    </StaggerView>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Styles
+// ---------------------------------------------------------------------------
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.background },
-  container: { padding: Spacing.lg, paddingBottom: 100 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.lg },
-  kicker: { ...Typography.label, color: C.brandPurple, fontSize: 10 },
-  greeting: { ...Typography.h2, color: C.textPrimary, marginTop: 2 },
-  chatBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  hero: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.lg,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+  },
+  heroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  heroKicker: {
+    ...Typography.label,
+    color: 'rgba(255,255,255,0.78)',
+    fontSize: 10,
+  },
+  heroGreeting: { ...Typography.h3, color: C.white, marginTop: 2, fontSize: 22 },
+  heroIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.24)',
+  },
+  chipRow: { gap: 8, paddingTop: 4, paddingRight: Spacing.lg },
+  chip: {
+    borderRadius: 18,
+    height: 32,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipActive: { backgroundColor: C.white, borderColor: C.white, borderWidth: 1 },
+  chipInactive: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(255,255,255,0.28)',
+    borderWidth: 1,
+  },
+  chipText: { fontSize: 12, fontFamily: 'DMSans_600SemiBold' },
+  scroll: { paddingTop: Spacing.lg, paddingBottom: 40 },
+
+  pendingBanner: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    borderLeftWidth: 4,
+    borderLeftColor: C.warning,
+  },
+  alumniBanner: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    backgroundColor: C.palePurple,
+    borderLeftWidth: 4,
+    borderLeftColor: C.brandPurple,
+  },
+  alumniIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: C.brandPurple,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+  },
+  seeAll: {
+    ...Typography.bodySm,
+    color: C.brandPurple,
+    fontFamily: 'DMSans_600SemiBold',
+  },
+  editPrefsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: Radius.pill,
+    backgroundColor: C.palePurple,
+  },
+
+  recRow: {
+    flexDirection: 'row',
+    paddingHorizontal: Spacing.lg,
+    gap: 12,
+  },
+  recCard: { overflow: 'hidden' },
+  recImg: { width: '100%', height: 90, backgroundColor: C.surfaceMuted },
+  recMentorTop: {
+    height: 90,
     backgroundColor: C.palePurple,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Shadows.sm,
   },
-  pendingBanner: { marginBottom: 16, backgroundColor: C.warningSoft, borderLeftWidth: 4, borderLeftColor: C.warning },
-  aiCardWrap: { marginBottom: Spacing.lg },
+  recAvatar: { width: 64, height: 64, borderRadius: 32, borderWidth: 3, borderColor: C.white },
+
+  closingCard: { width: 200, overflow: 'hidden' },
+  closingImg: { width: '100%', height: 80, backgroundColor: C.surfaceMuted },
+
   aiCard: { padding: 18 },
   milestoneOnDark: {
     backgroundColor: 'rgba(255,255,255,0.10)',
@@ -366,32 +842,30 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginTop: 14,
   },
-  sectionTitle: { ...Typography.h3, color: C.textPrimary, marginBottom: 12, marginTop: 8 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 24, marginBottom: 12 },
-  seeAll: { ...Typography.bodySm, color: C.brandPurple, fontFamily: 'DMSans_600SemiBold' },
-  modulesGrid: {
+
+  tileGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 8,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: 4,
   },
-  moduleCell: {
-    width: '47.5%',
+  tileCell: {
+    width: '25%',
+    paddingVertical: 8,
+    alignItems: 'center',
   },
-  moduleCard: {
-    padding: 16,
-    minHeight: 100,
-    justifyContent: 'space-between',
-  },
-  moduleIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+
+  mentorCard: { width: 150, overflow: 'hidden' },
+  mentorAvatar: { width: '100%', height: 110, backgroundColor: C.palePurple },
+
+  dealImg: { width: '100%', height: 90, backgroundColor: C.surfaceMuted },
+
+  promoCard: { width: 130, alignItems: 'flex-start' },
+  promoIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
   },
-  moduleLabel: { color: C.textPrimary, fontSize: 14, lineHeight: 18 },
-  eventImg: { width: '100%', height: 110, backgroundColor: C.surfaceMuted },
-  dealImg: { width: '100%', height: 100, backgroundColor: C.surfaceMuted },
 });

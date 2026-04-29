@@ -180,6 +180,20 @@ export const api = {
 
   // Dashboard
   dashboard: () => request<any>('/dashboard'),
+
+  // Personalization (preferences editor + alumni transition + click tracking)
+  updatePreferences: (payload: {
+    career_path?: string;
+    education_level?: string;
+    interests?: string[];
+    skills?: string[];
+  }) => request<any>('/users/me/preferences', { method: 'PATCH', body: payload }),
+
+  transitionToAlumni: () =>
+    request<any>('/users/me/transition-alumni', { method: 'POST', body: {} }),
+
+  trackModuleClick: (module_id: string) =>
+    request<any>('/dashboard/track-click', { method: 'POST', body: { module_id } }),
 };
 
 export { BASE_URL };

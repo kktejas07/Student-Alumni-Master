@@ -2,6 +2,10 @@
  * VIEW LAYER - Student Alumni Design System Components
  * Glass + Gradient + Purple style. Pure presentational components.
  */
+// Re-export PhonePe-style animated primitives so screens can keep importing
+// from a single design-system entry point.
+export { AnimatedCard, AnimatedTile, StaggerView, CountdownBadge } from './AnimatedCard';
+
 import React from 'react';
 import {
   View,
