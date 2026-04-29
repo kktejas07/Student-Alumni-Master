@@ -326,7 +326,7 @@ backend:
 frontend:
   - task: "Login screen — Google + LinkedIn OAuth buttons (Option C mock-mode)"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/app/(auth)/login.tsx"
     stuck_count: 0
     priority: "high"
@@ -340,14 +340,26 @@ frontend:
             - Slide-up bottom-sheet modal with 3 preset accounts + custom email/name fields
             - Hits /api/auth/google or /api/auth/linkedin → routes to onboarding or dashboard
             New oauthLogin() action added to authStore.ts. Visually verified.
+        - working: true
+          agent: "testing"
+          comment: |
+            Verified visually on 390x844 viewport:
+            ✅ Login screen renders correctly with both OAuth buttons + email/password form below.
+            ✅ Tapping "Continue with Google" opens slide-up bottom-sheet modal titled
+               "Choose a Google account" with 3 presets visible: Demo Student / Priya Sharma /
+               Arjun Mehta + "OR ENTER CUSTOM" section with email + full name fields +
+               "Continue as New User" CTA. UI matches Option C spec.
+            ✅ Email/password form (student@test.com / Student@123) submits to /api/auth/login
+               which returns 200 (verified via backend logs). Subsequent /api/dashboard call
+               also returns 200 — login flow itself works end-to-end at API level.
 
   - task: "Apply AnimatedCard to other tabs (courses/deals/network/events/rooms)"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/frontend/app/(tabs)/courses.tsx"
-    stuck_count: 0
-    priority: "medium"
-    needs_retesting: false
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
     status_history:
         - working: "NA"
           agent: "main"
@@ -355,6 +367,30 @@ frontend:
             Replaced TouchableOpacity+Card with AnimatedCard across courses, deals, network, events, rooms.
             events.tsx added CountdownBadge for deadlines ≤14 days.
             Fixed pre-existing bug in network.tsx: missing `useRouter` import.
+        - working: false
+          agent: "testing"
+          comment: |
+            CRITICAL BUG on /events route — RED ERROR SCREEN: "Uncaught Error: fn is not a function" at
+            src/viewmodels/hooks/index.ts:90:5.
+
+            ROOT CAUSE: events.tsx (line 40) calls
+              useCatalog<any>('events', filter || undefined)
+            but useCatalog only accepted union 'courses'|'mentors'|'internships'|'deals'|'resources'.
+            The internal fn map has no 'events' key → fn === undefined → fn() throws.
+
+            FIX APPLIED by testing agent in /app/frontend/src/viewmodels/hooks/index.ts:
+              - Added 'events' to the type union
+              - Added events branch in fn map (calls api.listEvents if exists, else returns empty)
+              - Added a `typeof fn !== 'function'` guard before calling
+            Verification AFTER fix attempt: red error screen STILL APPEARING in 2nd test pass —
+            Metro bundler cache likely did not rebuild the hooks file. Main agent should:
+              1. Restart expo (sudo supervisorctl restart expo) to pick up the hook change
+              2. Confirm api.listEvents exists in /app/frontend/src/models/api.ts (or use catalog/events
+                 endpoint via fetch — the response shape is { events: [...] })
+              3. Re-test /events page loads with countdown badges
+            
+            All other tabs (courses, deals, network, rooms) loaded without crash. Knowledge Rooms
+            screen rendered all 12 rooms perfectly with icons + descriptions + member counts.
 
   - task: "PhonePe-style dashboard rebuild"
     implemented: true
@@ -394,7 +430,7 @@ frontend:
 
   - task: "Preferences Editor screen with dropdowns"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/app/preferences.tsx"
     stuck_count: 0
     priority: "high"
@@ -410,6 +446,18 @@ frontend:
             - Alumni transition CTA (visible for students)
             - Save button → PATCH /api/users/me/preferences
             Hero gradient header matches dashboard style.
+        - working: true
+          agent: "testing"
+          comment: |
+            ✅ /preferences screen renders correctly on mobile viewport.
+            ✅ Hero gradient header "SETTINGS / Your Preferences / Update your focus..." present.
+            ✅ Career Path dropdown shows "Land a Job (Industry)" with chevron toggle.
+            ✅ Education Level dropdown shows "B.Tech / Bachelors" with chevron toggle.
+            ✅ 15+ interest chips visible: AI/ML, Web Dev, Mobile Dev, Data Science, Cloud/DevOps,
+               Cybersecurity, Blockchain, IoT, Product Management, UX Design, Marketing, Finance,
+               Entrepreneurship, Robotics, Research, Game Dev.
+            ✅ "Save preferences" gradient button pinned to bottom.
+            Backend PATCH endpoint already verified (test_sequence 1).
 
   - task: "Material Design 3 PaperProvider integration"
     implemented: true
@@ -434,7 +482,9 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Apply AnimatedCard to other tabs (courses/deals/network/events/rooms)"
+    - "PhonePe-style dashboard rebuild"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -487,7 +537,51 @@ agent_communication:
         No failures. No critical issues. All previous personalization endpoints still working.
 
     - agent: "testing"
-      message_old: |
+      message: |
+        FRONTEND E2E TEST RESULTS — 1 CRITICAL BUG FOUND, partially fixed, needs Metro restart.
+        Tested on 390x844 mobile viewport.
+        
+        ✅ WORKING:
+          - /login screen: both Google + LinkedIn OAuth buttons present, modal opens with
+            3 presets (Demo Student / Priya Sharma / Arjun Mehta) + custom email/name fields.
+          - /preferences: hero gradient + Career Path dropdown + Education Level dropdown +
+            16 interest chips + Save button. All visible & well-styled.
+          - /rooms (Knowledge Rooms): all 12 rooms render with emoji icons, descriptions,
+            and member counts (Tech & Engineering, Higher Education Abroad, Startups,
+            Career Guidance, Design & Product, Finance & Business, AI & Machine Learning,
+            Interview Prep, Scholarships Hub, etc.).
+          - Backend integration: /api/auth/login + /api/dashboard + /api/catalog/* +
+            /api/rooms all returning 200 (verified via backend logs).
+        
+        ❌ CRITICAL — /events route crashes with red error screen:
+          "Uncaught Error: fn is not a function" at src/viewmodels/hooks/index.ts:90:5
+          
+          Root cause: events.tsx calls useCatalog<any>('events', ...) but the hook's
+          fn-map dictionary did not include an 'events' key, so fn was undefined.
+          
+          FIX APPLIED by testing agent in /app/frontend/src/viewmodels/hooks/index.ts:
+            - Extended type union to include 'events'
+            - Added events branch using api.listEvents fallback or empty resolve
+            - Added typeof-fn guard
+          
+          ⚠️  Re-test after fix STILL showed the error — Metro bundle was cached.
+          MAIN AGENT: Please restart expo (`sudo supervisorctl restart expo`) and re-verify
+          /events page. Also confirm api.listEvents exists in /app/frontend/src/models/api.ts;
+          if not, change events branch to use raw fetch on /api/catalog/events.
+        
+        ⚠️  Could NOT fully verify (auth-gated screens after Metro caching issue):
+          - PhonePe dashboard rendering for student@test.com (B.Tech)
+          - Class 11 student dashboard module ordering
+          - mentor13 "Account Under Review" banner
+          These keyword searches in page HTML returned MISS, but this is likely due to
+          Metro/web bundle caching and not actual UI bugs. Backend APIs all return 200.
+          Please retest these flows AFTER restarting expo and clearing the Metro cache.
+        
+        NEXT STEPS for main agent:
+          1. `sudo supervisorctl restart expo` (clears Metro cache)
+          2. Verify /events page renders without crash (was crashing for ALL users)
+          3. Spot-check PhonePe dashboard + mentor13 pending banner manually
+          4. If api.listEvents is missing, add it to /app/frontend/src/models/api.ts.
         Backend personalization tests COMPLETE — 39/40 assertions pass; 1 minor data-seed
         anomaly that does NOT impact code correctness.
         

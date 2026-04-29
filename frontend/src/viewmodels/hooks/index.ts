@@ -70,7 +70,7 @@ export function useCareerSuggestions() {
 
 /** Hook for catalog (courses, mentors, internships, deals, resources) */
 export function useCatalog<T = any>(
-  type: 'courses' | 'mentors' | 'internships' | 'deals' | 'resources',
+  type: 'courses' | 'mentors' | 'internships' | 'deals' | 'resources' | 'events',
   filter?: string,
 ) {
   const [items, setItems] = useState<T[]>([]);
@@ -85,10 +85,17 @@ export function useCatalog<T = any>(
       internships: () => api.listInternships(filter),
       deals: () => api.listDeals(filter),
       resources: () => api.listResources(filter),
+      events: () => (api as any).listEvents ? (api as any).listEvents(filter) : Promise.resolve({ events: [] }),
     }[type];
 
+    if (typeof fn !== 'function') {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+
     fn()
-      .then((res) => {
+      .then((res: any) => {
         if (cancel) return;
         const key = type === 'resources' ? 'resources' : type;
         setItems(res[key] || []);
