@@ -1,24 +1,24 @@
 /**
- * Onboarding step 4 — Face capture / Profile photo
- * Uses expo-image-picker (works on iOS, Android, Web)
- * with optional expo-camera for live capture on native.
+ * Onboarding step 5 — Face capture / Profile photo.
+ * Web: split-screen.  Native: full-screen dark.
  */
 import { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image, Platform, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, Pressable, Image, Platform, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Camera as CameraIcon, ImagePlus, RotateCcw, Loader2 } from 'lucide-react-native';
+import { Camera as CameraIcon, ImagePlus, RotateCcw } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Colors, Spacing, Typography } from '@/src/theme';
-import { Button, NeoCard } from '@/src/views/components';
+import { useToast } from '@/src/views/components';
 import { useOnboardingStore } from '@/src/viewmodels/stores/onboardingStore';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { api } from '@/src/models/services/api';
+import { OnboardingShell } from '@/src/views/web/OnboardingShell';
+import { WebGhostBtn } from '@/src/views/web/AuthWebControls';
 
-const C = Colors.light;
+const STEPS = ['Welcome', 'School', 'Details', 'Photo', 'Done'];
 
 export default function FaceCapture() {
   const router = useRouter();
+  const toast = useToast();
   const onboarding = useOnboardingStore();
   const refreshUser = useAuthStore((s) => s.refreshUser);
   const [submitting, setSubmitting] = useState(false);
@@ -35,6 +35,7 @@ export default function FaceCapture() {
       const ok = await ensureCameraPerm();
       if (!ok) {
         Alert.alert('Permission required', 'Please grant camera access to capture your face photo.');
+        toast.error('Camera blocked', 'Grant camera permission in settings.');
         return;
       }
     }
@@ -48,6 +49,7 @@ export default function FaceCapture() {
     });
     if (!result.canceled && result.assets?.[0]?.base64) {
       onboarding.setFaceImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
+      toast.success('Photo captured', 'Looking great!');
     }
   };
 
@@ -62,6 +64,7 @@ export default function FaceCapture() {
     });
     if (!result.canceled && result.assets?.[0]?.base64) {
       onboarding.setFaceImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
+      toast.success('Photo selected', 'Picture uploaded.');
     }
   };
 
@@ -69,8 +72,6 @@ export default function FaceCapture() {
     setError(null);
     setSubmitting(true);
     try {
-      // Build role-specific payload sections based on current onboarding state.
-      // Backend will validate based on the user's role.
       const payload: any = {
         school_info: onboarding.school_info,
         career_path: onboarding.career_path,
@@ -79,8 +80,6 @@ export default function FaceCapture() {
         bio: onboarding.bio,
         face_image_base64: onboarding.face_image_base64,
       };
-
-      // Student-specific data (age, education_level, career_interests, career_goal)
       if (onboarding.student_age || onboarding.student_education_level || onboarding.student_career_goal) {
         payload.student_info = {
           age: onboarding.student_age || 18,
@@ -89,8 +88,6 @@ export default function FaceCapture() {
           career_goal: onboarding.student_career_goal || undefined,
         };
       }
-
-      // Mentor-specific data (category, organization, job_title, linkedin)
       if (onboarding.mentor_organization || onboarding.mentor_job_title) {
         payload.mentor_info = {
           category: onboarding.mentor_category || 'it_software',
@@ -101,107 +98,121 @@ export default function FaceCapture() {
           bio: onboarding.bio,
         };
       }
-
-      // Alumni-specific data (employment_status, employer, role, linkedin, opt-in mentor)
       if (onboarding.alumni_employment_status) {
         payload.alumni_info = {
-          graduation_year:
-            onboarding.school_info.graduation_year || new Date().getFullYear(),
+          graduation_year: onboarding.school_info.graduation_year || new Date().getFullYear(),
           university: onboarding.school_info.institution_name || '',
           current_employer: onboarding.alumni_employer || undefined,
           current_role: onboarding.alumni_role || undefined,
           employment_status: onboarding.alumni_employment_status,
-          // Per spec — LinkedIn highly recommended for alumni
           linkedin_url: onboarding.alumni_linkedin_url || undefined,
-          // Per spec — alumni can opt-in to mentor with a category
           wants_to_mentor: !!onboarding.alumni_wants_to_mentor,
           mentor_category: onboarding.alumni_mentor_category || undefined,
         };
       }
-
       await api.completeOnboarding(payload);
       await refreshUser();
       onboarding.reset();
+      toast.success('Profile created!', 'Generating your unique ID and QR code.');
       router.replace('/(onboarding)/success');
     } catch (e: any) {
       setError(e.message);
+      toast.error('Setup failed', e.message);
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <TouchableOpacity onPress={() => router.back()} testID="face-back-btn" style={styles.back}>
-          <ArrowLeft size={24} color={C.textPrimary} />
-        </TouchableOpacity>
-
-        <Text style={styles.step}>FINAL STEP</Text>
-        <Text style={styles.h1}>Add your{'\n'}profile photo</Text>
-        <Text style={styles.subtitle}>
-          We'll use this for your unique platform ID and so mentors and alumni can recognize you.
-        </Text>
-
-        <View style={styles.photoArea}>
-          <NeoCard bg={C.surfaceMuted} shadow="md" style={styles.photoCard}>
-            {onboarding.face_image_base64 ? (
-              <Image source={{ uri: onboarding.face_image_base64 }} style={styles.photo} />
-            ) : (
-              <View style={styles.photoPlaceholder}>
-                <CameraIcon size={48} color={C.textSecondary} />
-                <Text style={[Typography.bodySm, { color: C.textSecondary, marginTop: 8 }]}>
-                  No photo yet
-                </Text>
-              </View>
-            )}
-          </NeoCard>
+    <OnboardingShell
+      step={3}
+      stepBarSteps={STEPS}
+      title={<>Add your{'\n'}profile photo</>}
+      subtitle="We'll use this for your unique platform ID so mentors and alumni can recognize you."
+      primaryLabel={submitting ? 'Setting up…' : 'Finish & generate my ID'}
+      primaryLoading={submitting}
+      primaryTestID="face-finish-btn"
+      onPrimary={submit}
+      secondaryLabel="Skip for now"
+      onSecondary={submit}
+      onBack={() => router.back()}
+    >
+      {/* Photo area */}
+      <View style={styles.photoWrap}>
+        <View style={styles.photoFrame}>
+          {onboarding.face_image_base64 ? (
+            <Image source={{ uri: onboarding.face_image_base64 }} style={styles.photo} />
+          ) : (
+            <View style={styles.photoEmpty}>
+              <CameraIcon size={42} color="rgba(255,255,255,0.40)" />
+              <Text style={styles.photoEmptyText}>No photo yet</Text>
+            </View>
+          )}
         </View>
+      </View>
 
-        <View style={{ gap: Spacing.sm }}>
-          <Button
-            title={onboarding.face_image_base64 ? 'Retake with camera' : 'Capture with camera'}
-            icon={onboarding.face_image_base64 ? <RotateCcw size={18} color={C.primaryText} /> : <CameraIcon size={18} color={C.primaryText} />}
-            onPress={pickFromCamera}
-            testID="face-capture-camera-btn"
-          />
-          <Button
-            title="Choose from gallery"
-            variant="secondary"
-            icon={<ImagePlus size={18} color={C.primary} />}
-            onPress={pickFromLibrary}
-            testID="face-capture-gallery-btn"
-          />
-        </View>
+      {/* Picker buttons */}
+      <View style={{ gap: 10, marginBottom: 8 }}>
+        <Pressable
+          onPress={pickFromCamera}
+          testID="face-capture-camera-btn"
+          style={({ hovered, pressed }: any) => [
+            styles.cameraBtn,
+            hovered && { backgroundColor: '#9059D9' },
+            pressed && { transform: [{ scale: 0.99 }] },
+          ]}
+        >
+          {onboarding.face_image_base64
+            ? <RotateCcw size={18} color="#FFFFFF" />
+            : <CameraIcon size={18} color="#FFFFFF" />}
+          <Text style={styles.cameraBtnText}>
+            {onboarding.face_image_base64 ? 'Retake with camera' : 'Capture with camera'}
+          </Text>
+        </Pressable>
+        <WebGhostBtn
+          label="Choose from gallery"
+          onPress={pickFromLibrary}
+          testID="face-capture-gallery-btn"
+          leftIcon={<ImagePlus size={18} color="rgba(255,255,255,0.85)" />}
+        />
+      </View>
 
-        {error && <Text style={styles.error}>{error}</Text>}
-
-        <View style={{ marginTop: Spacing.xl, gap: Spacing.sm }}>
-          <Button
-            title={submitting ? 'Setting up...' : 'Finish & generate my ID'}
-            onPress={submit}
-            loading={submitting}
-            testID="face-finish-btn"
-          />
-          <TouchableOpacity onPress={submit} testID="face-skip-btn" style={{ alignItems: 'center', padding: 12 }}>
-            <Text style={[Typography.bodySm, { color: C.textSecondary }]}>Skip for now</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      {error && <Text style={styles.error}>{error}</Text>}
+    </OnboardingShell>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.background },
-  container: { padding: Spacing.lg, paddingBottom: 60 },
-  back: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  step: { ...Typography.caption, color: C.textSecondary },
-  h1: { ...Typography.h2, color: C.textPrimary, marginVertical: Spacing.xs },
-  subtitle: { ...Typography.body, color: C.textSecondary, marginBottom: Spacing.lg },
-  photoArea: { alignItems: 'center', marginVertical: Spacing.lg },
-  photoCard: { width: 240, height: 240 },
-  photo: { width: '100%', height: '100%', borderRadius: 12 },
-  photoPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  error: { ...Typography.bodySm, color: C.danger, marginTop: 12 },
+  photoWrap: { alignItems: 'center', marginVertical: 8, marginBottom: 24 },
+  photoFrame: {
+    width: 220, height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(196,181,253,0.30)',
+    borderWidth: 2,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#7C3AED',
+    shadowOpacity: 0.35,
+    shadowRadius: 32,
+    shadowOffset: { width: 0, height: 12 },
+  },
+  photo: { width: '100%', height: '100%' },
+  photoEmpty: { alignItems: 'center', gap: 8 },
+  photoEmptyText: { color: 'rgba(255,255,255,0.45)', fontFamily: 'DMSans_500Medium', fontSize: 13 },
+  cameraBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#7C3AED',
+    paddingVertical: 13, paddingHorizontal: 16,
+    borderRadius: 12,
+    shadowColor: '#7C3AED',
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
+  },
+  cameraBtnText: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  error: { color: '#FCA5A5', fontFamily: 'DMSans_500Medium', fontSize: 13, backgroundColor: 'rgba(220,38,38,0.15)', borderColor: 'rgba(252,165,165,0.3)', borderWidth: 1, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 8, marginTop: 4 },
 });

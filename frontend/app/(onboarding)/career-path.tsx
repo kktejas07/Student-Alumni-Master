@@ -1,64 +1,29 @@
 /**
- * Onboarding step 3 — Career path selection (Student / Alumni only)
+ * Onboarding step 4 — Career path selection (Student / Alumni only).
+ * Web: split-screen.  Native: full-screen dark.
  */
 import { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Briefcase, GraduationCap, Rocket, TrendingUp } from 'lucide-react-native';
-import { Colors, Spacing, Typography } from '@/src/theme';
-import { Button, NeoCard, Chip, Input } from '@/src/views/components';
+import { useToast } from '@/src/views/components';
 import { useOnboardingStore } from '@/src/viewmodels/stores/onboardingStore';
 import type { CareerPath } from '@/src/models/entities';
+import { OnboardingShell, DarkChip } from '@/src/views/web/OnboardingShell';
+import { WebField } from '@/src/views/web/AuthWebControls';
 
-const C = Colors.light;
-
-const PATHS: {
-  id: CareerPath;
-  title: string;
-  description: string;
-  color: string;
-  icon: any;
-}[] = [
-  {
-    id: 'job',
-    title: 'Job',
-    description: 'Land a great role in industry — tech, finance, design and more.',
-    color: C.accentMint,
-    icon: Briefcase,
-  },
-  {
-    id: 'higher_education',
-    title: 'Higher Education',
-    description: 'Pursue Masters, PhD, or research at top global universities.',
-    color: C.accentBlue,
-    icon: GraduationCap,
-  },
-  {
-    id: 'startup',
-    title: 'Startup',
-    description: 'Build your own product, find a co-founder, ship and raise funding.',
-    color: C.accentPink,
-    icon: Rocket,
-  },
-  {
-    id: 'business',
-    title: 'Business',
-    description: 'Lead in corporate, family business or modernize legacy operations.',
-    color: C.accentYellow,
-    icon: TrendingUp,
-  },
+const PATHS: { id: CareerPath; emoji: string; title: string; desc: string }[] = [
+  { id: 'job', emoji: '💼', title: 'Job', desc: 'Land a great role in industry — tech, finance, design and more.' },
+  { id: 'higher_education', emoji: '🎓', title: 'Higher Education', desc: 'Pursue Masters, PhD, or research at top global universities.' },
+  { id: 'startup', emoji: '🚀', title: 'Startup', desc: 'Build your own product, find a co-founder, ship and raise funding.' },
+  { id: 'business', emoji: '📈', title: 'Business', desc: 'Lead in corporate, family business or modernize legacy operations.' },
 ];
-
-const SUGGESTED_INTERESTS = [
-  'AI/ML', 'Web Dev', 'Mobile Dev', 'Data Science', 'Cybersecurity', 'Product', 'Marketing',
-  'Finance', 'Design', 'Robotics', 'Biotech', 'Climate', 'EdTech', 'FinTech', 'Gaming',
-];
+const SUGGESTED_INTERESTS = ['AI/ML', 'Web Dev', 'Mobile Dev', 'Data Science', 'Cybersecurity', 'Product', 'Marketing', 'Finance', 'Design', 'Robotics', 'Biotech', 'Climate', 'EdTech', 'FinTech', 'Gaming'];
+const STEPS = ['Welcome', 'School', 'Details', 'Photo', 'Done'];
 
 export default function CareerPathScreen() {
   const router = useRouter();
-  const { career_path, setCareerPath, interests, setInterests, skills, setSkills, bio, setBio } =
-    useOnboardingStore();
+  const toast = useToast();
+  const { career_path, setCareerPath, interests, setInterests, skills, setSkills, bio, setBio } = useOnboardingStore();
   const [skillInput, setSkillInput] = useState('');
 
   const toggleInterest = (i: string) =>
@@ -66,128 +31,146 @@ export default function CareerPathScreen() {
 
   const addSkill = () => {
     const v = skillInput.trim();
-    if (v && !skills.includes(v)) setSkills([...skills, v]);
+    if (v && !skills.includes(v)) {
+      setSkills([...skills, v]);
+      toast.success('Skill added', `“${v}” added to your profile.`);
+    }
     setSkillInput('');
   };
-
   const removeSkill = (s: string) => setSkills(skills.filter((x) => x !== s));
 
+  const next = () => {
+    if (!career_path) {
+      toast.error('Pick a path', 'Please choose a career path to continue.');
+      return;
+    }
+    router.push('/(onboarding)/face-capture');
+  };
+
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <TouchableOpacity onPress={() => router.back()} testID="career-back-btn" style={styles.back}>
-          <ArrowLeft size={24} color={C.textPrimary} />
-        </TouchableOpacity>
+    <OnboardingShell
+      step={3}
+      stepBarSteps={STEPS}
+      title={<>Pick your{'\n'}career path</>}
+      subtitle="We'll customize your roadmap, courses, mentors and deals based on this choice."
+      primaryLabel="Continue →"
+      primaryDisabled={!career_path}
+      primaryTestID="career-next-btn"
+      onPrimary={next}
+      onBack={() => router.back()}
+    >
+      {/* Path tiles */}
+      <View style={styles.pathGrid}>
+        {PATHS.map((p) => {
+          const active = career_path === p.id;
+          return (
+            <Pressable
+              key={p.id}
+              onPress={() => setCareerPath(p.id)}
+              testID={`career-path-${p.id}`}
+              style={({ hovered, pressed }: any) => [
+                styles.pathTile,
+                hovered && !active && { borderColor: 'rgba(196,181,253,0.30)', backgroundColor: 'rgba(124,58,237,0.10)' },
+                active && styles.pathTileActive,
+                pressed && { transform: [{ scale: 0.99 }] },
+              ]}
+            >
+              <Text style={{ fontSize: 28 }}>{p.emoji}</Text>
+              <Text style={[styles.pathTitle, active && { color: '#FFFFFF' }]}>{p.title}</Text>
+              <Text style={styles.pathDesc} numberOfLines={3}>{p.desc}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
-        <Text style={styles.step}>STEP 2 OF 4</Text>
-        <Text style={styles.h1}>Pick your{'\n'}career path</Text>
-        <Text style={styles.subtitle}>
-          We'll customize your roadmap, courses, mentors and deals based on this choice.
-        </Text>
+      <Text style={styles.h3}>Your interests</Text>
+      <Text style={styles.helper}>Pick a few areas you're curious about.</Text>
+      <View style={styles.chipRow}>
+        {SUGGESTED_INTERESTS.map((i) => (
+          <DarkChip
+            key={i}
+            label={i}
+            active={interests.includes(i)}
+            onPress={() => toggleInterest(i)}
+            testID={`interest-${i}`}
+          />
+        ))}
+      </View>
 
-        <View style={styles.pathGrid}>
-          {PATHS.map((p) => {
-            const Icon = p.icon;
-            const active = career_path === p.id;
-            return (
-              <TouchableOpacity
-                key={p.id}
-                onPress={() => setCareerPath(p.id)}
-                activeOpacity={0.85}
-                testID={`career-path-${p.id}`}
-                style={styles.pathItem}
-              >
-                <NeoCard bg={active ? p.color : C.surface} shadow={active ? 'md' : 'sm'}>
-                  <View style={{ gap: 8 }}>
-                    <Icon size={28} color={C.textPrimary} />
-                    <Text style={[Typography.h4, { color: C.textPrimary }]}>{p.title}</Text>
-                    <Text style={[Typography.bodySm, { color: C.textPrimary, opacity: 0.85 }]}>
-                      {p.description}
-                    </Text>
-                  </View>
-                </NeoCard>
-              </TouchableOpacity>
-            );
-          })}
+      <Text style={[styles.h3, { marginTop: 6 }]}>Your skills (optional)</Text>
+      <Text style={styles.helper}>Type a skill and press Add.</Text>
+      <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-end' }}>
+        <View style={{ flex: 1 }}>
+          <WebField
+            placeholder="e.g., Python, Public Speaking"
+            value={skillInput}
+            onChangeText={setSkillInput}
+            testID="skill-input"
+          />
         </View>
-
-        <Text style={[styles.h3, { marginTop: Spacing.xl }]}>Your interests</Text>
-        <Text style={styles.subtitle}>Pick a few areas you're curious about.</Text>
-        <View style={styles.chipRow}>
-          {SUGGESTED_INTERESTS.map((i) => (
-            <Chip
-              key={i}
-              label={i}
-              active={interests.includes(i)}
-              onPress={() => toggleInterest(i)}
-              color={C.accentMint}
-              testID={`interest-${i}`}
-            />
-          ))}
-        </View>
-
-        <Text style={[styles.h3, { marginTop: Spacing.lg }]}>Your skills (optional)</Text>
-        <Text style={styles.subtitle}>Type a skill and press Add.</Text>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <View style={{ flex: 1 }}>
-            <Input
-              placeholder="e.g., Python, Public Speaking"
-              value={skillInput}
-              onChangeText={setSkillInput}
-              onSubmitEditing={addSkill}
-              testID="skill-input"
-            />
-          </View>
-          <Button title="Add" variant="secondary" onPress={addSkill} testID="skill-add-btn" />
-        </View>
+        <Pressable
+          onPress={addSkill}
+          testID="skill-add-btn"
+          style={({ hovered, pressed }: any) => [
+            styles.addBtn,
+            hovered && { backgroundColor: 'rgba(124,58,237,0.30)' },
+            pressed && { transform: [{ scale: 0.97 }] },
+          ]}
+        >
+          <Text style={styles.addBtnText}>Add</Text>
+        </Pressable>
+      </View>
+      {skills.length > 0 && (
         <View style={[styles.chipRow, { marginTop: 12 }]}>
           {skills.map((s) => (
-            <Chip
+            <DarkChip
               key={s}
-              label={`${s} ×`}
+              label={`${s}  ×`}
               active
               onPress={() => removeSkill(s)}
-              color={C.accentBlue}
               testID={`skill-chip-${s}`}
             />
           ))}
         </View>
+      )}
 
-        <Text style={[styles.h3, { marginTop: Spacing.lg }]}>Short bio (optional)</Text>
-        <Input
-          placeholder="A line or two about you..."
-          value={bio}
-          onChangeText={setBio}
-          multiline
-          numberOfLines={3}
-          testID="bio-input"
-          containerStyle={{ marginTop: 4 }}
-        />
-
-        <Button
-          title="Continue →"
-          onPress={() => {
-            if (!career_path) return;
-            router.push('/(onboarding)/face-capture');
-          }}
-          disabled={!career_path}
-          testID="career-next-btn"
-          style={{ marginTop: Spacing.xl }}
-        />
-      </ScrollView>
-    </SafeAreaView>
+      <Text style={[styles.h3, { marginTop: 12 }]}>Short bio (optional)</Text>
+      <WebField
+        placeholder="A line or two about you..."
+        value={bio}
+        onChangeText={setBio}
+        testID="bio-input"
+      />
+    </OnboardingShell>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.background },
-  container: { padding: Spacing.lg, paddingBottom: 80 },
-  back: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  step: { ...Typography.caption, color: C.textSecondary },
-  h1: { ...Typography.h2, color: C.textPrimary, marginVertical: Spacing.xs },
-  h3: { ...Typography.h3, color: C.textPrimary },
-  subtitle: { ...Typography.body, color: C.textSecondary, marginBottom: Spacing.md },
-  pathGrid: { gap: Spacing.md, marginTop: Spacing.sm },
-  pathItem: {},
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  pathGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 22 },
+  pathTile: {
+    flexBasis: '48%', flexGrow: 1,
+    paddingVertical: 16, paddingHorizontal: 14,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    gap: 6,
+    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
+  },
+  pathTileActive: { borderColor: '#7C3AED', backgroundColor: 'rgba(124,58,237,0.16)' },
+  pathTitle: { color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_700Bold', fontSize: 15, marginTop: 6 },
+  pathDesc: { color: 'rgba(255,255,255,0.50)', fontFamily: 'DMSans_400Regular', fontSize: 12, lineHeight: 17 },
+  h3: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 16, marginTop: 4, marginBottom: 4 },
+  helper: { color: 'rgba(255,255,255,0.50)', fontFamily: 'DMSans_400Regular', fontSize: 12.5, marginBottom: 10 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+  addBtn: {
+    paddingHorizontal: 18, paddingVertical: 13,
+    borderRadius: 12,
+    backgroundColor: 'rgba(124,58,237,0.20)',
+    borderColor: 'rgba(196,181,253,0.32)',
+    borderWidth: 1,
+    marginBottom: 14,
+    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
+  },
+  addBtnText: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 14 },
 });

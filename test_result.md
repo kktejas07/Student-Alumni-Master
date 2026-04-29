@@ -963,6 +963,50 @@ agent_communication:
         already exist; web split-screen polish for those is pending.
 
         Visual result: clean solid purple (left) / pure black (right) split — confirmed
+
+---
+## 2026-04-29 — Onboarding screens polished (Web split-screen + Native dark)
+agent_communication:
+    - agent: "main"
+      message: |
+        SHIPPED: All 6 onboarding screens refactored to a unified design system
+        that matches the auth flow visual language.
+
+        NEW SHARED COMPONENTS:
+        - /app/frontend/src/views/web/OnboardingShell.tsx
+            • Single shell that handles BOTH web (split-screen with brand pane)
+              AND native (full-screen dark on iOS/Android).
+            • Built-in step bar, back button, kicker, title, subtitle, primary
+              CTA, optional secondary CTA. KeyboardAvoidingView on native.
+            • Auto-collapses to single column when viewport <980px.
+        - DarkChip, DarkInfoCard, DarkToggle primitives (in same file)
+
+        REFACTORED SCREENS (each now uses OnboardingShell):
+        - /app/frontend/app/(onboarding)/role-info.tsx
+        - /app/frontend/app/(onboarding)/school-info.tsx
+        - /app/frontend/app/(onboarding)/role-details.tsx  (also: replaced
+            `if (!user) return null` early-return with role fallback to fix the
+            blank-screen bug after zustand rehydration)
+        - /app/frontend/app/(onboarding)/career-path.tsx
+        - /app/frontend/app/(onboarding)/face-capture.tsx  (wired toast on
+            photo capture/upload + camera permission denial)
+        - /app/frontend/app/(onboarding)/success.tsx
+
+        UX POLISH:
+        - 5-step progress bar consistent across all screens (Welcome→School→
+          Details→Photo→Done) with active/completed/current dot states
+        - Toast notifications on validation errors (school, role-details) and
+          actions (skill added, photo captured, profile created, path missing)
+        - Glass cards, dark chips with hover/active gradient borders, clean
+          rounded primary buttons with purple shadow glow
+        - Native viewport (iPhone-class & Android-class) shows the same dark
+          purple/black aesthetic with safe-area insets — no light theme leaks.
+
+        VERIFIED VIA SCREENSHOTS:
+        ✅ Web 1920×900 — all 6 screens render with split-screen + brand pane
+        ✅ Mobile 390×844 — all 6 screens render with full-screen dark theme,
+           step bar at top, no brand pane (auto-collapsed), proper spacing
+
         via screenshot at 1920×800.
 
         BACKEND uuid import: confirmed `import uuid` is present in server.py:30.
