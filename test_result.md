@@ -530,11 +530,11 @@ test_plan:
 backend:
   - task: "Mentor Portal — confirm/decline booking + post mentor sessions"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: false
           agent: "testing"
@@ -569,6 +569,25 @@ backend:
             ❌ CONSEQUENCE: GET /api/mentor/sessions/me returns sessions=0 because the create
                endpoint never persisted any session. The endpoint shape is correct (200, list);
                this will pass automatically once the import is added and a session is created.
+        - working: true
+          agent: "testing"
+          comment: |
+            RE-VERIFIED after `import uuid` added to /app/backend/server.py — 2/2 PASS.
+            Test file: /app/backend_test_uuid_fix.py
+            BASE: https://hiring-mvvm.preview.emergentagent.com/api
+
+            ✅ POST /api/mentor/sessions (mentor01@test.com) → 200 OK
+               Body: {"ok": true, "session": {"id": "db023073881c477b93a9c28f87ec340e",
+               "mentor_id": "69f1fda82bd09b8251114955", "mentor_name": "Priya Mentor1",
+               "title": "Mock Interview Workshop", "topic": "Live mock interview practice",
+               "scheduled_at": "2025-08-15 18:30", "duration_minutes": 45, "max_attendees": 3,
+               "attendees": [], "status": "open", "created_at": "2026-04-29T15:14:52.076415+00:00"}}
+               ok=true ✅, session.id populated ✅.
+
+            ✅ GET /api/mentor/sessions/me (mentor01@test.com) → 200 OK
+               sessions list contains the session created in step 1 (id matches).
+
+            All 15/15 mentor portal endpoints now PASS. Task fully working.
 
 agent_communication:
     - agent: "main"
