@@ -1,0 +1,206 @@
+{
+  "theme": "Light",
+  "archetype": "3 (Pastel & Soft) - Neo-Brutalist Gen-Z Variant",
+  "design_philosophy": {
+    "core_principles": [
+      "Neo-Brutalist Contrast: Soft pastel card backgrounds grounded by sharp, hard dark borders and solid drop shadows to prevent the UI from feeling childish.",
+      "Vibrant & Optimistic: Use clear, distinct pastel colors for different career paths (Job, Higher Ed, Startup, Business) to create instant visual recognition.",
+      "Tactile Interactions: Cards must feel pressable. When pressed, the solid shadow should disappear and the card translates down to mimic a physical button press.",
+      "Bold Typography: Expressive, tightly tracked headings combined with highly readable geometric body text."
+    ],
+    "emotion": "Approachable, Optimistic, Empowering, Action-oriented",
+    "target_audience": "Gen-Z Students, Mentors, and College Admins"
+  },
+  "colors": {
+    "light": {
+      "background": "#FDFBF7",
+      "surface": "#FFFFFF",
+      "text_primary": "#121212",
+      "text_secondary": "#52525B",
+      "border": "#121212",
+      "primary": "#121212",
+      "primary_text": "#FFFFFF",
+      "accent_yellow": "#FFD166",
+      "accent_mint": "#06D6A0",
+      "accent_pink": "#EF476F",
+      "accent_blue": "#118AB2",
+      "danger": "#EF476F",
+      "success": "#06D6A0",
+      "shadow": "#121212"
+    },
+    "dark": {
+      "background": "#121212",
+      "surface": "#1A1A1A",
+      "text_primary": "#FDFBF7",
+      "text_secondary": "#A1A1AA",
+      "border": "#3F3F46",
+      "primary": "#FDFBF7",
+      "primary_text": "#121212",
+      "accent_yellow": "#FBBF24",
+      "accent_mint": "#34D399",
+      "accent_pink": "#FB7185",
+      "accent_blue": "#38BDF8",
+      "danger": "#FB7185",
+      "success": "#34D399",
+      "shadow": "#000000"
+    }
+  },
+  "typography": {
+    "font_families": {
+      "heading": "Outfit",
+      "body": "Manrope"
+    },
+    "expo_packages": [
+      "@expo-google-fonts/outfit",
+      "@expo-google-fonts/manrope"
+    ],
+    "scales": {
+      "h1": { "fontSize": 40, "lineHeight": 44, "fontFamily": "Outfit_700Bold", "letterSpacing": -1 },
+      "h2": { "fontSize": 32, "lineHeight": 36, "fontFamily": "Outfit_700Bold", "letterSpacing": -0.5 },
+      "h3": { "fontSize": 24, "lineHeight": 28, "fontFamily": "Outfit_600SemiBold", "letterSpacing": -0.5 },
+      "h4": { "fontSize": 20, "lineHeight": 24, "fontFamily": "Outfit_600SemiBold" },
+      "body_lg": { "fontSize": 18, "lineHeight": 28, "fontFamily": "Manrope_500Medium" },
+      "body": { "fontSize": 16, "lineHeight": 24, "fontFamily": "Manrope_400Regular" },
+      "body_sm": { "fontSize": 14, "lineHeight": 20, "fontFamily": "Manrope_500Medium" },
+      "caption": { "fontSize": 12, "lineHeight": 16, "fontFamily": "Manrope_600SemiBold", "textTransform": "uppercase", "letterSpacing": 1.2 }
+    }
+  },
+  "layout": {
+    "container_padding": 24,
+    "safe_area_handling": "Use react-native-safe-area-context. Add appropriate top padding for headers and bottom padding for the tab bar.",
+    "border_radius": {
+      "sm": 8,
+      "md": 12,
+      "lg": 16,
+      "xl": 24,
+      "pill": 9999
+    },
+    "spacing": {
+      "xs": 4,
+      "sm": 8,
+      "md": 16,
+      "lg": 24,
+      "xl": 32,
+      "xxl": 48
+    }
+  },
+  "components": {
+    "cards": {
+      "style": "Neo-Brutalist",
+      "light_mode": {
+        "borderWidth": 2,
+        "borderColor": "#121212",
+        "borderRadius": 16,
+        "backgroundColor": "#FFFFFF",
+        "shadowColor": "#121212",
+        "shadowOffset": { "width": 4, "height": 4 },
+        "shadowOpacity": 1,
+        "shadowRadius": 0,
+        "elevation": 0
+      },
+      "dark_mode": {
+        "borderWidth": 1.5,
+        "borderColor": "#3F3F46",
+        "borderRadius": 16,
+        "backgroundColor": "#1A1A1A",
+        "shadowColor": "#000000",
+        "shadowOffset": { "width": 0, "height": 8 },
+        "shadowOpacity": 0.3,
+        "shadowRadius": 12,
+        "elevation": 8
+      }
+    },
+    "buttons": {
+      "primary": {
+        "borderWidth": 2,
+        "borderColor": "#121212",
+        "backgroundColor": "#121212",
+        "borderRadius": 9999,
+        "paddingVertical": 16,
+        "paddingHorizontal": 24,
+        "alignItems": "center"
+      },
+      "secondary": {
+        "borderWidth": 2,
+        "borderColor": "#121212",
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": 9999,
+        "paddingVertical": 16,
+        "paddingHorizontal": 24,
+        "alignItems": "center",
+        "shadowColor": "#121212",
+        "shadowOffset": { "width": 2, "height": 2 },
+        "shadowOpacity": 1,
+        "shadowRadius": 0
+      }
+    },
+    "inputs": {
+      "borderWidth": 2,
+      "borderColor": "#121212",
+      "borderRadius": 12,
+      "padding": 16,
+      "backgroundColor": "#FFFFFF",
+      "fontFamily": "Manrope_400Regular",
+      "fontSize": 16
+    },
+    "bottom_tab_bar": {
+      "backgroundColor": "#FFFFFF",
+      "borderTopWidth": 2,
+      "borderColor": "#121212",
+      "paddingTop": 12,
+      "paddingBottom": 24,
+      "height": 80
+    }
+  },
+  "motion_and_interactions": {
+    "button_press": "Use react-native-reanimated. On press in: scale down to 0.95, reduce shadow offset to 0px. On press out: restore.",
+    "screen_transitions": "Slide from right for deeper navigation, fade for tab switches.",
+    "staggered_lists": "List items in feeds (jobs, courses) should enter with a slight fade and slide-up animation (staggered by 50ms)."
+  },
+  "icons": {
+    "library": "lucide-react-native",
+    "weight": "regular",
+    "size": {
+      "sm": 16,
+      "md": 24,
+      "lg": 32
+    }
+  },
+  "media": {
+    "image_urls": {
+      "splash_background": {
+        "url": "https://images.unsplash.com/photo-1620650764255-6797e68c7904?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzV8MHwxfHNlYXJjaHwxfHxjb2xsZWdlJTIwY2FtcHVzJTIwc3R1ZGVudHxlbnwwfHx8fDE3Nzc0NTU4OTJ8MA&ixlib=rb-4.1.0&q=85",
+        "description": "A vibrant university building representing the college experience."
+      },
+      "career_path_startup": {
+        "url": "https://images.unsplash.com/photo-1590097521871-03f076644314?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1ODh8MHwxfHNlYXJjaHw0fHxzdGFydHVwJTIwZW50cmVwcmVuZXVyJTIwb2ZmaWNlfGVufDB8fHx8MTc3NzQ1NTg5Mnww&ixlib=rb-4.1.0&q=85",
+        "description": "Macbook and notebooks on a desk, representing startup and business paths."
+      },
+      "career_path_education": {
+        "url": "https://images.unsplash.com/photo-1758612214917-81d7956c09de?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzV8MHwxfHNlYXJjaHw0fHxzdHVkZW50JTIwc3R1ZHlpbmclMjBsYXB0b3B8ZW58MHx8fHwxNzc3NDU1ODkyfDA&ixlib=rb-4.1.0&q=85",
+        "description": "Student typing on a laptop, representing higher education."
+      },
+      "mentor_placeholder": {
+        "url": "https://images.unsplash.com/photo-1693011142814-aa33d7d1535c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzV8MHwxfHNlYXJjaHwyfHxjb2xsZWdlJTIwY2FtcHVzJTIwc3R1ZGVudHxlbnwwfHx8fDE3Nzc0NTU4OTJ8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Man sitting on a white bench, used as mentor profile placeholder."
+      },
+      "student_deals_hero": {
+        "url": "https://images.pexels.com/photos/7972556/pexels-photo-7972556.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Two young women walking past a historic university building on a sunny day."
+      }
+    }
+  },
+  "testing": {
+    "attributes": "All interactive elements MUST use `testID` attribute in React Native (e.g., `testID=\"login-button\"`)."
+  },
+  "instructions_to_main_agent": [
+    "Use Tailwind CSS via NativeWind for styling, or strict React Native StyleSheet mapping to these exact values.",
+    "Always wrap screens in SafeAreaView from react-native-safe-area-context.",
+    "Implement the custom Neo-Brutalist shadow carefully in React Native using standard shadow props on iOS and elevation on Android, or ideally, a wrapper View with an absolute positioned background View offset by 4px for a true hard shadow.",
+    "Do NOT use transparent navigation headers. Ensure headers have a solid background color matching the theme.",
+    "For the AI Chatbot interface, use the primary Accent Mint or Blue for user bubbles, and Surface color for AI bubbles, both with the 2px black border.",
+    "Never use generic placeholder images like via.placeholder.com. Use the Unsplash/Pexels URLs provided in this file.",
+    "Use react-native-reanimated for the button press scale down effects.",
+    "Ensure input fields have a focus state by changing the border color to Accent Blue or Yellow when focused."
+  ]
+}
