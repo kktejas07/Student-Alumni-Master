@@ -1,0 +1,57 @@
+{
+  "summary": "Backend regression suite executed for Student Career Development Platform. 22/23 pytest cases passed (95.6%). All auth, onboarding (incl. Class 11+ validation, unique_id SCD-{YEAR}-STU-{6} format, base64 PNG QR), AI (Claude career-suggestions + cached + chat + history via emergentintegrations / Emergent LLM Key), catalog (courses x8, internships, deals, resources w/ category filter), and dashboard endpoints work correctly. ONE BUG: GET /api/catalog/mentors returns an empty list because the endpoint filters sample_mentors with {'role': 'mentor'} but seeded SAMPLE_MENTORS docs have no 'role' field.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "GET /api/catalog/mentors",
+        "issue": "Returns empty mentors array. In server.py list_mentors(), query = {'role': 'mentor'} is reused for db.sample_mentors.find(query if query else {}, ...). Because query is always truthy (contains role:mentor), it filters sample_mentors by role, but sample_mentors docs (SAMPLE_MENTORS list) have no 'role' field -> 0 results. Also frontend would get nothing if no DB users have role=mentor. Fix: build a separate filter for sample_mentors (e.g. {} or {'expertise': career_path} only), independent of users-collection query.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "POST /api/auth/register",
+        "issue": "RegisterRequest.password validates min length 6 only; consider stronger policy (uppercase/digit/special) in line with seeded admin pattern. Not blocking."
+      },
+      {
+        "endpoint": "POST /api/users/onboarding",
+        "issue": "validate_class_for_student only rejects pure-numeric class strings <11. Inputs like 'Class 10', '10th', 'X' would slip through. Consider normalising. Not blocking for current spec."
+      },
+      {
+        "endpoint": "CORS",
+        "issue": "CORSMiddleware uses allow_origins=['*'] together with allow_credentials=True; browsers reject credentialed requests with wildcard. Fine for current Bearer-token mobile flow, but should be tightened if cookies are introduced."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_career_platform.py",
+    "/app/backend/tests/conftest.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Fix GET /api/catalog/mentors to return seeded sample_mentors. Recommended change: in list_mentors(), keep users query separate; query sample_mentors with only the expertise filter (or empty dict if no career_path)."
+  ],
+  "critical_code_review_comments": [
+    "server.py is ~810 lines - acceptable for MVP but consider splitting into routers/auth.py, routers/ai.py, routers/catalog.py, models.py soon (>700 line guideline).",
+    "Mentors endpoint shares the same query dict between users and sample_mentors collections, leaking the role filter into a collection that has no role field (root cause of HIGH bug).",
+    "Career-suggestion JSON parsing strips ``` fences but doesn't handle 'json' suffix variations robustly; if Claude returns plain prose, falls back gracefully to summary-only object - OK.",
+    "Onboarding uses POST and is idempotent for unique_id (re-uses if already set), but allows full overwrite of school_info/career_path on each call. Consider PUT /users/me/onboarding semantically.",
+    "ObjectId properly excluded in serialize_user and via projection; good."
+  ],
+  "updated_files": [
+    "/app/backend/tests/conftest.py (created)",
+    "/app/backend/tests/test_career_platform.py (created)"
+  ],
+  "success_rate": {"backend": "95.6%", "frontend": "not tested (backend-only request)"},
+  "seed_data_creation": "Created one test student account: test-student-<random-hex>@test.com / Student@123 (registered via API and onboarded with Class 11 Science). No manual DB seeding done. Admin (admin@careerpath.app) and catalog seeds were auto-created by backend startup hooks.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Re-run /app/backend/tests/test_career_platform.py after the mentors-endpoint fix. Tests use BASE_URL from EXPO_BACKEND_URL/EXPO_PUBLIC_BACKEND_URL env (fallback to https://hiring-mvvm.preview.emergentagent.com). Each pytest run creates a fresh student via random email; old test users persist in MongoDB - consider periodic cleanup. AI tests (career-suggestions + chat) consume Emergent LLM credits and take 15-30s each; allow timeouts >=120s.",
+  "rca_of_issue": "Bug RCA - GET /api/catalog/mentors empty: server.py line ~599 reuses `query = {'role': 'mentor'}` to filter the sample_mentors collection at line `sample = await db.sample_mentors.find(query if query else {}, ...)`. The conditional `query if query else {}` is always True because `query` always has the role key, so the role filter is applied to sample_mentors whose seeded docs don't have a 'role' field, producing zero matches. Reproduction: curl https://hiring-mvvm.preview.emergentagent.com/api/catalog/mentors -> {\"mentors\":[]}. Mitigation: separate the queries, e.g. `users_q = {'role': 'mentor'}; sample_q = {};` then optionally add `if career_path: users_q['expertise'] = career_path; sample_q['expertise'] = career_path;` and finally `mentors_users + mentors_sample`."
+}

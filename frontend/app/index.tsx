@@ -1,30 +1,38 @@
-import { Text, View, StyleSheet, Image } from "react-native";
-
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+/**
+ * Splash / Entry router - decides where to send the user based on auth state.
+ */
+import { useEffect } from 'react';
+import { View, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { Colors } from '@/src/theme';
 
 export default function Index() {
-  console.log(EXPO_PUBLIC_BACKEND_URL, "EXPO_PUBLIC_BACKEND_URL");
+  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const initialized = useAuthStore((s) => s.initialized);
+
+  useEffect(() => {
+    if (!initialized) return;
+    if (!user) {
+      router.replace('/welcome');
+    } else if (!user.onboarding_completed) {
+      router.replace('/(onboarding)/role-info');
+    } else {
+      router.replace('/(tabs)');
+    }
+  }, [user, initialized, router]);
 
   return (
-    <View style={styles.container}>
-      <Image
-        source={require("../assets/images/app-image.png")}
-        style={styles.image}
-      />
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: Colors.light.background,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <ActivityIndicator size="large" color={Colors.light.primary} />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0c0c0c",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  image: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "contain",
-  },
-});

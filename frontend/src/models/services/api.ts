@@ -1,0 +1,152 @@
+/**
+ * MODEL LAYER - API Service
+ * All HTTP communication is centralised here. No UI / state logic.
+ */
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
+
+const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+
+const TOKEN_KEY = 'scd_access_token';
+const REFRESH_KEY = 'scd_refresh_token';
+
+// ----- Token storage (SecureStore on native, in-memory + localStorage on web) -----
+async function setItem(key: string, value: string) {
+  if (Platform.OS === 'web') {
+    try {
+      window.localStorage.setItem(key, value);
+    } catch {}
+    return;
+  }
+  await SecureStore.setItemAsync(key, value);
+}
+
+async function getItem(key: string): Promise<string | null> {
+  if (Platform.OS === 'web') {
+    try {
+      return window.localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  }
+  return await SecureStore.getItemAsync(key);
+}
+
+async function deleteItem(key: string) {
+  if (Platform.OS === 'web') {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {}
+    return;
+  }
+  await SecureStore.deleteItemAsync(key);
+}
+
+export const tokenStore = {
+  getAccess: () => getItem(TOKEN_KEY),
+  getRefresh: () => getItem(REFRESH_KEY),
+  setTokens: async (access: string, refresh: string) => {
+    await setItem(TOKEN_KEY, access);
+    await setItem(REFRESH_KEY, refresh);
+  },
+  clear: async () => {
+    await deleteItem(TOKEN_KEY);
+    await deleteItem(REFRESH_KEY);
+  },
+};
+
+// ----- HTTP wrapper -----
+async function request<T>(
+  path: string,
+  options: { method?: string; body?: any; auth?: boolean } = {},
+): Promise<T> {
+  const { method = 'GET', body, auth = true } = options;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (auth) {
+    const token = await tokenStore.getAccess();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${BASE_URL}/api${path}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  const text = await res.text();
+  let data: any;
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = { raw: text };
+  }
+
+  if (!res.ok) {
+    const detail = data?.detail;
+    const msg =
+      typeof detail === 'string'
+        ? detail
+        : Array.isArray(detail)
+          ? detail.map((d: any) => d?.msg || JSON.stringify(d)).join(' ')
+          : detail?.msg || `Request failed (${res.status})`;
+    throw new Error(msg);
+  }
+  return data as T;
+}
+
+export const api = {
+  // Auth
+  register: (payload: {
+    email: string;
+    password: string;
+    full_name: string;
+    role: string;
+    phone?: string;
+  }) => request<any>('/auth/register', { method: 'POST', body: payload, auth: false }),
+
+  login: (email: string, password: string) =>
+    request<any>('/auth/login', { method: 'POST', body: { email, password }, auth: false }),
+
+  me: () => request<any>('/auth/me'),
+
+  // Onboarding
+  completeOnboarding: (payload: any) =>
+    request<any>('/users/onboarding', { method: 'POST', body: payload }),
+
+  updateProfile: (payload: any) =>
+    request<any>('/users/me', { method: 'PUT', body: payload }),
+
+  // AI
+  getCareerSuggestions: (additional_context?: string) =>
+    request<any>('/ai/career-suggestions', {
+      method: 'POST',
+      body: { additional_context },
+    }),
+
+  getCachedSuggestions: () => request<any>('/ai/career-suggestions/cached'),
+
+  chatSend: (message: string, session_id?: string) =>
+    request<any>('/ai/chat', { method: 'POST', body: { message, session_id } }),
+
+  chatHistory: (session_id?: string) =>
+    request<any>(`/ai/chat/history${session_id ? `?session_id=${session_id}` : ''}`),
+
+  // Catalog
+  listCourses: (career_path?: string) =>
+    request<any>(`/catalog/courses${career_path ? `?career_path=${career_path}` : ''}`),
+  listMentors: (career_path?: string) =>
+    request<any>(`/catalog/mentors${career_path ? `?career_path=${career_path}` : ''}`),
+  listInternships: (career_path?: string) =>
+    request<any>(`/catalog/internships${career_path ? `?career_path=${career_path}` : ''}`),
+  listDeals: (category?: string) =>
+    request<any>(`/catalog/deals${category ? `?category=${category}` : ''}`),
+  listResources: (category?: string) =>
+    request<any>(`/catalog/resources${category ? `?category=${category}` : ''}`),
+
+  // Dashboard
+  dashboard: () => request<any>('/dashboard'),
+};
+
+export { BASE_URL };
