@@ -158,6 +158,19 @@ export const api = {
     request<any>('/bookings', { method: 'POST', body: payload }),
   myBookings: () => request<any>('/bookings/me'),
 
+  // Event registration with QR
+  registerEvent: (event_id: string) =>
+    request<any>(`/events/${event_id}/register`, { method: 'POST', body: {} }),
+  myEventRegistration: (event_id: string) =>
+    request<any>(`/events/${event_id}/my-registration`),
+  myEventRegistrations: () => request<any>('/events/my-registrations'),
+
+  // Knowledge Rooms (Module 4: Networking chat)
+  listRooms: () => request<any>('/rooms'),
+  roomMessages: (room_id: string) => request<any>(`/rooms/${room_id}/messages`),
+  postRoomMessage: (room_id: string, message: string) =>
+    request<any>(`/rooms/${room_id}/messages`, { method: 'POST', body: { message } }),
+
   // Admin
   pendingMentors: () => request<any>('/admin/mentors/pending'),
   approveMentor: (id: string) =>

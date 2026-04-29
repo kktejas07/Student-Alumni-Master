@@ -825,6 +825,111 @@ async def my_bookings(user: dict = Depends(get_current_user)):
 
 
 # ----------------------------------------------------------------------------
+# Event Registration with QR Code
+# ----------------------------------------------------------------------------
+@api_router.post("/events/{event_id}/register")
+async def register_event(event_id: str, user: dict = Depends(get_current_user)):
+    """Register the user for an event and generate a unique attendance QR code.
+    The QR contains: SA-EVENT:{event_id}|{user_unique_id}|{registration_id}
+    Organizers scan it on entry to mark attendance."""
+    event = await db.events.find_one({"id": event_id})
+    if not event:
+        raise HTTPException(404, "Event not found")
+
+    # Idempotent — return existing registration if user already registered
+    existing = await db.event_registrations.find_one(
+        {"event_id": event_id, "user_id": str(user["_id"])}, {"_id": 0}
+    )
+    if existing:
+        return existing
+
+    reg_id = secrets.token_hex(8)
+    qr_payload = f"SA-EVENT:{event_id}|{user.get('unique_id')}|{reg_id}"
+    registration = {
+        "id": reg_id,
+        "event_id": event_id,
+        "event_title": event["title"],
+        "user_id": str(user["_id"]),
+        "user_name": user["full_name"],
+        "user_unique_id": user.get("unique_id"),
+        "qr_code_base64": generate_qr_code(qr_payload),
+        "registered_at": datetime.now(timezone.utc).isoformat(),
+        "status": "registered",
+    }
+    await db.event_registrations.insert_one(registration.copy())
+    return registration
+
+
+@api_router.get("/events/{event_id}/my-registration")
+async def my_event_registration(event_id: str, user: dict = Depends(get_current_user)):
+    """Returns the user's registration for a given event (or None)."""
+    reg = await db.event_registrations.find_one(
+        {"event_id": event_id, "user_id": str(user["_id"])}, {"_id": 0}
+    )
+    return reg or {}
+
+
+@api_router.get("/events/my-registrations")
+async def my_event_registrations(user: dict = Depends(get_current_user)):
+    """Lists all events the user has registered for."""
+    items = await db.event_registrations.find(
+        {"user_id": str(user["_id"])}, {"_id": 0}
+    ).sort("registered_at", -1).to_list(100)
+    return {"registrations": items}
+
+
+# ----------------------------------------------------------------------------
+# Knowledge Rooms (Module 4: Networking) — chat-based discussion
+# ----------------------------------------------------------------------------
+KNOWLEDGE_ROOMS = [
+    {"id": "tech", "name": "Tech & Engineering", "description": "Coding, AI/ML, software, hardware", "icon": "💻", "members": 1240},
+    {"id": "higher_ed", "name": "Higher Education Abroad", "description": "GRE, GMAT, US/UK/Canada applications", "icon": "🎓", "members": 890},
+    {"id": "startups", "name": "Startups & Entrepreneurship", "description": "Building, funding, scaling startups", "icon": "🚀", "members": 670},
+    {"id": "careers", "name": "Career Guidance", "description": "Jobs, internships, interviews, resumes", "icon": "💼", "members": 1580},
+    {"id": "design", "name": "Design & Product", "description": "UX, UI, product management", "icon": "🎨", "members": 420},
+    {"id": "finance", "name": "Finance & Business", "description": "MBA, consulting, investment banking", "icon": "📊", "members": 540},
+]
+
+
+@api_router.get("/rooms")
+async def list_rooms():
+    """Lists available knowledge rooms (categorized chat groups)."""
+    return {"rooms": KNOWLEDGE_ROOMS}
+
+
+@api_router.get("/rooms/{room_id}/messages")
+async def room_messages(room_id: str, user: dict = Depends(get_current_user)):
+    """Messages in a room. Returns most recent 100."""
+    msgs = await db.room_messages.find(
+        {"room_id": room_id}, {"_id": 0}
+    ).sort("created_at", 1).to_list(100)
+    for m in msgs:
+        if isinstance(m.get("created_at"), datetime):
+            m["created_at"] = m["created_at"].isoformat()
+    return {"messages": msgs}
+
+
+@api_router.post("/rooms/{room_id}/messages")
+async def post_room_message(room_id: str, payload: dict, user: dict = Depends(get_current_user)):
+    """Post a message to a knowledge room."""
+    msg = (payload.get("message") or "").strip()
+    if not msg:
+        raise HTTPException(400, "Message cannot be empty")
+    doc = {
+        "room_id": room_id,
+        "user_id": str(user["_id"]),
+        "user_name": user["full_name"],
+        "user_role": user["role"],
+        "message": msg,
+        "created_at": datetime.now(timezone.utc),
+    }
+    await db.room_messages.insert_one(doc.copy())
+    doc["created_at"] = doc["created_at"].isoformat()
+    doc.pop("_id", None)
+    return doc
+
+
+# ----------------------------------------------------------------------------
 # Dashboard — unified endpoint with content prioritization
 # ----------------------------------------------------------------------------
 @api_router.get("/dashboard")
