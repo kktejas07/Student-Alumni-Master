@@ -22,7 +22,7 @@ import { useRouter } from 'expo-router';
 import { ArrowLeft, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { Colors as C, Spacing, Typography, Radius, Shadows } from '@/src/theme';
-import { Button, Input, AnimatedCard, SALogo } from '@/src/views/components';
+import { Button, Input, AnimatedCard, SALogo, useToast } from '@/src/views/components';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import Svg, { Path, G } from 'react-native-svg';
 
@@ -60,6 +60,7 @@ function LinkedInIn({ size = 18 }: { size?: number }) {
 // ---------------------------------------------------------------------------
 export default function Login() {
   const router = useRouter();
+  const toast = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -77,15 +78,19 @@ export default function Login() {
   const onSubmit = async () => {
     setError(null);
     if (!email || !password) {
-      setError('Please enter your email and password');
+      const msg = 'Please enter your email and password';
+      setError(msg);
+      toast.error('Missing details', msg);
       return;
     }
     try {
       const user = await login(email.trim(), password);
+      toast.success('Welcome back!', `Signed in as ${user.email}`);
       const home = Platform.OS === 'web' ? '/platform' : '/(tabs)';
       router.replace(user.onboarding_completed ? home : '/(onboarding)/role-info');
     } catch (e: any) {
       setError(e.message);
+      toast.error('Login failed', e.message);
     }
   };
 
@@ -110,10 +115,12 @@ export default function Login() {
         role: 'student',
       });
       setOauthOpen(null);
+      toast.success('Signed in', `Welcome, ${user.full_name || user.email}`);
       const home = Platform.OS === 'web' ? '/platform' : '/(tabs)';
       router.replace(user.onboarding_completed ? home : '/(onboarding)/role-info');
     } catch (e: any) {
       setError(e.message);
+      toast.error('OAuth failed', e.message);
     }
   };
 

@@ -5,6 +5,7 @@
 // Re-export PhonePe-style animated primitives so screens can keep importing
 // from a single design-system entry point.
 export { AnimatedCard, AnimatedTile, StaggerView, CountdownBadge } from './AnimatedCard';
+export { ToastProvider, useToast } from './Toast';
 
 import React from 'react';
 import {

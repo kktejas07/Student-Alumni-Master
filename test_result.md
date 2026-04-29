@@ -905,6 +905,63 @@ agent_communication:
           - webShell.backgroundColor: '#08051A' → '#000000' (pure black)
           - webBrandPane.backgroundColor: '#3D1468' → '#5B21B6' (solid Tailwind purple-700)
           - webCardPane.backgroundColor: (none) → '#000000' (explicit black, no bleed-through)
+
+---
+## 2026-04-29 — Web Auth Flow v2: Register polish + Email Verification + 2FA Setup + Glass/Gradient Toast
+agent_communication:
+    - agent: "main"
+      message: |
+        SHIPPED 4 web auth screens + a global Toast system, all matching the
+        SA Auth Flow v2 design spec.
+
+        NEW FILES:
+        - /app/frontend/src/views/web/AuthWebShell.tsx
+            • Reusable split-screen layout for web auth pages
+            • Two variants: "split" (form on right) + "center" (focused glass card)
+            • Brand pane on left mirrors the Login page exactly
+        - /app/frontend/src/views/web/AuthWebControls.tsx
+            • WebField, WebPrimaryBtn, WebGhostBtn, WebStepBar, WebOptionRow,
+              WebSectionLabel — shared dark-theme primitives
+        - /app/frontend/src/views/components/Toast.tsx
+            • Glass + Gradient toast system with 4 variants:
+              success / error / warning / info
+            • Slide-in animation, accent bar, gradient backdrop, glass overlay,
+              auto-dismiss progress strip (3.6s), close button
+            • Top-right stack on desktop, top-center on mobile/compact viewports
+            • useToast() hook + ToastProvider mounted in /app/_layout.tsx
+        - /app/frontend/app/(auth)/email-verify.tsx
+            • 3 states: pending (status card + 23min timer), verifying (spinner),
+              done (success ring + "Set up 2FA" / "Skip" CTAs)
+            • Reads ?email= query param
+        - /app/frontend/app/(auth)/two-fa-setup.tsx
+            • 4 steps: Method → Setup (QR/SMS/Email) → Verify (6-digit OTP) →
+              Backup codes → Done (with summary card)
+            • Step progress bar with active/completed states
+            • Faux QR pattern with SA logo center-overlay
+            • Inline OTP input with success/error border states
+            • Toast feedback on copy/download/verify
+
+        UPDATED FILES:
+        - /app/frontend/app/(auth)/register.tsx
+            • IS_WEB branch: split-screen with brand pane left, form right
+            • Role grid (4 roles) with hover/select states
+            • Toast on validation errors AND success
+            • Web flow: register → email-verify → 2FA → /platform
+        - /app/frontend/app/(auth)/login.tsx
+            • Toast on missing-fields, login failure, login success, OAuth success/failure
+        - /app/frontend/app/_layout.tsx
+            • Mounts <ToastProvider> around <Stack>
+
+        VERIFIED VIA SCREENSHOTS:
+        ✅ /register   – split-screen with role tiles + form
+        ✅ /email-verify – purple/black centered card with status, timer, CTAs
+        ✅ /two-fa-setup – method selection, QR step, OTP step
+        ✅ Toast — error variant (red glass) + success variant (green glass)
+                  rendered top-right with accent bar and progress strip
+
+        NOT YET DONE (next round): native onboarding screens (role-info, etc.)
+        already exist; web split-screen polish for those is pending.
+
         Visual result: clean solid purple (left) / pure black (right) split — confirmed
         via screenshot at 1920×800.
 
