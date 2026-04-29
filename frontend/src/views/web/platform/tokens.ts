@@ -18,6 +18,11 @@ export const SA = {
   sideMentor: 'rgba(5,67,48,0.7)',           // green-tinted
   sideCollege: 'rgba(15,36,89,0.75)',        // blue-tinted
 
+  // Page background gradients (per role) — matches /tmp/ui_specs JSX
+  pageBgStudent: ['#1A0438', '#2D0760', '#5F259F'] as const,
+  pageBgMentor: ['#0A1F0F', '#133D2A', '#2D7A4F'] as const,
+  pageBgCollege: ['#0F1729', '#1A2453', '#2E4480'] as const,
+
   // Active rail accent (per role)
   railStudent: '#B07FDF',
   railMentor: '#6EC9A8',

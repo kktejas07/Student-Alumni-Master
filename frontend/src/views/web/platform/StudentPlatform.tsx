@@ -40,7 +40,7 @@ export default function StudentPlatform() {
 
   return (
     <LinearGradient
-      colors={SA.pageBgGradient as any}
+      colors={SA.pageBgStudent as any}
       locations={SA.pageBgGradientStops as any}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
