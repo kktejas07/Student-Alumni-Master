@@ -119,19 +119,12 @@ export default function Login() {
 
   if (IS_WEB) {
     return (
-      <LinearGradient
-        colors={['#1A0438', '#2D0760', '#5F259F']}
-        locations={[0, 0.45, 1]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.webShell}
-      >
-        {/* Decorative orbs (per spec) */}
-        <View pointerEvents="none" style={[styles.webOrb, { width: 280, height: 280, top: '-10%', right: '-5%', backgroundColor: 'rgba(139,92,246,0.20)' }]} />
-        <View pointerEvents="none" style={[styles.webOrb, { width: 200, height: 200, bottom: '10%', left: '-5%', backgroundColor: 'rgba(109,40,217,0.15)' }]} />
-
-        {/* LEFT brand pane */}
+      <View style={styles.webShell}>
+        {/* LEFT brand pane — solid purple */}
         <View style={styles.webBrandPane}>
+          <View pointerEvents="none" style={[styles.webOrb, { width: 280, height: 280, top: '-10%', right: '-15%', backgroundColor: 'rgba(139,92,246,0.18)' }]} />
+          <View pointerEvents="none" style={[styles.webOrb, { width: 200, height: 200, bottom: '10%', left: '-10%', backgroundColor: 'rgba(109,40,217,0.16)' }]} />
+
           <View style={{ alignItems: 'center', marginBottom: 24 }}>
             <SALogo size={76} variant="white" />
           </View>
@@ -156,7 +149,7 @@ export default function Login() {
           ))}
         </View>
 
-        {/* RIGHT auth pane */}
+        {/* RIGHT auth pane — solid near-black */}
         <View style={styles.webCardPane}>
           <ScrollView
             contentContainerStyle={styles.webCardScroll}
@@ -670,6 +663,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     minHeight: '100%' as any,
     overflow: 'hidden',
+    backgroundColor: '#08051A',
   },
   webBlob: {
     position: 'absolute',
@@ -684,7 +678,7 @@ const styles = StyleSheet.create({
   webOrb: {
     position: 'absolute',
     borderRadius: 999,
-    ...({ filter: 'blur(70px)' } as any),
+    ...({ filter: 'blur(80px)' } as any),
   },
   webBrandPane: {
     flex: 1,
@@ -694,6 +688,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     maxWidth: 640,
     minWidth: 0,
+    backgroundColor: '#3D1468',
+    overflow: 'hidden',
+    position: 'relative',
     ...Platform.select({ web: { display: 'flex' as any } }),
   },
   webBrandWord: { color: C.white, fontFamily: 'DMSans_700Bold', fontSize: 18 },
