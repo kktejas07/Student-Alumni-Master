@@ -1,18 +1,30 @@
-# Student Career Development Platform - PRD
+# Student Alumni Platform - PRD
 
 ## Overview
-A comprehensive React Native (Expo) mobile-first platform that bridges students, alumni, mentors, and colleges. Provides AI-powered career guidance based on user-selected career paths during registration.
+A comprehensive React Native (Expo) mobile-first cross-platform app (iOS/Android/Web) that bridges students, alumni, mentors, and colleges. Provides AI-powered career guidance based on user-selected career paths during registration.
+
+## Brand Identity
+- **Brand Name**: Student Alumni
+- **Logo**: SA shield (purple gradient)
+- **Style**: Glass + Gradient + Purple
+- **Primary Palette**: 
+  - Brand Purple `#5F259F`
+  - Deep Purple `#3D1468`
+  - Mid Purple `#7B3DBF`
+  - Light Purple `#B07FDF`
+  - Pale Purple `#EDE0F7`
+- **Typography**: DM Sans (400, 500, 600, 700)
 
 ## Tech Stack
 - **Frontend**: React Native + Expo SDK 54, TypeScript, Expo Router (file-based routing)
 - **Architecture**: MVVM (Models - ViewModels - Views)
 - **State**: Zustand stores + custom hooks
-- **Data Fetching**: TanStack Query (React Query)
+- **Data Fetching**: Custom typed `api` service layer
 - **Backend**: FastAPI + MongoDB (Motor async driver)
 - **Authentication**: JWT (email/password) with bcrypt; Google + LinkedIn OAuth (later phases)
 - **AI**: Claude Sonnet 4.5 via emergentintegrations (Emergent LLM Key)
-- **Forms**: React Hook Form + Zod validation
-- **Mobile Features**: expo-camera (face registration), react-native-qrcode-svg (QR code), expo-secure-store
+- **Mobile**: expo-camera, expo-image-picker, expo-linear-gradient, expo-secure-store
+- **Forms**: react-hook-form + zod (where needed)
 
 ## Core User Roles
 1. **Student** (Class 11+ / Grade +1 onwards)

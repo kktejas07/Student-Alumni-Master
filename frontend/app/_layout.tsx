@@ -1,13 +1,11 @@
-/**
- * Root layout: loads fonts, mounts auth bootstrap, sets up navigation.
- */
 import { Stack } from 'expo-router';
-import { useFonts, Outfit_700Bold, Outfit_600SemiBold } from '@expo-google-fonts/outfit';
 import {
-  Manrope_400Regular,
-  Manrope_500Medium,
-  Manrope_600SemiBold,
-} from '@expo-google-fonts/manrope';
+  useFonts,
+  DMSans_400Regular,
+  DMSans_500Medium,
+  DMSans_600SemiBold,
+  DMSans_700Bold,
+} from '@expo-google-fonts/dm-sans';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -17,11 +15,10 @@ import { Colors } from '@/src/theme';
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
-    Outfit_700Bold,
-    Outfit_600SemiBold,
-    Manrope_400Regular,
-    Manrope_500Medium,
-    Manrope_600SemiBold,
+    DMSans_400Regular,
+    DMSans_500Medium,
+    DMSans_600SemiBold,
+    DMSans_700Bold,
   });
 
   const init = useAuthStore((s) => s.init);
@@ -36,20 +33,25 @@ export default function RootLayout() {
       <View
         style={{
           flex: 1,
-          backgroundColor: Colors.light.background,
+          backgroundColor: Colors.deepPurple,
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <ActivityIndicator size="large" color={Colors.light.primary} />
+        <ActivityIndicator size="large" color={Colors.white} />
       </View>
     );
   }
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.light.background } }} />
+      <StatusBar style="light" />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: Colors.background },
+        }}
+      />
     </SafeAreaProvider>
   );
 }

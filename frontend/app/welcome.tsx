@@ -1,100 +1,162 @@
 /**
- * Welcome / Splash screen - first thing a non-logged-in user sees.
+ * Splash / Welcome - Student Alumni branded
  */
-import { View, Text, Image, StyleSheet, ScrollView } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated, ScrollView, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Colors, Spacing, Typography } from '@/src/theme';
-import { Button } from '@/src/views/components';
+import { ArrowRight, Sparkles, Users, Globe, Calendar } from 'lucide-react-native';
+import { Button, GlassCard, GradientBackground, SALogo } from '@/src/views/components';
+import { Colors as C, Gradients, Spacing, Typography } from '@/src/theme';
 
-const C = Colors.light;
-const HERO =
-  'https://images.unsplash.com/photo-1620650764255-6797e68c7904?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200';
+const { width } = Dimensions.get('window');
 
 export default function Welcome() {
   const router = useRouter();
+  const fade = useRef(new Animated.Value(0)).current;
+  const slide = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fade, { toValue: 1, duration: 800, useNativeDriver: true }),
+      Animated.timing(slide, { toValue: 0, duration: 800, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.heroWrap}>
-          <View style={styles.heroShadow} />
-          <Image source={{ uri: HERO }} style={styles.hero} />
-        </View>
+    <GradientBackground colors={Gradients.splash}>
+      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+        {/* Decorative blobs */}
+        <View style={[styles.blob, { top: -120, right: -80, backgroundColor: 'rgba(176,127,223,0.35)' }]} />
+        <View style={[styles.blob, { bottom: -140, left: -100, backgroundColor: 'rgba(123,61,191,0.4)' }]} />
 
-        <View style={styles.tagBox}>
-          <Text style={styles.tagText}>FOR STUDENTS · ALUMNI · MENTORS · COLLEGES</Text>
-        </View>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+        >
+          <Animated.View style={{ opacity: fade, transform: [{ translateY: slide }] }}>
+            {/* Logo */}
+            <View style={styles.logoRow}>
+              <SALogo size={48} variant="glass" testID="welcome-logo" />
+              <View>
+                <Text style={styles.brand}>Student Alumni</Text>
+                <Text style={styles.brandSub}>Career · Mentorship · Network</Text>
+              </View>
+            </View>
 
-        <Text style={styles.h1}>
-          Your career,{'\n'}
-          <Text style={{ color: C.accentPink }}>your roadmap.</Text>
-        </Text>
+            {/* Hero */}
+            <View style={styles.hero}>
+              <View style={styles.tag}>
+                <Sparkles size={12} color={C.white} />
+                <Text style={styles.tagText}>AI POWERED · CLASS 11+</Text>
+              </View>
 
-        <Text style={styles.subtitle}>
-          AI-powered guidance, courses, mentors, internships and exclusive student deals — all in
-          one place.
-        </Text>
+              <Text style={styles.heroTitle}>
+                Your career,{'\n'}
+                <Text style={{ color: C.lightPurple }}>your roadmap.</Text>
+              </Text>
 
-        <View style={styles.actions}>
-          <Button
-            title="Get started"
-            onPress={() => router.push('/(auth)/register')}
-            testID="welcome-get-started-btn"
-          />
-          <Button
-            title="I already have an account"
-            variant="secondary"
-            onPress={() => router.push('/(auth)/login')}
-            testID="welcome-login-btn"
-            style={{ marginTop: 12 }}
-          />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+              <Text style={styles.heroSubtitle}>
+                Connect with global mentors & alumni, discover free courses, internships, exclusive
+                deals — and build your future with AI guidance.
+              </Text>
+
+              <View style={styles.actions}>
+                <Button
+                  title="Get started"
+                  variant="glass"
+                  icon={<ArrowRight size={18} color={C.white} />}
+                  onPress={() => router.push('/(auth)/register')}
+                  testID="welcome-get-started-btn"
+                  size="lg"
+                />
+                <View style={{ height: 12 }} />
+                <Button
+                  title="I already have an account"
+                  variant="ghost"
+                  onPress={() => router.push('/(auth)/login')}
+                  testID="welcome-login-btn"
+                />
+              </View>
+            </View>
+
+            {/* Stats glass row */}
+            <View style={styles.stats}>
+              <GlassCard style={styles.statCard} intensity="medium">
+                <Users size={20} color={C.white} />
+                <Text style={styles.statValue}>12,400+</Text>
+                <Text style={styles.statLabel}>MEMBERS</Text>
+              </GlassCard>
+              <GlassCard style={styles.statCard} intensity="medium">
+                <Globe size={20} color={C.white} />
+                <Text style={styles.statValue}>46</Text>
+                <Text style={styles.statLabel}>COUNTRIES</Text>
+              </GlassCard>
+              <GlassCard style={styles.statCard} intensity="medium">
+                <Calendar size={20} color={C.white} />
+                <Text style={styles.statValue}>200+</Text>
+                <Text style={styles.statLabel}>EVENTS / YR</Text>
+              </GlassCard>
+            </View>
+
+            {/* Roles */}
+            <Text style={styles.section}>FOR EVERYONE IN YOUR JOURNEY</Text>
+            <View style={styles.roles}>
+              {[
+                { label: 'Students', desc: 'Class 11+ onwards' },
+                { label: 'Alumni', desc: 'Mentor the next gen' },
+                { label: 'Mentors', desc: 'Industry leaders' },
+                { label: 'Colleges', desc: 'Tenants & faculty' },
+              ].map((r) => (
+                <GlassCard key={r.label} style={styles.roleCard} intensity="low">
+                  <Text style={styles.roleLabel}>{r.label}</Text>
+                  <Text style={styles.roleDesc}>{r.desc}</Text>
+                </GlassCard>
+              ))}
+            </View>
+          </Animated.View>
+        </ScrollView>
+      </SafeAreaView>
+    </GradientBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.background },
+  blob: { position: 'absolute', width: 320, height: 320, borderRadius: 160, opacity: 0.6 },
   container: { padding: Spacing.lg, paddingBottom: Spacing.xxl },
-  heroWrap: {
-    position: 'relative',
-    width: '100%',
-    aspectRatio: 1.35,
-    marginBottom: Spacing.lg,
-  },
-  heroShadow: {
-    position: 'absolute',
-    top: 6,
-    left: 6,
-    right: -6,
-    bottom: -6,
-    backgroundColor: C.shadow,
-    borderRadius: 20,
-  },
-  hero: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: C.border,
-  },
-  tagBox: {
+  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: Spacing.xl },
+  brand: { ...Typography.subheading, color: C.white, fontSize: 18 },
+  brandSub: { ...Typography.bodySm, color: C.textOnPurpleMuted, fontSize: 12 },
+  hero: { marginTop: Spacing.md },
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     alignSelf: 'flex-start',
-    backgroundColor: C.accentYellow,
-    borderWidth: 2,
-    borderColor: C.border,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.32)',
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 6,
     marginBottom: Spacing.md,
   },
-  tagText: { ...Typography.caption, color: C.textPrimary, fontSize: 11 },
-  h1: { ...Typography.h1, color: C.textPrimary, marginBottom: Spacing.md },
-  subtitle: {
+  tagText: { ...Typography.label, color: C.white, fontSize: 10 },
+  heroTitle: { ...Typography.display, color: C.white, fontSize: 44, lineHeight: 48 },
+  heroSubtitle: {
     ...Typography.bodyLg,
-    color: C.textSecondary,
+    color: C.textOnPurpleMuted,
+    marginTop: Spacing.md,
     marginBottom: Spacing.xl,
   },
   actions: { gap: 4 },
+  stats: { flexDirection: 'row', gap: 10, marginTop: Spacing.xl },
+  statCard: { flex: 1, gap: 6, alignItems: 'flex-start', padding: 14 },
+  statValue: { ...Typography.h3, color: C.white },
+  statLabel: { ...Typography.label, color: C.textOnPurpleMuted, fontSize: 10 },
+  section: { ...Typography.label, color: C.textOnPurpleMuted, marginTop: Spacing.xl, marginBottom: Spacing.sm },
+  roles: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  roleCard: { width: (width - Spacing.lg * 2 - 10) / 2, padding: 14 },
+  roleLabel: { ...Typography.subheading, color: C.white },
+  roleDesc: { ...Typography.bodySm, color: C.textOnPurpleMuted, marginTop: 2 },
 });

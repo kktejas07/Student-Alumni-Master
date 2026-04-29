@@ -596,15 +596,16 @@ async def list_courses(career_path: Optional[str] = None, limit: int = 20):
 
 @api_router.get("/catalog/mentors")
 async def list_mentors(career_path: Optional[str] = None, limit: int = 20):
-    query = {"role": "mentor"}
+    user_query = {"role": "mentor"}
+    sample_query: dict = {}
     if career_path:
-        query["expertise"] = career_path
-    mentors = await db.users.find(query, {"password_hash": 0, "face_image_base64": 0}).limit(limit).to_list(limit)
+        user_query["expertise"] = career_path
+        sample_query["expertise"] = career_path
+    mentors = await db.users.find(user_query, {"password_hash": 0, "face_image_base64": 0}).limit(limit).to_list(limit)
     for m in mentors:
         m["id"] = str(m["_id"])
         m.pop("_id", None)
-    # Plus seeded sample mentors
-    sample = await db.sample_mentors.find(query if query else {}, {"_id": 0}).limit(limit).to_list(limit)
+    sample = await db.sample_mentors.find(sample_query, {"_id": 0}).limit(limit).to_list(limit)
     return {"mentors": mentors + sample}
 
 
