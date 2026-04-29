@@ -13,6 +13,9 @@ import {
 import { SA, SAGradients } from './tokens';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { api } from '@/src/models/services/api';
+import {
+  MentorStudents, MentorSessions, MentorPostJobs, MentorAnalyticsScreen,
+} from './screens/MentorScreens';
 
 const NAV: NavItem[] = [
   { id: 'home', emoji: '🏠', label: 'Dashboard' },
@@ -55,10 +58,10 @@ export default function MentorPlatform() {
       />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.main}>
         {screen === 'home' && <Home onNav={setScreen} />}
-        {screen === 'students' && <Stub title="My Students" emoji="🎓" sub="Roster of mentees with progress and activity." />}
-        {screen === 'sessions' && <Stub title="Sessions" emoji="📅" sub="All booked sessions — past, upcoming, pending." />}
-        {screen === 'jobs' && <Stub title="Post Jobs" emoji="💼" sub="Create job/internship posts visible to your students." />}
-        {screen === 'analytics' && <Stub title="Analytics" emoji="📊" sub="Sessions, hours mentored, ratings, growth." />}
+        {screen === 'students' && <MentorStudents />}
+        {screen === 'sessions' && <MentorSessions />}
+        {screen === 'jobs' && <MentorPostJobs />}
+        {screen === 'analytics' && <MentorAnalyticsScreen />}
       </ScrollView>
     </LinearGradient>
   );

@@ -13,6 +13,9 @@ import {
 import { SA, SAGradients } from './tokens';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { api } from '@/src/models/services/api';
+import {
+  StudentInternships, StudentCourses, StudentResources, StudentNetwork,
+} from './screens/StudentScreens';
 
 const NAV: NavItem[] = [
   { id: 'home', emoji: '🏠', label: 'Dashboard' },
@@ -60,10 +63,10 @@ export default function StudentPlatform() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.main}>
         {screen === 'home' && <Home onNav={setScreen} />}
         {screen === 'career' && <Career />}
-        {screen === 'internships' && <SimpleStubScreen title="Internships" emoji="💼" subtitle="Browse all 48 matched roles & remote opportunities." />}
-        {screen === 'courses' && <SimpleStubScreen title="Courses" emoji="📚" subtitle="Continue your learning across edX, Coursera, Udemy." />}
-        {screen === 'resources' && <SimpleStubScreen title="Resources" emoji="🛡️" subtitle="Insurance · Housing · Education loans · Verified deals." />}
-        {screen === 'network' && <SimpleStubScreen title="Network" emoji="👥" subtitle="Connect with mentors, alumni and peers." />}
+        {screen === 'internships' && <StudentInternships />}
+        {screen === 'courses' && <StudentCourses />}
+        {screen === 'resources' && <StudentResources />}
+        {screen === 'network' && <StudentNetwork />}
       </ScrollView>
     </LinearGradient>
   );

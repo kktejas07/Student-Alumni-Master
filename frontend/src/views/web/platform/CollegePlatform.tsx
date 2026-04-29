@@ -13,6 +13,10 @@ import {
 import { SA, SAGradients } from './tokens';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { api } from '@/src/models/services/api';
+import {
+  CollegeStudents, CollegeAlumni, CollegePrograms,
+  CollegeAnalyticsScreen, CollegeSettings,
+} from './screens/CollegeScreens';
 
 const NAV: NavItem[] = [
   { id: 'overview', emoji: '📊', label: 'Overview' },
@@ -54,11 +58,11 @@ export default function CollegePlatform() {
       />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.main}>
         {screen === 'overview' && <Overview onNav={setScreen} />}
-        {screen === 'students' && <Stub title="Students" emoji="🎓" sub="Bulk add, verify, and manage your student roster." />}
-        {screen === 'alumni' && <Stub title="Alumni" emoji="🤝" sub="Re-engage your alumni network." />}
-        {screen === 'programs' && <Stub title="Programs" emoji="📋" sub="Department & program management." />}
-        {screen === 'analytics' && <Stub title="Analytics" emoji="📈" sub="Engagement, placements, outcomes." />}
-        {screen === 'settings' && <Stub title="Settings" emoji="⚙️" sub="Tenant configuration and team access." />}
+        {screen === 'students' && <CollegeStudents />}
+        {screen === 'alumni' && <CollegeAlumni />}
+        {screen === 'programs' && <CollegePrograms />}
+        {screen === 'analytics' && <CollegeAnalyticsScreen />}
+        {screen === 'settings' && <CollegeSettings />}
       </ScrollView>
     </LinearGradient>
   );
