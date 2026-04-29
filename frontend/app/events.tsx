@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Calendar, MapPin } from 'lucide-react-native';
 import { Colors as C, Spacing, Typography } from '@/src/theme';
-import { Card, Chip } from '@/src/views/components';
+import { AnimatedCard, Chip, CountdownBadge } from '@/src/views/components';
 import { useCatalog } from '@/src/viewmodels/hooks';
 
 const FILTERS = [
@@ -24,6 +24,15 @@ const FILTERS = [
   { id: 'networking', label: 'Networking' },
   { id: 'startup', label: 'Startup' },
 ];
+
+// Helper: returns # of days until ISO date (negative if past)
+function daysUntil(iso?: string): number | null {
+  if (!iso) return null;
+  const target = new Date(iso);
+  if (Number.isNaN(target.getTime())) return null;
+  const diff = (target.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+  return Math.ceil(diff);
+}
 
 export default function EventsScreen() {
   const router = useRouter();
@@ -53,17 +62,28 @@ export default function EventsScreen() {
           <ActivityIndicator color={C.brandPurple} style={{ padding: 40 }} />
         ) : (
           <View style={{ gap: 14 }}>
-            {items.map((e: any) => (
-              <TouchableOpacity key={e.id}
-                onPress={() => router.push({ pathname: '/event/[id]', params: { id: e.id, ...e, tags: (e.tags || []).join(',') } })}
-                activeOpacity={0.7} testID={`event-item-${e.id}`}>
-                <Card padded={false} style={{ overflow: 'hidden' }}>
+            {items.map((e: any, idx: number) => {
+              const days = daysUntil(e.registration_deadline);
+              return (
+                <AnimatedCard
+                  key={e.id}
+                  onPress={() => router.push({ pathname: '/event/[id]', params: { id: e.id, ...e, tags: (e.tags || []).join(',') } })}
+                  padded={false}
+                  style={{ overflow: 'hidden' }}
+                  index={idx}
+                  testID={`event-item-${e.id}`}
+                >
                   <Image source={{ uri: e.image }} style={styles.img} />
                   <View style={{ padding: 14 }}>
-                    <Text style={[Typography.label, { color: C.brandPurple, fontSize: 10 }]}>
-                      {e.category?.toUpperCase()} · {e.organizer}
-                    </Text>
-                    <Text style={[Typography.h4, { color: C.textPrimary, marginTop: 2 }]}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <Text style={[Typography.label, { color: C.brandPurple, fontSize: 10, flex: 1 }]} numberOfLines={1}>
+                        {e.category?.toUpperCase()} · {e.organizer}
+                      </Text>
+                      {days !== null && days >= 0 && days <= 14 && (
+                        <CountdownBadge days={days} />
+                      )}
+                    </View>
+                    <Text style={[Typography.h4, { color: C.textPrimary, marginTop: 4 }]}>
                       {e.title}
                     </Text>
                     <View style={styles.metaRow}>
@@ -78,9 +98,9 @@ export default function EventsScreen() {
                       Register by {e.registration_deadline}
                     </Text>
                   </View>
-                </Card>
-              </TouchableOpacity>
-            ))}
+                </AnimatedCard>
+              );
+            })}
           </View>
         )}
       </ScrollView>

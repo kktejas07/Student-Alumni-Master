@@ -5,12 +5,12 @@
 import { useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, Image,
-  TouchableOpacity, Linking, ActivityIndicator,
+  Linking, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Tag, ExternalLink } from 'lucide-react-native';
 import { Colors as C, Spacing, Typography } from '@/src/theme';
-import { Card, Chip } from '@/src/views/components';
+import { AnimatedCard, Chip } from '@/src/views/components';
 import { useCatalog } from '@/src/viewmodels/hooks';
 
 const CATEGORIES = ['All', 'Tech', 'Education', 'Productivity', 'Design', 'Food', 'Entertainment', 'Shopping'];
@@ -55,37 +55,41 @@ export default function DealsTab() {
           <ActivityIndicator color={C.brandPurple} style={{ padding: 40 }} />
         ) : (
           <View style={{ gap: 14 }}>
-            {items.map((d: any) => (
-              <TouchableOpacity key={d.id} onPress={() => Linking.openURL(d.url)}
-                activeOpacity={0.7} testID={`deal-item-${d.id}`}>
-                <Card padded={false} style={{ overflow: 'hidden' }}>
-                  <Image source={{ uri: d.image }} style={styles.dealImg} />
-                  <View style={{ padding: 14, gap: 4 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Text style={[Typography.label, { color: C.textSecondary, fontSize: 10 }]}>
-                        {d.brand}
-                      </Text>
-                      <View style={styles.catTag}>
-                        <Text style={[Typography.label, { color: C.deepPurple, fontSize: 9 }]}>{d.category}</Text>
-                      </View>
-                    </View>
-                    <Text style={[Typography.h4, { color: C.textPrimary }]}>{d.title}</Text>
-                    <Text style={[Typography.bodyBold, { color: C.brandPurple, fontSize: 16 }]}>
-                      {d.discount}
+            {items.map((d: any, idx: number) => (
+              <AnimatedCard
+                key={d.id}
+                onPress={() => Linking.openURL(d.url)}
+                padded={false}
+                style={{ overflow: 'hidden' }}
+                index={idx}
+                testID={`deal-item-${d.id}`}
+              >
+                <Image source={{ uri: d.image }} style={styles.dealImg} />
+                <View style={{ padding: 14, gap: 4 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={[Typography.label, { color: C.textSecondary, fontSize: 10 }]}>
+                      {d.brand}
                     </Text>
-                    <View style={styles.codeBox}>
-                      <Text style={[Typography.label, { color: C.textSecondary, fontSize: 9 }]}>CODE</Text>
-                      <Text style={[Typography.bodyBold, { color: C.textPrimary, letterSpacing: 1 }]}>
-                        {d.code}
-                      </Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                      <ExternalLink size={14} color={C.brandPurple} />
-                      <Text style={[Typography.bodySm, { color: C.brandPurple }]}>Tap to redeem</Text>
+                    <View style={styles.catTag}>
+                      <Text style={[Typography.label, { color: C.deepPurple, fontSize: 9 }]}>{d.category}</Text>
                     </View>
                   </View>
-                </Card>
-              </TouchableOpacity>
+                  <Text style={[Typography.h4, { color: C.textPrimary }]}>{d.title}</Text>
+                  <Text style={[Typography.bodyBold, { color: C.brandPurple, fontSize: 16 }]}>
+                    {d.discount}
+                  </Text>
+                  <View style={styles.codeBox}>
+                    <Text style={[Typography.label, { color: C.textSecondary, fontSize: 9 }]}>CODE</Text>
+                    <Text style={[Typography.bodyBold, { color: C.textPrimary, letterSpacing: 1 }]}>
+                      {d.code}
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                    <ExternalLink size={14} color={C.brandPurple} />
+                    <Text style={[Typography.bodySm, { color: C.brandPurple }]}>Tap to redeem</Text>
+                  </View>
+                </View>
+              </AnimatedCard>
             ))}
           </View>
         )}

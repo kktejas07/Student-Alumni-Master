@@ -5,12 +5,12 @@
 import { useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, Image,
-  TouchableOpacity, Linking, ActivityIndicator,
+  Linking, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search } from 'lucide-react-native';
 import { Colors as C, Spacing, Typography } from '@/src/theme';
-import { Card, Chip } from '@/src/views/components';
+import { AnimatedCard, Chip } from '@/src/views/components';
 import { useCatalog, useAuth } from '@/src/viewmodels/hooks';
 
 const FILTERS = [
@@ -48,33 +48,37 @@ export default function CoursesTab() {
           <ActivityIndicator color={C.brandPurple} style={{ padding: 40 }} />
         ) : (
           <View style={{ gap: 12 }}>
-            {items.map((c: any) => (
-              <TouchableOpacity key={c.id} onPress={() => Linking.openURL(c.url)}
-                activeOpacity={0.7} testID={`course-item-${c.id}`}>
-                <Card padded={false} style={{ overflow: 'hidden' }}>
-                  <View style={{ flexDirection: 'row' }}>
-                    <Image source={{ uri: c.image }} style={styles.thumb} />
-                    <View style={{ flex: 1, padding: 14, gap: 4 }}>
-                      <Text style={[Typography.label, { color: C.brandPurple, fontSize: 10 }]}>
-                        {c.provider}
-                      </Text>
-                      <Text style={[Typography.bodyBold, { color: C.textPrimary }]} numberOfLines={2}>
-                        {c.title}
-                      </Text>
-                      <Text style={[Typography.bodySm, { color: C.textSecondary }]}>
-                        {c.duration} · {c.level}
-                      </Text>
-                      <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
-                        <View style={[styles.tag, c.is_free ? styles.tagFree : styles.tagPaid]}>
-                          <Text style={[Typography.label, { color: c.is_free ? '#0F9D58' : C.deepPurple, fontSize: 9 }]}>
-                            {c.is_free ? 'FREE' : 'PAID'}
-                          </Text>
-                        </View>
+            {items.map((c: any, idx: number) => (
+              <AnimatedCard
+                key={c.id}
+                onPress={() => Linking.openURL(c.url)}
+                padded={false}
+                style={{ overflow: 'hidden' }}
+                index={idx}
+                testID={`course-item-${c.id}`}
+              >
+                <View style={{ flexDirection: 'row' }}>
+                  <Image source={{ uri: c.image }} style={styles.thumb} />
+                  <View style={{ flex: 1, padding: 14, gap: 4 }}>
+                    <Text style={[Typography.label, { color: C.brandPurple, fontSize: 10 }]}>
+                      {c.provider}
+                    </Text>
+                    <Text style={[Typography.bodyBold, { color: C.textPrimary }]} numberOfLines={2}>
+                      {c.title}
+                    </Text>
+                    <Text style={[Typography.bodySm, { color: C.textSecondary }]}>
+                      {c.duration} · {c.level}
+                    </Text>
+                    <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
+                      <View style={[styles.tag, c.is_free ? styles.tagFree : styles.tagPaid]}>
+                        <Text style={[Typography.label, { color: c.is_free ? '#0F9D58' : C.deepPurple, fontSize: 9 }]}>
+                          {c.is_free ? 'FREE' : 'PAID'}
+                        </Text>
                       </View>
                     </View>
                   </View>
-                </Card>
-              </TouchableOpacity>
+                </View>
+              </AnimatedCard>
             ))}
           </View>
         )}

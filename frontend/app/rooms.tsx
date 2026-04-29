@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Users, MessageCircle } from 'lucide-react-native';
 import { Colors as C, Spacing, Typography } from '@/src/theme';
-import { Card } from '@/src/views/components';
+import { AnimatedCard } from '@/src/views/components';
 import { api } from '@/src/models/services/api';
 
 export default function RoomsScreen() {
@@ -36,29 +36,32 @@ export default function RoomsScreen() {
           <ActivityIndicator color={C.brandPurple} style={{ padding: 40 }} />
         ) : (
           <View style={{ gap: 12, marginTop: 12 }}>
-            {rooms.map((r) => (
-              <TouchableOpacity key={r.id} onPress={() =>
-                router.push({ pathname: '/room/[id]', params: { id: r.id, name: r.name } })}
-                activeOpacity={0.7} testID={`room-${r.id}`}>
-                <Card>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <View style={styles.iconCircle}>
-                      <Text style={{ fontSize: 26 }}>{r.icon}</Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[Typography.h4, { color: C.textPrimary }]}>{r.name}</Text>
-                      <Text style={[Typography.bodySm, { color: C.textSecondary }]}>{r.description}</Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                        <Users size={12} color={C.textMuted} />
-                        <Text style={[Typography.bodySm, { color: C.textMuted }]}>
-                          {r.members.toLocaleString()} members
-                        </Text>
-                      </View>
-                    </View>
-                    <MessageCircle size={20} color={C.brandPurple} />
+            {rooms.map((r, idx) => (
+              <AnimatedCard
+                key={r.id}
+                onPress={() =>
+                  router.push({ pathname: '/room/[id]', params: { id: r.id, name: r.name } })
+                }
+                index={idx}
+                testID={`room-${r.id}`}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={styles.iconCircle}>
+                    <Text style={{ fontSize: 26 }}>{r.icon}</Text>
                   </View>
-                </Card>
-              </TouchableOpacity>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[Typography.h4, { color: C.textPrimary }]}>{r.name}</Text>
+                    <Text style={[Typography.bodySm, { color: C.textSecondary }]}>{r.description}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                      <Users size={12} color={C.textMuted} />
+                      <Text style={[Typography.bodySm, { color: C.textMuted }]}>
+                        {r.members.toLocaleString()} members
+                      </Text>
+                    </View>
+                  </View>
+                  <MessageCircle size={20} color={C.brandPurple} />
+                </View>
+              </AnimatedCard>
             ))}
           </View>
         )}
