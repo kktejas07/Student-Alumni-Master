@@ -12,7 +12,10 @@ interface AuthState {
   initialized: boolean;
   error: string | null;
   init: () => Promise<void>;
-  login: (email: string, password: string) => Promise<User>;
+  login: (email: string, password: string) => Promise<
+    { ok: true; user: User }
+    | { ok: false; requires_2fa: true; challenge_id: string; user_email: string; methods: string[] }
+  >;
   oauthLogin: (provider: 'google' | 'linkedin', payload: { email: string; full_name: string; picture?: string; role?: string }) => Promise<User>;
   register: (payload: {
     email: string;
@@ -24,6 +27,8 @@ interface AuthState {
   refreshUser: () => Promise<User | null>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
+  // 2FA
+  verifyTwoFA: (challenge_id: string, code: string) => Promise<User>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -53,6 +58,30 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const res = await api.login(email, password);
+      // 2FA challenge — caller must navigate to /two-fa-challenge
+      if (res?.requires_2fa) {
+        set({ loading: false });
+        return {
+          ok: false,
+          requires_2fa: true,
+          challenge_id: res.challenge_id,
+          user_email: res.user_email,
+          methods: res.methods || ['totp'],
+        };
+      }
+      await tokenStore.setTokens(res.access_token, res.refresh_token);
+      set({ user: res.user, loading: false });
+      return { ok: true, user: res.user };
+    } catch (e: any) {
+      set({ error: e.message, loading: false });
+      throw e;
+    }
+  },
+
+  verifyTwoFA: async (challenge_id, code) => {
+    set({ loading: true, error: null });
+    try {
+      const res = await api.twoFAVerify(challenge_id, code);
       await tokenStore.setTokens(res.access_token, res.refresh_token);
       set({ user: res.user, loading: false });
       return res.user;

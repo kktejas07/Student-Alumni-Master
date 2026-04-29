@@ -86,7 +86,21 @@ export default function Login() {
       return;
     }
     try {
-      const user = await login(email.trim(), password);
+      const result = await login(email.trim(), password);
+      // 2FA challenge — navigate to challenge screen with state via params
+      if (!result.ok && (result as any).requires_2fa) {
+        toast.success('Almost there!', 'Enter your 2FA code to continue.');
+        router.push({
+          pathname: '/(auth)/two-fa-challenge',
+          params: {
+            challenge_id: (result as any).challenge_id,
+            user_email: (result as any).user_email,
+            methods: ((result as any).methods || ['totp']).join(','),
+          },
+        });
+        return;
+      }
+      const user = (result as any).user;
       toast.success('Welcome back!', `Signed in as ${user.email}`);
       const home = Platform.OS === 'web' ? '/platform' : '/(tabs)';
       router.replace(user.onboarding_completed ? home : '/(onboarding)/role-info');

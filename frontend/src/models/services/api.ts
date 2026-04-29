@@ -119,6 +119,25 @@ export const api = {
 
   me: () => request<any>('/auth/me'),
 
+  // 2FA — TOTP-based
+  twoFASetup: () =>
+    request<{ secret: string; otpauth_uri: string; qr_code_base64: string }>(
+      '/auth/2fa/setup', { method: 'POST', body: {} }),
+
+  twoFAEnable: (code: string) =>
+    request<{ enabled: boolean; backup_codes: string[] }>(
+      '/auth/2fa/enable', { method: 'POST', body: { code } }),
+
+  twoFAVerify: (challenge_id: string, code: string) =>
+    request<any>('/auth/2fa/verify', { method: 'POST', body: { challenge_id, code }, auth: false }),
+
+  twoFADisable: (password: string, code: string) =>
+    request<{ disabled: boolean }>('/auth/2fa/disable', { method: 'POST', body: { password, code } }),
+
+  twoFARegenerateBackupCodes: (code: string) =>
+    request<{ enabled: boolean; backup_codes: string[] }>(
+      '/auth/2fa/regenerate-backup-codes', { method: 'POST', body: { code } }),
+
   // Onboarding
   completeOnboarding: (payload: any) =>
     request<any>('/users/onboarding', { method: 'POST', body: payload }),
