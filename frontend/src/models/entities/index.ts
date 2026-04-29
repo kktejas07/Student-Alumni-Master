@@ -39,12 +39,13 @@ export interface SchoolInfo {
   institution_name: string;
   institution_type: InstitutionType;
   class_or_year: string;
+  degree?: string;             // e.g., B.Tech, B.Sc, MBA, PhD
   branch_or_stream?: string;
   board_or_university?: string;
   city?: string;
   state?: string;
   country?: string;
-  graduation_year?: number;
+  graduation_year?: number;    // Pass-out year for alumni/mentor
 }
 
 /** Student-only profile fields (collected during onboarding). */

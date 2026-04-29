@@ -1,5 +1,10 @@
 /**
  * Onboarding step 2 — School / Institution info.
+ *
+ * Role-aware fields:
+ *   • Student          → "Current degree"  + "Current year"
+ *   • Alumni / Mentor  → "Pass-out degree" + "Pass-out year"
+ *
  * Web: split-screen.  Native (iOS/Android): full-screen dark.
  */
 import { useState } from 'react';
@@ -17,7 +22,17 @@ const INSTITUTION_TYPES: { id: InstitutionType; label: string }[] = [
   { id: 'college', label: 'College' },
   { id: 'university', label: 'University' },
 ];
-const CLASS_PRESETS = ['11', '12', 'B.Tech 1st Year', 'B.Tech 2nd Year', 'BBA', 'B.Sc'];
+
+// Suggested degree presets (student picks current; alumni/mentor picks pass-out)
+const DEGREE_PRESETS = ['B.Tech', 'B.Sc', 'B.Com', 'BBA', 'BA', 'MBA', 'M.Tech', 'M.Sc', 'PhD'];
+
+// For students — class/year of study
+const STUDENT_YEAR_PRESETS = ['11', '12', '1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year'];
+
+// Pass-out year presets (current year and last 6) for alumni/mentor
+const CURRENT_YEAR = new Date().getFullYear();
+const PASSOUT_YEAR_PRESETS = Array.from({ length: 7 }, (_, i) => String(CURRENT_YEAR - i));
+
 const STEPS = ['Welcome', 'School', 'Details', 'Photo', 'Done'];
 
 export default function SchoolInfoScreen() {
@@ -27,15 +42,40 @@ export default function SchoolInfoScreen() {
   const { school_info, setSchoolInfo } = useOnboardingStore();
   const [error, setError] = useState<string | null>(null);
 
-  const isStudent = user?.role === 'student';
-  const isAlumni = user?.role === 'alumni';
+  const role = user?.role || 'student';
+  const isStudent = role === 'student';
+  const isAlumni = role === 'alumni';
+  const isMentor = role === 'mentor';
+  const isPassedOut = isAlumni || isMentor; // both groups need pass-out details
+
+  // Role-specific copy
+  const degreeLabel = isPassedOut ? 'Pass-out degree' : 'Current degree';
+  const yearLabel = isPassedOut ? 'Pass-out year' : 'Current year';
+  const yearPresets = isPassedOut ? PASSOUT_YEAR_PRESETS : STUDENT_YEAR_PRESETS;
+  const yearPlaceholder = isPassedOut ? 'e.g., 2020' : 'e.g., 11, 12, 1st Year';
 
   const validate = (): boolean => {
     setError(null);
     const s = school_info;
-    if (!s.institution_name?.trim()) { setError('Please enter your institution name'); return false; }
-    if (!s.class_or_year?.trim()) { setError('Please enter your class or year'); return false; }
+
+    if (!s.institution_name?.trim()) {
+      setError('Please enter your institution name'); return false;
+    }
+    if (!s.degree?.trim()) {
+      setError(`Please enter your ${degreeLabel.toLowerCase()}`); return false;
+    }
+
+    // For alumni/mentor — graduation_year is required (numeric)
+    if (isPassedOut) {
+      if (!s.graduation_year) { setError('Please enter your pass-out year'); return false; }
+      if (s.graduation_year < 1950 || s.graduation_year > CURRENT_YEAR) {
+        setError(`Pass-out year must be between 1950 and ${CURRENT_YEAR}`); return false;
+      }
+    }
+
+    // For students — class_or_year is required (string)
     if (isStudent) {
+      if (!s.class_or_year?.trim()) { setError('Please enter your current year'); return false; }
       const cls = s.class_or_year.trim().toLowerCase();
       if (/^\d+$/.test(cls)) {
         const n = parseInt(cls, 10);
@@ -45,7 +85,6 @@ export default function SchoolInfoScreen() {
         setError('Students must be in Class 11 (+1) or above to register on this platform.'); return false;
       }
     }
-    if (isAlumni && !s.graduation_year) { setError('Please enter your graduation year'); return false; }
     return true;
   };
 
@@ -56,6 +95,21 @@ export default function SchoolInfoScreen() {
     }
     router.push('/(onboarding)/role-details');
   };
+
+  // Handle year input
+  const onYearChange = (v: string) => {
+    if (isPassedOut) {
+      // numeric for pass-out year
+      const n = parseInt(v, 10);
+      setSchoolInfo({ graduation_year: isNaN(n) ? undefined : n, class_or_year: v });
+    } else {
+      setSchoolInfo({ class_or_year: v });
+    }
+  };
+
+  const yearValue = isPassedOut
+    ? (school_info.graduation_year ? String(school_info.graduation_year) : '')
+    : (school_info.class_or_year || '');
 
   return (
     <OnboardingShell
@@ -97,20 +151,43 @@ export default function SchoolInfoScreen() {
         testID="school-name-input"
       />
 
-      <Text style={styles.section}>{isAlumni ? 'Last class / Year completed' : 'Current class / Year'}</Text>
+      {/* ─── Degree ────────────────────────────────────────────────────── */}
+      <Text style={styles.section}>{degreeLabel}</Text>
       <WebField
-        placeholder="e.g., 11, 12, B.Tech 2nd Year, MBA 1st Year"
-        value={school_info.class_or_year || ''}
-        onChangeText={(v: string) => setSchoolInfo({ class_or_year: v })}
-        testID="school-class-input"
+        placeholder="e.g., B.Tech, MBA, B.Sc"
+        value={school_info.degree || ''}
+        onChangeText={(v: string) => setSchoolInfo({ degree: v })}
+        testID="school-degree-input"
       />
-      <View style={[styles.chipRow, { marginTop: -4, marginBottom: 12 }]}>
-        {CLASS_PRESETS.map((c) => (
+      <View style={[styles.chipRow, { marginTop: -4, marginBottom: 14 }]}>
+        {DEGREE_PRESETS.map((d) => (
           <DarkChip
-            key={c}
-            label={c}
-            active={school_info.class_or_year === c}
-            onPress={() => setSchoolInfo({ class_or_year: c })}
+            key={d}
+            label={d}
+            active={school_info.degree === d}
+            onPress={() => setSchoolInfo({ degree: d })}
+            testID={`school-degree-chip-${d}`}
+          />
+        ))}
+      </View>
+
+      {/* ─── Year (current OR pass-out) ────────────────────────────────── */}
+      <Text style={styles.section}>{yearLabel}</Text>
+      <WebField
+        placeholder={yearPlaceholder}
+        keyboardType={isPassedOut ? 'numeric' : 'default'}
+        value={yearValue}
+        onChangeText={onYearChange}
+        testID="school-year-input"
+      />
+      <View style={[styles.chipRow, { marginTop: -4, marginBottom: 14 }]}>
+        {yearPresets.map((y) => (
+          <DarkChip
+            key={y}
+            label={y}
+            active={yearValue === y}
+            onPress={() => onYearChange(y)}
+            testID={`school-year-chip-${y}`}
           />
         ))}
       </View>
@@ -139,17 +216,6 @@ export default function SchoolInfoScreen() {
           <WebField label="State" placeholder="Karnataka" value={school_info.state || ''} onChangeText={(v: string) => setSchoolInfo({ state: v })} testID="school-state-input" />
         </View>
       </View>
-
-      {isAlumni && (
-        <WebField
-          label="Graduation year"
-          placeholder="e.g., 2020"
-          keyboardType="numeric"
-          value={school_info.graduation_year ? String(school_info.graduation_year) : ''}
-          onChangeText={(v: string) => setSchoolInfo({ graduation_year: parseInt(v) || undefined })}
-          testID="school-grad-year-input"
-        />
-      )}
 
       {error && <Text style={styles.error}>{error}</Text>}
     </OnboardingShell>
