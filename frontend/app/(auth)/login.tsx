@@ -77,7 +77,8 @@ export default function Login() {
     }
     try {
       const user = await login(email.trim(), password);
-      router.replace(user.onboarding_completed ? '/(tabs)' : '/(onboarding)/role-info');
+      const home = Platform.OS === 'web' ? '/platform' : '/(tabs)';
+      router.replace(user.onboarding_completed ? home : '/(onboarding)/role-info');
     } catch (e: any) {
       setError(e.message);
     }
@@ -104,7 +105,8 @@ export default function Login() {
         role: 'student',
       });
       setOauthOpen(null);
-      router.replace(user.onboarding_completed ? '/(tabs)' : '/(onboarding)/role-info');
+      const home = Platform.OS === 'web' ? '/platform' : '/(tabs)';
+      router.replace(user.onboarding_completed ? home : '/(onboarding)/role-info');
     } catch (e: any) {
       setError(e.message);
     }

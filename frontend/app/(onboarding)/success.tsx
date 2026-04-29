@@ -1,7 +1,7 @@
 /**
  * Onboarding step 5 — Success / Generated unique ID + QR code
  */
-import { View, Text, ScrollView, StyleSheet, Image } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Image, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { CheckCircle2, Sparkles } from 'lucide-react-native';
@@ -76,7 +76,7 @@ export default function OnboardingSuccess() {
 
         <Button
           title="Go to my dashboard"
-          onPress={() => router.replace('/(tabs)')}
+          onPress={() => router.replace(Platform.OS === 'web' ? '/platform' : '/(tabs)')}
           testID="success-dashboard-btn"
           style={{ marginTop: Spacing.xl }}
         />

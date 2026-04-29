@@ -2,7 +2,7 @@
  * Splash router - shows SA logo with animation, then routes user.
  */
 import { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Easing, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { Colors as C, Gradients, Typography } from '@/src/theme';
@@ -27,6 +27,9 @@ export default function Index() {
         router.replace('/welcome');
       } else if (!user.onboarding_completed) {
         router.replace('/(onboarding)/role-info');
+      } else if (Platform.OS === 'web') {
+        // Web users get the desktop sidebar dashboard.
+        router.replace('/platform');
       } else {
         router.replace('/(tabs)');
       }
