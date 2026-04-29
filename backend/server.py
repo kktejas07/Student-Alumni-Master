@@ -541,6 +541,16 @@ def _generate_totp_qr(uri: str) -> str:
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
+@api_router.get("/downloads/sa_flows.zip")
+async def download_sa_flows_zip():
+    """Serves the bundled flow-screenshots ZIP for the current user session."""
+    from fastapi.responses import FileResponse
+    p = "/app/backend/static_downloads/sa_flows.zip"
+    if not os.path.exists(p):
+        raise HTTPException(404, "Archive not found")
+    return FileResponse(p, media_type="application/zip", filename="sa_flows.zip")
+
+
 @api_router.post("/auth/2fa/setup", response_model=TwoFASetupResponse)
 async def two_fa_setup(user: dict = Depends(get_current_user)):
     """Generate a fresh TOTP secret and QR for the authenticator app.
