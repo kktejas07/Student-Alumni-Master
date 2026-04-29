@@ -71,14 +71,10 @@ export default function Register() {
         role,
         phone: phone.trim() || undefined,
       });
-      toast.success('Account created!', 'Verify your email to continue.');
-      // Web users go through email-verify → 2FA → platform.
-      // Native users continue with the native onboarding flow.
-      if (IS_WEB) {
-        router.replace({ pathname: '/(auth)/email-verify', params: { email: email.trim() } });
-      } else {
-        router.replace('/(onboarding)/role-info');
-      }
+      toast.success('Account created!', 'Quick role setup next.');
+      // Web users: register → role-setup → email-verify → 2FA → platform
+      // Native users: register → role-setup → role-info onboarding → tabs
+      router.replace('/(auth)/role-setup');
     } catch (e: any) {
       setError(e.message);
       toast.error('Registration failed', e.message);
