@@ -1011,3 +1011,47 @@ agent_communication:
 
         BACKEND uuid import: confirmed `import uuid` is present in server.py:30.
         Earlier 500 error log entries were stale (from before the import was added).
+
+
+---
+## 2026-04-29 — Splash + Onboarding Intro (mobile-only) + first-launch routing
+agent_communication:
+    - agent: "main"
+      message: |
+        SHIPPED: Native-only Splash + Onboarding intro carousel.
+
+        NEW / UPDATED FILES:
+        - /app/frontend/app/index.tsx (rewritten)
+            • Polished splash: purple gradient bg + decorative orbs, animated
+              SA logo, "Student Alumni" wordmark, tagline, bouncing dots
+            • Reads `hasSeenIntro` from AsyncStorage on mount (native only)
+            • Routing rules:
+                Web                                  → /welcome (LandingPage)
+                Native + authed + onb done           → /(tabs)
+                Native + authed + onb pending        → /(onboarding)/role-info
+                Native + first launch (no flag)      → /intro
+                Native + flag set                    → /(auth)/login
+        - /app/frontend/app/intro.tsx (new)
+            • 4-slide intro carousel: AI Roadmap → Mentors → Internships →
+              Final "Let's Build Your Future" with Create / Login CTAs
+            • Each slide: gradient halo + glass icon circle + emoji + headline
+              + body, animated rise/fade entrance
+            • Skip link top-right, dot indicator, primary "Next" CTA
+            • On finish/skip, persists `hasSeenIntro=true` so subsequent
+              launches skip directly to /(auth)/login
+
+        WEB BEHAVIOR (per spec): UNCHANGED — visit / on web → bounces to
+        /welcome (landing page). No splash, no intro on web.
+
+        DEPS: Added `@react-native-async-storage/async-storage`
+        REFACTOR: Replaced FlatList paging (had width-resolution issues on
+          web) with simple key-based slide swap; works on web preview AND
+          will function naturally on iOS/Android.
+
+        VERIFIED VIA SCREENSHOTS:
+        ✅ Mobile splash (390×844) — gradient + SA logo
+        ✅ Mobile intro slide 1 (rocket — AI Roadmap)
+        ✅ Mobile intro slide 2 (handshake — 500+ Mentors)
+        ✅ Mobile intro slide 3 (briefcase — 10,000+ Internships)
+        ✅ Mobile intro slide 4 (party popper — Create / Login CTAs)
+        ✅ Web 1920×900 — root path lands on /welcome (no splash/intro)
