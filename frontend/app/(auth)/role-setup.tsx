@@ -129,21 +129,26 @@ export default function RoleSetup() {
                 </View>
               </View>
 
-              {/* Inline segment chips for Mentor (only when Mentor selected) */}
-              {r.id === 'mentor' && active && (
+              {/* Inline segment chips for Mentor — ALWAYS visible per prototype */}
+              {r.id === 'mentor' && (
                 <View style={styles.segments}>
                   {MENTOR_SEGMENTS.map((s) => (
                     <Pressable
                       key={s.id}
-                      onPress={() => setSegment(s.id)}
+                      onPress={(e: any) => {
+                        // Tapping a segment auto-selects Mentor role too
+                        e?.stopPropagation?.();
+                        setRole('mentor');
+                        setSegment(s.id);
+                      }}
                       testID={`mentor-segment-${s.id}`}
                       style={({ hovered }: any) => [
                         styles.segChip,
-                        segment === s.id && styles.segChipActive,
-                        hovered && segment !== s.id && { backgroundColor: 'rgba(255,255,255,0.10)' },
+                        active && segment === s.id && styles.segChipActive,
+                        hovered && (!active || segment !== s.id) && { backgroundColor: 'rgba(255,255,255,0.10)' },
                       ]}
                     >
-                      <Text style={[styles.segText, segment === s.id && styles.segTextActive]}>{s.label}</Text>
+                      <Text style={[styles.segText, active && segment === s.id && styles.segTextActive]}>{s.label}</Text>
                     </Pressable>
                   ))}
                 </View>
