@@ -245,7 +245,117 @@ backend:
             (career_guidelines=1.15, events=1.0, networking=0.95, courses=0.85) still dominate.
             Score boost is correctly applied; ordering is correct given the weight matrix.
 
+backend:
+  - task: "OAuth Endpoints — /auth/google + /auth/linkedin (mock-mode)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: |
+            New endpoints POST /api/auth/google and POST /api/auth/linkedin.
+            Currently use MOCK verification: client passes {email, full_name, picture, role} directly.
+            Backend upserts user (oauth_provider field, random password, onboarding_completed=False for new users).
+            Returns standard AuthResponse {access_token, refresh_token, user}.
+            Verified manually:
+              - POST /api/auth/google {email, full_name, role=student} → creates user with onboarding_completed=False
+              - POST /api/auth/linkedin {email, full_name, role=student} → creates user
+              - Re-login (existing user) returns same user with updated oauth_provider
+            To switch to real OAuth: replace _verify_google_token / _verify_linkedin_token stubs.
+        - working: true
+          agent: "testing"
+          comment: |
+            Verified end-to-end via /app/backend_test_oauth_seed.py — 6/6 OAuth assertions PASS:
+            - POST /api/auth/google {email, full_name, role=student} → 200, returns
+              {access_token, refresh_token, user}; user.onboarding_completed=False, email matches ✅
+            - POST /api/auth/linkedin {email, full_name, role=student} → 200, same shape ✅
+            - Re-call /api/auth/google with same email → returns same user.id (no duplicate) ✅
+            - Missing email → 400 with detail "Missing email/full_name (mock OAuth requires these in dev mode)" ✅
+            - role=mentor parameter → user.role correctly stored as "mentor" ✅
+            - GET /api/auth/me with returned access_token → returns same OAuth user ✅
+            HIGHLIGHT: OAuth verification is currently MOCKED (per design — _verify_google_token /
+            _verify_linkedin_token are stubs that return None, so client-supplied email/full_name
+            is trusted). To go live, implement real Google/LinkedIn token verification.
+
+  - task: "Mock data seeder — 83 users + 30×4 catalog + 12 rooms + bookings/messages"
+    implemented: true
+    working: true
+    file: "/app/backend/seed_mock_data.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: |
+            New seed script. Run via: cd /app/backend && python3 seed_mock_data.py
+            Idempotent for users (skips existing emails); resets+seeds catalog collections.
+            Seeded: 83 users (2 admins + 6 universities + 30 students + 20 alumni + 15 mentors),
+            30 events (with relative deadlines), 30 courses, 30 internships, 30 deals,
+            12 knowledge rooms, 25 bookings, 60 room messages.
+            All TestPass@123. Updated /app/memory/test_credentials.md with full credential map.
+        - working: true
+          agent: "testing"
+          comment: |
+            Verified all seeded data exists and is queryable — 15/15 assertions PASS:
+            Logins (TestPass@123):
+              - student01@test.com → role=student ✅
+              - mentor01@test.com → role=mentor, mentor_status=approved ✅
+              - mentor13@test.com → mentor_status=pending ✅
+              - alumni01@test.com → role=alumni ✅
+              - iith@university.in → role=college ✅
+            Catalog volumes (must request limit=100; default endpoint limit is 20):
+              - GET /api/catalog/courses → 30 ✅
+              - GET /api/catalog/internships → 30 ✅
+              - GET /api/catalog/deals → 30 ✅
+              - GET /api/catalog/events → 30 ✅
+              - GET /api/rooms → 12 ✅
+              - GET /api/catalog/mentors → 19 (≥6 ✅; combines real approved mentors + samples)
+            Personalization with seeded users:
+              - student01 (Class 11, plus_one): priority_modules[0]='scholarships',
+                top4=[scholarships, campus_tours, courses, events] — fully school-friendly ✅
+              - student21 (B.Tech 4th yr): education_level='btech' (alumni-transition criterion met) ✅
+            Regression:
+              - admin@careerpath.app / Admin@12345 → role=admin ✅
+              - GET /api/admin/mentors/pending → 4 pending mentors (mentor13/14/15 + 1 legacy) ✅
+
 frontend:
+  - task: "Login screen — Google + LinkedIn OAuth buttons (Option C mock-mode)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/(auth)/login.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: |
+            Rewritten with OAuth UI per Option C (mock-mode):
+            - "Continue with Google" + "Continue with LinkedIn" buttons (real provider SVG logos)
+            - Slide-up bottom-sheet modal with 3 preset accounts + custom email/name fields
+            - Hits /api/auth/google or /api/auth/linkedin → routes to onboarding or dashboard
+            New oauthLogin() action added to authStore.ts. Visually verified.
+
+  - task: "Apply AnimatedCard to other tabs (courses/deals/network/events/rooms)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/(tabs)/courses.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: |
+            Replaced TouchableOpacity+Card with AnimatedCard across courses, deals, network, events, rooms.
+            events.tsx added CountdownBadge for deadlines ≤14 days.
+            Fixed pre-existing bug in network.tsx: missing `useRouter` import.
+
   - task: "PhonePe-style dashboard rebuild"
     implemented: true
     working: "NA"
@@ -345,6 +455,39 @@ agent_communication:
 
     - agent: "testing"
       message: |
+        OAuth + seeded data tests COMPLETE — 21/21 assertions PASS.
+        Test file: /app/backend_test_oauth_seed.py
+        
+        ✅ OAuth Endpoints (mock-mode) — 6/6
+           - /auth/google + /auth/linkedin create users with onboarding_completed=False
+           - Re-call with same email returns SAME user.id (idempotent upsert)
+           - Missing email → 400
+           - role=mentor parameter respected
+           - /auth/me with returned access_token works
+           HIGHLIGHT: OAuth verification is MOCKED — _verify_google_token/_verify_linkedin_token
+           are stubs returning None. Client-supplied email/full_name is trusted.
+           To go live: implement real Google/LinkedIn token verification per the comments
+           in /app/backend/server.py lines 499-518.
+        
+        ✅ Seeded mock data — 11/11
+           - All seeded logins succeed (student01/mentor01/mentor13/alumni01/iith)
+           - mentor13 has mentor_status="pending"; mentor01 has "approved"
+           - Catalog: courses=30, internships=30, deals=30, events=30, rooms=12, mentors=19
+           - NOTE: Catalog endpoints have default limit=20; tests pass ?limit=100 to get all.
+        
+        ✅ Personalization with seeded users — 2/2
+           - student01 (Class 11): priority_modules[0]='scholarships',
+             top4=[scholarships, campus_tours, courses, events] (school-friendly) ✅
+           - student21 (B.Tech 4th yr): education_level='btech' (alumni-eligible) ✅
+        
+        ✅ Regression — 2/2
+           - admin@careerpath.app/Admin@12345 → role=admin
+           - GET /admin/mentors/pending → 4 pending mentors (mentor13/14/15 + 1 legacy)
+        
+        No failures. No critical issues. All previous personalization endpoints still working.
+
+    - agent: "testing"
+      message_old: |
         Backend personalization tests COMPLETE — 39/40 assertions pass; 1 minor data-seed
         anomaly that does NOT impact code correctness.
         

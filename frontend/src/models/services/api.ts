@@ -109,6 +109,14 @@ export const api = {
   login: (email: string, password: string) =>
     request<any>('/auth/login', { method: 'POST', body: { email, password }, auth: false }),
 
+  // OAuth — Option C: backend uses MOCK verification (passes email/full_name in body)
+  // Switch to real provider tokens by populating id_token/access_token instead.
+  oauthGoogle: (payload: { email: string; full_name: string; picture?: string; role?: string }) =>
+    request<any>('/auth/google', { method: 'POST', body: payload, auth: false }),
+
+  oauthLinkedIn: (payload: { email: string; full_name: string; picture?: string; role?: string }) =>
+    request<any>('/auth/linkedin', { method: 'POST', body: payload, auth: false }),
+
   me: () => request<any>('/auth/me'),
 
   // Onboarding

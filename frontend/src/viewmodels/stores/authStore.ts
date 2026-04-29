@@ -13,6 +13,7 @@ interface AuthState {
   error: string | null;
   init: () => Promise<void>;
   login: (email: string, password: string) => Promise<User>;
+  oauthLogin: (provider: 'google' | 'linkedin', payload: { email: string; full_name: string; picture?: string; role?: string }) => Promise<User>;
   register: (payload: {
     email: string;
     password: string;
@@ -52,6 +53,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const res = await api.login(email, password);
+      await tokenStore.setTokens(res.access_token, res.refresh_token);
+      set({ user: res.user, loading: false });
+      return res.user;
+    } catch (e: any) {
+      set({ error: e.message, loading: false });
+      throw e;
+    }
+  },
+
+  oauthLogin: async (provider, payload) => {
+    set({ loading: true, error: null });
+    try {
+      const res = provider === 'google'
+        ? await api.oauthGoogle(payload)
+        : await api.oauthLinkedIn(payload);
       await tokenStore.setTokens(res.access_token, res.refresh_token);
       set({ user: res.user, loading: false });
       return res.user;

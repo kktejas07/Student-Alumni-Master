@@ -423,6 +423,153 @@ async def refresh_token(payload: dict):
 
 
 # ----------------------------------------------------------------------------
+# OAuth Endpoints (Google + LinkedIn)
+# ----------------------------------------------------------------------------
+# NOTE: These endpoints currently use a MOCKED token-validation flow for the
+# development build. To switch to real OAuth verification:
+#   1. Set GOOGLE_OAUTH_CLIENT_ID / LINKEDIN_OAUTH_CLIENT_ID + secrets in .env
+#   2. Replace the `_verify_google_token` / `_verify_linkedin_token` stubs below
+#      with real google.auth + httpx calls (see integration_playbook).
+# The endpoint shape and the upstream JWT issuance flow stay identical, so the
+# frontend doesn't need any changes when we wire up real verification.
+#
+# Frontend flow (per Option C):
+#   - User taps "Continue with Google" → opens browser via expo-auth-session
+#   - Returns id_token / access_token → frontend POSTs to /auth/google
+#   - Backend verifies (mocked for now), upserts user, returns our JWT
+# ----------------------------------------------------------------------------
+class OAuthCallback(BaseModel):
+    """Generic OAuth callback payload sent from the Expo client."""
+    id_token: Optional[str] = None         # Google ID token (JWT)
+    access_token: Optional[str] = None     # Provider access token (LinkedIn)
+    # MOCK MODE — the client may pass these directly in dev. In production
+    # these are extracted server-side from the verified provider token.
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = None
+    picture: Optional[str] = None
+    role: Optional[UserRole] = "student"   # Used only when creating a new account
+
+
+async def _upsert_oauth_user(provider: str, email: str, full_name: str,
+                              picture: Optional[str], role: str = "student") -> dict:
+    """Find or create a user from an OAuth profile. Marks them with `oauth_provider`."""
+    email = email.lower().strip()
+    user = await db.users.find_one({"email": email})
+    if user:
+        # Update OAuth metadata if user signed in with this provider
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"oauth_provider": provider, "oauth_picture": picture}},
+        )
+        return await db.users.find_one({"_id": user["_id"]})
+
+    # New OAuth user — create with onboarding NOT yet completed so the client
+    # routes them through the onboarding flow.
+    user_doc = {
+        "email": email,
+        "password_hash": hash_password(secrets.token_urlsafe(16)),  # random unguessable password
+        "full_name": full_name or email.split("@")[0].title(),
+        "role": role or "student",
+        "phone": None,
+        "unique_id": generate_unique_id(role or "student"),
+        "qr_code_base64": None,
+        "school_info": None,
+        "career_path": None,
+        "interests": [],
+        "skills": [],
+        "bio": None,
+        "face_image_base64": None,
+        "oauth_provider": provider,
+        "oauth_picture": picture,
+        "onboarding_completed": False,
+        "created_at": datetime.now(timezone.utc),
+    }
+    res = await db.users.insert_one(user_doc)
+    user_doc["_id"] = res.inserted_id
+    user_doc["qr_code_base64"] = generate_qr_code(
+        f"SA-USER:{user_doc['unique_id']}|{email}|{user_doc['role']}"
+    )
+    await db.users.update_one(
+        {"_id": res.inserted_id},
+        {"$set": {"qr_code_base64": user_doc["qr_code_base64"]}},
+    )
+    return user_doc
+
+
+def _verify_google_token(id_token: Optional[str]) -> Optional[dict]:
+    """STUB — verifies a Google ID token. In production replace with:
+        from google.auth.transport import requests as g_req
+        from google.oauth2 import id_token as g_id
+        g_id.verify_oauth2_token(id_token, g_req.Request(), GOOGLE_OAUTH_CLIENT_ID)
+    For dev/Option-C: returns None so the route falls back to the email/full_name
+    sent in the body.
+    """
+    return None
+
+
+def _verify_linkedin_token(access_token: Optional[str]) -> Optional[dict]:
+    """STUB — verifies a LinkedIn access token by calling /v2/userinfo.
+    In production replace with:
+        async with httpx.AsyncClient() as c:
+            r = await c.get('https://api.linkedin.com/v2/userinfo',
+                            headers={'Authorization': f'Bearer {access_token}'})
+            return r.json() if r.is_success else None
+    """
+    return None
+
+
+@api_router.post("/auth/google", response_model=AuthResponse)
+async def auth_google(req: OAuthCallback):
+    """Continue-with-Google flow.
+
+    Real flow: client (Expo) opens Google OAuth → receives `id_token` → POSTs here.
+    Mock flow (Option C): client sends {email, full_name} directly for now.
+    Returns our JWT pair so the rest of the app remains agnostic of the provider.
+    """
+    profile = _verify_google_token(req.id_token)
+    if profile is None:
+        if not req.email or not req.full_name:
+            raise HTTPException(400, "Missing email/full_name (mock OAuth requires these in dev mode)")
+        profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+
+    user = await _upsert_oauth_user(
+        provider="google",
+        email=profile["email"],
+        full_name=profile.get("name") or profile.get("full_name") or "",
+        picture=profile.get("picture"),
+        role=req.role or "student",
+    )
+    return AuthResponse(
+        access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
+        refresh_token=create_refresh_token(str(user["_id"])),
+        user=UserResponse(**serialize_user(user)),
+    )
+
+
+@api_router.post("/auth/linkedin", response_model=AuthResponse)
+async def auth_linkedin(req: OAuthCallback):
+    """Continue-with-LinkedIn flow. Same structure as /auth/google."""
+    profile = _verify_linkedin_token(req.access_token)
+    if profile is None:
+        if not req.email or not req.full_name:
+            raise HTTPException(400, "Missing email/full_name (mock OAuth requires these in dev mode)")
+        profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+
+    user = await _upsert_oauth_user(
+        provider="linkedin",
+        email=profile["email"],
+        full_name=profile.get("name") or profile.get("full_name") or "",
+        picture=profile.get("picture"),
+        role=req.role or "student",
+    )
+    return AuthResponse(
+        access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
+        refresh_token=create_refresh_token(str(user["_id"])),
+        user=UserResponse(**serialize_user(user)),
+    )
+
+
+# ----------------------------------------------------------------------------
 # Onboarding & Profile Endpoints
 # ----------------------------------------------------------------------------
 @api_router.post("/users/onboarding", response_model=UserResponse)
@@ -901,7 +1048,11 @@ KNOWLEDGE_ROOMS = [
 
 @api_router.get("/rooms")
 async def list_rooms():
-    """Lists available knowledge rooms (categorized chat groups)."""
+    """Lists available knowledge rooms (categorized chat groups). Reads from
+    the seeded `rooms` collection if present; falls back to the constant list."""
+    docs = await db.rooms.find({}, {"_id": 0}).to_list(50)
+    if docs:
+        return {"rooms": docs}
     return {"rooms": KNOWLEDGE_ROOMS}
 
 
