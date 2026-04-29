@@ -355,7 +355,7 @@ export default function Login() {
             </View>
           </View>
         </Modal>
-      </LinearGradient>
+      </View>
     );
   }
 
@@ -663,7 +663,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     minHeight: '100%' as any,
     overflow: 'hidden',
-    backgroundColor: '#08051A',
+    backgroundColor: '#000000',
   },
   webBlob: {
     position: 'absolute',
@@ -688,7 +688,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     maxWidth: 640,
     minWidth: 0,
-    backgroundColor: '#3D1468',
+    backgroundColor: '#5B21B6',
     overflow: 'hidden',
     position: 'relative',
     ...Platform.select({ web: { display: 'flex' as any } }),
@@ -843,6 +843,7 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#000000',
   },
   webCardScroll: {
     width: '100%',

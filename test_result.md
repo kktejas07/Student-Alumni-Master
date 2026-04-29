@@ -885,3 +885,28 @@ agent_communication:
            Add `import uuid` to /app/backend/server.py — that's the entire fix.
            No other code changes needed; permissions, query logic, notification creation,
            and 403/404 handling all verified correct.
+
+---
+## 2026-04-29 — Native mobile regression fix + Web login spec polish
+agent_communication:
+    - agent: "main"
+      message: |
+        FIXED: JSX syntax error in /app/frontend/app/(auth)/login.tsx (line 358)
+          Was: </LinearGradient>  (no matching opening tag)
+          Now: </View>           (correctly closes <View style={styles.webShell}>)
+        Why this matters: TypeScript caught it (TS17002). Web bundler tolerated it,
+        but Metro for iOS/Android was rejecting the module — the source of the
+        "mobile flow has issue" report from the user.
+        Verified: `npx expo export --platform ios` now bundles 3491 modules
+        successfully (only Hermes bytecode step fails due to Linux/x86 hermesc
+        binary mismatch — unrelated to our code).
+
+        FIXED: Web login background to strictly match design spec.
+          - webShell.backgroundColor: '#08051A' → '#000000' (pure black)
+          - webBrandPane.backgroundColor: '#3D1468' → '#5B21B6' (solid Tailwind purple-700)
+          - webCardPane.backgroundColor: (none) → '#000000' (explicit black, no bleed-through)
+        Visual result: clean solid purple (left) / pure black (right) split — confirmed
+        via screenshot at 1920×800.
+
+        BACKEND uuid import: confirmed `import uuid` is present in server.py:30.
+        Earlier 500 error log entries were stale (from before the import was added).
