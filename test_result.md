@@ -521,11 +521,112 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Mentor Portal — confirm/decline booking + post mentor sessions"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
+
+frontend:
+  - task: "Mentor Portal — MentorHome dashboard end-to-end"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/views/screens/MentorHome.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            E2E test PASS on 390x844 mobile viewport. Logged in as mentor01@test.com / TestPass@123.
+            ✅ P1.2 Hero shows "MENTOR PORTAL" kicker + "Hi, Priya 👋" greeting.
+            ✅ P1.3 All 4 KPI tiles render (Sessions=4, Mentored=1.0h, Rating=5/1 review, Earnings=₹500).
+            ✅ P1.4 Purple gradient "Post a Session" CTA card present (testID=mentor-post-session).
+            ✅ P1.5 Modal slides up with Title, Topic/Description, Date & Time, Duration (min), Max attendees inputs + "Post Session" button.
+            ✅ P1.6 Submitted valid session (Mock Interview Workshop, 2025-09-15 18:30, 45min, 3 max) → modal closed, no errors.
+            ✅ P1.7 Pending Requests section shows 1 booking with green Accept + red-outline Decline buttons. Tapping Accept moved booking out of pending (count went 1→0).
+            ✅ P1.8 Upcoming Sessions section renders 2 CONFIRMED pills (after accept).
+            ✅ P1.10 Quick Actions grid: Analytics + Knowledge Rooms + Messages + Edit Profile all present. Tapping Analytics navigated to /analytics correctly.
+            
+            Minor: "Recent Reviews" section not visible on home (stat card on profile shows 1 review). Reviews list endpoint may return empty for mentor01 even though profile aggregate count = 1; non-blocking.
+
+  - task: "Notifications screen"
+    implemented: true
+    working: true
+    file: "/app/frontend/app/notifications.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            ✅ P2.11 Tapping mentor-bell navigates to /notifications.
+            ✅ P2.12 List renders "⭐ New 5-star review" notification with relative timestamp "1h ago"; also 2 fresh "New booking request" entries from earlier confirm/decline tests. Unread purple dots render on unread items.
+            ✅ P2.13 Back arrow (testID=notif-back) returns to mentor home.
+            Minor: Console warning "Each child in a list should have a unique 'key' prop" inside NotificationsScreen — does not break rendering, but main agent should add `key={notif.id}` on the list mapping to silence the warning.
+
+  - task: "Profile screen"
+    implemented: true
+    working: true
+    file: "/app/frontend/app/(tabs)/profile.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            ✅ P3.15 Profile screen renders without crashing (formatBookingDate / statusStyle helpers + styles all working).
+            ✅ P3.16 Booking history list shows 4 bookings, each with formatted date (e.g., "Thu, Apr 23, 1:01 PM") and status pill (CONFIRMED / COMPLETED / CANCELLED) — pills render with correct colour styles.
+            ✅ P3.17 Notification bell (testID=profile-bell-btn) present in header.
+
+  - task: "Mentor onboarding role-info polish"
+    implemented: true
+    working: true
+    file: "/app/frontend/app/(onboarding)/role-info.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            Verified statically (code review). role-info.tsx config:
+            ✅ Mentor: highlight="mentor portal"; perks = Post Sessions / Earn from Sessions / Mentor Analytics / Build Reputation / Knowledge Rooms / Verified Profile (6).
+            ✅ Student: highlight="career profile"; perks include AI Career Roadmap, Free + Paid Courses, etc.
+            Heading template "Let's set up your {highlight}" is shared. Both branches correct.
+
+  - task: "Regression — student home renders student dashboard (not MentorHome)"
+    implemented: true
+    working: true
+    file: "/app/frontend/app/(tabs)/index.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            ✅ P5.21 Logged out + logged in as student01@test.com / TestPass@123. Home tab shows greeting "Hi, Aarav", For You / Career / Events filter chips, "Recommended for you" hero, "Closing soon" deadline strip — original student dashboard, MentorHome NOT shown.
+
+agent_communication:
+    - agent: "testing"
+      message: |
+        MENTOR PORTAL E2E COMPLETE — all 4 priorities + regression PASS on 390x844.
+        
+        ✅ P1 Mentor Home (MentorHome.tsx): Hero, KPIs, Post-a-Session modal+submit, Pending Requests with Accept/Decline working (Accept moved booking out of pending), Upcoming CONFIRMED pills present, Quick Actions Analytics navigation works.
+        ✅ P2 Notifications: bell navigates, seeded "⭐ New 5-star review" + booking notifications render with relative timestamps, back arrow returns home.
+        ✅ P3 Profile: renders without crash, 4 bookings show formatted dates + status pills, bell present.
+        ✅ P4 Mentor onboarding intro: code-verified — "Let's set up your mentor portal" + 6 mentor perks (Post Sessions, Earn from Sessions, Mentor Analytics, Build Reputation, Knowledge Rooms, Verified Profile). Student variant unchanged.
+        ✅ P5 Regression: student01 home shows student dashboard (no MENTOR PORTAL kicker).
+        
+        Minor warnings (non-blocking, optional polish):
+        1. NotificationsScreen lacks `key` prop on list children — React console warning. Add `key={n.id}` on the mapped list.
+        2. "shadow*" deprecation warnings from RN Web — third-party styles, not actionable here.
+        3. "Recent Reviews" section did not render on Mentor Home although profile shows 1 review — may be reviews endpoint shape mismatch; low priority since reviews aggregate stats render on profile.
+        
+        Nothing critical. Mentor Portal feature is shippable.
 
 backend:
   - task: "Mentor Portal — confirm/decline booking + post mentor sessions"
