@@ -14,14 +14,15 @@
 import { ReactNode, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, ScrollView, Image,
-  useWindowDimensions, Platform, TextInput,
+  useWindowDimensions, Platform, TextInput, Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Bell, Search, Briefcase, BookOpen, Users, Trophy, Rocket,
   Sparkles, ArrowRight, MapPin, Coins, Calendar, FileText,
-  GraduationCap, Award,
+  GraduationCap, Award, Heart, Home, Zap, Target,
 } from 'lucide-react-native';
+import { GlowCard } from './BentoComponents';
 
 const IS_WEB = Platform.OS === 'web';
 
@@ -64,10 +65,23 @@ const COURSES = [
 ];
 
 const QUICK_ACTIONS = [
-  { label: 'Update Resume',  Icon: FileText,    color: '#A78BFA' },
-  { label: 'Find Mentor',    Icon: Users,       color: '#34D399' },
-  { label: 'Browse Events',  Icon: Calendar,    color: '#FCD34D' },
-  { label: 'My Skills',      Icon: Award,       color: '#F472B6' },
+  { label: 'Internships',  Icon: Briefcase, color: '#A78BFA', tint: 'rgba(124,58,237,0.18)',  border: 'rgba(196,181,253,0.32)' },
+  { label: 'Book Mentor',  Icon: Users,     color: '#34D399', tint: 'rgba(6,95,70,0.20)',     border: 'rgba(52,211,153,0.32)' },
+  { label: 'Events',       Icon: Calendar,  color: '#F472B6', tint: 'rgba(157,23,77,0.20)',   border: 'rgba(244,114,182,0.32)' },
+  { label: 'Insurance',    Icon: Heart,     color: '#22D3EE', tint: 'rgba(14,116,144,0.20)',  border: 'rgba(34,211,238,0.32)' },
+  { label: 'Housing',      Icon: Home,      color: '#FCD34D', tint: 'rgba(180,83,9,0.20)',    border: 'rgba(252,211,77,0.32)' },
+];
+
+const GOALS = [
+  { icon: Target,  text: 'Apply to 3 internships this week', done: true },
+  { icon: BookOpen, text: 'Finish Python bootcamp module 4', done: false },
+  { icon: Users,   text: 'Schedule mentor session with Priya', done: false },
+];
+
+const EVENTS = [
+  { date: 'Wed, May 15', title: 'TechCorp Career Fair',           tag: 'Job Fair',   color: '#A78BFA' },
+  { date: 'Sat, May 18', title: 'Design Systems Workshop',        tag: 'Workshop',   color: '#34D399' },
+  { date: 'Tue, May 21', title: 'Alumni Mixer · Hyderabad',       tag: 'Networking', color: '#F472B6' },
 ];
 
 const MENTORS = [
@@ -120,18 +134,20 @@ export function StudentDashboardView({
       {/* Hero */}
       <HeroCard isWide={isWide} />
 
-      {/* KPI grid */}
-      <View style={[styles.kpiGrid, !isWide && styles.kpiGridMobile]}>
-        {KPIS.map((k) => <KPICard key={k.label} {...k} isWide={isWide} />)}
+      {/* Quick Actions strip — colored icon pills with hover scale */}
+      <View style={[styles.qaStrip, !isWide && styles.qaStripMobile]}>
+        {QUICK_ACTIONS.map((q) => (
+          <QuickActionPill key={q.label} {...q} />
+        ))}
       </View>
 
-      {/* Split: feed + right column */}
-      <View style={[styles.split, !isWide && { flexDirection: 'column' }]}>
-        <View style={{ flex: 1, gap: 14, minWidth: 0 }}>
-          {/* Tab strip */}
-          <View style={styles.glass}>
+      {/* Three-Column Bento Grid */}
+      <View style={[styles.bento3, !isWide && styles.bento3Mobile]}>
+        {/* ─── Column 1 — Internship Matches (wide) ──────────────────── */}
+        <View style={[styles.bentoCol, isWide && { flex: 1.4 }]}>
+          <GlowCard style={styles.bentoCard}>
             <View style={[styles.cardHeaderRow, { marginBottom: 12 }]}>
-              <Text style={styles.cardTitle}>🎯 Top Internship Matches</Text>
+              <SectionLabel icon={<HoverIcon><Briefcase size={14} color="#D4AAFF" /></HoverIcon>} text="🎯 TOP INTERNSHIP MATCHES" />
               <Pressable onPress={onSeeAllInternships}>
                 <Text style={styles.linkText}>See all →</Text>
               </Pressable>
@@ -155,22 +171,40 @@ export function StudentDashboardView({
                 );
               })}
             </View>
-          </View>
+            <View style={{ gap: 10, marginTop: 12 }}>
+              {filteredInternships.map((job, idx) => (
+                <InternshipCard key={idx} {...job} />
+              ))}
+            </View>
+          </GlowCard>
 
-          {/* Internship cards */}
-          <View style={{ gap: 10 }}>
-            {filteredInternships.map((job, idx) => (
-              <InternshipCard key={idx} {...job} />
+          {/* Goals card under internships */}
+          <GlowCard style={styles.bentoCard}>
+            <View style={[styles.cardHeaderRow, { marginBottom: 12 }]}>
+              <SectionLabel icon={<HoverIcon><Target size={14} color="#FCD34D" /></HoverIcon>} text="THIS WEEK'S GOALS" />
+              <Text style={styles.goalsCount}>1/3</Text>
+            </View>
+            {GOALS.map((g, i) => (
+              <View key={i} style={[styles.goalRow, i < GOALS.length - 1 && styles.goalRowBorder]}>
+                <View style={[styles.goalCheck, g.done && styles.goalCheckDone]}>
+                  {g.done && <Text style={styles.goalCheckTick}>✓</Text>}
+                </View>
+                <HoverIcon><g.icon size={14} color={g.done ? '#34D399' : '#A78BFA'} /></HoverIcon>
+                <Text style={[styles.goalText, g.done && styles.goalTextDone]} numberOfLines={1}>{g.text}</Text>
+              </View>
             ))}
-          </View>
+          </GlowCard>
         </View>
 
-        {/* Right column */}
-        <View style={[styles.rightCol, !isWide && { width: '100%' }]}>
-          {/* Course Progress */}
-          <View style={styles.glass}>
-            <View style={styles.cardHeaderRow}>
-              <SectionLabel icon={<BookOpen size={14} color="#D4AAFF" />} text="COURSE PROGRESS" />
+        {/* ─── Column 2 — Career Snapshot + Courses ──────────────────── */}
+        <View style={[styles.bentoCol, isWide && { flex: 1 }]}>
+          <View style={styles.bentoKpis}>
+            {KPIS.map((k) => <KPICard key={k.label} {...k} isWide={isWide} />)}
+          </View>
+
+          <GlowCard style={styles.bentoCard}>
+            <View style={[styles.cardHeaderRow, { marginBottom: 6 }]}>
+              <SectionLabel icon={<HoverIcon><BookOpen size={14} color="#D4AAFF" /></HoverIcon>} text="📚 COURSE PROGRESS" />
             </View>
             {COURSES.map((c, idx) => (
               <View key={c.title} style={{ marginTop: idx === 0 ? 6 : 14 }}>
@@ -187,36 +221,14 @@ export function StudentDashboardView({
                 </View>
               </View>
             ))}
-          </View>
+          </GlowCard>
+        </View>
 
-          {/* Quick Actions */}
-          <View style={styles.glass}>
-            <View style={[styles.cardHeaderRow, { marginBottom: 12 }]}>
-              <SectionLabel icon={<Rocket size={14} color="#D4AAFF" />} text="QUICK ACTIONS" />
-            </View>
-            <View style={styles.qaGrid}>
-              {QUICK_ACTIONS.map((q) => (
-                <Pressable
-                  key={q.label}
-                  style={({ hovered, pressed }: any) => [
-                    styles.qaBtn,
-                    hovered && { backgroundColor: 'rgba(255,255,255,0.10)', borderColor: 'rgba(255,255,255,0.20)' },
-                    pressed && { transform: [{ scale: 0.98 }] },
-                  ]}
-                >
-                  <View style={[styles.qaIconWrap, { backgroundColor: q.color + '22', borderColor: q.color + '55' }]}>
-                    <q.Icon size={16} color={q.color} />
-                  </View>
-                  <Text style={styles.qaLabel} numberOfLines={1}>{q.label}</Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-
-          {/* Suggested Mentors */}
-          <View style={styles.glass}>
+        {/* ─── Column 3 — Mentors + Events ──────────────────────────── */}
+        <View style={[styles.bentoCol, isWide && { flex: 1 }]}>
+          <GlowCard style={styles.bentoCard}>
             <View style={[styles.cardHeaderRow, { marginBottom: 4 }]}>
-              <SectionLabel icon={<Users size={14} color="#D4AAFF" />} text="SUGGESTED MENTORS" />
+              <SectionLabel icon={<HoverIcon><Users size={14} color="#D4AAFF" /></HoverIcon>} text="👥 SUGGESTED MENTORS" />
             </View>
             {MENTORS.map((m, idx) => (
               <View
@@ -238,19 +250,81 @@ export function StudentDashboardView({
                   <Text style={styles.mentorRole} numberOfLines={1}>{m.role} · ⭐ {m.rating}</Text>
                 </View>
                 <Pressable
-                  style={({ hovered }: any) => [
+                  style={({ hovered, pressed }: any) => [
                     styles.connectBtn,
-                    hovered && { backgroundColor: 'rgba(176,127,223,0.32)' },
+                    hovered && { backgroundColor: 'rgba(176,127,223,0.32)', transform: [{ translateY: -1 }] },
+                    pressed && { transform: [{ scale: 0.98 }] },
                   ]}
                 >
                   <Text style={styles.connectBtnText}>Connect</Text>
                 </Pressable>
               </View>
             ))}
-          </View>
+          </GlowCard>
+
+          <GlowCard style={styles.bentoCard}>
+            <View style={[styles.cardHeaderRow, { marginBottom: 10 }]}>
+              <SectionLabel icon={<HoverIcon><Calendar size={14} color="#F472B6" /></HoverIcon>} text="📅 UPCOMING EVENTS" />
+            </View>
+            {EVENTS.map((e, i) => (
+              <Pressable
+                key={i}
+                style={({ hovered }: any) => [
+                  styles.eventRow,
+                  i < EVENTS.length - 1 && styles.eventRowBorder,
+                  hovered && { backgroundColor: 'rgba(255,255,255,0.04)' },
+                ]}
+              >
+                <View style={[styles.eventTag, { backgroundColor: e.color + '22', borderColor: e.color + '55' }]}>
+                  <Text style={[styles.eventTagText, { color: e.color }]}>{e.tag}</Text>
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.eventTitle} numberOfLines={1}>{e.title}</Text>
+                  <Text style={styles.eventDate}>{e.date}</Text>
+                </View>
+                <ArrowRight size={14} color="rgba(255,255,255,0.35)" />
+              </Pressable>
+            ))}
+          </GlowCard>
         </View>
       </View>
     </ScrollView>
+  );
+}
+
+// ─── Hover Icon helper — scales icon up on hover (web) ─────────────────────
+function HoverIcon({ children }: { children: ReactNode }) {
+  return (
+    <Pressable
+      style={({ hovered }: any) => [
+        styles.hoverIconWrap,
+        hovered && { transform: [{ scale: 1.18 }] },
+      ]}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
+// ─── Quick Action pill (icon + label) with hover scale ─────────────────────
+function QuickActionPill({
+  label, Icon, color, tint, border,
+}: typeof QUICK_ACTIONS[number]) {
+  return (
+    <Pressable
+      testID={`stud-qa-${label.toLowerCase().replace(/\s+/g, '-')}`}
+      style={({ hovered, pressed }: any) => [
+        styles.qaPill,
+        { backgroundColor: tint, borderColor: border },
+        hovered && { transform: [{ translateY: -2 }], backgroundColor: tint.replace('0.18', '0.28').replace('0.20', '0.30') },
+        pressed && { transform: [{ scale: 0.97 }] },
+      ]}
+    >
+      <View style={styles.qaPillIconWrap}>
+        <Icon size={18} color={color} />
+      </View>
+      <Text style={styles.qaPillLabel} numberOfLines={1}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -657,4 +731,75 @@ const styles = StyleSheet.create({
     ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
   },
   connectBtnText: { color: '#D4AAFF', fontFamily: 'DMSans_700Bold', fontSize: 11 },
+
+  // ─── New: Quick Actions strip (5 colored pills below Hero) ───
+  qaStrip: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
+  qaStripMobile: { gap: 10 },
+  qaPill: {
+    flex: 1, minWidth: 130,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 14, paddingVertical: 12,
+    borderWidth: 1, borderRadius: 14,
+    ...({ cursor: 'pointer', transitionDuration: '180ms' } as any),
+  },
+  qaPillIconWrap: {
+    width: 32, height: 32, borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  qaPillLabel: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 12.5, flexShrink: 1 },
+
+  // ─── New: Three-Column Bento Grid ───
+  bento3: {
+    flexDirection: 'row', gap: 16, alignItems: 'flex-start',
+  },
+  bento3Mobile: { flexDirection: 'column', gap: 14 },
+  bentoCol: { gap: 16, minWidth: 0, flex: 1 },
+  bentoCard: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1, borderRadius: 18,
+    padding: 18,
+    ...({ backdropFilter: 'blur(20px)' } as any),
+  },
+  bentoKpis: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+
+  // Hover icon wrapper
+  hoverIconWrap: {
+    alignItems: 'center', justifyContent: 'center',
+    ...({ cursor: 'pointer', transitionDuration: '180ms' } as any),
+  },
+
+  // Goals
+  goalsCount: { color: '#FCD34D', fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
+  goalRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingVertical: 10,
+  },
+  goalRowBorder: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  goalCheck: {
+    width: 18, height: 18, borderRadius: 9,
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  goalCheckDone: { backgroundColor: '#34D399', borderColor: '#34D399' },
+  goalCheckTick: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 10 },
+  goalText: { color: '#FFFFFF', fontFamily: 'DMSans_500Medium', fontSize: 12.5, flex: 1 },
+  goalTextDone: { color: 'rgba(255,255,255,0.45)', textDecorationLine: 'line-through' },
+
+  // Events
+  eventRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingVertical: 10, paddingHorizontal: 4, borderRadius: 8,
+    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
+  },
+  eventRowBorder: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  eventTag: {
+    paddingHorizontal: 8, paddingVertical: 4,
+    borderRadius: 6, borderWidth: 1,
+  },
+  eventTagText: { fontFamily: 'DMSans_700Bold', fontSize: 9.5, letterSpacing: 0.4 },
+  eventTitle: { color: '#FFFFFF', fontFamily: 'DMSans_600SemiBold', fontSize: 12.5 },
+  eventDate: { color: 'rgba(255,255,255,0.45)', fontFamily: 'DMSans_400Regular', fontSize: 10.5, marginTop: 2 },
 });
