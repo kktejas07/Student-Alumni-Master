@@ -65,6 +65,19 @@ export default function HomeTab() {
         contentContainerStyle={styles.container}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} />}
       >
+        {/* Mentor pending review banner — shown only for mentors awaiting admin approval */}
+        {user?.role === 'mentor' && user?.mentor_status === 'pending' && (
+          <NeoCard bg="#FFF3CD" shadow="sm" style={{ marginBottom: 16 }}>
+            <Text style={[Typography.bodyBold, { color: '#856404' }]}>
+              Account Under Review
+            </Text>
+            <Text style={[Typography.bodySm, { color: '#856404', marginTop: 4 }]}>
+              Your mentor profile is being reviewed by our team. You'll be notified once approved
+              (typically within 24-48 hours).
+            </Text>
+          </NeoCard>
+        )}
+
         {/* Greeting */}
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>

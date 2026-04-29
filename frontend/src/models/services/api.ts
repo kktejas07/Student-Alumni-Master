@@ -144,6 +144,26 @@ export const api = {
     request<any>(`/catalog/deals${category ? `?category=${category}` : ''}`),
   listResources: (category?: string) =>
     request<any>(`/catalog/resources${category ? `?category=${category}` : ''}`),
+  listEvents: (category?: string) =>
+    request<any>(`/catalog/events${category ? `?category=${category}` : ''}`),
+  listFinancial: (kind?: 'loan' | 'scholarship') =>
+    request<any>(`/catalog/financial${kind ? `?kind=${kind}` : ''}`),
+  listInsurance: (kind?: string) =>
+    request<any>(`/catalog/insurance${kind ? `?kind=${kind}` : ''}`),
+  listHousing: (country?: string) =>
+    request<any>(`/catalog/housing${country ? `?country=${country}` : ''}`),
+
+  // Bookings
+  createBooking: (payload: any) =>
+    request<any>('/bookings', { method: 'POST', body: payload }),
+  myBookings: () => request<any>('/bookings/me'),
+
+  // Admin
+  pendingMentors: () => request<any>('/admin/mentors/pending'),
+  approveMentor: (id: string) =>
+    request<any>(`/admin/mentors/${id}/approve`, { method: 'POST' }),
+  rejectMentor: (id: string) =>
+    request<any>(`/admin/mentors/${id}/reject`, { method: 'POST' }),
 
   // Dashboard
   dashboard: () => request<any>('/dashboard'),

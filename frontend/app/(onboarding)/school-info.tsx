@@ -75,11 +75,9 @@ export default function SchoolInfoScreen() {
 
   const next = () => {
     if (!validate()) return;
-    if (user?.role === 'student' || user?.role === 'alumni') {
-      router.push('/(onboarding)/career-path');
-    } else {
-      router.push('/(onboarding)/face-capture');
-    }
+    // All roles now go through role-details next, which captures
+    // role-specific fields (student age/edu, mentor org/title, alumni status).
+    router.push('/(onboarding)/role-details');
   };
 
   return (

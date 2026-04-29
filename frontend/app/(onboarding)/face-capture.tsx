@@ -69,14 +69,51 @@ export default function FaceCapture() {
     setError(null);
     setSubmitting(true);
     try {
-      await api.completeOnboarding({
+      // Build role-specific payload sections based on current onboarding state.
+      // Backend will validate based on the user's role.
+      const payload: any = {
         school_info: onboarding.school_info,
         career_path: onboarding.career_path,
         interests: onboarding.interests,
         skills: onboarding.skills,
         bio: onboarding.bio,
         face_image_base64: onboarding.face_image_base64,
-      });
+      };
+
+      // Student-specific data (age, education_level, career_interests)
+      if (onboarding.student_age || onboarding.student_education_level) {
+        payload.student_info = {
+          age: onboarding.student_age || 18,
+          education_level: onboarding.student_education_level || 'btech',
+          career_interests: onboarding.interests,
+        };
+      }
+
+      // Mentor-specific data (category, organization, job_title, linkedin)
+      if (onboarding.mentor_organization || onboarding.mentor_job_title) {
+        payload.mentor_info = {
+          category: onboarding.mentor_category || 'it_software',
+          organization: onboarding.mentor_organization || '',
+          job_title: onboarding.mentor_job_title || '',
+          linkedin_url: onboarding.mentor_linkedin_url || undefined,
+          years_of_experience: onboarding.mentor_years_of_experience,
+          bio: onboarding.bio,
+        };
+      }
+
+      // Alumni-specific data (employment_status, employer, role)
+      if (onboarding.alumni_employment_status) {
+        payload.alumni_info = {
+          graduation_year:
+            onboarding.school_info.graduation_year || new Date().getFullYear(),
+          university: onboarding.school_info.institution_name || '',
+          current_employer: onboarding.alumni_employer || undefined,
+          current_role: onboarding.alumni_role || undefined,
+          employment_status: onboarding.alumni_employment_status,
+        };
+      }
+
+      await api.completeOnboarding(payload);
       await refreshUser();
       onboarding.reset();
       router.replace('/(onboarding)/success');

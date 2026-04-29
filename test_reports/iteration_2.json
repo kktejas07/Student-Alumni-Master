@@ -1,0 +1,61 @@
+{
+  "summary": "Backend regression suite (Iteration 2) for the rebuilt Student Alumni Platform. 29/29 pytest cases passed (100%). All review-request items verified end-to-end against the public EXPO_PUBLIC_BACKEND_URL: multi-role registration (student/alumni/mentor), mentor_status=null for non-mentors and 'pending' for mentors, admin login, role-specific onboarding (Class 11+ validation with auto-fill defaults, mandatory mentor_info, unique_id format SA-YYYY-{ROLE}-XXXXXX, base64 PNG QR), admin-only mentor approval workflow (403 for non-admin, list-pending, approve transitions to 'approved' verified via /auth/me), all 8 dashboard module catalogs (events with hackathon/workshop/fest, financial loans+scholarships, insurance medical/bike/loan, housing country=USA), /catalog/mentors returning ONLY approved real mentors + sample_mentors, bookings (create with mentor_id='m1' + GET /me + alumni-blocked), Claude AI career-suggestions, and dashboard with events_available stat + personalization (career_path + education_level + priority_modules). The previously-reported HIGH bug on /catalog/mentors is fixed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/auth/register",
+        "issue": "Password policy is min-length 6 only; consider stronger rules (uppercase/digit/special). Not blocking."
+      },
+      {
+        "endpoint": "POST /api/users/onboarding",
+        "issue": "validate_student_class only rejects pure-numeric class strings <11. Inputs like 'Class 10', '10th', 'X' would slip through. Document/normalise allowed values."
+      },
+      {
+        "endpoint": "CORSMiddleware",
+        "issue": "allow_origins=['*'] together with allow_credentials=True is rejected by browsers for credentialed requests. Fine for current Bearer-token mobile flow, but tighten if cookies are added."
+      },
+      {
+        "endpoint": "POST /api/admin/mentors/{id}/approve",
+        "issue": "Returns 200 with status='approved' even when mentor_id does not exist or already approved (no matched_count check). Idempotent but silent — consider 404 if not found."
+      },
+      {
+        "endpoint": "POST /api/users/onboarding (mentor)",
+        "issue": "Once a mentor completes onboarding, they could re-POST and overwrite mentor_info while still 'pending'/'approved'; consider locking critical fields after approval."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_career_platform.py",
+    "/app/backend/tests/conftest.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "(Optional) Strengthen password policy at registration.",
+    "(Optional) Normalise class_or_year input ('Class 10', '10th', 'X') before Class 11+ validation.",
+    "(Optional) Return 404 from admin approve/reject when mentor_id is unknown.",
+    "(Optional) Split server.py (~1060 lines) into routers/auth.py, routers/onboarding.py, routers/catalog.py, routers/ai.py, routers/admin.py, routers/bookings.py once the spec stabilises (>700-line guideline)."
+  ],
+  "critical_code_review_comments": [
+    "server.py is ~1060 lines — exceeds the 700-line soft limit; recommend splitting into focused modules.",
+    "list_mentors() now correctly uses separate user_q and sample_q dicts (HIGH bug from iteration_1 is resolved).",
+    "Onboarding auto-fills student_info / alumni_info from school_info defaults, which is convenient but could mask client-side bugs; consider logging when defaults are used.",
+    "JWT secret loaded from env (good); access token TTL is 7 days for mobile — acceptable but document refresh-token rotation if added.",
+    "MongoDB ObjectId is properly excluded via projection or serialize_user — no leaks observed in any tested response.",
+    "Bcrypt hashing via passlib-style bcrypt.hashpw with $2b$ format — verified by successful admin login after re-seed."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_career_platform.py (rewritten for new SA- ID format, role-specific onboarding, mentor approval, 8-module catalogs, bookings)"
+  ],
+  "success_rate": {"backend": "100% (29/29)", "frontend": "not tested (backend-only request)"},
+  "seed_data_creation": "Per test run, creates fresh randomised emails: test-student-*, test-student2-*, test-alumni-*, test-mentor-*. Admin (admin@careerpath.app) and all 8 catalog collections are auto-seeded by the backend startup hook. Old test users persist in MongoDB across runs — periodic cleanup recommended.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Tests rely on EXPO_PUBLIC_BACKEND_URL (or EXPO_BACKEND_URL) and hit the public ingress. AI test (/api/ai/career-suggestions) consumes Emergent LLM credits and takes ~15-30s — keep timeout >=120s. Mentor approval test relies on the mentor user_id created earlier in the same session. If you add new tests, be mindful that re-running keeps approving more mentors (cumulative). For frontend testing, use EXPO_PUBLIC_BACKEND_URL from /app/frontend/.env and mobile viewport 375x667."
+}
