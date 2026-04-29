@@ -32,6 +32,8 @@ export default function StudentPlatform() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const [screen, setScreen] = useState<string>('home');
+  const { width } = useWindowDimensions();
+  const isWide = width >= 768; // hide sidebar on phones for the mobile dashboard
 
   const initials = (user?.full_name || 'SA').split(' ').slice(0, 2).map((p) => p[0] || '').join('').toUpperCase();
   const onLogout = async () => {
@@ -47,24 +49,26 @@ export default function StudentPlatform() {
       end={{ x: 1, y: 1 }}
       style={styles.shell}
     >
-      <Sidebar
-        navItems={NAV}
-        activeId={screen}
-        onNav={setScreen}
-        brandSubtitle="Student Portal"
-        bgColor={SA.sideStudent}
-        railColor={SA.railStudent}
-        user={{
-          initials,
-          primary: user?.full_name || 'Student',
-          secondary: `${user?.role === 'alumni' ? 'Alumni' : 'Student'} · ${user?.career_path || 'Explorer'}`,
-        }}
-        onLogout={onLogout}
-      />
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.main, screen === 'home' && { padding: 0 }]}>
+      {isWide && (
+        <Sidebar
+          navItems={NAV}
+          activeId={screen}
+          onNav={setScreen}
+          brandSubtitle="Student Portal"
+          bgColor={SA.sideStudent}
+          railColor={SA.railStudent}
+          user={{
+            initials,
+            primary: user?.full_name || 'Student',
+            secondary: `${user?.role === 'alumni' ? 'Alumni' : 'Student'} · ${user?.career_path || 'Explorer'}`,
+          }}
+          onLogout={onLogout}
+        />
+      )}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.main, screen === 'home' && { padding: 0 }, !isWide && screen !== 'home' && { padding: 18 }]}>
         {screen === 'home' && (
           <StudentDashboardView
-            userName={user?.full_name?.split(' ')[0] || 'there'}
+            userName={user?.full_name || 'there'}
             onOpenNotifications={() => router.push('/notifications')}
             onSeeAllInternships={() => setScreen('internships')}
           />

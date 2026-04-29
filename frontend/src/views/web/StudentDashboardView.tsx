@@ -23,6 +23,7 @@ import {
   GraduationCap, Award, Heart, Home, Zap, Target,
 } from 'lucide-react-native';
 import { GlowCard } from './BentoComponents';
+import { StudentDashboardMobileView } from './StudentDashboardMobileView';
 
 const IS_WEB = Platform.OS === 'web';
 
@@ -120,6 +121,18 @@ export function StudentDashboardView({
     () => (tab === 'all' ? INTERNSHIPS : INTERNSHIPS.filter((i) => i.cat === tab)),
     [tab],
   );
+
+  // ─── Narrow viewport → mobile-first dashboard (matches mobile prototype) ──
+  if (width < 768) {
+    return (
+      <StudentDashboardMobileView
+        userName={userName}
+        notifCount={notifCount}
+        onOpenNotifications={onOpenNotifications}
+        onOpenProfile={onOpenProfile}
+      />
+    );
+  }
 
   return (
     <ScrollView
