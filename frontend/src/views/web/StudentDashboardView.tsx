@@ -147,74 +147,47 @@ export function StudentDashboardView({
       {/* Hero */}
       <HeroCard isWide={isWide} />
 
-      {/* Quick Actions strip — colored icon pills with hover scale */}
-      <View style={[styles.qaStrip, !isWide && styles.qaStripMobile]}>
-        {QUICK_ACTIONS.map((q) => (
-          <QuickActionPill key={q.label} {...q} />
-        ))}
+      {/* Full-width KPI row — 4 tiles with colored top accents (matches prototype) */}
+      <View style={[styles.kpiRow, !isWide && styles.kpiRowMobile]}>
+        {KPIS.map((k) => <KPICard key={k.label} {...k} isWide={isWide} />)}
       </View>
 
-      {/* Three-Column Bento Grid */}
-      <View style={[styles.bento3, !isWide && styles.bento3Mobile]}>
-        {/* ─── Column 1 — Internship Matches (wide) ──────────────────── */}
-        <View style={[styles.bentoCol, isWide && { flex: 1.4 }]}>
-          <GlowCard style={styles.bentoCard}>
-            <View style={[styles.cardHeaderRow, { marginBottom: 12 }]}>
-              <SectionLabel icon={<HoverIcon><Briefcase size={14} color="#D4AAFF" /></HoverIcon>} text="🎯 TOP INTERNSHIP MATCHES" />
-              <Pressable onPress={onSeeAllInternships}>
-                <Text style={styles.linkText}>See all →</Text>
-              </Pressable>
-            </View>
-            <View style={styles.tabStrip}>
-              {TABS.map((t) => {
-                const active = tab === t.id;
-                return (
-                  <Pressable
-                    key={t.id}
-                    onPress={() => setTab(t.id)}
-                    testID={`stud-tab-${t.id}`}
-                    style={({ hovered }: any) => [
-                      styles.tabItem,
-                      active && styles.tabItemActive,
-                      hovered && !active && { backgroundColor: 'rgba(255,255,255,0.06)' },
-                    ]}
-                  >
-                    <Text style={[styles.tabText, active && styles.tabTextActive]}>{t.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <View style={{ gap: 10, marginTop: 12 }}>
-              {filteredInternships.map((job, idx) => (
-                <InternshipCard key={idx} {...job} />
-              ))}
-            </View>
-          </GlowCard>
-
-          {/* Goals card under internships */}
-          <GlowCard style={styles.bentoCard}>
-            <View style={[styles.cardHeaderRow, { marginBottom: 12 }]}>
-              <SectionLabel icon={<HoverIcon><Target size={14} color="#FCD34D" /></HoverIcon>} text="THIS WEEK'S GOALS" />
-              <Text style={styles.goalsCount}>1/3</Text>
-            </View>
-            {GOALS.map((g, i) => (
-              <View key={i} style={[styles.goalRow, i < GOALS.length - 1 && styles.goalRowBorder]}>
-                <View style={[styles.goalCheck, g.done && styles.goalCheckDone]}>
-                  {g.done && <Text style={styles.goalCheckTick}>✓</Text>}
-                </View>
-                <HoverIcon><g.icon size={14} color={g.done ? '#34D399' : '#A78BFA'} /></HoverIcon>
-                <Text style={[styles.goalText, g.done && styles.goalTextDone]} numberOfLines={1}>{g.text}</Text>
-              </View>
-            ))}
-          </GlowCard>
-        </View>
-
-        {/* ─── Column 2 — Career Snapshot + Courses ──────────────────── */}
-        <View style={[styles.bentoCol, isWide && { flex: 1 }]}>
-          <View style={styles.bentoKpis}>
-            {KPIS.map((k) => <KPICard key={k.label} {...k} isWide={isWide} />)}
+      {/* 2-column split: tabs+internships on left, course progress + quick actions on right */}
+      <View style={[styles.split2, !isWide && styles.split2Mobile]}>
+        {/* ─── Left column ─────────────────────────────────────────── */}
+        <View style={[styles.leftCol, isWide && { flex: 1.65 }]}>
+          {/* Tabs strip — full width */}
+          <View style={styles.tabStrip}>
+            {TABS.map((t) => {
+              const active = tab === t.id;
+              return (
+                <Pressable
+                  key={t.id}
+                  onPress={() => setTab(t.id)}
+                  testID={`stud-tab-${t.id}`}
+                  style={({ hovered }: any) => [
+                    styles.tabItem,
+                    active && styles.tabItemActive,
+                    hovered && !active && { backgroundColor: 'rgba(255,255,255,0.06)' },
+                  ]}
+                >
+                  <Text style={[styles.tabText, active && styles.tabTextActive]}>{t.label}</Text>
+                </Pressable>
+              );
+            })}
           </View>
 
+          {/* Internship cards */}
+          <View style={{ gap: 10 }}>
+            {filteredInternships.map((job, idx) => (
+              <InternshipCard key={idx} {...job} />
+            ))}
+          </View>
+        </View>
+
+        {/* ─── Right column ────────────────────────────────────────── */}
+        <View style={[styles.rightCol, isWide && { flex: 1, width: undefined }]}>
+          {/* Course Progress card */}
           <GlowCard style={styles.bentoCard}>
             <View style={[styles.cardHeaderRow, { marginBottom: 6 }]}>
               <SectionLabel icon={<HoverIcon><BookOpen size={14} color="#D4AAFF" /></HoverIcon>} text="📚 COURSE PROGRESS" />
@@ -235,10 +208,31 @@ export function StudentDashboardView({
               </View>
             ))}
           </GlowCard>
-        </View>
 
-        {/* ─── Column 3 — Mentors + Events ──────────────────────────── */}
-        <View style={[styles.bentoCol, isWide && { flex: 1 }]}>
+          {/* Quick Actions — 2x3 grid (matches prototype) */}
+          <GlowCard style={styles.bentoCard}>
+            <View style={[styles.cardHeaderRow, { marginBottom: 12 }]}>
+              <SectionLabel icon={<HoverIcon><Rocket size={14} color="#D4AAFF" /></HoverIcon>} text="→ QUICK ACTIONS" />
+            </View>
+            <View style={styles.qaGridProto}>
+              {QUICK_ACTIONS_PROTO.map((q) => (
+                <Pressable
+                  key={q.label}
+                  testID={`stud-qa-${q.label.toLowerCase().replace(/\s+/g, '-')}`}
+                  style={({ hovered, pressed }: any) => [
+                    styles.qaTileProto,
+                    hovered && { backgroundColor: 'rgba(255,255,255,0.10)', borderColor: 'rgba(255,255,255,0.20)', transform: [{ translateY: -1 }] },
+                    pressed && { transform: [{ scale: 0.97 }] },
+                  ]}
+                >
+                  <q.Icon size={16} color={q.color} />
+                  <Text style={styles.qaLabelProto} numberOfLines={1}>{q.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </GlowCard>
+
+          {/* Suggested Mentors */}
           <GlowCard style={styles.bentoCard}>
             <View style={[styles.cardHeaderRow, { marginBottom: 4 }]}>
               <SectionLabel icon={<HoverIcon><Users size={14} color="#D4AAFF" /></HoverIcon>} text="👥 SUGGESTED MENTORS" />
@@ -274,36 +268,21 @@ export function StudentDashboardView({
               </View>
             ))}
           </GlowCard>
-
-          <GlowCard style={styles.bentoCard}>
-            <View style={[styles.cardHeaderRow, { marginBottom: 10 }]}>
-              <SectionLabel icon={<HoverIcon><Calendar size={14} color="#F472B6" /></HoverIcon>} text="📅 UPCOMING EVENTS" />
-            </View>
-            {EVENTS.map((e, i) => (
-              <Pressable
-                key={i}
-                style={({ hovered }: any) => [
-                  styles.eventRow,
-                  i < EVENTS.length - 1 && styles.eventRowBorder,
-                  hovered && { backgroundColor: 'rgba(255,255,255,0.04)' },
-                ]}
-              >
-                <View style={[styles.eventTag, { backgroundColor: e.color + '22', borderColor: e.color + '55' }]}>
-                  <Text style={[styles.eventTagText, { color: e.color }]}>{e.tag}</Text>
-                </View>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={styles.eventTitle} numberOfLines={1}>{e.title}</Text>
-                  <Text style={styles.eventDate}>{e.date}</Text>
-                </View>
-                <ArrowRight size={14} color="rgba(255,255,255,0.35)" />
-              </Pressable>
-            ))}
-          </GlowCard>
         </View>
       </View>
     </ScrollView>
   );
 }
+
+// ─── Quick Actions data (matches prototype 2x3 grid) ─────────────────────
+const QUICK_ACTIONS_PROTO = [
+  { label: 'Career AI',   Icon: Sparkles,  color: '#A78BFA' },
+  { label: 'Internships', Icon: Briefcase, color: '#A78BFA' },
+  { label: 'Book Mentor', Icon: Users,     color: '#34D399' },
+  { label: 'Events',      Icon: Calendar,  color: '#F472B6' },
+  { label: 'Insurance',   Icon: Heart,     color: '#22D3EE' },
+  { label: 'Housing',     Icon: Home,      color: '#FCD34D' },
+];
 
 // ─── Hover Icon helper — scales icon up on hover (web) ─────────────────────
 function HoverIcon({ children }: { children: ReactNode }) {
@@ -351,9 +330,9 @@ function TopBar({
   return (
     <View style={[styles.topBar, !isWide && styles.topBarMobile]}>
       <View style={{ flex: 1 }}>
-        <Text style={styles.greeting}>Hi {userName} 👋</Text>
+        <Text style={styles.greeting}>Good morning, {userName} 👋</Text>
         <Text style={styles.greetingSub}>
-          You're trending up — let's land that internship.
+          Your AI assistant has 3 new career suggestions.
         </Text>
       </View>
       {isWide && (
@@ -813,6 +792,26 @@ const styles = StyleSheet.create({
     borderRadius: 6, borderWidth: 1,
   },
   eventTagText: { fontFamily: 'DMSans_700Bold', fontSize: 9.5, letterSpacing: 0.4 },
-  eventTitle: { color: '#FFFFFF', fontFamily: 'DMSans_600SemiBold', fontSize: 12.5 },
-  eventDate: { color: 'rgba(255,255,255,0.45)', fontFamily: 'DMSans_400Regular', fontSize: 10.5, marginTop: 2 },
+  // ─── Prototype 2-col layout ───
+  kpiRow: { flexDirection: 'row', gap: 14, flexWrap: 'wrap' },
+  kpiRowMobile: { gap: 10 },
+  split2: { flexDirection: 'row', gap: 18, alignItems: 'flex-start' },
+  split2Mobile: { flexDirection: 'column', gap: 14 },
+  leftCol: { gap: 14, minWidth: 0, flex: 1 },
+  qaGridProto: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 8,
+  },
+  qaTileProto: {
+    flexBasis: '47%', flexGrow: 1,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 12, paddingVertical: 11,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1, borderRadius: 10,
+    ...({ cursor: 'pointer', transitionDuration: '180ms' } as any),
+  },
+  qaLabelProto: {
+    color: '#FFFFFF', fontFamily: 'DMSans_600SemiBold',
+    fontSize: 12, flexShrink: 1,
+  },
 });

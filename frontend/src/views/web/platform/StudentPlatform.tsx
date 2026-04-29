@@ -19,12 +19,17 @@ import {
 import { StudentDashboardView } from '@/src/views/web/StudentDashboardView';
 
 const NAV: NavItem[] = [
-  { id: 'home', emoji: '🏠', label: 'Dashboard' },
-  { id: 'career', emoji: '🤖', label: 'Career Path' },
-  { id: 'internships', emoji: '💼', label: 'Internships' },
-  { id: 'courses', emoji: '📚', label: 'Courses' },
-  { id: 'resources', emoji: '🛡️', label: 'Resources' },
-  { id: 'network', emoji: '👥', label: 'Network' },
+  { id: 'home',         emoji: '🏠', label: 'Dashboard' },
+  { id: 'career',       emoji: '🤖', label: 'Career AI' },
+  { id: 'internships',  emoji: '💼', label: 'Internships' },
+  { id: 'courses',      emoji: '📚', label: 'Courses' },
+  { id: 'network',      emoji: '👥', label: 'Network' },
+  { id: 'events',       emoji: '🗓️', label: 'Events' },
+  { id: 'financial',    emoji: '💰', label: 'Financial' },
+  { id: 'insurance',    emoji: '🛡️', label: 'Insurance' },
+  { id: 'housing',      emoji: '🏘️', label: 'Housing' },
+  { id: 'deals',        emoji: '🎁', label: 'Deals' },
+  { id: 'profile',      emoji: '👤', label: 'Profile' },
 ];
 
 export default function StudentPlatform() {
@@ -32,8 +37,9 @@ export default function StudentPlatform() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const [screen, setScreen] = useState<string>('home');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { width } = useWindowDimensions();
-  const isWide = width >= 768; // hide sidebar on phones for the mobile dashboard
+  const isWide = width >= 768;
 
   const initials = (user?.full_name || 'SA').split(' ').slice(0, 2).map((p) => p[0] || '').join('').toUpperCase();
   const onLogout = async () => {
@@ -54,13 +60,15 @@ export default function StudentPlatform() {
           navItems={NAV}
           activeId={screen}
           onNav={setScreen}
-          brandSubtitle="Student Portal"
+          brandSubtitle="Web Dashboard"
           bgColor={SA.sideStudent}
           railColor={SA.railStudent}
+          collapsed={sidebarCollapsed}
+          onToggleCollapsed={() => setSidebarCollapsed((c) => !c)}
           user={{
             initials,
             primary: user?.full_name || 'Student',
-            secondary: `${user?.role === 'alumni' ? 'Alumni' : 'Student'} · ${user?.career_path || 'Explorer'}`,
+            secondary: `${user?.role === 'alumni' ? 'Alumni' : 'Batch 2022'} · ${user?.career_path || 'CS'}`,
           }}
           onLogout={onLogout}
         />

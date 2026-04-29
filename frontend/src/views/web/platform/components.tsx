@@ -209,6 +209,8 @@ export function Sidebar({
   railColor = SA.railStudent,
   user,
   onLogout,
+  collapsed = false,
+  onToggleCollapsed,
 }: {
   navItems: NavItem[];
   activeId: string;
@@ -218,22 +220,43 @@ export function Sidebar({
   railColor?: string;
   user?: { initials: string; primary: string; secondary: string; gradient?: readonly [string, string] };
   onLogout?: () => void;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 }) {
+  const w = collapsed ? 72 : 220;
   return (
-    <View style={[styles.sidebar, { backgroundColor: bgColor }]}>
-      {/* Brand */}
-      <View style={styles.sidebarBrand}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+    <View style={[styles.sidebar, { backgroundColor: bgColor, width: w }]}>
+      {/* Brand + Toggle */}
+      <View style={[styles.sidebarBrand, collapsed && { paddingHorizontal: 12, alignItems: 'center' }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: collapsed ? 0 : 10, justifyContent: collapsed ? 'center' : 'flex-start' }}>
           <ShieldLogo size={26} />
-          <View>
-            <Text style={{ color: SA.white, fontFamily: SA.fontBold, fontSize: 14 }}>Student Alumni</Text>
-            <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, marginTop: 1 }}>{brandSubtitle}</Text>
-          </View>
+          {!collapsed && (
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ color: SA.white, fontFamily: SA.fontBold, fontSize: 14 }}>Student Alumni</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, marginTop: 1 }}>{brandSubtitle}</Text>
+            </View>
+          )}
         </View>
+        {/* Collapse toggle */}
+        {onToggleCollapsed && (
+          <Pressable
+            onPress={onToggleCollapsed}
+            testID="sidebar-toggle"
+            style={({ hovered }: any) => [
+              styles.sidebarToggle,
+              collapsed && { position: 'relative', top: 0, right: 0, marginTop: 8, alignSelf: 'center' },
+              hovered && { backgroundColor: 'rgba(255,255,255,0.18)' },
+            ]}
+          >
+            <Text style={{ color: SA.white, fontSize: 14, fontFamily: SA.fontBold }}>
+              {collapsed ? '›' : '‹'}
+            </Text>
+          </Pressable>
+        )}
       </View>
 
       {/* Nav */}
-      <View style={{ flex: 1, padding: 10, gap: 2 }}>
+      <View style={{ flex: 1, padding: collapsed ? 6 : 10, gap: 2 }}>
         {navItems.map((n) => {
           const active = n.id === activeId;
           return (
@@ -243,22 +266,26 @@ export function Sidebar({
               testID={`nav-${n.id}`}
               style={({ hovered }: any) => [
                 styles.navItem,
+                collapsed && { justifyContent: 'center', paddingHorizontal: 8 },
                 active && { backgroundColor: 'rgba(255,255,255,0.10)' },
                 hovered && !active && { backgroundColor: 'rgba(255,255,255,0.05)' },
               ]}
             >
-              <Text style={{ fontSize: 16 }}>{n.emoji}</Text>
-              <Text
-                style={{
-                  fontSize: 13,
-                  color: active ? SA.white : SA.textFaint,
-                  fontFamily: active ? SA.fontBold : SA.fontMedium,
-                  flex: 1,
-                }}
-              >
-                {n.label}
-              </Text>
-              {active && <View style={{ width: 4, height: 16, borderRadius: 2, backgroundColor: railColor }} />}
+              <Text style={{ fontSize: collapsed ? 18 : 16 }}>{n.emoji}</Text>
+              {!collapsed && (
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: active ? SA.white : SA.textFaint,
+                    fontFamily: active ? SA.fontBold : SA.fontMedium,
+                    flex: 1,
+                  }}
+                  numberOfLines={1}
+                >
+                  {n.label}
+                </Text>
+              )}
+              {!collapsed && active && <View style={{ width: 4, height: 16, borderRadius: 2, backgroundColor: railColor }} />}
             </Pressable>
           );
         })}
@@ -266,19 +293,21 @@ export function Sidebar({
 
       {/* User */}
       {user && (
-        <View style={{ paddingHorizontal: 10 }}>
-          <View style={styles.sidebarUser}>
-            <Avatar initials={user.initials} size={32} gradient={user.gradient} />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={{ fontSize: 12, color: SA.white, fontFamily: SA.fontBold }} numberOfLines={1}>
-                {user.primary}
-              </Text>
-              <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 1 }} numberOfLines={1}>
-                {user.secondary}
-              </Text>
-            </View>
+        <View style={{ paddingHorizontal: collapsed ? 6 : 10 }}>
+          <View style={[styles.sidebarUser, collapsed && { padding: 6, justifyContent: 'center' }]}>
+            <Avatar initials={user.initials} size={collapsed ? 28 : 32} gradient={user.gradient} />
+            {!collapsed && (
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={{ fontSize: 12, color: SA.white, fontFamily: SA.fontBold }} numberOfLines={1}>
+                  {user.primary}
+                </Text>
+                <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 1 }} numberOfLines={1}>
+                  {user.secondary}
+                </Text>
+              </View>
+            )}
           </View>
-          {onLogout && (
+          {!collapsed && onLogout && (
             <Pressable onPress={onLogout} style={{ padding: 12, marginTop: 4 }} testID="nav-logout">
               <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontFamily: SA.fontMedium }}>
                 ← Sign out
@@ -479,6 +508,17 @@ const styles = StyleSheet.create({
     paddingVertical: 22,
     borderBottomColor: 'rgba(255,255,255,0.06)',
     borderBottomWidth: 1,
+    position: 'relative',
+  },
+  sidebarToggle: {
+    position: 'absolute',
+    top: 18,
+    right: 8,
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(255,255,255,0.18)', borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
+    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
   },
   navItem: {
     flexDirection: 'row',
