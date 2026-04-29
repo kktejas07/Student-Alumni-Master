@@ -30,17 +30,33 @@ export function GlassCard({
   style,
   pad = 18,
   onPress,
+  hover = true,
 }: {
   children: React.ReactNode;
   style?: any;
   pad?: number;
   onPress?: () => void;
+  hover?: boolean;
 }) {
-  const Wrap = onPress ? Pressable : View;
+  if (onPress) {
+    return (
+      <Pressable
+        onPress={onPress}
+        style={({ hovered }: any) => [
+          styles.glass,
+          { padding: pad },
+          hover && hovered && styles.glassHover,
+          style,
+        ]}
+      >
+        {children}
+      </Pressable>
+    );
+  }
   return (
-    <Wrap onPress={onPress as any} style={[styles.glass, { padding: pad }, style]}>
+    <View style={[styles.glass, { padding: pad }, style]}>
       {children}
-    </Wrap>
+    </View>
   );
 }
 
@@ -401,7 +417,16 @@ const styles = StyleSheet.create({
     borderColor: SA.border,
     borderWidth: 1,
     borderRadius: 16,
-    ...({ backdropFilter: 'blur(20px)' } as any),
+    ...({ backdropFilter: 'blur(20px)', transitionDuration: '180ms', transitionProperty: 'transform, background-color, border-color, box-shadow' } as any),
+  },
+  glassHover: {
+    backgroundColor: 'rgba(255,255,255,0.13)',
+    borderColor: 'rgba(176,127,223,0.36)',
+    transform: [{ translateY: -2 }],
+    shadowColor: '#B07FDF',
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 8 },
   },
   badge: {
     position: 'absolute',

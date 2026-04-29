@@ -13,16 +13,20 @@
 import { useState } from 'react';
 import {
   View, Text, ScrollView, KeyboardAvoidingView, Platform,
-  TouchableOpacity, StyleSheet, Alert, Modal, Pressable,
+  TouchableOpacity, StyleSheet, Alert, Modal, Pressable, useWindowDimensions,
+  TextInput as RNTextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { Colors as C, Spacing, Typography, Radius, Shadows } from '@/src/theme';
-import { Button, Input, AnimatedCard } from '@/src/views/components';
+import { Button, Input, AnimatedCard, SALogo } from '@/src/views/components';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import Svg, { Path, G } from 'react-native-svg';
+
+const IS_WEB = Platform.OS === 'web';
 
 // ---------------------------------------------------------------------------
 // Provider icons (Google G + LinkedIn 'in')
@@ -111,6 +115,187 @@ export default function Login() {
       setError(e.message);
     }
   };
+
+  if (IS_WEB) {
+    return (
+      <LinearGradient
+        colors={['#1A0438', '#2D0760', '#5F259F']}
+        locations={[0, 0.45, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.webShell}
+      >
+        <View pointerEvents="none" style={styles.webBlob} />
+
+        <View style={styles.webBrandPane}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 32 }}>
+            <SALogo size={32} variant="white" />
+            <Text style={styles.webBrandWord}>Student Alumni</Text>
+          </View>
+          <Text style={styles.webBrandHero}>
+            Your career,{'\n'}
+            <Text style={{ color: '#D4AAFF' }}>reimagined.</Text>
+          </Text>
+          <Text style={styles.webBrandSub}>
+            Discover events, mentors, and opportunities — all in one platform built for students and alumni.
+          </Text>
+          <View style={styles.webStatsRow}>
+            <View style={styles.webStatCol}>
+              <Text style={styles.webStatNum}>50K+</Text>
+              <Text style={styles.webStatLbl}>Students</Text>
+            </View>
+            <View style={styles.webStatCol}>
+              <Text style={styles.webStatNum}>500+</Text>
+              <Text style={styles.webStatLbl}>Mentors</Text>
+            </View>
+            <View style={styles.webStatCol}>
+              <Text style={styles.webStatNum}>200+</Text>
+              <Text style={styles.webStatLbl}>Colleges</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.webCardPane}>
+          <ScrollView
+            contentContainerStyle={styles.webCardScroll}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.webCard}>
+              <Pressable
+                onPress={() => router.back()}
+                testID="login-back-btn"
+                style={({ hovered }: any) => [styles.webBack, hovered && { opacity: 1 }]}
+              >
+                <ArrowLeft size={16} color="rgba(255,255,255,0.75)" />
+                <Text style={styles.webBackText}>Back</Text>
+              </Pressable>
+              <Text style={styles.webH1}>Welcome back 👋</Text>
+              <Text style={styles.webSub}>Log in to continue your career journey.</Text>
+
+              <View style={{ gap: 10, marginBottom: 18 }}>
+                <Pressable
+                  onPress={() => startOAuth('google')}
+                  testID="oauth-google-btn"
+                  style={({ hovered, pressed }: any) => [
+                    styles.webOauthBtn,
+                    hovered && styles.webOauthBtnHover,
+                    pressed && { transform: [{ scale: 0.98 }] },
+                  ]}
+                >
+                  <GoogleG size={18} />
+                  <Text style={styles.webOauthLabel}>Continue with Google</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => startOAuth('linkedin')}
+                  testID="oauth-linkedin-btn"
+                  style={({ hovered, pressed }: any) => [
+                    styles.webOauthBtn,
+                    hovered && styles.webOauthBtnHover,
+                    pressed && { transform: [{ scale: 0.98 }] },
+                  ]}
+                >
+                  <LinkedInIn size={18} />
+                  <Text style={styles.webOauthLabel}>Continue with LinkedIn</Text>
+                </Pressable>
+              </View>
+
+              <View style={styles.webDivider}>
+                <View style={styles.webDividerLine} />
+                <Text style={styles.webDividerText}>or with email</Text>
+                <View style={styles.webDividerLine} />
+              </View>
+
+              <View style={{ gap: 14, marginTop: 18 }}>
+                <WebInput label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" placeholder="you@example.com" testID="login-email-input" />
+                <WebInput label="Password" value={password} onChangeText={setPassword} secureTextEntry placeholder="Your password" testID="login-password-input" />
+                {error && <Text style={styles.webError}>{error}</Text>}
+                <Pressable
+                  onPress={onSubmit}
+                  testID="login-submit-btn"
+                  disabled={loading}
+                  style={({ hovered, pressed }: any) => [
+                    styles.webSubmit,
+                    hovered && styles.webSubmitHover,
+                    pressed && { transform: [{ scale: 0.99 }] },
+                    loading && { opacity: 0.7 },
+                  ]}
+                >
+                  <Text style={styles.webSubmitText}>{loading ? 'Logging in…' : 'Log in'}</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => router.push('/(auth)/register')}
+                  testID="login-go-register-btn"
+                  style={({ hovered }: any) => [styles.webSwitch, hovered && { opacity: 0.85 }]}
+                >
+                  <Text style={styles.webSwitchText}>
+                    Don't have an account?{' '}
+                    <Text style={styles.webSwitchLink}>Sign up</Text>
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          </ScrollView>
+        </View>
+
+        <Modal visible={oauthOpen !== null} transparent animationType="fade" onRequestClose={() => setOauthOpen(null)}>
+          <View style={styles.webModalBackdrop}>
+            <View style={styles.webModalSheet}>
+              <View style={[styles.modalHeader, { marginBottom: 14 }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.webModalTitle}>
+                    {oauthOpen === 'google' ? 'Choose a Google account' : 'Sign in with LinkedIn'}
+                  </Text>
+                  <Text style={styles.webModalSubtitle}>
+                    Mock mode for development. Pick a preset or enter your own.
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => setOauthOpen(null)}
+                  testID="oauth-modal-close"
+                  style={({ hovered }: any) => [styles.webModalClose, hovered && { backgroundColor: 'rgba(255,255,255,0.18)' }]}
+                >
+                  <X size={18} color="rgba(255,255,255,0.85)" />
+                </Pressable>
+              </View>
+              {[
+                { email: 'demo.student@example.com', name: 'Demo Student' },
+                { email: 'priya.sharma@gmail.com', name: 'Priya Sharma' },
+                { email: 'arjun.mehta@gmail.com', name: 'Arjun Mehta' },
+              ].map((p, idx) => (
+                <Pressable
+                  key={p.email}
+                  onPress={() => completeOAuth(p.email, p.name)}
+                  testID={`oauth-preset-${idx}`}
+                  style={({ hovered }: any) => [styles.webAcctRow, hovered && { backgroundColor: 'rgba(255,255,255,0.12)' }]}
+                >
+                  <View style={styles.webAcctAvatar}>
+                    <Text style={{ color: C.white, fontFamily: 'DMSans_700Bold' }}>
+                      {p.name.split(' ').map((s) => s[0]).join('')}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[Typography.bodyBold, { color: C.white }]}>{p.name}</Text>
+                    <Text style={[Typography.bodySm, { color: 'rgba(255,255,255,0.6)' }]}>{p.email}</Text>
+                  </View>
+                </Pressable>
+              ))}
+              <Text style={styles.webModalDivider}>Or enter custom</Text>
+              <WebInput label="Email" value={oauthEmail} onChangeText={setOauthEmail} keyboardType="email-address" placeholder="newuser@gmail.com" testID="oauth-custom-email" />
+              <WebInput label="Full Name" value={oauthName} onChangeText={setOauthName} placeholder="New User" testID="oauth-custom-name" />
+              <Pressable
+                onPress={() => completeOAuth(oauthEmail, oauthName)}
+                testID="oauth-continue-btn"
+                style={({ hovered }: any) => [styles.webSubmit, { marginTop: 12 }, hovered && styles.webSubmitHover]}
+              >
+                <Text style={styles.webSubmitText}>Continue as {oauthName || 'New User'}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+      </LinearGradient>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -281,6 +466,33 @@ export default function Login() {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Web-only Input — dark theme, hover/focus states
+// ---------------------------------------------------------------------------
+function WebInput({ label, value, onChangeText, placeholder, secureTextEntry, keyboardType, testID }: any) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <View>
+      <Text style={styles.webInputLabel}>{label}</Text>
+      <View style={[styles.webInputWrap, focused && styles.webInputWrapFocus]}>
+        <RNTextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="rgba(255,255,255,0.35)"
+          secureTextEntry={secureTextEntry}
+          keyboardType={keyboardType}
+          autoCapitalize="none"
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          testID={testID}
+          style={styles.webInputField}
+        />
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.background },
   container: { padding: Spacing.lg, gap: Spacing.md },
@@ -381,5 +593,257 @@ const styles = StyleSheet.create({
     backgroundColor: C.brandPurple,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  // ─── Web-only styles ──────────────────────────────────────────────────────
+  webShell: {
+    flex: 1,
+    flexDirection: 'row',
+    minHeight: '100%' as any,
+    overflow: 'hidden',
+  },
+  webBlob: {
+    position: 'absolute',
+    top: -200,
+    right: -200,
+    width: 600,
+    height: 600,
+    borderRadius: 300,
+    backgroundColor: 'rgba(176,127,223,0.18)',
+    ...({ filter: 'blur(120px)' } as any),
+  },
+  webBrandPane: {
+    flex: 1,
+    paddingHorizontal: 64,
+    paddingVertical: 80,
+    justifyContent: 'center',
+    maxWidth: 640,
+    minWidth: 0,
+    ...Platform.select({ web: { display: 'flex' as any } }),
+  },
+  webBrandWord: { color: C.white, fontFamily: 'DMSans_700Bold', fontSize: 18 },
+  webBrandHero: {
+    color: C.white,
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 56,
+    lineHeight: 62,
+    letterSpacing: -1.6,
+    marginBottom: 22,
+  },
+  webBrandSub: {
+    color: 'rgba(255,255,255,0.72)',
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 16,
+    lineHeight: 24,
+    maxWidth: 460,
+    marginBottom: 48,
+  },
+  webStatsRow: { flexDirection: 'row', gap: 40 },
+  webStatCol: {},
+  webStatNum: { color: '#D4AAFF', fontFamily: 'DMSans_700Bold', fontSize: 32, letterSpacing: -1 },
+  webStatLbl: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium', fontSize: 13, marginTop: 2 },
+
+  webCardPane: {
+    flex: 1,
+    minWidth: 380,
+    paddingHorizontal: 40,
+    paddingVertical: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  webCardScroll: {
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
+  },
+  webCard: {
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1,
+    borderRadius: 24,
+    padding: 36,
+    ...({ backdropFilter: 'blur(24px)' } as any),
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowRadius: 50,
+    shadowOffset: { width: 0, height: 24 },
+  },
+  webBack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    marginBottom: 18,
+    opacity: 0.75,
+    alignSelf: 'flex-start',
+    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
+  },
+  webBackText: {
+    color: 'rgba(255,255,255,0.75)',
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 13,
+  },
+  webH1: {
+    color: C.white,
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 30,
+    letterSpacing: -0.6,
+    marginBottom: 6,
+  },
+  webSub: {
+    color: 'rgba(255,255,255,0.65)',
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 14,
+    marginBottom: 26,
+  },
+
+  webOauthBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderColor: 'rgba(255,255,255,0.16)',
+    borderWidth: 1,
+    paddingVertical: 13,
+    borderRadius: 12,
+    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
+  },
+  webOauthBtnHover: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(255,255,255,0.28)',
+    transform: [{ translateY: -1 }],
+  },
+  webOauthLabel: { color: C.white, fontFamily: 'DMSans_600SemiBold', fontSize: 14 },
+
+  webDivider: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  webDividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.10)' },
+  webDividerText: {
+    color: 'rgba(255,255,255,0.45)',
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 11,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+
+  webInputLabel: {
+    color: 'rgba(255,255,255,0.65)',
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 12,
+    letterSpacing: 0.4,
+    marginBottom: 6,
+  },
+  webInputWrap: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1,
+    borderRadius: 12,
+    ...({ transitionDuration: '160ms' } as any),
+  },
+  webInputWrapFocus: {
+    borderColor: '#B07FDF',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    shadowColor: '#B07FDF',
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  webInputField: {
+    color: C.white,
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 15,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    ...({ outlineStyle: 'none' } as any),
+  },
+
+  webSubmit: {
+    backgroundColor: '#7B3DBF',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 4,
+    shadowColor: '#7B3DBF',
+    shadowOpacity: 0.4,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
+  },
+  webSubmitHover: {
+    backgroundColor: '#9059D9',
+    transform: [{ translateY: -1 }],
+    shadowOpacity: 0.55,
+  },
+  webSubmitText: { color: C.white, fontFamily: 'DMSans_700Bold', fontSize: 15 },
+
+  webError: {
+    color: '#FCA5A5',
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 13,
+    backgroundColor: 'rgba(220,38,38,0.15)',
+    borderColor: 'rgba(252,165,165,0.3)',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 8,
+  },
+
+  webSwitch: { alignItems: 'center', marginTop: 8, ...({ cursor: 'pointer' } as any) },
+  webSwitchText: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_400Regular', fontSize: 14 },
+  webSwitchLink: { color: '#D4AAFF', fontFamily: 'DMSans_700Bold' },
+
+  // Web modal
+  webModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(10,4,32,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    ...({ backdropFilter: 'blur(8px)' } as any),
+  },
+  webModalSheet: {
+    width: '100%',
+    maxWidth: 480,
+    backgroundColor: 'rgba(36,18,80,0.95)',
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderRadius: 22,
+    padding: 28,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.5,
+    shadowRadius: 60,
+    shadowOffset: { width: 0, height: 20 },
+  },
+  webModalTitle: { color: C.white, fontFamily: 'DMSans_700Bold', fontSize: 20 },
+  webModalSubtitle: { color: 'rgba(255,255,255,0.6)', fontFamily: 'DMSans_400Regular', fontSize: 13, marginTop: 4 },
+  webModalClose: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center', justifyContent: 'center',
+    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
+  },
+  webModalDivider: {
+    color: 'rgba(255,255,255,0.45)',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 10,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginTop: 14,
+    marginBottom: 6,
+  },
+  webAcctRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 14,
+    padding: 14,
+    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
+  },
+  webAcctAvatar: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: '#7B3DBF',
+    alignItems: 'center', justifyContent: 'center',
   },
 });
