@@ -17,12 +17,21 @@ import {
   MentorStudents, MentorSessions, MentorPostJobs, MentorAnalyticsScreen,
 } from './screens/MentorScreens';
 
+import {
+  Home as HomeIcon, Users, Calendar, MessageCircle, User as UserIcon,
+  DollarSign, Star, Plus,
+} from 'lucide-react-native';
+import { MentorDashboardView } from '@/src/views/web/MentorDashboardView';
+
 const NAV: NavItem[] = [
-  { id: 'home', emoji: '🏠', label: 'Dashboard' },
-  { id: 'students', emoji: '🎓', label: 'My Students' },
-  { id: 'sessions', emoji: '📅', label: 'Sessions' },
-  { id: 'jobs', emoji: '💼', label: 'Post Jobs' },
-  { id: 'analytics', emoji: '📊', label: 'Analytics' },
+  { id: 'home',      Icon: HomeIcon,       label: 'Dashboard',    color: '#2DD4BF' },
+  { id: 'students',  Icon: Users,          label: 'Students',     color: '#34D399' },
+  { id: 'sessions',  Icon: Calendar,       label: 'Calendar',     color: '#A7F3D0' },
+  { id: 'messages',  Icon: MessageCircle,  label: 'Messages',     color: '#60A5FA' },
+  { id: 'profile',   Icon: UserIcon,       label: 'Profile',      color: '#F472B6' },
+  { id: 'jobs',      Icon: DollarSign,     label: 'Earnings',     color: '#FCD34D' },
+  { id: 'analytics', Icon: Star,           label: 'Feedback',     color: '#FB923C' },
+  { id: 'create',    Icon: Plus,           label: 'Create Event', color: '#2DD4BF' },
 ];
 
 export default function MentorPlatform() {
@@ -30,6 +39,9 @@ export default function MentorPlatform() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const [screen, setScreen] = useState<string>('home');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { width } = useWindowDimensions();
+  const isWide = width >= 768;
 
   const initials = (user?.full_name || 'SA').split(' ').slice(0, 2).map((p) => p[0] || '').join('').toUpperCase();
   const onLogout = async () => { await logout(); router.replace('/welcome'); };
@@ -41,28 +53,52 @@ export default function MentorPlatform() {
       start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
       style={styles.shell}
     >
-      <Sidebar
-        navItems={NAV}
-        activeId={screen}
-        onNav={setScreen}
-        brandSubtitle="Mentor Portal"
-        bgColor={SA.sideMentor}
-        railColor={SA.railMentor}
-        user={{
-          initials,
-          primary: user?.full_name || 'Mentor',
-          secondary: 'Approved Mentor · ⭐ 4.9',
-          gradient: SAGradients.green,
-        }}
-        onLogout={onLogout}
-      />
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.main}>
-        {screen === 'home' && <Home onNav={setScreen} />}
-        {screen === 'students' && <MentorStudents />}
-        {screen === 'sessions' && <MentorSessions />}
-        {screen === 'jobs' && <MentorPostJobs />}
-        {screen === 'analytics' && <MentorAnalyticsScreen />}
-      </ScrollView>
+      {isWide && (
+        <Sidebar
+          navItems={NAV}
+          activeId={screen}
+          onNav={setScreen}
+          brandSubtitle="Mentor Portal"
+          bgColor={SA.sideMentor}
+          railColor={SA.railMentor}
+          collapsed={sidebarCollapsed}
+          onToggleCollapsed={() => setSidebarCollapsed((c) => !c)}
+          user={{
+            initials,
+            primary: user?.full_name || 'Mentor',
+            secondary: 'Approved Mentor · ⭐ 4.9',
+            gradient: SAGradients.green,
+          }}
+          onLogout={onLogout}
+        />
+      )}
+      <View style={{ flex: 1 }}>
+        {screen === 'home' && (
+          <MentorDashboardView
+            userName={user?.full_name || 'Mentor'}
+            notifCount={2}
+            onOpenNotifications={() => router.push('/notifications')}
+            onOpenProfile={() => setScreen('profile')}
+            onActionPress={(id) => {
+              if (id === 'create-event') setScreen('create');
+              else if (id === 'earnings')  setScreen('jobs');
+              else if (id === 'feedback')  setScreen('analytics');
+              else if (id === 'analytics') setScreen('analytics');
+            }}
+          />
+        )}
+        {screen !== 'home' && (
+          <ScrollView contentContainerStyle={styles.main}>
+            {screen === 'students' && <MentorStudents />}
+            {screen === 'sessions' && <MentorSessions />}
+            {screen === 'jobs' && <MentorPostJobs />}
+            {screen === 'analytics' && <MentorAnalyticsScreen />}
+            {screen === 'messages' && <EmptyState title="Messages" description="Mentor messages coming soon." />}
+            {screen === 'profile' && <EmptyState title="Profile" description="Profile editor coming soon." />}
+            {screen === 'create' && <EmptyState title="Create Event" description="Event creation coming soon." />}
+          </ScrollView>
+        )}
+      </View>
     </LinearGradient>
   );
 }

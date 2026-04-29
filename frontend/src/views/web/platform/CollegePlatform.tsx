@@ -7,6 +7,10 @@ import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions } fr
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
+  GraduationCap, Users, Calendar, Megaphone, BarChart3,
+  Building2, BookOpen, Settings as SettingsIcon,
+} from 'lucide-react-native';
+import {
   Sidebar, GlassCard, KpiTile, BellIcon, PageHeader, PrimaryButton, SecondaryButton,
   SectionLabel, EmptyState, NavItem, ProgressStrip,
 } from './components';
@@ -17,14 +21,16 @@ import {
   CollegeStudents, CollegeAlumni, CollegePrograms,
   CollegeAnalyticsScreen, CollegeSettings,
 } from './screens/CollegeScreens';
+import { CollegeDashboardView } from '@/src/views/web/CollegeDashboardView';
 
 const NAV: NavItem[] = [
-  { id: 'overview', emoji: '📊', label: 'Overview' },
-  { id: 'students', emoji: '🎓', label: 'Students' },
-  { id: 'alumni', emoji: '🤝', label: 'Alumni' },
-  { id: 'programs', emoji: '📋', label: 'Programs' },
-  { id: 'analytics', emoji: '📈', label: 'Analytics' },
-  { id: 'settings', emoji: '⚙️', label: 'Settings' },
+  { id: 'overview',     Icon: BarChart3,    label: 'Overview',       color: '#60A5FA' },
+  { id: 'students',     Icon: GraduationCap, label: 'Students',      color: '#A78BFA' },
+  { id: 'alumni',       Icon: Users,        label: 'Alumni',         color: '#34D399' },
+  { id: 'events',       Icon: Calendar,     label: 'Events',         color: '#FB923C' },
+  { id: 'announcements',Icon: Megaphone,    label: 'Announcements',  color: '#EF4444' },
+  { id: 'analytics',    Icon: BarChart3,    label: 'Analytics',      color: '#FCD34D' },
+  { id: 'profile',      Icon: Building2,    label: 'College Profile',color: '#22D3EE' },
 ];
 
 export default function CollegePlatform() {
@@ -32,6 +38,9 @@ export default function CollegePlatform() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const [screen, setScreen] = useState<string>('overview');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { width } = useWindowDimensions();
+  const isWide = width >= 768;
   const onLogout = async () => { await logout(); router.replace('/welcome'); };
 
   return (
@@ -41,29 +50,51 @@ export default function CollegePlatform() {
       start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
       style={styles.shell}
     >
-      <Sidebar
-        navItems={NAV}
-        activeId={screen}
-        onNav={setScreen}
-        brandSubtitle="Institution Portal"
-        bgColor={SA.sideCollege}
-        railColor={SA.railCollege}
-        user={{
-          initials: '🏛️',
-          primary: user?.full_name || 'IIT Bombay',
-          secondary: 'Admin · Verified',
-          gradient: SAGradients.blue,
-        }}
-        onLogout={onLogout}
-      />
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.main}>
-        {screen === 'overview' && <Overview onNav={setScreen} />}
-        {screen === 'students' && <CollegeStudents />}
-        {screen === 'alumni' && <CollegeAlumni />}
-        {screen === 'programs' && <CollegePrograms />}
-        {screen === 'analytics' && <CollegeAnalyticsScreen />}
-        {screen === 'settings' && <CollegeSettings />}
-      </ScrollView>
+      {isWide && (
+        <Sidebar
+          navItems={NAV}
+          activeId={screen}
+          onNav={setScreen}
+          brandSubtitle="College Admin Portal"
+          bgColor={SA.sideCollege}
+          railColor={SA.railCollege}
+          collapsed={sidebarCollapsed}
+          onToggleCollapsed={() => setSidebarCollapsed((c) => !c)}
+          user={{
+            initials: 'IIT',
+            primary: user?.full_name || 'IIT Bombay',
+            secondary: 'Admin · Verified',
+            gradient: SAGradients.blue,
+          }}
+          onLogout={onLogout}
+        />
+      )}
+      <View style={{ flex: 1 }}>
+        {screen === 'overview' && (
+          <CollegeDashboardView
+            collegeName={user?.full_name ? `${user.full_name} Admin` : "St. Xavier's College Admin"}
+            notifCount={4}
+            onOpenNotifications={() => router.push('/notifications')}
+            onOpenProfile={() => setScreen('profile')}
+            onActionPress={(id) => {
+              if (id === 'announce')   setScreen('announcements');
+              else if (id === 'new-event') setScreen('events');
+              else if (id === 'analytics') setScreen('analytics');
+              else if (id === 'students')  setScreen('students');
+            }}
+          />
+        )}
+        {screen !== 'overview' && (
+          <ScrollView contentContainerStyle={styles.main}>
+            {screen === 'students' && <CollegeStudents />}
+            {screen === 'alumni' && <CollegeAlumni />}
+            {screen === 'events' && <CollegePrograms />}
+            {screen === 'announcements' && <EmptyState title="Announcements" description="Send broadcast announcements to students and alumni." />}
+            {screen === 'analytics' && <CollegeAnalyticsScreen />}
+            {screen === 'profile' && <CollegeSettings />}
+          </ScrollView>
+        )}
+      </View>
     </LinearGradient>
   );
 }
