@@ -1055,3 +1055,60 @@ agent_communication:
         ✅ Mobile intro slide 3 (briefcase — 10,000+ Internships)
         ✅ Mobile intro slide 4 (party popper — Create / Login CTAs)
         ✅ Web 1920×900 — root path lands on /welcome (no splash/intro)
+
+---
+## 2026-04-29 — New Student Dashboard (Web + Mobile, design-spec match)
+agent_communication:
+    - agent: "main"
+      message: |
+        SHIPPED: Brand-new Student Dashboard matching SA Web Design v2 spec.
+        Single shared component used on web AND native (iOS/Android).
+
+        NEW FILE:
+        - /app/frontend/src/views/web/StudentDashboardView.tsx
+            • One component, two layouts via useWindowDimensions:
+                - >= 980px : split (feed | right column)
+                - <  980px : stacked single-column
+            • Sections:
+                - Top bar: greeting, sub-greeting, search (web only), bell
+                  with notification dot
+                - Hero card: AI CAREER ASSISTANT eyebrow, "You're 42% toward
+                  your goal: Product Designer at a Top Tech Company" with
+                  purple highlight, animated progress bar, 2 CTAs (View Full
+                  Roadmap white / Browse Internships ghost), 3 floating glass
+                  stat tiles (Career Score 74 / Matches 48 / Mentors 5)
+                - 4 KPI cards (Internship Matches 48 ↑12 / Courses 3 / Mentor
+                  Connections 5 / Career Score 74 ↑8) with colored icon tints
+                - Tab strip (All Matches / Design / Engineering / Product)
+                  with purple active state and shadow glow
+                - Internship feed cards with company emoji + role + location
+                  pill + stipend pill + match % (green) + Apply CTA
+                - Right column: COURSE PROGRESS (3 progress bars w/ gradient
+                  fill), QUICK ACTIONS (2x2 grid: Update Resume, Find Mentor,
+                  Browse Events, My Skills), SUGGESTED MENTORS (3 rows w/
+                  gradient avatars + Connect CTA)
+            • All cards use glass `rgba(255,255,255,0.07)` + 1px border
+            • Hover states on every interactive surface (web)
+
+        WIRING:
+        - /app/frontend/src/views/web/platform/StudentPlatform.tsx
+            Dashboard tab now mounts StudentDashboardView (replaces the old
+            home view). Sidebar/nav unchanged.
+        - /app/frontend/app/(tabs)/index.tsx (rewritten)
+            Mobile Home tab mounts StudentDashboardView with full-screen
+            #1A0438 → #2D0760 gradient background.
+        - /app/frontend/app/dash-preview.tsx (new debug route)
+            QA preview of the dashboard at any viewport without sidebar.
+
+        VERIFIED VIA SCREENSHOTS:
+        ✅ Web 1920×900 — full sidebar layout with hero, KPIs, internship
+           feed, right column. Pixel-perfect match to design spec.
+        ✅ Mobile 390×844 (/dash-preview) — stacked vertical layout: top bar,
+           hero, KPI 2×2 grid, "Top Internship Matches" header + See all,
+           tab strip, 4 internship cards with match %, course progress bars
+           with gradient fill, quick actions 2×2, suggested mentors with
+           Connect CTAs.
+
+        DATA: All cards use rich mocked data per user's `A+ii` choice
+        (matches the design copy exactly). Backend wiring deferred.
+

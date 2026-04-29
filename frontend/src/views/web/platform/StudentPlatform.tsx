@@ -16,6 +16,7 @@ import { api } from '@/src/models/services/api';
 import {
   StudentInternships, StudentCourses, StudentResources, StudentNetwork,
 } from './screens/StudentScreens';
+import { StudentDashboardView } from '@/src/views/web/StudentDashboardView';
 
 const NAV: NavItem[] = [
   { id: 'home', emoji: '🏠', label: 'Dashboard' },
@@ -60,8 +61,14 @@ export default function StudentPlatform() {
         }}
         onLogout={onLogout}
       />
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.main}>
-        {screen === 'home' && <Home onNav={setScreen} />}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.main, screen === 'home' && { padding: 0 }]}>
+        {screen === 'home' && (
+          <StudentDashboardView
+            userName={user?.full_name?.split(' ')[0] || 'there'}
+            onOpenNotifications={() => router.push('/notifications')}
+            onSeeAllInternships={() => setScreen('internships')}
+          />
+        )}
         {screen === 'career' && <Career />}
         {screen === 'internships' && <StudentInternships />}
         {screen === 'courses' && <StudentCourses />}
