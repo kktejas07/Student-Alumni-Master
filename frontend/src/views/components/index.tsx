@@ -18,7 +18,9 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors as C, Gradients, Radius, Shadows, Spacing, Typography } from '@/src/theme';
 
-/** SA Shield Logo — vector-rendered with View+Text (no SVG dependency on web). */
+/** SA Shield Logo — proper SVG shield matching brand sheet.
+ * Uses react-native-svg (cross-platform, scales perfectly).
+ * Variants: gradient (default, on light bg), white (on purple), pale, ink, glass (on dark bg). */
 export function SALogo({
   size = 64,
   variant = 'gradient',
@@ -28,58 +30,67 @@ export function SALogo({
   variant?: 'gradient' | 'white' | 'pale' | 'ink' | 'glass';
   testID?: string;
 }) {
-  // Shield uses width:height ratio of ~0.85
-  const w = size;
-  const h = size * 1.18;
-  const fontSize = size * 0.35;
+  // Lazy-import keeps web bundle smaller when not used
+  const Svg = require('react-native-svg').Svg;
+  const Path = require('react-native-svg').Path;
+  const SvgText = require('react-native-svg').Text;
+  const Defs = require('react-native-svg').Defs;
+  const RadialGradient = require('react-native-svg').RadialGradient;
+  const Stop = require('react-native-svg').Stop;
+  const LinearGrad = require('react-native-svg').LinearGradient;
 
-  const variants: Record<string, { bg: any; fg: string; border?: string }> = {
-    gradient: { bg: Gradients.card, fg: C.white },
-    white: { bg: [C.white, C.white], fg: C.brandPurple, border: 'rgba(95,37,159,0.18)' },
-    pale: { bg: [C.palePurple, C.lightPurple], fg: C.deepPurple },
-    ink: { bg: [C.ink, C.ink], fg: C.white },
-    glass: { bg: ['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.10)'], fg: C.white, border: 'rgba(255,255,255,0.45)' },
+  const aspect = 1.18;
+  const w = size;
+  const h = size * aspect;
+
+  // Variant -> shield fill color mapping
+  const variantConfig: Record<
+    string,
+    { useGradient: boolean; bg?: string; gradFrom?: string; gradTo?: string; fg: string; stroke?: string }
+  > = {
+    gradient: { useGradient: true, gradFrom: C.midPurple, gradTo: C.brandPurple, fg: C.white },
+    white: { useGradient: false, bg: C.white, fg: C.brandPurple, stroke: 'rgba(95,37,159,0.2)' },
+    pale: { useGradient: false, bg: C.palePurple, fg: C.deepPurple },
+    ink: { useGradient: false, bg: C.ink, fg: C.white },
+    glass: { useGradient: false, bg: 'rgba(255,255,255,0.18)', fg: C.white, stroke: 'rgba(255,255,255,0.45)' },
   };
-  const v = variants[variant];
+  const cfg = variantConfig[variant];
+
+  // Shield path: viewBox 0 0 200 240
+  // Top: rounded corners; sides: straight; bottom: pointed via Q curve
+  const shieldPath = 'M100 6 L188 36 Q196 38 196 50 L196 124 Q196 192 100 234 Q4 192 4 124 L4 50 Q4 38 12 36 Z';
 
   return (
-    <View
-      testID={testID || 'sa-logo'}
-      style={{
-        width: w,
-        height: h,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <LinearGradient
-        colors={v.bg}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{
-          width: w,
-          height: h,
-          borderTopLeftRadius: w * 0.18,
-          borderTopRightRadius: w * 0.18,
-          borderBottomLeftRadius: w * 0.5,
-          borderBottomRightRadius: w * 0.5,
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderWidth: v.border ? 1.5 : 0,
-          borderColor: v.border,
-        }}
-      >
-        <Text
-          style={{
-            fontFamily: 'DMSans_700Bold',
-            fontSize,
-            color: v.fg,
-            letterSpacing: -fontSize * 0.04,
-          }}
+    <View testID={testID || 'sa-logo'} style={{ width: w, height: h }}>
+      <Svg viewBox="0 0 200 240" width={w} height={h}>
+        <Defs>
+          {cfg.useGradient && (
+            <LinearGrad id="shieldGrad" x1="0" y1="0" x2="1" y2="1">
+              <Stop offset="0%" stopColor={cfg.gradFrom} />
+              <Stop offset="100%" stopColor={cfg.gradTo} />
+            </LinearGrad>
+          )}
+        </Defs>
+        <Path
+          d={shieldPath}
+          fill={cfg.useGradient ? 'url(#shieldGrad)' : cfg.bg}
+          stroke={cfg.stroke}
+          strokeWidth={cfg.stroke ? 2 : 0}
+        />
+        {/* "SA" text — centered in shield */}
+        <SvgText
+          x="100"
+          y="155"
+          textAnchor="middle"
+          fontFamily="DMSans_700Bold"
+          fontSize="100"
+          fontWeight="700"
+          fill={cfg.fg}
+          letterSpacing="-4"
         >
           SA
-        </Text>
-      </LinearGradient>
+        </SvgText>
+      </Svg>
     </View>
   );
 }

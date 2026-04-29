@@ -27,11 +27,16 @@ const Palette = {
   borderOnPurple: 'rgba(255,255,255,0.18)',
   borderOnPurpleStrong: 'rgba(255,255,255,0.28)',
 
-  // Semantic
-  success: '#06D6A0',
-  danger: '#EF476F',
-  warning: '#FFB454',
-  info: '#118AB2',
+  // Semantic — accessibility-first. Use brand purple for primary actions,
+  // a calmer amber/orange for warnings, and a SUBDUED red only where strictly necessary.
+  // (Per Material Design 3 guidance: prefer brand colors for emphasis, reserve red for destructive actions.)
+  success: '#0F9D58',     // Material green — WCAG AA on white
+  danger: '#B3261E',      // Material error red — only for destructive / form errors
+  dangerSoft: '#FCE8E6',  // Soft pink fill for error containers (low intensity)
+  warning: '#E8A317',     // Amber warning — accessible on white
+  warningSoft: '#FEF3C7',
+  info: '#1A73E8',        // Material blue — links / info
+  infoSoft: '#E8F0FE',
 
   // Glass
   glassFill: 'rgba(255,255,255,0.10)',

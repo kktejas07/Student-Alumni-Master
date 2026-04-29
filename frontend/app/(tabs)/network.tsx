@@ -57,17 +57,32 @@ export default function NetworkTab() {
                       {m.bio}
                     </Text>
                     <View style={{ flexDirection: 'row', gap: 6, marginTop: 8, alignItems: 'center' }}>
-                      <Star size={14} color={C.accentYellow} fill={C.accentYellow} />
+                      <Star size={14} color={C.warning} fill={C.warning} />
                       <Text style={[Typography.bodySm, { color: C.textPrimary }]}>{m.rating}</Text>
                       <Text style={[Typography.bodySm, { color: C.textSecondary }]}>· {m.sessions} sessions</Text>
                     </View>
                   </View>
                 </View>
                 <Button
-                  title="Request mentorship"
+                  title="View profile & book"
                   variant="secondary"
-                  icon={<MessageCircle size={16} color={C.primary} />}
-                  onPress={() => {}}
+                  icon={<MessageCircle size={16} color={C.brandPurple} />}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/mentor/[id]',
+                      params: {
+                        id: m.id,
+                        name: m.full_name,
+                        title: m.title,
+                        bio: m.bio,
+                        avatar: m.avatar,
+                        rating: String(m.rating),
+                        sessions: String(m.sessions),
+                        linkedin: m.linkedin_url || '',
+                        tags: (m.tags || []).join(','),
+                      },
+                    })
+                  }
                   testID={`mentor-connect-${m.id}`}
                   style={{ marginTop: 12 }}
                 />
