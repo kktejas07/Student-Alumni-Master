@@ -155,11 +155,12 @@ CAREER_PATH_BONUS: Dict[str, Dict[str, float]] = {
 
 
 # Mapping from spec career path -> mentor category
+# Per spec — 4 distinct categories (no longer combines startup+business)
 CAREER_PATH_TO_MENTOR_CATEGORY: Dict[str, str] = {
     "job":              "it_software",
     "higher_education": "higher_education",
-    "startup":          "startup_business",
-    "business":         "startup_business",
+    "startup":          "startup",
+    "business":         "business",
 }
 
 

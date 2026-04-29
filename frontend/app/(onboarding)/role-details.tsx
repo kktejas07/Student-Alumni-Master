@@ -39,12 +39,12 @@ const EDU_LEVELS = [
   { id: 'other', label: 'Other' },
 ] as const;
 
-// Mentor categories per spec
+// Mentor categories per spec — 4 distinct (split startup vs business)
 const MENTOR_CATEGORIES = [
   { id: 'it_software', label: 'IT / Software' },
   { id: 'higher_education', label: 'Higher Education' },
-  { id: 'startup_business', label: 'Startup / Business' },
-  { id: 'education', label: 'Education / Faculty' },
+  { id: 'startup', label: 'Startup' },
+  { id: 'business', label: 'Business' },
 ] as const;
 
 // Alumni employment status per spec
@@ -97,6 +97,11 @@ export default function RoleDetailsScreen() {
     if (user?.role === 'alumni') {
       if (!onboarding.alumni_employment_status) {
         setError('Please select your employment status.');
+        return false;
+      }
+      // If alumni opted in to mentor, require category pick
+      if (onboarding.alumni_wants_to_mentor && !onboarding.alumni_mentor_category) {
+        setError('Please pick a mentorship category to mentor students.');
         return false;
       }
     }
@@ -172,6 +177,18 @@ export default function RoleDetailsScreen() {
                   ))}
                 </View>
               </View>
+
+              {/* Career Goal — per spec, free-text aspiration drives AI roadmap */}
+              <Input
+                label="What do you want to become? *"
+                placeholder="e.g., Software Developer, UX Designer, Data Scientist"
+                value={onboarding.student_career_goal || ''}
+                onChangeText={(v) => onboarding.setStudentInfo({ career_goal: v })}
+                testID="student-career-goal-input"
+              />
+              <Text style={[Typography.bodySm, { color: C.textSecondary, marginTop: -8 }]}>
+                Your career aspiration powers the AI roadmap and personalized course / mentor matches.
+              </Text>
             </>
           )}
 
@@ -279,6 +296,76 @@ export default function RoleDetailsScreen() {
                 onChangeText={(v) => onboarding.setAlumniInfo({ alumni_role: v })}
                 testID="alumni-role-input"
               />
+
+              {/* Per spec — "Including a LinkedIn profile link is highly recommended for alumni" */}
+              <Input
+                label="LinkedIn URL (highly recommended)"
+                placeholder="https://linkedin.com/in/yourname"
+                autoCapitalize="none"
+                keyboardType="url"
+                value={onboarding.alumni_linkedin_url || ''}
+                onChangeText={(v) => onboarding.setAlumniInfo({ alumni_linkedin_url: v })}
+                testID="alumni-linkedin-input"
+              />
+              <Text style={[Typography.bodySm, { color: C.textSecondary, marginTop: -8 }]}>
+                Boosts credibility when students view your profile or book sessions.
+              </Text>
+
+              {/* Per spec — alumni can opt-in to mentor others by picking a category */}
+              <NeoCard bg={C.palePurple} shadow="sm" style={{ marginTop: Spacing.md }}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[Typography.bodyBold, { color: C.deepPurple }]}>
+                      Want to mentor current students?
+                    </Text>
+                    <Text style={[Typography.bodySm, { color: C.textSecondary, marginTop: 2 }]}>
+                      Share your journey and earn through 1:1 sessions on the platform.
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() =>
+                      onboarding.setAlumniInfo({
+                        alumni_wants_to_mentor: !onboarding.alumni_wants_to_mentor,
+                      })
+                    }
+                    testID="alumni-mentor-toggle"
+                    style={[
+                      styles.toggle,
+                      onboarding.alumni_wants_to_mentor && styles.toggleOn,
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.toggleKnob,
+                        onboarding.alumni_wants_to_mentor && styles.toggleKnobOn,
+                      ]}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </NeoCard>
+
+              {/* If alumni opts in to mentor, ask category */}
+              {onboarding.alumni_wants_to_mentor && (
+                <View style={styles.section}>
+                  <Text style={styles.label}>Mentorship Category *</Text>
+                  <View style={styles.chipRow}>
+                    {MENTOR_CATEGORIES.map((m) => (
+                      <Chip
+                        key={m.id}
+                        label={m.label}
+                        active={onboarding.alumni_mentor_category === m.id}
+                        onPress={() =>
+                          onboarding.setAlumniInfo({ alumni_mentor_category: m.id })
+                        }
+                        testID={`alumni-mentor-cat-${m.id}`}
+                      />
+                    ))}
+                  </View>
+                  <Text style={[Typography.bodySm, { color: C.textSecondary, marginTop: 4 }]}>
+                    You'll be added to the mentor pool after admin review (24-48 hours).
+                  </Text>
+                </View>
+              )}
             </>
           )}
 
@@ -307,4 +394,21 @@ const styles = StyleSheet.create({
   section: { gap: 6 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   error: { ...Typography.bodySm, color: C.danger, marginTop: 4 },
+  toggle: {
+    width: 44,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: C.border,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  toggleOn: { backgroundColor: C.brandPurple },
+  toggleKnob: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: C.white,
+    alignSelf: 'flex-start',
+  },
+  toggleKnobOn: { alignSelf: 'flex-end' },
 });

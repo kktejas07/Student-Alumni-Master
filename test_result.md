@@ -544,6 +544,43 @@ agent_communication:
 
     - agent: "testing"
       message: |
+        SCHEMA REGRESSION TEST — 34/34 assertions PASS.
+        Test file: /app/backend_test_schema_regression.py
+        BASE: https://hiring-mvvm.preview.emergentagent.com/api
+        
+        Verified all 4 schema changes from the review request:
+        
+        ✅ MentorCategory split (it_software | higher_education | startup | business)
+           - GET /catalog/mentors?career_path=startup → 6 mentors returned, first has category="startup"
+           - GET /catalog/mentors?career_path=business → 6 mentors returned, first has category="business"
+           - Full /catalog/mentors (19 mentors): NO legacy "startup_business" or "education" values found
+        
+        ✅ AlumniInfo new fields (linkedin_url, wants_to_mentor, mentor_category)
+           - Registered fresh alumni → POST /users/onboarding with all 3 new fields → 200
+           - GET /auth/me confirms all 3 fields persisted correctly:
+             linkedin_url='https://linkedin.com/in/test', wants_to_mentor=True, mentor_category='startup'
+        
+        ✅ StudentInfo new field (career_goal)
+           - Registered fresh student → POST /users/onboarding with career_goal="Software Developer" → 200
+           - GET /auth/me confirms student_info.career_goal == "Software Developer"
+        
+        ✅ _path_to_mentor_cat mapping (startup→startup, business→business)
+           - PATCH preferences career_path=business → recommendations.mentor.category == "business" (m6) ✅
+           - PATCH preferences career_path=startup → recommendations.mentor.category == "startup" (m2) ✅
+           - PATCH preferences career_path=higher_education → mentor.category == "higher_education" ✅
+        
+        ✅ Login + Dashboard regression
+           - student@test.com / Student@123 login → 200
+           - GET /api/dashboard → 200, personalization+recommendations present, priority_modules len=8
+        
+        ✅ Admin pending queue
+           - admin@careerpath.app / Admin@12345 login → 200
+           - GET /admin/mentors/pending → 4 pending mentors (≥3 ✅)
+        
+        No failures. No critical issues. Schema changes are fully working.
+
+    - agent: "testing"
+      message: |
         FRONTEND E2E TEST RESULTS — 1 CRITICAL BUG FOUND, partially fixed, needs Metro restart.
         Tested on 390x844 mobile viewport.
         

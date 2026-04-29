@@ -87,8 +87,8 @@ CareerPath = Literal["job", "higher_education", "startup", "business"]
 # (+1=Class 11, +2=Class 12, btech=undergrad, masters=postgrad, phd=research)
 EducationLevel = Literal["plus_one", "plus_two", "btech", "bachelors", "masters", "phd", "other"]
 
-# MentorCategory: Per spec, mentors must select one specialization
-MentorCategory = Literal["it_software", "higher_education", "startup_business", "education"]
+# MentorCategory: Per spec — 4 distinct categories (split startup vs business)
+MentorCategory = Literal["it_software", "higher_education", "startup", "business"]
 
 # MentorStatus: Mentors are reviewed by admins before being visible to students
 MentorStatus = Literal["pending", "approved", "rejected"]
@@ -127,6 +127,11 @@ class AlumniInfo(BaseModel):
     current_employer: Optional[str] = None
     current_role: Optional[str] = None
     employment_status: Literal["employed", "self_employed", "studying", "between_jobs"] = "employed"
+    # Per spec — LinkedIn highly recommended for alumni
+    linkedin_url: Optional[str] = None
+    # Per spec — alumni may opt-in as mentors with a category
+    wants_to_mentor: bool = False
+    mentor_category: Optional[MentorCategory] = None
 
 
 class StudentInfo(BaseModel):
@@ -134,6 +139,9 @@ class StudentInfo(BaseModel):
     age: int  # Minimum age 10+ per spec
     education_level: EducationLevel
     career_interests: List[str] = Field(default_factory=list)
+    # Per spec — specific aspiration (e.g. "Software Developer", "Web Developer")
+    # Used directly in AI roadmap prompts to drive interest-based filtering
+    career_goal: Optional[str] = None
 
 
 # ----- Auth payloads -----
@@ -868,12 +876,13 @@ async def list_mentors(career_path: Optional[str] = None, limit: int = 20):
 
 
 def _path_to_mentor_cat(path: str) -> str:
-    """Map career_path → mentor category for matching logic."""
+    """Map career_path → mentor category for matching logic.
+    Per spec: 4 distinct categories — startup and business are now separate."""
     return {
         "job": "it_software",
         "higher_education": "higher_education",
-        "startup": "startup_business",
-        "business": "startup_business",
+        "startup": "startup",
+        "business": "business",
     }.get(path, "it_software")
 
 
@@ -1185,11 +1194,11 @@ SAMPLE_COURSES = [
 
 SAMPLE_MENTORS = [
     {"id": "m1", "full_name": "Priya Sharma", "title": "Senior SWE @ Google", "expertise": ["job"], "category": "it_software", "tags": ["Tech", "FAANG"], "avatar": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400", "bio": "10+ years in distributed systems.", "rating": 4.9, "sessions": 230, "linkedin_url": "https://linkedin.com/in/priya"},
-    {"id": "m2", "full_name": "Arjun Mehta", "title": "Founder @ FintechX", "expertise": ["startup", "business"], "category": "startup_business", "tags": ["Entrepreneur", "Fintech"], "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400", "bio": "Built and sold 2 startups.", "rating": 4.8, "sessions": 110, "linkedin_url": "https://linkedin.com/in/arjun"},
+    {"id": "m2", "full_name": "Arjun Mehta", "title": "Founder @ FintechX", "expertise": ["startup", "business"], "category": "startup", "tags": ["Entrepreneur", "Fintech"], "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400", "bio": "Built and sold 2 startups.", "rating": 4.8, "sessions": 110, "linkedin_url": "https://linkedin.com/in/arjun"},
     {"id": "m3", "full_name": "Dr. Anjali Rao", "title": "Professor @ IIT Bombay", "expertise": ["higher_education"], "category": "higher_education", "tags": ["Research", "PhD"], "avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400", "bio": "CV researcher; PhD application mentor.", "rating": 5.0, "sessions": 88, "linkedin_url": "https://linkedin.com/in/anjali"},
-    {"id": "m4", "full_name": "Rahul Iyer", "title": "VP Strategy @ Tata", "expertise": ["business", "job"], "category": "education", "tags": ["Corporate", "Strategy"], "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400", "bio": "INSEAD MBA; corporate career mentor.", "rating": 4.7, "sessions": 156, "linkedin_url": "https://linkedin.com/in/rahul"},
+    {"id": "m4", "full_name": "Rahul Iyer", "title": "VP Strategy @ Tata", "expertise": ["business", "job"], "category": "business", "tags": ["Corporate", "Strategy"], "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400", "bio": "INSEAD MBA; corporate career mentor.", "rating": 4.7, "sessions": 156, "linkedin_url": "https://linkedin.com/in/rahul"},
     {"id": "m5", "full_name": "Sneha Kapoor", "title": "Product Lead @ Stripe", "expertise": ["job", "startup"], "category": "it_software", "tags": ["Product", "Tech"], "avatar": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400", "bio": "Engineer-to-PM transitions.", "rating": 4.9, "sessions": 175, "linkedin_url": "https://linkedin.com/in/sneha"},
-    {"id": "m6", "full_name": "Vikram Singh", "title": "Investor @ Sequoia", "expertise": ["startup", "business"], "category": "startup_business", "tags": ["VC", "Funding"], "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400", "bio": "Helping founders raise their seed.", "rating": 4.8, "sessions": 92, "linkedin_url": "https://linkedin.com/in/vikram"},
+    {"id": "m6", "full_name": "Vikram Singh", "title": "Investor @ Sequoia", "expertise": ["startup", "business"], "category": "business", "tags": ["VC", "Funding"], "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400", "bio": "Helping founders raise their seed.", "rating": 4.8, "sessions": 92, "linkedin_url": "https://linkedin.com/in/vikram"},
 ]
 
 SAMPLE_INTERNSHIPS = [

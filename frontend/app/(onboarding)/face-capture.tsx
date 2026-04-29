@@ -80,12 +80,13 @@ export default function FaceCapture() {
         face_image_base64: onboarding.face_image_base64,
       };
 
-      // Student-specific data (age, education_level, career_interests)
-      if (onboarding.student_age || onboarding.student_education_level) {
+      // Student-specific data (age, education_level, career_interests, career_goal)
+      if (onboarding.student_age || onboarding.student_education_level || onboarding.student_career_goal) {
         payload.student_info = {
           age: onboarding.student_age || 18,
           education_level: onboarding.student_education_level || 'btech',
           career_interests: onboarding.interests,
+          career_goal: onboarding.student_career_goal || undefined,
         };
       }
 
@@ -101,7 +102,7 @@ export default function FaceCapture() {
         };
       }
 
-      // Alumni-specific data (employment_status, employer, role)
+      // Alumni-specific data (employment_status, employer, role, linkedin, opt-in mentor)
       if (onboarding.alumni_employment_status) {
         payload.alumni_info = {
           graduation_year:
@@ -110,6 +111,11 @@ export default function FaceCapture() {
           current_employer: onboarding.alumni_employer || undefined,
           current_role: onboarding.alumni_role || undefined,
           employment_status: onboarding.alumni_employment_status,
+          // Per spec — LinkedIn highly recommended for alumni
+          linkedin_url: onboarding.alumni_linkedin_url || undefined,
+          // Per spec — alumni can opt-in to mentor with a category
+          wants_to_mentor: !!onboarding.alumni_wants_to_mentor,
+          mentor_category: onboarding.alumni_mentor_category || undefined,
         };
       }
 

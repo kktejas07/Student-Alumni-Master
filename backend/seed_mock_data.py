@@ -706,7 +706,8 @@ async def seed_alumni():
 
 async def seed_mentors():
     print("→ Seeding 15 mentors (12 approved + 3 pending)…")
-    categories = ["it_software", "higher_education", "startup_business", "education"]
+    # Per spec — 4 distinct categories: IT/Software, Higher Education, Startup, Business
+    categories = ["it_software", "higher_education", "startup", "business"]
     for idx in range(15):
         cat = categories[idx % 4]
         first = MENTOR_FIRST[idx % len(MENTOR_FIRST)]
@@ -716,8 +717,8 @@ async def seed_mentors():
         org_titles = {
             "it_software":      [("Google", "Senior SWE"), ("Microsoft", "Principal Engineer"), ("Amazon", "SDE-3")],
             "higher_education": [("MIT", "Professor"), ("Stanford", "Associate Dean"), ("IIT Bombay", "Asst. Prof")],
-            "startup_business": [("Y Combinator", "Partner"), ("Sequoia", "VC"), ("Self", "Founder")],
-            "education":        [("Wharton MBA", "Career Coach"), ("Coursera", "Instructor"), ("BYJU'S", "Lead Educator")],
+            "startup":          [("Y Combinator", "Partner"), ("Razorpay", "Founder"), ("Self", "Co-founder")],
+            "business":         [("McKinsey", "Senior Consultant"), ("Goldman Sachs", "VP"), ("TCS", "Director")],
         }[cat]
         org, title = org_titles[idx % 3]
         await upsert_user(
