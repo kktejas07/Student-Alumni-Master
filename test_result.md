@@ -522,11 +522,53 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Apply AnimatedCard to other tabs (courses/deals/network/events/rooms)"
-    - "PhonePe-style dashboard rebuild"
+    - "Mentor Portal — confirm/decline booking + post mentor sessions"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
+
+backend:
+  - task: "Mentor Portal — confirm/decline booking + post mentor sessions"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: |
+            Tested via /app/backend_test_mentor_portal.py against
+            https://hiring-mvvm.preview.emergentagent.com/api — 13/15 PASS.
+
+            ✅ POST /api/bookings/{id}/confirm (mentor owner) → 200, status='confirmed'.
+            ✅ POST /api/bookings/{id}/confirm by student → 403 ("Only mentors can confirm bookings").
+            ✅ POST /api/bookings/{id}/confirm by another mentor (not owner) → 403 ("You can only modify your own bookings").
+            ✅ Confirm creates db.notifications row for student with type='booking_confirmed' and matching booking_id.
+            ✅ POST /api/bookings/{id}/decline (mentor owner) → 200, status='cancelled'.
+            ✅ Decline by student → 403.
+            ✅ Decline creates notification with type='booking_cancelled'.
+            ✅ POST /api/bookings/bogus/decline → 404 "Booking not found".
+            ✅ POST /api/mentor/sessions by student → 403 ("Only mentors can post sessions").
+            ✅ GET /api/mentor/sessions/me by student → 403 ("Only mentors can view this").
+            ✅ Regression: GET /api/bookings/me (mentor) → 200 (existing seeded book-2 with status='pending').
+            ✅ Regression: GET /api/notifications (student) → 200 with new entries.
+            ✅ Regression: GET /api/mentors/{mentor_id}/reviews → 200 with {items, stats}.
+
+            ❌ CRITICAL: POST /api/mentor/sessions (mentor01) → 500 Internal Server Error.
+               Root cause from /var/log/supervisor/backend.err.log:
+                   File "/app/backend/server.py", line 1102, in create_mentor_session
+                     "id": uuid.uuid4().hex,
+                           ^^^^
+                   NameError: name 'uuid' is not defined
+               The handler uses `uuid.uuid4()` but `uuid` is NOT imported anywhere in server.py
+               (verified: `grep -n "^import\|^from" server.py` shows no uuid import).
+               Fix: add `import uuid` at the top of /app/backend/server.py (one-line change).
+
+            ❌ CONSEQUENCE: GET /api/mentor/sessions/me returns sessions=0 because the create
+               endpoint never persisted any session. The endpoint shape is correct (200, list);
+               this will pass automatically once the import is added and a session is created.
 
 agent_communication:
     - agent: "main"
@@ -686,7 +728,40 @@ agent_communication:
             mentor — which by insertion-order coincidence IS m1 Priya Sharma (it_software).
           - suggested_mentors fills via the {"$ne": cat} fallback path.
         
-        FIX (one-shot): drop & reseed db.sample_mentors so the new 'category' field is present.
-          await db.sample_mentors.delete_many({})  # then restart backend
-        
-        All 5 personalization features are functioning correctly. No retesting needed.
+    - agent: "testing"
+      message: |
+        MENTOR PORTAL ENDPOINTS — 13/15 PASS, 1 critical bug found.
+        Test file: /app/backend_test_mentor_portal.py
+        BASE: https://hiring-mvvm.preview.emergentagent.com/api
+
+        ✅ PASSING (13):
+          1. POST /bookings/{id}/confirm (mentor owner) → 200, status='confirmed'.
+          2. POST /bookings/{id}/confirm by student → 403.
+          3. POST /bookings/{id}/confirm by other mentor (not owner) → 403.
+          4. Notification of type='booking_confirmed' delivered to student.
+          5. POST /bookings/{id}/decline (mentor owner) → 200, status='cancelled'.
+          6. POST /bookings/{id}/decline by student → 403.
+          7. Notification of type='booking_cancelled' delivered to student.
+          8. POST /bookings/bogus/decline → 404 "Booking not found".
+          9. POST /mentor/sessions by student → 403.
+         10. GET /mentor/sessions/me by student → 403.
+         11. Regression GET /bookings/me (mentor) → 200 (book-2 with 'pending' status, ideal for confirm/decline tests).
+         12. Regression GET /notifications (student) → 200.
+         13. Regression GET /mentors/{id}/reviews → 200 with {items, stats}.
+
+        ❌ CRITICAL — POST /api/mentor/sessions → 500 Internal Server Error
+           Root cause from /var/log/supervisor/backend.err.log:
+              File "/app/backend/server.py", line 1102, in create_mentor_session
+                "id": uuid.uuid4().hex,
+              NameError: name 'uuid' is not defined
+           `uuid` module is referenced but NEVER imported in server.py.
+           One-line fix: add `import uuid` near the other stdlib imports (line ~30).
+
+        ❌ Cascading failure — GET /mentor/sessions/me returned 200 with sessions=[] only because
+           the create endpoint never persisted any session (due to the 500 above).
+           Endpoint shape itself is correct; will pass once import is added.
+
+        ACTION FOR MAIN AGENT:
+           Add `import uuid` to /app/backend/server.py — that's the entire fix.
+           No other code changes needed; permissions, query logic, notification creation,
+           and 403/404 handling all verified correct.

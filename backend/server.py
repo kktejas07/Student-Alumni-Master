@@ -1016,6 +1016,119 @@ async def my_bookings(user: dict = Depends(get_current_user)):
 
 
 # ----------------------------------------------------------------------------
+# Mentor portal: confirm/decline booking + post session/availability
+# ----------------------------------------------------------------------------
+async def _update_booking_status(booking_id: str, mentor_id: str, new_status: str) -> dict:
+    """Helper: update a booking's status if the caller owns it as mentor."""
+    try:
+        oid = ObjectId(booking_id)
+    except Exception:
+        oid = None
+    query = {"$or": [{"id": booking_id}]}
+    if oid:
+        query["$or"].append({"_id": oid})
+    booking = await db.bookings.find_one(query)
+    if not booking:
+        raise HTTPException(404, "Booking not found")
+    if str(booking.get("mentor_id")) != str(mentor_id):
+        raise HTTPException(403, "You can only modify your own bookings")
+    update_filter = {"_id": booking["_id"]} if booking.get("_id") else {"id": booking_id}
+    await db.bookings.update_one(update_filter, {"$set": {
+        "status": new_status,
+        "status_updated_at": datetime.now(timezone.utc),
+    }})
+    booking["status"] = new_status
+    booking.pop("_id", None)
+    return booking
+
+
+@api_router.post("/bookings/{booking_id}/confirm")
+async def confirm_booking(booking_id: str, user: dict = Depends(get_current_user)):
+    """Mentor confirms a pending booking request."""
+    if user["role"] != "mentor":
+        raise HTTPException(403, "Only mentors can confirm bookings")
+    b = await _update_booking_status(booking_id, str(user["_id"]), "confirmed")
+    # Best-effort notification to student
+    try:
+        await db.notifications.insert_one({
+            "user_id": b.get("student_id"),
+            "title": "Session confirmed",
+            "message": f"{user.get('full_name')} confirmed your session on {b.get('topic') or 'mentorship'}.",
+            "type": "booking_confirmed",
+            "booking_id": booking_id,
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception:
+        pass
+    return {"ok": True, "booking": b}
+
+
+@api_router.post("/bookings/{booking_id}/decline")
+async def decline_booking(booking_id: str, user: dict = Depends(get_current_user)):
+    """Mentor declines/cancels a booking request."""
+    if user["role"] != "mentor":
+        raise HTTPException(403, "Only mentors can decline bookings")
+    b = await _update_booking_status(booking_id, str(user["_id"]), "cancelled")
+    try:
+        await db.notifications.insert_one({
+            "user_id": b.get("student_id"),
+            "title": "Session declined",
+            "message": f"{user.get('full_name')} couldn't make this session — please book another slot.",
+            "type": "booking_cancelled",
+            "booking_id": booking_id,
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception:
+        pass
+    return {"ok": True, "booking": b}
+
+
+class MentorSessionIn(BaseModel):
+    title: str
+    topic: str
+    scheduled_at: str        # free-text or ISO; surfaced on UI as-is
+    duration_minutes: int = 30
+    max_attendees: int = 1
+
+
+@api_router.post("/mentor/sessions")
+async def create_mentor_session(payload: MentorSessionIn, user: dict = Depends(get_current_user)):
+    """Mentor publishes an open session/availability slot that students can browse + book."""
+    if user["role"] != "mentor":
+        raise HTTPException(403, "Only mentors can post sessions")
+    doc = {
+        "id": uuid.uuid4().hex,
+        "mentor_id": str(user["_id"]),
+        "mentor_name": user.get("full_name"),
+        "title": payload.title.strip(),
+        "topic": payload.topic.strip(),
+        "scheduled_at": payload.scheduled_at.strip(),
+        "duration_minutes": int(payload.duration_minutes or 30),
+        "max_attendees": int(payload.max_attendees or 1),
+        "attendees": [],
+        "status": "open",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.mentor_sessions.insert_one(doc)
+    doc.pop("_id", None)
+    return {"ok": True, "session": doc}
+
+
+@api_router.get("/mentor/sessions/me")
+async def my_mentor_sessions(user: dict = Depends(get_current_user)):
+    """List sessions the current mentor has posted."""
+    if user["role"] != "mentor":
+        raise HTTPException(403, "Only mentors can view this")
+    items = await db.mentor_sessions.find(
+        {"mentor_id": str(user["_id"])},
+        {"_id": 0},
+    ).sort("created_at", -1).to_list(100)
+    return {"sessions": items}
+
+
+# ----------------------------------------------------------------------------
 # Event Registration with QR Code
 # ----------------------------------------------------------------------------
 @api_router.post("/events/{event_id}/register")

@@ -144,9 +144,18 @@ const FILTER_CHIPS = [
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
+import MentorHome from '@/src/views/screens/MentorHome';
+
 export default function HomeTab() {
   const router = useRouter();
   const { user } = useAuth();
+
+  // Mentors get a dedicated dashboard (bookings, analytics, post session) instead
+  // of the 8-module student dashboard. Same for college/admin in the future.
+  if (user?.role === 'mentor') {
+    return <MentorHome />;
+  }
+
   const { data, loading, refetch } = useDashboard();
   const { suggestion, generate, loadCached, loading: aiLoading } = useCareerSuggestions();
   const [activeFilter, setActiveFilter] = useState<string>('all');

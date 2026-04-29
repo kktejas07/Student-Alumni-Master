@@ -281,7 +281,7 @@ export default function ProfileTab() {
 }
 
 /** Row component — clickable list item with icon, label, chevron. */
-function Row({ icon: Icon, label, onPress, testID, tint }: any) {
+function Row({ icon: Icon, label, onPress, testID, tint, badge }: any) {
   return (
     <TouchableOpacity onPress={onPress} testID={testID} activeOpacity={0.7}>
       <Card style={styles.row}>
@@ -289,10 +289,48 @@ function Row({ icon: Icon, label, onPress, testID, tint }: any) {
           <Icon size={18} color={tint ? C.white : C.deepPurple} />
         </View>
         <Text style={[Typography.bodyBold, { color: C.textPrimary, flex: 1 }]}>{label}</Text>
+        {badge && (
+          <View style={styles.rowBadge}>
+            <Text style={styles.rowBadgeText}>{badge}</Text>
+          </View>
+        )}
         <ChevronRight size={20} color={C.textMuted} />
       </Card>
     </TouchableOpacity>
   );
+}
+
+/** Format a booking ISO date as "Sat, Jan 25 · 3:00 PM" or "Past" if undefined. */
+function formatBookingDate(iso?: string): string {
+  if (!iso) return 'Date TBD';
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return 'Date TBD';
+    const opts: Intl.DateTimeFormatOptions = {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    };
+    return d.toLocaleString(undefined, opts);
+  } catch {
+    return iso;
+  }
+}
+
+/** Per-status pill colors for booking cards. */
+function statusStyle(status?: string) {
+  switch ((status || '').toLowerCase()) {
+    case 'completed':
+      return { backgroundColor: 'rgba(15,157,88,0.15)', borderColor: 'rgba(15,157,88,0.4)' };
+    case 'confirmed':
+      return { backgroundColor: 'rgba(95,37,159,0.15)', borderColor: 'rgba(95,37,159,0.4)' };
+    case 'cancelled':
+      return { backgroundColor: 'rgba(179,38,30,0.12)', borderColor: 'rgba(179,38,30,0.35)' };
+    default: // pending
+      return { backgroundColor: 'rgba(232,163,23,0.15)', borderColor: 'rgba(232,163,23,0.4)' };
+  }
 }
 
 const styles = StyleSheet.create({
@@ -326,5 +364,71 @@ const styles = StyleSheet.create({
   rowIcon: {
     width: 38, height: 38, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center',
+  },
+  rowBadge: {
+    backgroundColor: C.danger,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    minWidth: 22,
+    alignItems: 'center',
+  },
+  rowBadgeText: { color: C.white, fontFamily: 'DMSans_700Bold', fontSize: 11 },
+
+  // Notification bell button + badge
+  bellBtn: {
+    width: 40, height: 40, borderRadius: 999,
+    backgroundColor: C.palePurple,
+    alignItems: 'center', justifyContent: 'center',
+    position: 'relative',
+  },
+  bellBadge: {
+    position: 'absolute', top: -4, right: -4,
+    minWidth: 20, height: 20, borderRadius: 999,
+    backgroundColor: C.danger,
+    alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2, borderColor: C.background,
+  },
+  bellBadgeText: { color: C.white, fontFamily: 'DMSans_700Bold', fontSize: 10 },
+
+  // Recent bookings list
+  sectionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 24,
+    marginBottom: 10,
+  },
+  upcomingPill: {
+    backgroundColor: C.palePurple,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  upcomingPillText: {
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 11,
+    color: C.deepPurple,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  bookingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 14,
+  },
+  statusPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  statusText: {
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 9,
+    color: C.textPrimary,
+    letterSpacing: 0.6,
   },
 });

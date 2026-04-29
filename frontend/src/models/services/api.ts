@@ -225,6 +225,20 @@ export const api = {
   notifications: () => request<any>('/notifications'),
   markNotificationsRead: (ids?: string[]) =>
     request<any>('/notifications/mark-read', { method: 'POST', body: { ids } }),
+
+  // Mentor portal: booking actions + session posting
+  confirmBooking: (id: string) =>
+    request<any>(`/bookings/${id}/confirm`, { method: 'POST', body: {} }),
+  declineBooking: (id: string) =>
+    request<any>(`/bookings/${id}/decline`, { method: 'POST', body: {} }),
+  createMentorSession: (payload: {
+    title: string;
+    topic: string;
+    scheduled_at: string;
+    duration_minutes: number;
+    max_attendees: number;
+  }) => request<any>('/mentor/sessions', { method: 'POST', body: payload }),
+  myMentorSessions: () => request<any>('/mentor/sessions/me'),
 };
 
 export { BASE_URL };
