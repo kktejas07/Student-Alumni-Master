@@ -1112,3 +1112,56 @@ agent_communication:
         DATA: All cards use rich mocked data per user's `A+ii` choice
         (matches the design copy exactly). Backend wiring deferred.
 
+
+---
+## 2026-04-29 — Bento + Glowing Cards across Courses / Internships / Network
+agent_communication:
+    - agent: "main"
+      message: |
+        SHIPPED: New visual language — bento grid with glowing-card hover
+        effect and circular icon-bubble category tiles. Applied across
+        Courses, Internships, and Network browsing screens (web + mobile).
+
+        NEW SHARED COMPONENTS:
+        - /app/frontend/src/views/web/BentoComponents.tsx
+            • GlowCard       — glass card with animated gradient ring on hover
+            • IconBubble     — circular dark-glass bubble + icon + label,
+                               glowing halo on hover, lift on press
+            • CategorySection — title + auto-grid of IconBubbles inside GlowCard
+            • BentoTile      — varying-span grid tile with optional gradient bg
+        - /app/frontend/src/views/web/ExploreScreen.tsx
+            • Generic page layout: header + search + hero bento row +
+              N category sections with auto-responsive columns (6 wide / 4 mobile)
+        - /app/frontend/src/views/web/exploreData.tsx
+            • COURSES_HERO/SECTIONS    (Tech, Design, Business)
+            • INTERNSHIPS_HERO/SECTIONS (By Role, By Industry, Top Companies)
+            • NETWORK_HERO/SECTIONS    (Connect, Discover, Build Your Profile)
+            • Lucide icons used throughout (Code, Brush, Rocket, Users, etc.)
+
+        WIRED TO:
+        - Mobile tabs (iOS/Android):
+            /(tabs)/courses.tsx     → Courses ExploreScreen
+            /(tabs)/network.tsx     → Network ExploreScreen
+            /(tabs)/deals.tsx       → Internships ExploreScreen (repurposed)
+        - Web sub-screens:
+            StudentInternships, StudentCourses, StudentNetwork all now use
+            ExploreScreen with the matching dataset (mounted via the existing
+            sidebar in StudentPlatform.tsx)
+        - Preview routes (no auth):
+            /explore-courses, /explore-internships, /explore-network
+
+        VERIFIED VIA SCREENSHOTS:
+        ✅ Web 1920×900 — all 3 explore pages render with hero bento row
+           (purple/pink/green/yellow gradients, "Start free" / "Browse" /
+           "See matches" / "Find mentor" / "Join" CTAs) + category sections
+           with circular icon bubbles + lucide line icons
+        ✅ Mobile 390×844 — same content, hero stacks vertically, icon-bubble
+           grid collapses to 3 columns, all 4 sections render
+        ✅ Hover states tested — IconBubble glow halo + lift effect on hover
+
+        DEFERRED FOR NEXT ROUND:
+        - Mentor + College platform dashboards refresh (StudentDashboardView
+          template can be cloned with role-specific KPIs and right-column
+          content)
+        - Courses/Internships detail screens (when a bubble is tapped)
+
