@@ -1,17 +1,26 @@
 /**
  * Splash / Welcome - Student Alumni branded
+ *
+ * Platform routing:
+ *   - Web  -> renders new marketing LandingPage (purple dark theme, 8 sections).
+ *   - iOS / Android -> keeps existing native welcome experience untouched.
  */
 import { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Animated, ScrollView, Dimensions, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowRight, Sparkles, Users, Globe, Calendar } from 'lucide-react-native';
 import { Button, GlassCard, GradientBackground, SALogo } from '@/src/views/components';
 import { Colors as C, Gradients, Spacing, Typography } from '@/src/theme';
+import LandingPage from '@/src/views/web/LandingPage';
 
 const { width } = Dimensions.get('window');
 
 export default function Welcome() {
+  // Web users see the marketing landing page instead of the mobile splash.
+  if (Platform.OS === 'web') {
+    return <LandingPage />;
+  }
   const router = useRouter();
   const fade = useRef(new Animated.Value(0)).current;
   const slide = useRef(new Animated.Value(30)).current;
