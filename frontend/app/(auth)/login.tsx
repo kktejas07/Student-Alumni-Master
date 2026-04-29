@@ -72,6 +72,7 @@ export default function Login() {
   const [oauthOpen, setOauthOpen] = useState<null | 'google' | 'linkedin'>(null);
   const [oauthEmail, setOauthEmail] = useState('');
   const [oauthName, setOauthName] = useState('');
+  const [emailMode, setEmailMode] = useState(false);
 
   const onSubmit = async () => {
     setError(null);
@@ -125,119 +126,191 @@ export default function Login() {
         end={{ x: 1, y: 1 }}
         style={styles.webShell}
       >
-        <View pointerEvents="none" style={styles.webBlob} />
+        {/* Decorative orbs (per spec) */}
+        <View pointerEvents="none" style={[styles.webOrb, { width: 280, height: 280, top: '-10%', right: '-5%', backgroundColor: 'rgba(139,92,246,0.20)' }]} />
+        <View pointerEvents="none" style={[styles.webOrb, { width: 200, height: 200, bottom: '10%', left: '-5%', backgroundColor: 'rgba(109,40,217,0.15)' }]} />
 
+        {/* LEFT brand pane */}
         <View style={styles.webBrandPane}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 32 }}>
-            <SALogo size={32} variant="white" />
-            <Text style={styles.webBrandWord}>Student Alumni</Text>
+          <View style={{ alignItems: 'center', marginBottom: 24 }}>
+            <SALogo size={76} variant="white" />
           </View>
-          <Text style={styles.webBrandHero}>
-            Your career,{'\n'}
-            <Text style={{ color: '#D4AAFF' }}>reimagined.</Text>
+          <Text style={styles.webBrandWord2}>Student Alumni</Text>
+          <Text style={styles.webBrandSubtitle}>
+            AI career guidance, internships, mentorship, and alumni networking.
           </Text>
-          <Text style={styles.webBrandSub}>
-            Discover events, mentors, and opportunities — all in one platform built for students and alumni.
-          </Text>
-          <View style={styles.webStatsRow}>
-            <View style={styles.webStatCol}>
-              <Text style={styles.webStatNum}>50K+</Text>
-              <Text style={styles.webStatLbl}>Students</Text>
+          {[
+            { emoji: '🤖', t: 'AI Career Guidance', s: 'Personalised roadmap based on your goals' },
+            { emoji: '🌍', t: '10,000+ Internships', s: 'Global opportunities matched to you' },
+            { emoji: '🤝', t: '500+ Mentors', s: 'Alumni who want to help you grow' },
+          ].map((f) => (
+            <View key={f.t} style={styles.featRow}>
+              <View style={styles.featIcon}>
+                <Text style={{ fontSize: 17 }}>{f.emoji}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.featTitle}>{f.t}</Text>
+                <Text style={styles.featSub}>{f.s}</Text>
+              </View>
             </View>
-            <View style={styles.webStatCol}>
-              <Text style={styles.webStatNum}>500+</Text>
-              <Text style={styles.webStatLbl}>Mentors</Text>
-            </View>
-            <View style={styles.webStatCol}>
-              <Text style={styles.webStatNum}>200+</Text>
-              <Text style={styles.webStatLbl}>Colleges</Text>
-            </View>
-          </View>
+          ))}
         </View>
 
+        {/* RIGHT auth pane */}
         <View style={styles.webCardPane}>
           <ScrollView
             contentContainerStyle={styles.webCardScroll}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <View style={styles.webCard}>
-              <Pressable
-                onPress={() => router.back()}
-                testID="login-back-btn"
-                style={({ hovered }: any) => [styles.webBack, hovered && { opacity: 1 }]}
-              >
-                <ArrowLeft size={16} color="rgba(255,255,255,0.75)" />
-                <Text style={styles.webBackText}>Back</Text>
-              </Pressable>
-              <Text style={styles.webH1}>Welcome back 👋</Text>
-              <Text style={styles.webSub}>Log in to continue your career journey.</Text>
+            <View style={{ width: '100%', maxWidth: 400 }}>
+              {!emailMode ? (
+                <>
+                  {/* Header */}
+                  <View style={{ marginBottom: 28 }}>
+                    <Text style={styles.webH2}>Get started</Text>
+                    <Text style={styles.webH2Sub}>Choose how you'd like to sign in</Text>
+                  </View>
 
-              <View style={{ gap: 10, marginBottom: 18 }}>
-                <Pressable
-                  onPress={() => startOAuth('google')}
-                  testID="oauth-google-btn"
-                  style={({ hovered, pressed }: any) => [
-                    styles.webOauthBtn,
-                    hovered && styles.webOauthBtnHover,
-                    pressed && { transform: [{ scale: 0.98 }] },
-                  ]}
-                >
-                  <GoogleG size={18} />
-                  <Text style={styles.webOauthLabel}>Continue with Google</Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => startOAuth('linkedin')}
-                  testID="oauth-linkedin-btn"
-                  style={({ hovered, pressed }: any) => [
-                    styles.webOauthBtn,
-                    hovered && styles.webOauthBtnHover,
-                    pressed && { transform: [{ scale: 0.98 }] },
-                  ]}
-                >
-                  <LinkedInIn size={18} />
-                  <Text style={styles.webOauthLabel}>Continue with LinkedIn</Text>
-                </Pressable>
-              </View>
+                  {/* LinkedIn */}
+                  <Pressable
+                    onPress={() => startOAuth('linkedin')}
+                    testID="oauth-linkedin-btn"
+                    style={({ hovered, pressed }: any) => [
+                      styles.btnLi,
+                      hovered && { backgroundColor: '#085096', transform: [{ translateY: -1 }] },
+                      pressed && { transform: [{ scale: 0.98 }] },
+                    ]}
+                  >
+                    <Svg viewBox="0 0 24 24" width={20} height={20}>
+                      <Path d="M0 0h24v24H0z" fill="transparent" />
+                      <Path d="M7.5 9.5H5V19H7.5V9.5ZM6.25 8.5C7.08 8.5 7.75 7.83 7.75 7C7.75 6.17 7.08 5.5 6.25 5.5C5.42 5.5 4.75 6.17 4.75 7C4.75 7.83 5.42 8.5 6.25 8.5ZM19 19H16.5V14.25C16.5 13.18 16.48 11.8 15.01 11.8C13.52 11.8 13.3 12.97 13.3 14.17V19H10.8V9.5H13.2V10.63H13.24C13.58 9.98 14.42 9.28 15.67 9.28C18.2 9.28 19 10.92 19 13.07V19Z" fill="white" />
+                    </Svg>
+                    <Text style={styles.btnLiText}>Continue with LinkedIn</Text>
+                  </Pressable>
 
-              <View style={styles.webDivider}>
-                <View style={styles.webDividerLine} />
-                <Text style={styles.webDividerText}>or with email</Text>
-                <View style={styles.webDividerLine} />
-              </View>
+                  {/* Google */}
+                  <Pressable
+                    onPress={() => startOAuth('google')}
+                    testID="oauth-google-btn"
+                    style={({ hovered, pressed }: any) => [
+                      styles.btnGg,
+                      hovered && { backgroundColor: '#F2F2F2', transform: [{ translateY: -1 }] },
+                      pressed && { transform: [{ scale: 0.98 }] },
+                    ]}
+                  >
+                    <GoogleG size={20} />
+                    <Text style={styles.btnGgText}>Continue with Google</Text>
+                  </Pressable>
 
-              <View style={{ gap: 14, marginTop: 18 }}>
-                <WebInput label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" placeholder="you@example.com" testID="login-email-input" />
-                <WebInput label="Password" value={password} onChangeText={setPassword} secureTextEntry placeholder="Your password" testID="login-password-input" />
-                {error && <Text style={styles.webError}>{error}</Text>}
-                <Pressable
-                  onPress={onSubmit}
-                  testID="login-submit-btn"
-                  disabled={loading}
-                  style={({ hovered, pressed }: any) => [
-                    styles.webSubmit,
-                    hovered && styles.webSubmitHover,
-                    pressed && { transform: [{ scale: 0.99 }] },
-                    loading && { opacity: 0.7 },
-                  ]}
-                >
-                  <Text style={styles.webSubmitText}>{loading ? 'Logging in…' : 'Log in'}</Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => router.push('/(auth)/register')}
-                  testID="login-go-register-btn"
-                  style={({ hovered }: any) => [styles.webSwitch, hovered && { opacity: 0.85 }]}
-                >
-                  <Text style={styles.webSwitchText}>
-                    Don't have an account?{' '}
-                    <Text style={styles.webSwitchLink}>Sign up</Text>
+                  {/* Divider */}
+                  <View style={[styles.webDivider, { marginVertical: 18 }]}>
+                    <View style={styles.webDividerLine} />
+                    <Text style={styles.webDividerText}>or</Text>
+                    <View style={styles.webDividerLine} />
+                  </View>
+
+                  {/* Email */}
+                  <Pressable
+                    onPress={() => setEmailMode(true)}
+                    testID="continue-email-btn"
+                    style={({ hovered, pressed }: any) => [
+                      styles.btnGhost,
+                      hovered && styles.btnGhostHover,
+                      pressed && { transform: [{ scale: 0.98 }] },
+                    ]}
+                  >
+                    <Text style={{ fontSize: 18 }}>✉️</Text>
+                    <Text style={styles.btnGhostText}>Continue with Email</Text>
+                  </Pressable>
+
+                  {/* OTP — placeholder, falls back to email mode for now */}
+                  <Pressable
+                    onPress={() => setEmailMode(true)}
+                    testID="continue-otp-btn"
+                    style={({ hovered, pressed }: any) => [
+                      styles.btnGhost,
+                      { marginTop: 10 },
+                      hovered && styles.btnGhostHover,
+                      pressed && { transform: [{ scale: 0.98 }] },
+                    ]}
+                  >
+                    <Text style={{ fontSize: 18 }}>📱</Text>
+                    <Text style={styles.btnGhostText}>Continue with OTP</Text>
+                  </Pressable>
+
+                  {/* Legal */}
+                  <Text style={styles.webLegal}>
+                    By continuing you agree to our{' '}
+                    <Text style={styles.webLegalLink}>Terms</Text> &{' '}
+                    <Text style={styles.webLegalLink}>Privacy Policy</Text>
                   </Text>
-                </Pressable>
-              </View>
+
+                  {/* Trusted by */}
+                  <View style={styles.trustBox}>
+                    <Text style={styles.trustLabel}>TRUSTED BY</Text>
+                    <View style={styles.trustRow}>
+                      {[
+                        { v: '12,400+', l: 'Alumni' },
+                        { v: '500+', l: 'Mentors' },
+                        { v: '200+', l: 'Colleges' },
+                      ].map((t) => (
+                        <View key={t.l} style={{ alignItems: 'center' }}>
+                          <Text style={styles.trustNum}>{t.v}</Text>
+                          <Text style={styles.trustSub}>{t.l}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                </>
+              ) : (
+                <>
+                  {/* Email/password mode */}
+                  <Pressable
+                    onPress={() => setEmailMode(false)}
+                    testID="login-back-from-email"
+                    style={({ hovered }: any) => [styles.webBack, hovered && { opacity: 1 }]}
+                  >
+                    <ArrowLeft size={16} color="rgba(255,255,255,0.75)" />
+                    <Text style={styles.webBackText}>Back</Text>
+                  </Pressable>
+                  <Text style={styles.webH2}>Welcome back 👋</Text>
+                  <Text style={styles.webH2Sub}>Log in to continue your career journey.</Text>
+                  <View style={{ gap: 14, marginTop: 22 }}>
+                    <WebInput label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" placeholder="you@example.com" testID="login-email-input" />
+                    <WebInput label="Password" value={password} onChangeText={setPassword} secureTextEntry placeholder="Your password" testID="login-password-input" />
+                    {error && <Text style={styles.webError}>{error}</Text>}
+                    <Pressable
+                      onPress={onSubmit}
+                      testID="login-submit-btn"
+                      disabled={loading}
+                      style={({ hovered, pressed }: any) => [
+                        styles.webSubmit,
+                        hovered && styles.webSubmitHover,
+                        pressed && { transform: [{ scale: 0.99 }] },
+                        loading && { opacity: 0.7 },
+                      ]}
+                    >
+                      <Text style={styles.webSubmitText}>{loading ? 'Logging in…' : 'Log in'}</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => router.push('/(auth)/register')}
+                      testID="login-go-register-btn"
+                      style={({ hovered }: any) => [styles.webSwitch, hovered && { opacity: 0.85 }]}
+                    >
+                      <Text style={styles.webSwitchText}>
+                        Don't have an account?{' '}
+                        <Text style={styles.webSwitchLink}>Sign up</Text>
+                      </Text>
+                    </Pressable>
+                  </View>
+                </>
+              )}
             </View>
           </ScrollView>
         </View>
 
+        {/* OAuth modal — unchanged from before */}
         <Modal visible={oauthOpen !== null} transparent animationType="fade" onRequestClose={() => setOauthOpen(null)}>
           <View style={styles.webModalBackdrop}>
             <View style={styles.webModalSheet}>
@@ -246,9 +319,7 @@ export default function Login() {
                   <Text style={styles.webModalTitle}>
                     {oauthOpen === 'google' ? 'Choose a Google account' : 'Sign in with LinkedIn'}
                   </Text>
-                  <Text style={styles.webModalSubtitle}>
-                    Mock mode for development. Pick a preset or enter your own.
-                  </Text>
+                  <Text style={styles.webModalSubtitle}>Mock mode for development. Pick a preset or enter your own.</Text>
                 </View>
                 <Pressable
                   onPress={() => setOauthOpen(null)}
@@ -270,9 +341,7 @@ export default function Login() {
                   style={({ hovered }: any) => [styles.webAcctRow, hovered && { backgroundColor: 'rgba(255,255,255,0.12)' }]}
                 >
                   <View style={styles.webAcctAvatar}>
-                    <Text style={{ color: C.white, fontFamily: 'DMSans_700Bold' }}>
-                      {p.name.split(' ').map((s) => s[0]).join('')}
-                    </Text>
+                    <Text style={{ color: C.white, fontFamily: 'DMSans_700Bold' }}>{p.name.split(' ').map((s) => s[0]).join('')}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[Typography.bodyBold, { color: C.white }]}>{p.name}</Text>
@@ -612,36 +681,163 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(176,127,223,0.18)',
     ...({ filter: 'blur(120px)' } as any),
   },
+  webOrb: {
+    position: 'absolute',
+    borderRadius: 999,
+    ...({ filter: 'blur(70px)' } as any),
+  },
   webBrandPane: {
     flex: 1,
     paddingHorizontal: 64,
     paddingVertical: 80,
     justifyContent: 'center',
+    alignItems: 'center',
     maxWidth: 640,
     minWidth: 0,
     ...Platform.select({ web: { display: 'flex' as any } }),
   },
   webBrandWord: { color: C.white, fontFamily: 'DMSans_700Bold', fontSize: 18 },
-  webBrandHero: {
+  webBrandWord2: {
     color: C.white,
     fontFamily: 'DMSans_700Bold',
-    fontSize: 56,
-    lineHeight: 62,
-    letterSpacing: -1.6,
-    marginBottom: 22,
+    fontSize: 32,
+    letterSpacing: -1,
+    marginBottom: 12,
+    textAlign: 'center',
   },
-  webBrandSub: {
-    color: 'rgba(255,255,255,0.72)',
+  webBrandSubtitle: {
+    color: 'rgba(255,255,255,0.46)',
     fontFamily: 'DMSans_400Regular',
-    fontSize: 16,
-    lineHeight: 24,
-    maxWidth: 460,
-    marginBottom: 48,
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 22,
+    maxWidth: 300,
+    marginBottom: 32,
   },
-  webStatsRow: { flexDirection: 'row', gap: 40 },
-  webStatCol: {},
-  webStatNum: { color: '#D4AAFF', fontFamily: 'DMSans_700Bold', fontSize: 32, letterSpacing: -1 },
-  webStatLbl: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium', fontSize: 13, marginTop: 2 },
+  featRow: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+    marginBottom: 14,
+    width: '100%',
+    maxWidth: 300,
+  },
+  featIcon: {
+    width: 36, height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  featTitle: {
+    color: C.white,
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 13,
+  },
+  featSub: {
+    color: 'rgba(255,255,255,0.44)',
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 11,
+    marginTop: 1,
+  },
+
+  webH2: {
+    color: C.white,
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 26,
+    letterSpacing: -0.5,
+    marginBottom: 5,
+  },
+  webH2Sub: {
+    color: 'rgba(255,255,255,0.44)',
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 14,
+  },
+
+  // LinkedIn primary button
+  btnLi: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    backgroundColor: '#0A66C2',
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 11,
+    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
+  },
+  btnLiText: { color: C.white, fontFamily: 'DMSans_700Bold', fontSize: 15 },
+
+  // Google white button
+  btnGg: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 11,
+    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
+  },
+  btnGgText: { color: '#1A1A2E', fontFamily: 'DMSans_700Bold', fontSize: 15 },
+
+  // Ghost (email/OTP) buttons
+  btnGhost: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 10,
+    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
+  },
+  btnGhostHover: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(255,255,255,0.26)',
+    transform: [{ translateY: -1 }],
+  },
+  btnGhostText: { color: C.white, fontFamily: 'DMSans_600SemiBold', fontSize: 14 },
+
+  // Legal text
+  webLegal: {
+    color: 'rgba(255,255,255,0.26)',
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 11,
+    lineHeight: 18,
+    textAlign: 'center',
+    marginTop: 6,
+  },
+  webLegalLink: { color: '#C4B5FD', fontFamily: 'DMSans_500Medium' },
+
+  // Trusted-by box
+  trustBox: {
+    marginTop: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.07)',
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  trustLabel: {
+    color: 'rgba(255,255,255,0.28)',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 9,
+    letterSpacing: 1,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  trustRow: { flexDirection: 'row', justifyContent: 'space-around' },
+  trustNum: { color: C.white, fontFamily: 'DMSans_700Bold', fontSize: 17 },
+  trustSub: { color: 'rgba(255,255,255,0.38)', fontFamily: 'DMSans_400Regular', fontSize: 9, marginTop: 2 },
 
   webCardPane: {
     flex: 1,
