@@ -526,6 +526,62 @@ test_plan:
   test_all: false
   test_priority: "high_first"
 
+backend:
+  - task: "Phase 2 — Network API (discover/connections/requests + connect/accept/reject)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            6 endpoints, all 200 OK end-to-end:
+            ✅ GET  /api/network/discover  — 5 sections (by_interest,
+              by_career, by_college, mentors, expand) with
+              connection_state stamp on every card
+            ✅ GET  /api/network/connections  — accepted relationships
+            ✅ GET  /api/network/requests  — incoming pending requests
+            ✅ POST /api/network/connect/{id}  — sends request, auto-accepts
+              if reverse already exists, prevents duplicates
+            ✅ POST /api/network/accept/{id} + /reject/{id}
+            ✅ Notifications inserted to recipient on each state change
+            ✅ Stored in db.connections {a, b, status, created_at, accepted_at}
+
+frontend:
+  - task: "Phase 2 — Network screen with PersonCards"
+    implemented: true
+    working: true
+    file: "/app/frontend/app/network.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            ROOT CAUSE during build: `Linkedin` icon does NOT exist in this
+            version of lucide-react-native — caused "got: undefined" error.
+            Fixed by importing `Link2 as Linkedin` across 4 files (network.tsx,
+            ApprovalsPage, UserEditorPanel, Badges).
+            Verified end-to-end (student01):
+            ✅ Top bar with 3 tabs (Discover · Connections · Requests with
+               live counts) and search input
+            ✅ 5 horizontally-scrolling sections with section titles + subtitles
+            ✅ PersonCard:
+              · Avatar (photo or initials), name, role chip (purple STUDENT,
+                teal ALUMNI, amber MENTOR, green INSTITUTION)
+              · Institution + city/state + interest/skill chips
+              · Mentors: ⭐ rating + sessions count
+              · Footer: Link2 icon for LinkedIn + state-aware action button
+                (Connect / Pending amber / Connected green)
+            ✅ Hover glow tinted by role color (HoverGlowCard wrapper)
+            ✅ Connect → Pending state (verified live via screenshot)
+            ✅ Empty states for Connections + Requests tabs
+            ✅ Toast feedback (Connected / Request sent / Already connected)
+
 frontend:
   - task: "Hover Glow Effect across all cards"
     implemented: true

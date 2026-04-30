@@ -21,7 +21,7 @@ import {
   HelpingHand, Gem, Clock, Timer, Building2, ShieldCheck,
   TrendingUp, CalendarCheck, BadgeCheck, Rocket,
   // universal icons
-  MailCheck, Phone, Linkedin, ScanFace, FlaskConical,
+  MailCheck, Phone, Link2 as Linkedin, ScanFace, FlaskConical,
 } from 'lucide-react-native';
 
 const ICONS: Record<string, any> = {

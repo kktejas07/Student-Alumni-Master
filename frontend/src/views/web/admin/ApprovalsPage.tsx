@@ -11,7 +11,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator, Linking, TextInput } from 'react-native';
 import {
-  Check, X, Clock, Briefcase, Linkedin, ChevronRight, AlertTriangle,
+  Check, X, Clock, Briefcase, Link2 as Linkedin, ChevronRight, AlertTriangle,
   Mail, Phone, GraduationCap, Languages, Tag, IndianRupee,
 } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';

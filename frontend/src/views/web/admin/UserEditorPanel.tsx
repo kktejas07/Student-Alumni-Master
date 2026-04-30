@@ -4,7 +4,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, ActivityIndicator, Pressable, Platform } from 'react-native';
-import { Edit3, Trash2, Save, X as CloseX, Linkedin, AlertTriangle } from 'lucide-react-native';
+import { Edit3, Trash2, Save, X as CloseX, Link2 as Linkedin, AlertTriangle } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { SlidePanel } from './SlidePanel';
 import { StatusChip, ActionButton } from './primitives';

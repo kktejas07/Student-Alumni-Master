@@ -29,7 +29,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft, Search, UserPlus, Check, Clock, X as CloseX,
-  GraduationCap, Briefcase, Users, Linkedin,
+  GraduationCap, Briefcase, Users, Link2,
   Star, MapPin,
 } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
@@ -308,7 +308,7 @@ function PersonCard({
   const cardWidth = compact ? 280 : undefined;
 
   return (
-    <View style={[{ borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1, width: cardWidth }]}>
+    <HoverGlowCard tint={tint} radius={14} intensity="medium" style={{ width: cardWidth }}>
       <View style={styles.personInner}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
           {person.photo_data ? (
@@ -374,7 +374,7 @@ function PersonCard({
               style={styles.linkedinBtn}
               testID={`net-linkedin-${person.id}`}
             >
-              <Linkedin size={12} color="#0B5FFF" />
+              <Link2 size={12} color="#0B5FFF" />
             </Pressable>
           )}
           <View style={{ flex: 1 }} />
@@ -412,7 +412,7 @@ function PersonCard({
           )}
         </View>
       </View>
-    </View>
+    </HoverGlowCard>
   );
 }
 
