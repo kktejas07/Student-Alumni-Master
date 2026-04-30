@@ -2316,3 +2316,55 @@ agent_communication:
         working; layout matches the SA Profile Web Standalone HTML
         artifact.
 
+
+---
+## 2026-04-30 — Profile Web Standalone refined to match SA Profile Spec
+agent_communication:
+    - agent: "main"
+      message: |
+        REFINED Profile Web Shell (/me) to match the user-supplied
+        "SA Profile Web Standalone" reference more precisely.
+        FIXES (8 deltas reported):
+          1. Sidebar mini user card — stacked vertical layout
+             (avatar + name + "Institution · Branch" + grad-year +
+             AMBER 58% pill replacing the previous yellow).
+          2. Top bar — removed extra title/subtitle. Now shows only:
+             • Big purple "Edit Profile" PRIMARY button (User icon)
+             • "Digital ID Card" OUTLINE button
+             • amber Profile % pill on the right
+             • top-right initials avatar
+          3. Hero Card — bumped avatar to 96px, name to 26pt
+             extra-bold, sub gray, chips:
+               · CGPA → amber outlined (only if set)
+               · Sessions → teal outlined (only if > 0)
+               · Verified Student → PURPLE solid chip with
+                 ShieldCheck icon (matches spec exactly)
+          4. Right rail — Student ID widget always renders (was
+             conditional on `draft.sa_id`; now reads `sa_id ||
+             unique_id || student_id`). Card is PURPLE-tinted with
+             shield icon, large mono SA-ID, "Verified · Active
+             since YEAR", and purple "View Digital ID Card →" CTA.
+          5. Right rail Stats — emojis replaced by Lucide stroke
+             icons (CalendarDays, UsersRound, Eye, Target, Send) in
+             tinted squircles; numbers right-aligned bold; thin
+             dividers between rows.
+          6. Profile Completion — ring color switches to GREEN
+             (#10B981) at 100%. "Complete ✦" pill appears in the
+             chip row when fully complete; banner border tints green.
+          7. Basic Information — Profile Photo subsection redesigned:
+             92px avatar (with green Check badge when set) + bold
+             "Profile Photo" title + "JPG, PNG up to 5MB.
+             Recommended 400×400px." hint + purple "Upload Photo"
+             primary button + ghost "Remove" button (only when set).
+          8. Headline + mini-card data — read from `school_info`
+             nested object as fallback (institution_name,
+             branch_or_stream, graduation_year) so existing seed
+             users render meta correctly.
+        FILES TOUCHED:
+          • /app/frontend/app/(tabs)/profile.tsx
+          • /app/frontend/src/views/web/profile/ProfileInfoPage.tsx
+        VERIFIED LIVE (1440×900, student01 logged in):
+          all 8 deltas applied; right rail now exposes Student ID
+          card + Lucide-iconed stats; hero, top-bar, and Basic Info
+          match the artifact.
+

@@ -36,53 +36,63 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto }: 
   return (
     <View style={{ gap: 16 }}>
       {/* Completion Banner */}
-      <View style={st.banner}>
-        <CompletionRing pct={completion.percentage} size={88} />
+      <View style={[st.banner, completion.percentage >= 100 && st.bannerComplete]}>
+        <CompletionRing pct={completion.percentage} size={92} color={completion.percentage >= 100 ? '#10B981' : '#A78BFA'} />
         <View style={{ flex: 1, minWidth: 0, gap: 10 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={st.bannerTitle}>Profile Completion</Text>
-            {completion.percentage >= 100 && (
-              <View style={st.completePill}><Sparkles size={11} color="#fff" /><Text style={st.completePillText}>Complete</Text></View>
-            )}
-          </View>
+          <Text style={st.bannerTitle}>Profile Completion</Text>
           <Text style={st.bannerSub}>Complete your profile to unlock personalized recommendations & higher trust signals.</Text>
           <View style={st.itemsRow}>
             {completion.items.map((it) => (
               <View key={it.key} style={[st.itemPill, it.done && st.itemPillDone]}>
-                {it.done ? <Check size={10} color={C.green} /> : <View style={st.dot} />}
+                {it.done ? <Check size={11} color={C.green} /> : <View style={st.dot} />}
                 <Text style={[st.itemPillText, it.done && { color: C.green }]}>{it.label}</Text>
               </View>
             ))}
+            {completion.percentage >= 100 && (
+              <View style={st.completePill}><Sparkles size={11} color="#fff" /><Text style={st.completePillText}>Complete</Text></View>
+            )}
           </View>
         </View>
       </View>
 
       {/* Basic Information */}
       <Card title="Basic Information" subtitle="Your name, photo, and a short tagline.">
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-          <Pressable onPress={onUploadPhoto} style={st.avatar} testID="profile-avatar-upload">
+        <View style={st.photoRow}>
+          <Pressable onPress={onUploadPhoto} style={st.avatarLg} testID="profile-avatar-upload">
             {photo ? (
               <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
             ) : (
-              <Text style={st.avatarText}>{initials}</Text>
+              <Text style={st.avatarLgText}>{initials}</Text>
             )}
-            <View style={st.avatarOver}>
-              <Camera size={16} color="#fff" />
-              <Text style={st.avatarOverText}>{photo ? 'CHANGE' : 'UPLOAD'}</Text>
-            </View>
-          </Pressable>
-          <View style={{ gap: 6 }}>
-            <Pressable onPress={onUploadPhoto} style={st.btnSm}><Text style={st.btnSmText}>Upload Photo</Text></Pressable>
             {photo && (
-              <Pressable onPress={() => setField('photo_data', '') || setField('face_image_base64', '')} style={[st.btnSm, st.btnSmDanger]}><Text style={[st.btnSmText, { color: C.rose }]}>Remove</Text></Pressable>
+              <View style={st.avatarCheck}>
+                <Check size={11} color="#fff" />
+              </View>
             )}
+          </Pressable>
+          <View style={{ flex: 1, minWidth: 0, gap: 8 }}>
+            <Text style={st.photoTitle}>Profile Photo</Text>
+            <Text style={st.photoHint}>JPG, PNG up to 5MB. Recommended 400×400px.</Text>
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
+              <Pressable onPress={onUploadPhoto} style={st.btnPrimary} testID="pf-upload-photo">
+                <Text style={st.btnPrimaryText}>Upload Photo</Text>
+              </Pressable>
+              {photo && (
+                <Pressable onPress={() => {
+                  setField('photo_data', '');
+                  setField('face_image_base64', '');
+                }} style={st.btnGhost}>
+                  <Text style={st.btnGhostText}>Remove</Text>
+                </Pressable>
+              )}
+            </View>
           </View>
         </View>
         <View style={st.row}>
           <Field label="First Name" half><TF value={draft.first_name || (draft.full_name||'').split(' ')[0] || ''} onChangeText={(v) => setField('first_name', v)} placeholder="Aarav" testID="pf-first-name" /></Field>
           <Field label="Last Name" half><TF value={draft.last_name || (draft.full_name||'').split(' ').slice(1).join(' ') || ''} onChangeText={(v) => setField('last_name', v)} placeholder="Sharma" testID="pf-last-name" /></Field>
         </View>
-        <Field label="Headline / Tagline" hint="A short professional summary (max 100 chars).">
+        <Field label="Headline / Tagline" hint="Appears below your name on your public profile.">
           <TF value={draft.headline || ''} onChangeText={(v) => setField('headline', v.slice(0, 100))} placeholder="Aspiring AI Engineer · IIT Bombay '26" testID="pf-headline" />
         </Field>
         <Field label="About / Bio" hint="Tell us about you in a few sentences.">
@@ -144,25 +154,53 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto }: 
 
 const st = StyleSheet.create({
   banner: {
-    flexDirection: 'row', gap: 16, alignItems: 'center',
-    padding: 18, borderRadius: 16,
-    backgroundColor: 'rgba(167,139,250,0.10)',
-    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1,
+    flexDirection: 'row', gap: 18, alignItems: 'center',
+    padding: 20, borderRadius: 16,
+    backgroundColor: 'rgba(167,139,250,0.07)',
+    borderColor: 'rgba(167,139,250,0.25)', borderWidth: 1,
   },
-  bannerTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 16 },
-  bannerSub:   { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_400Regular', fontSize: 12 },
-  completePill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#10B981', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
-  completePillText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 10 },
+  bannerComplete: {
+    backgroundColor: 'rgba(16,185,129,0.07)',
+    borderColor: 'rgba(16,185,129,0.30)',
+  },
+  bannerTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 17 },
+  bannerSub:   { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_400Regular', fontSize: 12.5 },
+  completePill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#10B981', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
+  completePillText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
   itemsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   itemPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1,
   },
-  itemPillDone: { backgroundColor: 'rgba(16,185,129,0.10)', borderColor: 'rgba(16,185,129,0.30)' },
-  itemPillText: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_500Medium', fontSize: 10.5 },
+  itemPillDone: { backgroundColor: 'rgba(16,185,129,0.10)', borderColor: 'rgba(16,185,129,0.35)' },
+  itemPillText: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.30)' },
 
+  // Profile Photo section (new layout matching spec)
+  photoRow: { flexDirection: 'row', alignItems: 'center', gap: 18, marginBottom: 4 },
+  avatarLg: {
+    width: 92, height: 92, borderRadius: 46, overflow: 'hidden', position: 'relative',
+    backgroundColor: 'rgba(167,139,250,0.20)', alignItems: 'center', justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any),
+  },
+  avatarLgText: { color: '#A78BFA', fontFamily: 'DMSans_800ExtraBold', fontSize: 28 },
+  avatarCheck: {
+    position: 'absolute', bottom: 2, right: 2,
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: '#10B981',
+    alignItems: 'center', justifyContent: 'center',
+    borderColor: '#0B0717', borderWidth: 2,
+  },
+  photoTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  photoHint: { color: 'rgba(255,255,255,0.60)', fontFamily: 'DMSans_400Regular', fontSize: 12 },
+
+  btnPrimary: { paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: '#A78BFA', alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
+  btnPrimaryText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  btnGhost: { paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
+  btnGhostText: { color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+
+  // legacy (unused, kept to prevent runtime undef from any stray ref)
   avatar: {
     width: 84, height: 84, borderRadius: 42, overflow: 'hidden', position: 'relative',
     backgroundColor: 'rgba(167,139,250,0.20)', alignItems: 'center', justifyContent: 'center',
