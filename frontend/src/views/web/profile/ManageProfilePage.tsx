@@ -18,8 +18,10 @@ const VISIBILITY = [
 const SECTIONS = [
   { key: 'projects', label: 'Projects & Portfolio', desc: 'Showcase what you have built.' },
   { key: 'experience', label: 'Work Experience', desc: 'Internships, jobs, freelance gigs.' },
-  { key: 'achievements', label: 'Achievements', desc: 'Awards, hackathon wins, etc.' },
-  { key: 'volunteer', label: 'Volunteer Work', desc: 'Causes you care about.' },
+  { key: 'achievements', label: 'Achievements & Awards', desc: 'Hackathon wins, scholarships, honors.' },
+  { key: 'certifications', label: 'Certifications', desc: 'Courses, professional credentials.' },
+  { key: 'languages', label: 'Languages', desc: 'Spoken & programming languages you know.' },
+  { key: 'extracurricular', label: 'Extracurricular Activities', desc: 'Clubs, sports, volunteering, leadership.' },
 ];
 
 interface Props {

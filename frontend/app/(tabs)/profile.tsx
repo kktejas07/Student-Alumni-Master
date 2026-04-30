@@ -13,7 +13,7 @@ import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import {
   ArrowLeft, User, Settings as SettingsIcon, SlidersHorizontal,
-  LogOut, Check, X as CloseX,
+  LogOut, Check, X as CloseX, IdCard, Bell, ShieldCheck, PencilLine,
 } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { tokenStore } from '@/src/models/services/api';
@@ -23,7 +23,7 @@ import { ManageProfilePage } from '@/src/views/web/profile/ManageProfilePage';
 import { SettingsPage } from '@/src/views/web/profile/SettingsPage';
 import { SaveBar, C } from '@/src/views/web/profile/primitives';
 
-type PageKey = 'info' | 'manage' | 'settings';
+type PageKey = 'info' | 'digitalid' | 'manage' | 'notifications' | 'privacy' | 'settings';
 
 interface CompletionData {
   percentage: number;
@@ -123,12 +123,20 @@ export default function ProfileScreen() {
     router.replace('/(auth)/login');
   };
 
-  const NAV: { key: PageKey; label: string; icon: any; sub: string }[] = [
+  const NAV_PROFILE: { key: PageKey; label: string; icon: any; sub: string }[] = [
     { key: 'info', label: 'Profile Information', icon: User, sub: 'Identity, education, social, skills' },
+    { key: 'digitalid', label: 'Digital ID Card', icon: IdCard, sub: 'Your SA-ID card — shareable & downloadable' },
     { key: 'manage', label: 'Manage Profile', icon: SlidersHorizontal, sub: 'Visibility, resume, sections, badges' },
-    { key: 'settings', label: 'Settings & Preferences', icon: SettingsIcon, sub: 'Notifications, privacy, account' },
   ];
+  const NAV_ACCOUNT: { key: PageKey; label: string; icon: any; sub: string }[] = [
+    { key: 'notifications', label: 'Notification Preferences', icon: Bell, sub: 'Choose what we ping you about' },
+    { key: 'privacy', label: 'Privacy & Security', icon: ShieldCheck, sub: 'Control who sees what about you' },
+    { key: 'settings', label: 'Settings & Preferences', icon: SettingsIcon, sub: 'AI coach, language, theme, account' },
+  ];
+  const NAV = [...NAV_PROFILE, ...NAV_ACCOUNT];
   const currentNav = NAV.find((n) => n.key === page) || NAV[0];
+  // Top tabs: Edit Profile (any page except digitalid) / Digital ID Card
+  const topTab: 'edit' | 'digitalid' = page === 'digitalid' ? 'digitalid' : 'edit';
 
   if (loading) {
     return (
@@ -163,7 +171,7 @@ export default function ProfileScreen() {
             </View>
 
             <Text style={styles.navHeader}>PROFILE</Text>
-            {NAV.map((n) => {
+            {NAV_PROFILE.map((n) => {
               const Icon = n.icon; const active = page === n.key;
               return (
                 <Pressable key={n.key} onPress={() => setPage(n.key)} style={[styles.navItem, active && styles.navItemActive]} testID={`profile-nav-${n.key}`}>
@@ -173,8 +181,17 @@ export default function ProfileScreen() {
               );
             })}
 
-            <Text style={[styles.navHeader, { marginTop: 18 }]}>ACCOUNT</Text>
-            <Pressable onPress={handleLogout} style={styles.navItem} testID="profile-logout">
+            <Text style={[styles.navHeader, { marginTop: 14 }]}>ACCOUNT</Text>
+            {NAV_ACCOUNT.map((n) => {
+              const Icon = n.icon; const active = page === n.key;
+              return (
+                <Pressable key={n.key} onPress={() => setPage(n.key)} style={[styles.navItem, active && styles.navItemActive]} testID={`profile-nav-${n.key}`}>
+                  <Icon size={15} color={active ? '#fff' : C.text2} />
+                  <Text style={[styles.navText, active && { color: '#fff' }]}>{n.label}</Text>
+                </Pressable>
+              );
+            })}
+            <Pressable onPress={handleLogout} style={[styles.navItem, { marginTop: 6 }]} testID="profile-logout">
               <LogOut size={15} color={C.text2} /><Text style={styles.navText}>Sign Out</Text>
             </Pressable>
           </View>
@@ -182,12 +199,23 @@ export default function ProfileScreen() {
 
         {/* Main */}
         <View style={[styles.main, isMobile && { paddingHorizontal: 14 }]}>
-          {/* Top bar */}
+          {/* Top bar with Edit Profile / Digital ID Card tab toggle */}
           <View style={styles.topBar}>
             <Pressable onPress={() => router.back()} style={styles.backBtnSm}><ArrowLeft size={16} color="#fff" /></Pressable>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={styles.title}>{currentNav.label}</Text>
               <Text style={styles.subtitle}>{currentNav.sub}</Text>
+            </View>
+            {/* Tab toggle */}
+            <View style={styles.toggleWrap}>
+              <Pressable onPress={() => setPage('info')} style={[styles.toggleBtn, topTab === 'edit' && styles.toggleBtnActive]} testID="profile-topbar-edit">
+                <PencilLine size={12} color={topTab === 'edit' ? '#fff' : C.text2} />
+                <Text style={[styles.toggleText, topTab === 'edit' && { color: '#fff' }]}>Edit Profile</Text>
+              </Pressable>
+              <Pressable onPress={() => setPage('digitalid')} style={[styles.toggleBtn, topTab === 'digitalid' && styles.toggleBtnActive]} testID="profile-topbar-digitalid">
+                <IdCard size={12} color={topTab === 'digitalid' ? '#fff' : C.text2} />
+                <Text style={[styles.toggleText, topTab === 'digitalid' && { color: '#fff' }]}>Digital ID Card</Text>
+              </Pressable>
             </View>
             <View style={styles.scorePill}>
               <Text style={styles.scorePillText}>Profile {completion.percentage}%</Text>
@@ -199,7 +227,7 @@ export default function ProfileScreen() {
             <View style={styles.mobileTabs}>
               {NAV.map((n) => (
                 <Pressable key={n.key} onPress={() => setPage(n.key)} style={[styles.mTab, page === n.key && styles.mTabActive]}>
-                  <Text style={[styles.mTabText, page === n.key && { color: '#fff' }]}>{n.label.split(' ')[0]}</Text>
+                  <Text style={[styles.mTabText, page === n.key && { color: '#fff' }]} numberOfLines={1}>{n.label.split(' ')[0]}</Text>
                 </Pressable>
               ))}
             </View>
@@ -209,14 +237,25 @@ export default function ProfileScreen() {
             {page === 'info' && (
               <ProfileInfoPage draft={draft} setDraft={setDraft} completion={completion} onUploadPhoto={handleUploadPhoto} />
             )}
+            {page === 'digitalid' && (
+              <DigitalIdCardInline userId={user?.id} isMobile={isMobile} />
+            )}
             {page === 'manage' && (
               <ManageProfilePage draft={draft} setDraft={setDraft} badges={badges} onCertChange={loadAll} showToast={showToast} />
             )}
+            {page === 'notifications' && (
+              <SettingsPage draft={draft} setDraft={setDraft} showToast={showToast} section="notifications" />
+            )}
+            {page === 'privacy' && (
+              <SettingsPage draft={draft} setDraft={setDraft} showToast={showToast} section="privacy" />
+            )}
             {page === 'settings' && (
-              <SettingsPage draft={draft} setDraft={setDraft} showToast={showToast} />
+              <SettingsPage draft={draft} setDraft={setDraft} showToast={showToast} section="general" />
             )}
             <View style={{ height: 12 }} />
-            <SaveBar dirty={dirty} saving={saving} onSave={handleSave} onDiscard={handleDiscard} lastSavedAt={lastSavedAt} />
+            {page !== 'digitalid' && (
+              <SaveBar dirty={dirty} saving={saving} onSave={handleSave} onDiscard={handleDiscard} lastSavedAt={lastSavedAt} />
+            )}
           </ScrollView>
         </View>
       </View>
@@ -228,6 +267,36 @@ export default function ProfileScreen() {
         </View>
       )}
     </SafeAreaView>
+  );
+}
+
+// ── Digital ID Card inline — navigates to existing /id-card route with back button
+function DigitalIdCardInline({ userId, isMobile }: { userId?: string; isMobile: boolean }) {
+  const router = useRouter();
+  return (
+    <View style={styles.idCardShell}>
+      <View style={styles.idCardHead}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={styles.idCardTitle}>Digital ID Card</Text>
+          <Text style={styles.idCardSub}>Your shareable SA Digital ID — QR-scannable at events & campuses.</Text>
+        </View>
+        <Pressable onPress={() => router.push('/id-card')} style={styles.idCardBtn} testID="profile-open-id-card">
+          <Text style={styles.idCardBtnText}>Open Full-screen</Text>
+        </Pressable>
+      </View>
+      {Platform.OS === 'web' ? (
+        // Embed the existing route in an iframe for a preview experience
+        // eslint-disable-next-line react/no-unknown-property
+        <View style={[styles.idCardFrame, { height: isMobile ? 520 : 640 }]}>
+          {/* @ts-ignore react-native-web supports rendering HTML iframes */}
+          <iframe src="/id-card" style={{ border: 0, width: '100%', height: '100%', borderRadius: 14, backgroundColor: '#0C0818' }} title="Digital ID Card" />
+        </View>
+      ) : (
+        <Pressable onPress={() => router.push('/id-card')} style={styles.idCardFallback}>
+          <Text style={styles.idCardFallbackText}>Open Digital ID Card →</Text>
+        </Pressable>
+      )}
+    </View>
   );
 }
 
@@ -275,7 +344,27 @@ const styles = StyleSheet.create({
   scorePill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: 'rgba(167,139,250,0.14)', borderColor: 'rgba(167,139,250,0.40)', borderWidth: 1 },
   scorePillText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 11 },
 
-  mobileTabs: { flexDirection: 'row', gap: 6, marginBottom: 14 },
+  // Top tab toggle (Edit Profile / Digital ID Card)
+  toggleWrap: {
+    flexDirection: 'row', gap: 4, padding: 4, borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border, borderWidth: 1,
+  },
+  toggleBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 28, borderRadius: 7, ...({ cursor: 'pointer' } as any) },
+  toggleBtnActive: { backgroundColor: C.purple },
+  toggleText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
+
+  // Digital ID Card inline
+  idCardShell: { gap: 14 },
+  idCardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, padding: 18, borderRadius: 14, backgroundColor: 'rgba(167,139,250,0.08)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1 },
+  idCardTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 16 },
+  idCardSub: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 3 },
+  idCardBtn: { paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: C.purple, alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
+  idCardBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  idCardFrame: { borderRadius: 14, overflow: 'hidden', backgroundColor: '#0C0818', borderColor: C.border, borderWidth: 1 },
+  idCardFallback: { padding: 40, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border, borderWidth: 1, alignItems: 'center' },
+  idCardFallbackText: { color: '#A78BFA', fontFamily: 'DMSans_700Bold', fontSize: 13 },
+
+  mobileTabs: { flexDirection: 'row', gap: 6, marginBottom: 14, flexWrap: 'wrap' },
   mTab: { flex: 1, paddingVertical: 8, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1, alignItems: 'center', ...({ cursor: 'pointer' } as any) },
   mTabActive: { backgroundColor: '#A78BFA', borderColor: '#A78BFA' },
   mTabText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11.5 },

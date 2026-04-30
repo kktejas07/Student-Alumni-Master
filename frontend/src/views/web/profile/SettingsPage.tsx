@@ -25,9 +25,10 @@ interface Props {
   draft: any;
   setDraft: (updater: (d: any) => any) => void;
   showToast: (m: string) => void;
+  section?: 'all' | 'notifications' | 'privacy' | 'general';
 }
 
-export function SettingsPage({ draft, setDraft, showToast }: Props) {
+export function SettingsPage({ draft, setDraft, showToast, section = 'all' }: Props) {
   const prefs = defaultPrefs(draft.preferences);
   const setPref = (path: [string, string], v: any) => setDraft((d: any) => ({ ...d, preferences: { ...defaultPrefs(d.preferences), [path[0]]: { ...defaultPrefs(d.preferences)[path[0]], [path[1]]: v } } }));
 
@@ -46,9 +47,13 @@ export function SettingsPage({ draft, setDraft, showToast }: Props) {
     setPwBusy(false);
   };
 
+  const showNotifications = section === 'all' || section === 'notifications';
+  const showPrivacy = section === 'all' || section === 'privacy';
+  const showGeneral = section === 'all' || section === 'general';
+
   return (
     <View style={{ gap: 16 }}>
-      {/* Notifications */}
+      {showNotifications && (
       <Card title="Notification Preferences" subtitle="Pick what we ping you about.">
         <ToggleRow title="New Messages" desc="Direct messages from your network." on={prefs.notifications.messages} onChange={(v) => setPref(['notifications','messages'], v)} testID="set-notif-msg" />
         <ToggleRow title="Connection Requests" desc="When someone wants to connect." on={prefs.notifications.requests} onChange={(v) => setPref(['notifications','requests'], v)} testID="set-notif-req" />
@@ -56,15 +61,18 @@ export function SettingsPage({ draft, setDraft, showToast }: Props) {
         <ToggleRow title="Weekly Digest" desc="A weekly summary of opportunities." on={prefs.notifications.weekly_digest} onChange={(v) => setPref(['notifications','weekly_digest'], v)} testID="set-notif-digest" />
         <ToggleRow title="New Matches" desc="Real-time pings for new matches." on={prefs.notifications.new_matches} onChange={(v) => setPref(['notifications','new_matches'], v)} testID="set-notif-matches" />
       </Card>
+      )}
 
-      {/* Privacy */}
+      {showPrivacy && (
       <Card title="Privacy Controls" subtitle="What others see about you.">
         <ToggleRow title="Show Email on Profile" desc="Allow connections to see your email." on={prefs.privacy.show_email} onChange={(v) => setPref(['privacy','show_email'], v)} testID="set-priv-email" />
         <ToggleRow title="Show Phone on Profile" desc="Allow connections to see your phone." on={prefs.privacy.show_phone} onChange={(v) => setPref(['privacy','show_phone'], v)} testID="set-priv-phone" />
         <ToggleRow title="Allow Direct Messages" desc="Connections can DM you anytime." on={prefs.privacy.allow_dm} onChange={(v) => setPref(['privacy','allow_dm'], v)} testID="set-priv-dm" />
         <ToggleRow title="Show Online Status" desc="Display the green online dot to others." on={prefs.privacy.show_online} onChange={(v) => setPref(['privacy','show_online'], v)} testID="set-priv-online" />
       </Card>
+      )}
 
+      {showGeneral && (<>
       {/* AI Coach */}
       <Card title="Suggestions & AI Coach" subtitle="Personalized nudges and goal reminders.">
         <ToggleRow title="Goal Check-in Reminders" desc="We will nudge you on your career goals." on={prefs.ai.goal_reminders} onChange={(v) => setPref(['ai','goal_reminders'], v)} testID="set-ai-goals" />
@@ -129,6 +137,7 @@ export function SettingsPage({ draft, setDraft, showToast }: Props) {
           </View>
         </View>
       </Card>
+      </>)}
     </View>
   );
 }

@@ -2185,6 +2185,46 @@ agent_communication:
         DO NOT TEST FRONTEND — main agent will request that separately.
 
 ---
+## 2026-04-30 — SA Profile Web Standalone refresh (v4)
+agent_communication:
+    - agent: "main"
+      message: |
+        Applied SA Profile Web Standalone artifact updates. All verified
+        live (1440px desktop, student01):
+        SIDEBAR — expanded from 3 to 6 items across 2 groups + Sign Out:
+          PROFILE group:
+            · Profile Information
+            · Digital ID Card (NEW — inline page)
+            · Manage Profile
+          ACCOUNT group:
+            · Notification Preferences (split out of Settings)
+            · Privacy & Security (split out of Settings)
+            · Settings & Preferences (now AI Coach + App Prefs + Account only)
+        TOP BAR — NEW "Edit Profile" / "Digital ID Card" pill toggle next
+          to the "Profile 58%" badge. Clicking Digital ID Card switches
+          into the inline Digital ID Card page.
+        DIGITAL ID CARD INLINE — new `<DigitalIdCardInline>` component at
+          /profile with an "Open Full-screen" action (navigates to
+          /id-card). On web it embeds /id-card via iframe for a preview
+          experience; on native it shows a fallback link.
+        MANAGE PROFILE SECTIONS — replaced 4 toggles with 6 matching the
+          artifact exactly:
+            · Projects & Portfolio
+            · Work Experience
+            · Achievements & Awards
+            · Certifications
+            · Languages
+            · Extracurricular Activities
+        SETTINGS PAGE — refactored to accept `section` prop
+          ('notifications' | 'privacy' | 'general' | 'all'); same file
+          reused for 3 separate sidebar entries:
+            · notifications → shows only Notification Preferences card
+            · privacy → shows only Privacy Controls card
+            · settings → shows AI Coach + App Prefs + Account cards
+        No regressions; all existing flows intact.
+
+
+---
 ## 2026-04-30 — SA Profile Social View — `/profile/[id]` shipped & verified
 agent_communication:
     - agent: "main"
