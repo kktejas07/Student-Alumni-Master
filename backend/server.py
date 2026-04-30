@@ -2831,6 +2831,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     me_id = str(user.get("_id") or user.get("id"))
     si = user.get("school_info") or {}
     my_interests = user.get("interests") or si.get("interests") or []
+    my_skills = user.get("skills") or []
     my_cp = user.get("career_path")
     my_inst = si.get("institution_name")
     # Existing connection state to mark cards
@@ -2863,6 +2864,10 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     # Section: by_career
     by_career = [c for c in cards if my_cp and c.get("career_path") == my_cp and c["role"] != "college"]
 
+    # Section: by_skills (NEW)
+    by_skills = [c for c in cards if _matches_count(my_skills, c.get("skills") or []) > 0]
+    by_skills.sort(key=lambda c: -_matches_count(my_skills, c.get("skills") or []))
+
     # Section: by_college
     by_college = [c for c in cards if my_inst and c.get("institution") == my_inst]
 
@@ -2879,10 +2884,11 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
         mentor_cards.sort(key=lambda m: (m.get("category") or "").lower().find(my_cp.lower()) == -1)
 
     # Section: expand — diverse roles user hasn't matched on yet
-    seen_ids = {c["id"] for c in (by_interest + by_career + by_college)} | {m["id"] for m in mentor_cards}
+    seen_ids = {c["id"] for c in (by_interest + by_career + by_skills + by_college)} | {m["id"] for m in mentor_cards}
     expand = [c for c in cards if c["id"] not in seen_ids and c["role"] in {"alumni", "college"}]
 
     interest_label = ", ".join(my_interests[:2]) if my_interests else "Your declared interests"
+    skill_label    = ", ".join(my_skills[:3])     if my_skills    else "your declared skills"
     cp_label = (my_cp or "your goal").replace("_", " ").title() if my_cp else "Your career goal"
 
     return {
@@ -2895,6 +2901,10 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
              "subtitle": f"Pursuing {cp_label}",
              "icon": "Briefcase", "tint": "#F59E0B",
              "items": by_career[:limit]},
+            {"key": "by_skills", "title": "Matched by Skills",
+             "subtitle": f"Shared skills: {skill_label}",
+             "icon": "Code2", "tint": "#2DD4BF",
+             "items": by_skills[:limit]},
             {"key": "by_college", "title": "From Your College",
              "subtitle": "People from " + (my_inst or "your school"),
              "icon": "GraduationCap", "tint": "#22D3EE",

@@ -708,6 +708,48 @@ backend:
             All routes auth-guarded via get_current_user dependency. Backend reloaded clean (0 errors).
 
 frontend:
+  - task: "Phase 2 — Network Standalone v3 (sidebar + top hero + by-skills + chat popup + booking drawer + view profile + active/busy pills)"
+    implemented: true
+    working: true
+    file: "/app/frontend/app/network.tsx + /app/frontend/src/views/web/network/NetworkShell.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            STANDALONE v3 — full design parity with SA Network Standalone artifact verified live (1440px desktop):
+            BACKEND ADDITION:
+              ✅ /api/network/discover now returns SIX sections — added "Matched by Skills" (icon Code2, tint #2DD4BF) sorted by skill-overlap count.
+            NEW SHELL (/app/frontend/src/views/web/network/NetworkShell.tsx):
+              ✅ NetworkSidebar — 268px persistent left rail with:
+                · SA Network logo + tagline
+                · Mini ME profile card (avatar + name + college · grad year)
+                · "2 free sessions — Book a mentor — first 2 free" yellow ribbon
+                · NAVIGATE list: Discover / My Connections (badge) / Requests (badge)
+                · FILTER BY TYPE: All / Students / Alumni / Mentors with checkmark on active
+                · YOUR NETWORK stats: Connections, Pending requests, Free sessions left (yellow)
+              ✅ TopHero — "Discover People" 22px title + "Personalised for [FirstName]" + horizontal interest pills
+              ✅ ChatPhonePopup — modal triggered by chat icon: phone row (call CTA cyan, "Not shared" placeholder), DM row ("Coming soon ✨"), Book Session green CTA for mentors
+              ✅ BookingDrawer — right slide-in 460px: mentor card with rating + sessions + FREE/₹price, "This session is on us — N free remaining" yellow ribbon, 7-day horizontal date picker, 6-slot time grid, GREEN "Confirm Free Session" CTA
+            CARD UPGRADES (network.tsx):
+              ✅ Active/Busy pill top-right (green Active when is_online=true; grey Away when false)
+              ✅ "View Profile" full-width secondary CTA at bottom of every card with eye icon
+              ✅ Mentor "Book Session" CTA now opens BookingDrawer instead of just a connect call
+              ✅ Chat icon now opens ChatPhonePopup instead of toast
+            STATE:
+              ✅ typeFilter: 'all' | 'student' | 'alumni' | 'mentor' wired through matchesFilters
+              ✅ chatPerson, bookingMentor modals
+              ✅ freeSessionsRemaining (default 2) decrements on confirm
+              ✅ isWideShell = winW >= 1100; sidebar visible only on desktop. Mobile retains old top tabs.
+            FLOWS VERIFIED LIVE:
+              · Sidebar filter "All/Students/Alumni/Mentors" — narrows section results
+              · Click chat icon → "Reach out to Aarav" popup with PHONE/DM rows
+              · Click Book Session on mentor → drawer slides in from right
+              · Pick day Sat 2 → enables time picker → click 14:00 → "Confirm Free Session" enabled
+              · Confirm → toast "Session booked for 2026-05-02 at 14:00" + counter decrements
+
   - task: "Phase 4 — SA Profile Web (3-page editor: Profile Info / Manage Profile / Settings & Preferences)"
     implemented: true
     working: true

@@ -32,8 +32,9 @@ import {
   ArrowLeft, Search, UserPlus, Check, Clock, X as CloseX,
   GraduationCap, Briefcase, Users, Link2, Github,
   Star, MapPin, Heart, UserCheck, Compass, Calendar, MessageSquare,
-  ChevronDown, ChevronUp, SlidersHorizontal, Crown,
+  ChevronDown, ChevronUp, SlidersHorizontal, Crown, Code2, Eye,
 } from 'lucide-react-native';
+import { NetworkSidebar, TopHero, ChatPhonePopup, BookingDrawer } from '@/src/views/web/network/NetworkShell';
 import { request } from '@/src/models/services/api';
 import { useAuth } from '@/src/viewmodels/hooks';
 import { HoverGlowCard } from '@/src/views/web/HoverGlowCard';
@@ -73,7 +74,7 @@ interface Person {
 interface Section { key: string; title: string; subtitle: string; icon?: string; tint?: string; items: Person[]; }
 
 const SECTION_ICONS: Record<string, any> = {
-  Heart, Briefcase, GraduationCap, UserCheck, Compass,
+  Heart, Briefcase, GraduationCap, UserCheck, Compass, Code2,
 };
 
 type TabKey = 'discover' | 'connections' | 'requests';
@@ -100,6 +101,14 @@ export default function NetworkScreen() {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<{ role?: string; skill?: string; year?: string; city?: string }>({});
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
+
+  // Standalone shell state
+  const [typeFilter, setTypeFilter] = useState<'all' | 'student' | 'alumni' | 'mentor'>('all');
+  const [chatPerson, setChatPerson] = useState<Person | null>(null);
+  const [bookingMentor, setBookingMentor] = useState<Person | null>(null);
+  const [freeSessionsRemaining, setFreeSessionsRemaining] = useState<number>(2);
+  const isWideShell = winW >= 1100; // sidebar visible at 1100+ desktops
+  const sidebarWidth = isWideShell ? 268 : 0;
 
   const PAGE_SIZE = 8;
 
@@ -188,6 +197,7 @@ export default function NetworkScreen() {
 
   // ── Filtering / pagination derived data ────────────────────────────────
   const matchesFilters = useCallback((p: Person): boolean => {
+    if (typeFilter !== 'all' && p.role !== typeFilter) return false;
     if (filters.role && p.role !== filters.role) return false;
     if (filters.skill) {
       const s = filters.skill.toLowerCase();
@@ -204,7 +214,7 @@ export default function NetworkScreen() {
       if (!c.includes(filters.city.toLowerCase())) return false;
     }
     return true;
-  }, [filters]);
+  }, [filters, typeFilter]);
 
   // Build a unique skill / city / year option list from loaded sections
   const filterOptions = useMemo(() => {
@@ -261,6 +271,20 @@ export default function NetworkScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
+      <View style={{ flex: 1, flexDirection: 'row' }}>
+        {isWideShell && (
+          <NetworkSidebar
+            me={user}
+            tab={tab}
+            onTabChange={setTab}
+            typeFilter={typeFilter}
+            onTypeFilter={setTypeFilter}
+            connectionsCount={conns.length}
+            requestsCount={reqs.length}
+            freeSessionsRemaining={freeSessionsRemaining}
+          />
+        )}
+        <View style={{ flex: 1, minWidth: 0 }}>
       {/* Top bar */}
       <View style={styles.topBar}>
         <Pressable onPress={() => router.back()} style={styles.backBtn} testID="net-back">
@@ -272,7 +296,8 @@ export default function NetworkScreen() {
         </View>
       </View>
 
-      {/* Tabs */}
+      {/* Tabs (only show when sidebar is hidden — sidebar has its own nav) */}
+      {!isWideShell && (
       <View style={styles.tabs}>
         {([
           { key: 'discover',    label: 'Discover',     count: null },
@@ -283,7 +308,7 @@ export default function NetworkScreen() {
             key={t.key}
             onPress={() => setTab(t.key)}
             style={[styles.tab, tab === t.key && styles.tabActive]}
-            testID={`net-tab-${t.key}`}
+            testID={`net-tab-${t.key}-mobile`}
           >
             <Text style={[styles.tabText, tab === t.key && { color: '#fff' }]}>{t.label}</Text>
             {t.count != null && (
@@ -294,6 +319,10 @@ export default function NetworkScreen() {
           </Pressable>
         ))}
       </View>
+      )}
+
+      {/* Top hero (Discover only) */}
+      {tab === 'discover' && isWideShell && <TopHero me={user} />}
 
       {/* Search + Filters (Discover only) */}
       {tab === 'discover' && (
@@ -406,9 +435,9 @@ export default function NetworkScreen() {
                 <View style={[styles.grid, { paddingHorizontal: isMobile ? 12 : 16, columnGap: gap, rowGap: gap }]}>
                   {flatResults.map((p) => (
                     <PersonCard key={p.id} person={p} width={cardWidth}
-                      onConnect={() => handleConnect(p)}
+                      onConnect={() => p.role === 'mentor' ? setBookingMentor(p) : handleConnect(p)}
                       onOpen={() => setSelectedPerson(p)}
-                      onChat={() => showToast('Direct messages coming soon ✨')}
+                      onChat={() => setChatPerson(p)}
                     />
                   ))}
                 </View>
@@ -445,9 +474,9 @@ export default function NetworkScreen() {
               <View style={[styles.grid, { paddingHorizontal: isMobile ? 12 : 16, columnGap: gap, rowGap: gap }]}>
                 {itemsToShow.map((p) => (
                   <PersonCard key={p.id} person={p} width={cardWidth}
-                    onConnect={() => handleConnect(p)}
+                    onConnect={() => p.role === 'mentor' ? setBookingMentor(p) : handleConnect(p)}
                     onOpen={() => setSelectedPerson(p)}
-                    onChat={() => showToast('Direct messages coming soon ✨')}
+                    onChat={() => setChatPerson(p)}
                   />
                 ))}
               </View>
@@ -486,7 +515,7 @@ export default function NetworkScreen() {
                 <View style={[styles.grid, { columnGap: gap, rowGap: gap }]}>
                   {conns.map((p) => <PersonCard key={p.id} person={p} width={cardWidth}
                     onOpen={() => setSelectedPerson(p)}
-                    onChat={() => showToast('Direct messages coming soon ✨')}
+                    onChat={() => setChatPerson(p)}
                   />)}
                 </View>
               )}
@@ -546,6 +575,29 @@ export default function NetworkScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* Chat / Phone popup */}
+      <ChatPhonePopup
+        visible={!!chatPerson}
+        person={chatPerson}
+        onClose={() => setChatPerson(null)}
+        onBookSession={() => chatPerson && setBookingMentor(chatPerson)}
+      />
+
+      {/* Booking drawer */}
+      <BookingDrawer
+        visible={!!bookingMentor}
+        mentor={bookingMentor}
+        freeRemaining={freeSessionsRemaining}
+        onClose={() => setBookingMentor(null)}
+        onConfirm={(p) => {
+          if (p.isFree) setFreeSessionsRemaining((n) => Math.max(0, n - 1));
+          setBookingMentor(null);
+          showToast(`Session booked for ${p.date} at ${p.time}`);
+        }}
+      />
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
@@ -804,7 +856,16 @@ function PersonCard({
             {person.is_online && <View style={styles.onlineDot} />}
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={styles.name} numberOfLines={1}>{person.full_name}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={[styles.name, { flex: 1 }]} numberOfLines={1}>{person.full_name}</Text>
+              {/* Active/Busy pill — only when we know online state */}
+              {person.is_online === true && (
+                <View style={styles.activePill}><Text style={styles.activePillText}>Active</Text></View>
+              )}
+              {person.is_online === false && (
+                <View style={styles.busyPill}><Text style={styles.busyPillText}>Away</Text></View>
+              )}
+            </View>
             {!!titleLine && (
               <Text style={styles.subline} numberOfLines={1}>{titleLine}</Text>
             )}
@@ -950,6 +1011,14 @@ function PersonCard({
             </View>
           )}
         </View>
+
+        {/* View Profile — full-width secondary CTA (Standalone v3) */}
+        {onOpen && (
+          <Pressable onPress={onOpen} style={styles.viewProfileBtn} testID={`net-view-${person.id}`}>
+            <Eye size={12} color="rgba(255,255,255,0.65)" />
+            <Text style={styles.viewProfileText}>View Profile</Text>
+          </Pressable>
+        )}
       </View>
     </HoverGlowCard>
   );
@@ -1177,4 +1246,24 @@ const styles = StyleSheet.create({
   },
   detailLabel: { color: 'rgba(255,255,255,0.50)', fontFamily: 'DMSans_700Bold', fontSize: 10.5, letterSpacing: 0.6, textTransform: 'uppercase' },
   detailValue: { color: '#fff', fontFamily: 'DMSans_500Medium', fontSize: 12.5 },
+
+  // Standalone v3 — Active/Busy pills + View Profile CTA
+  activePill: {
+    paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 999,
+    backgroundColor: 'rgba(16,185,129,0.16)', borderColor: 'rgba(16,185,129,0.40)', borderWidth: 1,
+  },
+  activePillText: { color: '#34D399', fontFamily: 'DMSans_700Bold', fontSize: 9, letterSpacing: 0.5 },
+  busyPill: {
+    paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1,
+  },
+  busyPillText: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_700Bold', fontSize: 9, letterSpacing: 0.5 },
+  viewProfileBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
+    paddingVertical: 8, marginTop: 6, borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
+    ...({ cursor: 'pointer' } as any),
+  },
+  viewProfileText: { color: 'rgba(255,255,255,0.75)', fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
 });
