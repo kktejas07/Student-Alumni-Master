@@ -2,7 +2,7 @@
  * Onboarding state store - keeps in-progress onboarding data across screens.
  */
 import { create } from 'zustand';
-import type { CareerPath, SchoolInfo } from '@/src/models/entities';
+import type { CareerPath, MentorCategory, SchoolInfo } from '@/src/models/entities';
 
 interface OnboardingState {
   school_info: Partial<SchoolInfo>;
@@ -10,8 +10,8 @@ interface OnboardingState {
   // Role-specific fields per spec
   student_age?: number;
   student_education_level?: 'plus_one' | 'plus_two' | 'btech' | 'bachelors' | 'masters' | 'phd' | 'other';
-  // Mentor-specific fields — per spec, 4 distinct categories (no longer combined)
-  mentor_category?: 'it_software' | 'higher_education' | 'startup' | 'business';
+  // Mentor-specific fields — 10-category taxonomy (single-select for mentor role)
+  mentor_category?: MentorCategory;
   mentor_organization?: string;
   mentor_job_title?: string;
   mentor_linkedin_url?: string;
@@ -22,7 +22,8 @@ interface OnboardingState {
   alumni_role?: string;
   alumni_linkedin_url?: string;
   alumni_wants_to_mentor?: boolean;
-  alumni_mentor_category?: 'it_software' | 'higher_education' | 'startup' | 'business';
+  alumni_mentor_category?: MentorCategory;          // legacy single (kept for back-compat)
+  alumni_mentor_categories?: MentorCategory[];      // multi-select (preferred)
   // Student-specific fields (per spec — specific career goal e.g. "Web Developer")
   student_career_goal?: string;
   // Common

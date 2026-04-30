@@ -1311,3 +1311,43 @@ agent_communication:
         STATUS: Working end-to-end. Photon's Indian school+inter coverage is
         better than Nominatim's biased single search.
 
+
+
+---
+## 2026-04-30 (R7) — Mentor Archetypes Onboarding (10 categories, multi-select)
+agent_communication:
+    - agent: "main"
+      message: |
+        Expanded mentor onboarding to support 10 distinct archetypes per user request.
+
+        BACKEND:
+        - server.py: MentorCategory expanded from 4 → 10 (it_software,
+          engineering_manager, tech_recruiter, hr_mentor, career_coach,
+          higher_education, startup_mentor, startup_advisor, business_mentor,
+          industry_advisor) + back-compat aliases.
+        - AlumniInfo: added mentor_categories: List[MentorCategory] for multi.
+        - SAMPLE_MENTORS: 10 mentors, one per archetype (added Karan Verma —
+          Tech Recruiter, Ritu Aggarwal — HR, Aditi Nair — Career Coach,
+          Vivek Bhat — Industry Advisor; renamed Sneha→EM, Vikram→Advisor).
+        - personalization.py: CAREER_PATH_TO_MENTOR_CATEGORIES (multi) ranks
+          archetypes per career path (Job→SDE+Recruiter+EM+Coach+HR, etc.).
+          Suggestions + build_recommendations use $in match.
+        - Re-seeded sample_mentors collection (cleared old 6).
+
+        FRONTEND:
+        - entities/index.ts: MentorCategory union → 10 categories.
+        - onboardingStore.ts: alumni_mentor_categories: MentorCategory[].
+        - NEW: src/views/web/MentorCategoryGrid.tsx — card grid picker with 5
+          groups (Tech & Engineering, Talent & People, Career Dev,
+          Entrepreneurship, Business & Strategy). Each card has Lucide icon +
+          title + 1-line desc. Active = glowing purple ring + check badge.
+          Single-select for mentor, multi-select max 3 for alumni.
+        - role-details.tsx: dropped legacy chips, wired both branches to grid.
+        - face-capture.tsx: payload sends both mentor_category + mentor_categories.
+
+        VERIFIED via screenshots (dev preview route):
+        ✅ 10 archetypes render in 5 grouped sections
+        ✅ Single-select column: Startup Advisor selects with glow + check
+        ✅ Multi-select column: 3 cards active with check badges
+        ✅ Counter "3/3 selected · pick up to 3 archetypes that fit you"
+        ✅ Max-3 enforcement (4th click ignored)

@@ -24,11 +24,23 @@ export type EducationLevel =
   | 'other';
 
 // Mentors must select 1 specialization; students filter mentors by these.
+// 10-category taxonomy organized by function:
+//   Tech & Engineering: it_software, engineering_manager
+//   Talent & People:    tech_recruiter, hr_mentor
+//   Career Development: career_coach, higher_education
+//   Entrepreneurship:   startup_mentor, startup_advisor
+//   Business:           business_mentor, industry_advisor
 export type MentorCategory =
-  | 'it_software'
-  | 'higher_education'
-  | 'startup_business'
-  | 'education';
+  | 'it_software'           // SDE, Tech Lead, Architect
+  | 'engineering_manager'   // EM, PM, Team Lead
+  | 'tech_recruiter'        // Technical Recruiter, sourcing, ATS
+  | 'hr_mentor'             // HR / People Ops
+  | 'career_coach'          // Career Skill Development (resume, interviews, soft skills)
+  | 'higher_education'      // MS / PhD academic advisor
+  | 'startup_mentor'        // Operational, MVP, early-stage
+  | 'startup_advisor'       // Board, fundraising, equity, scaling
+  | 'business_mentor'       // MBA, corporate ladder, family business
+  | 'industry_advisor';     // Industry / domain expert
 
 // Mentor accounts go through admin review before being visible to students.
 export type MentorStatus = 'pending' | 'approved' | 'rejected';

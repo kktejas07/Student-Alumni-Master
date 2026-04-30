@@ -154,13 +154,23 @@ CAREER_PATH_BONUS: Dict[str, Dict[str, float]] = {
 }
 
 
-# Mapping from spec career path -> mentor category
-# Per spec — 4 distinct categories (no longer combines startup+business)
+# Mapping from spec career path -> ranked list of mentor categories.
+# Multi-category match — a Job seeker should see SDEs + Recruiters + EMs + Coaches.
+CAREER_PATH_TO_MENTOR_CATEGORIES: Dict[str, List[str]] = {
+    "job":              ["it_software", "tech_recruiter", "engineering_manager",
+                          "career_coach", "hr_mentor"],
+    "higher_education": ["higher_education", "career_coach"],
+    "startup":          ["startup_mentor", "startup_advisor", "industry_advisor",
+                          "engineering_manager"],
+    "business":         ["business_mentor", "industry_advisor", "hr_mentor",
+                          "career_coach"],
+}
+# Single-category fallback (kept for backward-compat with existing call sites)
 CAREER_PATH_TO_MENTOR_CATEGORY: Dict[str, str] = {
     "job":              "it_software",
     "higher_education": "higher_education",
-    "startup":          "startup",
-    "business":         "business",
+    "startup":          "startup_mentor",
+    "business":         "business_mentor",
 }
 
 
@@ -269,10 +279,10 @@ def select_priority_modules(scored: List[Tuple[str, float]], top_n: int = TOP_MO
 async def build_recommendations(db, user: dict) -> Dict[str, Any]:
     """Returns hand-picked items: 1 top mentor + 1 urgent event + 1 hot course."""
     career = user.get("career_path")
-    mentor_cat = CAREER_PATH_TO_MENTOR_CATEGORY.get(career or "job", "it_software")
+    mentor_cats = CAREER_PATH_TO_MENTOR_CATEGORIES.get(career or "job", ["it_software"])
 
-    # Mentor: prefer category match
-    mentor = await db.sample_mentors.find_one({"category": mentor_cat}, {"_id": 0})
+    # Mentor: prefer ANY of the matched categories (ordered by preference)
+    mentor = await db.sample_mentors.find_one({"category": {"$in": mentor_cats}}, {"_id": 0})
     if not mentor:
         mentor = await db.sample_mentors.find_one({}, {"_id": 0})
 
@@ -348,16 +358,16 @@ async def build_personalized_dashboard(db, user: dict) -> Dict[str, Any]:
     recommendations = await build_recommendations(db, user)
     closing_soon = await build_closing_soon(db)
 
-    # 6. Mentor list filtered by category
-    mentor_cat = CAREER_PATH_TO_MENTOR_CATEGORY.get(career or "job", "it_software")
+    # 6. Mentor list — multi-category match (e.g., Job → SDE + Recruiter + EM + Coach)
+    mentor_cats = CAREER_PATH_TO_MENTOR_CATEGORIES.get(career or "job", ["it_software"])
     suggested_mentors = await db.sample_mentors.find(
-        {"category": mentor_cat}, {"_id": 0}
-    ).limit(6).to_list(6)
+        {"category": {"$in": mentor_cats}}, {"_id": 0}
+    ).limit(8).to_list(8)
     if len(suggested_mentors) < 3:
         # Fill with general mentors
         extras = await db.sample_mentors.find(
-            {"category": {"$ne": mentor_cat}}, {"_id": 0}
-        ).limit(6 - len(suggested_mentors)).to_list(6)
+            {"category": {"$nin": mentor_cats}}, {"_id": 0}
+        ).limit(8 - len(suggested_mentors)).to_list(8)
         suggested_mentors.extend(extras)
 
     # 7. AI summary (cached only — frontend triggers regeneration explicitly)

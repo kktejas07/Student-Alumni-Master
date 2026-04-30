@@ -107,7 +107,8 @@ export default function FaceCapture() {
           employment_status: onboarding.alumni_employment_status,
           linkedin_url: onboarding.alumni_linkedin_url || undefined,
           wants_to_mentor: !!onboarding.alumni_wants_to_mentor,
-          mentor_category: onboarding.alumni_mentor_category || undefined,
+          mentor_category: onboarding.alumni_mentor_category || onboarding.alumni_mentor_categories?.[0] || undefined,
+          mentor_categories: onboarding.alumni_mentor_categories || (onboarding.alumni_mentor_category ? [onboarding.alumni_mentor_category] : undefined),
         };
       }
       await api.completeOnboarding(payload);

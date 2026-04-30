@@ -9,6 +9,8 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useToast } from '@/src/views/components';
 import { OnboardingShell, DarkChip, DarkInfoCard, DarkToggle } from '@/src/views/web/OnboardingShell';
 import { WebField } from '@/src/views/web/AuthWebControls';
+import { MentorCategoryGrid } from '@/src/views/web/MentorCategoryGrid';
+import type { MentorCategory } from '@/src/models/entities';
 
 const EDU_LEVELS = [
   { id: 'plus_one', label: 'Class 11 (+1)' },
@@ -18,12 +20,6 @@ const EDU_LEVELS = [
   { id: 'masters', label: 'Masters' },
   { id: 'phd', label: 'PhD' },
   { id: 'other', label: 'Other' },
-] as const;
-const MENTOR_CATEGORIES = [
-  { id: 'it_software', label: 'IT / Software' },
-  { id: 'higher_education', label: 'Higher Education' },
-  { id: 'startup', label: 'Startup' },
-  { id: 'business', label: 'Business' },
 ] as const;
 const EMPLOYMENT_STATUSES = [
   { id: 'employed', label: 'Employed' },
@@ -57,8 +53,11 @@ export default function RoleDetailsScreen() {
     }
     if (user?.role === 'alumni') {
       if (!onboarding.alumni_employment_status) { setError('Please select your employment status.'); return false; }
-      if (onboarding.alumni_wants_to_mentor && !onboarding.alumni_mentor_category) {
-        setError('Please pick a mentorship category to mentor students.'); return false;
+      if (onboarding.alumni_wants_to_mentor) {
+        const cats = onboarding.alumni_mentor_categories || [];
+        if (cats.length === 0) {
+          setError('Please pick at least one mentorship archetype to mentor students.'); return false;
+        }
       }
     }
     return true;
@@ -138,18 +137,13 @@ export default function RoleDetailsScreen() {
               📝 Mentor accounts are reviewed by our team for quality. You'll be notified once approved (24–48 hours).
             </Text>
           </DarkInfoCard>
-          <Text style={styles.section}>Mentorship Category</Text>
-          <View style={styles.chipRow}>
-            {MENTOR_CATEGORIES.map((m) => (
-              <DarkChip
-                key={m.id}
-                label={m.label}
-                active={onboarding.mentor_category === m.id}
-                onPress={() => onboarding.setMentorInfo({ mentor_category: m.id })}
-                testID={`mentor-cat-${m.id}`}
-              />
-            ))}
-          </View>
+          <Text style={styles.section}>Mentorship Archetype</Text>
+          <MentorCategoryGrid
+            selected={onboarding.mentor_category ? [onboarding.mentor_category as MentorCategory] : []}
+            onChange={(arr) => onboarding.setMentorInfo({ mentor_category: arr[0] })}
+            multi={false}
+            testIDPrefix="mentor-cat"
+          />
           <WebField label="Organization / Company *" placeholder="e.g., Google, IIT Bombay, Your Startup" value={onboarding.mentor_organization || ''} onChangeText={(v: string) => onboarding.setMentorInfo({ mentor_organization: v })} testID="mentor-org-input" />
           <WebField label="Job Title / Designation *" placeholder="e.g., Senior Engineer, Founder, Professor" value={onboarding.mentor_job_title || ''} onChangeText={(v: string) => onboarding.setMentorInfo({ mentor_job_title: v })} testID="mentor-title-input" />
           <WebField label="LinkedIn URL (highly recommended)" placeholder="https://linkedin.com/in/yourname" keyboardType="url" value={onboarding.mentor_linkedin_url || ''} onChangeText={(v: string) => onboarding.setMentorInfo({ mentor_linkedin_url: v })} testID="mentor-linkedin-input" />
@@ -196,18 +190,20 @@ export default function RoleDetailsScreen() {
           </View>
           {onboarding.alumni_wants_to_mentor && (
             <>
-              <Text style={styles.section}>Mentorship Category *</Text>
-              <View style={styles.chipRow}>
-                {MENTOR_CATEGORIES.map((m) => (
-                  <DarkChip
-                    key={m.id}
-                    label={m.label}
-                    active={onboarding.alumni_mentor_category === m.id}
-                    onPress={() => onboarding.setAlumniInfo({ alumni_mentor_category: m.id })}
-                    testID={`alumni-mentor-cat-${m.id}`}
-                  />
-                ))}
-              </View>
+              <Text style={styles.section}>Mentorship Archetypes (pick up to 3) *</Text>
+              <MentorCategoryGrid
+                selected={
+                  onboarding.alumni_mentor_categories
+                  || (onboarding.alumni_mentor_category ? [onboarding.alumni_mentor_category as MentorCategory] : [])
+                }
+                onChange={(arr) => onboarding.setAlumniInfo({
+                  alumni_mentor_categories: arr,
+                  alumni_mentor_category: arr[0],   // keep legacy field synced
+                })}
+                multi={true}
+                max={3}
+                testIDPrefix="alumni-mentor-cat"
+              />
               <Text style={styles.helper}>You'll be added to the mentor pool after admin review (24–48 hours).</Text>
             </>
           )}
