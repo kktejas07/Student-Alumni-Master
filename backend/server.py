@@ -1554,6 +1554,207 @@ async def admin_approvals(
     return {"items": out, "counts": counts}
 
 
+# ─── Phase 2 — User listings (Colleges/Students/Mentors/Alumni) ──────────
+@api_router.get("/admin/users")
+async def admin_users_list(
+    role: str = "student",
+    q: str = "",
+    limit: int = 100,
+    user: dict = Depends(get_current_user),
+):
+    """List users by role with optional search query."""
+    _require_admin(user)
+    if role not in ("student", "mentor", "alumni", "college", "admin"):
+        raise HTTPException(400, "Invalid role")
+    query: dict = {"role": role}
+    if role == "mentor":
+        query["mentor_status"] = "approved"
+    if q:
+        rx = {"$regex": q, "$options": "i"}
+        query["$or"] = [
+            {"full_name": rx}, {"email": rx},
+            {"school_info.institution_name": rx},
+            {"mentor_profile.organization": rx},
+            {"alumni_info.alumni_employer": rx},
+        ]
+    items = await db.users.find(
+        query, {"password_hash": 0, "face_image_base64": 0},
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    out = []
+    for u in items:
+        mp = u.get("mentor_profile") or {}
+        si = u.get("school_info") or {}
+        ai = u.get("alumni_info") or {}
+        cp = u.get("college_profile") or {}
+        out.append({
+            "id": str(u["_id"]),
+            "name": u.get("full_name") or u.get("email"),
+            "email": u.get("email"),
+            "phone": u.get("phone"),
+            "role": u.get("role"),
+            "career_path": u.get("career_path"),
+            "institution": si.get("institution_name") or u.get("full_name"),
+            "city": si.get("city") or cp.get("city"),
+            "state": si.get("state") or cp.get("state"),
+            "stream": si.get("branch_or_stream"),
+            "course": si.get("current_course") or si.get("class_or_year"),
+            "graduation_year": si.get("graduation_year"),
+            "mentor_title": mp.get("job_title"),
+            "mentor_org": mp.get("organization"),
+            "mentor_category": mp.get("category") or u.get("mentor_category"),
+            "mentor_rating": mp.get("rating"),
+            "mentor_sessions": mp.get("sessions"),
+            "alumni_employer": ai.get("alumni_employer"),
+            "alumni_role": ai.get("alumni_role"),
+            "alumni_wants_to_mentor": ai.get("alumni_wants_to_mentor"),
+            "alumni_count": cp.get("alumni_count"),
+            "placement_rate": cp.get("placement_rate"),
+            "events_hosted": u.get("events_hosted_year") or 0,
+            "email_verified": u.get("email_verified"),
+            "two_fa_enabled": u.get("two_fa_enabled"),
+            "badges": u.get("badges") or [],
+            "created_at": (u.get("created_at") or datetime.utcnow()).isoformat()
+                if isinstance(u.get("created_at"), datetime) else str(u.get("created_at", "")),
+            "linkedin_url": u.get("linkedin_url") or mp.get("linkedin_url") or ai.get("alumni_linkedin_url"),
+        })
+    total = await db.users.count_documents(query)
+    return {"items": out, "total": total}
+
+
+# ─── Phase 3 — Events / Payments / Analytics / Settings ─────────────────
+@api_router.get("/admin/events")
+async def admin_events_list(user: dict = Depends(get_current_user)):
+    """Events list (re-uses db.events seed)."""
+    _require_admin(user)
+    if "events" not in await db.list_collection_names():
+        return {"items": []}
+    items = await db.events.find({}, {"_id": 0}).limit(100).to_list(100)
+    return {"items": items}
+
+
+@api_router.post("/admin/events")
+async def admin_event_create(payload: dict, user: dict = Depends(get_current_user)):
+    """Create a new event."""
+    _require_admin(user)
+    payload["id"] = str(ObjectId())
+    payload["created_at"] = datetime.utcnow()
+    payload.setdefault("rsvp_count", 0)
+    await db.events.insert_one(payload.copy())
+    payload.pop("_id", None)
+    return payload
+
+
+@api_router.get("/admin/payments")
+async def admin_payments(user: dict = Depends(get_current_user)):
+    """Payments stats — mock revenue/payout time series + transactions list."""
+    _require_admin(user)
+    # Mock 6-month revenue/payouts (placeholder until Stripe wires in)
+    months = []
+    base = 80000
+    now = datetime.utcnow()
+    for i in range(5, -1, -1):
+        m = (now.replace(day=1) - timedelta(days=30 * i))
+        months.append({
+            "label": m.strftime("%b"),
+            "revenue": base + (5 - i) * 12000 + (i * 3500),
+            "payouts": int((base + (5 - i) * 12000) * 0.55),
+        })
+    transactions = []
+    sample_users = await db.users.find(
+        {"role": {"$in": ["student", "mentor"]}},
+        {"_id": 1, "full_name": 1, "email": 1, "role": 1},
+    ).limit(8).to_list(8)
+    import random as _rd
+    for i, u in enumerate(sample_users):
+        amount = _rd.choice([499, 999, 1499, 2499, 4999])
+        status = _rd.choice(["completed", "completed", "completed", "pending", "refunded"])
+        transactions.append({
+            "id": f"TXN-{1000 + i}",
+            "user": u.get("full_name") or u.get("email"),
+            "kind": "Mentor Session" if u.get("role") == "student" else "Mentor Payout",
+            "amount": amount,
+            "status": status,
+            "date": (now - timedelta(days=i)).isoformat(),
+        })
+    revenue_total = sum(m["revenue"] for m in months)
+    payouts_total = sum(m["payouts"] for m in months)
+    return {
+        "monthly": months,
+        "transactions": transactions,
+        "kpis": {
+            "revenue_total":  revenue_total,
+            "payouts_total":  payouts_total,
+            "net":            revenue_total - payouts_total,
+            "tx_count":       len(transactions),
+        },
+    }
+
+
+@api_router.get("/admin/analytics")
+async def admin_analytics(user: dict = Depends(get_current_user)):
+    """Aggregated analytics for charts."""
+    _require_admin(user)
+    # Career path breakdown
+    paths = ["job", "higher_education", "startup", "business"]
+    cp_breakdown = []
+    for p in paths:
+        c = await db.users.count_documents({"career_path": p})
+        cp_breakdown.append({"label": p.replace("_", " ").title(), "value": c})
+    # Stream breakdown (top 6)
+    stream_pipeline = [
+        {"$match": {"school_info.branch_or_stream": {"$ne": None}}},
+        {"$group": {"_id": "$school_info.branch_or_stream", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 6},
+    ]
+    streams = await db.users.aggregate(stream_pipeline).to_list(6)
+    # Mentor categories
+    cat_pipeline = [
+        {"$match": {"role": "mentor", "mentor_status": "approved"}},
+        {"$group": {"_id": "$mentor_profile.category", "count": {"$sum": 1}}},
+        {"$match": {"_id": {"$ne": None}}},
+        {"$sort": {"count": -1}},
+    ]
+    mentor_cats = await db.users.aggregate(cat_pipeline).to_list(20)
+    # Engagement metrics (mock blend for now)
+    engagement = {
+        "session_completion": 0.78,
+        "mentor_response_avg_hr": 6.4,
+        "placement_avg":         0.82,
+        "active_dau":            148,
+        "active_mau":            812,
+    }
+    return {
+        "career_paths":    cp_breakdown,
+        "top_streams":     [{"label": s["_id"], "value": s["count"]} for s in streams],
+        "mentor_categories": [{"label": (c["_id"] or "").replace("_", " ").title(), "value": c["count"]} for c in mentor_cats],
+        "engagement":      engagement,
+    }
+
+
+@api_router.get("/admin/settings/admins")
+async def admin_settings_list(user: dict = Depends(get_current_user)):
+    """List of admin users."""
+    _require_admin(user)
+    items = await db.users.find(
+        {"role": "admin"}, {"password_hash": 0, "face_image_base64": 0},
+    ).to_list(50)
+    return {
+        "items": [
+            {
+                "id": str(u["_id"]),
+                "name": u.get("full_name") or u.get("email"),
+                "email": u.get("email"),
+                "role": "Super Admin" if u.get("is_super_admin") else "Admin",
+                "two_fa_enabled": u.get("two_fa_enabled"),
+                "created_at": (u.get("created_at") or datetime.utcnow()).isoformat()
+                    if isinstance(u.get("created_at"), datetime) else str(u.get("created_at", "")),
+            }
+            for u in items
+        ]
+    }
+
+
 # ----------------------------------------------------------------------------
 # AI Endpoints (Claude Sonnet 4.5 via emergentintegrations)
 # ----------------------------------------------------------------------------

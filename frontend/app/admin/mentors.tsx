@@ -1,2 +1,2 @@
-import Placeholder from '@/src/views/web/admin/PlaceholderPage';
-export default function Page() { return <Placeholder title="Mentors" subtitle="Active mentors directory" />; }
+import UsersListPage from '@/src/views/web/admin/UsersListPage';
+export default function Page() { return <UsersListPage role="mentor" pageTitle="Mentors" pageSubtitle="Active mentors directory" />; }

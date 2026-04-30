@@ -1,2 +1,2 @@
-import Placeholder from '@/src/views/web/admin/PlaceholderPage';
-export default function Page() { return <Placeholder title="Colleges" subtitle="Manage all institutions" />; }
+import UsersListPage from '@/src/views/web/admin/UsersListPage';
+export default function Page() { return <UsersListPage role="college" pageTitle="Colleges" pageSubtitle="Manage all institutions" />; }
