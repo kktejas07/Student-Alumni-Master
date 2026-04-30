@@ -59,6 +59,8 @@ interface Person {
   photo_data?: string;
   wants_to_mentor?: boolean;
   sa_id?: string;
+  badges?: Array<{ id: string; label: string; tier: string; icon?: string; kind?: string; category?: string }>;
+  badges_total?: number;
   connection_state: 'none' | 'pending' | 'connected' | 'incoming';
   requested_at?: string;
 }
@@ -351,6 +353,34 @@ function PersonCard({
           </View>
         </View>
 
+        {/* Top badges (credentials + engagement) */}
+        {person.badges && person.badges.length > 0 && (
+          <View style={styles.badgeRow}>
+            {person.badges.slice(0, 3).map((b, idx) => {
+              const tierColor =
+                b.tier === 'special'  ? '#A78BFA'
+              : b.tier === 'high'     ? '#F59E0B'
+              : b.tier === 'verified' ? '#10B981'
+              : b.tier === 'moderate' ? '#2DD4BF'
+              :                          '#94A3B8';
+              return (
+                <View key={`b-${idx}`} style={[styles.badgeChip, { backgroundColor: tierColor + '1F', borderColor: tierColor + '60' }]}>
+                  <Text style={[styles.badgeChipText, { color: tierColor }]} numberOfLines={1}>
+                    {b.label}
+                  </Text>
+                </View>
+              );
+            })}
+            {person.badges_total != null && person.badges_total > 3 && (
+              <View style={[styles.badgeChip, { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.10)' }]}>
+                <Text style={[styles.badgeChipText, { color: 'rgba(255,255,255,0.65)' }]}>
+                  +{person.badges_total - 3}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
         {(person.interests?.length || person.skills?.length) ? (
           <View style={styles.chips}>
             {(person.interests?.slice(0, 3) || []).map((i) => (
@@ -474,6 +504,12 @@ const styles = StyleSheet.create({
   metaText: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium', fontSize: 11 },
 
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
+  badgeChip: {
+    paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999, borderWidth: 1,
+    maxWidth: 130,
+  },
+  badgeChipText: { fontFamily: 'DMSans_700Bold', fontSize: 10, letterSpacing: 0.2 },
   chipPurple: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
     paddingHorizontal: 7, paddingVertical: 3, borderRadius: 4,

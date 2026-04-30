@@ -2569,6 +2569,19 @@ def _user_card(u: dict) -> dict:
     si = u.get("school_info") or {}
     mp = u.get("mentor_profile") or {}
     ai = u.get("alumni_info") or {}
+    # Trim badges to the most prestigious 3 for compact display.
+    # We use any pre-computed badges on the user doc; if none, return [].
+    raw_badges = u.get("badges") or []
+    tier_rank = {"special": 4, "high": 3, "verified": 2, "moderate": 1, "low": 0}
+    sorted_badges = sorted(
+        raw_badges,
+        key=lambda b: -tier_rank.get(b.get("tier"), 0),
+    )
+    top_badges = [
+        {"id": b.get("id"), "label": b.get("label"), "tier": b.get("tier"),
+         "icon": b.get("icon"), "kind": b.get("kind"), "category": b.get("category")}
+        for b in sorted_badges[:3]
+    ]
     return {
         "id": str(u.get("_id") or u.get("id")),
         "full_name": u.get("full_name") or u.get("email"),
@@ -2592,6 +2605,8 @@ def _user_card(u: dict) -> dict:
         "photo_data": u.get("face_image_base64"),
         "wants_to_mentor": ai.get("wants_to_mentor") or ai.get("alumni_wants_to_mentor") or u.get("role") == "mentor",
         "sa_id": u.get("sa_id"),
+        "badges": top_badges,
+        "badges_total": len(raw_badges),
     }
 
 

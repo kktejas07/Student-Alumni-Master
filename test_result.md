@@ -527,6 +527,55 @@ test_plan:
   test_priority: "high_first"
 
 backend:
+  - task: "Network — include top-3 badges + total count in user_card payload"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py + /app/backend/badges.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            ✅ _user_card() now sorts persisted user.badges by tier_rank
+              (special > high > verified > moderate > low) and returns:
+                · top 3 badges (id/label/tier/icon/kind/category)
+                · badges_total count
+            ✅ One-off recompute: ran compute_badges() over all 110 seeded
+              users so persisted badges reflect the latest credential rules
+              (Tier-1/2/3 Institute, Bachelor's/Master's, Class 11/12,
+              years_of_experience, certificates, engagement, founder, etc.)
+
+frontend:
+  - task: "Network PersonCard — render badge stack with tier colors"
+    implemented: true
+    working: true
+    file: "/app/frontend/app/network.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            Verified end-to-end via screenshot tool (student01 / IIT Hyderabad):
+            ✅ Each PersonCard shows up to 3 tier-colored badge chips above
+               the interest/skill chips:
+                · Tier-1 Institute (gold) for IIT Bombay/Hyderabad/etc.
+                · Tier-2 Institute (teal) for VIT Vellore, NIT Trichy, etc.
+                · Tier-3 Institute (slate) for less-known schools
+                · Bachelor's Degree (teal), Master's Degree (gold)
+                · Class 11 / 12 (slate)
+                · 6 yrs Experience (teal) for alumni/mentors
+                · Founder Member (purple special)
+                · Lightning (gold high) for top response-time mentors
+            ✅ +N indicator when badges_total > 3 (e.g. Pari Alumni shows +5
+               for her 8 total badges)
+            ✅ Color tiers: special purple, high amber, verified green,
+               moderate teal, low slate
+
+backend:
   - task: "Phase 2 — Network API (discover/connections/requests + connect/accept/reject)"
     implemented: true
     working: true
