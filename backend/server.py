@@ -551,6 +551,16 @@ async def download_sa_flows_zip():
     return FileResponse(p, media_type="application/zip", filename="sa_flows.zip")
 
 
+@api_router.get("/downloads/expo_qr.png")
+async def download_expo_qr():
+    """Serves the QR code that Expo Go can scan to open the live app."""
+    from fastapi.responses import FileResponse
+    p = "/app/backend/static_downloads/expo_qr.png"
+    if not os.path.exists(p):
+        raise HTTPException(404, "QR not found")
+    return FileResponse(p, media_type="image/png")
+
+
 @api_router.post("/auth/2fa/setup", response_model=TwoFASetupResponse)
 async def two_fa_setup(user: dict = Depends(get_current_user)):
     """Generate a fresh TOTP secret and QR for the authenticator app.
