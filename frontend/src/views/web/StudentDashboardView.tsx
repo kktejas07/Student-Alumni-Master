@@ -24,6 +24,7 @@ import {
 } from 'lucide-react-native';
 import { GlowCard } from './BentoComponents';
 import { StudentDashboardMobileView } from './StudentDashboardMobileView';
+import { UserBadgesInline } from './UserBadgesInline';
 
 const IS_WEB = Platform.OS === 'web';
 
@@ -334,6 +335,7 @@ function TopBar({
         <Text style={styles.greetingSub}>
           Your AI assistant has 3 new career suggestions.
         </Text>
+        <UserBadgesInline max={4} compact />
       </View>
       {isWide && (
         <View style={styles.searchBox}>

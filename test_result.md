@@ -1351,3 +1351,40 @@ agent_communication:
         ✅ Multi-select column: 3 cards active with check badges
         ✅ Counter "3/3 selected · pick up to 3 archetypes that fit you"
         ✅ Max-3 enforcement (4th click ignored)
+
+
+---
+## 2026-04-30 (R8) — Multi-role Tiered Badge System ✅
+agent_communication:
+    - agent: "main"
+      message: |
+        Built complete multi-role badge engine with 3-tier auto-computation.
+
+        BACKEND:
+        - NEW /app/backend/badges.py — BADGE_RULES (4 roles × 4-5 categories
+          = 18 tiered badges) + 8 universal badges. Metric resolvers for
+          activity, sessions, courses, networking, events, exp, trust,
+          response time, alumni, placements, verification, hires, reputation.
+          TIER_THEME: low/moderate/high/verified/special with color + glow.
+        - server.py: 4 new endpoints
+          • GET  /api/users/me/badges
+          • GET  /api/users/{user_id}/badges (public)
+          • POST /api/users/me/badges/refresh
+          • POST /api/admin/badges/recompute-all
+        - Seeded test accounts with realistic activity → real badges.
+
+        FRONTEND:
+        - NEW src/views/web/Badges.tsx — BadgeChip + BadgeStack with 33
+          Lucide icons, sorted by tier rank, "+N" overflow chip, hover
+          tooltip, glow shadow.
+        - NEW src/views/web/UserBadgesInline.tsx — auto-fetches user's
+          badges and renders BadgeStack inline.
+        - StudentDashboardView.tsx: <UserBadgesInline max={4} compact />
+          wired under greeting in TopBar.
+
+        VERIFIED via screenshot — student01 shows: Founder Member (purple
+        special), Email Verified (emerald), Connector (teal), Participant
+        (teal), +2 overflow. Glass & Gradient theme preserved.
+
+        STATUS: Working end-to-end. Ready to drop UserBadgesInline onto
+        mentor cards, college pages, profile, other dashboards next.

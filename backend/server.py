@@ -55,6 +55,11 @@ from personalization import (
     CAREER_PATH_TO_MENTOR_CATEGORY,
 )
 
+# Multi-role badge engine
+from badges import (
+    compute_badges, refresh_user_badges, compute_all_users_badges, get_tier_theme,
+)
+
 # Role-based analytics + external API integrations
 from analytics import get_analytics_for, super_admin_analytics, college_analytics, mentor_analytics
 from integrations import (
@@ -499,6 +504,75 @@ async def login(req: LoginRequest):
 async def get_me(user: dict = Depends(get_current_user)):
     """Returns the currently authenticated user."""
     return UserResponse(**serialize_user(user))
+
+
+# ----------------------------------------------------------------------------
+# Badge endpoints (multi-role tiered + universal)
+# ----------------------------------------------------------------------------
+@api_router.get("/users/me/badges")
+async def my_badges(user: dict = Depends(get_current_user)):
+    """Compute & return the current user's badges + theme metadata."""
+    badges = await compute_badges(db, user)
+    try:
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"badges": badges, "badges_updated_at": datetime.utcnow()}},
+        )
+    except Exception:
+        pass
+    return {"badges": badges, "theme": get_tier_theme()}
+
+
+@api_router.get("/users/{user_id}/badges")
+async def user_badges(user_id: str):
+    """Public — fetch any user's badges (used on mentor cards / profile pages)."""
+    try:
+        target = await db.users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        target = None
+    if not target:
+        raise HTTPException(404, "User not found")
+    cached = target.get("badges")
+    if cached and target.get("badges_updated_at"):
+        return {"badges": cached, "theme": get_tier_theme(), "cached": True}
+    badges = await compute_badges(db, target)
+    try:
+        await db.users.update_one(
+            {"_id": target["_id"]},
+            {"$set": {"badges": badges, "badges_updated_at": datetime.utcnow()}},
+        )
+    except Exception:
+        pass
+    return {"badges": badges, "theme": get_tier_theme()}
+
+
+@api_router.post("/users/me/badges/refresh")
+async def refresh_my_badges(user: dict = Depends(get_current_user)):
+    """Force-recompute & persist (called after key events from the client)."""
+    badges = await compute_badges(db, user)
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"badges": badges, "badges_updated_at": datetime.utcnow()}},
+    )
+    return {"badges": badges, "theme": get_tier_theme()}
+
+
+@api_router.post("/admin/badges/recompute-all")
+async def admin_recompute_all_badges(user: dict = Depends(get_current_user)):
+    """Admin-only — nightly batch recompute (manually triggerable)."""
+    if user.get("role") != "admin":
+        raise HTTPException(403, "Admin only")
+    count = 0
+    async for u in db.users.find({}, {"_id": 1, "role": 1, "email_verified": 1, "two_fa_enabled": 1}):
+        full = await db.users.find_one({"_id": u["_id"]})
+        if full:
+            badges = await compute_badges(db, full)
+            await db.users.update_one(
+                {"_id": full["_id"]},
+                {"$set": {"badges": badges, "badges_updated_at": datetime.utcnow()}},
+            )
+            count += 1
+    return {"processed": count}
 
 
 @api_router.post("/auth/refresh")
