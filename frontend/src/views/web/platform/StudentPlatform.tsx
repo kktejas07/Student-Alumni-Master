@@ -63,7 +63,15 @@ export default function StudentPlatform() {
         <Sidebar
           navItems={NAV}
           activeId={screen}
-          onNav={setScreen}
+          onNav={(id) => {
+            if (id === 'profile') {
+              router.push('/me');
+            } else if (id === 'events') {
+              router.push('/events');
+            } else {
+              setScreen(id);
+            }
+          }}
           brandSubtitle="Web Dashboard"
           bgColor={SA.sideStudent}
           railColor={SA.railStudent}

@@ -2274,3 +2274,45 @@ agent_communication:
           · Privacy locks shown for Email/Phone when not shared.
 
 
+
+
+---
+## 2026-04-30 — Dashboard → Profile wiring + SA Profile Web Standalone verification
+agent_communication:
+    - agent: "main"
+      message: |
+        WIRED StudentPlatform sidebar "Profile" → /me standalone route.
+        CHANGES:
+          • /app/frontend/src/views/web/platform/StudentPlatform.tsx —
+            onNav handler now routes "profile" → router.push("/me")
+            and "events" → router.push("/events") instead of noop
+            setScreen (which had no render handler).
+          • /app/frontend/app/me.tsx — NEW. Standalone web route that
+            re-exports the Profile Web Shell from /(tabs)/profile so
+            it renders outside the mobile tab bar.
+        VERIFIED (screenshot, 1440×900, logged in as student01):
+          · /platform → click "Profile" in sidebar → URL becomes /me
+          · /me renders full SA Profile Web Standalone layout:
+            ✓ 268px sidebar: SA brand box, "Student Alumni" title,
+              "PROFILE SETTINGS" kicker
+            ✓ Mini user card (AS avatar, "Aarav Student", 58% pill)
+            ✓ PROFILE section (Profile Information active, Manage Profile)
+            ✓ ACCOUNT section (Settings, Notifications, Security)
+            ✓ "Back to Dashboard" footer button
+            ✓ Top bar: "Profile Information" title + subtitle,
+              Edit Profile / Digital ID Card toggle, "Profile 58%"
+              yellow score pill, AS top-right avatar
+            ✓ Hero Card (78px avatar, name, headline, Verified Student
+              green chip with check)
+            ✓ Profile Completion card (58%) with earned chips
+              (Basic info ✓, Profile photo ✓, Bio ✓, College ✓,
+              Social ✓, 3+ interests ✓, Skills ✓)
+            ✓ 280px Right rail: STUDENT STATS (Sessions Completed,
+              Connections Made, Profile Views, Mentor Sessions,
+              Applications Sent — each with tinted icon tile)
+            ✓ Basic Information form (Upload Photo, First Name Aarav,
+              Last Name Student, Headline/Tagline, About/Bio)
+        RESULT: all 8 UI fixes from the prior session are verified
+        working; layout matches the SA Profile Web Standalone HTML
+        artifact.
+
