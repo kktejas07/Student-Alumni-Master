@@ -644,6 +644,143 @@ async def delete_my_certificate(cert_id: str, user: dict = Depends(get_current_u
 
 
 
+# ─── Digital ID Card ────────────────────────────────────────────────────
+def _generate_sa_id() -> str:
+    """Generate a fresh SA-{YY}-{6digit} identifier."""
+    yy = datetime.utcnow().year % 100
+    n = random.randint(100000, 999999)
+    return f"SA-{yy:02d}-{n}"
+
+
+def _student_status_label(user: dict) -> dict:
+    """Compute display status (Final Year / Pre-Final / Junior / Alumni / etc.)."""
+    role = (user.get("role") or "").lower()
+    if role == "alumni":
+        return {"label": "Alumni", "color": "#A78BFA"}
+    if role == "mentor":
+        return {"label": "Mentor", "color": "#F59E0B"}
+    if role == "college":
+        return {"label": "Institution", "color": "#22D3EE"}
+    si = user.get("school_info") or {}
+    cls = (si.get("class_or_year") or si.get("current_course") or "").lower()
+    gy = si.get("graduation_year")
+    now = datetime.utcnow().year
+    try:
+        gy = int(gy) if gy else None
+    except Exception:
+        gy = None
+    if gy:
+        years_left = gy - now
+        if years_left <= 0:
+            return {"label": "Graduating", "color": "#10B981"}
+        if years_left == 1:
+            return {"label": "Final Year", "color": "#10B981"}
+        if years_left == 2:
+            return {"label": "Pre-Final Year", "color": "#22D3EE"}
+        return {"label": "Junior", "color": "#A78BFA"}
+    if "12" in cls or "plus two" in cls:
+        return {"label": "Class 12 · Senior", "color": "#10B981"}
+    if "11" in cls or "plus one" in cls:
+        return {"label": "Class 11", "color": "#22D3EE"}
+    if "10" in cls:
+        return {"label": "Class 10", "color": "#A78BFA"}
+    return {"label": "Student", "color": "#A78BFA"}
+
+
+@api_router.get("/users/me/id-card")
+async def my_id_card(user: dict = Depends(get_current_user)):
+    """
+    Return the user's Digital ID Card payload.
+
+    Lazy-assigns sa_id on first call. Returns:
+      sa_id, full_name, role, status (label+color), college, batch,
+      branch, photo_data, verify_url, qr_payload, issued_at
+    """
+    sa_id = user.get("sa_id")
+    if not sa_id:
+        # Lazy-assign — retry up to 5 times to avoid duplicate IDs.
+        for _ in range(5):
+            sa_id = _generate_sa_id()
+            existing = await db.users.find_one({"sa_id": sa_id})
+            if not existing:
+                break
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"sa_id": sa_id, "sa_id_issued_at": datetime.utcnow()}},
+        )
+        user["sa_id"] = sa_id
+
+    si = user.get("school_info") or {}
+    ai = user.get("alumni_info") or {}
+    cp = user.get("college_profile") or {}
+    role = (user.get("role") or "").lower()
+    status = _student_status_label(user)
+
+    institution = (
+        si.get("institution_name")
+        or ai.get("institution_name")
+        or (user.get("full_name") if role == "college" else None)
+        or "—"
+    )
+    branch = si.get("branch_or_stream") or ai.get("branch_or_stream") or si.get("current_course") or ""
+    batch = si.get("graduation_year") or ai.get("graduation_year")
+    if batch:
+        try:
+            batch = f"Class of {int(batch)}"
+        except Exception:
+            batch = str(batch)
+
+    public_verify_url = f"/api/id-cards/{sa_id}"
+
+    return {
+        "sa_id": sa_id,
+        "full_name": user.get("full_name") or user.get("email"),
+        "email": user.get("email"),
+        "role": role,
+        "status": status,
+        "institution": institution,
+        "branch": branch,
+        "batch": batch,
+        "city": si.get("city") or cp.get("city"),
+        "state": si.get("state") or cp.get("state"),
+        "photo_data": user.get("face_image_base64"),
+        "linkedin_url": user.get("linkedin_url"),
+        "issued_at": (user.get("sa_id_issued_at") or datetime.utcnow()).isoformat()
+            if isinstance(user.get("sa_id_issued_at"), datetime) else str(user.get("sa_id_issued_at") or datetime.utcnow().isoformat()),
+        "verify_url": public_verify_url,
+        # QR encodes a JSON-friendly compact string for offline verification
+        "qr_payload": f"sa://verify?id={sa_id}",
+    }
+
+
+@api_router.get("/id-cards/{sa_id}")
+async def verify_id_card(sa_id: str):
+    """
+    Public ID verification endpoint — returns ONLY non-sensitive fields,
+    used by anyone scanning the QR code.
+    """
+    u = await db.users.find_one(
+        {"sa_id": sa_id},
+        {"password_hash": 0, "phone": 0, "face_image_base64": 0, "two_fa_secret": 0},
+    )
+    if not u:
+        raise HTTPException(404, "Invalid SA-ID")
+    si = u.get("school_info") or {}
+    institution = si.get("institution_name") or u.get("full_name") or "—"
+    return {
+        "sa_id": sa_id,
+        "valid": True,
+        "full_name": u.get("full_name") or "—",
+        "role": u.get("role"),
+        "institution": institution,
+        "status": _student_status_label(u),
+        "issued_at": (u.get("sa_id_issued_at") or u.get("created_at") or "").isoformat()
+            if isinstance(u.get("sa_id_issued_at") or u.get("created_at"), datetime) else "",
+    }
+
+
+
+
 
 @api_router.post("/auth/refresh")
 async def refresh_token(payload: dict):

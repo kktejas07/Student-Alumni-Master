@@ -313,6 +313,9 @@ export default function ProfileTab() {
 
         <Text style={styles.sectionTitle}>Account</Text>
         <View style={{ gap: 10 }}>
+          <Row icon={CreditCard} label="Digital ID Card" tint="#A78BFA"
+            onPress={() => router.push('/id-card' as any)}
+            testID="profile-row-id-card" />
           <Row icon={Settings} label="Edit Preferences"
             onPress={() => router.push('/preferences' as any)}
             testID="profile-row-settings" />

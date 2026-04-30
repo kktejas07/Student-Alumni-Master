@@ -527,6 +527,61 @@ test_plan:
   test_priority: "high_first"
 
 backend:
+  - task: "Phase 1 — Digital ID Card endpoints + SA-ID auto-assignment"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            ✅ GET /api/users/me/id-card — lazy-assigns SA-{YY}-{6digit} on first
+              call (verified unique against db), returns full card payload:
+              sa_id, full_name, role, status (label+color computed by graduation
+              year/class), institution, branch, batch, city/state, photo_data,
+              qr_payload (sa://verify?id=...), verify_url, issued_at
+            ✅ GET /api/id-cards/{sa_id} — public verification endpoint that
+              ONLY exposes name, role, institution, status, issued_at
+              (phone/email/2FA secret/photo all stripped)
+            ✅ Smart status: "Class 11" / "Final Year" / "Pre-Final Year" /
+              "Alumni" / "Mentor" / "Institution" auto-derived from role and
+              graduation_year/class_or_year fields.
+
+frontend:
+  - task: "Phase 1 — Digital ID Card screen at /id-card"
+    implemented: true
+    working: true
+    file: "/app/frontend/app/id-card.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            Verified end-to-end via screenshot tool (student01 → /id-card):
+            ✅ Premium glass-morphism dark card with purple accent +
+               hologram strip at bottom
+            ✅ Branded top stripe: SA logo + STUDENT-ALUMNI/NETWORK +
+               green VERIFIED pill
+            ✅ Photo placeholder shows initials "AS"; falls back to face_image
+               when set; below it a tier-coloured status chip (Class 11 in teal)
+            ✅ Identity column: NAME / SA-ID label + value
+               (SA-26-687801 in purple)
+            ✅ 4-cell detail grid: INSTITUTION (IIT Hyderabad), BRANCH (CSE),
+               LOCATION (Hyderabad, Telangana). Empty cells skipped.
+            ✅ Working QR code (react-native-qrcode-svg) with white background
+               + SCAN TO VERIFY label + verify_url + ISSUED date
+            ✅ Action row: "Download PNG" (web html2canvas fallback to print)
+               and "Share" (Web Share API or clipboard / RN Share sheet)
+            ✅ Privacy note explaining what the QR exposes vs hides
+            ✅ Profile tab now has a "Digital ID Card" row with CreditCard
+               icon (purple tint) → routes to /id-card
+
+backend:
   - task: "Credential Badge engine + Certificate CRUD"
     implemented: true
     working: true
