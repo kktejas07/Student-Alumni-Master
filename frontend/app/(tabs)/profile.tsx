@@ -125,18 +125,27 @@ export default function ProfileScreen() {
 
   const NAV_PROFILE: { key: PageKey; label: string; icon: any; sub: string }[] = [
     { key: 'info', label: 'Profile Information', icon: User, sub: 'Identity, education, social, skills' },
-    { key: 'digitalid', label: 'Digital ID Card', icon: IdCard, sub: 'Your SA-ID card — shareable & downloadable' },
     { key: 'manage', label: 'Manage Profile', icon: SlidersHorizontal, sub: 'Visibility, resume, sections, badges' },
   ];
   const NAV_ACCOUNT: { key: PageKey; label: string; icon: any; sub: string }[] = [
-    { key: 'notifications', label: 'Notification Preferences', icon: Bell, sub: 'Choose what we ping you about' },
-    { key: 'privacy', label: 'Privacy & Security', icon: ShieldCheck, sub: 'Control who sees what about you' },
-    { key: 'settings', label: 'Settings & Preferences', icon: SettingsIcon, sub: 'AI coach, language, theme, account' },
+    { key: 'settings', label: 'Settings', icon: SettingsIcon, sub: 'AI coach, language, theme, account' },
+    { key: 'notifications', label: 'Notifications', icon: Bell, sub: 'Choose what we ping you about' },
+    { key: 'privacy', label: 'Security', icon: ShieldCheck, sub: 'Privacy, 2FA, password, data' },
   ];
   const NAV = [...NAV_PROFILE, ...NAV_ACCOUNT];
   const currentNav = NAV.find((n) => n.key === page) || NAV[0];
-  // Top tabs: Edit Profile (any page except digitalid) / Digital ID Card
   const topTab: 'edit' | 'digitalid' = page === 'digitalid' ? 'digitalid' : 'edit';
+
+  const headlineStr = draft.headline || [draft.branch, draft.institution].filter(Boolean).join(' · ') || 'Add a headline…';
+  const cgpaChip = draft.cgpa;
+  const sessionsChip = draft.sessions_completed || draft.mentor_sessions_used;
+  const stats = {
+    sessions: draft.sessions_completed || 0,
+    connections: draft.connections_count || 0,
+    profile_views: draft.profile_views || 0,
+    mentor_sessions: draft.mentor_sessions_used || 0,
+    applications: draft.applications_count || 0,
+  };
 
   if (loading) {
     return (
@@ -149,12 +158,17 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <View style={[styles.layout, isMobile && { flexDirection: 'column' }]}>
-        {/* Sidebar (or top header on mobile) */}
+        {/* Sidebar */}
         {!isMobile && (
           <View style={styles.sidebar}>
-            <Pressable onPress={() => router.back()} style={styles.backBtn} testID="profile-back">
-              <ArrowLeft size={16} color={C.text2} /><Text style={styles.backText}>Back to Dashboard</Text>
-            </Pressable>
+            {/* Brand */}
+            <View style={styles.brandRow}>
+              <View style={styles.brandBox}><Text style={styles.brandBoxText}>SA</Text></View>
+              <View>
+                <Text style={styles.brandName}>Student Alumni</Text>
+                <Text style={styles.brandKicker}>PROFILE SETTINGS</Text>
+              </View>
+            </View>
 
             <View style={styles.miniCard}>
               <View style={styles.miniAvatar}>
@@ -166,7 +180,10 @@ export default function ProfileScreen() {
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={styles.miniName} numberOfLines={1}>{draft.full_name || 'Your name'}</Text>
-                <Text style={styles.miniMeta} numberOfLines={1}>{(draft.role || 'student').toUpperCase()} · {completion.percentage}% complete</Text>
+                <Text style={styles.miniMeta} numberOfLines={1}>{[draft.institution, draft.branch, draft.graduation_year ? `'${String(draft.graduation_year).slice(-2)}` : null].filter(Boolean).join(' · ') || '—'}</Text>
+              </View>
+              <View style={styles.miniPct}>
+                <Text style={styles.miniPctText}>{completion.percentage}%</Text>
               </View>
             </View>
 
@@ -191,8 +208,9 @@ export default function ProfileScreen() {
                 </Pressable>
               );
             })}
-            <Pressable onPress={handleLogout} style={[styles.navItem, { marginTop: 6 }]} testID="profile-logout">
-              <LogOut size={15} color={C.text2} /><Text style={styles.navText}>Sign Out</Text>
+            <View style={{ flex: 1 }} />
+            <Pressable onPress={() => router.back()} style={styles.backBtn} testID="profile-back">
+              <ArrowLeft size={14} color={C.text2} /><Text style={styles.backText}>Back to Dashboard</Text>
             </Pressable>
           </View>
         )}
@@ -201,7 +219,9 @@ export default function ProfileScreen() {
         <View style={[styles.main, isMobile && { paddingHorizontal: 14 }]}>
           {/* Top bar with Edit Profile / Digital ID Card tab toggle */}
           <View style={styles.topBar}>
-            <Pressable onPress={() => router.back()} style={styles.backBtnSm}><ArrowLeft size={16} color="#fff" /></Pressable>
+            {isMobile && (
+              <Pressable onPress={() => router.back()} style={styles.backBtnSm}><ArrowLeft size={16} color="#fff" /></Pressable>
+            )}
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={styles.title}>{currentNav.label}</Text>
               <Text style={styles.subtitle}>{currentNav.sub}</Text>
@@ -220,6 +240,13 @@ export default function ProfileScreen() {
             <View style={styles.scorePill}>
               <Text style={styles.scorePillText}>Profile {completion.percentage}%</Text>
             </View>
+            <View style={styles.topAvatar}>
+              {draft.photo_data || draft.face_image_base64 ? (
+                <Image source={{ uri: draft.photo_data || draft.face_image_base64 }} style={{ width: '100%', height: '100%' }} />
+              ) : (
+                <Text style={styles.topAvatarText}>{((draft.full_name || '?').split(' ').slice(0,2).map((s: string) => s[0] || '').join('') || '?').toUpperCase()}</Text>
+              )}
+            </View>
           </View>
 
           {/* Mobile tab pills */}
@@ -233,30 +260,85 @@ export default function ProfileScreen() {
             </View>
           )}
 
-          <ScrollView contentContainerStyle={{ paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
-            {page === 'info' && (
-              <ProfileInfoPage draft={draft} setDraft={setDraft} completion={completion} onUploadPhoto={handleUploadPhoto} />
+          {/* Main body — 2-column layout (content + right rail) on desktop */}
+          <View style={[styles.bodyRow, isMobile && { flexDirection: 'column' }]}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
+              {/* HERO CARD (only on info page) */}
+              {page === 'info' && (
+                <View style={styles.heroCard}>
+                  <View style={styles.heroAvatar}>
+                    {draft.photo_data || draft.face_image_base64 ? (
+                      <Image source={{ uri: draft.photo_data || draft.face_image_base64 }} style={{ width: '100%', height: '100%' }} />
+                    ) : (
+                      <Text style={styles.heroAvatarText}>{((draft.full_name || '?').split(' ').slice(0,2).map((s: string) => s[0] || '').join('') || '?').toUpperCase()}</Text>
+                    )}
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0, gap: 8 }}>
+                    <Text style={styles.heroName} numberOfLines={1}>{draft.full_name || 'Your name'}</Text>
+                    <Text style={styles.heroSub} numberOfLines={1}>{headlineStr}</Text>
+                    <View style={styles.heroChips}>
+                      {cgpaChip && <View style={[styles.heroChip, { backgroundColor: 'rgba(252,211,77,0.12)', borderColor: 'rgba(252,211,77,0.40)' }]}><Text style={[styles.heroChipText, { color: '#FCD34D' }]}>CGPA {cgpaChip}</Text></View>}
+                      {sessionsChip != null && sessionsChip > 0 && <View style={[styles.heroChip, { backgroundColor: 'rgba(167,139,250,0.12)', borderColor: 'rgba(167,139,250,0.40)' }]}><Text style={[styles.heroChipText, { color: '#C4B5FD' }]}>{sessionsChip} sessions</Text></View>}
+                      <View style={[styles.heroChip, { backgroundColor: 'rgba(16,185,129,0.12)', borderColor: 'rgba(16,185,129,0.40)', flexDirection: 'row', alignItems: 'center', gap: 3 }]}>
+                        <Check size={10} color="#34D399" /><Text style={[styles.heroChipText, { color: '#34D399' }]}>Verified {draft.role === 'mentor' ? 'Mentor' : draft.role === 'alumni' ? 'Alumni' : 'Student'}</Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {page === 'info' && (
+                <ProfileInfoPage draft={draft} setDraft={setDraft} completion={completion} onUploadPhoto={handleUploadPhoto} />
+              )}
+              {page === 'digitalid' && (
+                <DigitalIdCardInline userId={user?.id} isMobile={isMobile} />
+              )}
+              {page === 'manage' && (
+                <ManageProfilePage draft={draft} setDraft={setDraft} badges={badges} onCertChange={loadAll} showToast={showToast} />
+              )}
+              {page === 'notifications' && (
+                <SettingsPage draft={draft} setDraft={setDraft} showToast={showToast} section="notifications" />
+              )}
+              {page === 'privacy' && (
+                <SettingsPage draft={draft} setDraft={setDraft} showToast={showToast} section="privacy" />
+              )}
+              {page === 'settings' && (
+                <SettingsPage draft={draft} setDraft={setDraft} showToast={showToast} section="general" />
+              )}
+              <View style={{ height: 12 }} />
+              {page !== 'digitalid' && (
+                <SaveBar dirty={dirty} saving={saving} onSave={handleSave} onDiscard={handleDiscard} lastSavedAt={lastSavedAt} />
+              )}
+            </ScrollView>
+
+            {/* Right rail */}
+            {!isMobile && winW >= 1150 && page !== 'digitalid' && (
+              <View style={styles.rightRail}>
+                <View style={styles.rrCard}>
+                  <Text style={styles.rrKicker}>STUDENT STATS</Text>
+                  <View style={{ gap: 10, marginTop: 8 }}>
+                    <StatRow icon="📅" label="Sessions Completed" value={stats.sessions} color="#34D399" />
+                    <StatRow icon="👥" label="Connections Made" value={stats.connections} color="#C4B5FD" />
+                    <StatRow icon="👁" label="Profile Views" value={stats.profile_views} color="#22D3EE" />
+                    <StatRow icon="🎯" label="Mentor Sessions" value={stats.mentor_sessions} color="#FCD34D" />
+                    <StatRow icon="📨" label="Applications Sent" value={stats.applications} color="#F472B6" />
+                  </View>
+                </View>
+                {draft.sa_id && (
+                  <View style={styles.rrIdCard}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <IdCard size={13} color="#34D399" /><Text style={styles.rrIdKicker}>STUDENT ID</Text>
+                    </View>
+                    <Text style={styles.rrIdMono}>{draft.sa_id}</Text>
+                    <Text style={styles.rrIdMeta}>Verified · Active since {new Date(draft.created_at || Date.now()).getFullYear()}</Text>
+                    <Pressable onPress={() => setPage('digitalid')} style={styles.rrIdBtn} testID="rr-view-id">
+                      <Text style={styles.rrIdBtnText}>View Digital ID Card →</Text>
+                    </Pressable>
+                  </View>
+                )}
+              </View>
             )}
-            {page === 'digitalid' && (
-              <DigitalIdCardInline userId={user?.id} isMobile={isMobile} />
-            )}
-            {page === 'manage' && (
-              <ManageProfilePage draft={draft} setDraft={setDraft} badges={badges} onCertChange={loadAll} showToast={showToast} />
-            )}
-            {page === 'notifications' && (
-              <SettingsPage draft={draft} setDraft={setDraft} showToast={showToast} section="notifications" />
-            )}
-            {page === 'privacy' && (
-              <SettingsPage draft={draft} setDraft={setDraft} showToast={showToast} section="privacy" />
-            )}
-            {page === 'settings' && (
-              <SettingsPage draft={draft} setDraft={setDraft} showToast={showToast} section="general" />
-            )}
-            <View style={{ height: 12 }} />
-            {page !== 'digitalid' && (
-              <SaveBar dirty={dirty} saving={saving} onSave={handleSave} onDiscard={handleDiscard} lastSavedAt={lastSavedAt} />
-            )}
-          </ScrollView>
+          </View>
         </View>
       </View>
 
@@ -300,6 +382,19 @@ function DigitalIdCardInline({ userId, isMobile }: { userId?: string; isMobile: 
   );
 }
 
+// Small helper for right-rail stats rows
+function StatRow({ icon, label, value, color }: { icon: string; label: string; value: number | string; color: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+      <View style={{ width: 26, height: 26, borderRadius: 7, backgroundColor: color + '22', alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ fontSize: 12 }}>{icon}</Text>
+      </View>
+      <Text style={{ color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12, flex: 1 }}>{label}</Text>
+      <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14 }}>{value}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: C.bg },
   layout: { flex: 1, flexDirection: 'row' },
@@ -307,6 +402,11 @@ const styles = StyleSheet.create({
     width: 268, paddingHorizontal: 18, paddingVertical: 22, gap: 6,
     borderRightColor: 'rgba(255,255,255,0.06)', borderRightWidth: 1,
   },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  brandBox: { width: 34, height: 34, borderRadius: 8, backgroundColor: C.purple, alignItems: 'center', justifyContent: 'center' },
+  brandBoxText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12 },
+  brandName: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
+  brandKicker: { color: C.text3, fontFamily: 'DMSans_700Bold', fontSize: 9, letterSpacing: 0.8, marginTop: 2 },
   backBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8,
@@ -317,7 +417,7 @@ const styles = StyleSheet.create({
   backText: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5 },
   miniCard: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingVertical: 12, paddingHorizontal: 12, marginTop: 12, marginBottom: 8,
+    paddingVertical: 12, paddingHorizontal: 12, marginBottom: 8,
     borderRadius: 12,
     backgroundColor: 'rgba(167,139,250,0.08)',
     borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1,
@@ -326,6 +426,8 @@ const styles = StyleSheet.create({
   miniAvatarText: { color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
   miniName: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
   miniMeta: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 10.5, marginTop: 2 },
+  miniPct: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999, backgroundColor: 'rgba(252,211,77,0.14)', borderColor: 'rgba(252,211,77,0.40)', borderWidth: 1 },
+  miniPctText: { color: '#FCD34D', fontFamily: 'DMSans_800ExtraBold', fontSize: 10.5 },
 
   navHeader: { color: 'rgba(255,255,255,0.40)', fontFamily: 'DMSans_700Bold', fontSize: 10, letterSpacing: 0.8, marginTop: 4, marginBottom: 4, paddingHorizontal: 4 },
   navItem: {
@@ -341,8 +443,32 @@ const styles = StyleSheet.create({
   backBtnSm: { width: 32, height: 32, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
   title: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 19 },
   subtitle: { color: C.text2, fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 2 },
-  scorePill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: 'rgba(167,139,250,0.14)', borderColor: 'rgba(167,139,250,0.40)', borderWidth: 1 },
-  scorePillText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 11 },
+  scorePill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: 'rgba(252,211,77,0.14)', borderColor: 'rgba(252,211,77,0.40)', borderWidth: 1 },
+  scorePillText: { color: '#FCD34D', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
+  topAvatar: { width: 34, height: 34, borderRadius: 17, overflow: 'hidden', backgroundColor: 'rgba(167,139,250,0.30)', alignItems: 'center', justifyContent: 'center', borderColor: 'rgba(255,255,255,0.12)', borderWidth: 1 },
+  topAvatarText: { color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
+
+  // Hero card
+  heroCard: { flexDirection: 'row', alignItems: 'center', gap: 18, padding: 20, marginBottom: 16, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1 },
+  heroAvatar: { width: 78, height: 78, borderRadius: 39, overflow: 'hidden', backgroundColor: 'rgba(167,139,250,0.30)', alignItems: 'center', justifyContent: 'center' },
+  heroAvatarText: { color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 24 },
+  heroName: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 20 },
+  heroSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12.5 },
+  heroChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2 },
+  heroChip: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6, borderWidth: 1 },
+  heroChipText: { fontFamily: 'DMSans_700Bold', fontSize: 10.5 },
+
+  // Right rail
+  bodyRow: { flex: 1, flexDirection: 'row', gap: 18 },
+  rightRail: { width: 280, gap: 14 },
+  rrCard: { padding: 16, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1 },
+  rrKicker: { color: C.text3, fontFamily: 'DMSans_800ExtraBold', fontSize: 10, letterSpacing: 0.8 },
+  rrIdCard: { padding: 16, borderRadius: 14, backgroundColor: 'rgba(16,185,129,0.08)', borderColor: 'rgba(16,185,129,0.30)', borderWidth: 1, gap: 6 },
+  rrIdKicker: { color: '#34D399', fontFamily: 'DMSans_800ExtraBold', fontSize: 10, letterSpacing: 0.6 },
+  rrIdMono: { color: '#fff', fontFamily: Platform.OS === 'web' ? 'monospace' : 'DMSans_800ExtraBold', fontSize: 17, marginTop: 4, letterSpacing: 0.3 },
+  rrIdMeta: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 11 },
+  rrIdBtn: { marginTop: 10, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 9, backgroundColor: C.purple, alignItems: 'center', ...({ cursor: 'pointer' } as any) },
+  rrIdBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
 
   // Top tab toggle (Edit Profile / Digital ID Card)
   toggleWrap: {
