@@ -2,13 +2,13 @@
  * UsersListPage — reusable for Colleges/Students/Mentors/Alumni.
  * Filters by role, supports search, opens detail SlidePanel on row click.
  */
-import { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ActivityIndicator, Image } from 'react-native';
-import { Search, ChevronRight, Mail, Building2, GraduationCap, Briefcase, Users, ShieldCheck, Linkedin, ExternalLink } from 'lucide-react-native';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, Pressable, TextInput, ActivityIndicator } from 'react-native';
+import { Search, ChevronRight, Building2, GraduationCap, Briefcase, Users, Plus } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { AdminLayout } from './AdminLayout';
 import { GlassCard, StatusChip, ActionButton } from './primitives';
-import { SlidePanel, PanelField } from './SlidePanel';
+import { UserEditorPanel } from './UserEditorPanel';
 import { ADMIN_THEME as T } from './theme';
 
 interface Props {
@@ -22,7 +22,9 @@ export default function UsersListPage({ role, pageTitle, pageSubtitle }: Props) 
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [selected, setSelected] = useState<any | null>(null);
+  const [panelMode, setPanelMode] = useState<'view' | 'edit' | 'create'>('view');
   const [pendingCount, setPendingCount] = useState(0);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     const t = setTimeout(async () => {
@@ -35,7 +37,21 @@ export default function UsersListPage({ role, pageTitle, pageSubtitle }: Props) 
       } finally { setLoading(false); }
     }, q ? 350 : 0);
     return () => clearTimeout(t);
-  }, [q, role]);
+  }, [q, role, reloadKey]);
+
+  const reloadList = useCallback(() => setReloadKey((k) => k + 1), []);
+  const openCreate = useCallback(() => {
+    setSelected(null);
+    setPanelMode('create');
+  }, []);
+  const openRow = useCallback((u: any) => {
+    setSelected(u);
+    setPanelMode('view');
+  }, []);
+  const closePanel = useCallback(() => {
+    setSelected(null);
+    setPanelMode('view');
+  }, []);
 
   // Approvals badge
   useEffect(() => {
@@ -58,7 +74,17 @@ export default function UsersListPage({ role, pageTitle, pageSubtitle }: Props) 
 
   return (
     <AdminLayout title={pageTitle} subtitle={pageSubtitle} pendingCount={pendingCount}
-      rightAction={<ActionButton label={`Total: ${items.length}`} variant="ghost" />}
+      rightAction={
+        <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+          <Text style={{ color: T.textMute, fontFamily: 'DMSans_500Medium', fontSize: 12 }}>
+            Total: {items.length}
+          </Text>
+          <ActionButton
+            label={`New ${role === 'college' ? 'College' : role}`}
+            icon={Plus} onPress={openCreate} testID={`admin-${role}-new-btn`}
+          />
+        </View>
+      }
     >
       {/* Search */}
       <View style={styles.toolbar}>
@@ -91,7 +117,7 @@ export default function UsersListPage({ role, pageTitle, pageSubtitle }: Props) 
         {!loading && items.map((u) => (
           <Pressable
             key={u.id}
-            onPress={() => setSelected(u)}
+            onPress={() => openRow(u)}
             testID={`admin-row-${u.id}`}
             style={({ hovered }: any) => [
               styles.tableRow, { gridTemplateColumns: gridCols } as any,
@@ -155,70 +181,15 @@ export default function UsersListPage({ role, pageTitle, pageSubtitle }: Props) 
         ))}
       </GlassCard>
 
-      {/* Detail panel */}
-      <SlidePanel
-        open={!!selected}
-        onClose={() => setSelected(null)}
-        title={selected?.name || ''}
-        subtitle={selected?.email}
-      >
-        {selected && (
-          <View>
-            <View style={styles.panelTopRow}>
-              <View style={styles.panelAvatar}>
-                <Text style={styles.panelAvatarText}>{(selected.name || '?').slice(0, 2).toUpperCase()}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: T.text, fontFamily: 'DMSans_700Bold', fontSize: 16 }}>
-                  {selected.name}
-                </Text>
-                <Text style={{ color: T.textMute, fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 4 }}>
-                  {selected.email}
-                </Text>
-                <View style={{ flexDirection: 'row', gap: 6, marginTop: 8 }}>
-                  {selected.email_verified && <StatusChip label="Verified" tone="good" />}
-                  {selected.two_fa_enabled && <StatusChip label="2FA" tone="warn" />}
-                  <StatusChip label={selected.role} tone="neutral" />
-                </View>
-              </View>
-            </View>
-
-            <PanelField label="User ID"     value={selected.id} />
-            <PanelField label="Phone"       value={selected.phone} />
-            <PanelField label="Career Path" value={selected.career_path} />
-            <PanelField label="Institution" value={selected.institution} />
-            <PanelField label="City"        value={selected.city} />
-            <PanelField label="State"       value={selected.state} />
-            <PanelField label="Stream"      value={selected.stream} />
-            <PanelField label="Course"      value={selected.course} />
-            <PanelField label="Graduation Year" value={selected.graduation_year} />
-            <PanelField label="Mentor Title"    value={selected.mentor_title} />
-            <PanelField label="Organization"    value={selected.mentor_org} />
-            <PanelField label="Category"        value={selected.mentor_category} />
-            <PanelField label="Sessions Hosted" value={selected.mentor_sessions} />
-            <PanelField label="Rating"          value={selected.mentor_rating} />
-            <PanelField label="Alumni Employer" value={selected.alumni_employer} />
-            <PanelField label="Alumni Role"     value={selected.alumni_role} />
-            <PanelField label="Wants to Mentor" value={selected.alumni_wants_to_mentor ? 'Yes' : 'No'} />
-            <PanelField label="Alumni Network"  value={selected.alumni_count} />
-            <PanelField label="Placement Rate"
-              value={selected.placement_rate ? `${Math.round(selected.placement_rate * 100)}%` : null} />
-            <PanelField label="Events Hosted"   value={selected.events_hosted} />
-            <PanelField label="Joined"
-              value={selected.created_at && new Date(selected.created_at).toLocaleString()} />
-            {selected.linkedin_url && (
-              <View style={{ marginTop: 12 }}>
-                <ActionButton
-                  label="Open LinkedIn"
-                  icon={Linkedin}
-                  variant="ghost"
-                  onPress={() => (typeof window !== 'undefined') && window.open(selected.linkedin_url, '_blank')}
-                />
-              </View>
-            )}
-          </View>
-        )}
-      </SlidePanel>
+      {/* Detail panel — view/edit/create with badges + CRUD */}
+      <UserEditorPanel
+        open={!!selected || panelMode === 'create'}
+        mode={panelMode}
+        role={role}
+        user={selected}
+        onClose={closePanel}
+        onChanged={reloadList}
+      />
     </AdminLayout>
   );
 }

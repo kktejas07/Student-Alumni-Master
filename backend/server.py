@@ -1755,6 +1755,164 @@ async def admin_settings_list(user: dict = Depends(get_current_user)):
     }
 
 
+# ─── Phase 4 — Master Admin CRUD ────────────────────────────────────────
+def _user_oid(user_id: str):
+    """Try to parse user_id as ObjectId (24-hex) else return raw string."""
+    try:
+        return ObjectId(user_id)
+    except Exception:
+        return user_id
+
+
+def _user_query(user_id: str) -> dict:
+    """Build a $or query that matches either ObjectId._id or string id field."""
+    try:
+        return {"$or": [{"_id": ObjectId(user_id)}, {"id": user_id}]}
+    except Exception:
+        return {"id": user_id}
+
+
+# Editable fields per role — never expose password_hash, role escalation, etc.
+_EDITABLE_FIELDS_TOP = {
+    "full_name", "email", "phone", "career_path",
+    "linkedin_url", "email_verified", "two_fa_enabled",
+}
+_EDITABLE_NESTED = {
+    "school_info": {"institution_name", "city", "state", "branch_or_stream",
+                    "current_course", "class_or_year", "graduation_year", "board_or_university"},
+    "mentor_profile": {"job_title", "organization", "category", "rating",
+                       "sessions", "years_of_experience", "linkedin_url"},
+    "alumni_info": {"alumni_employer", "alumni_role", "alumni_wants_to_mentor",
+                    "alumni_linkedin_url", "graduation_year", "linkedin_url",
+                    "wants_to_mentor", "mentor_category"},
+    "college_profile": {"city", "state", "alumni_count", "placement_rate",
+                        "established_year", "website"},
+}
+
+
+@api_router.patch("/admin/users/{user_id}")
+async def admin_user_update(user_id: str, payload: dict, user: dict = Depends(get_current_user)):
+    """Update an arbitrary user's profile (admin-only)."""
+    _require_admin(user)
+    update: dict = {}
+    for k, v in (payload or {}).items():
+        if k in _EDITABLE_FIELDS_TOP:
+            update[k] = v
+        elif k in _EDITABLE_NESTED and isinstance(v, dict):
+            for sub_k, sub_v in v.items():
+                if sub_k in _EDITABLE_NESTED[k]:
+                    update[f"{k}.{sub_k}"] = sub_v
+    if not update:
+        raise HTTPException(400, "No editable fields provided")
+    update["updated_at"] = datetime.utcnow()
+    res = await db.users.update_one(_user_query(user_id), {"$set": update})
+    if res.matched_count == 0:
+        raise HTTPException(404, "User not found")
+    fresh = await db.users.find_one(
+        _user_query(user_id), {"password_hash": 0, "face_image_base64": 0},
+    )
+    if fresh:
+        fresh["id"] = str(fresh.get("_id"))
+        fresh.pop("_id", None)
+    # Recompute badges (since profile fields changed)
+    try:
+        await refresh_user_badges(db, fresh.get("id") if fresh else user_id)
+    except Exception:
+        pass
+    return {"ok": True, "user": fresh}
+
+
+@api_router.delete("/admin/users/{user_id}")
+async def admin_user_delete(user_id: str, user: dict = Depends(get_current_user)):
+    """Delete a user. Self-delete is blocked."""
+    _require_admin(user)
+    if str(user.get("_id")) == user_id or user.get("id") == user_id:
+        raise HTTPException(400, "Cannot delete yourself")
+    res = await db.users.delete_one(_user_query(user_id))
+    if res.deleted_count == 0:
+        raise HTTPException(404, "User not found")
+    return {"ok": True, "deleted": user_id}
+
+
+@api_router.post("/admin/users")
+async def admin_user_create(payload: dict, user: dict = Depends(get_current_user)):
+    """Create a new user (any role). Used by admins to seed colleges/mentors/etc."""
+    _require_admin(user)
+    email = (payload.get("email") or "").strip().lower()
+    full_name = (payload.get("full_name") or "").strip()
+    role = (payload.get("role") or "student").strip().lower()
+    if not email or not full_name:
+        raise HTTPException(400, "email and full_name are required")
+    if role not in ("student", "mentor", "alumni", "college", "admin"):
+        raise HTTPException(400, "Invalid role")
+    existing = await db.users.find_one({"email": email})
+    if existing:
+        raise HTTPException(400, "Email already in use")
+    pwd = payload.get("password") or "TempPass@123"
+    doc = {
+        "email": email,
+        "full_name": full_name,
+        "role": role,
+        "phone": payload.get("phone"),
+        "password_hash": hash_password(pwd),
+        "onboarding_completed": True,  # admin-created users skip onboarding
+        "email_verified": True,
+        "created_at": datetime.utcnow(),
+    }
+    if role == "college":
+        doc["college_profile"] = {
+            "city": payload.get("city"),
+            "state": payload.get("state"),
+            "alumni_count": int(payload.get("alumni_count") or 0),
+            "placement_rate": float(payload.get("placement_rate") or 0),
+            "website": payload.get("website"),
+        }
+        doc["school_info"] = {"institution_name": full_name}
+    elif role == "mentor":
+        doc["mentor_status"] = "approved"
+        doc["mentor_profile"] = {
+            "job_title": payload.get("job_title"),
+            "organization": payload.get("organization"),
+            "category": payload.get("category"),
+            "years_of_experience": int(payload.get("years_of_experience") or 0),
+            "linkedin_url": payload.get("linkedin_url"),
+            "sessions": 0,
+            "rating": 0,
+        }
+    res = await db.users.insert_one(doc)
+    doc["id"] = str(res.inserted_id)
+    doc.pop("_id", None)
+    doc.pop("password_hash", None)
+    return {"ok": True, "user": doc, "temp_password": pwd}
+
+
+@api_router.patch("/admin/events/{event_id}")
+async def admin_event_update(event_id: str, payload: dict, user: dict = Depends(get_current_user)):
+    """Edit an existing event."""
+    _require_admin(user)
+    allowed = {"title", "description", "date", "location", "capacity", "rsvp_count"}
+    update = {k: v for k, v in (payload or {}).items() if k in allowed}
+    if not update:
+        raise HTTPException(400, "No editable fields")
+    update["updated_at"] = datetime.utcnow()
+    res = await db.events.update_one({"id": event_id}, {"$set": update})
+    if res.matched_count == 0:
+        raise HTTPException(404, "Event not found")
+    return {"ok": True, "id": event_id, "updates": update}
+
+
+@api_router.delete("/admin/events/{event_id}")
+async def admin_event_delete(event_id: str, user: dict = Depends(get_current_user)):
+    """Delete an event."""
+    _require_admin(user)
+    res = await db.events.delete_one({"id": event_id})
+    if res.deleted_count == 0:
+        raise HTTPException(404, "Event not found")
+    return {"ok": True, "deleted": event_id}
+
+
+
+
 # ----------------------------------------------------------------------------
 # AI Endpoints (Claude Sonnet 4.5 via emergentintegrations)
 # ----------------------------------------------------------------------------

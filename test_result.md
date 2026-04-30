@@ -526,6 +526,52 @@ test_plan:
   test_all: false
   test_priority: "high_first"
 
+backend:
+  - task: "Master Admin CRUD — PATCH/DELETE/POST users + PATCH/DELETE events"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            5 new admin endpoints added & verified end-to-end via UI flow:
+            ✅ POST   /api/admin/users         — create user (any role) with temp_password
+            ✅ PATCH  /api/admin/users/{id}    — update profile (whitelisted fields per role)
+            ✅ DELETE /api/admin/users/{id}    — delete user (self-delete blocked)
+            ✅ PATCH  /api/admin/events/{id}   — update event
+            ✅ DELETE /api/admin/events/{id}   — delete event
+            All return 200 OK; Mongo writes confirmed. Badges auto-recompute on user PATCH.
+
+frontend:
+  - task: "UserEditorPanel + Profile badges section + Events Edit/Delete"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/views/web/admin/UserEditorPanel.tsx + /app/frontend/app/(tabs)/profile.tsx + /app/frontend/src/views/web/admin/EventsPage.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            Verified end-to-end via screenshot tool:
+            ✅ Admin SlidePanel now shows BADGES (e.g. IIT Bombay → Elite, Premier,
+               Premium, Top Tier, Email Verified) plus role-aware editable fields.
+            ✅ Edit mode: TextInputs replace read-only fields; Cancel + Save footer.
+            ✅ Create mode: "New College" panel with empty form + Create button +
+               green "Account created · Temporary password: TempPass@123" notice.
+            ✅ Delete: inline red confirmation card with AlertTriangle + "Yes, delete"
+               CTA — verified deletion removes row from list.
+            ✅ Mobile Profile tab now has "🏆 ACHIEVEMENTS" section with badge count
+               (e.g. "6 EARNED") and tier-coloured BadgeStack (Founder Member purple,
+               Email Verified green, Connector/Participant/Regular/Skilled teal).
+            ✅ Events page now has Edit + Delete on each event card; both wire to
+               PATCH/DELETE /admin/events/{id}.
+
 frontend:
   - task: "Super Admin Dashboard Phase 2 & 3 — Colleges/Students/Mentors/Alumni/Events/Payments/Analytics/Settings"
     implemented: true

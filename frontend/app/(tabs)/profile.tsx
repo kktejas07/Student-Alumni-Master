@@ -17,7 +17,8 @@ import {
 import { Colors as C, Spacing, Typography, Radius } from '@/src/theme';
 import { Button, Card, AnimatedCard, SALogo } from '@/src/views/components';
 import { useAuth } from '@/src/viewmodels/hooks';
-import { api } from '@/src/models/services/api';
+import { api, request } from '@/src/models/services/api';
+import { BadgeStack, type Badge } from '@/src/views/web/Badges';
 
 export default function ProfileTab() {
   const router = useRouter();
@@ -25,6 +26,7 @@ export default function ProfileTab() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [reviewStats, setReviewStats] = useState<any>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [badges, setBadges] = useState<Badge[]>([]);
 
   const refresh = useCallback(async () => {
     if (!user) return;
@@ -44,6 +46,11 @@ export default function ProfileTab() {
     try {
       const r = await api.notifications();
       setUnreadCount(r.unread || 0);
+    } catch {}
+    // Earned badges
+    try {
+      const r = await request<{ badges: Badge[] }>('/users/me/badges');
+      setBadges(r.badges || []);
     } catch {}
   }, [user]);
 
@@ -142,6 +149,19 @@ export default function ProfileTab() {
             </View>
           )}
         </Card>
+
+        {/* Achievements / Badges section */}
+        {badges.length > 0 && (
+          <Card style={styles.badgesCard} testID="profile-badges-card">
+            <View style={styles.sectionRow}>
+              <Text style={styles.sectionTitle}>🏆 Achievements</Text>
+              <Text style={styles.badgeCount}>{badges.length} earned</Text>
+            </View>
+            <View style={{ marginTop: 8 }}>
+              <BadgeStack badges={badges} max={20} compact size="md" />
+            </View>
+          </Card>
+        )}
 
         {/* Recent Bookings — REAL DATA */}
         {bookings.length > 0 && (
@@ -339,6 +359,11 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
   title: { ...Typography.h2, color: C.textPrimary },
   userCard: { padding: 18 },
+  badgesCard: { padding: 16, marginTop: 14 },
+  badgeCount: {
+    color: C.brandPurple, fontFamily: 'DMSans_700Bold', fontSize: 11,
+    letterSpacing: 0.4, textTransform: 'uppercase',
+  },
   avatar: { width: 70, height: 70, borderRadius: 35, backgroundColor: C.surfaceMuted },
   avatarFallback: {
     width: 70, height: 70, borderRadius: 35,
