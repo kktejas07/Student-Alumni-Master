@@ -5,6 +5,7 @@ import {
   DMSans_500Medium,
   DMSans_600SemiBold,
   DMSans_700Bold,
+  DMSans_800ExtraBold,
 } from '@expo-google-fonts/dm-sans';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -50,6 +51,7 @@ export default function RootLayout() {
     DMSans_500Medium,
     DMSans_600SemiBold,
     DMSans_700Bold,
+    DMSans_800ExtraBold,
   });
 
   const init = useAuthStore((s) => s.init);

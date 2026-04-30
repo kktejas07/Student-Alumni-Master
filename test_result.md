@@ -2368,3 +2368,35 @@ agent_communication:
           card + Lucide-iconed stats; hero, top-bar, and Basic Info
           match the artifact.
 
+
+---
+## 2026-04-30 — Critical font fix: DMSans_800ExtraBold not loaded
+agent_communication:
+    - agent: "main"
+      message: |
+        ROOT CAUSE FOUND for the "fonts look like serif/Times" bug
+        the user kept reporting on the SA Profile Web Standalone:
+        Many styles across the app use `DMSans_800ExtraBold`
+        (heroName, % pills, big numbers, ID mono, AS initials,
+        "STUDENT STATS" / "Student ID" / "Profile 58%" labels) —
+        but `useFonts()` in /app/frontend/app/_layout.tsx ONLY
+        registered 400/500/600/700.
+        On web, react-native-web maps fontFamily to the literal
+        string in CSS; if the @font-face for "DMSans_800ExtraBold"
+        is missing, the browser falls back to its default serif
+        (Times) — exactly what the user screenshots showed.
+        FIX:
+          • imported `DMSans_800ExtraBold` from
+            `@expo-google-fonts/dm-sans`
+          • added it to the `useFonts({ ... })` map
+        VERIFIED:
+          · page.evaluate(getComputedStyle) now reports
+            "DMSans_800ExtraBold", "DMSans_700Bold",
+            "DMSans_500Medium" applied to elements (no Times fallback)
+          · screenshot shows clean sans-serif rendering for hero
+            name, AS initials, % pills, STUDENT STATS, Student ID,
+            mono ID — all the spots the user flagged
+          · sidebar mini meta now correctly reads "IIT Hyderabad · CSE"
+            (school_info fallback path also resolves now)
+        FILES TOUCHED: /app/frontend/app/_layout.tsx (one diff)
+
