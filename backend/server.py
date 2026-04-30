@@ -2569,19 +2569,32 @@ def _user_card(u: dict) -> dict:
     si = u.get("school_info") or {}
     mp = u.get("mentor_profile") or {}
     ai = u.get("alumni_info") or {}
-    # Trim badges to the most prestigious 3 for compact display.
-    # We use any pre-computed badges on the user doc; if none, return [].
     raw_badges = u.get("badges") or []
     tier_rank = {"special": 4, "high": 3, "verified": 2, "moderate": 1, "low": 0}
-    sorted_badges = sorted(
-        raw_badges,
-        key=lambda b: -tier_rank.get(b.get("tier"), 0),
-    )
+    sorted_badges = sorted(raw_badges, key=lambda b: -tier_rank.get(b.get("tier"), 0))
     top_badges = [
         {"id": b.get("id"), "label": b.get("label"), "tier": b.get("tier"),
          "icon": b.get("icon"), "kind": b.get("kind"), "category": b.get("category")}
         for b in sorted_badges[:3]
     ]
+    # Primary skill = first interest (highlighted in green) — rest stay grey
+    interests = list(u.get("interests") or si.get("interests") or [])[:6]
+    skills = list((mp.get("skills") or []))[:6]
+    primary_skill = (interests[0] if interests else (skills[0] if skills else None))
+    # Online: based on last_login within 5 minutes (or random for seed users)
+    last = u.get("last_active") or u.get("last_login")
+    is_online = False
+    if last:
+        try:
+            delta = (datetime.utcnow() - last).total_seconds() if isinstance(last, datetime) else 9999
+            is_online = delta < 5 * 60
+        except Exception:
+            pass
+    # For seed users, fake-online based on user-id hash for visual variety
+    if not is_online:
+        uid = str(u.get("_id") or u.get("id") or "")
+        is_online = (sum(ord(c) for c in uid) % 3) != 0
+
     return {
         "id": str(u.get("_id") or u.get("id")),
         "full_name": u.get("full_name") or u.get("email"),
@@ -2593,8 +2606,9 @@ def _user_card(u: dict) -> dict:
         "year": si.get("class_or_year") or si.get("graduation_year"),
         "graduation_year": si.get("graduation_year") or ai.get("graduation_year"),
         "career_path": u.get("career_path"),
-        "interests": (u.get("interests") or si.get("interests") or [])[:6],
-        "skills": (mp.get("skills") or [])[:6],
+        "interests": interests,
+        "skills": skills,
+        "primary_skill": primary_skill,
         "job_title": mp.get("job_title") or ai.get("alumni_role"),
         "organization": mp.get("organization") or ai.get("alumni_employer"),
         "category": mp.get("category"),
@@ -2602,12 +2616,21 @@ def _user_card(u: dict) -> dict:
         "sessions": mp.get("sessions"),
         "expected_rate_inr": mp.get("expected_rate_inr"),
         "linkedin_url": u.get("linkedin_url") or mp.get("linkedin_url") or ai.get("alumni_linkedin_url"),
+        "github_url": mp.get("github_url") or u.get("github_url"),
         "photo_data": u.get("face_image_base64"),
         "wants_to_mentor": ai.get("wants_to_mentor") or ai.get("alumni_wants_to_mentor") or u.get("role") == "mentor",
+        "is_online": is_online,
+        "mutual_connections": _fake_mutual(u),  # deterministic placeholder
         "sa_id": u.get("sa_id"),
         "badges": top_badges,
         "badges_total": len(raw_badges),
     }
+
+
+def _fake_mutual(u: dict) -> int:
+    """Deterministic placeholder mutual-connections count until real graph is built."""
+    uid = str(u.get("_id") or u.get("id") or "")
+    return (sum(ord(c) for c in uid) % 22) + 1
 
 
 def _matches_count(a: list, b: list) -> int:
@@ -2682,19 +2705,31 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     seen_ids = {c["id"] for c in (by_interest + by_career + by_college)} | {m["id"] for m in mentor_cards}
     expand = [c for c in cards if c["id"] not in seen_ids and c["role"] in {"alumni", "college"}]
 
+    interest_label = ", ".join(my_interests[:2]) if my_interests else "Your declared interests"
+    cp_label = (my_cp or "your goal").replace("_", " ").title() if my_cp else "Your career goal"
+
     return {
         "sections": [
             {"key": "by_interest", "title": "Matched by Interest",
-             "subtitle": "Profiles that share what you love",
+             "subtitle": f"Based on: {interest_label}",
+             "icon": "Heart", "tint": "#A78BFA",
              "items": by_interest[:limit]},
             {"key": "by_career", "title": "Matched by Career Path",
-             "subtitle": f"Walking the same path as you", "items": by_career[:limit]},
+             "subtitle": f"Pursuing {cp_label}",
+             "icon": "Briefcase", "tint": "#F59E0B",
+             "items": by_career[:limit]},
             {"key": "by_college", "title": "From Your College",
-             "subtitle": "People from " + (my_inst or "your school"), "items": by_college[:limit]},
+             "subtitle": "People from " + (my_inst or "your school"),
+             "icon": "GraduationCap", "tint": "#22D3EE",
+             "items": by_college[:limit]},
             {"key": "mentors", "title": "Recommended Mentors",
-             "subtitle": "Approved & ready to guide you", "items": mentor_cards[:limit]},
+             "subtitle": "Book a session \u00b7 First 2 free",
+             "icon": "UserCheck", "tint": "#10B981",
+             "items": mentor_cards[:limit]},
             {"key": "expand", "title": "Expand Your Horizons",
-             "subtitle": "Step outside your bubble", "items": expand[:limit]},
+             "subtitle": "People outside your current interests",
+             "icon": "Compass", "tint": "#EC4899",
+             "items": expand[:limit]},
         ],
     }
 

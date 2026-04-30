@@ -29,8 +29,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft, Search, UserPlus, Check, Clock, X as CloseX,
-  GraduationCap, Briefcase, Users, Link2,
-  Star, MapPin,
+  GraduationCap, Briefcase, Users, Link2, Github,
+  Star, MapPin, Heart, UserCheck, Compass, Calendar, MessageSquare,
 } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { useAuth } from '@/src/viewmodels/hooks';
@@ -49,6 +49,7 @@ interface Person {
   career_path?: string;
   interests?: string[];
   skills?: string[];
+  primary_skill?: string;
   job_title?: string;
   organization?: string;
   category?: string;
@@ -56,15 +57,22 @@ interface Person {
   sessions?: number;
   expected_rate_inr?: number;
   linkedin_url?: string;
+  github_url?: string;
   photo_data?: string;
   wants_to_mentor?: boolean;
+  is_online?: boolean;
+  mutual_connections?: number;
   sa_id?: string;
   badges?: Array<{ id: string; label: string; tier: string; icon?: string; kind?: string; category?: string }>;
   badges_total?: number;
   connection_state: 'none' | 'pending' | 'connected' | 'incoming';
   requested_at?: string;
 }
-interface Section { key: string; title: string; subtitle: string; items: Person[]; }
+interface Section { key: string; title: string; subtitle: string; icon?: string; tint?: string; items: Person[]; }
+
+const SECTION_ICONS: Record<string, any> = {
+  Heart, Briefcase, GraduationCap, UserCheck, Compass,
+};
 
 type TabKey = 'discover' | 'connections' | 'requests';
 
@@ -220,27 +228,40 @@ export default function NetworkScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          {tab === 'discover' && sections.map((sec) => (
-            <View key={sec.key} style={{ marginBottom: 18 }}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>{sec.title}</Text>
-                <Text style={styles.sectionSubtitle}>{sec.subtitle}</Text>
+          {tab === 'discover' && sections.map((sec) => {
+            const SecIcon = sec.icon ? SECTION_ICONS[sec.icon] : null;
+            const tint = sec.tint || '#A78BFA';
+            return (
+            <View key={sec.key} style={{ marginBottom: 22 }}>
+              <View style={[styles.sectionHeader, { paddingHorizontal: 16 }]}>
+                {SecIcon && (
+                  <View style={[styles.sectionIcon, { backgroundColor: tint + '24', borderColor: tint + '60' }]}>
+                    <SecIcon size={15} color={tint} />
+                  </View>
+                )}
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={styles.sectionTitle}>{sec.title}</Text>
+                    {sec.items.length > 0 && (
+                      <View style={[styles.sectionCount, { backgroundColor: tint + '24', borderColor: tint + '60' }]}>
+                        <Text style={[styles.sectionCountText, { color: tint }]}>{sec.items.length}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.sectionSubtitle}>{sec.subtitle}</Text>
+                </View>
               </View>
               {sec.items.length === 0 ? (
                 <Text style={styles.empty}>No matches in this section yet.</Text>
               ) : (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}
-                >
+                <View style={styles.grid}>
                   {sec.items.map((p) => (
-                    <PersonCard key={p.id} person={p} onConnect={() => handleConnect(p)} compact />
+                    <PersonCard key={p.id} person={p} onConnect={() => handleConnect(p)} />
                   ))}
-                </ScrollView>
+                </View>
               )}
             </View>
-          ))}
+          );})}
 
           {tab === 'connections' && (
             <View style={{ paddingHorizontal: 16, gap: 12 }}>
@@ -291,153 +312,193 @@ export default function NetworkScreen() {
 
 // ── PersonCard ───────────────────────────────────────────────────────────
 function PersonCard({
-  person, onConnect, onAccept, onReject, compact = false,
+  person, onConnect, onAccept, onReject,
 }: {
   person: Person;
   onConnect?: () => void;
   onAccept?: () => void;
   onReject?: () => void;
-  compact?: boolean;
 }) {
   const initials = (person.full_name || '?').split(' ').slice(0, 2).map(s => s[0] || '').join('').toUpperCase();
-  const tint = person.role === 'mentor' ? '#F59E0B'
+  const tint = person.role === 'mentor' ? '#10B981'
             : person.role === 'alumni' ? '#22D3EE'
             : person.role === 'college' ? '#10B981' : '#A78BFA';
-  const roleLabel = person.role === 'student' ? 'Student'
-                 : person.role === 'mentor'   ? 'Mentor'
-                 : person.role === 'alumni'   ? 'Alumni'
-                 : person.role === 'college'  ? 'Institution' : person.role;
-  const cardWidth = compact ? 280 : undefined;
+  const isMentor = person.role === 'mentor';
+  // Compose subtitle line: "Job Title · Org" / "College · Year"
+  const titleLine = [person.job_title, person.organization].filter(Boolean).join(' \u00b7 ');
+  const collegeLine = [person.institution, person.graduation_year || person.year].filter(Boolean).join(' \u00b7 ');
 
   return (
-    <HoverGlowCard tint={tint} radius={14} intensity="medium" style={{ width: cardWidth }}>
+    <HoverGlowCard tint={tint} radius={16} intensity="medium" style={styles.cardSlot}>
       <View style={styles.personInner}>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
-          {person.photo_data ? (
-            <Image source={{ uri: person.photo_data }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, { backgroundColor: tint + '24', alignItems: 'center', justifyContent: 'center' }]}>
-              <Text style={[styles.avatarText, { color: tint }]}>{initials}</Text>
-            </View>
-          )}
+        {/* Top: Avatar + Identity */}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+          <View style={{ position: 'relative' }}>
+            {person.photo_data ? (
+              <Image source={{ uri: person.photo_data }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, { backgroundColor: tint + '24', alignItems: 'center', justifyContent: 'center' }]}>
+                <Text style={[styles.avatarText, { color: tint }]}>{initials}</Text>
+              </View>
+            )}
+            {person.is_online && <View style={styles.onlineDot} />}
+          </View>
           <View style={{ flex: 1, minWidth: 0 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={styles.name} numberOfLines={1}>{person.full_name}</Text>
-              <View style={[styles.roleChip, { backgroundColor: tint + '24' }]}>
-                <Text style={[styles.roleText, { color: tint }]}>{roleLabel.toUpperCase()}</Text>
-              </View>
-            </View>
-            {(person.job_title || person.organization) && (
-              <Text style={styles.subline} numberOfLines={1}>
-                {person.job_title}{person.job_title && person.organization ? ' · ' : ''}{person.organization}
-              </Text>
+            <Text style={styles.name} numberOfLines={1}>{person.full_name}</Text>
+            {!!titleLine && (
+              <Text style={styles.subline} numberOfLines={1}>{titleLine}</Text>
             )}
-            {person.institution && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                <GraduationCap size={11} color="rgba(255,255,255,0.45)" />
-                <Text style={styles.metaText} numberOfLines={1}>{person.institution}</Text>
-              </View>
+            {!!collegeLine && (
+              <Text style={styles.metaText} numberOfLines={1}>{collegeLine}</Text>
             )}
-            {(person.city || person.state) && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                <MapPin size={11} color="rgba(255,255,255,0.45)" />
-                <Text style={styles.metaText} numberOfLines={1}>{[person.city, person.state].filter(Boolean).join(', ')}</Text>
-              </View>
-            )}
-            {person.role === 'mentor' && person.rating != null && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                <Star size={11} color="#F59E0B" fill="#F59E0B" />
-                <Text style={styles.metaText}>{person.rating.toFixed(1)} · {person.sessions || 0} sessions</Text>
+            {/* Mentor signals — rating + sessions + price */}
+            {isMentor && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 5 }}>
+                {person.rating != null && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                    <Star size={11} color="#F59E0B" fill="#F59E0B" />
+                    <Text style={[styles.metaText, { color: '#fff' }]}>{Number(person.rating).toFixed(1)}</Text>
+                  </View>
+                )}
+                {person.sessions != null && (
+                  <Text style={styles.metaText}>{person.sessions} sessions</Text>
+                )}
+                {person.expected_rate_inr != null && person.expected_rate_inr > 0 && (
+                  <Text style={[styles.metaText, { color: '#10B981', fontFamily: 'DMSans_700Bold' }]}>
+                    \u20b9{Number(person.expected_rate_inr).toLocaleString('en-IN')}
+                  </Text>
+                )}
               </View>
             )}
           </View>
         </View>
 
-        {/* Top badges (credentials + engagement) */}
+        {/* Badges */}
         {person.badges && person.badges.length > 0 && (
           <View style={styles.badgeRow}>
             {person.badges.slice(0, 3).map((b, idx) => {
-              const tierColor =
+              const tColor =
                 b.tier === 'special'  ? '#A78BFA'
               : b.tier === 'high'     ? '#F59E0B'
               : b.tier === 'verified' ? '#10B981'
               : b.tier === 'moderate' ? '#2DD4BF'
               :                          '#94A3B8';
               return (
-                <View key={`b-${idx}`} style={[styles.badgeChip, { backgroundColor: tierColor + '1F', borderColor: tierColor + '60' }]}>
-                  <Text style={[styles.badgeChipText, { color: tierColor }]} numberOfLines={1}>
-                    {b.label}
-                  </Text>
+                <View key={`b-${idx}`} style={[styles.badgeChip, { backgroundColor: tColor + '1F', borderColor: tColor + '60' }]}>
+                  <Text style={[styles.badgeChipText, { color: tColor }]} numberOfLines={1}>{b.label}</Text>
                 </View>
               );
             })}
             {person.badges_total != null && person.badges_total > 3 && (
               <View style={[styles.badgeChip, { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.10)' }]}>
-                <Text style={[styles.badgeChipText, { color: 'rgba(255,255,255,0.65)' }]}>
-                  +{person.badges_total - 3}
-                </Text>
+                <Text style={[styles.badgeChipText, { color: 'rgba(255,255,255,0.65)' }]}>+{person.badges_total - 3}</Text>
               </View>
             )}
           </View>
         )}
 
+        {/* Skills / Interests row — primary highlighted in green, others grey */}
         {(person.interests?.length || person.skills?.length) ? (
           <View style={styles.chips}>
-            {(person.interests?.slice(0, 3) || []).map((i) => (
-              <View key={`i-${i}`} style={styles.chipPurple}>
-                <Text style={styles.chipPurpleText}>{i}</Text>
-              </View>
-            ))}
-            {(person.skills?.slice(0, 3) || []).map((s) => (
-              <View key={`s-${s}`} style={styles.chipNeutral}>
-                <Text style={styles.chipNeutralText}>{s}</Text>
-              </View>
-            ))}
+            {(() => {
+              const all = [...(person.skills || []), ...(person.interests || [])];
+              const primary = person.primary_skill;
+              const seen = new Set<string>();
+              const ordered: string[] = [];
+              if (primary) { ordered.push(primary); seen.add(primary.toLowerCase()); }
+              for (const s of all) {
+                if (s && !seen.has(s.toLowerCase())) { ordered.push(s); seen.add(s.toLowerCase()); }
+                if (ordered.length >= 4) break;
+              }
+              return ordered.map((s, i) => {
+                const isPrimary = primary && s.toLowerCase() === primary.toLowerCase();
+                return (
+                  <View
+                    key={`skill-${i}`}
+                    style={isPrimary ? styles.chipPrimary : styles.chipNeutral}
+                  >
+                    <Text style={isPrimary ? styles.chipPrimaryText : styles.chipNeutralText}>{s}</Text>
+                  </View>
+                );
+              });
+            })()}
           </View>
         ) : null}
 
-        {/* Footer actions */}
+        {/* Mutual connections */}
+        {person.mutual_connections != null && person.mutual_connections > 0 && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            <Users size={11} color="rgba(255,255,255,0.50)" />
+            <Text style={styles.metaText}>{person.mutual_connections} mutual connection{person.mutual_connections !== 1 ? 's' : ''}</Text>
+          </View>
+        )}
+
+        {/* Connect via — LinkedIn / GitHub */}
+        {(person.linkedin_url || person.github_url) && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={[styles.metaText, { fontSize: 10.5 }]}>Connect via</Text>
+            {person.linkedin_url && (
+              <Pressable
+                onPress={() => Platform.OS === 'web' ? (window as any).open(person.linkedin_url, '_blank') : Linking.openURL(person.linkedin_url!)}
+                style={[styles.socialBtn, { backgroundColor: 'rgba(11,95,255,0.10)', borderColor: 'rgba(11,95,255,0.30)' }]}
+                testID={`net-linkedin-${person.id}`}
+              >
+                <Link2 size={11} color="#0B5FFF" />
+              </Pressable>
+            )}
+            {person.github_url && (
+              <Pressable
+                onPress={() => Platform.OS === 'web' ? (window as any).open(person.github_url, '_blank') : Linking.openURL(person.github_url!)}
+                style={[styles.socialBtn, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)' }]}
+                testID={`net-github-${person.id}`}
+              >
+                <Github size={11} color="#fff" />
+              </Pressable>
+            )}
+          </View>
+        )}
+
+        {/* Primary action footer */}
         <View style={styles.footer}>
-          {person.linkedin_url && (
-            <Pressable
-              onPress={() => Platform.OS === 'web' ? (window as any).open(person.linkedin_url, '_blank') : Linking.openURL(person.linkedin_url!)}
-              style={styles.linkedinBtn}
-              testID={`net-linkedin-${person.id}`}
-            >
-              <Link2 size={12} color="#0B5FFF" />
-            </Pressable>
-          )}
-          <View style={{ flex: 1 }} />
-          {/* State-aware action */}
           {onAccept && onReject ? (
-            <View style={{ flexDirection: 'row', gap: 6 }}>
-              <Pressable onPress={onReject} style={[styles.btn, styles.btnGhost]} testID={`net-reject-${person.id}`}>
+            <View style={{ flexDirection: 'row', gap: 6, flex: 1 }}>
+              <Pressable onPress={onReject} style={[styles.btn, styles.btnGhost, { flex: 1 }]} testID={`net-reject-${person.id}`}>
                 <CloseX size={13} color="rgba(255,255,255,0.65)" />
                 <Text style={styles.btnGhostText}>Decline</Text>
               </Pressable>
-              <Pressable onPress={onAccept} style={[styles.btn, styles.btnAccent]} testID={`net-accept-${person.id}`}>
+              <Pressable onPress={onAccept} style={[styles.btn, styles.btnAccent, { flex: 1 }]} testID={`net-accept-${person.id}`}>
                 <Check size={13} color="#fff" />
                 <Text style={styles.btnAccentText}>Accept</Text>
               </Pressable>
             </View>
-          ) : person.connection_state === 'connected' ? (
-            <View style={[styles.btn, { backgroundColor: 'rgba(16,185,129,0.16)', borderColor: 'rgba(16,185,129,0.40)', borderWidth: 1 }]}>
-              <Check size={13} color="#10B981" />
-              <Text style={[styles.btnText, { color: '#10B981' }]}>Connected</Text>
-            </View>
-          ) : person.connection_state === 'pending' ? (
-            <View style={[styles.btn, { backgroundColor: 'rgba(245,158,11,0.16)', borderColor: 'rgba(245,158,11,0.40)', borderWidth: 1 }]}>
-              <Clock size={13} color="#F59E0B" />
-              <Text style={[styles.btnText, { color: '#F59E0B' }]}>Pending</Text>
-            </View>
-          ) : onConnect ? (
-            <Pressable onPress={onConnect} style={[styles.btn, styles.btnAccent]} testID={`net-connect-${person.id}`}>
-              <UserPlus size={13} color="#fff" />
-              <Text style={styles.btnAccentText}>Connect</Text>
-            </Pressable>
           ) : (
-            <View style={[styles.btn, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
-              <Text style={[styles.btnText, { color: 'rgba(255,255,255,0.65)' }]}>Message</Text>
+            <View style={{ flexDirection: 'row', gap: 8, flex: 1 }}>
+              {/* State-aware primary CTA fills width */}
+              {person.connection_state === 'connected' ? (
+                <View style={[styles.btn, styles.btnFlex, { backgroundColor: 'rgba(16,185,129,0.16)', borderColor: 'rgba(16,185,129,0.40)', borderWidth: 1 }]}>
+                  <Check size={13} color="#10B981" />
+                  <Text style={[styles.btnText, { color: '#10B981' }]}>Connected</Text>
+                </View>
+              ) : person.connection_state === 'pending' ? (
+                <View style={[styles.btn, styles.btnFlex, { backgroundColor: 'rgba(245,158,11,0.16)', borderColor: 'rgba(245,158,11,0.40)', borderWidth: 1 }]}>
+                  <Clock size={13} color="#F59E0B" />
+                  <Text style={[styles.btnText, { color: '#F59E0B' }]}>Pending</Text>
+                </View>
+              ) : isMentor ? (
+                <Pressable onPress={onConnect} style={[styles.btn, styles.btnFlex, styles.btnGreen]} testID={`net-book-${person.id}`}>
+                  <Calendar size={13} color="#fff" />
+                  <Text style={styles.btnAccentText}>Book Session</Text>
+                </Pressable>
+              ) : (
+                <Pressable onPress={onConnect} style={[styles.btn, styles.btnFlex, styles.btnAccent]} testID={`net-connect-${person.id}`}>
+                  <UserPlus size={13} color="#fff" />
+                  <Text style={styles.btnAccentText}>Connect</Text>
+                </Pressable>
+              )}
+              {/* Always-visible secondary chat icon */}
+              <Pressable style={[styles.btn, styles.iconOnly, styles.btnGhost]}>
+                <MessageSquare size={14} color="rgba(255,255,255,0.65)" />
+              </Pressable>
             </View>
           )}
         </View>
