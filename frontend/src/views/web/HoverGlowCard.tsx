@@ -31,8 +31,8 @@ interface Props {
 
 const INTENSITY = {
   low:    { borderAlpha: 0.32, glowAlpha: 0.16, lift: 1, blur: 14 },
-  medium: { borderAlpha: 0.50, glowAlpha: 0.28, lift: 2, blur: 22 },
-  high:   { borderAlpha: 0.70, glowAlpha: 0.44, lift: 3, blur: 30 },
+  medium: { borderAlpha: 0.55, glowAlpha: 0.32, lift: 2, blur: 24 },
+  high:   { borderAlpha: 0.85, glowAlpha: 0.55, lift: 4, blur: 36 },
 } as const;
 
 export function HoverGlowCard({

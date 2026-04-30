@@ -600,10 +600,10 @@ backend:
             ✅ Stored in db.connections {a, b, status, created_at, accepted_at}
 
 frontend:
-  - task: "Phase 2 — Network screen with PersonCards (UI v2 — design-spec)"
+  - task: "Phase 2 — Network screen with PersonCards (UI v2 — design-spec) + Polish v3 (filters/search/profile-detail)"
     implemented: true
     working: true
-    file: "/app/frontend/app/network.tsx"
+    file: "/app/frontend/app/network.tsx + /app/frontend/src/views/web/HoverGlowCard.tsx"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
@@ -614,23 +614,27 @@ frontend:
             UI v2 verified (1440px desktop). Major upgrade from v1:
             ✅ Responsive 4-col grid via useWindowDimensions (4 @≥1280, 3 @≥960, 2 @≥640, 1 @<640)
             ✅ Section header now icon + title + count chip + dynamic subtitle
-               ("Based on: UX Design, AI/ML" / "Pursuing Job" / "Book a session · First 2 free" / "People outside your current interests")
-            ✅ PersonCard upgrades:
-               · Avatar with online dot (green, bottom-right)
-               · Title line: "Job Title · Org" / "College · Year"
-               · Mutual connections row ("17 mutual connections" + Users icon)
-               · Skill chips with primary highlighted GREEN, others grey
-               · Tier-1 / Tier-2 / Class XII / Bachelor's Degree credential badges
-               · Mentors: ⭐ rating + sessions + ₹rate, plus GREEN "Book Session" CTA + Calendar icon
-               · Non-mentors: purple "Connect" CTA
-               · State-aware: Pending (orange), Connected (green outline), Decline/Accept dual buttons for incoming requests
-               · Always-visible secondary chat icon (MessageSquare) beside CTA
-               · "Connect via" row with Link2 (LinkedIn) + Github icons
-            ✅ All 5 sections render perfectly: Matched by Interest, Matched by Career Path, From Your College, Recommended Mentors, Expand Your Horizons
-            ✅ HoverGlowCard wrapper with role-tinted glow
-            ✅ Empty states for Connections + Requests tabs
-            ✅ Toast feedback retained
-            FIXED in this pass: missing styles (cardSlot, onlineDot, sectionIcon, sectionCount, grid, chipPrimary, socialBtn, btnFlex, btnGreen, iconOnly), unicode escape in source replaced with literal · and ₹.
+            ✅ Avatar with online dot, Job Title · Org / College · Year, Mutual connections row
+            ✅ Skill chips with primary highlighted GREEN; Tier-1 / Tier-2 / Class XII / Bachelor's Degree credential badges
+            ✅ Mentors: ⭐ rating + sessions + ₹rate + GREEN "Book Session" CTA + Calendar icon
+            ✅ State-aware CTAs: Pending (orange), Connected (green outline), Decline/Accept dual buttons
+            ✅ "Connect via" row with Link2 (LinkedIn) + Github icons; chat icon, HoverGlowCard wrapper
+        - working: true
+          agent: "main"
+          comment: |
+            POLISH v3 — full set of 9 enhancements verified across desktop (1440), tablet (800) and mobile (390):
+            ✅ (1) Mobile/tablet breakpoints — 1-col on phone, 2-col on tablet, 3/4-col on desktop; padding/gap scale per device
+            ✅ (2) Hover-glow visibility — HoverGlowCard "high" intensity bumped (borderAlpha 0.85, glowAlpha 0.55, lift 4px, blur 36px); visible purple/teal glow + lift on hover (verified in screenshot)
+            ✅ (3) Tier-1 GOLD gradient — BadgePill detects "Tier-1" / tier="high" and renders LinearGradient (#FCD34D → #F59E0B → #B45309) with Crown icon prefix; visible on Aarav Test, Sara Student, krishna chintakayala, Test Student cards
+            ✅ (4) Empty sections hidden — visibleSections filters items by all active filters then drops sections with 0 items (no more "No matches in this section yet" noise)
+            ✅ (5) Secondary chat icon → wired to onChat handler that triggers toast "Direct messages coming soon ✨"
+            ✅ (6) Click avatar/name → ProfileDetailContent slide-in Modal showing full bio (avatar + online dot, role label, title line, college line, mentor rating/sessions, SA-ID, ALL credentials & badges via BadgePill, full skill list, mutual connections, social links with bigger LinkedIn/GitHub buttons, state-aware CTA + Message button); slides in from the right on web, bottom-sheet on mobile (verified)
+            ✅ (7) Pagination — first 8 cards shown, "Show all (12)" expand pill in section tint shows ChevronDown/Up; collapse with "Show less"
+            ✅ (8) Search inline ranked — when q is non-empty OR any filter active, sections collapse into a single flat "Search results N" panel with deduped/filtered cards; "No matches" empty state if zero results (verified at /network with q="Test" — showed "Search results 47 — Matching 'Test'")
+            ✅ (9) Filters bar — collapsible panel under search with horizontal-scrolling chip rows for Role / Skill / Year / City; auto-populated from loaded sections (cities, years, skills, interests); active count shown on Filters button "(N)"; "Clear all" pill when active
+            FILES TOUCHED:
+              · /app/frontend/app/network.tsx — added useMemo, FilterRow, ProfileDetailContent, BadgePill components, new state (expanded, showFilters, filters, selectedPerson), filter/flat-search logic, Modal, new styles (filterBtn, filterPanel, filterOpt, expandPill, modalBackdrop, modalPanel, modalClose, detailRow)
+              · /app/frontend/src/views/web/HoverGlowCard.tsx — bumped INTENSITY constants for stronger hover
 
 frontend:
   - task: "Hover Glow Effect across all cards"
