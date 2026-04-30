@@ -61,7 +61,7 @@ export function InstitutionAutocomplete({
 
   const ph = placeholder
     || (type === 'school'   ? 'Search your Inter / Junior / PU college (Sri Chaitanya, Narayana…)'
-      : type === 'college'  ? 'Search your college (e.g., St. Stephen’s)'
+      : type === 'college'  ? 'Search IITs, NITs, BITS, VIT, engineering colleges…'
       : type === 'university' ? 'Search your university (e.g., JNTU, Anna University)'
       : 'Search for your institution…');
 

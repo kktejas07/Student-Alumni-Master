@@ -722,7 +722,9 @@ async def institution_search(q: str, country: str = "India", type: str = ""):
         # Inter Board Colleges first, regular schools as backup.
         osm_tags = ["amenity:college", "amenity:school"]
     elif type_lower == "college":
-        osm_tags = ["amenity:college", "amenity:university"]
+        # Engineering / technical focus: IITs / NITs / IIITs are often tagged
+        # as amenity:university in OSM, so include both.
+        osm_tags = ["amenity:university", "amenity:college"]
     elif type_lower == "university":
         osm_tags = ["amenity:university", "amenity:college"]
     else:
@@ -754,19 +756,52 @@ async def institution_search(q: str, country: str = "India", type: str = ""):
 
     out: list[dict] = []
     seen: set[str] = set()
-    # For type=school (= Inter Board Colleges), sort results so junior/inter/PU
-    # named institutions appear first (ranking boost).
+    # Ranking boosts based on type
     INTER_KEYWORDS = ("junior college", "inter college", "intermediate college",
                       "pu college", "puc", "jr college", "jr. college",
                       "intermediate", "junior", " inter ", "+1", "+2",
                       "pre-university", "pre university", "pre-univ")
+    # Engineering / technical institution keywords (Indian context)
+    ENG_KEYWORDS = (
+        # Premier institutes (IITs / NITs / IIITs / IISc / IISER)
+        "iit ", "indian institute of technology",
+        "nit ", "national institute of technology",
+        "iiit ", "indian institute of information technology",
+        "iisc", "indian institute of science",
+        "iiser", "indian institute of science education",
+        # Private deemed universities
+        "bits ", "birla institute of technology", "birla institute of science",
+        "vit ", "vellore institute", "srm ", "manipal", "amrita",
+        "thapar", "lpu", "lovely professional", "shiv nadar",
+        "ashoka university", "ashoka", "iiit hyderabad", "dhirubhai",
+        # Generic engineering keywords
+        "engineering", "technology", "technical", "polytechnic",
+        "tech university", "technological", "school of engineering",
+        "college of engineering", "institute of technology",
+        "nirma", "psg ", "coimbatore institute", "cit ", "kits",
+        "rec ", "anna university",
+    )
 
     def _inter_score(props: dict) -> int:
         n = (props.get("name") or "").lower()
         return -sum(1 for k in INTER_KEYWORDS if k in n)
 
+    def _eng_score(props: dict) -> int:
+        n = (props.get("name") or "").lower()
+        # Boost for engineering keyword + extra boost for premier institutes
+        base = -sum(1 for k in ENG_KEYWORDS if k in n)
+        if "iit " in n or "indian institute of technology" in n:
+            base -= 5
+        if "nit " in n or "national institute of technology" in n:
+            base -= 4
+        if "iiit " in n or "indian institute of information" in n:
+            base -= 3
+        return base
+
     if type_lower == "school":
         features = sorted(features, key=lambda f: _inter_score(f.get("properties") or {}))
+    elif type_lower == "college":
+        features = sorted(features, key=lambda f: _eng_score(f.get("properties") or {}))
     for feat in features:
         props = (feat.get("properties") or {})
         name = (props.get("name") or "").strip()
