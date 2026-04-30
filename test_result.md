@@ -527,6 +527,68 @@ test_plan:
   test_priority: "high_first"
 
 backend:
+  - task: "Phase 3 — Opportunities API + match-score engine"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            Expanded SAMPLE_INTERNSHIPS from 6 → 20 with new fields:
+              type (internship/job), domain, mode (remote/hybrid/onsite),
+              deadline, applicants_count, description, match_signals.
+            ✅ GET    /api/opportunities  (?type=&domain=&mode=&q=)
+                — server-side filters + per-item match_score (40-100 from
+                career_path + interests + branch overlap, +12 if career_path
+                listed in opp.career_paths)
+            ✅ GET    /api/opportunities/me/saved
+            ✅ GET    /api/opportunities/me/applied
+            ✅ POST   /api/opportunities/{id}/save  — toggle bookmark
+            ✅ POST   /api/opportunities/{id}/apply — idempotent, persists
+                in db.opportunity_applications + increments applicants_count
+            All 5 endpoints verified 200 OK end-to-end.
+
+frontend:
+  - task: "Phase 3 — Jobs & Internships unified screen"
+    implemented: true
+    working: true
+    file: "/app/frontend/app/internships.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            Replaced the legacy 113-line internships listing with a
+            comprehensive 460-line opportunity feed matching the artifact
+            spec. Verified end-to-end (student01 / IIT Hyderabad):
+            ✅ Top bar: title + subtitle ("Aarav · personalized matches")
+               + back button
+            ✅ Search input (debounced 350ms)
+            ✅ 3 tabs: Recommended / Saved (live count) / Applied (live count)
+               with active gradient pill style
+            ✅ Filter chip dropdowns (Type / Mode / Domain) with custom
+               purple highlighted active state
+            ✅ OppCard:
+              · Company logo + name + INTERN/JOB type chip
+              · Title (max 2 lines) + match-score pill (color tier:
+                ≥80 green, ≥60 amber, else purple)
+              · Meta pills: Mode / Location / Stipend / Duration
+              · Description (2 lines) + skill chips
+              · Footer: applicants + deadline + Save (bookmark toggle) +
+                Apply button (opens URL on web/RN)
+              · "Applied" state replaces the Apply CTA with green check
+            ✅ Toast feedback bottom-center (saved / removed / applied)
+            ✅ Empty states: "Nothing saved yet" / "No applications yet" /
+               "No matches found"
+            ✅ Optimistic UI updates with rollback on error
+
+backend:
   - task: "Phase 1 — Digital ID Card endpoints + SA-ID auto-assignment"
     implemented: true
     working: true

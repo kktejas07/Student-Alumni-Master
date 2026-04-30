@@ -2399,6 +2399,172 @@ async def list_internships(career_path: Optional[str] = None, limit: int = 20):
     return {"internships": items}
 
 
+# ─── Opportunities (Phase 3) — unified Jobs + Internships flow ─────────
+def _match_score(opp: dict, user: dict) -> int:
+    """0-100 match score from user interests + career_path vs opp.match_signals."""
+    if not opp:
+        return 0
+    sig = [s.lower() for s in (opp.get("match_signals") or [])]
+    sig += [s.lower() for s in (opp.get("skills") or [])]
+    sig += [(opp.get("domain") or "").lower()]
+    sig = [s for s in sig if s]
+    user_signals = []
+    cp = (user.get("career_path") or "").lower()
+    if cp:
+        user_signals.append(cp)
+        # career_path keys → human-readable mapping
+        if cp == "job":               user_signals.append("software engineering")
+        if cp == "higher_education":  user_signals.append("research")
+        if cp == "startup":           user_signals.append("startup")
+        if cp == "business":          user_signals.append("business")
+    interests = user.get("interests") or (user.get("school_info") or {}).get("interests") or []
+    user_signals += [str(i).lower() for i in interests]
+    si = (user.get("school_info") or {})
+    branch = (si.get("branch_or_stream") or "").lower()
+    if branch:
+        user_signals.append(branch)
+        if "cse" in branch or "computer" in branch:
+            user_signals.append("software engineering")
+            user_signals.append("engineering")
+    if not user_signals:
+        return 50  # neutral score for new users
+    # Count overlapping signals
+    matches = sum(1 for s in sig if any(u in s or s in u for u in user_signals))
+    score = min(100, int(40 + matches * 18))
+    # Boost for matching career path explicitly
+    if cp and cp in (opp.get("career_paths") or []):
+        score = min(100, score + 12)
+    return score
+
+
+@api_router.get("/opportunities")
+async def list_opportunities(
+    type: Optional[str] = None,        # internship / job / null=both
+    domain: Optional[str] = None,
+    mode: Optional[str] = None,        # remote / hybrid / onsite
+    q: Optional[str] = None,
+    limit: int = 100,
+    user: dict = Depends(get_current_user),
+):
+    """List opportunities with optional filters and per-item match score."""
+    query: dict = {}
+    if type and type in ("internship", "job"):
+        query["type"] = type
+    if domain:
+        query["domain"] = domain
+    if mode:
+        query["mode"] = mode
+    if q:
+        rx = {"$regex": q, "$options": "i"}
+        query["$or"] = [{"title": rx}, {"company": rx}, {"skills": rx}, {"description": rx}, {"domain": rx}]
+    items = await db.internships.find(query, {"_id": 0}).limit(limit).to_list(limit)
+    saved = set(user.get("saved_opportunities") or [])
+    applied = set(user.get("applied_opportunities") or [])
+    out = []
+    for it in items:
+        it["match_score"] = _match_score(it, user)
+        it["saved"] = it.get("id") in saved
+        it["applied"] = it.get("id") in applied
+        out.append(it)
+    out.sort(key=lambda x: x.get("match_score", 0), reverse=True)
+    # Distinct domains for filter chips
+    domains = sorted({i.get("domain") for i in items if i.get("domain")})
+    return {"items": out, "total": len(out), "domains": list(domains)}
+
+
+@api_router.get("/opportunities/me/saved")
+async def my_saved_opportunities(user: dict = Depends(get_current_user)):
+    ids = user.get("saved_opportunities") or []
+    if not ids:
+        return {"items": []}
+    items = await db.internships.find({"id": {"$in": ids}}, {"_id": 0}).to_list(len(ids))
+    applied = set(user.get("applied_opportunities") or [])
+    for it in items:
+        it["match_score"] = _match_score(it, user)
+        it["saved"] = True
+        it["applied"] = it.get("id") in applied
+    return {"items": items}
+
+
+@api_router.get("/opportunities/me/applied")
+async def my_applied_opportunities(user: dict = Depends(get_current_user)):
+    apps = await db.opportunity_applications.find(
+        {"user_id": str(user.get("_id") or user.get("id"))},
+        {"_id": 0},
+    ).sort("applied_at", -1).to_list(200)
+    if not apps:
+        return {"items": []}
+    ids = [a["opportunity_id"] for a in apps]
+    items = await db.internships.find({"id": {"$in": ids}}, {"_id": 0}).to_list(len(ids))
+    by_id = {i["id"]: i for i in items}
+    saved = set(user.get("saved_opportunities") or [])
+    out = []
+    for a in apps:
+        it = by_id.get(a["opportunity_id"])
+        if not it:
+            continue
+        it = dict(it)
+        it["match_score"] = _match_score(it, user)
+        it["applied"] = True
+        it["applied_at"] = a.get("applied_at")
+        it["saved"] = it.get("id") in saved
+        out.append(it)
+    return {"items": out}
+
+
+@api_router.post("/opportunities/{opp_id}/save")
+async def toggle_save_opportunity(opp_id: str, user: dict = Depends(get_current_user)):
+    """Toggle save state for the current user."""
+    opp = await db.internships.find_one({"id": opp_id}, {"_id": 0, "id": 1})
+    if not opp:
+        raise HTTPException(404, "Opportunity not found")
+    saved = list(user.get("saved_opportunities") or [])
+    if opp_id in saved:
+        saved.remove(opp_id)
+        action = "removed"
+    else:
+        saved.append(opp_id)
+        action = "saved"
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"saved_opportunities": saved, "updated_at": datetime.utcnow()}},
+    )
+    return {"action": action, "saved_count": len(saved)}
+
+
+@api_router.post("/opportunities/{opp_id}/apply")
+async def apply_opportunity(opp_id: str, user: dict = Depends(get_current_user)):
+    """Mark an opportunity as applied (idempotent)."""
+    opp = await db.internships.find_one({"id": opp_id}, {"_id": 0})
+    if not opp:
+        raise HTTPException(404, "Opportunity not found")
+    user_id = str(user.get("_id") or user.get("id"))
+    existing = await db.opportunity_applications.find_one(
+        {"user_id": user_id, "opportunity_id": opp_id},
+    )
+    if existing:
+        return {"action": "already_applied", "url": opp.get("url")}
+    await db.opportunity_applications.insert_one({
+        "user_id": user_id,
+        "opportunity_id": opp_id,
+        "applied_at": datetime.utcnow(),
+        "status": "applied",
+    })
+    applied = list(user.get("applied_opportunities") or [])
+    if opp_id not in applied:
+        applied.append(opp_id)
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"applied_opportunities": applied, "updated_at": datetime.utcnow()}},
+        upsert=False,
+    )
+    # Increment applicants_count on the opportunity
+    await db.internships.update_one({"id": opp_id}, {"$inc": {"applicants_count": 1}})
+    return {"action": "applied", "url": opp.get("url"), "applied_at": datetime.utcnow().isoformat()}
+
+
+
+
 @api_router.get("/catalog/events")
 async def list_events(category: Optional[str] = None, limit: int = 20):
     """Module 2: Events — hackathons, workshops, fests with QR registration."""
@@ -3015,12 +3181,26 @@ SAMPLE_MENTORS = [
 ]
 
 SAMPLE_INTERNSHIPS = [
-    {"id": "i1", "title": "Software Engineering Intern", "company": "Microsoft", "location": "Hyderabad / Remote", "stipend": "₹80,000/month", "duration": "3 months", "skills": ["Python", "C++", "Algorithms"], "url": "https://careers.microsoft.com", "image": "https://images.unsplash.com/photo-1633419461186-7d40a38105ec?w=800", "career_paths": ["job", "higher_education"]},
-    {"id": "i2", "title": "Data Science Intern", "company": "Flipkart", "location": "Bangalore", "stipend": "₹60,000/month", "duration": "6 months", "skills": ["Python", "SQL", "ML"], "url": "https://www.flipkartcareers.com", "image": "https://images.unsplash.com/photo-1551434678-e076c223a692?w=800", "career_paths": ["job"]},
-    {"id": "i3", "title": "Product Management Intern", "company": "Razorpay", "location": "Bangalore / Remote", "stipend": "₹50,000/month", "duration": "3 months", "skills": ["Product", "SQL"], "url": "https://razorpay.com/jobs", "image": "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=800", "career_paths": ["job", "startup"]},
-    {"id": "i4", "title": "Founders Office Intern", "company": "Zerodha", "location": "Bangalore", "stipend": "₹40,000/month", "duration": "6 months", "skills": ["Strategy", "Business"], "url": "https://zerodha.com/careers", "image": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=800", "career_paths": ["business", "startup"]},
-    {"id": "i5", "title": "Research Intern", "company": "IIT Madras", "location": "Chennai", "stipend": "₹15,000/month", "duration": "2 months", "skills": ["Research", "Python"], "url": "https://www.iitm.ac.in", "image": "https://images.unsplash.com/photo-1562774053-701939374585?w=800", "career_paths": ["higher_education"]},
-    {"id": "i6", "title": "Marketing Intern", "company": "Swiggy", "location": "Bangalore / Remote", "stipend": "₹35,000/month", "duration": "3 months", "skills": ["Marketing", "Analytics"], "url": "https://careers.swiggy.com", "image": "https://images.unsplash.com/photo-1611926653458-09294b3142bf?w=800", "career_paths": ["job", "business"]},
+    {"id": "i1", "title": "Software Engineering Intern", "company": "Microsoft", "location": "Hyderabad / Remote", "stipend": "₹80,000/month", "duration": "3 months", "skills": ["Python", "C++", "Algorithms"], "url": "https://careers.microsoft.com", "image": "https://images.unsplash.com/photo-1633419461186-7d40a38105ec?w=800", "career_paths": ["job", "higher_education"], "type": "internship", "domain": "Engineering", "mode": "hybrid", "deadline": "2026-08-15", "applicants_count": 1240, "description": "Build features for Office 365. Code in TypeScript & C#.", "match_signals": ["Software Engineering", "Engineering", "Computer Science"]},
+    {"id": "i2", "title": "Data Science Intern", "company": "Flipkart", "location": "Bangalore", "stipend": "₹60,000/month", "duration": "6 months", "skills": ["Python", "SQL", "ML"], "url": "https://www.flipkartcareers.com", "image": "https://images.unsplash.com/photo-1551434678-e076c223a692?w=800", "career_paths": ["job"], "type": "internship", "domain": "Data Science", "mode": "onsite", "deadline": "2026-07-30", "applicants_count": 856, "description": "Apply ML to e-commerce. Work with petabyte-scale data.", "match_signals": ["Data Science", "AI/ML", "Analytics"]},
+    {"id": "i3", "title": "Product Management Intern", "company": "Razorpay", "location": "Bangalore / Remote", "stipend": "₹50,000/month", "duration": "3 months", "skills": ["Product", "SQL"], "url": "https://razorpay.com/jobs", "image": "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=800", "career_paths": ["job", "startup"], "type": "internship", "domain": "Product", "mode": "hybrid", "deadline": "2026-08-10", "applicants_count": 612, "description": "Drive payment-product roadmap end-to-end.", "match_signals": ["Product Manager", "Product", "Startup"]},
+    {"id": "i4", "title": "Founders Office Intern", "company": "Zerodha", "location": "Bangalore", "stipend": "₹40,000/month", "duration": "6 months", "skills": ["Strategy", "Business"], "url": "https://zerodha.com/careers", "image": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=800", "career_paths": ["business", "startup"], "type": "internship", "domain": "Business", "mode": "onsite", "deadline": "2026-07-25", "applicants_count": 420, "description": "Work directly with founders on strategy & ops.", "match_signals": ["Business", "Startup", "Strategy"]},
+    {"id": "i5", "title": "Research Intern", "company": "IIT Madras", "location": "Chennai", "stipend": "₹15,000/month", "duration": "2 months", "skills": ["Research", "Python"], "url": "https://www.iitm.ac.in", "image": "https://images.unsplash.com/photo-1562774053-701939374585?w=800", "career_paths": ["higher_education"], "type": "internship", "domain": "Research", "mode": "onsite", "deadline": "2026-07-15", "applicants_count": 188, "description": "Contribute to AI research with PhD-level mentors.", "match_signals": ["Research", "AI/ML", "Higher Education"]},
+    {"id": "i6", "title": "Marketing Intern", "company": "Swiggy", "location": "Bangalore / Remote", "stipend": "₹35,000/month", "duration": "3 months", "skills": ["Marketing", "Analytics"], "url": "https://careers.swiggy.com", "image": "https://images.unsplash.com/photo-1611926653458-09294b3142bf?w=800", "career_paths": ["job", "business"], "type": "internship", "domain": "Marketing", "mode": "hybrid", "deadline": "2026-08-20", "applicants_count": 950, "description": "Run growth & brand campaigns at scale.", "match_signals": ["Marketing", "Business"]},
+    {"id": "j1", "title": "Backend Engineer (SDE-1)", "company": "Razorpay", "location": "Bangalore", "stipend": "₹22-32 LPA", "duration": "Full-time", "skills": ["Go", "Postgres", "Redis"], "url": "https://razorpay.com/jobs", "image": "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=800", "career_paths": ["job"], "type": "job", "domain": "Engineering", "mode": "onsite", "deadline": "2026-09-01", "applicants_count": 1420, "description": "Build payment APIs handling millions of TPS.", "match_signals": ["Software Engineering", "Engineering"]},
+    {"id": "j2", "title": "Frontend Engineer (Remote)", "company": "Atlassian", "location": "Remote (India)", "stipend": "₹28-40 LPA", "duration": "Full-time", "skills": ["React", "TypeScript", "GraphQL"], "url": "https://atlassian.com/careers", "image": "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800", "career_paths": ["job"], "type": "job", "domain": "Engineering", "mode": "remote", "deadline": "2026-08-30", "applicants_count": 920, "description": "Ship Jira UI used by 200K+ teams worldwide.", "match_signals": ["Software Engineering", "Engineering"]},
+    {"id": "j3", "title": "ML Engineer", "company": "Sarvam AI", "location": "Bangalore", "stipend": "₹35-50 LPA", "duration": "Full-time", "skills": ["PyTorch", "LLMs", "CUDA"], "url": "https://www.sarvam.ai", "image": "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800", "career_paths": ["job", "startup"], "type": "job", "domain": "Data Science", "mode": "hybrid", "deadline": "2026-09-15", "applicants_count": 480, "description": "Train India's first multilingual foundation model.", "match_signals": ["Data Science", "AI/ML", "Startup"]},
+    {"id": "j4", "title": "Investment Analyst", "company": "Sequoia (Peak XV)", "location": "Bangalore / Mumbai", "stipend": "₹25-35 LPA", "duration": "Full-time", "skills": ["Excel", "Modeling", "Diligence"], "url": "https://www.peakxv.com", "image": "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800", "career_paths": ["business"], "type": "job", "domain": "Finance", "mode": "onsite", "deadline": "2026-08-05", "applicants_count": 312, "description": "Source & evaluate seed-to-Series-B investments.", "match_signals": ["Finance", "Business", "Investment"]},
+    {"id": "j5", "title": "PhD-Track Researcher", "company": "Microsoft Research", "location": "Bangalore", "stipend": "₹18-28 LPA", "duration": "Full-time", "skills": ["Research", "Publications"], "url": "https://www.microsoft.com/research", "image": "https://images.unsplash.com/photo-1532618793091-ec5fe9635fbd?w=800", "career_paths": ["higher_education", "job"], "type": "job", "domain": "Research", "mode": "onsite", "deadline": "2026-09-30", "applicants_count": 96, "description": "Publish in top venues, collaborate with global PhDs.", "match_signals": ["Research", "Higher Education"]},
+    {"id": "j6", "title": "Founder's Associate", "company": "Cred", "location": "Bangalore", "stipend": "₹18-28 LPA", "duration": "Full-time", "skills": ["Strategy", "0-to-1"], "url": "https://cred.club", "image": "https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=800", "career_paths": ["business", "startup"], "type": "job", "domain": "Business", "mode": "onsite", "deadline": "2026-08-12", "applicants_count": 540, "description": "Run new bets directly with the CEO.", "match_signals": ["Business", "Startup", "Strategy"]},
+    {"id": "i7", "title": "UX Design Intern", "company": "Spotify", "location": "Remote", "stipend": "₹50,000/month", "duration": "4 months", "skills": ["Figma", "User Research"], "url": "https://www.lifeatspotify.com", "image": "https://images.unsplash.com/photo-1611339555312-e607c8352fd7?w=800", "career_paths": ["job"], "type": "internship", "domain": "Design", "mode": "remote", "deadline": "2026-08-25", "applicants_count": 720, "description": "Design listening experiences for 600M+ users.", "match_signals": ["Design", "UX"]},
+    {"id": "i8", "title": "DevOps Intern", "company": "Postman", "location": "Bangalore / Remote", "stipend": "₹45,000/month", "duration": "6 months", "skills": ["AWS", "Kubernetes", "Terraform"], "url": "https://www.postman.com/company/careers", "image": "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800", "career_paths": ["job"], "type": "internship", "domain": "Engineering", "mode": "hybrid", "deadline": "2026-09-05", "applicants_count": 380, "description": "Scale APIs used by 30M+ developers.", "match_signals": ["Software Engineering", "Engineering", "DevOps"]},
+    {"id": "i9", "title": "Content Strategy Intern", "company": "The Ken", "location": "Bangalore / Remote", "stipend": "₹25,000/month", "duration": "3 months", "skills": ["Writing", "Research"], "url": "https://the-ken.com", "image": "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800", "career_paths": ["job", "business"], "type": "internship", "domain": "Content", "mode": "remote", "deadline": "2026-07-20", "applicants_count": 290, "description": "Investigate & write deep-dive business stories.", "match_signals": ["Content", "Writing", "Business"]},
+    {"id": "j7", "title": "Mechanical Design Engineer", "company": "Ola Electric", "location": "Bangalore", "stipend": "₹14-22 LPA", "duration": "Full-time", "skills": ["CAD", "FEA", "Manufacturing"], "url": "https://olaelectric.com/careers", "image": "https://images.unsplash.com/photo-1593941707874-ef25b8b4a92b?w=800", "career_paths": ["job"], "type": "job", "domain": "Engineering", "mode": "onsite", "deadline": "2026-08-22", "applicants_count": 410, "description": "Design EV powertrain components.", "match_signals": ["Mechanical", "Engineering"]},
+    {"id": "j8", "title": "Clinical Data Scientist", "company": "Apollo Hospitals", "location": "Hyderabad", "stipend": "₹12-18 LPA", "duration": "Full-time", "skills": ["R", "Biostatistics"], "url": "https://www.apollohospitals.com/careers", "image": "https://images.unsplash.com/photo-1530497610245-94d3c16cda28?w=800", "career_paths": ["higher_education", "job"], "type": "job", "domain": "Healthcare", "mode": "onsite", "deadline": "2026-09-10", "applicants_count": 145, "description": "Use AI to improve patient outcomes.", "match_signals": ["Healthcare", "Data Science"]},
+    {"id": "j9", "title": "Game Developer", "company": "Krafton India", "location": "Bangalore", "stipend": "₹16-26 LPA", "duration": "Full-time", "skills": ["Unreal Engine", "C++"], "url": "https://krafton.com/careers", "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800", "career_paths": ["job"], "type": "job", "domain": "Engineering", "mode": "onsite", "deadline": "2026-08-28", "applicants_count": 670, "description": "Build the next BGMI feature.", "match_signals": ["Software Engineering", "Engineering", "Gaming"]},
+    {"id": "i10", "title": "Architecture Intern", "company": "WeWork India", "location": "Mumbai / Bangalore", "stipend": "₹20,000/month", "duration": "3 months", "skills": ["AutoCAD", "Sketch"], "url": "https://www.wework.co.in", "image": "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800", "career_paths": ["job"], "type": "internship", "domain": "Architecture", "mode": "onsite", "deadline": "2026-07-28", "applicants_count": 110, "description": "Plan flexible workspaces of the future.", "match_signals": ["Architecture", "Design"]},
+    {"id": "j10", "title": "Public Policy Associate", "company": "Niti Aayog", "location": "New Delhi", "stipend": "₹10-15 LPA", "duration": "Full-time", "skills": ["Policy", "Writing"], "url": "https://niti.gov.in", "image": "https://images.unsplash.com/photo-1532375810709-75b1da00537c?w=800", "career_paths": ["business", "higher_education"], "type": "job", "domain": "Policy", "mode": "onsite", "deadline": "2026-09-20", "applicants_count": 234, "description": "Draft national-level economic policy.", "match_signals": ["Policy", "Business"]},
 ]
 
 SAMPLE_EVENTS = [
