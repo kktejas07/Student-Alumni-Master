@@ -713,11 +713,14 @@ async def institution_search(q: str, country: str = "India", type: str = ""):
         return {"results": cached, "cached": True}
 
     # Build Photon params. amenity:school/college/university filters precisely.
-    # For 'school' (= School / Inter), include both school + college amenities so we get
-    # junior/intermediate colleges too.
+    # type=school (now semantically "Inter / Inter Board College") → primarily
+    # amenity:college (where Indian Junior / Intermediate / Inter Board / PU
+    # colleges are tagged in OSM). amenity:school kept as a fallback because
+    # many composite K-12+Inter schools are tagged only as schools in OSM.
     osm_tags: list[str] = []
     if type_lower == "school":
-        osm_tags = ["amenity:school", "amenity:college", "amenity:kindergarten"]
+        # Inter Board Colleges first, regular schools as backup.
+        osm_tags = ["amenity:college", "amenity:school"]
     elif type_lower == "college":
         osm_tags = ["amenity:college", "amenity:university"]
     elif type_lower == "university":
@@ -751,6 +754,19 @@ async def institution_search(q: str, country: str = "India", type: str = ""):
 
     out: list[dict] = []
     seen: set[str] = set()
+    # For type=school (= Inter Board Colleges), sort results so junior/inter/PU
+    # named institutions appear first (ranking boost).
+    INTER_KEYWORDS = ("junior college", "inter college", "intermediate college",
+                      "pu college", "puc", "jr college", "jr. college",
+                      "intermediate", "junior", " inter ", "+1", "+2",
+                      "pre-university", "pre university", "pre-univ")
+
+    def _inter_score(props: dict) -> int:
+        n = (props.get("name") or "").lower()
+        return -sum(1 for k in INTER_KEYWORDS if k in n)
+
+    if type_lower == "school":
+        features = sorted(features, key=lambda f: _inter_score(f.get("properties") or {}))
     for feat in features:
         props = (feat.get("properties") or {})
         name = (props.get("name") or "").strip()

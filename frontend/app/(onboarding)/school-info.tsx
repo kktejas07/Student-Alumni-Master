@@ -26,7 +26,7 @@ import { Dropdown } from '@/src/views/web/Dropdown';
 import type { DropdownOption } from '@/src/views/web/Dropdown';
 
 const INSTITUTION_TYPES: { id: InstitutionType; label: string }[] = [
-  { id: 'school', label: 'School / Inter' },
+  { id: 'school', label: 'Inter' },
   { id: 'college', label: 'College' },
   { id: 'university', label: 'University' },
 ];

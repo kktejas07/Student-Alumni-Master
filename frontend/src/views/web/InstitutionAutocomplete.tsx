@@ -60,7 +60,7 @@ export function InstitutionAutocomplete({
   const debounceRef = useRef<any>(null);
 
   const ph = placeholder
-    || (type === 'school'   ? 'Search your school or junior college (DPS, Sri Chaitanya…)'
+    || (type === 'school'   ? 'Search your Inter / Junior / PU college (Sri Chaitanya, Narayana…)'
       : type === 'college'  ? 'Search your college (e.g., St. Stephen’s)'
       : type === 'university' ? 'Search your university (e.g., JNTU, Anna University)'
       : 'Search for your institution…');
