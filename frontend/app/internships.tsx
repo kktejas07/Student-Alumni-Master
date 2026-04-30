@@ -27,6 +27,7 @@ import {
 import { Colors as C } from '@/src/theme';
 import { useAuth } from '@/src/viewmodels/hooks';
 import { request } from '@/src/models/services/api';
+import { HoverGlowCard } from '@/src/views/web/HoverGlowCard';
 
 interface Opp {
   id: string;
@@ -272,8 +273,11 @@ function OppCard({ opp, onSave, onApply }: { opp: Opp; onSave: () => void; onApp
   const matchColor =
     (opp.match_score || 0) >= 80 ? '#10B981'
   : (opp.match_score || 0) >= 60 ? '#F59E0B' : '#A78BFA';
+  // Tint hover glow by opportunity type — amber for jobs, teal for internships
+  const tint = opp.type === 'job' ? '#F59E0B' : '#22D3EE';
   return (
-    <View style={styles.card} testID={`opp-card-${opp.id}`}>
+    <HoverGlowCard tint={tint} radius={14} intensity="medium" testID={`opp-card-${opp.id}`} style={{ marginBottom: 12 }}>
+    <View style={styles.cardInner}>
       {/* Header row */}
       <View style={styles.cardHeader}>
         {opp.image ? (
@@ -364,6 +368,7 @@ function OppCard({ opp, onSave, onApply }: { opp: Opp; onSave: () => void; onApp
         </View>
       </View>
     </View>
+    </HoverGlowCard>
   );
 }
 
@@ -472,10 +477,9 @@ const styles = StyleSheet.create({
   dropdownText: { color: '#fff', fontFamily: 'DMSans_500Medium', fontSize: 12 },
 
   list: { padding: 16, gap: 14 },
-  card: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1,
-    borderRadius: 14, padding: 14, gap: 10, marginBottom: 12,
+  cardInner: {
+    padding: 14, gap: 10,
+    borderRadius: 14, overflow: 'hidden',
   },
   cardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   cardImg: { width: 44, height: 44, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)' },

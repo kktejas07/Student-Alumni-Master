@@ -3,7 +3,7 @@
  * NOT used on mobile.
  */
 import React, { useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, Animated, Easing, Platform } from 'react-native';
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 import { LucideIcon } from 'lucide-react-native';
@@ -32,13 +32,20 @@ export function GlassCard({
   pad = 18,
   onPress,
   hover = true,
+  glowTint = '#A78BFA',
 }: {
   children: React.ReactNode;
   style?: any;
   pad?: number;
   onPress?: () => void;
   hover?: boolean;
+  glowTint?: string;
 }) {
+  // Common hover-glow style hook (web-only via boxShadow transition)
+  const hoverWebStyle = hover ? ({
+    transition: 'box-shadow 200ms ease, transform 180ms ease, border-color 180ms ease',
+  } as any) : null;
+
   if (onPress) {
     return (
       <Pressable
@@ -46,7 +53,11 @@ export function GlassCard({
         style={({ hovered }: any) => [
           styles.glass,
           { padding: pad },
-          hover && hovered && styles.glassHover,
+          hoverWebStyle,
+          hover && hovered && [
+            styles.glassHover,
+            ({ boxShadow: `0 12px 40px ${glowTint}33, 0 0 0 1px ${glowTint}70 inset` } as any),
+          ],
           style,
         ]}
       >
@@ -54,8 +65,24 @@ export function GlassCard({
       </Pressable>
     );
   }
+  // Even for non-clickable cards, apply a subtle hover glow on web.
   return (
-    <View style={[styles.glass, { padding: pad }, style]}>
+    <View
+      // @ts-ignore — onMouseEnter/Leave only on web
+      onMouseEnter={Platform.OS === 'web' ? (e: any) => {
+        if (!hover) return;
+        e.currentTarget.style.boxShadow = `0 10px 30px ${glowTint}26, 0 0 0 1px ${glowTint}55 inset`;
+        e.currentTarget.style.transform = 'translateY(-1px)';
+        e.currentTarget.style.borderColor = `${glowTint}55`;
+      } : undefined}
+      onMouseLeave={Platform.OS === 'web' ? (e: any) => {
+        if (!hover) return;
+        e.currentTarget.style.boxShadow = '';
+        e.currentTarget.style.transform = '';
+        e.currentTarget.style.borderColor = '';
+      } : undefined}
+      style={[styles.glass, { padding: pad }, hoverWebStyle, style]}
+    >
       {children}
     </View>
   );

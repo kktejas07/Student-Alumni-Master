@@ -526,6 +526,36 @@ test_plan:
   test_all: false
   test_priority: "high_first"
 
+frontend:
+  - task: "Hover Glow Effect across all cards"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/views/web/HoverGlowCard.tsx + /app/frontend/src/views/web/platform/components.tsx + /app/frontend/app/internships.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            Built a reusable `<HoverGlowCard>` (Option A — subtle single-color
+            glow on hover) and enhanced the existing `<GlassCard>` (used across
+            student/mentor/college dashboards) so all cards now share the same
+            language:
+            ✅ Type-aware tint: amber for JOB cards, teal for INTERN cards,
+               purple as default
+            ✅ Web hover: animated boxShadow + translateY(-1px) + border tint
+               (200ms ease) — visible end-to-end via screenshot test
+            ✅ Mobile press: subtle scale (0.98) + glow flash via Animated
+            ✅ Three intensity levels (low/medium/high) for callers
+            ✅ Verified live: Microsoft INTERN row shows teal glow on hover,
+               Atlassian JOB row shows amber glow — both lift cleanly with
+               default state restored on mouse leave
+            Cards intentionally skipped (per user spec):
+              - Admin tables (already have lift; would be too noisy)
+              - Profile certificate rows (small list rows — would feel heavy)
+              - Digital ID Card (intentionally static)
+
 backend:
   - task: "Phase 3 — Opportunities API + match-score engine"
     implemented: true
