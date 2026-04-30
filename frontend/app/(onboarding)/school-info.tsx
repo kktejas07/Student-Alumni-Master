@@ -66,6 +66,47 @@ const STREAM_OPTIONS: DropdownOption[] = [
   { value: 'vocational',  label: 'Vocational' },
   { value: 'other',       label: 'Other' },
 ];
+
+// Engineering branches — used when type=college / university
+const ENGINEERING_STREAM_OPTIONS: DropdownOption[] = [
+  { value: 'cse',          label: 'Computer Science & Engineering',   hint: 'CSE / CS' },
+  { value: 'it',           label: 'Information Technology',           hint: 'IT' },
+  { value: 'ai_ml',        label: 'AI & Machine Learning',            hint: 'AIML' },
+  { value: 'data_science', label: 'Data Science',                     hint: 'DS' },
+  { value: 'cyber_sec',    label: 'Cyber Security' },
+  { value: 'iot',          label: 'IoT / Embedded Systems' },
+  { value: 'ece',          label: 'Electronics & Communication',      hint: 'ECE' },
+  { value: 'eee',          label: 'Electrical & Electronics',         hint: 'EEE' },
+  { value: 'electronics_instrumentation', label: 'Electronics & Instrumentation' },
+  { value: 'mechanical',   label: 'Mechanical Engineering',           hint: 'Mech' },
+  { value: 'civil',        label: 'Civil Engineering' },
+  { value: 'chemical',     label: 'Chemical Engineering' },
+  { value: 'aerospace',    label: 'Aerospace / Aeronautical' },
+  { value: 'biotech',      label: 'Biotechnology' },
+  { value: 'biomedical',   label: 'Biomedical Engineering' },
+  { value: 'metallurgy',   label: 'Metallurgical Engineering' },
+  { value: 'mining',       label: 'Mining Engineering' },
+  { value: 'automobile',   label: 'Automobile Engineering' },
+  { value: 'industrial',   label: 'Industrial / Production Engineering' },
+  { value: 'marine',       label: 'Marine Engineering' },
+  { value: 'petroleum',    label: 'Petroleum Engineering' },
+  { value: 'textile',      label: 'Textile Engineering' },
+  { value: 'architecture', label: 'Architecture',                     hint: 'B.Arch' },
+  { value: 'planning',     label: 'Planning / Urban Design' },
+  { value: 'agriculture',  label: 'Agricultural Engineering' },
+  { value: 'food_tech',    label: 'Food Technology' },
+  { value: 'environment',  label: 'Environmental Engineering' },
+  { value: 'other',        label: 'Other' },
+];
+
+// Academic year for college/university — 30 past + current + 10 future
+const COLLEGE_ACADEMIC_YEAR_OPTIONS: DropdownOption[] = (() => {
+  const list: DropdownOption[] = [];
+  for (let i = 30; i >= 1; i--) list.push({ value: String(CURRENT_YEAR - i), label: String(CURRENT_YEAR - i) });
+  list.push({ value: String(CURRENT_YEAR), label: `${CURRENT_YEAR} (current)` });
+  for (let i = 1; i <= 10; i++) list.push({ value: String(CURRENT_YEAR + i), label: String(CURRENT_YEAR + i) });
+  return list;
+})();
 const BOARD_OPTIONS: DropdownOption[] = [
   { value: 'cbse',        label: 'CBSE' },
   { value: 'icse',        label: 'ICSE' },
@@ -98,6 +139,10 @@ export default function SchoolInfoScreen() {
   const role = user?.role || 'student';
   const isStudent = role === 'student';
   const isPassedOut = role === 'alumni' || role === 'mentor';
+  const instType = school_info.institution_type;
+  // Stage flags — drive which fields render
+  const isInter      = isStudent && instType === 'school';
+  const isHigherEd   = isStudent && (instType === 'college' || instType === 'university');
 
   const validate = (): boolean => {
     setError(null);
@@ -105,7 +150,7 @@ export default function SchoolInfoScreen() {
     if (!s.institution_type) { setError('Please pick the type of institution'); return false; }
     if (!s.institution_name?.trim()) { setError('Please pick or enter your institution'); return false; }
 
-    if (isStudent) {
+    if (isInter) {
       if (!s.current_course) {
         setError('Please choose your current course (11th / 12th / Other).');
         return false;
@@ -116,6 +161,17 @@ export default function SchoolInfoScreen() {
       }
       if (!s.academic_year) {
         setError('Please select your academic year.');
+        return false;
+      }
+    }
+
+    if (isHigherEd) {
+      if (!s.academic_year) {
+        setError('Please select your academic year.');
+        return false;
+      }
+      if (!s.branch_or_stream) {
+        setError('Please select your engineering stream / branch.');
         return false;
       }
     }
@@ -172,7 +228,7 @@ export default function SchoolInfoScreen() {
       onPrimary={next}
       onBack={() => router.back()}
     >
-      {isStudent && (
+      {isInter && (
         <DarkInfoCard tone="warning">
           <Text style={styles.warnText}>
             {'⚠️'}  Students must be in Class 11 (+1) or Class 12 (+2) to register.
@@ -214,8 +270,8 @@ export default function SchoolInfoScreen() {
         </View>
       </View>
 
-      {/* ── Student: Current Course (11/12/Other) ──────────── */}
-      {isStudent && (
+      {/* ── Inter (school) student: 11/12 + Stream + Board ───── */}
+      {isInter && (
         <>
           <Text style={styles.section}>Current course</Text>
           <View style={styles.chipRow}>
@@ -265,6 +321,35 @@ export default function SchoolInfoScreen() {
             onChange={(v) => setSchoolInfo({ board_or_university: v })}
             placeholder="Select your board (CBSE, ICSE, State Board…)"
             testID="school-board"
+          />
+        </>
+      )}
+
+      {/* ── College / University student: Year + Engineering Stream ─── */}
+      {isHigherEd && (
+        <>
+          {/* Academic Year (30 past + 10 future) */}
+          <Dropdown
+            label="Academic year"
+            required
+            value={school_info.academic_year}
+            options={COLLEGE_ACADEMIC_YEAR_OPTIONS}
+            onChange={(v) => setSchoolInfo({ academic_year: v, class_or_year: v })}
+            placeholder={instType === 'college'
+              ? 'Select admission / current academic year'
+              : 'Select admission / current academic year'}
+            testID="school-academic-year"
+          />
+
+          {/* Engineering Stream — MANDATORY */}
+          <Dropdown
+            label="Stream / Branch"
+            required
+            value={school_info.branch_or_stream}
+            options={ENGINEERING_STREAM_OPTIONS}
+            onChange={(v) => setSchoolInfo({ branch_or_stream: v })}
+            placeholder="Select your engineering branch (CSE, ECE, Mech…)"
+            testID="school-stream"
           />
         </>
       )}

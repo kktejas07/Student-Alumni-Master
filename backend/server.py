@@ -756,6 +756,16 @@ async def institution_search(q: str, country: str = "India", type: str = ""):
 
     out: list[dict] = []
     seen: set[str] = set()
+    # Medical / health-science institutions to EXCLUDE for type=college
+    # (the user wants only technical engineering institutions under College).
+    MEDICAL_KEYWORDS = (
+        "medical", "dental", "pharmacy", "pharma ", "ayurved", "homeopath",
+        "nursing", "veterinary", "siddha", "unani", "physiotherapy",
+        "physiotherapy", "yoga ", "naturopathy", "homoeopathic", "homoeopathy",
+        " mbbs", " bds", " bhms", " bams", "paramedical",
+        "aiims", "jipmer", "kgmu", "afmc", "cmc vellore",
+        "all india institute of medical",
+    )
     # Ranking boosts based on type
     INTER_KEYWORDS = ("junior college", "inter college", "intermediate college",
                       "pu college", "puc", "jr college", "jr. college",
@@ -824,6 +834,11 @@ async def institution_search(q: str, country: str = "India", type: str = ""):
             " apartments", " apartment", " quarters",
         )
         if any(primary_lower.endswith(b) for b in bad_endings):
+            continue
+
+        # For type=college, exclude medical / dental / pharmacy / nursing institutions.
+        # User wants only Technical Engineering institutions under College.
+        if type_lower == "college" and any(k in primary_lower for k in MEDICAL_KEYWORDS):
             continue
 
         city = (
