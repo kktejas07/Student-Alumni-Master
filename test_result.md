@@ -600,7 +600,7 @@ backend:
             ✅ Stored in db.connections {a, b, status, created_at, accepted_at}
 
 frontend:
-  - task: "Phase 2 — Network screen with PersonCards"
+  - task: "Phase 2 — Network screen with PersonCards (UI v2 — design-spec)"
     implemented: true
     working: true
     file: "/app/frontend/app/network.tsx"
@@ -611,25 +611,26 @@ frontend:
         - working: true
           agent: "main"
           comment: |
-            ROOT CAUSE during build: `Linkedin` icon does NOT exist in this
-            version of lucide-react-native — caused "got: undefined" error.
-            Fixed by importing `Link2 as Linkedin` across 4 files (network.tsx,
-            ApprovalsPage, UserEditorPanel, Badges).
-            Verified end-to-end (student01):
-            ✅ Top bar with 3 tabs (Discover · Connections · Requests with
-               live counts) and search input
-            ✅ 5 horizontally-scrolling sections with section titles + subtitles
-            ✅ PersonCard:
-              · Avatar (photo or initials), name, role chip (purple STUDENT,
-                teal ALUMNI, amber MENTOR, green INSTITUTION)
-              · Institution + city/state + interest/skill chips
-              · Mentors: ⭐ rating + sessions count
-              · Footer: Link2 icon for LinkedIn + state-aware action button
-                (Connect / Pending amber / Connected green)
-            ✅ Hover glow tinted by role color (HoverGlowCard wrapper)
-            ✅ Connect → Pending state (verified live via screenshot)
+            UI v2 verified (1440px desktop). Major upgrade from v1:
+            ✅ Responsive 4-col grid via useWindowDimensions (4 @≥1280, 3 @≥960, 2 @≥640, 1 @<640)
+            ✅ Section header now icon + title + count chip + dynamic subtitle
+               ("Based on: UX Design, AI/ML" / "Pursuing Job" / "Book a session · First 2 free" / "People outside your current interests")
+            ✅ PersonCard upgrades:
+               · Avatar with online dot (green, bottom-right)
+               · Title line: "Job Title · Org" / "College · Year"
+               · Mutual connections row ("17 mutual connections" + Users icon)
+               · Skill chips with primary highlighted GREEN, others grey
+               · Tier-1 / Tier-2 / Class XII / Bachelor's Degree credential badges
+               · Mentors: ⭐ rating + sessions + ₹rate, plus GREEN "Book Session" CTA + Calendar icon
+               · Non-mentors: purple "Connect" CTA
+               · State-aware: Pending (orange), Connected (green outline), Decline/Accept dual buttons for incoming requests
+               · Always-visible secondary chat icon (MessageSquare) beside CTA
+               · "Connect via" row with Link2 (LinkedIn) + Github icons
+            ✅ All 5 sections render perfectly: Matched by Interest, Matched by Career Path, From Your College, Recommended Mentors, Expand Your Horizons
+            ✅ HoverGlowCard wrapper with role-tinted glow
             ✅ Empty states for Connections + Requests tabs
-            ✅ Toast feedback (Connected / Request sent / Already connected)
+            ✅ Toast feedback retained
+            FIXED in this pass: missing styles (cardSlot, onlineDot, sectionIcon, sectionCount, grid, chipPrimary, socialBtn, btnFlex, btnGreen, iconOnly), unicode escape in source replaced with literal · and ₹.
 
 frontend:
   - task: "Hover Glow Effect across all cards"

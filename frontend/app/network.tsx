@@ -23,7 +23,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable,
-  TextInput, Linking, Image, Platform,
+  TextInput, Linking, Image, Platform, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -79,6 +79,12 @@ type TabKey = 'discover' | 'connections' | 'requests';
 export default function NetworkScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { width: winW } = useWindowDimensions();
+  // Responsive column count: 4 on wide desktop, 3 on small desktop, 2 on tablet, 1 on phone
+  const cols = winW >= 1280 ? 4 : winW >= 960 ? 3 : winW >= 640 ? 2 : 1;
+  const gap = 12;
+  const horizontalPadding = 32; // 16 each side
+  const cardWidth = Math.floor((winW - horizontalPadding - (cols - 1) * gap) / cols);
   const [tab, setTab] = useState<TabKey>('discover');
   const [sections, setSections] = useState<Section[]>([]);
   const [conns, setConns] = useState<Person[]>([]);
@@ -254,9 +260,9 @@ export default function NetworkScreen() {
               {sec.items.length === 0 ? (
                 <Text style={styles.empty}>No matches in this section yet.</Text>
               ) : (
-                <View style={styles.grid}>
+                <View style={[styles.grid, { paddingHorizontal: 16, columnGap: gap, rowGap: gap }]}>
                   {sec.items.map((p) => (
-                    <PersonCard key={p.id} person={p} onConnect={() => handleConnect(p)} />
+                    <PersonCard key={p.id} person={p} width={cardWidth} onConnect={() => handleConnect(p)} />
                   ))}
                 </View>
               )}
@@ -272,7 +278,7 @@ export default function NetworkScreen() {
                   <Text style={styles.emptyText}>Head to Discover and connect with people who share your goals.</Text>
                 </View>
               ) : (
-                conns.map((p) => <PersonCard key={p.id} person={p} />)
+                conns.map((p) => <PersonCard key={p.id} person={p} width={cardWidth >= 600 ? 600 : cardWidth} />)
               )}
             </View>
           )}
@@ -288,7 +294,7 @@ export default function NetworkScreen() {
               ) : (
                 reqs.map((p) => (
                   <PersonCard
-                    key={p.id} person={p}
+                    key={p.id} person={p} width={cardWidth >= 600 ? 600 : cardWidth}
                     onAccept={() => handleAccept(p)}
                     onReject={() => handleReject(p)}
                   />
@@ -312,9 +318,10 @@ export default function NetworkScreen() {
 
 // ── PersonCard ───────────────────────────────────────────────────────────
 function PersonCard({
-  person, onConnect, onAccept, onReject,
+  person, width, onConnect, onAccept, onReject,
 }: {
   person: Person;
+  width?: number;
   onConnect?: () => void;
   onAccept?: () => void;
   onReject?: () => void;
@@ -325,11 +332,11 @@ function PersonCard({
             : person.role === 'college' ? '#10B981' : '#A78BFA';
   const isMentor = person.role === 'mentor';
   // Compose subtitle line: "Job Title · Org" / "College · Year"
-  const titleLine = [person.job_title, person.organization].filter(Boolean).join(' \u00b7 ');
-  const collegeLine = [person.institution, person.graduation_year || person.year].filter(Boolean).join(' \u00b7 ');
+  const titleLine = [person.job_title, person.organization].filter(Boolean).join(' · ');
+  const collegeLine = [person.institution, person.graduation_year || person.year].filter(Boolean).join(' · ');
 
   return (
-    <HoverGlowCard tint={tint} radius={16} intensity="medium" style={styles.cardSlot}>
+    <HoverGlowCard tint={tint} radius={16} intensity="medium" style={[styles.cardSlot, width ? { width } : null]}>
       <View style={styles.personInner}>
         {/* Top: Avatar + Identity */}
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
@@ -365,7 +372,7 @@ function PersonCard({
                 )}
                 {person.expected_rate_inr != null && person.expected_rate_inr > 0 && (
                   <Text style={[styles.metaText, { color: '#10B981', fontFamily: 'DMSans_700Bold' }]}>
-                    \u20b9{Number(person.expected_rate_inr).toLocaleString('en-IN')}
+                    ₹{Number(person.expected_rate_inr).toLocaleString('en-IN')}
                   </Text>
                 )}
               </View>
@@ -545,7 +552,20 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, color: '#fff', fontFamily: 'DMSans_500Medium', fontSize: 13, ...({ outlineStyle: 'none' } as any) },
 
   content: { paddingTop: 12, paddingBottom: 30 },
-  sectionHeader: { paddingHorizontal: 16, marginBottom: 10 },
+  sectionHeader: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+    paddingHorizontal: 16, marginBottom: 12,
+  },
+  sectionIcon: {
+    width: 30, height: 30, borderRadius: 8, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
+    marginTop: 2,
+  },
+  sectionCount: {
+    paddingHorizontal: 7, paddingVertical: 1, borderRadius: 999, borderWidth: 1,
+    minWidth: 22, alignItems: 'center',
+  },
+  sectionCountText: { fontFamily: 'DMSans_700Bold', fontSize: 10.5 },
   sectionTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 15 },
   sectionSubtitle: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: 2 },
   empty: { color: 'rgba(255,255,255,0.45)', fontFamily: 'DMSans_400Regular', fontSize: 12, paddingHorizontal: 16 },
@@ -554,10 +574,20 @@ const styles = StyleSheet.create({
   emptyTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 15, marginTop: 14 },
   emptyText: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_400Regular', fontSize: 12.5, marginTop: 6, textAlign: 'center' },
 
+  // ── Grid + Card slot
+  grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  cardSlot: { marginBottom: 0 },
+
   // ── Card
   personInner: { padding: 14, gap: 10, borderRadius: 14, overflow: 'hidden' },
   avatar: { width: 44, height: 44, borderRadius: 22 },
   avatarText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 15 },
+  onlineDot: {
+    position: 'absolute', right: -1, bottom: -1,
+    width: 12, height: 12, borderRadius: 6,
+    backgroundColor: '#10B981',
+    borderColor: '#0C0818', borderWidth: 2,
+  },
   name: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 14, flexShrink: 1 },
   roleChip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   roleText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 9, letterSpacing: 0.6 },
@@ -577,11 +607,23 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(167,139,250,0.10)',
   },
   chipPurpleText: { color: '#C4B5FD', fontFamily: 'DMSans_500Medium', fontSize: 10.5 },
+  chipPrimary: {
+    paddingHorizontal: 7, paddingVertical: 3, borderRadius: 4,
+    backgroundColor: 'rgba(16,185,129,0.14)',
+    borderColor: 'rgba(16,185,129,0.40)', borderWidth: 1,
+  },
+  chipPrimaryText: { color: '#34D399', fontFamily: 'DMSans_700Bold', fontSize: 10.5 },
   chipNeutral: {
     paddingHorizontal: 7, paddingVertical: 3, borderRadius: 4,
     backgroundColor: 'rgba(255,255,255,0.05)',
   },
   chipNeutralText: { color: 'rgba(255,255,255,0.75)', fontFamily: 'DMSans_500Medium', fontSize: 10.5 },
+
+  socialBtn: {
+    width: 24, height: 24, borderRadius: 6, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any),
+  },
 
   footer: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -596,16 +638,19 @@ const styles = StyleSheet.create({
     ...({ cursor: 'pointer' } as any),
   },
   btn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
     paddingHorizontal: 12, height: 30, borderRadius: 7,
     ...({ cursor: 'pointer' } as any),
   },
+  btnFlex: { flex: 1 },
+  iconOnly: { width: 30, paddingHorizontal: 0 },
   btnGhost: {
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1,
   },
   btnGhostText: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
   btnAccent: { backgroundColor: '#A78BFA', borderColor: '#A78BFA', borderWidth: 1 },
+  btnGreen: { backgroundColor: '#10B981', borderColor: '#10B981', borderWidth: 1 },
   btnAccentText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
   btnText: { fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
 
