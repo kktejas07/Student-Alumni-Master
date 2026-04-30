@@ -2023,6 +2023,40 @@ agent_communication:
           Reject buttons that hit the backend and re-fetch.
         - NEW src/views/web/admin/PlaceholderPage.tsx — used for Phase 2/3
           pages not yet built.
+
+---
+## 2026-04-30 — Phase 4 SA Profile Web — backend testing PASSED (77/77)
+agent_communication:
+    - agent: "testing"
+      message: |
+        ✅ 77/77 checks PASSED end-to-end against
+        https://hiring-mvvm.preview.emergentagent.com/api.
+
+        Verified in /app/backend_test_profile_web.py:
+        • Auth gating (18 checks): every endpoint 401 for missing AND
+          malformed tokens.
+        • PUT /users/me: allow-list applied; full_name auto-synthesized;
+          disallowed (role, sa_id, password_hash, email, random_xyz)
+          silently dropped.
+        • GET /completion: 7-item checklist; percentage 44 → 72 after PUT.
+        • Resume CRUD: upload activates new+demotes others; list
+          newest-first; activate flips flags; DELETE auto-promotes first
+          remaining; non-data: → 400; >5MB → 400; unknown id → 404.
+        • PATCH /preferences DEEP-MERGE confirmed.
+        • POST /password: wrong current → 400; <8 chars → 400; valid →
+          {status:"ok"}; old token still valid; new login works.
+        • student01 password RESTORED to TestPass@123; profile baseline
+          restored. mentor01 + admin login still work.
+
+        Minor note: Duplicate PATCH /users/me/preferences at server.py:3408
+        was dead code (shadowed by line 1731 deep-merge handler).
+
+    - agent: "main"
+      message: |
+        Removed duplicate PATCH /users/me/preferences (old typed
+        PreferencesUpdate version at L3408). Backend reloaded cleanly.
+        Phase 4 SA Profile Web is fully complete and verified.
+
         - NEW app/admin/_layout.tsx — gate non-admins to login or platform.
         - NEW app/admin/index.tsx, approvals.tsx, colleges.tsx, students.tsx,
           mentors.tsx, alumni.tsx, events.tsx, payments.tsx, analytics.tsx,

@@ -3398,33 +3398,9 @@ async def dashboard(user: dict = Depends(get_current_user)):
 # for changing focus / education_level / interests. This is the endpoint that
 # powers them. AI re-prioritization happens automatically because the dashboard
 # is recomputed on every fetch.
-class PreferencesUpdate(BaseModel):
-    career_path: Optional[CareerPath] = None
-    education_level: Optional[EducationLevel] = None
-    interests: Optional[List[str]] = None
-    skills: Optional[List[str]] = None
-
-
-@api_router.patch("/users/me/preferences", response_model=UserResponse)
-async def update_preferences(req: PreferencesUpdate, user: dict = Depends(get_current_user)):
-    """Quick-update for career path / education level / interests via dropdowns."""
-    update: dict = {}
-    if req.career_path is not None:
-        update["career_path"] = req.career_path
-    if req.interests is not None:
-        update["interests"] = req.interests
-    if req.skills is not None:
-        update["skills"] = req.skills
-    if req.education_level is not None:
-        # Update the nested student_info field
-        student_info = user.get("student_info") or {}
-        student_info["education_level"] = req.education_level
-        update["student_info"] = student_info
-    if update:
-        update["updated_at"] = datetime.now(timezone.utc)
-        await db.users.update_one({"_id": user["_id"]}, {"$set": update})
-    fresh = await db.users.find_one({"_id": user["_id"]})
-    return UserResponse(**serialize_user(fresh))
+# NOTE: PATCH /users/me/preferences is now handled at L1731 (Phase 4 deep-merge
+# endpoint) — the older typed version below was kept as dead code. Removed during
+# Phase 4 cleanup to avoid confusion.
 
 
 @api_router.post("/users/me/transition-alumni", response_model=UserResponse)
