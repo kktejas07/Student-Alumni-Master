@@ -599,8 +599,79 @@ backend:
             ✅ Notifications inserted to recipient on each state change
             ✅ Stored in db.connections {a, b, status, created_at, accepted_at}
 
+backend:
+  - task: "Phase 4 — SA Profile Web backend (extended /users/me PUT, completion, resume CRUD, preferences, password change)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            Added comprehensive backend endpoints for SA Profile Web:
+            ✅ PUT /api/users/me — expanded allowed fields: first_name, last_name, headline, bio, phone, location/city/state, photo_data, institution, branch, graduation_year, year, cgpa, career_path, primary_skill, interests, skills, linkedin_url, github_url, portfolio_url, profile_visibility, section_toggles, projects, preferences. Auto-synthesizes full_name from first/last.
+            ✅ GET /api/users/me/completion — checklist with 7 items (basic info, photo, bio, college, social, 3+ interests, skills) + percentage (verified live: returns 44% for student01 with partial profile).
+            ✅ GET /api/users/me/resume — list user resume documents metadata.
+            ✅ POST /api/users/me/resume — upload base64 PDF/Doc up to 5MB; stored in user.resume_documents array; auto-marks new doc active.
+            ✅ GET /api/users/me/resume/{doc_id}/raw — fetch data URL for download.
+            ✅ DELETE /api/users/me/resume/{doc_id}.
+            ✅ POST /api/users/me/resume/{doc_id}/activate — switch active resume.
+            ✅ PATCH /api/users/me/preferences — deep-merges into user.preferences (notifications, privacy, ai, app sub-objects).
+            ✅ POST /api/users/me/password — secure password change with bcrypt verification + 8-char minimum.
+            All routes auth-guarded via get_current_user dependency. Backend reloaded clean (0 errors).
+
 frontend:
-  - task: "Phase 2 — Network screen with PersonCards (UI v2 — design-spec) + Polish v3 (filters/search/profile-detail)"
+  - task: "Phase 4 — SA Profile Web (3-page editor: Profile Info / Manage Profile / Settings & Preferences)"
+    implemented: true
+    working: true
+    file: "/app/frontend/app/(tabs)/profile.tsx + /app/frontend/src/views/web/profile/*"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            Replaced existing /(tabs)/profile.tsx with a full SA Profile Web editor matching design specs.
+            ARCHITECTURE:
+              · Sidebar shell at top with mini profile card + 3 nav links + Sign Out (collapses to top-pill tabs on <900px width)
+              · Save bar at bottom of every page (Discard / Save Changes; "All changes saved" / "You have unsaved changes" status)
+              · Toast feedback on save / errors
+              · Single shared draft state — dirty detection via JSON diff
+              · expo-image-picker for avatar upload (web file picker for mobile too)
+            FILES CREATED:
+              · /app/frontend/src/views/web/profile/CompletionRing.tsx (SVG ring; works web + native)
+              · /app/frontend/src/views/web/profile/primitives.tsx (Card, Field, TF/TA/SF, Toggle, ToggleRow, ChipPicker, SaveBar — shared design system primitives)
+              · /app/frontend/src/views/web/profile/ProfileInfoPage.tsx (Page 1)
+              · /app/frontend/src/views/web/profile/ManageProfilePage.tsx (Page 2)
+              · /app/frontend/src/views/web/profile/SettingsPage.tsx (Page 3)
+            PAGE 1 — PROFILE INFORMATION (verified live):
+              ✅ Completion Ring banner — 44% live (purple SVG ring) with checklist pills (✓ green for done, grey for pending: Basic info, Profile photo, Bio/headline, College details, Social links, 3+ interests, Skills listed)
+              ✅ Basic Info — avatar with UPLOAD overlay, First/Last name (auto-split from full_name), Headline (max 100), Bio textarea
+              ✅ Contact Details — Email (locked), Phone, Location
+              ✅ Academic Details — College, Branch, Graduation Year (dropdown 2024-2030), CGPA
+              ✅ Interests & Career Focus — 20 hardcoded interests as chip picker (Software Engineering / PM / Data Science / AI/ML / Design-UX / Cybersecurity / Cloud-DevOps / Mobile / Web3 / Robotics / Finance / Consulting / Marketing / Entrepreneurship / Civil Service / Research / Healthcare / Education / Sustainability / Media); shows "(3/20 selected)" counter
+              ✅ Social Links — LinkedIn (Link2 icon), GitHub (Link2 icon since lucide doesn't ship Github icon), Portfolio (Globe icon)
+              ✅ Skills — comma-separated TextArea with live chip preview below
+            PAGE 2 — MANAGE PROFILE (verified live):
+              ✅ Profile Visibility — 3 selectable cards (Public/My Network Only/Private) with role icon, title, desc, selected dot
+              ✅ Resume & Documents — "Upload New" button (web FilePicker → POST /resume base64); empty state; per-doc rows with name, size, date, ACTIVE pill, Star (set active), Download, Trash buttons
+              ✅ Profile Sections — 4 toggle rows (Projects, Work Experience, Achievements, Volunteer)
+              ✅ Certifications — reuses existing CertificatesCard
+              ✅ Earned Badges — chip list with Award icons
+            PAGE 3 — SETTINGS & PREFERENCES (verified live):
+              ✅ Notification Preferences — 5 toggles (messages, requests, mentions, weekly_digest, new_matches)
+              ✅ Privacy Controls — 4 toggles (show_email, show_phone, allow_dm, show_online)
+              ✅ Suggestions & AI Coach — 3 toggles (goal_reminders, smart_suggestions, daily_brief)
+              ✅ App Preferences — Language dropdown (6 langs incl. Hindi/Tamil/Telugu/Kannada/Marathi), Timezone dropdown, Theme picker (Dark/Light/System)
+              ✅ Account — Change Password (current + new, eye toggle, Update button calls /password endpoint), 2FA stub, Download My Data stub, Delete Account button
+            RESPONSIVE:
+              ✅ Desktop (1440) — 268px sidebar + main content
+              ✅ Mobile (390) — sidebar collapses to top horizontal pill tabs; cards stack vertically; bottom tab nav remains
+            VERIFIED via live screenshots after fixing 2 bugs (Sliders → SlidersHorizontal, Github → Link2 alias) + CertificatesCard prop name (onChange → onChanged).
     implemented: true
     working: true
     file: "/app/frontend/app/network.tsx + /app/frontend/src/views/web/HoverGlowCard.tsx"

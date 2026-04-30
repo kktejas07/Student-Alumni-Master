@@ -1,495 +1,291 @@
 /**
- * Profile Tab — wired to REAL data:
- *   - Booking history from /api/bookings/me (full list, last 5 shown inline)
- *   - Hours mentored aggregated from completed sessions
- *   - Reviews summary for mentors (count + average from /api/mentors/{id}/reviews)
- *   - Notification inbox row with unread badge
+ * Profile (Phase 4 — SA Profile Web)
+ * Three-page editor: Profile Information / Manage Profile / Settings & Preferences.
+ * Shell with sidebar navigation (collapses to top tabs on mobile) + save bar.
  */
-import { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
-  LogOut, Sparkles, Settings, Shield, HelpCircle, ChevronRight,
-  Briefcase, Home as HomeIcon, CreditCard, ShieldCheck, Calendar,
-  Users as UsersIcon, Star, Bell, Clock, TrendingUp,
-  Award, Plus, Trash2, X as CloseX,
+  View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator,
+  useWindowDimensions, Platform, Image, Alert,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+import {
+  ArrowLeft, User, Settings as SettingsIcon, SlidersHorizontal,
+  LogOut, Check, X as CloseX,
 } from 'lucide-react-native';
-import { Colors as C, Spacing, Typography, Radius } from '@/src/theme';
-import { Button, Card, AnimatedCard, SALogo } from '@/src/views/components';
+import { request } from '@/src/models/services/api';
+import { tokenStore } from '@/src/models/services/api';
 import { useAuth } from '@/src/viewmodels/hooks';
-import { api, request } from '@/src/models/services/api';
-import { BadgeStack, type Badge } from '@/src/views/web/Badges';
-import { CertificatesCard } from '@/src/views/web/CertificatesCard';
+import { ProfileInfoPage } from '@/src/views/web/profile/ProfileInfoPage';
+import { ManageProfilePage } from '@/src/views/web/profile/ManageProfilePage';
+import { SettingsPage } from '@/src/views/web/profile/SettingsPage';
+import { SaveBar, C } from '@/src/views/web/profile/primitives';
 
-export default function ProfileTab() {
+type PageKey = 'info' | 'manage' | 'settings';
+
+interface CompletionData {
+  percentage: number;
+  items: { key: string; label: string; done: boolean; weight: number }[];
+}
+
+export default function ProfileScreen() {
   const router = useRouter();
-  const { user, logout } = useAuth();
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [reviewStats, setReviewStats] = useState<any>(null);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [badges, setBadges] = useState<Badge[]>([]);
+  const { user, logout, refreshUser } = useAuth();
+  const { width: winW } = useWindowDimensions();
+  const isMobile = winW < 900;
 
-  const refresh = useCallback(async () => {
-    if (!user) return;
-    // Bookings
+  const [page, setPage] = useState<PageKey>('info');
+  const [draft, setDraft] = useState<any>({});
+  const [original, setOriginal] = useState<any>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [completion, setCompletion] = useState<CompletionData>({ percentage: 0, items: [] });
+  const [badges, setBadges] = useState<any[]>([]);
+  const [toast, setToast] = useState<string | null>(null);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+
+  const showToast = useCallback((m: string) => {
+    setToast(m); setTimeout(() => setToast(null), 2400);
+  }, []);
+
+  const loadAll = useCallback(async () => {
+    setLoading(true);
     try {
-      const r = await api.myBookings();
-      setBookings(r.bookings || []);
-    } catch {}
-    // Reviews (only for mentors)
-    if (user.role === 'mentor') {
-      try {
-        const r = await api.mentorReviews(user.id);
-        setReviewStats(r.stats);
-      } catch {}
+      const [me, comp, bg] = await Promise.all([
+        request<any>('/auth/me'),
+        request<CompletionData>('/users/me/completion'),
+        request<{ badges: any[] }>('/users/me/badges'),
+      ]);
+      setDraft(me); setOriginal(me);
+      setCompletion(comp);
+      setBadges(bg.badges || []);
+    } catch (e) {
+      // ignore — show empty
+    } finally {
+      setLoading(false);
     }
-    // Notifications unread badge
-    try {
-      const r = await api.notifications();
-      setUnreadCount(r.unread || 0);
-    } catch {}
-    // Earned badges
-    try {
-      const r = await request<{ badges: Badge[] }>('/users/me/badges');
-      setBadges(r.badges || []);
-    } catch {}
-  }, [user]);
+  }, []);
 
-  useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
+  useEffect(() => { loadAll(); }, [loadAll]);
 
-  const handleLogout = async () => {
-    await logout();
-    router.replace('/welcome');
+  const dirty = useMemo(() => {
+    return JSON.stringify(draft) !== JSON.stringify(original);
+  }, [draft, original]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      // Split prefs from main update
+      const { preferences, ...rest } = draft;
+      await request('/users/me', { method: 'PUT', body: rest } as any);
+      if (preferences) {
+        await request('/users/me/preferences', { method: 'PATCH', body: preferences } as any);
+      }
+      setOriginal(draft);
+      const now = new Date();
+      setLastSavedAt(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      showToast('Saved ✓');
+      // Refresh completion
+      try {
+        const comp = await request<CompletionData>('/users/me/completion');
+        setCompletion(comp);
+      } catch {}
+      try { await refreshUser?.(); } catch {}
+    } catch (e: any) {
+      showToast(e?.message || 'Save failed');
+    }
+    setSaving(false);
   };
 
-  if (!user) return null;
-  const initial = user.full_name?.[0]?.toUpperCase() || 'U';
+  const handleDiscard = () => setDraft(original);
 
-  // Real metrics
-  const completedBookings = bookings.filter((b: any) => b.status === 'completed');
-  const upcomingBookings = bookings.filter((b: any) =>
-    b.status === 'pending' || b.status === 'confirmed'
-  );
-  const totalMinutes = completedBookings.reduce((sum: number, b: any) =>
-    sum + (b.duration_minutes || 30), 0);
-  const totalHours = (totalMinutes / 60).toFixed(1);
+  const handleUploadPhoto = async () => {
+    try {
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true, quality: 0.7, base64: true,
+      });
+      if (res.canceled) return;
+      const asset = res.assets[0];
+      const dataUrl = `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`;
+      setDraft((d: any) => ({ ...d, photo_data: dataUrl, face_image_base64: dataUrl }));
+      showToast('Photo selected — Save to apply');
+    } catch (e: any) {
+      showToast('Failed to pick image');
+    }
+  };
+
+  const handleLogout = async () => {
+    try { await tokenStore.clear(); } catch {}
+    try { await logout?.(); } catch {}
+    router.replace('/(auth)/login');
+  };
+
+  const NAV: { key: PageKey; label: string; icon: any; sub: string }[] = [
+    { key: 'info', label: 'Profile Information', icon: User, sub: 'Identity, education, social, skills' },
+    { key: 'manage', label: 'Manage Profile', icon: SlidersHorizontal, sub: 'Visibility, resume, sections, badges' },
+    { key: 'settings', label: 'Settings & Preferences', icon: SettingsIcon, sub: 'Notifications, privacy, account' },
+  ];
+  const currentNav = NAV.find((n) => n.key === page) || NAV[0];
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.screen, { alignItems: 'center', justifyContent: 'center' }]}>
+        <ActivityIndicator color={C.purple} size="large" />
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.headerRow}>
-          <Text style={styles.title}>Profile</Text>
-          <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-            <TouchableOpacity
-              onPress={() => router.push('/notifications' as any)}
-              style={styles.bellBtn}
-              testID="profile-bell-btn"
-            >
-              <Bell size={20} color={C.deepPurple} />
-              {unreadCount > 0 && (
-                <View style={styles.bellBadge}>
-                  <Text style={styles.bellBadgeText}>{unreadCount}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-            <SALogo size={28} variant="gradient" />
+    <SafeAreaView style={styles.screen} edges={['top']}>
+      <View style={[styles.layout, isMobile && { flexDirection: 'column' }]}>
+        {/* Sidebar (or top header on mobile) */}
+        {!isMobile && (
+          <View style={styles.sidebar}>
+            <Pressable onPress={() => router.back()} style={styles.backBtn} testID="profile-back">
+              <ArrowLeft size={16} color={C.text2} /><Text style={styles.backText}>Back to Dashboard</Text>
+            </Pressable>
+
+            <View style={styles.miniCard}>
+              <View style={styles.miniAvatar}>
+                {draft.photo_data || draft.face_image_base64 ? (
+                  <Image source={{ uri: draft.photo_data || draft.face_image_base64 }} style={{ width: '100%', height: '100%' }} />
+                ) : (
+                  <Text style={styles.miniAvatarText}>{((draft.full_name || '?').split(' ').slice(0,2).map((s: string) => s[0] || '').join('') || '?').toUpperCase()}</Text>
+                )}
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.miniName} numberOfLines={1}>{draft.full_name || 'Your name'}</Text>
+                <Text style={styles.miniMeta} numberOfLines={1}>{(draft.role || 'student').toUpperCase()} · {completion.percentage}% complete</Text>
+              </View>
+            </View>
+
+            <Text style={styles.navHeader}>PROFILE</Text>
+            {NAV.map((n) => {
+              const Icon = n.icon; const active = page === n.key;
+              return (
+                <Pressable key={n.key} onPress={() => setPage(n.key)} style={[styles.navItem, active && styles.navItemActive]} testID={`profile-nav-${n.key}`}>
+                  <Icon size={15} color={active ? '#fff' : C.text2} />
+                  <Text style={[styles.navText, active && { color: '#fff' }]}>{n.label}</Text>
+                </Pressable>
+              );
+            })}
+
+            <Text style={[styles.navHeader, { marginTop: 18 }]}>ACCOUNT</Text>
+            <Pressable onPress={handleLogout} style={styles.navItem} testID="profile-logout">
+              <LogOut size={15} color={C.text2} /><Text style={styles.navText}>Sign Out</Text>
+            </Pressable>
           </View>
-        </View>
+        )}
 
-        {/* User card with avatar */}
-        <Card style={styles.userCard}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-            {user.face_image_base64 ? (
-              <Image source={{ uri: user.face_image_base64 }} style={styles.avatar} />
-            ) : (
-              <View style={styles.avatarFallback}>
-                <Text style={styles.avatarLetter}>{initial}</Text>
-              </View>
-            )}
-            <View style={{ flex: 1 }}>
-              <Text style={[Typography.h3, { color: C.textPrimary }]}>{user.full_name}</Text>
-              <Text style={[Typography.bodySm, { color: C.textSecondary }]}>{user.email}</Text>
-              <View style={styles.roleTag}>
-                <Text style={[Typography.label, { color: C.deepPurple, fontSize: 10 }]}>
-                  {user.role.toUpperCase()}
-                </Text>
-              </View>
+        {/* Main */}
+        <View style={[styles.main, isMobile && { paddingHorizontal: 14 }]}>
+          {/* Top bar */}
+          <View style={styles.topBar}>
+            <Pressable onPress={() => router.back()} style={styles.backBtnSm}><ArrowLeft size={16} color="#fff" /></Pressable>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.title}>{currentNav.label}</Text>
+              <Text style={styles.subtitle}>{currentNav.sub}</Text>
+            </View>
+            <View style={styles.scorePill}>
+              <Text style={styles.scorePillText}>Profile {completion.percentage}%</Text>
             </View>
           </View>
 
-          {/* Real stats — wired to bookings + reviews */}
-          {(user.role === 'student' || user.role === 'mentor') && (
-            <View style={styles.statsGrid}>
-              <View style={styles.statBox}>
-                <Calendar size={16} color={C.brandPurple} />
-                <Text style={styles.statValue}>{bookings.length}</Text>
-                <Text style={styles.statLabel}>
-                  {user.role === 'mentor' ? 'SESSIONS' : 'BOOKINGS'}
-                </Text>
-              </View>
-              <View style={styles.statBox}>
-                <Clock size={16} color={C.brandPurple} />
-                <Text style={styles.statValue}>{totalHours}h</Text>
-                <Text style={styles.statLabel}>
-                  {user.role === 'mentor' ? 'MENTORED' : 'COMPLETED'}
-                </Text>
-              </View>
-              {user.role === 'mentor' && reviewStats?.total > 0 ? (
-                <View style={styles.statBox}>
-                  <Star size={16} color={C.warning} fill={C.warning} />
-                  <Text style={styles.statValue}>{reviewStats.average}</Text>
-                  <Text style={styles.statLabel}>{reviewStats.total} REVIEWS</Text>
-                </View>
-              ) : (
-                <View style={styles.statBox}>
-                  <Briefcase size={16} color={C.brandPurple} />
-                  <Text style={styles.statValue}>{user.skills?.length || 0}</Text>
-                  <Text style={styles.statLabel}>SKILLS</Text>
-                </View>
-              )}
-            </View>
-          )}
-        </Card>
-
-        {/* Two-stack badges: CREDENTIALS (qualifications) + ENGAGEMENT (activity) */}
-        {(() => {
-          const credentials = badges.filter((b: any) => b.kind === 'credential');
-          const engagement = badges.filter((b: any) => b.kind === 'engagement' || b.kind === 'verification' || b.kind === 'special');
-          if (badges.length === 0) return null;
-          return (
-            <Card style={styles.badgesCard} testID="profile-badges-card">
-              {credentials.length > 0 && (
-                <View style={{ marginBottom: engagement.length > 0 ? 16 : 0 }}>
-                  <View style={styles.sectionRow}>
-                    <Text style={styles.sectionTitle}>🎓 Credentials</Text>
-                    <Text style={styles.badgeCount}>{credentials.length} earned</Text>
-                  </View>
-                  <Text style={styles.subhint}>Based on your qualifications, institution & certificates</Text>
-                  <View style={{ marginTop: 10 }}>
-                    <BadgeStack badges={credentials} max={20} compact size="md" />
-                  </View>
-                </View>
-              )}
-              {engagement.length > 0 && (
-                <View style={[
-                  credentials.length > 0 && { borderTopColor: 'rgba(0,0,0,0.06)', borderTopWidth: 1, paddingTop: 14 },
-                ]}>
-                  <View style={styles.sectionRow}>
-                    <Text style={styles.sectionTitle}>🏆 Achievements</Text>
-                    <Text style={styles.badgeCount}>{engagement.length} earned</Text>
-                  </View>
-                  <Text style={styles.subhint}>Based on your platform activity & verifications</Text>
-                  <View style={{ marginTop: 10 }}>
-                    <BadgeStack badges={engagement} max={20} compact size="md" />
-                  </View>
-                </View>
-              )}
-            </Card>
-          );
-        })()}
-
-        {/* Certificates — list + add + delete (refreshes badges on change) */}
-        <CertificatesCard onChanged={refresh} />
-
-        {/* Recent Bookings — REAL DATA */}
-        {bookings.length > 0 && (
-          <>
-            <View style={styles.sectionRow}>
-              <Text style={styles.sectionTitle}>
-                {user.role === 'mentor' ? 'Recent sessions' : 'Recent bookings'}
-              </Text>
-              {upcomingBookings.length > 0 && (
-                <View style={styles.upcomingPill}>
-                  <Text style={styles.upcomingPillText}>{upcomingBookings.length} upcoming</Text>
-                </View>
-              )}
-            </View>
-            <View style={{ gap: 8 }}>
-              {bookings.slice(0, 5).map((b: any, idx: number) => (
-                <AnimatedCard
-                  key={b.id || idx}
-                  style={styles.bookingCard}
-                  index={idx}
-                  testID={`profile-booking-${idx}`}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={[Typography.bodyBold, { color: C.textPrimary }]} numberOfLines={1}>
-                      {user.role === 'mentor' ? b.student_name : b.mentor_name}
-                    </Text>
-                    <Text style={[Typography.bodySm, { color: C.textSecondary }]} numberOfLines={1}>
-                      {b.topic}
-                    </Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                      <Calendar size={11} color={C.textMuted} />
-                      <Text style={[Typography.bodySm, { color: C.textMuted, fontSize: 11 }]}>
-                        {formatBookingDate(b.scheduled_at || b.slot_start_iso)}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={[styles.statusPill, statusStyle(b.status)]}>
-                    <Text style={styles.statusText}>{(b.status || 'pending').toUpperCase()}</Text>
-                  </View>
-                </AnimatedCard>
+          {/* Mobile tab pills */}
+          {isMobile && (
+            <View style={styles.mobileTabs}>
+              {NAV.map((n) => (
+                <Pressable key={n.key} onPress={() => setPage(n.key)} style={[styles.mTab, page === n.key && styles.mTabActive]}>
+                  <Text style={[styles.mTabText, page === n.key && { color: '#fff' }]}>{n.label.split(' ')[0]}</Text>
+                </Pressable>
               ))}
             </View>
-          </>
-        )}
-
-        {/* QR + Unique ID */}
-        {user.qr_code_base64 && (
-          <Card style={[styles.qrCard]} bg={C.deepPurple}>
-            <View style={{ alignItems: 'center', gap: 8 }}>
-              <Text style={[Typography.label, { color: C.lightPurple }]}>YOUR PLATFORM ID</Text>
-              <Text style={[Typography.h3, { color: C.white }]} testID="profile-unique-id">
-                {user.unique_id}
-              </Text>
-              <View style={styles.qrFrame}>
-                <Image source={{ uri: `data:image/png;base64,${user.qr_code_base64}` }}
-                  style={styles.qr} testID="profile-qr-image" />
-              </View>
-              <Text style={[Typography.bodySm, { color: C.lightPurple, textAlign: 'center' }]}>
-                Mentors & alumni can scan to connect with you instantly.
-              </Text>
-            </View>
-          </Card>
-        )}
-
-        {/* Institution info */}
-        {user.school_info && (
-          <Card style={{ marginTop: 14 }}>
-            <Text style={[Typography.label, { color: C.textSecondary }]}>INSTITUTION</Text>
-            <Text style={[Typography.bodyBold, { color: C.textPrimary, marginTop: 4 }]}>
-              {user.school_info.institution_name}
-            </Text>
-            <Text style={[Typography.bodySm, { color: C.textSecondary }]}>
-              {user.school_info.class_or_year}
-              {user.school_info.branch_or_stream ? ` · ${user.school_info.branch_or_stream}` : ''}
-            </Text>
-            {user.career_path && (
-              <View style={{ marginTop: 8 }}>
-                <Text style={[Typography.label, { color: C.textSecondary }]}>CAREER PATH</Text>
-                <Text style={[Typography.bodyBold, { color: C.brandPurple, marginTop: 2 }]}>
-                  {user.career_path.replace('_', ' ').toUpperCase()}
-                </Text>
-              </View>
-            )}
-          </Card>
-        )}
-
-        {/* Quick links */}
-        <Text style={styles.sectionTitle}>Quick links</Text>
-        <View style={{ gap: 10 }}>
-          {(user.role === 'admin' || user.role === 'mentor' || user.role === 'college') && (
-            <Row icon={TrendingUp} label="Analytics dashboard"
-              onPress={() => router.push('/analytics' as any)}
-              tint="#00A78E"
-              testID="profile-row-analytics" />
           )}
-          <Row icon={Bell} label="Notifications"
-            badge={unreadCount > 0 ? String(unreadCount) : undefined}
-            onPress={() => router.push('/notifications' as any)}
-            testID="profile-row-notifications" />
-          <Row icon={Sparkles} label="My AI Career Roadmap"
-            onPress={() => router.push('/(tabs)')} testID="profile-row-roadmap" />
-          <Row icon={Calendar} label="My Bookings"
-            onPress={() => router.push('/(tabs)/network')} testID="profile-row-bookings" />
-          <Row icon={Briefcase} label="Internships"
-            onPress={() => router.push('/internships')} testID="profile-row-internships" />
-          <Row icon={HomeIcon} label="Housing & Insurance"
-            onPress={() => router.push('/resources')} testID="profile-row-resources" />
+
+          <ScrollView contentContainerStyle={{ paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
+            {page === 'info' && (
+              <ProfileInfoPage draft={draft} setDraft={setDraft} completion={completion} onUploadPhoto={handleUploadPhoto} />
+            )}
+            {page === 'manage' && (
+              <ManageProfilePage draft={draft} setDraft={setDraft} badges={badges} onCertChange={loadAll} showToast={showToast} />
+            )}
+            {page === 'settings' && (
+              <SettingsPage draft={draft} setDraft={setDraft} showToast={showToast} />
+            )}
+            <View style={{ height: 12 }} />
+            <SaveBar dirty={dirty} saving={saving} onSave={handleSave} onDiscard={handleDiscard} lastSavedAt={lastSavedAt} />
+          </ScrollView>
         </View>
+      </View>
 
-        {/* Admin-only section */}
-        {user.role === 'admin' && (
-          <>
-            <Text style={styles.sectionTitle}>Admin</Text>
-            <Row icon={ShieldCheck} label="Mentor Approval Queue"
-              tint={C.brandPurple}
-              onPress={() => router.push('/admin/mentors')}
-              testID="profile-row-admin-mentors" />
-          </>
-        )}
-
-        <Text style={styles.sectionTitle}>Account</Text>
-        <View style={{ gap: 10 }}>
-          <Row icon={CreditCard} label="Digital ID Card" tint="#A78BFA"
-            onPress={() => router.push('/id-card' as any)}
-            testID="profile-row-id-card" />
-          <Row icon={Settings} label="Edit Preferences"
-            onPress={() => router.push('/preferences' as any)}
-            testID="profile-row-settings" />
-          <Row icon={Shield} label="Privacy & Security" onPress={() => {}} testID="profile-row-privacy" />
-          <Row icon={HelpCircle} label="Help & Support" onPress={() => {}} testID="profile-row-help" />
+      {toast && (
+        <View style={styles.toast} pointerEvents="none">
+          <Check size={14} color={C.green} />
+          <Text style={styles.toastText}>{toast}</Text>
         </View>
-
-        <Button title="Log out" variant="secondary"
-          icon={<LogOut size={18} color={C.brandPurple} />}
-          onPress={handleLogout} testID="profile-logout-btn"
-          style={{ marginTop: Spacing.xl }} />
-      </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
 
-/** Row component — clickable list item with icon, label, chevron. */
-function Row({ icon: Icon, label, onPress, testID, tint, badge }: any) {
-  return (
-    <TouchableOpacity onPress={onPress} testID={testID} activeOpacity={0.7}>
-      <Card style={styles.row}>
-        <View style={[styles.rowIcon, { backgroundColor: tint || C.palePurple }]}>
-          <Icon size={18} color={tint ? C.white : C.deepPurple} />
-        </View>
-        <Text style={[Typography.bodyBold, { color: C.textPrimary, flex: 1 }]}>{label}</Text>
-        {badge && (
-          <View style={styles.rowBadge}>
-            <Text style={styles.rowBadgeText}>{badge}</Text>
-          </View>
-        )}
-        <ChevronRight size={20} color={C.textMuted} />
-      </Card>
-    </TouchableOpacity>
-  );
-}
-
-/** Format a booking ISO date as "Sat, Jan 25 · 3:00 PM" or "Past" if undefined. */
-function formatBookingDate(iso?: string): string {
-  if (!iso) return 'Date TBD';
-  try {
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return 'Date TBD';
-    const opts: Intl.DateTimeFormatOptions = {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    };
-    return d.toLocaleString(undefined, opts);
-  } catch {
-    return iso;
-  }
-}
-
-/** Per-status pill colors for booking cards. */
-function statusStyle(status?: string) {
-  switch ((status || '').toLowerCase()) {
-    case 'completed':
-      return { backgroundColor: 'rgba(15,157,88,0.15)', borderColor: 'rgba(15,157,88,0.4)' };
-    case 'confirmed':
-      return { backgroundColor: 'rgba(95,37,159,0.15)', borderColor: 'rgba(95,37,159,0.4)' };
-    case 'cancelled':
-      return { backgroundColor: 'rgba(179,38,30,0.12)', borderColor: 'rgba(179,38,30,0.35)' };
-    default: // pending
-      return { backgroundColor: 'rgba(232,163,23,0.15)', borderColor: 'rgba(232,163,23,0.4)' };
-  }
-}
-
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.background },
-  container: { padding: Spacing.lg, paddingBottom: 100 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
-  title: { ...Typography.h2, color: C.textPrimary },
-  userCard: { padding: 18 },
-  badgesCard: { padding: 16, marginTop: 14 },
-  badgeCount: {
-    color: C.brandPurple, fontFamily: 'DMSans_700Bold', fontSize: 11,
-    letterSpacing: 0.4, textTransform: 'uppercase',
+  screen: { flex: 1, backgroundColor: C.bg },
+  layout: { flex: 1, flexDirection: 'row' },
+  sidebar: {
+    width: 268, paddingHorizontal: 18, paddingVertical: 22, gap: 6,
+    borderRightColor: 'rgba(255,255,255,0.06)', borderRightWidth: 1,
   },
-  subhint: {
-    color: 'rgba(11,5,16,0.55)', fontFamily: 'DMSans_400Regular',
-    fontSize: 11.5, marginTop: 4,
+  backBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
+    ...({ cursor: 'pointer' } as any),
   },
-  avatar: { width: 70, height: 70, borderRadius: 35, backgroundColor: C.surfaceMuted },
-  avatarFallback: {
-    width: 70, height: 70, borderRadius: 35,
-    backgroundColor: C.palePurple, alignItems: 'center', justifyContent: 'center',
+  backText: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5 },
+  miniCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingVertical: 12, paddingHorizontal: 12, marginTop: 12, marginBottom: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(167,139,250,0.08)',
+    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1,
   },
-  avatarLetter: { fontFamily: 'DMSans_700Bold', fontSize: 30, color: C.deepPurple },
-  roleTag: {
-    alignSelf: 'flex-start', backgroundColor: C.palePurple,
-    paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, marginTop: 6,
-  },
-  statsGrid: { flexDirection: 'row', gap: 8, marginTop: 16 },
-  statBox: {
-    flex: 1, alignItems: 'center', gap: 4,
-    backgroundColor: C.surfaceMuted, padding: 12, borderRadius: 12,
-  },
-  statValue: { ...Typography.h3, color: C.textPrimary, fontSize: 22 },
-  statLabel: { ...Typography.label, color: C.textSecondary, fontSize: 9 },
-  qrCard: { marginTop: 14, padding: 18 },
-  qrFrame: { backgroundColor: C.white, padding: 8, borderRadius: 12, marginVertical: 4 },
-  qr: { width: 160, height: 160 },
-  sectionTitle: { ...Typography.label, color: C.textSecondary, marginTop: 24, marginBottom: 10 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
-  rowIcon: {
-    width: 38, height: 38, borderRadius: 10,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  rowBadge: {
-    backgroundColor: C.danger,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 999,
-    minWidth: 22,
-    alignItems: 'center',
-  },
-  rowBadgeText: { color: C.white, fontFamily: 'DMSans_700Bold', fontSize: 11 },
+  miniAvatar: { width: 38, height: 38, borderRadius: 19, overflow: 'hidden', backgroundColor: 'rgba(167,139,250,0.30)', alignItems: 'center', justifyContent: 'center' },
+  miniAvatarText: { color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
+  miniName: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
+  miniMeta: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 10.5, marginTop: 2 },
 
-  // Notification bell button + badge
-  bellBtn: {
-    width: 40, height: 40, borderRadius: 999,
-    backgroundColor: C.palePurple,
-    alignItems: 'center', justifyContent: 'center',
-    position: 'relative',
+  navHeader: { color: 'rgba(255,255,255,0.40)', fontFamily: 'DMSans_700Bold', fontSize: 10, letterSpacing: 0.8, marginTop: 4, marginBottom: 4, paddingHorizontal: 4 },
+  navItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 12, paddingVertical: 10, borderRadius: 9,
+    ...({ cursor: 'pointer' } as any),
   },
-  bellBadge: {
-    position: 'absolute', top: -4, right: -4,
-    minWidth: 20, height: 20, borderRadius: 999,
-    backgroundColor: C.danger,
-    alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 2, borderColor: C.background,
-  },
-  bellBadgeText: { color: C.white, fontFamily: 'DMSans_700Bold', fontSize: 10 },
+  navItemActive: { backgroundColor: 'rgba(167,139,250,0.16)' },
+  navText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
 
-  // Recent bookings list
-  sectionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 24,
-    marginBottom: 10,
+  main: { flex: 1, paddingHorizontal: 28, paddingTop: 18 },
+  topBar: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+  backBtnSm: { width: 32, height: 32, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
+  title: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 19 },
+  subtitle: { color: C.text2, fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 2 },
+  scorePill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: 'rgba(167,139,250,0.14)', borderColor: 'rgba(167,139,250,0.40)', borderWidth: 1 },
+  scorePillText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 11 },
+
+  mobileTabs: { flexDirection: 'row', gap: 6, marginBottom: 14 },
+  mTab: { flex: 1, paddingVertical: 8, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1, alignItems: 'center', ...({ cursor: 'pointer' } as any) },
+  mTabActive: { backgroundColor: '#A78BFA', borderColor: '#A78BFA' },
+  mTabText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
+
+  toast: {
+    position: 'absolute', bottom: 30, alignSelf: 'center',
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10,
+    backgroundColor: 'rgba(16,185,129,0.16)',
+    borderColor: 'rgba(16,185,129,0.50)', borderWidth: 1,
   },
-  upcomingPill: {
-    backgroundColor: C.palePurple,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-  },
-  upcomingPillText: {
-    fontFamily: 'DMSans_600SemiBold',
-    fontSize: 11,
-    color: C.deepPurple,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-  },
-  bookingCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 14,
-  },
-  statusPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    borderWidth: 1,
-  },
-  statusText: {
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 9,
-    color: C.textPrimary,
-    letterSpacing: 0.6,
-  },
+  toastText: { color: C.green, fontFamily: 'DMSans_700Bold', fontSize: 12 },
 });

@@ -1575,13 +1575,190 @@ async def complete_onboarding(req: OnboardingRequest, user: dict = Depends(get_c
 
 @api_router.put("/users/me", response_model=UserResponse)
 async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
-    """Limited profile self-update — students cannot bypass mentor approval."""
-    allowed = {"full_name", "phone", "bio", "interests", "skills", "face_image_base64"}
+    """Self-profile update — expanded field set (Phase 4 SA Profile Web)."""
+    allowed = {
+        # Identity / basics
+        "full_name", "first_name", "last_name", "headline", "bio",
+        "phone", "city", "state", "location", "face_image_base64", "photo_data",
+        # Academic
+        "institution", "branch", "graduation_year", "year", "cgpa",
+        # Career
+        "career_path", "primary_skill", "interests", "skills",
+        # Social
+        "linkedin_url", "github_url", "portfolio_url",
+        # Visibility
+        "profile_visibility",
+        # Section toggles + sections content (free-form)
+        "section_toggles", "projects",
+        # Preferences (settings page)
+        "preferences",
+    }
     safe = {k: v for k, v in updates.items() if k in allowed}
+    # Synthesize full_name when first/last provided
+    if ("first_name" in safe or "last_name" in safe) and "full_name" not in safe:
+        u_now = user
+        fn = safe.get("first_name", u_now.get("first_name") or (u_now.get("full_name") or "").split(" ")[0])
+        ln = safe.get("last_name",  u_now.get("last_name")  or " ".join((u_now.get("full_name") or "").split(" ")[1:]))
+        safe["full_name"] = (str(fn or "").strip() + " " + str(ln or "").strip()).strip()
     if safe:
         safe["updated_at"] = datetime.now(timezone.utc)
         await db.users.update_one({"_id": user["_id"]}, {"$set": safe})
     return UserResponse(**serialize_user(await db.users.find_one({"_id": user["_id"]})))
+
+
+# ----------------------------------------------------------------------------
+# Profile completion + Resume + Preferences (SA Profile Web — Phase 4)
+# ----------------------------------------------------------------------------
+def _compute_profile_completion(u: dict) -> dict:
+    """Return per-item checklist + overall percentage."""
+    fn = (u.get("full_name") or "").strip()
+    has_first = bool((u.get("first_name") or fn.split(" ")[0]) and fn)
+    has_last = len(fn.split(" ")) > 1
+    has_photo = bool(u.get("face_image_base64") or u.get("photo_data"))
+    has_bio = bool((u.get("bio") or u.get("headline") or "").strip())
+    has_college = bool((u.get("institution") or "").strip()) and bool((u.get("branch") or "").strip())
+    has_social = bool((u.get("linkedin_url") or u.get("github_url") or u.get("portfolio_url") or "").strip())
+    interests_count = len(u.get("interests") or [])
+    has_interests = interests_count >= 3
+    skills_count = len(u.get("skills") or [])
+    has_skills = skills_count >= 1
+    items = [
+        {"key": "basic", "label": "Basic info", "done": bool(has_first and has_last), "weight": 14},
+        {"key": "photo", "label": "Profile photo", "done": has_photo, "weight": 14},
+        {"key": "bio", "label": "Bio / headline", "done": has_bio, "weight": 14},
+        {"key": "college", "label": "College details", "done": has_college, "weight": 14},
+        {"key": "social", "label": "Social links", "done": has_social, "weight": 14},
+        {"key": "interests", "label": "3+ interests", "done": has_interests, "weight": 15},
+        {"key": "skills", "label": "Skills listed", "done": has_skills, "weight": 15},
+    ]
+    pct = sum(i["weight"] for i in items if i["done"])
+    return {"percentage": pct, "items": items}
+
+
+@api_router.get("/users/me/completion")
+async def get_my_completion(user: dict = Depends(get_current_user)):
+    return _compute_profile_completion(user)
+
+
+@api_router.get("/users/me/resume")
+async def get_my_resume(user: dict = Depends(get_current_user)):
+    """Return resume metadata (not the binary data URL — call /resume/raw for that)."""
+    docs = (user.get("resume_documents") or [])
+    return {"documents": [{
+        "id": d.get("id"), "name": d.get("name"), "size": d.get("size"),
+        "uploaded_at": d.get("uploaded_at"), "active": d.get("active", False),
+    } for d in docs]}
+
+
+@api_router.get("/users/me/resume/{doc_id}/raw")
+async def download_my_resume(doc_id: str, user: dict = Depends(get_current_user)):
+    """Return the data URL of a specific resume document (used by client to trigger download)."""
+    docs = (user.get("resume_documents") or [])
+    for d in docs:
+        if d.get("id") == doc_id:
+            return {"id": doc_id, "name": d.get("name"), "data_url": d.get("data_url")}
+    raise HTTPException(404, "Document not found")
+
+
+@api_router.post("/users/me/resume")
+async def upload_my_resume(payload: dict, user: dict = Depends(get_current_user)):
+    """Upload a resume as base64 data URL.
+    Body: { name: str, size: int (bytes), data_url: 'data:application/pdf;base64,...' }
+    """
+    name = (payload.get("name") or "").strip() or "Resume.pdf"
+    size = int(payload.get("size") or 0)
+    data_url = payload.get("data_url") or ""
+    if not data_url.startswith("data:"):
+        raise HTTPException(400, "data_url must be a base64 data URL")
+    # Soft size cap: 5 MB
+    if size > 5 * 1024 * 1024:
+        raise HTTPException(400, "File too large (max 5MB)")
+    docs = list(user.get("resume_documents") or [])
+    # Mark all existing as inactive
+    for d in docs:
+        d["active"] = False
+    new_doc = {
+        "id": str(ObjectId()),
+        "name": name,
+        "size": size,
+        "data_url": data_url,
+        "uploaded_at": datetime.now(timezone.utc).isoformat(),
+        "active": True,
+    }
+    docs.insert(0, new_doc)
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"resume_documents": docs, "updated_at": datetime.now(timezone.utc)}},
+    )
+    return {"id": new_doc["id"], "name": new_doc["name"], "active": True}
+
+
+@api_router.delete("/users/me/resume/{doc_id}")
+async def delete_my_resume(doc_id: str, user: dict = Depends(get_current_user)):
+    docs = list(user.get("resume_documents") or [])
+    new_docs = [d for d in docs if d.get("id") != doc_id]
+    if len(new_docs) == len(docs):
+        raise HTTPException(404, "Document not found")
+    # Ensure at least one is marked active if any remain
+    if new_docs and not any(d.get("active") for d in new_docs):
+        new_docs[0]["active"] = True
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"resume_documents": new_docs, "updated_at": datetime.now(timezone.utc)}},
+    )
+    return {"status": "deleted", "id": doc_id}
+
+
+@api_router.post("/users/me/resume/{doc_id}/activate")
+async def activate_my_resume(doc_id: str, user: dict = Depends(get_current_user)):
+    docs = list(user.get("resume_documents") or [])
+    found = False
+    for d in docs:
+        if d.get("id") == doc_id:
+            d["active"] = True
+            found = True
+        else:
+            d["active"] = False
+    if not found:
+        raise HTTPException(404, "Document not found")
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"resume_documents": docs, "updated_at": datetime.now(timezone.utc)}},
+    )
+    return {"status": "activated", "id": doc_id}
+
+
+@api_router.patch("/users/me/preferences")
+async def update_my_preferences(updates: dict, user: dict = Depends(get_current_user)):
+    """Merge into user.preferences. Free-form — UI sends partial dicts."""
+    current = dict(user.get("preferences") or {})
+    for k, v in updates.items():
+        if isinstance(v, dict) and isinstance(current.get(k), dict):
+            current[k].update(v)
+        else:
+            current[k] = v
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"preferences": current, "updated_at": datetime.now(timezone.utc)}},
+    )
+    return {"preferences": current}
+
+
+@api_router.post("/users/me/password")
+async def change_my_password(payload: dict, user: dict = Depends(get_current_user)):
+    """Change password. Body: { current_password, new_password }"""
+    cur_pw = payload.get("current_password") or ""
+    new_pw = payload.get("new_password") or ""
+    if len(new_pw) < 8:
+        raise HTTPException(400, "Password must be at least 8 characters")
+    if not bcrypt.checkpw(cur_pw.encode("utf-8"), user.get("password_hash", "").encode("utf-8")):
+        raise HTTPException(400, "Current password is incorrect")
+    new_hash = bcrypt.hashpw(new_pw.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"password_hash": new_hash, "updated_at": datetime.now(timezone.utc)}},
+    )
+    return {"status": "ok"}
 
 
 # ----------------------------------------------------------------------------
