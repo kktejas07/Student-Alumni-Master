@@ -606,8 +606,92 @@ backend:
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            Phase 4 — SA Profile Web backend FULLY VERIFIED via
+            /app/backend_test_profile_web.py against
+            https://hiring-mvvm.preview.emergentagent.com/api.
+            
+            RESULT: 77/77 checks PASSED.
+            
+            Auth gating (18 checks): all endpoints reject both no-token and
+            malformed-token with 401:
+              PUT /users/me, GET /users/me/completion, GET/POST/DELETE
+              /users/me/resume[/{id}[/raw|/activate]], PATCH
+              /users/me/preferences, POST /users/me/password.
+            
+            Happy-path (student01):
+              ✅ initial GET /completion → 44% with exactly 7 items
+                 (basic, photo, bio, college, social, interests, skills).
+              ✅ PUT /users/me {first_name, last_name, headline, bio,
+                 linkedin_url, interests[3], skills[2]} → 200; full_name
+                 auto-synthesized to "Test User"; interests + skills echoed
+                 back intact.
+              ✅ completion percentage 44 → 72 (+28).
+              ✅ /auth/me reflects full_name="Test User".
+            
+            Disallowed fields silently ignored:
+              ✅ PUT with {role:'admin', sa_id:'HACK-1', password_hash:'x',
+                 email:'hacked@evil.com', random_xyz:1, first_name:'Real'}
+                 returns 200 (not 400).
+              ✅ role stayed 'student' (not 'admin').
+              ✅ first_name='Real' applied → full_name="Real User".
+              ✅ /auth/me role still 'student'.
+            
+            Resume CRUD lifecycle (all 24 sub-checks PASS):
+              ✅ POST #1 4096 bytes → 200, active=true.
+              ✅ POST #2 → 200, #2 active, #1 demoted to inactive.
+              ✅ GET list returns 2, newest first.
+              ✅ GET /{id}/raw returns full data_url.
+              ✅ POST /{id1}/activate flips #1 active + #2 inactive.
+              ✅ DELETE inactive #2 → list size 1, #1 still active.
+              ✅ Auto-promote: POST #3 makes #3 active; DELETE ACTIVE #3
+                 auto-promotes the remaining #1 to active.
+              ✅ DELETE #1 → empty list.
+              Edges:
+              ✅ data_url not starting with "data:" → 400
+                 "data_url must be a base64 data URL".
+              ✅ size=6_000_000 → 400 "File too large (max 5MB)".
+              ✅ GET /raw of 'doesnotexist' → 404.
+              ✅ DELETE 'doesnotexist' → 404.
+              ✅ POST /activate 'doesnotexist' → 404.
+            
+            Preferences DEEP-MERGE (not replace) verified:
+              ✅ Seed with 5-key notifications + 2-key app.
+              ✅ PATCH {notifications:{messages:false}, app:{theme:light}}
+                 → notifications.messages flipped; requests/mentions/
+                 weekly_digest/new_matches PRESERVED; app.theme=light;
+                 app.language='en' PRESERVED.
+              ✅ Second PATCH {notifications:{requests:false}}:
+                 final state has BOTH messages=false AND requests=false.
+            
+            Password change:
+              ✅ wrong current_password → 400 "Current password is incorrect".
+              ✅ new_password="abc" (<8) → 400 "Password must be at least
+                 8 characters".
+              ✅ valid current+new → 200 {"status":"ok"}.
+              ✅ OLD access token STILL VALID after password change
+                 (/auth/me returns 200) — no forced logout as spec requires.
+              ✅ Login with new password → 200; login with old password → 401.
+              ✅ CRITICAL POST-TEST RESET: password restored to TestPass@123;
+                 verified via fresh login.
+            
+            Sanity:
+              ✅ mentor01@test.com / TestPass@123 → role=mentor.
+              ✅ admin@careerpath.app / Admin@12345 → role=admin.
+            
+            Student profile also restored to baseline (full_name="Aarav
+            Student", empty interests/skills) so downstream suites start
+            clean.
+            
+            NOTE: server.py has TWO definitions of PATCH /users/me/preferences
+            (lines 1731 and 3408). FastAPI registers the first one, which is
+            the Phase 4 deep-merge version — this is what serves traffic and
+            is the one tested. The second (careere_path/education_level quick
+            update) is dead code and can be removed in cleanup.
         - working: true
           agent: "main"
           comment: |
@@ -1963,3 +2047,63 @@ agent_communication:
         Mentors/Alumni tables with detail panels) and Phase 3 (Events
         compose, Payments, Analytics, Settings) ready to build next.
 
+
+
+---
+## 2026-04-30 — Phase 4 SA Profile Web — backend ready for testing
+agent_communication:
+    - agent: "main"
+      message: |
+        SHIPPED Phase 4 (SA Profile Web) backend + frontend. Frontend
+        verified live with screenshots — all 3 pages render correctly.
+
+        BACKEND endpoints to TEST (all under /api, JWT-auth required):
+          1. PUT  /users/me  — extended allowed fields (first_name,
+             last_name, headline, bio, phone, location, city, state,
+             photo_data, institution, branch, graduation_year, year, cgpa,
+             career_path, primary_skill, interests[], skills[],
+             linkedin_url, github_url, portfolio_url, profile_visibility,
+             section_toggles{}, projects[], preferences{}). Auto-synthesis
+             of full_name when first_name/last_name supplied.
+          2. GET  /users/me/completion  — returns { percentage, items[] }
+             with 7-item checklist (basic, photo, bio, college, social,
+             interests≥3, skills≥1).
+          3. GET  /users/me/resume  — list metadata only.
+          4. POST /users/me/resume  — body: { name, size, data_url }.
+             Validates data_url starts with "data:" and size ≤ 5MB.
+             Marks new doc active, demotes others.
+          5. GET  /users/me/resume/{doc_id}/raw  — returns data_url for
+             download.
+          6. DELETE /users/me/resume/{doc_id}  — also auto-promotes next
+             doc to active if removed doc was active.
+          7. POST /users/me/resume/{doc_id}/activate  — switch active
+             resume; demotes all others.
+          8. PATCH /users/me/preferences  — deep-merges into
+             user.preferences (notifications, privacy, ai, app sub-objects).
+          9. POST /users/me/password  — body: { current_password,
+             new_password }. Verifies current with bcrypt, requires 8+
+             chars on new, hashes & stores.
+
+        TEST CREDENTIALS (use student01 — has partial profile, ideal for
+        completion testing):
+          student01@test.com / TestPass@123       (~44% complete)
+          mentor01@test.com  / TestPass@123
+          admin@careerpath.app / Admin@12345
+
+        EDGE CASES to verify:
+          • PUT /users/me with random/disallowed fields should silently
+            ignore (e.g. role, sa_id, password_hash should NOT be writable
+            via this endpoint).
+          • Completion percentage should change immediately after PUT.
+          • Resume upload >5MB should 400.
+          • Resume upload with non-data-URL should 400.
+          • Activate non-existent doc_id should 404.
+          • Delete non-existent doc_id should 404.
+          • Password change with wrong current_password should 400.
+          • Password change with new_password <8 chars should 400.
+          • Preferences PATCH should DEEP-MERGE not replace whole object
+            (e.g. patching {notifications:{messages:false}} should keep
+            other notification keys intact).
+          • All endpoints should 401 without/with bad token.
+
+        DO NOT TEST FRONTEND — main agent will request that separately.
