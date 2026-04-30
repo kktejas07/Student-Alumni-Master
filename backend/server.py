@@ -546,6 +546,123 @@ async def user_badges(user_id: str):
     return {"badges": badges, "theme": get_tier_theme()}
 
 
+@api_router.get("/users/{user_id}/public-profile")
+async def get_public_profile(user_id: str):
+    """Sanitized public profile for the Social View page.
+    Returns role-tinted fields with viewer-aware visibility.
+    """
+    # Simple no-auth fetch — visibility is enforced inside via privacy settings.
+    try:
+        target = await db.users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        target = None
+    if not target:
+        raise HTTPException(404, "User not found")
+
+    visibility = target.get("profile_visibility") or "public"
+    if visibility == "private":
+        raise HTTPException(403, "This profile is private")
+
+    prefs = (target.get("preferences") or {}).get("privacy") or {}
+    show_email = bool(prefs.get("show_email"))
+    show_phone = bool(prefs.get("show_phone"))
+
+    # Compute badges (cached path)
+    badges = target.get("badges") or []
+    if not badges:
+        try:
+            badges = await compute_badges(db, target)
+        except Exception:
+            badges = []
+
+    si = target.get("school_info") or {}
+    role = target.get("role") or "student"
+    is_mentor = role == "mentor"
+
+    # Mentor session stats (mocked for now if not present)
+    session_stats = target.get("session_stats") or ({
+        "total": int(target.get("sessions_completed") or 0),
+        "avg_rating": target.get("rating"),
+        "active_mentees": int(target.get("active_mentees") or 0),
+    } if is_mentor else None)
+
+    # Mock LinkedIn / GitHub / Experience until real integrations land
+    out = {
+        "id": str(target.get("_id")),
+        "sa_id": target.get("sa_id"),
+        "role": role,
+        "full_name": target.get("full_name"),
+        "first_name": target.get("first_name"),
+        "last_name": target.get("last_name"),
+        "headline": target.get("headline"),
+        "bio": target.get("bio"),
+        "photo_data": target.get("photo_data") or target.get("face_image_base64"),
+        "is_online": target.get("is_online", True),
+        # Identity meta
+        "institution": target.get("institution") or si.get("institution_name"),
+        "branch": target.get("branch"),
+        "graduation_year": target.get("graduation_year") or target.get("year"),
+        "cgpa": target.get("cgpa"),
+        "city": target.get("city") or target.get("location"),
+        "state": target.get("state"),
+        "career_path": target.get("career_path"),
+        # Career
+        "job_title": target.get("job_title"),
+        "organization": target.get("organization"),
+        # Skills
+        "skills": target.get("skills") or [],
+        "interests": target.get("interests") or si.get("interests") or [],
+        "primary_skill": target.get("primary_skill"),
+        # Social — privacy-aware
+        "linkedin_url": target.get("linkedin_url"),
+        "github_url": target.get("github_url"),
+        "portfolio_url": target.get("portfolio_url"),
+        "email": target.get("email") if show_email else None,
+        "phone": target.get("phone") if show_phone else None,
+        "show_email": show_email,
+        "show_phone": show_phone,
+        # Badges
+        "badges": badges,
+        "badges_total": len(badges),
+        # Mentor-only
+        "is_mentor": is_mentor,
+        "rating": target.get("rating"),
+        "sessions": target.get("sessions"),
+        "expected_rate_inr": target.get("expected_rate_inr"),
+        "session_stats": session_stats,
+        # Experience / education / projects (use whatever's stored, otherwise empty)
+        "experience": target.get("experience") or [],
+        "education": target.get("education") or ([{
+            "institution": target.get("institution") or si.get("institution_name") or "—",
+            "degree": target.get("branch") or "—",
+            "year": target.get("graduation_year") or target.get("year") or "—",
+        }] if (target.get("institution") or si.get("institution_name")) else []),
+        "projects": target.get("projects") or [],
+        # Mock GitHub stats (UI shows it when github_url present)
+        "github_stats": target.get("github_stats") or ({
+            "languages": [
+                {"name": "Python", "pct": 38, "color": "#3776ab"},
+                {"name": "TypeScript", "pct": 26, "color": "#3178c6"},
+                {"name": "JavaScript", "pct": 18, "color": "#f1e05a"},
+                {"name": "Go", "pct": 10, "color": "#00ADD8"},
+                {"name": "Other", "pct": 8, "color": "#94a3b8"},
+            ],
+            "contributions_last_year": 642,
+            "longest_streak": 21,
+            "current_streak": 4,
+            "pinned_repos": [
+                {"name": "career-coach", "desc": "AI-powered career planner.", "stars": 28, "language": "TypeScript", "language_color": "#3178c6"},
+                {"name": "mentor-match", "desc": "Recsys for student-mentor pairing.", "stars": 14, "language": "Python", "language_color": "#3776ab"},
+                {"name": "study-buddy-cli", "desc": "Pomodoro CLI for study sprints.", "stars": 9, "language": "Go", "language_color": "#00ADD8"},
+                {"name": "portfolio-v2", "desc": "Personal portfolio website.", "stars": 6, "language": "TypeScript", "language_color": "#3178c6"},
+            ],
+        } if target.get("github_url") else None),
+        # Privacy meta
+        "profile_visibility": visibility,
+    }
+    return out
+
+
 @api_router.post("/users/me/badges/refresh")
 async def refresh_my_badges(user: dict = Depends(get_current_user)):
     """Force-recompute & persist (called after key events from the client)."""

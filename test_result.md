@@ -2183,3 +2183,54 @@ agent_communication:
           • All endpoints should 401 without/with bad token.
 
         DO NOT TEST FRONTEND — main agent will request that separately.
+
+---
+## 2026-04-30 — SA Profile Social View — `/profile/[id]` shipped & verified
+agent_communication:
+    - agent: "main"
+      message: |
+        SHIPPED Profile Social View at `/profile/[id]` — public profile
+        page reached from Network "View Profile" button.
+        BACKEND:
+          ✅ NEW GET /api/users/{user_id}/public-profile — sanitized
+             public payload with viewer-aware privacy (show_email,
+             show_phone). 403 if profile_visibility="private". Returns
+             role, hero meta, identity, social, skills, badges, mentor
+             stats, experience[], education[] (auto-derived if empty),
+             github_stats (mocked when github_url present: top
+             languages, contribution counts, pinned repos).
+        FRONTEND `/app/frontend/app/profile/[id].tsx`:
+          ✅ Hero — back button, role-tinted gradient banner, large
+             avatar w/ online dot + role-tinted ring, name + role chip
+             + ★ rating chip for mentors, headline, title line, college
+             line, meta row (location, SA-ID mono, visibility eye/lock).
+          ✅ Action bar (only when not me) — Connect or Book Session
+             (green for mentors), Message (toast), Share (web =
+             clipboard copy of url).
+          ✅ TAB BAR — Overview · LinkedIn · GitHub (only if url) ·
+             Sessions (only for mentors).
+          ✅ Overview — About, Social Profiles (privacy-aware locks for
+             email/phone), Skills & Interests (primary highlighted),
+             Credentials & Badges with GOLD GRADIENT for Tier-1.
+          ✅ LinkedIn — link-out header card, Highlights with college,
+             Experience timeline (vertical line w/ dots), Education list.
+          ✅ GitHub — link-out header, Top Languages stacked bar +
+             pills, Activity stat boxes (Contributions / Longest /
+             Current streak), 52-week deterministic contribution
+             heatmap, Pinned Repositories grid.
+          ✅ Sessions (mentors) — Session Stats grid (Total / Avg ★ /
+             Active Mentees), Pricing & Availability rows
+             (Per session, First 2 FREE, Response time).
+        WIRING:
+          ✅ Network "View Profile" button + slide-in modal both now
+             route to `/profile/[id]` via expo-router push.
+        VERIFIED LIVE (1440px desktop, screenshots):
+          · Mentor (Priya Mentor1): Overview / LinkedIn / Sessions all
+            render; "Book Session" green action; 8 badges incl Tier-1
+            gold; Pricing card with FREE pill.
+          · Student (Aarav Test): Overview / LinkedIn render; 2 tabs
+            only (no Sessions); Connect purple action; 2 badges with
+            Tier-1 gold gradient.
+          · Privacy locks shown for Email/Phone when not shared.
+
+
