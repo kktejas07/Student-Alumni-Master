@@ -575,6 +575,76 @@ async def admin_recompute_all_badges(user: dict = Depends(get_current_user)):
     return {"processed": count}
 
 
+# ─── Certificates CRUD ──────────────────────────────────────────────────
+@api_router.get("/users/me/certificates")
+async def my_certificates(user: dict = Depends(get_current_user)):
+    """List the current user's certificates."""
+    return {"certificates": user.get("certificates") or []}
+
+
+@api_router.post("/users/me/certificates")
+async def add_my_certificate(payload: dict, user: dict = Depends(get_current_user)):
+    """Add a certificate. Required: name, issuer, year."""
+    name = (payload.get("name") or "").strip()
+    issuer = (payload.get("issuer") or "").strip()
+    year_raw = payload.get("year")
+    if not name or not issuer:
+        raise HTTPException(400, "name and issuer are required")
+    try:
+        year = int(year_raw) if year_raw else None
+    except Exception:
+        raise HTTPException(400, "year must be a number")
+    cert = {
+        "id": uuid.uuid4().hex[:12],
+        "name": name,
+        "issuer": issuer,
+        "year": year,
+        "credential_url": (payload.get("credential_url") or "").strip() or None,
+        "added_at": datetime.utcnow().isoformat(),
+    }
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$push": {"certificates": cert}, "$set": {"updated_at": datetime.utcnow()}},
+    )
+    # Recompute badges (certificates count badge will refresh)
+    fresh = await db.users.find_one({"_id": user["_id"]})
+    if fresh:
+        try:
+            badges = await compute_badges(db, fresh)
+            await db.users.update_one(
+                {"_id": user["_id"]},
+                {"$set": {"badges": badges, "badges_updated_at": datetime.utcnow()}},
+            )
+        except Exception:
+            pass
+    return {"ok": True, "certificate": cert}
+
+
+@api_router.delete("/users/me/certificates/{cert_id}")
+async def delete_my_certificate(cert_id: str, user: dict = Depends(get_current_user)):
+    """Remove a certificate by id."""
+    res = await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$pull": {"certificates": {"id": cert_id}}},
+    )
+    if res.modified_count == 0:
+        raise HTTPException(404, "Certificate not found")
+    # Recompute badges
+    fresh = await db.users.find_one({"_id": user["_id"]})
+    if fresh:
+        try:
+            badges = await compute_badges(db, fresh)
+            await db.users.update_one(
+                {"_id": user["_id"]},
+                {"$set": {"badges": badges, "badges_updated_at": datetime.utcnow()}},
+            )
+        except Exception:
+            pass
+    return {"ok": True, "deleted": cert_id}
+
+
+
+
 @api_router.post("/auth/refresh")
 async def refresh_token(payload: dict):
     """Exchanges a valid refresh token for a fresh access token."""

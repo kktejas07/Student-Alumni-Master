@@ -309,6 +309,166 @@ def _badge_role_for_user(user: dict) -> Optional[str]:
     return None
 
 
+# ─── Credential rules (Option B — second badge stack) ───────────────────
+# These reflect qualifications/credentials rather than activity.
+_DEGREE_LEVEL = {
+    # rank 1 = lowest, 4 = highest
+    "10th":         {"rank": 1, "tier": "low",      "label": "Class 10",         "icon": "GraduationCap"},
+    "12th":         {"rank": 1, "tier": "low",      "label": "Class 12",         "icon": "GraduationCap"},
+    "plus_one":     {"rank": 1, "tier": "low",      "label": "Class 11",         "icon": "GraduationCap"},
+    "plus_two":     {"rank": 1, "tier": "low",      "label": "Class 12",         "icon": "GraduationCap"},
+    "diploma":      {"rank": 2, "tier": "low",      "label": "Diploma Holder",   "icon": "GraduationCap"},
+    "bachelors":    {"rank": 2, "tier": "moderate", "label": "Bachelor's Degree", "icon": "Award"},
+    "btech":        {"rank": 2, "tier": "moderate", "label": "B.Tech / Bachelor's", "icon": "Award"},
+    "masters":      {"rank": 3, "tier": "high",     "label": "Master's Degree",  "icon": "Trophy"},
+    "phd":          {"rank": 4, "tier": "special",  "label": "Doctorate",        "icon": "Crown"},
+}
+
+# Tier 1 = elite institutions, Tier 2 = top regional, Tier 3 = standard.
+# Matched by case-insensitive substring on institution_name.
+_TIER1_KEYWORDS = [
+    "iit ", "indian institute of technology",
+    "iim ", "indian institute of management",
+    "aiims", "iisc", "isb hyderabad", "indian school of business",
+    "stanford", "harvard", "mit", "massachusetts institute",
+    "oxford", "cambridge", "yale", "princeton", "berkeley",
+    "imperial college", "eth zurich", "carnegie mellon", "caltech",
+]
+_TIER2_KEYWORDS = [
+    "nit ", "national institute of technology",
+    "iiit", "international institute of information",
+    "bits ", "birla institute",
+    "vit ", "vellore institute",
+    "manipal", "srm ", "amity", "thapar", "pec ",
+    "delhi university", "jnu", "anna university", "jadavpur",
+]
+
+
+def _classify_institution(name: str) -> Optional[dict]:
+    """Return tier metadata for the institution, or None if no match."""
+    if not name:
+        return None
+    n = name.lower()
+    for kw in _TIER1_KEYWORDS:
+        if kw in n:
+            return {"tier": "high", "label": "Tier-1 Institute", "icon": "Crown",
+                    "hint": "Top-tier institution (IIT/IIM/Ivy/etc.)"}
+    for kw in _TIER2_KEYWORDS:
+        if kw in n:
+            return {"tier": "moderate", "label": "Tier-2 Institute", "icon": "Trophy",
+                    "hint": "Premier regional institution (NIT/BITS/VIT/etc.)"}
+    # Default: every authenticated student/alumni gets tier-3 visibility
+    return {"tier": "low", "label": "Tier-3 Institute", "icon": "GraduationCap",
+            "hint": "Recognized institution"}
+
+
+def _certificates_tier(count: int) -> Optional[dict]:
+    """1+ → low, 3+ → moderate, 7+ → high. None if 0."""
+    if count >= 7:
+        return {"tier": "high",     "label": f"{count} Certificates",  "icon": "Award"}
+    if count >= 3:
+        return {"tier": "moderate", "label": f"{count} Certificates",  "icon": "Award"}
+    if count >= 1:
+        return {"tier": "low",      "label": f"{count} Certificate" + ("s" if count > 1 else ""), "icon": "Award"}
+    return None
+
+
+def _years_experience_tier(years: int) -> Optional[dict]:
+    """0 → none, 1-4 → low, 5-11 → moderate, 12+ → high."""
+    if years >= 12:
+        return {"tier": "high",     "label": f"{years}+ yrs Experience", "icon": "Briefcase"}
+    if years >= 5:
+        return {"tier": "moderate", "label": f"{years} yrs Experience",  "icon": "Briefcase"}
+    if years >= 1:
+        return {"tier": "low",      "label": f"{years} yr" + ("s" if years > 1 else "") + " Experience",
+                "icon": "Briefcase"}
+    return None
+
+
+async def _compute_credential_badges(db, user: dict) -> List[dict]:
+    """
+    Credential-based badges (Option B second stack).
+    All badges in this list carry kind='credential'.
+    """
+    out: List[dict] = []
+    role = (user.get("role") or "").lower()
+    si = user.get("school_info") or {}
+    ai = user.get("alumni_info") or {}
+    mp = user.get("mentor_profile") or {}
+    cp = user.get("college_profile") or {}
+
+    # 1. Degree level — for student / alumni
+    edu_level_raw = (
+        si.get("education_level") or user.get("education_level")
+        or si.get("class_or_year") or si.get("current_course") or ""
+    )
+    edu_level = str(edu_level_raw).lower().strip()
+    # Friendly mapping from onboarding labels → keys
+    if "11" in edu_level or "plus one" in edu_level: edu_level = "plus_one"
+    elif "12" in edu_level or "plus two" in edu_level: edu_level = "plus_two"
+    elif "10" in edu_level: edu_level = "10th"
+    elif "diploma" in edu_level: edu_level = "diploma"
+    elif "phd" in edu_level or "doctor" in edu_level: edu_level = "phd"
+    elif "master" in edu_level or "m.tech" in edu_level or "mtech" in edu_level or "mba" in edu_level or "m.sc" in edu_level: edu_level = "masters"
+    elif "bachelor" in edu_level or "b.tech" in edu_level or "btech" in edu_level or "bsc" in edu_level or "b.sc" in edu_level or "bba" in edu_level or "ba " in edu_level or "b.com" in edu_level: edu_level = "bachelors"
+    if edu_level in _DEGREE_LEVEL:
+        d = _DEGREE_LEVEL[edu_level]
+        out.append({
+            "id": "cred_degree", "category": "degree", "kind": "credential",
+            "tier": d["tier"], "label": d["label"], "icon": d["icon"],
+            "hint": "Highest qualification on file",
+        })
+
+    # 2. Institution tier — auto-classify from name
+    institution = (
+        si.get("institution_name")
+        or (cp.get("institution_name") if role == "college" else None)
+        or (ai.get("institution_name") if role == "alumni" else None)
+        or (user.get("full_name") if role == "college" else None)
+    )
+    inst = _classify_institution(institution or "")
+    if inst:
+        out.append({
+            "id": "cred_institution", "category": "institution", "kind": "credential",
+            "tier": inst["tier"], "label": inst["label"], "icon": inst["icon"],
+            "hint": inst["hint"],
+            "value": institution,
+        })
+
+    # 3. Certificate count — for any role
+    certs = user.get("certificates") or []
+    ct = _certificates_tier(len(certs))
+    if ct:
+        out.append({
+            "id": "cred_certificates", "category": "certificates", "kind": "credential",
+            "tier": ct["tier"], "label": ct["label"], "icon": ct["icon"],
+            "hint": "Verified certifications added",
+            "value": len(certs),
+        })
+
+    # 4. Years of experience — for mentor / alumni
+    yoe = mp.get("years_of_experience") or ai.get("years_of_experience")
+    if yoe is None and role == "alumni":
+        # Estimate from graduation_year
+        gy = ai.get("graduation_year") or si.get("graduation_year")
+        if gy:
+            try:
+                yoe = max(0, datetime.now(timezone.utc).year - int(gy))
+            except Exception:
+                yoe = None
+    if yoe is not None:
+        et = _years_experience_tier(int(yoe))
+        if et:
+            out.append({
+                "id": "cred_experience", "category": "experience", "kind": "credential",
+                "tier": et["tier"], "label": et["label"], "icon": et["icon"],
+                "hint": "Years of professional experience",
+                "value": int(yoe),
+            })
+
+    return out
+
+
 # ─── Universal badges (cross-role) ──────────────────────────────────────
 async def _compute_universal_badges(db, user: dict) -> List[dict]:
     out: List[dict] = []
@@ -358,7 +518,7 @@ async def _compute_universal_badges(db, user: dict) -> List[dict]:
 
 # ─── Public API ─────────────────────────────────────────────────────────
 async def compute_badges(db, user: dict) -> List[dict]:
-    """Compute all badges (role-tiered + universal) for a single user."""
+    """Compute all badges (engagement + credentials + universal)."""
     badges: List[dict] = []
     role_bucket = _badge_role_for_user(user)
     if role_bucket:
@@ -377,6 +537,7 @@ async def compute_badges(db, user: dict) -> List[dict]:
             badges.append({
                 "id": f"{role_bucket}_{cat}",
                 "category": cat,
+                "kind": "engagement",
                 "tier": tier,
                 "label": spec["labels"][tier],
                 "icon": spec["icons"][tier],
@@ -385,8 +546,19 @@ async def compute_badges(db, user: dict) -> List[dict]:
                 "value": value,
                 "earned_at": datetime.now(timezone.utc).isoformat(),
             })
-    # Universal badges apply to everyone
-    badges.extend(await _compute_universal_badges(db, user))
+    # Credentials (Option B — second stack)
+    try:
+        cred = await _compute_credential_badges(db, user)
+        for c in cred:
+            c.setdefault("earned_at", datetime.now(timezone.utc).isoformat())
+        badges.extend(cred)
+    except Exception:
+        pass
+    # Universal badges apply to everyone (kind=verification|special)
+    universal = await _compute_universal_badges(db, user)
+    for u in universal:
+        u.setdefault("kind", "verification" if u.get("tier") == "verified" else "special")
+    badges.extend(universal)
     return badges
 
 

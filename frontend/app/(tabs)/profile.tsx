@@ -13,12 +13,14 @@ import {
   LogOut, Sparkles, Settings, Shield, HelpCircle, ChevronRight,
   Briefcase, Home as HomeIcon, CreditCard, ShieldCheck, Calendar,
   Users as UsersIcon, Star, Bell, Clock, TrendingUp,
+  Award, Plus, Trash2, X as CloseX,
 } from 'lucide-react-native';
 import { Colors as C, Spacing, Typography, Radius } from '@/src/theme';
 import { Button, Card, AnimatedCard, SALogo } from '@/src/views/components';
 import { useAuth } from '@/src/viewmodels/hooks';
 import { api, request } from '@/src/models/services/api';
 import { BadgeStack, type Badge } from '@/src/views/web/Badges';
+import { CertificatesCard } from '@/src/views/web/CertificatesCard';
 
 export default function ProfileTab() {
   const router = useRouter();
@@ -150,18 +152,45 @@ export default function ProfileTab() {
           )}
         </Card>
 
-        {/* Achievements / Badges section */}
-        {badges.length > 0 && (
-          <Card style={styles.badgesCard} testID="profile-badges-card">
-            <View style={styles.sectionRow}>
-              <Text style={styles.sectionTitle}>🏆 Achievements</Text>
-              <Text style={styles.badgeCount}>{badges.length} earned</Text>
-            </View>
-            <View style={{ marginTop: 8 }}>
-              <BadgeStack badges={badges} max={20} compact size="md" />
-            </View>
-          </Card>
-        )}
+        {/* Two-stack badges: CREDENTIALS (qualifications) + ENGAGEMENT (activity) */}
+        {(() => {
+          const credentials = badges.filter((b: any) => b.kind === 'credential');
+          const engagement = badges.filter((b: any) => b.kind === 'engagement' || b.kind === 'verification' || b.kind === 'special');
+          if (badges.length === 0) return null;
+          return (
+            <Card style={styles.badgesCard} testID="profile-badges-card">
+              {credentials.length > 0 && (
+                <View style={{ marginBottom: engagement.length > 0 ? 16 : 0 }}>
+                  <View style={styles.sectionRow}>
+                    <Text style={styles.sectionTitle}>🎓 Credentials</Text>
+                    <Text style={styles.badgeCount}>{credentials.length} earned</Text>
+                  </View>
+                  <Text style={styles.subhint}>Based on your qualifications, institution & certificates</Text>
+                  <View style={{ marginTop: 10 }}>
+                    <BadgeStack badges={credentials} max={20} compact size="md" />
+                  </View>
+                </View>
+              )}
+              {engagement.length > 0 && (
+                <View style={[
+                  credentials.length > 0 && { borderTopColor: 'rgba(0,0,0,0.06)', borderTopWidth: 1, paddingTop: 14 },
+                ]}>
+                  <View style={styles.sectionRow}>
+                    <Text style={styles.sectionTitle}>🏆 Achievements</Text>
+                    <Text style={styles.badgeCount}>{engagement.length} earned</Text>
+                  </View>
+                  <Text style={styles.subhint}>Based on your platform activity & verifications</Text>
+                  <View style={{ marginTop: 10 }}>
+                    <BadgeStack badges={engagement} max={20} compact size="md" />
+                  </View>
+                </View>
+              )}
+            </Card>
+          );
+        })()}
+
+        {/* Certificates — list + add + delete (refreshes badges on change) */}
+        <CertificatesCard onChanged={refresh} />
 
         {/* Recent Bookings — REAL DATA */}
         {bookings.length > 0 && (
@@ -363,6 +392,10 @@ const styles = StyleSheet.create({
   badgeCount: {
     color: C.brandPurple, fontFamily: 'DMSans_700Bold', fontSize: 11,
     letterSpacing: 0.4, textTransform: 'uppercase',
+  },
+  subhint: {
+    color: 'rgba(11,5,16,0.55)', fontFamily: 'DMSans_400Regular',
+    fontSize: 11.5, marginTop: 4,
   },
   avatar: { width: 70, height: 70, borderRadius: 35, backgroundColor: C.surfaceMuted },
   avatarFallback: {

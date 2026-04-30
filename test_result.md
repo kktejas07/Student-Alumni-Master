@@ -527,6 +527,63 @@ test_plan:
   test_priority: "high_first"
 
 backend:
+  - task: "Credential Badge engine + Certificate CRUD"
+    implemented: true
+    working: true
+    file: "/app/backend/badges.py + /app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            ✅ Added 4 NEW credential badge rules (kind='credential'):
+              · Degree (10/12/Diploma/Bachelors/Masters/PhD) — auto-detects from
+                school_info.class_or_year + course (B.Tech/MBA/PhD keyword match)
+              · Institution Tier — auto-classifies institution name:
+                Tier-1 (IIT/IIM/Stanford/Harvard/MIT/Oxford/Cambridge/...)
+                Tier-2 (NIT/BITS/VIT/IIIT/Manipal/Anna/JNU/Delhi U/...)
+                Tier-3 (default for any other institution)
+              · Certificate Count — 1+ → low, 3+ → moderate, 7+ → high
+              · Years of Experience — 1+ → low, 5+ → moderate, 12+ → high
+            ✅ All existing role badges tagged kind='engagement'.
+            ✅ Universal badges tagged kind='verification' or 'special'.
+            ✅ 3 new endpoints with badge auto-recompute:
+              · GET    /api/users/me/certificates
+              · POST   /api/users/me/certificates  (name + issuer + year required)
+              · DELETE /api/users/me/certificates/{cert_id}
+            Verified: student01 returns 9 badges across 4 kinds. Adding cert
+            increments tier; removing cert downgrades tier accordingly.
+
+frontend:
+  - task: "Profile 2-stack badges + CertificatesCard CRUD"
+    implemented: true
+    working: true
+    file: "/app/frontend/app/(tabs)/profile.tsx + /app/frontend/src/views/web/CertificatesCard.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            Verified end-to-end via screenshot tool (login as student01):
+            ✅ Profile shows TWO distinct badge sections:
+              🎓 CREDENTIALS — "Based on your qualifications, institution &
+                 certificates" + count "3 EARNED" + chips:
+                 Tier-1 Institute (gold glow), 3 Certificates (teal), Class 11 (slate)
+              🏆 ACHIEVEMENTS — "Based on your platform activity & verifications"
+                 + count "6 EARNED" + chips: Founder Member (purple), Email Verified
+                 (green), Connector/Participant/Regular/Skilled (teal)
+            ✅ CertificatesCard component with:
+              · "Add" button → reveals inline form (3 TextInputs + Cancel/Save)
+              · Per-row trash button removes cert + recomputes badges live
+            ✅ End-to-end test: typed "React Native Mastery / Udemy / 2025" →
+              Save → "3 Certificates" badge auto-upgraded to "4 Certificates"
+              and new row appeared in list with delete control.
+
+backend:
   - task: "Mentor Approval CRUD — approve/reject with reason + detail endpoint"
     implemented: true
     working: true
