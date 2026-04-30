@@ -1420,6 +1420,141 @@ async def reject_mentor(mentor_id: str, user: dict = Depends(get_current_user)):
 
 
 # ----------------------------------------------------------------------------
+# Super Admin Dashboard endpoints (Phase 1)
+# ----------------------------------------------------------------------------
+def _require_admin(user: dict):
+    if user.get("role") != "admin":
+        raise HTTPException(403, "Admin only")
+
+
+@api_router.get("/admin/overview")
+async def admin_overview(user: dict = Depends(get_current_user)):
+    """KPI aggregates + Top Colleges + recent activity for the admin Overview page."""
+    _require_admin(user)
+    # Headline counts
+    students    = await db.users.count_documents({"role": "student"})
+    mentors_app = await db.users.count_documents({"role": "mentor", "mentor_status": "approved"})
+    mentors_pen = await db.users.count_documents({"role": "mentor", "mentor_status": "pending"})
+    alumni      = await db.users.count_documents({"role": "alumni"})
+    colleges    = await db.users.count_documents({"role": "college"})
+    sessions    = await db.bookings.count_documents({}) if "bookings" in await db.list_collection_names() else 0
+    events      = await db.events.count_documents({}) if "events" in await db.list_collection_names() else 0
+    # Pending approvals across categories (mentors + maybe colleges later)
+    pending     = mentors_pen
+    # Revenue (sum) from sample bookings (placeholder until Stripe wires in)
+    revenue_inr = 0
+    try:
+        agg = await db.bookings.aggregate([
+            {"$match": {"status": "completed"}},
+            {"$group": {"_id": None, "sum": {"$sum": "$amount"}}},
+        ]).to_list(1)
+        revenue_inr = (agg[0].get("sum") or 0) if agg else 0
+    except Exception:
+        pass
+
+    # Top colleges (by student count)
+    top_pipeline = [
+        {"$match": {"role": "student"}},
+        {"$group": {"_id": "$school_info.institution_name",
+                     "students": {"$sum": 1}}},
+        {"$match": {"_id": {"$ne": None}}},
+        {"$sort": {"students": -1}},
+        {"$limit": 8},
+    ]
+    top_raw = await db.users.aggregate(top_pipeline).to_list(8)
+    top_colleges = [
+        {
+            "name": r["_id"] or "Unknown",
+            "students": r["students"],
+            "mentors": 0, "events": 0,
+            "placement_rate": None,
+            "status": "active",
+        }
+        for r in top_raw
+    ]
+
+    # Recent activity: latest registrations
+    recent_users = await db.users.find(
+        {}, {"password_hash": 0, "face_image_base64": 0},
+    ).sort("created_at", -1).limit(8).to_list(8)
+    activity = []
+    for u in recent_users:
+        activity.append({
+            "id": str(u["_id"]),
+            "kind": "user_joined",
+            "label": f"{u.get('full_name', u.get('email', 'New user'))} joined as {u.get('role', 'user')}",
+            "at": (u.get("created_at") or datetime.utcnow()).isoformat() if isinstance(u.get("created_at"), datetime) else str(u.get("created_at", "")),
+        })
+
+    # Monthly enrollments (last 6 months bucket)
+    six_months: list = []
+    now = datetime.utcnow()
+    for i in range(5, -1, -1):
+        month = (now.replace(day=1) - timedelta(days=30 * i))
+        label = month.strftime("%b")
+        # Best-effort: count users created in the month bucket
+        start = month.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        next_start = (start.replace(day=28) + timedelta(days=4)).replace(day=1)
+        cnt = await db.users.count_documents(
+            {"created_at": {"$gte": start, "$lt": next_start}}
+        )
+        six_months.append({"label": label, "value": cnt})
+
+    return {
+        "kpis": {
+            "students": students,
+            "mentors": mentors_app,
+            "mentors_pending": mentors_pen,
+            "alumni": alumni,
+            "colleges": colleges,
+            "sessions": sessions,
+            "events": events,
+            "pending_approvals": pending,
+            "revenue_inr": revenue_inr,
+        },
+        "top_colleges": top_colleges,
+        "recent_activity": activity,
+        "monthly_enrollments": six_months,
+    }
+
+
+@api_router.get("/admin/approvals")
+async def admin_approvals(
+    status: str = "pending", user: dict = Depends(get_current_user),
+):
+    """Lists mentor approval requests grouped by status — pending/approved/rejected."""
+    _require_admin(user)
+    if status not in ("pending", "approved", "rejected"):
+        status = "pending"
+    items = await db.users.find(
+        {"role": "mentor", "mentor_status": status},
+        {"password_hash": 0, "face_image_base64": 0},
+    ).sort("created_at", -1).limit(100).to_list(100)
+    counts = {
+        s: await db.users.count_documents({"role": "mentor", "mentor_status": s})
+        for s in ("pending", "approved", "rejected")
+    }
+    out = []
+    for m in items:
+        mp = m.get("mentor_profile") or {}
+        out.append({
+            "id": str(m["_id"]),
+            "kind": "mentor",
+            "name": m.get("full_name") or m.get("email"),
+            "email": m.get("email"),
+            "title": mp.get("job_title") or "",
+            "organization": mp.get("organization") or "",
+            "category": mp.get("category") or m.get("mentor_category"),
+            "linkedin_url": mp.get("linkedin_url") or m.get("linkedin_url"),
+            "years_of_experience": mp.get("years_of_experience"),
+            "submitted_at": (m.get("created_at") or datetime.utcnow()).isoformat()
+                if isinstance(m.get("created_at"), datetime) else str(m.get("created_at", "")),
+            "priority": "high" if (mp.get("years_of_experience") or 0) >= 10 else "normal",
+        })
+    return {"items": out, "counts": counts}
+
+
+# ----------------------------------------------------------------------------
 # AI Endpoints (Claude Sonnet 4.5 via emergentintegrations)
 # ----------------------------------------------------------------------------
 # Different system prompts per career path — Claude becomes a different specialist.

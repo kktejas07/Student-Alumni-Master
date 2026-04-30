@@ -1388,3 +1388,64 @@ agent_communication:
 
         STATUS: Working end-to-end. Ready to drop UserBadgesInline onto
         mentor cards, college pages, profile, other dashboards next.
+
+---
+## 2026-04-30 (R9) — Super Admin Dashboard PHASE 1 ✅
+agent_communication:
+    - agent: "main"
+      message: |
+        Built Phase 1 of Super Admin Dashboard per uploaded HTML spec.
+        Theme: amber/gold (D97706/F59E0B/FCD34D) on dark base — matches spec.
+
+        BACKEND (server.py):
+        - GET  /api/admin/overview — 8 KPI aggregates (students, mentors,
+          alumni, colleges, sessions, events, pending_approvals, revenue),
+          top_colleges (group by school_info.institution_name),
+          recent_activity (latest registrations), monthly_enrollments
+          (last 6 months bucket count).
+        - GET  /api/admin/approvals?status=pending|approved|rejected — lists
+          mentors with their profile details + counts per status.
+        - Reuses existing /api/admin/mentors/{id}/approve|reject endpoints.
+
+        FRONTEND:
+        - NEW src/views/web/admin/theme.ts — amber palette tokens.
+        - NEW src/views/web/admin/AdminLayout.tsx — 220px Sidebar (10 nav
+          items, active glow, badge counter for Approvals) + 64px Header
+          (title/sub, search bar, notif bell, avatar). Auto-redirects
+          non-admins to /. Logout via auth store.
+        - NEW src/views/web/admin/primitives.tsx — GlassCard, KpiCard
+          (icon + value + delta note up/down), MiniBar, StatusChip
+          (good/bad/warn/neutral), ActionButton (primary/ghost/danger).
+        - NEW src/views/web/admin/OverviewPage.tsx — fetches /admin/overview,
+          renders 4-col KPI grid + 2-col (Top Colleges 2fr, Recent Activity
+          1fr) + Monthly Enrollments MiniBar (Total chip).
+        - NEW src/views/web/admin/ApprovalsPage.tsx — 3 tabs (pending/
+          approved/rejected with counts), card per mentor with name, email,
+          title, org, category, years_exp, LinkedIn, priority chip, Approve/
+          Reject buttons that hit the backend and re-fetch.
+        - NEW src/views/web/admin/PlaceholderPage.tsx — used for Phase 2/3
+          pages not yet built.
+        - NEW app/admin/_layout.tsx — gate non-admins to login or platform.
+        - NEW app/admin/index.tsx, approvals.tsx, colleges.tsx, students.tsx,
+          mentors.tsx, alumni.tsx, events.tsx, payments.tsx, analytics.tsx,
+          settings.tsx — 10 routes total.
+
+        VERIFIED via screenshots:
+        ✅ /admin Overview: 8 KPIs with real numbers (54 students, 13 mentors,
+           27 alumni, 6 colleges, 30 events, 27 sessions, 7 pending, ₹0
+           revenue), Top Colleges table with 8 real colleges (IIT Hyderabad,
+           BITS Pilani, IIT Bombay, NIT Trichy, SRM, IIIT Bangalore, DTU,
+           Manipal), Recent Activity feed with real user joins, Monthly
+           Enrollments bar (Total: 110)
+        ✅ /admin/approvals: Pending=7 active tab, Approved=13, Rejected=0,
+           7 real pending mentors listed (Test Mentor, aa, hjj, Lakshmi
+           Mentor13, Rohit Mentor14, Pooja Mentor15, Test Mentor) each with
+           Approve/Reject buttons.
+
+        TEST CREDENTIALS:
+          admin@careerpath.app / Admin@12345
+
+        STATUS: Phase 1 complete and live. Phase 2 (Colleges/Students/
+        Mentors/Alumni tables with detail panels) and Phase 3 (Events
+        compose, Payments, Analytics, Settings) ready to build next.
+
