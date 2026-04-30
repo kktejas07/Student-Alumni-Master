@@ -1165,3 +1165,67 @@ agent_communication:
           content)
         - Courses/Internships detail screens (when a bubble is tapped)
 
+
+
+---
+## 2026-04-30 — Refined Student Onboarding Form (Institution + Course + Stream + Board)
+agent_communication:
+    - agent: "main"
+      message: |
+        SHIPPED: Polished /school-info onboarding screen per spec.
+
+        BACKEND CHANGES (/app/backend/server.py):
+        - GET /api/institutions/search?q=…&type=…
+            • Filters Nominatim results to schools/colleges/universities
+            • Rejects roads, hostels, gates, flyovers, apartments, bus stops
+            • Smart title-cases names (preserves DPS / IIT / JNTU / NIT acronyms)
+            • Strips primary name from address_line for clean display
+            • Type param (school|college|university) biases query for relevance
+            • Dedupe by name+city, returns max 8 cleaned results
+
+        FRONTEND CHANGES:
+        - NEW /app/frontend/src/views/web/Dropdown.tsx
+            • Glass/Gradient styled dropdown picker (modal sheet)
+            • Required & optional flags, keyboard-accessible
+            • Used for Academic Year, Stream, Board, Pass-out Year
+        - REWROTE /app/frontend/src/views/web/InstitutionAutocomplete.tsx
+            • Type prop drives search; dynamic placeholder per type
+            • Pass-through logo_url + address_line + clean name
+            • InstitutionLogo: 56px, 8-step cascading fallback chain
+              (logoUrl → clearbit{domain} → clearbit{slug.ac.in/edu.in/in/com}
+               → google favicon sz=128). White card, brand glow border.
+            • Z-index 200 on dropdown overlays subsequent fields
+            • "Add my institution manually" appears even on empty results
+        - REWROTE /app/frontend/app/(onboarding)/school-info.tsx
+            • Type of Institution chips drive search relevance
+            • Current Course chips: 11th / 12th / Other (Other blocks signup)
+            • Academic Year — REQUIRED Dropdown (2021-22 … 2030-31)
+            • Stream — Dropdown (PCM / PCB / PCMB / Commerce / Arts / Vocational / Other)
+            • Board — Dropdown (CBSE / ICSE / State Board / IB / IGCSE / NIOS / Other)
+            • Address card (auto-fill) ↔ Manual toggle (address line + city + state)
+            • Address auto-fills from selected institution; toggle preserves data
+            • Alumni/Mentor branch keeps Pass-out degree + Pass-out year dropdown
+        - EXTENDED /app/frontend/src/models/entities/index.ts SchoolInfo:
+            current_course, academic_year, address_line, address_manual,
+            institution_logo, institution_domain — for Promotions filter logic.
+
+        VERIFIED VIA SCREENSHOTS (1920×1080 web):
+        ✅ Initial form layout — Type chips, logo placeholder, autocomplete,
+           Course chips, three glass dropdowns, address card with toggle.
+        ✅ Search "DPS" with School type → high-res red/white school crest logo,
+           clean name "DPS School", Punjab · India location, clean dropdown
+           overlay (no field clipping).
+        ✅ Academic Year dropdown — glass modal, all 11 years (2021-22 → 2030-31).
+        ✅ Auto-fill address card after selection — "NH44, Phagwara Tahsil,
+           Kapurthala, Punjab, 144411, India" + Punjab state + ✨ hint.
+        ✅ Manual toggle ON → reveals Address line + City + State inputs with
+           pre-population, ✏️ manual hint shown.
+
+        DATA MAPPING for Promotions logic (per spec):
+        - school_info.current_course ('11th'|'12th') drives Campus Tours +
+          Higher Ed assistance prioritization downstream
+        - board (CBSE/ICSE/etc.) tags content for board-specific resources
+        - stream (Science/Commerce/Arts) filters relevant scholarships
+
+        STATUS: Working end-to-end. Frontend testing not yet invoked
+        (verified via screenshot tool).

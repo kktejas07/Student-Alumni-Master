@@ -38,10 +38,16 @@ export type InstitutionType = 'school' | 'college' | 'university';
 export interface SchoolInfo {
   institution_name: string;
   institution_type: InstitutionType;
+  institution_logo?: string;        // resolved logo URL (Clearbit/favicon)
+  institution_domain?: string;
   class_or_year: string;
+  current_course?: '11th' | '12th' | 'other';   // student stage for promotions filter
+  academic_year?: string;           // e.g., "2025-26"
   degree?: string;             // e.g., B.Tech, B.Sc, MBA, PhD
   branch_or_stream?: string;
   board_or_university?: string;
+  address_line?: string;
+  address_manual?: boolean;         // true → user is overriding auto-filled address
   city?: string;
   state?: string;
   country?: string;

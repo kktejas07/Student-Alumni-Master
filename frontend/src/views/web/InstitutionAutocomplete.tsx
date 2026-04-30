@@ -1,24 +1,22 @@
 /**
- * InstitutionAutocomplete — search & pick an Indian school/college.
+ * InstitutionAutocomplete — search & pick an Indian school/college/university.
  *
- * • Hits  GET /api/institutions/search?q=…  (Nominatim proxy)
+ * • Hits  GET /api/institutions/search?q=…&type=…  (Nominatim proxy w/ filtering)
  * • Shows up to 8 results in a glassy dropdown
  * • Last item: "+ Add my institution manually" → switches to free-text mode
- * • On select → fires onSelect({name, city, state, domain, logo_candidates})
- * • Logo: tries Clearbit then Google Favicon then default building icon (cascading <Image onError>).
+ * • On select → fires onSelect({name, address_line, city, state, domain, logo_url})
+ * • Logo: cascading <Image onError> fallback chain (Clearbit → Favicon → default icon).
  */
 import { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, ActivityIndicator, TextInput, Image, Platform,
+  View, Text, StyleSheet, Pressable, ActivityIndicator, TextInput, Image,
 } from 'react-native';
-import { Building2, Search, Plus, Check, X } from 'lucide-react-native';
+import { Building2, Search, Plus, X } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
-import { Colors } from '@/src/theme';
-
-const C = Colors.light;
 
 export interface InstitutionPick {
   name: string;
+  address_line?: string;
   city?: string;
   state?: string;
   domain?: string;
@@ -30,22 +28,25 @@ interface SearchResult {
   id: string;
   name: string;
   display_name: string;
+  address_line: string;
   city: string;
   state: string;
   country: string;
   domain: string;
+  type: string;
 }
 
 interface Props {
   value: string;
   onChangeText: (v: string) => void;
   onSelect: (pick: InstitutionPick) => void;
+  type?: 'school' | 'college' | 'university';
   placeholder?: string;
   testID?: string;
 }
 
 export function InstitutionAutocomplete({
-  value, onChangeText, onSelect, placeholder = 'Search for your school or college…', testID,
+  value, onChangeText, onSelect, type, placeholder, testID,
 }: Props) {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
@@ -53,7 +54,13 @@ export function InstitutionAutocomplete({
   const [manual, setManual] = useState(false);
   const debounceRef = useRef<any>(null);
 
-  // Debounced fetch
+  const ph = placeholder
+    || (type === 'school'   ? 'Search your school (e.g., DPS, Kendriya Vidyalaya)…'
+      : type === 'college'  ? 'Search your college (e.g., St. Stephen’s)…'
+      : type === 'university' ? 'Search your university (e.g., JNTU, Anna University)…'
+      : 'Search for your institution…');
+
+  // Debounced fetch (re-runs when query OR institution type changes)
   useEffect(() => {
     if (manual) return;
     const q = (value || '').trim();
@@ -64,10 +71,8 @@ export function InstitutionAutocomplete({
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await request<{ results: SearchResult[] }>(
-          `/institutions/search?q=${encodeURIComponent(q)}`,
-          { auth: false },
-        );
+        const url = `/institutions/search?q=${encodeURIComponent(q)}${type ? `&type=${type}` : ''}`;
+        const res = await request<{ results: SearchResult[] }>(url, { auth: false });
         setResults(res.results || []);
         setOpen(true);
       } catch (e) {
@@ -77,7 +82,7 @@ export function InstitutionAutocomplete({
       }
     }, 350);
     return () => debounceRef.current && clearTimeout(debounceRef.current);
-  }, [value, manual]);
+  }, [value, manual, type]);
 
   const pick = async (r: SearchResult) => {
     setOpen(false);
@@ -93,6 +98,7 @@ export function InstitutionAutocomplete({
     } catch {}
     onSelect({
       name: r.name,
+      address_line: r.address_line,
       city: r.city,
       state: r.state,
       domain: r.domain,
@@ -123,7 +129,7 @@ export function InstitutionAutocomplete({
             if (manual) onSelect({ name: v, manual: true });
           }}
           onFocus={() => { if (!manual && results.length) setOpen(true); }}
-          placeholder={placeholder}
+          placeholder={ph}
           placeholderTextColor="rgba(255,255,255,0.35)"
           style={styles.input}
           testID={testID}
@@ -138,14 +144,31 @@ export function InstitutionAutocomplete({
 
       {manual && (
         <Text style={styles.manualHint}>
-          ✏️  Manual mode — type your institution name. Logo will use the default icon.
+          {'✏️'}  Manual mode — type your institution name. Logo will use the default icon.
         </Text>
       )}
 
       {open && !manual && (
         <View style={styles.dropdown}>
           {results.length === 0 && !loading && (
-            <Text style={styles.empty}>No results. Try a different search or add manually.</Text>
+            <Pressable
+              onPress={enterManualMode}
+              testID="institution-add-manual-empty"
+              style={({ hovered }: any) => [
+                styles.row,
+                hovered && { backgroundColor: 'rgba(45,212,191,0.16)' },
+              ]}
+            >
+              <View style={[styles.rowIcon, { backgroundColor: 'rgba(45,212,191,0.18)' }]}>
+                <Plus size={14} color="#2DD4BF" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rowName, { color: '#2DD4BF' }]}>
+                  Use “{value}” as my institution
+                </Text>
+                <Text style={styles.rowMeta}>No matches — add manually.</Text>
+              </View>
+            </Pressable>
           )}
           {results.map((r) => (
             <Pressable
@@ -169,20 +192,22 @@ export function InstitutionAutocomplete({
               </View>
             </Pressable>
           ))}
-          <Pressable
-            onPress={enterManualMode}
-            testID="institution-add-manual"
-            style={({ hovered, pressed }: any) => [
-              styles.row, styles.rowAdd,
-              hovered && { backgroundColor: 'rgba(45,212,191,0.16)' },
-              pressed && { backgroundColor: 'rgba(45,212,191,0.24)' },
-            ]}
-          >
-            <View style={[styles.rowIcon, { backgroundColor: 'rgba(45,212,191,0.18)' }]}>
-              <Plus size={14} color="#2DD4BF" />
-            </View>
-            <Text style={[styles.rowName, { color: '#2DD4BF' }]}>Add my institution manually</Text>
-          </Pressable>
+          {results.length > 0 && (
+            <Pressable
+              onPress={enterManualMode}
+              testID="institution-add-manual"
+              style={({ hovered, pressed }: any) => [
+                styles.row, styles.rowAdd,
+                hovered && { backgroundColor: 'rgba(45,212,191,0.16)' },
+                pressed && { backgroundColor: 'rgba(45,212,191,0.24)' },
+              ]}
+            >
+              <View style={[styles.rowIcon, { backgroundColor: 'rgba(45,212,191,0.18)' }]}>
+                <Plus size={14} color="#2DD4BF" />
+              </View>
+              <Text style={[styles.rowName, { color: '#2DD4BF' }]}>Add my institution manually</Text>
+            </Pressable>
+          )}
         </View>
       )}
     </View>
@@ -191,15 +216,20 @@ export function InstitutionAutocomplete({
 
 // ─── Logo display with cascading fallback ──────────────────────────────
 export function InstitutionLogo({
-  name, domain, size = 36,
-}: { name: string; domain?: string; size?: number }) {
+  name, domain, logoUrl, size = 56,
+}: { name: string; domain?: string; logoUrl?: string; size?: number }) {
   const candidates: string[] = [];
+  if (logoUrl) candidates.push(logoUrl);
   if (domain) candidates.push(`https://logo.clearbit.com/${domain}`);
   const slug = (name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
   if (slug) {
     candidates.push(`https://logo.clearbit.com/${slug}.ac.in`);
     candidates.push(`https://logo.clearbit.com/${slug}.edu.in`);
+    candidates.push(`https://logo.clearbit.com/${slug}.in`);
+    candidates.push(`https://logo.clearbit.com/${slug}.com`);
+    // Google Favicon as last-resort (always returns something)
     candidates.push(`https://www.google.com/s2/favicons?domain=${slug}.ac.in&sz=128`);
+    candidates.push(`https://www.google.com/s2/favicons?domain=${slug}.edu.in&sz=128`);
   }
   const [idx, setIdx] = useState(0);
   const [failed, setFailed] = useState(false);
@@ -212,15 +242,18 @@ export function InstitutionLogo({
     );
   }
   return (
-    <Image
-      source={{ uri: candidates[idx] }}
-      onError={() => {
-        if (idx < candidates.length - 1) setIdx(idx + 1);
-        else setFailed(true);
-      }}
-      style={{ width: size, height: size, borderRadius: size * 0.22, backgroundColor: 'rgba(255,255,255,0.06)' }}
-      resizeMode="contain"
-    />
+    <View style={[styles.logoWrap, { width: size, height: size, borderRadius: size * 0.22 }]}>
+      <Image
+        key={idx}
+        source={{ uri: candidates[idx] }}
+        onError={() => {
+          if (idx < candidates.length - 1) setIdx(idx + 1);
+          else setFailed(true);
+        }}
+        style={{ width: size - 4, height: size - 4, borderRadius: size * 0.18 }}
+        resizeMode="contain"
+      />
+    </View>
   );
 }
 
@@ -237,14 +270,13 @@ const styles = StyleSheet.create({
     ...({ outlineStyle: 'none' } as any),
   },
   dropdown: {
-    position: 'absolute', top: 54, left: 0, right: 0, zIndex: 100,
-    backgroundColor: 'rgba(20,8,40,0.96)',
+    position: 'absolute', top: 54, left: 0, right: 0, zIndex: 200,
+    backgroundColor: 'rgba(20,8,40,0.98)',
     borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderRadius: 14,
     overflow: 'hidden',
-    shadowColor: '#000', shadowOpacity: 0.45, shadowRadius: 28, shadowOffset: { width: 0, height: 12 },
+    shadowColor: '#000', shadowOpacity: 0.55, shadowRadius: 30, shadowOffset: { width: 0, height: 16 },
     ...({ backdropFilter: 'blur(24px)' } as any),
   },
-  empty: { color: 'rgba(255,255,255,0.45)', fontFamily: 'DMSans_400Regular', fontSize: 12.5, padding: 14 },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 14, paddingVertical: 11,
@@ -264,6 +296,12 @@ const styles = StyleSheet.create({
     marginTop: 6, marginLeft: 4,
   },
 
+  logoWrap: {
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center', justifyContent: 'center',
+    borderColor: 'rgba(196,181,253,0.40)', borderWidth: 1,
+    overflow: 'hidden',
+  },
   defaultLogo: {
     backgroundColor: 'rgba(124,58,237,0.20)',
     borderColor: 'rgba(196,181,253,0.35)', borderWidth: 1,

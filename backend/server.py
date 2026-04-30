@@ -570,23 +570,124 @@ from urllib.parse import urlparse
 _NOMINATIM_HEADERS = {"User-Agent": "StudentAlumni/1.0 (contact@studentalumni.app)"}
 
 
+# Educational types we want to KEEP from Nominatim
+_EDU_TYPES = {
+    "school", "college", "university", "kindergarten", "language_school",
+    "music_school", "driving_school", "research_institute",
+    "educational_institution",
+}
+# Types we want to REJECT (roads, hostels, hotels, residences, etc.)
+_REJECT_TYPES = {
+    "hostel", "apartments", "apartment", "house", "residential", "dormitory",
+    "road", "highway", "motorway", "trunk", "primary", "secondary", "tertiary",
+    "service", "footway", "path", "bridge", "junction", "roundabout",
+    "yes", "hotel", "guest_house", "motel", "neighbourhood", "suburb",
+    "village", "town", "city", "construction", "garage", "shop",
+}
+# Educational keywords for name-based fallback detection
+_EDU_KEYWORDS = (
+    "school", "college", "university", "vidyalaya", "vidhyalaya", "vidya",
+    "kendriya", "navodaya", "academy", "institute", "polytechnic", "campus",
+    "convent", "gurukul", "mahavidyalaya", "iit ", "iim ", "nit ", "iiit",
+    "public school", "high school", "junior", "senior secondary",
+)
+
+
+def _smart_titlecase(s: str) -> str:
+    """Title-case but preserve common acronyms & joins (DPS, JNTU, IIT, etc.)."""
+    if not s:
+        return s
+    parts = s.split()
+    out = []
+    for p in parts:
+        # Keep mostly-uppercase short words as acronyms (IIT, JNTU, KPHB, NH44 etc.)
+        letters = "".join(c for c in p if c.isalpha())
+        if letters and letters.isupper() and len(letters) <= 5:
+            out.append(p.upper())
+        elif p.lower() in {"of", "the", "and", "for", "in", "at", "on"}:
+            out.append(p.lower())
+        else:
+            out.append(p[:1].upper() + p[1:].lower() if p else p)
+    if out:
+        out[0] = out[0][:1].upper() + out[0][1:]
+    return " ".join(out)
+
+
+def _looks_like_institution(item: dict) -> tuple[bool, str]:
+    """Returns (keep, normalized_name)."""
+    typ = (item.get("type") or "").lower()
+    cat = (item.get("category") or "").lower()
+    full = (item.get("display_name") or "").strip()
+    primary = full.split(",")[0].strip() if full else ""
+    primary_lower = primary.lower()
+
+    # Hard reject obvious non-institutions
+    if typ in _REJECT_TYPES or cat in {"highway"}:
+        return False, primary
+
+    # Reject names that look like landmarks/POIs near an institution but not the institution itself
+    bad_endings = (
+        " gate", " gate 1", " gate 2", " gate 3", " phase 1", " phase 2", " phase 3",
+        " phase 4", " phase 5", " phase 6", " road", " highway", " flyover", " bridge",
+        " junction", " crossing", " circle", " square", " stop", " bus stop",
+        " metro station", " railway station", " station", " hostel", " ladies hostel",
+        " boys hostel", " girls hostel", " apartments", " apartment", " quarters",
+    )
+    if any(primary_lower.endswith(b) for b in bad_endings):
+        return False, primary
+
+    # Reject if first segment is just a road/highway-style label without edu keyword
+    road_markers = ("road", "highway", "flyover", "bridge", "lane", "marg", "street", "nagar")
+    if any(primary_lower.endswith(" " + m) or primary_lower == m for m in road_markers):
+        if not any(k in primary_lower for k in _EDU_KEYWORDS):
+            return False, primary
+
+    # Reject hostels / apartments by name when they don't include an edu keyword
+    junk_markers = ("hostel", "apartment", "apartments", "pg ", "lodge", "guest house")
+    if any(j in primary_lower for j in junk_markers) and not any(
+        k in primary_lower for k in _EDU_KEYWORDS
+    ):
+        return False, primary
+
+    # Accept educational types
+    if typ in _EDU_TYPES:
+        return True, _smart_titlecase(primary)
+    if cat in {"amenity", "building", "office"} and typ in _EDU_TYPES:
+        return True, _smart_titlecase(primary)
+    # Accept by name keyword (covers cases where Nominatim mislabels type)
+    if any(k in primary_lower for k in _EDU_KEYWORDS):
+        return True, _smart_titlecase(primary)
+    return False, primary
+
+
 @api_router.get("/institutions/search")
-async def institution_search(q: str, country: str = "India"):
+async def institution_search(q: str, country: str = "India", type: str = ""):
     """Autocomplete proxy for institution search via OpenStreetMap Nominatim.
-    Returns up to 8 results with name, address, city, state, lat/lon.
+    Filters results to schools/colleges/universities and rejects roads, hostels, etc.
+
+    Args:
+        q: free-text query (min 2 chars)
+        country: country bias (default India)
+        type: optional 'school' | 'college' | 'university' — appended to query
+              for tighter relevance.
     """
     q = (q or "").strip()
     if len(q) < 2:
         return {"results": []}
+
+    type_lower = (type or "").lower().strip()
+    # Append the type keyword to the query to improve Nominatim relevance
+    biased_q = q
+    if type_lower in {"school", "college", "university"} and type_lower not in q.lower():
+        biased_q = f"{q} {type_lower}"
+
     params = {
-        "q": f"{q}, {country}",
+        "q": f"{biased_q}, {country}",
         "format": "jsonv2",
         "addressdetails": 1,
         "extratags": 1,
-        "limit": 8,
+        "limit": 20,                # fetch more, we'll filter
         "accept-language": "en",
-        # Bias toward schools/colleges/universities
-        "featuretype": "school",
     }
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
@@ -601,7 +702,11 @@ async def institution_search(q: str, country: str = "India"):
         return {"results": [], "error": str(e)}
 
     out = []
+    seen = set()  # dedupe by lowercase primary name
     for item in data:
+        keep, primary = _looks_like_institution(item)
+        if not keep or not primary:
+            continue
         addr = item.get("address", {}) or {}
         city = (
             addr.get("city") or addr.get("town") or addr.get("village")
@@ -610,9 +715,13 @@ async def institution_search(q: str, country: str = "India"):
         )
         state = addr.get("state") or addr.get("region") or ""
         country_name = addr.get("country") or country
-        # Display name — prefer the first comma-segment for institution-like rows
-        full = item.get("display_name") or ""
-        primary = full.split(",")[0].strip() if full else q
+
+        # Dedupe by name+city
+        key = f"{primary.lower()}|{city.lower()}"
+        if key in seen:
+            continue
+        seen.add(key)
+
         # Try to extract domain from extratags
         ex = item.get("extratags") or {}
         website = ex.get("website") or ex.get("contact:website") or ""
@@ -620,12 +729,23 @@ async def institution_search(q: str, country: str = "India"):
         try:
             if website:
                 domain = urlparse(website if "://" in website else f"https://{website}").netloc
+                domain = domain.replace("www.", "")
         except Exception:
             pass
+
+        # Build a clean address line (drop the primary name from the front)
+        full = item.get("display_name") or ""
+        addr_line = full
+        full_lower = full.lower()
+        primary_lower = primary.lower()
+        if full_lower.startswith(primary_lower):
+            addr_line = full[len(primary):].lstrip(", ").strip()
+
         out.append({
             "id": str(item.get("place_id") or ""),
             "name": primary,
             "display_name": full,
+            "address_line": addr_line,
             "city": city,
             "state": state,
             "country": country_name,
@@ -634,6 +754,8 @@ async def institution_search(q: str, country: str = "India"):
             "domain": domain,
             "type": item.get("type") or item.get("category") or "",
         })
+        if len(out) >= 8:
+            break
     return {"results": out}
 
 
