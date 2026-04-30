@@ -561,6 +561,111 @@ async def download_expo_qr():
     return FileResponse(p, media_type="image/png")
 
 
+# ----------------------------------------------------------------------------
+# Institution Autocomplete (OpenStreetMap Nominatim) + Logo (Clearbit/Google)
+# ----------------------------------------------------------------------------
+import httpx
+from urllib.parse import urlparse
+
+_NOMINATIM_HEADERS = {"User-Agent": "StudentAlumni/1.0 (contact@studentalumni.app)"}
+
+
+@api_router.get("/institutions/search")
+async def institution_search(q: str, country: str = "India"):
+    """Autocomplete proxy for institution search via OpenStreetMap Nominatim.
+    Returns up to 8 results with name, address, city, state, lat/lon.
+    """
+    q = (q or "").strip()
+    if len(q) < 2:
+        return {"results": []}
+    params = {
+        "q": f"{q}, {country}",
+        "format": "jsonv2",
+        "addressdetails": 1,
+        "extratags": 1,
+        "limit": 8,
+        "accept-language": "en",
+        # Bias toward schools/colleges/universities
+        "featuretype": "school",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            r = await client.get(
+                "https://nominatim.openstreetmap.org/search",
+                params=params,
+                headers=_NOMINATIM_HEADERS,
+            )
+            r.raise_for_status()
+            data = r.json()
+    except Exception as e:
+        return {"results": [], "error": str(e)}
+
+    out = []
+    for item in data:
+        addr = item.get("address", {}) or {}
+        city = (
+            addr.get("city") or addr.get("town") or addr.get("village")
+            or addr.get("municipality") or addr.get("suburb")
+            or addr.get("city_district") or ""
+        )
+        state = addr.get("state") or addr.get("region") or ""
+        country_name = addr.get("country") or country
+        # Display name — prefer the first comma-segment for institution-like rows
+        full = item.get("display_name") or ""
+        primary = full.split(",")[0].strip() if full else q
+        # Try to extract domain from extratags
+        ex = item.get("extratags") or {}
+        website = ex.get("website") or ex.get("contact:website") or ""
+        domain = ""
+        try:
+            if website:
+                domain = urlparse(website if "://" in website else f"https://{website}").netloc
+        except Exception:
+            pass
+        out.append({
+            "id": str(item.get("place_id") or ""),
+            "name": primary,
+            "display_name": full,
+            "city": city,
+            "state": state,
+            "country": country_name,
+            "lat": item.get("lat"),
+            "lon": item.get("lon"),
+            "domain": domain,
+            "type": item.get("type") or item.get("category") or "",
+        })
+    return {"results": out}
+
+
+@api_router.get("/institutions/logo")
+async def institution_logo(name: str = "", domain: str = ""):
+    """Returns CANDIDATE logo URLs for an institution. Frontend tries them in order
+    via <Image onError> and falls back to a default icon if all fail.
+      1) Clearbit if domain is known
+      2) Clearbit on guessed domain (slug + .ac.in/.edu.in/.in/.com)
+      3) Google Favicon (always works for any domain)
+    """
+    name = (name or "").strip()
+    domain = (domain or "").strip().lower().replace("www.", "")
+
+    candidates = []
+    if domain:
+        candidates.append(domain)
+    if name:
+        slug = "".join(c.lower() for c in name if c.isalnum())
+        if slug:
+            candidates.extend([f"{slug}.ac.in", f"{slug}.edu.in", f"{slug}.in", f"{slug}.com"])
+
+    urls = []
+    for d in candidates:
+        urls.append({"url": f"https://logo.clearbit.com/{d}", "source": "clearbit", "domain": d})
+    # Always include Google Favicon as a final fallback (high success rate)
+    if candidates:
+        d = candidates[0]
+        urls.append({"url": f"https://www.google.com/s2/favicons?domain={d}&sz=128", "source": "google_favicon", "domain": d})
+    return {"candidates": urls}
+
+
 @api_router.post("/auth/2fa/setup", response_model=TwoFASetupResponse)
 async def two_fa_setup(user: dict = Depends(get_current_user)):
     """Generate a fresh TOTP secret and QR for the authenticator app.

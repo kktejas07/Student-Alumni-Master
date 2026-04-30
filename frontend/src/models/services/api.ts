@@ -56,7 +56,7 @@ export const tokenStore = {
 };
 
 // ----- HTTP wrapper -----
-async function request<T>(
+export async function request<T>(
   path: string,
   options: { method?: string; body?: any; auth?: boolean } = {},
 ): Promise<T> {

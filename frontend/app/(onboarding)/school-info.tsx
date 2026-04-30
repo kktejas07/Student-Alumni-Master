@@ -2,10 +2,10 @@
  * Onboarding step 2 — School / Institution info.
  *
  * Role-aware fields:
- *   • Student          → "Current degree"  + "Current year"
- *   • Alumni / Mentor  → "Pass-out degree" + "Pass-out year"
+ *   • Student          → restricted to "11th" or "12th" (school students only)
+ *   • Alumni / Mentor  → "Pass-out degree" + "Pass-out year" (60yr range: -30 … +30)
  *
- * Web: split-screen.  Native (iOS/Android): full-screen dark.
+ * Institution name uses InstitutionAutocomplete (Nominatim) with logo lookup.
  */
 import { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
@@ -16,6 +16,7 @@ import type { InstitutionType } from '@/src/models/entities';
 import { useToast } from '@/src/views/components';
 import { OnboardingShell, DarkChip, DarkInfoCard } from '@/src/views/web/OnboardingShell';
 import { WebField } from '@/src/views/web/AuthWebControls';
+import { InstitutionAutocomplete, InstitutionLogo } from '@/src/views/web/InstitutionAutocomplete';
 
 const INSTITUTION_TYPES: { id: InstitutionType; label: string }[] = [
   { id: 'school', label: 'School' },
@@ -23,15 +24,18 @@ const INSTITUTION_TYPES: { id: InstitutionType; label: string }[] = [
   { id: 'university', label: 'University' },
 ];
 
-// Suggested degree presets (student picks current; alumni/mentor picks pass-out)
-const DEGREE_PRESETS = ['B.Tech', 'B.Sc', 'B.Com', 'BBA', 'BA', 'MBA', 'M.Tech', 'M.Sc', 'PhD'];
-
-// For students — class/year of study
-const STUDENT_YEAR_PRESETS = ['11', '12', '1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year'];
-
-// Pass-out year presets (current year and last 6) for alumni/mentor
+// Pass-out & current presets
 const CURRENT_YEAR = new Date().getFullYear();
-const PASSOUT_YEAR_PRESETS = Array.from({ length: 7 }, (_, i) => String(CURRENT_YEAR - i));
+const STUDENT_COURSE_PRESETS = ['11th', '12th'];                     // strict per spec
+const PASSOUT_DEGREE_PRESETS = ['B.Tech', 'B.Sc', 'B.Com', 'BBA', 'BA', 'MBA', 'M.Tech', 'M.Sc', 'PhD'];
+const PASSOUT_YEAR_PRESETS = (() => {
+  // 30 past + current + 30 future = 61 years total
+  const list: string[] = [];
+  for (let i = 30; i >= 1; i--) list.push(String(CURRENT_YEAR - i));
+  list.push(String(CURRENT_YEAR));
+  for (let i = 1; i <= 30; i++) list.push(String(CURRENT_YEAR + i));
+  return list;
+})();
 
 const STEPS = ['Welcome', 'School', 'Details', 'Photo', 'Done'];
 
@@ -41,48 +45,36 @@ export default function SchoolInfoScreen() {
   const user = useAuthStore((s) => s.user);
   const { school_info, setSchoolInfo } = useOnboardingStore();
   const [error, setError] = useState<string | null>(null);
+  const [logoMeta, setLogoMeta] = useState<{ domain?: string; logo_url?: string }>({});
 
   const role = user?.role || 'student';
   const isStudent = role === 'student';
-  const isAlumni = role === 'alumni';
-  const isMentor = role === 'mentor';
-  const isPassedOut = isAlumni || isMentor; // both groups need pass-out details
+  const isPassedOut = role === 'alumni' || role === 'mentor';
 
-  // Role-specific copy
-  const degreeLabel = isPassedOut ? 'Pass-out degree' : 'Current degree';
-  const yearLabel = isPassedOut ? 'Pass-out year' : 'Current year';
-  const yearPresets = isPassedOut ? PASSOUT_YEAR_PRESETS : STUDENT_YEAR_PRESETS;
-  const yearPlaceholder = isPassedOut ? 'e.g., 2020' : 'e.g., 11, 12, 1st Year';
+  const degreeLabel = isStudent ? 'Current course' : 'Pass-out degree';
+  const yearLabel   = isStudent ? 'Academic year (optional)' : 'Pass-out year';
+  const yearPresets = isPassedOut ? PASSOUT_YEAR_PRESETS : [`${CURRENT_YEAR}-${(CURRENT_YEAR + 1).toString().slice(2)}`];
+  const yearPlaceholder = isPassedOut ? 'e.g., 2020' : `e.g., ${CURRENT_YEAR}-${(CURRENT_YEAR + 1).toString().slice(2)}`;
+  const degreePresets = isStudent ? STUDENT_COURSE_PRESETS : PASSOUT_DEGREE_PRESETS;
 
   const validate = (): boolean => {
     setError(null);
     const s = school_info;
+    if (!s.institution_name?.trim()) { setError('Please pick or enter your institution'); return false; }
+    if (!s.degree?.trim()) { setError(`Please enter your ${degreeLabel.toLowerCase()}`); return false; }
 
-    if (!s.institution_name?.trim()) {
-      setError('Please enter your institution name'); return false;
-    }
-    if (!s.degree?.trim()) {
-      setError(`Please enter your ${degreeLabel.toLowerCase()}`); return false;
+    if (isStudent) {
+      const d = (s.degree || '').toLowerCase().trim();
+      if (!['11', '11th', 'class 11', '12', '12th', 'class 12'].includes(d)) {
+        setError('Students must be in Class 11 (+1) or Class 12 (+2) to register.');
+        return false;
+      }
     }
 
-    // For alumni/mentor — graduation_year is required (numeric)
     if (isPassedOut) {
       if (!s.graduation_year) { setError('Please enter your pass-out year'); return false; }
-      if (s.graduation_year < 1950 || s.graduation_year > CURRENT_YEAR) {
-        setError(`Pass-out year must be between 1950 and ${CURRENT_YEAR}`); return false;
-      }
-    }
-
-    // For students — class_or_year is required (string)
-    if (isStudent) {
-      if (!s.class_or_year?.trim()) { setError('Please enter your current year'); return false; }
-      const cls = s.class_or_year.trim().toLowerCase();
-      if (/^\d+$/.test(cls)) {
-        const n = parseInt(cls, 10);
-        if (n < 11) { setError('Students must be in Class 11 (+1) or above to register on this platform.'); return false; }
-      }
-      if (/^class\s*([1-9]|10)$/.test(cls) || /^[1-9](st|nd|rd|th)?$/.test(cls) || cls === '10' || cls === '10th') {
-        setError('Students must be in Class 11 (+1) or above to register on this platform.'); return false;
+      if (s.graduation_year < 1950 || s.graduation_year > CURRENT_YEAR + 30) {
+        setError(`Pass-out year must be between 1950 and ${CURRENT_YEAR + 30}`); return false;
       }
     }
     return true;
@@ -96,20 +88,26 @@ export default function SchoolInfoScreen() {
     router.push('/(onboarding)/role-details');
   };
 
-  // Handle year input
   const onYearChange = (v: string) => {
     if (isPassedOut) {
-      // numeric for pass-out year
       const n = parseInt(v, 10);
       setSchoolInfo({ graduation_year: isNaN(n) ? undefined : n, class_or_year: v });
     } else {
       setSchoolInfo({ class_or_year: v });
     }
   };
-
   const yearValue = isPassedOut
     ? (school_info.graduation_year ? String(school_info.graduation_year) : '')
     : (school_info.class_or_year || '');
+
+  const onInstitutionSelect = (pick: any) => {
+    setSchoolInfo({
+      institution_name: pick.name,
+      city: pick.city || school_info.city,
+      state: pick.state || school_info.state,
+    });
+    setLogoMeta({ domain: pick.domain, logo_url: pick.logo_url });
+  };
 
   return (
     <OnboardingShell
@@ -125,7 +123,7 @@ export default function SchoolInfoScreen() {
       {isStudent && (
         <DarkInfoCard tone="warning">
           <Text style={styles.warnText}>
-            ⚠️  Students must be in Class 11 (+1) or above to register.
+            ⚠️  Students must be in Class 11 (+1) or Class 12 (+2) to register.
           </Text>
         </DarkInfoCard>
       )}
@@ -143,35 +141,62 @@ export default function SchoolInfoScreen() {
         ))}
       </View>
 
-      <WebField
-        label="Institution name"
-        placeholder="e.g., IIT Bombay / DPS Vasant Kunj"
-        value={school_info.institution_name || ''}
-        onChangeText={(v: string) => setSchoolInfo({ institution_name: v })}
-        testID="school-name-input"
-      />
-
-      {/* ─── Degree ────────────────────────────────────────────────────── */}
-      <Text style={styles.section}>{degreeLabel}</Text>
-      <WebField
-        placeholder="e.g., B.Tech, MBA, B.Sc"
-        value={school_info.degree || ''}
-        onChangeText={(v: string) => setSchoolInfo({ degree: v })}
-        testID="school-degree-input"
-      />
-      <View style={[styles.chipRow, { marginTop: -4, marginBottom: 14 }]}>
-        {DEGREE_PRESETS.map((d) => (
-          <DarkChip
-            key={d}
-            label={d}
-            active={school_info.degree === d}
-            onPress={() => setSchoolInfo({ degree: d })}
-            testID={`school-degree-chip-${d}`}
+      <Text style={styles.section}>Institution name</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
+        {!!school_info.institution_name && (
+          <InstitutionLogo
+            name={school_info.institution_name}
+            domain={logoMeta.domain}
+            size={48}
           />
-        ))}
+        )}
+        <View style={{ flex: 1 }}>
+          <InstitutionAutocomplete
+            value={school_info.institution_name || ''}
+            onChangeText={(v) => setSchoolInfo({ institution_name: v })}
+            onSelect={onInstitutionSelect}
+            testID="school-name-input"
+          />
+        </View>
       </View>
 
-      {/* ─── Year (current OR pass-out) ────────────────────────────────── */}
+      {/* Degree / Course */}
+      <Text style={styles.section}>{degreeLabel}</Text>
+      {isStudent ? (
+        <View style={styles.chipRow}>
+          {STUDENT_COURSE_PRESETS.map((d) => (
+            <DarkChip
+              key={d}
+              label={d}
+              active={school_info.degree === d}
+              onPress={() => setSchoolInfo({ degree: d })}
+              testID={`school-degree-chip-${d}`}
+            />
+          ))}
+        </View>
+      ) : (
+        <>
+          <WebField
+            placeholder="e.g., B.Tech, MBA, B.Sc"
+            value={school_info.degree || ''}
+            onChangeText={(v: string) => setSchoolInfo({ degree: v })}
+            testID="school-degree-input"
+          />
+          <View style={[styles.chipRow, { marginTop: -4, marginBottom: 14 }]}>
+            {degreePresets.map((d) => (
+              <DarkChip
+                key={d}
+                label={d}
+                active={school_info.degree === d}
+                onPress={() => setSchoolInfo({ degree: d })}
+                testID={`school-degree-chip-${d}`}
+              />
+            ))}
+          </View>
+        </>
+      )}
+
+      {/* Year */}
       <Text style={styles.section}>{yearLabel}</Text>
       <WebField
         placeholder={yearPlaceholder}
@@ -180,29 +205,42 @@ export default function SchoolInfoScreen() {
         onChangeText={onYearChange}
         testID="school-year-input"
       />
-      <View style={[styles.chipRow, { marginTop: -4, marginBottom: 14 }]}>
-        {yearPresets.map((y) => (
-          <DarkChip
-            key={y}
-            label={y}
-            active={yearValue === y}
-            onPress={() => onYearChange(y)}
-            testID={`school-year-chip-${y}`}
-          />
-        ))}
-      </View>
+      {isPassedOut && (
+        <View style={[styles.chipRow, styles.scrollableYears]}>
+          {yearPresets.map((y) => (
+            <DarkChip
+              key={y}
+              label={y}
+              active={yearValue === y}
+              onPress={() => onYearChange(y)}
+              testID={`school-year-chip-${y}`}
+            />
+          ))}
+        </View>
+      )}
+
+      {!isStudent && (
+        <WebField
+          label="Branch / Stream (optional)"
+          placeholder="e.g., Computer Science, Commerce, PCM"
+          value={school_info.branch_or_stream || ''}
+          onChangeText={(v: string) => setSchoolInfo({ branch_or_stream: v })}
+          testID="school-branch-input"
+        />
+      )}
+      {isStudent && (
+        <WebField
+          label="Stream (optional)"
+          placeholder="e.g., Science (PCM/PCB), Commerce, Arts"
+          value={school_info.branch_or_stream || ''}
+          onChangeText={(v: string) => setSchoolInfo({ branch_or_stream: v })}
+          testID="school-branch-input"
+        />
+      )}
 
       <WebField
-        label="Branch / Stream (optional)"
-        placeholder="e.g., Computer Science, Commerce, PCM"
-        value={school_info.branch_or_stream || ''}
-        onChangeText={(v: string) => setSchoolInfo({ branch_or_stream: v })}
-        testID="school-branch-input"
-      />
-
-      <WebField
-        label="Board / University (optional)"
-        placeholder="e.g., CBSE, Anna University"
+        label={isStudent ? 'Board (optional)' : 'Board / University (optional)'}
+        placeholder={isStudent ? 'e.g., CBSE, ICSE, State Board' : 'e.g., Anna University'}
         value={school_info.board_or_university || ''}
         onChangeText={(v: string) => setSchoolInfo({ board_or_university: v })}
         testID="school-board-input"
@@ -216,6 +254,9 @@ export default function SchoolInfoScreen() {
           <WebField label="State" placeholder="Karnataka" value={school_info.state || ''} onChangeText={(v: string) => setSchoolInfo({ state: v })} testID="school-state-input" />
         </View>
       </View>
+      <Text style={styles.hint}>
+        ✨ City &amp; state auto-fill when you pick from the dropdown — you can still edit them.
+      </Text>
 
       {error && <Text style={styles.error}>{error}</Text>}
     </OnboardingShell>
@@ -224,26 +265,18 @@ export default function SchoolInfoScreen() {
 
 const styles = StyleSheet.create({
   section: {
-    color: 'rgba(255,255,255,0.55)',
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 11,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginTop: 4,
-    marginBottom: 8,
+    color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_700Bold',
+    fontSize: 11, letterSpacing: 1, textTransform: 'uppercase',
+    marginTop: 4, marginBottom: 8,
   },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+  scrollableYears: { maxHeight: 220, overflow: 'hidden' as any },
   warnText: { color: '#FCD34D', fontFamily: 'DMSans_500Medium', fontSize: 12.5, lineHeight: 18 },
+  hint: { color: 'rgba(255,255,255,0.40)', fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: -8, marginBottom: 14 },
   error: {
-    color: '#FCA5A5',
-    fontFamily: 'DMSans_500Medium',
-    fontSize: 13,
+    color: '#FCA5A5', fontFamily: 'DMSans_500Medium', fontSize: 13,
     backgroundColor: 'rgba(220,38,38,0.15)',
-    borderColor: 'rgba(252,165,165,0.3)',
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 8,
-    marginTop: 4,
+    borderColor: 'rgba(252,165,165,0.3)', borderWidth: 1,
+    paddingHorizontal: 12, paddingVertical: 9, borderRadius: 8, marginTop: 4,
   },
 });
