@@ -50,11 +50,19 @@ const ACADEMIC_YEAR_OPTIONS: DropdownOption[] = (() => {
   return list;
 })();
 const STREAM_OPTIONS: DropdownOption[] = [
-  { value: 'science_pcm', label: 'Science (PCM)',         hint: 'Physics, Chemistry, Math' },
-  { value: 'science_pcb', label: 'Science (PCB)',         hint: 'Physics, Chemistry, Biology' },
-  { value: 'science_pcmb',label: 'Science (PCMB)',        hint: 'Math + Biology' },
-  { value: 'commerce',    label: 'Commerce',              hint: 'Accounts, Business, Economics' },
-  { value: 'arts',        label: 'Arts / Humanities',     hint: 'History, Political Science, etc.' },
+  // Andhra/Telangana intermediate codes (most common for Inter students)
+  { value: 'mpc',         label: 'MPC',                   hint: 'Maths · Physics · Chemistry' },
+  { value: 'bipc',        label: 'BiPC',                  hint: 'Biology · Physics · Chemistry' },
+  { value: 'mec',         label: 'MEC',                   hint: 'Maths · Economics · Commerce' },
+  { value: 'cec',         label: 'CEC',                   hint: 'Civics · Economics · Commerce' },
+  { value: 'hec',         label: 'HEC',                   hint: 'History · Economics · Civics' },
+  // CBSE / ICSE / generic +1/+2 streams
+  { value: 'science_pcm', label: 'Science (PCM)',         hint: 'Physics · Chemistry · Maths' },
+  { value: 'science_pcb', label: 'Science (PCB)',         hint: 'Physics · Chemistry · Biology' },
+  { value: 'science_pcmb',label: 'Science (PCMB)',        hint: 'Maths + Biology combined' },
+  { value: 'commerce',    label: 'Commerce',              hint: 'Accounts · Business · Economics' },
+  { value: 'commerce_math',label: 'Commerce with Maths',  hint: 'Accounts · Maths · Economics' },
+  { value: 'arts',        label: 'Arts / Humanities',     hint: 'History · Pol. Science · etc.' },
   { value: 'vocational',  label: 'Vocational' },
   { value: 'other',       label: 'Other' },
 ];

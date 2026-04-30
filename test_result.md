@@ -1268,3 +1268,46 @@ agent_communication:
         ✅ Re-search "DPS" after selecting Sri Chaitanya → dropdown reopens
 
         (verified via screenshot tool).
+
+---
+## 2026-04-30 (R3) — Photon migration + Indian Inter streams
+agent_communication:
+    - agent: "main"
+      message: |
+        Issues observed in user screenshot:
+        1. "Sri Chaitanya" returned NO matches — Nominatim HTTP 429 rate limit
+           (3 parallel queries violated their 1 req/sec policy).
+        2. Stream dropdown lacked Indian-specific MPC / BiPC / MEC / CEC / HEC.
+
+        FIXES:
+        1. Migrated /api/institutions/search backend from Nominatim → Photon
+           (https://photon.komoot.io). Photon is OSM-based, supports
+           amenity:school|college|university tag filtering DIRECTLY, and has
+           much more permissive rate limits (no IP-level throttling).
+           - For type=school (= School / Inter): filters by
+             amenity:school + amenity:college + amenity:kindergarten
+           - For type=college: amenity:college + amenity:university
+           - For type=university: amenity:university + amenity:college
+           - Single query (no fan-out) so we never hit RL.
+           - Added in-memory LRU cache (256 entries, 30 min TTL) keyed on
+             "{q.lower()}|{type.lower()}" — repeated typing barely hits Photon.
+        2. Stream dropdown extended with:
+             MPC (Maths/Physics/Chemistry), BiPC (Biology/Physics/Chemistry),
+             MEC (Maths/Economics/Commerce), CEC (Civics/Economics/Commerce),
+             HEC (History/Economics/Civics), Science (PCM/PCB/PCMB),
+             Commerce, Commerce w/ Maths, Arts/Humanities, Vocational, Other.
+
+        VERIFIED VIA SCREENSHOTS (fresh):
+        ✅ "Sri Chaitanya" → 8 results: 5 Sri Chaitanya Schools (AP, KA × 4)
+           + 3 Sri Chaitanya Junior Colleges (Telangana)
+        ✅ "DPS" → 8 DPS Schools (Punjab, WB, Bihar, Assam, UP) + Delhi Public
+           School (KA, MH) + DPS Infant Wing (Haryana)
+        ✅ "Narayana" → 8 results mixing Narayana, Narayana Junior College,
+           Narayana PU College, Narayana School
+        ✅ "IIT" → 8 IIT campuses (Palakkad, Gandhinagar, Roorkee, Madras,
+           Mandi, Ropar, etc.)
+        ✅ Stream dropdown opens with MPC/BiPC/MEC/CEC/HEC at the top.
+
+        STATUS: Working end-to-end. Photon's Indian school+inter coverage is
+        better than Nominatim's biased single search.
+

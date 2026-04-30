@@ -569,6 +569,34 @@ from urllib.parse import urlparse
 
 _NOMINATIM_HEADERS = {"User-Agent": "StudentAlumni/1.0 (contact@studentalumni.app)"}
 
+# In-memory cache (q+type → results) to avoid repeated Nominatim hits.
+# TTL ~ 30 min. Bounded size 256 entries.
+_INST_CACHE: dict = {}
+_INST_CACHE_TTL = 60 * 30
+_INST_CACHE_MAX = 256
+
+
+def _cache_get(key: str):
+    entry = _INST_CACHE.get(key)
+    if not entry:
+        return None
+    ts, val = entry
+    if (datetime.utcnow().timestamp() - ts) > _INST_CACHE_TTL:
+        _INST_CACHE.pop(key, None)
+        return None
+    return val
+
+
+def _cache_set(key: str, val):
+    if len(_INST_CACHE) >= _INST_CACHE_MAX:
+        # drop oldest
+        try:
+            oldest = min(_INST_CACHE, key=lambda k: _INST_CACHE[k][0])
+            _INST_CACHE.pop(oldest, None)
+        except ValueError:
+            pass
+    _INST_CACHE[key] = (datetime.utcnow().timestamp(), val)
+
 
 # Educational types we want to KEEP from Nominatim
 _EDU_TYPES = {
@@ -664,116 +692,127 @@ def _looks_like_institution(item: dict) -> tuple[bool, str]:
 
 @api_router.get("/institutions/search")
 async def institution_search(q: str, country: str = "India", type: str = ""):
-    """Autocomplete proxy for institution search via OpenStreetMap Nominatim.
-    Filters results to schools/colleges/universities and rejects roads, hostels, etc.
+    """Autocomplete proxy for institution search via Photon (Komoot, OSM-based).
+    Photon supports OSM tag filtering and is more permissive with rate limits.
 
     Args:
         q: free-text query (min 2 chars)
-        country: country bias (default India)
-        type: optional 'school' | 'college' | 'university' — appended to query
-              for tighter relevance.
+        country: country bias (default India) — used only for cache key
+        type: optional 'school' | 'college' | 'university' — maps to amenity tags
     """
     q = (q or "").strip()
     if len(q) < 2:
         return {"results": []}
 
     type_lower = (type or "").lower().strip()
-    # Build the list of query variants to fan out in parallel.
-    # For 'school' (which now means School / Inter), we want both schools + junior/inter colleges.
+
+    # Cache key
+    cache_key = f"{q.lower()}|{type_lower}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return {"results": cached, "cached": True}
+
+    # Build Photon params. amenity:school/college/university filters precisely.
+    # For 'school' (= School / Inter), include both school + college amenities so we get
+    # junior/intermediate colleges too.
+    osm_tags: list[str] = []
     if type_lower == "school":
-        query_variants = [f"{q} school", f"{q} junior college", f"{q} intermediate college"]
+        osm_tags = ["amenity:school", "amenity:college", "amenity:kindergarten"]
     elif type_lower == "college":
-        query_variants = [f"{q} college", f"{q} polytechnic"]
+        osm_tags = ["amenity:college", "amenity:university"]
     elif type_lower == "university":
-        query_variants = [f"{q} university", f"{q} institute"]
+        osm_tags = ["amenity:university", "amenity:college"]
     else:
-        query_variants = [q]
+        osm_tags = ["amenity:school", "amenity:college", "amenity:university"]
 
-    async def _fetch(variant: str):
-        params = {
-            "q": f"{variant}, {country}",
-            "format": "jsonv2",
-            "addressdetails": 1,
-            "extratags": 1,
-            "limit": 10,
-            "accept-language": "en",
-        }
-        try:
-            async with httpx.AsyncClient(timeout=8.0) as client:
-                r = await client.get(
-                    "https://nominatim.openstreetmap.org/search",
-                    params=params,
-                    headers=_NOMINATIM_HEADERS,
-                )
-                r.raise_for_status()
-                return r.json() or []
-        except Exception:
-            return []
+    # Photon accepts repeated osm_tag params via query string.
+    params: list[tuple[str, str]] = [
+        ("q", q),
+        ("limit", "20"),
+        ("lang", "en"),
+    ]
+    for tag in osm_tags:
+        params.append(("osm_tag", tag))
 
-    import asyncio as _asyncio
     try:
-        all_data_lists = await _asyncio.gather(*[_fetch(v) for v in query_variants])
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            r = await client.get(
+                "https://photon.komoot.io/api/",
+                params=params,
+                headers=_NOMINATIM_HEADERS,
+            )
+            if r.status_code == 429:
+                return {"results": [], "rate_limited": True}
+            r.raise_for_status()
+            payload = r.json() or {}
+            features = payload.get("features", []) or []
     except Exception as e:
         return {"results": [], "error": str(e)}
-    data = []
-    for lst in all_data_lists:
-        data.extend(lst)
 
-    out = []
-    seen = set()  # dedupe by lowercase primary name
-    for item in data:
-        keep, primary = _looks_like_institution(item)
-        if not keep or not primary:
+    out: list[dict] = []
+    seen: set[str] = set()
+    for feat in features:
+        props = (feat.get("properties") or {})
+        name = (props.get("name") or "").strip()
+        if not name:
             continue
-        addr = item.get("address", {}) or {}
-        city = (
-            addr.get("city") or addr.get("town") or addr.get("village")
-            or addr.get("municipality") or addr.get("suburb")
-            or addr.get("city_district") or ""
-        )
-        state = addr.get("state") or addr.get("region") or ""
-        country_name = addr.get("country") or country
+        # Reject if not in target country (India by default)
+        country_name = props.get("country") or country
+        if country and country.lower() not in country_name.lower():
+            continue
+        primary = _smart_titlecase(name)
+        primary_lower = primary.lower()
 
-        # Dedupe by name+city
+        # Apply name-quality guards (reuse existing reject lists for safety)
+        bad_endings = (
+            " gate", " phase 1", " phase 2", " phase 3", " phase 4", " phase 5",
+            " phase 6", " road", " highway", " flyover", " bridge",
+            " junction", " crossing", " circle", " square", " stop",
+            " bus stop", " metro station", " railway station", " station",
+            " hostel", " ladies hostel", " boys hostel", " girls hostel",
+            " apartments", " apartment", " quarters",
+        )
+        if any(primary_lower.endswith(b) for b in bad_endings):
+            continue
+
+        city = (
+            props.get("city") or props.get("town") or props.get("village")
+            or props.get("locality") or props.get("district")
+            or props.get("county") or ""
+        )
+        state = props.get("state") or ""
+
         key = f"{primary.lower()}|{city.lower()}"
         if key in seen:
             continue
         seen.add(key)
 
-        # Try to extract domain from extratags
-        ex = item.get("extratags") or {}
-        website = ex.get("website") or ex.get("contact:website") or ""
+        # Photon doesn't expose a website tag, but we can probe extra props.
         domain = ""
-        try:
-            if website:
-                domain = urlparse(website if "://" in website else f"https://{website}").netloc
-                domain = domain.replace("www.", "")
-        except Exception:
-            pass
 
-        # Build a clean address line (drop the primary name from the front)
-        full = item.get("display_name") or ""
-        addr_line = full
-        full_lower = full.lower()
-        primary_lower = primary.lower()
-        if full_lower.startswith(primary_lower):
-            addr_line = full[len(primary):].lstrip(", ").strip()
+        # Build a clean address line from street/postcode/city/state
+        street = props.get("street") or ""
+        postcode = props.get("postcode") or ""
+        addr_line = ", ".join(
+            x for x in [street, props.get("locality"), city, state, postcode, country_name] if x
+        )
 
         out.append({
-            "id": str(item.get("place_id") or ""),
+            "id": f"{props.get('osm_type','')}{props.get('osm_id','')}",
             "name": primary,
-            "display_name": full,
+            "display_name": addr_line,
             "address_line": addr_line,
             "city": city,
             "state": state,
             "country": country_name,
-            "lat": item.get("lat"),
-            "lon": item.get("lon"),
+            "lat": (feat.get("geometry") or {}).get("coordinates", [None, None])[1],
+            "lon": (feat.get("geometry") or {}).get("coordinates", [None, None])[0],
             "domain": domain,
-            "type": item.get("type") or item.get("category") or "",
+            "type": props.get("osm_value") or "",
         })
         if len(out) >= 8:
             break
+    _cache_set(cache_key, out)
     return {"results": out}
 
 
