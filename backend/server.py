@@ -590,6 +590,8 @@ _EDU_KEYWORDS = (
     "kendriya", "navodaya", "academy", "institute", "polytechnic", "campus",
     "convent", "gurukul", "mahavidyalaya", "iit ", "iim ", "nit ", "iiit",
     "public school", "high school", "junior", "senior secondary",
+    "intermediate", "inter college", "junior college", "pu college",
+    "pre-university", "pre university",
 )
 
 
@@ -676,30 +678,46 @@ async def institution_search(q: str, country: str = "India", type: str = ""):
         return {"results": []}
 
     type_lower = (type or "").lower().strip()
-    # Append the type keyword to the query to improve Nominatim relevance
-    biased_q = q
-    if type_lower in {"school", "college", "university"} and type_lower not in q.lower():
-        biased_q = f"{q} {type_lower}"
+    # Build the list of query variants to fan out in parallel.
+    # For 'school' (which now means School / Inter), we want both schools + junior/inter colleges.
+    if type_lower == "school":
+        query_variants = [f"{q} school", f"{q} junior college", f"{q} intermediate college"]
+    elif type_lower == "college":
+        query_variants = [f"{q} college", f"{q} polytechnic"]
+    elif type_lower == "university":
+        query_variants = [f"{q} university", f"{q} institute"]
+    else:
+        query_variants = [q]
 
-    params = {
-        "q": f"{biased_q}, {country}",
-        "format": "jsonv2",
-        "addressdetails": 1,
-        "extratags": 1,
-        "limit": 20,                # fetch more, we'll filter
-        "accept-language": "en",
-    }
+    async def _fetch(variant: str):
+        params = {
+            "q": f"{variant}, {country}",
+            "format": "jsonv2",
+            "addressdetails": 1,
+            "extratags": 1,
+            "limit": 10,
+            "accept-language": "en",
+        }
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                r = await client.get(
+                    "https://nominatim.openstreetmap.org/search",
+                    params=params,
+                    headers=_NOMINATIM_HEADERS,
+                )
+                r.raise_for_status()
+                return r.json() or []
+        except Exception:
+            return []
+
+    import asyncio as _asyncio
     try:
-        async with httpx.AsyncClient(timeout=8.0) as client:
-            r = await client.get(
-                "https://nominatim.openstreetmap.org/search",
-                params=params,
-                headers=_NOMINATIM_HEADERS,
-            )
-            r.raise_for_status()
-            data = r.json()
+        all_data_lists = await _asyncio.gather(*[_fetch(v) for v in query_variants])
     except Exception as e:
         return {"results": [], "error": str(e)}
+    data = []
+    for lst in all_data_lists:
+        data.extend(lst)
 
     out = []
     seen = set()  # dedupe by lowercase primary name

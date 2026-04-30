@@ -1228,4 +1228,43 @@ agent_communication:
         - stream (Science/Commerce/Arts) filters relevant scholarships
 
         STATUS: Working end-to-end. Frontend testing not yet invoked
+
+---
+## 2026-04-30 (later) — Onboarding Refinements R2 (per user feedback)
+agent_communication:
+    - agent: "main"
+      message: |
+        FIXED user-reported issues from screenshot:
+        1. Manual mode wrongly persisted after picking — REMOVED sticky manual
+           mode entirely. Autocomplete now uses a `suppress` flag that auto-
+           clears on next keystroke. Users can freely re-type to re-search.
+           "Add manually" → renamed "Can't find it? Use \"X\" as-is".
+        2. Logo populated as Google-favicon globe placeholder — DROPPED Google
+           Favicon from cascading fallback. New default is a polished
+           GraduationCap icon (purple, glowing border) instead of a misleading
+           globe. Logo cascade resets on every name change (useEffect).
+        3. "School" → "School / Inter" chip — covers Indian +1/+2 students
+           who attend Junior/Intermediate Colleges as well as schools.
+        4. Backend now fans out 3 PARALLEL Nominatim queries when type=school:
+              q + " school", q + " junior college", q + " intermediate college"
+           Results merged + deduped. For type=college: q + " college" + 
+           q + " polytechnic". For type=university: q + " university" +
+           q + " institute".
+        5. Verified "Sri Chaitanya" with School/Inter type now returns BOTH:
+              • Sri Chaitanya School × 3 (Tamil Nadu, Karnataka, Telangana)
+              • Sri Chaitanya Junior College × 2 (Hyderabad)
+        6. Extended _EDU_KEYWORDS with: intermediate, inter college,
+           junior college, pu college, pre-university.
+        7. Re-typing after selection now reopens dropdown smoothly (no manual
+           lockout).
+
+        VERIFIED VIA SCREENSHOTS:
+        ✅ "School / Inter" chip + School type search returns mixed
+           Schools + Junior Colleges
+        ✅ Default GraduationCap logo (purple) instead of globe favicon
+        ✅ Address auto-fills "Freedom Road, Keelkattalai, Pallavaram,
+           Chengalpattu, Tamil Nadu, 600117, India"
+        ✅ Continue → arrow renders correctly (no \u2192 literal)
+        ✅ Re-search "DPS" after selecting Sri Chaitanya → dropdown reopens
+
         (verified via screenshot tool).

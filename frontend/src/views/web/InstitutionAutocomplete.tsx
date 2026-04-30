@@ -2,16 +2,20 @@
  * InstitutionAutocomplete — search & pick an Indian school/college/university.
  *
  * • Hits  GET /api/institutions/search?q=…&type=…  (Nominatim proxy w/ filtering)
- * • Shows up to 8 results in a glassy dropdown
- * • Last item: "+ Add my institution manually" → switches to free-text mode
- * • On select → fires onSelect({name, address_line, city, state, domain, logo_url})
- * • Logo: cascading <Image onError> fallback chain (Clearbit → Favicon → default icon).
+ * • Shows up to 8 results in a glassy dropdown (z-index 200)
+ * • "+ Use this name as-is" row → soft-confirms typed name without sticky modes
+ * • On select → fires onSelect({name, address_line, city, state, domain, logo_url, manual})
+ * • Logo: cascading <Image onError> chain — Clearbit (multiple TLDs) → polished default crest.
+ *
+ * NB: There's NO sticky "manual mode". Users can keep typing freely; the dropdown
+ *     auto-reopens whenever the query changes. The "Use as-is" button just commits
+ *     the current text and closes the popup.
  */
 import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, ActivityIndicator, TextInput, Image,
 } from 'react-native';
-import { Building2, Search, Plus, X } from 'lucide-react-native';
+import { GraduationCap, Building2, Search, Plus } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 
 export interface InstitutionPick {
@@ -51,18 +55,19 @@ export function InstitutionAutocomplete({
   const [results, setResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [manual, setManual] = useState(false);
+  // Suppress search until next keystroke (after user picks/dismisses).
+  const [suppress, setSuppress] = useState(false);
   const debounceRef = useRef<any>(null);
 
   const ph = placeholder
-    || (type === 'school'   ? 'Search your school (e.g., DPS, Kendriya Vidyalaya)…'
-      : type === 'college'  ? 'Search your college (e.g., St. Stephen’s)…'
-      : type === 'university' ? 'Search your university (e.g., JNTU, Anna University)…'
+    || (type === 'school'   ? 'Search your school or junior college (DPS, Sri Chaitanya…)'
+      : type === 'college'  ? 'Search your college (e.g., St. Stephen’s)'
+      : type === 'university' ? 'Search your university (e.g., JNTU, Anna University)'
       : 'Search for your institution…');
 
-  // Debounced fetch (re-runs when query OR institution type changes)
+  // Debounced fetch
   useEffect(() => {
-    if (manual) return;
+    if (suppress) return;
     const q = (value || '').trim();
     if (q.length < 2) {
       setResults([]); setOpen(false); return;
@@ -82,12 +87,12 @@ export function InstitutionAutocomplete({
       }
     }, 350);
     return () => debounceRef.current && clearTimeout(debounceRef.current);
-  }, [value, manual, type]);
+  }, [value, type, suppress]);
 
   const pick = async (r: SearchResult) => {
     setOpen(false);
+    setSuppress(true);
     onChangeText(r.name);
-    // Resolve logo candidates server-side
     let logo_url = '';
     try {
       const lr = await request<{ candidates: { url: string }[] }>(
@@ -107,15 +112,10 @@ export function InstitutionAutocomplete({
     });
   };
 
-  const enterManualMode = () => {
-    setManual(true);
+  const useAsIs = () => {
     setOpen(false);
-    setResults([]);
+    setSuppress(true);
     onSelect({ name: value || '', manual: true });
-  };
-
-  const exitManualMode = () => {
-    setManual(false);
   };
 
   return (
@@ -125,34 +125,23 @@ export function InstitutionAutocomplete({
         <TextInput
           value={value}
           onChangeText={(v) => {
+            setSuppress(false);   // any new keystroke re-enables search
             onChangeText(v);
-            if (manual) onSelect({ name: v, manual: true });
           }}
-          onFocus={() => { if (!manual && results.length) setOpen(true); }}
+          onFocus={() => { if (results.length && !suppress) setOpen(true); }}
           placeholder={ph}
           placeholderTextColor="rgba(255,255,255,0.35)"
           style={styles.input}
           testID={testID}
         />
         {loading && <ActivityIndicator size="small" color="#A78BFA" />}
-        {manual && (
-          <Pressable onPress={exitManualMode} hitSlop={8} testID="institution-exit-manual">
-            <X size={16} color="rgba(255,255,255,0.55)" />
-          </Pressable>
-        )}
       </View>
 
-      {manual && (
-        <Text style={styles.manualHint}>
-          {'✏️'}  Manual mode — type your institution name. Logo will use the default icon.
-        </Text>
-      )}
-
-      {open && !manual && (
+      {open && (
         <View style={styles.dropdown}>
           {results.length === 0 && !loading && (
             <Pressable
-              onPress={enterManualMode}
+              onPress={useAsIs}
               testID="institution-add-manual-empty"
               style={({ hovered }: any) => [
                 styles.row,
@@ -163,10 +152,10 @@ export function InstitutionAutocomplete({
                 <Plus size={14} color="#2DD4BF" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.rowName, { color: '#2DD4BF' }]}>
+                <Text style={[styles.rowName, { color: '#2DD4BF' }]} numberOfLines={1}>
                   Use “{value}” as my institution
                 </Text>
-                <Text style={styles.rowMeta}>No matches — add manually.</Text>
+                <Text style={styles.rowMeta}>No matches — type your address manually below.</Text>
               </View>
             </Pressable>
           )}
@@ -194,7 +183,7 @@ export function InstitutionAutocomplete({
           ))}
           {results.length > 0 && (
             <Pressable
-              onPress={enterManualMode}
+              onPress={useAsIs}
               testID="institution-add-manual"
               style={({ hovered, pressed }: any) => [
                 styles.row, styles.rowAdd,
@@ -205,7 +194,9 @@ export function InstitutionAutocomplete({
               <View style={[styles.rowIcon, { backgroundColor: 'rgba(45,212,191,0.18)' }]}>
                 <Plus size={14} color="#2DD4BF" />
               </View>
-              <Text style={[styles.rowName, { color: '#2DD4BF' }]}>Add my institution manually</Text>
+              <Text style={[styles.rowName, { color: '#2DD4BF' }]}>
+                Can’t find it? Use “{value}” as-is
+              </Text>
             </Pressable>
           )}
         </View>
@@ -215,11 +206,13 @@ export function InstitutionAutocomplete({
 }
 
 // ─── Logo display with cascading fallback ──────────────────────────────
+// Stops BEFORE Google Favicon (which returns generic globe placeholder for
+// non-existent domains). Falls through to a polished default school crest.
 export function InstitutionLogo({
   name, domain, logoUrl, size = 56,
 }: { name: string; domain?: string; logoUrl?: string; size?: number }) {
   const candidates: string[] = [];
-  if (logoUrl) candidates.push(logoUrl);
+  if (logoUrl && !logoUrl.includes('google.com/s2/favicons')) candidates.push(logoUrl);
   if (domain) candidates.push(`https://logo.clearbit.com/${domain}`);
   const slug = (name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
   if (slug) {
@@ -227,17 +220,18 @@ export function InstitutionLogo({
     candidates.push(`https://logo.clearbit.com/${slug}.edu.in`);
     candidates.push(`https://logo.clearbit.com/${slug}.in`);
     candidates.push(`https://logo.clearbit.com/${slug}.com`);
-    // Google Favicon as last-resort (always returns something)
-    candidates.push(`https://www.google.com/s2/favicons?domain=${slug}.ac.in&sz=128`);
-    candidates.push(`https://www.google.com/s2/favicons?domain=${slug}.edu.in&sz=128`);
+    candidates.push(`https://logo.clearbit.com/${slug}.org`);
   }
   const [idx, setIdx] = useState(0);
   const [failed, setFailed] = useState(false);
 
+  // Reset fallback chain when the institution changes
+  useEffect(() => { setIdx(0); setFailed(false); }, [name, domain, logoUrl]);
+
   if (failed || !candidates.length) {
     return (
       <View style={[styles.defaultLogo, { width: size, height: size, borderRadius: size * 0.22 }]}>
-        <Building2 size={size * 0.5} color="#A78BFA" />
+        <GraduationCap size={size * 0.55} color="#C4B5FD" />
       </View>
     );
   }
@@ -291,11 +285,6 @@ const styles = StyleSheet.create({
   rowName: { color: '#FFFFFF', fontFamily: 'DMSans_600SemiBold', fontSize: 13 },
   rowMeta: { color: 'rgba(255,255,255,0.50)', fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: 2 },
 
-  manualHint: {
-    color: '#FCD34D', fontFamily: 'DMSans_500Medium', fontSize: 11.5,
-    marginTop: 6, marginLeft: 4,
-  },
-
   logoWrap: {
     backgroundColor: '#FFFFFF',
     alignItems: 'center', justifyContent: 'center',
@@ -303,8 +292,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   defaultLogo: {
-    backgroundColor: 'rgba(124,58,237,0.20)',
-    borderColor: 'rgba(196,181,253,0.35)', borderWidth: 1,
+    backgroundColor: 'rgba(124,58,237,0.22)',
+    borderColor: 'rgba(196,181,253,0.45)', borderWidth: 1.5,
     alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#7C3AED', shadowOpacity: 0.30, shadowRadius: 14, shadowOffset: { width: 0, height: 4 },
   },
 });
