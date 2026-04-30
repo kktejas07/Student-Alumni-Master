@@ -2563,6 +2563,264 @@ async def apply_opportunity(opp_id: str, user: dict = Depends(get_current_user))
     return {"action": "applied", "url": opp.get("url"), "applied_at": datetime.utcnow().isoformat()}
 
 
+# ─── Phase 2 — Network ──────────────────────────────────────────────────
+def _user_card(u: dict) -> dict:
+    """Public card payload for a user — safe for network discovery."""
+    si = u.get("school_info") or {}
+    mp = u.get("mentor_profile") or {}
+    ai = u.get("alumni_info") or {}
+    return {
+        "id": str(u.get("_id") or u.get("id")),
+        "full_name": u.get("full_name") or u.get("email"),
+        "role": u.get("role"),
+        "institution": si.get("institution_name") or ai.get("institution_name") or u.get("full_name") if u.get("role") == "college" else si.get("institution_name") or ai.get("institution_name"),
+        "city": si.get("city") or ai.get("city"),
+        "state": si.get("state") or ai.get("state"),
+        "branch": si.get("branch_or_stream") or ai.get("branch_or_stream"),
+        "year": si.get("class_or_year") or si.get("graduation_year"),
+        "graduation_year": si.get("graduation_year") or ai.get("graduation_year"),
+        "career_path": u.get("career_path"),
+        "interests": (u.get("interests") or si.get("interests") or [])[:6],
+        "skills": (mp.get("skills") or [])[:6],
+        "job_title": mp.get("job_title") or ai.get("alumni_role"),
+        "organization": mp.get("organization") or ai.get("alumni_employer"),
+        "category": mp.get("category"),
+        "rating": mp.get("rating"),
+        "sessions": mp.get("sessions"),
+        "expected_rate_inr": mp.get("expected_rate_inr"),
+        "linkedin_url": u.get("linkedin_url") or mp.get("linkedin_url") or ai.get("alumni_linkedin_url"),
+        "photo_data": u.get("face_image_base64"),
+        "wants_to_mentor": ai.get("wants_to_mentor") or ai.get("alumni_wants_to_mentor") or u.get("role") == "mentor",
+        "sa_id": u.get("sa_id"),
+    }
+
+
+def _matches_count(a: list, b: list) -> int:
+    if not a or not b:
+        return 0
+    sa = {str(x).lower() for x in a}
+    sb = {str(x).lower() for x in b}
+    return len(sa & sb)
+
+
+@api_router.get("/network/discover")
+async def network_discover(user: dict = Depends(get_current_user), q: str = "", limit: int = 12):
+    """
+    Discover sections (each up to `limit` matches):
+      • by_interest   — users with overlapping interests
+      • by_career     — users with same career_path
+      • by_college    — users from same institution
+      • mentors       — recommended mentors (role=mentor, status=approved)
+      • expand        — diverse roles outside user's bubble
+    """
+    me_id = str(user.get("_id") or user.get("id"))
+    si = user.get("school_info") or {}
+    my_interests = user.get("interests") or si.get("interests") or []
+    my_cp = user.get("career_path")
+    my_inst = si.get("institution_name")
+    # Existing connection state to mark cards
+    rels = await db.connections.find(
+        {"$or": [{"a": me_id}, {"b": me_id}]},
+        {"_id": 0},
+    ).to_list(2000)
+    state_by_user: Dict[str, str] = {}
+    for r in rels:
+        other = r["b"] if r["a"] == me_id else r["a"]
+        state_by_user[other] = r.get("status", "pending")
+
+    # Pull a healthy candidate set
+    base_query: dict = {"_id": {"$ne": user["_id"]}}
+    if q:
+        rx = {"$regex": q, "$options": "i"}
+        base_query["$or"] = [{"full_name": rx}, {"email": rx}]
+    candidates = await db.users.find(base_query, {"password_hash": 0, "face_image_base64": 0}).to_list(500)
+
+    cards = [_user_card(c) for c in candidates]
+    # attach connection_state (none|pending|connected|incoming)
+    for c in cards:
+        st = state_by_user.get(c["id"])
+        c["connection_state"] = st or "none"
+
+    # Section: by_interest
+    by_interest = [c for c in cards if _matches_count(my_interests, c["interests"]) > 0]
+    by_interest.sort(key=lambda c: -_matches_count(my_interests, c["interests"]))
+
+    # Section: by_career
+    by_career = [c for c in cards if my_cp and c.get("career_path") == my_cp and c["role"] != "college"]
+
+    # Section: by_college
+    by_college = [c for c in cards if my_inst and c.get("institution") == my_inst]
+
+    # Section: mentors (approved)
+    approved_mentors = await db.users.find(
+        {"_id": {"$ne": user["_id"]}, "role": "mentor", "mentor_status": "approved"},
+        {"password_hash": 0, "face_image_base64": 0},
+    ).limit(50).to_list(50)
+    mentor_cards = [_user_card(m) for m in approved_mentors]
+    for m in mentor_cards:
+        m["connection_state"] = state_by_user.get(m["id"], "none")
+    # Boost mentors matching career path
+    if my_cp:
+        mentor_cards.sort(key=lambda m: (m.get("category") or "").lower().find(my_cp.lower()) == -1)
+
+    # Section: expand — diverse roles user hasn't matched on yet
+    seen_ids = {c["id"] for c in (by_interest + by_career + by_college)} | {m["id"] for m in mentor_cards}
+    expand = [c for c in cards if c["id"] not in seen_ids and c["role"] in {"alumni", "college"}]
+
+    return {
+        "sections": [
+            {"key": "by_interest", "title": "Matched by Interest",
+             "subtitle": "Profiles that share what you love",
+             "items": by_interest[:limit]},
+            {"key": "by_career", "title": "Matched by Career Path",
+             "subtitle": f"Walking the same path as you", "items": by_career[:limit]},
+            {"key": "by_college", "title": "From Your College",
+             "subtitle": "People from " + (my_inst or "your school"), "items": by_college[:limit]},
+            {"key": "mentors", "title": "Recommended Mentors",
+             "subtitle": "Approved & ready to guide you", "items": mentor_cards[:limit]},
+            {"key": "expand", "title": "Expand Your Horizons",
+             "subtitle": "Step outside your bubble", "items": expand[:limit]},
+        ],
+    }
+
+
+@api_router.get("/network/connections")
+async def my_connections(user: dict = Depends(get_current_user)):
+    me_id = str(user.get("_id") or user.get("id"))
+    rels = await db.connections.find(
+        {"status": "accepted", "$or": [{"a": me_id}, {"b": me_id}]},
+        {"_id": 0},
+    ).to_list(500)
+    other_ids = []
+    for r in rels:
+        other_ids.append(r["b"] if r["a"] == me_id else r["a"])
+    if not other_ids:
+        return {"items": []}
+    objs = []
+    for oid in other_ids:
+        try:
+            objs.append(ObjectId(oid))
+        except Exception:
+            pass
+    users = await db.users.find(
+        {"_id": {"$in": objs}}, {"password_hash": 0, "face_image_base64": 0},
+    ).to_list(len(objs))
+    cards = [_user_card(u) for u in users]
+    for c in cards:
+        c["connection_state"] = "connected"
+    return {"items": cards}
+
+
+@api_router.get("/network/requests")
+async def my_connection_requests(user: dict = Depends(get_current_user)):
+    """Incoming pending requests (people who want to connect with me)."""
+    me_id = str(user.get("_id") or user.get("id"))
+    rels = await db.connections.find(
+        {"status": "pending", "b": me_id}, {"_id": 0},
+    ).to_list(200)
+    if not rels:
+        return {"items": []}
+    requester_ids = [r["a"] for r in rels]
+    objs = []
+    for rid in requester_ids:
+        try:
+            objs.append(ObjectId(rid))
+        except Exception:
+            pass
+    users = await db.users.find({"_id": {"$in": objs}}, {"password_hash": 0, "face_image_base64": 0}).to_list(len(objs))
+    by_id = {str(u["_id"]): u for u in users}
+    out = []
+    for r in rels:
+        u = by_id.get(r["a"])
+        if not u:
+            continue
+        c = _user_card(u)
+        c["connection_state"] = "incoming"
+        c["requested_at"] = r.get("created_at")
+        out.append(c)
+    return {"items": out}
+
+
+@api_router.post("/network/connect/{other_id}")
+async def send_connection_request(other_id: str, user: dict = Depends(get_current_user)):
+    me_id = str(user.get("_id") or user.get("id"))
+    if other_id == me_id:
+        raise HTTPException(400, "Cannot connect to yourself")
+    try:
+        await db.users.find_one({"_id": ObjectId(other_id)}, {"_id": 1})
+    except Exception:
+        raise HTTPException(400, "Invalid user id")
+    existing = await db.connections.find_one({
+        "$or": [{"a": me_id, "b": other_id}, {"a": other_id, "b": me_id}],
+    })
+    if existing:
+        if existing.get("status") == "accepted":
+            return {"action": "already_connected"}
+        if existing.get("a") == other_id and existing.get("b") == me_id:
+            # The other user already requested — auto-accept
+            await db.connections.update_one(
+                {"_id": existing["_id"]},
+                {"$set": {"status": "accepted", "accepted_at": datetime.utcnow()}},
+            )
+            return {"action": "auto_accepted"}
+        return {"action": "already_pending"}
+    await db.connections.insert_one({
+        "a": me_id, "b": other_id, "status": "pending",
+        "created_at": datetime.utcnow(),
+    })
+    # Notify recipient
+    try:
+        await db.notifications.insert_one({
+            "id": str(ObjectId()),
+            "user_id": other_id,
+            "type": "connection_request",
+            "title": "New connection request",
+            "body": f"{user.get('full_name') or 'A user'} wants to connect with you.",
+            "read": False,
+            "created_at": datetime.utcnow(),
+        })
+    except Exception:
+        pass
+    return {"action": "pending"}
+
+
+@api_router.post("/network/accept/{other_id}")
+async def accept_connection(other_id: str, user: dict = Depends(get_current_user)):
+    me_id = str(user.get("_id") or user.get("id"))
+    res = await db.connections.update_one(
+        {"a": other_id, "b": me_id, "status": "pending"},
+        {"$set": {"status": "accepted", "accepted_at": datetime.utcnow()}},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(404, "No pending request from this user")
+    try:
+        await db.notifications.insert_one({
+            "id": str(ObjectId()),
+            "user_id": other_id,
+            "type": "connection_accepted",
+            "title": "Connection accepted",
+            "body": f"{user.get('full_name') or 'A user'} accepted your request.",
+            "read": False,
+            "created_at": datetime.utcnow(),
+        })
+    except Exception:
+        pass
+    return {"action": "accepted"}
+
+
+@api_router.post("/network/reject/{other_id}")
+async def reject_connection(other_id: str, user: dict = Depends(get_current_user)):
+    me_id = str(user.get("_id") or user.get("id"))
+    res = await db.connections.delete_one(
+        {"a": other_id, "b": me_id, "status": "pending"},
+    )
+    if res.deleted_count == 0:
+        raise HTTPException(404, "No pending request to reject")
+    return {"action": "rejected"}
+
+
+
+
 
 
 @api_router.get("/catalog/events")
