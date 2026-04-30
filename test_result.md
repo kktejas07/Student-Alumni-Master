@@ -527,6 +527,53 @@ test_plan:
   test_priority: "high_first"
 
 backend:
+  - task: "Mentor Approval CRUD — approve/reject with reason + detail endpoint"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            Enhanced /admin/mentors/{id}/approve and /reject:
+            ✅ Both write approved_by/rejected_by + timestamps for audit trail
+            ✅ Both create db.notifications entry for the mentor
+            ✅ /reject accepts {reason} body — stored as rejection_reason
+            ✅ New GET /api/admin/mentors/{id} returns full mentor profile
+               (bio, expertise_areas, skills, education, languages, expected_rate)
+               for the review SlidePanel.
+
+frontend:
+  - task: "ApprovalsPage v2 — review SlidePanel + reject reason flow"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/views/web/admin/ApprovalsPage.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            Verified end-to-end via screenshot tool:
+            ✅ Each row now has 3 buttons: Approve / Reject / Review.
+            ✅ Click row OR Review → SlidePanel opens with full mentor profile:
+               Status chip (pending/approved/rejected) + years_exp + category chips
+               BIO section, CONTACT & PROFILE (Email/Phone/Job/Org/Category +
+               Open LinkedIn CTA), EXPERTISE chips, SKILLS chips, EDUCATION list,
+               OTHER DETAILS (rate, languages, availability, applied date).
+            ✅ Footer: Reject (red) on left + Approve (gold) on right.
+            ✅ Reject CTA opens inline reason TextInput with red glass card +
+               AlertTriangle + "The mentor will see this in their notification.
+               Keep it kind & specific." hint.
+            ✅ End-to-end test: typed "Need more years of industry experience"
+               → Confirm reject → Pending count 6→5, Rejected tab now shows 1
+               entry "aa" with red "Rejected" status chip.
+
+backend:
   - task: "Master Admin CRUD — PATCH/DELETE/POST users + PATCH/DELETE events"
     implemented: true
     working: true

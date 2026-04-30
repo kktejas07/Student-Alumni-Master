@@ -1400,23 +1400,106 @@ async def approve_mentor(mentor_id: str, user: dict = Depends(get_current_user))
     """Admin: approve a pending mentor — they become visible to students."""
     if user["role"] != "admin":
         raise HTTPException(403, "Admin only")
-    await db.users.update_one(
+    res = await db.users.update_one(
         {"_id": ObjectId(mentor_id), "role": "mentor"},
-        {"$set": {"mentor_status": "approved", "updated_at": datetime.now(timezone.utc)}},
+        {"$set": {
+            "mentor_status": "approved",
+            "approved_at": datetime.now(timezone.utc),
+            "approved_by": str(user.get("_id") or user.get("id") or "admin"),
+            "updated_at": datetime.now(timezone.utc),
+        }},
     )
-    return {"status": "approved"}
+    if res.matched_count == 0:
+        raise HTTPException(404, "Mentor not found")
+    # Notify the mentor
+    try:
+        await db.notifications.insert_one({
+            "id": str(ObjectId()),
+            "user_id": mentor_id,
+            "type": "mentor_approved",
+            "title": "Application approved \U0001f389",
+            "body": "Your mentor application has been approved. You can now host sessions.",
+            "read": False,
+            "created_at": datetime.now(timezone.utc),
+        })
+    except Exception:
+        pass
+    return {"status": "approved", "id": mentor_id}
 
 
 @api_router.post("/admin/mentors/{mentor_id}/reject")
-async def reject_mentor(mentor_id: str, user: dict = Depends(get_current_user)):
-    """Admin: reject a mentor application."""
+async def reject_mentor(
+    mentor_id: str, payload: dict | None = None, user: dict = Depends(get_current_user),
+):
+    """Admin: reject a mentor application with optional reason."""
     if user["role"] != "admin":
         raise HTTPException(403, "Admin only")
-    await db.users.update_one(
-        {"_id": ObjectId(mentor_id), "role": "mentor"},
-        {"$set": {"mentor_status": "rejected", "updated_at": datetime.now(timezone.utc)}},
+    reason = (payload or {}).get("reason") if isinstance(payload, dict) else None
+    update = {
+        "mentor_status": "rejected",
+        "rejected_at": datetime.now(timezone.utc),
+        "rejected_by": str(user.get("_id") or user.get("id") or "admin"),
+        "rejection_reason": reason or "",
+        "updated_at": datetime.now(timezone.utc),
+    }
+    res = await db.users.update_one(
+        {"_id": ObjectId(mentor_id), "role": "mentor"}, {"$set": update},
     )
-    return {"status": "rejected"}
+    if res.matched_count == 0:
+        raise HTTPException(404, "Mentor not found")
+    try:
+        await db.notifications.insert_one({
+            "id": str(ObjectId()),
+            "user_id": mentor_id,
+            "type": "mentor_rejected",
+            "title": "Application not approved",
+            "body": reason or "Your application was not approved at this time.",
+            "read": False,
+            "created_at": datetime.now(timezone.utc),
+        })
+    except Exception:
+        pass
+    return {"status": "rejected", "id": mentor_id, "reason": reason}
+
+
+@api_router.get("/admin/mentors/{mentor_id}")
+async def admin_mentor_detail(mentor_id: str, user: dict = Depends(get_current_user)):
+    """Full mentor detail for review panel."""
+    _require_admin(user)
+    try:
+        m = await db.users.find_one(
+            {"_id": ObjectId(mentor_id)},
+            {"password_hash": 0, "face_image_base64": 0},
+        )
+    except Exception:
+        m = None
+    if not m:
+        raise HTTPException(404, "Mentor not found")
+    mp = m.get("mentor_profile") or {}
+    return {
+        "id": str(m["_id"]),
+        "name": m.get("full_name") or m.get("email"),
+        "email": m.get("email"),
+        "phone": m.get("phone"),
+        "mentor_status": m.get("mentor_status"),
+        "rejection_reason": m.get("rejection_reason"),
+        "approved_at": m.get("approved_at"),
+        "rejected_at": m.get("rejected_at"),
+        "linkedin_url": mp.get("linkedin_url") or m.get("linkedin_url"),
+        "job_title": mp.get("job_title"),
+        "organization": mp.get("organization"),
+        "category": mp.get("category") or m.get("mentor_category"),
+        "years_of_experience": mp.get("years_of_experience"),
+        "skills": mp.get("skills") or [],
+        "bio": mp.get("bio") or m.get("bio"),
+        "expertise_areas": mp.get("expertise_areas") or [],
+        "expected_rate_inr": mp.get("expected_rate_inr"),
+        "languages": mp.get("languages") or [],
+        "availability": mp.get("availability"),
+        "education": mp.get("education") or [],
+        "created_at": (m.get("created_at") or datetime.utcnow()).isoformat()
+            if isinstance(m.get("created_at"), datetime) else str(m.get("created_at", "")),
+    }
 
 
 # ----------------------------------------------------------------------------
