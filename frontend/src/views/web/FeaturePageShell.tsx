@@ -40,40 +40,9 @@ export default function FeaturePageShell({
   const isMobile = width < 768;
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.bg, flexDirection: 'row' }}>
-      {/* Left sidebar */}
-      {!isMobile && (
-        <View style={styles.sidebar}>
-          <Pressable onPress={() => router.replace('/platform')} style={styles.brand}>
-            <View style={styles.logoBox}><Text style={styles.logoTxt}>SA</Text></View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={styles.brandTitle}>Student Alumni</Text>
-              <Text style={styles.brandSub}>Web Dashboard</Text>
-            </View>
-          </Pressable>
-
-          <Text style={styles.kicker}>NAVIGATION</Text>
-          {[
-            { id: 'home', label: '← Back to Dashboard', to: '/platform' },
-            { id: 'profile', label: 'Profile', to: '/me' },
-            { id: 'network', label: 'Network', to: '/network' },
-            { id: 'internships', label: 'Internships', to: '/internships' },
-            { id: 'events', label: 'Events', to: '/events' },
-            { id: 'career-ai', label: 'Career AI', to: '/career-ai' },
-            { id: 'higher-education', label: 'Higher Education', to: '/higher-education' },
-            { id: 'financial', label: 'Financial', to: '/financial' },
-            { id: 'rentals', label: 'Rentals', to: '/rentals' },
-            { id: 'deals', label: 'Deals', to: '/deals' },
-          ].map((n) => (
-            <Pressable key={n.id} onPress={() => router.replace(n.to as any)} style={styles.navRow}>
-              <Text style={styles.navRowText}>{n.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-      )}
-
-      {/* Main column */}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: isMobile ? 16 : 28, gap: 22 }}>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      {/* Main column (full width — sidebar removed) */}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: isMobile ? 16 : 28, gap: 22, maxWidth: 1400, width: '100%', alignSelf: 'center' }}>
         {/* Top bar */}
         <View style={styles.topBar}>
           <Pressable onPress={() => router.replace('/platform')} style={styles.backBtn}>
