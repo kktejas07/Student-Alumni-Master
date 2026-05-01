@@ -347,7 +347,8 @@ export default function ProfileScreen() {
             {/* Right rail */}
             {!isMobile && winW >= 1150 && (
               <View style={styles.rightRail}>
-                <View style={styles.rrCard}>
+                <HoverGlow radius={14}>
+                <View style={[styles.rrCard, { borderRadius: 0 }]}>
                   <Text style={styles.rrKicker}>STUDENT STATS</Text>
                   <View style={{ marginTop: 10 }}>
                     <StatRow Icon={CalendarDays} label="Sessions Completed" value={stats.sessions} color="#34D399" />
@@ -361,7 +362,9 @@ export default function ProfileScreen() {
                     <StatRow Icon={Send} label="Applications Sent" value={stats.applications} color="#FB923C" />
                   </View>
                 </View>
-                <View style={styles.rrIdCard}>
+                </HoverGlow>
+                <HoverGlow radius={14}>
+                <View style={[styles.rrIdCard, { borderRadius: 0 }]}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <ShieldIcon size={14} color="#A78BFA" /><Text style={styles.rrIdKicker}>Student ID</Text>
                   </View>
@@ -371,6 +374,7 @@ export default function ProfileScreen() {
                     <Text style={styles.rrIdBtnText}>View Digital ID Card →</Text>
                   </Pressable>
                 </View>
+                </HoverGlow>
               </View>
             )}
           </View>
@@ -475,26 +479,6 @@ function DigitalIdCardInline({ userId, isMobile, draft, completion, showToast }:
     showToast(`Card: ${labels[next]}`);
   };
 
-  // Inject CSS keyframes once (web-only) for the always-rotating gradient border + shimmer
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    const id = 'did-keyframes-v1';
-    if (typeof document === 'undefined' || document.getElementById(id)) return;
-    const style = document.createElement('style');
-    style.id = id;
-    style.textContent = `
-      @keyframes didSpin {
-        from { transform: rotate(0deg); }
-        to   { transform: rotate(360deg); }
-      }
-      @keyframes didShimmer {
-        0%,100% { opacity: 0.45; }
-        50%     { opacity: 0.85; }
-      }
-    `;
-    document.head.appendChild(style);
-  }, []);
-
   return (
     <View style={{ borderRadius: 18, overflow: 'hidden', marginBottom: 16 }}>
       <LinearGradient
@@ -515,36 +499,22 @@ function DigitalIdCardInline({ userId, isMobile, draft, completion, showToast }:
               position: 'relative', padding: 2, borderRadius: 22,
               ...(Platform.OS === 'web' ? ({
                 transition: 'transform .35s cubic-bezier(.2,.8,.2,1)',
-                transform: hoverCard ? 'translateY(-6px) scale(1.02)' : 'translateY(0) scale(1)',
+                transform: hoverCard ? 'translateY(-4px) scale(1.01)' : 'translateY(0) scale(1)',
               } as any) : {}),
             } as any}
           >
             {Platform.OS === 'web' && (
-              <>
-                {/* Rotating conic-gradient ring — ALWAYS animating */}
-                <View
-                  // @ts-ignore web-only always-rotating purple gradient
-                  style={{
-                    position: 'absolute', top: -4, left: -4, right: -4, bottom: -4, borderRadius: 24,
-                    backgroundImage: 'conic-gradient(from 0deg, #A78BFA 0%, #C4B5FD 20%, #7C3AED 40%, #6D28D9 60%, #A78BFA 80%, #C4B5FD 100%)',
-                    animation: 'didSpin 6s linear infinite',
-                    opacity: hoverCard ? 0.95 : 0.75,
-                    filter: hoverCard ? 'blur(10px)' : 'blur(6px)',
-                    transition: 'opacity .3s ease, filter .3s ease',
-                    pointerEvents: 'none',
-                  } as any}
-                />
-                {/* Outer shimmer glow (breathing) */}
-                <View
-                  // @ts-ignore
-                  style={{
-                    position: 'absolute', top: -14, left: -14, right: -14, bottom: -14, borderRadius: 30,
-                    backgroundImage: 'radial-gradient(closest-side, rgba(167,139,250,0.35), rgba(167,139,250,0) 70%)',
-                    animation: 'didShimmer 3.5s ease-in-out infinite',
-                    pointerEvents: 'none',
-                  } as any}
-                />
-              </>
+              <View
+                // @ts-ignore web-only hover-triggered purple gradient border
+                style={{
+                  position: 'absolute', top: -3, left: -3, right: -3, bottom: -3, borderRadius: 24,
+                  backgroundImage: 'conic-gradient(from 140deg, #A78BFA, #C4B5FD, #7C3AED, #6D28D9, #A78BFA)',
+                  opacity: hoverCard ? 0.95 : 0,
+                  filter: hoverCard ? 'blur(10px)' : 'blur(4px)',
+                  transition: 'opacity .35s ease, filter .35s ease',
+                  pointerEvents: 'none',
+                } as any}
+              />
             )}
             {/* Inner card — captured for download */}
             <View ref={cardRef as any} style={{ borderRadius: 20, overflow: 'hidden' }}>
@@ -629,35 +599,38 @@ function DigitalIdCardInline({ userId, isMobile, draft, completion, showToast }:
         </View>
 
         {/* YOUR STUDENT ID box */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.35)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1 }}>
+        <HoverGlow radius={12}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, backgroundColor: 'rgba(0,0,0,0.35)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1 }}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_700Bold', fontSize: 10, letterSpacing: 1.1 }}>YOUR STUDENT ID</Text>
             <Text style={{ color: '#fff', fontFamily: Platform.OS === 'web' ? 'monospace' : 'DMSans_800ExtraBold', fontSize: 22, marginTop: 6, letterSpacing: 0.3, fontWeight: '700' as any }}>{sid}</Text>
           </View>
-          <Pressable onPress={onCopyId} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 38, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, ...({ cursor: 'pointer' } as any) }} testID="did-copy-id">
-            <CopyIcon size={13} color="rgba(255,255,255,0.85)" />
+          <Pressable onPress={onCopyId} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 38, borderRadius: 9, backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.40)', borderWidth: 1, ...(Platform.OS === 'web' ? ({ boxShadow: '0 4px 14px rgba(124,58,237,0.25)' } as any) : {}), ...({ cursor: 'pointer' } as any) }} testID="did-copy-id">
+            <CopyIcon size={13} color="#C4B5FD" />
             <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 }}>Copy ID</Text>
           </Pressable>
         </View>
+        </HoverGlow>
 
         {/* Actions */}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-          <Pressable onPress={onDownload} style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, height: 40, borderRadius: 10, backgroundColor: C.purple, ...({ cursor: 'pointer' } as any) }} testID="did-download">
+          <Pressable onPress={onDownload} style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, height: 40, borderRadius: 10, backgroundColor: C.purple, ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 55%, #6D28D9 100%)', boxShadow: '0 8px 22px rgba(124,58,237,0.45)' } as any) : {}), ...({ cursor: 'pointer' } as any) }} testID="did-download">
             <Download size={14} color="#fff" />
             <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 }}>Download ID Card</Text>
           </Pressable>
-          <Pressable onPress={onShare} style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, ...({ cursor: 'pointer' } as any) }} testID="did-share">
-            <Share2 size={14} color="rgba(255,255,255,0.85)" />
+          <Pressable onPress={onShare} style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, height: 40, borderRadius: 10, backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.40)', borderWidth: 1, ...(Platform.OS === 'web' ? ({ boxShadow: '0 6px 18px rgba(124,58,237,0.25)' } as any) : {}), ...({ cursor: 'pointer' } as any) }} testID="did-share">
+            <Share2 size={14} color="#C4B5FD" />
             <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 }}>Share ID</Text>
           </Pressable>
-          <Pressable onPress={() => goSlide((slide + 1) % 3)} style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, ...({ cursor: 'pointer' } as any) }} testID="did-flip">
-            <RotateCw size={14} color="rgba(255,255,255,0.85)" />
+          <Pressable onPress={() => goSlide((slide + 1) % 2)} style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, height: 40, borderRadius: 10, backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.40)', borderWidth: 1, ...(Platform.OS === 'web' ? ({ boxShadow: '0 6px 18px rgba(124,58,237,0.25)' } as any) : {}), ...({ cursor: 'pointer' } as any) }} testID="did-flip">
+            <RotateCw size={14} color="#C4B5FD" />
             <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 }}>Next Card</Text>
           </Pressable>
         </View>
 
         {/* MEMBER PERKS — separate widget (purple palette matching theme) */}
-        <View style={{ padding: 20, borderRadius: 16, backgroundColor: 'rgba(167,139,250,0.08)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, gap: 12 }}>
+        <HoverGlow radius={16}>
+        <View style={{ padding: 20, backgroundColor: 'rgba(167,139,250,0.08)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, gap: 12 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={{ color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 11, letterSpacing: 1.4 }}>SA · MEMBER PERKS</Text>
             <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(252,211,77,0.16)', borderColor: 'rgba(252,211,77,0.45)', borderWidth: 1 }}>
@@ -677,6 +650,7 @@ function DigitalIdCardInline({ userId, isMobile, draft, completion, showToast }:
             </View>
           ))}
         </View>
+        </HoverGlow>
 
         {/* THIS ID WORKS ACROSS THE PLATFORM */}
         <View style={{ gap: 12, marginTop: 4 }}>
@@ -716,6 +690,34 @@ function PerkCard({ Icon, title, sub, color }: { Icon: any; title: string; sub: 
       </View>
       <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 }}>{title}</Text>
       <Text style={{ color: 'rgba(255,255,255,0.60)', fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: 4 }}>{sub}</Text>
+    </View>
+  );
+}
+
+// Reusable hover-border-gradient wrapper — applies a purple conic-gradient ring
+// only when the pointer hovers. Works on web only; on native it renders passthrough.
+function HoverGlow({ children, style, padding = 2, radius = 16 }: { children: any; style?: any; padding?: number; radius?: number }) {
+  const [h, setH] = useState(false);
+  if (Platform.OS !== 'web') return <View style={style}>{children}</View>;
+  return (
+    <View
+      // @ts-ignore
+      onMouseEnter={() => setH(true)}
+      onMouseLeave={() => setH(false)}
+      style={[{ position: 'relative', padding, borderRadius: radius + padding, transition: 'transform .3s ease', transform: h ? 'translateY(-3px)' : 'translateY(0)' } as any, style]}
+    >
+      <View
+        // @ts-ignore
+        style={{
+          position: 'absolute', top: -2, left: -2, right: -2, bottom: -2, borderRadius: radius + padding + 2,
+          backgroundImage: 'conic-gradient(from 140deg, #A78BFA, #C4B5FD, #7C3AED, #6D28D9, #A78BFA)',
+          opacity: h ? 0.9 : 0,
+          filter: h ? 'blur(8px)' : 'blur(3px)',
+          transition: 'opacity .3s ease, filter .3s ease',
+          pointerEvents: 'none',
+        } as any}
+      />
+      <View style={{ borderRadius: radius, overflow: 'hidden' }}>{children}</View>
     </View>
   );
 }
@@ -808,7 +810,7 @@ const styles = StyleSheet.create({
   rrIdKicker: { color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 12, letterSpacing: 0.3 },
   rrIdMono: { color: '#fff', fontFamily: Platform.OS === 'web' ? 'monospace' : 'DMSans_800ExtraBold', fontSize: 22, marginTop: 6, letterSpacing: 0.3, fontWeight: '700' as any },
   rrIdMeta: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 11, marginTop: 2 },
-  rrIdBtn: { marginTop: 12, paddingHorizontal: 12, paddingVertical: 11, borderRadius: 10, backgroundColor: C.purple, alignItems: 'center', ...({ cursor: 'pointer' } as any) },
+  rrIdBtn: { marginTop: 12, paddingHorizontal: 12, paddingVertical: 11, borderRadius: 10, backgroundColor: C.purple, alignItems: 'center', ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 55%, #6D28D9 100%)', boxShadow: '0 6px 18px rgba(124,58,237,0.35)' } as any) : {}), ...({ cursor: 'pointer' } as any) },
   rrIdBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
 
   // Top bar buttons (Edit Profile = primary purple gradient, Digital ID Card = outline that becomes gradient when active)

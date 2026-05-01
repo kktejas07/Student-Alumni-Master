@@ -2553,3 +2553,35 @@ agent_communication:
         angles), lift+scale visible on hover frame, perks in new
         position, avatars + buttons all with purple gradients.
 
+
+---
+## 2026-04-30 — Digital ID v6: Hover-only border gradient + purple glow on all buttons + reusable HoverGlow
+agent_communication:
+    - agent: "main"
+      message: |
+        3 refinements from user feedback:
+        1) REMOVED always-on rotating gradient + breathing shimmer
+           on the ID card. Replaced with a single hover-only purple
+           conic-gradient ring (opacity 0 → 0.95 on hover). Hover
+           still triggers lift translateY(-4px) + scale(1.01).
+        2) REUSABLE HoverGlow wrapper — purple gradient border shows
+           ONLY on hover. Applied to: YOUR STUDENT ID box, MEMBER
+           PERKS widget, right-rail STUDENT STATS card, right-rail
+           Student ID card. Each lifts -3px on hover with gradient
+           border glow appearing.
+        3) PURPLE GLOW BOX-SHADOW added to every button:
+           - Download ID Card: linear-gradient(135deg purple) +
+             boxShadow 0 8px 22px rgba(124,58,237,0.45) [primary]
+           - Share ID: rgba purple bg + soft glow shadow
+           - Next Card: rgba purple bg + soft glow shadow
+           - Copy ID: subtle purple tint + glow
+           - View Digital ID Card (right rail): purple gradient +
+             strong glow (was already partially done, now confirmed)
+        FILE TOUCHED: /app/frontend/app/(tabs)/profile.tsx (single file)
+        VERIFIED by 4 screenshots at 1440×900 logged in as student01:
+          - rest: no halo around card (clean)
+          - hover: bright purple halo appears
+          - full page: all buttons visible with purple glows, right
+            rail HoverGlow applied, Perks widget with HoverGlow,
+            Student ID box with HoverGlow.
+
