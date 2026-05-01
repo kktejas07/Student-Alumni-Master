@@ -2514,3 +2514,42 @@ agent_communication:
         VERIFIED by 3 screenshots at 1440×900 (normal/hover/full)
         logged in as student01 on /me → Digital ID Card tab.
 
+
+---
+## 2026-04-30 — Digital ID v5: always-rotating gradient, hover lift/scale, purple gradients on CTAs + avatars, Perks repositioned
+agent_communication:
+    - agent: "main"
+      message: |
+        3 user requirements from video reference implemented:
+        1) ALWAYS-ON ROTATING GRADIENT RING — Injected CSS keyframes
+           (didSpin 6s linear infinite + didShimmer 3.5s ease-in-out
+           infinite) into document.head on web mount. Card wrapper
+           now has:
+             a) conic-gradient purple ring (#A78BFA → #C4B5FD → #7C3AED
+                → #6D28D9 → loop) rotating clockwise, always-on,
+                opacity 0.75 resting / 0.95 on hover
+             b) breathing radial-gradient shimmer behind the ring
+                (3.5s in/out pulse)
+             c) on hover: translateY(-6px) + scale(1.02), .35s
+                cubic-bezier lift, ring blur 6→10px, opacity bump
+        2) PURPLE GRADIENTS applied to:
+             - tbEditBtn (Edit Profile): linear-gradient(135deg,
+               #A78BFA, #7C3AED 55%, #6D28D9) + purple boxShadow
+             - tbIdBtnActive (Digital ID Card active): same gradient
+             - topAvatar (34px): gradient + boxShadow
+             - miniAvatar (44px sidebar): gradient
+             - heroAvatar (96px): gradient + stronger shadow
+             - All avatar initials text now #fff (readable on deeper
+               purple)
+        3) MEMBER PERKS repositioned — moved from between card &
+           Student ID box to AFTER actions buttons (Download/Share/
+           Next), directly ABOVE "THIS ID WORKS ACROSS THE PLATFORM".
+        FILES TOUCHED: /app/frontend/app/(tabs)/profile.tsx (one
+        file; 6 targeted edits: keyframes effect, wrapper style
+        w/ lift+scale, ring style, 4 avatar styles, perks move,
+        button gradients)
+        VERIFIED by 4 screenshots at 1440×900 — gradient rotation
+        confirmed between 0ms and 1500ms frames (ring at different
+        angles), lift+scale visible on hover frame, perks in new
+        position, avatars + buttons all with purple gradients.
+

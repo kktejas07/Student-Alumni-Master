@@ -475,6 +475,26 @@ function DigitalIdCardInline({ userId, isMobile, draft, completion, showToast }:
     showToast(`Card: ${labels[next]}`);
   };
 
+  // Inject CSS keyframes once (web-only) for the always-rotating gradient border + shimmer
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const id = 'did-keyframes-v1';
+    if (typeof document === 'undefined' || document.getElementById(id)) return;
+    const style = document.createElement('style');
+    style.id = id;
+    style.textContent = `
+      @keyframes didSpin {
+        from { transform: rotate(0deg); }
+        to   { transform: rotate(360deg); }
+      }
+      @keyframes didShimmer {
+        0%,100% { opacity: 0.45; }
+        50%     { opacity: 0.85; }
+      }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
   return (
     <View style={{ borderRadius: 18, overflow: 'hidden', marginBottom: 16 }}>
       <LinearGradient
@@ -491,22 +511,40 @@ function DigitalIdCardInline({ userId, isMobile, draft, completion, showToast }:
         <View style={{ alignSelf: 'center', width: '100%', maxWidth: 500, gap: 12 }}>
           <View
             {...(Platform.OS === 'web' ? { onMouseEnter: () => setHoverCard(true), onMouseLeave: () => setHoverCard(false) } : {})}
-            style={{ position: 'relative', padding: 2, borderRadius: 22 } as any}
+            style={{
+              position: 'relative', padding: 2, borderRadius: 22,
+              ...(Platform.OS === 'web' ? ({
+                transition: 'transform .35s cubic-bezier(.2,.8,.2,1)',
+                transform: hoverCard ? 'translateY(-6px) scale(1.02)' : 'translateY(0) scale(1)',
+              } as any) : {}),
+            } as any}
           >
             {Platform.OS === 'web' && (
-              <View
-                // @ts-ignore web-only gradient ring (purple palette matching CTA + avatar)
-                style={{
-                  position: 'absolute', top: -6, left: -6, right: -6, bottom: -6, borderRadius: 26,
-                  backgroundImage: hoverCard
-                    ? 'conic-gradient(from 0deg, #A78BFA, #7C3AED, #C4B5FD, #6D28D9, #A78BFA)'
-                    : 'linear-gradient(135deg, rgba(167,139,250,0.30), rgba(124,58,237,0.10))',
-                  opacity: hoverCard ? 0.85 : 0.45,
-                  filter: hoverCard ? 'blur(14px)' : 'blur(4px)',
-                  transition: 'opacity .3s ease, filter .3s ease',
-                  pointerEvents: 'none',
-                } as any}
-              />
+              <>
+                {/* Rotating conic-gradient ring — ALWAYS animating */}
+                <View
+                  // @ts-ignore web-only always-rotating purple gradient
+                  style={{
+                    position: 'absolute', top: -4, left: -4, right: -4, bottom: -4, borderRadius: 24,
+                    backgroundImage: 'conic-gradient(from 0deg, #A78BFA 0%, #C4B5FD 20%, #7C3AED 40%, #6D28D9 60%, #A78BFA 80%, #C4B5FD 100%)',
+                    animation: 'didSpin 6s linear infinite',
+                    opacity: hoverCard ? 0.95 : 0.75,
+                    filter: hoverCard ? 'blur(10px)' : 'blur(6px)',
+                    transition: 'opacity .3s ease, filter .3s ease',
+                    pointerEvents: 'none',
+                  } as any}
+                />
+                {/* Outer shimmer glow (breathing) */}
+                <View
+                  // @ts-ignore
+                  style={{
+                    position: 'absolute', top: -14, left: -14, right: -14, bottom: -14, borderRadius: 30,
+                    backgroundImage: 'radial-gradient(closest-side, rgba(167,139,250,0.35), rgba(167,139,250,0) 70%)',
+                    animation: 'didShimmer 3.5s ease-in-out infinite',
+                    pointerEvents: 'none',
+                  } as any}
+                />
+              </>
             )}
             {/* Inner card — captured for download */}
             <View ref={cardRef as any} style={{ borderRadius: 20, overflow: 'hidden' }}>
@@ -590,28 +628,6 @@ function DigitalIdCardInline({ userId, isMobile, draft, completion, showToast }:
           <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium', fontSize: 11, textAlign: 'center' }}>Tap card to flip · Front &amp; back</Text>
         </View>
 
-        {/* MEMBER PERKS — separate widget (purple palette matching theme) */}
-        <View style={{ padding: 20, borderRadius: 16, backgroundColor: 'rgba(167,139,250,0.08)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, gap: 12 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={{ color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 11, letterSpacing: 1.4 }}>SA · MEMBER PERKS</Text>
-            <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(252,211,77,0.16)', borderColor: 'rgba(252,211,77,0.45)', borderWidth: 1 }}>
-              <Text style={{ color: '#FCD34D', fontFamily: 'DMSans_800ExtraBold', fontSize: 10 }}>TIER · STUDENT</Text>
-            </View>
-          </View>
-          <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 19 }}>Unlocked Benefits</Text>
-          {[
-            { label: 'Free mentor sessions', v: '3 / month' },
-            { label: 'Partner workshops', v: 'Free entry' },
-            { label: 'Resume review credits', v: '5' },
-            { label: 'Knowledge Room access', v: 'Unlimited' },
-          ].map((r, i) => (
-            <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomColor: 'rgba(255,255,255,0.08)', borderBottomWidth: i < 3 ? 1 : 0 }}>
-              <Text style={{ color: 'rgba(255,255,255,0.80)', fontFamily: 'DMSans_500Medium', fontSize: 13 }}>{r.label}</Text>
-              <Text style={{ color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 13 }}>{r.v}</Text>
-            </View>
-          ))}
-        </View>
-
         {/* YOUR STUDENT ID box */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.35)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1 }}>
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -638,6 +654,28 @@ function DigitalIdCardInline({ userId, isMobile, draft, completion, showToast }:
             <RotateCw size={14} color="rgba(255,255,255,0.85)" />
             <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 }}>Next Card</Text>
           </Pressable>
+        </View>
+
+        {/* MEMBER PERKS — separate widget (purple palette matching theme) */}
+        <View style={{ padding: 20, borderRadius: 16, backgroundColor: 'rgba(167,139,250,0.08)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, gap: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 11, letterSpacing: 1.4 }}>SA · MEMBER PERKS</Text>
+            <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(252,211,77,0.16)', borderColor: 'rgba(252,211,77,0.45)', borderWidth: 1 }}>
+              <Text style={{ color: '#FCD34D', fontFamily: 'DMSans_800ExtraBold', fontSize: 10 }}>TIER · STUDENT</Text>
+            </View>
+          </View>
+          <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 19 }}>Unlocked Benefits</Text>
+          {[
+            { label: 'Free mentor sessions', v: '3 / month' },
+            { label: 'Partner workshops', v: 'Free entry' },
+            { label: 'Resume review credits', v: '5' },
+            { label: 'Knowledge Room access', v: 'Unlimited' },
+          ].map((r, i) => (
+            <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomColor: 'rgba(255,255,255,0.08)', borderBottomWidth: i < 3 ? 1 : 0 }}>
+              <Text style={{ color: 'rgba(255,255,255,0.80)', fontFamily: 'DMSans_500Medium', fontSize: 13 }}>{r.label}</Text>
+              <Text style={{ color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 13 }}>{r.v}</Text>
+            </View>
+          ))}
         </View>
 
         {/* THIS ID WORKS ACROSS THE PLATFORM */}
@@ -722,8 +760,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(167,139,250,0.08)',
     borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1,
   },
-  miniAvatar: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', backgroundColor: 'rgba(167,139,250,0.30)', alignItems: 'center', justifyContent: 'center' },
-  miniAvatarText: { color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 14 },
+  miniAvatar: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #A78BFA, #7C3AED 55%, #6D28D9)' } as any) : {}) },
+  miniAvatarText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14 },
   miniName: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13.5 },
   miniMeta: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11, marginTop: 1 },
   miniMeta2: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 10.5, marginTop: 1 },
@@ -746,13 +784,13 @@ const styles = StyleSheet.create({
   subtitle: { color: C.text2, fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 2 },
   scorePill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: 'rgba(252,211,77,0.14)', borderColor: 'rgba(252,211,77,0.40)', borderWidth: 1 },
   scorePillText: { color: '#FCD34D', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
-  topAvatar: { width: 34, height: 34, borderRadius: 17, overflow: 'hidden', backgroundColor: 'rgba(167,139,250,0.30)', alignItems: 'center', justifyContent: 'center', borderColor: 'rgba(255,255,255,0.12)', borderWidth: 1 },
+  topAvatar: { width: 34, height: 34, borderRadius: 17, overflow: 'hidden', backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center', borderColor: 'rgba(255,255,255,0.18)', borderWidth: 1, ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #A78BFA, #7C3AED 55%, #6D28D9)', boxShadow: '0 4px 12px rgba(124,58,237,0.35)' } as any) : {}) },
   topAvatarText: { color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
 
   // Hero card
   heroCard: { flexDirection: 'row', alignItems: 'center', gap: 22, padding: 24, marginBottom: 16, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1 },
-  heroAvatar: { width: 96, height: 96, borderRadius: 48, overflow: 'hidden', backgroundColor: 'rgba(167,139,250,0.30)', alignItems: 'center', justifyContent: 'center' },
-  heroAvatarText: { color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 30 },
+  heroAvatar: { width: 96, height: 96, borderRadius: 48, overflow: 'hidden', backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #A78BFA, #7C3AED 55%, #6D28D9)', boxShadow: '0 10px 28px rgba(124,58,237,0.35)' } as any) : {}) },
+  heroAvatarText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 30 },
   heroName: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 26, letterSpacing: -0.3 },
   heroSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 13 },
   heroChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 4 },
@@ -773,12 +811,12 @@ const styles = StyleSheet.create({
   rrIdBtn: { marginTop: 12, paddingHorizontal: 12, paddingVertical: 11, borderRadius: 10, backgroundColor: C.purple, alignItems: 'center', ...({ cursor: 'pointer' } as any) },
   rrIdBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
 
-  // Top bar buttons (Edit Profile = primary purple, Digital ID Card = outline)
-  tbEditBtn: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14, height: 38, borderRadius: 9, backgroundColor: C.purple, ...({ cursor: 'pointer' } as any) },
-  tbEditBtnActive: { backgroundColor: C.purple },
+  // Top bar buttons (Edit Profile = primary purple gradient, Digital ID Card = outline that becomes gradient when active)
+  tbEditBtn: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14, height: 38, borderRadius: 9, backgroundColor: C.purple, ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 55%, #6D28D9 100%)', boxShadow: '0 6px 18px rgba(124,58,237,0.35)' } as any) : {}), ...({ cursor: 'pointer' } as any) },
+  tbEditBtnActive: { backgroundColor: C.purple, ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 55%, #6D28D9 100%)' } as any) : {}) },
   tbEditText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
   tbIdBtn: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14, height: 38, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.12)', borderWidth: 1, ...({ cursor: 'pointer' } as any) },
-  tbIdBtnActive: { backgroundColor: C.purple, borderColor: C.purple },
+  tbIdBtnActive: { backgroundColor: C.purple, borderColor: '#7C3AED', ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 55%, #6D28D9 100%)', boxShadow: '0 6px 18px rgba(124,58,237,0.35)' } as any) : {}) },
   tbIdText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
 
   // Top tab toggle (legacy, kept for possible reuse)
