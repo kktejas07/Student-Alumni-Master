@@ -3914,6 +3914,9 @@ async def on_shutdown():
 # ----------------------------------------------------------------------------
 # Mount router & CORS middleware
 # ----------------------------------------------------------------------------
+from portals import router as portals_router
+api_router.include_router(portals_router)
+
 app.include_router(api_router)
 
 app.add_middleware(

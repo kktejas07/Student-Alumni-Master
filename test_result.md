@@ -2933,3 +2933,86 @@ agent_communication:
 
 
           ✅ Firebase + PostHog SDKs bundle cleanly
+
+
+backend:
+  - task: "Portal Dashboard APIs (mentor / student / college admin / super admin)"
+    implemented: true
+    working: true
+    file: "/app/backend/portals.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: |
+            Added 4 new portal dashboard endpoints in /app/backend/portals.py
+            mounted via api_router.include_router(portals_router):
+
+              GET /api/mentor/dashboard       → mentor info + KPIs + today sessions + monthly + pending requests count
+              GET /api/student/dashboard      → student profile + KPIs + topMatches + recommendedMentors + upcomingEvents + profileCompletion
+              GET /api/admin/college-stats    → college info + KPIs + deptPlacement + recentActivity + upcomingEvents + topRecruiters
+              GET /api/admin/super-overview   → admin info + 8 KPIs + recentActivity + platformUsers + monthlyEnrollments + revenueBreakdown
+
+            All endpoints currently return STATIC MOCK DATA (matching exactly what
+            the frontend dashboards expect). When real DB queries are wired up, only
+            the function bodies change — the JSON contracts remain identical.
+
+            curl -s http://localhost:8001/api/student/dashboard returned 200 with the
+            expected top-level keys: ['student','kpis','topMatches','recommendedMentors','upcomingEvents','profileCompletion'].
+
+            Please test all 4 endpoints return 200 with the correct JSON shapes.
+        -working: true
+         agent: "testing"
+         comment: |
+            Verified end-to-end via /app/backend_test_portals.py against both
+            http://localhost:8001/api and the public ingress
+            https://hiring-mvvm.preview.emergentagent.com/api. ALL 4 endpoints
+            return HTTP 200 with the exact expected top-level keys and
+            structurally valid bodies. STATIC MOCK DATA as designed.
+
+            ✅ GET /api/mentor/dashboard (HTTP 200)
+              top-level keys: {mentor, kpis, todaySessions, monthly, pendingRequests}
+              · mentor.name="Dr. Suresh Rao" (string)
+              · kpis is non-empty list (4 entries: earnings/sessions/students/rating)
+              · todaySessions is list (3 entries with avatar/student/topic/time/duration)
+              · monthly is list (6 months Dec→May with amount + sessions)
+              · pendingRequests=3
+
+            ✅ GET /api/student/dashboard (HTTP 200)
+              top-level keys: {student, kpis, topMatches, recommendedMentors,
+                               upcomingEvents, profileCompletion}
+              · student.name="Arjun Sharma", career_score=74
+              · kpis list of 4 (matches/courses/mentors/score)
+              · topMatches list of 3 internships with match score
+              · recommendedMentors list of 2
+              · upcomingEvents list of 3 (Hackathon/DSA/MasterClass)
+              · profileCompletion.score=68 (int) with missing[] array
+
+            ✅ GET /api/admin/college-stats (HTTP 200)
+              top-level keys: {college, kpis, deptPlacement, recentActivity,
+                               upcomingEvents, topRecruiters}
+              · college.name="St. Xavier's College", placementRate=94
+              · kpis list of 4 (students/alumni/placement/events)
+              · deptPlacement list of 5 departments with pct + placed
+              · recentActivity list of 6 entries
+              · upcomingEvents list of 4
+              · topRecruiters list of 5 companies
+
+            ✅ GET /api/admin/super-overview (HTTP 200)
+              top-level keys: {admin, kpis, recentActivity, platformUsers,
+                               monthlyEnrollments, revenueBreakdown}
+              · admin.name="Super Admin"
+              · kpis list of EXACTLY 8 (colleges/students/mentors/alumni/
+                revenue/events/approvals/engagement)
+              · platformUsers list of 4 (Students 72% / Alumni 18% /
+                Mentors 7% / Colleges 3%)
+              · monthlyEnrollments list of 6 months
+              · revenueBreakdown list of 4 sources
+
+            All 4 endpoints are unauthenticated (no Bearer token required) and
+            respond consistently in <200ms. No exceptions thrown, no 5xx errors
+            in backend.err.log. HIGHLIGHT: responses are STATIC MOCK DATA per
+            design — when real DB-backed queries are wired up the JSON contracts
+            stay identical so no frontend change required.
