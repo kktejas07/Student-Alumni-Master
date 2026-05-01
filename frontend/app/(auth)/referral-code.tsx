@@ -43,7 +43,10 @@ export default function ReferralCode() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: trimmed }),
       }).catch(() => {});
-      router.replace('/(onboarding)/quick-setup' as any);
+      // Route by role — students get the 7-step spec-compliant wizard, others
+      // use the shorter flat quick-setup form.
+      const dest = role === 'student' ? '/(onboarding)/student-onboard' : '/(onboarding)/quick-setup';
+      router.replace(dest as any);
     } catch {
       setError('Could not apply code. Try again or skip.');
     } finally {
@@ -53,7 +56,8 @@ export default function ReferralCode() {
 
   const onSkip = () => {
     trackAuth({ event: 'referral_skipped' as any });
-    router.replace('/(onboarding)/quick-setup' as any);
+    const dest = role === 'student' ? '/(onboarding)/student-onboard' : '/(onboarding)/quick-setup';
+    router.replace(dest as any);
   };
 
   return (

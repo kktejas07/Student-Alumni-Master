@@ -41,7 +41,8 @@ export default function EmailVerify() {
   };
 
   const skipToDashboard = () => {
-    router.replace(IS_WEB ? '/platform' : '/(tabs)');
+    // Per spec — go through Welcome Dashboard transition before landing on portal
+    router.replace('/(onboarding)/welcome-dashboard' as any);
   };
 
   const goSetup2FA = () => {

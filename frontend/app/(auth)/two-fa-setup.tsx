@@ -76,7 +76,7 @@ export default function TwoFASetup() {
 
   const finish = () => {
     toast.success('Welcome aboard!', 'Your dashboard is ready.');
-    router.replace(IS_WEB ? '/platform' : '/(tabs)');
+    router.replace('/(onboarding)/welcome-dashboard' as any);
   };
 
   const Body = (
