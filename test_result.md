@@ -4063,3 +4063,122 @@ agent_communication:
         
         No further backend work needed. Backend tests 36/36 PASS.
 
+
+
+backend:
+  - task: "CRUD/append-only endpoints for personas (crud_endpoints.py)"
+    implemented: true
+    working: false
+    file: "/app/backend/crud_endpoints.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: |
+            Verified all 25 review checks via /app/backend_test_crud.py
+            against https://hiring-mvvm.preview.emergentagent.com/api.
+            
+            RESULT: 51/53 assertion-level checks PASSED. 2 critical failures
+            on the admin/users invite path.
+            
+            ✅ A) STUDENT bookings (1-4): POST /student/bookings creates
+               booking with valid mentor (booked2 → mentor-active2, "DSA Practice"),
+               returns booking_id + scheduled_at + amount_paid=999. GET
+               /student/my-bookings reflects it with mentor_name, scheduled_at,
+               status="confirmed". Bad mentor email → 404. DELETE then GET
+               shows status="cancelled". All PASS.
+            ✅ B) STUDENT internship applications (5-8): GET /student/internships
+               returns items; POST /student/internships/{id}/apply returns
+               application_id; second POST returns already=true (idempotent);
+               GET /student/my-applications lists it. All PASS.
+            ✅ C) STUDENT workshops (9-11): POST /student/workshops/enroll
+               for "Test Bootcamp" returns registration_id; idempotent on
+               retry; GET /student/my-workshops includes "Test Bootcamp". PASS.
+            ✅ D) STUDENT events (12): GET /student/my-events?email=enrolled1
+               returns count > 0 with seeded data. PASS.
+            ✅ E) MENTOR endpoints (13-17): POST /mentor/courses returns
+               course_id; GET /mentor/my-courses lists "Live Test Course";
+               POST /mentor/availability with 2 slots returns slots_saved=2;
+               GET /mentor/my-bookings?when=today returns scope="today";
+               ?when=upcoming returns scope="upcoming". All PASS.
+            
+            ❌ F) ADMIN/COLLEGE endpoints (18, 19) FAILED — CRITICAL:
+               POST /api/admin/users returns 401 "Not authenticated" instead of
+               the expected public 200/409 behaviour.
+               ROOT CAUSE: server.py defines POST /api/admin/users at line 2421
+               with `Depends(get_current_user)` + `_require_admin(user)`. The
+               server.py route is registered FIRST (api_router.include_router
+               at line 3936 wires server.py routes before crud_router which
+               is included at line 3934 inside api_router). FastAPI matches
+               first-registered route → the secured admin handler shadows
+               the new public handler in crud_endpoints.py.
+               Tests 18 and 19 both fail with 401.
+               
+               (Items 20, 21 pass: POST /college/events returns event_id;
+               GET /college/my-students returns count >= 0 for admin1@iitbombay.demo.)
+            
+            ✅ G) LIVE counters (22, 23): GET /api/live/counters returns all
+               12 expected keys (users=1538, students=1072, mentors=240,
+               colleges=161, bookings=43→44, bookings_today=6, applications,
+               events=130, rsvps=12, workshops=10, courses=49, as_of); all
+               int values >= 0; as_of parses as ISO timestamp. After a fresh
+               POST /student/bookings, bookings count incremented by exactly 1.
+               PASS.
+            ✅ H) Tier system regression (24, 25): GET /student/dashboard
+               returns 200 with student.tier present; GET /student/internships
+               returns 200 with user_tier present. No regression. PASS.
+            
+            FIX REQUIRED:
+            Either (a) rename the public route in crud_endpoints.py
+            (e.g. POST /admin/users/invite) or (b) remove the secured handler
+            in server.py at line 2421-2470, or (c) reorder includes so
+            crud_router takes precedence on this path. Without this, persona
+            admin/college dashboards CANNOT add users via the documented
+            public endpoint.
+
+metadata:
+  created_by: "testing_agent"
+  version: "3.3"
+  test_sequence: 6
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "CRUD/append-only endpoints for personas (crud_endpoints.py)"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "testing"
+      message: |
+        CRUD endpoints test (review request) — 51/53 PASS, 2 FAIL.
+        
+        WORKING:
+          • Student: bookings (create/list/cancel + bad-mentor 404),
+            internship apply (idempotent) + my-applications,
+            workshops enroll (idempotent) + my-workshops,
+            my-events (seeded data > 0)
+          • Mentor: course create + my-courses, availability set
+            (slots_saved=2), my-bookings (today + upcoming with scope)
+          • College: events create, my-students
+          • Live counters (all 12 keys, ints, ISO timestamp,
+            increments after new booking)
+          • Regression: /student/dashboard.student.tier and
+            /student/internships.user_tier still present
+        
+        BROKEN — needs main agent fix:
+          ❌ POST /api/admin/users — returns 401 because server.py
+             line 2421 registers a SECURED admin handler that shadows
+             the new public handler in crud_endpoints.py. Same path,
+             FastAPI uses first match. Tests 18 + 19 both fail.
+             
+             Suggested fix (one-line):
+                In crud_endpoints.py, rename @router.post("/admin/users")
+                to @router.post("/admin/users/invite") OR remove the
+                older server.py handler at lines 2421-2470 if no longer
+                needed.
+        
+        File: /app/backend_test_crud.py is reusable for regression.

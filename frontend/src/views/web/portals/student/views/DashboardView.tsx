@@ -35,6 +35,8 @@ const STUDENT_MOCK = {
 
 export function DashboardView() {
   const { data } = usePortalData<typeof STUDENT_MOCK>('/student/dashboard', STUDENT_MOCK);
+  // Live counters polled every 15s so users can SEE auto-refresh working
+  const { data: live } = usePortalData<any>('/live/counters', null as any, 15_000);
   const STUDENT = data!.student;
   const KPIS = data!.kpis;
   const TOP_MATCHES = data!.topMatches;
@@ -80,6 +82,22 @@ export function DashboardView() {
           <Text style={s.briefCtaText}>{briefLoading ? 'Generating…' : 'Generate Brief'}</Text>
         </Pressable>
       </View>
+
+      {/* LIVE-COUNTERS strip — refreshes every 15s to demo auto-refresh */}
+      {live && (
+        <View style={s.liveStrip}>
+          <View style={s.livePulse} />
+          <Text style={s.liveLabel}>LIVE</Text>
+          <Text style={s.liveTxt}>
+            <Text style={{ color: SC.accentBright, fontFamily: FONTS.xbold }}>{live.users}</Text> users ·{' '}
+            <Text style={{ color: SC.accentBright, fontFamily: FONTS.xbold }}>{live.bookings}</Text> bookings ·{' '}
+            <Text style={{ color: SC.accentBright, fontFamily: FONTS.xbold }}>{live.applications}</Text> applications ·{' '}
+            <Text style={{ color: SC.accentBright, fontFamily: FONTS.xbold }}>{live.workshops}</Text> workshops
+          </Text>
+          <View style={{ flex: 1 }} />
+          <Text style={s.liveAsOf}>auto-refreshing every 15s</Text>
+        </View>
+      )}
 
       {/* TIER BANNER — glowing badge + score + tier-driven suggestions */}
       {STUDENT.tier && (
@@ -285,6 +303,20 @@ const s = StyleSheet.create({
   briefSub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 1 },
   briefCta: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 10, backgroundColor: SC.primary, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
   briefCtaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+
+  liveStrip: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
+    backgroundColor: 'rgba(34,197,94,0.06)',
+    borderColor: 'rgba(34,197,94,0.25)', borderWidth: 1,
+  },
+  livePulse: {
+    width: 8, height: 8, borderRadius: 4, backgroundColor: '#22C55E',
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 8px #22C55E, 0 0 14px #22C55E' } as any) : {}),
+  },
+  liveLabel: { color: '#22C55E', fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1 },
+  liveTxt: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12 },
+  liveAsOf: { color: SC.dim, fontFamily: FONTS.med, fontSize: 11, fontStyle: 'italic' },
 
   tierCard: {
     backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14,

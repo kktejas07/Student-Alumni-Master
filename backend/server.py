@@ -3929,6 +3929,10 @@ api_router.include_router(auth_analytics_router)
 from ai_briefs import router as ai_briefs_router
 api_router.include_router(ai_briefs_router)
 
+# CRUD endpoints — append-only mutations (book, RSVP, enroll, apply)
+from crud_endpoints import router as crud_router
+api_router.include_router(crud_router)
+
 app.include_router(api_router)
 
 app.add_middleware(

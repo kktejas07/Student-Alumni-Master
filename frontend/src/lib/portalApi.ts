@@ -33,31 +33,47 @@ export type FetchState<T> = {
 };
 
 /**
- * Generic hook: fetch once on mount, fall back to provided `mock` if fetch fails.
- * Returns `{ data, loading, error }`. `data` is never null after first render
- * because we initialise with the mock so the UI renders immediately while
- * we attempt the network call in the background.
+ * Generic hook: fetch on mount + auto-refresh every `refreshMs` (default 30s).
+ * Falls back to `mock` if fetch fails. Returns `{ data, loading, error, refresh }`.
+ * Set `refreshMs={0}` to disable polling.
  */
-export function usePortalData<T>(path: string, mock: T): FetchState<T> {
+export function usePortalData<T>(path: string, mock: T, refreshMs: number = 30_000): FetchState<T> & { refresh: () => void } {
   const [data, setData]       = useState<T | null>(mock);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
+  const [tick,    setTick]    = useState(0);
+
+  const refresh = () => setTick((t) => t + 1);
 
   useEffect(() => {
     let cancelled = false;
-    fetchPortal<T>(path)
-      .then((result) => {
-        if (!cancelled) {
-          setData(result);
-          setError(null);
-        }
-      })
-      .catch((e) => {
-        if (!cancelled) setError(e?.message || 'Network error');
-      })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [path]);
+    let timer: any = null;
 
-  return { data, loading, error };
+    const load = () => {
+      fetchPortal<T>(path)
+        .then((result) => {
+          if (!cancelled) {
+            setData(result);
+            setError(null);
+          }
+        })
+        .catch((e) => {
+          if (!cancelled) setError(e?.message || 'Network error');
+        })
+        .finally(() => { if (!cancelled) setLoading(false); });
+    };
+
+    load();
+
+    if (refreshMs > 0) {
+      timer = setInterval(load, refreshMs);
+    }
+
+    return () => {
+      cancelled = true;
+      if (timer) clearInterval(timer);
+    };
+  }, [path, refreshMs, tick]);
+
+  return { data, loading, error, refresh };
 }
