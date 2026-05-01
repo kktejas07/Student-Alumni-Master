@@ -1,25 +1,30 @@
 /**
- * FeaturePageShell — shared sidebar-wrapped page layout used by
- *   /deals, /rentals, /financial, /career-ai, /higher-education
+ * FeaturePageShell — shared layout for /deals, /rentals, /financial,
+ * /career-ai, /higher-education.
  *
- * Keeps the left-side Student Alumni nav + top-bar + purple theme
- * consistent across every dashboard sub-route. Each page just
- * provides its own heading + body via <FeaturePageShell ...>{children}.
+ * Enforces the signature Student Alumni purple gradient theme across
+ * every dashboard sub-route:
+ *   • Hero uses the same ['#5F259F','#7B3DBF','#2D0760'] gradient as
+ *     the main /platform dashboard hero, with decorative purple orbs.
+ *   • Subtle purple radial glow on the page background.
+ *   • Top bar with "← Dashboard" pill + notifications bell.
+ *
+ * Individual pages may still pass their own `accent` which is used
+ * only for the small right-slot pill highlight — the hero itself is
+ * always purple so the dashboard feels cohesive.
  */
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Bell } from 'lucide-react-native';
+import { ArrowLeft, Bell, ArrowRight } from 'lucide-react-native';
 
 const C = {
   bg: '#0C0818',
-  side: '#0E0A1F',
   border: 'rgba(255,255,255,0.08)',
   text: '#fff',
   text2: 'rgba(255,255,255,0.70)',
   text3: 'rgba(255,255,255,0.45)',
-  purple: '#7C3AED',
 };
 
 export default function FeaturePageShell({
@@ -41,8 +46,14 @@ export default function FeaturePageShell({
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      {/* Main column (full width — sidebar removed) */}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: isMobile ? 16 : 28, gap: 22, maxWidth: 1400, width: '100%', alignSelf: 'center' }}>
+      {/* Ambient purple glow across the page background */}
+      <View pointerEvents="none" style={styles.ambientOrbA} />
+      <View pointerEvents="none" style={styles.ambientOrbB} />
+
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: isMobile ? 16 : 28, gap: 22, maxWidth: 1400, width: '100%', alignSelf: 'center' }}
+      >
         {/* Top bar */}
         <View style={styles.topBar}>
           <Pressable onPress={() => router.replace('/platform')} style={styles.backBtn}>
@@ -53,19 +64,27 @@ export default function FeaturePageShell({
           <View style={styles.bellBtn}><Bell size={16} color="#fff" /></View>
         </View>
 
-        {/* Hero */}
-        <LinearGradient
-          colors={[accent + '44', accent + '22', 'rgba(30,20,55,0.90)']}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={styles.hero}
-        >
-          <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-            <Text style={styles.heroEmoji}>{heroEmoji}</Text>
-            <Text style={styles.heroTitle}>{title}</Text>
-            {subtitle ? <Text style={styles.heroSub}>{subtitle}</Text> : null}
+        {/* Hero — signature purple gradient */}
+        <View style={styles.heroShell}>
+          <LinearGradient
+            colors={['#5F259F', '#7B3DBF', '#2D0760']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          {/* Decorative purple orbs inside the hero */}
+          <View pointerEvents="none" style={[styles.heroOrb, { width: 300, height: 300, top: -80, right: -40, backgroundColor: 'rgba(176,127,223,0.18)' }]} />
+          <View pointerEvents="none" style={[styles.heroOrb, { width: 180, height: 180, bottom: -40, left: 20, backgroundColor: 'rgba(95,37,159,0.28)' }]} />
+          <View pointerEvents="none" style={[styles.heroOrb, { width: 220, height: 220, top: 20, left: '38%' as any, backgroundColor: 'rgba(124,58,237,0.14)' }]} />
+
+          <View style={[styles.heroBody, isMobile && { flexDirection: 'column', alignItems: 'flex-start', gap: 16 }]}>
+            <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+              <Text style={styles.heroEmoji}>{heroEmoji}</Text>
+              <Text style={[styles.heroTitle, isMobile && { fontSize: 22, lineHeight: 28 }]}>{title}</Text>
+              {subtitle ? <Text style={styles.heroSub}>{subtitle}</Text> : null}
+            </View>
+            {rightSlot}
           </View>
-          {rightSlot}
-        </LinearGradient>
+        </View>
 
         {/* Page body */}
         <View style={{ gap: 18 }}>{children}</View>
@@ -75,23 +94,45 @@ export default function FeaturePageShell({
 }
 
 const styles = StyleSheet.create({
-  sidebar: { width: 260, padding: 18, backgroundColor: C.side, borderRightWidth: 1, borderRightColor: C.border, gap: 6 },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 18, ...({ cursor: 'pointer' } as any) },
-  logoBox: { width: 38, height: 38, borderRadius: 10, backgroundColor: C.purple, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #A78BFA, #7C3AED 55%, #6D28D9)' } as any) : {}) },
-  logoTxt: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
-  brandTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 14 },
-  brandSub: { color: C.text3, fontFamily: 'DMSans_500Medium', fontSize: 11 },
-  kicker: { color: C.text3, fontFamily: 'DMSans_800ExtraBold', fontSize: 10, letterSpacing: 1.2, marginTop: 8, marginBottom: 6 },
-  navRow: { paddingHorizontal: 12, paddingVertical: 10, borderRadius: 9, ...({ cursor: 'pointer' } as any) },
-  navRowText: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12.5 },
+  // Ambient background orbs (visible through content for subtle depth)
+  ambientOrbA: {
+    position: 'absolute',
+    top: -160, right: -180,
+    width: 520, height: 520, borderRadius: 260,
+    backgroundColor: 'rgba(95,37,159,0.22)',
+    ...(Platform.OS === 'web' ? ({ filter: 'blur(80px)' } as any) : {}),
+  },
+  ambientOrbB: {
+    position: 'absolute',
+    top: 280, left: -200,
+    width: 460, height: 460, borderRadius: 230,
+    backgroundColor: 'rgba(123,61,191,0.16)',
+    ...(Platform.OS === 'web' ? ({ filter: 'blur(90px)' } as any) : {}),
+  },
 
   topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 4 },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1, ...({ cursor: 'pointer' } as any) },
   backText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
   bellBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
 
-  hero: { flexDirection: 'row', padding: 24, borderRadius: 18, gap: 18, alignItems: 'center', borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1 },
-  heroEmoji: { fontSize: 28 },
-  heroTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 26, letterSpacing: -0.3 },
-  heroSub: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 13.5, marginTop: 2 },
+  // Hero shell — absolute purple theme, consistent across all pages
+  heroShell: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(176,127,223,0.30)',
+    // match the dashboard hero glow
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px -16px rgba(95,37,159,0.55)' } as any) : {}),
+  },
+  heroBody: {
+    padding: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 18,
+    minHeight: 140,
+  },
+  heroOrb: { position: 'absolute', borderRadius: 999 },
+  heroEmoji: { fontSize: 30 },
+  heroTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 28, letterSpacing: -0.4, lineHeight: 34 },
+  heroSub: { color: 'rgba(255,255,255,0.82)', fontFamily: 'DMSans_500Medium', fontSize: 14, marginTop: 4, maxWidth: 720 },
 });
