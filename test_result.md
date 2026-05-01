@@ -2673,3 +2673,77 @@ agent_communication:
           - /higher-education: stats + advisor + 6 universities
           - /platform still working with the new nav layout
 
+
+
+---
+## 2026-05-01 — Full build-out of 4 feature pages to match HTML specs (career-ai already complete)
+agent_communication:
+    - agent: "main"
+      message: |
+        Completely rebuilt 4 of the 5 standalone feature pages to pixel-match
+        the user-supplied HTML artifacts (Career AI was already done in prev
+        session):
+
+        1) /deals — Deals & Perks (accent #F59E0B)
+           • 4 top stats (Total 58, Free 8, Hot 7, Insurance 10)
+           • 7 category tabs (All, Insurance, Tech, Food, Entertainment,
+             Learning, Transport) with counts and icons
+           • 32 deal cards: discount banner, original crossed-out/student
+             price, promo code, HOT badge, Claim button — all color-accented
+           • SA-ID footer CTA card
+
+        2) /rentals — Student housing, vehicles, farmhouses, hotels (accent #5F259F)
+           • 4 top stats (Total 18, Verified 18, Featured 6, Discounts 18)
+           • 7 category tabs (Housing, Vehicles, Farmhouses, Hotels, Vacation,
+             Cowork)
+           • 20 rental cards: emoji cover, Verified + Featured badges,
+             discount pill, amenity chips, star rating, "X left", perk bar,
+             original + rent price, Book Now button
+
+        3) /higher-education — Global education explorer (accent #8B5CF6)
+           • 5 stat cards (Courses, Universities, Destinations, Scholarships,
+             Research)
+           • 5 tabs: Courses (8), Universities (8), Countries (7),
+             Scholarships (8), Research (6)
+           • Rich cards with match% pill, 4-field key-value grid, Apply Now
+           • Country cards include flag emojis + POPULAR pill
+           • Personalised HE AI Advisor CTA with 5 feature chips at bottom
+
+        4) /financial — Student finance hub (accent #5F259F)
+           • 4 stat cards
+           • 4 tabs: Scholarships, Startup Funding, Investors, Loans
+           • 6 products per tab with amount/rate bar, bullet highlights,
+             color-accented Apply/Pitch/Apply for Loan CTA
+           • Interactive AI EMI Calculator widget: 3 sliders + EMI + Total
+             Interest + AI Loan Optimiser button
+           • Two bottom CTAs: "Talk to Student Advisor" + "Ask the Financial AI"
+
+        Fixed bugs inherited from previous session:
+          - career-ai.tsx was importing `Linkedin` and `Github` icons that
+            don't exist in installed lucide-react-native — replaced with
+            `Globe` and `GitBranch` respectively. Page now renders cleanly.
+
+        Implementation notes:
+          - All 5 pages share FeaturePageShell (sidebar + top bar + hero)
+          - Only lucide icons that exist in the installed distribution are used
+          - Category tabs use horizontal ScrollView so they don't clip on
+            narrow viewports
+          - Colors are applied with hex+alpha suffix pattern (e.g. color+'22'
+            for background, color+'55' for border) to keep each tab visually
+            distinct while respecting the dark-purple theme
+          - No shadow* or `background` CSS shorthand used in new files
+            (avoiding deprecated RN-web warnings)
+
+        Visual verification (Playwright screenshots @1400x900 desktop):
+          - /career-ai        — 4 stats, 6-cat Train-with-AI, 10-week roadmap,
+                                Build-your-profile grid — ✅ renders
+          - /deals            — Hero, 4 stats, 7 tabs, 32-card grid — ✅ renders
+          - /rentals          — Hero, 4 stats, 7 tabs, 20-card grid — ✅ renders
+          - /higher-education — Hero, 5 stats, 5 tabs, cards + AI CTA — ✅ renders
+          - /financial        — Hero, 4 stats, 4 tabs, EMI calc, CTAs — ✅ renders
+
+        Known deferred items:
+          - Real job-board API integration (LinkedIn, Internshala, Buddy4Study)
+          - OAuth (Google/LinkedIn) real credentials
+          - Replacing `shadow*` with `boxShadow` sweep across older widgets
+            (new files already use the modern syntax)

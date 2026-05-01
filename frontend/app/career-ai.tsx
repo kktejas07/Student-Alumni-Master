@@ -54,7 +54,7 @@ const CATEGORIES = [
     skills: ['LinkedIn Outreach', 'Cold Emailing', 'Event Networking', 'Personal Branding'],
     insight: 'Your LinkedIn response rate is 12%. AI can help craft personalised messages for 40%+.',
     tools: ['LinkedIn Message AI', 'Brand Analyser', 'Outreach Templates'],
-    score: 38, Icon: Linkedin,
+    score: 38, Icon: Globe,
   },
   {
     id: 'lead', title: 'Leadership', emoji: '👑', color: '#FB923C',
@@ -106,10 +106,10 @@ const BUILD_TOOLS = [
   { label: 'Skills', Icon: Sparkles },
   { label: 'Certifications', Icon: Award },
   { label: 'Projects', Icon: Code },
-  { label: 'LinkedIn Boost', Icon: Linkedin },
+  { label: 'LinkedIn Boost', Icon: Globe },
   { label: 'Mock Interviews', Icon: Target },
   { label: 'CV Review', Icon: BookOpen },
-  { label: 'GitHub', Icon: Github },
+  { label: 'GitHub', Icon: GitBranch },
   { label: 'Cover Letter', Icon: MessageSquare },
 ];
 
