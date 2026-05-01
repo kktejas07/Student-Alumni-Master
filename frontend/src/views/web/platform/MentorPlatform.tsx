@@ -48,8 +48,8 @@ export default function MentorPlatform() {
 
   return (
     <LinearGradient
-      colors={SA.pageBgMentor as any}
-      locations={SA.pageBgGradientStops as any}
+      colors={['#071412', '#0A1F1A', '#0F2E26'] as any}
+      locations={[0, 0.5, 1] as any}
       start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
       style={styles.shell}
     >
@@ -59,8 +59,8 @@ export default function MentorPlatform() {
           activeId={screen}
           onNav={setScreen}
           brandSubtitle="Mentor Portal"
-          bgColor={SA.sideMentor}
-          railColor={SA.railMentor}
+          bgColor={'rgba(10,26,22,0.95)'}
+          railColor={'#14B8A6'}
           collapsed={sidebarCollapsed}
           onToggleCollapsed={() => setSidebarCollapsed((c) => !c)}
           user={{
