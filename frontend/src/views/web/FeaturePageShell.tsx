@@ -1,24 +1,76 @@
 /**
  * FeaturePageShell — shared layout for /deals, /rentals, /financial,
- * /career-ai, /higher-education.
+ * /career-ai, /higher-education, etc.
  *
- * Uses the EXACT same purple gradient background + glass card treatment
- * as the main Student Dashboard (/platform), so every dashboard flow
- * shares the signature theme.
+ * Uses the SAME purple gradient background + glass theme + left
+ * sidebar as the main /platform Student Dashboard, so navigation
+ * feels like a single SPA instead of separate pages.
  *
- * Design reference: Student Alumni — Desktop.html
- *   • Page background: LinearGradient ['#1A0438','#2D0760','#5F259F']
- *     at stops [0, 0.45, 1]  (SA.pageBgStudent)
- *   • Glass hero card: rgba(95,37,159,0.28) with rgba(176,127,223,0.30)
- *     border + backdrop-filter blur(20px)
- *   • Ambient purple orbs floating in the gradient
+ *   • Sidebar persists on every feature page
+ *   • Clicking a nav item navigates with router.replace() — the URL
+ *     changes but no history stack grows; the user stays "in place"
+ *     and just the right pane swaps.
+ *   • Active item is auto-detected from the current route.
  */
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { ArrowLeft, Bell } from 'lucide-react-native';
+import { useRouter, usePathname } from 'expo-router';
+import {
+  ArrowLeft, Bell, Home as HomeIcon, Sparkles, Briefcase, BookOpen, Users,
+  Calendar, Wallet, Shield, Building2, Gift, User as UserIcon, GraduationCap,
+} from 'lucide-react-native';
+import { Sidebar, NavItem } from '@/src/views/web/platform/components';
 import { SA } from '@/src/views/web/platform/tokens';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+
+// Single source of truth for sidebar navigation
+const NAV: NavItem[] = [
+  { id: 'home',              Icon: HomeIcon,       label: 'Dashboard',        color: '#A78BFA' },
+  { id: 'career',            Icon: Sparkles,       label: 'Career AI',        color: '#A78BFA' },
+  { id: 'internships',       Icon: Briefcase,      label: 'Internships',      color: '#34D399' },
+  { id: 'courses',           Icon: BookOpen,       label: 'Courses',          color: '#22D3EE' },
+  { id: 'higher-education',  Icon: GraduationCap,  label: 'Higher Education', color: '#FCD34D' },
+  { id: 'network',           Icon: Users,          label: 'Network',          color: '#F472B6' },
+  { id: 'events',            Icon: Calendar,       label: 'Events',           color: '#FB923C' },
+  { id: 'financial',         Icon: Wallet,         label: 'Financial',        color: '#FCD34D' },
+  { id: 'insurance',         Icon: Shield,         label: 'Insurance',        color: '#60A5FA' },
+  { id: 'rentals',           Icon: Building2,      label: 'Rentals',          color: '#A78BFA' },
+  { id: 'deals',             Icon: Gift,           label: 'Deals',            color: '#F472B6' },
+  { id: 'profile',           Icon: UserIcon,       label: 'Profile',          color: '#A78BFA' },
+];
+
+// Map NAV id ↔ Expo-router route
+const ROUTE_MAP: Record<string, string> = {
+  home: '/platform',
+  career: '/career-ai',
+  internships: '/internships',
+  courses: '/explore-courses',
+  'higher-education': '/higher-education',
+  network: '/network',
+  events: '/events',
+  financial: '/financial',
+  insurance: '/financial', // Insurance products live inside /financial
+  rentals: '/rentals',
+  deals: '/deals',
+  profile: '/me',
+};
+
+// Reverse map: which NAV id is "active" for a given pathname
+function activeIdForPath(path: string): string {
+  if (path.startsWith('/platform')) return 'home';
+  if (path.startsWith('/career-ai')) return 'career';
+  if (path.startsWith('/internships')) return 'internships';
+  if (path.startsWith('/explore-courses') || path.startsWith('/courses')) return 'courses';
+  if (path.startsWith('/higher-education')) return 'higher-education';
+  if (path.startsWith('/network')) return 'network';
+  if (path.startsWith('/events')) return 'events';
+  if (path.startsWith('/financial')) return 'financial';
+  if (path.startsWith('/rentals')) return 'rentals';
+  if (path.startsWith('/deals')) return 'deals';
+  if (path.startsWith('/me')) return 'profile';
+  return '';
+}
 
 export default function FeaturePageShell({
   title, subtitle, accent = SA.purpleLight,
@@ -34,11 +86,32 @@ export default function FeaturePageShell({
   rightSlot?: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { width } = useWindowDimensions();
-  const isMobile = width < 768;
+  const isWide = width >= 1024;
+
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+
+  const initials = (user?.full_name || 'SA').split(' ').slice(0, 2).map((p) => p[0] || '').join('').toUpperCase();
+  const activeId = activeIdForPath(pathname || '');
+
+  const onNav = (id: string) => {
+    const target = ROUTE_MAP[id];
+    if (!target) return;
+    // If we're already on that route, do nothing (no flash, no new view)
+    if (pathname === target) return;
+    // SPA-style in-place swap: no history stack growth
+    router.replace(target as any);
+  };
+
+  const onLogout = async () => {
+    await logout();
+    router.replace('/welcome');
+  };
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, flexDirection: 'row' }}>
       {/* Full-page purple gradient — identical to /platform dashboard */}
       <LinearGradient
         colors={SA.pageBgStudent as any}
@@ -51,11 +124,28 @@ export default function FeaturePageShell({
       {/* Ambient floating purple orbs for depth */}
       <View pointerEvents="none" style={[styles.ambientOrb, { top: -160, right: -140, width: 520, height: 520, backgroundColor: 'rgba(176,127,223,0.22)' }]} />
       <View pointerEvents="none" style={[styles.ambientOrb, { top: 280, left: -180, width: 440, height: 440, backgroundColor: 'rgba(95,37,159,0.28)' }]} />
-      <View pointerEvents="none" style={[styles.ambientOrb, { bottom: -200, right: 100, width: 380, height: 380, backgroundColor: 'rgba(123,61,191,0.22)' }]} />
+
+      {/* Persistent sidebar — same as Student Dashboard */}
+      {isWide && (
+        <Sidebar
+          navItems={NAV}
+          activeId={activeId}
+          onNav={onNav}
+          brandSubtitle="Web Dashboard"
+          bgColor={SA.sideStudent}
+          railColor={SA.railStudent}
+          user={user ? {
+            initials,
+            primary: user.full_name || 'Student',
+            secondary: `${user.role === 'alumni' ? 'Alumni' : 'Batch 2022'} · ${user.career_path || 'job'}`,
+          } : undefined}
+          onLogout={onLogout}
+        />
+      )}
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ padding: isMobile ? 16 : 28, gap: 22, maxWidth: 1400, width: '100%', alignSelf: 'center' }}
+        contentContainerStyle={{ padding: isWide ? 28 : 16, gap: 22 }}
       >
         {/* Top bar */}
         <View style={styles.topBar}>
@@ -67,16 +157,15 @@ export default function FeaturePageShell({
           <View style={styles.bellBtn}><Bell size={16} color="#fff" /></View>
         </View>
 
-        {/* Hero — glass card with purple tint, matches platform hero */}
+        {/* Hero — glass card */}
         <View style={styles.heroShell}>
-          {/* Decorative orbs inside the hero for extra depth */}
           <View pointerEvents="none" style={[styles.heroOrb, { width: 280, height: 280, top: -80, right: -40, backgroundColor: 'rgba(176,127,223,0.22)' }]} />
           <View pointerEvents="none" style={[styles.heroOrb, { width: 180, height: 180, bottom: -50, left: 20, backgroundColor: 'rgba(212,170,255,0.18)' }]} />
 
-          <View style={[styles.heroBody, isMobile && { flexDirection: 'column', alignItems: 'flex-start', gap: 16 }]}>
+          <View style={[styles.heroBody, !isWide && { flexDirection: 'column', alignItems: 'flex-start', gap: 16 }]}>
             <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
               <Text style={styles.heroEmoji}>{heroEmoji}</Text>
-              <Text style={[styles.heroTitle, isMobile && { fontSize: 22, lineHeight: 28 }]}>{title}</Text>
+              <Text style={[styles.heroTitle, !isWide && { fontSize: 22, lineHeight: 28 }]}>{title}</Text>
               {subtitle ? <Text style={styles.heroSub}>{subtitle}</Text> : null}
             </View>
             {rightSlot}
@@ -91,7 +180,6 @@ export default function FeaturePageShell({
 }
 
 const styles = StyleSheet.create({
-  // Soft, blurred ambient orbs over the gradient
   ambientOrb: {
     position: 'absolute',
     borderRadius: 9999,
@@ -115,7 +203,6 @@ const styles = StyleSheet.create({
     ...({ backdropFilter: 'blur(12px)' } as any),
   },
 
-  // Glass hero — matches Platform "info" panel spec
   heroShell: {
     borderRadius: 20,
     overflow: 'hidden',
