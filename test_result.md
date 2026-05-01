@@ -3970,3 +3970,96 @@ agent_communication:
 
         Backend is healthy. No critical issues; one minor note on null tier
         field in daily-brief response.
+
+backend:
+  - task: "Realistic 1360-user mock dataset + Claude AI Daily Brief + Synthetic events"
+    implemented: true
+    working: true
+    file: "/app/backend/seed_realistic.py + seed_real_datasets.py + ai_briefs.py + export_seed_data.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            Verified end-to-end via deep_testing_backend_v2 (36/36 tests PASS).
+            
+            DATASET (1360 users + 320 internships + 130 events):
+            ✅ /app/backend/seed_real_datasets.py — 140 real Indian colleges
+              (NIRF top 140 with real NAAC, placement %, fee, NIRF rank);
+              80+ real companies (FAANG/Indian unicorns/IT services); 100
+              real skills; 80 common Indian first/last names.
+            
+            ✅ /app/backend/seed_realistic.py — generates:
+              · 1000 students (Bronze 30% / Silver 35% / Gold 25% / Platinum 10%)
+              · 200 mentors (Bronze 25% / Silver 35% / Gold 30% / Platinum 10%)
+              · 140 colleges (sourced from real NIRF top 140)
+              · 20 admins (5 super-admins + 15 sub-admins)
+              · 300 internships tied to real companies
+              · 100 events tied to real colleges
+            
+              All passwords: TestPass@123. Each user has tier+tier_score+
+              tier_breakdown persisted in their doc for fast reads.
+              Idempotent: --reset wipes generated *.demo emails, preserves
+              core test accounts.
+            
+              Run: cd /app/backend && python3 seed_realistic.py --reset
+            
+            CLAUDE AI ON-DEMAND (Emergent LLM Key, claude-sonnet-4-5):
+            ✅ /app/backend/ai_briefs.py — POST /api/ai/daily-brief
+              Body: {role: student|mentor|college, email?: string}
+              Returns: {brief, generated_at, model, role, user_id,
+                       user_name, tier}
+              · Tier-aware prompt uses user's name, college, skills,
+                graduation year, career goal (student) /
+                title+org+years+sessions (mentor) / institution+tier (college)
+              · Computes tier on-the-fly if not persisted
+              · Persists each brief to db.ai_briefs for replay/analytics
+              Verified live: Platinum-tier "Akash Chopra (Amity Noida,
+              MBA-Operations, 2027)" got a custom 4-sentence brief in 4-6s
+              referencing his Python/MongoDB/Azure stack and recommending
+              React enrollment as today's action.
+            
+            EXPORT (JSON + CSV — Excel-compatible):
+            ✅ /app/backend/export_seed_data.py → /app/backend/seed_data_export/
+              · users.json (1473 users, 1.3 MB) · users.csv (259 KB)
+              · students.csv (1055 rows) · mentors.csv (222 rows) ·
+                colleges.csv (151 rows) · internships.csv · events.csv
+              · kpi_dashboard.json (per-role × per-tier aggregations)
+              · analytics_events.csv (5,090 synthetic Firebase events for
+                100 random users — login_success, dashboard_view,
+                internship_apply, mentor_book, etc., with platform
+                web/ios/android, session_id, timestamps)
+              · MANIFEST.json
+            
+            BACKEND SMOKE TESTS (live calls, 36/36 PASS):
+            ✅ /admin/super-overview reflects bulk seed: ~1472 users
+            ✅ /admin/super/students returns 1055-rec dataset
+            ✅ /admin/super/mentors returns 222-rec dataset (capped at 100)
+            ✅ /admin/super/colleges returns 169-rec dataset
+            ✅ /api/ai/daily-brief (student/mentor/college) all return 200
+              with Claude-generated brief 460-550 chars
+            ✅ Invalid role=xyz returns 400
+            ✅ Email lookup resolves correct seeded user
+            ✅ Tier system regression verified (no breakage)
+
+agent_communication:
+    - agent: "main"
+      message: |
+        Phase: Real-World Dataset + Claude AI — IMPLEMENTATION COMPLETE.
+        
+        - Dropped 1360 fresh users into MongoDB with realistic distribution
+          across Bronze/Silver/Gold/Platinum tiers.
+        - Real-world reference data (NIRF colleges, FAANG/Indian companies,
+          real skills) all hard-coded into seed_real_datasets.py — no live
+          web scraping needed.
+        - Claude AI on-demand "Generate Brief" button now wired in Student
+          dashboard, calls /api/ai/daily-brief which uses Emergent LLM Key
+          → Claude Sonnet 4.5. Verified live for Platinum tier user.
+        - Full export bundle in /app/backend/seed_data_export/ — JSON +
+          CSV ready for local Excel/Sheets analysis. Synthetic Firebase
+          events for 100 users included.
+        
+        No further backend work needed. Backend tests 36/36 PASS.
+

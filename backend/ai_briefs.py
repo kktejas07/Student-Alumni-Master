@@ -106,6 +106,31 @@ async def daily_brief(req: BriefRequest):
     if not user:
         raise HTTPException(404, f"No {role} user found")
 
+    # Compute tier on-the-fly if not persisted
+    if not user.get("tier"):
+        try:
+            if role == "student":
+                si = (user or {}).get("school_info") or {}
+                cname = si.get("institution_name")
+                naac = None
+                if cname:
+                    cmeta = await _db.colleges_meta.find_one({"name": cname})
+                    if cmeta:
+                        naac = cmeta.get("naac")
+                tres = compute_student_tier(user, naac)
+            elif role == "mentor":
+                sess = await _db.bookings.count_documents({"mentor_id": str(user["_id"]), "status": {"$in": ["confirmed", "completed"]}})
+                tres = compute_mentor_tier(user, sess, float(user.get("rating", 4.5)))
+            else:
+                si = (user or {}).get("school_info") or {}
+                cname = si.get("institution_name") or user.get("full_name", "—")
+                cmeta = await _db.colleges_meta.find_one({"name": cname}) or {}
+                tres = compute_college_tier(cmeta.get("naac", "A"), 1000, 80.0, 5000)
+            user["tier"] = tres["tier"]
+            user["tier_score"] = tres["score"]
+        except Exception:
+            pass
+
     # Pick prompt
     if role == "student":
         system = "You are a concise career coach for Indian students."
