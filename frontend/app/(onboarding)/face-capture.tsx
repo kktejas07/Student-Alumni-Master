@@ -79,6 +79,8 @@ export default function FaceCapture() {
         skills: onboarding.skills,
         bio: onboarding.bio,
         face_image_base64: onboarding.face_image_base64,
+        // Collected during role-details for ALL roles per HTML spec
+        phone: onboarding.phone,
       };
       if (onboarding.student_age || onboarding.student_education_level || onboarding.student_career_goal) {
         payload.student_info = {
@@ -86,6 +88,7 @@ export default function FaceCapture() {
           education_level: onboarding.student_education_level || 'btech',
           career_interests: onboarding.interests,
           career_goal: onboarding.student_career_goal || undefined,
+          cgpa: onboarding.student_cgpa,
         };
       }
       if (onboarding.mentor_organization || onboarding.mentor_job_title) {
@@ -96,6 +99,7 @@ export default function FaceCapture() {
           linkedin_url: onboarding.mentor_linkedin_url || undefined,
           years_of_experience: onboarding.mentor_years_of_experience,
           bio: onboarding.bio,
+          session_price_inr: onboarding.mentor_session_price_inr,
         };
       }
       if (onboarding.alumni_employment_status) {

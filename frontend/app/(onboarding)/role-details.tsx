@@ -56,6 +56,12 @@ export default function RoleDetailsScreen() {
   const [ageStr, setAgeStr] = useState(
     onboarding.student_age ? String(onboarding.student_age) : ''
   );
+  const [cgpaStr, setCgpaStr] = useState(
+    onboarding.student_cgpa != null ? String(onboarding.student_cgpa) : ''
+  );
+  const [phoneStr, setPhoneStr] = useState(onboarding.phone || '');
+  const [customPrice, setCustomPrice] = useState('');
+  const SESSION_PRICES = [499, 799, 999, 1499];
   const [orgs, setOrgs] = useState<string[]>(FALLBACK_ORGS);
   const [titles, setTitles] = useState<string[]>(FALLBACK_TITLES);
   const [titleOther, setTitleOther] = useState('');
@@ -81,15 +87,31 @@ export default function RoleDetailsScreen() {
 
   const validate = (): boolean => {
     setError(null);
+    // Phone — required for ALL roles per spec (collected during onboarding)
+    const phoneDigits = phoneStr.replace(/\D/g, '');
+    if (!phoneDigits || phoneDigits.length < 10) {
+      setError('Please enter a valid phone number (10+ digits).');
+      return false;
+    }
     if (user?.role === 'student') {
       const age = parseInt(ageStr, 10);
       if (!age || age < 10) { setError('Students must be at least 10 years old.'); return false; }
       if (!onboarding.student_education_level) { setError('Please select your education level.'); return false; }
+      if (cgpaStr.trim()) {
+        const g = parseFloat(cgpaStr);
+        if (isNaN(g) || g < 0 || g > 10) {
+          setError('CGPA must be between 0.0 and 10.0 (leave empty if unknown).');
+          return false;
+        }
+      }
     }
     if (user?.role === 'mentor') {
       if (!onboarding.mentor_category) { setError('Please select a mentorship category.'); return false; }
       if (!onboarding.mentor_organization?.trim()) { setError('Organization / Company is required.'); return false; }
       if (!onboarding.mentor_job_title?.trim()) { setError('Job Title / Designation is required.'); return false; }
+      if (!onboarding.mentor_session_price_inr || onboarding.mentor_session_price_inr < 0) {
+        setError('Please pick a session price (or enter a custom amount).'); return false;
+      }
     }
     if (user?.role === 'alumni') {
       if (!onboarding.alumni_employment_status) { setError('Please select your employment status.'); return false; }
@@ -108,7 +130,14 @@ export default function RoleDetailsScreen() {
       if (error) toast.error('Check your details', error);
       return;
     }
-    if (user?.role === 'student') onboarding.setStudentInfo({ age: parseInt(ageStr, 10) });
+    // Persist phone for all roles
+    onboarding.setPhone(phoneStr.trim());
+    if (user?.role === 'student') {
+      onboarding.setStudentInfo({
+        age: parseInt(ageStr, 10),
+        cgpa: cgpaStr.trim() ? parseFloat(cgpaStr) : undefined,
+      });
+    }
     if (user?.role === 'student' || user?.role === 'alumni') {
       router.push('/(onboarding)/career-path');
     } else {
@@ -135,6 +164,17 @@ export default function RoleDetailsScreen() {
       onPrimary={next}
       onBack={() => router.back()}
     >
+      {/* Phone Number — collected during onboarding for ALL roles per spec */}
+      <WebField
+        label="Phone Number *"
+        placeholder="+91 98765 43210"
+        keyboardType="phone-pad"
+        value={phoneStr}
+        onChangeText={setPhoneStr}
+        testID="phone-input"
+        helper="We'll use this for session reminders, booking confirmations and OTP verification."
+      />
+
       {/* Student fields */}
       {role === 'student' && (
         <>
@@ -165,6 +205,15 @@ export default function RoleDetailsScreen() {
             onChangeText={(v: string) => onboarding.setStudentInfo({ career_goal: v })}
             testID="student-career-goal-input"
             helper="Your career aspiration powers the AI roadmap and personalized matches."
+          />
+          <WebField
+            label="Academic CGPA (optional, 0.0 – 10.0)"
+            placeholder="e.g., 8.4"
+            keyboardType="decimal-pad"
+            value={cgpaStr}
+            onChangeText={setCgpaStr}
+            testID="student-cgpa-input"
+            helper="Shared with colleges & mentors to match scholarships and opportunities."
           />
         </>
       )}
@@ -232,6 +281,45 @@ export default function RoleDetailsScreen() {
           )}
           <WebField label="LinkedIn URL (highly recommended)" placeholder="https://linkedin.com/in/yourname" keyboardType="url" value={onboarding.mentor_linkedin_url || ''} onChangeText={(v: string) => onboarding.setMentorInfo({ mentor_linkedin_url: v })} testID="mentor-linkedin-input" />
           <WebField label="Years of Experience" placeholder="e.g., 5" keyboardType="numeric" value={onboarding.mentor_years_of_experience ? String(onboarding.mentor_years_of_experience) : ''} onChangeText={(v: string) => onboarding.setMentorInfo({ mentor_years_of_experience: parseInt(v) || undefined })} testID="mentor-yoe-input" />
+
+          {/* Session Price — per HTML spec. Revenue-critical. */}
+          <Text style={styles.section}>1:1 Session Price *</Text>
+          <Text style={styles.helper}>
+            Set your per-session rate in INR. You can change this anytime from your mentor dashboard.
+          </Text>
+          <View style={styles.chipRow}>
+            {SESSION_PRICES.map((p) => (
+              <DarkChip
+                key={p}
+                label={`₹${p}`}
+                active={onboarding.mentor_session_price_inr === p && !customPrice}
+                onPress={() => {
+                  setCustomPrice('');
+                  onboarding.setMentorInfo({ mentor_session_price_inr: p });
+                }}
+                testID={`session-price-${p}`}
+              />
+            ))}
+            <DarkChip
+              label="Custom"
+              active={!!customPrice}
+              onPress={() => { /* focus handled by input below */ }}
+              testID="session-price-custom"
+            />
+          </View>
+          <WebField
+            label="Custom amount (₹)"
+            placeholder="e.g., 2500"
+            keyboardType="numeric"
+            value={customPrice}
+            onChangeText={(v: string) => {
+              setCustomPrice(v);
+              const n = parseInt(v, 10);
+              onboarding.setMentorInfo({ mentor_session_price_inr: isNaN(n) ? undefined : n });
+            }}
+            testID="session-price-custom-input"
+            helper="Leave empty to use one of the presets above."
+          />
         </>
       )}
 

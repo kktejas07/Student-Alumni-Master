@@ -157,6 +157,9 @@ class MentorInfo(BaseModel):
     linkedin_url: Optional[str] = None  # Recommended for credibility
     years_of_experience: Optional[int] = None
     bio: Optional[str] = None
+    # Per HTML spec — 1:1 session price in INR (revenue-critical).
+    # Suggested chips: 499 / 799 / 999 / 1499; free custom values allowed.
+    session_price_inr: Optional[int] = None
 
 
 class AlumniInfo(BaseModel):
@@ -182,6 +185,9 @@ class StudentInfo(BaseModel):
     # Per spec — specific aspiration (e.g. "Software Developer", "Web Developer")
     # Used directly in AI roadmap prompts to drive interest-based filtering
     career_goal: Optional[str] = None
+    # Per HTML spec — Academic GPA (0.0–10.0 CGPA scale or 0.0–4.0 if GPA).
+    # Used by college dashboards and AI recommendations for scholarship matching.
+    cgpa: Optional[float] = None
 
 
 # ----- Auth payloads -----
@@ -219,6 +225,9 @@ class OnboardingRequest(BaseModel):
     skills: List[str] = Field(default_factory=list)
     bio: Optional[str] = None
     face_image_base64: Optional[str] = None  # Profile photo (base64-encoded)
+    # Per HTML spec — collect phone number during onboarding for all roles.
+    # Stored at the root user level (not role-specific).
+    phone: Optional[str] = None
 
 
 class UserResponse(BaseModel):
@@ -1806,6 +1815,9 @@ async def complete_onboarding(req: OnboardingRequest, user: dict = Depends(get_c
         "onboarding_completed": True,
         "updated_at": datetime.now(timezone.utc),
     }
+    # Phone (collected during onboarding for all roles per spec)
+    if req.phone:
+        update["phone"] = req.phone.strip()
     if req.student_info:
         update["student_info"] = req.student_info.model_dump()
     if req.alumni_info:
