@@ -1,7 +1,7 @@
 /**
  * Onboarding step 3 — Role-specific details (Web split-screen + Native dark theme).
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useOnboardingStore } from '@/src/viewmodels/stores/onboardingStore';
@@ -10,7 +10,25 @@ import { useToast } from '@/src/views/components';
 import { OnboardingShell, DarkChip, DarkInfoCard, DarkToggle } from '@/src/views/web/OnboardingShell';
 import { WebField } from '@/src/views/web/AuthWebControls';
 import { MentorCategoryGrid } from '@/src/views/web/MentorCategoryGrid';
+import { Dropdown } from '@/src/views/web/Dropdown';
+import { SuggestionAutocomplete } from '@/src/views/web/SuggestionAutocomplete';
 import type { MentorCategory } from '@/src/models/entities';
+
+const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+
+// Static fallback — used if /api/mentors/suggestions is unreachable.
+const FALLBACK_ORGS = [
+  'Google', 'Microsoft', 'Amazon', 'Meta', 'TCS', 'Infosys', 'Wipro',
+  'Flipkart', 'Swiggy', 'Razorpay', 'Zomato', 'Paytm', 'Zerodha',
+  'Deloitte', 'Accenture', 'McKinsey & Company', 'IIT Bombay',
+  'IIM Ahmedabad', 'Independent / Freelancer',
+];
+const FALLBACK_TITLES = [
+  'Software Engineer', 'Senior Software Engineer', 'Engineering Manager',
+  'Tech Lead', 'Product Manager', 'Data Scientist', 'Founder', 'CTO',
+  'Career Coach', 'Professor / Assistant Professor', 'Industry Advisor',
+  'Other',
+];
 
 const EDU_LEVELS = [
   { id: 'plus_one', label: 'Class 11 (+1)' },
@@ -38,6 +56,28 @@ export default function RoleDetailsScreen() {
   const [ageStr, setAgeStr] = useState(
     onboarding.student_age ? String(onboarding.student_age) : ''
   );
+  const [orgs, setOrgs] = useState<string[]>(FALLBACK_ORGS);
+  const [titles, setTitles] = useState<string[]>(FALLBACK_TITLES);
+  const [titleOther, setTitleOther] = useState('');
+
+  // Load mentor suggestions from backend on mount (once).
+  useEffect(() => {
+    if (user?.role !== 'mentor') return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${BASE}/api/mentors/suggestions`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        if (Array.isArray(data.organizations) && data.organizations.length)
+          setOrgs(data.organizations);
+        if (Array.isArray(data.job_titles) && data.job_titles.length)
+          setTitles(data.job_titles);
+      } catch {/* keep fallback */}
+    })();
+    return () => { cancelled = true; };
+  }, [user?.role]);
 
   const validate = (): boolean => {
     setError(null);
@@ -144,8 +184,52 @@ export default function RoleDetailsScreen() {
             multi={false}
             testIDPrefix="mentor-cat"
           />
-          <WebField label="Organization / Company *" placeholder="e.g., Google, IIT Bombay, Your Startup" value={onboarding.mentor_organization || ''} onChangeText={(v: string) => onboarding.setMentorInfo({ mentor_organization: v })} testID="mentor-org-input" />
-          <WebField label="Job Title / Designation *" placeholder="e.g., Senior Engineer, Founder, Professor" value={onboarding.mentor_job_title || ''} onChangeText={(v: string) => onboarding.setMentorInfo({ mentor_job_title: v })} testID="mentor-title-input" />
+          <SuggestionAutocomplete
+            label="Organization / Company *"
+            value={onboarding.mentor_organization || ''}
+            onChangeText={(v: string) => onboarding.setMentorInfo({ mentor_organization: v })}
+            placeholder="Start typing… (e.g., Google, IIT Bombay, Your Startup)"
+            suggestions={orgs}
+            helper="Pick from our list — or type your own organization"
+            testID="mentor-org-input"
+          />
+          <Dropdown
+            label="Job Title / Designation *"
+            value={titles.includes(onboarding.mentor_job_title || '')
+              ? (onboarding.mentor_job_title as string)
+              : (onboarding.mentor_job_title ? 'Other' : '')}
+            options={titles.map((t) => ({ value: t, label: t }))}
+            onChange={(v) => {
+              if (v === 'Other') {
+                // Preserve any previously-entered custom value; otherwise blank.
+                onboarding.setMentorInfo({
+                  mentor_job_title: titles.includes(onboarding.mentor_job_title || '')
+                    ? ''
+                    : (onboarding.mentor_job_title || ''),
+                });
+              } else {
+                onboarding.setMentorInfo({ mentor_job_title: v });
+                setTitleOther('');
+              }
+            }}
+            placeholder="Select your designation"
+            required
+            testID="mentor-title-dropdown"
+          />
+          {/* If user picked 'Other' OR their stored title isn't in the preset list,
+              show a free-text input so they can supply a custom designation. */}
+          {(!titles.includes(onboarding.mentor_job_title || '') || titleOther) && (
+            <WebField
+              label="Custom job title"
+              placeholder="e.g., Developer Advocate, Ops Lead"
+              value={onboarding.mentor_job_title || ''}
+              onChangeText={(v: string) => {
+                setTitleOther(v);
+                onboarding.setMentorInfo({ mentor_job_title: v });
+              }}
+              testID="mentor-title-other-input"
+            />
+          )}
           <WebField label="LinkedIn URL (highly recommended)" placeholder="https://linkedin.com/in/yourname" keyboardType="url" value={onboarding.mentor_linkedin_url || ''} onChangeText={(v: string) => onboarding.setMentorInfo({ mentor_linkedin_url: v })} testID="mentor-linkedin-input" />
           <WebField label="Years of Experience" placeholder="e.g., 5" keyboardType="numeric" value={onboarding.mentor_years_of_experience ? String(onboarding.mentor_years_of_experience) : ''} onChangeText={(v: string) => onboarding.setMentorInfo({ mentor_years_of_experience: parseInt(v) || undefined })} testID="mentor-yoe-input" />
         </>

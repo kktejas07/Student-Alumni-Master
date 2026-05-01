@@ -12,7 +12,7 @@
  *   • Academic Year, Stream, Board → glass-style dropdown pickers (not free-text)
  *   • Persists `current_course`, `academic_year`, `stream`, `board` for promotions logic
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useOnboardingStore } from '@/src/viewmodels/stores/onboardingStore';
@@ -117,8 +117,11 @@ const BOARD_OPTIONS: DropdownOption[] = [
   { value: 'other',       label: 'Other' },
 ];
 
-// Alumni / Mentor presets
-const PASSOUT_DEGREE_PRESETS = ['B.Tech', 'B.Sc', 'B.Com', 'BBA', 'BA', 'MBA', 'M.Tech', 'M.Sc', 'PhD'];
+// Alumni / Mentor presets — Engineering-only per product spec
+const PASSOUT_DEGREE_PRESETS = [
+  'B.Tech', 'B.E.', 'M.Tech', 'M.E.',
+  'Diploma (Engg)', 'B.Sc (Engg)', 'PhD (Engg)',
+];
 const PASSOUT_YEAR_OPTIONS: DropdownOption[] = (() => {
   const list: DropdownOption[] = [];
   for (let i = 30; i >= 1; i--) list.push({ value: String(CURRENT_YEAR - i), label: String(CURRENT_YEAR - i) });
@@ -139,10 +142,20 @@ export default function SchoolInfoScreen() {
   const role = user?.role || 'student';
   const isStudent = role === 'student';
   const isPassedOut = role === 'alumni' || role === 'mentor';
-  const instType = school_info.institution_type;
-  // Stage flags — drive which fields render
+  const instType = school_info.institution_type || 'university';
+  // Stage flags — drive which fields render. For students we default to
+  // 'university' / higher-ed track since the app is engineering-focused.
   const isInter      = isStudent && instType === 'school';
-  const isHigherEd   = isStudent && (instType === 'college' || instType === 'university');
+  const isHigherEd   = isStudent && (instType !== 'school');
+
+  // On first mount, default the institution_type so downstream validation
+  // passes (we removed the user-facing Type of Institution chips per spec).
+  useEffect(() => {
+    if (!school_info.institution_type) {
+      setSchoolInfo({ institution_type: 'university' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const validate = (): boolean => {
     setError(null);
@@ -235,20 +248,6 @@ export default function SchoolInfoScreen() {
           </Text>
         </DarkInfoCard>
       )}
-
-      {/* ── Type of Institution ────────────────────────────── */}
-      <Text style={styles.section}>Type of institution</Text>
-      <View style={styles.chipRow}>
-        {INSTITUTION_TYPES.map((t) => (
-          <DarkChip
-            key={t.id}
-            label={t.label}
-            active={school_info.institution_type === t.id}
-            onPress={() => setSchoolInfo({ institution_type: t.id })}
-            testID={`school-type-${t.id}`}
-          />
-        ))}
-      </View>
 
       {/* ── Institution Name (logo + autocomplete) ─────────── */}
       <Text style={styles.section}>Institution name</Text>
@@ -386,12 +385,14 @@ export default function SchoolInfoScreen() {
             testID="school-passout-year"
           />
 
-          <WebField
+          <Dropdown
             label="Branch / Stream (optional)"
-            placeholder="e.g., Computer Science, Commerce, PCM"
+            optional
             value={school_info.branch_or_stream || ''}
-            onChangeText={(v: string) => setSchoolInfo({ branch_or_stream: v })}
-            testID="school-branch-input"
+            options={ENGINEERING_STREAM_OPTIONS}
+            onChange={(v) => setSchoolInfo({ branch_or_stream: v })}
+            placeholder="Select your engineering branch (CSE, ECE, Mech…)"
+            testID="school-branch-dropdown"
           />
           <WebField
             label="Board / University (optional)"

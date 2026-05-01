@@ -21,7 +21,8 @@ export default function RegisterScreen() {
   const initialRole: Role = (params.role as Role) || 'student';
   const [role, setRole] = useState<Role>(initialRole);
   const [showPicker, setShowPicker] = useState(false);
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [pwd, setPwd] = useState('');
   const [showPwd, setShowPwd] = useState(false);
@@ -44,11 +45,14 @@ export default function RegisterScreen() {
 
   const onSubmit = async () => {
     const errs: Record<string, string> = {};
-    if (!name) errs.name = 'Enter your full name';
+    if (!firstName.trim()) errs.firstName = 'Enter your first name';
+    if (!lastName.trim())  errs.lastName  = 'Enter your last name';
     if (!email || !email.includes('@')) errs.email = 'Enter a valid email';
     if (strength.score < 2) errs.pwd = 'Pick a stronger password';
     setErrors(errs);
     if (Object.keys(errs).length) return;
+
+    const fullName = `${firstName.trim()} ${lastName.trim()}`;
 
     setLoading(true);
     trackAuth({ event: 'register_attempt', email, role });
@@ -56,7 +60,7 @@ export default function RegisterScreen() {
       const res = await fetch(`${BASE}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: pwd, full_name: name, role }),
+        body: JSON.stringify({ email, password: pwd, full_name: fullName, role }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -105,7 +109,14 @@ export default function RegisterScreen() {
           </View>
 
           <View style={{ gap: 14 }}>
-            <AuthInput label="Full name" value={name} onChangeText={(t) => { setName(t); setErrors((p) => ({ ...p, name: '' })); }} placeholder="e.g. Aryan Kapoor" autoCapitalize="words" error={errors.name} />
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <AuthInput label="First name" value={firstName} onChangeText={(t) => { setFirstName(t); setErrors((p) => ({ ...p, firstName: '' })); }} placeholder="e.g. Aryan" autoCapitalize="words" error={errors.firstName} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <AuthInput label="Last name" value={lastName} onChangeText={(t) => { setLastName(t); setErrors((p) => ({ ...p, lastName: '' })); }} placeholder="e.g. Kapoor" autoCapitalize="words" error={errors.lastName} />
+              </View>
+            </View>
             <AuthInput label="Email" value={email} onChangeText={(t) => { setEmail(t); setErrors((p) => ({ ...p, email: '' })); }} placeholder="you@university.edu" keyboardType="email-address" error={errors.email} />
             <AuthInput
               label="Password"

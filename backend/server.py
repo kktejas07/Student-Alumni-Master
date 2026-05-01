@@ -520,6 +520,120 @@ async def get_me(user: dict = Depends(get_current_user)):
 
 
 # ----------------------------------------------------------------------------
+# Mentor Onboarding — Suggestions (organizations + job titles)
+# ----------------------------------------------------------------------------
+# A curated, India-first list tailored for the core mentor archetypes
+# (IT/Software · Career Coaching · Business / MBA · Academia). The frontend
+# calls this on mount to populate its autocomplete & dropdown. The lists are
+# intentionally broad — user can always type a custom value if not listed.
+_MENTOR_ORGANIZATIONS = [
+    # Big tech / product
+    "Google", "Microsoft", "Meta", "Amazon", "Apple", "Netflix",
+    "Adobe", "Salesforce", "Oracle", "IBM", "SAP", "Intel", "NVIDIA",
+    "LinkedIn", "Uber", "Airbnb", "Stripe", "Atlassian", "Shopify",
+    "Samsung Research", "Qualcomm", "Cisco", "VMware", "ServiceNow",
+    # India Tech
+    "Flipkart", "Swiggy", "Zomato", "Paytm", "PhonePe", "Razorpay",
+    "Cred", "Meesho", "Zerodha", "Groww", "Nykaa", "Ola", "Myntra",
+    "Byjus", "Unacademy", "Vedantu", "upGrad",
+    "Freshworks", "Zoho", "Postman", "Hackerrank", "BrowserStack",
+    # Services & consulting
+    "TCS", "Infosys", "Wipro", "HCL Tech", "Tech Mahindra",
+    "Cognizant", "Accenture", "Capgemini", "Deloitte", "EY",
+    "PwC", "KPMG", "McKinsey & Company", "BCG", "Bain & Company",
+    "JP Morgan Chase", "Goldman Sachs", "Morgan Stanley", "Barclays",
+    # Enterprise / hardware / core
+    "Reliance Jio", "Tata Motors", "Mahindra", "Bajaj Auto", "L&T",
+    "Bharti Airtel", "ITC", "HDFC Bank", "ICICI Bank", "SBI",
+    "Maruti Suzuki", "Hero MotoCorp", "Mahindra & Mahindra",
+    # AI / emerging
+    "OpenAI", "Anthropic", "Hugging Face", "Cohere",
+    # Indian R&D / Public-sector
+    "DRDO", "ISRO", "BARC", "BEL", "HAL",
+    # Academia — top IITs / NITs / IISc
+    "IIT Bombay", "IIT Delhi", "IIT Madras", "IIT Kanpur",
+    "IIT Kharagpur", "IIT Roorkee", "IIT Guwahati", "IIT Hyderabad",
+    "IISc Bangalore", "IIIT Bangalore", "IIIT Hyderabad",
+    "NIT Trichy", "NIT Warangal", "NIT Surathkal",
+    "BITS Pilani", "VIT Vellore", "Manipal Institute of Technology",
+    "ISB Hyderabad", "IIM Ahmedabad", "IIM Bangalore", "IIM Calcutta",
+    "XLRI Jamshedpur",
+    # Fallback
+    "Independent / Freelancer", "Startup (Stealth)",
+]
+
+_MENTOR_JOB_TITLES = [
+    # IT / Software Engineering
+    "Software Engineer",
+    "Senior Software Engineer",
+    "Staff Software Engineer",
+    "Principal Engineer",
+    "Engineering Manager",
+    "Senior Engineering Manager",
+    "Director of Engineering",
+    "VP of Engineering",
+    "CTO",
+    "Tech Lead",
+    "Architect / Solution Architect",
+    "DevOps / SRE Engineer",
+    "Data Engineer",
+    "Machine Learning Engineer",
+    "Data Scientist",
+    "AI / Research Scientist",
+    "Product Manager",
+    "Senior Product Manager",
+    "Director of Product",
+    "UX / Product Designer",
+    "QA / Test Engineer",
+    "Mobile Engineer (iOS / Android)",
+    "Front-end Engineer",
+    "Full-stack Engineer",
+    "Cybersecurity Engineer",
+    # HR / Recruiting
+    "Technical Recruiter",
+    "HR Manager",
+    "Talent Acquisition Lead",
+    "People Partner",
+    # Career Coaching / Higher-Ed
+    "Career Coach",
+    "Career Counsellor",
+    "Study Abroad Consultant",
+    "Admissions Consultant",
+    "Professor / Assistant Professor",
+    "Associate Professor",
+    "Dean",
+    "Head of Department",
+    # Business / MBA / Advisory
+    "Founder",
+    "Co-founder",
+    "CEO",
+    "COO",
+    "CFO",
+    "CMO",
+    "Business Head",
+    "VP of Sales",
+    "VP of Marketing",
+    "Management Consultant",
+    "Industry Advisor",
+    "Investor / Venture Partner",
+    # Fallback
+    "Other",
+]
+
+
+@api_router.get("/mentors/suggestions")
+async def mentor_suggestions():
+    """Return organization + job title suggestion lists used by the mentor
+    onboarding form (role-details). No auth required — these are static
+    reference lists that help users complete the form quickly."""
+    return {
+        "organizations": _MENTOR_ORGANIZATIONS,
+        "job_titles": _MENTOR_JOB_TITLES,
+    }
+
+
+
+# ----------------------------------------------------------------------------
 # Badge endpoints (multi-role tiered + universal)
 # ----------------------------------------------------------------------------
 @api_router.get("/users/me/badges")
