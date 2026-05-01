@@ -11,12 +11,13 @@
  *     anything looks off in the RN port
  *   - Mobile users get the same pixel-exact UI via WebView
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Platform, StyleSheet, Text, Pressable } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LogOut } from 'lucide-react-native';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import MentorPortalRN from '@/src/views/web/portals/mentor/MentorPortalRN';
+import analytics from '@/src/lib/analytics';
 
 // Lazy-imported on native only
 let WebView: any;
@@ -30,9 +31,17 @@ export default function MentorPortalRoute() {
   const logout = useAuthStore((st) => st.logout);
 
   const onLogout = async () => {
+    analytics.track('logout', { from: 'mentor_portal' });
+    analytics.reset();
     try { await logout(); } catch {}
     router.replace('/welcome');
   };
+
+  // Fire portal_view on first mount
+  useEffect(() => {
+    analytics.pageView('mentor_portal', { variant: params.legacy === '1' ? 'iframe' : Platform.OS === 'web' ? 'rn' : 'webview' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Native: WebView fallback ───────────────────────────────────────────
   if (Platform.OS !== 'web') {

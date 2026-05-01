@@ -24,6 +24,7 @@ import * as Haptics from 'expo-haptics';
 import { Colors as C, Spacing, Typography, Radius, Shadows } from '@/src/theme';
 import { Button, Input, AnimatedCard, SALogo, useToast } from '@/src/views/components';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import analytics from '@/src/lib/analytics';
 import Svg, { Path, G } from 'react-native-svg';
 
 const IS_WEB = Platform.OS === 'web';
@@ -102,6 +103,22 @@ export default function Login() {
       }
       const user = (result as any).user;
       toast.success('Welcome back!', `Signed in as ${user.email}`);
+
+      // ── Analytics: identify user + log login event ─────────────────────
+      analytics.identify(user.id || user.email, {
+        email: user.email,
+        full_name: user.full_name,
+        role: user.role,
+        college: user.college,
+        batch: user.batch,
+        onboarding_completed: user.onboarding_completed,
+      });
+      analytics.track('login_succeeded', {
+        method: 'email',
+        role: user.role,
+        onboarding_completed: !!user.onboarding_completed,
+      });
+
       // Role-specific landing — every role lands on its pixel-exact portal:
       //   admin               → /super-admin       (platform-level)
       //   college             → /college-portal    (institution admin)
@@ -118,6 +135,7 @@ export default function Login() {
         : '/(tabs)';
       router.replace(user.onboarding_completed ? home : '/(onboarding)/role-info');
     } catch (e: any) {
+      analytics.track('login_failed', { method: 'email', reason: (e?.message || 'unknown').slice(0, 80) });
       setError(e.message);
       toast.error('Login failed', e.message);
     }

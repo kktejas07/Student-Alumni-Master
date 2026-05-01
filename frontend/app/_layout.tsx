@@ -16,6 +16,7 @@ import { PaperProvider, MD3LightTheme, configureFonts } from 'react-native-paper
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { Colors } from '@/src/theme';
 import { ToastProvider } from '@/src/views/components';
+import analytics from '@/src/lib/analytics';
 
 // Material 3 theme — overrides primary/secondary to brand purple. This means
 // all react-native-paper components (Surface, Card, Button, Ripple) will pick
@@ -59,6 +60,8 @@ export default function RootLayout() {
 
   useEffect(() => {
     init();
+    // Boot the analytics stack — gracefully no-ops if env keys are missing.
+    analytics.init();
   }, [init]);
 
   if (!fontsLoaded || !initialized) {
