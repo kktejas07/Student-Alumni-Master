@@ -3365,3 +3365,70 @@ agent_communication:
         mentor reset so subsequent runs have fresh pending mentors + 6 insights.
 
         No action items. Backend ready to ship.
+
+## 2026-05-01 (R3) — Auth Flow Replacement + Analytics ✅ (Phase 1 of 3)
+
+  Status:        DONE for auth UI + analytics tracking
+  Owner:         main agent
+  Type:          architectural redesign
+
+  Phase 1 — Auth UI replacement matching SA Auth Flow HTML spec ✅
+  ----------------------------------------------------------------
+  Built reusable auth design system:
+    NEW /app/frontend/src/views/auth/tokens.ts      — purple-violet palette
+    NEW /app/frontend/src/views/auth/AuthBrand.tsx  — left brand panel (SA logo, tagline, stat pills)
+    NEW /app/frontend/src/views/auth/AuthShell.tsx  — responsive 2-pane wrapper
+    NEW /app/frontend/src/views/auth/RoleCards.tsx  — 4 role cards (Student/Mentor/Alumni/College)
+    NEW /app/frontend/src/views/auth/AuthControls.tsx — PrimaryButton, OutlineButton, AuthInput, StrengthMeter
+
+  Responsive layout:
+    Desktop (≥980px): 2-pane left brand + right form
+    Mobile (<980px):  Single column, top compact brand strip
+
+  Screens redesigned:
+    NEW    /app/frontend/app/get-started.tsx            — Role selection entry
+    REWRITE /app/frontend/app/(auth)/login.tsx          — Was 1088 LOC OAuth+form, now 220 LOC clean
+    REWRITE /app/frontend/app/(auth)/register.tsx       — Role-aware sign-up with strength meter
+    NEW    /app/frontend/app/(auth)/forgot-password.tsx — 3-step flow (email → OTP → new pwd → success)
+
+  Phase 2 — Analytics & Session Tracking ✅
+  ------------------------------------------
+  Backend (NEW):
+    /app/backend/auth_analytics.py  — POST /api/auth/track, GET sessions, GET recent
+    Mounted at /api/auth/* (alongside existing auth endpoints which remain UNCHANGED)
+    Captures: device_id (sha256 of UA+IP), OS, browser, kind, IP, password_strength
+    NEVER stores raw passwords — only computes strength server-side.
+
+  Frontend (NEW):
+    /app/frontend/src/lib/authAnalytics.ts
+    Wraps PostHog/Firebase analytics + posts to backend.
+    21 event types: role_selected, login_attempt, login_success/failure,
+                    password_strength_check, otp_sent/verified, oauth_attempt,
+                    forgot_password_request, reset_password_complete, etc.
+
+  Verified backend tracking (5 events captured during testing):
+    Chrome/Linux device fingerprint = b25ddd60c7b9f2c1
+    Events: role_selected, email_entered, password_strength_check captured
+
+  Existing auth endpoints PRESERVED:
+    POST /api/auth/login        — unchanged (still works with all test creds)
+    POST /api/auth/register     — unchanged
+    POST /api/auth/google       — unchanged
+    POST /api/auth/linkedin     — unchanged
+    POST /api/auth/2fa/*        — unchanged
+    GET  /api/auth/me           — unchanged
+
+  Test credentials still work:
+    student01@test.com / TestPass@123
+    mentor01@test.com  / TestPass@123
+    college01@test.com / TestPass@123
+    admin@careerpath.app / Admin@12345
+
+  Phase 3 — Sub-view migration & RSVP CTA — DEFERRED to next session
+  -----------------------------------------------------------------
+  As confirmed by user, will be done in follow-up sessions:
+    - Migrate 17 remaining sub-views to use backend APIs
+    - Wire RSVP CTA on EventsView
+    - Add Stripe webhook for payments
+    - Polish 2FA setup/challenge to use new AuthShell
+

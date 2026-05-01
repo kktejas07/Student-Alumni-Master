@@ -3921,6 +3921,10 @@ api_router.include_router(portals_router)
 from career_intel import router as career_intel_router
 api_router.include_router(career_intel_router)
 
+# Auth analytics & session tracking
+from auth_analytics import router as auth_analytics_router
+api_router.include_router(auth_analytics_router)
+
 app.include_router(api_router)
 
 app.add_middleware(
