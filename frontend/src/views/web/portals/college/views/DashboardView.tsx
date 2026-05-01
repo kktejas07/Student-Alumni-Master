@@ -20,6 +20,7 @@ import { Av, Badge, KpiCard } from '../atoms';
 import * as MOCK from '../data';
 import { usePortalData } from '@/src/lib/portalApi';
 import { TierBadge } from '@/src/views/web/TierBadge';
+import { LiveStrip } from '@/src/views/web/LiveStrip';
 
 const KPI_ICONS = { students: GraduationCap, alumni: Users, placement: Trophy, events: CalendarDays } as const;
 
@@ -53,6 +54,9 @@ export function DashboardView() {
 
   return (
     <View style={{ gap: 16 }}>
+      {/* Live counters */}
+      <LiveStrip accent="#FCD34D" keys={['students', 'colleges', 'rsvps', 'events']} />
+
       {/* Hero */}
       <View style={{ flexDirection: stack ? 'column' : 'row', alignItems: stack ? 'flex-start' : 'center', gap: 16 }}>
         <View style={{ flex: 1, minWidth: 0 }}>

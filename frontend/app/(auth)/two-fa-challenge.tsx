@@ -18,7 +18,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, ShieldCheck, KeyRound } from 'lucide-react-native';
 import { useToast, SALogo } from '@/src/views/components';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { AuthWebShell } from '@/src/views/web/AuthWebShell';
+import { AuthShell } from '@/src/views/auth/AuthShell';
 import { WebPrimaryBtn } from '@/src/views/web/AuthWebControls';
 
 const IS_WEB = Platform.OS === 'web';
@@ -208,7 +208,7 @@ export default function TwoFAChallenge() {
   // ─── WEB ──────────────────────────────────────────────────────────────
   if (IS_WEB) {
     return (
-      <AuthWebShell variant="center" cardMaxWidth={460}>
+      <AuthShell>
         <View>
           <Pressable
             onPress={() => router.replace('/(auth)/login')}
@@ -220,7 +220,7 @@ export default function TwoFAChallenge() {
           </Pressable>
           {Body}
         </View>
-      </AuthWebShell>
+      </AuthShell>
     );
   }
 

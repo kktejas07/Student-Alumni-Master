@@ -24,6 +24,7 @@ import { Av, StarRow, Countdown } from '../atoms';
 import * as MOCK from '../data';
 import { usePortalData } from '@/src/lib/portalApi';
 import { TierBadge } from '@/src/views/web/TierBadge';
+import { LiveStrip } from '@/src/views/web/LiveStrip';
 
 interface Props { onNav: (id: string) => void; }
 
@@ -64,6 +65,11 @@ export function DashboardView({ onNav }: Props) {
     <View style={[s.root, !isWide && { flexDirection: 'column' }]}>
       {/* ── Left column ─────────────────────────────── */}
       <View style={{ flex: 1, minWidth: 0 }}>
+        {/* LIVE counters */}
+        <View style={{ marginBottom: 14 }}>
+          <LiveStrip accent="#5EEAD4" keys={['mentors', 'bookings_today', 'bookings', 'courses']} />
+        </View>
+
         {/* AI Daily Briefing */}
         <AIDailyBriefing onNav={onNav} />
 

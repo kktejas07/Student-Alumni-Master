@@ -5,14 +5,14 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-native';
 import {
   LayoutDashboard, GraduationCap, Users, UserCheck, Calendar, Megaphone,
-  BarChart3, Sparkles, Briefcase, Trophy, User, ExternalLink, LogOut,
+  BarChart3, Sparkles, Briefcase, Trophy, User, ExternalLink, LogOut, Plus,
 } from 'lucide-react-native';
 import { CC, FONTS } from './tokens';
 import { COLLEGE } from './data';
 import { Av, Badge } from './atoms';
 
 export type CollegeNavId =
-  | 'dashboard' | 'students' | 'alumni' | 'mentors' | 'events'
+  | 'dashboard' | 'students' | 'alumni' | 'mentors' | 'events' | 'create-event'
   | 'announcements' | 'analytics' | 'ai-insights' | 'career-intel'
   | 'placements' | 'profile';
 
@@ -22,6 +22,7 @@ export const NAV: Array<{ id: CollegeNavId; label: string; Icon: any; count?: nu
   { id: 'alumni',        label: 'Alumni',        Icon: Users },
   { id: 'mentors',       label: 'Mentors',       Icon: UserCheck,  count: 3 },
   { id: 'events',        label: 'Events',        Icon: Calendar,   count: 3 },
+  { id: 'create-event',  label: 'Create Event',  Icon: Plus },
   { id: 'announcements', label: 'Announcements', Icon: Megaphone,  count: 2 },
   { id: 'analytics',     label: 'Analytics',     Icon: BarChart3 },
   { id: 'ai-insights',   label: 'AI Insights',   Icon: Sparkles,   count: 4 },

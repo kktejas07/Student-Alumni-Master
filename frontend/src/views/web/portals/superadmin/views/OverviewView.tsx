@@ -12,6 +12,7 @@ import { SAC, FONTS } from '../tokens';
 import { Av, KpiCard } from '../atoms';
 import * as MOCK from '../data';
 import { usePortalData } from '@/src/lib/portalApi';
+import { LiveStrip } from '@/src/views/web/LiveStrip';
 
 const KPI_ICONS: Record<string, any> = {
   Building2, GraduationCap, UserCheck, Users, CreditCard, Calendar, CheckCircle, BarChart3,
@@ -44,6 +45,9 @@ export function OverviewView() {
 
   return (
     <View style={{ gap: 16 }}>
+      {/* Live counters */}
+      <LiveStrip accent="#A78BFA" keys={['users', 'students', 'mentors', 'colleges', 'bookings']} />
+
       {/* Hero */}
       <View style={s.hero}>
         <View style={{ flex: 1, minWidth: 0 }}>

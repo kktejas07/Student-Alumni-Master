@@ -17,6 +17,9 @@ import { InternshipsView } from './views/InternshipsView';
 import { NetworkView } from './views/NetworkView';
 import { ProfileView } from './views/ProfileView';
 import { WalletView } from './views/WalletView';
+import { MyBookingsView } from './views/MyBookingsView';
+import { MyApplicationsView } from './views/MyApplicationsView';
+import { MyWorkshopsView } from './views/MyWorkshopsView';
 
 export function StudentPortalRN() {
   const router = useRouter();
@@ -38,17 +41,20 @@ export function StudentPortalRN() {
           contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
           showsVerticalScrollIndicator={false}
         >
-          {active === 'dashboard'   && <DashboardView />}
-          {active === 'career-ai'   && <StubView title="Career AI"          note="Roadmap planner, resume builder, mock interview — the standalone version is already live." deepLink="/career-ai" />}
-          {active === 'internships' && <InternshipsView />}
-          {active === 'network'     && <NetworkView />}
-          {active === 'events'      && <EventsView />}
-          {active === 'financial'   && <StubView title="Financial"           note="Scholarships, loans, education insurance." deepLink="/financial" />}
-          {active === 'deals'       && <StubView title="Deals & Offers"      note="Student-only discounts on tools and food." deepLink="/deals" />}
-          {active === 'wallet'      && <WalletView />}
-          {active === 'higher-ed'   && <StubView title="Higher Education"    note="Universities, GRE/GMAT/IELTS prep, application tracker." deepLink="/higher-education" />}
-          {active === 'rentals'     && <StubView title="Rentals"             note="Student-friendly accommodation listings." deepLink="/rentals" />}
-          {active === 'profile'     && <ProfileView />}
+          {active === 'dashboard'       && <DashboardView />}
+          {active === 'career-ai'       && <StubView title="Career AI"          note="Roadmap planner, resume builder, mock interview — the standalone version is already live." deepLink="/career-ai" />}
+          {active === 'internships'     && <InternshipsView />}
+          {active === 'my-applications' && <MyApplicationsView />}
+          {active === 'network'         && <NetworkView />}
+          {active === 'my-bookings'     && <MyBookingsView />}
+          {active === 'events'          && <EventsView />}
+          {active === 'my-workshops'    && <MyWorkshopsView />}
+          {active === 'financial'       && <StubView title="Financial"           note="Scholarships, loans, education insurance." deepLink="/financial" />}
+          {active === 'deals'           && <StubView title="Deals & Offers"      note="Student-only discounts on tools and food." deepLink="/deals" />}
+          {active === 'wallet'          && <WalletView />}
+          {active === 'higher-ed'       && <StubView title="Higher Education"    note="Universities, GRE/GMAT/IELTS prep, application tracker." deepLink="/higher-education" />}
+          {active === 'rentals'         && <StubView title="Rentals"             note="Student-friendly accommodation listings." deepLink="/rentals" />}
+          {active === 'profile'         && <ProfileView />}
         </ScrollView>
       </View>
     </View>

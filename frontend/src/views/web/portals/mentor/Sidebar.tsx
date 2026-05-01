@@ -8,24 +8,26 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   Menu, LayoutDashboard, Users, Calendar, UserPlus, Network, Coins,
   Star as StarIcon, Plus, User as UserIcon, QrCode, ExternalLink, LogOut,
+  Clock,
 } from 'lucide-react-native';
 import { MC, FONTS } from './tokens';
 import { MENTOR } from './data';
 
-export type NavId = 'dashboard'|'students'|'sessions'|'requests'|'network'|'earnings'|'feedback'|'event'|'profile';
+export type NavId = 'dashboard'|'students'|'sessions'|'requests'|'network'|'earnings'|'feedback'|'event'|'availability'|'profile';
 
 export interface NavSpec { id: NavId; label: string; Icon: any; count?: number; alert?: boolean }
 
 export const NAV_MAIN: (counts: { students: number; sessions: number; requests: number }) => NavSpec[] = ({ students, sessions, requests }) => [
-  { id: 'dashboard', label: 'Dashboard',        Icon: LayoutDashboard },
-  { id: 'students',  label: 'My Connections',   Icon: Users,    count: students },
-  { id: 'sessions',  label: 'Sessions',         Icon: Calendar, count: sessions },
-  { id: 'requests',  label: 'Session Requests', Icon: UserPlus, count: requests, alert: true },
-  { id: 'network',   label: 'Network',          Icon: Network },
-  { id: 'earnings',  label: 'Earnings',         Icon: Coins },
-  { id: 'feedback',  label: 'Feedback',         Icon: StarIcon },
-  { id: 'event',     label: 'Create Event',     Icon: Plus },
-  { id: 'profile',   label: 'Profile',          Icon: UserIcon },
+  { id: 'dashboard',    label: 'Dashboard',        Icon: LayoutDashboard },
+  { id: 'students',     label: 'My Connections',   Icon: Users,    count: students },
+  { id: 'sessions',     label: 'Sessions',         Icon: Calendar, count: sessions },
+  { id: 'availability', label: 'Set Availability', Icon: Clock },
+  { id: 'requests',     label: 'Session Requests', Icon: UserPlus, count: requests, alert: true },
+  { id: 'network',      label: 'Network',          Icon: Network },
+  { id: 'earnings',     label: 'Earnings',         Icon: Coins },
+  { id: 'feedback',     label: 'Feedback',         Icon: StarIcon },
+  { id: 'event',        label: 'Create Event',     Icon: Plus },
+  { id: 'profile',      label: 'Profile',          Icon: UserIcon },
 ];
 
 export function Sidebar({

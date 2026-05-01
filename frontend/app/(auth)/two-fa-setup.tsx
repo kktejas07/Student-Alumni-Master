@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Copy, Download, ShieldCheck } from 'lucide-react-native';
 import { useToast } from '@/src/views/components';
-import { AuthWebShell } from '@/src/views/web/AuthWebShell';
+import { AuthShell } from '@/src/views/auth/AuthShell';
 import {
   WebPrimaryBtn, WebGhostBtn, WebStepBar, WebOptionRow, WebField,
 } from '@/src/views/web/AuthWebControls';
@@ -260,7 +260,7 @@ export default function TwoFASetup() {
   // ─── Web ─────────────────────────────────────────────────────────────────
   if (IS_WEB) {
     return (
-      <AuthWebShell variant="center" cardMaxWidth={500}>
+      <AuthShell>
         <Pressable
           onPress={goBackInternal}
           style={({ hovered }: any) => [styles.back, hovered && { opacity: 1 }]}
@@ -269,7 +269,7 @@ export default function TwoFASetup() {
           <Text style={styles.backText}>Back</Text>
         </Pressable>
         {Body}
-      </AuthWebShell>
+      </AuthShell>
     );
   }
 

@@ -21,6 +21,7 @@ import { AIInsightsView } from './views/AIInsightsView';
 import { CareerIntelView } from './views/CareerIntelView';
 import { PlacementsView } from './views/PlacementsView';
 import { ProfileView } from './views/ProfileView';
+import { CreateEventView } from './views/CreateEventView';
 
 export function CollegePortalRN() {
   const router = useRouter();
@@ -49,6 +50,7 @@ export function CollegePortalRN() {
           {active === 'alumni'       && <AlumniView />}
           {active === 'mentors'      && <MentorsView />}
           {active === 'events'       && <EventsView />}
+          {active === 'create-event' && <CreateEventView />}
           {active === 'announcements'&& <AnnouncementsView />}
           {active === 'analytics'    && <AnalyticsView />}
           {active === 'ai-insights'  && <AIInsightsView />}

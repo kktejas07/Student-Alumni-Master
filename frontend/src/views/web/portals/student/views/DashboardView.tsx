@@ -21,6 +21,7 @@ import { Av, Badge, KpiCard } from '../atoms';
 import * as MOCK from '../data';
 import { usePortalData } from '@/src/lib/portalApi';
 import { TierBadge } from '@/src/views/web/TierBadge';
+import { LiveStrip } from '@/src/views/web/LiveStrip';
 
 const KPI_ICONS = { matches: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp } as const;
 
@@ -84,20 +85,7 @@ export function DashboardView() {
       </View>
 
       {/* LIVE-COUNTERS strip — refreshes every 15s to demo auto-refresh */}
-      {live && (
-        <View style={s.liveStrip}>
-          <View style={s.livePulse} />
-          <Text style={s.liveLabel}>LIVE</Text>
-          <Text style={s.liveTxt}>
-            <Text style={{ color: SC.accentBright, fontFamily: FONTS.xbold }}>{live.users}</Text> users ·{' '}
-            <Text style={{ color: SC.accentBright, fontFamily: FONTS.xbold }}>{live.bookings}</Text> bookings ·{' '}
-            <Text style={{ color: SC.accentBright, fontFamily: FONTS.xbold }}>{live.applications}</Text> applications ·{' '}
-            <Text style={{ color: SC.accentBright, fontFamily: FONTS.xbold }}>{live.workshops}</Text> workshops
-          </Text>
-          <View style={{ flex: 1 }} />
-          <Text style={s.liveAsOf}>auto-refreshing every 15s</Text>
-        </View>
-      )}
+      <LiveStrip accent="#22C55E" keys={['users', 'bookings', 'applications', 'workshops']} />
 
       {/* TIER BANNER — glowing badge + score + tier-driven suggestions */}
       {STUDENT.tier && (

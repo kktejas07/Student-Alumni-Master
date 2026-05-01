@@ -28,6 +28,7 @@ import { NetworkView } from './views/NetworkView';
 import { EarningsView } from './views/EarningsView';
 import { FeedbackView } from './views/FeedbackView';
 import { CreateEventView } from './views/CreateEventView';
+import { AvailabilityView } from './views/AvailabilityView';
 import { ProfileView } from './views/ProfileView';
 import { STUDENTS, SESSION_REQUESTS } from './data';
 
@@ -80,6 +81,7 @@ export default function MentorPortalRN() {
           {active === 'dashboard' && <DashboardView onNav={(id) => setActive(id as NavId)} />}
           {active === 'students'  && <ConnectionsView />}
           {active === 'sessions'  && <SessionsView />}
+          {active === 'availability' && <AvailabilityView />}
           {active === 'requests'  && <RequestsView />}
           {active === 'network'   && <NetworkView />}
           {active === 'earnings'  && <EarningsView />}

@@ -6,6 +6,7 @@ import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-n
 import {
   LayoutDashboard, Sparkles, Briefcase, Users, Calendar, Wallet,
   Tag, CreditCard, GraduationCap, Home, User, ExternalLink, LogOut,
+  CalendarCheck, FileText, BookOpen,
 } from 'lucide-react-native';
 import { SC, FONTS } from './tokens';
 import { STUDENT } from './data';
@@ -13,20 +14,24 @@ import { Av } from './atoms';
 
 export type StudentNavId =
   | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'events'
-  | 'financial' | 'deals' | 'wallet' | 'higher-ed' | 'rentals' | 'profile';
+  | 'financial' | 'deals' | 'wallet' | 'higher-ed' | 'rentals' | 'profile'
+  | 'my-bookings' | 'my-applications' | 'my-workshops';
 
 export const NAV: Array<{ id: StudentNavId; label: string; Icon: any }> = [
-  { id: 'dashboard',   label: 'Dashboard',          Icon: LayoutDashboard },
-  { id: 'career-ai',   label: 'Career AI',          Icon: Sparkles },
-  { id: 'internships', label: 'Internships & Jobs', Icon: Briefcase },
-  { id: 'network',     label: 'Network',            Icon: Users },
-  { id: 'events',      label: 'Events',             Icon: Calendar },
-  { id: 'financial',   label: 'Financial',          Icon: Wallet },
-  { id: 'deals',       label: 'Deals & Offers',     Icon: Tag },
-  { id: 'wallet',      label: 'SA Wallet',          Icon: CreditCard },
-  { id: 'higher-ed',   label: 'Higher Education',   Icon: GraduationCap },
-  { id: 'rentals',     label: 'Rentals',            Icon: Home },
-  { id: 'profile',     label: 'Profile',            Icon: User },
+  { id: 'dashboard',       label: 'Dashboard',          Icon: LayoutDashboard },
+  { id: 'career-ai',       label: 'Career AI',          Icon: Sparkles },
+  { id: 'internships',     label: 'Internships & Jobs', Icon: Briefcase },
+  { id: 'my-applications', label: 'My Applications',    Icon: FileText },
+  { id: 'network',         label: 'Network',            Icon: Users },
+  { id: 'my-bookings',     label: 'My Bookings',        Icon: CalendarCheck },
+  { id: 'events',          label: 'Events',             Icon: Calendar },
+  { id: 'my-workshops',    label: 'My Workshops',       Icon: BookOpen },
+  { id: 'financial',       label: 'Financial',          Icon: Wallet },
+  { id: 'deals',           label: 'Deals & Offers',     Icon: Tag },
+  { id: 'wallet',          label: 'SA Wallet',          Icon: CreditCard },
+  { id: 'higher-ed',       label: 'Higher Education',   Icon: GraduationCap },
+  { id: 'rentals',         label: 'Rentals',            Icon: Home },
+  { id: 'profile',         label: 'Profile',            Icon: User },
 ];
 
 export function Sidebar({
