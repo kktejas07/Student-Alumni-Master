@@ -27,7 +27,7 @@ export default function OnboardingSuccess() {
       }
       primaryLabel="Go to my dashboard →"
       primaryTestID="success-dashboard-btn"
-      onPrimary={() => router.replace(Platform.OS === 'web' ? '/platform' : '/(tabs)')}
+      onPrimary={() => router.replace('/(onboarding)/welcome-dashboard')}
       showBack={false}
     >
       {/* Success header */}

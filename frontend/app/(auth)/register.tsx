@@ -74,7 +74,8 @@ export default function RegisterScreen() {
       setUser(data.user);
       setTokens(data.access_token, data.refresh_token);
       trackAuth({ event: 'register_success', email, role });
-      router.replace('/(onboarding)/role-info');
+      // Per spec — offer Referral Code step before Onboarding. User can skip.
+      router.replace('/(auth)/referral-code');
     } catch (e: any) {
       trackAuth({ event: 'register_failure', email, reason: e?.message || 'Network error' });
       setErrors({ email: 'Network error — try again' });

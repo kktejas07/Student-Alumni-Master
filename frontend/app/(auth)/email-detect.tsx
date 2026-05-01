@@ -98,8 +98,8 @@ export default function EmailDetect() {
   };
 
   const onOtpSignin = () => {
-    // Pre-existing OTP flow is the email-verify screen
-    router.push({ pathname: '/(auth)/email-verify', params: { email } });
+    // Dedicated Email OTP screen per spec
+    router.push({ pathname: '/(auth)/email-otp', params: { email } });
   };
 
   const onOAuth = (provider: 'google' | 'linkedin') => {
