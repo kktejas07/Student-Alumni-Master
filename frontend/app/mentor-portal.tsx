@@ -11,13 +11,9 @@
  * static asset serving, so refreshing the page preserves all state.
  */
 import React from 'react';
-import { View, Platform, StyleSheet, Text, Pressable } from 'react-native';
-import { useRouter } from 'expo-router';
-import { ArrowLeft } from 'lucide-react-native';
+import { View, Platform, StyleSheet, Text } from 'react-native';
 
 export default function MentorPortalRoute() {
-  const router = useRouter();
-
   if (Platform.OS !== 'web') {
     // On native, we could render a WebView. For now, show a placeholder so
     // the route doesn't crash during Metro bundling for non-web targets.
@@ -35,17 +31,8 @@ export default function MentorPortalRoute() {
 
   return (
     <View style={s.shell}>
-      {/* Back to dashboard pill, fixed top-left */}
-      <Pressable
-        onPress={() => router.replace('/platform')}
-        style={s.backBtn}
-        accessibilityRole="button"
-      >
-        <ArrowLeft size={14} color="#fff" />
-        <Text style={s.backText}>Student Alumni</Text>
-      </Pressable>
-
-      {/* Full-viewport iframe — spec HTML with all 9 views built-in */}
+      {/* Full-viewport iframe — spec HTML with all 9 views built-in.
+          No external back pill — the portal has its own sidebar + logout. */}
       {React.createElement('iframe', {
         src,
         title: 'Mentor Portal',
@@ -61,17 +48,6 @@ export default function MentorPortalRoute() {
 
 const s = StyleSheet.create({
   shell: { flex: 1, backgroundColor: '#071412', position: 'relative' as any },
-  backBtn: {
-    position: 'absolute' as any,
-    top: 14, left: 14,
-    zIndex: 1000,
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 10, height: 28, borderRadius: 999,
-    backgroundColor: 'rgba(10,26,22,0.85)',
-    borderColor: 'rgba(20,184,166,0.35)', borderWidth: 1,
-    ...({ backdropFilter: 'blur(12px)', cursor: 'pointer' } as any),
-  },
-  backText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 10.5, letterSpacing: 0.4 },
   fallback: { flex: 1, backgroundColor: '#071412', alignItems: 'center', justifyContent: 'center', padding: 24 },
   fallbackTitle: { color: '#14B8A6', fontFamily: 'DMSans_700Bold', fontSize: 22 },
   fallbackText: { color: 'rgba(255,255,255,0.6)', fontFamily: 'DMSans_500Medium', fontSize: 13, marginTop: 10 },
