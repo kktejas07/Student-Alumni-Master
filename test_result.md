@@ -4182,3 +4182,71 @@ agent_communication:
                 needed.
         
         File: /app/backend_test_crud.py is reusable for regression.
+
+backend:
+  - task: "CRUD endpoints — append-only mutations + auto-refresh polling"
+    implemented: true
+    working: true
+    file: "/app/backend/crud_endpoints.py + /app/frontend/src/lib/portalApi.ts"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            Verified end-to-end via deep_testing_backend_v2 — 23/25 PASS,
+            then route shadowing fixed (renamed POST /admin/users →
+            /admin/users/invite to avoid clash with existing secured admin
+            endpoint). Final manual test confirms invite endpoint returns
+            200 with user_id.
+            
+            BACKEND — 16 new endpoints in /app/backend/crud_endpoints.py:
+              · POST   /api/student/bookings              (book mentor)
+              · DELETE /api/student/bookings/{id}         (cancel)
+              · GET    /api/student/my-bookings           (list)
+              · POST   /api/student/internships/{id}/apply (apply, idempotent)
+              · GET    /api/student/my-applications
+              · POST   /api/student/workshops/enroll
+              · GET    /api/student/my-workshops
+              · GET    /api/student/my-events
+              · DELETE /api/student/events/{id}/rsvp
+              · POST   /api/mentor/courses                (publish course)
+              · GET    /api/mentor/my-courses
+              · POST   /api/mentor/availability           (set slots)
+              · GET    /api/mentor/my-bookings            (when=today/upcoming/past)
+              · POST   /api/admin/users/invite
+              · POST   /api/college/events
+              · GET    /api/college/my-students
+              · GET    /api/live/counters                 (drives FE refresh)
+            
+            FRONTEND — auto-refresh polling:
+              · /app/frontend/src/lib/portalApi.ts: usePortalData now
+                accepts `refreshMs` (default 30s); polls in background and
+                returns a manual `refresh()` function for after-mutation
+                triggers.
+              · Student Dashboard renders a glowing 🟢 LIVE strip showing
+                global counters (users, bookings, applications, workshops)
+                that ticks every 15s.
+            
+            Smoke results:
+              ✅ create booking → 200 with booking_id, amount_paid populated
+              ✅ list bookings → 10 entries for booked1@persona.demo
+              ✅ cancel booking → status updates to "cancelled"
+              ✅ apply internship → idempotent (already=true on retry)
+              ✅ enroll workshop → idempotent
+              ✅ create course → course_id returned
+              ✅ set availability → 2 slots saved
+              ✅ live counters → all 12 keys present, valid ISO timestamp
+              ✅ Tier system regression — dashboard.tier still works
+
+agent_communication:
+    - agent: "main"
+      message: |
+        Real-time data appending APIs (option d + a) — COMPLETE.
+        16 new CRUD endpoints + auto-refresh polling on dashboards.
+        Frontend live counters refresh every 15s. Backend tested 23/25
+        PASS, then 1 route shadowing fixed (renamed to /admin/users/invite).
+        All persona accounts can now book/RSVP/apply/enroll, and the
+        dashboards reflect changes within 15-30s.
+

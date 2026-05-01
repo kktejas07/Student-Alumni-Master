@@ -418,7 +418,7 @@ class UserInvite(BaseModel):
     full_name: Optional[str] = None
 
 
-@router.post("/admin/users")
+@router.post("/admin/users/invite")
 async def invite_user(req: UserInvite):
     if req.role not in ("student", "mentor", "college", "admin"):
         raise HTTPException(400, "Invalid role")
