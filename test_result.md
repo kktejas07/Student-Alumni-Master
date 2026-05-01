@@ -2636,3 +2636,40 @@ agent_communication:
         based on the logged-in user session.
         FILE: /app/frontend/src/views/web/platform/StudentPlatform.tsx
 
+
+---
+## 2026-04-30 — 5 standalone feature pages + dashboard nav wiring for all 9 items
+agent_communication:
+    - agent: "main"
+      message: |
+        Built standalone feature pages matching the user HTML artifacts:
+          • /deals            (SA Deals.html)
+          • /rentals          (SA Rentals.html)
+          • /financial        (SA Financial Services.html)
+          • /career-ai        (SA Career AI.html)
+          • /higher-education (SA Higher Education.html)
+        Each page uses a NEW reusable component
+        /src/views/web/FeaturePageShell.tsx that renders:
+          - Left sidebar: SA brand + NAVIGATION column with ← Back
+            to Dashboard + all 10 route shortcuts
+          - Top bar: Dashboard back pill + bell
+          - Hero card with accent-tinted LinearGradient + emoji +
+            title + subtitle + optional right-slot badge
+          - Scroll body for page-specific content
+        Dashboard nav wiring (StudentPlatform.tsx):
+          - Renamed "Housing" → "Rentals" (id: rentals)
+          - Added new "Higher Education" (id: higher-education)
+          - onNav routes 9 items to standalone pages:
+            profile/me, events, network, internships, deals,
+            higher-education, financial, rentals, career.
+        Route conflict fix:
+          - /(tabs)/deals.tsx renamed to .bak; removed Deals
+            entry from the mobile tab layout.
+        Verified via Playwright screenshots of all 5 new routes:
+          - /deals: categories + 6 brand cards + SA Member banner
+          - /rentals: stats + 6 categories + benefits + Available
+          - /financial: EMI calc + AI optimiser + products + schols
+          - /career-ai: 6-step roadmap + Train-with-AI + build
+          - /higher-education: stats + advisor + 6 universities
+          - /platform still working with the new nav layout
+

@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
   Home as HomeIcon, Sparkles, Briefcase, BookOpen, Users, Calendar,
-  Wallet, Shield, Building2, Gift, User as UserIcon,
+  Wallet, Shield, Building2, Gift, User as UserIcon, GraduationCap,
 } from 'lucide-react-native';
 import {
   Sidebar, GlassCard, KpiTile, Avatar, Badge, SearchBar, ProgressStrip,
@@ -23,17 +23,18 @@ import {
 import { StudentDashboardView } from '@/src/views/web/StudentDashboardView';
 
 const NAV: NavItem[] = [
-  { id: 'home',         Icon: HomeIcon,    label: 'Dashboard',   color: '#A78BFA' },
-  { id: 'career',       Icon: Sparkles,    label: 'Career AI',   color: '#A78BFA' },
-  { id: 'internships',  Icon: Briefcase,   label: 'Internships', color: '#34D399' },
-  { id: 'courses',      Icon: BookOpen,    label: 'Courses',     color: '#22D3EE' },
-  { id: 'network',      Icon: Users,       label: 'Network',     color: '#F472B6' },
-  { id: 'events',       Icon: Calendar,    label: 'Events',      color: '#FB923C' },
-  { id: 'financial',    Icon: Wallet,      label: 'Financial',   color: '#FCD34D' },
-  { id: 'insurance',    Icon: Shield,      label: 'Insurance',   color: '#60A5FA' },
-  { id: 'housing',      Icon: Building2,   label: 'Housing',     color: '#A78BFA' },
-  { id: 'deals',        Icon: Gift,        label: 'Deals',       color: '#F472B6' },
-  { id: 'profile',      Icon: UserIcon,    label: 'Profile',     color: '#A78BFA' },
+  { id: 'home',              Icon: HomeIcon,       label: 'Dashboard',        color: '#A78BFA' },
+  { id: 'career',            Icon: Sparkles,       label: 'Career AI',        color: '#A78BFA' },
+  { id: 'internships',       Icon: Briefcase,      label: 'Internships',      color: '#34D399' },
+  { id: 'courses',           Icon: BookOpen,       label: 'Courses',          color: '#22D3EE' },
+  { id: 'higher-education',  Icon: GraduationCap,  label: 'Higher Education', color: '#FCD34D' },
+  { id: 'network',           Icon: Users,          label: 'Network',          color: '#F472B6' },
+  { id: 'events',            Icon: Calendar,       label: 'Events',           color: '#FB923C' },
+  { id: 'financial',         Icon: Wallet,         label: 'Financial',        color: '#FCD34D' },
+  { id: 'insurance',         Icon: Shield,         label: 'Insurance',        color: '#60A5FA' },
+  { id: 'rentals',           Icon: Building2,      label: 'Rentals',          color: '#A78BFA' },
+  { id: 'deals',             Icon: Gift,           label: 'Deals',            color: '#F472B6' },
+  { id: 'profile',           Icon: UserIcon,       label: 'Profile',          color: '#A78BFA' },
 ];
 
 export default function StudentPlatform() {
@@ -64,17 +65,20 @@ export default function StudentPlatform() {
           navItems={NAV}
           activeId={screen}
           onNav={(id) => {
-            if (id === 'profile') {
-              router.push('/me');
-            } else if (id === 'events') {
-              router.push('/events');
-            } else if (id === 'network') {
-              router.push('/network');
-            } else if (id === 'internships') {
-              router.push('/internships');
-            } else {
-              setScreen(id);
-            }
+            // Route these to standalone pages
+            const routeMap: Record<string, string> = {
+              profile: '/me',
+              events: '/events',
+              network: '/network',
+              internships: '/internships',
+              deals: '/deals',
+              'higher-education': '/higher-education',
+              financial: '/financial',
+              rentals: '/rentals',
+              career: '/career-ai',
+            };
+            if (routeMap[id]) router.push(routeMap[id]);
+            else setScreen(id);
           }}
           brandSubtitle="Web Dashboard"
           bgColor={SA.sideStudent}

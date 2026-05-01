@@ -41,10 +41,6 @@ export default function TabsLayout() {
         options={{ title: 'Network', tabBarIcon: ({ color }) => <Users size={22} color={color} /> }}
       />
       <Tabs.Screen
-        name="deals"
-        options={{ title: 'Deals', tabBarIcon: ({ color }) => <Tag size={22} color={color} /> }}
-      />
-      <Tabs.Screen
         name="profile"
         options={{ title: 'Profile', tabBarIcon: ({ color }) => <User size={22} color={color} /> }}
       />
