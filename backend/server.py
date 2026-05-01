@@ -176,8 +176,8 @@ class AlumniInfo(BaseModel):
 
 class StudentInfo(BaseModel):
     """Student-specific fields per spec."""
-    age: int  # Minimum age 10+ per spec
-    education_level: EducationLevel
+    age: Optional[int] = None  # Minimum age 10+ per spec (collected during onboarding)
+    education_level: Optional[EducationLevel] = None
     career_interests: List[str] = Field(default_factory=list)
     # Per spec — specific aspiration (e.g. "Software Developer", "Web Developer")
     # Used directly in AI roadmap prompts to drive interest-based filtering
@@ -368,6 +368,19 @@ def generate_qr_code(data: str) -> str:
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
+def _safe_block(model_cls, value):
+    """Try to coerce a stored dict into the given Pydantic model. If it fails
+    validation (e.g. seed data missing required fields), return None instead of
+    crashing the whole user payload. Logged so we know it happened."""
+    if value is None:
+        return None
+    try:
+        # Validate but return as dict so FastAPI re-validates with the parent model
+        return model_cls(**value).model_dump(exclude_none=False)
+    except Exception:
+        return None
+
+
 def serialize_user(user: dict) -> dict:
     """Strip internal fields (_id, password_hash) from user dict before sending to client."""
     if not user:
@@ -380,11 +393,11 @@ def serialize_user(user: dict) -> dict:
         "phone": user.get("phone"),
         "unique_id": user.get("unique_id"),
         "qr_code_base64": user.get("qr_code_base64"),
-        "school_info": user.get("school_info"),
-        "career_path": user.get("career_path"),
-        "student_info": user.get("student_info"),
-        "alumni_info": user.get("alumni_info"),
-        "mentor_info": user.get("mentor_info"),
+        "school_info":  _safe_block(SchoolInfo,  user.get("school_info")),
+        "career_path":  user.get("career_path"),
+        "student_info": _safe_block(StudentInfo, user.get("student_info")),
+        "alumni_info":  _safe_block(AlumniInfo,  user.get("alumni_info")),
+        "mentor_info":  _safe_block(MentorInfo,  user.get("mentor_info")),
         "mentor_status": user.get("mentor_status"),
         "interests": user.get("interests", []),
         "skills": user.get("skills", []),

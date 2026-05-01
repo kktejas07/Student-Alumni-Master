@@ -3675,7 +3675,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Dynamic Tier/Badge System — Bronze/Silver/Gold/Platinum"
+    - "End-to-End Real-Time Auth Flow (Login + Register + Logout)"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -4328,4 +4328,109 @@ agent_communication:
         Backend already tested in prior session (16 CRUD endpoints + tier
         + ai/daily-brief — all green). No backend retest needed for this
         batch since it only adds frontend consumers of existing endpoints.
+
+    - agent: "main"
+      message: |
+        🚨 NEW PRIORITY P0 — End-to-End Real-Time Auth Flow Validation
+        
+        User has rejected the proposed sub-view wiring and explicitly asked
+        to step back and ensure the **standard Login + Register forms**
+        bind flawlessly to the live backend / MongoDB **before** building
+        any further features.
+        
+        Bug fixed in this iteration:
+          • POST /api/auth/login was returning HTTP 500 for seeded student
+            users because StudentInfo.age and StudentInfo.education_level
+            were declared as required Pydantic fields, but seeded mock users
+            only carried `career_goal`. This crashed UserResponse in both
+            /auth/login and /auth/me.
+          • Fix in /app/backend/server.py:
+              1. StudentInfo.age + education_level made Optional with None
+                 defaults (consistent with onboarding spec — these are
+                 collected progressively, not at register-time).
+              2. Added _safe_block() helper in serialize_user() that
+                 best-effort coerces school_info / student_info /
+                 alumni_info / mentor_info into their Pydantic models, and
+                 silently drops the block if validation fails — protects
+                 against any other legacy seed-data mismatch without
+                 returning 500s to the client.
+        
+        TESTING REQUEST (backend only — frontend test gated on user OK):
+          1. POST /api/auth/register
+             - Brand-new student@e2etest.com / TestPass@123 / role=student
+             - Expect 200 with { access_token, refresh_token, user:{...,
+               onboarding_completed:false} }
+             - Verify the user exists in MongoDB users collection
+          2. POST /api/auth/login
+             - Same brand-new account → 200 + tokens + UserResponse
+             - student01@test.com / TestPass@123 → 200 (was 500 before fix!)
+             - mentor01@test.com / TestPass@123 → 200
+             - college01@test.com / TestPass@123 → 200
+             - admin@careerpath.app / Admin@12345 → 200
+             - Wrong password → 401 "Invalid email or password"
+             - Unknown email  → 401
+          3. GET  /api/auth/me with Bearer access_token → 200, returns same
+             user payload (no leakage of password_hash)
+          4. POST /api/auth/refresh with refresh_token → 200, returns new
+             access_token
+          5. Confirm seeded persona quick-login emails also work:
+             - booked1@persona.demo / TestPass@123
+             - mentor-active1@persona.demo / TestPass@123
+             - college-high1@persona.demo / TestPass@123
+             - admin-super1@persona.demo / TestPass@123
+        
+        DO NOT touch the frontend tests — user will trigger that next.
+
+    - agent: "testing"
+      message: |
+        ✅ E2E AUTH FLOW VALIDATION — 17/18 PASS (the 1 fail is a stale
+        credential in the request, NOT a backend regression).
+        
+        Test script: /app/backend_test.py
+        Base URL:    https://hiring-mvvm.preview.emergentagent.com/api
+        
+        REGRESSION FIX CONFIRMED ✅
+        The previously-500 case `booked1@persona.demo / TestPass@123` now
+        returns 200 with full UserResponse. The StudentInfo Optional fix +
+        _safe_block() helper are working as designed — no more
+        Pydantic ValidationErrors leaking out of /auth/login or /auth/me.
+        
+        DETAILED RESULTS
+        ────────────────
+        1) POST /auth/register (new student)         ✅ 200, tokens + user.onboarding_completed=false
+        2) POST /auth/register (new mentor)          ✅ 200, mentor_status="pending"
+        3) POST /auth/login (seeded users):
+           ✅ student01@test.com           → 200 role=student
+           ✅ mentor01@test.com            → 200 role=mentor
+           ❌ college01@test.com           → 401 "Invalid email or password"
+              Root cause: this email DOES NOT EXIST in db.users. The seeded
+              college accounts are `iitb@university.in`, `iith@university.in`,
+              `iiitb@university.in`, etc. (per /app/memory/test_credentials.md).
+              When tested with `iitb@university.in / TestPass@123` → 200 OK
+              role=college. ⇒ Test request had a stale alias; backend is
+              healthy.
+           ✅ admin@careerpath.app          → 200 role=admin
+           ✅ booked1@persona.demo          → 200 role=student   ← the previously-500 case
+           ✅ mentor-active1@persona.demo   → 200 role=mentor
+           ✅ college-high1@persona.demo    → 200 role=college
+           ✅ admin-super1@persona.demo     → 200 role=admin
+        4a) Wrong password → 401 "Invalid email or password" ✅
+        4b) Unknown email  → 401 "Invalid email or password" ✅
+        5) Login with brand-new step-1 user → 200 ✅ (proves DB persistence)
+        6a) GET /auth/me w/ bearer → 200, password_hash NOT present ✅
+        6b) GET /auth/me w/o bearer → 401 ✅
+        7) POST /auth/refresh → 200 with new access_token ✅
+        8a) GET /student/dashboard (student01 token) → 200 ✅
+            keys=[student, kpis, topMatches, recommendedMentors,
+                  upcomingEvents, profileCompletion]
+        8b) GET /mentor/dashboard (mentor01 token) → 200 ✅
+            keys=[mentor, kpis, todaySessions, monthly, pendingRequests]
+        
+        CONCLUSION
+        ──────────
+        Backend auth + bug-fix are GREEN. The only non-PASS line is a
+        non-existent email in the test request — not a backend defect.
+        Main agent can proceed with confidence; recommend updating the
+        review-request stale alias from `college01@test.com` →
+        `iitb@university.in` for any future regressions.
 
