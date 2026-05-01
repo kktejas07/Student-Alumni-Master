@@ -17,7 +17,8 @@ import {
 } from 'lucide-react-native';
 import { CC, FONTS } from '../tokens';
 import { Av, Badge, KpiCard } from '../atoms';
-import { COLLEGE, KPIS, DEPT_PLACEMENT, RECENT_ACTIVITY, UPCOMING_EVENTS, TOP_RECRUITERS } from '../data';
+import * as MOCK from '../data';
+import { usePortalData } from '@/src/lib/portalApi';
 
 const KPI_ICONS = { students: GraduationCap, alumni: Users, placement: Trophy, events: CalendarDays } as const;
 
@@ -25,7 +26,24 @@ const ACTIVITY_ICONS: Record<string, any> = {
   GraduationCap, UserPlus, Calendar, Briefcase, Bell, TrendingUp,
 };
 
+const COLLEGE_MOCK = {
+  college: MOCK.COLLEGE,
+  kpis: MOCK.KPIS,
+  deptPlacement: MOCK.DEPT_PLACEMENT,
+  recentActivity: MOCK.RECENT_ACTIVITY,
+  upcomingEvents: MOCK.UPCOMING_EVENTS,
+  topRecruiters: MOCK.TOP_RECRUITERS,
+};
+
 export function DashboardView() {
+  const { data } = usePortalData<typeof COLLEGE_MOCK>('/admin/college-stats', COLLEGE_MOCK);
+  const COLLEGE = data!.college;
+  const KPIS = data!.kpis;
+  const DEPT_PLACEMENT = data!.deptPlacement;
+  const RECENT_ACTIVITY = data!.recentActivity;
+  const UPCOMING_EVENTS = data!.upcomingEvents;
+  const TOP_RECRUITERS = data!.topRecruiters;
+
   const { width } = useWindowDimensions();
   const stack = width < 1100;
 

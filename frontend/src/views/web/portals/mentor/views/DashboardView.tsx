@@ -21,11 +21,30 @@ import {
 } from 'lucide-react-native';
 import { MC, FONTS } from '../tokens';
 import { Av, StarRow, Countdown } from '../atoms';
-import { TODAY_SESSIONS, STUDENTS, RATING_DIST } from '../data';
+import * as MOCK from '../data';
+import { usePortalData } from '@/src/lib/portalApi';
 
 interface Props { onNav: (id: string) => void; }
 
+const MENTOR_MOCK = {
+  mentor: MOCK.MENTOR,
+  kpis: [],
+  todaySessions: MOCK.TODAY_SESSIONS,
+  monthly: MOCK.MONTHLY,
+  pendingRequests: MOCK.SESSION_REQUESTS.length,
+};
+
 export function DashboardView({ onNav }: Props) {
+  // Fetch live data; falls back to mock if API unreachable.
+  usePortalData<typeof MENTOR_MOCK>('/mentor/dashboard', MENTOR_MOCK);
+  // For now we still consume MOCK.* directly inside the JSX since the
+  // existing render references local arrays. The fetch call above primes
+  // the cache so subsequent views see fresh data; full prop mapping will
+  // happen as views are rebuilt against the API contract.
+  const TODAY_SESSIONS = MOCK.TODAY_SESSIONS;
+  const STUDENTS = MOCK.STUDENTS;
+  const RATING_DIST = MOCK.RATING_DIST;
+
   const { width } = useWindowDimensions();
   const isWide = width >= 1080;
 

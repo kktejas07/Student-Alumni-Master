@@ -18,11 +18,29 @@ import {
 } from 'lucide-react-native';
 import { SC, FONTS } from '../tokens';
 import { Av, Badge, KpiCard } from '../atoms';
-import { STUDENT, KPIS, TOP_MATCHES, RECOMMENDED_MENTORS, UPCOMING_EVENTS, PROFILE_COMPLETION } from '../data';
+import * as MOCK from '../data';
+import { usePortalData } from '@/src/lib/portalApi';
 
 const KPI_ICONS = { matches: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp } as const;
 
+const STUDENT_MOCK = {
+  student: MOCK.STUDENT,
+  kpis: MOCK.KPIS,
+  topMatches: MOCK.TOP_MATCHES,
+  recommendedMentors: MOCK.RECOMMENDED_MENTORS,
+  upcomingEvents: MOCK.UPCOMING_EVENTS,
+  profileCompletion: MOCK.PROFILE_COMPLETION,
+};
+
 export function DashboardView() {
+  const { data } = usePortalData<typeof STUDENT_MOCK>('/student/dashboard', STUDENT_MOCK);
+  const STUDENT = data!.student;
+  const KPIS = data!.kpis;
+  const TOP_MATCHES = data!.topMatches;
+  const RECOMMENDED_MENTORS = data!.recommendedMentors;
+  const UPCOMING_EVENTS = data!.upcomingEvents;
+  const PROFILE_COMPLETION = data!.profileCompletion;
+
   const { width } = useWindowDimensions();
   const stack = width < 1100;
   const matchW = stack ? '100%' : '64%';

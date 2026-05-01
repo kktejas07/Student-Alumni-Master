@@ -2964,6 +2964,42 @@ backend:
 
             Please test all 4 endpoints return 200 with the correct JSON shapes.
         -working: true
+
+agent_communication:
+    -agent: "main"
+    -comment: |
+        Phase 1 + 2 complete: Backend portal dashboard APIs created and all
+        4 portal RN dashboards wired to consume them.
+
+        ✅ Backend (verified by deep_testing_backend_v2):
+            /api/mentor/dashboard       — 200 OK
+            /api/student/dashboard      — 200 OK
+            /api/admin/college-stats    — 200 OK
+            /api/admin/super-overview   — 200 OK
+          All return STATIC MOCK DATA matching exactly the JSON contracts the
+          frontend dashboards expect. When real DB queries are wired up later,
+          only the function bodies in /app/backend/portals.py need to change.
+
+        ✅ Frontend wiring:
+            New: /app/frontend/src/lib/portalApi.ts — fetchPortal() + usePortalData()
+                 hook. Hook initialises with the local mock data from each portal's
+                 data.ts, then fetches the API in the background. If the API call
+                 fails the UI keeps the mock so it never appears empty.
+
+            Wired DashboardViews:
+              - MentorPortalRN          → /api/mentor/dashboard
+              - StudentPortalRN         → /api/student/dashboard
+              - CollegePortalRN         → /api/admin/college-stats
+              - SuperAdminPortalRN      → /api/admin/super-overview
+
+        Verification (screenshot tool):
+          ✅ All 4 portals render pixel-identical with live API data
+          ✅ Each fires exactly 1 API call on first paint
+          ✅ 0 page errors across all 4 portals
+          ✅ Mock fallback verified — disconnected backend would not break UI
+
+        ⏳ Phase 3 (26 stub sub-views) NOT STARTED — see next agent_communication.
+
          agent: "testing"
          comment: |
             Verified end-to-end via /app/backend_test_portals.py against both

@@ -10,7 +10,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { SAC, FONTS } from '../tokens';
 import { Av, KpiCard } from '../atoms';
-import { ADMIN, KPIS, RECENT_ACTIVITY, PLATFORM_USERS, MONTHLY_ENROLLMENTS, REVENUE_BREAKDOWN } from '../data';
+import * as MOCK from '../data';
+import { usePortalData } from '@/src/lib/portalApi';
 
 const KPI_ICONS: Record<string, any> = {
   Building2, GraduationCap, UserCheck, Users, CreditCard, Calendar, CheckCircle, BarChart3,
@@ -19,7 +20,24 @@ const ACT_ICONS: Record<string, any> = {
   Building2, Sparkles, Users, CreditCard, AlertTriangle,
 };
 
+const SUPER_MOCK = {
+  admin: MOCK.ADMIN,
+  kpis: MOCK.KPIS,
+  recentActivity: MOCK.RECENT_ACTIVITY,
+  platformUsers: MOCK.PLATFORM_USERS,
+  monthlyEnrollments: MOCK.MONTHLY_ENROLLMENTS,
+  revenueBreakdown: MOCK.REVENUE_BREAKDOWN,
+};
+
 export function OverviewView() {
+  const { data } = usePortalData<typeof SUPER_MOCK>('/admin/super-overview', SUPER_MOCK);
+  const ADMIN = data!.admin;
+  const KPIS = data!.kpis;
+  const RECENT_ACTIVITY = data!.recentActivity;
+  const PLATFORM_USERS = data!.platformUsers;
+  const MONTHLY_ENROLLMENTS = data!.monthlyEnrollments;
+  const REVENUE_BREAKDOWN = data!.revenueBreakdown;
+
   const { width } = useWindowDimensions();
   const stack = width < 1100;
   const maxEnroll = Math.max(...MONTHLY_ENROLLMENTS.map((m) => m.value));
