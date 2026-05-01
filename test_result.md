@@ -2616,3 +2616,23 @@ agent_communication:
             Student ID widgets (no purple bleed), all action buttons
             with purple glow shadow.
 
+
+---
+## 2026-04-30 — Dashboard sidebar nav wired for Network + Internships routes
+agent_communication:
+    - agent: "main"
+      message: |
+        Extended the StudentPlatform onNav handler so clicking
+        "Network" and "Internships" items in the left sidebar now
+        push to their standalone routes instead of the inline
+        setScreen view:
+          - network     → router.push("/network")
+          - internships → router.push("/internships")
+          - profile     → router.push("/me")       [already wired]
+          - events      → router.push("/events")   [already wired]
+          - other ids   → setScreen(id) fallback (inline views)
+        Verified via Playwright that clicking each nav item in the
+        sidebar results in the URL transitioning to its route,
+        based on the logged-in user session.
+        FILE: /app/frontend/src/views/web/platform/StudentPlatform.tsx
+

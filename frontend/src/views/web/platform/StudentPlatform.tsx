@@ -68,6 +68,10 @@ export default function StudentPlatform() {
               router.push('/me');
             } else if (id === 'events') {
               router.push('/events');
+            } else if (id === 'network') {
+              router.push('/network');
+            } else if (id === 'internships') {
+              router.push('/internships');
             } else {
               setScreen(id);
             }
