@@ -2,33 +2,26 @@
  * FeaturePageShell — shared layout for /deals, /rentals, /financial,
  * /career-ai, /higher-education.
  *
- * Enforces the signature Student Alumni purple gradient theme across
- * every dashboard sub-route:
- *   • Hero uses the same ['#5F259F','#7B3DBF','#2D0760'] gradient as
- *     the main /platform dashboard hero, with decorative purple orbs.
- *   • Subtle purple radial glow on the page background.
- *   • Top bar with "← Dashboard" pill + notifications bell.
+ * Uses the EXACT same purple gradient background + glass card treatment
+ * as the main Student Dashboard (/platform), so every dashboard flow
+ * shares the signature theme.
  *
- * Individual pages may still pass their own `accent` which is used
- * only for the small right-slot pill highlight — the hero itself is
- * always purple so the dashboard feels cohesive.
+ * Design reference: Student Alumni — Desktop.html
+ *   • Page background: LinearGradient ['#1A0438','#2D0760','#5F259F']
+ *     at stops [0, 0.45, 1]  (SA.pageBgStudent)
+ *   • Glass hero card: rgba(95,37,159,0.28) with rgba(176,127,223,0.30)
+ *     border + backdrop-filter blur(20px)
+ *   • Ambient purple orbs floating in the gradient
  */
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Bell, ArrowRight } from 'lucide-react-native';
-
-const C = {
-  bg: '#0C0818',
-  border: 'rgba(255,255,255,0.08)',
-  text: '#fff',
-  text2: 'rgba(255,255,255,0.70)',
-  text3: 'rgba(255,255,255,0.45)',
-};
+import { ArrowLeft, Bell } from 'lucide-react-native';
+import { SA } from '@/src/views/web/platform/tokens';
 
 export default function FeaturePageShell({
-  title, subtitle, accent = '#A78BFA',
+  title, subtitle, accent = SA.purpleLight,
   heroEmoji = '✨',
   children,
   rightSlot,
@@ -45,10 +38,20 @@ export default function FeaturePageShell({
   const isMobile = width < 768;
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
-      {/* Ambient purple glow across the page background */}
-      <View pointerEvents="none" style={styles.ambientOrbA} />
-      <View pointerEvents="none" style={styles.ambientOrbB} />
+    <View style={{ flex: 1 }}>
+      {/* Full-page purple gradient — identical to /platform dashboard */}
+      <LinearGradient
+        colors={SA.pageBgStudent as any}
+        locations={SA.pageBgGradientStops as any}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Ambient floating purple orbs for depth */}
+      <View pointerEvents="none" style={[styles.ambientOrb, { top: -160, right: -140, width: 520, height: 520, backgroundColor: 'rgba(176,127,223,0.22)' }]} />
+      <View pointerEvents="none" style={[styles.ambientOrb, { top: 280, left: -180, width: 440, height: 440, backgroundColor: 'rgba(95,37,159,0.28)' }]} />
+      <View pointerEvents="none" style={[styles.ambientOrb, { bottom: -200, right: 100, width: 380, height: 380, backgroundColor: 'rgba(123,61,191,0.22)' }]} />
 
       <ScrollView
         style={{ flex: 1 }}
@@ -64,17 +67,11 @@ export default function FeaturePageShell({
           <View style={styles.bellBtn}><Bell size={16} color="#fff" /></View>
         </View>
 
-        {/* Hero — signature purple gradient */}
+        {/* Hero — glass card with purple tint, matches platform hero */}
         <View style={styles.heroShell}>
-          <LinearGradient
-            colors={['#5F259F', '#7B3DBF', '#2D0760']}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
-          {/* Decorative purple orbs inside the hero */}
-          <View pointerEvents="none" style={[styles.heroOrb, { width: 300, height: 300, top: -80, right: -40, backgroundColor: 'rgba(176,127,223,0.18)' }]} />
-          <View pointerEvents="none" style={[styles.heroOrb, { width: 180, height: 180, bottom: -40, left: 20, backgroundColor: 'rgba(95,37,159,0.28)' }]} />
-          <View pointerEvents="none" style={[styles.heroOrb, { width: 220, height: 220, top: 20, left: '38%' as any, backgroundColor: 'rgba(124,58,237,0.14)' }]} />
+          {/* Decorative orbs inside the hero for extra depth */}
+          <View pointerEvents="none" style={[styles.heroOrb, { width: 280, height: 280, top: -80, right: -40, backgroundColor: 'rgba(176,127,223,0.22)' }]} />
+          <View pointerEvents="none" style={[styles.heroOrb, { width: 180, height: 180, bottom: -50, left: 20, backgroundColor: 'rgba(212,170,255,0.18)' }]} />
 
           <View style={[styles.heroBody, isMobile && { flexDirection: 'column', alignItems: 'flex-start', gap: 16 }]}>
             <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
@@ -94,45 +91,66 @@ export default function FeaturePageShell({
 }
 
 const styles = StyleSheet.create({
-  // Ambient background orbs (visible through content for subtle depth)
-  ambientOrbA: {
+  // Soft, blurred ambient orbs over the gradient
+  ambientOrb: {
     position: 'absolute',
-    top: -160, right: -180,
-    width: 520, height: 520, borderRadius: 260,
-    backgroundColor: 'rgba(95,37,159,0.22)',
+    borderRadius: 9999,
     ...(Platform.OS === 'web' ? ({ filter: 'blur(80px)' } as any) : {}),
-  },
-  ambientOrbB: {
-    position: 'absolute',
-    top: 280, left: -200,
-    width: 460, height: 460, borderRadius: 230,
-    backgroundColor: 'rgba(123,61,191,0.16)',
-    ...(Platform.OS === 'web' ? ({ filter: 'blur(90px)' } as any) : {}),
   },
 
   topBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 4 },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1, ...({ cursor: 'pointer' } as any) },
-  backText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
-  bellBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  backBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, height: 32, borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(255,255,255,0.16)', borderWidth: 1,
+    ...({ backdropFilter: 'blur(12px)', cursor: 'pointer' } as any),
+  },
+  backText: { color: '#fff', fontFamily: SA.fontBold, fontSize: 11.5 },
+  bellBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(255,255,255,0.16)', borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
+    ...({ backdropFilter: 'blur(12px)' } as any),
+  },
 
-  // Hero shell — absolute purple theme, consistent across all pages
+  // Glass hero — matches Platform "info" panel spec
   heroShell: {
     borderRadius: 20,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(176,127,223,0.30)',
-    // match the dashboard hero glow
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px -16px rgba(95,37,159,0.55)' } as any) : {}),
+    backgroundColor: 'rgba(95,37,159,0.28)',
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(20px)',
+          boxShadow: '0 20px 60px -12px rgba(95,37,159,0.40), 0 0 0 1px rgba(176,127,223,0.15) inset',
+        } as any)
+      : {}),
   },
   heroBody: {
     padding: 28,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 18,
-    minHeight: 140,
+    minHeight: 150,
+    zIndex: 2,
   },
-  heroOrb: { position: 'absolute', borderRadius: 999 },
+  heroOrb: { position: 'absolute', borderRadius: 9999 },
   heroEmoji: { fontSize: 30 },
-  heroTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 28, letterSpacing: -0.4, lineHeight: 34 },
-  heroSub: { color: 'rgba(255,255,255,0.82)', fontFamily: 'DMSans_500Medium', fontSize: 14, marginTop: 4, maxWidth: 720 },
+  heroTitle: {
+    color: '#fff',
+    fontFamily: SA.fontBold,
+    fontSize: 28,
+    letterSpacing: -0.4,
+    lineHeight: 34,
+  },
+  heroSub: {
+    color: 'rgba(255,255,255,0.82)',
+    fontFamily: SA.fontMedium,
+    fontSize: 14,
+    marginTop: 4,
+    maxWidth: 720,
+  },
 });
