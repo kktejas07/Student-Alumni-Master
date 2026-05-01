@@ -3,30 +3,25 @@ import { View, Text, Pressable, TextInput, StyleSheet, useWindowDimensions, Plat
 import { Search, MapPin, Bookmark, BookmarkCheck, ExternalLink } from 'lucide-react-native';
 import { SC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
+import { usePortalData } from '@/src/lib/portalApi';
 
-const INTERNSHIPS = [
-  { id: 1, role: 'SDE Intern',                company: 'Google',     location: 'Bengaluru',  type: 'Internship', stipend: '₹1.2L/mo', match: 87, posted: '2d', logo: 'G', logoBg: '#4285F4' },
-  { id: 2, role: 'PM Intern',                 company: 'Flipkart',   location: 'Bengaluru',  type: 'Internship', stipend: '₹95k/mo',  match: 86, posted: '3d', logo: 'F', logoBg: '#2874F0' },
-  { id: 3, role: 'Data Science Intern',       company: 'Swiggy',     location: 'Remote',     type: 'Internship', stipend: '₹80k/mo',  match: 84, posted: '5d', logo: 'S', logoBg: '#FC8019' },
-  { id: 4, role: 'UX Design Intern',          company: 'Razorpay',   location: 'Bengaluru',  type: 'Internship', stipend: '₹70k/mo',  match: 82, posted: '6d', logo: 'R', logoBg: '#02C0F1' },
-  { id: 5, role: 'Frontend Dev (Full-time)',  company: 'CRED',       location: 'Bengaluru',  type: 'Full-time',  stipend: '₹24 LPA',  match: 79, posted: '1w', logo: 'C', logoBg: '#1A1A1A' },
-  { id: 6, role: 'Marketing Intern',          company: 'Zomato',     location: 'Gurugram',   type: 'Internship', stipend: '₹40k/mo',  match: 76, posted: '1w', logo: 'Z', logoBg: '#E23744' },
-  { id: 7, role: 'iOS Engineer Intern',       company: 'Stripe',     location: 'Hybrid',     type: 'Internship', stipend: '₹1.4L/mo', match: 81, posted: '2w', logo: 'S', logoBg: '#635BFF' },
-  { id: 8, role: 'ML Research Intern',        company: 'OpenAI',     location: 'Remote',     type: 'Internship', stipend: '$8k/mo',   match: 92, posted: '2w', logo: 'O', logoBg: '#10A37F' },
-];
+type Job = { id: string; title: string; company: string; location: string; type: string; stipend: string; match: number; logo: string; logoBg: string; mode?: string; skills?: string[] };
+const FALLBACK = { items: [] as Job[] };
 
 const FILTERS = ['All', 'Internship', 'Full-time', 'Remote'];
 
 export function InternshipsView() {
   const { width } = useWindowDimensions();
+  const { data } = usePortalData<typeof FALLBACK>('/student/internships', FALLBACK);
   const [filter, setFilter] = useState('All');
   const [q, setQ] = useState('');
-  const [saved, setSaved] = useState<Set<number>>(new Set([8]));
+  const [saved, setSaved] = useState<Set<string>>(new Set());
+  const INTERNSHIPS = data?.items || [];
 
   const list = INTERNSHIPS.filter((i) => {
     if (filter !== 'All' && filter !== 'Remote' && i.type !== filter) return false;
     if (filter === 'Remote' && !i.location.toLowerCase().includes('remote')) return false;
-    if (q && !(i.role + i.company + i.location).toLowerCase().includes(q.toLowerCase())) return false;
+    if (q && !(i.title + i.company + i.location).toLowerCase().includes(q.toLowerCase())) return false;
     return true;
   });
 
@@ -54,7 +49,7 @@ export function InternshipsView() {
           <View key={j.id} style={s.row}>
             <View style={[s.logo, { backgroundColor: j.logoBg }]}><Text style={s.logoText}>{j.logo}</Text></View>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text numberOfLines={1} style={s.role}>{j.role}</Text>
+              <Text numberOfLines={1} style={s.role}>{j.title}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
                 <Text style={s.meta}>{j.company}</Text>
                 <Text style={s.dot}>·</Text>

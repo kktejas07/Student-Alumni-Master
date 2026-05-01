@@ -3,17 +3,15 @@ import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-na
 import { Search, MoreHorizontal, ShieldCheck, Plus } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
+import { usePortalData } from '@/src/lib/portalApi';
 
-const COLLEGES = [
-  { id: 1,  name: "St. Xavier's College, Mumbai",     city: 'Mumbai',     code: 'XCM', students: 4280, naac: 'A+', mou: 'Premium',  rev: '₹4.2L', status: 'active'  as const, color: '#3B82F6' },
-  { id: 2,  name: 'IIT Kanpur',                       city: 'Kanpur',     code: 'IITK',students: 8420, naac: 'A++',mou: 'Premium',  rev: '₹6.8L', status: 'active'  as const, color: '#A78BFA' },
-  { id: 3,  name: 'BITS Pilani',                       city: 'Pilani',     code: 'BITS',students: 5640, naac: 'A++',mou: 'Premium',  rev: '₹5.1L', status: 'active'  as const, color: '#22D3EE' },
-  { id: 4,  name: 'NIT Trichy',                        city: 'Trichy',     code: 'NITT',students: 6240, naac: 'A',  mou: 'Standard', rev: '₹2.4L', status: 'active'  as const, color: '#F59E0B' },
-  { id: 5,  name: 'Anna University',                   city: 'Chennai',    code: 'ANN', students: 12480,naac: 'A',  mou: 'Standard', rev: '₹3.9L', status: 'active'  as const, color: '#EC4899' },
-  { id: 6,  name: 'JNU New Delhi',                     city: 'New Delhi',  code: 'JNU', students: 9810, naac: 'A+', mou: 'Premium',  rev: '₹4.5L', status: 'active'  as const, color: '#22C55E' },
-  { id: 7,  name: 'Christ University',                 city: 'Bengaluru',  code: 'CU',  students: 11240,naac: 'A',  mou: 'Premium',  rev: '₹4.8L', status: 'active'  as const, color: '#8B5CF6' },
-  { id: 8,  name: 'Manipal Institute of Tech',         city: 'Manipal',    code: 'MIT', students: 7820, naac: 'A',  mou: 'Standard', rev: '₹2.9L', status: 'pending' as const, color: '#FB923C' },
-];
+type CollegeRow = {
+  id: number; name: string; code: string; city: string; students: number;
+  naac: string; mou: string; rev: string; status: 'active' | 'pending' | 'paused';
+  color: string;
+};
+
+const FALLBACK = { items: [] as CollegeRow[], total: 0 };
 
 const statusBadge = (s: 'active' | 'pending' | 'paused') =>
   s === 'active' ? { label: 'Active', color: 'green' as const }
@@ -21,8 +19,10 @@ const statusBadge = (s: 'active' | 'pending' | 'paused') =>
   : { label: 'Paused', color: 'gray' as const };
 
 export function CollegesView() {
+  const { data } = usePortalData<typeof FALLBACK>('/admin/super/colleges', FALLBACK);
   const [q, setQ] = useState('');
-  const list = COLLEGES.filter((c) => !q || (c.name + c.city + c.code).toLowerCase().includes(q.toLowerCase()));
+  const items = data?.items || [];
+  const list = items.filter((c) => !q || (c.name + c.city + c.code).toLowerCase().includes(q.toLowerCase()));
 
   return (
     <View>

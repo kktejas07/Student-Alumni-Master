@@ -1,19 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Sparkles, AlertTriangle, TrendingUp, Lightbulb, Zap } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
+import { usePortalData, postPortal } from '@/src/lib/portalApi';
 
-const INSIGHTS = [
-  { id:1, kind:'risk' as const,        icon: AlertTriangle, color:'#EF4444', title:'Mentor supply gap forecast for May',                body:'At current 18% MoM growth, 22 colleges will exceed their mentor-to-student SLA by May 31. Recommend onboarding 40+ Platinum mentors in Bengaluru, Hyderabad, Pune.' },
-  { id:2, kind:'opportunity' as const, icon: TrendingUp,    color:'#22C55E', title:'Premium MoU upgrade opportunity — ₹2.1Cr',          body:'14 Standard MoU colleges show 3x higher session volume than peers. Conversion model predicts 73% upgrade probability. Trigger automated upgrade pitch.' },
-  { id:3, kind:'insight' as const,     icon: Lightbulb,     color:'#FBBF24', title:'Peak booking window: Sundays 6-9pm',                 body:'42% of weekly mentor bookings happen Sunday evenings. Push notification timed to 5:30pm shows 3.2x higher conversion than current 9am send.' },
-  { id:4, kind:'opportunity' as const, icon: TrendingUp,    color:'#A78BFA', title:'Alumni donor segment leaking — re-engage',           body:'18 high-net-worth alumni (₹50K+ donations) haven\'t opened the platform in 90+ days. Personalized milestone email predicted to recover 12 (~₹6L pipeline).' },
-  { id:5, kind:'risk' as const,        icon: AlertTriangle, color:'#F59E0B', title:'Refund spike on Hackathon vertical',                 body:'Refunds up 38% MoM. Root cause likely partner organizer reliability — 4 of 7 refunds traced to one vendor. Recommend immediate review.' },
-  { id:6, kind:'insight' as const,     icon: Zap,           color:'#22D3EE', title:'AI-mock-interview adoption uplift drives retention',  body:'Students who use AI mock-interview within first 14 days show 2.4x higher 30-day retention. Recommend featuring it in onboarding.' },
-];
+type Insight = { id: string; kind: 'risk' | 'opportunity' | 'insight'; icon: string; color: string; title: string; body: string };
+const ICON_MAP: Record<string, any> = { AlertTriangle, TrendingUp, Lightbulb, Zap };
+const FALLBACK = { items: [] as Insight[] };
 
 export function AIInsightsView() {
+  const { data } = usePortalData<typeof FALLBACK>('/admin/super/ai-insights', FALLBACK);
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const items = (data?.items || []).filter((i) => !dismissed.has(i.id));
+
+  const onDismiss = async (id: string) => {
+    setDismissed((p) => new Set(p).add(id));
+    try { await postPortal(`/admin/super/ai-insights/${id}/dismiss`); } catch {}
+  };
   return (
     <View>
       <View style={s.banner}>
@@ -24,8 +28,8 @@ export function AIInsightsView() {
         </View>
       </View>
       <View style={{ gap: 12 }}>
-        {INSIGHTS.map((it) => {
-          const Icon = it.icon;
+        {items.map((it) => {
+          const Icon = ICON_MAP[it.icon] || Lightbulb;
           return (
             <View key={it.id} style={s.card}>
               <View style={[s.icon, { backgroundColor: it.color + '20', borderColor: it.color + '40' }]}><Icon size={15} color={it.color} /></View>
@@ -37,7 +41,7 @@ export function AIInsightsView() {
                 <Text style={s.body}>{it.body}</Text>
                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
                   <Pressable style={s.actBtn}><Text style={s.actText}>Take action</Text></Pressable>
-                  <Pressable style={s.dismissBtn}><Text style={s.dismissText}>Dismiss</Text></Pressable>
+                  <Pressable style={s.dismissBtn} onPress={() => onDismiss(it.id)}><Text style={s.dismissText}>Dismiss</Text></Pressable>
                 </View>
               </View>
             </View>

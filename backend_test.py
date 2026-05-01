@@ -1,444 +1,640 @@
+#!/usr/bin/env python3
 """
-Backend Test Suite — Personalization Features
-==============================================
-Tests new personalization endpoints + regression on existing endpoints.
+Backend tests for Portal sub-view APIs + Career Intel adapters +
+CTA mutation endpoints (portals.py + career_intel.py).
+
+Target base URL: ${EXPO_PUBLIC_BACKEND_URL}/api
 """
-import os
+from __future__ import annotations
+
 import sys
 import time
-import json
+from typing import Any, Dict, Optional
+
 import requests
-from datetime import datetime, timedelta
 
 BASE = "https://hiring-mvvm.preview.emergentagent.com/api"
+TIMEOUT = 30
 
-STUDENT_EMAIL = "student@test.com"
-STUDENT_PASSWORD = "Student@123"
-ADMIN_EMAIL = "admin@careerpath.app"
-ADMIN_PASSWORD = "Admin@12345"
-
-results = []
+PASS = []
+FAIL = []
+WARN = []
 
 
-def log(name, ok, msg=""):
-    status = "PASS" if ok else "FAIL"
-    print(f"[{status}] {name} :: {msg}")
-    results.append({"test": name, "ok": ok, "msg": msg})
+def log(kind: str, label: str, detail: str = "") -> None:
+    bucket = {"PASS": PASS, "FAIL": FAIL, "WARN": WARN}[kind]
+    bucket.append({"label": label, "detail": detail})
+    icon = {"PASS": "OK", "FAIL": "FAIL", "WARN": "WARN"}[kind]
+    print(f"[{icon}] {label}" + (f"  —  {detail}" if detail else ""))
 
 
-def headers(token):
-    return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+def get(path: str, **params) -> requests.Response:
+    return requests.get(f"{BASE}{path}", params=params, timeout=TIMEOUT)
 
 
-def login(email, password):
-    r = requests.post(f"{BASE}/auth/login", json={"email": email, "password": password}, timeout=20)
+def post(path: str, **kwargs) -> requests.Response:
+    return requests.post(f"{BASE}{path}", timeout=TIMEOUT, **kwargs)
+
+
+def expect_200(path: str, label: str) -> Optional[Dict[str, Any]]:
+    try:
+        r = get(path)
+    except Exception as e:
+        log("FAIL", label, f"exception {type(e).__name__}: {e}")
+        return None
     if r.status_code != 200:
-        # Try register if student doesn't exist
-        return None, r
-    return r.json(), r
-
-
-def ensure_student_exists():
-    """Ensure student@test.com exists with proper onboarding."""
-    data, _ = login(STUDENT_EMAIL, STUDENT_PASSWORD)
-    if data:
-        # Verify onboarding completed
-        u = data["user"]
-        if u.get("onboarding_completed"):
-            return data
-        # Else complete onboarding below
-        token = data["access_token"]
-    else:
-        # Register
-        r = requests.post(
-            f"{BASE}/auth/register",
-            json={
-                "email": STUDENT_EMAIL,
-                "password": STUDENT_PASSWORD,
-                "full_name": "Riya Sharma",
-                "role": "student",
-                "phone": "+919876543210",
-            },
-            timeout=20,
-        )
-        if r.status_code != 200:
-            print(f"Register failed: {r.status_code} {r.text}")
-            return None
+        log("FAIL", label, f"status={r.status_code} body={r.text[:200]}")
+        return None
+    try:
         data = r.json()
-        token = data["access_token"]
-
-    # Complete onboarding (btech + job)
-    onb_payload = {
-        "school_info": {
-            "institution_name": "IIT Bombay",
-            "institution_type": "college",
-            "class_or_year": "B.Tech 3rd Year",
-            "branch_or_stream": "Computer Science",
-            "city": "Mumbai",
-            "state": "Maharashtra",
-            "country": "India",
-            "graduation_year": 2027,
-        },
-        "career_path": "job",
-        "student_info": {
-            "age": 21,
-            "education_level": "btech",
-            "career_interests": ["Tech", "AI/ML"],
-        },
-        "interests": ["AI/ML", "Coding"],
-        "skills": ["Python", "JavaScript"],
-        "bio": "B.Tech CS student aspiring for SWE roles",
-    }
-    r = requests.post(f"{BASE}/users/onboarding", json=onb_payload, headers=headers(token), timeout=20)
-    if r.status_code != 200:
-        print(f"Onboarding failed: {r.status_code} {r.text}")
-    # Re-login to get fresh user
-    data, _ = login(STUDENT_EMAIL, STUDENT_PASSWORD)
+    except Exception:
+        log("FAIL", label, "non-JSON response")
+        return None
     return data
 
 
-def test_dashboard_personalization(token):
-    r = requests.get(f"{BASE}/dashboard", headers=headers(token), timeout=30)
-    if r.status_code != 200:
-        log("GET /api/dashboard", False, f"HTTP {r.status_code}: {r.text[:200]}")
+# ── DASHBOARDS ─────────────────────────────────────────
+def test_student_dashboard():
+    d = expect_200("/student/dashboard", "GET /student/dashboard")
+    if not d:
+        return
+    need = {"student", "kpis", "topMatches", "recommendedMentors", "upcomingEvents"}
+    missing = need - set(d.keys())
+    if missing:
+        log("FAIL", "student/dashboard shape", f"missing: {missing}")
+        return
+    kpi_count = len(d.get("kpis") or [])
+    if kpi_count != 4:
+        log("FAIL", "student/dashboard kpis=4", f"got {kpi_count}")
+    else:
+        log("PASS", "GET /student/dashboard",
+            f"4 KPIs, topMatches={len(d.get('topMatches', []))}, "
+            f"mentors={len(d.get('recommendedMentors', []))}, "
+            f"events={len(d.get('upcomingEvents', []))}")
+
+
+def test_mentor_dashboard():
+    d = expect_200("/mentor/dashboard", "GET /mentor/dashboard")
+    if not d:
+        return
+    need = {"mentor", "kpis", "todaySessions", "monthly"}
+    missing = need - set(d.keys())
+    if missing:
+        log("FAIL", "mentor/dashboard shape", f"missing: {missing}")
+        return
+    if len(d.get("kpis") or []) != 4:
+        log("FAIL", "mentor/dashboard kpis=4", f"got {len(d['kpis'])}")
+    else:
+        log("PASS", "GET /mentor/dashboard",
+            f"4 KPIs, today={len(d.get('todaySessions', []))}, monthly={len(d.get('monthly', []))}")
+
+
+def test_college_stats():
+    d = expect_200("/admin/college-stats", "GET /admin/college-stats")
+    if not d:
+        return
+    need = {"college", "kpis", "deptPlacement", "recentActivity", "upcomingEvents", "topRecruiters"}
+    missing = need - set(d.keys())
+    if missing:
+        log("FAIL", "admin/college-stats shape", f"missing: {missing}")
+        return
+    if len(d.get("kpis") or []) != 4:
+        log("FAIL", "college-stats kpis=4", f"got {len(d['kpis'])}")
+    else:
+        log("PASS", "GET /admin/college-stats",
+            f"4 KPIs, depts={len(d['deptPlacement'])}, activity={len(d['recentActivity'])}")
+
+
+def test_super_overview():
+    d = expect_200("/admin/super-overview", "GET /admin/super-overview")
+    if not d:
+        return
+    need = {"admin", "kpis", "recentActivity", "platformUsers", "monthlyEnrollments", "revenueBreakdown"}
+    missing = need - set(d.keys())
+    if missing:
+        log("FAIL", "super-overview shape", f"missing: {missing}")
+        return
+    if len(d.get("kpis") or []) != 8:
+        log("FAIL", "super-overview kpis=8", f"got {len(d['kpis'])}")
+    else:
+        log("PASS", "GET /admin/super-overview",
+            f"8 KPIs, platformUsers={len(d['platformUsers'])}, months={len(d['monthlyEnrollments'])}")
+
+
+# ── SUPER ADMIN SUB-VIEWS ──────────────────────────────
+def test_super_colleges():
+    d = expect_200("/admin/super/colleges", "GET /admin/super/colleges")
+    if not d:
+        return
+    items = d.get("items") or []
+    if len(items) < 5:
+        log("FAIL", "super/colleges items>=5", f"got {len(items)}")
+    else:
+        log("PASS", "GET /admin/super/colleges", f"{len(items)} items, total={d.get('total')}")
+
+
+def test_super_students():
+    d = expect_200("/admin/super/students", "GET /admin/super/students")
+    if not d:
+        return
+    stats = d.get("stats") or {}
+    need = {"total", "active", "placement_ready", "at_risk"}
+    missing = need - set(stats.keys())
+    if missing:
+        log("FAIL", "super/students stats keys", f"missing: {missing}")
+    elif not d.get("items"):
+        log("FAIL", "super/students items", "empty")
+    else:
+        log("PASS", "GET /admin/super/students",
+            f"items={len(d['items'])}, total={stats['total']}, placement_ready={stats['placement_ready']}")
+
+
+def test_super_mentors_all():
+    d = expect_200("/admin/super/mentors", "GET /admin/super/mentors")
+    if not d:
         return None
-    d = r.json()
-
-    # personalization
-    p = d.get("personalization", {})
-    pm = p.get("priority_modules")
-    ok = isinstance(pm, list) and len(pm) == 8
-    log("dashboard.personalization.priority_modules is list of 8", ok, f"got len={len(pm) if isinstance(pm, list) else 'N/A'}")
-
-    # btech+job ordering: career_guidelines top, events high, networking high
-    if isinstance(pm, list):
-        log(
-            "priority_modules[0] for btech+job is career_guidelines",
-            pm[0] == "career_guidelines",
-            f"got {pm[0]}",
-        )
-        # events should be top 3
-        log(
-            "events appears in top 3 priority modules (btech+job)",
-            "events" in pm[:3],
-            f"top3={pm[:3]}",
-        )
-
-    log(
-        "personalization.education_level == btech",
-        p.get("education_level") == "btech",
-        f"got {p.get('education_level')}",
-    )
-    log(
-        "personalization.career_path == job",
-        p.get("career_path") == "job",
-        f"got {p.get('career_path')}",
-    )
-
-    # recommendations
-    rec = d.get("recommendations", {})
-    mentor = rec.get("mentor")
-    log("recommendations.mentor exists", mentor is not None)
-    if mentor:
-        log(
-            "recommendations.mentor.category matches it_software (career=job)",
-            mentor.get("category") == "it_software",
-            f"got {mentor.get('category')}",
-        )
-
-    event = rec.get("event")
-    log("recommendations.event exists", event is not None)
-    if event:
-        log(
-            "recommendations.event has deadline_days numeric",
-            isinstance(event.get("deadline_days"), (int, float)),
-            f"got {event.get('deadline_days')}",
-        )
-
-    log("recommendations.course exists", rec.get("course") is not None)
-
-    log("closing_soon is list", isinstance(d.get("closing_soon"), list))
-
-    sm = d.get("suggested_mentors")
-    log(
-        "suggested_mentors returns 6 items",
-        isinstance(sm, list) and len(sm) == 6,
-        f"got len={len(sm) if isinstance(sm, list) else 'N/A'}",
-    )
-
-    for k in ("featured_courses", "featured_internships", "featured_events", "featured_deals"):
-        log(f"{k} is list", isinstance(d.get(k), list))
-
-    stats = d.get("stats", {})
-    log(
-        "stats.courses_available is int",
-        isinstance(stats.get("courses_available"), int),
-        f"got {stats.get('courses_available')}",
-    )
-
+    counts = d.get("counts") or {}
+    need = {"all", "active", "pending"}
+    if not need.issubset(counts.keys()):
+        log("FAIL", "super/mentors counts keys", f"got {list(counts.keys())}")
+        return d
+    if counts.get("pending", 0) <= 0:
+        log("WARN", "super/mentors pending>0", f"got {counts.get('pending')}")
+    else:
+        log("PASS", "GET /admin/super/mentors",
+            f"all={counts['all']}, active={counts['active']}, pending={counts['pending']}")
     return d
 
 
-def test_preferences_update(token):
-    # Switch to plus_two + higher_education
-    r = requests.patch(
-        f"{BASE}/users/me/preferences",
-        json={"career_path": "higher_education", "education_level": "plus_two", "interests": ["AI/ML"]},
-        headers=headers(token),
-        timeout=20,
-    )
-    log(
-        "PATCH /users/me/preferences (higher_ed/plus_two)",
-        r.status_code == 200,
-        f"HTTP {r.status_code}",
-    )
-    if r.status_code == 200:
-        u = r.json()
-        log(
-            "preferences updated career_path",
-            u.get("career_path") == "higher_education",
-            f"got {u.get('career_path')}",
-        )
-        si = u.get("student_info") or {}
-        log(
-            "preferences updated student_info.education_level",
-            si.get("education_level") == "plus_two",
-            f"got {si.get('education_level')}",
-        )
-
-    # Verify dashboard reflects new prefs
-    r = requests.get(f"{BASE}/dashboard", headers=headers(token), timeout=30)
-    if r.status_code == 200:
-        pm = r.json().get("personalization", {}).get("priority_modules", [])
-        log(
-            "dashboard priority_modules[0] == 'scholarships' (school student rule)",
-            pm and pm[0] == "scholarships",
-            f"got pm[:3]={pm[:3]}",
-        )
-
-    # Switch back to btech + job
-    r = requests.patch(
-        f"{BASE}/users/me/preferences",
-        json={"career_path": "job", "education_level": "btech"},
-        headers=headers(token),
-        timeout=20,
-    )
-    log(
-        "PATCH /users/me/preferences (back to btech/job)",
-        r.status_code == 200,
-        f"HTTP {r.status_code}",
-    )
+def test_super_mentors_pending():
+    d = expect_200("/admin/super/mentors?status=pending", "GET /admin/super/mentors?status=pending")
+    if not d:
+        return None
+    items = d.get("items") or []
+    bad = [x for x in items if x.get("status") != "pending"]
+    if bad:
+        log("FAIL", "super/mentors pending filter", f"{len(bad)}/{len(items)} non-pending")
+    else:
+        log("PASS", "GET /admin/super/mentors?status=pending", f"{len(items)} pending items")
+    return d
 
 
-def test_track_click(token):
-    # Get baseline dashboard - find baseline rank of 'deals'
-    r = requests.get(f"{BASE}/dashboard", headers=headers(token), timeout=30)
-    baseline_pm = r.json().get("personalization", {}).get("priority_modules", [])
-    baseline_idx = baseline_pm.index("deals") if "deals" in baseline_pm else -1
-    print(f"  baseline deals position: {baseline_idx} in {baseline_pm}")
-
-    # Send 6 click tracks for 'deals'
-    fail_count = 0
-    for i in range(6):
-        r = requests.post(
-            f"{BASE}/dashboard/track-click",
-            json={"module_id": "deals"},
-            headers=headers(token),
-            timeout=15,
-        )
-        if r.status_code != 200:
-            fail_count += 1
-    log(
-        "POST /dashboard/track-click x6 (module_id=deals)",
-        fail_count == 0,
-        f"failures={fail_count}",
-    )
-
-    # Re-fetch dashboard
-    r = requests.get(f"{BASE}/dashboard", headers=headers(token), timeout=30)
-    new_pm = r.json().get("personalization", {}).get("priority_modules", [])
-    new_idx = new_pm.index("deals") if "deals" in new_pm else -1
-    print(f"  after-click deals position: {new_idx} in {new_pm}")
-    # deals is in top 8 always for btech, baseline ~7. After 6 clicks, should jump.
-    # We accept "earlier than baseline" or at least same position with score boost.
-    # Best assertion: deals appears earlier OR scores reflect boost.
-    scores = r.json().get("personalization", {}).get("module_scores", {})
-    deals_score = scores.get("deals", 0)
-    log(
-        "click tracking boosts deals score (>=baseline +0.05)",
-        deals_score >= 0.70,  # btech baseline=0.65 + ~0.10 boost
-        f"deals_score={deals_score}, baseline_idx={baseline_idx}, new_idx={new_idx}",
-    )
-    # Position-based check
-    if baseline_idx >= 0 and new_idx >= 0:
-        log(
-            "deals appears earlier than baseline after click boost",
-            new_idx <= baseline_idx,
-            f"baseline={baseline_idx} new={new_idx}",
-        )
-
-    # Test invalid: empty body
-    r = requests.post(
-        f"{BASE}/dashboard/track-click",
-        json={},
-        headers=headers(token),
-        timeout=15,
-    )
-    log(
-        "POST /dashboard/track-click with empty body returns 400",
-        r.status_code == 400,
-        f"HTTP {r.status_code}",
-    )
-
-
-def test_alumni_transition():
-    ts = int(time.time())
-    email = f"alumni-test-{ts}@test.com"
-    password = "Test@123"
-    # Register fresh student
-    r = requests.post(
-        f"{BASE}/auth/register",
-        json={
-            "email": email,
-            "password": password,
-            "full_name": "Alumni Test User",
-            "role": "student",
-        },
-        timeout=20,
-    )
-    if r.status_code != 200:
-        log("Register fresh student for alumni transition", False, f"HTTP {r.status_code}: {r.text[:200]}")
+def test_super_alumni():
+    d = expect_200("/admin/super/alumni", "GET /admin/super/alumni")
+    if not d:
         return
-    log("Register fresh student for alumni transition", True)
-    token = r.json()["access_token"]
-
-    # Onboard
-    onb = {
-        "school_info": {
-            "institution_name": "VIT Vellore",
-            "institution_type": "college",
-            "class_or_year": "B.Tech 4th Year",
-            "branch_or_stream": "ECE",
-            "graduation_year": 2026,
-        },
-        "career_path": "job",
-        "student_info": {
-            "age": 22,
-            "education_level": "btech",
-            "career_interests": ["Tech"],
-        },
-        "interests": ["Tech"],
-        "skills": ["C++"],
-    }
-    r = requests.post(f"{BASE}/users/onboarding", json=onb, headers=headers(token), timeout=20)
-    log("Onboard fresh student", r.status_code == 200, f"HTTP {r.status_code}")
-
-    # Transition to alumni
-    r = requests.post(f"{BASE}/users/me/transition-alumni", headers=headers(token), timeout=20)
-    log("POST /users/me/transition-alumni first call returns 200", r.status_code == 200, f"HTTP {r.status_code}: {r.text[:200] if r.status_code != 200 else ''}")
-    if r.status_code == 200:
-        u = r.json()
-        log("user role becomes alumni", u.get("role") == "alumni", f"got {u.get('role')}")
-        log("alumni_info populated", u.get("alumni_info") is not None, f"got {u.get('alumni_info')}")
-
-    # Idempotent
-    r = requests.post(f"{BASE}/users/me/transition-alumni", headers=headers(token), timeout=20)
-    log("transition-alumni idempotent (2nd call 200)", r.status_code == 200, f"HTTP {r.status_code}")
-    if r.status_code == 200:
-        log("after 2nd call role still alumni", r.json().get("role") == "alumni")
-
-    # GET /auth/me reflects alumni
-    r = requests.get(f"{BASE}/auth/me", headers=headers(token), timeout=15)
-    log("GET /auth/me reflects role=alumni", r.status_code == 200 and r.json().get("role") == "alumni", f"got role={r.json().get('role') if r.status_code==200 else 'ERR'}")
+    stats = d.get("stats") or {}
+    need = {"verified", "donations_ytd", "companies", "countries"}
+    missing = need - set(stats.keys())
+    if missing:
+        log("FAIL", "super/alumni stats", f"missing: {missing}")
+    else:
+        log("PASS", "GET /admin/super/alumni",
+            f"verified={stats['verified']}, companies={stats['companies']}, items={len(d.get('items', []))}")
 
 
-def test_regression(student_token, admin_token):
-    # /auth/login already used. Verify auth/me
-    r = requests.get(f"{BASE}/auth/me", headers=headers(student_token), timeout=15)
-    log("GET /auth/me (student)", r.status_code == 200, f"HTTP {r.status_code}")
-
-    # /catalog/mentors
-    r = requests.get(f"{BASE}/catalog/mentors", timeout=15)
-    log(
-        "GET /catalog/mentors returns mentors",
-        r.status_code == 200 and isinstance(r.json().get("mentors"), list) and len(r.json()["mentors"]) > 0,
-        f"HTTP {r.status_code}, count={len(r.json().get('mentors', [])) if r.status_code==200 else 'N/A'}",
-    )
-
-    # Booking
-    booking_payload = {
-        "mentor_id": "m1",
-        "slot_start_iso": (datetime.utcnow() + timedelta(days=2)).isoformat() + "Z",
-        "slot_end_iso": (datetime.utcnow() + timedelta(days=2, hours=1)).isoformat() + "Z",
-        "topic": "Career guidance for SWE roles",
-        "notes": "Looking for FAANG prep tips",
-    }
-    r = requests.post(f"{BASE}/bookings", json=booking_payload, headers=headers(student_token), timeout=20)
-    log(
-        "POST /bookings (student)",
-        r.status_code == 200 and r.json().get("status") == "confirmed",
-        f"HTTP {r.status_code}: {r.text[:200] if r.status_code != 200 else 'OK'}",
-    )
-
-    # Admin pending mentors
-    r = requests.get(f"{BASE}/admin/mentors/pending", headers=headers(admin_token), timeout=15)
-    log(
-        "GET /admin/mentors/pending (admin)",
-        r.status_code == 200 and "mentors" in r.json(),
-        f"HTTP {r.status_code}",
-    )
+def test_super_events():
+    d = expect_200("/admin/super/events", "GET /admin/super/events")
+    if not d:
+        return None
+    items = d.get("items") or []
+    if not items:
+        log("FAIL", "super/events items", "empty")
+    else:
+        log("PASS", "GET /admin/super/events", f"{len(items)} events")
+    return d
 
 
-def main():
-    print("=" * 70)
-    print("Backend Personalization Test Suite")
-    print(f"BASE: {BASE}")
-    print("=" * 70)
+def test_super_payments():
+    d = expect_200("/admin/super/payments", "GET /admin/super/payments")
+    if not d:
+        return
+    need = {"kpi", "ledger", "stripe_balance", "tiers"}
+    if not need.issubset(d.keys()):
+        log("FAIL", "super/payments shape", f"missing: {need - set(d.keys())}")
+        return
+    kpi = d["kpi"]
+    if not {"gross", "payouts", "pending", "net"}.issubset(kpi.keys()):
+        log("FAIL", "super/payments kpi keys", f"got {list(kpi.keys())}")
+    else:
+        log("PASS", "GET /admin/super/payments",
+            f"gross={kpi['gross']}, ledger={len(d['ledger'])}, tiers={len(d['tiers'])}")
 
-    # Login student (ensure exists & onboarded)
-    sdata = ensure_student_exists()
-    if not sdata:
-        log("Student login/setup", False, "Could not set up student account")
-        sys.exit(1)
-    student_token = sdata["access_token"]
-    log("POST /auth/login (student)", True, f"got access_token={student_token[:25]}...")
 
-    # Admin
-    adata, ar = login(ADMIN_EMAIL, ADMIN_PASSWORD)
-    if not adata:
-        log("Admin login", False, f"HTTP {ar.status_code}: {ar.text[:200]}")
-        sys.exit(1)
-    admin_token = adata["access_token"]
-    log("POST /auth/login (admin)", True)
+def test_super_approvals():
+    d = expect_200("/admin/super/approvals", "GET /admin/super/approvals")
+    if not d:
+        return None
+    counts = d.get("counts") or {}
+    need = {"all", "college", "mentor", "event"}
+    if not need.issubset(counts.keys()):
+        log("FAIL", "super/approvals counts keys", f"missing: {need - set(counts.keys())}")
+        return d
+    mcount = counts.get("mentor", 0)
+    ccount = counts.get("college", 0)
+    msgs = []
+    if mcount < 6:
+        log("WARN", "super/approvals mentor>=6", f"got {mcount}")
+    if ccount < 4:
+        log("WARN", "super/approvals college>=4", f"got {ccount}")
+    log("PASS", "GET /admin/super/approvals",
+        f"mentor={mcount}, college={ccount}, event={counts.get('event')}, all={counts.get('all')}")
+    return d
 
-    print("\n--- Test 1: Dashboard Personalization ---")
-    test_dashboard_personalization(student_token)
 
-    print("\n--- Test 2: Preferences Update ---")
-    test_preferences_update(student_token)
+def test_super_analytics():
+    d = expect_200("/admin/super/analytics", "GET /admin/super/analytics")
+    if not d:
+        return
+    need = {"growth", "retention", "funnel", "ab"}
+    if not need.issubset(d.keys()):
+        log("FAIL", "super/analytics shape", f"missing: {need - set(d.keys())}")
+    else:
+        log("PASS", "GET /admin/super/analytics",
+            f"growth={len(d['growth'])}, retention={len(d['retention'])}, funnel={len(d['funnel'])}, ab={len(d['ab'])}")
 
-    print("\n--- Test 3: Click Tracking ---")
-    test_track_click(student_token)
 
-    print("\n--- Test 4: Alumni Transition ---")
-    test_alumni_transition()
+def test_super_ai_insights():
+    d = expect_200("/admin/super/ai-insights", "GET /admin/super/ai-insights")
+    if not d:
+        return None
+    items = d.get("items") or []
+    if len(items) != 6:
+        log("WARN", "super/ai-insights count=6", f"got {len(items)}")
+    else:
+        log("PASS", "GET /admin/super/ai-insights", f"6 insights")
+    return d
 
-    print("\n--- Test 5: Regression Checks ---")
-    test_regression(student_token, admin_token)
 
-    # Summary
-    print("\n" + "=" * 70)
-    passed = sum(1 for r in results if r["ok"])
-    failed = sum(1 for r in results if not r["ok"])
-    print(f"RESULTS: {passed} passed, {failed} failed (total {len(results)})")
-    if failed:
-        print("\nFAILED TESTS:")
-        for r in results:
-            if not r["ok"]:
-                print(f"  - {r['test']}: {r['msg']}")
-    print("=" * 70)
+def test_super_workflows():
+    d = expect_200("/admin/super/workflows", "GET /admin/super/workflows")
+    if not d:
+        return None
+    items = d.get("items") or []
+    if len(items) != 6:
+        log("WARN", "super/workflows count=6", f"got {len(items)}")
+    else:
+        log("PASS", "GET /admin/super/workflows", f"6 workflows")
+    return d
 
-    return 0 if failed == 0 else 1
+
+# ── COLLEGE ─────────────────────────────────────────────
+def test_college_students():
+    d = expect_200("/college/students", "GET /college/students")
+    if not d:
+        return
+    if not d.get("items"):
+        log("FAIL", "college/students items", "empty")
+    else:
+        log("PASS", "GET /college/students", f"{len(d['items'])} students, college={d.get('college')}")
+
+
+def test_college_placements():
+    d = expect_200("/college/placements", "GET /college/placements")
+    if not d:
+        return
+    stages = d.get("stages") or {}
+    need = {"shortlisted", "interviewing", "offered", "joined"}
+    if not need.issubset(stages.keys()):
+        log("FAIL", "college/placements stages", f"missing: {need - set(stages.keys())}")
+    else:
+        log("PASS", "GET /college/placements",
+            f"shortlisted={len(stages['shortlisted'])}, interviewing={len(stages['interviewing'])}, "
+            f"offered={len(stages['offered'])}, joined={len(stages['joined'])}")
+
+
+def test_college_ai_insights():
+    d = expect_200("/college/ai-insights", "GET /college/ai-insights")
+    if not d:
+        return
+    items = d.get("items") or []
+    if len(items) != 6:
+        log("WARN", "college/ai-insights count=6", f"got {len(items)}")
+    else:
+        log("PASS", "GET /college/ai-insights", f"6 insights")
+
+
+# ── STUDENT ─────────────────────────────────────────────
+def test_student_internships():
+    d = expect_200("/student/internships", "GET /student/internships")
+    if not d:
+        return
+    items = d.get("items") or []
+    if len(items) < 10:
+        log("WARN", "student/internships items>=10", f"got {len(items)} (spec says 20)")
+    else:
+        log("PASS", "GET /student/internships", f"{len(items)} items")
+
+
+def test_student_wallet():
+    d = expect_200("/student/wallet", "GET /student/wallet")
+    if not d:
+        return None
+    need = {"balance", "refer_earn", "tx"}
+    if not need.issubset(d.keys()):
+        log("FAIL", "student/wallet shape", f"missing: {need - set(d.keys())}")
+        return d
+    tx = d.get("tx") or []
+    if not tx:
+        log("FAIL", "student/wallet tx populated", f"tx empty (balance={d.get('balance')})")
+    else:
+        log("PASS", "GET /student/wallet", f"balance={d['balance']}, tx={len(tx)}")
+    return d
+
+
+def test_student_network():
+    d = expect_200("/student/network", "GET /student/network")
+    if not d:
+        return
+    items = d.get("items") or []
+    kinds = {x.get("kind") for x in items}
+    if not items:
+        log("FAIL", "student/network items", "empty")
+    elif "alumni" not in kinds or "student" not in kinds:
+        log("WARN", "student/network mix", f"kinds={kinds}")
+    else:
+        log("PASS", "GET /student/network", f"{len(items)} items, kinds={kinds}")
+
+
+# ── CAREER INTEL ─────────────────────────────────────────
+def test_career_intel_jobs():
+    d = expect_200("/career-intel/jobs", "GET /career-intel/jobs")
+    if not d:
+        return
+    issues = []
+    if not d.get("_mocked"):
+        issues.append("_mocked not true")
+    if d.get("source") != "linkedin":
+        issues.append(f"source={d.get('source')}")
+    if not d.get("items"):
+        issues.append("items empty")
+    if issues:
+        log("FAIL", "career-intel/jobs", "; ".join(issues))
+    else:
+        log("PASS", "GET /career-intel/jobs", f"items={len(d['items'])}, _mocked={d['_mocked']}")
+
+
+def test_career_intel_internships():
+    d = expect_200("/career-intel/internships", "GET /career-intel/internships")
+    if not d:
+        return
+    if d.get("source") != "internshala" or not d.get("items"):
+        log("FAIL", "career-intel/internships", f"source={d.get('source')}, items={len(d.get('items',[]))}")
+    else:
+        log("PASS", "GET /career-intel/internships", f"items={len(d['items'])}, _mocked={d.get('_mocked')}")
+
+
+def test_career_intel_scholarships():
+    d = expect_200("/career-intel/scholarships", "GET /career-intel/scholarships")
+    if not d:
+        return
+    if d.get("source") != "buddy4study" or not d.get("items"):
+        log("FAIL", "career-intel/scholarships", f"source={d.get('source')}, items={len(d.get('items',[]))}")
+    else:
+        log("PASS", "GET /career-intel/scholarships", f"items={len(d['items'])}")
+
+
+def test_career_intel_summary():
+    d = expect_200("/career-intel/intel-summary", "GET /career-intel/intel-summary")
+    if not d:
+        return
+    sources = d.get("sources") or []
+    if len(sources) != 3:
+        log("FAIL", "intel-summary sources=3", f"got {len(sources)}")
+    else:
+        names = [s.get("name") for s in sources]
+        log("PASS", "GET /career-intel/intel-summary", f"sources={names}")
+
+
+# ── MUTATIONS ────────────────────────────────────────────
+def test_wallet_topup():
+    before = get("/student/wallet").json()
+    before_tx = len(before.get("tx") or [])
+
+    r = post("/student/wallet/topup", json={"amount": 500})
+    if r.status_code != 200:
+        log("FAIL", "POST /student/wallet/topup", f"status={r.status_code} body={r.text[:200]}")
+        return
+    d = r.json()
+    if not d.get("ok") or not str(d.get("tx_id", "")).startswith("TX-"):
+        log("FAIL", "wallet/topup response shape", f"got {d}")
+        return
+    log("PASS", "POST /student/wallet/topup amount=500",
+        f"tx_id={d['tx_id']}, new_balance={d.get('new_balance')}")
+
+    time.sleep(0.3)
+    after = get("/student/wallet").json()
+    after_tx = len(after.get("tx") or [])
+    if after_tx < before_tx + 1:
+        log("FAIL", "wallet/topup tx persisted", f"before={before_tx}, after={after_tx}")
+    else:
+        log("PASS", "wallet/topup tx persisted", f"{before_tx} → {after_tx}")
+
+
+def test_wallet_topup_edge():
+    r = post("/student/wallet/topup", json={"amount": 0})
+    if r.status_code != 400:
+        log("FAIL", "topup amount=0 → 400", f"got {r.status_code}")
+    else:
+        log("PASS", "POST topup amount=0 → 400", f"status={r.status_code}")
+
+    r = post("/student/wallet/topup", json={"amount": -5})
+    if r.status_code != 400:
+        log("FAIL", "topup amount=-5 → 400", f"got {r.status_code}")
+    else:
+        log("PASS", "POST topup amount=-5 → 400", f"status={r.status_code}")
+
+
+def test_workflow_toggle(wf_data):
+    if not wf_data or not wf_data.get("items"):
+        log("FAIL", "workflow toggle — setup", "no workflows")
+        return
+    wf = wf_data["items"][0]
+    wf_id = wf.get("id")
+    initial = bool(wf.get("on", False))
+
+    r = post(f"/admin/super/workflows/{wf_id}/toggle")
+    if r.status_code != 200:
+        log("FAIL", "POST /workflows/{id}/toggle", f"status={r.status_code} body={r.text[:200]}")
+        return
+    d = r.json()
+    new1 = d.get("on")
+    if not d.get("ok") or new1 == initial:
+        log("FAIL", "workflow toggle flip", f"initial={initial}, got {d}")
+        return
+    log("PASS", "POST /admin/super/workflows/{id}/toggle #1", f"{initial} → {new1}")
+
+    r2 = post(f"/admin/super/workflows/{wf_id}/toggle")
+    if r2.status_code != 200 or r2.json().get("on") != initial:
+        log("FAIL", "workflow toggle #2 flip-back",
+            f"status={r2.status_code}, body={r2.text[:200]}")
+    else:
+        log("PASS", "POST /admin/super/workflows/{id}/toggle #2", f"{new1} → {initial}")
+
+
+def test_workflow_invalid():
+    r = post("/admin/super/workflows/garbage/toggle")
+    if r.status_code not in (400, 404):
+        log("FAIL", "workflow toggle invalid id", f"expected 400/404, got {r.status_code}")
+    else:
+        log("PASS", "POST workflow toggle invalid → 400/404", f"status={r.status_code}")
+
+
+def test_insight_dismiss(ai_data):
+    if not ai_data or not ai_data.get("items"):
+        log("FAIL", "insight dismiss — setup", "no insights")
+        return
+    insight = ai_data["items"][0]
+    iid = insight.get("id")
+
+    r = post(f"/admin/super/ai-insights/{iid}/dismiss")
+    if r.status_code != 200 or not r.json().get("ok"):
+        log("FAIL", "POST /ai-insights/{id}/dismiss",
+            f"status={r.status_code} body={r.text[:200]}")
+        return
+    log("PASS", "POST /admin/super/ai-insights/{id}/dismiss", f"id={iid}")
+
+    after = get("/admin/super/ai-insights").json()
+    ids = [x.get("id") for x in (after.get("items") or [])]
+    if iid in ids:
+        log("FAIL", "insight excluded after dismiss", "still present")
+    else:
+        log("PASS", "insight excluded after dismiss",
+            f"before {len(ai_data['items'])} → after {len(after.get('items', []))}")
+
+
+def test_mentor_approve_reject(pending_data):
+    if not pending_data or len(pending_data.get("items", [])) < 2:
+        log("FAIL", "mentor approve/reject — setup", "need >=2 pending mentors")
+        return
+    items = pending_data["items"]
+    to_approve = items[0]
+    to_reject = items[1]
+    before_pending = len(items)
+
+    r = post(f"/admin/super/approvals/{to_approve['id']}/approve")
+    if r.status_code != 200:
+        log("FAIL", "POST /approvals/{id}/approve", f"status={r.status_code} body={r.text[:200]}")
+        return
+    d = r.json()
+    if not d.get("ok") or d.get("kind") != "mentor":
+        log("FAIL", "approve response shape", f"got {d}")
+    else:
+        log("PASS", "POST /admin/super/approvals/{id}/approve", f"kind={d['kind']}")
+
+    r2 = post(f"/admin/super/approvals/{to_reject['id']}/reject")
+    if r2.status_code != 200 or not r2.json().get("ok"):
+        log("FAIL", "POST /approvals/{id}/reject",
+            f"status={r2.status_code} body={r2.text[:200]}")
+    else:
+        log("PASS", "POST /admin/super/approvals/{id}/reject", "ok=true")
+
+    time.sleep(0.3)
+    after = get("/admin/super/mentors", status="pending").json()
+    after_pending = len(after.get("items") or [])
+    if after_pending >= before_pending:
+        log("FAIL", "pending count decreased", f"before={before_pending}, after={after_pending}")
+    else:
+        log("PASS", "pending count decreased", f"{before_pending} → {after_pending}")
+
+
+def test_approve_invalid():
+    r = post("/admin/super/approvals/garbage/approve")
+    if r.status_code not in (400, 404):
+        log("FAIL", "approve invalid id", f"expected 400/404, got {r.status_code}")
+    else:
+        log("PASS", "POST approve invalid → 400/404", f"status={r.status_code}")
+
+
+def test_event_rsvp(events_data):
+    if not events_data or not events_data.get("items"):
+        log("FAIL", "event RSVP — setup", "no events")
+        return
+    ev_id = events_data["items"][0].get("id")
+
+    r = post(f"/student/events/{ev_id}/rsvp")
+    if r.status_code != 200 or not r.json().get("ok"):
+        log("FAIL", "POST /events/{id}/rsvp #1",
+            f"status={r.status_code} body={r.text[:200]}")
+        return
+    d = r.json()
+    log("PASS", "POST /student/events/{id}/rsvp #1",
+        f"registered={d.get('registered')} already={d.get('already')}")
+
+    r2 = post(f"/student/events/{ev_id}/rsvp")
+    if r2.status_code != 200:
+        log("FAIL", "rsvp #2", f"status={r2.status_code}")
+        return
+    d2 = r2.json()
+    if not d2.get("already"):
+        log("FAIL", "rsvp #2 already=true", f"got {d2}")
+    else:
+        log("PASS", "POST /events/{id}/rsvp #2", f"already=true")
+
+
+# ── MAIN ────────────────────────────────────────────────
+def main() -> int:
+    print(f"\n━━━ Backend tests against {BASE} ━━━\n")
+
+    print("\n--- DASHBOARDS ---")
+    test_student_dashboard()
+    test_mentor_dashboard()
+    test_college_stats()
+    test_super_overview()
+
+    print("\n--- SUPER ADMIN SUB-VIEWS ---")
+    test_super_colleges()
+    test_super_students()
+    test_super_mentors_all()
+    pending_data = test_super_mentors_pending()
+    test_super_alumni()
+    events_data = test_super_events()
+    test_super_payments()
+    test_super_approvals()
+    test_super_analytics()
+    ai_data = test_super_ai_insights()
+    wf_data = test_super_workflows()
+
+    print("\n--- COLLEGE SUB-VIEWS ---")
+    test_college_students()
+    test_college_placements()
+    test_college_ai_insights()
+
+    print("\n--- STUDENT SUB-VIEWS ---")
+    test_student_internships()
+    test_student_wallet()
+    test_student_network()
+
+    print("\n--- CAREER INTEL (mocked) ---")
+    test_career_intel_jobs()
+    test_career_intel_internships()
+    test_career_intel_scholarships()
+    test_career_intel_summary()
+
+    print("\n--- MUTATIONS ---")
+    test_wallet_topup()
+    test_wallet_topup_edge()
+    test_workflow_toggle(wf_data)
+    test_workflow_invalid()
+    test_insight_dismiss(ai_data)
+    test_mentor_approve_reject(pending_data)
+    test_approve_invalid()
+    test_event_rsvp(events_data)
+
+    print("\n━━━ SUMMARY ━━━")
+    print(f"  PASS: {len(PASS)}")
+    print(f"  WARN: {len(WARN)}")
+    print(f"  FAIL: {len(FAIL)}")
+    if FAIL:
+        print("\n  FAILURES:")
+        for f in FAIL:
+            print(f"    [FAIL] {f['label']}: {f['detail']}")
+    if WARN:
+        print("\n  WARNINGS:")
+        for w in WARN:
+            print(f"    [WARN] {w['label']}: {w['detail']}")
+
+    return 1 if FAIL else 0
 
 
 if __name__ == "__main__":

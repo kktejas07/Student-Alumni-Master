@@ -3,18 +3,21 @@ import { View, Text, Pressable, StyleSheet, Switch, Platform } from 'react-nativ
 import { Workflow, Zap, Clock, ChevronRight, Plus, Play, AlertTriangle } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
+import { usePortalData, postPortal } from '@/src/lib/portalApi';
 
-const WORKFLOWS = [
-  { id:1, name:'Auto-approve mentor (Top-tier company)',  trigger:'New mentor signup', steps:['Verify email','LinkedIn check','Auto-approve if rank<200'], runs:182, success:178, on:true,  color:'#22C55E' },
-  { id:2, name:'At-risk student counselling alert',         trigger:'Attendance < 70%', steps:['Daily scan','Notify counsellor','Schedule call'],            runs:96,  success:88,  on:true,  color:'#EF4444' },
-  { id:3, name:'Mentor payout cron (1st of month)',         trigger:'Cron 1st @ 9am',   steps:['Compute payouts','Stripe transfer','Email receipt'],         runs:42,  success:42,  on:true,  color:'#F97316' },
-  { id:4, name:'Welcome series (new students)',             trigger:'Onboarding done',  steps:['Day 0 welcome','Day 3 mentor pitch','Day 7 hackathon'],     runs:1240,success:1218,on:true,  color:'#A78BFA' },
-  { id:5, name:'Refund auto-trigger (no-show > 3hrs)',      trigger:'Session no-show',  steps:['Detect no-show','Auto-refund','Notify both parties'],         runs:18,  success:18,  on:false, color:'#3B82F6' },
-  { id:6, name:'Alumni donor lapse re-engagement',          trigger:'90-day inactive',  steps:['Find big donors','Personalize copy','Send via SendGrid'],   runs:6,   success:5,   on:true,  color:'#EC4899' },
-];
+type Wf = { id: string; name: string; trigger: string; steps: string[]; runs: number; success: number; on: boolean; color: string };
+const FALLBACK = { items: [] as Wf[] };
 
 export function WorkflowsView() {
-  const [, force] = useState(0);
+  const { data } = usePortalData<typeof FALLBACK>('/admin/super/workflows', FALLBACK);
+  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+
+  const items: Wf[] = (data?.items || []).map((w) => ({ ...w, on: overrides[w.id] !== undefined ? overrides[w.id] : w.on }));
+
+  const toggle = async (id: string, current: boolean) => {
+    setOverrides((p) => ({ ...p, [id]: !current }));
+    try { await postPortal(`/admin/super/workflows/${id}/toggle`); } catch {}
+  };
 
   return (
     <View>
@@ -31,7 +34,7 @@ export function WorkflowsView() {
       </View>
 
       <View style={{ gap: 10 }}>
-        {WORKFLOWS.map((w) => {
+        {items.map((w) => {
           const successPct = Math.round((w.success / Math.max(w.runs, 1)) * 100);
           return (
             <View key={w.id} style={s.card}>
@@ -66,7 +69,7 @@ export function WorkflowsView() {
               </View>
               <Switch
                 value={w.on}
-                onValueChange={() => { (w as any).on = !w.on; force((x) => x + 1); }}
+                onValueChange={() => toggle(w.id, w.on)}
                 trackColor={{ false: 'rgba(255,255,255,0.10)', true: SAC.primary }}
                 thumbColor={w.on ? '#fff' : '#ccc'}
                 {...(Platform.OS === 'web' ? ({ activeThumbColor: '#fff' } as any) : {})}

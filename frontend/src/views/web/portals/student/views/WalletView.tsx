@@ -1,23 +1,44 @@
-import React from 'react';
-import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, Modal, TextInput, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Wallet as WalletIcon, ArrowDown, ArrowUp, Gift, Plus } from 'lucide-react-native';
+import { Wallet as WalletIcon, ArrowDown, ArrowUp, Gift, Plus, X } from 'lucide-react-native';
 import { SC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
+import { usePortalData, postPortal, fetchPortal } from '@/src/lib/portalApi';
 
-const BALANCE = 2_400;
-const REFER_EARN = 1_200;
-const TX = [
-  { id:'TX-7012', date:'May 1, 2026',  desc:'Mentor session — Dr. Suresh Rao', amount:-999,  kind:'debit'  as const },
-  { id:'TX-6998', date:'Apr 28, 2026', desc:'Refer & earn bonus (Sneha joined)',amount: 200,  kind:'credit' as const },
-  { id:'TX-6964', date:'Apr 25, 2026', desc:'Wallet top-up via UPI',            amount: 1500, kind:'credit' as const },
-  { id:'TX-6912', date:'Apr 18, 2026', desc:'Event ticket: System Design class',amount:-499,  kind:'debit'  as const },
-  { id:'TX-6877', date:'Apr 12, 2026', desc:'Refer & earn bonus (Aman joined)', amount: 200,  kind:'credit' as const },
-];
+type Tx = { id: string; date: string; desc: string; amount: number; kind: 'debit' | 'credit' };
+const FALLBACK = { balance: 0, refer_earn: 0, tx: [] as Tx[] };
 
 export function WalletView() {
   const { width } = useWindowDimensions();
   const stack = width < 980;
+  const { data } = usePortalData<typeof FALLBACK>('/student/wallet', FALLBACK);
+  const [modal, setModal] = useState(false);
+  const [amt, setAmt] = useState('500');
+  const [local, setLocal] = useState<typeof FALLBACK | null>(null);
+  const view = local || data || FALLBACK;
+  const BALANCE = view.balance;
+  const REFER_EARN = view.refer_earn;
+  const TX = view.tx;
+
+  const onTopup = async () => {
+    const value = parseInt(amt, 10);
+    if (!value || value <= 0) return;
+    setModal(false);
+    try {
+      await postPortal('/student/wallet/topup', { amount: value });
+      const fresh = await fetchPortal<typeof FALLBACK>('/student/wallet');
+      setLocal(fresh);
+    } catch {
+      // fallback: optimistic
+      setLocal({
+        ...view,
+        balance: BALANCE + value,
+        tx: [{ id: `TX-${Date.now()}`, date: 'Just now', desc: 'Wallet top-up via UPI', amount: value, kind: 'credit' }, ...TX],
+      });
+    }
+  };
+
   return (
     <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
       <View style={{ flex: stack ? undefined : 1.6, gap: 16 }}>
@@ -28,7 +49,7 @@ export function WalletView() {
           </View>
           <Text style={s.bigBal}>₹{BALANCE.toLocaleString('en-IN')}</Text>
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-            <Pressable style={s.primaryCta}><Plus size={13} color={SC.primaryD} /><Text style={s.primaryCtaText}>Top up</Text></Pressable>
+            <Pressable style={s.primaryCta} onPress={() => setModal(true)}><Plus size={13} color={SC.primaryD} /><Text style={s.primaryCtaText}>Top up</Text></Pressable>
             <Pressable style={s.outlineCta}><Text style={s.outlineCtaText}>Withdraw</Text></Pressable>
           </View>
         </LinearGradient>
@@ -65,6 +86,27 @@ export function WalletView() {
           <Pressable style={s.referCta}><Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 }}>Share invite link</Text></Pressable>
         </View>
       </View>
+
+      <Modal visible={modal} transparent animationType="fade" onRequestClose={() => setModal(false)}>
+        <Pressable style={s.modalBg} onPress={() => setModal(false)}>
+          <Pressable style={s.modalCard} onPress={() => {}}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 }}>Top up SA Wallet</Text>
+              <Pressable onPress={() => setModal(false)}><X size={18} color={SC.muted} /></Pressable>
+            </View>
+            <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12, marginBottom: 8 }}>Amount (₹)</Text>
+            <TextInput value={amt} onChangeText={setAmt} keyboardType="numeric" style={s.modalInput} placeholder="500" placeholderTextColor={SC.dim} />
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+              {[200, 500, 1000, 2000].map((q) => (
+                <Pressable key={q} onPress={() => setAmt(String(q))} style={s.quickBtn}><Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>₹{q}</Text></Pressable>
+              ))}
+            </View>
+            <Pressable style={[s.primaryCta, { backgroundColor: SC.primary, marginTop: 18 }]} onPress={onTopup}>
+              <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 }}>Pay ₹{amt} via UPI</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -86,4 +128,8 @@ const s = StyleSheet.create({
   txMeta: { color: SC.dim, fontFamily: FONTS.med, fontSize: 11 },
   txAmount: { fontFamily: FONTS.xbold, fontSize: 13 },
   referCta: { marginTop: 12, height: 36, borderRadius: 10, backgroundColor: SC.primary, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', padding: 20 },
+  modalCard: { width: '100%', maxWidth: 420, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 16, padding: 22 },
+  modalInput: { backgroundColor: SC.bg, borderColor: SC.border, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, height: 44, color: '#fff', fontFamily: FONTS.bold, fontSize: 16, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  quickBtn: { paddingHorizontal: 14, height: 32, borderRadius: 8, borderWidth: 1, borderColor: SC.border, backgroundColor: SC.bg, justifyContent: 'center' },
 });

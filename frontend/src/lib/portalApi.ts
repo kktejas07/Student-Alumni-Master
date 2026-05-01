@@ -16,6 +16,16 @@ export async function fetchPortal<T>(path: string): Promise<T> {
   return res.json();
 }
 
+export async function postPortal<T = any>(path: string, body?: any): Promise<T> {
+  const res = await fetch(`${BASE}/api${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
 export type FetchState<T> = {
   data: T | null;
   loading: boolean;

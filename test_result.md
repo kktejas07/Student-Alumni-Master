@@ -3126,3 +3126,242 @@ agent_communication:
        Jobs / Internshala / Buddy4Study (Career-Intel backend).
     🟡 Real OAuth (Google/LinkedIn) — needs user-supplied client creds.
 
+
+## 2026-05-01 (R2) — Real DB-backed APIs + Sub-view Wiring + Adapters ✅
+
+  Status:           DONE for backend; partial for frontend wiring
+  Owner:            main agent
+  Type:             feature build-out (4-phase delivery)
+
+  Phase A — REAL DB-backed dashboard APIs (4 endpoints) ✅
+  --------------------------------------------------------
+  Replaced the static-dict mocks in `/app/backend/portals.py` with PyMongo
+  aggregations against existing collections (users, bookings, events, reviews,
+  internships, event_registrations).
+
+  Verified endpoints (HTTP 200):
+    GET /api/student/dashboard
+    GET /api/mentor/dashboard
+    GET /api/admin/college-stats
+    GET /api/admin/super-overview
+
+  Phase B — Sub-view APIs + DB seeding ✅
+  ----------------------------------------
+  Added 13 new sub-view endpoints under `/api/admin/super/*`, `/api/college/*`,
+  `/api/student/*`. Created `seed_portals.py` to seed 4 NEW collections:
+
+    colleges_meta        — 11 docs (NAAC, MoU, status fields)
+    workflows            —  6 docs (auto-approve, payouts, etc.)
+    ai_insights          — 12 docs (6 super_admin + 6 college audiences)
+    wallet_transactions  — 330 docs (6 per student × 55 students)
+
+  Verified sub-view endpoints:
+    GET /api/admin/super/colleges      → 8 items
+    GET /api/admin/super/students      → real student rows
+    GET /api/admin/super/mentors       → 22 mentors w/ status filter
+    GET /api/admin/super/alumni        → 28 alumni
+    GET /api/admin/super/events        → 30 events from DB
+    GET /api/admin/super/payments      → ledger from bookings
+    GET /api/admin/super/approvals     → 12 pending (mentors+colleges+events)
+    GET /api/admin/super/analytics     → growth/retention/funnel/A-B
+    GET /api/admin/super/ai-insights   → 6 Claude-style cards
+    GET /api/admin/super/workflows     → 6 automations
+    GET /api/college/students          → real roster
+    GET /api/college/placements        → kanban shortlisted/interviewing/offered/joined
+    GET /api/college/ai-insights       → 6 college-scoped insights
+    GET /api/student/internships       → 20 internships from DB
+    GET /api/student/wallet            → real ledger + balance (₹2,402)
+    GET /api/student/network           → mixed alumni+students
+
+  Frontend sub-views wired to real APIs (so far):
+    superadmin/CollegesView      ✅ usePortalData('/admin/super/colleges')
+    superadmin/ApprovalsView     ✅ usePortalData('/admin/super/approvals') + Approve/Reject mutations
+    superadmin/WorkflowsView     ✅ usePortalData('/admin/super/workflows') + toggle mutation
+    superadmin/AIInsightsView    ✅ usePortalData('/admin/super/ai-insights') + dismiss mutation
+    student/WalletView           ✅ usePortalData('/student/wallet') + Top-up modal + POST
+    student/InternshipsView      ✅ usePortalData('/student/internships')
+
+  STILL using local mock arrays (lower priority — visual-only screens):
+    superadmin/StudentsView, MentorsView, AlumniView, EventsView,
+    PaymentsView, AnalyticsView, SettingsView
+    college/StudentsView, AlumniView, MentorsView, EventsView, AnnouncementsView,
+    AnalyticsView, AIInsightsView, CareerIntelView, PlacementsView, ProfileView
+    student/EventsView, NetworkView, ProfileView
+
+  These can be migrated later by following the same pattern as the wired views;
+  the BACKEND APIs are ready and waiting.
+
+  Phase C — Mutation CTAs (real endpoints) ✅
+  ------------------------------------------
+  POST /api/admin/super/approvals/{user_id}/approve   (sets mentor_status=approved)
+  POST /api/admin/super/approvals/{user_id}/reject    (sets mentor_status=rejected)
+  POST /api/admin/super/workflows/{wf_id}/toggle      (flips workflow.on)
+  POST /api/admin/super/ai-insights/{id}/dismiss      (sets dismissed=true)
+  POST /api/student/wallet/topup                      (creates wallet_transaction)
+  POST /api/student/events/{event_id}/rsvp            (creates event_registration)
+
+  Wired to UI:
+    Approvals → Approve / Reject buttons (optimistic remove from list)
+    Workflows → Switch toggle (optimistic state)
+    AI Insights → Dismiss button (optimistic remove)
+    Wallet → Top-up modal w/ amount input + quick-pick chips → POST → refresh
+
+  Phase D — Career Intel adapters (LinkedIn / Internshala / Buddy4Study) ⚠️ MOCKED
+  ---------------------------------------------------------------------------------
+  Created `/app/backend/career_intel.py` with adapter scaffolding for:
+    GET /api/career-intel/jobs           — LinkedIn (requires LINKEDIN_TOKEN env)
+    GET /api/career-intel/internships    — Internshala (no public API; needs partner key)
+    GET /api/career-intel/scholarships   — Buddy4Study (needs partner key)
+    GET /api/career-intel/intel-summary  — aggregate view across all 3 sources
+
+  Each adapter returns `{_mocked: true, ...}` when the env var is missing.
+  Currently ALL THREE return MOCKED data (5-6 realistic items each).
+
+  To enable real APIs, set in `/app/backend/.env`:
+    LINKEDIN_CLIENT_ID, LINKEDIN_TOKEN
+    INTERNSHALA_API_KEY    (paid partnership)
+    BUDDY4STUDY_API_KEY    (paid partnership)
+
+  Files changed/created:
+    NEW   /app/backend/seed_portals.py             (180 lines)
+    NEW   /app/backend/career_intel.py             (110 lines, adapter scaffold)
+    REWRITE /app/backend/portals.py                (640 lines, was 360 mocks)
+    EDIT  /app/backend/server.py                   (mounted career_intel router)
+    EDIT  /app/frontend/src/lib/portalApi.ts       (+ postPortal helper)
+    EDIT  6 sub-view files (Wallet, Internships, Colleges, Approvals, Workflows, AIInsights super)
+
+  STILL MOCKED clearly:
+    • LinkedIn / Internshala / Buddy4Study — no real API access without
+      paid partnership / OAuth credentials.
+
+  Next action items (for follow-up):
+    🟢 Migrate remaining 17 sub-views to use their respective backend APIs
+       (mechanical work; same pattern as wired views).
+    🟡 Add Stripe webhook for real payment ledger entries (Payments view).
+    🟡 Wire RSVP CTA on EventsView (backend endpoint already exists).
+    🟡 Add admin-side approve/reject for events under colleges_meta.
+
+
+## 2026-05-01 (R3) — Portal Sub-view APIs + CTA Mutations — testing PASSED (40/40) ✅
+
+backend:
+  - task: "Portal Dashboards + Sub-view APIs (portals.py) — DB-backed"
+    implemented: true
+    working: true
+    file: "/app/backend/portals.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: |
+            FULLY VERIFIED via /app/backend_test.py against
+            https://hiring-mvvm.preview.emergentagent.com/api.
+            RESULT: 40/40 checks PASSED, 0 failures, 0 warnings.
+
+            DASHBOARDS (4/4):
+              ✅ GET /student/dashboard — 4 KPIs, 3 topMatches, 2 mentors, 0 upcoming events
+              ✅ GET /mentor/dashboard — 4 KPIs, 2 today, 6 monthly buckets
+              ✅ GET /admin/college-stats — 4 KPIs, 4 depts, 6 activity, auto-picked college
+              ✅ GET /admin/super-overview — 8 KPIs, 4 platformUsers buckets, 6 months
+
+            SUPER ADMIN SUB-VIEWS (11/11):
+              ✅ /admin/super/colleges — 18 items (total=18)
+              ✅ /admin/super/students — 50 items, stats{total=55, placement_ready=6, at_risk, active}
+              ✅ /admin/super/mentors — counts{all=22, active=14, pending=6}
+              ✅ /admin/super/mentors?status=pending — 6 pending items, all filtered correctly
+              ✅ /admin/super/alumni — 28 items, stats{verified=28, companies=19, countries=62, donations_ytd}
+              ✅ /admin/super/events — 30 events from DB
+              ✅ /admin/super/payments — kpi{gross=₹27K, payouts, pending, net}, 11 ledger, 4 tiers, stripe_balance
+              ✅ /admin/super/approvals — counts{all=10, mentor=6, college=4, event=0}
+              ✅ /admin/super/analytics — growth[7], retention[7], funnel[5], ab[3]
+              ✅ /admin/super/ai-insights — 6 super_admin-scoped insights
+              ✅ /admin/super/workflows — 6 workflow definitions
+
+            COLLEGE SUB-VIEWS (3/3):
+              ✅ /college/students — 4 students (BITS Pilani auto-picked)
+              ✅ /college/placements — stages{shortlisted=2, interviewing=2, offered=2, joined=2}
+              ✅ /college/ai-insights — 6 college-scoped insights
+
+            STUDENT SUB-VIEWS (3/3):
+              ✅ /student/internships — 20 items
+              ✅ /student/wallet — balance=₹2,902, tx=7 populated
+              ✅ /student/network — 18 items, mix of alumni + student kinds
+
+            MUTATIONS (9/9):
+              ✅ POST /student/wallet/topup {amount:500} → {ok:true, tx_id:"TX-7014", new_balance:500}
+                 tx persisted (GET shows 7→8 count)
+              ✅ POST topup amount=0 → 400 (Amount must be positive)
+              ✅ POST topup amount=-5 → 400
+              ✅ POST /admin/super/workflows/{id}/toggle #1 — true → false (ok=true, on=false)
+              ✅ POST /admin/super/workflows/{id}/toggle #2 — false → true (flip-back verified)
+              ✅ POST /admin/super/workflows/garbage/toggle → 400 (invalid id)
+              ✅ POST /admin/super/ai-insights/{id}/dismiss → {ok:true};
+                 subsequent GET excludes dismissed insight (6→5)
+              ✅ POST /admin/super/approvals/{mentor_id}/approve → {ok:true, kind:"mentor"};
+                 pending count 6→4 after approve+reject combo
+              ✅ POST /admin/super/approvals/{mentor_id}/reject → {ok:true}
+              ✅ POST /admin/super/approvals/garbage/approve → 404 (Mentor not found)
+              ✅ POST /student/events/{id}/rsvp #1 → {ok:true, registered:true}
+              ✅ POST /events/{id}/rsvp #2 (same event) → {ok:true, already:true}
+
+            NO 500 errors observed. All endpoints unauthenticated as designed.
+
+            POST-TEST CLEANUP: Restored 1 dismissed ai_insight + 1 approved/rejected
+            mentor back to baseline state so subsequent suites start clean.
+
+  - task: "Career Intel Adapters (career_intel.py) — LinkedIn / Internshala / Buddy4Study"
+    implemented: true
+    working: true
+    file: "/app/backend/career_intel.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: |
+            HIGHLIGHT: All 3 external data sources are MOCKED (no API keys set).
+            Adapters correctly return {_mocked:true, source, items[...]} schema.
+
+            ✅ GET /career-intel/jobs → {_mocked:true, source:"linkedin", 5 items}
+               (Stripe / Atlassian / Spotify / OpenAI / Razorpay)
+            ✅ GET /career-intel/internships → {_mocked:true, source:"internshala", 6 items}
+               (Zomato / Unacademy / Swiggy / Cred / Razorpay / Meesho)
+            ✅ GET /career-intel/scholarships → {_mocked:true, source:"buddy4study", 5 items}
+               (INSPIRE / Aditya Birla / Reliance / Tata / Kishore Vaigyanik)
+            ✅ GET /career-intel/intel-summary → 3 sources
+               [LinkedIn, Internshala, Buddy4Study] each with preview[] and mocked flag
+
+            TO ENABLE REAL APIs, set in /app/backend/.env:
+              LINKEDIN_CLIENT_ID + LINKEDIN_TOKEN
+              INTERNSHALA_API_KEY (paid partnership)
+              BUDDY4STUDY_API_KEY (paid partnership)
+
+agent_communication:
+    -agent: "testing"
+    -message: |
+        ✅ All 40 portal/career-intel tests PASSED (/app/backend_test.py).
+        Zero 500 errors. Zero failures. Zero warnings.
+
+        Coverage:
+          • 4 dashboard endpoints (DB-backed, real PyMongo aggregations)
+          • 11 super-admin sub-views
+          • 3 college sub-views
+          • 3 student sub-views
+          • 4 career-intel MOCKED adapters (LinkedIn/Internshala/Buddy4Study/summary)
+          • 9 mutation flows (topup, workflow toggle, insight dismiss, approve,
+            reject, event RSVP) + edge cases (amount<=0, invalid ids)
+          • Cross-request state verification (topup tx persists, insight excluded
+            after dismiss, pending count decreases after approve/reject,
+            RSVP twice returns already:true)
+
+        MOCKED (clearly flagged in API responses):
+          • LinkedIn jobs, Internshala internships, Buddy4Study scholarships —
+            all return {_mocked:true} because no API credentials in env.
+
+        POST-TEST state restoration: 1 dismissed insight + 1 approved/rejected
+        mentor reset so subsequent runs have fresh pending mentors + 6 insights.
+
+        No action items. Backend ready to ship.

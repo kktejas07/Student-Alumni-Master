@@ -3917,6 +3917,10 @@ async def on_shutdown():
 from portals import router as portals_router
 api_router.include_router(portals_router)
 
+# Career Intel adapters (LinkedIn / Internshala / Buddy4Study) — MOCKED fallback
+from career_intel import router as career_intel_router
+api_router.include_router(career_intel_router)
+
 app.include_router(api_router)
 
 app.add_middleware(
