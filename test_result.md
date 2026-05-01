@@ -3052,3 +3052,77 @@ agent_communication:
             in backend.err.log. HIGHLIGHT: responses are STATIC MOCK DATA per
             design — when real DB-backed queries are wired up the JSON contracts
             stay identical so no frontend change required.
+
+## 2026-05-01 — All 26 portal sub-views wired ✅
+
+  Status:           DONE (verified via screenshot tool, 9 navigation tabs sampled)
+  Owner:            main agent
+  Type:             feature build-out
+
+  What changed:
+
+  • Wired the 5 Student sub-views (Internships, Network, Events, Wallet,
+    Profile) into StudentPortalRN.tsx — replaced StubView placeholders with
+    actual rich components.
+
+  • Wired the 10 College sub-views (Students, Alumni, Mentors, Events,
+    Announcements, Analytics, AIInsights, CareerIntel, Placements, Profile)
+    into CollegePortalRN.tsx.
+
+  • Generated 11 new Super Admin sub-views (CollegesView, StudentsView,
+    MentorsView, AlumniView, EventsView, PaymentsView, AnalyticsView,
+    ApprovalsView, AIInsightsView, SettingsView, WorkflowsView) and wired
+    them into SuperAdminPortalRN.tsx.
+
+  Files created (Super Admin):
+    /app/frontend/src/views/web/portals/superadmin/views/CollegesView.tsx
+    /app/frontend/src/views/web/portals/superadmin/views/StudentsView.tsx
+    /app/frontend/src/views/web/portals/superadmin/views/MentorsView.tsx
+    /app/frontend/src/views/web/portals/superadmin/views/AlumniView.tsx
+    /app/frontend/src/views/web/portals/superadmin/views/EventsView.tsx
+    /app/frontend/src/views/web/portals/superadmin/views/PaymentsView.tsx
+    /app/frontend/src/views/web/portals/superadmin/views/AnalyticsView.tsx
+    /app/frontend/src/views/web/portals/superadmin/views/ApprovalsView.tsx
+    /app/frontend/src/views/web/portals/superadmin/views/AIInsightsView.tsx
+    /app/frontend/src/views/web/portals/superadmin/views/SettingsView.tsx
+    /app/frontend/src/views/web/portals/superadmin/views/WorkflowsView.tsx
+
+  Files modified (wiring):
+    /app/frontend/src/views/web/portals/student/StudentPortalRN.tsx
+    /app/frontend/src/views/web/portals/college/CollegePortalRN.tsx
+    /app/frontend/src/views/web/portals/superadmin/SuperAdminPortalRN.tsx
+
+  Visual verification (screenshot tool, 1440x900):
+    ✅ /super-admin → Overview
+    ✅ /super-admin → Colleges (8-row table with NAAC, MoU, Revenue)
+    ✅ /super-admin → Mentors (3 tabs incl. "Pending Approval (6)")
+    ✅ /super-admin → Approvals (12 pending grouped 4/6/2)
+    ✅ /super-admin → Settings (5 sections incl. integration toggles)
+    ✅ /super-admin → Workflows (6 automations w/ Switch toggles)
+    ✅ /student-portal → Internships (8 jobs w/ % match)
+    ✅ /student-portal → Network (alumni+student grid)
+    ✅ /student-portal → SA Wallet (balance card + tx ledger + refer&earn)
+    ✅ /college-portal → Students (roster table)
+    ✅ /college-portal → AI Insights (6 Claude-style cards)
+    ✅ /college-portal → Placements (kanban Shortlisted→Joined)
+
+  Bundle health: clean. No broken imports, no missing icons. Lucide aliases
+  (MoreHorizontal→ellipsis, AlertTriangle→triangle-alert, etc.) verified
+  via `lucide-react-native.mjs` re-exports before generating files.
+
+  STILL MOCKED:
+    Each sub-view currently uses local `const = […]` mock arrays inline —
+    NOT yet wired to backend APIs. The 4 dashboard endpoints (student/
+    mentor/college/super) are wired via usePortalData() but sub-view data
+    is hard-coded.
+
+  Next action items (for follow-up):
+    🟠 Replace inline mock arrays with backend endpoints for each sub-view
+       (e.g. /api/admin/colleges, /api/admin/mentors, /api/student/wallet,
+        /api/college/students, /api/college/placements, etc.)
+    🟠 Replace static mock dicts inside /app/backend/portals.py with real
+       PyMongo aggregations (today they return hardcoded JSON).
+    🟡 Build adapter modules under /app/backend/integrations/ for LinkedIn
+       Jobs / Internshala / Buddy4Study (Career-Intel backend).
+    🟡 Real OAuth (Google/LinkedIn) — needs user-supplied client creds.
+

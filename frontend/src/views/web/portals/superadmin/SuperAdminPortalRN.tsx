@@ -11,6 +11,17 @@ import { Sidebar, SuperAdminNavId, NAV } from './Sidebar';
 import { TopBar } from './TopBar';
 import { OverviewView } from './views/OverviewView';
 import { StubView } from './views/StubView';
+import { CollegesView } from './views/CollegesView';
+import { StudentsView } from './views/StudentsView';
+import { MentorsView } from './views/MentorsView';
+import { AlumniView } from './views/AlumniView';
+import { EventsView } from './views/EventsView';
+import { PaymentsView } from './views/PaymentsView';
+import { AnalyticsView } from './views/AnalyticsView';
+import { ApprovalsView } from './views/ApprovalsView';
+import { AIInsightsView } from './views/AIInsightsView';
+import { SettingsView } from './views/SettingsView';
+import { WorkflowsView } from './views/WorkflowsView';
 
 export function SuperAdminPortalRN() {
   const router = useRouter();
@@ -35,17 +46,17 @@ export function SuperAdminPortalRN() {
           showsVerticalScrollIndicator={false}
         >
           {active === 'overview'    && <OverviewView />}
-          {active === 'colleges'    && <StubView title="Colleges"     note="Manage all 48 colleges — NAAC verifications, MoUs, billing." />}
-          {active === 'students'    && <StubView title="Students"     note="Aggregated student directory across all colleges." />}
-          {active === 'mentors'     && <StubView title="Mentors"      note="Mentor approvals, payout tiers, performance." />}
-          {active === 'alumni'      && <StubView title="Alumni"       note="Cross-college alumni directory, donations, refer drives." />}
-          {active === 'events'      && <StubView title="Events"       note="Platform-wide events catalogue, hackathons, AMAs." />}
-          {active === 'payments'    && <StubView title="Payments"     note="Stripe ledger, payouts, invoices, refunds — coming next." />}
-          {active === 'analytics'   && <StubView title="Analytics"    note="Cohort growth, retention curves, A/B test results." />}
-          {active === 'approvals'   && <StubView title="Approvals"    note="12 pending: 4 colleges, 6 mentors, 2 events." />}
-          {active === 'ai-insights' && <StubView title="AI Insights"  note="Claude-powered platform briefings and predictions." />}
-          {active === 'settings'    && <StubView title="Settings"     note="Global config, role permissions, integrations." />}
-          {active === 'workflows'   && <StubView title="Workflows (NEW)" note="Automation builder for approvals, alerts, payouts." />}
+          {active === 'colleges'    && <CollegesView />}
+          {active === 'students'    && <StudentsView />}
+          {active === 'mentors'     && <MentorsView />}
+          {active === 'alumni'      && <AlumniView />}
+          {active === 'events'      && <EventsView />}
+          {active === 'payments'    && <PaymentsView />}
+          {active === 'analytics'   && <AnalyticsView />}
+          {active === 'approvals'   && <ApprovalsView />}
+          {active === 'ai-insights' && <AIInsightsView />}
+          {active === 'settings'    && <SettingsView />}
+          {active === 'workflows'   && <WorkflowsView />}
         </ScrollView>
       </View>
     </View>

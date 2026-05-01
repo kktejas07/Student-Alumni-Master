@@ -12,6 +12,11 @@ import { Sidebar, StudentNavId } from './Sidebar';
 import { TopBar } from './TopBar';
 import { DashboardView } from './views/DashboardView';
 import { StubView } from './views/StubView';
+import { EventsView } from './views/EventsView';
+import { InternshipsView } from './views/InternshipsView';
+import { NetworkView } from './views/NetworkView';
+import { ProfileView } from './views/ProfileView';
+import { WalletView } from './views/WalletView';
 
 export function StudentPortalRN() {
   const router = useRouter();
@@ -35,15 +40,15 @@ export function StudentPortalRN() {
         >
           {active === 'dashboard'   && <DashboardView />}
           {active === 'career-ai'   && <StubView title="Career AI"          note="Roadmap planner, resume builder, mock interview — the standalone version is already live." deepLink="/career-ai" />}
-          {active === 'internships' && <StubView title="Internships & Jobs" note="Job board with smart matching across LinkedIn, Internshala, Naukri — coming next." />}
-          {active === 'network'     && <StubView title="Network"             note="Alumni discovery, group chats, knowledge rooms — coming next." />}
-          {active === 'events'      && <StubView title="Events"              note="Hackathons, masterclasses, fests — the catalog page is live." />}
+          {active === 'internships' && <InternshipsView />}
+          {active === 'network'     && <NetworkView />}
+          {active === 'events'      && <EventsView />}
           {active === 'financial'   && <StubView title="Financial"           note="Scholarships, loans, education insurance." deepLink="/financial" />}
           {active === 'deals'       && <StubView title="Deals & Offers"      note="Student-only discounts on tools and food." deepLink="/deals" />}
-          {active === 'wallet'      && <StubView title="SA Wallet"           note="Top-up balance, refer & earn, transaction history — coming next." />}
+          {active === 'wallet'      && <WalletView />}
           {active === 'higher-ed'   && <StubView title="Higher Education"    note="Universities, GRE/GMAT/IELTS prep, application tracker." deepLink="/higher-education" />}
           {active === 'rentals'     && <StubView title="Rentals"             note="Student-friendly accommodation listings." deepLink="/rentals" />}
-          {active === 'profile'     && <StubView title="Profile"             note="Digital ID, achievements, badges — coming next." />}
+          {active === 'profile'     && <ProfileView />}
         </ScrollView>
       </View>
     </View>

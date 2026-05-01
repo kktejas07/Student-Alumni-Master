@@ -11,6 +11,16 @@ import { Sidebar, CollegeNavId, NAV } from './Sidebar';
 import { TopBar } from './TopBar';
 import { DashboardView } from './views/DashboardView';
 import { StubView } from './views/StubView';
+import { StudentsView } from './views/StudentsView';
+import { AlumniView } from './views/AlumniView';
+import { MentorsView } from './views/MentorsView';
+import { EventsView } from './views/EventsView';
+import { AnnouncementsView } from './views/AnnouncementsView';
+import { AnalyticsView } from './views/AnalyticsView';
+import { AIInsightsView } from './views/AIInsightsView';
+import { CareerIntelView } from './views/CareerIntelView';
+import { PlacementsView } from './views/PlacementsView';
+import { ProfileView } from './views/ProfileView';
 
 export function CollegePortalRN() {
   const router = useRouter();
@@ -35,16 +45,16 @@ export function CollegePortalRN() {
           showsVerticalScrollIndicator={false}
         >
           {active === 'dashboard'    && <DashboardView />}
-          {active === 'students'     && <StubView title="Students"      note="Roster, attendance, grades, counselling alerts — coming next." />}
-          {active === 'alumni'       && <StubView title="Alumni Network" note="Search alumni, batch directories, donations — coming next." />}
-          {active === 'mentors'      && <StubView title="Mentors"        note="Approve mentor applications, view active mentors and their session stats." />}
-          {active === 'events'       && <StubView title="Events"         note="Manage college events, RSVPs, capacity — coming next." />}
-          {active === 'announcements'&& <StubView title="Announcements"  note="Push notices to students, alumni, faculty." />}
-          {active === 'analytics'    && <StubView title="Analytics"      note="Cohort placement trends, salary curves, attrition — coming next." />}
-          {active === 'ai-insights'  && <StubView title="AI Insights"    note="Claude-powered briefings, predictive at-risk analysis, growth ideas." />}
-          {active === 'career-intel' && <StubView title="Career Intel"   note="Aggregate skill gaps, hiring intent, in-demand roles for your batches." />}
-          {active === 'placements'   && <StubView title="Placements"     note="Recruiter pipeline, drive scheduling, offer letters — coming next." />}
-          {active === 'profile'      && <StubView title="Admin Profile"  note="College admin profile, NAAC certifications, contact details." />}
+          {active === 'students'     && <StudentsView />}
+          {active === 'alumni'       && <AlumniView />}
+          {active === 'mentors'      && <MentorsView />}
+          {active === 'events'       && <EventsView />}
+          {active === 'announcements'&& <AnnouncementsView />}
+          {active === 'analytics'    && <AnalyticsView />}
+          {active === 'ai-insights'  && <AIInsightsView />}
+          {active === 'career-intel' && <CareerIntelView />}
+          {active === 'placements'   && <PlacementsView />}
+          {active === 'profile'      && <ProfileView />}
         </ScrollView>
       </View>
     </View>
