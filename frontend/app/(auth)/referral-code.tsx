@@ -41,7 +41,7 @@ export default function ReferralCode() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: trimmed }),
       }).catch(() => {});
-      router.replace('/(onboarding)/role-info');
+      router.replace('/(onboarding)/quick-setup' as any);
     } catch {
       setError('Could not apply code. Try again or skip.');
     } finally {

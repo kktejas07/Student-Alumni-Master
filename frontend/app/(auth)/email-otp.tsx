@@ -36,7 +36,7 @@ export default function EmailOTP() {
     }
     setError('');
     setLoading(true);
-    trackAuth({ event: 'email_otp_sent', email: trimmed });
+    trackAuth({ event: 'otp_sent', email: trimmed });
     try {
       // Best-effort call — if backend endpoint exists we use it; otherwise we
       // still forward to the verify screen which has its own mock OTP flow.
