@@ -8,6 +8,7 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { ArrowLeft, Gift } from 'lucide-react-native';
 import { AuthShell } from '@/src/views/auth/AuthShell';
 import { AuthInput, PrimaryButton, OutlineButton } from '@/src/views/auth/AuthControls';
@@ -19,6 +20,7 @@ const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
 
 export default function ReferralCode() {
   const router = useRouter();
+  const role = useAuthStore((s) => s.user?.role);
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -55,7 +57,7 @@ export default function ReferralCode() {
   };
 
   return (
-    <AuthShell>
+    <AuthShell role={role as any}>
       <Pressable onPress={() => router.back()} style={s.back}>
         <ArrowLeft size={16} color={AC.muted} />
         <Text style={s.backText}>Back</Text>

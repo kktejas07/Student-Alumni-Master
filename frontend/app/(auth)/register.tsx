@@ -85,7 +85,7 @@ export default function RegisterScreen() {
   };
 
   return (
-    <AuthShell>
+    <AuthShell role={role}>
       <Pressable onPress={() => router.back()} style={s.back}>
         <ArrowLeft size={16} color={AC.muted} />
         <Text style={s.backText}>Back</Text>

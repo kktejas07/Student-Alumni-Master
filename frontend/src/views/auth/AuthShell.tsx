@@ -32,7 +32,7 @@ const ms = StyleSheet.create({
   sub: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
 });
 
-export function AuthShell({ children }: { children: React.ReactNode }) {
+export function AuthShell({ children, role }: { children: React.ReactNode; role?: 'student' | 'mentor' | 'alumni' | 'college' | null }) {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 980;
 
@@ -42,7 +42,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
 
       {isDesktop ? (
         <View style={s.row}>
-          <View style={s.left}><AuthBrand /></View>
+          <View style={s.left}><AuthBrand role={role || undefined} /></View>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.right}>
             <ScrollView contentContainerStyle={s.formScroll} keyboardShouldPersistTaps="handled">
               <View style={s.formCol}>{children}</View>

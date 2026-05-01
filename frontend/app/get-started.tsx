@@ -45,7 +45,7 @@ export default function GetStarted() {
   };
 
   return (
-    <AuthShell>
+    <AuthShell role={role}>
       <View style={s.head}>
         <Text style={s.title}>Get started</Text>
         <Text style={s.sub}>I am joining Student Alumni as a...</Text>

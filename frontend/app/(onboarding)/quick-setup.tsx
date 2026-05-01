@@ -207,7 +207,7 @@ export default function QuickSetup() {
   const onCompleteDeeper = () => router.replace('/(onboarding)/role-info');
 
   return (
-    <AuthShell>
+    <AuthShell role={role as any}>
       <Stepper active={0} total={meta.steps} />
       <Text style={s.title}>{meta.title}</Text>
       <Text style={s.sub}>{meta.sub}</Text>

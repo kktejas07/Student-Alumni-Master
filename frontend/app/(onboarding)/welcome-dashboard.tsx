@@ -47,7 +47,7 @@ export default function DashboardPreview() {
   }, [router]);
 
   return (
-    <AuthShell>
+    <AuthShell role={role as any}>
       <View style={s.center}>
         <View style={s.spinnerCircle}>
           <ActivityIndicator size="large" color="#B07FDF" />
