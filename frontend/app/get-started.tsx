@@ -32,7 +32,9 @@ export default function GetStarted() {
   const onContinue = async () => {
     if (!role) return;
     try { await AsyncStorage.setItem('sa_chosen_role', role); } catch {}
-    router.push({ pathname: '/(auth)/login', params: { role } });
+    // User clicked "Get Started" → primary intent is to CREATE a new account.
+    // Route to register (not login) with the chosen role pre-selected.
+    router.push({ pathname: '/(auth)/register', params: { role } });
   };
 
   return (
