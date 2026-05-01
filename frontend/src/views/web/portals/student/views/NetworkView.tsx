@@ -3,33 +3,30 @@ import { View, Text, Pressable, TextInput, StyleSheet, useWindowDimensions, Plat
 import { Search, UserPlus, Check, MessageSquare } from 'lucide-react-native';
 import { SC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
+import { usePortalData } from '@/src/lib/portalApi';
 
-const PEOPLE = [
-  { id: 1, name: 'Aanya Mehta',     initials: 'AM', kind: 'Alumni',  role: 'PM at Atlassian',           college: 'IIT Bombay',  batch: 2019, color: '#A78BFA', tags: ['Product','Strategy'] },
-  { id: 2, name: 'Vikram Iyer',     initials: 'VI', kind: 'Alumni',  role: 'Principal SDE at Amazon',   college: 'IIT Madras',  batch: 2014, color: '#3B82F6', tags: ['System Design'] },
-  { id: 3, name: 'Meera Pillai',    initials: 'MP', kind: 'Student', role: 'B.Tech CSE Y4',             college: 'BITS Goa',    batch: 2026, color: '#22C55E', tags: ['Frontend','React'] },
-  { id: 4, name: 'Kabir Das',       initials: 'KD', kind: 'Student', role: 'B.Tech ECE Y3',             college: 'NIT Trichy',  batch: 2027, color: '#F59E0B', tags: ['ML','Robotics'] },
-  { id: 5, name: 'Latha Subramani', initials: 'LS', kind: 'Alumni',  role: 'Director PM at Microsoft',  college: 'Anna Univ.',  batch: 2008, color: '#EC4899', tags: ['Hiring','PM'] },
-  { id: 6, name: 'Tanvi Rao',       initials: 'TR', kind: 'Student', role: 'MBA Y1',                    college: 'IIM Bangalore',batch: 2026, color: '#6366F1', tags: ['Marketing','Finance'] },
-];
+type Person = { id: string; name: string; initials: string; kind: 'alumni' | 'student'; role: string; subline: string; college: string; batch: number; tags: string[]; color: string };
+const FALLBACK = { items: [] as Person[] };
 
 const FILTERS = ['All', 'Alumni', 'Student'];
 
 export function NetworkView() {
+  const { data } = usePortalData<typeof FALLBACK>('/student/network', FALLBACK);
+  const PEOPLE = data?.items || [];
   const { width } = useWindowDimensions();
   const [filter, setFilter] = useState('All');
   const [q, setQ] = useState('');
-  const [conn, setConn] = useState<Set<number>>(new Set([2]));
-  const [pending, setPending] = useState<Set<number>>(new Set([5]));
+  const [conn, setConn] = useState<Set<string>>(new Set());
+  const [pending, setPending] = useState<Set<string>>(new Set());
 
   const list = PEOPLE.filter((p) => {
-    if (filter !== 'All' && p.kind !== filter) return false;
-    if (q && !(p.name + p.role + p.college).toLowerCase().includes(q.toLowerCase())) return false;
+    if (filter !== 'All' && p.kind !== filter.toLowerCase()) return false;
+    if (q && !(p.name + p.subline + p.college).toLowerCase().includes(q.toLowerCase())) return false;
     return true;
   });
 
   const cardW = width >= 1100 ? '32%' : width >= 720 ? '48%' : '100%';
-  const send = (id: number) => setPending((p) => new Set(p).add(id));
+  const send = (id: string) => setPending((p) => new Set(p).add(id));
 
   return (
     <View>
@@ -54,13 +51,13 @@ export function NetworkView() {
                 <Av initials={p.initials} size={42} color={p.color} />
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text numberOfLines={1} style={s.name}>{p.name}</Text>
-                  <Text numberOfLines={1} style={s.meta}>{p.role}</Text>
+                  <Text numberOfLines={1} style={s.meta}>{p.subline}</Text>
                 </View>
-                <Badge label={p.kind} color={p.kind === 'Alumni' ? 'green' : 'purple'} />
+                <Badge label={p.kind === 'alumni' ? 'Alumni' : 'Student'} color={p.kind === 'alumni' ? 'green' : 'purple'} />
               </View>
               <Text style={s.collegeMeta}>{p.college} · Batch {p.batch}</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
-                {p.tags.map((t) => <View key={t} style={s.tag}><Text style={{ color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 10 }}>{t}</Text></View>)}
+                {(p.tags || []).slice(0, 3).map((t) => <View key={t} style={s.tag}><Text style={{ color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 10 }}>{t}</Text></View>)}
               </View>
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
                 {c ? (

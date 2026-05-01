@@ -3432,3 +3432,116 @@ agent_communication:
     - Add Stripe webhook for payments
     - Polish 2FA setup/challenge to use new AuthShell
 
+
+## 2026-05-01 (R4) — Sub-view Migration + RSVP CTA (Session 2 of 3) ✅
+
+  Status:        DONE
+  Owner:         main agent
+  Type:          mechanical migration + 1 mutation CTA
+
+  Phase 2 — All 17 sub-views migrated to backend APIs ✅
+  ------------------------------------------------------
+  Added 7 new backend endpoints in `/app/backend/portals.py`:
+    GET /api/college/alumni            → real alumni at college
+    GET /api/college/mentors           → real mentors who graduated from college
+    GET /api/college/events            → real events with reg counts
+    GET /api/college/announcements     → 5 announcements w/ PIN flags + tags
+    GET /api/college/analytics         → placement trend, salary dist, sectors, attrition
+    GET /api/college/career-intel      → skill gaps, hiring intent, roles in demand
+    GET /api/student/events            → events with `registered:bool` per student
+
+  Wired 15 views to API (2 intentionally skipped):
+    SuperAdmin: StudentsView, AlumniView, MentorsView, EventsView, PaymentsView, AnalyticsView ✅
+    College:    StudentsView, AlumniView, MentorsView, EventsView, AnnouncementsView, AnalyticsView, AIInsightsView, CareerIntelView, PlacementsView ✅
+    Student:    EventsView (with RSVP), NetworkView ✅
+    SKIPPED:    SettingsView (local toggles), ProfileView ×3 (use authStore — no backend needed)
+
+  Phase 3 — RSVP CTA wired ✅
+  ----------------------------
+  Student/EventsView now:
+    - Reads `registered` flag from /api/student/events response
+    - Tapping RSVP fires POST /api/student/events/{id}/rsvp
+    - Optimistic UI: button changes to green "✓ Registered" pill
+    - Already-registered events show ✓ on initial load
+
+  Visual verification (4 screenshots taken):
+    ✅ College Career Intel    — 5 skills with demand/supply gap bars
+    ✅ College Analytics        — placement rate trend chart 2022→2026
+    ✅ College Announcements    — 5 cards with PIN icons + audience badges
+    ✅ Student Events + RSVP    — RSVP button → green ✓ Registered after click
+
+  Backend logs confirm all 17 endpoints called successfully (200 OK):
+    /api/college/alumni, /mentors, /events, /announcements, /analytics, /career-intel,
+    /student/events, plus existing super/* endpoints.
+
+  Files changed:
+    EDIT  /app/backend/portals.py  (+248 lines, 7 new endpoints)
+    EDIT  15 sub-view .tsx files (mock arrays → API calls)
+
+  ZERO mock arrays remain in wired sub-views.
+
+  Next session (Session 3):
+    🟢 Migrate 2FA setup/challenge screens to use new AuthShell
+    🟡 Add Stripe webhook for real payment ledger entries
+    🟡 Optional: Real OAuth (Google/LinkedIn) integration
+
+
+
+## 2026-05-01 (R5) — Sub-view endpoint validation (testing agent) ✅
+
+backend:
+  - task: "Sub-view endpoints — 7 college/student endpoints + RSVP mutation"
+    implemented: true
+    working: true
+    file: "/app/backend/portals.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            FULLY VERIFIED via /app/backend_test_subviews.py — 101/101 assertions PASS
+            against https://hiring-mvvm.preview.emergentagent.com/api.
+
+            1. GET /api/college/alumni
+               ✅ 200 OK; returns {items:[...], college:str}
+               ✅ ≥1 item from real alumni data; full schema (id, name, initials,
+                  batch, role, company, city, donor:bool, color)
+               ✅ Edge: ?college_name=ZZ_NONEXIST_99999 → 200 with items=[] (empty list)
+               ✅ ?limit=2 honored
+
+            2. GET /api/college/mentors
+               ✅ 200 OK; full schema (id, name, initials, role, company,
+                  sessions, rating, status, color)
+
+            3. GET /api/college/events
+               ✅ 200 OK; ≥5 events with full schema (id, title, date, mode, city,
+                  cat, attending, capacity, kind∈{free,paid}, accent)
+
+            4. GET /api/college/announcements
+               ✅ 200 OK; exactly 5 items (seeded fallback active since collection empty)
+               ✅ ≥2 items have pinned=True (Placement drive + Annual Convocation)
+               ✅ Full schema (id, title, body, audience, tag, posted_at, pinned:bool, author)
+
+            5. GET /api/college/analytics
+               ✅ 200 OK; kpi {students, placement, median_lpa, top_offer, median_yoy} present
+               ✅ placement_trend has 5 entries with years [2022, 2023, 2024, 2025, 2026]
+               ✅ salary_dist has 5 bands; sectors has 6
+
+            6. GET /api/college/career-intel
+               ✅ 200 OK; skill_gaps (5 entries), hiring_intent, roles_in_demand
+               ✅ skill_gaps[0] has {skill, demand, supply, gap, color}
+
+            7. GET /api/student/events
+               ✅ 200 OK; ≥5 events with full schema including registered:bool
+               ✅ ?limit=3 returns exactly 3 items
+
+            8. RSVP mutation flow (POST /api/student/events/{event_id}/rsvp)
+               ✅ 1st call → {ok:true, registered:true} OR {ok:true, already:true}
+                  (depending on prior state)
+               ✅ 2nd call → {ok:true, already:true}
+               ✅ Subsequent GET /api/student/events shows registered=true for that event
+
+            No 500 errors observed. Backend logs clean. All endpoints operational.
+            Test harness: /app/backend_test_subviews.py (re-runnable).

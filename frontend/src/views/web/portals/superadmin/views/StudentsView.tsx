@@ -3,17 +3,11 @@ import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-na
 import { Search, MoreHorizontal, GraduationCap } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
+import { usePortalData } from '@/src/lib/portalApi';
 
-const STUDENTS = [
-  { id:1, name:'Aryan Kapoor',  initials:'AK', college:'IIT Kanpur',          dept:'CSE',    year:'Y4', cgpa:8.7, status:'active'   as const, color:'#3B82F6' },
-  { id:2, name:'Priya Nair',    initials:'PN', college:'BITS Pilani',         dept:'EEE',    year:'Y3', cgpa:9.1, status:'top'      as const, color:'#22C55E' },
-  { id:3, name:'Kabir Das',     initials:'KD', college:"St. Xavier's, Mumbai", dept:'BMS',    year:'Y2', cgpa:8.5, status:'active'   as const, color:'#A78BFA' },
-  { id:4, name:'Meera Pillai',  initials:'MP', college:'Anna University',     dept:'CSE',    year:'Y4', cgpa:8.9, status:'placed'   as const, color:'#FB923C' },
-  { id:5, name:'Rohan Mehta',   initials:'RM', college:'Christ University',   dept:'MBA',    year:'Y1', cgpa:7.8, status:'active'   as const, color:'#F59E0B' },
-  { id:6, name:'Sneha Iyer',    initials:'SI', college:'Manipal Inst Tech',   dept:'Design', year:'Y3', cgpa:8.6, status:'active'   as const, color:'#EC4899' },
-  { id:7, name:'Vikram Singh',  initials:'VS', college:'NIT Trichy',          dept:'Mech',   year:'Y4', cgpa:7.4, status:'at_risk'  as const, color:'#EF4444' },
-  { id:8, name:'Tara Joshi',    initials:'TJ', college:'JNU New Delhi',       dept:'PolSci', year:'Y2', cgpa:8.8, status:'top'      as const, color:'#22D3EE' },
-];
+type Student = { id: string; name: string; initials: string; college: string; dept: string; year: string; cgpa: number; status: string; color: string };
+type Stats = { total: number; active: number; placement_ready: number; at_risk: number };
+const FALLBACK = { items: [] as Student[], stats: { total: 0, active: 0, placement_ready: 0, at_risk: 0 } as Stats };
 
 const statusBadge = (st: string) =>
   st === 'top'     ? { label: 'Top 5%',  color: 'green'  as const }
@@ -22,6 +16,9 @@ const statusBadge = (st: string) =>
                    : { label: 'Active',  color: 'blue'   as const };
 
 export function StudentsView() {
+  const { data } = usePortalData<typeof FALLBACK>('/admin/super/students', FALLBACK);
+  const STUDENTS = data?.items || [];
+  const stats = data?.stats || FALLBACK.stats;
   const [q, setQ] = useState('');
   const list = STUDENTS.filter((st) => !q || (st.name + st.college + st.dept).toLowerCase().includes(q.toLowerCase()));
 
@@ -32,20 +29,20 @@ export function StudentsView() {
           <View style={s.statIcon}><GraduationCap size={14} color={SAC.accent} /></View>
           <View>
             <Text style={s.statLabel}>TOTAL STUDENTS</Text>
-            <Text style={s.statVal}>1,24,820</Text>
+            <Text style={s.statVal}>{stats.total.toLocaleString('en-IN')}</Text>
           </View>
         </View>
         <View style={s.statBox}>
           <Text style={s.statLabel}>ACTIVE THIS WEEK</Text>
-          <Text style={s.statVal}>89,420</Text>
+          <Text style={s.statVal}>{stats.active.toLocaleString('en-IN')}</Text>
         </View>
         <View style={s.statBox}>
           <Text style={s.statLabel}>PLACEMENT-READY</Text>
-          <Text style={s.statVal}>14,260</Text>
+          <Text style={s.statVal}>{stats.placement_ready.toLocaleString('en-IN')}</Text>
         </View>
         <View style={s.statBox}>
           <Text style={s.statLabel}>AT-RISK FLAG</Text>
-          <Text style={[s.statVal, { color: SAC.red }]}>312</Text>
+          <Text style={[s.statVal, { color: SAC.red }]}>{stats.at_risk}</Text>
         </View>
       </View>
 

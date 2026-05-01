@@ -3,31 +3,33 @@ import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-na
 import { Star, Briefcase, IndianRupee, MoreHorizontal } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
+import { usePortalData, postPortal } from '@/src/lib/portalApi';
 
-const MENTORS = [
-  { id:1, name:'Dr. Suresh Rao',     initials:'SR', role:'AI Architect, Microsoft',     tier:'Platinum', sessions:182, rating:4.9, payout:'₹1.4L', status:'active'   as const, color:'#A78BFA' },
-  { id:2, name:'Aanya Mehta',         initials:'AM', role:'PM, Atlassian',                tier:'Gold',     sessions:128, rating:4.8, payout:'₹98K',  status:'active'   as const, color:'#22D3EE' },
-  { id:3, name:'Kunal Verma',         initials:'KV', role:'Founder, Stealth Startup',     tier:'Gold',     sessions:96,  rating:4.7, payout:'₹76K',  status:'active'   as const, color:'#F59E0B' },
-  { id:4, name:'Riya Khanna',         initials:'RK', role:'Sr. Designer, Spotify',        tier:'Silver',   sessions:54,  rating:4.6, payout:'₹38K',  status:'active'   as const, color:'#EC4899' },
-  { id:5, name:'Pranav Sinha',        initials:'PS', role:'SDE-3, Google',                tier:'Pending',  sessions:0,   rating:0,   payout:'₹0',    status:'pending'  as const, color:'#3B82F6' },
-  { id:6, name:'Tanvi Bhatt',         initials:'TB', role:'CFO, Razorpay',                tier:'Pending',  sessions:0,   rating:0,   payout:'₹0',    status:'pending'  as const, color:'#22C55E' },
-];
+type Mentor = { id: string; name: string; initials: string; role: string; tier: string; sessions: number; rating: number; payout: string; status: string; color: string };
+const FALLBACK = { items: [] as Mentor[], counts: { all: 0, active: 0, pending: 0 } };
 
 const tierColor = (t: string) => t === 'Platinum' ? 'purple' as const : t === 'Gold' ? 'amber' as const : t === 'Silver' ? 'gray' as const : 'orange' as const;
 
 export function MentorsView() {
+  const { data } = usePortalData<typeof FALLBACK>('/admin/super/mentors', FALLBACK);
+  const [tab, setTab] = useState<'all' | 'active' | 'pending'>('all');
+  const [actioned, setActioned] = useState<Record<string, string>>({});
+  const MENTORS = (data?.items || []).filter((m) => !actioned[m.id]);
+  const counts = data?.counts || FALLBACK.counts;
   const { width } = useWindowDimensions();
   const stack = width < 760;
-  const [tab, setTab] = useState<'all' | 'active' | 'pending'>('all');
-  const list = MENTORS.filter((m) => tab === 'all' ? true : m.status === tab);
+  const list = MENTORS.filter((m) => tab === 'all' ? true : m.status === (tab === 'active' ? 'approved' : 'pending'));
+
+  const onApprove = async (id: string) => { setActioned((p) => ({ ...p, [id]: 'approved' })); try { await postPortal(`/admin/super/approvals/${id}/approve`); } catch {} };
+  const onReject = async (id: string) => { setActioned((p) => ({ ...p, [id]: 'rejected' })); try { await postPortal(`/admin/super/approvals/${id}/reject`); } catch {} };
 
   return (
     <View>
       <View style={s.tabRow}>
         {([
-          { id: 'all',     label: 'All Mentors (1,840)' },
-          { id: 'active',  label: 'Active' },
-          { id: 'pending', label: 'Pending Approval (6)' },
+          { id: 'all',     label: `All Mentors (${counts.all})` },
+          { id: 'active',  label: `Active (${counts.active})` },
+          { id: 'pending', label: `Pending Approval (${counts.pending})` },
         ] as const).map((t) => (
           <Pressable key={t.id} onPress={() => setTab(t.id)} style={[s.tab, tab === t.id && s.tabOn]}>
             <Text style={{ color: tab === t.id ? '#fff' : SAC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>{t.label}</Text>
@@ -69,8 +71,8 @@ export function MentorsView() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: stack ? undefined : 1, justifyContent: stack ? 'flex-start' : 'flex-end' }}>
               {m.status === 'pending' ? (
                 <>
-                  <Pressable style={s.approveCta}><Text style={s.approveText}>Approve</Text></Pressable>
-                  <Pressable style={s.rejectCta}><Text style={s.rejectText}>Reject</Text></Pressable>
+                  <Pressable style={s.approveCta} onPress={() => onApprove(m.id)}><Text style={s.approveText}>Approve</Text></Pressable>
+                  <Pressable style={s.rejectCta} onPress={() => onReject(m.id)}><Text style={s.rejectText}>Reject</Text></Pressable>
                 </>
               ) : (
                 <Pressable style={s.viewCta}><Text style={s.viewText}>View profile</Text></Pressable>

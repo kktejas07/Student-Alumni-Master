@@ -4,27 +4,25 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { TrendingUp, TrendingDown, Activity } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
+import { usePortalData } from '@/src/lib/portalApi';
 
-const GROWTH = [{m:'Nov',v:14}, {m:'Dec',v:18}, {m:'Jan',v:22}, {m:'Feb',v:26}, {m:'Mar',v:31}, {m:'Apr',v:38}, {m:'May',v:42}];
-const RETENTION = [{w:'W1',v:96}, {w:'W2',v:88}, {w:'W3',v:81}, {w:'W4',v:78}, {w:'W6',v:71}, {w:'W8',v:67}, {w:'W12',v:62}];
-const FUNNEL = [
-  { label:'Signed up',           v:18420, color:'#3B82F6' },
-  { label:'Profile complete',    v:14260, color:'#A78BFA' },
-  { label:'First mentor request',v: 9810, color:'#FB923C' },
-  { label:'First session done',  v: 6420, color:'#22C55E' },
-  { label:'Repeat session',      v: 3240, color:'#FCD34D' },
-];
-const AB = [
-  { id:1, name:'Onboarding flow v3 (3-step vs 5-step)', winner:'3-step', uplift:'+18%', conf:'97%' },
-  { id:2, name:'Mentor card pricing display',           winner:'Show ₹/hour', uplift:'+11%', conf:'92%' },
-  { id:3, name:'Push notif copy A vs B',                winner:'B (CTA-led)', uplift:'+24%', conf:'99%' },
-];
+const FALLBACK = {
+  growth:    [] as { m: string; v: number }[],
+  retention: [] as { w: string; v: number }[],
+  funnel:    [] as { label: string; v: number; color: string }[],
+  ab:        [] as { id: number; name: string; winner: string; uplift: string; conf: string }[],
+};
 
 export function AnalyticsView() {
+  const { data } = usePortalData<typeof FALLBACK>('/admin/super/analytics', FALLBACK);
+  const GROWTH = data.growth.length ? data.growth : [{m:'Nov',v:14}, {m:'Dec',v:18}, {m:'Jan',v:22}, {m:'Feb',v:26}, {m:'Mar',v:31}, {m:'Apr',v:38}, {m:'May',v:42}];
+  const RETENTION = data.retention;
+  const FUNNEL = data.funnel;
+  const AB = data.ab;
   const { width } = useWindowDimensions();
   const stack = width < 1100;
-  const maxG = Math.max(...GROWTH.map((x) => x.v));
-  const funnelMax = FUNNEL[0].v;
+  const maxG = Math.max(...GROWTH.map((x) => x.v), 1);
+  const funnelMax = FUNNEL[0]?.v || 1;
 
   return (
     <View style={{ gap: 16 }}>

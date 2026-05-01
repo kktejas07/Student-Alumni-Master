@@ -3,18 +3,15 @@ import { View, Text, Pressable, TextInput, StyleSheet, useWindowDimensions, Plat
 import { Search } from 'lucide-react-native';
 import { CC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
+import { usePortalData } from '@/src/lib/portalApi';
 
-const ALUMNI = [
-  { id:1, name:'Aanya Mehta',     initials:'AM', batch:2019, role:'PM',           company:'Atlassian', loc:'Sydney',    color:'#A78BFA' },
-  { id:2, name:'Vikram Iyer',     initials:'VI', batch:2014, role:'Principal SDE',company:'Amazon',    loc:'Bengaluru', color:'#3B82F6' },
-  { id:3, name:'Latha Subramani', initials:'LS', batch:2008, role:'Director PM',  company:'Microsoft', loc:'Hyderabad', color:'#EC4899' },
-  { id:4, name:'Rohan Bose',      initials:'RB', batch:2021, role:'SDE 2',        company:'Stripe',    loc:'Bengaluru', color:'#22C55E' },
-  { id:5, name:'Priya Singh',     initials:'PS', batch:2022, role:'UX Designer',  company:'Razorpay',  loc:'Bengaluru', color:'#F59E0B' },
-  { id:6, name:'Siddharth Pai',   initials:'SP', batch:2023, role:'Research Eng', company:'OpenAI',    loc:'San Francisco', color:'#FCD34D' },
-];
+type Alumnus = { id: string; name: string; initials: string; batch: number; role: string; company: string; city: string; color: string };
+const FALLBACK = { items: [] as Alumnus[] };
 const BATCHES = ['All','2008-2014','2015-2019','2020-2024','2025+'];
 
 export function AlumniView() {
+  const { data } = usePortalData<typeof FALLBACK>('/college/alumni', FALLBACK);
+  const ALUMNI = data?.items || [];
   const { width } = useWindowDimensions();
   const [filter, setFilter] = useState('All');
   const [q, setQ] = useState('');
@@ -38,7 +35,7 @@ export function AlumniView() {
               </View>
               <Badge label={`Batch ${a.batch}`} color="purple" />
             </View>
-            <Text style={s.loc}>· {a.loc}</Text>
+            <Text style={s.loc}>· {a.city}</Text>
             <Pressable style={s.cta}><Text style={s.ctaText}>View profile</Text></Pressable>
           </View>
         ))}

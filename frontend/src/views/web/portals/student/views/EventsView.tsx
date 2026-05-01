@@ -1,23 +1,26 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
-import { Calendar as CalIcon, MapPin, Users as UsersIcon } from 'lucide-react-native';
+import { Calendar as CalIcon, MapPin, Users as UsersIcon, Check } from 'lucide-react-native';
 import { SC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
+import { usePortalData, postPortal } from '@/src/lib/portalApi';
 
-const EVENTS = [
-  { id: 1, title: 'HackIndia 2026',                date: 'May 10–12', mode: 'Hybrid', city: 'Bengaluru', kind: 'free' as const, attending: 1240, accent: '#A78BFA', cat: 'Hackathon' },
-  { id: 2, title: 'DSA Championship S4',           date: 'May 15',    mode: 'Online', city: 'Online',    kind: 'free' as const, attending: 720,  accent: '#34D399', cat: 'Competition' },
-  { id: 3, title: 'System Design Masterclass',     date: 'May 18',    mode: 'Online', city: 'Online',    kind: 'paid' as const, price: 499, attending: 180,  accent: '#FCD34D', cat: 'Workshop' },
-  { id: 4, title: 'Google AMA: Intern Pathways',   date: 'May 22',    mode: 'Online', city: 'Online',    kind: 'free' as const, attending: 2840, accent: '#4285F4', cat: 'AMA' },
-  { id: 5, title: 'Tech Fest 2026',                 date: 'May 5–7',   mode: 'Onsite', city: "St. Xavier's", kind: 'free' as const, attending: 240,  accent: '#22D3EE', cat: 'Fest' },
-  { id: 6, title: 'Resume Review by Top Recruiters',date: 'May 25',    mode: 'Online', city: 'Online',    kind: 'paid' as const, price: 299, attending: 88,   accent: '#EC4899', cat: 'Career' },
-];
+type Ev = { id: string; title: string; date: string; mode: string; city: string; cat: string; attending: number; capacity: number; kind: string; price?: number; accent: string; registered: boolean };
+const FALLBACK = { items: [] as Ev[] };
 
 const FILTERS = ['All', 'Free', 'Paid', 'Online', 'Onsite'];
 
 export function EventsView() {
+  const { data } = usePortalData<typeof FALLBACK>('/student/events', FALLBACK);
+  const EVENTS = data?.items || [];
   const { width } = useWindowDimensions();
   const [filter, setFilter] = useState('All');
+  const [rsvpd, setRsvpd] = useState<Set<string>>(new Set());
+
+  const onRSVP = async (id: string) => {
+    setRsvpd((p) => new Set(p).add(id));
+    try { await postPortal(`/student/events/${id}/rsvp`); } catch {}
+  };
 
   const list = EVENTS.filter((e) => {
     if (filter === 'Free') return e.kind === 'free';
@@ -40,32 +43,44 @@ export function EventsView() {
       </View>
 
       <View style={s.grid}>
-        {list.map((e) => (
-          <Pressable key={e.id} style={[s.card, { width: cardW as any }]}>
-            <View style={[s.cover, { backgroundColor: e.accent + '22', borderColor: e.accent + '40' }]}>
-              <CalIcon size={28} color={e.accent} />
+        {list.map((e) => {
+          const isReg = e.registered || rsvpd.has(e.id);
+          return (
+            <View key={e.id} style={[s.card, { width: cardW as any }]}>
+              <View style={[s.cover, { backgroundColor: e.accent + '22', borderColor: e.accent + '40' }]}>
+                <CalIcon size={28} color={e.accent} />
+              </View>
+              <View style={{ padding: 14 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <Badge label={e.cat} color="purple" />
+                  <Badge label={e.kind === 'free' ? 'FREE' : `₹${e.price}`} color={e.kind === 'free' ? 'green' : 'amber'} />
+                </View>
+                <Text numberOfLines={2} style={s.title}>{e.title}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                  <CalIcon size={11} color={SC.muted} />
+                  <Text style={s.meta}>{e.date}</Text>
+                  <Text style={s.dot}>·</Text>
+                  <MapPin size={11} color={SC.muted} />
+                  <Text style={s.meta}>{e.city}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                  <UsersIcon size={11} color={SC.muted} />
+                  <Text style={s.meta}>{e.attending} attending</Text>
+                </View>
+                {isReg ? (
+                  <View style={[s.cta, { backgroundColor: SC.green, flexDirection: 'row', gap: 6 }]}>
+                    <Check size={14} color="#fff" />
+                    <Text style={s.ctaText}>Registered</Text>
+                  </View>
+                ) : (
+                  <Pressable style={s.cta} onPress={() => onRSVP(e.id)}>
+                    <Text style={s.ctaText}>{e.kind === 'free' ? 'RSVP' : 'Book seat'}</Text>
+                  </Pressable>
+                )}
+              </View>
             </View>
-            <View style={{ padding: 14 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <Badge label={e.cat} color="purple" />
-                <Badge label={e.kind === 'free' ? 'FREE' : `₹${e.price}`} color={e.kind === 'free' ? 'green' : 'amber'} />
-              </View>
-              <Text numberOfLines={2} style={s.title}>{e.title}</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
-                <CalIcon size={11} color={SC.muted} />
-                <Text style={s.meta}>{e.date}</Text>
-                <Text style={s.dot}>·</Text>
-                <MapPin size={11} color={SC.muted} />
-                <Text style={s.meta}>{e.city}</Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                <UsersIcon size={11} color={SC.muted} />
-                <Text style={s.meta}>{e.attending} attending</Text>
-              </View>
-              <Pressable style={s.cta}><Text style={s.ctaText}>{e.kind === 'free' ? 'RSVP' : 'Book seat'}</Text></Pressable>
-            </View>
-          </Pressable>
-        ))}
+          );
+        })}
       </View>
     </View>
   );

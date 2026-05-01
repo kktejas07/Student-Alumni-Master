@@ -3,17 +3,16 @@ import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-na
 import { Heart, Building2, MapPin, Award } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
+import { usePortalData } from '@/src/lib/portalApi';
 
-const ALUMNI = [
-  { id:1, name:'Aanya Mehta',     init:'AM', batch:2019, college:'IIT Kanpur',           role:'Sr. PM, Atlassian',     city:'Sydney',       donor:true,  donated:'₹50K',  color:'#A78BFA' },
-  { id:2, name:'Rishabh Kumar',   init:'RK', batch:2017, college:'BITS Pilani',          role:'CTO, Stealth Startup',  city:'San Francisco',donor:true,  donated:'₹2.4L', color:'#22D3EE' },
-  { id:3, name:'Vidya Murthy',    init:'VM', batch:2015, college:"St. Xavier's, Mumbai", role:'VP Marketing, Disney+', city:'Mumbai',       donor:false, donated:'—',     color:'#EC4899' },
-  { id:4, name:'Karan Joshi',     init:'KJ', batch:2020, college:'Anna University',      role:'SDE-2, Amazon',         city:'Bengaluru',    donor:true,  donated:'₹25K',  color:'#F59E0B' },
-  { id:5, name:'Esha Tripathi',   init:'ET', batch:2014, college:'NIT Trichy',           role:'Founder, EduTech Co',   city:'Hyderabad',    donor:true,  donated:'₹1.0L', color:'#22C55E' },
-  { id:6, name:'Mohit Bansal',    init:'MB', batch:2018, college:'IIT Kanpur',           role:'Quant, JaneStreet',     city:'New York',     donor:false, donated:'—',     color:'#3B82F6' },
-];
+type Alumnus = { id: string; name: string; init: string; batch: number; college: string; role: string; city: string; donor: boolean; donated: string; color: string };
+type Stats = { verified: number; donations_ytd: string; companies: number; countries: number };
+const FALLBACK = { items: [] as Alumnus[], stats: { verified: 0, donations_ytd: '₹0', companies: 0, countries: 0 } as Stats };
 
 export function AlumniView() {
+  const { data } = usePortalData<typeof FALLBACK>('/admin/super/alumni', FALLBACK);
+  const ALUMNI = data?.items || [];
+  const stats = data?.stats || FALLBACK.stats;
   const { width } = useWindowDimensions();
   const cols = width >= 1280 ? 3 : width >= 760 ? 2 : 1;
   const cardW = `${100 / cols - (cols > 1 ? 1 : 0)}%`;
@@ -21,10 +20,10 @@ export function AlumniView() {
   return (
     <View>
       <View style={s.heroRow}>
-        <View style={s.heroBox}><Award size={16} color={SAC.accent} /><View><Text style={s.heroLabel}>VERIFIED ALUMNI</Text><Text style={s.heroVal}>48,210</Text></View></View>
-        <View style={s.heroBox}><Heart size={16} color={SAC.red} /><View><Text style={s.heroLabel}>DONATIONS YTD</Text><Text style={s.heroVal}>₹4.8 Cr</Text></View></View>
-        <View style={s.heroBox}><Building2 size={16} color={SAC.blue} /><View><Text style={s.heroLabel}>UNIQUE COMPANIES</Text><Text style={s.heroVal}>3,420</Text></View></View>
-        <View style={s.heroBox}><MapPin size={16} color={SAC.purple} /><View><Text style={s.heroLabel}>COUNTRIES</Text><Text style={s.heroVal}>62</Text></View></View>
+        <View style={s.heroBox}><Award size={16} color={SAC.accent} /><View><Text style={s.heroLabel}>VERIFIED ALUMNI</Text><Text style={s.heroVal}>{stats.verified.toLocaleString('en-IN')}</Text></View></View>
+        <View style={s.heroBox}><Heart size={16} color={SAC.red} /><View><Text style={s.heroLabel}>DONATIONS YTD</Text><Text style={s.heroVal}>{stats.donations_ytd}</Text></View></View>
+        <View style={s.heroBox}><Building2 size={16} color={SAC.blue} /><View><Text style={s.heroLabel}>UNIQUE COMPANIES</Text><Text style={s.heroVal}>{stats.companies.toLocaleString('en-IN')}</Text></View></View>
+        <View style={s.heroBox}><MapPin size={16} color={SAC.purple} /><View><Text style={s.heroLabel}>COUNTRIES</Text><Text style={s.heroVal}>{stats.countries}</Text></View></View>
       </View>
 
       <View style={s.grid}>

@@ -2,23 +2,17 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { CC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
+import { usePortalData } from '@/src/lib/portalApi';
 
-const SKILLS = [
-  { skill:'Cloud (AWS/GCP)', demand:92, supply:48, color:'#22D3EE' },
-  { skill:'System Design',   demand:88, supply:36, color:'#A78BFA' },
-  { skill:'ML/Deep Learning',demand:85, supply:62, color:'#34D399' },
-  { skill:'React/Frontend',  demand:78, supply:80, color:'#FBBF24' },
-  { skill:'Data Eng (Spark)',demand:74, supply:30, color:'#F472B6' },
-];
-const HIRING = [
-  { role:'Software Engineer',     openings:142, growth:'↑ 12%' },
-  { role:'Product Manager',       openings: 38, growth:'↑ 22%' },
-  { role:'UX/Product Designer',   openings: 27, growth:'↑  8%' },
-  { role:'Data Scientist',        openings: 64, growth:'↑ 18%' },
-  { role:'Mobile Engineer (iOS)', openings: 22, growth:'↓  3%' },
-];
+type Skill = { skill: string; demand: number; supply: number; gap: number; color: string };
+type Hiring = { company: string; openings: number; tier: string; season: string; color: string };
+type Role = { role: string; growth: string; openings: number; color: string };
+const FALLBACK = { skill_gaps: [] as Skill[], hiring_intent: [] as Hiring[], roles_in_demand: [] as Role[] };
 
 export function CareerIntelView() {
+  const { data } = usePortalData<typeof FALLBACK>('/college/career-intel', FALLBACK);
+  const SKILLS = data.skill_gaps || [];
+  const HIRING = data.roles_in_demand || [];
   return (
     <View style={{ flexDirection: 'row', gap: 16, flexWrap: 'wrap' }}>
       <View style={{ flex: 1.5, minWidth: 320 }}>
@@ -26,32 +20,29 @@ export function CareerIntelView() {
           <Text style={s.cardTitle}>Skill Demand vs Supply</Text>
           <Text style={s.sub}>Aggregated from job-board data and your batch profiles.</Text>
           <View style={{ marginTop: 16, gap: 14 }}>
-            {SKILLS.map((sk) => {
-              const gap = sk.demand - sk.supply;
-              return (
-                <View key={sk.skill}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
-                    <Text style={s.skillName}>{sk.skill}</Text>
-                    <Text style={[s.gapText, { color: gap > 30 ? CC.red : gap > 10 ? CC.amber : CC.green }]}>Gap: {gap}</Text>
-                  </View>
-                  <View style={{ position: 'relative', height: 10 }}>
-                    <View style={[s.track, { width: `${sk.demand}%` as any, backgroundColor: sk.color + '60' }]} />
-                    <View style={[s.track, { width: `${sk.supply}%` as any, backgroundColor: sk.color, top: 0 }]} />
-                  </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-                    <Text style={s.legend}>Supply: {sk.supply}%</Text>
-                    <Text style={s.legend}>Demand: {sk.demand}%</Text>
-                  </View>
+            {SKILLS.map((sk) => (
+              <View key={sk.skill}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
+                  <Text style={s.skillName}>{sk.skill}</Text>
+                  <Text style={[s.gapText, { color: sk.gap > 30 ? CC.red : sk.gap > 10 ? CC.amber : CC.green }]}>Gap: {sk.gap}</Text>
                 </View>
-              );
-            })}
+                <View style={{ position: 'relative', height: 10 }}>
+                  <View style={[s.track, { width: `${sk.demand}%` as any, backgroundColor: sk.color + '60' }]} />
+                  <View style={[s.track, { width: `${sk.supply}%` as any, backgroundColor: sk.color, top: 0 }]} />
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
+                  <Text style={s.legend}>Supply: {sk.supply}%</Text>
+                  <Text style={s.legend}>Demand: {sk.demand}%</Text>
+                </View>
+              </View>
+            ))}
           </View>
         </View>
       </View>
       <View style={{ flex: 1, minWidth: 280 }}>
         <View style={s.card}>
           <Text style={s.cardTitle}>Hiring Demand</Text>
-          <Text style={s.sub}>Active openings, last 30 days.</Text>
+          <Text style={s.sub}>Roles in demand · last 30 days.</Text>
           <View style={{ gap: 10, marginTop: 12 }}>
             {HIRING.map((h) => (
               <View key={h.role} style={s.hRow}>

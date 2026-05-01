@@ -2,34 +2,37 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, TextInput, Platform } from 'react-native';
 import { Megaphone, Pin, Send } from 'lucide-react-native';
 import { CC, FONTS } from '../tokens';
+import { usePortalData } from '@/src/lib/portalApi';
 
-const ANN = [
-  { id:1, title:'Mid-sem exam schedule released',      audience:'All students', pinned:true,  date:'Today, 9:00 AM', body:'Mid-semester exams begin May 12. Hall tickets available on portal from May 5.', color:'#22D3EE' },
-  { id:2, title:'Google campus drive — register now',  audience:'Final year',   pinned:true,  date:'Today, 11:30 AM', body:'85 spots left. Eligibility: CGPA ≥ 7.0. Last date to register: May 8.', color:'#34D399' },
-  { id:3, title:'Library timings extended this week',   audience:'All',           pinned:false, date:'Yesterday',      body:'Library now open till 2 AM through May 11 to support exam prep.',            color:'#FBBF24' },
-  { id:4, title:'Convocation rehearsal slots',          audience:'Batch 2026',    pinned:false, date:'2 days ago',     body:'Rehearsals scheduled May 15-17. Pick your slot via the convocation portal.',  color:'#A78BFA' },
-];
+type Ann = { id: string; title: string; body: string; audience: string; tag: string; pinned: boolean; author: string; posted_at: string | null };
+const FALLBACK = { items: [] as Ann[] };
+const TAG_COLORS: Record<string, string> = { placement: '#22D3EE', event: '#34D399', career: '#FBBF24', general: '#A78BFA', hiring: '#EC4899' };
 
 export function AnnouncementsView() {
+  const { data } = usePortalData<typeof FALLBACK>('/college/announcements', FALLBACK);
+  const ANN = data?.items || [];
   const [draft, setDraft] = useState('');
   return (
     <View style={{ flexDirection: 'row', gap: 16, flexWrap: 'wrap' }}>
       <View style={{ flex: 2, minWidth: 320, gap: 10 }}>
-        {ANN.map((a) => (
-          <View key={a.id} style={[s.card, a.pinned && { borderColor: CC.border2 }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <View style={[s.icon, { backgroundColor: a.color + '20', borderColor: a.color + '40' }]}><Megaphone size={14} color={a.color} /></View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text numberOfLines={1} style={s.title}>{a.title}</Text>
-                  {a.pinned && <Pin size={11} color={CC.accentBright} />}
+        {ANN.map((a) => {
+          const color = TAG_COLORS[a.tag] || '#A78BFA';
+          return (
+            <View key={a.id} style={[s.card, a.pinned && { borderColor: CC.border2 }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={[s.icon, { backgroundColor: color + '20', borderColor: color + '40' }]}><Megaphone size={14} color={color} /></View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text numberOfLines={1} style={s.title}>{a.title}</Text>
+                    {a.pinned && <Pin size={11} color={CC.accentBright} />}
+                  </View>
+                  <Text style={s.meta}>{a.audience} · {a.author}{a.posted_at ? ' · ' + new Date(a.posted_at).toLocaleDateString() : ''}</Text>
                 </View>
-                <Text style={s.meta}>{a.audience} · {a.date}</Text>
               </View>
+              <Text style={s.body}>{a.body}</Text>
             </View>
-            <Text style={s.body}>{a.body}</Text>
-          </View>
-        ))}
+          );
+        })}
       </View>
       <View style={{ flex: 1, minWidth: 280 }}>
         <View style={s.card}>

@@ -4,27 +4,28 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowDown, ArrowUp, CreditCard, Download, IndianRupee } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
+import { usePortalData } from '@/src/lib/portalApi';
 
-const KPI = [
-  { label:'GROSS REVENUE',  value:'₹28.4L', delta:'↑ 18% MoM',  color: SAC.accentBright },
-  { label:'PAYOUTS PAID',   value:'₹6.2L',  delta:'118 mentors',  color: SAC.green },
-  { label:'PENDING REFUNDS',value:'₹42K',   delta:'7 disputes',   color: SAC.red },
-  { label:'NET REVENUE',    value:'₹22.2L', delta:'↑ 14% MoM',  color: SAC.primaryL },
-];
-
-const LEDGER = [
-  { id:'pi_3OqVxR', date:'May 1', desc:'Mentor session — Aanya Mehta',    type:'payout' as const, amount: 1499, by:'Priya Nair',  status:'success' as const },
-  { id:'pi_3OqVxQ', date:'May 1', desc:'Subscription — XCM Premium MoU',  type:'income' as const, amount: 50000, by:"St. Xavier's",  status:'success' as const },
-  { id:'pi_3OqVxP', date:'Apr 30',desc:'Event ticket — Sys Design class', type:'income' as const, amount: 499,   by:'Aryan Kapoor',  status:'success' as const },
-  { id:'pi_3OqVxO', date:'Apr 30',desc:'Refund — Resume Review',          type:'refund' as const, amount: 299,   by:'Ankit Verma',   status:'pending' as const },
-  { id:'pi_3OqVxN', date:'Apr 29',desc:'Mentor payout — Dr. Suresh Rao',  type:'payout' as const, amount: 14400, by:'Dr. Suresh Rao',status:'success' as const },
-  { id:'pi_3OqVxM', date:'Apr 29',desc:'Subscription — IIT Kanpur Premium',type:'income' as const,amount: 80000, by:'IIT Kanpur',    status:'success' as const },
-  { id:'pi_3OqVxL', date:'Apr 28',desc:'Refund — Hackathon No-show',      type:'refund' as const, amount: 199,   by:'Mohit Sinha',  status:'success' as const },
-];
+type Tx = { id: string; date: string; desc: string; type: string; amount: number; by: string; status: string };
+type Tier = { tier: string; cut: string; count: number };
+const FALLBACK = {
+  kpi: { gross: '₹0', payouts: '₹0', pending: '₹0', net: '₹0' },
+  ledger: [] as Tx[],
+  stripe_balance: '₹0',
+  tiers: [] as Tier[],
+};
 
 export function PaymentsView() {
+  const { data } = usePortalData<typeof FALLBACK>('/admin/super/payments', FALLBACK);
   const { width } = useWindowDimensions();
   const stack = width < 1100;
+  const KPI = [
+    { label: 'GROSS REVENUE',   value: data.kpi.gross,   delta: '↑ 18% MoM',   color: SAC.accentBright },
+    { label: 'PAYOUTS PAID',    value: data.kpi.payouts, delta: `${data.tiers.reduce((a, t) => a + t.count, 0)} mentors`, color: SAC.green },
+    { label: 'PENDING REFUNDS', value: data.kpi.pending, delta: '7 disputes',   color: SAC.red },
+    { label: 'NET REVENUE',     value: data.kpi.net,     delta: '↑ 14% MoM',   color: SAC.primaryL },
+  ];
+  const LEDGER = data.ledger || [];
   return (
     <View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
@@ -69,7 +70,7 @@ export function PaymentsView() {
           <LinearGradient colors={[SAC.primary, SAC.primaryD] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.gradCard}>
             <CreditCard size={16} color="#fff" />
             <Text style={s.gradKicker}>STRIPE BALANCE</Text>
-            <Text style={s.gradVal}>₹14.8 L</Text>
+            <Text style={s.gradVal}>{data.stripe_balance}</Text>
             <Text style={s.gradSub}>Settles on May 5 to HDFC ****8821</Text>
             <Pressable style={s.gradCta}><Text style={s.gradCtaText}>Initiate payout</Text></Pressable>
           </LinearGradient>
@@ -77,12 +78,7 @@ export function PaymentsView() {
           <View style={[s.card, { padding: 16 }]}>
             <Text style={s.cardTitle}>Payout Tiers</Text>
             <View style={{ marginTop: 12, gap: 10 }}>
-              {[
-                { tier:'Platinum mentor', cut:'70%', count:8 },
-                { tier:'Gold mentor',     cut:'60%', count:42 },
-                { tier:'Silver mentor',   cut:'50%', count:128 },
-                { tier:'College MoU',     cut:'30%', count:48 },
-              ].map((t) => (
+              {data.tiers.map((t) => (
                 <View key={t.tier} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <View style={{ flex: 1, minWidth: 0 }}><Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>{t.tier}</Text><Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>{t.count} active</Text></View>
                   <Text style={{ color: SAC.accentBright, fontFamily: FONTS.xbold, fontSize: 13 }}>{t.cut}</Text>

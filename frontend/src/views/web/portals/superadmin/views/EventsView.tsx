@@ -3,19 +3,16 @@ import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-na
 import { Calendar as CalIcon, MapPin, Users as UsersIcon, IndianRupee } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
+import { usePortalData } from '@/src/lib/portalApi';
 
-const EVENTS = [
-  { id:1, title:'HackIndia 2026',                  date:'May 10–12', mode:'Hybrid', city:'Bengaluru',  cat:'Hackathon',  attending:1240, capacity:2000, status:'live'    as const, kind:'free' as const, accent:'#A78BFA' },
-  { id:2, title:'DSA Championship S4',             date:'May 15',    mode:'Online', city:'Online',     cat:'Competition',attending:720,  capacity:1500, status:'live'    as const, kind:'free' as const, accent:'#22C55E' },
-  { id:3, title:'System Design Masterclass',       date:'May 18',    mode:'Online', city:'Online',     cat:'Workshop',   attending:180,  capacity:300,  status:'live'    as const, kind:'paid' as const, price:499, accent:'#FCD34D' },
-  { id:4, title:'Google AMA: Intern Pathways',     date:'May 22',    mode:'Online', city:'Online',     cat:'AMA',        attending:2840, capacity:5000, status:'live'    as const, kind:'free' as const, accent:'#3B82F6' },
-  { id:5, title:'Ahmedabad Tech Fest 2026',         date:'Jun 1–3',   mode:'Onsite', city:'Ahmedabad',  cat:'Fest',       attending:0,    capacity:1500, status:'pending' as const, kind:'free' as const, accent:'#22D3EE' },
-  { id:6, title:'Resume Review by Top Recruiters', date:'May 25',    mode:'Online', city:'Online',     cat:'Career',     attending:88,   capacity:200,  status:'live'    as const, kind:'paid' as const, price:299, accent:'#EC4899' },
-];
+type Ev = { id: string; title: string; date: string; mode: string; city: string; cat: string; attending: number; capacity: number; status: string; kind: string; price?: number; accent: string };
+const FALLBACK = { items: [] as Ev[] };
 
 const FILTERS = ['All', 'Live', 'Pending', 'Free', 'Paid'];
 
 export function EventsView() {
+  const { data } = usePortalData<typeof FALLBACK>('/admin/super/events', FALLBACK);
+  const EVENTS = data?.items || [];
   const { width } = useWindowDimensions();
   const [filter, setFilter] = useState('All');
   const list = EVENTS.filter((e) => {

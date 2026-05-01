@@ -1,19 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Sparkles, AlertTriangle, TrendingUp, Lightbulb } from 'lucide-react-native';
+import { Sparkles, AlertTriangle, TrendingUp, Lightbulb, Zap } from 'lucide-react-native';
 import { CC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
+import { usePortalData, postPortal } from '@/src/lib/portalApi';
 
-const INSIGHTS = [
-  { id:1, kind:'risk',         icon: AlertTriangle, color:'#EF4444', title:'4 students in CSE Y3 dropped below 60% attendance', body:'Aryan K., Mihir P., Tara D., Sahil V. Counselling sessions can be triggered automatically. Risk of dropout: medium.' },
-  { id:2, kind:'opportunity',  icon: TrendingUp,    color:'#22C55E', title:'Google campus drive can absorb 18 more applicants',  body:'You currently have 32 shortlisted from 85 applied. AI suggests opening Round 2 to ECE Y4 students with CGPA ≥ 7.5 — 12 candidates qualify.' },
-  { id:3, kind:'insight',      icon: Lightbulb,     color:'#FBBF24', title:'Top 3 in-demand skills missing in your batch',       body:'Cloud (AWS/GCP), System Design, ML Ops. Recommend running a 4-week intensive workshop — ROI on placement uplift estimated at 14%.' },
-  { id:4, kind:'opportunity',  icon: TrendingUp,    color:'#A78BFA', title:'Alumni Aanya Mehta open to 5 mentor sessions/mo',    body:'Atlassian PM, Batch 2019. Confirmed availability. Recommend matching to 3 students prepping for PM internships.' },
-  { id:5, kind:'risk',         icon: AlertTriangle, color:'#F59E0B', title:'Mechanical placement rate trailing other depts',     body:'88% vs 94% college avg. AI suggests targeted recruiter outreach: Mahindra, Tata Motors, John Deere are actively hiring.' },
-  { id:6, kind:'insight',      icon: Lightbulb,     color:'#22D3EE', title:'Tech Fest RSVP at 240 — expected to hit capacity',  body:'Recommend opening overflow tier (₹100 ticket) or upgrading venue. Last year similar fest ended with 80 wait-list.' },
-];
+type Insight = { id: string; kind: 'risk'|'opportunity'|'insight'; icon: string; color: string; title: string; body: string };
+const ICON_MAP: Record<string, any> = { AlertTriangle, TrendingUp, Lightbulb, Zap };
+const FALLBACK = { items: [] as Insight[] };
 
 export function AIInsightsView() {
+  const { data } = usePortalData<typeof FALLBACK>('/college/ai-insights', FALLBACK);
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const items = (data?.items || []).filter((i) => !dismissed.has(i.id));
+  const onDismiss = async (id: string) => { setDismissed((p) => new Set(p).add(id)); try { await postPortal(`/admin/super/ai-insights/${id}/dismiss`); } catch {} };
   return (
     <View>
       <View style={s.banner}>
@@ -24,8 +24,8 @@ export function AIInsightsView() {
         </View>
       </View>
       <View style={{ gap: 12 }}>
-        {INSIGHTS.map((it) => {
-          const Icon = it.icon;
+        {items.map((it) => {
+          const Icon = ICON_MAP[it.icon] || Lightbulb;
           return (
             <View key={it.id} style={s.card}>
               <View style={[s.icon, { backgroundColor: it.color + '20', borderColor: it.color + '40' }]}><Icon size={15} color={it.color} /></View>

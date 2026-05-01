@@ -2,24 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
 import { CC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
+import { usePortalData } from '@/src/lib/portalApi';
 
-const PIPELINE = {
-  shortlisted: [
-    { id:1, name:'Arjun Sharma',  initials:'AS', role:'SDE Intern', company:'Google', color:'#A78BFA' },
-    { id:2, name:'Priya Nair',    initials:'PN', role:'PM Intern',  company:'Flipkart', color:'#22C55E' },
-  ],
-  interviewing: [
-    { id:3, name:'Kabir Das',     initials:'KD', role:'SDE Intern', company:'Google', color:'#3B82F6' },
-    { id:4, name:'Meera Pillai',  initials:'MP', role:'UX Intern',  company:'Razorpay', color:'#EC4899' },
-    { id:5, name:'Rohan Mehta',   initials:'RM', role:'PM Intern',  company:'Flipkart', color:'#F59E0B' },
-  ],
-  offered: [
-    { id:6, name:'Sneha Iyer',    initials:'SI', role:'SDE',        company:'Stripe', color:'#FCD34D' },
-  ],
-  joined: [
-    { id:7, name:'Siddharth Pai', initials:'SP', role:'Research',   company:'OpenAI', color:'#22D3EE' },
-  ],
-};
+const FALLBACK = { stages: { shortlisted: [] as any[], interviewing: [] as any[], offered: [] as any[], joined: [] as any[] } };
+
 const COLUMNS = [
   { id:'shortlisted',  label:'Shortlisted',  color:'#A78BFA' },
   { id:'interviewing', label:'Interviewing', color:'#FBBF24' },
@@ -28,6 +14,8 @@ const COLUMNS = [
 ];
 
 export function PlacementsView() {
+  const { data } = usePortalData<typeof FALLBACK>('/college/placements', FALLBACK);
+  const PIPELINE = data?.stages || FALLBACK.stages;
   const { width } = useWindowDimensions();
   const stack = width < 1100;
   return (

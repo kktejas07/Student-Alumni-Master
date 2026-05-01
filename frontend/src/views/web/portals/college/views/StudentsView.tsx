@@ -3,18 +3,16 @@ import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-na
 import { Search, MoreHorizontal } from 'lucide-react-native';
 import { CC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
+import { usePortalData } from '@/src/lib/portalApi';
 
-const STUDENTS = [
-  { id:1, name:'Aryan Kapoor', initials:'AK', dept:'CSE', year:'Y4', cgpa:7.2, attendance:62, status:'at_risk' as const, color:'#EF4444' },
-  { id:2, name:'Priya Nair',   initials:'PN', dept:'CSE', year:'Y3', cgpa:9.1, attendance:96, status:'top'     as const, color:'#22C55E' },
-  { id:3, name:'Kabir Das',    initials:'KD', dept:'ECE', year:'Y4', cgpa:8.5, attendance:88, status:'good'    as const, color:'#3B82F6' },
-  { id:4, name:'Meera Pillai', initials:'MP', dept:'CSE', year:'Y2', cgpa:8.9, attendance:91, status:'good'    as const, color:'#A78BFA' },
-  { id:5, name:'Rohan Mehta',  initials:'RM', dept:'MBA', year:'Y1', cgpa:7.8, attendance:78, status:'good'    as const, color:'#F59E0B' },
-  { id:6, name:'Sneha Iyer',   initials:'SI', dept:'Design',year:'Y3',cgpa:8.6, attendance:90, status:'good'    as const, color:'#EC4899' },
-];
+type Student = { id: string; name: string; initials: string; dept: string; year: string; cgpa: number; attendance: number; status: string; color: string };
+const FALLBACK = { items: [] as Student[] };
+
 const statusBadge = (st: string) => st === 'at_risk' ? { label: 'At-risk', color: 'red' as const } : st === 'top' ? { label: 'Top 5%', color: 'green' as const } : { label: 'Good', color: 'blue' as const };
 
 export function StudentsView() {
+  const { data } = usePortalData<typeof FALLBACK>('/college/students', FALLBACK);
+  const STUDENTS = data?.items || [];
   const [q, setQ] = useState('');
   const list = STUDENTS.filter((st) => !q || (st.name + st.dept).toLowerCase().includes(q.toLowerCase()));
   return (

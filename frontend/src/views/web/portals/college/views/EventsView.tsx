@@ -3,24 +3,29 @@ import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-na
 import { Calendar as CalIcon, Plus } from 'lucide-react-native';
 import { CC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
-import { UPCOMING_EVENTS } from '../data';
+import { usePortalData } from '@/src/lib/portalApi';
+
+type Ev = { id: string; title: string; date: string; mode: string; city: string; cat: string; attending: number; capacity: number; accent: string };
+const FALLBACK = { items: [] as Ev[] };
 
 export function EventsView() {
+  const { data } = usePortalData<typeof FALLBACK>('/college/events', FALLBACK);
+  const events = data?.items || [];
   const { width } = useWindowDimensions();
   const cardW = width >= 1100 ? '32%' : width >= 720 ? '48%' : '100%';
   return (
     <View>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
-        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 }}>All Events ({UPCOMING_EVENTS.length})</Text>
+        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 }}>All Events ({events.length})</Text>
         <View style={{ flex: 1 }} />
         <Pressable style={s.cta}><Plus size={14} color="#fff" /><Text style={s.ctaText}>Create Event</Text></Pressable>
       </View>
       <View style={s.grid}>
-        {UPCOMING_EVENTS.map((e) => (
+        {events.map((e) => (
           <View key={e.id} style={[s.card, { width: cardW as any }]}>
-            <View style={[s.icon, { backgroundColor: e.color + '20', borderColor: e.color + '40' }]}><CalIcon size={20} color={e.color} /></View>
+            <View style={[s.icon, { backgroundColor: e.accent + '20', borderColor: e.accent + '40' }]}><CalIcon size={20} color={e.accent} /></View>
             <Text numberOfLines={2} style={s.title}>{e.title}</Text>
-            <Text style={s.date}>{e.date}</Text>
+            <Text style={s.date}>{e.date} · {e.mode}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}><Badge label={`${e.attending} attending`} color="cyan" /></View>
             <Pressable style={s.manage}><Text style={s.manageText}>Manage →</Text></Pressable>
           </View>

@@ -3,26 +3,29 @@ import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-na
 import { Check, X } from 'lucide-react-native';
 import { CC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
+import { usePortalData, postPortal } from '@/src/lib/portalApi';
 
-const MENTORS = [
-  { id:1, name:'Dr. Suresh Rao', initials:'SR', role:'CTO at Zepto',          status:'active'  as const, sessions:142, rating:4.9, color:'#A78BFA' },
-  { id:2, name:'Nisha Kapoor',   initials:'NK', role:'VP Product at CRED',     status:'active'  as const, sessions:89,  rating:4.8, color:'#EC4899' },
-  { id:3, name:'Rajiv Khanna',   initials:'RK', role:'Founder at Plivo',       status:'pending' as const, sessions:0,   rating:0,   color:'#F59E0B' },
-  { id:4, name:'Anita Desai',    initials:'AD', role:'VP Eng at Razorpay',     status:'active'  as const, sessions:212, rating:4.9, color:'#6366F1' },
-  { id:5, name:'Vikram Iyer',    initials:'VI', role:'Principal SDE at Amazon',status:'pending' as const, sessions:0,   rating:0,   color:'#3B82F6' },
-];
+type Mentor = { id: string; name: string; initials: string; role: string; company: string; status: string; sessions: number; rating: number; color: string };
+const FALLBACK = { items: [] as Mentor[] };
 
 export function MentorsView() {
+  const { data } = usePortalData<typeof FALLBACK>('/college/mentors', FALLBACK);
+  const [actioned, setActioned] = useState<Record<string, string>>({});
+  const MENTORS = (data?.items || []).filter((m) => !actioned[m.id]);
   const { width } = useWindowDimensions();
   const [tab, setTab] = useState<'active'|'pending'>('active');
-  const list = MENTORS.filter((m) => m.status === tab);
+  const list = MENTORS.filter((m) => (tab === 'active' ? m.status === 'approved' : m.status === 'pending'));
+
+  const onApprove = async (id: string) => { setActioned((p) => ({ ...p, [id]: 'approved' })); try { await postPortal(`/admin/super/approvals/${id}/approve`); } catch {} };
+  const onReject = async (id: string) => { setActioned((p) => ({ ...p, [id]: 'rejected' })); try { await postPortal(`/admin/super/approvals/${id}/reject`); } catch {} };
+
   return (
     <View>
       <View style={{ flexDirection: 'row', gap: 6, marginBottom: 16 }}>
         {(['active','pending'] as const).map((t) => (
           <Pressable key={t} onPress={() => setTab(t)} style={[s.tab, tab === t && s.tabOn]}>
             <Text style={{ color: tab === t ? '#fff' : CC.muted, fontFamily: FONTS.bold, fontSize: 12, textTransform: 'capitalize' }}>{t}</Text>
-            <View style={s.count}><Text style={s.countText}>{MENTORS.filter((m) => m.status === t).length}</Text></View>
+            <View style={s.count}><Text style={s.countText}>{MENTORS.filter((m) => (t === 'active' ? m.status === 'approved' : m.status === 'pending')).length}</Text></View>
           </Pressable>
         ))}
       </View>
@@ -32,13 +35,13 @@ export function MentorsView() {
             <Av initials={m.initials} size={42} color={m.color} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text numberOfLines={1} style={s.name}>{m.name}</Text>
-              <Text numberOfLines={1} style={s.meta}>{m.role}</Text>
+              <Text numberOfLines={1} style={s.meta}>{m.role} at {m.company}</Text>
               {tab === 'active' && <Text style={s.stats}>{m.sessions} sessions · {m.rating}★</Text>}
             </View>
             {tab === 'pending' ? (
               <View style={{ flexDirection: 'row', gap: 6 }}>
-                <Pressable style={s.acceptBtn}><Check size={13} color="#fff" /><Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 }}>Approve</Text></Pressable>
-                <Pressable style={s.declineBtn}><X size={13} color={CC.red} /><Text style={{ color: CC.red, fontFamily: FONTS.bold, fontSize: 11.5 }}>Reject</Text></Pressable>
+                <Pressable style={s.acceptBtn} onPress={() => onApprove(m.id)}><Check size={13} color="#fff" /><Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 }}>Approve</Text></Pressable>
+                <Pressable style={s.declineBtn} onPress={() => onReject(m.id)}><X size={13} color={CC.red} /><Text style={{ color: CC.red, fontFamily: FONTS.bold, fontSize: 11.5 }}>Reject</Text></Pressable>
               </View>
             ) : (
               <Badge label="Active" color="green" />
