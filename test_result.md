@@ -2585,3 +2585,34 @@ agent_communication:
             rail HoverGlow applied, Perks widget with HoverGlow,
             Student ID box with HoverGlow.
 
+
+---
+## 2026-04-30 — Digital ID v7: Removed buggy HoverGlow wrappers + Edit Profile buttons doubled-checked
+agent_communication:
+    - agent: "main"
+      message: |
+        BUGS FIXED per user screenshots:
+        - HoverGlow wrappers caused conic-gradient blur to bleed
+          INTO the cards (Perks, STUDENT STATS, Student ID right-
+          rail) making them look like solid purple glow blobs.
+        - Removed all 4 HoverGlow wrappers:
+            1. YOUR STUDENT ID box (in Digital ID main panel)
+            2. MEMBER PERKS widget
+            3. STUDENT STATS right-rail card
+            4. Student ID right-rail card
+        - Only hover effect kept is the main ID card itself
+          (its built-in hoverCard state does the purple gradient
+          halo + lift on hover only).
+        EDIT PROFILE buttons verified:
+        - btnPrimary (Upload Photo etc.) now has purple gradient
+          (#A78BFA → #7C3AED → #6D28D9) + boxShadow.
+        - btnGhost (Remove) now has rgba purple bg + subtle glow.
+        FILES: /app/frontend/app/(tabs)/profile.tsx,
+               /app/frontend/src/views/web/profile/ProfileInfoPage.tsx
+        VERIFIED by 2 full-page screenshots at 1440×900 showing:
+          · Edit Profile: clean layout, purple avatars, purple
+            Upload Photo button with glow, right rail clean
+          · Digital ID: no halo on card at rest, clean Perks and
+            Student ID widgets (no purple bleed), all action buttons
+            with purple glow shadow.
+

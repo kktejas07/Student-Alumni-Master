@@ -195,9 +195,9 @@ const st = StyleSheet.create({
   photoTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 14 },
   photoHint: { color: 'rgba(255,255,255,0.60)', fontFamily: 'DMSans_400Regular', fontSize: 12 },
 
-  btnPrimary: { paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: '#A78BFA', alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
+  btnPrimary: { paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: '#A78BFA', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 55%, #6D28D9 100%)', boxShadow: '0 6px 18px rgba(124,58,237,0.35)' } as any) : {}), ...({ cursor: 'pointer' } as any) },
   btnPrimaryText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  btnGhost: { paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
+  btnGhost: { paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ boxShadow: '0 4px 14px rgba(124,58,237,0.20)' } as any) : {}), ...({ cursor: 'pointer' } as any) },
   btnGhostText: { color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_700Bold', fontSize: 12 },
 
   // legacy (unused, kept to prevent runtime undef from any stray ref)

@@ -347,8 +347,7 @@ export default function ProfileScreen() {
             {/* Right rail */}
             {!isMobile && winW >= 1150 && (
               <View style={styles.rightRail}>
-                <HoverGlow radius={14}>
-                <View style={[styles.rrCard, { borderRadius: 0 }]}>
+                <View style={styles.rrCard}>
                   <Text style={styles.rrKicker}>STUDENT STATS</Text>
                   <View style={{ marginTop: 10 }}>
                     <StatRow Icon={CalendarDays} label="Sessions Completed" value={stats.sessions} color="#34D399" />
@@ -362,9 +361,7 @@ export default function ProfileScreen() {
                     <StatRow Icon={Send} label="Applications Sent" value={stats.applications} color="#FB923C" />
                   </View>
                 </View>
-                </HoverGlow>
-                <HoverGlow radius={14}>
-                <View style={[styles.rrIdCard, { borderRadius: 0 }]}>
+                <View style={styles.rrIdCard}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <ShieldIcon size={14} color="#A78BFA" /><Text style={styles.rrIdKicker}>Student ID</Text>
                   </View>
@@ -374,7 +371,6 @@ export default function ProfileScreen() {
                     <Text style={styles.rrIdBtnText}>View Digital ID Card →</Text>
                   </Pressable>
                 </View>
-                </HoverGlow>
               </View>
             )}
           </View>
@@ -599,8 +595,7 @@ function DigitalIdCardInline({ userId, isMobile, draft, completion, showToast }:
         </View>
 
         {/* YOUR STUDENT ID box */}
-        <HoverGlow radius={12}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, backgroundColor: 'rgba(0,0,0,0.35)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.35)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1 }}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_700Bold', fontSize: 10, letterSpacing: 1.1 }}>YOUR STUDENT ID</Text>
             <Text style={{ color: '#fff', fontFamily: Platform.OS === 'web' ? 'monospace' : 'DMSans_800ExtraBold', fontSize: 22, marginTop: 6, letterSpacing: 0.3, fontWeight: '700' as any }}>{sid}</Text>
@@ -610,7 +605,6 @@ function DigitalIdCardInline({ userId, isMobile, draft, completion, showToast }:
             <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 }}>Copy ID</Text>
           </Pressable>
         </View>
-        </HoverGlow>
 
         {/* Actions */}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
@@ -629,8 +623,7 @@ function DigitalIdCardInline({ userId, isMobile, draft, completion, showToast }:
         </View>
 
         {/* MEMBER PERKS — separate widget (purple palette matching theme) */}
-        <HoverGlow radius={16}>
-        <View style={{ padding: 20, backgroundColor: 'rgba(167,139,250,0.08)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, gap: 12 }}>
+        <View style={{ padding: 20, borderRadius: 16, backgroundColor: 'rgba(167,139,250,0.08)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, gap: 12 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={{ color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 11, letterSpacing: 1.4 }}>SA · MEMBER PERKS</Text>
             <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(252,211,77,0.16)', borderColor: 'rgba(252,211,77,0.45)', borderWidth: 1 }}>
@@ -650,7 +643,6 @@ function DigitalIdCardInline({ userId, isMobile, draft, completion, showToast }:
             </View>
           ))}
         </View>
-        </HoverGlow>
 
         {/* THIS ID WORKS ACROSS THE PLATFORM */}
         <View style={{ gap: 12, marginTop: 4 }}>
