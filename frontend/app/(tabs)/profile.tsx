@@ -345,7 +345,7 @@ export default function ProfileScreen() {
             </ScrollView>
 
             {/* Right rail */}
-            {!isMobile && winW >= 1150 && page !== 'digitalid' && (
+            {!isMobile && winW >= 1150 && (
               <View style={styles.rightRail}>
                 <View style={styles.rrCard}>
                   <Text style={styles.rrKicker}>STUDENT STATS</Text>
@@ -469,9 +469,9 @@ function DigitalIdCardInline({ userId, isMobile, draft, completion, showToast }:
   };
 
   const goSlide = (n: number) => {
-    const next = Math.max(0, Math.min(2, n));
+    const next = Math.max(0, Math.min(1, n));
     setSlide(next);
-    const labels = ['Front', 'Back', 'Perks'];
+    const labels = ['Front', 'Back'];
     showToast(`Card: ${labels[next]}`);
   };
 
@@ -495,13 +495,13 @@ function DigitalIdCardInline({ userId, isMobile, draft, completion, showToast }:
           >
             {Platform.OS === 'web' && (
               <View
-                // @ts-ignore web-only gradient ring
+                // @ts-ignore web-only gradient ring (purple palette matching CTA + avatar)
                 style={{
                   position: 'absolute', top: -6, left: -6, right: -6, bottom: -6, borderRadius: 26,
                   backgroundImage: hoverCard
-                    ? 'conic-gradient(from 0deg, #A78BFA, #34D399, #F472B6, #FCD34D, #A78BFA)'
-                    : 'linear-gradient(135deg, rgba(167,139,250,0.30), rgba(255,255,255,0.08))',
-                  opacity: hoverCard ? 0.9 : 0.5,
+                    ? 'conic-gradient(from 0deg, #A78BFA, #7C3AED, #C4B5FD, #6D28D9, #A78BFA)'
+                    : 'linear-gradient(135deg, rgba(167,139,250,0.30), rgba(124,58,237,0.10))',
+                  opacity: hoverCard ? 0.85 : 0.45,
                   filter: hoverCard ? 'blur(14px)' : 'blur(4px)',
                   transition: 'opacity .3s ease, filter .3s ease',
                   pointerEvents: 'none',
@@ -571,44 +571,45 @@ function DigitalIdCardInline({ userId, isMobile, draft, completion, showToast }:
                   </View>
                 </LinearGradient>
               )}
-              {slide === 2 && (
-                <LinearGradient colors={['#0E7490', '#0F766E', '#065F46']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 22, gap: 12, minHeight: 310, borderColor: 'rgba(52,211,153,0.35)', borderWidth: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Text style={{ color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_800ExtraBold', fontSize: 11, letterSpacing: 1.4 }}>SA · MEMBER PERKS</Text>
-                    <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(252,211,77,0.20)', borderColor: 'rgba(252,211,77,0.55)', borderWidth: 1 }}>
-                      <Text style={{ color: '#FCD34D', fontFamily: 'DMSans_800ExtraBold', fontSize: 10 }}>TIER · STUDENT</Text>
-                    </View>
-                  </View>
-                  <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 19, marginTop: 2 }}>Unlocked Benefits</Text>
-                  {[
-                    { label: 'Free mentor sessions', v: '3 / month' },
-                    { label: 'Partner workshops', v: 'Free entry' },
-                    { label: 'Resume review credits', v: '5' },
-                    { label: 'Knowledge Room access', v: 'Unlimited' },
-                  ].map((r, i) => (
-                    <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 7, borderBottomColor: 'rgba(255,255,255,0.10)', borderBottomWidth: i < 3 ? 1 : 0 }}>
-                      <Text style={{ color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_500Medium', fontSize: 12.5 }}>{r.label}</Text>
-                      <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12.5 }}>{r.v}</Text>
-                    </View>
-                  ))}
-                </LinearGradient>
-              )}
+              {slide === 2 && null /* perks moved to separate widget below */}
             </View>
           </View>
 
-          {/* Carousel controls */}
+          {/* Carousel controls — 2 slides only (Front / Back) */}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
             <Pressable onPress={() => goSlide(slide - 1)} disabled={slide === 0} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', opacity: slide === 0 ? 0.35 : 1, ...({ cursor: slide === 0 ? 'not-allowed' : 'pointer' } as any) }} testID="did-prev">
               <ArrowLeft size={14} color="#fff" />
             </Pressable>
-            {[0, 1, 2].map((i) => (
+            {[0, 1].map((i) => (
               <Pressable key={i} onPress={() => goSlide(i)} style={{ width: i === slide ? 22 : 8, height: 8, borderRadius: 4, backgroundColor: i === slide ? '#A78BFA' : 'rgba(255,255,255,0.25)', ...({ cursor: 'pointer', transition: 'all .25s ease' } as any) }} testID={`did-dot-${i}`} />
             ))}
-            <Pressable onPress={() => goSlide(slide + 1)} disabled={slide === 2} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', opacity: slide === 2 ? 0.35 : 1, ...({ cursor: slide === 2 ? 'not-allowed' : 'pointer' } as any) }} testID="did-next">
+            <Pressable onPress={() => goSlide(slide + 1)} disabled={slide === 1} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', opacity: slide === 1 ? 0.35 : 1, ...({ cursor: slide === 1 ? 'not-allowed' : 'pointer' } as any) }} testID="did-next">
               <View style={{ transform: [{ rotate: '180deg' }] }}><ArrowLeft size={14} color="#fff" /></View>
             </Pressable>
           </View>
-          <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium', fontSize: 11, textAlign: 'center' }}>Swipe through: Front · Back · Perks</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium', fontSize: 11, textAlign: 'center' }}>Tap card to flip · Front &amp; back</Text>
+        </View>
+
+        {/* MEMBER PERKS — separate widget (purple palette matching theme) */}
+        <View style={{ padding: 20, borderRadius: 16, backgroundColor: 'rgba(167,139,250,0.08)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, gap: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 11, letterSpacing: 1.4 }}>SA · MEMBER PERKS</Text>
+            <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(252,211,77,0.16)', borderColor: 'rgba(252,211,77,0.45)', borderWidth: 1 }}>
+              <Text style={{ color: '#FCD34D', fontFamily: 'DMSans_800ExtraBold', fontSize: 10 }}>TIER · STUDENT</Text>
+            </View>
+          </View>
+          <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 19 }}>Unlocked Benefits</Text>
+          {[
+            { label: 'Free mentor sessions', v: '3 / month' },
+            { label: 'Partner workshops', v: 'Free entry' },
+            { label: 'Resume review credits', v: '5' },
+            { label: 'Knowledge Room access', v: 'Unlimited' },
+          ].map((r, i) => (
+            <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomColor: 'rgba(255,255,255,0.08)', borderBottomWidth: i < 3 ? 1 : 0 }}>
+              <Text style={{ color: 'rgba(255,255,255,0.80)', fontFamily: 'DMSans_500Medium', fontSize: 13 }}>{r.label}</Text>
+              <Text style={{ color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 13 }}>{r.v}</Text>
+            </View>
+          ))}
         </View>
 
         {/* YOUR STUDENT ID box */}

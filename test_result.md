@@ -2490,3 +2490,27 @@ agent_communication:
         against user-supplied reference — layout, colors, carousel
         interaction, and glow ring match expectations.
 
+
+---
+## 2026-04-30 — Digital ID v4: Perks separated, purple-only hover, right rail always visible
+agent_communication:
+    - agent: "main"
+      message: |
+        Fixed 3 specific issues reported:
+        1) PERKS moved OUT of the carousel into its own widget card
+           (purple-tinted surface, SA · MEMBER PERKS kicker, TIER ·
+           STUDENT pill, Unlocked Benefits rows). Carousel now has
+           only 2 slides (Front / Back) with matching 2-dot indicator
+           and caption "Tap card to flip · Front & back".
+        2) HOVER GLOW changed from rainbow (purple/green/pink/amber)
+           to MONOCHROMATIC PURPLE matching CTA buttons + AS avatars:
+           conic-gradient(from 0deg, #A78BFA, #7C3AED, #C4B5FD,
+           #6D28D9, #A78BFA). Rests at linear-gradient purple/10.
+        3) RIGHT RAIL now also shows on the Digital ID page (removed
+           `page !== "digitalid"` condition). User sees STUDENT STATS
+           card + Student ID widget with "View Digital ID Card →"
+           button on every profile tab.
+        FILES TOUCHED: /app/frontend/app/(tabs)/profile.tsx
+        VERIFIED by 3 screenshots at 1440×900 (normal/hover/full)
+        logged in as student01 on /me → Digital ID Card tab.
+
