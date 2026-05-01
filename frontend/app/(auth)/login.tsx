@@ -102,7 +102,11 @@ export default function Login() {
       }
       const user = (result as any).user;
       toast.success('Welcome back!', `Signed in as ${user.email}`);
-      const home = Platform.OS === 'web' ? '/platform' : '/(tabs)';
+      // Role-specific landing: mentors → pixel-exact Mentor Portal;
+      // everyone else → standard /platform dispatcher.
+      const home = Platform.OS === 'web'
+        ? (user.role === 'mentor' ? '/mentor-portal' : '/platform')
+        : '/(tabs)';
       router.replace(user.onboarding_completed ? home : '/(onboarding)/role-info');
     } catch (e: any) {
       setError(e.message);

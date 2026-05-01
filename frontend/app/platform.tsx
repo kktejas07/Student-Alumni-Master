@@ -36,6 +36,8 @@ export default function PlatformRoute() {
     if (!initialized) return;
     if (!user) router.replace('/welcome');
     else if (!user.onboarding_completed) router.replace('/(onboarding)/role-info');
+    // Mentors go directly to the pixel-exact Mentor Portal
+    else if (user.role === 'mentor') router.replace('/mentor-portal');
   }, [user, initialized, router]);
 
   if (Platform.OS !== 'web') return null;
@@ -50,7 +52,12 @@ export default function PlatformRoute() {
 
   switch (user.role) {
     case 'mentor':
-      return <MentorPlatform />;
+      // While the redirect is in-flight, show a teal loader matching the portal
+      return (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#071412' }}>
+          <ActivityIndicator color="#14B8A6" />
+        </View>
+      );
     case 'college':
     case 'admin':
       return <CollegePlatform />;
