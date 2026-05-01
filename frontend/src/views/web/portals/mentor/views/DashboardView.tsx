@@ -242,6 +242,23 @@ export function DashboardView({ onNav }: Props) {
 
 /** AI Daily Briefing card — prominent purple-tinted glass with CTA */
 function AIDailyBriefing({ onNav }: { onNav: (id: string) => void }) {
+  const [briefText, setBriefText] = React.useState<string>('');
+  const [briefLoading, setBriefLoading] = React.useState<boolean>(false);
+
+  const generate = async () => {
+    try {
+      setBriefLoading(true);
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL || '').replace(/\/$/, '');
+      const r = await fetch(`${base}/api/ai/daily-brief`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'mentor' }),
+      });
+      const j = await r.json();
+      setBriefText(j?.brief || 'Could not generate brief.');
+    } catch (e: any) { setBriefText('Error: ' + (e?.message || 'unknown')); }
+    finally { setBriefLoading(false); }
+  };
+
   return (
     <View style={s.briefingCard}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
@@ -255,24 +272,30 @@ function AIDailyBriefing({ onNav }: { onNav: (id: string) => void }) {
         </View>
       </View>
       <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 16, lineHeight: 22, marginBottom: 8 }}>
-        Good morning, Suresh! ✨
+        {briefText ? 'Today\'s briefing' : 'Good morning, Mentor ✨'}
       </Text>
       <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18, marginBottom: 12 }}>
-        You have <Text style={{ color: MC.tealP, fontFamily: FONTS.bold }}>3 sessions today</Text>{' '}
-        starting at <Text style={{ color: MC.tealP, fontFamily: FONTS.bold }}>10:00 AM with Arjun</Text>{' '}
-        on System Design Mock Interview. Kabir's investor pitch needs a final review at 4:30 PM —
-        suggest sharper problem framing on slide 2.
+        {briefText || (
+          <>
+            You have <Text style={{ color: MC.tealP, fontFamily: FONTS.bold }}>3 sessions today</Text>{' '}
+            starting at <Text style={{ color: MC.tealP, fontFamily: FONTS.bold }}>10:00 AM</Text>.{' '}
+            Tap <Text style={{ color: MC.tealP, fontFamily: FONTS.bold }}>Generate AI Brief</Text> for a personalized morning summary based on your tier, sessions and rating.
+          </>
+        )}
       </Text>
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         <Pressable
-          onPress={() => onNav('sessions')}
-          style={({ hovered }: any) => [s.briefingPrimary, hovered && { transform: [{ translateY: -1 }] }]}
+          onPress={generate}
+          disabled={briefLoading}
+          style={({ hovered }: any) => [s.briefingPrimary, hovered && { transform: [{ translateY: -1 }] }, briefLoading && { opacity: 0.6 }]}
         >
-          <Text style={{ color: MC.bg, fontFamily: FONTS.xbold, fontSize: 11.5 }}>View Today's Schedule</Text>
-          <ArrowUpRight size={12} color={MC.bg} />
+          <Sparkles size={12} color={MC.bg} />
+          <Text style={{ color: MC.bg, fontFamily: FONTS.xbold, fontSize: 11.5 }}>
+            {briefLoading ? 'Generating…' : (briefText ? 'Regenerate Brief' : 'Generate AI Brief')}
+          </Text>
         </Pressable>
-        <Pressable onPress={() => onNav('students')} style={({ hovered }: any) => [s.briefingSecondary, hovered && { borderColor: MC.tealP }]}>
-          <Text style={{ color: MC.tealP, fontFamily: FONTS.bold, fontSize: 11.5 }}>Prep for Kabir's Session</Text>
+        <Pressable onPress={() => onNav('sessions')} style={({ hovered }: any) => [s.briefingSecondary, hovered && { borderColor: MC.tealP }]}>
+          <Text style={{ color: MC.tealP, fontFamily: FONTS.bold, fontSize: 11.5 }}>View Today's Schedule</Text>
           <ChevronRight size={12} color={MC.tealP} />
         </Pressable>
       </View>

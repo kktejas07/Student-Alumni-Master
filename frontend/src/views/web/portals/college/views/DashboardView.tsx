@@ -48,6 +48,9 @@ export function DashboardView() {
   const { width } = useWindowDimensions();
   const stack = width < 1100;
 
+  const [briefText, setBriefText] = React.useState<string>('');
+  const [briefLoading, setBriefLoading] = React.useState<boolean>(false);
+
   return (
     <View style={{ gap: 16 }}>
       {/* Hero */}
@@ -87,11 +90,35 @@ export function DashboardView() {
             <Badge label="Powered by Claude" color="purple" />
           </View>
           <Text style={s.briefBody}>
-            <Text style={{ color: '#fff', fontFamily: FONTS.bold }}>3 actions need your attention today: </Text>
-            Aryan Kapoor’s attendance dropped to 62% — counselling recommended. Google drive confirmed May 10 — 85 applied, 32 shortlisted. Tech Fest RSVP at 240 — consider opening 60 more seats.{'  '}
-            <Text style={{ color: CC.accentBright, fontFamily: FONTS.bold }}>View full briefing →</Text>
+            {briefText || (
+              <>
+                <Text style={{ color: '#fff', fontFamily: FONTS.bold }}>Tap Generate AI Brief</Text> for a personalized summary on placement insights, alumni metrics and an action item for today.
+              </>
+            )}
           </Text>
         </View>
+        <Pressable
+          onPress={async () => {
+            try {
+              setBriefLoading(true);
+              const base = (process.env.EXPO_PUBLIC_BACKEND_URL || '').replace(/\/$/, '');
+              const r = await fetch(`${base}/api/ai/daily-brief`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role: 'college' }),
+              });
+              const j = await r.json();
+              setBriefText(j?.brief || 'Could not generate brief.');
+            } catch (e: any) { setBriefText('Error: ' + (e?.message || 'unknown')); }
+            finally { setBriefLoading(false); }
+          }}
+          disabled={briefLoading}
+          style={({ hovered }: any) => [s.briefBtn, hovered && { backgroundColor: 'rgba(252,211,77,0.20)' }, briefLoading && { opacity: 0.6 }]}
+        >
+          <Sparkles size={12} color="#FCD34D" />
+          <Text style={{ color: '#FCD34D', fontFamily: FONTS.xbold, fontSize: 11.5 }}>
+            {briefLoading ? 'Generating…' : (briefText ? 'Regenerate' : 'Generate AI Brief')}
+          </Text>
+        </Pressable>
       </View>
 
       {/* Dept Placement + Upcoming Events */}
@@ -223,6 +250,13 @@ const s = StyleSheet.create({
     borderRadius: 14, padding: 16,
   },
   briefIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(252,211,77,0.15)', borderColor: 'rgba(252,211,77,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  briefBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 12, height: 32, borderRadius: 8,
+    backgroundColor: 'rgba(252,211,77,0.10)',
+    borderColor: 'rgba(252,211,77,0.40)', borderWidth: 1,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
   briefTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
   briefBody:  { color: CC.muted, fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 19 },
 
