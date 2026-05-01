@@ -1,11 +1,16 @@
 /**
  * AuthBrand — Left panel showing the SA logo, tagline, and stat pills.
- * Only rendered on web/desktop (>= 980px).
+ * Updated to match SA Auth Flow v2 spec:
+ *   - Purple-violet gradient blobs (was white)
+ *   - Lucide icon stat pills (was emoji pills)
+ *   - Title 32px, sub 14px / line-height 1.7
+ *   - Pill bg 0.08, border 0.12
  */
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
+import { GraduationCap, UserCheck, Building2 } from 'lucide-react-native';
 import { AC, FONTS } from './tokens';
 
 function SALogoBig({ size = 72 }: { size?: number }) {
@@ -18,9 +23,9 @@ function SALogoBig({ size = 72 }: { size?: number }) {
 }
 
 const PILLS = [
-  { emoji: '🎓', text: '12,400+ Students' },
-  { emoji: '👨\u200D💼', text: '500+ Mentors' },
-  { emoji: '🏆', text: '200+ Colleges' },
+  { Icon: GraduationCap, color: '#C4B5FD', text: '12,400+ Students' },
+  { Icon: UserCheck,     color: '#5EEAD4', text: '500+ Mentors' },
+  { Icon: Building2,     color: '#FCD34D', text: '200+ Colleges' },
 ];
 
 export function AuthBrand({ minWidth = 980 }: { minWidth?: number }) {
@@ -31,9 +36,9 @@ export function AuthBrand({ minWidth = 980 }: { minWidth?: number }) {
       end={{ x: 1, y: 1 }}
       style={s.wrap}
     >
-      {/* Floating gradient circles */}
-      <View style={[s.blob, { top: -60, right: -50, width: 280, height: 280, backgroundColor: 'rgba(255,255,255,0.10)' }]} />
-      <View style={[s.blob, { bottom: 40, left: -60, width: 220, height: 220, backgroundColor: 'rgba(157,92,246,0.18)' }]} />
+      {/* Floating purple-violet gradient circles (matching v2 spec) */}
+      <View style={[s.blob, { top: '-10%', right: '-15%', width: 280, height: 280, backgroundColor: 'rgba(124,58,237,0.20)' }]} />
+      <View style={[s.blob, { bottom: '5%', left: '-10%', width: 200, height: 200, backgroundColor: 'rgba(139,92,246,0.15)' }]} />
 
       <View style={s.center}>
         <View style={s.logoWrap}>
@@ -44,7 +49,7 @@ export function AuthBrand({ minWidth = 980 }: { minWidth?: number }) {
         <View style={s.pills}>
           {PILLS.map((p) => (
             <View key={p.text} style={s.pill}>
-              <Text style={s.pillEmoji}>{p.emoji}</Text>
+              <p.Icon size={18} color={p.color} />
               <Text style={s.pillText}>{p.text}</Text>
             </View>
           ))}
@@ -57,12 +62,11 @@ export function AuthBrand({ minWidth = 980 }: { minWidth?: number }) {
 const s = StyleSheet.create({
   wrap: { flex: 1, padding: 40, justifyContent: 'center', overflow: 'hidden', position: 'relative' },
   blob: { position: 'absolute', borderRadius: 999, ...(Platform.OS === 'web' ? ({ filter: 'blur(70px)' } as any) : {}) },
-  center: { alignItems: 'center', maxWidth: 360, alignSelf: 'center' },
-  logoWrap: { marginBottom: 24, ...(Platform.OS === 'web' ? ({ filter: 'drop-shadow(0 4px 24px rgba(255,255,255,0.30))' } as any) : {}) },
-  title: { fontSize: 36, fontFamily: FONTS.xbold, color: '#fff', letterSpacing: -1, marginBottom: 12, textAlign: 'center' },
-  tagline: { fontSize: 14, fontFamily: FONTS.med, color: 'rgba(255,255,255,0.75)', lineHeight: 22, textAlign: 'center', maxWidth: 280, marginBottom: 24 },
-  pills: { gap: 10, width: '100%', maxWidth: 260 },
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
-  pillEmoji: { fontSize: 18 },
+  center: { alignItems: 'center', maxWidth: 360, alignSelf: 'center', zIndex: 1 },
+  logoWrap: { marginBottom: 20, ...(Platform.OS === 'web' ? ({ filter: 'drop-shadow(0 4px 24px rgba(255,255,255,0.30))' } as any) : {}) },
+  title: { fontSize: 32, fontFamily: FONTS.xbold, color: '#fff', letterSpacing: -1, marginBottom: 10, textAlign: 'center', lineHeight: 37 },
+  tagline: { fontSize: 14, fontFamily: FONTS.med, color: 'rgba(255,255,255,0.5)', lineHeight: 24, textAlign: 'center', maxWidth: 260, marginBottom: 16 },
+  pills: { gap: 10, width: '100%', maxWidth: 260, marginTop: 8 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
   pillText: { fontSize: 13, fontFamily: FONTS.bold, color: '#fff' },
 });
