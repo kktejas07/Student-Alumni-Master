@@ -164,6 +164,24 @@ class MentorInfo(BaseModel):
     session_price_inr: Optional[int] = None
 
 
+class CollegeInfo(BaseModel):
+    """College / Institution-specific fields per HTML spec ("Your Institution").
+
+    Applies when `user.role == 'college'`. Captures the institution's public
+    profile so students can discover and connect with it.
+    """
+    institution_name: str
+    institution_type: Optional[Literal["school", "college", "university", "institute"]] = "university"
+    affiliated_university: Optional[str] = None  # e.g. "Delhi University" (for affiliated colleges)
+    official_website: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    country: str = "India"
+    # Optional admin contact details the college can fill later
+    accreditation: Optional[str] = None  # e.g. "NAAC A+", "NBA"
+    year_established: Optional[int] = None
+
+
 class AlumniInfo(BaseModel):
     """Alumni-specific fields per spec."""
     graduation_year: int
@@ -223,6 +241,7 @@ class OnboardingRequest(BaseModel):
     student_info: Optional[StudentInfo] = None  # Required if role=student
     alumni_info: Optional[AlumniInfo] = None  # Required if role=alumni
     mentor_info: Optional[MentorInfo] = None  # Required if role=mentor
+    college_info: Optional[CollegeInfo] = None  # Required if role=college (per spec)
     interests: List[str] = Field(default_factory=list)
     skills: List[str] = Field(default_factory=list)
     bio: Optional[str] = None
@@ -246,6 +265,7 @@ class UserResponse(BaseModel):
     student_info: Optional[StudentInfo] = None
     alumni_info: Optional[AlumniInfo] = None
     mentor_info: Optional[MentorInfo] = None
+    college_info: Optional[CollegeInfo] = None
     mentor_status: Optional[MentorStatus] = None  # Only set for mentors
     interests: List[str] = []
     skills: List[str] = []
@@ -409,6 +429,7 @@ def serialize_user(user: dict) -> dict:
         "student_info": _safe_block(StudentInfo, user.get("student_info")),
         "alumni_info":  _safe_block(AlumniInfo,  user.get("alumni_info")),
         "mentor_info":  _safe_block(MentorInfo,  user.get("mentor_info")),
+        "college_info": _safe_block(CollegeInfo, user.get("college_info")),
         "mentor_status": user.get("mentor_status"),
         "interests": user.get("interests", []),
         "skills": user.get("skills", []),
@@ -1853,6 +1874,15 @@ async def complete_onboarding(req: OnboardingRequest, user: dict = Depends(get_c
         update["alumni_info"] = req.alumni_info.model_dump()
     if req.mentor_info:
         update["mentor_info"] = req.mentor_info.model_dump()
+    if req.college_info:
+        update["college_info"] = req.college_info.model_dump()
+        # Mirror institution_name into school_info so existing aggregations keep working
+        si = update.get("school_info") or {}
+        si.setdefault("institution_name", req.college_info.institution_name)
+        si.setdefault("institution_type", req.college_info.institution_type or "university")
+        if req.college_info.city:    si.setdefault("city", req.college_info.city)
+        if req.college_info.state:   si.setdefault("state", req.college_info.state)
+        update["school_info"] = si
 
     await db.users.update_one({"_id": user["_id"]}, {"$set": update})
     return UserResponse(**serialize_user(await db.users.find_one({"_id": user["_id"]})))

@@ -51,7 +51,7 @@ export default function ReferralCode() {
 
   const onSkip = () => {
     trackAuth({ event: 'referral_skipped' as any });
-    router.replace('/(onboarding)/role-info');
+    router.replace('/(onboarding)/quick-setup' as any);
   };
 
   return (

@@ -64,6 +64,14 @@ export default function QuickSetup() {
   // Alumni
   const [yoe, setYoe] = useState('');
 
+  // College — spec fields: Institution Name / Type / Affiliated Univ / Website / City & State
+  const [instName, setInstName]   = useState('');
+  const [instType, setInstType]   = useState<'university' | 'college' | 'institute'>('university');
+  const [affiliated, setAffiliated] = useState('');
+  const [website, setWebsite]     = useState('');
+  const [city, setCity]           = useState('');
+  const [stateName, setStateName] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
 
@@ -96,6 +104,11 @@ export default function QuickSetup() {
       if (!company.trim())     return 'Company is required.';
       if (!collegeBatch.trim()) return 'College & Batch is required.';
       if (!gradYear.trim() || isNaN(Number(gradYear))) return 'Enter a valid graduation year.';
+    }
+    if (role === 'college') {
+      if (!instName.trim()) return 'Institution name is required.';
+      if (!city.trim() || !stateName.trim()) return 'City & State are required.';
+      if (!phone.replace(/\D/g, '').length || phone.replace(/\D/g, '').length < 10) return 'Enter a valid phone number.';
     }
     return null;
   };
@@ -157,6 +170,25 @@ export default function QuickSetup() {
           current_role: currentRole.trim(),
           employment_status: 'employed',
           wants_to_mentor: false,
+        };
+      }
+
+      if (role === 'college') {
+        payload.school_info = {
+          country: 'India',
+          institution_type: instType,
+          institution_name: instName.trim(),
+          city: city.trim(),
+          state: stateName.trim(),
+        };
+        payload.college_info = {
+          institution_name: instName.trim(),
+          institution_type: instType,
+          affiliated_university: affiliated.trim() || undefined,
+          official_website: website.trim() || undefined,
+          city: city.trim(),
+          state: stateName.trim(),
+          country: 'India',
         };
       }
 
@@ -251,6 +283,51 @@ export default function QuickSetup() {
                 </View>
               </View>
               <AuthInput label="Phone Number" value={phone} onChangeText={setPhone} placeholder="+91 98765 43210" keyboardType="phone-pad" />
+            </>
+          )}
+
+          {/* COLLEGE — per HTML spec "Your Institution" */}
+          {role === 'college' && (
+            <>
+              <AuthInput label="Institution Name" value={instName} onChangeText={setInstName} placeholder="e.g. Delhi Technological University" autoCapitalize="words" />
+
+              <Text style={s.section}>Institution Type</Text>
+              <View style={s.chipRow}>
+                {(['university', 'college', 'institute'] as const).map((t) => (
+                  <DarkChip
+                    key={t}
+                    label={t.charAt(0).toUpperCase() + t.slice(1)}
+                    active={instType === t}
+                    onPress={() => setInstType(t)}
+                    testID={`inst-type-${t}`}
+                  />
+                ))}
+              </View>
+
+              <AuthInput
+                label="Affiliated University (optional)"
+                value={affiliated}
+                onChangeText={setAffiliated}
+                placeholder="e.g. Delhi University"
+                autoCapitalize="words"
+              />
+              <AuthInput
+                label="Official Website"
+                value={website}
+                onChangeText={setWebsite}
+                placeholder="https://www.example.edu"
+                keyboardType="url"
+                autoCapitalize="none"
+              />
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <AuthInput label="City" value={city} onChangeText={setCity} placeholder="e.g. New Delhi" autoCapitalize="words" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <AuthInput label="State" value={stateName} onChangeText={setStateName} placeholder="e.g. Delhi" autoCapitalize="words" />
+                </View>
+              </View>
+              <AuthInput label="Admin Phone Number" value={phone} onChangeText={setPhone} placeholder="+91 98765 43210" keyboardType="phone-pad" />
             </>
           )}
         </View>
