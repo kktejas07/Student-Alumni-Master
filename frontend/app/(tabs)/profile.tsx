@@ -6,7 +6,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator,
-  useWindowDimensions, Platform, Image, Alert,
+  useWindowDimensions, Platform, Image, Alert, Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -15,7 +15,11 @@ import {
   ArrowLeft, User, Settings as SettingsIcon, SlidersHorizontal,
   LogOut, Check, X as CloseX, IdCard, Bell, ShieldCheck, PencilLine,
   CalendarDays, UsersRound, Eye, Target, Send, ShieldCheck as ShieldIcon,
+  Download, Share2, RotateCw, Copy as CopyIcon,
+  CalendarCheck, Zap, Building2,
 } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import QRCode from 'react-native-qrcode-svg';
 import { request } from '@/src/models/services/api';
 import { tokenStore } from '@/src/models/services/api';
 import { useAuth } from '@/src/viewmodels/hooks';
@@ -121,7 +125,8 @@ export default function ProfileScreen() {
   const handleLogout = async () => {
     try { await tokenStore.clear(); } catch {}
     try { await logout?.(); } catch {}
-    router.replace('/(auth)/login');
+    showToast('Logged out — see you soon 👋');
+    setTimeout(() => router.replace('/welcome'), 400);
   };
 
   const NAV_PROFILE: { key: PageKey; label: string; icon: any; sub: string }[] = [
@@ -223,7 +228,7 @@ export default function ProfileScreen() {
               );
             })}
             <View style={{ flex: 1 }} />
-            <Pressable onPress={() => router.back()} style={styles.backBtn} testID="profile-back">
+            <Pressable onPress={() => { showToast('Returning to dashboard…'); router.replace('/platform'); }} style={styles.backBtn} testID="profile-back">
               <ArrowLeft size={14} color={C.text2} /><Text style={styles.backText}>Back to Dashboard</Text>
             </Pressable>
           </View>
@@ -234,7 +239,7 @@ export default function ProfileScreen() {
           {/* Top bar — Edit Profile primary + Digital ID toggle + score pill + avatar */}
           <View style={styles.topBar}>
             {isMobile && (
-              <Pressable onPress={() => router.back()} style={styles.backBtnSm}><ArrowLeft size={16} color="#fff" /></Pressable>
+              <Pressable onPress={() => { showToast('Returning to dashboard…'); router.replace('/platform'); }} style={styles.backBtnSm}><ArrowLeft size={16} color="#fff" /></Pressable>
             )}
             {/* Primary Edit Profile button */}
             <Pressable onPress={() => setPage('info')} style={[styles.tbEditBtn, topTab === 'edit' && styles.tbEditBtnActive]} testID="profile-topbar-edit">
@@ -310,7 +315,7 @@ export default function ProfileScreen() {
                 <ProfileInfoPage draft={draft} setDraft={setDraft} completion={completion} onUploadPhoto={handleUploadPhoto} />
               )}
               {page === 'digitalid' && (
-                <DigitalIdCardInline userId={user?.id} isMobile={isMobile} />
+                <DigitalIdCardInline userId={user?.id} isMobile={isMobile} draft={draft} completion={completion} showToast={showToast} />
               )}
               {page === 'manage' && (
                 <ManageProfilePage draft={draft} setDraft={setDraft} badges={badges} onCertChange={loadAll} showToast={showToast} />
@@ -374,31 +379,174 @@ export default function ProfileScreen() {
 }
 
 // ── Digital ID Card inline — navigates to existing /id-card route with back button
-function DigitalIdCardInline({ userId, isMobile }: { userId?: string; isMobile: boolean }) {
+function DigitalIdCardInline({ userId, isMobile, draft, completion, showToast }: { userId?: string; isMobile: boolean; draft: any; completion: any; showToast: (m: string) => void }) {
   const router = useRouter();
+  const [flipped, setFlipped] = useState(false);
+  const sid = draft?.sa_id || draft?.unique_id || draft?.student_id || 'SA-2026-XXXXXX';
+  const fullName = draft?.full_name || 'Your Name';
+  const institution = draft?.institution || draft?.school_info?.institution_name || 'Your Institution';
+  const branch = draft?.branch || draft?.school_info?.branch_or_stream || '';
+  const gradYear = draft?.graduation_year || draft?.school_info?.graduation_year || '';
+  const validUntil = gradYear ? `Jun ${gradYear}` : '—';
+  const initials = (fullName.split(' ').slice(0,2).map((s: string) => s[0] || '').join('') || '?').toUpperCase();
+  const qrValue = typeof window !== 'undefined' ? `${window.location.origin}/verify/${sid}` : `verify/${sid}`;
+
+  const onCopyId = async () => {
+    try {
+      if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(sid);
+      }
+      showToast('Student ID copied to clipboard 📋');
+    } catch { showToast('Unable to copy ID'); }
+  };
+  const onDownload = () => { showToast('Preparing your ID Card download…'); router.push('/id-card'); };
+  const onShare = async () => {
+    try {
+      if (Platform.OS === 'web' && typeof navigator !== 'undefined' && (navigator as any).share) {
+        await (navigator as any).share({ title: 'My Student Alumni ID', text: sid, url: qrValue });
+        showToast('Share dialog opened');
+      } else {
+        await Share.share({ message: `My SA Digital ID: ${sid}\n${qrValue}` });
+      }
+    } catch {}
+  };
+
   return (
-    <View style={styles.idCardShell}>
-      <View style={styles.idCardHead}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={styles.idCardTitle}>Digital ID Card</Text>
-          <Text style={styles.idCardSub}>Your shareable SA Digital ID — QR-scannable at events & campuses.</Text>
+    <View style={{ borderRadius: 18, overflow: 'hidden', marginBottom: 16 }}>
+      <LinearGradient
+        colors={['rgba(139,92,246,0.20)', 'rgba(88,28,135,0.30)', 'rgba(30,20,55,0.90)']}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={{ padding: isMobile ? 18 : 28, gap: 18 }}
+      >
+        {/* Hero intro */}
+        <View style={{ gap: 4 }}>
+          <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: isMobile ? 22 : 28, letterSpacing: -0.3 }}>Student Alumni</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.70)', fontFamily: 'DMSans_500Medium', fontSize: 13 }}>Your verified digital identity · Used across all platform features</Text>
         </View>
-        <Pressable onPress={() => router.push('/id-card')} style={styles.idCardBtn} testID="profile-open-id-card">
-          <Text style={styles.idCardBtnText}>Open Full-screen</Text>
-        </Pressable>
-      </View>
-      {Platform.OS === 'web' ? (
-        // Embed the existing route in an iframe for a preview experience
-        // eslint-disable-next-line react/no-unknown-property
-        <View style={[styles.idCardFrame, { height: isMobile ? 520 : 640 }]}>
-          {/* @ts-ignore react-native-web supports rendering HTML iframes */}
-          <iframe src="/id-card" style={{ border: 0, width: '100%', height: '100%', borderRadius: 14, backgroundColor: '#0C0818' }} title="Digital ID Card" />
+
+        {/* The ID card (FRONT / BACK flip) */}
+        <View style={{ alignSelf: 'center', width: '100%', maxWidth: 460 }}>
+          <LinearGradient
+            colors={flipped ? ['#1E1B2E', '#3B2A5C'] : ['#7C3AED', '#4C1D95']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={{ padding: 22, borderRadius: 20, gap: 14, minHeight: 300, borderColor: 'rgba(255,255,255,0.15)', borderWidth: 1 }}
+          >
+            {!flipped ? (
+              <>
+                {/* Head row */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View>
+                    <Text style={{ color: 'rgba(255,255,255,0.75)', fontFamily: 'DMSans_700Bold', fontSize: 10, letterSpacing: 1.4 }}>STUDENT ALUMNI</Text>
+                    <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14, marginTop: 2 }}>DIGITAL ID · {new Date().getFullYear()}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(16,185,129,0.20)', borderColor: 'rgba(16,185,129,0.55)', borderWidth: 1 }}>
+                    <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#34D399' }} />
+                    <Text style={{ color: '#86EFAC', fontFamily: 'DMSans_800ExtraBold', fontSize: 10, letterSpacing: 0.6 }}>ACTIVE</Text>
+                  </View>
+                </View>
+                {/* Body */}
+                <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center', marginTop: 4 }}>
+                  <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderColor: 'rgba(255,255,255,0.30)', borderWidth: 2 }}>
+                    {draft?.photo_data || draft?.face_image_base64 ? (
+                      <Image source={{ uri: draft.photo_data || draft.face_image_base64 }} style={{ width: '100%', height: '100%' }} />
+                    ) : (
+                      <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 24 }}>{initials}</Text>
+                    )}
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 20 }} numberOfLines={1}>{fullName}</Text>
+                    <Text style={{ color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_500Medium', fontSize: 12, marginTop: 3 }} numberOfLines={1}>{[branch, institution].filter(Boolean).join(' · ') || '—'}</Text>
+                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+                      <View>
+                        <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_700Bold', fontSize: 8.5, letterSpacing: 1 }}>STUDENT ID</Text>
+                        <Text style={{ color: '#fff', fontFamily: Platform.OS === 'web' ? 'monospace' : 'DMSans_800ExtraBold', fontSize: 13, marginTop: 2, fontWeight: '700' as any }}>{sid}</Text>
+                      </View>
+                      <View>
+                        <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_700Bold', fontSize: 8.5, letterSpacing: 1 }}>VALID UNTIL</Text>
+                        <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13, marginTop: 2 }}>{validUntil}</Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+                {/* QR + signature */}
+                <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 6 }}>
+                  <View style={{ backgroundColor: '#fff', padding: 8, borderRadius: 10 }}>
+                    <QRCode value={qrValue} size={72} color="#1E1B2E" backgroundColor="#FFFFFF" />
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_700Bold', fontSize: 8.5, letterSpacing: 1 }}>SCAN TO VERIFY</Text>
+                    <Text style={{ color: 'rgba(255,255,255,0.80)', fontFamily: 'DMSans_500Medium', fontSize: 10, marginTop: 2 }}>studentalumni.in/verify</Text>
+                  </View>
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={{ color: 'rgba(255,255,255,0.75)', fontFamily: 'DMSans_700Bold', fontSize: 10, letterSpacing: 1.4 }}>REVERSE · TERMS</Text>
+                <Text style={{ color: '#fff', fontFamily: 'DMSans_500Medium', fontSize: 12.5, lineHeight: 19, marginTop: 6 }}>
+                  This card certifies that the holder is a verified member of the Student Alumni platform.
+                  Valid for identity verification at partner events, campuses & bookings.
+                  Not transferable. Tap to flip back.
+                </Text>
+                <View style={{ marginTop: 16, gap: 4 }}>
+                  <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_700Bold', fontSize: 8.5, letterSpacing: 1 }}>SIGNATURE</Text>
+                  <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.30)' }} />
+                  <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium', fontSize: 10, marginTop: 2 }}>Not valid without signature</Text>
+                </View>
+              </>
+            )}
+          </LinearGradient>
+          <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium', fontSize: 11, textAlign: 'center', marginTop: 10 }}>Tap card to flip · Front &amp; back</Text>
         </View>
-      ) : (
-        <Pressable onPress={() => router.push('/id-card')} style={styles.idCardFallback}>
-          <Text style={styles.idCardFallbackText}>Open Digital ID Card →</Text>
-        </Pressable>
-      )}
+
+        {/* YOUR STUDENT ID box */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.35)', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1 }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_700Bold', fontSize: 10, letterSpacing: 1.1 }}>YOUR STUDENT ID</Text>
+            <Text style={{ color: '#fff', fontFamily: Platform.OS === 'web' ? 'monospace' : 'DMSans_800ExtraBold', fontSize: 22, marginTop: 6, letterSpacing: 0.3, fontWeight: '700' as any }}>{sid}</Text>
+          </View>
+          <Pressable onPress={onCopyId} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 38, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, ...({ cursor: 'pointer' } as any) }} testID="did-copy-id">
+            <CopyIcon size={13} color="rgba(255,255,255,0.85)" />
+            <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 }}>Copy ID</Text>
+          </Pressable>
+        </View>
+
+        {/* Actions */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+          <Pressable onPress={onDownload} style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, height: 40, borderRadius: 10, backgroundColor: C.purple, ...({ cursor: 'pointer' } as any) }} testID="did-download">
+            <Download size={14} color="#fff" />
+            <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 }}>Download ID Card</Text>
+          </Pressable>
+          <Pressable onPress={onShare} style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, ...({ cursor: 'pointer' } as any) }} testID="did-share">
+            <Share2 size={14} color="rgba(255,255,255,0.85)" />
+            <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 }}>Share ID</Text>
+          </Pressable>
+          <Pressable onPress={() => { setFlipped(!flipped); showToast(flipped ? 'Flipped to front' : 'Flipped to back'); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, ...({ cursor: 'pointer' } as any) }} testID="did-flip">
+            <RotateCw size={14} color="rgba(255,255,255,0.85)" />
+            <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 }}>Flip Card</Text>
+          </Pressable>
+        </View>
+
+        {/* THIS ID WORKS ACROSS THE PLATFORM */}
+        <View style={{ gap: 12, marginTop: 4 }}>
+          <Text style={{ color: 'rgba(255,255,255,0.60)', fontFamily: 'DMSans_800ExtraBold', fontSize: 11, letterSpacing: 1.2 }}>THIS ID WORKS ACROSS THE PLATFORM</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+            {[
+              { Icon: CalendarCheck, title: 'Event Registration', sub: 'Tap to check in at meetups' },
+              { Icon: UsersRound, title: 'Book a Session', sub: 'Mentor slots auto-verified' },
+              { Icon: Building2, title: 'College Verification', sub: 'Campus gate & partner access' },
+              { Icon: Zap, title: 'Instant Connect', sub: 'Share profile via QR scan' },
+            ].map((f, i) => (
+              <View key={i} style={{ flex: 1, minWidth: 180, padding: 14, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1, gap: 6 }}>
+                <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(167,139,250,0.20)', borderColor: 'rgba(167,139,250,0.40)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' }}>
+                  <f.Icon size={15} color="#C4B5FD" />
+                </View>
+                <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 }}>{f.title}</Text>
+                <Text style={{ color: 'rgba(255,255,255,0.60)', fontFamily: 'DMSans_400Regular', fontSize: 11.5 }}>{f.sub}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      </LinearGradient>
     </View>
   );
 }

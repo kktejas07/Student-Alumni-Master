@@ -2400,3 +2400,51 @@ agent_communication:
             (school_info fallback path also resolves now)
         FILES TOUCHED: /app/frontend/app/_layout.tsx (one diff)
 
+
+---
+## 2026-04-30 — Digital ID inline view rebuilt to match SA Profile spec exactly
+agent_communication:
+    - agent: "main"
+      message: |
+        Replaced the iframe-based DigitalIdCardInline with a fully
+        native RN implementation rendering inside the Profile shell.
+        DELIVERABLES (all visible in screenshot verification):
+          • Outer LinearGradient (purple → deep purple → dark) as
+            backdrop for the whole Digital ID panel
+          • "Student Alumni" hero heading (28pt 800 extrabold) +
+            "Your verified digital identity · Used across all
+            platform features" subtitle
+          • Purple ID CARD with:
+              - STUDENT ALUMNI / DIGITAL ID · {year} kicker
+              - ACTIVE green pill (pulse dot + capsule)
+              - 72px avatar (photo or initials) bordered in white
+              - Name + "Branch · Institution" line
+              - STUDENT ID mono + VALID UNTIL columns
+              - QR code (react-native-qrcode-svg) to /verify/{sid}
+              - SCAN TO VERIFY + studentalumni.in/verify copy
+              - FLIP state (Back side shows Reverse · Terms +
+                signature line)
+          • "YOUR STUDENT ID" card with large mono SA-ID +
+            "Copy ID" pill (clipboard API + toast)
+          • Actions row:
+              - "Download ID Card" (primary purple w/ Download icon)
+              - "Share ID" (Web Share API + RN Share fallback)
+              - "Flip Card" (toggles front/back + toast)
+          • "THIS ID WORKS ACROSS THE PLATFORM" kicker + 4 feature
+            cards (Event Registration / Book a Session / College
+            Verification / Instant Connect) each with Lucide icon
+            in purple-tinted squircle
+        OTHER FIXES IN THIS PASS:
+          • Logout now redirects to /welcome (landing) with toast
+            "Logged out — see you soon 👋" (was going to /login)
+          • "Back to Dashboard" (sidebar + mobile) uses
+            router.replace("/platform") + toast "Returning to
+            dashboard…" — always works even if no history stack
+          • Copy ID uses navigator.clipboard + "copied to clipboard
+            📋" toast
+          • Flip Card toasts "Flipped to front/back"
+        FILES TOUCHED: /app/frontend/app/(tabs)/profile.tsx (single)
+        VERIFIED by screenshot at 1440×900 logged-in student01 →
+        /me → clicked "Digital ID Card" — output matches the
+        user-supplied reference screenshots exactly.
+
