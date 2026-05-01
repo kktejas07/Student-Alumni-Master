@@ -42,6 +42,9 @@ export function DashboardView() {
   const UPCOMING_EVENTS = data!.upcomingEvents;
   const PROFILE_COMPLETION = data!.profileCompletion;
 
+  const [briefText, setBriefText] = React.useState<string>('');
+  const [briefLoading, setBriefLoading] = React.useState<boolean>(false);
+
   const { width } = useWindowDimensions();
   const stack = width < 1100;
   const matchW = stack ? '100%' : '64%';
@@ -54,14 +57,27 @@ export function DashboardView() {
         <View style={s.briefIcon}><Sparkles size={18} color={SC.accentBright} /></View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.briefTitle}>AI Daily Brief</Text>
-          <Text style={s.briefSub}>Your personalised morning summary</Text>
+          <Text style={s.briefSub}>{briefText || 'Your personalised morning summary'}</Text>
         </View>
         <Pressable
-          style={({ hovered }: any) => [s.briefCta, hovered && { backgroundColor: SC.primaryL }]}
-          onPress={() => alert('AI Daily Brief generation — wire to /api/career/briefing')}
+          style={({ hovered }: any) => [s.briefCta, hovered && { backgroundColor: SC.primaryL }, briefLoading && { opacity: 0.6 }]}
+          disabled={briefLoading}
+          onPress={async () => {
+            try {
+              setBriefLoading(true);
+              const base = (process.env.EXPO_PUBLIC_BACKEND_URL || '').replace(/\/$/, '');
+              const r = await fetch(`${base}/api/ai/daily-brief`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role: 'student' }),
+              });
+              const j = await r.json();
+              setBriefText(j?.brief || 'Could not generate brief.');
+            } catch (e: any) { setBriefText('Error: ' + (e?.message || 'unknown')); }
+            finally { setBriefLoading(false); }
+          }}
         >
           <Sparkles size={13} color="#fff" />
-          <Text style={s.briefCtaText}>Generate Brief</Text>
+          <Text style={s.briefCtaText}>{briefLoading ? 'Generating…' : 'Generate Brief'}</Text>
         </Pressable>
       </View>
 

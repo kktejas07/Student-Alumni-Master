@@ -3925,6 +3925,10 @@ api_router.include_router(career_intel_router)
 from auth_analytics import router as auth_analytics_router
 api_router.include_router(auth_analytics_router)
 
+# AI Daily Brief (on-demand Claude integration)
+from ai_briefs import router as ai_briefs_router
+api_router.include_router(ai_briefs_router)
+
 app.include_router(api_router)
 
 app.add_middleware(

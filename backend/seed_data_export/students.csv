@@ -1,0 +1,1056 @@
+id,email,full_name,tier,tier_score,college,branch,graduation_year,cgpa,skills_count,career_path,city,state
+69f1dac580200de5acc3e5db,test-student-f3327c4b@test.com,Test Student,,,Springdale Sr Sec,Science,,,2,,,
+69f1db7c6a57d3b5ea53c570,testmjlwsm@test.com,Aarav Test,,,IIT Bombay,Computer Science,,,0,,,
+69f1e5efbc31a7a641693959,newstudent@test.com,Test Student,,,,,,,0,,,
+69f1e672a9affb39f79cd577,test-student-b200c353@test.com,Test Student,,,Springdale Sr Sec,Science,,,1,,,
+69f1e672a9affb39f79cd578,test-student2-24b079bb@test.com,Test Student2,,,Auto School,,,,0,,,
+69f1f4292f47ea003279a16a,student@test.com,Test Student,,,IIT Hyderabad,CSE,,,1,,,
+69f1fd9c2bd09b8251114923,student01@test.com,Aarav Student,,,IIT Hyderabad,CSE,,,2,,,
+69f1fd9c2bd09b8251114924,student02@test.com,Vivaan Student,,,IIT Bombay,ECE,,,2,,,
+69f1fd9c2bd09b8251114925,student03@test.com,Aditya Student,,,BITS Pilani,Mechanical,,,2,,,
+69f1fd9d2bd09b8251114926,student04@test.com,Vihaan Student,,,VIT Vellore,EEE,,,2,,,
+69f1fd9d2bd09b8251114927,student05@test.com,Arjun Student,,,IIIT Bangalore,Civil,,,2,,,
+69f1fd9d2bd09b8251114928,student06@test.com,Sai Student,,,DTU Delhi,Information Technology,,,2,,,
+69f1fd9d2bd09b8251114929,student07@test.com,Reyansh Student,,,NIT Trichy,Data Science,,,2,,,
+69f1fd9e2bd09b825111492a,student08@test.com,Krishna Student,,,IIT Madras,CSE,,,2,,,
+69f1fd9e2bd09b825111492b,student09@test.com,Ishaan Student,,,Manipal Institute of Technology,ECE,,,2,,,
+69f1fd9e2bd09b825111492c,student10@test.com,Shaurya Student,,,SRM University,Mechanical,,,2,,,
+69f1fd9e2bd09b825111492d,student11@test.com,Atharv Student,,,IIT Hyderabad,EEE,,,2,,,
+69f1fd9f2bd09b825111492e,student12@test.com,Aanya Student,,,IIT Bombay,Civil,,,2,,,
+69f1fd9f2bd09b825111492f,student13@test.com,Diya Student,,,BITS Pilani,Information Technology,,,2,,,
+69f1fd9f2bd09b8251114930,student14@test.com,Saanvi Student,,,VIT Vellore,Data Science,,,2,,,
+69f1fd9f2bd09b8251114931,student15@test.com,Anika Student,,,IIIT Bangalore,CSE,,,2,,,
+69f1fd9f2bd09b8251114932,student16@test.com,Pari Student,,,DTU Delhi,ECE,,,2,,,
+69f1fda02bd09b8251114933,student17@test.com,Ananya Student,,,NIT Trichy,Mechanical,,,2,,,
+69f1fda02bd09b8251114934,student18@test.com,Avani Student,,,IIT Madras,EEE,,,2,,,
+69f1fda02bd09b8251114935,student19@test.com,Riya Student,,,Manipal Institute of Technology,Civil,,,2,,,
+69f1fda02bd09b8251114936,student20@test.com,Myra Student,,,SRM University,Information Technology,,,2,,,
+69f1fda12bd09b8251114937,student21@test.com,Sara Student,,,IIT Hyderabad,Data Science,,,2,,,
+69f1fda12bd09b8251114938,student22@test.com,Nisha Student,,,IIT Bombay,CSE,,,2,,,
+69f1fda12bd09b8251114939,student23@test.com,Pooja Student,,,BITS Pilani,ECE,,,2,,,
+69f1fda12bd09b825111493a,student24@test.com,Kavya Student,,,VIT Vellore,Mechanical,,,2,,,
+69f1fda22bd09b825111493b,student25@test.com,Rohan Student,,,IIIT Bangalore,EEE,,,2,,,
+69f1fda22bd09b825111493c,student26@test.com,Karan Student,,,DTU Delhi,Civil,,,2,,,
+69f1fda22bd09b825111493d,student27@test.com,Abhishek Student,,,NIT Trichy,Information Technology,,,2,,,
+69f1fda22bd09b825111493e,student28@test.com,Manish Student,,,IIT Madras,Data Science,,,2,,,
+69f1fda32bd09b825111493f,student29@test.com,Tanvi Student,,,Manipal Institute of Technology,CSE,,,2,,,
+69f1fda32bd09b8251114940,student30@test.com,Neha Student,,,SRM University,ECE,,,2,,,
+69f1fe1b591162717fe335d6,newuser.google@example.com,Google New User,,,,,,,0,,,
+69f1fe1b591162717fe335d7,newuser.li@example.com,LinkedIn User,,,,,,,0,,,
+69f1ff93591162717fe335d8,newoauth.google.1777467282@example.com,Google Test,,,,,,,0,,,
+69f1ff93591162717fe335d9,newoauth.li.1777467282@example.com,LinkedIn Test,,,,,,,0,,,
+69f2032b6615abd69d6ffa4e,demo.student@example.com,Demo Student,,,DPS ,CSE ,,,0,,,
+69f204d86615abd69d6ffa50,priya.sharma@gmail.com,Priya Sharma,,,we,erwr,,,0,,,
+69f20775bce6806b1b826646,regression.student.1777469301@test.com,Regression Student,,,BITS Pilani,Computer Science,,,1,Software Developer,,
+69f21bc4c5ef96aa7824070e,arjun.mehta@gmail.com,Arjun Mehta,,,123456,srcit,,,0,,,
+69f2663db2c93a3f84b164b8,df@gmail.com,df,,,qqqq,,,,0,,,
+69f26c17b2c93a3f84b164bb,e2e_student_3ccb47@test.com,Test Student,,,,,,,0,,,
+69f26ecd0b2b1a9786176ba7,twofa_78cccd@test.com,2FA Tester,,,,,,,0,,,
+69f26ef0c15c6093fe60b81f,twofa_991382@test.com,2FA Tester,,,,,,,0,,,
+69f26fbfc15c6093fe60b820,ui_2fa_df92e6@test.com,UI 2FA,,,,,,,0,,,
+69f27607c15c6093fe60b821,linkedin.1777497605869@studentalumni.app,linkedin user,,,,,,,0,,,
+69f2d7481f02f163de565f9e,krishna@gmail.com,krishna,,,,,,,0,,,
+69f2dc111f02f163de565f9f,gmail@gmail.com,krishna,,,,,,,0,,,
+69f3066e42a2c65efa1de2fb,krishna@forgetechno.com,krishna,,,Anna University Bharathidasan Institute of Technology,data_science,,,0,Engineer ,,
+69f31c94c89b5208b0f46e08,a@forgetechno.com,krishna,,,Anna University Bharathidasan Institute of Technology,cse,,,0,software Engineer ,,
+69f4797b1fdf01dcc7a54656,kk@gmail.com,kk,,,Annamalai University,cyber_sec,,,0,,,
+69f4ba1d666614d785f74120,aarush.patel1@student.demo,Aarush Patel,Bronze,35,GLA Mathura,Aerospace Engineering,2028,6.34,1,Junior Software Engineer at top Tech Company,Mathura,Uttar Pradesh
+69f4ba1d666614d785f74121,mira.sood2@student.demo,Mira Sood,Silver,42,MIT Pune,BBA,2028,6.9,3,SDE Trainee at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f74122,diya.subramanian3@student.demo,Diya Subramanian,Bronze,38,Nirma University,Electronics & Communication,2029,6.96,1,Intern at top Tech Company,Ahmedabad,Gujarat
+69f4ba1d666614d785f74123,atharv.bose4@student.demo,Atharv Bose,Silver,45,B S Abdur Rahman,B.Com Honours,2028,6.06,3,Associate Analyst at top Finance Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74124,priya.raman5@student.demo,Priya Raman,Bronze,39,JSS Noida,Bachelor of Design,2029,6.26,3,Associate Analyst at top Product Company,Noida,Uttar Pradesh
+69f4ba1d666614d785f74125,kavya.sen6@student.demo,Kavya Sen,Bronze,37,Walchand Sangli,Aerospace Engineering,2028,6.5,2,Associate Analyst at top Finance Company,Sangli,Maharashtra
+69f4ba1d666614d785f74126,sahil.kapoor7@student.demo,Sahil Kapoor,Bronze,25,Sharda University,BBA,2030,7.49,2,Associate Software Engineer at top Product Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f74127,advik.reddy8@student.demo,Advik Reddy,Bronze,29,PDPU Gandhinagar,Mechanical Engineering,2030,6.26,1,Junior Developer at top Product Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f74128,arnav.verma9@student.demo,Arnav Verma,Bronze,25,PDPU Gandhinagar,Bachelor of Design,2030,5.51,2,Associate Analyst at top Product Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f74129,praveen.bhatnagar10@student.demo,Praveen Bhatnagar,Bronze,31,Christ Pune,Electrical Engineering,2030,7.41,2,Intern at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f7412a,yuvraj.mahajan11@student.demo,Yuvraj Mahajan,Bronze,34,MIT Pune,Electrical Engineering,2029,6.47,2,Junior Software Engineer at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f7412b,anaya.goyal12@student.demo,Anaya Goyal,Bronze,39,BMS College Bangalore,Data Science,2030,6.8,3,Junior Developer at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f7412c,kabir.shukla13@student.demo,Kabir Shukla,Bronze,35,Galgotias University,Electronics & Communication,2029,5.64,1,Associate Analyst at top Tech Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f7412d,ishaan.singh14@student.demo,Ishaan Singh,Bronze,29,Mody University,Electronics & Communication,2030,7.37,1,Intern at top Product Company,Lakshmangarh,Rajasthan
+69f4ba1d666614d785f7412e,rohan.goyal15@student.demo,Rohan Goyal,Bronze,35,MIT World Peace Pune,Chemical Engineering,2028,7.23,1,Junior Software Engineer at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f7412f,pranav.nair16@student.demo,Pranav Nair,Bronze,27,GSCASR Visakhapatnam,Biomedical Engineering,2028,5.87,1,Junior Developer at top Tech Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f74130,tara.joshi17@student.demo,Tara Joshi,Bronze,29,Walchand Sangli,M.Sc Physics,2030,6.47,1,Associate Software Engineer at top Finance Company,Sangli,Maharashtra
+69f4ba1d666614d785f74131,anika.pillai18@student.demo,Anika Pillai,Silver,40,DY Patil Pune,Metallurgical Engineering,2029,6.09,2,Junior Software Engineer at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f74132,krishna.ghosh19@student.demo,Krishna Ghosh,Bronze,25,Walchand Sangli,Information Technology,2030,6.69,2,Associate Analyst at top Tech Company,Sangli,Maharashtra
+69f4ba1d666614d785f74133,kabir.shukla20@student.demo,Kabir Shukla,Silver,43,Pune Institute of Computer Tech,M.Sc Mathematics,2028,6.93,2,Associate Software Engineer at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f74134,anaya.das21@student.demo,Anaya Das,Silver,41,Mahindra University,Biomedical Engineering,2028,6.58,1,Intern at top Finance Company,Hyderabad,Telangana
+69f4ba1d666614d785f74135,manav.iyer22@student.demo,Manav Iyer,Bronze,35,Sharda University,Production Engineering,2029,7.13,1,SDE Trainee at top Product Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f74136,aanya.banerjee23@student.demo,Aanya Banerjee,Bronze,33,PDPU Gandhinagar,Electrical Engineering,2030,7.31,3,Junior Software Engineer at top Tech Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f74137,nidhi.chatterjee24@student.demo,Nidhi Chatterjee,Bronze,35,Pune Institute of Computer Tech,Computer Science,2029,6.91,1,Intern at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f74138,shaurya.khanna25@student.demo,Shaurya Khanna,Bronze,30,Pune Institute of Computer Tech,Production Engineering,2030,6.0,3,Junior Software Engineer at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f74139,sneha.khanna26@student.demo,Sneha Khanna,Silver,46,Sharda University,Civil Engineering,2028,5.82,2,Associate Analyst at top Tech Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f7413a,arjun.goyal27@student.demo,Arjun Goyal,Bronze,37,Galgotias University,Chemical Engineering,2029,6.16,2,Junior Software Engineer at top Finance Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f7413b,manish.sinha28@student.demo,Manish Sinha,Silver,43,Mody University,Computer Science,2028,6.37,2,Associate Analyst at top Finance Company,Lakshmangarh,Rajasthan
+69f4ba1d666614d785f7413c,sia.bedi29@student.demo,Sia Bedi,Bronze,23,PDPU Gandhinagar,Metallurgical Engineering,2030,7.35,1,Intern at top Product Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f7413d,myra.murthy30@student.demo,Myra Murthy,Bronze,38,Symbiosis Hyderabad,Electronics & Communication,2030,6.32,2,Junior Developer at top Product Company,Hyderabad,Telangana
+69f4ba1d666614d785f7413e,arnav.agarwal31@student.demo,Arnav Agarwal,Bronze,31,JIIT Noida,MBA — Marketing,2030,7.17,2,SDE Trainee at top Finance Company,Noida,Uttar Pradesh
+69f4ba1d666614d785f7413f,sara.sen32@student.demo,Sara Sen,Silver,42,Mahindra University,MBA — Finance,2029,6.83,3,Intern at top Finance Company,Hyderabad,Telangana
+69f4ba1d666614d785f74140,pihu.roy33@student.demo,Pihu Roy,Bronze,38,Galgotias University,Chemical Engineering,2028,6.33,1,Associate Analyst at top Product Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f74141,neha.sethi34@student.demo,Neha Sethi,Silver,40,GSCASR Visakhapatnam,Aerospace Engineering,2028,6.54,3,Junior Software Engineer at top Product Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f74142,kabir.bansal35@student.demo,Kabir Bansal,Bronze,33,BVB Hubli,MBA — Finance,2030,6.99,3,Junior Developer at top Finance Company,Hubli,Karnataka
+69f4ba1d666614d785f74143,rohan.chatterjee36@student.demo,Rohan Chatterjee,Bronze,23,Pearl Academy Delhi,MBA — HR,2030,6.17,1,Intern at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f74144,aadhya.pandey37@student.demo,Aadhya Pandey,Silver,42,Vellore Institute Amaravati,Architecture,2028,7.17,3,Junior Developer at top Product Company,Amaravati,Andhra Pradesh
+69f4ba1d666614d785f74145,aditya.pillai38@student.demo,Aditya Pillai,Bronze,37,Anurag University,Computer Science,2029,6.05,2,Junior Developer at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f74146,aryan.sinha39@student.demo,Aryan Sinha,Silver,48,BMS College Bangalore,MBA — Finance,2028,7.23,3,Associate Software Engineer at top Tech Company,Bengaluru,Karnataka
+69f4ba1d666614d785f74147,pooja.sen40@student.demo,Pooja Sen,Bronze,34,JSS Noida,MBA — Finance,2029,5.54,2,Intern at top Tech Company,Noida,Uttar Pradesh
+69f4ba1d666614d785f74148,kavya.iyer41@student.demo,Kavya Iyer,Silver,41,Pune Institute of Computer Tech,Computer Science,2028,6.84,1,Intern at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f74149,karan.rajan42@student.demo,Karan Rajan,Bronze,33,BMS College Bangalore,M.Sc Mathematics,2030,6.85,3,Junior Developer at top Finance Company,Bengaluru,Karnataka
+69f4ba1d666614d785f7414a,shaurya.shukla43@student.demo,Shaurya Shukla,Silver,42,Nirma University,Architecture,2029,6.24,3,Intern at top Product Company,Ahmedabad,Gujarat
+69f4ba1d666614d785f7414b,vihaan.mathur44@student.demo,Vihaan Mathur,Bronze,37,VIT-AP Amaravati,Electrical Engineering,2029,7.12,2,Intern at top Finance Company,Amaravati,Andhra Pradesh
+69f4ba1d666614d785f7414c,sara.mukherjee45@student.demo,Sara Mukherjee,Silver,46,Amity Jaipur,Aerospace Engineering,2028,6.49,2,SDE Trainee at top Tech Company,Jaipur,Rajasthan
+69f4ba1d666614d785f7414d,diya.raman46@student.demo,Diya Raman,Silver,40,Chitkara University,Biomedical Engineering,2029,6.61,3,Associate Software Engineer at top Product Company,Patiala,Punjab
+69f4ba1d666614d785f7414e,esha.goel47@student.demo,Esha Goel,Bronze,35,MIT Pune,Electronics & Communication,2029,6.61,1,SDE Trainee at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f7414f,dev.raman48@student.demo,Dev Raman,Silver,40,Mahindra University,Data Science,2029,5.93,2,Junior Developer at top Finance Company,Hyderabad,Telangana
+69f4ba1d666614d785f74150,siddharth.sengupta49@student.demo,Siddharth Sengupta,Bronze,32,Nirma University,Chemical Engineering,2029,5.59,1,Junior Software Engineer at top Product Company,Ahmedabad,Gujarat
+69f4ba1d666614d785f74151,anaya.mahajan50@student.demo,Anaya Mahajan,Bronze,25,Nirma University,Computer Science,2030,5.73,2,Junior Software Engineer at top Finance Company,Ahmedabad,Gujarat
+69f4ba1d666614d785f74152,shaurya.reddy51@student.demo,Shaurya Reddy,Bronze,28,Dayananda Sagar Bangalore,Mechanical Engineering,2030,7.32,2,SDE Trainee at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f74153,suresh.nair52@student.demo,Suresh Nair,Bronze,29,Nirma University,Chemical Engineering,2030,6.6,1,Associate Software Engineer at top Tech Company,Ahmedabad,Gujarat
+69f4ba1d666614d785f74154,meera.goyal53@student.demo,Meera Goyal,Bronze,35,GD Goenka University,Information Technology,2028,7.08,2,Associate Analyst at top Product Company,Sohna,Haryana
+69f4ba1d666614d785f74155,myra.tandon54@student.demo,Myra Tandon,Bronze,39,PDPU Gandhinagar,BBA,2028,6.44,3,SDE Trainee at top Product Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f74156,rohit.sood55@student.demo,Rohit Sood,Silver,45,VIT-AP Amaravati,MBA — Finance,2028,7.17,3,Intern at top Product Company,Amaravati,Andhra Pradesh
+69f4ba1d666614d785f74157,rohit.kumar56@student.demo,Rohit Kumar,Bronze,25,RNS Institute Bangalore,MBA — HR,2030,6.2,3,SDE Trainee at top Finance Company,Bengaluru,Karnataka
+69f4ba1d666614d785f74158,rudra.chopra57@student.demo,Rudra Chopra,Bronze,31,Mody University,MBA — Marketing,2030,6.13,2,SDE Trainee at top Tech Company,Lakshmangarh,Rajasthan
+69f4ba1d666614d785f74159,manish.sharma58@student.demo,Manish Sharma,Bronze,35,Mahindra University,MBA — Marketing,2028,5.91,1,Intern at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f7415a,tara.mahajan59@student.demo,Tara Mahajan,Bronze,27,PDPU Gandhinagar,Computer Science,2030,7.48,3,Junior Software Engineer at top Finance Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f7415b,aadhya.sethi60@student.demo,Aadhya Sethi,Bronze,23,GD Goenka University,MBA — Operations,2030,5.88,2,Intern at top Product Company,Sohna,Haryana
+69f4ba1d666614d785f7415c,ishaan.chatterjee61@student.demo,Ishaan Chatterjee,Bronze,34,MIT World Peace Pune,Biomedical Engineering,2030,6.58,2,SDE Trainee at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f7415d,ramesh.pillai62@student.demo,Ramesh Pillai,Bronze,39,Mahindra University,Biomedical Engineering,2028,7.33,3,Junior Developer at top Finance Company,Hyderabad,Telangana
+69f4ba1d666614d785f7415e,aadhya.sethi63@student.demo,Aadhya Sethi,Bronze,27,Pune Institute of Computer Tech,Mechanical Engineering,2030,7.44,3,Junior Software Engineer at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f7415f,aryan.kashyap64@student.demo,Aryan Kashyap,Bronze,36,DAIICT Gandhinagar,Biomedical Engineering,2030,6.76,3,SDE Trainee at top Tech Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f74160,sara.joshi65@student.demo,Sara Joshi,Silver,45,Nirma University,MBA — Finance,2028,5.79,3,Intern at top Finance Company,Ahmedabad,Gujarat
+69f4ba1d666614d785f74161,ananya.bhatia66@student.demo,Ananya Bhatia,Bronze,17,RNS Institute Bangalore,Electronics & Communication,2030,6.78,2,Junior Developer at top Finance Company,Bengaluru,Karnataka
+69f4ba1d666614d785f74162,vihaan.jain67@student.demo,Vihaan Jain,Bronze,15,GD Goenka University,Bachelor of Design,2030,7.42,1,Associate Analyst at top Finance Company,Sohna,Haryana
+69f4ba1d666614d785f74163,rahul.naidu68@student.demo,Rahul Naidu,Silver,44,Vellore Institute Amaravati,MBA — HR,2028,6.09,1,Associate Analyst at top Finance Company,Amaravati,Andhra Pradesh
+69f4ba1d666614d785f74164,vihaan.reddy69@student.demo,Vihaan Reddy,Silver,48,VIT-AP Amaravati,Artificial Intelligence,2028,6.79,3,SDE Trainee at top Finance Company,Amaravati,Andhra Pradesh
+69f4ba1d666614d785f74165,dhruv.murthy70@student.demo,Dhruv Murthy,Bronze,31,BVB Hubli,Electronics & Communication,2029,6.01,2,Junior Developer at top Finance Company,Hubli,Karnataka
+69f4ba1d666614d785f74166,aarush.jain71@student.demo,Aarush Jain,Silver,45,COEP Pune,Mechanical Engineering,2028,6.03,3,Junior Software Engineer at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f74167,sahil.pillai72@student.demo,Sahil Pillai,Bronze,23,B S Abdur Rahman,Electrical Engineering,2030,5.94,1,Junior Software Engineer at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74168,rahul.anand73@student.demo,Rahul Anand,Silver,41,PDPU Gandhinagar,Mechanical Engineering,2028,7.27,1,Associate Software Engineer at top Finance Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f74169,priya.mathur74@student.demo,Priya Mathur,Bronze,29,Dayananda Sagar Bangalore,MBA — Marketing,2030,6.24,1,Junior Developer at top Finance Company,Bengaluru,Karnataka
+69f4ba1d666614d785f7416a,aakash.joshi75@student.demo,Aakash Joshi,Bronze,28,B S Abdur Rahman,BBA,2030,5.92,2,Associate Analyst at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f7416b,reyansh.krishnan76@student.demo,Reyansh Krishnan,Bronze,32,Sharda University,Mechanical Engineering,2030,5.93,1,Associate Software Engineer at top Finance Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f7416c,gauri.sharma77@student.demo,Gauri Sharma,Bronze,39,GLA Mathura,Mechanical Engineering,2028,6.68,3,Junior Software Engineer at top Tech Company,Mathura,Uttar Pradesh
+69f4ba1d666614d785f7416d,reyansh.agarwal78@student.demo,Reyansh Agarwal,Silver,48,MIT World Peace Pune,MBA — Operations,2028,5.94,3,Intern at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f7416e,rishabh.das79@student.demo,Rishabh Das,Silver,41,Mahindra University,M.Sc Physics,2028,6.92,1,Junior Developer at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f7416f,yuvraj.malhotra80@student.demo,Yuvraj Malhotra,Bronze,39,COEP Pune,Mechanical Engineering,2029,6.71,3,Junior Software Engineer at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f74170,arnav.tiwari81@student.demo,Arnav Tiwari,Silver,44,Symbiosis Hyderabad,MBA — Finance,2028,6.83,2,SDE Trainee at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f74171,avni.iyer82@student.demo,Avni Iyer,Silver,43,DAIICT Gandhinagar,Electronics & Communication,2028,5.74,2,SDE Trainee at top Product Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f74172,reyansh.sengupta83@student.demo,Reyansh Sengupta,Silver,45,Amity Mumbai,Production Engineering,2028,7.03,3,Intern at top Tech Company,Mumbai,Maharashtra
+69f4ba1d666614d785f74173,veer.patel84@student.demo,Veer Patel,Bronze,37,GLA Mathura,Computer Science,2028,7.24,2,Intern at top Product Company,Mathura,Uttar Pradesh
+69f4ba1d666614d785f74174,ishaan.malhotra85@student.demo,Ishaan Malhotra,Bronze,30,MIT Pune,Electronics & Communication,2030,6.69,3,Junior Software Engineer at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f74175,reyansh.shah86@student.demo,Reyansh Shah,Bronze,25,GLA Mathura,MBA — Finance,2030,6.36,2,SDE Trainee at top Product Company,Mathura,Uttar Pradesh
+69f4ba1d666614d785f74176,om.mahajan87@student.demo,Om Mahajan,Bronze,29,Pearl Academy Delhi,Bachelor of Design,2029,5.91,1,Associate Software Engineer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f74177,ashish.sen88@student.demo,Ashish Sen,Bronze,36,PDPU Gandhinagar,Computer Science,2029,7.22,3,Junior Software Engineer at top Finance Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f74178,trisha.pillai89@student.demo,Trisha Pillai,Bronze,33,Amity Jaipur,B.Com Honours,2029,7.1,3,Intern at top Finance Company,Jaipur,Rajasthan
+69f4ba1d666614d785f74179,aakash.mehta90@student.demo,Aakash Mehta,Silver,50,Symbiosis Hyderabad,Electrical Engineering,2028,6.17,2,Associate Software Engineer at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f7417a,aarush.bedi91@student.demo,Aarush Bedi,Bronze,33,JIIT Noida,Production Engineering,2029,5.65,3,Associate Analyst at top Finance Company,Noida,Uttar Pradesh
+69f4ba1d666614d785f7417b,yash.goel92@student.demo,Yash Goel,Bronze,29,Amity Jaipur,M.Sc Physics,2029,6.68,1,SDE Trainee at top Product Company,Jaipur,Rajasthan
+69f4ba1d666614d785f7417c,suresh.jain93@student.demo,Suresh Jain,Silver,43,ICFAI Hyderabad,Information Technology,2028,6.61,2,Associate Analyst at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f7417d,tanay.rao94@student.demo,Tanay Rao,Bronze,36,Amity Jaipur,M.Sc Mathematics,2029,6.0,3,Junior Developer at top Finance Company,Jaipur,Rajasthan
+69f4ba1d666614d785f7417e,rishabh.chopra95@student.demo,Rishabh Chopra,Bronze,31,B S Abdur Rahman,Production Engineering,2029,6.16,2,Intern at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f7417f,vikram.pathak96@student.demo,Vikram Pathak,Silver,42,Dayananda Sagar Bangalore,Biomedical Engineering,2028,6.92,3,Junior Software Engineer at top Finance Company,Bengaluru,Karnataka
+69f4ba1d666614d785f74180,pooja.krishnan97@student.demo,Pooja Krishnan,Bronze,33,BVB Hubli,Bachelor of Design,2030,6.12,3,Associate Software Engineer at top Finance Company,Hubli,Karnataka
+69f4ba1d666614d785f74181,ira.mishra98@student.demo,Ira Mishra,Silver,43,BVB Hubli,Mechanical Engineering,2028,5.76,2,Junior Developer at top Tech Company,Hubli,Karnataka
+69f4ba1d666614d785f74182,ananya.bhatia99@student.demo,Ananya Bhatia,Bronze,31,ICFAI Hyderabad,Information Technology,2029,6.57,2,SDE Trainee at top Finance Company,Hyderabad,Telangana
+69f4ba1d666614d785f74183,priya.arora100@student.demo,Priya Arora,Silver,42,Mahindra University,Artificial Intelligence,2029,6.46,3,SDE Trainee at top Product Company,Hyderabad,Telangana
+69f4ba1d666614d785f74184,rishabh.saxena101@student.demo,Rishabh Saxena,Bronze,32,GD Goenka University,Electronics & Communication,2028,7.27,2,Junior Software Engineer at top Finance Company,Sohna,Haryana
+69f4ba1d666614d785f74185,shruti.sood102@student.demo,Shruti Sood,Bronze,32,B S Abdur Rahman,Aerospace Engineering,2029,6.8,1,Associate Software Engineer at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74186,vikram.goyal103@student.demo,Vikram Goyal,Silver,40,BVB Hubli,Architecture,2029,6.6,2,Associate Analyst at top Product Company,Hubli,Karnataka
+69f4ba1d666614d785f74187,nidhi.trivedi104@student.demo,Nidhi Trivedi,Bronze,24,GD Goenka University,Aerospace Engineering,2029,5.72,1,Junior Developer at top Product Company,Sohna,Haryana
+69f4ba1d666614d785f74188,aditya.bedi105@student.demo,Aditya Bedi,Silver,49,Sharda University,Architecture,2028,6.84,2,Intern at top Finance Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f74189,siddharth.sood106@student.demo,Siddharth Sood,Silver,46,Christ Pune,BBA,2028,7.08,2,SDE Trainee at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f7418a,rudra.krishnan107@student.demo,Rudra Krishnan,Bronze,39,BVB Hubli,Information Technology,2029,5.63,3,Junior Developer at top Tech Company,Hubli,Karnataka
+69f4ba1d666614d785f7418b,myra.kumar108@student.demo,Myra Kumar,Silver,40,JIIT Noida,Information Technology,2029,7.01,2,Associate Software Engineer at top Finance Company,Noida,Uttar Pradesh
+69f4ba1d666614d785f7418c,reyansh.krishnan109@student.demo,Reyansh Krishnan,Bronze,31,GLA Mathura,Electrical Engineering,2029,6.88,2,SDE Trainee at top Product Company,Mathura,Uttar Pradesh
+69f4ba1d666614d785f7418d,atharv.tandon110@student.demo,Atharv Tandon,Bronze,26,DAIICT Gandhinagar,MBA — Marketing,2030,6.82,1,SDE Trainee at top Finance Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f7418e,nidhi.bhatia111@student.demo,Nidhi Bhatia,Bronze,35,ICFAI Hyderabad,Production Engineering,2029,6.78,1,Junior Software Engineer at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f7418f,tanvi.murthy112@student.demo,Tanvi Murthy,Silver,41,Christ Pune,Bachelor of Design,2028,5.75,1,Associate Software Engineer at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f74190,aakash.menon113@student.demo,Aakash Menon,Silver,48,Pune Institute of Computer Tech,M.Sc Mathematics,2028,6.8,3,Associate Software Engineer at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f74191,ananya.sethi114@student.demo,Ananya Sethi,Bronze,29,Pearl Academy Delhi,Metallurgical Engineering,2030,6.07,1,Junior Developer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f74192,aanya.pillai115@student.demo,Aanya Pillai,Bronze,31,ICFAI Hyderabad,Civil Engineering,2030,6.58,2,SDE Trainee at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f74193,navya.murthy116@student.demo,Navya Murthy,Bronze,35,Christ Pune,Aerospace Engineering,2028,6.61,1,SDE Trainee at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f74194,anaya.mehta117@student.demo,Anaya Mehta,Bronze,33,COEP Pune,Artificial Intelligence,2029,6.78,3,Junior Developer at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f74195,rishabh.venkatesh118@student.demo,Rishabh Venkatesh,Bronze,27,BVB Hubli,BBA,2030,5.82,3,Associate Analyst at top Tech Company,Hubli,Karnataka
+69f4ba1d666614d785f74196,rishabh.sengupta119@student.demo,Rishabh Sengupta,Silver,45,DAIICT Gandhinagar,Data Science,2028,7.38,3,Associate Software Engineer at top Tech Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f74197,sia.subramanian120@student.demo,Sia Subramanian,Silver,41,Pune Institute of Computer Tech,Computer Science,2028,6.33,1,Associate Analyst at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f74198,ramesh.bose121@student.demo,Ramesh Bose,Bronze,39,Amity Mumbai,MBA — HR,2028,6.43,3,SDE Trainee at top Product Company,Mumbai,Maharashtra
+69f4ba1d666614d785f74199,naman.ghosh122@student.demo,Naman Ghosh,Silver,40,Manipal Jaipur,Metallurgical Engineering,2028,6.4,2,Associate Software Engineer at top Tech Company,Jaipur,Rajasthan
+69f4ba1d666614d785f7419a,ashish.menon123@student.demo,Ashish Menon,Bronze,37,MIT World Peace Pune,Aerospace Engineering,2028,7.26,2,Junior Developer at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f7419b,shruti.sood124@student.demo,Shruti Sood,Silver,45,Mahindra University,Aerospace Engineering,2028,5.52,3,Junior Software Engineer at top Finance Company,Hyderabad,Telangana
+69f4ba1d666614d785f7419c,sahil.murthy125@student.demo,Sahil Murthy,Bronze,38,GSCASR Visakhapatnam,Production Engineering,2028,6.51,2,Intern at top Finance Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f7419d,kiara.saxena126@student.demo,Kiara Saxena,Bronze,37,BVB Hubli,Electrical Engineering,2029,6.52,2,Intern at top Tech Company,Hubli,Karnataka
+69f4ba1d666614d785f7419e,arjun.kapoor127@student.demo,Arjun Kapoor,Bronze,31,Mody University,MBA — HR,2030,6.29,2,Intern at top Product Company,Lakshmangarh,Rajasthan
+69f4ba1d666614d785f7419f,om.subramanian128@student.demo,Om Subramanian,Bronze,25,Christ Pune,MBA — Operations,2030,5.72,2,Junior Developer at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f741a0,vivaan.goyal129@student.demo,Vivaan Goyal,Silver,43,Chitkara University,M.Sc Physics,2030,5.98,3,Intern at top Product Company,Patiala,Punjab
+69f4ba1d666614d785f741a1,ira.gupta130@student.demo,Ira Gupta,Bronze,35,ICFAI Hyderabad,Biomedical Engineering,2029,6.95,1,Associate Analyst at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f741a2,riya.sen131@student.demo,Riya Sen,Bronze,37,Anurag University,MBA — Operations,2029,6.47,2,Associate Software Engineer at top Finance Company,Hyderabad,Telangana
+69f4ba1d666614d785f741a3,rahul.mishra132@student.demo,Rahul Mishra,Bronze,29,Amity Mumbai,Artificial Intelligence,2030,6.62,1,Associate Analyst at top Finance Company,Mumbai,Maharashtra
+69f4ba1d666614d785f741a4,kabir.pillai133@student.demo,Kabir Pillai,Bronze,38,GSCASR Visakhapatnam,Production Engineering,2028,6.01,2,Junior Developer at top Tech Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f741a5,vivek.mukherjee134@student.demo,Vivek Mukherjee,Bronze,39,GLA Mathura,Mechanical Engineering,2028,5.7,3,SDE Trainee at top Product Company,Mathura,Uttar Pradesh
+69f4ba1d666614d785f741a6,pranav.kapoor135@student.demo,Pranav Kapoor,Bronze,37,DY Patil Pune,BBA,2028,6.79,2,Junior Software Engineer at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f741a7,mira.singh136@student.demo,Mira Singh,Bronze,33,RNS Institute Bangalore,MBA — Marketing,2028,5.52,1,Intern at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f741a8,dev.sengupta137@student.demo,Dev Sengupta,Bronze,27,Mahindra University,M.Sc Physics,2030,6.42,3,SDE Trainee at top Product Company,Hyderabad,Telangana
+69f4ba1d666614d785f741a9,vihaan.subramanian138@student.demo,Vihaan Subramanian,Bronze,21,GD Goenka University,B.Com Honours,2030,6.53,1,Junior Software Engineer at top Finance Company,Sohna,Haryana
+69f4ba1d666614d785f741aa,pranav.yadav139@student.demo,Pranav Yadav,Bronze,32,BVB Hubli,MBA — HR,2029,7.41,1,SDE Trainee at top Product Company,Hubli,Karnataka
+69f4ba1d666614d785f741ab,vihaan.banerjee140@student.demo,Vihaan Banerjee,Bronze,35,B S Abdur Rahman,Architecture,2028,6.87,1,Associate Analyst at top Finance Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f741ac,kabir.bose141@student.demo,Kabir Bose,Bronze,35,B S Abdur Rahman,M.Sc Mathematics,2028,6.9,1,Junior Developer at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f741ad,diya.shukla142@student.demo,Diya Shukla,Silver,42,DAIICT Gandhinagar,MBA — Operations,2029,6.16,3,Intern at top Finance Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f741ae,riya.mahajan143@student.demo,Riya Mahajan,Bronze,29,DAIICT Gandhinagar,MBA — Operations,2029,5.62,1,Junior Developer at top Product Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f741af,aditya.kashyap144@student.demo,Aditya Kashyap,Bronze,30,Chitkara University,Computer Science,2030,5.63,1,Junior Software Engineer at top Tech Company,Patiala,Punjab
+69f4ba1d666614d785f741b0,arjun.sengupta145@student.demo,Arjun Sengupta,Bronze,39,MIT World Peace Pune,Civil Engineering,2028,6.87,3,Associate Analyst at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f741b1,manav.saxena146@student.demo,Manav Saxena,Bronze,31,RNS Institute Bangalore,BBA,2029,6.26,3,Associate Software Engineer at top Tech Company,Bengaluru,Karnataka
+69f4ba1d666614d785f741b2,manav.khanna147@student.demo,Manav Khanna,Bronze,32,GLA Mathura,Chemical Engineering,2030,5.91,1,Junior Software Engineer at top Product Company,Mathura,Uttar Pradesh
+69f4ba1d666614d785f741b3,meera.reddy148@student.demo,Meera Reddy,Bronze,34,Sharda University,Information Technology,2029,7.13,2,Associate Analyst at top Product Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f741b4,tanay.sen149@student.demo,Tanay Sen,Bronze,39,Sharda University,Artificial Intelligence,2028,6.49,3,SDE Trainee at top Product Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f741b5,pooja.ghosh150@student.demo,Pooja Ghosh,Silver,46,MIT World Peace Pune,MBA — Marketing,2028,7.22,2,Associate Software Engineer at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f741b6,veer.anand151@student.demo,Veer Anand,Bronze,23,MIT World Peace Pune,BBA,2030,5.66,1,Junior Developer at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f741b7,vivek.rao152@student.demo,Vivek Rao,Bronze,36,Walchand Sangli,Data Science,2029,7.24,3,SDE Trainee at top Finance Company,Sangli,Maharashtra
+69f4ba1d666614d785f741b8,diya.rao153@student.demo,Diya Rao,Bronze,39,PDPU Gandhinagar,MBA — HR,2028,6.43,3,Associate Analyst at top Finance Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f741b9,sahil.murthy154@student.demo,Sahil Murthy,Bronze,35,Christ Pune,MBA — HR,2029,6.24,1,Junior Developer at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f741ba,kavya.malhotra155@student.demo,Kavya Malhotra,Bronze,27,MIT Pune,Data Science,2030,7.17,3,Junior Developer at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f741bb,aryan.pathak156@student.demo,Aryan Pathak,Bronze,31,VIT-AP Amaravati,M.Sc Physics,2030,6.59,2,Associate Software Engineer at top Product Company,Amaravati,Andhra Pradesh
+69f4ba1d666614d785f741bc,krishna.singh157@student.demo,Krishna Singh,Bronze,35,COEP Pune,Bachelor of Design,2028,6.91,1,Junior Software Engineer at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f741bd,trisha.rajan158@student.demo,Trisha Rajan,Bronze,27,Walchand Sangli,M.Sc Mathematics,2030,6.56,3,SDE Trainee at top Product Company,Sangli,Maharashtra
+69f4ba1d666614d785f741be,aditya.sood159@student.demo,Aditya Sood,Silver,42,Symbiosis Hyderabad,Civil Engineering,2028,6.03,1,Junior Developer at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f741bf,tanvi.bansal160@student.demo,Tanvi Bansal,Silver,43,Sharda University,Architecture,2028,6.26,2,Intern at top Finance Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f741c0,vihaan.bhatia161@student.demo,Vihaan Bhatia,Bronze,39,DAIICT Gandhinagar,MBA — HR,2029,7.3,3,Associate Analyst at top Product Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f741c1,rohit.kumar162@student.demo,Rohit Kumar,Bronze,36,COEP Pune,Bachelor of Design,2029,7.14,3,Junior Software Engineer at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f741c2,yash.dubey163@student.demo,Yash Dubey,Bronze,31,Vellore Institute Amaravati,Bachelor of Design,2030,5.7,2,Associate Software Engineer at top Tech Company,Amaravati,Andhra Pradesh
+69f4ba1d666614d785f741c3,sia.kashyap164@student.demo,Sia Kashyap,Bronze,25,Amity Jaipur,Computer Science,2030,6.86,2,Associate Analyst at top Finance Company,Jaipur,Rajasthan
+69f4ba1d666614d785f741c4,ashish.shukla165@student.demo,Ashish Shukla,Bronze,38,COEP Pune,Electronics & Communication,2029,6.28,1,SDE Trainee at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f741c5,aarav.roy166@student.demo,Aarav Roy,Bronze,29,ICFAI Hyderabad,Production Engineering,2029,6.61,1,Junior Developer at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f741c6,advik.raman167@student.demo,Advik Raman,Bronze,28,DAIICT Gandhinagar,M.Sc Mathematics,2030,6.54,2,Associate Analyst at top Finance Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f741c7,aanya.mukherjee168@student.demo,Aanya Mukherjee,Bronze,32,Amity Mumbai,Data Science,2029,6.47,1,Junior Software Engineer at top Finance Company,Mumbai,Maharashtra
+69f4ba1d666614d785f741c8,rohan.sethi169@student.demo,Rohan Sethi,Bronze,35,JIIT Noida,MBA — Finance,2028,6.26,1,SDE Trainee at top Finance Company,Noida,Uttar Pradesh
+69f4ba1d666614d785f741c9,sara.kapoor170@student.demo,Sara Kapoor,Bronze,27,Amity Mumbai,Biomedical Engineering,2030,7.06,3,SDE Trainee at top Finance Company,Mumbai,Maharashtra
+69f4ba1d666614d785f741ca,shruti.murthy171@student.demo,Shruti Murthy,Silver,48,PDPU Gandhinagar,B.Com Honours,2028,7.1,3,Associate Analyst at top Tech Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f741cb,karthik.kapoor172@student.demo,Karthik Kapoor,Silver,42,Amity Mumbai,Aerospace Engineering,2029,6.51,3,Associate Analyst at top Finance Company,Mumbai,Maharashtra
+69f4ba1d666614d785f741cc,arjun.murthy173@student.demo,Arjun Murthy,Silver,48,DAIICT Gandhinagar,Electrical Engineering,2028,5.71,3,Junior Software Engineer at top Finance Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f741cd,manish.walia174@student.demo,Manish Walia,Bronze,37,Galgotias University,MBA — Finance,2029,6.47,2,SDE Trainee at top Finance Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f741ce,aarush.malhotra175@student.demo,Aarush Malhotra,Bronze,37,Manipal Jaipur,Artificial Intelligence,2029,6.94,2,Junior Developer at top Finance Company,Jaipur,Rajasthan
+69f4ba1d666614d785f741cf,rahul.kumar176@student.demo,Rahul Kumar,Bronze,33,PDPU Gandhinagar,Computer Science,2029,6.62,3,Junior Developer at top Tech Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f741d0,ananya.yadav177@student.demo,Ananya Yadav,Silver,52,Symbiosis Hyderabad,Metallurgical Engineering,2028,7.0,3,Junior Software Engineer at top Product Company,Hyderabad,Telangana
+69f4ba1d666614d785f741d1,vivek.yadav178@student.demo,Vivek Yadav,Silver,43,B S Abdur Rahman,Biomedical Engineering,2028,6.29,2,Junior Software Engineer at top Finance Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f741d2,trisha.bhatnagar179@student.demo,Trisha Bhatnagar,Bronze,23,Amity Mumbai,M.Sc Mathematics,2030,5.73,1,SDE Trainee at top Product Company,Mumbai,Maharashtra
+69f4ba1d666614d785f741d3,manish.menon180@student.demo,Manish Menon,Silver,42,MIT World Peace Pune,M.Sc Mathematics,2028,6.08,3,Associate Software Engineer at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f741d4,reyansh.raman181@student.demo,Reyansh Raman,Silver,41,DY Patil Pune,MBA — HR,2028,6.87,1,Junior Developer at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f741d5,esha.bhatia182@student.demo,Esha Bhatia,Bronze,38,DAIICT Gandhinagar,B.Com Honours,2028,7.06,1,Intern at top Product Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f741d6,arnav.bedi183@student.demo,Arnav Bedi,Silver,46,PDPU Gandhinagar,B.Com Honours,2028,5.94,2,Junior Developer at top Tech Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f741d7,rohan.das184@student.demo,Rohan Das,Bronze,37,Pune Institute of Computer Tech,MBA — Finance,2029,6.68,2,SDE Trainee at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f741d8,nidhi.bhatia185@student.demo,Nidhi Bhatia,Bronze,35,BVB Hubli,Chemical Engineering,2028,7.46,1,SDE Trainee at top Finance Company,Hubli,Karnataka
+69f4ba1d666614d785f741d9,rohit.bedi186@student.demo,Rohit Bedi,Bronze,35,Nirma University,Mechanical Engineering,2029,5.79,1,SDE Trainee at top Tech Company,Ahmedabad,Gujarat
+69f4ba1d666614d785f741da,shruti.mahajan187@student.demo,Shruti Mahajan,Bronze,25,Dayananda Sagar Bangalore,B.Com Honours,2030,7.0,2,Associate Analyst at top Finance Company,Bengaluru,Karnataka
+69f4ba1d666614d785f741db,esha.sen188@student.demo,Esha Sen,Bronze,31,DY Patil Pune,Electronics & Communication,2030,7.15,2,Junior Developer at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f741dc,vikram.subramanian189@student.demo,Vikram Subramanian,Bronze,31,BVB Hubli,B.Com Honours,2029,7.36,2,Associate Software Engineer at top Finance Company,Hubli,Karnataka
+69f4ba1d666614d785f741dd,aarav.tandon190@student.demo,Aarav Tandon,Silver,42,JIIT Noida,Architecture,2028,7.31,3,Associate Software Engineer at top Tech Company,Noida,Uttar Pradesh
+69f4ba1d666614d785f741de,suresh.pandey191@student.demo,Suresh Pandey,Silver,49,Symbiosis Hyderabad,M.Sc Physics,2028,5.52,3,SDE Trainee at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f741df,anaya.mittal192@student.demo,Anaya Mittal,Bronze,35,COEP Pune,Aerospace Engineering,2029,7.26,1,Associate Software Engineer at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f741e0,pari.iyer193@student.demo,Pari Iyer,Bronze,39,Pearl Academy Delhi,B.Com Honours,2028,6.87,3,Associate Software Engineer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f741e1,aanya.saxena194@student.demo,Aanya Saxena,Bronze,31,Vellore Institute Amaravati,Production Engineering,2029,6.7,2,Associate Analyst at top Product Company,Amaravati,Andhra Pradesh
+69f4ba1d666614d785f741e2,vivaan.das195@student.demo,Vivaan Das,Bronze,27,JSS Noida,MBA — Operations,2030,5.98,3,Associate Analyst at top Product Company,Noida,Uttar Pradesh
+69f4ba1d666614d785f741e3,siddharth.verma196@student.demo,Siddharth Verma,Bronze,37,B S Abdur Rahman,Biomedical Engineering,2028,5.53,2,Junior Software Engineer at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f741e4,diya.kumar197@student.demo,Diya Kumar,Bronze,31,Walchand Sangli,Metallurgical Engineering,2030,6.78,2,Intern at top Product Company,Sangli,Maharashtra
+69f4ba1d666614d785f741e5,akash.shah198@student.demo,Akash Shah,Bronze,23,Amity Mumbai,Electronics & Communication,2030,6.77,1,Associate Analyst at top Product Company,Mumbai,Maharashtra
+69f4ba1d666614d785f741e6,ishaan.roy199@student.demo,Ishaan Roy,Silver,48,Symbiosis Hyderabad,Aerospace Engineering,2028,6.72,1,SDE Trainee at top Product Company,Hyderabad,Telangana
+69f4ba1d666614d785f741e7,navya.saxena200@student.demo,Navya Saxena,Silver,51,DY Patil Pune,Architecture,2028,5.75,3,SDE Trainee at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f741e8,vivaan.krishnan201@student.demo,Vivaan Krishnan,Bronze,36,Symbiosis Hyderabad,Data Science,2030,6.41,1,SDE Trainee at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f741e9,yash.bhatia202@student.demo,Yash Bhatia,Bronze,35,B S Abdur Rahman,Civil Engineering,2029,6.52,1,Junior Software Engineer at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f741ea,sai.goyal203@student.demo,Sai Goyal,Silver,44,B S Abdur Rahman,Metallurgical Engineering,2028,6.14,1,Junior Developer at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f741eb,rohit.pillai204@student.demo,Rohit Pillai,Bronze,36,B S Abdur Rahman,Electrical Engineering,2030,7.05,3,SDE Trainee at top Finance Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f741ec,arnav.bansal205@student.demo,Arnav Bansal,Bronze,37,DY Patil Pune,Production Engineering,2028,6.68,2,Junior Developer at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f741ed,rohan.khanna206@student.demo,Rohan Khanna,Bronze,38,DY Patil Pune,MBA — Marketing,2028,5.5,1,Associate Analyst at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f741ee,rudra.choudhary207@student.demo,Rudra Choudhary,Silver,40,Pearl Academy Delhi,Aerospace Engineering,2029,6.33,2,SDE Trainee at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f741ef,dhruv.joshi208@student.demo,Dhruv Joshi,Bronze,31,Christ Pune,Mechanical Engineering,2030,6.02,2,SDE Trainee at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f741f0,yuvraj.ghosh209@student.demo,Yuvraj Ghosh,Bronze,35,ICFAI Hyderabad,Data Science,2028,5.71,1,Junior Developer at top Finance Company,Hyderabad,Telangana
+69f4ba1d666614d785f741f1,sneha.saxena210@student.demo,Sneha Saxena,Bronze,37,Manipal Jaipur,Chemical Engineering,2029,6.89,2,Junior Software Engineer at top Tech Company,Jaipur,Rajasthan
+69f4ba1d666614d785f741f2,pari.mehta211@student.demo,Pari Mehta,Bronze,36,Sharda University,Production Engineering,2029,7.0,3,Associate Software Engineer at top Tech Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f741f3,rudra.kapoor212@student.demo,Rudra Kapoor,Bronze,35,PDPU Gandhinagar,Computer Science,2028,6.76,1,Associate Analyst at top Tech Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f741f4,om.banerjee213@student.demo,Om Banerjee,Bronze,35,COEP Pune,Computer Science,2028,5.75,1,Junior Developer at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f741f5,tanay.khurana214@student.demo,Tanay Khurana,Bronze,32,GSCASR Visakhapatnam,MBA — HR,2028,6.39,2,Associate Software Engineer at top Tech Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f741f6,kiara.shukla215@student.demo,Kiara Shukla,Bronze,28,GD Goenka University,MBA — HR,2029,7.49,3,Intern at top Tech Company,Sohna,Haryana
+69f4ba1d666614d785f741f7,harsh.mittal216@student.demo,Harsh Mittal,Bronze,27,VIT-AP Amaravati,Production Engineering,2030,5.62,3,Junior Developer at top Product Company,Amaravati,Andhra Pradesh
+69f4ba1d666614d785f741f8,dhruv.pandey217@student.demo,Dhruv Pandey,Silver,45,BMS College Bangalore,Electrical Engineering,2028,5.85,3,Intern at top Finance Company,Bengaluru,Karnataka
+69f4ba1d666614d785f741f9,harsh.patel218@student.demo,Harsh Patel,Bronze,29,Manipal Jaipur,B.Com Honours,2030,6.48,1,Junior Software Engineer at top Tech Company,Jaipur,Rajasthan
+69f4ba1d666614d785f741fa,sia.mishra219@student.demo,Sia Mishra,Bronze,35,MIT Pune,MBA — Operations,2029,6.93,1,SDE Trainee at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f741fb,pari.malhotra220@student.demo,Pari Malhotra,Bronze,38,PDPU Gandhinagar,MBA — Operations,2029,5.7,1,SDE Trainee at top Finance Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f741fc,saanvi.khurana221@student.demo,Saanvi Khurana,Bronze,35,VIT-AP Amaravati,M.Sc Physics,2029,6.83,1,Associate Software Engineer at top Finance Company,Amaravati,Andhra Pradesh
+69f4ba1d666614d785f741fd,ashish.agarwal222@student.demo,Ashish Agarwal,Bronze,19,RNS Institute Bangalore,Computer Science,2030,5.78,3,Associate Analyst at top Tech Company,Bengaluru,Karnataka
+69f4ba1d666614d785f741fe,manav.ghosh223@student.demo,Manav Ghosh,Silver,45,BMS College Bangalore,M.Sc Physics,2028,6.89,3,SDE Trainee at top Finance Company,Bengaluru,Karnataka
+69f4ba1d666614d785f741ff,aarav.reddy224@student.demo,Aarav Reddy,Bronze,25,Vellore Institute Amaravati,MBA — Finance,2030,7.16,2,Intern at top Product Company,Amaravati,Andhra Pradesh
+69f4ba1d666614d785f74200,kavya.chopra225@student.demo,Kavya Chopra,Bronze,37,ICFAI Hyderabad,Electronics & Communication,2028,7.28,2,Associate Software Engineer at top Product Company,Hyderabad,Telangana
+69f4ba1d666614d785f74201,arnav.mehta226@student.demo,Arnav Mehta,Bronze,28,Mody University,M.Sc Mathematics,2030,5.61,2,SDE Trainee at top Tech Company,Lakshmangarh,Rajasthan
+69f4ba1d666614d785f74202,sneha.banerjee227@student.demo,Sneha Banerjee,Bronze,30,GD Goenka University,Artificial Intelligence,2028,5.61,1,Junior Software Engineer at top Finance Company,Sohna,Haryana
+69f4ba1d666614d785f74203,ashish.mittal228@student.demo,Ashish Mittal,Silver,41,JIIT Noida,Electrical Engineering,2028,6.12,1,Junior Developer at top Finance Company,Noida,Uttar Pradesh
+69f4ba1d666614d785f74204,sahil.mehta229@student.demo,Sahil Mehta,Bronze,34,Vellore Institute Amaravati,Civil Engineering,2029,5.95,2,SDE Trainee at top Product Company,Amaravati,Andhra Pradesh
+69f4ba1d666614d785f74205,aadhya.joshi230@student.demo,Aadhya Joshi,Bronze,33,DAIICT Gandhinagar,Bachelor of Design,2029,7.26,3,Junior Developer at top Finance Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f74206,shruti.singh231@student.demo,Shruti Singh,Bronze,27,Christ Pune,B.Com Honours,2030,5.75,3,Junior Developer at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f74207,sara.naidu232@student.demo,Sara Naidu,Bronze,31,Dayananda Sagar Bangalore,M.Sc Mathematics,2029,6.54,2,Junior Software Engineer at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f74208,om.walia233@student.demo,Om Walia,Bronze,35,MIT World Peace Pune,Electrical Engineering,2029,6.63,1,Junior Software Engineer at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f74209,manav.anand234@student.demo,Manav Anand,Bronze,32,Chitkara University,Metallurgical Engineering,2030,6.74,2,Associate Analyst at top Product Company,Patiala,Punjab
+69f4ba1d666614d785f7420a,arjun.kashyap235@student.demo,Arjun Kashyap,Bronze,35,Mody University,Architecture,2028,6.18,1,SDE Trainee at top Finance Company,Lakshmangarh,Rajasthan
+69f4ba1d666614d785f7420b,esha.joshi236@student.demo,Esha Joshi,Bronze,33,Galgotias University,Mechanical Engineering,2029,5.92,3,Junior Developer at top Product Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f7420c,rishabh.rajan237@student.demo,Rishabh Rajan,Silver,41,Walchand Sangli,MBA — Operations,2028,7.26,1,Junior Software Engineer at top Tech Company,Sangli,Maharashtra
+69f4ba1d666614d785f7420d,myra.nair238@student.demo,Myra Nair,Bronze,38,Sharda University,Information Technology,2029,6.51,1,Associate Analyst at top Tech Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f7420e,vivaan.dubey239@student.demo,Vivaan Dubey,Bronze,31,B S Abdur Rahman,MBA — HR,2030,7.0,2,Associate Analyst at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f7420f,vivaan.menon240@student.demo,Vivaan Menon,Bronze,29,Walchand Sangli,Civil Engineering,2030,6.8,1,Intern at top Tech Company,Sangli,Maharashtra
+69f4ba1d666614d785f74210,vihaan.goyal241@student.demo,Vihaan Goyal,Silver,42,BVB Hubli,M.Sc Physics,2028,7.2,3,Junior Developer at top Finance Company,Hubli,Karnataka
+69f4ba1d666614d785f74211,aisha.das242@student.demo,Aisha Das,Silver,45,Pearl Academy Delhi,M.Sc Mathematics,2029,5.72,3,Junior Software Engineer at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f74212,yuvraj.chatterjee243@student.demo,Yuvraj Chatterjee,Silver,40,Chitkara University,M.Sc Physics,2030,5.78,3,Junior Software Engineer at top Product Company,Patiala,Punjab
+69f4ba1d666614d785f74213,ashish.banerjee244@student.demo,Ashish Banerjee,Silver,42,MIT World Peace Pune,Metallurgical Engineering,2029,6.22,3,SDE Trainee at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f74214,veer.yadav245@student.demo,Veer Yadav,Bronze,21,GD Goenka University,Electrical Engineering,2029,7.3,1,Associate Analyst at top Tech Company,Sohna,Haryana
+69f4ba1d666614d785f74215,harsh.mishra246@student.demo,Harsh Mishra,Bronze,31,Amity Mumbai,MBA — Marketing,2029,6.67,2,Intern at top Tech Company,Mumbai,Maharashtra
+69f4ba1d666614d785f74216,ira.sood247@student.demo,Ira Sood,Silver,42,PDPU Gandhinagar,Bachelor of Design,2029,7.47,3,Junior Developer at top Tech Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f74217,ananya.shah248@student.demo,Ananya Shah,Bronze,29,VIT-AP Amaravati,Biomedical Engineering,2030,5.92,1,Associate Software Engineer at top Product Company,Amaravati,Andhra Pradesh
+69f4ba1d666614d785f74218,esha.mehta249@student.demo,Esha Mehta,Bronze,36,BVB Hubli,M.Sc Mathematics,2029,7.28,3,Intern at top Tech Company,Hubli,Karnataka
+69f4ba1d666614d785f74219,aarav.shukla250@student.demo,Aarav Shukla,Bronze,31,Galgotias University,Architecture,2029,7.15,2,SDE Trainee at top Finance Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f7421a,rishabh.subramanian251@student.demo,Rishabh Subramanian,Silver,53,Symbiosis Hyderabad,Bachelor of Design,2028,5.95,2,Associate Software Engineer at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f7421b,om.sood252@student.demo,Om Sood,Bronze,36,BMS College Bangalore,Electrical Engineering,2029,5.72,3,Junior Software Engineer at top Tech Company,Bengaluru,Karnataka
+69f4ba1d666614d785f7421c,aarush.mathur253@student.demo,Aarush Mathur,Bronze,39,ICFAI Hyderabad,Metallurgical Engineering,2028,6.82,3,Associate Analyst at top Product Company,Hyderabad,Telangana
+69f4ba1d666614d785f7421d,sia.kapoor254@student.demo,Sia Kapoor,Bronze,30,MIT World Peace Pune,Electrical Engineering,2030,7.16,3,Associate Software Engineer at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f7421e,sneha.bose255@student.demo,Sneha Bose,Bronze,31,BMS College Bangalore,Information Technology,2030,6.84,2,Junior Software Engineer at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f7421f,karthik.khanna256@student.demo,Karthik Khanna,Silver,45,DAIICT Gandhinagar,MBA — Operations,2028,5.7,3,Associate Software Engineer at top Tech Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f74220,aakash.ghosh257@student.demo,Aakash Ghosh,Silver,51,Symbiosis Hyderabad,Electrical Engineering,2028,6.22,1,Junior Developer at top Product Company,Hyderabad,Telangana
+69f4ba1d666614d785f74221,advik.rajan258@student.demo,Advik Rajan,Bronze,37,Mody University,Civil Engineering,2028,7.27,2,Associate Software Engineer at top Tech Company,Lakshmangarh,Rajasthan
+69f4ba1d666614d785f74222,krishna.chopra259@student.demo,Krishna Chopra,Bronze,31,Nirma University,MBA — Marketing,2030,5.56,2,Associate Analyst at top Product Company,Ahmedabad,Gujarat
+69f4ba1d666614d785f74223,disha.mahajan260@student.demo,Disha Mahajan,Bronze,32,PDPU Gandhinagar,MBA — Marketing,2029,7.24,1,Intern at top Product Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f74224,yash.mishra261@student.demo,Yash Mishra,Bronze,27,Mody University,MBA — Operations,2030,7.18,3,Intern at top Product Company,Lakshmangarh,Rajasthan
+69f4ba1d666614d785f74225,vihaan.chopra262@student.demo,Vihaan Chopra,Bronze,35,Christ Pune,MBA — HR,2029,7.44,1,Junior Software Engineer at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f74226,arnav.pillai263@student.demo,Arnav Pillai,Bronze,35,GSCASR Visakhapatnam,Aerospace Engineering,2028,5.74,2,Junior Developer at top Product Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f74227,aditya.desai264@student.demo,Aditya Desai,Silver,40,GSCASR Visakhapatnam,MBA — Marketing,2028,6.84,3,SDE Trainee at top Finance Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f74228,kavya.bansal265@student.demo,Kavya Bansal,Bronze,27,Mody University,BBA,2030,6.18,3,Associate Analyst at top Finance Company,Lakshmangarh,Rajasthan
+69f4ba1d666614d785f74229,rishabh.rajan266@student.demo,Rishabh Rajan,Silver,43,Nirma University,Information Technology,2028,5.89,2,Junior Software Engineer at top Finance Company,Ahmedabad,Gujarat
+69f4ba1d666614d785f7422a,trisha.rao267@student.demo,Trisha Rao,Bronze,35,Mody University,Electrical Engineering,2029,6.41,1,Intern at top Product Company,Lakshmangarh,Rajasthan
+69f4ba1d666614d785f7422b,karthik.sharma268@student.demo,Karthik Sharma,Bronze,31,Pearl Academy Delhi,Information Technology,2030,6.27,2,Intern at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f7422c,praveen.menon269@student.demo,Praveen Menon,Bronze,23,MIT World Peace Pune,M.Sc Mathematics,2030,7.11,1,Associate Software Engineer at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f7422d,manish.das270@student.demo,Manish Das,Bronze,27,Amity Jaipur,Architecture,2030,6.8,3,Associate Software Engineer at top Product Company,Jaipur,Rajasthan
+69f4ba1d666614d785f7422e,yuvraj.trivedi271@student.demo,Yuvraj Trivedi,Bronze,33,Manipal Jaipur,BBA,2029,5.71,3,Junior Developer at top Tech Company,Jaipur,Rajasthan
+69f4ba1d666614d785f7422f,krishna.naidu272@student.demo,Krishna Naidu,Silver,42,GLA Mathura,Civil Engineering,2029,5.7,3,Associate Analyst at top Product Company,Mathura,Uttar Pradesh
+69f4ba1d666614d785f74230,kavya.menon273@student.demo,Kavya Menon,Bronze,25,Sharda University,MBA — Operations,2030,6.13,2,Intern at top Tech Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f74231,karan.naidu274@student.demo,Karan Naidu,Bronze,36,ICFAI Hyderabad,Aerospace Engineering,2030,6.4,3,Associate Analyst at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f74232,navya.bedi275@student.demo,Navya Bedi,Bronze,37,PDPU Gandhinagar,Metallurgical Engineering,2028,6.43,2,Associate Software Engineer at top Tech Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f74233,yuvraj.reddy276@student.demo,Yuvraj Reddy,Bronze,36,Amity Mumbai,MBA — HR,2030,5.82,3,Intern at top Product Company,Mumbai,Maharashtra
+69f4ba1d666614d785f74234,advik.venkatesh277@student.demo,Advik Venkatesh,Bronze,28,Galgotias University,Chemical Engineering,2030,6.84,2,Junior Developer at top Tech Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f74235,kiara.shukla278@student.demo,Kiara Shukla,Bronze,31,Pune Institute of Computer Tech,Bachelor of Design,2029,7.14,2,SDE Trainee at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f74236,meera.mahajan279@student.demo,Meera Mahajan,Bronze,29,Pune Institute of Computer Tech,Artificial Intelligence,2030,6.57,1,Associate Analyst at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f74237,diya.tandon280@student.demo,Diya Tandon,Bronze,36,Nirma University,Chemical Engineering,2030,6.93,3,Junior Software Engineer at top Tech Company,Ahmedabad,Gujarat
+69f4ba1d666614d785f74238,reyansh.bhatnagar281@student.demo,Reyansh Bhatnagar,Silver,46,Chitkara University,BBA,2028,6.28,3,Junior Software Engineer at top Product Company,Patiala,Punjab
+69f4ba1d666614d785f74239,ishaan.kumar282@student.demo,Ishaan Kumar,Bronze,32,COEP Pune,Production Engineering,2030,7.03,1,Junior Developer at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f7423a,vivaan.goyal283@student.demo,Vivaan Goyal,Bronze,35,BMS College Bangalore,BBA,2028,5.79,1,Associate Analyst at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f7423b,priya.verma284@student.demo,Priya Verma,Silver,41,Dayananda Sagar Bangalore,Electrical Engineering,2028,5.92,1,Associate Analyst at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f7423c,diya.anand285@student.demo,Diya Anand,Silver,41,Christ Pune,Mechanical Engineering,2028,5.86,1,Intern at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f7423d,aisha.pillai286@student.demo,Aisha Pillai,Bronze,35,GD Goenka University,Bachelor of Design,2028,6.84,2,Associate Software Engineer at top Tech Company,Sohna,Haryana
+69f4ba1d666614d785f7423e,ishaan.rao287@student.demo,Ishaan Rao,Bronze,31,Amity Jaipur,MBA — HR,2029,7.42,2,Associate Software Engineer at top Tech Company,Jaipur,Rajasthan
+69f4ba1d666614d785f7423f,rohan.mishra288@student.demo,Rohan Mishra,Silver,42,Symbiosis Hyderabad,Data Science,2029,6.22,1,SDE Trainee at top Finance Company,Hyderabad,Telangana
+69f4ba1d666614d785f74240,rudra.bhatnagar289@student.demo,Rudra Bhatnagar,Silver,45,DAIICT Gandhinagar,Data Science,2028,6.76,3,Intern at top Product Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f74241,om.tiwari290@student.demo,Om Tiwari,Silver,42,Pune Institute of Computer Tech,BBA,2029,6.43,3,Intern at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f74242,aakash.sood291@student.demo,Aakash Sood,Silver,45,DY Patil Pune,Bachelor of Design,2028,6.96,3,SDE Trainee at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f74243,esha.pandey292@student.demo,Esha Pandey,Bronze,38,COEP Pune,Data Science,2029,6.44,1,Junior Developer at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f74244,yuvraj.desai293@student.demo,Yuvraj Desai,Silver,42,Pearl Academy Delhi,M.Sc Physics,2029,6.81,3,Junior Software Engineer at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f74245,pooja.mishra294@student.demo,Pooja Mishra,Bronze,31,Pearl Academy Delhi,Metallurgical Engineering,2029,5.83,2,Junior Software Engineer at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f74246,akash.tiwari295@student.demo,Akash Tiwari,Silver,43,Dayananda Sagar Bangalore,Civil Engineering,2028,6.94,2,Junior Developer at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f74247,disha.choudhary296@student.demo,Disha Choudhary,Bronze,32,BMS College Bangalore,M.Sc Physics,2029,6.76,1,Junior Software Engineer at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f74248,krishna.bhatia297@student.demo,Krishna Bhatia,Bronze,38,Chitkara University,Civil Engineering,2030,6.4,2,Junior Developer at top Finance Company,Patiala,Punjab
+69f4ba1d666614d785f74249,kavya.anand298@student.demo,Kavya Anand,Silver,42,Dayananda Sagar Bangalore,B.Com Honours,2028,6.26,3,Associate Software Engineer at top Tech Company,Bengaluru,Karnataka
+69f4ba1d666614d785f7424a,myra.walia299@student.demo,Myra Walia,Bronze,29,Christ Pune,Bachelor of Design,2029,6.51,1,Junior Software Engineer at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f7424b,anaya.sharma300@student.demo,Anaya Sharma,Silver,47,Symbiosis Hyderabad,MBA — Operations,2029,6.68,2,Associate Analyst at top Product Company,Hyderabad,Telangana
+69f4ba1d666614d785f7424c,pranav.tandon301@student.demo,Pranav Tandon,Gold,63,St Xaviers Mumbai,Data Science,2028,8.07,4,Software Engineer at top Finance Company,Mumbai,Maharashtra
+69f4ba1d666614d785f7424d,riya.ghosh302@student.demo,Riya Ghosh,Gold,69,NIT Jamshedpur,Production Engineering,2027,7.33,4,DevOps Engineer at top Tech Company,Jamshedpur,Jharkhand
+69f4ba1d666614d785f7424e,arnav.mittal303@student.demo,Arnav Mittal,Gold,61,Lady Shri Ram College,Production Engineering,2029,8.85,6,Frontend Developer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f7424f,manish.sinha304@student.demo,Manish Sinha,Silver,48,VJTI Mumbai,BBA,2029,6.69,3,Full-stack Developer at top Finance Company,Mumbai,Maharashtra
+69f4ba1d666614d785f74250,sia.singh305@student.demo,Sia Singh,Gold,64,RGIPT Amethi,Metallurgical Engineering,2028,7.36,5,Software Engineer at top Product Company,Amethi,Uttar Pradesh
+69f4ba1d666614d785f74251,rishabh.pandey306@student.demo,Rishabh Pandey,Silver,55,Lovely Professional Univ,Civil Engineering,2029,8.51,3,DevOps Engineer at top Product Company,Phagwara,Punjab
+69f4ba1d666614d785f74252,rishabh.verma307@student.demo,Rishabh Verma,Gold,71,NID Ahmedabad,Electronics & Communication,2027,7.28,5,DevOps Engineer at top Product Company,Ahmedabad,Gujarat
+69f4ba1d666614d785f74253,veer.pillai308@student.demo,Veer Pillai,Gold,60,Pondicherry University,Artificial Intelligence,2028,7.95,3,Full-stack Developer at top Finance Company,Puducherry,Puducherry
+69f4ba1d666614d785f74254,trisha.patel309@student.demo,Trisha Patel,Gold,60,Madurai Kamaraj University,Electrical Engineering,2028,9.37,3,Software Engineer at top Product Company,Madurai,Tamil Nadu
+69f4ba1d666614d785f74255,rohan.sengupta310@student.demo,Rohan Sengupta,Silver,56,Christ University,Metallurgical Engineering,2029,9.29,5,Full-stack Developer at top Finance Company,Bengaluru,Karnataka
+69f4ba1d666614d785f74256,pihu.dubey311@student.demo,Pihu Dubey,Gold,71,PSG Coimbatore,Chemical Engineering,2027,6.52,4,Software Engineer at top Finance Company,Coimbatore,Tamil Nadu
+69f4ba1d666614d785f74257,naman.sethi312@student.demo,Naman Sethi,Silver,56,Sathyabama Chennai,Data Science,2028,9.32,4,Software Engineer at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74258,shruti.bhatnagar313@student.demo,Shruti Bhatnagar,Gold,63,Andhra University,Electrical Engineering,2029,8.15,6,Full-stack Developer at top Finance Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f74259,kiara.subramanian314@student.demo,Kiara Subramanian,Gold,69,NIT Patna,Civil Engineering,2028,8.56,6,Backend Developer at top Product Company,Patna,Bihar
+69f4ba1d666614d785f7425a,pihu.khurana315@student.demo,Pihu Khurana,Gold,62,NIT Raipur,Chemical Engineering,2027,8.19,4,Software Engineer at top Finance Company,Raipur,Chhattisgarh
+69f4ba1d666614d785f7425b,saanvi.nair316@student.demo,Saanvi Nair,Silver,51,Bennett University,Data Science,2028,7.74,3,QA Engineer at top Product Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f7425c,myra.bhatnagar317@student.demo,Myra Bhatnagar,Gold,60,RV College Bangalore,Production Engineering,2028,8.39,6,DevOps Engineer at top Tech Company,Bengaluru,Karnataka
+69f4ba1d666614d785f7425d,saanvi.subramanian318@student.demo,Saanvi Subramanian,Silver,55,Shiv Nadar University,Biomedical Engineering,2028,7.05,5,Software Engineer at top Tech Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f7425e,karan.shah319@student.demo,Karan Shah,Gold,60,Bennett University,Civil Engineering,2028,8.35,3,Backend Developer at top Product Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f7425f,suresh.pandey320@student.demo,Suresh Pandey,Silver,56,Ashoka University,Artificial Intelligence,2028,9.3,4,Mobile Developer at top Tech Company,Sonipat,Haryana
+69f4ba1d666614d785f74260,ramesh.bhatnagar321@student.demo,Ramesh Bhatnagar,Gold,66,Hindustan Chennai,M.Sc Mathematics,2028,7.28,6,Data Analyst at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74261,rishabh.kapoor322@student.demo,Rishabh Kapoor,Silver,58,MIT Manipal,Artificial Intelligence,2028,8.14,3,Full-stack Developer at top Finance Company,Manipal,Karnataka
+69f4ba1d666614d785f74262,sara.kashyap323@student.demo,Sara Kashyap,Silver,57,Ashoka University,Civil Engineering,2029,8.73,6,Data Analyst at top Finance Company,Sonipat,Haryana
+69f4ba1d666614d785f74263,ishaan.yadav324@student.demo,Ishaan Yadav,Gold,70,St Xaviers Mumbai,Artificial Intelligence,2027,9.42,6,Data Analyst at top Finance Company,Mumbai,Maharashtra
+69f4ba1d666614d785f74264,tara.verma325@student.demo,Tara Verma,Silver,57,Shiv Nadar University,Electronics & Communication,2027,6.74,3,Frontend Developer at top Tech Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f74265,shruti.pillai326@student.demo,Shruti Pillai,Gold,74,Kalasalingam University,MBA — HR,2027,9.48,4,Full-stack Developer at top Finance Company,Krishnankoil,Tamil Nadu
+69f4ba1d666614d785f74266,rishabh.choudhary327@student.demo,Rishabh Choudhary,Gold,61,Madurai Kamaraj University,Metallurgical Engineering,2029,8.42,5,Full-stack Developer at top Finance Company,Madurai,Tamil Nadu
+69f4ba1d666614d785f74267,diya.trivedi328@student.demo,Diya Trivedi,Silver,58,Ashoka University,M.Sc Physics,2028,7.93,5,Frontend Developer at top Finance Company,Sonipat,Haryana
+69f4ba1d666614d785f74268,rohan.chopra329@student.demo,Rohan Chopra,Silver,55,Bharathiar University,Electronics & Communication,2029,7.45,5,QA Engineer at top Finance Company,Coimbatore,Tamil Nadu
+69f4ba1d666614d785f74269,aditya.pillai330@student.demo,Aditya Pillai,Gold,64,MIT Manipal,Mechanical Engineering,2028,7.06,3,QA Engineer at top Finance Company,Manipal,Karnataka
+69f4ba1d666614d785f7426a,akash.chopra331@student.demo,Akash Chopra,Platinum,88,Amity Noida,MBA — Operations,2027,9.07,6,Full-stack Developer at top Finance Company,Noida,Uttar Pradesh
+69f4ba1d666614d785f7426b,vivek.menon332@student.demo,Vivek Menon,Silver,58,Madras Christian College,MBA — Operations,2029,9.01,6,Frontend Developer at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f7426c,myra.desai333@student.demo,Myra Desai,Gold,63,Bharathiar University,Chemical Engineering,2027,7.16,3,Backend Developer at top Tech Company,Coimbatore,Tamil Nadu
+69f4ba1d666614d785f7426d,esha.shah334@student.demo,Esha Shah,Gold,70,Andhra University,M.Sc Physics,2027,9.0,5,Backend Developer at top Tech Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f7426e,pranav.joshi335@student.demo,Pranav Joshi,Gold,60,RGIPT Amethi,Aerospace Engineering,2029,6.82,6,QA Engineer at top Product Company,Amethi,Uttar Pradesh
+69f4ba1d666614d785f7426f,nidhi.desai336@student.demo,Nidhi Desai,Silver,54,St Stephens College,Civil Engineering,2029,7.74,6,DevOps Engineer at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f74270,sia.dubey337@student.demo,Sia Dubey,Gold,66,Sathyabama Chennai,BBA,2027,6.55,6,Frontend Developer at top Finance Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74271,rahul.mishra338@student.demo,Rahul Mishra,Gold,64,Bennett University,Biomedical Engineering,2027,7.6,5,Full-stack Developer at top Tech Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f74272,rahul.mehta339@student.demo,Rahul Mehta,Silver,53,Sathyabama Chennai,Metallurgical Engineering,2029,8.43,4,Software Engineer at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74273,pooja.shah340@student.demo,Pooja Shah,Gold,73,Manipal Institute of Tech,Biomedical Engineering,2028,8.07,6,QA Engineer at top Product Company,Manipal,Karnataka
+69f4ba1d666614d785f74274,aadhya.sen341@student.demo,Aadhya Sen,Gold,68,Pondicherry University,Architecture,2027,8.86,4,Frontend Developer at top Tech Company,Puducherry,Puducherry
+69f4ba1d666614d785f74275,atharv.goyal342@student.demo,Atharv Goyal,Gold,60,Sathyabama Chennai,Information Technology,2029,7.69,6,Full-stack Developer at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74276,siddharth.shukla343@student.demo,Siddharth Shukla,Silver,57,Ashoka University,Electronics & Communication,2028,8.28,6,Software Engineer at top Finance Company,Sonipat,Haryana
+69f4ba1d666614d785f74277,manav.arora344@student.demo,Manav Arora,Silver,58,Lovely Professional Univ,Mechanical Engineering,2028,9.28,3,Data Analyst at top Tech Company,Phagwara,Punjab
+69f4ba1d666614d785f74278,aarush.roy345@student.demo,Aarush Roy,Gold,70,Osmania University,MBA — HR,2027,9.48,5,Software Engineer at top Finance Company,Hyderabad,Telangana
+69f4ba1d666614d785f74279,siddharth.kumar346@student.demo,Siddharth Kumar,Gold,61,PSG Coimbatore,Civil Engineering,2027,7.31,5,QA Engineer at top Tech Company,Coimbatore,Tamil Nadu
+69f4ba1d666614d785f7427a,ashish.menon347@student.demo,Ashish Menon,Silver,51,Shiv Nadar University,Metallurgical Engineering,2029,7.24,3,Data Analyst at top Finance Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f7427b,shruti.chopra348@student.demo,Shruti Chopra,Silver,59,IIIT Delhi,Production Engineering,2029,9.35,5,Full-stack Developer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f7427c,shruti.kapoor349@student.demo,Shruti Kapoor,Silver,54,Christ University,Metallurgical Engineering,2029,8.46,4,Full-stack Developer at top Tech Company,Bengaluru,Karnataka
+69f4ba1d666614d785f7427d,siddharth.kapoor350@student.demo,Siddharth Kapoor,Gold,63,NSUT Delhi,Mechanical Engineering,2029,6.59,4,QA Engineer at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f7427e,rahul.arora351@student.demo,Rahul Arora,Gold,68,GBPUAT Pantnagar,Data Science,2027,7.2,4,Software Engineer at top Finance Company,Pantnagar,Uttarakhand
+69f4ba1d666614d785f7427f,disha.kapoor352@student.demo,Disha Kapoor,Silver,55,Pondicherry University,M.Sc Mathematics,2028,9.35,5,Full-stack Developer at top Product Company,Puducherry,Puducherry
+69f4ba1d666614d785f74280,myra.choudhary353@student.demo,Myra Choudhary,Gold,76,Amity Noida,Civil Engineering,2028,8.33,6,Software Engineer at top Product Company,Noida,Uttar Pradesh
+69f4ba1d666614d785f74281,meera.bansal354@student.demo,Meera Bansal,Gold,60,IIIT Allahabad,Aerospace Engineering,2029,9.15,6,Data Analyst at top Finance Company,Prayagraj,Uttar Pradesh
+69f4ba1d666614d785f74282,nidhi.bose355@student.demo,Nidhi Bose,Gold,60,Lovely Professional Univ,Information Technology,2029,7.74,4,Mobile Developer at top Tech Company,Phagwara,Punjab
+69f4ba1d666614d785f74283,trisha.naidu356@student.demo,Trisha Naidu,Gold,64,Andhra University,Electronics & Communication,2028,8.4,5,Backend Developer at top Product Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f74284,neha.bedi357@student.demo,Neha Bedi,Gold,73,Lovely Professional Univ,Civil Engineering,2028,7.42,6,Mobile Developer at top Finance Company,Phagwara,Punjab
+69f4ba1d666614d785f74285,ananya.saxena358@student.demo,Ananya Saxena,Gold,74,St Xaviers Mumbai,Chemical Engineering,2027,7.93,5,DevOps Engineer at top Finance Company,Mumbai,Maharashtra
+69f4ba1d666614d785f74286,gauri.sharma359@student.demo,Gauri Sharma,Gold,65,Ashoka University,BBA,2028,9.26,4,Software Engineer at top Tech Company,Sonipat,Haryana
+69f4ba1d666614d785f74287,navya.chopra360@student.demo,Navya Chopra,Gold,63,NIFT Mumbai,Artificial Intelligence,2029,8.96,4,DevOps Engineer at top Product Company,Mumbai,Maharashtra
+69f4ba1d666614d785f74288,ashish.goyal361@student.demo,Ashish Goyal,Silver,56,St Xaviers Mumbai,Electrical Engineering,2029,8.57,5,Data Analyst at top Finance Company,Mumbai,Maharashtra
+69f4ba1d666614d785f74289,naman.banerjee362@student.demo,Naman Banerjee,Silver,55,GITAM Visakhapatnam,B.Com Honours,2029,8.63,5,Full-stack Developer at top Tech Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f7428a,vivaan.jain363@student.demo,Vivaan Jain,Silver,47,GBPUAT Pantnagar,Electrical Engineering,2029,7.34,4,Backend Developer at top Finance Company,Pantnagar,Uttarakhand
+69f4ba1d666614d785f7428b,praveen.sen364@student.demo,Praveen Sen,Gold,62,IIIT Bangalore,Electrical Engineering,2029,7.94,5,Mobile Developer at top Tech Company,Bengaluru,Karnataka
+69f4ba1d666614d785f7428c,aanya.mittal365@student.demo,Aanya Mittal,Gold,64,Hindu College Delhi,M.Sc Physics,2028,6.56,5,QA Engineer at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f7428d,aadhya.chatterjee366@student.demo,Aadhya Chatterjee,Gold,66,IIIT Delhi,Biomedical Engineering,2028,7.74,4,Mobile Developer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f7428e,meera.das367@student.demo,Meera Das,Gold,65,Bennett University,MBA — Operations,2028,9.21,4,Frontend Developer at top Tech Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f7428f,disha.roy368@student.demo,Disha Roy,Gold,62,MS Ramaiah Institute,Mechanical Engineering,2027,8.56,4,Backend Developer at top Finance Company,Bengaluru,Karnataka
+69f4ba1d666614d785f74290,sai.desai369@student.demo,Sai Desai,Silver,55,GITAM Visakhapatnam,Bachelor of Design,2029,8.1,5,Mobile Developer at top Product Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f74291,rohit.khanna370@student.demo,Rohit Khanna,Gold,60,St Stephens College,Data Science,2027,9.33,3,Data Analyst at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f74292,anika.pillai371@student.demo,Anika Pillai,Gold,63,PES University,M.Sc Mathematics,2028,8.29,6,Mobile Developer at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f74293,suresh.krishnan372@student.demo,Suresh Krishnan,Silver,58,Madras Christian College,Architecture,2029,7.43,3,Mobile Developer at top Finance Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74294,kavya.malhotra373@student.demo,Kavya Malhotra,Gold,64,Lovely Professional Univ,Data Science,2028,7.94,6,Frontend Developer at top Finance Company,Phagwara,Punjab
+69f4ba1d666614d785f74295,sia.agarwal374@student.demo,Sia Agarwal,Silver,51,Pondicherry University,Electrical Engineering,2028,7.74,3,Full-stack Developer at top Product Company,Puducherry,Puducherry
+69f4ba1d666614d785f74296,disha.menon375@student.demo,Disha Menon,Gold,76,Amity Noida,Biomedical Engineering,2027,8.28,6,Mobile Developer at top Finance Company,Noida,Uttar Pradesh
+69f4ba1d666614d785f74297,pranav.arora376@student.demo,Pranav Arora,Gold,64,Lady Shri Ram College,Artificial Intelligence,2028,7.15,3,Frontend Developer at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f74298,aarav.malhotra377@student.demo,Aarav Malhotra,Gold,62,NIFT Delhi,Mechanical Engineering,2028,9.45,5,QA Engineer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f74299,vihaan.bedi378@student.demo,Vihaan Bedi,Silver,57,NIT Silchar,Mechanical Engineering,2028,7.21,3,DevOps Engineer at top Product Company,Silchar,Assam
+69f4ba1d666614d785f7429a,pooja.sinha379@student.demo,Pooja Sinha,Silver,47,NIT Raipur,MBA — Marketing,2029,9.49,4,Frontend Developer at top Tech Company,Raipur,Chhattisgarh
+69f4ba1d666614d785f7429b,shaurya.gupta380@student.demo,Shaurya Gupta,Silver,57,Hindu College Delhi,MBA — HR,2029,8.03,6,Mobile Developer at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f7429c,kavya.yadav381@student.demo,Kavya Yadav,Gold,76,NSUT Delhi,M.Sc Mathematics,2027,7.95,6,QA Engineer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f7429d,disha.shah382@student.demo,Disha Shah,Gold,66,Hindu College Delhi,MBA — Operations,2028,6.66,6,QA Engineer at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f7429e,avni.bansal383@student.demo,Avni Bansal,Silver,55,Pondicherry University,MBA — HR,2029,7.92,5,Frontend Developer at top Product Company,Puducherry,Puducherry
+69f4ba1d666614d785f7429f,ashish.patel384@student.demo,Ashish Patel,Silver,59,RV College Bangalore,MBA — HR,2027,8.72,4,Frontend Developer at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f742a0,meera.rajan385@student.demo,Meera Rajan,Gold,60,Lady Shri Ram College,Data Science,2029,8.76,4,DevOps Engineer at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f742a1,tara.bhatia386@student.demo,Tara Bhatia,Silver,52,Bennett University,B.Com Honours,2029,8.74,5,Full-stack Developer at top Finance Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f742a2,neha.goyal387@student.demo,Neha Goyal,Silver,57,PSG Coimbatore,Mechanical Engineering,2029,8.41,6,DevOps Engineer at top Product Company,Coimbatore,Tamil Nadu
+69f4ba1d666614d785f742a3,rohit.krishnan388@student.demo,Rohit Krishnan,Gold,67,SSN Chennai,Data Science,2027,8.53,5,Frontend Developer at top Finance Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f742a4,vihaan.verma389@student.demo,Vihaan Verma,Silver,58,Amity Noida,Computer Science,2028,6.6,3,Backend Developer at top Tech Company,Noida,Uttar Pradesh
+69f4ba1d666614d785f742a5,diya.saxena390@student.demo,Diya Saxena,Gold,75,NID Ahmedabad,Electrical Engineering,2027,7.38,4,Backend Developer at top Product Company,Ahmedabad,Gujarat
+69f4ba1d666614d785f742a6,akash.tandon391@student.demo,Akash Tandon,Gold,68,NIFT Bangalore,Bachelor of Design,2028,7.82,5,Mobile Developer at top Tech Company,Bengaluru,Karnataka
+69f4ba1d666614d785f742a7,shruti.bhatnagar392@student.demo,Shruti Bhatnagar,Gold,78,Bharati Vidyapeeth Pune,MBA — HR,2027,6.6,4,Backend Developer at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f742a8,meera.gupta393@student.demo,Meera Gupta,Silver,48,Bharathiar University,Mechanical Engineering,2029,7.81,3,Backend Developer at top Product Company,Coimbatore,Tamil Nadu
+69f4ba1d666614d785f742a9,aarav.menon394@student.demo,Aarav Menon,Gold,77,NIFT Bangalore,MBA — HR,2027,6.74,5,Mobile Developer at top Finance Company,Bengaluru,Karnataka
+69f4ba1d666614d785f742aa,myra.bhatnagar395@student.demo,Myra Bhatnagar,Silver,59,Karunya University,Information Technology,2028,7.07,4,Software Engineer at top Tech Company,Coimbatore,Tamil Nadu
+69f4ba1d666614d785f742ab,om.dubey396@student.demo,Om Dubey,Gold,61,Bharathiar University,Metallurgical Engineering,2027,7.14,5,Mobile Developer at top Product Company,Coimbatore,Tamil Nadu
+69f4ba1d666614d785f742ac,aadhya.pandey397@student.demo,Aadhya Pandey,Gold,60,Amity Noida,Information Technology,2029,7.02,4,Software Engineer at top Finance Company,Noida,Uttar Pradesh
+69f4ba1d666614d785f742ad,trisha.bhatia398@student.demo,Trisha Bhatia,Gold,63,Hindustan Chennai,Electronics & Communication,2027,8.54,3,QA Engineer at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f742ae,tanay.kapoor399@student.demo,Tanay Kapoor,Gold,65,MS Ramaiah Institute,Chemical Engineering,2027,7.0,4,Full-stack Developer at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f742af,aanya.joshi400@student.demo,Aanya Joshi,Silver,56,GBPUAT Pantnagar,M.Sc Mathematics,2028,6.88,4,Frontend Developer at top Product Company,Pantnagar,Uttarakhand
+69f4ba1d666614d785f742b0,rishabh.goel401@student.demo,Rishabh Goel,Gold,64,NIT Jamshedpur,Aerospace Engineering,2027,6.51,3,Full-stack Developer at top Tech Company,Jamshedpur,Jharkhand
+69f4ba1d666614d785f742b1,siddharth.joshi402@student.demo,Siddharth Joshi,Silver,54,Lovely Professional Univ,Production Engineering,2029,9.03,4,Mobile Developer at top Finance Company,Phagwara,Punjab
+69f4ba1d666614d785f742b2,saanvi.kumar403@student.demo,Saanvi Kumar,Gold,71,Manipal Institute of Tech,M.Sc Physics,2028,9.27,5,Frontend Developer at top Tech Company,Manipal,Karnataka
+69f4ba1d666614d785f742b3,esha.bedi404@student.demo,Esha Bedi,Gold,76,Loyola College,Electronics & Communication,2027,6.79,6,DevOps Engineer at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f742b4,kavya.pillai405@student.demo,Kavya Pillai,Gold,60,Madurai Kamaraj University,B.Com Honours,2028,7.87,3,Full-stack Developer at top Product Company,Madurai,Tamil Nadu
+69f4ba1d666614d785f742b5,rohit.naidu406@student.demo,Rohit Naidu,Gold,63,VJTI Mumbai,Mechanical Engineering,2027,9.16,3,Frontend Developer at top Product Company,Mumbai,Maharashtra
+69f4ba1d666614d785f742b6,anika.pandey407@student.demo,Anika Pandey,Gold,67,Christ University,MBA — Marketing,2029,7.17,6,Frontend Developer at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f742b7,kriti.kumar408@student.demo,Kriti Kumar,Silver,48,IIIT Allahabad,MBA — HR,2029,6.75,3,Software Engineer at top Product Company,Prayagraj,Uttar Pradesh
+69f4ba1d666614d785f742b8,diya.agarwal409@student.demo,Diya Agarwal,Gold,64,MIT Manipal,Artificial Intelligence,2027,8.82,3,DevOps Engineer at top Tech Company,Manipal,Karnataka
+69f4ba1d666614d785f742b9,aisha.sharma410@student.demo,Aisha Sharma,Gold,64,GBPUAT Pantnagar,Electronics & Communication,2028,8.36,5,QA Engineer at top Product Company,Pantnagar,Uttarakhand
+69f4ba1d666614d785f742ba,manish.murthy411@student.demo,Manish Murthy,Gold,74,Manipal Institute of Tech,Electrical Engineering,2028,7.22,5,Backend Developer at top Product Company,Manipal,Karnataka
+69f4ba1d666614d785f742bb,dhruv.choudhary412@student.demo,Dhruv Choudhary,Gold,61,Shiv Nadar University,Biomedical Engineering,2028,8.99,5,Mobile Developer at top Product Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f742bc,vivek.bose413@student.demo,Vivek Bose,Silver,51,Osmania University,M.Sc Mathematics,2028,7.33,3,Frontend Developer at top Finance Company,Hyderabad,Telangana
+69f4ba1d666614d785f742bd,riya.walia414@student.demo,Riya Walia,Gold,63,GBPUAT Pantnagar,Computer Science,2028,6.57,6,Full-stack Developer at top Product Company,Pantnagar,Uttarakhand
+69f4ba1d666614d785f742be,dev.anand415@student.demo,Dev Anand,Silver,55,Hindustan Chennai,Biomedical Engineering,2029,9.19,5,Data Analyst at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f742bf,mira.mittal416@student.demo,Mira Mittal,Gold,68,NIT Patna,Artificial Intelligence,2027,8.58,4,Frontend Developer at top Tech Company,Patna,Bihar
+69f4ba1d666614d785f742c0,aarush.kumar417@student.demo,Aarush Kumar,Gold,66,MS Ramaiah Institute,B.Com Honours,2027,8.12,6,Frontend Developer at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f742c1,kabir.patel418@student.demo,Kabir Patel,Gold,69,NIT Silchar,MBA — HR,2027,8.69,6,Mobile Developer at top Finance Company,Silchar,Assam
+69f4ba1d666614d785f742c2,aarush.mittal419@student.demo,Aarush Mittal,Silver,54,IIIT Allahabad,Mechanical Engineering,2029,6.67,3,Full-stack Developer at top Product Company,Prayagraj,Uttar Pradesh
+69f4ba1d666614d785f742c3,kavya.chatterjee420@student.demo,Kavya Chatterjee,Gold,73,Madras Christian College,Computer Science,2027,7.58,6,Frontend Developer at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f742c4,priya.menon421@student.demo,Priya Menon,Silver,58,NIT Patna,Computer Science,2028,8.92,5,DevOps Engineer at top Product Company,Patna,Bihar
+69f4ba1d666614d785f742c5,aanya.mehta422@student.demo,Aanya Mehta,Gold,63,Hindu College Delhi,Chemical Engineering,2028,8.17,6,Frontend Developer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f742c6,pooja.bose423@student.demo,Pooja Bose,Gold,61,Karunya University,MBA — HR,2027,9.37,5,Mobile Developer at top Tech Company,Coimbatore,Tamil Nadu
+69f4ba1d666614d785f742c7,vikram.mathur424@student.demo,Vikram Mathur,Gold,60,Lady Shri Ram College,MBA — HR,2029,7.81,4,Data Analyst at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f742c8,avni.saxena425@student.demo,Avni Saxena,Silver,48,NIT Patna,MBA — Operations,2029,6.66,3,QA Engineer at top Finance Company,Patna,Bihar
+69f4ba1d666614d785f742c9,harsh.reddy426@student.demo,Harsh Reddy,Silver,54,RV College Bangalore,Artificial Intelligence,2029,8.98,3,Data Analyst at top Finance Company,Bengaluru,Karnataka
+69f4ba1d666614d785f742ca,aakash.joshi427@student.demo,Aakash Joshi,Silver,56,Kalasalingam University,B.Com Honours,2028,7.15,4,Full-stack Developer at top Tech Company,Krishnankoil,Tamil Nadu
+69f4ba1d666614d785f742cb,kiara.trivedi428@student.demo,Kiara Trivedi,Gold,64,NIT Jamshedpur,MBA — Finance,2027,8.07,3,QA Engineer at top Tech Company,Jamshedpur,Jharkhand
+69f4ba1d666614d785f742cc,rahul.patel429@student.demo,Rahul Patel,Gold,66,Loyola College,Aerospace Engineering,2027,6.56,4,Mobile Developer at top Finance Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f742cd,myra.desai430@student.demo,Myra Desai,Silver,48,IIIT Allahabad,Bachelor of Design,2029,9.26,3,Full-stack Developer at top Product Company,Prayagraj,Uttar Pradesh
+69f4ba1d666614d785f742ce,ananya.venkatesh431@student.demo,Ananya Venkatesh,Platinum,83,IIIT Delhi,Electronics & Communication,2027,8.79,5,Full-stack Developer at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f742cf,vikram.bhatia432@student.demo,Vikram Bhatia,Silver,45,Kalasalingam University,Computer Science,2029,9.37,3,Frontend Developer at top Finance Company,Krishnankoil,Tamil Nadu
+69f4ba1d666614d785f742d0,nidhi.tiwari433@student.demo,Nidhi Tiwari,Silver,54,Pondicherry University,Aerospace Engineering,2028,7.36,3,Software Engineer at top Tech Company,Puducherry,Puducherry
+69f4ba1d666614d785f742d1,karthik.trivedi434@student.demo,Karthik Trivedi,Silver,55,NIT Raipur,Artificial Intelligence,2028,7.6,5,Software Engineer at top Product Company,Raipur,Chhattisgarh
+69f4ba1d666614d785f742d2,rudra.kashyap435@student.demo,Rudra Kashyap,Silver,48,Osmania University,MBA — Operations,2029,9.43,3,QA Engineer at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f742d3,tanvi.saxena436@student.demo,Tanvi Saxena,Silver,51,Shiv Nadar University,MBA — Marketing,2029,8.31,6,DevOps Engineer at top Finance Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f742d4,akash.malhotra437@student.demo,Akash Malhotra,Gold,61,Andhra University,Electrical Engineering,2027,9.42,5,DevOps Engineer at top Product Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f742d5,yuvraj.khanna438@student.demo,Yuvraj Khanna,Silver,51,PES University,M.Sc Mathematics,2029,7.99,3,Data Analyst at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f742d6,ramesh.gupta439@student.demo,Ramesh Gupta,Gold,69,IIIT Allahabad,MBA — Marketing,2027,7.79,6,Data Analyst at top Product Company,Prayagraj,Uttar Pradesh
+69f4ba1d666614d785f742d7,esha.trivedi440@student.demo,Esha Trivedi,Gold,63,Sathyabama Chennai,Bachelor of Design,2028,7.46,6,Software Engineer at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f742d8,anaya.murthy441@student.demo,Anaya Murthy,Platinum,80,MIT Manipal,B.Com Honours,2027,7.44,5,Backend Developer at top Product Company,Manipal,Karnataka
+69f4ba1d666614d785f742d9,suresh.trivedi442@student.demo,Suresh Trivedi,Gold,73,VJTI Mumbai,Civil Engineering,2027,8.26,5,QA Engineer at top Finance Company,Mumbai,Maharashtra
+69f4ba1d666614d785f742da,neha.sen443@student.demo,Neha Sen,Silver,51,Sathyabama Chennai,Electrical Engineering,2028,7.4,3,DevOps Engineer at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f742db,shaurya.tiwari444@student.demo,Shaurya Tiwari,Gold,67,RV College Bangalore,Data Science,2027,7.32,5,Mobile Developer at top Finance Company,Bengaluru,Karnataka
+69f4ba1d666614d785f742dc,manav.pillai445@student.demo,Manav Pillai,Gold,62,Bharati Vidyapeeth Pune,Artificial Intelligence,2029,7.04,5,Software Engineer at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f742dd,rishabh.yadav446@student.demo,Rishabh Yadav,Gold,69,Sathyabama Chennai,MBA — HR,2027,7.89,6,Full-stack Developer at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f742de,rahul.khurana447@student.demo,Rahul Khurana,Gold,66,NIT Jamshedpur,Biomedical Engineering,2027,6.95,4,Software Engineer at top Tech Company,Jamshedpur,Jharkhand
+69f4ba1d666614d785f742df,aisha.mahajan448@student.demo,Aisha Mahajan,Silver,54,Karunya University,MBA — Marketing,2028,7.96,3,Software Engineer at top Tech Company,Coimbatore,Tamil Nadu
+69f4ba1d666614d785f742e0,naman.das449@student.demo,Naman Das,Silver,58,Amity Noida,MBA — Marketing,2028,9.15,3,Full-stack Developer at top Product Company,Noida,Uttar Pradesh
+69f4ba1d666614d785f742e1,naman.krishnan450@student.demo,Naman Krishnan,Silver,50,Hindustan Chennai,Metallurgical Engineering,2029,6.67,4,QA Engineer at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f742e2,naman.tandon451@student.demo,Naman Tandon,Gold,64,Madurai Kamaraj University,Bachelor of Design,2027,8.9,5,Software Engineer at top Product Company,Madurai,Tamil Nadu
+69f4ba1d666614d785f742e3,pihu.pathak452@student.demo,Pihu Pathak,Gold,64,Karunya University,Metallurgical Engineering,2028,6.77,5,Full-stack Developer at top Finance Company,Coimbatore,Tamil Nadu
+69f4ba1d666614d785f742e4,saanvi.arora453@student.demo,Saanvi Arora,Silver,54,GBPUAT Pantnagar,Biomedical Engineering,2029,8.6,6,Backend Developer at top Finance Company,Pantnagar,Uttarakhand
+69f4ba1d666614d785f742e5,sia.sen454@student.demo,Sia Sen,Silver,57,Andhra University,Architecture,2027,8.38,3,QA Engineer at top Product Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f742e6,aarush.chopra455@student.demo,Aarush Chopra,Silver,53,Ashoka University,MBA — Operations,2029,7.02,4,QA Engineer at top Finance Company,Sonipat,Haryana
+69f4ba1d666614d785f742e7,atharv.mathur456@student.demo,Atharv Mathur,Gold,63,NIT Patna,Civil Engineering,2028,9.06,6,Software Engineer at top Finance Company,Patna,Bihar
+69f4ba1d666614d785f742e8,nidhi.banerjee457@student.demo,Nidhi Banerjee,Gold,65,Hindu College Delhi,Electronics & Communication,2028,7.11,4,Data Analyst at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f742e9,pooja.agarwal458@student.demo,Pooja Agarwal,Silver,54,NSUT Delhi,Chemical Engineering,2029,7.21,4,Mobile Developer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f742ea,dhruv.bansal459@student.demo,Dhruv Bansal,Gold,60,Christ University,Computer Science,2028,6.79,4,Software Engineer at top Tech Company,Bengaluru,Karnataka
+69f4ba1d666614d785f742eb,pihu.goyal460@student.demo,Pihu Goyal,Gold,61,MIT Manipal,M.Sc Mathematics,2029,6.62,3,Frontend Developer at top Finance Company,Manipal,Karnataka
+69f4ba1d666614d785f742ec,praveen.sethi461@student.demo,Praveen Sethi,Silver,57,VJTI Mumbai,MBA — Finance,2027,8.0,3,Data Analyst at top Product Company,Mumbai,Maharashtra
+69f4ba1d666614d785f742ed,sara.sengupta462@student.demo,Sara Sengupta,Gold,64,PSG Coimbatore,M.Sc Mathematics,2028,6.95,5,Full-stack Developer at top Tech Company,Coimbatore,Tamil Nadu
+69f4ba1d666614d785f742ee,avni.banerjee463@student.demo,Avni Banerjee,Gold,69,St Stephens College,Architecture,2028,7.55,6,Full-stack Developer at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f742ef,anika.bedi464@student.demo,Anika Bedi,Silver,56,SSN Chennai,B.Com Honours,2029,6.78,4,QA Engineer at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f742f0,kabir.kashyap465@student.demo,Kabir Kashyap,Gold,70,NIT Patna,B.Com Honours,2027,8.47,5,Mobile Developer at top Finance Company,Patna,Bihar
+69f4ba1d666614d785f742f1,anaya.tiwari466@student.demo,Anaya Tiwari,Gold,71,Manipal Institute of Tech,M.Sc Physics,2028,7.22,5,DevOps Engineer at top Tech Company,Manipal,Karnataka
+69f4ba1d666614d785f742f2,riya.chopra467@student.demo,Riya Chopra,Silver,56,NIT Raipur,Metallurgical Engineering,2028,8.04,4,Mobile Developer at top Finance Company,Raipur,Chhattisgarh
+69f4ba1d666614d785f742f3,avni.mukherjee468@student.demo,Avni Mukherjee,Silver,54,Sathyabama Chennai,M.Sc Mathematics,2028,8.04,3,Mobile Developer at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f742f4,aadhya.sethi469@student.demo,Aadhya Sethi,Silver,51,GITAM Visakhapatnam,M.Sc Physics,2029,9.21,3,Full-stack Developer at top Product Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f742f5,ashish.reddy470@student.demo,Ashish Reddy,Gold,63,Karunya University,Electronics & Communication,2027,8.26,3,Software Engineer at top Tech Company,Coimbatore,Tamil Nadu
+69f4ba1d666614d785f742f6,aisha.bhatnagar471@student.demo,Aisha Bhatnagar,Gold,64,Lady Shri Ram College,Metallurgical Engineering,2027,9.4,3,Frontend Developer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f742f7,atharv.banerjee472@student.demo,Atharv Banerjee,Gold,61,NIFT Mumbai,Electrical Engineering,2028,9.4,3,Mobile Developer at top Finance Company,Mumbai,Maharashtra
+69f4ba1d666614d785f742f8,kiara.murthy473@student.demo,Kiara Murthy,Gold,61,NIFT Bangalore,Bachelor of Design,2029,7.94,6,Frontend Developer at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f742f9,sara.rao474@student.demo,Sara Rao,Gold,63,Christ University,Artificial Intelligence,2028,9.08,4,Full-stack Developer at top Tech Company,Bengaluru,Karnataka
+69f4ba1d666614d785f742fa,yash.kashyap475@student.demo,Yash Kashyap,Gold,73,Manipal Institute of Tech,Biomedical Engineering,2027,7.7,3,Mobile Developer at top Tech Company,Manipal,Karnataka
+69f4ba1d666614d785f742fb,siddharth.gupta476@student.demo,Siddharth Gupta,Gold,64,NSUT Delhi,B.Com Honours,2028,7.81,3,Frontend Developer at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f742fc,avni.venkatesh477@student.demo,Avni Venkatesh,Silver,53,Osmania University,Aerospace Engineering,2029,8.63,4,DevOps Engineer at top Product Company,Hyderabad,Telangana
+69f4ba1d666614d785f742fd,aakash.goyal478@student.demo,Aakash Goyal,Gold,61,St Stephens College,M.Sc Mathematics,2027,9.33,5,Mobile Developer at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f742fe,riya.reddy479@student.demo,Riya Reddy,Gold,74,IIIT Delhi,Production Engineering,2028,6.86,5,Full-stack Developer at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f742ff,aryan.raman480@student.demo,Aryan Raman,Silver,56,IIIT Allahabad,BBA,2028,8.84,4,Backend Developer at top Product Company,Prayagraj,Uttar Pradesh
+69f4ba1d666614d785f74300,praveen.desai481@student.demo,Praveen Desai,Gold,74,St Stephens College,M.Sc Physics,2027,8.44,4,QA Engineer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f74301,myra.arora482@student.demo,Myra Arora,Gold,70,NIT Jamshedpur,Computer Science,2027,7.77,6,Full-stack Developer at top Tech Company,Jamshedpur,Jharkhand
+69f4ba1d666614d785f74302,sneha.anand483@student.demo,Sneha Anand,Gold,61,Andhra University,MBA — Operations,2029,7.7,5,Frontend Developer at top Finance Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f74303,shruti.singh484@student.demo,Shruti Singh,Gold,70,NIFT Delhi,M.Sc Physics,2027,8.6,3,Data Analyst at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f74304,manav.verma485@student.demo,Manav Verma,Silver,47,SSN Chennai,MBA — Operations,2029,7.71,4,Full-stack Developer at top Finance Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74305,arjun.krishnan486@student.demo,Arjun Krishnan,Silver,58,NIT Raipur,Mechanical Engineering,2029,8.28,5,Full-stack Developer at top Finance Company,Raipur,Chhattisgarh
+69f4ba1d666614d785f74306,praveen.trivedi487@student.demo,Praveen Trivedi,Gold,70,RGIPT Amethi,Information Technology,2028,6.52,5,QA Engineer at top Tech Company,Amethi,Uttar Pradesh
+69f4ba1d666614d785f74307,yash.pandey488@student.demo,Yash Pandey,Gold,63,MIT Manipal,Artificial Intelligence,2028,6.94,4,DevOps Engineer at top Finance Company,Manipal,Karnataka
+69f4ba1d666614d785f74308,advik.nair489@student.demo,Advik Nair,Gold,69,NSUT Delhi,Mechanical Engineering,2028,7.77,4,Mobile Developer at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f74309,kriti.chopra490@student.demo,Kriti Chopra,Gold,66,Hindu College Delhi,MBA — Operations,2027,6.97,6,QA Engineer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f7430a,sneha.trivedi491@student.demo,Sneha Trivedi,Gold,65,Loyola College,Production Engineering,2029,8.87,5,Frontend Developer at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f7430b,reyansh.roy492@student.demo,Reyansh Roy,Gold,76,RV College Bangalore,Chemical Engineering,2027,8.84,6,Mobile Developer at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f7430c,anaya.kapoor493@student.demo,Anaya Kapoor,Gold,63,Pondicherry University,M.Sc Physics,2028,9.2,6,QA Engineer at top Product Company,Puducherry,Puducherry
+69f4ba1d666614d785f7430d,tara.chatterjee494@student.demo,Tara Chatterjee,Gold,70,Bharati Vidyapeeth Pune,Electronics & Communication,2027,9.37,3,Software Engineer at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f7430e,ira.goyal495@student.demo,Ira Goyal,Silver,59,Pondicherry University,Computer Science,2027,8.27,4,Mobile Developer at top Tech Company,Puducherry,Puducherry
+69f4ba1d666614d785f7430f,sara.yadav496@student.demo,Sara Yadav,Gold,65,NIT Jamshedpur,Computer Science,2029,6.96,5,DevOps Engineer at top Product Company,Jamshedpur,Jharkhand
+69f4ba1d666614d785f74310,krishna.sen497@student.demo,Krishna Sen,Silver,52,Lady Shri Ram College,Computer Science,2029,6.66,3,Full-stack Developer at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f74311,pihu.sethi498@student.demo,Pihu Sethi,Silver,54,Pondicherry University,MBA — Operations,2028,8.4,3,Software Engineer at top Finance Company,Puducherry,Puducherry
+69f4ba1d666614d785f74312,om.joshi499@student.demo,Om Joshi,Silver,47,Ashoka University,BBA,2029,9.46,4,Full-stack Developer at top Product Company,Sonipat,Haryana
+69f4ba1d666614d785f74313,veer.goel500@student.demo,Veer Goel,Gold,61,IIIT Allahabad,Computer Science,2028,8.26,5,Data Analyst at top Tech Company,Prayagraj,Uttar Pradesh
+69f4ba1d666614d785f74314,vivek.iyer501@student.demo,Vivek Iyer,Silver,57,PES University,Electronics & Communication,2028,7.28,3,Mobile Developer at top Finance Company,Bengaluru,Karnataka
+69f4ba1d666614d785f74315,yuvraj.subramanian502@student.demo,Yuvraj Subramanian,Silver,58,Bennett University,MBA — Finance,2029,9.19,5,Mobile Developer at top Finance Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f74316,atharv.pillai503@student.demo,Atharv Pillai,Gold,60,Kalasalingam University,Computer Science,2029,9.31,6,Mobile Developer at top Tech Company,Krishnankoil,Tamil Nadu
+69f4ba1d666614d785f74317,aditya.chatterjee504@student.demo,Aditya Chatterjee,Gold,66,NIFT Mumbai,Architecture,2028,7.34,4,Full-stack Developer at top Tech Company,Mumbai,Maharashtra
+69f4ba1d666614d785f74318,shruti.trivedi505@student.demo,Shruti Trivedi,Silver,57,SSN Chennai,B.Com Honours,2029,6.88,6,Backend Developer at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74319,yash.pandey506@student.demo,Yash Pandey,Gold,63,GITAM Visakhapatnam,Data Science,2027,8.42,3,Software Engineer at top Finance Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f7431a,sneha.chatterjee507@student.demo,Sneha Chatterjee,Gold,64,Loyola College,Bachelor of Design,2029,6.52,6,Full-stack Developer at top Finance Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f7431b,tanay.patel508@student.demo,Tanay Patel,Silver,54,Shiv Nadar University,Architecture,2028,7.8,3,Software Engineer at top Product Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f7431c,dev.pathak509@student.demo,Dev Pathak,Gold,62,Ashoka University,Electrical Engineering,2028,6.87,4,Software Engineer at top Tech Company,Sonipat,Haryana
+69f4ba1d666614d785f7431d,naman.iyer510@student.demo,Naman Iyer,Silver,58,St Xaviers Mumbai,Information Technology,2028,9.05,3,DevOps Engineer at top Tech Company,Mumbai,Maharashtra
+69f4ba1d666614d785f7431e,sneha.pandey511@student.demo,Sneha Pandey,Silver,51,Vellore Institute Bhopal,Bachelor of Design,2029,9.31,3,Software Engineer at top Finance Company,Bhopal,Madhya Pradesh
+69f4ba1d666614d785f7431f,dev.rao512@student.demo,Dev Rao,Gold,70,Symbiosis Pune,Electrical Engineering,2027,7.94,3,Mobile Developer at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f74320,aanya.kumar513@student.demo,Aanya Kumar,Gold,76,Manipal Institute of Tech,Mechanical Engineering,2028,7.53,6,QA Engineer at top Tech Company,Manipal,Karnataka
+69f4ba1d666614d785f74321,om.malhotra514@student.demo,Om Malhotra,Gold,64,Manipal Institute of Tech,Aerospace Engineering,2029,8.5,3,Mobile Developer at top Product Company,Manipal,Karnataka
+69f4ba1d666614d785f74322,dev.krishnan515@student.demo,Dev Krishnan,Gold,68,Lovely Professional Univ,Artificial Intelligence,2028,7.14,5,Mobile Developer at top Product Company,Phagwara,Punjab
+69f4ba1d666614d785f74323,pooja.choudhary516@student.demo,Pooja Choudhary,Gold,70,NIT Silchar,Civil Engineering,2027,9.24,5,QA Engineer at top Tech Company,Silchar,Assam
+69f4ba1d666614d785f74324,myra.naidu517@student.demo,Myra Naidu,Gold,64,RV College Bangalore,Civil Engineering,2027,8.99,5,Frontend Developer at top Finance Company,Bengaluru,Karnataka
+69f4ba1d666614d785f74325,aarush.subramanian518@student.demo,Aarush Subramanian,Gold,62,Bennett University,Artificial Intelligence,2028,6.93,4,Frontend Developer at top Tech Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f74326,vivek.pillai519@student.demo,Vivek Pillai,Gold,70,NIFT Bangalore,Production Engineering,2028,6.66,6,Data Analyst at top Tech Company,Bengaluru,Karnataka
+69f4ba1d666614d785f74327,dhruv.mahajan520@student.demo,Dhruv Mahajan,Gold,60,Bennett University,Electronics & Communication,2028,7.89,3,QA Engineer at top Product Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f74328,siddharth.mittal521@student.demo,Siddharth Mittal,Gold,62,NID Ahmedabad,MBA — HR,2028,7.16,5,DevOps Engineer at top Finance Company,Ahmedabad,Gujarat
+69f4ba1d666614d785f74329,saanvi.rajan522@student.demo,Saanvi Rajan,Gold,68,PSG Coimbatore,BBA,2027,7.85,4,DevOps Engineer at top Finance Company,Coimbatore,Tamil Nadu
+69f4ba1d666614d785f7432a,karthik.ghosh523@student.demo,Karthik Ghosh,Silver,59,SSN Chennai,Metallurgical Engineering,2027,9.28,4,Backend Developer at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f7432b,aakash.singh524@student.demo,Aakash Singh,Silver,59,Kalasalingam University,Chemical Engineering,2028,8.72,4,Data Analyst at top Tech Company,Krishnankoil,Tamil Nadu
+69f4ba1d666614d785f7432c,vikram.venkatesh525@student.demo,Vikram Venkatesh,Silver,54,NIT Silchar,Metallurgical Engineering,2029,8.75,3,Mobile Developer at top Tech Company,Silchar,Assam
+69f4ba1d666614d785f7432d,om.jain526@student.demo,Om Jain,Gold,60,RGIPT Amethi,MBA — Finance,2028,9.06,3,Software Engineer at top Finance Company,Amethi,Uttar Pradesh
+69f4ba1d666614d785f7432e,tanay.agarwal527@student.demo,Tanay Agarwal,Gold,64,PES University,Computer Science,2028,6.57,5,Software Engineer at top Tech Company,Bengaluru,Karnataka
+69f4ba1d666614d785f7432f,dev.kashyap528@student.demo,Dev Kashyap,Silver,51,NIT Raipur,Chemical Engineering,2028,7.01,3,Frontend Developer at top Tech Company,Raipur,Chhattisgarh
+69f4ba1d666614d785f74330,sia.mahajan529@student.demo,Sia Mahajan,Gold,64,IIIT Delhi,Civil Engineering,2027,7.61,3,Software Engineer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f74331,sneha.kashyap530@student.demo,Sneha Kashyap,Gold,72,St Stephens College,Electrical Engineering,2027,8.23,6,Data Analyst at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f74332,praveen.bansal531@student.demo,Praveen Bansal,Gold,68,SSN Chennai,Chemical Engineering,2027,7.89,4,Software Engineer at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74333,vikram.bansal532@student.demo,Vikram Bansal,Silver,56,MIT Manipal,Architecture,2029,7.05,5,Backend Developer at top Finance Company,Manipal,Karnataka
+69f4ba1d666614d785f74334,sai.dubey533@student.demo,Sai Dubey,Silver,58,St Stephens College,Data Science,2029,8.77,5,QA Engineer at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f74335,anika.pathak534@student.demo,Anika Pathak,Gold,66,Bennett University,MBA — Operations,2027,6.61,6,Data Analyst at top Tech Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f74336,aanya.sen535@student.demo,Aanya Sen,Gold,76,NIFT Delhi,MBA — Finance,2028,9.02,6,Backend Developer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f74337,kabir.kashyap536@student.demo,Kabir Kashyap,Silver,45,St Stephens College,Electronics & Communication,2029,8.59,3,Backend Developer at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f74338,suresh.arora537@student.demo,Suresh Arora,Gold,73,Manipal Institute of Tech,M.Sc Mathematics,2027,7.77,3,Software Engineer at top Finance Company,Manipal,Karnataka
+69f4ba1d666614d785f74339,ishaan.mishra538@student.demo,Ishaan Mishra,Gold,78,Symbiosis Pune,Bachelor of Design,2027,7.69,4,DevOps Engineer at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f7433a,diya.desai539@student.demo,Diya Desai,Gold,64,MIT Manipal,Biomedical Engineering,2027,8.95,3,QA Engineer at top Tech Company,Manipal,Karnataka
+69f4ba1d666614d785f7433b,diya.anand540@student.demo,Diya Anand,Silver,57,PES University,M.Sc Mathematics,2028,7.47,3,DevOps Engineer at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f7433c,aanya.krishnan541@student.demo,Aanya Krishnan,Gold,65,Lady Shri Ram College,M.Sc Physics,2029,8.73,5,Software Engineer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f7433d,kiara.saxena542@student.demo,Kiara Saxena,Silver,57,PES University,Aerospace Engineering,2029,8.43,6,Full-stack Developer at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f7433e,tara.krishnan543@student.demo,Tara Krishnan,Gold,64,St Xaviers Mumbai,Data Science,2028,7.23,3,Software Engineer at top Product Company,Mumbai,Maharashtra
+69f4ba1d666614d785f7433f,kavya.pillai544@student.demo,Kavya Pillai,Gold,78,GITAM Visakhapatnam,Biomedical Engineering,2027,8.28,6,Full-stack Developer at top Tech Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f74340,atharv.tandon545@student.demo,Atharv Tandon,Silver,59,RGIPT Amethi,MBA — Finance,2028,7.1,4,Mobile Developer at top Tech Company,Amethi,Uttar Pradesh
+69f4ba1d666614d785f74341,shruti.pillai546@student.demo,Shruti Pillai,Gold,66,St Stephens College,MBA — HR,2028,8.78,6,Data Analyst at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f74342,aadhya.bhatnagar547@student.demo,Aadhya Bhatnagar,Silver,58,PSG Coimbatore,Metallurgical Engineering,2028,9.25,5,Software Engineer at top Tech Company,Coimbatore,Tamil Nadu
+69f4ba1d666614d785f74343,priya.mahajan548@student.demo,Priya Mahajan,Silver,55,NIT Silchar,MBA — Marketing,2028,7.08,5,DevOps Engineer at top Finance Company,Silchar,Assam
+69f4ba1d666614d785f74344,manish.mahajan549@student.demo,Manish Mahajan,Gold,60,GBPUAT Pantnagar,Architecture,2028,8.62,3,Software Engineer at top Product Company,Pantnagar,Uttarakhand
+69f4ba1d666614d785f74345,pari.banerjee550@student.demo,Pari Banerjee,Silver,56,Vellore Institute Bhopal,MBA — Finance,2029,8.63,4,DevOps Engineer at top Finance Company,Bhopal,Madhya Pradesh
+69f4ba1d666614d785f74346,om.shah551@student.demo,Om Shah,Gold,62,GITAM Visakhapatnam,Chemical Engineering,2028,7.73,4,Backend Developer at top Tech Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f74347,tanay.venkatesh552@student.demo,Tanay Venkatesh,Silver,47,Hindu College Delhi,Data Science,2029,8.82,4,DevOps Engineer at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f74348,vikram.khurana553@student.demo,Vikram Khurana,Silver,53,St Stephens College,Civil Engineering,2028,7.1,4,Frontend Developer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f74349,sneha.arora554@student.demo,Sneha Arora,Gold,68,GBPUAT Pantnagar,M.Sc Mathematics,2027,7.96,4,Backend Developer at top Tech Company,Pantnagar,Uttarakhand
+69f4ba1d666614d785f7434a,rohit.sharma555@student.demo,Rohit Sharma,Gold,64,NIFT Delhi,B.Com Honours,2027,8.77,3,DevOps Engineer at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f7434b,aryan.ghosh556@student.demo,Aryan Ghosh,Gold,60,Ashoka University,Production Engineering,2029,8.31,6,Data Analyst at top Product Company,Sonipat,Haryana
+69f4ba1d666614d785f7434c,priya.goel557@student.demo,Priya Goel,Gold,70,Lovely Professional Univ,Bachelor of Design,2029,7.48,6,Mobile Developer at top Tech Company,Phagwara,Punjab
+69f4ba1d666614d785f7434d,esha.sinha558@student.demo,Esha Sinha,Gold,64,Lovely Professional Univ,Electronics & Communication,2028,7.99,6,Backend Developer at top Finance Company,Phagwara,Punjab
+69f4ba1d666614d785f7434e,arnav.jain559@student.demo,Arnav Jain,Gold,75,St Stephens College,MBA — Finance,2027,9.48,6,Software Engineer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f7434f,neha.chatterjee560@student.demo,Neha Chatterjee,Silver,54,Shiv Nadar University,Data Science,2029,7.53,6,DevOps Engineer at top Product Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f74350,veer.khurana561@student.demo,Veer Khurana,Silver,54,Shiv Nadar University,Aerospace Engineering,2028,9.06,3,DevOps Engineer at top Product Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f74351,suresh.nair562@student.demo,Suresh Nair,Gold,75,Hindustan Chennai,BBA,2027,7.69,6,Mobile Developer at top Finance Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74352,ashish.mishra563@student.demo,Ashish Mishra,Silver,59,Bharathiar University,Bachelor of Design,2028,9.49,4,Mobile Developer at top Product Company,Coimbatore,Tamil Nadu
+69f4ba1d666614d785f74353,karthik.bose564@student.demo,Karthik Bose,Gold,68,NID Ahmedabad,Metallurgical Engineering,2027,7.4,5,Frontend Developer at top Tech Company,Ahmedabad,Gujarat
+69f4ba1d666614d785f74354,shruti.subramanian565@student.demo,Shruti Subramanian,Gold,62,NSUT Delhi,Bachelor of Design,2028,7.47,5,Software Engineer at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f74355,trisha.chopra566@student.demo,Trisha Chopra,Gold,60,Sathyabama Chennai,Mechanical Engineering,2028,8.86,6,Frontend Developer at top Finance Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74356,anika.nair567@student.demo,Anika Nair,Gold,69,Symbiosis Pune,Production Engineering,2028,6.6,4,Full-stack Developer at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f74357,rahul.bhatnagar568@student.demo,Rahul Bhatnagar,Silver,52,Bharati Vidyapeeth Pune,Metallurgical Engineering,2029,6.86,3,Backend Developer at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f74358,manish.mishra569@student.demo,Manish Mishra,Silver,58,IIIT Delhi,B.Com Honours,2029,6.88,6,QA Engineer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f74359,ananya.sinha570@student.demo,Ananya Sinha,Gold,73,NIFT Bangalore,Computer Science,2028,8.59,6,Software Engineer at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f7435a,naman.saxena571@student.demo,Naman Saxena,Silver,50,IIIT Allahabad,Mechanical Engineering,2029,9.4,4,Frontend Developer at top Finance Company,Prayagraj,Uttar Pradesh
+69f4ba1d666614d785f7435b,aarav.shukla572@student.demo,Aarav Shukla,Silver,49,PES University,Information Technology,2029,8.03,5,Backend Developer at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f7435c,pihu.singh573@student.demo,Pihu Singh,Gold,66,Madras Christian College,Mechanical Engineering,2028,8.15,4,Data Analyst at top Finance Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f7435d,saanvi.sinha574@student.demo,Saanvi Sinha,Gold,63,Andhra University,Electronics & Communication,2028,8.47,6,Frontend Developer at top Finance Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f7435e,naman.khurana575@student.demo,Naman Khurana,Silver,50,NIT Raipur,Computer Science,2029,6.77,4,QA Engineer at top Finance Company,Raipur,Chhattisgarh
+69f4ba1d666614d785f7435f,kavya.chatterjee576@student.demo,Kavya Chatterjee,Gold,66,IIIT Bangalore,Electrical Engineering,2028,8.22,4,Data Analyst at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f74360,sia.joshi577@student.demo,Sia Joshi,Gold,73,Manipal Institute of Tech,Civil Engineering,2028,6.53,6,Frontend Developer at top Product Company,Manipal,Karnataka
+69f4ba1d666614d785f74361,pari.pillai578@student.demo,Pari Pillai,Gold,64,Sathyabama Chennai,Data Science,2027,8.01,5,Data Analyst at top Finance Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74362,mira.roy579@student.demo,Mira Roy,Gold,63,GBPUAT Pantnagar,Electronics & Communication,2028,8.73,6,Mobile Developer at top Tech Company,Pantnagar,Uttarakhand
+69f4ba1d666614d785f74363,manish.kapoor580@student.demo,Manish Kapoor,Silver,48,Madurai Kamaraj University,MBA — HR,2029,9.48,3,Software Engineer at top Product Company,Madurai,Tamil Nadu
+69f4ba1d666614d785f74364,anika.mishra581@student.demo,Anika Mishra,Gold,72,Lady Shri Ram College,Electronics & Communication,2028,7.25,4,Backend Developer at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f74365,disha.bose582@student.demo,Disha Bose,Gold,75,PSG Coimbatore,Chemical Engineering,2027,7.88,6,Data Analyst at top Finance Company,Coimbatore,Tamil Nadu
+69f4ba1d666614d785f74366,aarav.venkatesh583@student.demo,Aarav Venkatesh,Gold,61,RGIPT Amethi,Civil Engineering,2028,6.52,5,Data Analyst at top Tech Company,Amethi,Uttar Pradesh
+69f4ba1d666614d785f74367,shruti.rajan584@student.demo,Shruti Rajan,Silver,59,PES University,Production Engineering,2028,8.74,4,Software Engineer at top Finance Company,Bengaluru,Karnataka
+69f4ba1d666614d785f74368,myra.trivedi585@student.demo,Myra Trivedi,Gold,72,Madras Christian College,Artificial Intelligence,2027,7.76,4,Mobile Developer at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74369,yuvraj.sinha586@student.demo,Yuvraj Sinha,Silver,57,Pondicherry University,Metallurgical Engineering,2027,8.53,3,QA Engineer at top Finance Company,Puducherry,Puducherry
+69f4ba1d666614d785f7436a,vihaan.khurana587@student.demo,Vihaan Khurana,Gold,69,Madurai Kamaraj University,Artificial Intelligence,2028,9.48,6,Full-stack Developer at top Product Company,Madurai,Tamil Nadu
+69f4ba1d666614d785f7436b,myra.goyal588@student.demo,Myra Goyal,Silver,54,NID Ahmedabad,Electrical Engineering,2029,9.47,4,Frontend Developer at top Finance Company,Ahmedabad,Gujarat
+69f4ba1d666614d785f7436c,kiara.naidu589@student.demo,Kiara Naidu,Gold,64,Christ University,Information Technology,2028,6.65,6,Backend Developer at top Finance Company,Bengaluru,Karnataka
+69f4ba1d666614d785f7436d,akash.venkatesh590@student.demo,Akash Venkatesh,Platinum,83,NID Ahmedabad,MBA — Marketing,2027,6.8,5,Frontend Developer at top Finance Company,Ahmedabad,Gujarat
+69f4ba1d666614d785f7436e,aakash.krishnan591@student.demo,Aakash Krishnan,Gold,63,PES University,Electrical Engineering,2027,8.45,3,Full-stack Developer at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f7436f,advik.desai592@student.demo,Advik Desai,Gold,61,St Xaviers Mumbai,M.Sc Physics,2029,9.33,3,QA Engineer at top Finance Company,Mumbai,Maharashtra
+69f4ba1d666614d785f74370,myra.khanna593@student.demo,Myra Khanna,Gold,72,IIIT Allahabad,Mechanical Engineering,2027,7.95,6,Software Engineer at top Tech Company,Prayagraj,Uttar Pradesh
+69f4ba1d666614d785f74371,akash.agarwal594@student.demo,Akash Agarwal,Silver,51,RV College Bangalore,Information Technology,2029,8.75,3,DevOps Engineer at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f74372,tanvi.mukherjee595@student.demo,Tanvi Mukherjee,Silver,59,Bennett University,Civil Engineering,2027,9.06,4,Data Analyst at top Product Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f74373,arnav.saxena596@student.demo,Arnav Saxena,Gold,71,St Stephens College,Aerospace Engineering,2027,9.44,4,Full-stack Developer at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f74374,aarav.venkatesh597@student.demo,Aarav Venkatesh,Silver,55,GBPUAT Pantnagar,M.Sc Mathematics,2028,8.95,5,QA Engineer at top Tech Company,Pantnagar,Uttarakhand
+69f4ba1d666614d785f74375,navya.pathak598@student.demo,Navya Pathak,Silver,52,IIIT Delhi,BBA,2029,7.47,3,Full-stack Developer at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f74376,shruti.khanna599@student.demo,Shruti Khanna,Silver,54,Osmania University,Aerospace Engineering,2029,7.04,6,Data Analyst at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f74377,saanvi.bhatnagar600@student.demo,Saanvi Bhatnagar,Silver,53,NIT Silchar,Bachelor of Design,2029,8.75,4,Software Engineer at top Product Company,Silchar,Assam
+69f4ba1d666614d785f74378,pooja.menon601@student.demo,Pooja Menon,Gold,67,IIIT Delhi,Electrical Engineering,2027,8.13,3,QA Engineer at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f74379,myra.kapoor602@student.demo,Myra Kapoor,Silver,53,Madurai Kamaraj University,B.Com Honours,2028,8.97,4,Backend Developer at top Product Company,Madurai,Tamil Nadu
+69f4ba1d666614d785f7437a,rudra.bedi603@student.demo,Rudra Bedi,Gold,72,NIT Jamshedpur,Mechanical Engineering,2027,9.15,4,Backend Developer at top Finance Company,Jamshedpur,Jharkhand
+69f4ba1d666614d785f7437b,aarush.mishra604@student.demo,Aarush Mishra,Gold,61,Symbiosis Pune,Artificial Intelligence,2028,8.09,3,Frontend Developer at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f7437c,aadhya.das605@student.demo,Aadhya Das,Silver,58,Lovely Professional Univ,Artificial Intelligence,2028,8.83,3,Frontend Developer at top Finance Company,Phagwara,Punjab
+69f4ba1d666614d785f7437d,neha.goel606@student.demo,Neha Goel,Gold,60,RGIPT Amethi,MBA — HR,2027,7.56,3,Mobile Developer at top Finance Company,Amethi,Uttar Pradesh
+69f4ba1d666614d785f7437e,sneha.krishnan607@student.demo,Sneha Krishnan,Gold,70,St Xaviers Mumbai,M.Sc Physics,2027,6.76,6,QA Engineer at top Tech Company,Mumbai,Maharashtra
+69f4ba1d666614d785f7437f,aditya.murthy608@student.demo,Aditya Murthy,Gold,72,Karunya University,MBA — HR,2027,9.42,3,DevOps Engineer at top Tech Company,Coimbatore,Tamil Nadu
+69f4ba1d666614d785f74380,kavya.nair609@student.demo,Kavya Nair,Gold,66,St Xaviers Mumbai,Electrical Engineering,2029,8.24,4,Mobile Developer at top Product Company,Mumbai,Maharashtra
+69f4ba1d666614d785f74381,vivaan.malhotra610@student.demo,Vivaan Malhotra,Gold,62,NIT Patna,Mechanical Engineering,2027,8.08,4,Data Analyst at top Finance Company,Patna,Bihar
+69f4ba1d666614d785f74382,aryan.arora611@student.demo,Aryan Arora,Platinum,80,Bharati Vidyapeeth Pune,Architecture,2027,9.0,5,Mobile Developer at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f74383,sahil.sood612@student.demo,Sahil Sood,Gold,75,PES University,Architecture,2027,7.05,6,Backend Developer at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f74384,disha.ghosh613@student.demo,Disha Ghosh,Gold,73,Bharati Vidyapeeth Pune,M.Sc Physics,2028,8.84,6,QA Engineer at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f74385,vikram.chopra614@student.demo,Vikram Chopra,Gold,62,Kalasalingam University,Electrical Engineering,2027,9.43,4,Software Engineer at top Product Company,Krishnankoil,Tamil Nadu
+69f4ba1d666614d785f74386,sai.reddy615@student.demo,Sai Reddy,Gold,60,MS Ramaiah Institute,Electronics & Communication,2028,7.57,3,Frontend Developer at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f74387,pranav.krishnan616@student.demo,Pranav Krishnan,Gold,72,NIT Jamshedpur,MBA — Operations,2027,7.89,4,Backend Developer at top Product Company,Jamshedpur,Jharkhand
+69f4ba1d666614d785f74388,diya.malhotra617@student.demo,Diya Malhotra,Silver,59,NID Ahmedabad,Civil Engineering,2029,9.49,5,Backend Developer at top Tech Company,Ahmedabad,Gujarat
+69f4ba1d666614d785f74389,karthik.joshi618@student.demo,Karthik Joshi,Silver,58,IIIT Bangalore,Mechanical Engineering,2028,7.59,3,Backend Developer at top Tech Company,Bengaluru,Karnataka
+69f4ba1d666614d785f7438a,trisha.banerjee619@student.demo,Trisha Banerjee,Silver,59,Madurai Kamaraj University,Data Science,2028,7.6,4,QA Engineer at top Finance Company,Madurai,Tamil Nadu
+69f4ba1d666614d785f7438b,sneha.sood620@student.demo,Sneha Sood,Silver,54,Osmania University,Data Science,2029,7.37,3,Frontend Developer at top Product Company,Hyderabad,Telangana
+69f4ba1d666614d785f7438c,shaurya.mishra621@student.demo,Shaurya Mishra,Silver,54,NIT Raipur,MBA — Finance,2029,6.83,3,DevOps Engineer at top Finance Company,Raipur,Chhattisgarh
+69f4ba1d666614d785f7438d,tanvi.krishnan622@student.demo,Tanvi Krishnan,Gold,64,Amity Noida,Biomedical Engineering,2028,7.14,6,Software Engineer at top Product Company,Noida,Uttar Pradesh
+69f4ba1d666614d785f7438e,krishna.murthy623@student.demo,Krishna Murthy,Gold,70,NSUT Delhi,MBA — HR,2027,6.71,3,DevOps Engineer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f7438f,meera.mathur624@student.demo,Meera Mathur,Gold,61,GITAM Visakhapatnam,Chemical Engineering,2029,7.94,5,Frontend Developer at top Product Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f74390,harsh.menon625@student.demo,Harsh Menon,Gold,60,IIIT Bangalore,BBA,2029,9.3,4,Mobile Developer at top Finance Company,Bengaluru,Karnataka
+69f4ba1d666614d785f74391,sneha.banerjee626@student.demo,Sneha Banerjee,Silver,53,GITAM Visakhapatnam,Computer Science,2028,7.63,4,QA Engineer at top Tech Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f74392,tanay.verma627@student.demo,Tanay Verma,Gold,70,NIT Patna,Production Engineering,2027,8.98,5,DevOps Engineer at top Product Company,Patna,Bihar
+69f4ba1d666614d785f74393,aarush.bhatnagar628@student.demo,Aarush Bhatnagar,Silver,59,Andhra University,MBA — Marketing,2028,8.36,4,Backend Developer at top Tech Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f74394,advik.gupta629@student.demo,Advik Gupta,Gold,73,Lovely Professional Univ,MBA — Marketing,2027,7.17,6,Mobile Developer at top Product Company,Phagwara,Punjab
+69f4ba1d666614d785f74395,aarush.naidu630@student.demo,Aarush Naidu,Silver,57,Madurai Kamaraj University,Electrical Engineering,2028,9.14,6,Data Analyst at top Finance Company,Madurai,Tamil Nadu
+69f4ba1d666614d785f74396,pihu.sharma631@student.demo,Pihu Sharma,Gold,73,NIT Jamshedpur,Information Technology,2027,9.38,3,DevOps Engineer at top Tech Company,Jamshedpur,Jharkhand
+69f4ba1d666614d785f74397,shruti.rao632@student.demo,Shruti Rao,Gold,61,Lovely Professional Univ,M.Sc Physics,2028,8.05,3,DevOps Engineer at top Tech Company,Phagwara,Punjab
+69f4ba1d666614d785f74398,anaya.sood633@student.demo,Anaya Sood,Gold,61,Loyola College,M.Sc Physics,2029,8.81,6,Frontend Developer at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74399,ramesh.shah634@student.demo,Ramesh Shah,Silver,59,Sathyabama Chennai,Metallurgical Engineering,2027,9.02,4,DevOps Engineer at top Finance Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f7439a,reyansh.chatterjee635@student.demo,Reyansh Chatterjee,Silver,52,Christ University,Mechanical Engineering,2029,7.29,3,Frontend Developer at top Tech Company,Bengaluru,Karnataka
+69f4ba1d666614d785f7439b,karthik.murthy636@student.demo,Karthik Murthy,Gold,63,Bennett University,Metallurgical Engineering,2027,9.22,6,Frontend Developer at top Tech Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f7439c,vihaan.bhatnagar637@student.demo,Vihaan Bhatnagar,Silver,58,NIFT Delhi,B.Com Honours,2029,8.73,3,Backend Developer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f7439d,vivaan.gupta638@student.demo,Vivaan Gupta,Gold,65,GITAM Visakhapatnam,MBA — Operations,2027,7.32,4,Full-stack Developer at top Tech Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f7439e,arnav.bose639@student.demo,Arnav Bose,Silver,57,Andhra University,MBA — HR,2028,8.88,6,Mobile Developer at top Finance Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f7439f,nidhi.mukherjee640@student.demo,Nidhi Mukherjee,Gold,78,MS Ramaiah Institute,M.Sc Mathematics,2027,7.73,6,QA Engineer at top Finance Company,Bengaluru,Karnataka
+69f4ba1d666614d785f743a0,aarush.yadav641@student.demo,Aarush Yadav,Gold,67,MS Ramaiah Institute,MBA — Marketing,2027,6.53,5,QA Engineer at top Tech Company,Bengaluru,Karnataka
+69f4ba1d666614d785f743a1,yash.sen642@student.demo,Yash Sen,Gold,63,Shiv Nadar University,BBA,2027,8.77,6,QA Engineer at top Finance Company,Greater Noida,Uttar Pradesh
+69f4ba1d666614d785f743a2,myra.reddy643@student.demo,Myra Reddy,Gold,64,Bharathiar University,MBA — HR,2027,8.43,5,Software Engineer at top Finance Company,Coimbatore,Tamil Nadu
+69f4ba1d666614d785f743a3,anaya.sinha644@student.demo,Anaya Sinha,Silver,45,IIIT Allahabad,BBA,2029,8.76,3,DevOps Engineer at top Tech Company,Prayagraj,Uttar Pradesh
+69f4ba1d666614d785f743a4,naman.sethi645@student.demo,Naman Sethi,Gold,71,Lovely Professional Univ,Information Technology,2028,8.98,5,Frontend Developer at top Tech Company,Phagwara,Punjab
+69f4ba1d666614d785f743a5,sara.mishra646@student.demo,Sara Mishra,Gold,73,St Stephens College,Electronics & Communication,2027,7.29,5,DevOps Engineer at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f743a6,anika.kapoor647@student.demo,Anika Kapoor,Gold,65,Hindustan Chennai,MBA — Finance,2027,8.08,4,Mobile Developer at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f743a7,akash.sen648@student.demo,Akash Sen,Gold,66,RGIPT Amethi,MBA — HR,2027,6.73,3,Mobile Developer at top Tech Company,Amethi,Uttar Pradesh
+69f4ba1d666614d785f743a8,vihaan.tiwari649@student.demo,Vihaan Tiwari,Gold,69,Andhra University,Metallurgical Engineering,2027,6.82,6,Frontend Developer at top Tech Company,Visakhapatnam,Andhra Pradesh
+69f4ba1d666614d785f743a9,neha.goel650@student.demo,Neha Goel,Gold,76,Lovely Professional Univ,MBA — Operations,2027,9.13,6,Backend Developer at top Tech Company,Phagwara,Punjab
+69f4ba1d666614d785f743aa,trisha.yadav651@student.demo,Trisha Yadav,Platinum,89,Chandigarh University,Computer Science,2027,6.66,9,Senior Product Manager at top Finance Company,Chandigarh,Punjab
+69f4ba1d666614d785f743ab,reyansh.pillai652@student.demo,Reyansh Pillai,Gold,76,Cochin University,Chemical Engineering,2027,6.65,6,Tech Lead at top Tech Company,Kochi,Kerala
+69f4ba1d666614d785f743ac,aarush.reddy653@student.demo,Aarush Reddy,Gold,79,NIT Warangal,B.Com Honours,2027,8.7,6,Senior Product Manager at top Finance Company,Warangal,Telangana
+69f4ba1d666614d785f743ad,anika.choudhary654@student.demo,Anika Choudhary,Platinum,85,NIT Kurukshetra,M.Sc Physics,2027,6.71,9,Senior Frontend Engineer at top Finance Company,Kurukshetra,Haryana
+69f4ba1d666614d785f743ae,pari.verma655@student.demo,Pari Verma,Platinum,83,IISER Kolkata,MBA — HR,2027,6.5,7,Tech Lead at top Finance Company,Kolkata,West Bengal
+69f4ba1d666614d785f743af,sai.gupta656@student.demo,Sai Gupta,Gold,76,IIM Shillong,Bachelor of Design,2027,7.97,6,Senior Data Scientist at top Product Company,Shillong,Meghalaya
+69f4ba1d666614d785f743b0,esha.pathak657@student.demo,Esha Pathak,Platinum,84,NIT Allahabad,MBA — Finance,2026,8.42,7,Senior Frontend Engineer at top Finance Company,Prayagraj,Uttar Pradesh
+69f4ba1d666614d785f743b1,pari.raman658@student.demo,Pari Raman,Platinum,100,KL University,Computer Science,2026,8.13,9,Senior DevOps Engineer at top Product Company,Vijayawada,Andhra Pradesh
+69f4ba1d666614d785f743b2,sahil.venkatesh659@student.demo,Sahil Venkatesh,Gold,77,NIT Durgapur,Metallurgical Engineering,2028,9.4,8,Senior Data Scientist at top Finance Company,Durgapur,West Bengal
+69f4ba1d666614d785f743b3,vihaan.sethi660@student.demo,Vihaan Sethi,Platinum,81,VIT Chennai,MBA — Finance,2028,6.55,6,Software Engineer II at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f743b4,om.saxena661@student.demo,Om Saxena,Platinum,86,NIT Calicut,MBA — HR,2027,8.5,5,Senior Frontend Engineer at top Tech Company,Kozhikode,Kerala
+69f4ba1d666614d785f743b5,pari.naidu662@student.demo,Pari Naidu,Platinum,93,Cochin University,B.Com Honours,2026,9.18,7,Senior Product Manager at top Product Company,Kochi,Kerala
+69f4ba1d666614d785f743b6,navya.khurana663@student.demo,Navya Khurana,Platinum,82,VNIT Nagpur,B.Com Honours,2026,7.05,6,Solutions Architect at top Tech Company,Nagpur,Maharashtra
+69f4ba1d666614d785f743b7,siddharth.arora664@student.demo,Siddharth Arora,Platinum,81,VNIT Nagpur,MBA — Operations,2028,8.35,7,Senior Product Manager at top Tech Company,Nagpur,Maharashtra
+69f4ba1d666614d785f743b8,manish.rajan665@student.demo,Manish Rajan,Platinum,83,IIIT Hyderabad,M.Sc Mathematics,2028,7.31,9,Senior Backend Engineer at top Finance Company,Hyderabad,Telangana
+69f4ba1d666614d785f743b9,pranav.bose666@student.demo,Pranav Bose,Platinum,81,IIM Shillong,MBA — HR,2028,8.19,7,Senior DevOps Engineer at top Tech Company,Shillong,Meghalaya
+69f4ba1d666614d785f743ba,aadhya.das667@student.demo,Aadhya Das,Gold,73,IISER Pune,Artificial Intelligence,2028,9.14,5,Senior Backend Engineer at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f743bb,rudra.goyal668@student.demo,Rudra Goyal,Platinum,89,NIT Surathkal,MBA — Operations,2027,6.87,8,Senior Frontend Engineer at top Product Company,Mangalore,Karnataka
+69f4ba1d666614d785f743bc,ananya.malhotra669@student.demo,Ananya Malhotra,Platinum,99,IISER Kolkata,Aerospace Engineering,2026,7.67,9,Senior Backend Engineer at top Finance Company,Kolkata,West Bengal
+69f4ba1d666614d785f743bd,nidhi.malhotra670@student.demo,Nidhi Malhotra,Gold,77,NIT Surathkal,Artificial Intelligence,2027,9.39,5,Senior DevOps Engineer at top Product Company,Mangalore,Karnataka
+69f4ba1d666614d785f743be,akash.verma671@student.demo,Akash Verma,Platinum,83,Thapar University,Production Engineering,2028,9.08,9,Senior Frontend Engineer at top Finance Company,Patiala,Punjab
+69f4ba1d666614d785f743bf,rahul.kashyap672@student.demo,Rahul Kashyap,Platinum,80,NIT Rourkela,M.Sc Physics,2027,8.27,8,Senior Data Scientist at top Product Company,Rourkela,Odisha
+69f4ba1d666614d785f743c0,tanvi.iyer673@student.demo,Tanvi Iyer,Gold,70,NIT Warangal,Computer Science,2028,9.2,6,Senior Frontend Engineer at top Product Company,Warangal,Telangana
+69f4ba1d666614d785f743c1,kriti.iyer674@student.demo,Kriti Iyer,Gold,77,NIT Calicut,M.Sc Mathematics,2027,6.82,5,Senior DevOps Engineer at top Finance Company,Kozhikode,Kerala
+69f4ba1d666614d785f743c2,tanay.naidu675@student.demo,Tanay Naidu,Platinum,86,Jadavpur University,Data Science,2027,9.38,8,Senior Backend Engineer at top Tech Company,Kolkata,West Bengal
+69f4ba1d666614d785f743c3,aanya.sharma676@student.demo,Aanya Sharma,Gold,76,NIT Allahabad,MBA — Marketing,2028,9.2,9,Senior Frontend Engineer at top Tech Company,Prayagraj,Uttar Pradesh
+69f4ba1d666614d785f743c4,nidhi.pillai677@student.demo,Nidhi Pillai,Platinum,85,NIT Rourkela,B.Com Honours,2026,7.17,6,Senior Product Manager at top Finance Company,Rourkela,Odisha
+69f4ba1d666614d785f743c5,harsh.iyer678@student.demo,Harsh Iyer,Platinum,91,Thapar University,Artificial Intelligence,2026,6.59,9,Senior Data Scientist at top Finance Company,Patiala,Punjab
+69f4ba1d666614d785f743c6,myra.krishnan679@student.demo,Myra Krishnan,Platinum,91,NIT Calicut,Mechanical Engineering,2026,8.29,9,Senior Backend Engineer at top Product Company,Kozhikode,Kerala
+69f4ba1d666614d785f743c7,anaya.mukherjee680@student.demo,Anaya Mukherjee,Platinum,92,NIT Warangal,Electrical Engineering,2026,8.1,8,Solutions Architect at top Product Company,Warangal,Telangana
+69f4ba1d666614d785f743c8,aditya.mittal681@student.demo,Aditya Mittal,Platinum,82,NIT Calicut,Metallurgical Engineering,2027,7.08,6,Solutions Architect at top Tech Company,Kozhikode,Kerala
+69f4ba1d666614d785f743c9,mira.mehta682@student.demo,Mira Mehta,Platinum,89,IIFT Delhi,Computer Science,2026,6.67,8,Senior DevOps Engineer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f743ca,sai.ghosh683@student.demo,Sai Ghosh,Gold,73,NIT Kurukshetra,M.Sc Mathematics,2028,9.32,6,Tech Lead at top Finance Company,Kurukshetra,Haryana
+69f4ba1d666614d785f743cb,harsh.mishra684@student.demo,Harsh Mishra,Platinum,84,Calcutta University,Architecture,2027,6.66,7,Solutions Architect at top Product Company,Kolkata,West Bengal
+69f4ba1d666614d785f743cc,esha.chatterjee685@student.demo,Esha Chatterjee,Platinum,94,BITS Pilani,Chemical Engineering,2026,8.45,9,Senior DevOps Engineer at top Tech Company,Pilani,Rajasthan
+69f4ba1d666614d785f743cd,karthik.singh686@student.demo,Karthik Singh,Gold,77,Chandigarh University,Data Science,2028,7.12,8,Senior Frontend Engineer at top Product Company,Chandigarh,Punjab
+69f4ba1d666614d785f743ce,vivek.reddy687@student.demo,Vivek Reddy,Platinum,99,IISER Kolkata,Artificial Intelligence,2026,7.8,9,Solutions Architect at top Product Company,Kolkata,West Bengal
+69f4ba1d666614d785f743cf,rudra.menon688@student.demo,Rudra Menon,Platinum,86,MNIT Jaipur,BBA,2027,8.9,8,Senior Product Manager at top Tech Company,Jaipur,Rajasthan
+69f4ba1d666614d785f743d0,ramesh.bose689@student.demo,Ramesh Bose,Gold,77,NIT Durgapur,B.Com Honours,2027,8.21,5,Senior Data Scientist at top Finance Company,Durgapur,West Bengal
+69f4ba1d666614d785f743d1,tara.jain690@student.demo,Tara Jain,Platinum,95,NIT Surathkal,MBA — Finance,2026,7.44,8,Senior Backend Engineer at top Finance Company,Mangalore,Karnataka
+69f4ba1d666614d785f743d2,sahil.chatterjee691@student.demo,Sahil Chatterjee,Platinum,85,LPU Phagwara,MBA — HR,2026,8.02,6,Senior DevOps Engineer at top Product Company,Phagwara,Punjab
+69f4ba1d666614d785f743d3,sai.pandey692@student.demo,Sai Pandey,Platinum,87,NIT Calicut,Architecture,2027,7.83,7,Senior Backend Engineer at top Tech Company,Kozhikode,Kerala
+69f4ba1d666614d785f743d4,yuvraj.rajan693@student.demo,Yuvraj Rajan,Platinum,80,AMU Aligarh,Electronics & Communication,2028,6.59,8,Senior Data Scientist at top Tech Company,Aligarh,Uttar Pradesh
+69f4ba1d666614d785f743d5,aadhya.patel694@student.demo,Aadhya Patel,Platinum,90,BITS Goa,M.Sc Mathematics,2026,8.68,7,Solutions Architect at top Product Company,Goa,Goa
+69f4ba1d666614d785f743d6,shaurya.mishra695@student.demo,Shaurya Mishra,Platinum,82,IIM Shillong,MBA — Operations,2028,7.09,9,Senior Product Manager at top Tech Company,Shillong,Meghalaya
+69f4ba1d666614d785f743d7,rohan.murthy696@student.demo,Rohan Murthy,Gold,74,Hyderabad University,MBA — Finance,2027,6.73,5,Senior Data Scientist at top Product Company,Hyderabad,Telangana
+69f4ba1d666614d785f743d8,sia.pandey697@student.demo,Sia Pandey,Platinum,91,Calcutta University,MBA — Marketing,2026,6.85,9,Solutions Architect at top Finance Company,Kolkata,West Bengal
+69f4ba1d666614d785f743d9,pari.sethi698@student.demo,Pari Sethi,Platinum,97,IISER Pune,Chemical Engineering,2026,6.57,8,Senior Frontend Engineer at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f743da,manish.menon699@student.demo,Manish Menon,Platinum,92,Cochin University,Production Engineering,2026,8.72,8,Senior Data Scientist at top Finance Company,Kochi,Kerala
+69f4ba1d666614d785f743db,meera.khurana700@student.demo,Meera Khurana,Gold,73,MNIT Jaipur,MBA — HR,2028,8.45,6,Solutions Architect at top Finance Company,Jaipur,Rajasthan
+69f4ba1d666614d785f743dc,navya.bedi701@student.demo,Navya Bedi,Platinum,85,IIFT Delhi,Data Science,2026,7.47,6,Senior Data Scientist at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f743dd,sai.choudhary702@student.demo,Sai Choudhary,Platinum,88,Cochin University,MBA — Operations,2027,9.47,9,Senior Backend Engineer at top Tech Company,Kochi,Kerala
+69f4ba1d666614d785f743de,akash.malhotra703@student.demo,Akash Malhotra,Platinum,83,BITS Goa,Chemical Engineering,2028,7.35,9,Solutions Architect at top Product Company,Goa,Goa
+69f4ba1d666614d785f743df,rishabh.agarwal704@student.demo,Rishabh Agarwal,Platinum,83,Mumbai University,Artificial Intelligence,2026,8.73,5,Tech Lead at top Product Company,Mumbai,Maharashtra
+69f4ba1d666614d785f743e0,yuvraj.chopra705@student.demo,Yuvraj Chopra,Platinum,88,SASTRA Thanjavur,Biomedical Engineering,2027,8.88,8,Senior Data Scientist at top Tech Company,Thanjavur,Tamil Nadu
+69f4ba1d666614d785f743e1,arjun.verma706@student.demo,Arjun Verma,Gold,74,KIIT Bhubaneswar,Mechanical Engineering,2028,9.13,8,Tech Lead at top Tech Company,Bhubaneswar,Odisha
+69f4ba1d666614d785f743e2,ishaan.mahajan707@student.demo,Ishaan Mahajan,Platinum,88,JBIMS Mumbai,M.Sc Mathematics,2026,8.09,6,Senior Frontend Engineer at top Finance Company,Mumbai,Maharashtra
+69f4ba1d666614d785f743e3,ashish.mahajan708@student.demo,Ashish Mahajan,Platinum,94,KL University,M.Sc Physics,2027,8.49,9,Senior Backend Engineer at top Tech Company,Vijayawada,Andhra Pradesh
+69f4ba1d666614d785f743e4,naman.trivedi709@student.demo,Naman Trivedi,Gold,76,NIT Kurukshetra,Architecture,2027,8.02,6,Solutions Architect at top Tech Company,Kurukshetra,Haryana
+69f4ba1d666614d785f743e5,yuvraj.banerjee710@student.demo,Yuvraj Banerjee,Platinum,86,VNIT Nagpur,MBA — Marketing,2027,7.16,8,Senior Frontend Engineer at top Product Company,Nagpur,Maharashtra
+69f4ba1d666614d785f743e6,aarush.krishnan711@student.demo,Aarush Krishnan,Gold,71,IIIT Hyderabad,M.Sc Mathematics,2028,8.06,5,Senior Data Scientist at top Product Company,Hyderabad,Telangana
+69f4ba1d666614d785f743e7,saanvi.kashyap712@student.demo,Saanvi Kashyap,Platinum,90,Hyderabad University,Artificial Intelligence,2026,8.0,7,Senior DevOps Engineer at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f743e8,vikram.das713@student.demo,Vikram Das,Gold,79,NIT Surathkal,Aerospace Engineering,2028,6.73,6,Solutions Architect at top Tech Company,Mangalore,Karnataka
+69f4ba1d666614d785f743e9,ramesh.khanna714@student.demo,Ramesh Khanna,Platinum,82,BITS Goa,B.Com Honours,2027,6.8,6,Senior DevOps Engineer at top Finance Company,Goa,Goa
+69f4ba1d666614d785f743ea,nidhi.mehta715@student.demo,Nidhi Mehta,Gold,78,Hyderabad University,MBA — Marketing,2028,8.79,7,Senior Backend Engineer at top Finance Company,Hyderabad,Telangana
+69f4ba1d666614d785f743eb,tanay.patel716@student.demo,Tanay Patel,Gold,78,Jamia Millia Islamia,Aerospace Engineering,2027,7.12,7,Senior DevOps Engineer at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f743ec,atharv.malhotra717@student.demo,Atharv Malhotra,Platinum,85,Jamia Millia Islamia,M.Sc Mathematics,2027,8.57,9,Solutions Architect at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f743ed,riya.mahajan718@student.demo,Riya Mahajan,Gold,72,ILS Pune,MBA — HR,2027,6.88,6,Software Engineer II at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f743ee,kabir.bhatia719@student.demo,Kabir Bhatia,Platinum,83,Jadavpur University,MBA — Finance,2026,7.75,5,Software Engineer II at top Finance Company,Kolkata,West Bengal
+69f4ba1d666614d785f743ef,sara.bose720@student.demo,Sara Bose,Platinum,88,Chandigarh University,MBA — Operations,2027,7.13,9,Senior Data Scientist at top Product Company,Chandigarh,Punjab
+69f4ba1d666614d785f743f0,anika.goyal721@student.demo,Anika Goyal,Platinum,87,IIT Indore,Biomedical Engineering,2027,6.78,6,Senior DevOps Engineer at top Product Company,Indore,Madhya Pradesh
+69f4ba1d666614d785f743f1,ishaan.venkatesh722@student.demo,Ishaan Venkatesh,Platinum,95,IISER Pune,BBA,2026,8.18,7,Tech Lead at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f743f2,aadhya.desai723@student.demo,Aadhya Desai,Platinum,84,Anna University,Data Science,2026,7.33,7,Senior DevOps Engineer at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f743f3,aarav.pandey724@student.demo,Aarav Pandey,Gold,73,Anna University,Electronics & Communication,2028,8.49,6,Senior Data Scientist at top Finance Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f743f4,kabir.dubey725@student.demo,Kabir Dubey,Platinum,83,JBIMS Mumbai,Metallurgical Engineering,2027,8.63,8,Solutions Architect at top Product Company,Mumbai,Maharashtra
+69f4ba1d666614d785f743f5,esha.pathak726@student.demo,Esha Pathak,Platinum,87,BITS Hyderabad,BBA,2027,7.65,7,Senior Frontend Engineer at top Product Company,Hyderabad,Telangana
+69f4ba1d666614d785f743f6,myra.arora727@student.demo,Myra Arora,Platinum,83,NIT Allahabad,MBA — Operations,2026,6.6,5,Senior Product Manager at top Product Company,Prayagraj,Uttar Pradesh
+69f4ba1d666614d785f743f7,shruti.kumar728@student.demo,Shruti Kumar,Gold,71,LPU Phagwara,Data Science,2028,8.75,5,Senior Backend Engineer at top Tech Company,Phagwara,Punjab
+69f4ba1d666614d785f743f8,vivaan.khanna729@student.demo,Vivaan Khanna,Platinum,100,SRM Chennai,Mechanical Engineering,2026,6.55,8,Senior Data Scientist at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f743f9,om.murthy730@student.demo,Om Murthy,Platinum,80,BIT Mesra,Computer Science,2028,7.33,8,Tech Lead at top Product Company,Ranchi,Jharkhand
+69f4ba1d666614d785f743fa,sneha.bhatnagar731@student.demo,Sneha Bhatnagar,Platinum,89,IISER Pune,Computer Science,2027,9.25,7,Senior Frontend Engineer at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f743fb,ananya.ghosh732@student.demo,Ananya Ghosh,Platinum,88,IIFT Delhi,M.Sc Physics,2026,8.43,6,Tech Lead at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f743fc,suresh.reddy733@student.demo,Suresh Reddy,Gold,76,DTU Delhi,Architecture,2027,7.28,6,Senior DevOps Engineer at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f743fd,esha.raman734@student.demo,Esha Raman,Platinum,85,IIFT Delhi,Production Engineering,2027,8.93,9,Senior Product Manager at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f743fe,praveen.mukherjee735@student.demo,Praveen Mukherjee,Platinum,87,BITS Pilani,MBA — Operations,2026,8.26,7,Senior Data Scientist at top Product Company,Pilani,Rajasthan
+69f4ba1d666614d785f743ff,om.singh736@student.demo,Om Singh,Platinum,90,VNIT Nagpur,Architecture,2026,7.9,7,Senior Frontend Engineer at top Tech Company,Nagpur,Maharashtra
+69f4ba1d666614d785f74400,kiara.bansal737@student.demo,Kiara Bansal,Platinum,80,IIFT Delhi,B.Com Honours,2028,6.62,8,Tech Lead at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f74401,kriti.tandon738@student.demo,Kriti Tandon,Platinum,89,Chandigarh University,B.Com Honours,2027,8.87,9,Software Engineer II at top Tech Company,Chandigarh,Punjab
+69f4ba1d666614d785f74402,pari.venkatesh739@student.demo,Pari Venkatesh,Platinum,89,Mumbai University,Metallurgical Engineering,2026,6.77,8,Tech Lead at top Tech Company,Mumbai,Maharashtra
+69f4ba1d666614d785f74403,veer.rajan740@student.demo,Veer Rajan,Platinum,89,IIT Indore,MBA — HR,2026,7.23,7,Senior Backend Engineer at top Finance Company,Indore,Madhya Pradesh
+69f4ba1d666614d785f74404,naman.kapoor741@student.demo,Naman Kapoor,Platinum,83,Jamia Millia Islamia,Biomedical Engineering,2027,8.8,8,Senior Data Scientist at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f74405,praveen.sharma742@student.demo,Praveen Sharma,Gold,79,ISI Kolkata,M.Sc Mathematics,2027,7.52,5,Senior Frontend Engineer at top Finance Company,Kolkata,West Bengal
+69f4ba1d666614d785f74406,vikram.roy743@student.demo,Vikram Roy,Gold,77,DTU Delhi,Bachelor of Design,2027,7.54,5,Senior Backend Engineer at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f74407,vihaan.chopra744@student.demo,Vihaan Chopra,Platinum,82,VNIT Nagpur,Mechanical Engineering,2028,8.4,9,Senior DevOps Engineer at top Product Company,Nagpur,Maharashtra
+69f4ba1d666614d785f74408,avni.krishnan745@student.demo,Avni Krishnan,Gold,78,ILS Pune,Production Engineering,2026,8.04,6,Senior DevOps Engineer at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f74409,aisha.sengupta746@student.demo,Aisha Sengupta,Platinum,89,NIT Warangal,Electrical Engineering,2027,7.3,8,Senior Product Manager at top Finance Company,Warangal,Telangana
+69f4ba1d666614d785f7440a,aditya.goel747@student.demo,Aditya Goel,Gold,74,VNIT Nagpur,Artificial Intelligence,2028,8.1,5,Senior Frontend Engineer at top Product Company,Nagpur,Maharashtra
+69f4ba1d666614d785f7440b,karthik.khurana748@student.demo,Karthik Khurana,Platinum,89,Chandigarh University,Production Engineering,2027,9.44,9,Senior Backend Engineer at top Finance Company,Chandigarh,Punjab
+69f4ba1d666614d785f7440c,rahul.tandon749@student.demo,Rahul Tandon,Platinum,87,Jamia Millia Islamia,Computer Science,2026,8.04,7,Tech Lead at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f7440d,priya.goyal750@student.demo,Priya Goyal,Gold,79,Anna University,MBA — Marketing,2027,7.72,6,Software Engineer II at top Finance Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f7440e,anaya.chatterjee751@student.demo,Anaya Chatterjee,Gold,75,Chandigarh University,MBA — Finance,2028,8.26,7,Senior Data Scientist at top Product Company,Chandigarh,Punjab
+69f4ba1d666614d785f7440f,avni.verma752@student.demo,Avni Verma,Gold,78,NIT Durgapur,Biomedical Engineering,2027,7.71,7,Senior Backend Engineer at top Product Company,Durgapur,West Bengal
+69f4ba1d666614d785f74410,veer.venkatesh753@student.demo,Veer Venkatesh,Platinum,83,BITS Pilani,Chemical Engineering,2028,7.75,9,Software Engineer II at top Finance Company,Pilani,Rajasthan
+69f4ba1d666614d785f74411,esha.dubey754@student.demo,Esha Dubey,Platinum,92,DTU Delhi,BBA,2026,8.15,8,Senior Data Scientist at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f74412,gauri.chatterjee755@student.demo,Gauri Chatterjee,Gold,68,VNIT Nagpur,Production Engineering,2028,7.98,5,Senior DevOps Engineer at top Finance Company,Nagpur,Maharashtra
+69f4ba1d666614d785f74413,saanvi.bhatnagar756@student.demo,Saanvi Bhatnagar,Platinum,88,Jamia Millia Islamia,Artificial Intelligence,2026,8.41,9,Tech Lead at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f74414,praveen.shah757@student.demo,Praveen Shah,Platinum,82,TISS Mumbai,B.Com Honours,2028,8.3,8,Solutions Architect at top Product Company,Mumbai,Maharashtra
+69f4ba1d666614d785f74415,ira.chopra758@student.demo,Ira Chopra,Gold,70,Mumbai University,Production Engineering,2028,7.88,6,Tech Lead at top Product Company,Mumbai,Maharashtra
+69f4ba1d666614d785f74416,tara.dubey759@student.demo,Tara Dubey,Gold,79,SRM Chennai,MBA — Finance,2028,8.55,5,Solutions Architect at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74417,neha.pillai760@student.demo,Neha Pillai,Platinum,82,AMU Aligarh,Data Science,2028,8.81,9,Senior Data Scientist at top Finance Company,Aligarh,Uttar Pradesh
+69f4ba1d666614d785f74418,tara.tandon761@student.demo,Tara Tandon,Platinum,84,BITS Hyderabad,Electrical Engineering,2026,9.24,7,Senior DevOps Engineer at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f74419,pranav.krishnan762@student.demo,Pranav Krishnan,Platinum,97,IISER Mohali,Architecture,2026,7.27,8,Senior Product Manager at top Product Company,Mohali,Punjab
+69f4ba1d666614d785f7441a,aanya.malhotra763@student.demo,Aanya Malhotra,Platinum,91,BIT Mesra,Artificial Intelligence,2026,7.82,6,Senior Product Manager at top Tech Company,Ranchi,Jharkhand
+69f4ba1d666614d785f7441b,anaya.malhotra764@student.demo,Anaya Malhotra,Platinum,86,TISS Mumbai,Artificial Intelligence,2027,8.03,7,Solutions Architect at top Finance Company,Mumbai,Maharashtra
+69f4ba1d666614d785f7441c,anika.venkatesh765@student.demo,Anika Venkatesh,Platinum,87,IISER Mohali,Mechanical Engineering,2028,9.34,9,Senior Data Scientist at top Tech Company,Mohali,Punjab
+69f4ba1d666614d785f7441d,riya.mishra766@student.demo,Riya Mishra,Gold,76,VIT Chennai,Data Science,2028,7.59,5,Software Engineer II at top Finance Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f7441e,pranav.krishnan767@student.demo,Pranav Krishnan,Platinum,93,SASTRA Thanjavur,Electronics & Communication,2027,9.07,9,Tech Lead at top Product Company,Thanjavur,Tamil Nadu
+69f4ba1d666614d785f7441f,navya.kumar768@student.demo,Navya Kumar,Platinum,80,TISS Mumbai,Data Science,2028,8.26,7,Senior DevOps Engineer at top Finance Company,Mumbai,Maharashtra
+69f4ba1d666614d785f74420,vivek.reddy769@student.demo,Vivek Reddy,Platinum,82,VNIT Nagpur,M.Sc Physics,2026,7.96,6,Software Engineer II at top Product Company,Nagpur,Maharashtra
+69f4ba1d666614d785f74421,aarush.arora770@student.demo,Aarush Arora,Platinum,84,IISER Mohali,Chemical Engineering,2028,9.35,9,Senior Product Manager at top Finance Company,Mohali,Punjab
+69f4ba1d666614d785f74422,rohan.subramanian771@student.demo,Rohan Subramanian,Gold,79,Chandigarh University,Bachelor of Design,2028,6.7,9,Solutions Architect at top Product Company,Chandigarh,Punjab
+69f4ba1d666614d785f74423,pranav.arora772@student.demo,Pranav Arora,Gold,76,NIT Durgapur,M.Sc Physics,2028,7.4,9,Tech Lead at top Product Company,Durgapur,West Bengal
+69f4ba1d666614d785f74424,aadhya.sen773@student.demo,Aadhya Sen,Gold,79,Thapar University,Chemical Engineering,2027,9.3,6,Senior DevOps Engineer at top Finance Company,Patiala,Punjab
+69f4ba1d666614d785f74425,pari.roy774@student.demo,Pari Roy,Gold,75,NIT Durgapur,Production Engineering,2028,7.56,7,Senior Frontend Engineer at top Finance Company,Durgapur,West Bengal
+69f4ba1d666614d785f74426,aditya.naidu775@student.demo,Aditya Naidu,Platinum,83,Anna University,Bachelor of Design,2028,8.35,7,Senior DevOps Engineer at top Finance Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74427,shaurya.shukla776@student.demo,Shaurya Shukla,Gold,77,Thapar University,Biomedical Engineering,2028,7.63,8,Senior Backend Engineer at top Tech Company,Patiala,Punjab
+69f4ba1d666614d785f74428,aryan.chatterjee777@student.demo,Aryan Chatterjee,Gold,71,ILS Pune,Production Engineering,2027,7.4,7,Tech Lead at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f74429,tara.shukla778@student.demo,Tara Shukla,Gold,75,VNIT Nagpur,B.Com Honours,2028,9.22,7,Senior DevOps Engineer at top Product Company,Nagpur,Maharashtra
+69f4ba1d666614d785f7442a,ananya.sen779@student.demo,Ananya Sen,Gold,78,Mumbai University,Aerospace Engineering,2027,7.69,7,Senior DevOps Engineer at top Tech Company,Mumbai,Maharashtra
+69f4ba1d666614d785f7442b,krishna.bedi780@student.demo,Krishna Bedi,Gold,77,NIT Allahabad,Computer Science,2028,6.73,8,Senior Backend Engineer at top Product Company,Prayagraj,Uttar Pradesh
+69f4ba1d666614d785f7442c,vivek.chopra781@student.demo,Vivek Chopra,Platinum,82,SASTRA Thanjavur,Electronics & Communication,2028,8.45,8,Senior Backend Engineer at top Tech Company,Thanjavur,Tamil Nadu
+69f4ba1d666614d785f7442d,tanay.subramanian782@student.demo,Tanay Subramanian,Platinum,83,Mumbai University,MBA — Operations,2028,9.07,8,Senior Data Scientist at top Product Company,Mumbai,Maharashtra
+69f4ba1d666614d785f7442e,myra.raman783@student.demo,Myra Raman,Platinum,85,IIM Shillong,Mechanical Engineering,2026,7.48,6,Senior Data Scientist at top Tech Company,Shillong,Meghalaya
+69f4ba1d666614d785f7442f,riya.naidu784@student.demo,Riya Naidu,Platinum,84,MANIT Bhopal,Civil Engineering,2027,9.1,7,Tech Lead at top Finance Company,Bhopal,Madhya Pradesh
+69f4ba1d666614d785f74430,meera.arora785@student.demo,Meera Arora,Platinum,89,Jamia Millia Islamia,Chemical Engineering,2026,9.32,8,Senior Data Scientist at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f74431,kriti.rao786@student.demo,Kriti Rao,Gold,78,Anna University,Electronics & Communication,2028,7.56,7,Senior Product Manager at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74432,rahul.pandey787@student.demo,Rahul Pandey,Gold,77,BITS Pilani,M.Sc Physics,2028,8.06,8,Senior Frontend Engineer at top Product Company,Pilani,Rajasthan
+69f4ba1d666614d785f74433,arjun.nair788@student.demo,Arjun Nair,Platinum,83,TISS Mumbai,Chemical Engineering,2028,6.59,7,Tech Lead at top Finance Company,Mumbai,Maharashtra
+69f4ba1d666614d785f74434,priya.banerjee789@student.demo,Priya Banerjee,Platinum,91,ISI Kolkata,Biomedical Engineering,2026,8.79,5,Senior Frontend Engineer at top Tech Company,Kolkata,West Bengal
+69f4ba1d666614d785f74435,vihaan.venkatesh790@student.demo,Vihaan Venkatesh,Gold,74,Hyderabad University,Electronics & Communication,2027,7.91,5,Senior Product Manager at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f74436,ramesh.murthy791@student.demo,Ramesh Murthy,Gold,73,ISI Kolkata,Bachelor of Design,2028,8.48,5,Senior Backend Engineer at top Product Company,Kolkata,West Bengal
+69f4ba1d666614d785f74437,vikram.desai792@student.demo,Vikram Desai,Gold,76,KIIT Bhubaneswar,Aerospace Engineering,2027,7.48,6,Senior Data Scientist at top Product Company,Bhubaneswar,Odisha
+69f4ba1d666614d785f74438,dhruv.singh793@student.demo,Dhruv Singh,Platinum,88,DTU Delhi,M.Sc Physics,2026,8.22,6,Senior DevOps Engineer at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f74439,tanay.sinha794@student.demo,Tanay Sinha,Platinum,89,Calcutta University,Chemical Engineering,2027,8.92,9,Senior DevOps Engineer at top Product Company,Kolkata,West Bengal
+69f4ba1d666614d785f7443a,pranav.subramanian795@student.demo,Pranav Subramanian,Platinum,93,BIT Mesra,Data Science,2026,8.64,7,Senior Frontend Engineer at top Finance Company,Ranchi,Jharkhand
+69f4ba1d666614d785f7443b,meera.khurana796@student.demo,Meera Khurana,Gold,73,JBIMS Mumbai,Electronics & Communication,2028,9.08,6,Software Engineer II at top Product Company,Mumbai,Maharashtra
+69f4ba1d666614d785f7443c,ramesh.pandey797@student.demo,Ramesh Pandey,Gold,76,BIT Mesra,Civil Engineering,2027,7.34,6,Solutions Architect at top Finance Company,Ranchi,Jharkhand
+69f4ba1d666614d785f7443d,rishabh.mathur798@student.demo,Rishabh Mathur,Gold,79,Pune University,MBA — Finance,2027,8.34,6,Senior Backend Engineer at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f7443e,aanya.malhotra799@student.demo,Aanya Malhotra,Platinum,92,Pune University,Civil Engineering,2026,9.18,8,Senior Backend Engineer at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f7443f,aadhya.choudhary800@student.demo,Aadhya Choudhary,Gold,78,Calcutta University,Mechanical Engineering,2028,7.2,7,Senior DevOps Engineer at top Finance Company,Kolkata,West Bengal
+69f4ba1d666614d785f74440,ramesh.bansal801@student.demo,Ramesh Bansal,Platinum,83,VIT Chennai,Electronics & Communication,2028,7.17,7,Senior Backend Engineer at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74441,gauri.murthy802@student.demo,Gauri Murthy,Platinum,83,KIIT Bhubaneswar,Bachelor of Design,2027,7.76,8,Senior Product Manager at top Finance Company,Bhubaneswar,Odisha
+69f4ba1d666614d785f74442,vihaan.joshi803@student.demo,Vihaan Joshi,Platinum,82,KL University,Aerospace Engineering,2028,7.65,8,Senior Backend Engineer at top Product Company,Vijayawada,Andhra Pradesh
+69f4ba1d666614d785f74443,pranav.joshi804@student.demo,Pranav Joshi,Platinum,88,BITS Hyderabad,Aerospace Engineering,2027,6.61,9,Solutions Architect at top Product Company,Hyderabad,Telangana
+69f4ba1d666614d785f74444,vivaan.tiwari805@student.demo,Vivaan Tiwari,Platinum,90,IIM Shillong,Civil Engineering,2026,9.42,7,Tech Lead at top Finance Company,Shillong,Meghalaya
+69f4ba1d666614d785f74445,reyansh.sen806@student.demo,Reyansh Sen,Gold,75,Mumbai University,Architecture,2028,9.03,7,Senior Backend Engineer at top Finance Company,Mumbai,Maharashtra
+69f4ba1d666614d785f74446,kiara.pandey807@student.demo,Kiara Pandey,Platinum,80,VNIT Nagpur,Artificial Intelligence,2026,9.07,5,Senior DevOps Engineer at top Finance Company,Nagpur,Maharashtra
+69f4ba1d666614d785f74447,tara.murthy808@student.demo,Tara Murthy,Gold,74,Thapar University,Civil Engineering,2027,7.03,5,Senior Backend Engineer at top Tech Company,Patiala,Punjab
+69f4ba1d666614d785f74448,advik.sinha809@student.demo,Advik Sinha,Gold,75,LPU Phagwara,Mechanical Engineering,2028,9.5,7,Senior DevOps Engineer at top Tech Company,Phagwara,Punjab
+69f4ba1d666614d785f74449,arnav.khanna810@student.demo,Arnav Khanna,Platinum,94,IISER Kolkata,Data Science,2026,7.95,8,Senior DevOps Engineer at top Finance Company,Kolkata,West Bengal
+69f4ba1d666614d785f7444a,arnav.rao811@student.demo,Arnav Rao,Gold,79,AMU Aligarh,Civil Engineering,2028,7.46,9,Senior Data Scientist at top Tech Company,Aligarh,Uttar Pradesh
+69f4ba1d666614d785f7444b,aanya.sen812@student.demo,Aanya Sen,Gold,70,KIIT Bhubaneswar,BBA,2028,7.55,6,Tech Lead at top Finance Company,Bhubaneswar,Odisha
+69f4ba1d666614d785f7444c,tanay.reddy813@student.demo,Tanay Reddy,Platinum,86,Mumbai University,M.Sc Mathematics,2027,6.69,8,Senior Data Scientist at top Tech Company,Mumbai,Maharashtra
+69f4ba1d666614d785f7444d,yash.pathak814@student.demo,Yash Pathak,Gold,77,NIT Surathkal,Architecture,2028,8.9,8,Solutions Architect at top Tech Company,Mangalore,Karnataka
+69f4ba1d666614d785f7444e,om.ghosh815@student.demo,Om Ghosh,Platinum,95,IIT Indore,M.Sc Mathematics,2026,9.44,7,Senior Frontend Engineer at top Tech Company,Indore,Madhya Pradesh
+69f4ba1d666614d785f7444f,karthik.saxena816@student.demo,Karthik Saxena,Platinum,89,NIT Durgapur,Electronics & Communication,2026,7.57,8,Solutions Architect at top Finance Company,Durgapur,West Bengal
+69f4ba1d666614d785f74450,advik.yadav817@student.demo,Advik Yadav,Platinum,85,LPU Phagwara,Metallurgical Engineering,2026,6.68,6,Software Engineer II at top Product Company,Phagwara,Punjab
+69f4ba1d666614d785f74451,pranav.bhatia818@student.demo,Pranav Bhatia,Platinum,88,IIT Indore,MBA — Operations,2026,7.07,5,Senior DevOps Engineer at top Tech Company,Indore,Madhya Pradesh
+69f4ba1d666614d785f74452,diya.venkatesh819@student.demo,Diya Venkatesh,Platinum,94,BITS Goa,Bachelor of Design,2026,9.31,9,Senior Backend Engineer at top Finance Company,Goa,Goa
+69f4ba1d666614d785f74453,ananya.walia820@student.demo,Ananya Walia,Gold,76,Thapar University,Electrical Engineering,2027,8.16,6,Senior Data Scientist at top Tech Company,Patiala,Punjab
+69f4ba1d666614d785f74454,pari.dubey821@student.demo,Pari Dubey,Platinum,85,KL University,Chemical Engineering,2027,7.46,5,Solutions Architect at top Product Company,Vijayawada,Andhra Pradesh
+69f4ba1d666614d785f74455,myra.sengupta822@student.demo,Myra Sengupta,Platinum,88,VNIT Nagpur,Mechanical Engineering,2027,7.46,6,Senior DevOps Engineer at top Product Company,Nagpur,Maharashtra
+69f4ba1d666614d785f74456,suresh.sethi823@student.demo,Suresh Sethi,Gold,71,MNIT Jaipur,Bachelor of Design,2028,8.72,5,Software Engineer II at top Tech Company,Jaipur,Rajasthan
+69f4ba1d666614d785f74457,neha.rao824@student.demo,Neha Rao,Platinum,95,NIT Kurukshetra,BBA,2026,8.64,8,Senior Backend Engineer at top Product Company,Kurukshetra,Haryana
+69f4ba1d666614d785f74458,karthik.choudhary825@student.demo,Karthik Choudhary,Gold,74,IIM Shillong,M.Sc Physics,2028,9.45,5,Solutions Architect at top Tech Company,Shillong,Meghalaya
+69f4ba1d666614d785f74459,tanvi.kumar826@student.demo,Tanvi Kumar,Gold,78,VIT Chennai,Mechanical Engineering,2028,8.57,6,Solutions Architect at top Finance Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f7445a,akash.rao827@student.demo,Akash Rao,Gold,76,KL University,Data Science,2028,6.84,5,Senior Frontend Engineer at top Finance Company,Vijayawada,Andhra Pradesh
+69f4ba1d666614d785f7445b,ananya.sen828@student.demo,Ananya Sen,Gold,77,Thapar University,Data Science,2028,6.88,8,Software Engineer II at top Finance Company,Patiala,Punjab
+69f4ba1d666614d785f7445c,rudra.trivedi829@student.demo,Rudra Trivedi,Gold,79,Hyderabad University,Information Technology,2027,6.93,6,Software Engineer II at top Product Company,Hyderabad,Telangana
+69f4ba1d666614d785f7445d,ira.choudhary830@student.demo,Ira Choudhary,Gold,71,VNIT Nagpur,Information Technology,2028,6.96,5,Senior Product Manager at top Product Company,Nagpur,Maharashtra
+69f4ba1d666614d785f7445e,kavya.yadav831@student.demo,Kavya Yadav,Platinum,94,IISER Pune,Chemical Engineering,2027,6.83,8,Senior Backend Engineer at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f7445f,vivek.gupta832@student.demo,Vivek Gupta,Platinum,86,ISI Kolkata,Civil Engineering,2028,8.81,7,Senior Backend Engineer at top Tech Company,Kolkata,West Bengal
+69f4ba1d666614d785f74460,arjun.pillai833@student.demo,Arjun Pillai,Platinum,82,NIT Surathkal,M.Sc Physics,2027,7.94,9,Senior Frontend Engineer at top Finance Company,Mangalore,Karnataka
+69f4ba1d666614d785f74461,aakash.mishra834@student.demo,Aakash Mishra,Platinum,81,VIT Chennai,Artificial Intelligence,2028,7.73,6,Tech Lead at top Finance Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74462,harsh.choudhary835@student.demo,Harsh Choudhary,Platinum,83,Jamia Millia Islamia,MBA — Marketing,2027,7.12,8,Tech Lead at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f74463,yash.rao836@student.demo,Yash Rao,Platinum,88,IISER Kolkata,M.Sc Mathematics,2027,8.46,8,Senior Product Manager at top Product Company,Kolkata,West Bengal
+69f4ba1d666614d785f74464,reyansh.naidu837@student.demo,Reyansh Naidu,Gold,73,Anna University,Biomedical Engineering,2028,8.5,6,Senior Product Manager at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74465,yash.khanna838@student.demo,Yash Khanna,Gold,78,IISER Mohali,Metallurgical Engineering,2028,6.79,6,Senior Backend Engineer at top Tech Company,Mohali,Punjab
+69f4ba1d666614d785f74466,vihaan.reddy839@student.demo,Vihaan Reddy,Platinum,84,NIT Durgapur,Electronics & Communication,2027,7.52,7,Senior Frontend Engineer at top Finance Company,Durgapur,West Bengal
+69f4ba1d666614d785f74467,pranav.chopra840@student.demo,Pranav Chopra,Platinum,82,VIT Chennai,Civil Engineering,2027,9.43,5,Senior Frontend Engineer at top Finance Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74468,sai.kapoor841@student.demo,Sai Kapoor,Platinum,83,DTU Delhi,MBA — HR,2027,9.34,8,Senior Data Scientist at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f74469,priya.iyer842@student.demo,Priya Iyer,Gold,77,SRM Chennai,Mechanical Engineering,2028,8.31,7,Senior DevOps Engineer at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f7446a,om.mathur843@student.demo,Om Mathur,Platinum,82,Thapar University,Production Engineering,2027,7.85,6,Solutions Architect at top Finance Company,Patiala,Punjab
+69f4ba1d666614d785f7446b,rohit.bansal844@student.demo,Rohit Bansal,Platinum,94,IISER Kolkata,Electronics & Communication,2027,8.59,9,Senior Product Manager at top Product Company,Kolkata,West Bengal
+69f4ba1d666614d785f7446c,dev.murthy845@student.demo,Dev Murthy,Platinum,86,SASTRA Thanjavur,MBA — Marketing,2027,6.75,7,Senior Data Scientist at top Product Company,Thanjavur,Tamil Nadu
+69f4ba1d666614d785f7446d,aditya.agarwal846@student.demo,Aditya Agarwal,Platinum,88,BITS Goa,Aerospace Engineering,2026,8.92,6,Senior Backend Engineer at top Tech Company,Goa,Goa
+69f4ba1d666614d785f7446e,trisha.krishnan847@student.demo,Trisha Krishnan,Gold,76,IISER Kolkata,Electrical Engineering,2028,6.51,5,Tech Lead at top Tech Company,Kolkata,West Bengal
+69f4ba1d666614d785f7446f,atharv.menon848@student.demo,Atharv Menon,Gold,70,VNIT Nagpur,M.Sc Physics,2028,7.05,6,Software Engineer II at top Tech Company,Nagpur,Maharashtra
+69f4ba1d666614d785f74470,myra.banerjee849@student.demo,Myra Banerjee,Gold,78,VIT Chennai,BBA,2028,9.01,6,Senior Product Manager at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74471,praveen.sengupta850@student.demo,Praveen Sengupta,Platinum,81,Anna University,MBA — Marketing,2027,6.69,7,Senior Data Scientist at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74472,sara.shah851@student.demo,Sara Shah,Gold,71,Calcutta University,Computer Science,2028,8.68,5,Senior Data Scientist at top Finance Company,Kolkata,West Bengal
+69f4ba1d666614d785f74473,disha.rajan852@student.demo,Disha Rajan,Platinum,89,KL University,Artificial Intelligence,2027,7.47,7,Solutions Architect at top Finance Company,Vijayawada,Andhra Pradesh
+69f4ba1d666614d785f74474,meera.khanna853@student.demo,Meera Khanna,Platinum,82,VIT Chennai,Metallurgical Engineering,2027,8.87,5,Senior Frontend Engineer at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74475,ananya.tiwari854@student.demo,Ananya Tiwari,Platinum,83,BITS Goa,Computer Science,2027,8.32,8,Senior DevOps Engineer at top Finance Company,Goa,Goa
+69f4ba1d666614d785f74476,saanvi.mahajan855@student.demo,Saanvi Mahajan,Platinum,82,IISER Kolkata,Information Technology,2027,8.91,5,Solutions Architect at top Finance Company,Kolkata,West Bengal
+69f4ba1d666614d785f74477,suresh.chopra856@student.demo,Suresh Chopra,Platinum,88,NIT Durgapur,M.Sc Physics,2027,6.69,9,Senior DevOps Engineer at top Finance Company,Durgapur,West Bengal
+69f4ba1d666614d785f74478,rohan.choudhary857@student.demo,Rohan Choudhary,Platinum,84,VNIT Nagpur,Architecture,2026,8.84,7,Tech Lead at top Product Company,Nagpur,Maharashtra
+69f4ba1d666614d785f74479,kiara.dubey858@student.demo,Kiara Dubey,Gold,77,KIIT Bhubaneswar,MBA — HR,2028,8.31,8,Senior Product Manager at top Tech Company,Bhubaneswar,Odisha
+69f4ba1d666614d785f7447a,neha.rao859@student.demo,Neha Rao,Platinum,93,Chandigarh University,Architecture,2026,6.94,7,Senior Product Manager at top Finance Company,Chandigarh,Punjab
+69f4ba1d666614d785f7447b,naman.naidu860@student.demo,Naman Naidu,Platinum,88,IISER Mohali,Chemical Engineering,2028,8.96,9,Software Engineer II at top Finance Company,Mohali,Punjab
+69f4ba1d666614d785f7447c,riya.malhotra861@student.demo,Riya Malhotra,Platinum,92,MNIT Jaipur,Computer Science,2026,6.82,8,Senior Product Manager at top Finance Company,Jaipur,Rajasthan
+69f4ba1d666614d785f7447d,myra.bansal862@student.demo,Myra Bansal,Gold,76,MNIT Jaipur,Civil Engineering,2028,6.58,6,Solutions Architect at top Product Company,Jaipur,Rajasthan
+69f4ba1d666614d785f7447e,shruti.bhatnagar863@student.demo,Shruti Bhatnagar,Platinum,93,VNIT Nagpur,M.Sc Mathematics,2026,6.95,7,Senior Frontend Engineer at top Product Company,Nagpur,Maharashtra
+69f4ba1d666614d785f7447f,advik.murthy864@student.demo,Advik Murthy,Platinum,95,NIT Kurukshetra,Biomedical Engineering,2026,8.97,8,Tech Lead at top Finance Company,Kurukshetra,Haryana
+69f4ba1d666614d785f74480,aarush.banerjee865@student.demo,Aarush Banerjee,Platinum,95,Hyderabad University,Aerospace Engineering,2026,8.77,9,Solutions Architect at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f74481,ashish.sethi866@student.demo,Ashish Sethi,Platinum,83,NIT Surathkal,Bachelor of Design,2028,6.74,8,Senior Data Scientist at top Product Company,Mangalore,Karnataka
+69f4ba1d666614d785f74482,shruti.tiwari867@student.demo,Shruti Tiwari,Platinum,100,VIT Chennai,BBA,2026,9.19,9,Solutions Architect at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74483,vikram.goel868@student.demo,Vikram Goel,Gold,79,NIT Surathkal,MBA — Finance,2028,8.52,9,Senior Product Manager at top Finance Company,Mangalore,Karnataka
+69f4ba1d666614d785f74484,reyansh.pandey869@student.demo,Reyansh Pandey,Platinum,94,IIM Shillong,Data Science,2026,8.76,9,Senior DevOps Engineer at top Finance Company,Shillong,Meghalaya
+69f4ba1d666614d785f74485,gauri.sengupta870@student.demo,Gauri Sengupta,Platinum,100,IISER Kolkata,Aerospace Engineering,2026,7.15,9,Tech Lead at top Finance Company,Kolkata,West Bengal
+69f4ba1d666614d785f74486,shaurya.chatterjee871@student.demo,Shaurya Chatterjee,Platinum,90,AMU Aligarh,M.Sc Physics,2026,7.02,7,Senior Backend Engineer at top Tech Company,Aligarh,Uttar Pradesh
+69f4ba1d666614d785f74487,trisha.mukherjee872@student.demo,Trisha Mukherjee,Platinum,82,Chandigarh University,Computer Science,2028,7.74,9,Software Engineer II at top Product Company,Chandigarh,Punjab
+69f4ba1d666614d785f74488,ishaan.chatterjee873@student.demo,Ishaan Chatterjee,Platinum,87,MNIT Jaipur,MBA — HR,2026,8.18,7,Senior DevOps Engineer at top Tech Company,Jaipur,Rajasthan
+69f4ba1d666614d785f74489,vikram.murthy874@student.demo,Vikram Murthy,Platinum,89,BITS Pilani,M.Sc Mathematics,2027,7.71,8,Senior DevOps Engineer at top Finance Company,Pilani,Rajasthan
+69f4ba1d666614d785f7448a,pari.sethi875@student.demo,Pari Sethi,Gold,76,ILS Pune,MBA — Marketing,2027,9.25,8,Senior Frontend Engineer at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f7448b,ramesh.chopra876@student.demo,Ramesh Chopra,Platinum,92,IIM Shillong,Mechanical Engineering,2026,9.33,8,Tech Lead at top Product Company,Shillong,Meghalaya
+69f4ba1d666614d785f7448c,dev.mahajan877@student.demo,Dev Mahajan,Gold,75,BITS Hyderabad,Biomedical Engineering,2028,8.43,7,Senior Frontend Engineer at top Product Company,Hyderabad,Telangana
+69f4ba1d666614d785f7448d,aarav.sood878@student.demo,Aarav Sood,Platinum,80,BITS Goa,MBA — HR,2026,6.55,5,Senior Product Manager at top Tech Company,Goa,Goa
+69f4ba1d666614d785f7448e,ananya.pillai879@student.demo,Ananya Pillai,Platinum,83,NIT Rourkela,Data Science,2027,7.62,5,Senior Product Manager at top Finance Company,Rourkela,Odisha
+69f4ba1d666614d785f7448f,om.mittal880@student.demo,Om Mittal,Gold,76,IISER Pune,M.Sc Mathematics,2028,9.08,5,Solutions Architect at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f74490,nidhi.venkatesh881@student.demo,Nidhi Venkatesh,Gold,79,KL University,Computer Science,2027,8.99,5,Senior Backend Engineer at top Finance Company,Vijayawada,Andhra Pradesh
+69f4ba1d666614d785f74491,aryan.dubey882@student.demo,Aryan Dubey,Platinum,89,TISS Mumbai,MBA — HR,2026,9.09,7,Software Engineer II at top Product Company,Mumbai,Maharashtra
+69f4ba1d666614d785f74492,ishaan.sood883@student.demo,Ishaan Sood,Platinum,93,SRM Chennai,MBA — Finance,2027,7.38,9,Senior Frontend Engineer at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f74493,gauri.krishnan884@student.demo,Gauri Krishnan,Gold,76,Cochin University,Electrical Engineering,2028,7.41,6,Tech Lead at top Finance Company,Kochi,Kerala
+69f4ba1d666614d785f74494,dhruv.sethi885@student.demo,Dhruv Sethi,Gold,74,Hyderabad University,Architecture,2027,7.6,5,Solutions Architect at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f74495,siddharth.rajan886@student.demo,Siddharth Rajan,Platinum,100,IISER Pune,BBA,2026,7.92,8,Tech Lead at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f74496,vivaan.chopra887@student.demo,Vivaan Chopra,Platinum,88,BITS Pilani,B.Com Honours,2026,8.18,6,Tech Lead at top Tech Company,Pilani,Rajasthan
+69f4ba1d666614d785f74497,rahul.kapoor888@student.demo,Rahul Kapoor,Platinum,80,Jamia Millia Islamia,Computer Science,2027,7.46,5,Tech Lead at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f74498,ira.goyal889@student.demo,Ira Goyal,Platinum,80,Pune University,MBA — HR,2026,9.07,5,Senior Frontend Engineer at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f74499,manish.pillai890@student.demo,Manish Pillai,Platinum,95,IIM Shillong,Civil Engineering,2026,7.08,8,Senior Data Scientist at top Finance Company,Shillong,Meghalaya
+69f4ba1d666614d785f7449a,sia.mishra891@student.demo,Sia Mishra,Gold,79,IIIT Hyderabad,MBA — HR,2028,7.75,9,Senior Backend Engineer at top Product Company,Hyderabad,Telangana
+69f4ba1d666614d785f7449b,sai.rajan892@student.demo,Sai Rajan,Platinum,80,Chandigarh University,Metallurgical Engineering,2027,8.59,8,Senior Frontend Engineer at top Finance Company,Chandigarh,Punjab
+69f4ba1d666614d785f7449c,advik.mahajan893@student.demo,Advik Mahajan,Platinum,82,NIT Durgapur,BBA,2028,7.08,9,Senior Data Scientist at top Product Company,Durgapur,West Bengal
+69f4ba1d666614d785f7449d,sneha.chatterjee894@student.demo,Sneha Chatterjee,Gold,76,LPU Phagwara,M.Sc Mathematics,2027,8.89,6,Senior Frontend Engineer at top Tech Company,Phagwara,Punjab
+69f4ba1d666614d785f7449e,rohan.choudhary895@student.demo,Rohan Choudhary,Platinum,87,TISS Mumbai,M.Sc Physics,2027,7.52,6,Senior Product Manager at top Product Company,Mumbai,Maharashtra
+69f4ba1d666614d785f7449f,karan.saxena896@student.demo,Karan Saxena,Gold,77,DTU Delhi,BBA,2027,7.76,5,Senior Product Manager at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f744a0,esha.desai897@student.demo,Esha Desai,Platinum,87,Pune University,MBA — Marketing,2027,8.15,7,Senior Product Manager at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f744a1,nidhi.choudhary898@student.demo,Nidhi Choudhary,Gold,71,NIT Warangal,Bachelor of Design,2028,7.16,5,Senior Product Manager at top Product Company,Warangal,Telangana
+69f4ba1d666614d785f744a2,pihu.khanna899@student.demo,Pihu Khanna,Gold,75,NIT Surathkal,BBA,2028,8.72,7,Senior Product Manager at top Finance Company,Mangalore,Karnataka
+69f4ba1d666614d785f744a3,pranav.shukla900@student.demo,Pranav Shukla,Platinum,89,AMU Aligarh,Aerospace Engineering,2026,9.05,8,Senior DevOps Engineer at top Tech Company,Aligarh,Uttar Pradesh
+69f4ba1d666614d785f744a4,pranav.shah901@student.demo,Pranav Shah,Platinum,89,JIPMER Puducherry,Architecture,2027,7.47,11,Head of AI at top Product Company,Puducherry,Puducherry
+69f4ba1d666614d785f744a5,neha.arora902@student.demo,Neha Arora,Platinum,100,IIM Indore,Production Engineering,2026,8.3,13,Head of AI at top Tech Company,Indore,Madhya Pradesh
+69f4ba1d666614d785f744a6,yash.shukla903@student.demo,Yash Shukla,Platinum,100,IIT Kharagpur,MBA — Finance,2026,7.6,11,Director of Engineering at top Finance Company,Kharagpur,West Bengal
+69f4ba1d666614d785f744a7,anika.mishra904@student.demo,Anika Mishra,Platinum,95,NIT Tiruchirappalli,M.Sc Physics,2026,6.92,14,Distinguished Engineer at top Finance Company,Tiruchirappalli,Tamil Nadu
+69f4ba1d666614d785f744a8,mira.anand905@student.demo,Mira Anand,Platinum,96,IISc Bangalore,Civil Engineering,2026,6.55,9,Engineering Manager at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f744a9,shaurya.iyer906@student.demo,Shaurya Iyer,Platinum,100,IIT Guwahati,Data Science,2026,8.94,12,CTO at top Product Company,Guwahati,Assam
+69f4ba1d666614d785f744aa,shruti.kapoor907@student.demo,Shruti Kapoor,Platinum,93,IIM Bangalore,Information Technology,2027,6.99,9,Senior Software Engineer at top Tech Company,Bengaluru,Karnataka
+69f4ba1d666614d785f744ab,aanya.sharma908@student.demo,Aanya Sharma,Platinum,94,Banaras Hindu University,MBA — Finance,2027,8.07,13,Distinguished Engineer at top Tech Company,Varanasi,Uttar Pradesh
+69f4ba1d666614d785f744ac,karthik.agarwal909@student.demo,Karthik Agarwal,Platinum,100,IIT Madras,Chemical Engineering,2026,9.1,12,Principal Engineer at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f744ad,shruti.shukla910@student.demo,Shruti Shukla,Platinum,100,IIM Ahmedabad,Computer Science,2026,6.66,11,Head of AI at top Finance Company,Ahmedabad,Gujarat
+69f4ba1d666614d785f744ae,sara.pillai911@student.demo,Sara Pillai,Platinum,91,Banaras Hindu University,Production Engineering,2027,8.18,8,Senior Software Engineer at top Tech Company,Varanasi,Uttar Pradesh
+69f4ba1d666614d785f744af,diya.walia912@student.demo,Diya Walia,Platinum,94,AIIMS Delhi,Computer Science,2027,8.79,11,Senior Software Engineer at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f744b0,yash.sood913@student.demo,Yash Sood,Platinum,89,IIT Kharagpur,Mechanical Engineering,2027,7.16,10,Senior Software Engineer at top Finance Company,Kharagpur,West Bengal
+69f4ba1d666614d785f744b1,aanya.rao914@student.demo,Aanya Rao,Platinum,95,JIPMER Puducherry,B.Com Honours,2026,9.25,11,Principal Engineer at top Product Company,Puducherry,Puducherry
+69f4ba1d666614d785f744b2,aarush.shah915@student.demo,Aarush Shah,Platinum,89,Gujarat National Law,Biomedical Engineering,2027,8.83,14,Engineering Manager at top Tech Company,Gandhinagar,Gujarat
+69f4ba1d666614d785f744b3,sara.mittal916@student.demo,Sara Mittal,Platinum,94,JNU New Delhi,Biomedical Engineering,2027,8.59,11,CTO at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f744b4,tanvi.mathur917@student.demo,Tanvi Mathur,Platinum,89,ISM Dhanbad,Biomedical Engineering,2027,7.74,8,Senior Software Engineer at top Finance Company,Dhanbad,Jharkhand
+69f4ba1d666614d785f744b5,kabir.roy918@student.demo,Kabir Roy,Platinum,94,VIT Vellore,MBA — HR,2027,6.8,11,Staff Engineer at top Product Company,Vellore,Tamil Nadu
+69f4ba1d666614d785f744b6,aadhya.tandon919@student.demo,Aadhya Tandon,Platinum,100,XLRI Jamshedpur,Electronics & Communication,2026,6.62,8,Director of Engineering at top Finance Company,Jamshedpur,Jharkhand
+69f4ba1d666614d785f744b7,arjun.shah920@student.demo,Arjun Shah,Platinum,100,IIT Madras,M.Sc Mathematics,2026,8.43,14,CTO at top Tech Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f744b8,sia.mishra921@student.demo,Sia Mishra,Platinum,94,Banaras Hindu University,Information Technology,2027,7.48,14,Engineering Manager at top Finance Company,Varanasi,Uttar Pradesh
+69f4ba1d666614d785f744b9,aadhya.singh922@student.demo,Aadhya Singh,Platinum,93,IIT Roorkee,Information Technology,2026,7.81,9,Staff Engineer at top Product Company,Roorkee,Uttarakhand
+69f4ba1d666614d785f744ba,arnav.das923@student.demo,Arnav Das,Platinum,100,IIM Indore,MBA — HR,2026,9.09,10,Head of AI at top Tech Company,Indore,Madhya Pradesh
+69f4ba1d666614d785f744bb,nidhi.ghosh924@student.demo,Nidhi Ghosh,Platinum,86,ISM Dhanbad,Architecture,2026,7.99,8,Director of Engineering at top Tech Company,Dhanbad,Jharkhand
+69f4ba1d666614d785f744bc,kriti.singh925@student.demo,Kriti Singh,Platinum,94,IIT Bombay,M.Sc Physics,2027,8.09,13,CTO at top Product Company,Mumbai,Maharashtra
+69f4ba1d666614d785f744bd,kiara.naidu926@student.demo,Kiara Naidu,Platinum,89,Maulana Azad Medical,Information Technology,2027,8.22,13,VP Engineering at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f744be,meera.banerjee927@student.demo,Meera Banerjee,Platinum,100,IISc Bangalore,M.Sc Physics,2026,8.94,14,CTO at top Finance Company,Bengaluru,Karnataka
+69f4ba1d666614d785f744bf,praveen.roy928@student.demo,Praveen Roy,Platinum,100,IIT Kanpur,MBA — HR,2026,7.49,12,Engineering Manager at top Finance Company,Kanpur,Uttar Pradesh
+69f4ba1d666614d785f744c0,pranav.agarwal929@student.demo,Pranav Agarwal,Platinum,89,Delhi University,Civil Engineering,2027,9.12,13,Senior Software Engineer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f744c1,rohit.bhatnagar930@student.demo,Rohit Bhatnagar,Platinum,91,IIT Hyderabad,MBA — Finance,2027,8.87,8,VP Engineering at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f744c2,ira.pathak931@student.demo,Ira Pathak,Platinum,94,IIT Delhi,M.Sc Mathematics,2026,8.88,8,Distinguished Engineer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f744c3,tanvi.tiwari932@student.demo,Tanvi Tiwari,Platinum,94,IIM Bangalore,Chemical Engineering,2027,7.06,14,VP Engineering at top Tech Company,Bengaluru,Karnataka
+69f4ba1d666614d785f744c4,priya.subramanian933@student.demo,Priya Subramanian,Platinum,89,JIPMER Puducherry,Computer Science,2027,7.45,14,Director of Engineering at top Product Company,Puducherry,Puducherry
+69f4ba1d666614d785f744c5,ashish.singh934@student.demo,Ashish Singh,Platinum,94,IIT Guwahati,Information Technology,2027,7.48,13,Staff Engineer at top Tech Company,Guwahati,Assam
+69f4ba1d666614d785f744c6,sia.joshi935@student.demo,Sia Joshi,Platinum,98,AIIMS Delhi,Electrical Engineering,2026,8.76,10,Staff Engineer at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f744c7,tanay.das936@student.demo,Tanay Das,Platinum,88,IIM Kozhikode,Bachelor of Design,2027,9.35,8,Senior Software Engineer at top Tech Company,Kozhikode,Kerala
+69f4ba1d666614d785f744c8,sai.goyal937@student.demo,Sai Goyal,Platinum,100,AIIMS Delhi,Metallurgical Engineering,2026,8.69,10,Principal Engineer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f744c9,manish.dubey938@student.demo,Manish Dubey,Platinum,89,JIPMER Puducherry,Computer Science,2027,6.91,12,Distinguished Engineer at top Product Company,Puducherry,Puducherry
+69f4ba1d666614d785f744ca,rohit.shukla939@student.demo,Rohit Shukla,Platinum,92,IIT Hyderabad,Architecture,2027,7.25,10,Senior Software Engineer at top Tech Company,Hyderabad,Telangana
+69f4ba1d666614d785f744cb,sai.pillai940@student.demo,Sai Pillai,Platinum,100,CMC Vellore,Mechanical Engineering,2026,8.67,10,Staff Engineer at top Finance Company,Vellore,Tamil Nadu
+69f4ba1d666614d785f744cc,sneha.pillai941@student.demo,Sneha Pillai,Platinum,94,FMS Delhi,Bachelor of Design,2027,6.51,11,Head of AI at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f744cd,krishna.bansal942@student.demo,Krishna Bansal,Platinum,100,FMS Delhi,Artificial Intelligence,2026,7.41,11,Engineering Manager at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f744ce,akash.mittal943@student.demo,Akash Mittal,Platinum,100,PGIMER Chandigarh,Data Science,2026,7.61,11,Director of Engineering at top Product Company,Chandigarh,Punjab
+69f4ba1d666614d785f744cf,rohit.walia944@student.demo,Rohit Walia,Platinum,94,IISc Bangalore,Metallurgical Engineering,2026,6.51,8,Senior Software Engineer at top Finance Company,Bengaluru,Karnataka
+69f4ba1d666614d785f744d0,arnav.mathur945@student.demo,Arnav Mathur,Platinum,95,ISM Dhanbad,Biomedical Engineering,2026,9.03,11,VP Engineering at top Tech Company,Dhanbad,Jharkhand
+69f4ba1d666614d785f744d1,avni.naidu946@student.demo,Avni Naidu,Platinum,100,VIT Vellore,Biomedical Engineering,2026,9.1,14,Engineering Manager at top Finance Company,Vellore,Tamil Nadu
+69f4ba1d666614d785f744d2,vivek.pillai947@student.demo,Vivek Pillai,Platinum,94,IIT Guwahati,Bachelor of Design,2027,7.52,13,Engineering Manager at top Product Company,Guwahati,Assam
+69f4ba1d666614d785f744d3,advik.pathak948@student.demo,Advik Pathak,Platinum,94,SP Jain Mumbai,M.Sc Physics,2026,9.16,8,Staff Engineer at top Tech Company,Mumbai,Maharashtra
+69f4ba1d666614d785f744d4,dhruv.pandey949@student.demo,Dhruv Pandey,Platinum,95,ISM Dhanbad,Data Science,2026,8.97,11,Engineering Manager at top Product Company,Dhanbad,Jharkhand
+69f4ba1d666614d785f744d5,navya.naidu950@student.demo,Navya Naidu,Platinum,100,IIM Indore,Chemical Engineering,2026,8.56,10,Principal Engineer at top Finance Company,Indore,Madhya Pradesh
+69f4ba1d666614d785f744d6,aarav.bhatia951@student.demo,Aarav Bhatia,Platinum,100,AIIMS Delhi,Information Technology,2026,9.35,13,VP Engineering at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f744d7,gauri.tiwari952@student.demo,Gauri Tiwari,Platinum,94,Symbiosis Law Pune,MBA — Marketing,2026,9.28,12,Staff Engineer at top Product Company,Pune,Maharashtra
+69f4ba1d666614d785f744d8,reyansh.pandey953@student.demo,Reyansh Pandey,Platinum,94,SP Jain Mumbai,Electrical Engineering,2027,8.13,11,Staff Engineer at top Tech Company,Mumbai,Maharashtra
+69f4ba1d666614d785f744d9,arnav.shah954@student.demo,Arnav Shah,Platinum,100,NLSIU Bangalore,MBA — Operations,2026,7.83,10,Distinguished Engineer at top Product Company,Bengaluru,Karnataka
+69f4ba1d666614d785f744da,ramesh.shah955@student.demo,Ramesh Shah,Platinum,100,TIFR Mumbai,MBA — Finance,2026,6.74,13,Engineering Manager at top Finance Company,Mumbai,Maharashtra
+69f4ba1d666614d785f744db,tara.rajan956@student.demo,Tara Rajan,Platinum,100,IIT Kanpur,M.Sc Physics,2026,8.23,13,Head of AI at top Finance Company,Kanpur,Uttar Pradesh
+69f4ba1d666614d785f744dc,rishabh.pillai957@student.demo,Rishabh Pillai,Platinum,94,IIM Ahmedabad,Civil Engineering,2027,7.54,12,VP Engineering at top Tech Company,Ahmedabad,Gujarat
+69f4ba1d666614d785f744dd,rishabh.chatterjee958@student.demo,Rishabh Chatterjee,Platinum,94,FMS Delhi,Mechanical Engineering,2027,8.86,11,Distinguished Engineer at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f744de,arnav.kumar959@student.demo,Arnav Kumar,Platinum,85,WBNUJS Kolkata,Information Technology,2027,6.68,9,Senior Software Engineer at top Tech Company,Kolkata,West Bengal
+69f4ba1d666614d785f744df,karan.saxena960@student.demo,Karan Saxena,Platinum,98,IIM Kozhikode,MBA — Operations,2026,7.3,10,Principal Engineer at top Product Company,Kozhikode,Kerala
+69f4ba1d666614d785f744e0,pari.sinha961@student.demo,Pari Sinha,Platinum,94,Banaras Hindu University,Civil Engineering,2027,6.75,11,Senior Software Engineer at top Finance Company,Varanasi,Uttar Pradesh
+69f4ba1d666614d785f744e1,neha.chopra962@student.demo,Neha Chopra,Platinum,94,NALSAR Hyderabad,Production Engineering,2027,7.42,14,Director of Engineering at top Finance Company,Hyderabad,Telangana
+69f4ba1d666614d785f744e2,tanay.sood963@student.demo,Tanay Sood,Platinum,95,IIT Delhi,Aerospace Engineering,2026,7.37,10,Senior Software Engineer at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f744e3,riya.tiwari964@student.demo,Riya Tiwari,Platinum,100,IIM Indore,Production Engineering,2026,9.14,14,Staff Engineer at top Product Company,Indore,Madhya Pradesh
+69f4ba1d666614d785f744e4,sia.naidu965@student.demo,Sia Naidu,Platinum,100,VIT Vellore,B.Com Honours,2026,8.78,13,VP Engineering at top Finance Company,Vellore,Tamil Nadu
+69f4ba1d666614d785f744e5,aisha.sood966@student.demo,Aisha Sood,Platinum,89,JIPMER Puducherry,BBA,2026,8.07,8,Senior Software Engineer at top Tech Company,Puducherry,Puducherry
+69f4ba1d666614d785f744e6,pooja.krishnan967@student.demo,Pooja Krishnan,Platinum,89,WBNUJS Kolkata,M.Sc Physics,2027,6.73,10,Staff Engineer at top Tech Company,Kolkata,West Bengal
+69f4ba1d666614d785f744e7,tanay.sengupta968@student.demo,Tanay Sengupta,Platinum,90,IIT Guwahati,BBA,2027,6.97,9,Engineering Manager at top Product Company,Guwahati,Assam
+69f4ba1d666614d785f744e8,praveen.malhotra969@student.demo,Praveen Malhotra,Platinum,92,IIT Kharagpur,Aerospace Engineering,2027,6.63,10,VP Engineering at top Product Company,Kharagpur,West Bengal
+69f4ba1d666614d785f744e9,aryan.dubey970@student.demo,Aryan Dubey,Platinum,94,XLRI Jamshedpur,Metallurgical Engineering,2027,7.58,11,Distinguished Engineer at top Product Company,Jamshedpur,Jharkhand
+69f4ba1d666614d785f744ea,vivaan.menon971@student.demo,Vivaan Menon,Platinum,85,IIM Ahmedabad,Bachelor of Design,2027,8.15,8,Distinguished Engineer at top Product Company,Ahmedabad,Gujarat
+69f4ba1d666614d785f744eb,esha.mahajan972@student.demo,Esha Mahajan,Platinum,95,Maulana Azad Medical,BBA,2026,7.21,12,CTO at top Product Company,New Delhi,Delhi
+69f4ba1d666614d785f744ec,aanya.anand973@student.demo,Aanya Anand,Platinum,100,IIT Madras,Chemical Engineering,2026,8.22,13,Senior Software Engineer at top Product Company,Chennai,Tamil Nadu
+69f4ba1d666614d785f744ed,karan.bhatia974@student.demo,Karan Bhatia,Platinum,94,CMC Vellore,M.Sc Mathematics,2027,9.17,14,Director of Engineering at top Tech Company,Vellore,Tamil Nadu
+69f4ba1d666614d785f744ee,aakash.menon975@student.demo,Aakash Menon,Platinum,93,ISM Dhanbad,Aerospace Engineering,2026,7.38,10,Principal Engineer at top Finance Company,Dhanbad,Jharkhand
+69f4ba1d666614d785f744ef,yash.nair976@student.demo,Yash Nair,Platinum,95,JIPMER Puducherry,M.Sc Mathematics,2026,8.32,12,VP Engineering at top Product Company,Puducherry,Puducherry
+69f4ba1d666614d785f744f0,sia.murthy977@student.demo,Sia Murthy,Platinum,100,VIT Vellore,MBA — Operations,2026,7.72,13,VP Engineering at top Product Company,Vellore,Tamil Nadu
+69f4ba1d666614d785f744f1,pari.khurana978@student.demo,Pari Khurana,Platinum,94,JNU New Delhi,Electronics & Communication,2027,7.44,12,VP Engineering at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f744f2,ira.mukherjee979@student.demo,Ira Mukherjee,Platinum,100,CMC Vellore,BBA,2026,8.5,9,CTO at top Finance Company,Vellore,Tamil Nadu
+69f4ba1d666614d785f744f3,shruti.menon980@student.demo,Shruti Menon,Platinum,100,IIT Kharagpur,Information Technology,2026,6.74,14,Staff Engineer at top Product Company,Kharagpur,West Bengal
+69f4ba1d666614d785f744f4,reyansh.bansal981@student.demo,Reyansh Bansal,Platinum,95,JIPMER Puducherry,Civil Engineering,2026,7.67,14,Senior Software Engineer at top Product Company,Puducherry,Puducherry
+69f4ba1d666614d785f744f5,aanya.sinha982@student.demo,Aanya Sinha,Platinum,95,JIPMER Puducherry,Bachelor of Design,2026,8.81,12,Director of Engineering at top Tech Company,Puducherry,Puducherry
+69f4ba1d666614d785f744f6,siddharth.banerjee983@student.demo,Siddharth Banerjee,Platinum,96,IIT Kharagpur,Chemical Engineering,2026,9.28,9,Head of AI at top Tech Company,Kharagpur,West Bengal
+69f4ba1d666614d785f744f7,anika.desai984@student.demo,Anika Desai,Platinum,100,IIT Roorkee,M.Sc Mathematics,2026,8.22,8,VP Engineering at top Finance Company,Roorkee,Uttarakhand
+69f4ba1d666614d785f744f8,ira.tiwari985@student.demo,Ira Tiwari,Platinum,89,Symbiosis Law Pune,Electronics & Communication,2027,7.35,10,Senior Software Engineer at top Tech Company,Pune,Maharashtra
+69f4ba1d666614d785f744f9,riya.pathak986@student.demo,Riya Pathak,Platinum,94,IIT Guwahati,Metallurgical Engineering,2027,8.11,12,Principal Engineer at top Tech Company,Guwahati,Assam
+69f4ba1d666614d785f744fa,ira.banerjee987@student.demo,Ira Banerjee,Platinum,100,FMS Delhi,MBA — Marketing,2026,7.03,12,VP Engineering at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f744fb,aryan.pandey988@student.demo,Aryan Pandey,Platinum,95,ISM Dhanbad,MBA — Finance,2026,9.2,11,CTO at top Tech Company,Dhanbad,Jharkhand
+69f4ba1d666614d785f744fc,aakash.sharma989@student.demo,Aakash Sharma,Platinum,94,PGIMER Chandigarh,BBA,2026,7.6,8,VP Engineering at top Product Company,Chandigarh,Punjab
+69f4ba1d666614d785f744fd,rudra.banerjee990@student.demo,Rudra Banerjee,Platinum,100,CMC Vellore,B.Com Honours,2026,7.31,13,Distinguished Engineer at top Product Company,Vellore,Tamil Nadu
+69f4ba1d666614d785f744fe,ramesh.sengupta991@student.demo,Ramesh Sengupta,Platinum,99,SP Jain Mumbai,Computer Science,2026,7.39,9,VP Engineering at top Product Company,Mumbai,Maharashtra
+69f4ba1d666614d785f744ff,manish.iyer992@student.demo,Manish Iyer,Platinum,94,IIT Roorkee,Artificial Intelligence,2027,7.84,11,Head of AI at top Tech Company,Roorkee,Uttarakhand
+69f4ba1d666614d785f74500,ananya.patel993@student.demo,Ananya Patel,Platinum,89,Symbiosis Law Pune,Data Science,2027,9.01,14,Principal Engineer at top Finance Company,Pune,Maharashtra
+69f4ba1d666614d785f74501,tanay.naidu994@student.demo,Tanay Naidu,Platinum,94,XLRI Jamshedpur,Information Technology,2027,8.68,13,VP Engineering at top Product Company,Jamshedpur,Jharkhand
+69f4ba1d666614d785f74502,yash.singh995@student.demo,Yash Singh,Platinum,99,IIT Delhi,Bachelor of Design,2026,7.68,9,Principal Engineer at top Finance Company,New Delhi,Delhi
+69f4ba1d666614d785f74503,ashish.yadav996@student.demo,Ashish Yadav,Platinum,100,VIT Vellore,M.Sc Physics,2026,7.06,13,VP Engineering at top Product Company,Vellore,Tamil Nadu
+69f4ba1d666614d785f74504,navya.subramanian997@student.demo,Navya Subramanian,Platinum,100,PGIMER Chandigarh,Civil Engineering,2026,6.58,11,Head of AI at top Product Company,Chandigarh,Punjab
+69f4ba1d666614d785f74505,neha.sen998@student.demo,Neha Sen,Platinum,94,IIT Delhi,M.Sc Mathematics,2027,7.95,14,Senior Software Engineer at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f74506,dev.dubey999@student.demo,Dev Dubey,Platinum,100,JNU New Delhi,Information Technology,2026,9.04,14,CTO at top Tech Company,New Delhi,Delhi
+69f4ba1d666614d785f74507,nidhi.goel1000@student.demo,Nidhi Goel,Platinum,100,TIFR Mumbai,Information Technology,2026,8.09,12,Staff Engineer at top Product Company,Mumbai,Maharashtra

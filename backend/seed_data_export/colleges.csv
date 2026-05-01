@@ -1,0 +1,152 @@
+name,city,state,naac,nirf_rank,type,placement_pct,fee_lpa,established_year,tier,tier_score,status
+"St. Xavier's College, Mumbai",Mumbai,,A+,,,,,,,,active
+IIT Kanpur,Kanpur,,A++,,,,,,,,active
+BITS Pilani,Pilani,,A++,,,,,,,,active
+NIT Trichy,Trichy,,A,,,,,,,,active
+Anna University,Chennai,,A,,,,,,,,active
+JNU New Delhi,New Delhi,,A+,,,,,,,,active
+Christ University,Bengaluru,,A,,,,,,,,active
+Manipal Institute of Tech,Manipal,,A,,,,,,,,pending
+Loyola College Chennai,Chennai,,A,,,,,,,,pending
+Symbiosis Pune,Pune,,A+,,,,,,,,pending
+KIIT Bhubaneswar,Bhubaneswar,,A+,,,,,,,,pending
+IIT Bombay,Mumbai,Maharashtra,A++,3,IIT,96,2.4,1958,Platinum,95,active
+IIT Delhi,New Delhi,Delhi,A++,2,IIT,95,2.4,1961,Platinum,81,active
+IIT Madras,Chennai,Tamil Nadu,A++,1,IIT,94,2.4,1959,Platinum,84,active
+IIT Kanpur,Kanpur,Uttar Pradesh,A++,4,IIT,93,2.4,1959,Platinum,84,active
+IIT Kharagpur,Kharagpur,West Bengal,A++,5,IIT,92,2.4,1951,Platinum,98,active
+IIT Roorkee,Roorkee,Uttarakhand,A++,6,IIT,90,2.4,1847,Platinum,87,active
+IIT Guwahati,Guwahati,Assam,A++,7,IIT,89,2.4,1994,Platinum,89,active
+IIT Hyderabad,Hyderabad,Telangana,A++,8,IIT,91,2.4,2008,Platinum,99,active
+IIT BHU Varanasi,Varanasi,Uttar Pradesh,A++,15,IIT,87,2.4,1919,Platinum,98,active
+IIT Indore,Indore,Madhya Pradesh,A++,16,IIT,86,2.4,2009,Platinum,80,active
+IIM Ahmedabad,Ahmedabad,Gujarat,A++,1,IIM,100,24.0,1961,Platinum,97,active
+IIM Bangalore,Bengaluru,Karnataka,A++,2,IIM,100,23.5,1973,Platinum,86,active
+IIM Calcutta,Kolkata,West Bengal,A++,3,IIM,100,23.0,1961,Platinum,91,active
+IIM Lucknow,Lucknow,Uttar Pradesh,A++,5,IIM,100,19.5,1984,Platinum,85,active
+IIM Indore,Indore,Madhya Pradesh,A++,6,IIM,100,21.0,1996,Platinum,100,active
+NIT Trichy,Tiruchirappalli,Tamil Nadu,A+,9,NIT,88,1.5,1964,Platinum,90,active
+NIT Surathkal,Mangalore,Karnataka,A+,17,NIT,85,1.5,1960,Platinum,86,active
+NIT Warangal,Warangal,Telangana,A+,21,NIT,84,1.5,1959,Platinum,89,active
+NIT Calicut,Kozhikode,Kerala,A+,23,NIT,82,1.5,1961,Gold,79,active
+NIT Rourkela,Rourkela,Odisha,A+,19,NIT,83,1.5,1961,Platinum,84,active
+BITS Pilani,Pilani,Rajasthan,A+,20,Private,91,5.4,1964,Platinum,85,active
+BITS Goa,Goa,Goa,A+,26,Private,87,5.4,2004,Gold,79,active
+BITS Hyderabad,Hyderabad,Telangana,A+,29,Private,86,5.4,2008,Gold,73,active
+IIIT Hyderabad,Hyderabad,Telangana,A+,47,IIIT,95,3.0,1998,Gold,72,active
+IIIT Bangalore,Bengaluru,Karnataka,A+,60,IIIT,92,3.5,1999,Gold,67,active
+IIIT Delhi,New Delhi,Delhi,A+,65,IIIT,88,3.5,2008,Platinum,80,active
+IIIT Allahabad,Prayagraj,Uttar Pradesh,A,78,IIIT,84,1.8,1999,Gold,67,active
+VIT Vellore,Vellore,Tamil Nadu,A++,13,Private,89,2.2,1984,Platinum,99,active
+VIT Chennai,Chennai,Tamil Nadu,A++,38,Private,85,2.2,2010,Gold,78,active
+Manipal Institute of Tech,Manipal,Karnataka,A+,56,Private,82,4.5,1957,Platinum,85,active
+Thapar University,Patiala,Punjab,A+,33,Private,80,3.6,1956,Platinum,83,active
+SRM Chennai,Chennai,Tamil Nadu,A++,41,Private,78,2.5,1985,Platinum,86,active
+Amity Noida,Noida,Uttar Pradesh,A+,62,Private,75,3.5,2005,Gold,64,active
+Delhi University,New Delhi,Delhi,A+,11,University,73,0.4,1922,Gold,78,active
+JNU New Delhi,New Delhi,Delhi,A++,10,University,65,0.5,1969,Platinum,81,active
+Banaras Hindu University,Varanasi,Uttar Pradesh,A++,14,University,70,0.6,1916,Gold,68,active
+Jadavpur University,Kolkata,West Bengal,A+,18,University,76,0.3,1955,Platinum,84,active
+Anna University,Chennai,Tamil Nadu,A+,22,University,80,1.0,1978,Platinum,83,active
+Hyderabad University,Hyderabad,Telangana,A+,24,University,68,0.5,1974,Platinum,83,active
+Christ University,Bengaluru,Karnataka,A+,67,Private,75,2.8,1969,Gold,71,active
+Symbiosis Pune,Pune,Maharashtra,A+,70,Private,80,4.0,1971,Gold,73,active
+Loyola College,Chennai,Tamil Nadu,A+,75,Autonomous,70,0.8,1925,Platinum,80,active
+St Xaviers Mumbai,Mumbai,Maharashtra,A+,80,Autonomous,72,0.9,1869,Gold,67,active
+Hindu College Delhi,New Delhi,Delhi,A,90,Autonomous,65,0.4,1899,Gold,66,active
+St Stephens College,New Delhi,Delhi,A,95,Autonomous,68,0.5,1881,Silver,59,active
+Lady Shri Ram College,New Delhi,Delhi,A+,100,Autonomous,62,0.4,1956,Platinum,83,active
+Madras Christian College,Chennai,Tamil Nadu,A+,105,Autonomous,64,0.8,1837,Platinum,81,active
+KIIT Bhubaneswar,Bhubaneswar,Odisha,A+,50,Private,78,3.2,1992,Platinum,88,active
+LPU Phagwara,Phagwara,Punjab,A+,45,Private,70,2.5,2005,Gold,75,active
+Bennett University,Greater Noida,Uttar Pradesh,A,110,Private,73,4.5,2016,Gold,76,active
+Shiv Nadar University,Greater Noida,Uttar Pradesh,A,115,Private,76,5.0,2011,Gold,79,active
+Ashoka University,Sonipat,Haryana,A,120,Private,70,11.0,2014,Gold,77,active
+PSG Coimbatore,Coimbatore,Tamil Nadu,A,130,Private,72,1.6,1951,Gold,66,active
+SSN Chennai,Chennai,Tamil Nadu,A,135,Private,75,1.8,1996,Gold,70,active
+RV College Bangalore,Bengaluru,Karnataka,A,140,Private,80,2.0,1963,Gold,68,active
+PES University,Bengaluru,Karnataka,A,145,Private,82,4.0,1972,Gold,71,active
+MS Ramaiah Institute,Bengaluru,Karnataka,A,150,Private,70,2.5,1962,Gold,62,active
+DY Patil Pune,Pune,Maharashtra,A,160,Private,68,2.2,1984,Gold,73,active
+MIT Pune,Pune,Maharashtra,A,155,Private,73,2.0,1983,Gold,67,active
+Pune Institute of Computer Tech,Pune,Maharashtra,A,165,Private,76,1.8,1983,Gold,79,active
+Walchand Sangli,Sangli,Maharashtra,A,170,Private,65,1.4,1947,Gold,67,active
+VJTI Mumbai,Mumbai,Maharashtra,A,125,Autonomous,78,0.9,1887,Gold,66,active
+COEP Pune,Pune,Maharashtra,A,175,Autonomous,74,0.8,1854,Gold,64,active
+DAIICT Gandhinagar,Gandhinagar,Gujarat,A,180,Private,80,3.5,2001,Platinum,80,active
+Nirma University,Ahmedabad,Gujarat,A,185,Private,73,2.8,2003,Silver,55,active
+PDPU Gandhinagar,Gandhinagar,Gujarat,A,190,Private,71,2.5,2007,Gold,74,active
+BVB Hubli,Hubli,Karnataka,A,200,Private,65,1.5,1947,Gold,64,active
+MIT Manipal,Manipal,Karnataka,A+,145,Private,78,4.5,1957,Gold,70,active
+Dayananda Sagar Bangalore,Bengaluru,Karnataka,A,195,Private,64,2.0,1979,Gold,76,active
+BMS College Bangalore,Bengaluru,Karnataka,A,220,Private,70,2.0,1946,Gold,77,active
+RNS Institute Bangalore,Bengaluru,Karnataka,B,280,Private,55,1.6,2001,Silver,59,active
+JIIT Noida,Noida,Uttar Pradesh,A,168,Private,75,3.0,2001,Gold,73,active
+JSS Noida,Noida,Uttar Pradesh,A,215,Private,67,2.4,1996,Gold,75,active
+Galgotias University,Greater Noida,Uttar Pradesh,A,240,Private,60,1.8,2011,Silver,55,active
+Sharda University,Greater Noida,Uttar Pradesh,A,250,Private,58,2.0,2009,Gold,73,active
+Chandigarh University,Chandigarh,Punjab,A+,27,Private,70,2.0,2012,Platinum,81,active
+Chitkara University,Patiala,Punjab,A+,220,Private,67,2.5,2010,Gold,76,active
+GLA Mathura,Mathura,Uttar Pradesh,A,230,Private,56,2.2,2010,Gold,71,active
+GD Goenka University,Sohna,Haryana,B,290,Private,50,3.5,2013,Silver,56,active
+Amity Mumbai,Mumbai,Maharashtra,A,175,Private,70,3.5,2014,Gold,67,active
+Amity Jaipur,Jaipur,Rajasthan,A,180,Private,65,2.8,2008,Gold,69,active
+Mody University,Lakshmangarh,Rajasthan,A,260,Private,55,2.5,1998,Silver,57,active
+Manipal Jaipur,Jaipur,Rajasthan,A,158,Private,73,4.0,2011,Silver,56,active
+MNIT Jaipur,Jaipur,Rajasthan,A+,35,NIT,81,1.5,1963,Platinum,82,active
+MANIT Bhopal,Bhopal,Madhya Pradesh,A+,40,NIT,78,1.5,1960,Platinum,88,active
+VNIT Nagpur,Nagpur,Maharashtra,A+,38,NIT,80,1.5,1960,Gold,75,active
+NIT Patna,Patna,Bihar,A,75,NIT,72,1.5,1886,Gold,78,active
+NIT Raipur,Raipur,Chhattisgarh,A,85,NIT,68,1.5,1956,Gold,61,active
+NIT Silchar,Silchar,Assam,A,88,NIT,70,1.5,1967,Gold,77,active
+NIT Durgapur,Durgapur,West Bengal,A+,43,NIT,75,1.5,1960,Platinum,85,active
+NIT Jamshedpur,Jamshedpur,Jharkhand,A+,92,NIT,73,1.5,1960,Gold,73,active
+NIT Kurukshetra,Kurukshetra,Haryana,A+,50,NIT,76,1.5,1963,Gold,78,active
+NIT Allahabad,Prayagraj,Uttar Pradesh,A+,48,NIT,79,1.5,1961,Gold,76,active
+DTU Delhi,New Delhi,Delhi,A+,36,Autonomous,82,1.6,1941,Platinum,82,active
+NSUT Delhi,New Delhi,Delhi,A+,65,Autonomous,80,1.5,1983,Platinum,85,active
+Jamia Millia Islamia,New Delhi,Delhi,A+,28,University,71,0.5,1920,Gold,74,active
+AMU Aligarh,Aligarh,Uttar Pradesh,A+,25,University,68,0.5,1875,Gold,70,active
+IISc Bangalore,Bengaluru,Karnataka,A++,1,Research,95,1.5,1909,Platinum,84,active
+TIFR Mumbai,Mumbai,Maharashtra,A++,12,Research,92,0.5,1945,Platinum,89,active
+Cochin University,Kochi,Kerala,A+,30,University,70,0.5,1971,Gold,69,active
+Calcutta University,Kolkata,West Bengal,A+,31,University,60,0.3,1857,Gold,61,active
+Mumbai University,Mumbai,Maharashtra,A+,32,University,65,0.3,1857,Gold,79,active
+Pune University,Pune,Maharashtra,A+,34,University,67,0.4,1949,Gold,70,active
+Osmania University,Hyderabad,Telangana,A,55,University,62,0.4,1918,Gold,61,active
+Andhra University,Visakhapatnam,Andhra Pradesh,A,60,University,60,0.3,1926,Gold,66,active
+Madurai Kamaraj University,Madurai,Tamil Nadu,A,80,University,58,0.3,1965,Gold,68,active
+Bharathiar University,Coimbatore,Tamil Nadu,A,85,University,64,0.3,1982,Gold,64,active
+Pondicherry University,Puducherry,Puducherry,A,95,University,60,0.4,1985,Silver,56,active
+GITAM Visakhapatnam,Visakhapatnam,Andhra Pradesh,A,65,Private,70,2.5,1980,Gold,77,active
+KL University,Vijayawada,Andhra Pradesh,A++,49,Private,78,2.0,1980,Platinum,89,active
+SASTRA Thanjavur,Thanjavur,Tamil Nadu,A++,39,Private,80,1.5,1984,Platinum,84,active
+Kalasalingam University,Krishnankoil,Tamil Nadu,A,100,Private,65,1.4,1984,Silver,58,active
+Karunya University,Coimbatore,Tamil Nadu,A,110,Private,68,1.6,1986,Gold,77,active
+Sathyabama Chennai,Chennai,Tamil Nadu,A,90,Private,72,1.5,1987,Silver,51,active
+Hindustan Chennai,Chennai,Tamil Nadu,A,130,Private,65,1.6,1985,Gold,61,active
+B S Abdur Rahman,Chennai,Tamil Nadu,A,200,Private,60,1.4,1984,Gold,68,active
+Vellore Institute Bhopal,Bhopal,Madhya Pradesh,A,145,Private,70,2.0,2010,Gold,74,active
+Vellore Institute Amaravati,Amaravati,Andhra Pradesh,A,155,Private,68,2.0,2017,Gold,75,active
+GSCASR Visakhapatnam,Visakhapatnam,Andhra Pradesh,B,270,Private,50,1.5,2008,Silver,47,active
+Lovely Professional Univ,Phagwara,Punjab,A+,55,Private,75,2.5,2005,Gold,78,active
+GBPUAT Pantnagar,Pantnagar,Uttarakhand,A,70,University,65,0.5,1960,Gold,72,active
+MIT World Peace Pune,Pune,Maharashtra,A,200,Private,60,2.5,1983,Gold,61,active
+Bharati Vidyapeeth Pune,Pune,Maharashtra,A+,95,Private,70,2.0,1964,Gold,63,active
+Symbiosis Hyderabad,Hyderabad,Telangana,A+,165,Private,75,4.5,2008,Platinum,84,active
+ICFAI Hyderabad,Hyderabad,Telangana,A,210,Private,65,3.0,1995,Silver,51,active
+Mahindra University,Hyderabad,Telangana,A,245,Private,70,4.0,2014,Gold,69,active
+Anurag University,Hyderabad,Telangana,A,230,Private,62,1.8,2007,Silver,54,active
+VIT-AP Amaravati,Amaravati,Andhra Pradesh,A,158,Private,72,2.5,2017,Gold,73,active
+BIT Mesra,Ranchi,Jharkhand,A+,42,Private,80,1.8,1955,Gold,77,active
+Christ Pune,Pune,Maharashtra,A,175,Private,68,2.5,2015,Gold,62,active
+Pearl Academy Delhi,New Delhi,Delhi,A,250,Private,65,4.5,1993,Gold,71,active
+NIFT Delhi,New Delhi,Delhi,A+,80,NIFT,85,1.5,1986,Platinum,89,active
+NIFT Mumbai,Mumbai,Maharashtra,A+,90,NIFT,80,1.5,1995,Gold,74,active
+NIFT Bangalore,Bengaluru,Karnataka,A+,85,NIFT,82,1.5,1995,Gold,73,active
+NID Ahmedabad,Ahmedabad,Gujarat,A+,60,NID,88,3.0,1961,Platinum,87,active
+NLSIU Bangalore,Bengaluru,Karnataka,A++,1,Law,100,3.0,1986,Platinum,100,active
+NALSAR Hyderabad,Hyderabad,Telangana,A++,2,Law,100,2.8,1998,Platinum,96,active
+AIIMS Delhi,New Delhi,Delhi,A++,1,Medical,100,0.6,1956,Platinum,89,active
+PGIMER Chandigarh,Chandigarh,Punjab,A++,2,Medical,100,0.5,1962,Platinum,84,active
+CMC Vellore,Vellore,Tamil Nadu,A++,3,Medical,100,1.5,1900,Platinum,92,active

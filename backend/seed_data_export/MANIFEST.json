@@ -1,0 +1,18 @@
+{
+  "generated_at": "2026-05-01T14:36:18.124984+00:00",
+  "files": [
+    "users.json",
+    "users.csv",
+    "students.csv",
+    "mentors.csv",
+    "colleges.csv",
+    "colleges.json",
+    "internships.csv",
+    "events.csv",
+    "kpi_dashboard.json",
+    "analytics_events.csv",
+    "analytics_events.json"
+  ],
+  "credentials": "All seeded users use password: TestPass@123",
+  "scope": "1360 users (1000 students + 200 mentors + 140 colleges + 20 admins) + 300 internships + 100 events"
+}

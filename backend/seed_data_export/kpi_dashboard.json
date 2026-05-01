@@ -1,0 +1,79 @@
+{
+  "summary": {
+    "total_users": 1473,
+    "by_role": {
+      "admin": 22,
+      "student": 1055,
+      "alumni": 28,
+      "mentor": 222,
+      "college": 146
+    },
+    "by_tier": {
+      "Bronze": 261,
+      "Silver": 285,
+      "Gold": 360,
+      "Platinum": 294
+    }
+  },
+  "students_by_tier": {
+    "Bronze": 213,
+    "Silver": 216,
+    "Gold": 304,
+    "Platinum": 267
+  },
+  "mentors_by_tier": {
+    "Bronze": 48,
+    "Silver": 69,
+    "Gold": 56,
+    "Platinum": 27
+  },
+  "colleges_by_tier": {
+    "Bronze": 0,
+    "Silver": 0,
+    "Gold": 0,
+    "Platinum": 0
+  },
+  "avg_tier_score_by_role": {
+    "student": 62.72,
+    "mentor": 57.89
+  },
+  "top_colleges_by_student_count": {
+    "PDPU Gandhinagar": 17,
+    "VNIT Nagpur": 15,
+    "Lovely Professional Univ": 14,
+    "B S Abdur Rahman": 13,
+    "BVB Hubli": 13,
+    "DAIICT Gandhinagar": 13,
+    "St Stephens College": 13,
+    "MIT World Peace Pune": 12,
+    "Symbiosis Hyderabad": 12,
+    "Sharda University": 11,
+    "Christ Pune": 11,
+    "Pune Institute of Computer Tech": 11,
+    "Sathyabama Chennai": 11,
+    "Bennett University": 11,
+    "BITS Pilani": 10
+  },
+  "skills_top_20": {
+    "Python": 88,
+    "React": 86,
+    "Leadership": 84,
+    "Machine Learning": 79,
+    "Scikit-learn": 77,
+    "Smart Contracts": 74,
+    "Jenkins": 72,
+    "Java": 71,
+    "Problem Solving": 70,
+    "UI Design": 70,
+    "Terraform": 70,
+    "DSA": 70,
+    "Go": 68,
+    "Kubernetes": 68,
+    "C++": 67,
+    "PostgreSQL": 67,
+    "Ethereum": 67,
+    "Django": 66,
+    "gRPC": 66,
+    "Scrum": 65
+  }
+}

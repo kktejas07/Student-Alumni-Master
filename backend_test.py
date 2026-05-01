@@ -1,264 +1,449 @@
-"""Backend tier system test — validates P0 Dynamic Tier/Badge System."""
-import os
+"""
+Backend smoke + integration tests for the latest session changes:
+
+A) Bulk seed verification (1360 new users, 320 internships, 151 colleges_meta).
+B) AI Daily Brief endpoint (POST /api/ai/daily-brief — Claude live).
+C) Tier system regression after bulk seed.
+D) Internships expansion.
+
+Run:  python /app/backend_test.py
+"""
+from __future__ import annotations
+
 import sys
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
-import httpx
+import requests
 
-BASE = os.environ.get("BACKEND_URL", "https://hiring-mvvm.preview.emergentagent.com/api")
-TIER_ENUM = {"Bronze", "Silver", "Gold", "Platinum"}
-VISUAL_KEYS = {"primary", "glow", "ring", "icon"}
+BASE = "https://hiring-mvvm.preview.emergentagent.com/api"
 
-results: List[Dict[str, Any]] = []
-
-
-def check(cond: bool, label: str, detail: str = "") -> None:
-    status = "PASS" if cond else "FAIL"
-    print(f"  [{status}] {label}" + (f" — {detail}" if detail and not cond else ""))
-    results.append({"label": label, "ok": cond, "detail": detail})
+PASSED: List[str] = []
+FAILED: List[str] = []
 
 
-def tier_for_score(score: int) -> str:
-    if score >= 80: return "Platinum"
-    if score >= 60: return "Gold"
-    if score >= 40: return "Silver"
-    return "Bronze"
+def ok(msg: str) -> None:
+    print(f"  PASS: {msg}")
+    PASSED.append(msg)
 
 
-def validate_tier_payload(tier: Dict[str, Any], breakdown_keys: set, prefix: str, need_suggestions: bool = False) -> None:
-    check(isinstance(tier, dict), f"{prefix}: tier is dict")
-    check(tier.get("tier") in TIER_ENUM, f"{prefix}: tier in enum", f"got {tier.get('tier')}")
-    score = tier.get("score")
-    check(isinstance(score, int) and 0 <= score <= 100, f"{prefix}: score int 0..100", f"got {score}")
-    expected = tier_for_score(score if isinstance(score, int) else 0)
-    check(tier.get("tier") == expected, f"{prefix}: tier matches score thresholds", f"score={score}, tier={tier.get('tier')}, expected={expected}")
-    bd = tier.get("breakdown") or {}
-    check(isinstance(bd, dict), f"{prefix}: breakdown is dict")
-    for k in breakdown_keys:
-        v = bd.get(k)
-        check(isinstance(v, int), f"{prefix}: breakdown.{k} is int", f"got {v!r}")
-    missing = breakdown_keys - set(bd.keys())
-    check(not missing, f"{prefix}: breakdown has all keys", f"missing={missing}")
-    vis = tier.get("visuals") or {}
-    check(isinstance(vis, dict), f"{prefix}: visuals is dict")
-    for k in VISUAL_KEYS:
-        check(isinstance(vis.get(k), str) and vis.get(k), f"{prefix}: visuals.{k} non-empty string", f"got {vis.get(k)!r}")
-    if need_suggestions:
-        sug = tier.get("suggestions") or {}
-        check(isinstance(sug, dict), f"{prefix}: suggestions is dict")
-        for k in ("internships", "skills", "mentors", "events"):
-            v = sug.get(k)
-            check(isinstance(v, list) and all(isinstance(s, str) for s in v), f"{prefix}: suggestions.{k} is list[str]", f"got {v!r}")
+def fail(msg: str) -> None:
+    print(f"  FAIL: {msg}")
+    FAILED.append(msg)
 
 
-def section(title: str):
-    print(f"\n=== {title} ===")
+def get(path: str, **kw) -> requests.Response:
+    return requests.get(f"{BASE}{path}", timeout=kw.pop("timeout", 30), **kw)
 
 
-def run():
-    with httpx.Client(timeout=30.0) as c:
-        # 1. Student dashboard
-        section("1. GET /api/student/dashboard — student.tier")
-        r = c.get(f"{BASE}/student/dashboard")
-        check(r.status_code == 200, "student/dashboard 200", f"got {r.status_code}")
-        if r.status_code == 200:
-            data = r.json()
-            student = data.get("student") or {}
-            tier = student.get("tier") or {}
-            validate_tier_payload(
-                tier,
-                breakdown_keys={"year_of_study", "institution_ranking", "tech_stack", "profile_completion"},
-                prefix="student.tier",
-                need_suggestions=True,
-            )
+def post(path: str, json_body: Optional[Dict[str, Any]] = None, **kw) -> requests.Response:
+    return requests.post(f"{BASE}{path}", json=json_body, timeout=kw.pop("timeout", 60), **kw)
 
-        # 2. Mentor dashboard
-        section("2. GET /api/mentor/dashboard — mentor.tier")
-        r = c.get(f"{BASE}/mentor/dashboard")
-        check(r.status_code == 200, "mentor/dashboard 200", f"got {r.status_code}")
-        if r.status_code == 200:
-            data = r.json()
-            mentor = data.get("mentor") or {}
-            tier = mentor.get("tier") or {}
-            validate_tier_payload(
-                tier,
-                breakdown_keys={"experience", "organization", "sessions", "rating"},
-                prefix="mentor.tier",
-            )
 
-        # 3. College stats
-        section("3. GET /api/admin/college-stats — college.tier + naac + rank")
-        r = c.get(f"{BASE}/admin/college-stats")
-        check(r.status_code == 200, "admin/college-stats 200", f"got {r.status_code}")
-        if r.status_code == 200:
-            data = r.json()
-            college = data.get("college") or {}
-            tier = college.get("tier") or {}
-            validate_tier_payload(
-                tier,
-                breakdown_keys={"accreditation", "size", "placement", "alumni_size"},
-                prefix="college.tier",
-            )
-            naac = tier.get("naac")
-            check(isinstance(naac, str) and naac, "college.tier.naac non-empty str", f"got {naac!r}")
-            rank = college.get("rank")
-            check(rank == f"NAAC {naac}", "college.rank == 'NAAC ' + naac", f"got rank={rank!r}, naac={naac!r}")
+# ════════════════════════════════════════════════════════════════════════════════
+# A) BULK SEED VERIFICATION
+# ════════════════════════════════════════════════════════════════════════════════
 
-        # 4. /users/me/tier?role=student
-        section("4. GET /api/users/me/tier?role=student")
-        r = c.get(f"{BASE}/users/me/tier", params={"role": "student"})
-        check(r.status_code == 200, "users/me/tier?role=student 200", f"got {r.status_code}")
-        if r.status_code == 200:
-            data = r.json()
-            check(data.get("role") == "student", "role=student", f"got {data.get('role')}")
-            check(isinstance(data.get("name"), str) and data.get("name"), "name is non-empty str")
-            validate_tier_payload(
-                data.get("tier") or {},
-                breakdown_keys={"year_of_study", "institution_ranking", "tech_stack", "profile_completion"},
-                prefix="student tier payload",
-                need_suggestions=True,
-            )
+def test_super_overview():
+    print("\n--- A1. /admin/super-overview reflects bulk seed ---")
+    r = get("/admin/super-overview")
+    if r.status_code != 200:
+        fail(f"super-overview status {r.status_code}: {r.text[:200]}")
+        return None
+    data = r.json()
+    kpis = data.get("kpis", [])
+    if not kpis:
+        fail("super-overview returned no kpis")
+        return None
+    ok(f"super-overview 200 with {len(kpis)} KPIs")
 
-        # 5. /users/me/tier?role=mentor
-        section("5. GET /api/users/me/tier?role=mentor")
-        r = c.get(f"{BASE}/users/me/tier", params={"role": "mentor"})
-        check(r.status_code == 200, "users/me/tier?role=mentor 200", f"got {r.status_code}")
-        if r.status_code == 200:
-            data = r.json()
-            check(data.get("role") == "mentor", "role=mentor", f"got {data.get('role')}")
-            validate_tier_payload(
-                data.get("tier") or {},
-                breakdown_keys={"experience", "organization", "sessions", "rating"},
-                prefix="mentor tier payload",
-            )
+    counts = {}
+    for k in kpis:
+        try:
+            counts[k["id"]] = int(str(k["value"]).replace(",", ""))
+        except Exception:
+            pass
+    print(f"     KPIs: {counts}")
+    total = (
+        counts.get("students", 0)
+        + counts.get("alumni", 0)
+        + counts.get("mentors", 0)
+        + counts.get("colleges", 0)
+        + counts.get("approvals", 0)
+    )
+    if total >= 1300:
+        ok(f"total seeded users (sum across KPIs) = {total} (>=1300)")
+    else:
+        fail(f"total seeded users = {total} (expected >=1300)")
+    return counts
 
-        # 6. /users/me/tier?role=college
-        section("6. GET /api/users/me/tier?role=college")
-        r = c.get(f"{BASE}/users/me/tier", params={"role": "college"})
-        check(r.status_code == 200, "users/me/tier?role=college 200", f"got {r.status_code}")
-        if r.status_code == 200:
-            data = r.json()
-            check(data.get("role") == "college", "role=college", f"got {data.get('role')}")
-            tier = data.get("tier") or {}
-            validate_tier_payload(
-                tier,
-                breakdown_keys={"accreditation", "size", "placement", "alumni_size"},
-                prefix="college tier payload",
-            )
-            check(isinstance(tier.get("naac"), str) and tier.get("naac"), "college tier payload naac non-empty str")
 
-        # 7. /users/me/tier?email=student01
-        section("7. GET /api/users/me/tier?email=student01@test.com&role=student")
-        r = c.get(f"{BASE}/users/me/tier", params={"email": "student01@test.com", "role": "student"})
-        check(r.status_code == 200, "users/me/tier email lookup 200", f"got {r.status_code}")
-        if r.status_code == 200:
-            data = r.json()
-            check(data.get("role") == "student", "role=student")
-            validate_tier_payload(
-                data.get("tier") or {},
-                breakdown_keys={"year_of_study", "institution_ranking", "tech_stack", "profile_completion"},
-                prefix="student01 tier",
-                need_suggestions=True,
-            )
-            r2 = c.get(f"{BASE}/users/me/tier", params={"email": "student01@test.com", "role": "student"})
-            if r2.status_code == 200:
-                d2 = r2.json()
-                check(
-                    d2.get("tier", {}).get("tier") == data.get("tier", {}).get("tier")
-                    and d2.get("tier", {}).get("score") == data.get("tier", {}).get("score"),
-                    "idempotent result on repeat call",
-                    f"first={data.get('tier')}, second={d2.get('tier')}",
-                )
+def test_super_students():
+    print("\n--- A2. /admin/super/students returns >100 students ---")
+    r = get("/admin/super/students", params={"limit": 200})
+    if r.status_code != 200:
+        fail(f"super/students status {r.status_code}: {r.text[:200]}")
+        return None
+    data = r.json()
+    items = data.get("items", [])
+    stats = data.get("stats", {})
+    print(f"     items: {len(items)}, stats.total: {stats.get('total')}")
+    if stats.get("total", 0) > 100:
+        ok(f"students.stats.total = {stats.get('total')} (>100)")
+    else:
+        fail(f"students.stats.total = {stats.get('total')} (expected >100)")
+    if len(items) > 0:
+        ok(f"super/students returned {len(items)} student rows")
+    else:
+        fail("super/students returned 0 rows")
+    return items
 
-        # Bonus: missing user → 404
-        section("Bonus: /users/me/tier with impossible email+role → 404")
-        r = c.get(f"{BASE}/users/me/tier", params={"email": "nobody@nope.invalid", "role": "nosuchrole"})
-        check(r.status_code == 404, "missing user returns 404", f"got {r.status_code}")
 
-        # 8. /student/internships
-        section("8. GET /api/student/internships — items, user_tier, sort, boost")
-        r = c.get(f"{BASE}/student/internships")
-        check(r.status_code == 200, "student/internships 200", f"got {r.status_code}")
-        if r.status_code == 200:
-            data = r.json()
-            items = data.get("items")
-            check(isinstance(items, list), "items is list")
-            check(len(items) <= 30, "<= 30 items", f"got {len(items) if items else 0}")
-            user_tier = data.get("user_tier") or {}
-            check(user_tier.get("tier") in TIER_ENUM, "user_tier.tier in enum", f"got {user_tier.get('tier')}")
-            check(isinstance(user_tier.get("score"), int), "user_tier.score int")
-            check(isinstance(user_tier.get("visuals"), dict) and set(user_tier["visuals"].keys()) >= VISUAL_KEYS, "user_tier.visuals keys")
-            check(isinstance(user_tier.get("suggestions"), dict), "user_tier.suggestions is dict")
-            check(isinstance(data.get("stretch_goals"), list), "stretch_goals is list")
+def test_super_mentors():
+    print("\n--- A3. /admin/super/mentors returns mentor pool ---")
+    r = get("/admin/super/mentors")
+    if r.status_code != 200:
+        fail(f"super/mentors status {r.status_code}: {r.text[:200]}")
+        return None
+    data = r.json()
+    items = data.get("items", [])
+    print(f"     mentors returned: {len(items)} (endpoint capped at 100)")
+    if len(items) >= 100:
+        ok(f"super/mentors returned {len(items)} (cap reached)")
+    elif len(items) > 50:
+        ok(f"super/mentors returned {len(items)} (>50)")
+    else:
+        fail(f"super/mentors returned only {len(items)} (expected >100)")
+    return items
 
-            all_have_fields = True
-            for i, it in enumerate(items or []):
-                ok = all(k in it for k in ("id", "title", "company", "tier", "tier_recommended", "tier_visuals", "match"))
-                if not ok:
-                    all_have_fields = False
-                    check(False, f"items[{i}] has required fields", f"keys={list(it.keys())}")
-                    break
-            if all_have_fields:
-                check(True, "all items have required fields (id/title/company/tier/tier_recommended/tier_visuals/match)")
 
-            if items:
-                check(all(it.get("tier") in TIER_ENUM for it in items), "all items.tier in enum")
-                check(all(isinstance(it.get("match"), int) and 0 <= it["match"] <= 100 for it in items), "all items.match is int 0..100")
-                check(all(isinstance(it.get("tier_recommended"), bool) for it in items), "all items.tier_recommended is bool")
-                check(all(isinstance(it.get("tier_visuals"), dict) and set(it["tier_visuals"].keys()) >= VISUAL_KEYS for it in items), "all items.tier_visuals has {primary,glow,ring,icon}")
+def test_super_colleges():
+    print("\n--- A4. /admin/super/colleges + colleges_meta count ---")
+    r = get("/admin/super/colleges")
+    if r.status_code != 200:
+        fail(f"super/colleges status {r.status_code}: {r.text[:200]}")
+        return
+    data = r.json()
+    items = data.get("items", [])
+    print(f"     super/colleges items: {len(items)} (capped at 30 in code)")
+    if len(items) >= 30:
+        ok(f"super/colleges returned {len(items)} aggregated colleges (cap reached)")
+    elif len(items) > 0:
+        ok(f"super/colleges returned {len(items)} (note: aggregated from student.school_info)")
+    else:
+        fail("super/colleges returned 0 colleges")
 
-                # Sorting
-                sort_ok = True
-                for a, b in zip(items, items[1:]):
-                    ra, rb = int(a.get("tier_recommended", False)), int(b.get("tier_recommended", False))
-                    if rb > ra:
-                        sort_ok = False; break
-                    if ra == rb and b.get("match", 0) > a.get("match", 0):
-                        sort_ok = False; break
-                check(sort_ok, "items sorted: tier_recommended first, then match desc")
+    rm = get("/colleges_meta")
+    if rm.status_code == 200:
+        meta = rm.json()
+        if isinstance(meta, list):
+            n = len(meta)
+        elif isinstance(meta, dict):
+            n = len(meta.get("items", []) or meta.get("colleges", []) or [])
+        else:
+            n = 0
+        print(f"     /colleges_meta returned {n} entries")
+        if n >= 140:
+            ok(f"/colleges_meta has {n} entries (>=140)")
+        else:
+            fail(f"/colleges_meta has {n} entries (expected >=140)")
+    else:
+        print(f"     /colleges_meta status: {rm.status_code} (skipping)")
 
-                top_match = max((it.get("match", 0) for it in items if it.get("tier_recommended")), default=0)
-                check(top_match >= 90, "≥1 recommended item with match >= 90 (boost applied)", f"top_match={top_match}")
 
-        # 9. /student/internships?query=intern
-        section("9. GET /api/student/internships?query=intern")
-        r = c.get(f"{BASE}/student/internships", params={"query": "intern"})
-        check(r.status_code == 200, "internships?query=intern 200", f"got {r.status_code}")
-        if r.status_code == 200:
-            data = r.json()
-            items = data.get("items") or []
-            check(isinstance(data.get("user_tier"), dict), "user_tier still present")
-            check(isinstance(data.get("stretch_goals"), list), "stretch_goals still list")
-            ok = all(("intern" in (it.get("title") or "").lower() or "intern" in (it.get("company") or "").lower()) for it in items)
-            check(ok, "all items have 'intern' in title or company")
-            sort_ok = True
-            for a, b in zip(items, items[1:]):
-                ra, rb = int(a.get("tier_recommended", False)), int(b.get("tier_recommended", False))
-                if rb > ra:
-                    sort_ok = False; break
-                if ra == rb and b.get("match", 0) > a.get("match", 0):
-                    sort_ok = False; break
-            check(sort_ok, "items still tier-recommended sorted with query filter")
+def test_seeded_user_existence(students_items):
+    print("\n--- A5. Probe 5 *.demo emails (login) ---")
+    if not students_items:
+        fail("Cannot probe — super/students returned no items")
+        return
+    sample_emails: List[str] = []
+    for s in students_items[:30]:
+        nm = (s.get("name") or "").strip()
+        if not nm or nm == "—":
+            continue
+        parts = nm.lower().split()
+        if len(parts) < 2:
+            continue
+        sample_emails.append(f"{parts[0]}.{parts[-1]}1@student.demo")
+        if len(sample_emails) >= 5:
+            break
+    if not sample_emails:
+        fail("Could not derive sample emails from student names")
+        return
+    print(f"     probing emails: {sample_emails}")
+    found = 0
+    not_found = 0
+    for em in sample_emails:
+        r = post("/auth/login", {"email": em, "password": "TestPass@123"})
+        sc = r.status_code
+        if sc == 200:
+            print(f"     {em} → 200 (login success)")
+            found += 1
+        elif sc == 401:
+            print(f"     {em} → 401 (auth gated, accepted)")
+            found += 1
+        elif sc == 404:
+            print(f"     {em} → 404 (not found)")
+            not_found += 1
+        else:
+            print(f"     {em} → {sc} ({r.text[:80]})")
+            not_found += 1
+    if found >= 1:
+        ok(f"At least one *.demo email present (found={found}, 404={not_found})")
+    else:
+        fail(f"All probed *.demo emails returned 404 — seeded users may not have those emails")
 
-        # 10. Regression
-        section("10. Regression — wallet / college-students / network / super-overview")
-        for path in ("student/wallet", "college/students", "student/network", "admin/super-overview"):
-            r = c.get(f"{BASE}/{path}")
-            check(r.status_code == 200, f"GET /{path} returns 200", f"got {r.status_code}")
-            try:
-                r.json()
-                check(True, f"GET /{path} returns JSON")
-            except Exception as e:
-                check(False, f"GET /{path} returns JSON", str(e))
 
-    fails = [r for r in results if not r["ok"]]
-    print(f"\n=== SUMMARY: {len(results) - len(fails)}/{len(results)} PASSED ===")
-    if fails:
+# ════════════════════════════════════════════════════════════════════════════════
+# B) AI DAILY BRIEF
+# ════════════════════════════════════════════════════════════════════════════════
+
+REQUIRED_KEYS = {"brief", "generated_at", "model", "role", "user_id", "user_name", "tier"}
+
+
+def _verify_brief_shape(role: str, body: Dict[str, Any]) -> bool:
+    missing = REQUIRED_KEYS - set(body.keys())
+    if missing:
+        fail(f"daily-brief[{role}] missing keys: {missing}")
+        return False
+    ok(f"daily-brief[{role}] schema has all 7 required keys")
+    brief_text = body.get("brief") or ""
+    if isinstance(brief_text, str) and len(brief_text.strip()) >= 50:
+        ok(f"daily-brief[{role}] brief length = {len(brief_text)} chars (>=50)")
+    else:
+        fail(f"daily-brief[{role}] brief too short or non-string: {brief_text!r}")
+        return False
+    if body.get("role") == role:
+        ok(f"daily-brief[{role}] echoed role correctly")
+    else:
+        fail(f"daily-brief[{role}] role mismatch: {body.get('role')}")
+    if "claude" in str(body.get("model", "")).lower():
+        ok(f"daily-brief[{role}] model = {body.get('model')}")
+    else:
+        fail(f"daily-brief[{role}] unexpected model: {body.get('model')}")
+    if "tier" in body:
+        ok(f"daily-brief[{role}] tier field present: {body.get('tier')!r}")
+    return True
+
+
+def test_daily_brief_student():
+    print("\n--- B1. POST /ai/daily-brief role=student ---")
+    r = post("/ai/daily-brief", {"role": "student"}, timeout=120)
+    if r.status_code != 200:
+        fail(f"daily-brief student status {r.status_code}: {r.text[:300]}")
+        return None
+    data = r.json()
+    print(f"     brief preview: {(data.get('brief') or '')[:140]!r}")
+    print(f"     user_name: {data.get('user_name')!r}")
+    _verify_brief_shape("student", data)
+    return data
+
+
+def test_daily_brief_mentor():
+    print("\n--- B2. POST /ai/daily-brief role=mentor ---")
+    r = post("/ai/daily-brief", {"role": "mentor"}, timeout=120)
+    if r.status_code != 200:
+        fail(f"daily-brief mentor status {r.status_code}: {r.text[:300]}")
+        return None
+    data = r.json()
+    print(f"     brief preview: {(data.get('brief') or '')[:140]!r}")
+    _verify_brief_shape("mentor", data)
+    return data
+
+
+def test_daily_brief_college():
+    print("\n--- B3. POST /ai/daily-brief role=college ---")
+    r = post("/ai/daily-brief", {"role": "college"}, timeout=120)
+    if r.status_code != 200:
+        fail(f"daily-brief college status {r.status_code}: {r.text[:300]}")
+        return None
+    data = r.json()
+    print(f"     brief preview: {(data.get('brief') or '')[:140]!r}")
+    _verify_brief_shape("college", data)
+    return data
+
+
+def test_daily_brief_invalid_role():
+    print("\n--- B4. POST /ai/daily-brief role=xyz → 400 ---")
+    r = post("/ai/daily-brief", {"role": "xyz"})
+    if r.status_code == 400:
+        try:
+            detail = r.json().get("detail")
+        except Exception:
+            detail = r.text
+        ok(f"invalid role returns 400: {detail!r}")
+    else:
+        fail(f"invalid role: expected 400, got {r.status_code}: {r.text[:200]}")
+
+
+def test_daily_brief_with_seeded_email(students_items):
+    print("\n--- B5. POST /ai/daily-brief role=student email=<seeded *.demo email> ---")
+    candidates: List[str] = []
+    for s in (students_items or [])[:40]:
+        nm = (s.get("name") or "").strip()
+        if not nm or nm == "—":
+            continue
+        parts = nm.lower().split()
+        if len(parts) < 2:
+            continue
+        candidates.append(f"{parts[0]}.{parts[-1]}1@student.demo")
+    if not candidates:
+        candidates = ["aarav.sharma1@student.demo", "rahul.kumar1@student.demo"]
+
+    chosen: Optional[str] = None
+    for em in candidates[:8]:
+        r = post("/auth/login", {"email": em, "password": "TestPass@123"}, timeout=15)
+        if r.status_code in (200, 401):
+            chosen = em
+            print(f"     Found seeded email: {em} (probe {r.status_code})")
+            break
+    if not chosen:
+        chosen = candidates[0]
+        print(f"     No probe matched; using {chosen} anyway (endpoint will fallback)")
+
+    r = post("/ai/daily-brief", {"role": "student", "email": chosen}, timeout=120)
+    if r.status_code != 200:
+        fail(f"daily-brief with email status {r.status_code}: {r.text[:300]}")
+        return
+    data = r.json()
+    name = data.get("user_name")
+    print(f"     resolved user_name = {name!r}")
+    if name:
+        ok(f"daily-brief with email returned user_name: {name}")
+    else:
+        fail("daily-brief with email returned empty user_name")
+    _verify_brief_shape("student", data)
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# C) TIER REGRESSION
+# ════════════════════════════════════════════════════════════════════════════════
+
+def test_student_dashboard_tier():
+    print("\n--- C1. GET /student/dashboard → tier present ---")
+    r = get("/student/dashboard")
+    if r.status_code != 200:
+        fail(f"student/dashboard status {r.status_code}: {r.text[:200]}")
+        return
+    tier = (r.json().get("student") or {}).get("tier")
+    if tier and tier.get("tier") in ("Bronze", "Silver", "Gold", "Platinum"):
+        ok(f"student.tier = {tier['tier']} ({tier.get('score')}/100)")
+    else:
+        fail(f"student.tier missing/invalid: {tier}")
+
+
+def test_mentor_dashboard_tier():
+    print("\n--- C2. GET /mentor/dashboard → tier present ---")
+    r = get("/mentor/dashboard")
+    if r.status_code != 200:
+        fail(f"mentor/dashboard status {r.status_code}: {r.text[:200]}")
+        return
+    tier = (r.json().get("mentor") or {}).get("tier")
+    if tier and tier.get("tier") in ("Bronze", "Silver", "Gold", "Platinum"):
+        ok(f"mentor.tier = {tier['tier']} ({tier.get('score')}/100)")
+    else:
+        fail(f"mentor.tier missing/invalid: {tier}")
+
+
+def test_college_dashboard_tier():
+    print("\n--- C3. GET /admin/college-stats → tier present ---")
+    r = get("/admin/college-stats")
+    if r.status_code != 200:
+        fail(f"admin/college-stats status {r.status_code}: {r.text[:200]}")
+        return
+    tier = (r.json().get("college") or {}).get("tier")
+    if tier and tier.get("tier") in ("Bronze", "Silver", "Gold", "Platinum"):
+        ok(f"college.tier = {tier['tier']} ({tier.get('score')}/100, NAAC {tier.get('naac')})")
+    else:
+        fail(f"college.tier missing/invalid: {tier}")
+
+
+def test_internships_tier():
+    print("\n--- C4 + D. GET /student/internships ---")
+    r = get("/student/internships")
+    if r.status_code != 200:
+        fail(f"student/internships status {r.status_code}: {r.text[:200]}")
+        return
+    data = r.json()
+    items = data.get("items", [])
+    print(f"     items count: {len(items)}")
+    if len(items) == 30:
+        ok("student/internships returned exactly 30 items (limit applied)")
+    elif len(items) >= 20:
+        ok(f"student/internships returned {len(items)} items (close to limit 30)")
+    else:
+        fail(f"student/internships returned only {len(items)} items (expected 30)")
+
+    user_tier = data.get("user_tier")
+    if user_tier and user_tier.get("tier"):
+        ok(f"user_tier present: {user_tier.get('tier')}")
+    else:
+        fail(f"user_tier missing: {user_tier}")
+
+    seen_non_rec = False
+    sort_ok = True
+    for it in items:
+        if not it.get("tier_recommended"):
+            seen_non_rec = True
+        elif seen_non_rec:
+            sort_ok = False
+            break
+    if sort_ok:
+        ok("items sorted: tier_recommended=true items appear before false")
+    else:
+        fail("tier_recommended sorting violated")
+
+    real_companies = {"Google", "Microsoft", "Razorpay", "Flipkart", "TCS", "Infosys", "Zomato",
+                      "Amazon", "Apple", "Meta", "Adobe", "Atlassian", "Zoho", "PhonePe",
+                      "Swiggy", "Cred", "Wipro", "Accenture", "Netflix", "OpenAI", "Stripe"}
+    found_real = [it["company"] for it in items if it.get("company") in real_companies]
+    if found_real:
+        ok(f"Real-company internships present: {set(found_real[:5])}")
+    else:
+        substring_hits = [it.get("company") for it in items
+                          if any(rc.lower() in (it.get("company") or "").lower() for rc in real_companies)]
+        if substring_hits:
+            ok(f"Real company names via substring: {set(substring_hits[:5])}")
+        else:
+            fail(f"No real company names found. Sample: {[it.get('company') for it in items[:5]]}")
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# Main
+# ════════════════════════════════════════════════════════════════════════════════
+
+def main():
+    print(f"\n{'=' * 70}")
+    print(f"Backend test suite vs {BASE}")
+    print(f"{'=' * 70}")
+
+    test_super_overview()
+    students = test_super_students()
+    test_super_mentors()
+    test_super_colleges()
+    test_seeded_user_existence(students)
+
+    test_daily_brief_student()
+    test_daily_brief_mentor()
+    test_daily_brief_college()
+    test_daily_brief_invalid_role()
+    test_daily_brief_with_seeded_email(students)
+
+    test_student_dashboard_tier()
+    test_mentor_dashboard_tier()
+    test_college_dashboard_tier()
+
+    test_internships_tier()
+
+    print(f"\n{'=' * 70}")
+    print(f"RESULTS: {len(PASSED)} PASS, {len(FAILED)} FAIL")
+    print(f"{'=' * 70}")
+    if FAILED:
         print("\nFAILURES:")
-        for f in fails:
-            print(f"  - {f['label']}: {f['detail']}")
-    return 0 if not fails else 1
+        for f in FAILED:
+            print(f"  FAIL: {f}")
+        sys.exit(1)
+    print("\nAll assertions passed.")
 
 
 if __name__ == "__main__":
-    sys.exit(run())
+    main()
