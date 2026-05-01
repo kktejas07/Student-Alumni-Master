@@ -140,7 +140,9 @@ class SchoolInfo(BaseModel):
     """Institution / education info common to all roles."""
     institution_name: str
     institution_type: Literal["school", "college", "university"] = "college"
-    class_or_year: str  # e.g. "11", "12", "B.Tech 2nd Year", "MBA 1st Year"
+    # Made optional — in the new onboarding flow we collect graduation_year +
+    # branch_or_stream instead, and this field is derived downstream when needed.
+    class_or_year: Optional[str] = None
     branch_or_stream: Optional[str] = None
     board_or_university: Optional[str] = None
     city: Optional[str] = None
@@ -488,6 +490,33 @@ async def register(req: RegisterRequest):
         refresh_token=create_refresh_token(user_id),
         user=UserResponse(**serialize_user(user_doc)),
     )
+
+
+class CheckEmailRequest(BaseModel):
+    email: EmailStr
+
+
+@api_router.post("/auth/check-email")
+async def check_email(req: CheckEmailRequest):
+    """Smart Email Detect (per HTML spec) — checks whether an email already has
+    an account so the client can decide whether to route to Login (existing)
+    or Register (new). Also returns the user's role if we have one, so Login
+    can show the correct branding.
+
+    NOTE: This endpoint intentionally reveals account existence — it's the
+    explicit UX contract of the Smart Email Detect screen in the spec. Rate
+    limiting is the responsibility of the ingress layer.
+    """
+    email = req.email.lower().strip()
+    user = await db.users.find_one({"email": email}, {"role": 1, "full_name": 1, "onboarding_completed": 1})
+    if not user:
+        return {"exists": False}
+    return {
+        "exists": True,
+        "role": user.get("role"),
+        "full_name": user.get("full_name"),
+        "onboarding_completed": user.get("onboarding_completed", False),
+    }
 
 
 @api_router.post("/auth/login")

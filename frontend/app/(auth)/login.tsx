@@ -50,10 +50,11 @@ function LinkedInIn({ size = 18 }: { size?: number }) {
 
 export default function LoginScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ role?: Role }>();
+  const params = useLocalSearchParams<{ role?: Role; email?: string }>();
   const role: Role | undefined = params.role as Role;
+  const initialEmail: string = (params.email as string) || '';
 
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);

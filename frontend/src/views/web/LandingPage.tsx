@@ -191,7 +191,7 @@ export default function LandingPage() {
         isMd={isMd}
         onNav={(key) => scrollTo(key)}
         onLogin={() => router.push('/(auth)/login')}
-        onGetStarted={() => router.push('/(auth)/register')}
+        onGetStarted={() => router.push('/(auth)/email-detect')}
       />
 
       <ScrollView
@@ -207,7 +207,7 @@ export default function LandingPage() {
           <Hero
             isMd={isMd}
             isSm={isSm}
-            onGetStarted={() => router.push('/(auth)/register')}
+            onGetStarted={() => router.push('/(auth)/email-detect')}
             onExploreEvents={() => scrollTo('events')}
           />
         </View>
@@ -228,11 +228,11 @@ export default function LandingPage() {
 
         {/* SERVICES */}
         <View onLayout={setPos('services')}>
-          <ServicesSection isMd={isMd} onLearnMore={() => router.push('/(auth)/register')} />
+          <ServicesSection isMd={isMd} onLearnMore={() => router.push('/(auth)/email-detect')} />
         </View>
 
         {/* CTA */}
-        <CtaSection onGetStarted={() => router.push('/(auth)/register')} />
+        <CtaSection onGetStarted={() => router.push('/(auth)/email-detect')} />
 
         {/* FOOTER */}
         <Footer
@@ -690,7 +690,7 @@ function Footer({
         { label: 'Events', onPress: () => onNav('events') },
         { label: 'Services', onPress: () => onNav('services') },
         { label: 'Blogs', onPress: onBlogs },
-        { label: 'Community', onPress: () => router.push('/(auth)/register') },
+        { label: 'Community', onPress: () => router.push('/(auth)/email-detect') },
       ],
     },
     {

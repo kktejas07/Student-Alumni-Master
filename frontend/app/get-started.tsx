@@ -6,7 +6,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowRight } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthShell } from '@/src/views/auth/AuthShell';
@@ -17,6 +17,11 @@ import { trackAuth } from '@/src/lib/authAnalytics';
 
 export default function GetStarted() {
   const router = useRouter();
+  // Email may be forwarded from the Smart Email Detect screen when a user
+  // lands here because their email didn't match any existing account. We
+  // then carry it forward to Register so they don't have to retype it.
+  const params = useLocalSearchParams<{ email?: string }>();
+  const forwardedEmail = params.email as string | undefined;
   const [role, setRole] = useState<Role | null>(null);
 
   useEffect(() => {
@@ -32,9 +37,11 @@ export default function GetStarted() {
   const onContinue = async () => {
     if (!role) return;
     try { await AsyncStorage.setItem('sa_chosen_role', role); } catch {}
-    // User clicked "Get Started" → primary intent is to CREATE a new account.
-    // Route to register (not login) with the chosen role pre-selected.
-    router.push({ pathname: '/(auth)/register', params: { role } });
+    // Route to register with chosen role + forwarded email (if any) so the
+    // form is partially pre-filled — consistent with the spec's Smart flow.
+    const nextParams: Record<string, string> = { role };
+    if (forwardedEmail) nextParams.email = forwardedEmail;
+    router.push({ pathname: '/(auth)/register', params: nextParams });
   };
 
   return (

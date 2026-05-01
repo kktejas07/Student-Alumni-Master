@@ -75,7 +75,7 @@ export default function Welcome() {
                   title="Get started"
                   variant="glass"
                   icon={<ArrowRight size={18} color={C.white} />}
-                  onPress={() => router.push('/(auth)/register')}
+                  onPress={() => router.push('/(auth)/email-detect')}
                   testID="welcome-get-started-btn"
                   size="lg"
                 />

@@ -17,13 +17,14 @@ const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ role?: Role }>();
+  const params = useLocalSearchParams<{ role?: Role; email?: string }>();
   const initialRole: Role = (params.role as Role) || 'student';
+  const initialEmail: string = (params.email as string) || '';
   const [role, setRole] = useState<Role>(initialRole);
   const [showPicker, setShowPicker] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(initialEmail);
   const [pwd, setPwd] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
