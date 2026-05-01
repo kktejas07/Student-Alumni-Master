@@ -2816,6 +2816,43 @@ agent_communication:
         Verification:
           • `grep shadowColor|shadowOffset|shadowOpacity|shadowRadius` → 0 hits
           • Mentor portal screenshot test: 0 page errors, 0 shadow/bg warnings
+
+agent_communication:
+    -agent: "main"
+    -comment: |
+        Student Portal — Full True React Native port complete.
+
+        New files in /app/frontend/src/views/web/portals/student/:
+          - tokens.ts, data.ts, atoms.tsx (shared design system)
+          - Sidebar.tsx (11 nav items + student card pill + logout)
+          - TopBar.tsx (greeting + bell + search + avatar)
+          - StudentPortalRN.tsx (outer shell)
+          - views/DashboardView.tsx (full pixel port)
+          - views/StubView.tsx (stub component for non-ported nav items)
+
+        Updated /app/frontend/app/student-portal.tsx:
+          - Default: renders <StudentPortalRN /> (true RN port)
+          - ?legacy=1 query param: falls back to original iframe HTML for parity check
+
+        Dashboard view sections (true RN):
+          ✅ AI Daily Brief banner with Generate Brief CTA
+          ✅ AI Career Assistant Roadmap card (42% progress, gradient bar, dual CTAs)
+          ✅ 4 KPI tiles (Internship Matches, Courses, Mentors, Career Score)
+          ✅ Top Matches list (Google, Flipkart, Swiggy with match % + type badge)
+          ✅ Recommended Mentors (Dr. Suresh Rao, Nisha Kapoor with Book Session CTA)
+          ✅ Upcoming Events row (HackIndia, DSA Champ, System Design class)
+          ✅ Profile completion CTA card with missing chips
+
+        Stubs for 10 other nav items (Career AI, Internships, Network, Events,
+        Financial, Deals, Wallet, Higher Ed, Rentals, Profile) — 5 deep-link
+        to existing standalone pages, 5 marked "coming next".
+
+        Verification (screenshot tool):
+          ✅ All 11 nav items click successfully
+          ✅ 0 page errors
+          ✅ 0 iframes (pure RN DOM)
+          ✅ Login still routes student → /student-portal correctly
+
           • Console fully clean now
 
           ✅ Firebase + PostHog SDKs bundle cleanly
