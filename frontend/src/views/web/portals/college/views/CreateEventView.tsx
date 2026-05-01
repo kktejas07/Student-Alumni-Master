@@ -5,12 +5,13 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Platform } from 'react-native';
 import { Calendar, CheckCircle, Sparkles } from 'lucide-react-native';
 import { CC, FONTS } from '../tokens';
+import { useCurrentUser } from '@/src/lib/useCurrentUser';
 
-const PERSONA_EMAIL = 'college-high1@persona.demo';
 const MODES = ['Online', 'In-person', 'Hybrid'];
 const CATEGORIES = ['Workshop', 'Hackathon', 'Career Fair', 'Talk', 'Networking'];
 
 export function CreateEventView() {
+  const { email } = useCurrentUser('college-high1@persona.demo');
   const [title, setTitle] = useState('AI/ML Workshop 2026');
   const [category, setCategory] = useState('Workshop');
   const [mode, setMode] = useState('Hybrid');
@@ -42,7 +43,7 @@ export function CreateEventView() {
     <View style={{ gap: 16, maxWidth: 760 }}>
       <View>
         <Text style={s.h1}>Create Event</Text>
-        <Text style={s.sub}>Acting as {PERSONA_EMAIL}</Text>
+        <Text style={s.sub}>Acting as {email}</Text>
       </View>
 
       <View style={s.card}>

@@ -6,14 +6,14 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Briefcase, CheckCircle, Clock } from 'lucide-react-native';
 import { SC, FONTS } from '../tokens';
 import { usePortalData } from '@/src/lib/portalApi';
-
-const PERSONA_EMAIL = 'booked1@persona.demo';
+import { useCurrentUser } from '@/src/lib/useCurrentUser';
 
 type App = { id: string; internship_title: string; company: string; status: string; applied_at: string };
 
 export function MyApplicationsView() {
+  const { email } = useCurrentUser('booked1@persona.demo');
   const { data } = usePortalData<{ items: App[]; count: number }>(
-    `/student/my-applications?email=${PERSONA_EMAIL}`,
+    `/student/my-applications?email=${encodeURIComponent(email)}`,
     { items: [], count: 0 },
     30_000
   );

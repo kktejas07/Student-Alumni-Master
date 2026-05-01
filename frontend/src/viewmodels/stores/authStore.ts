@@ -27,6 +27,7 @@ interface AuthState {
   refreshUser: () => Promise<User | null>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
+  setTokens: (access: string, refresh?: string) => Promise<void>;
   // 2FA
   verifyTwoFA: (challenge_id: string, code: string) => Promise<User>;
 }
@@ -135,4 +136,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   setUser: (user) => set({ user }),
+  setTokens: async (access, refresh) => {
+    await tokenStore.setTokens(access, refresh || '');
+  },
 }));

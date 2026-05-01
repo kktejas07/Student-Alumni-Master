@@ -5,13 +5,14 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-native';
 import { Clock, CheckCircle, Plus, X } from 'lucide-react-native';
 import { MC, FONTS } from '../tokens';
+import { useCurrentUser } from '@/src/lib/useCurrentUser';
 
-const PERSONA_EMAIL = 'mentor-active1@persona.demo';
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 type Slot = { day: string; start_time: string; end_time: string };
 
 export function AvailabilityView() {
+  const { email } = useCurrentUser('mentor-active1@persona.demo');
   const [slots, setSlots] = useState<Slot[]>([
     { day: 'Monday', start_time: '09:00', end_time: '17:00' },
     { day: 'Wednesday', start_time: '14:00', end_time: '18:00' },
@@ -31,7 +32,7 @@ export function AvailabilityView() {
       const base = (process.env.EXPO_PUBLIC_BACKEND_URL || '').replace(/\/$/, '');
       const res = await fetch(`${base}/api/mentor/availability`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mentor_email: PERSONA_EMAIL, slots }),
+        body: JSON.stringify({ mentor_email: email, slots }),
       });
       const j = await res.json();
       if (j.ok) setSavedAt(new Date().toLocaleTimeString());
@@ -42,7 +43,7 @@ export function AvailabilityView() {
     <View style={{ gap: 16 }}>
       <View>
         <Text style={s.h1}>Set Availability</Text>
-        <Text style={s.sub}>Weekly recurring slots for {PERSONA_EMAIL}</Text>
+        <Text style={s.sub}>Weekly recurring slots for {email}</Text>
       </View>
 
       <View style={{ gap: 8 }}>

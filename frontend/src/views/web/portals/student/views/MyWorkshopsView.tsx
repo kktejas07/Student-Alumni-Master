@@ -6,8 +6,7 @@ import { View, Text, StyleSheet, Pressable, Platform, Linking } from 'react-nati
 import { GraduationCap, CheckCircle, Award, ExternalLink } from 'lucide-react-native';
 import { SC, FONTS } from '../tokens';
 import { usePortalData } from '@/src/lib/portalApi';
-
-const PERSONA_EMAIL = 'workshop1@persona.demo';
+import { useCurrentUser } from '@/src/lib/useCurrentUser';
 
 type WS = {
   id: string; title: string; fee_inr: number; weeks: number; status: string;
@@ -15,8 +14,9 @@ type WS = {
 };
 
 export function MyWorkshopsView() {
+  const { email } = useCurrentUser('workshop1@persona.demo');
   const { data } = usePortalData<{ items: WS[]; count: number }>(
-    `/student/my-workshops?email=${PERSONA_EMAIL}`,
+    `/student/my-workshops?email=${encodeURIComponent(email)}`,
     { items: [], count: 0 },
     30_000
   );

@@ -123,7 +123,7 @@ async def make_student_personas() -> List[Dict[str, Any]]:
             "phone": None,
             "skills": [],
             "projects": [],
-            "school_info": {},
+            "school_info": {"class_or_year": "Not set yet"},
             "student_info": {},
             "onboarding_completed": False,
             "created_at": _now() - timedelta(days=random.randint(0, 7)),

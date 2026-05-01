@@ -6,9 +6,8 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { Calendar, Clock, X, User } from 'lucide-react-native';
 import { SC, FONTS } from '../tokens';
-import { usePortalData, postPortal } from '@/src/lib/portalApi';
-
-const PERSONA_EMAIL = 'booked1@persona.demo';
+import { usePortalData } from '@/src/lib/portalApi';
+import { useCurrentUser } from '@/src/lib/useCurrentUser';
 
 type Booking = {
   id: string; topic: string; mentor_name: string; mentor_email: string;
@@ -21,8 +20,9 @@ function fmtDate(iso?: string | null): string {
 }
 
 export function MyBookingsView() {
+  const { email } = useCurrentUser('booked1@persona.demo');
   const { data, refresh } = usePortalData<{ items: Booking[]; count: number }>(
-    `/student/my-bookings?email=${PERSONA_EMAIL}`,
+    `/student/my-bookings?email=${encodeURIComponent(email)}`,
     { items: [], count: 0 },
     30_000
   );
@@ -45,7 +45,7 @@ export function MyBookingsView() {
     <View style={{ gap: 16 }}>
       <View>
         <Text style={s.h1}>My Bookings</Text>
-        <Text style={s.sub}>Mentor sessions for {PERSONA_EMAIL} · auto-refreshes every 30s</Text>
+        <Text style={s.sub}>Mentor sessions for {email} · auto-refreshes every 30s</Text>
       </View>
 
       <Section title={`Upcoming (${upcoming.length})`}>
