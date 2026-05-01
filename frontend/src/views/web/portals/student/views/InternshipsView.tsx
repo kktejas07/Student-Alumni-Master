@@ -1,34 +1,62 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet, useWindowDimensions, Platform } from 'react-native';
-import { Search, MapPin, Bookmark, BookmarkCheck, ExternalLink } from 'lucide-react-native';
+import { Search, MapPin, Bookmark, BookmarkCheck, ExternalLink, Sparkles } from 'lucide-react-native';
 import { SC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
 import { usePortalData } from '@/src/lib/portalApi';
+import { TierBadge, TierPill } from '@/src/views/web/TierBadge';
 
-type Job = { id: string; title: string; company: string; location: string; type: string; stipend: string; match: number; logo: string; logoBg: string; mode?: string; skills?: string[] };
-const FALLBACK = { items: [] as Job[] };
+type Job = {
+  id: string; title: string; company: string; location: string; type: string;
+  stipend: string; match: number; logo: string; logoBg: string;
+  mode?: string; skills?: string[]; posted?: string;
+  tier?: string; tier_recommended?: boolean; tier_visuals?: any;
+};
+type FetchShape = {
+  items: Job[];
+  user_tier?: { tier?: string; score?: number; visuals?: any; suggestions?: any };
+  stretch_goals?: Job[];
+};
+const FALLBACK: FetchShape = { items: [] };
 
-const FILTERS = ['All', 'Internship', 'Full-time', 'Remote'];
+const FILTERS = ['All', 'Internship', 'Full-time', 'Remote', 'Recommended'];
 
 export function InternshipsView() {
   const { width } = useWindowDimensions();
-  const { data } = usePortalData<typeof FALLBACK>('/student/internships', FALLBACK);
+  const { data } = usePortalData<FetchShape>('/student/internships', FALLBACK);
   const [filter, setFilter] = useState('All');
   const [q, setQ] = useState('');
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const INTERNSHIPS = data?.items || [];
+  const userTier = data?.user_tier;
 
   const list = INTERNSHIPS.filter((i) => {
-    if (filter !== 'All' && filter !== 'Remote' && i.type !== filter) return false;
+    if (filter === 'Recommended' && !i.tier_recommended) return false;
+    if (filter !== 'All' && filter !== 'Remote' && filter !== 'Recommended' && i.type !== filter) return false;
     if (filter === 'Remote' && !i.location.toLowerCase().includes('remote')) return false;
     if (q && !(i.title + i.company + i.location).toLowerCase().includes(q.toLowerCase())) return false;
     return true;
   });
 
-  const toggleSave = (id: number) => setSaved((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleSave = (id: string) => setSaved((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   return (
     <View>
+      {/* Tier banner */}
+      {userTier?.tier && (
+        <View style={s.tierBanner}>
+          <TierBadge tier={userTier.tier} size="md" />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={s.tierTxt}>You're at <Text style={{ color: userTier.visuals?.glow || '#A78BFA', fontFamily: FONTS.xbold }}>{userTier.tier}</Text> tier · {userTier.score}/100</Text>
+            <Text style={s.tierSub}>Internships matching your tier are pinned to the top</Text>
+          </View>
+          <Pressable onPress={() => setFilter('Recommended')} style={({ hovered }: any) => [s.tierCta, hovered && { backgroundColor: SC.cardH }]}>
+            <Sparkles size={11} color={SC.accentBright} />
+            <Text style={s.tierCtaText}>Show recommended only</Text>
+          </Pressable>
+        </View>
+      )}
+
       <View style={s.toolRow}>
         <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
           {FILTERS.map((f) => (
@@ -46,16 +74,27 @@ export function InternshipsView() {
 
       <View style={{ gap: 10 }}>
         {list.map((j) => (
-          <View key={j.id} style={s.row}>
+          <View
+            key={j.id}
+            style={[
+              s.row,
+              j.tier_recommended && {
+                borderColor: j.tier_visuals?.ring || 'rgba(167,139,250,0.45)',
+                ...(Platform.OS === 'web' ? ({ boxShadow: `0 0 12px ${(j.tier_visuals?.glow || '#A78BFA')}33` } as any) : {}),
+              },
+            ]}
+          >
             <View style={[s.logo, { backgroundColor: j.logoBg }]}><Text style={s.logoText}>{j.logo}</Text></View>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text numberOfLines={1} style={s.role}>{j.title}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <Text numberOfLines={1} style={s.role}>{j.title}</Text>
+                {j.tier && <TierPill tier={j.tier} />}
+              </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
                 <Text style={s.meta}>{j.company}</Text>
                 <Text style={s.dot}>·</Text>
                 <MapPin size={11} color={SC.muted} /><Text style={s.meta}>{j.location}</Text>
-                <Text style={s.dot}>·</Text>
-                <Text style={s.meta}>{j.posted} ago</Text>
+                {j.posted && <><Text style={s.dot}>·</Text><Text style={s.meta}>{j.posted} ago</Text></>}
               </View>
               <Text style={s.stipend}>{j.stipend}</Text>
             </View>
@@ -77,6 +116,21 @@ export function InternshipsView() {
 }
 
 const s = StyleSheet.create({
+  tierBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 12,
+    padding: 12, marginBottom: 14,
+  },
+  tierTxt: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
+  tierSub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
+  tierCta: {
+    flexDirection: 'row', gap: 5, alignItems: 'center',
+    paddingHorizontal: 12, height: 30, borderRadius: 8,
+    backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  tierCtaText: { color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 11 },
+
   toolRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 14 },
   chip: { paddingHorizontal: 14, height: 32, borderRadius: 8, backgroundColor: SC.card, borderWidth: 1, borderColor: SC.border, justifyContent: 'center' },
   chipOn: { backgroundColor: SC.primary, borderColor: SC.primary },

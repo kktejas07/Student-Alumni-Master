@@ -23,11 +23,12 @@ import { MC, FONTS } from '../tokens';
 import { Av, StarRow, Countdown } from '../atoms';
 import * as MOCK from '../data';
 import { usePortalData } from '@/src/lib/portalApi';
+import { TierBadge } from '@/src/views/web/TierBadge';
 
 interface Props { onNav: (id: string) => void; }
 
 const MENTOR_MOCK = {
-  mentor: MOCK.MENTOR,
+  mentor: { ...MOCK.MENTOR, tier: undefined as any },
   kpis: [],
   todaySessions: MOCK.TODAY_SESSIONS,
   monthly: MOCK.MONTHLY,
@@ -36,7 +37,9 @@ const MENTOR_MOCK = {
 
 export function DashboardView({ onNav }: Props) {
   // Fetch live data; falls back to mock if API unreachable.
-  usePortalData<typeof MENTOR_MOCK>('/mentor/dashboard', MENTOR_MOCK);
+  const { data } = usePortalData<typeof MENTOR_MOCK>('/mentor/dashboard', MENTOR_MOCK);
+  const liveMentor = data?.mentor as any;
+  const tier = liveMentor?.tier;
   // For now we still consume MOCK.* directly inside the JSX since the
   // existing render references local arrays. The fetch call above primes
   // the cache so subsequent views see fresh data; full prop mapping will
@@ -63,6 +66,25 @@ export function DashboardView({ onNav }: Props) {
       <View style={{ flex: 1, minWidth: 0 }}>
         {/* AI Daily Briefing */}
         <AIDailyBriefing onNav={onNav} />
+
+        {/* TIER BANNER — mentor */}
+        {tier?.tier && (
+          <View style={s.tierBanner}>
+            <TierBadge tier={tier.tier} size="lg" />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={s.tierKicker}>YOUR MENTOR TIER · BASED ON EXPERIENCE • COMPANY • SESSIONS • RATING</Text>
+              <Text style={s.tierTitle}>
+                {tier.tier} <Text style={s.tierScore}>· {tier.score}/100</Text>
+              </Text>
+              <Text style={s.tierSub}>
+                {tier.tier === 'Platinum' && 'Top 5% mentor — featured to Platinum students.'}
+                {tier.tier === 'Gold' && 'Senior mentor — Gold-tier students will see you first.'}
+                {tier.tier === 'Silver' && 'Active mentor — keep building sessions to reach Gold.'}
+                {tier.tier === 'Bronze' && 'New mentor — complete more sessions to climb tiers.'}
+              </Text>
+            </View>
+          </View>
+        )}
 
         {/* Stat cards */}
         <View style={s.statsGrid}>
@@ -262,6 +284,17 @@ const hovered2 = (b: boolean) => b;
 
 const s = StyleSheet.create({
   root: { flexDirection: 'row', gap: 20 },
+
+  /* Tier banner */
+  tierBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14,
+    padding: 16, marginBottom: 16,
+  },
+  tierKicker: { color: MC.tealP, fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 1 },
+  tierTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, marginTop: 2 },
+  tierScore: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 14 },
+  tierSub: { color: MC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
 
   /* AI Daily Briefing */
   briefingCard: {

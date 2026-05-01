@@ -19,6 +19,7 @@ import { CC, FONTS } from '../tokens';
 import { Av, Badge, KpiCard } from '../atoms';
 import * as MOCK from '../data';
 import { usePortalData } from '@/src/lib/portalApi';
+import { TierBadge } from '@/src/views/web/TierBadge';
 
 const KPI_ICONS = { students: GraduationCap, alumni: Users, placement: Trophy, events: CalendarDays } as const;
 
@@ -50,9 +51,23 @@ export function DashboardView() {
   return (
     <View style={{ gap: 16 }}>
       {/* Hero */}
-      <View>
-        <Text style={s.heroTitle}>Good morning, {COLLEGE.shortName} {COLLEGE.emoji}</Text>
-        <Text style={s.heroSub}>{COLLEGE.placementRate}% placement rate · {COLLEGE.upcomingHighlight}</Text>
+      <View style={{ flexDirection: stack ? 'column' : 'row', alignItems: stack ? 'flex-start' : 'center', gap: 16 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={s.heroTitle}>Good morning, {COLLEGE.shortName} {COLLEGE.emoji}</Text>
+          <Text style={s.heroSub}>{COLLEGE.placementRate}% placement rate · {COLLEGE.upcomingHighlight}</Text>
+        </View>
+        {/* TIER BANNER */}
+        {(COLLEGE as any).tier && (
+          <View style={s.tierBanner}>
+            <TierBadge tier={(COLLEGE as any).tier.tier} size="lg" />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={s.tierKicker}>INSTITUTIONAL TIER · NAAC {(COLLEGE as any).tier.naac}</Text>
+              <Text style={s.tierTitle}>
+                {(COLLEGE as any).tier.tier} <Text style={s.tierScore}>· {(COLLEGE as any).tier.score}/100</Text>
+              </Text>
+            </View>
+          </View>
+        )}
       </View>
 
       {/* 4 KPI tiles */}
@@ -191,6 +206,16 @@ export function DashboardView() {
 const s = StyleSheet.create({
   heroTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.5 },
   heroSub:   { color: CC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 },
+
+  tierBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: 'rgba(252,211,77,0.06)',
+    borderColor: 'rgba(252,211,77,0.22)', borderWidth: 1, borderRadius: 14,
+    padding: 14, minWidth: 280,
+  },
+  tierKicker: { color: '#FCD34D', fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 1 },
+  tierTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 18, letterSpacing: -0.4, marginTop: 2 },
+  tierScore: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 13 },
 
   briefCard: {
     flexDirection: 'row', gap: 14, alignItems: 'flex-start',

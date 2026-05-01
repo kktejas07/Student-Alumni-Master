@@ -20,6 +20,7 @@ import { SC, FONTS } from '../tokens';
 import { Av, Badge, KpiCard } from '../atoms';
 import * as MOCK from '../data';
 import { usePortalData } from '@/src/lib/portalApi';
+import { TierBadge } from '@/src/views/web/TierBadge';
 
 const KPI_ICONS = { matches: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp } as const;
 
@@ -63,6 +64,39 @@ export function DashboardView() {
           <Text style={s.briefCtaText}>Generate Brief</Text>
         </Pressable>
       </View>
+
+      {/* TIER BANNER — glowing badge + score + tier-driven suggestions */}
+      {STUDENT.tier && (
+        <View style={s.tierCard}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+            <TierBadge tier={STUDENT.tier.tier} size="lg" />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={s.tierKicker}>YOUR TIER · BASED ON COLLEGE • SKILLS • PROFILE</Text>
+              <Text style={s.tierTitle}>
+                {STUDENT.tier.tier} <Text style={s.tierScore}>· {STUDENT.tier.score}/100</Text>
+              </Text>
+              <Text style={s.tierSub}>
+                {STUDENT.tier.tier === 'Platinum' && 'You unlock FAANG, OpenAI & Stripe-level opportunities.'}
+                {STUDENT.tier.tier === 'Gold' && 'Top Indian tech & senior roles are pinned for you.'}
+                {STUDENT.tier.tier === 'Silver' && 'Solid foundation — keep building your stack to reach Gold.'}
+                {STUDENT.tier.tier === 'Bronze' && 'Build your portfolio — first projects unlock Silver tier.'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Tier suggestions row */}
+          {STUDENT.tier.suggestions && (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+              {(STUDENT.tier.suggestions.skills || []).slice(0, 3).map((skill: string) => (
+                <View key={skill} style={s.tierChip}>
+                  <Sparkles size={10} color={STUDENT.tier.visuals?.glow || '#A78BFA'} />
+                  <Text style={[s.tierChipText, { color: STUDENT.tier.visuals?.glow || '#A78BFA' }]}>{skill}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
 
       {/* AI Career Assistant Roadmap */}
       <View style={s.roadmapCard}>
@@ -235,6 +269,21 @@ const s = StyleSheet.create({
   briefSub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 1 },
   briefCta: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 10, backgroundColor: SC.primary, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
   briefCtaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+
+  tierCard: {
+    backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14,
+    padding: 18,
+  },
+  tierKicker: { color: SC.accent, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1 },
+  tierTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, marginTop: 2 },
+  tierScore: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 14 },
+  tierSub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
+  tierChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6,
+    backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1,
+  },
+  tierChipText: { fontFamily: FONTS.bold, fontSize: 11 },
 
   roadmapCard: {
     backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 16,

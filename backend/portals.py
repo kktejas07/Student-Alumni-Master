@@ -61,6 +61,13 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 from pathlib import Path
 
+from tier_logic import (
+    compute_student_tier,
+    compute_mentor_tier,
+    compute_college_tier,
+    student_suggestions_for_tier,
+)
+
 load_dotenv(Path(__file__).parent / '.env')
 
 # Mongo connection (reuse main client config)
@@ -68,6 +75,49 @@ _mongo = AsyncIOMotorClient(os.environ['MONGO_URL'])
 _db = _mongo[os.environ['DB_NAME']]
 
 router = APIRouter()
+
+
+# ─── tier helpers (async, shared) ───────────────────────────────
+TIER_RANK = {"Bronze": 0, "Silver": 1, "Gold": 2, "Platinum": 3}
+
+def _tier_visuals(tier: str) -> Dict[str, Any]:
+    """Color + emoji palette for the 4 tiers — used by FE for glow rendering."""
+    return {
+        "Bronze":   {"primary": "#B08D57", "glow": "#D7A878", "ring": "#8B5E3C", "icon": "shield"},
+        "Silver":   {"primary": "#C0C0C0", "glow": "#E8E8E8", "ring": "#8A8A8A", "icon": "award"},
+        "Gold":     {"primary": "#F5C842", "glow": "#FCD34D", "ring": "#B8860B", "icon": "star"},
+        "Platinum": {"primary": "#A78BFA", "glow": "#C4B5FD", "ring": "#7C3AED", "icon": "crown"},
+    }.get(tier, {"primary": "#94A3B8", "glow": "#CBD5E1", "ring": "#475569", "icon": "shield"})
+
+
+async def _student_tier_payload(student: Dict[str, Any]) -> Dict[str, Any]:
+    """Computes tier for a student doc, looking up their college's NAAC."""
+    si = (student or {}).get("school_info") or {}
+    college_name = si.get("institution_name")
+    naac = None
+    if college_name:
+        meta = await _db.colleges_meta.find_one({"name": college_name})
+        if meta:
+            naac = meta.get("naac")
+    result = compute_student_tier(student or {}, naac)
+    result["visuals"] = _tier_visuals(result["tier"])
+    result["suggestions"] = student_suggestions_for_tier(result["tier"])
+    return result
+
+
+async def _mentor_tier_payload(mentor: Dict[str, Any], confirmed_sessions: int, avg_rating: float) -> Dict[str, Any]:
+    result = compute_mentor_tier(mentor or {}, confirmed_sessions, avg_rating)
+    result["visuals"] = _tier_visuals(result["tier"])
+    return result
+
+
+async def _college_tier_payload(college_name: str, students: int, alumni: int, placement_rate: float) -> Dict[str, Any]:
+    meta = await _db.colleges_meta.find_one({"name": college_name}) or {}
+    naac = meta.get("naac") or "A"
+    result = compute_college_tier(naac, students, placement_rate, alumni)
+    result["naac"] = naac
+    result["visuals"] = _tier_visuals(result["tier"])
+    return result
 
 
 # ─── helpers ────────────────────────────────────────────────────
@@ -190,6 +240,10 @@ async def mentor_dashboard(mentor_email: Optional[str] = None):
 
     # KPIs
     earnings = sum(m["amount"] for m in months[-1:])  # last month
+
+    # Tier (Bronze/Silver/Gold/Platinum)
+    tier = await _mentor_tier_payload(mentor or {}, confirmed, avg_rating)
+
     return {
         "mentor": {
             "id": mentor_id,
@@ -203,6 +257,7 @@ async def mentor_dashboard(mentor_email: Optional[str] = None):
             "college": si.get("institution_name") or "—",
             "batch": si.get("graduation_year") or 2010,
             "expertise": (mentor or {}).get("skills", []) or ["System Design", "Career Strategy"],
+            "tier": tier,
         },
         "kpis": [
             {"id": "earnings",  "label": "Earnings",        "value": _money(earnings),                "delta": "↑ 12%",                  "color": "amber"},
@@ -299,6 +354,9 @@ async def student_dashboard(student_email: Optional[str] = None):
     skills = student.get("skills", []) if student else []
     career_score = min(100, 40 + len(skills) * 5 + (10 if student and student.get("face_image_base64") else 0))
 
+    # Compute tier (Bronze/Silver/Gold/Platinum)
+    tier = await _student_tier_payload(student or {})
+
     return {
         "student": {
             "id": sid,
@@ -308,6 +366,7 @@ async def student_dashboard(student_email: Optional[str] = None):
             "saId": student.get("sa_id") if student else None,
             "career": {"goal": sti.get("career_goal") or "Software Engineer at a Top Tech Company", "progressPct": 42},
             "career_score": career_score,
+            "tier": tier,
         },
         "kpis": [
             {"id": "matches", "label": "Internship Matches",   "value": str(internships_total), "delta": f"↑ {new_today} live now", "color": "blue"},
@@ -417,15 +476,20 @@ async def college_admin_stats(college_name: Optional[str] = None):
             "color": _color_for(r["_id"] or ""),
         })
 
+    # Tier (Bronze/Silver/Gold/Platinum) — based on NAAC + students + placement + alumni
+    placement_pct_num = 94  # already used as static; will be aggregated below
+    tier = await _college_tier_payload(college_name, students_cnt, alumni_cnt, float(placement_pct_num))
+
     return {
         "college": {
             "name": college_name,
             "shortName": college_name.split()[0] if college_name else "College",
             "initials": _initials(college_name),
-            "rank": "NAAC A+",
+            "rank": f"NAAC {tier.get('naac', 'A+')}",
             "emoji": "🎓",
-            "placementRate": 94,
+            "placementRate": placement_pct_num,
             "upcomingHighlight": (top_recruiters[0]["name"] + " drive scheduled") if top_recruiters else "—",
+            "tier": tier,
         },
         "kpis": [
             {"id": "students",  "label": "Total Students",     "value": str(students_cnt),      "delta": "↑ this semester",        "color": "blue"},
@@ -1247,32 +1311,91 @@ async def college_ai_insights(college_name: Optional[str] = None):
 # ════════════════════════════════════════════════════════════════
 
 @router.get("/student/internships")
-async def student_internships(query: Optional[str] = None):
+async def student_internships(query: Optional[str] = None, student_email: Optional[str] = None):
+    """Internship list with tier-aware boost.
+
+    Soft filter (Q2 = (a)): everyone sees all opportunities, but listings are
+    sorted with tier-recommended items first and a `tier_recommended` flag is
+    surfaced. Match scores get a +5/+10/+15 boost for matched tiers so higher
+    tiers see better-matching premium opportunities pinned to the top.
+    """
+    # Resolve student & tier (default to first student if email not passed)
+    student = None
+    if student_email:
+        student = await _db.users.find_one({"email": student_email, "role": "student"})
+    if not student:
+        student = await _db.users.find_one({"role": "student", "onboarding_completed": True})
+    tier_payload = await _student_tier_payload(student or {}) if student else {"tier": "Bronze", "visuals": _tier_visuals("Bronze"), "suggestions": student_suggestions_for_tier("Bronze")}
+    user_tier = tier_payload.get("tier", "Bronze")
+    user_rank = TIER_RANK.get(user_tier, 0)
+
     match: Dict[str, Any] = {}
     if query:
         match["$or"] = [
             {"title": {"$regex": query, "$options": "i"}},
             {"company": {"$regex": query, "$options": "i"}},
         ]
-    cur = _db.internships.find(match).limit(30)
+    cur = _db.internships.find(match).limit(60)
+
+    # Heuristic: classify each internship into a tier bucket based on company.
+    PLATINUM_COS = {c.lower() for c in ("Google", "Microsoft", "Amazon", "Apple", "Meta", "Netflix", "OpenAI", "Anthropic", "Stripe")}
+    GOLD_COS = {c.lower() for c in ("Razorpay", "Flipkart", "Adobe", "Atlassian", "Zoho", "PhonePe", "Swiggy", "Zomato", "Cred")}
+
+    def _opp_tier(company: str) -> str:
+        cl = (company or "").lower()
+        if any(p in cl for p in PLATINUM_COS): return "Platinum"
+        if any(g in cl for g in GOLD_COS): return "Gold"
+        if "intern" in cl or "startup" in cl or "junior" in cl: return "Bronze"
+        return "Silver"
+
     out = []
     async for it in cur:
+        company = it.get("company", "—")
+        opp_tier = _opp_tier(company)
+        opp_rank = TIER_RANK.get(opp_tier, 1)
+
+        base_match = 70 + (hash(it.get("title", "")) % 28)
+        # Soft boost: matched-or-lower-tier gets +12; one-tier-up "stretch" gets +6
+        if opp_rank == user_rank:
+            base_match = min(98, base_match + 12)
+            recommended = True
+        elif opp_rank == max(0, user_rank - 1):
+            base_match = min(95, base_match + 6)
+            recommended = True
+        elif opp_rank == user_rank + 1:
+            recommended = False  # stretch goal
+        else:
+            base_match = max(55, base_match - 6)
+            recommended = False
+
         out.append({
             "id": _short_id(it.get("_id")),
             "title": it.get("title", "Intern"),
-            "company": it.get("company", "—"),
+            "company": company,
             "location": it.get("location", "Remote"),
             "stipend": it.get("stipend", "—"),
             "duration": it.get("duration", "3 months"),
             "type": it.get("type", "Internship"),
             "mode": it.get("mode", "Hybrid"),
             "skills": (it.get("skills") or [])[:3],
-            "match": 70 + (hash(it.get("title", "")) % 28),
-            "logo": (it.get("company") or "?")[0],
-            "logoBg": _color_for(it.get("company", "")),
+            "match": base_match,
+            "logo": (company or "?")[0],
+            "logoBg": _color_for(company),
             "url": it.get("url"),
+            "tier": opp_tier,
+            "tier_recommended": recommended,
+            "tier_visuals": _tier_visuals(opp_tier),
         })
-    return {"items": out}
+
+    # Sort: tier_recommended first, then by match score desc
+    out.sort(key=lambda x: (-int(x["tier_recommended"]), -x["match"]))
+    out = out[:30]
+
+    return {
+        "items": out,
+        "user_tier": tier_payload,
+        "stretch_goals": [x for x in out if not x["tier_recommended"] and TIER_RANK.get(x["tier"], 1) > user_rank][:3],
+    }
 
 
 @router.get("/student/wallet")
@@ -1461,3 +1584,42 @@ async def event_rsvp(event_id: str, student_email: Optional[str] = None):
         "status": "registered",
     })
     return {"ok": True, "registered": True}
+
+
+# ─── Unified Tier endpoint (works for any role) ──────────────────
+@router.get("/users/me/tier")
+async def my_tier(email: Optional[str] = None, role: Optional[str] = None):
+    """Returns the computed tier for any user (Bronze/Silver/Gold/Platinum)
+    along with score breakdown, visuals, and tier-driven suggestions.
+    Accepts ?email= for per-user lookup; falls back to first user of role.
+    """
+    user = None
+    q: Dict[str, Any] = {}
+    if email:
+        q["email"] = email
+    if role:
+        q["role"] = role
+    if q:
+        user = await _db.users.find_one(q)
+    if not user:
+        user = await _db.users.find_one({"role": role or "student"})
+    if not user:
+        raise HTTPException(404, "User not found")
+
+    r = (user or {}).get("role")
+    if r == "mentor":
+        mentor_id = str(user["_id"])
+        confirmed = await _db.bookings.count_documents({"mentor_id": mentor_id, "status": {"$in": ["confirmed", "completed"]}})
+        ratings = [rev.get("rating", 0) async for rev in _db.reviews.find({"mentor_id": mentor_id})]
+        avg = round(sum(ratings) / len(ratings), 1) if ratings else 4.5
+        tier = await _mentor_tier_payload(user, confirmed, avg)
+    elif r == "college":
+        si = (user or {}).get("school_info") or {}
+        cname = si.get("institution_name") or user.get("full_name", "—")
+        students_cnt = await _db.users.count_documents({"role": "student", "school_info.institution_name": cname})
+        alumni_cnt = await _db.users.count_documents({"role": "alumni", "school_info.institution_name": cname})
+        tier = await _college_tier_payload(cname, students_cnt, alumni_cnt, 90.0)
+    else:
+        tier = await _student_tier_payload(user)
+
+    return {"role": r, "name": user.get("full_name"), "tier": tier}

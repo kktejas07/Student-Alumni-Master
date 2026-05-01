@@ -3545,3 +3545,283 @@ backend:
 
             No 500 errors observed. Backend logs clean. All endpoints operational.
             Test harness: /app/backend_test_subviews.py (re-runnable).
+
+
+backend:
+  - task: "Dynamic Tier/Badge System — Bronze/Silver/Gold/Platinum"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/tier_logic.py + /app/backend/portals.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: |
+            Implemented end-to-end dynamic tier system that computes tiers
+            based on real user metrics and drives personalized suggestions.
+            
+            BACKEND CHANGES:
+            ✅ /app/backend/tier_logic.py — pure functions:
+                · compute_student_tier(student, college_naac) — scores out of 100:
+                   year_of_study (max 25) + institution_ranking NAAC (max 30) +
+                   tech_stack depth (max 25) + profile_completion (max 20)
+                · compute_mentor_tier(mentor, sessions, avg_rating) — scores:
+                   experience (max 35) + organization tier FAANG/Indian (max 30) +
+                   sessions volume (max 20) + rating (max 15)
+                · compute_college_tier(naac, students, placement_rate, alumni)
+                   — NAAC accreditation (max 40) + size (max 20) +
+                   placement_rate (max 25) + alumni_size (max 15)
+                · _tier_for_score: ≥80 Platinum, ≥60 Gold, ≥40 Silver, <40 Bronze
+                · student_suggestions_for_tier — returns tier-specific
+                   internships/skills/mentors/events catalog
+            
+            ✅ portals.py wired tier into 3 dashboard endpoints:
+                · GET /api/student/dashboard → student.tier {tier, score,
+                  breakdown, visuals, suggestions}
+                · GET /api/mentor/dashboard → mentor.tier {tier, score,
+                  breakdown, visuals}
+                · GET /api/admin/college-stats → college.tier {tier, score,
+                  breakdown, naac, visuals}
+            
+            ✅ NEW endpoint GET /api/users/me/tier?email=&role= — unified
+              endpoint that returns tier for any role (student/mentor/college).
+            
+            ✅ Soft-filter on /api/student/internships:
+                · Each internship classified into Bronze/Silver/Gold/Platinum
+                  bucket based on company name (FAANG=Platinum, top Indian
+                  tech=Gold, etc.)
+                · Match score boosted +12 for matched-tier and +6 for
+                  one-tier-down "stretch" items
+                · Items sorted: tier_recommended first, then by match score
+                · Response now includes user_tier + stretch_goals fields
+            
+            SMOKE TEST PASSED:
+              · /api/student/dashboard → tier=Silver, score=48
+              · /api/mentor/dashboard → tier=Silver, score=44
+              · /api/admin/college-stats → tier=Silver, NAAC=A
+              · /api/student/internships → user_tier=Silver, all top items
+                tier_recommended=true with 98% match (boosted from base 86%)
+              · /api/users/me/tier?role=student → returns full tier payload
+            
+            VISUAL PALETTES per tier (returned as `visuals`):
+              Bronze:   #B08D57 / glow #D7A878 / shield icon
+              Silver:   #C0C0C0 / glow #E8E8E8 / award icon
+              Gold:     #F5C842 / glow #FCD34D / star icon
+              Platinum: #A78BFA / glow #C4B5FD / crown icon
+
+frontend:
+  - task: "TierBadge component + 3 portal dashboards rendering tier"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/views/web/TierBadge.tsx + portal Dashboard views"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            Visually verified end-to-end via screenshot tool on 1440px desktop:
+            
+            ✅ NEW component /app/frontend/src/views/web/TierBadge.tsx:
+                · <TierBadge tier size showLabel score> — gradient circular badge
+                  with crown/star/award/shield icon based on tier
+                · Web-only boxShadow glow (16px primary + 4px halo)
+                · Three sizes (sm/md/lg) + compact-only mode
+                · <TierPill tier score> — inline compact pill version
+                  used inline next to internship titles
+            
+            ✅ Student Dashboard tier banner verified:
+                · "YOUR TIER · BASED ON COLLEGE • SKILLS • PROFILE"
+                · "Silver · 48/100" with glowing silver Award icon
+                · "Solid foundation — keep building your stack to reach Gold."
+                · 3 tier-suggested skill chips: Communication / React basics /
+                  Git fundamentals (driven by backend suggestions catalog)
+            
+            ✅ Internships view tier banner + per-row tier pills:
+                · Header banner "You're at Silver tier · 48/100 / Internships
+                  matching your tier are pinned to the top" + "Show
+                  recommended only" CTA (filters to Recommended chip)
+                · Each item shows "Silver" pill alongside title; recommended
+                  items have glowing border (boxShadow tinted with tier glow)
+                · All Silver-tier items now ranked top with 98% match
+                  (boosted from base 86% by +12 for matched tier)
+                · NEW "Recommended" filter chip in toolbar
+            
+            ✅ Mentor Dashboard tier banner verified:
+                · "YOUR MENTOR TIER · BASED ON EXPERIENCE • COMPANY • SESSIONS • RATING"
+                · "Silver · 44/100" with glowing badge
+                · "Active mentor — keep building sessions to reach Gold."
+            
+            ✅ College Dashboard tier banner verified:
+                · Right-aligned card next to greeting: "INSTITUTIONAL TIER · NAAC A"
+                · "Silver · 49/100" with glowing badge
+                · Header rank chip auto-updates from "NAAC A+" mock to live
+                  "NAAC {tier.naac}" computed from colleges_meta lookup
+            
+            All 4 tiers fully styled (Bronze/Silver/Gold/Platinum) with
+            distinct gradient + glow color per tier — even though seeded users
+            currently land in Silver, swapping any user attribute (e.g.
+            college NAAC=A++, more skills, more experience) will tip them
+            into Gold/Platinum without code changes.
+
+metadata:
+  created_by: "main_agent"
+  version: "4.0"
+  test_sequence: 4
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Dynamic Tier/Badge System — Bronze/Silver/Gold/Platinum"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "main"
+      message: |
+        Phase: Tier/Badge System P0 — IMPLEMENTATION COMPLETE.
+        
+        Backend:
+          - tier_logic.py implements 3 scoring functions (student/mentor/college)
+            mapped to Bronze/Silver/Gold/Platinum (40/60/80 thresholds).
+          - portals.py injects `tier` into student/mentor/college dashboards.
+          - NEW endpoint GET /api/users/me/tier?email=&role=
+          - /api/student/internships now returns user_tier + tier_recommended
+            flag per item + stretch_goals; soft-filter sorting (matched-tier
+            items pinned to top, +12 match boost for matched tier).
+        
+        Frontend:
+          - NEW <TierBadge> + <TierPill> component (lucide Crown/Star/Award/
+            Shield icons + LinearGradient + boxShadow glow on web).
+          - Student / Mentor / College dashboards now show a tier banner with
+            score, breakdown context, and tier-personalized suggestion chips.
+          - Internships list shows per-item tier pill, glowing border for
+            recommended items, and a "Recommended" filter chip.
+        
+        Testing requested for backend:
+          1. GET /api/student/dashboard — verify response.student.tier
+             contains {tier ∈ Bronze/Silver/Gold/Platinum, score 0-100,
+             breakdown {year_of_study, institution_ranking, tech_stack,
+             profile_completion}, visuals {primary, glow, ring, icon},
+             suggestions {internships, skills, mentors, events}}.
+          2. GET /api/mentor/dashboard — verify response.mentor.tier
+             contains {tier, score, breakdown {experience, organization,
+             sessions, rating}, visuals}.
+          3. GET /api/admin/college-stats — verify response.college.tier
+             contains {tier, score, breakdown, naac, visuals}; college.rank
+             should also reflect "NAAC {tier.naac}".
+          4. GET /api/users/me/tier?role=student — verify {role, name, tier}
+             with full payload.
+          5. GET /api/users/me/tier?role=mentor — same shape.
+          6. GET /api/users/me/tier?role=college — same shape.
+          7. GET /api/student/internships — verify {items, user_tier,
+             stretch_goals}; first items must have tier_recommended=true and
+             match score boosted (>= 90); items must be sorted with
+             recommended first.
+          8. GET /api/student/internships?query=intern — verify search
+             filter still works alongside tier sorting.
+        
+        Credentials: seeded users from prior session
+          (student01@test.com, mentor01@test.com, college01@test.com).
+        
+        DO NOT test frontend — user explicitly opted out for this session.
+
+backend:
+  - task: "Dynamic Tier/Badge System (P0) — Bronze/Silver/Gold/Platinum tiers + suggestions"
+    implemented: true
+    working: true
+    file: "/app/backend/tier_logic.py + /app/backend/portals.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            ✅ Fully verified via /app/backend_test.py — 165/165 checks PASS
+            against https://hiring-mvvm.preview.emergentagent.com/api.
+
+            1. GET /api/student/dashboard
+               ✅ response.student.tier.tier ∈ {Bronze,Silver,Gold,Platinum}
+               ✅ student.tier.score is int 0..100; tier matches thresholds
+               ✅ breakdown has {year_of_study, institution_ranking, tech_stack, profile_completion} (all int)
+               ✅ visuals has {primary, glow, ring, icon} (all non-empty strings)
+               ✅ suggestions has {internships, skills, mentors, events} (all list[str])
+
+            2. GET /api/mentor/dashboard
+               ✅ response.mentor.tier.tier ∈ enum
+               ✅ score 0..100, matches thresholds
+               ✅ breakdown has {experience, organization, sessions, rating} (all int)
+               ✅ visuals {primary, glow, ring, icon} present
+
+            3. GET /api/admin/college-stats
+               ✅ response.college.tier.tier ∈ enum, score 0..100, matches thresholds
+               ✅ breakdown has {accreditation, size, placement, alumni_size} (all int)
+               ✅ college.tier.naac is non-empty string (e.g. "A++")
+               ✅ college.rank equals exactly "NAAC " + tier.naac
+
+            4. GET /api/users/me/tier?role=student
+               ✅ 200; returns {role:"student", name, tier:{full student payload}}
+
+            5. GET /api/users/me/tier?role=mentor
+               ✅ 200; tier breakdown has experience/organization/sessions/rating
+
+            6. GET /api/users/me/tier?role=college
+               ✅ 200; tier breakdown has accreditation/size/placement/alumni_size, naac present
+
+            7. GET /api/users/me/tier?email=student01@test.com&role=student
+               ✅ 200; returns full student tier payload with suggestions
+               ✅ Idempotent — second call returns identical tier+score
+               ✅ Missing user (bogus email + bogus role) → 404
+
+            8. GET /api/student/internships
+               ✅ Shape: {items, user_tier, stretch_goals}
+               ✅ ≤ 30 items; every item has id/title/company/tier/tier_recommended/tier_visuals/match
+               ✅ All items.tier ∈ enum; match is int 0..100; tier_recommended is bool
+               ✅ Each item.tier_visuals has {primary, glow, ring, icon}
+               ✅ Sorted: tier_recommended=true first, then by match desc
+               ✅ ≥ 1 recommended item has match >= 90 (confirming the +12 boost is applied)
+               ✅ user_tier carries tier/score/visuals/suggestions
+
+            9. GET /api/student/internships?query=intern
+               ✅ Shape unchanged (items/user_tier/stretch_goals)
+               ✅ All items have "intern" in title or company (case-insensitive)
+               ✅ Sort order (tier_recommended first, match desc) still applied
+
+            10. Regression — all still 200 with valid JSON:
+               ✅ GET /api/student/wallet
+               ✅ GET /api/college/students
+               ✅ GET /api/student/network
+               ✅ GET /api/admin/super-overview
+
+            Tier logic (tier_logic.py) and wiring (portals.py _student_tier_payload /
+            _mentor_tier_payload / _college_tier_payload / /users/me/tier /
+            student/internships with boost) are all behaving correctly.
+
+metadata:
+  created_by: "testing_agent"
+  version: "3.1"
+  test_sequence: 4
+  run_ui: false
+
+test_plan:
+  current_focus: []
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "testing"
+      message: |
+        P0 Dynamic Tier System backend verified end-to-end. 165/165 assertions
+        passed against the public preview URL. Every endpoint requested in the
+        review (1–10) returns the correct shape, enum values, numeric ranges,
+        suggestions, and sorting. The +12 match-score boost for
+        tier_recommended items is demonstrably applied (max recommended match
+        reaches ≥ 90 in practice). Regression endpoints (wallet, college
+        students, student network, super-overview) all remain 200 OK. No
+        critical or minor issues observed — the tier system is ready.
