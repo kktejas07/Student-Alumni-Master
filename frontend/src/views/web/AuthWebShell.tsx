@@ -174,10 +174,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
     ...({ backdropFilter: 'blur(24px)' } as any),
-    shadowColor: '#7C3AED',
-    shadowOpacity: 0.25,
-    shadowRadius: 48,
-    shadowOffset: { width: 0, height: 16 },
+    boxShadow: '0px 16px 48px rgba(124,58,237,0.25)',
   },
   cardHalo: {
     position: 'absolute',

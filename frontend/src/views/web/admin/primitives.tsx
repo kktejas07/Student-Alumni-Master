@@ -87,7 +87,7 @@ export function ActionButton({ label, onPress, variant = 'primary', icon: Icon, 
     : T.borderMd;
   const fg = variant === 'danger' ? '#FCA5A5' : T.text;
   const grad = variant === 'primary' && Platform.OS === 'web'
-    ? ({ background: `linear-gradient(135deg,${T.accent},${T.mid})` } as any) : {};
+    ? ({ backgroundImage: `linear-gradient(135deg,${T.accent},${T.mid})` } as any) : {};
   return (
     <Pressable
       onPress={onPress}

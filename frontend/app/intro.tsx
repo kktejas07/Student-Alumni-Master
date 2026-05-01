@@ -249,10 +249,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.20)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowRadius: 32,
-    shadowOffset: { width: 0, height: 12 },
+    boxShadow: '0px 12px 32px rgba(0,0,0,0.4)',
   },
   title: {
     color: '#FFFFFF',
@@ -304,10 +301,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#7C3AED',
     paddingVertical: 16,
     borderRadius: 16,
-    shadowColor: '#7C3AED',
-    shadowOpacity: 0.5,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
+    boxShadow: '0px 12px 24px rgba(124,58,237,0.5)',
   },
   primaryText: {
     color: '#FFFFFF',

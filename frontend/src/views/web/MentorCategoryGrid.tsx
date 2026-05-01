@@ -173,8 +173,7 @@ const styles = StyleSheet.create({
   cardActive: {
     backgroundColor: 'rgba(124,58,237,0.18)',
     borderColor: 'rgba(196,181,253,0.65)',
-    shadowColor: '#7C3AED', shadowOpacity: 0.35,
-    shadowRadius: 18, shadowOffset: { width: 0, height: 6 },
+    boxShadow: '0px 6px 18px rgba(124,58,237,0.35)',
   },
   cardIconWrap: {
     width: 38, height: 38, borderRadius: 10,

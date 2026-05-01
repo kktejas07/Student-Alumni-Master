@@ -528,10 +528,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.13)',
     borderColor: 'rgba(176,127,223,0.36)',
     transform: [{ translateY: -2 }],
-    shadowColor: '#B07FDF',
-    shadowOpacity: 0.18,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 8 },
+    boxShadow: '0px 8px 24px rgba(176,127,223,0.18)',
   },
   badge: {
     position: 'absolute',

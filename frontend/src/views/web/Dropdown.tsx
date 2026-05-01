@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(20,8,40,0.96)',
     borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderRadius: 18,
     padding: 16,
-    shadowColor: '#7C3AED', shadowOpacity: 0.30, shadowRadius: 32, shadowOffset: { width: 0, height: 14 },
+    boxShadow: '0px 14px 32px rgba(124,58,237,0.30)',
   },
   sheetTitle: {
     color: 'rgba(255,255,255,0.55)',

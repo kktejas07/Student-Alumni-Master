@@ -640,7 +640,7 @@ const styles = StyleSheet.create({
   },
   tabItemActive: {
     backgroundColor: '#5F259F',
-    shadowColor: '#5F259F', shadowOpacity: 0.4, shadowRadius: 16, shadowOffset: { width: 0, height: 4 },
+    boxShadow: '0px 4px 16px rgba(95,37,159,0.4)',
   },
   tabText:  { color: 'rgba(255,255,255,0.42)', fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
   tabTextActive: { color: '#FFFFFF' },

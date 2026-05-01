@@ -53,7 +53,7 @@ export function AdminLayout({ title, subtitle, pendingCount = 0, children, right
   return (
     <View style={[styles.root, { backgroundColor: T.dark }]}>
       {/* gradient bg layer */}
-      <View style={[StyleSheet.absoluteFill, Platform.OS === 'web' ? ({ background: T.bg } as any) : { backgroundColor: T.dark }]} />
+      <View style={[StyleSheet.absoluteFill, Platform.OS === 'web' ? ({ backgroundColor: T.bg } as any) : { backgroundColor: T.dark }]} />
 
       {/* Sidebar */}
       <View style={styles.sidebar}>
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     width: 36, height: 36, borderRadius: 10,
     backgroundColor: T.accent,
     alignItems: 'center', justifyContent: 'center',
-    ...(Platform.OS === 'web' ? ({ background: `linear-gradient(135deg,${T.accent},${T.mid})` } as any) : {}),
+    ...(Platform.OS === 'web' ? ({ backgroundImage: `linear-gradient(135deg,${T.accent},${T.mid})` } as any) : {}),
   },
   logoText: { color: T.text, fontFamily: 'DMSans_700Bold', fontSize: 13, letterSpacing: 0.5 },
   brand: { color: T.text, fontFamily: 'DMSans_700Bold', fontSize: 13, letterSpacing: -0.2 },

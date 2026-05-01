@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(20,8,40,0.98)',
     borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderRadius: 14,
     overflow: 'hidden',
-    shadowColor: '#000', shadowOpacity: 0.55, shadowRadius: 30, shadowOffset: { width: 0, height: 16 },
+    boxShadow: '0px 16px 30px rgba(0,0,0,0.55)',
     ...({ backdropFilter: 'blur(24px)' } as any),
   },
   row: {
@@ -295,6 +295,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(124,58,237,0.22)',
     borderColor: 'rgba(196,181,253,0.45)', borderWidth: 1.5,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#7C3AED', shadowOpacity: 0.30, shadowRadius: 14, shadowOffset: { width: 0, height: 4 },
+    boxShadow: '0px 4px 14px rgba(124,58,237,0.30)',
   },
 });

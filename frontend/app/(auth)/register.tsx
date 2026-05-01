@@ -380,7 +380,7 @@ const s = StyleSheet.create({
   rowActive: {
     backgroundColor: 'rgba(124,58,237,0.16)',
     borderColor: '#7C3AED',
-    shadowColor: '#7C3AED', shadowOpacity: 0.35, shadowRadius: 24, shadowOffset: { width: 0, height: 8 },
+    boxShadow: '0px 8px 24px rgba(124,58,237,0.35)',
   },
   rowTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   rowIcon: {

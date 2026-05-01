@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(13,8,0,0.97)',
     borderLeftColor: T.borderMd, borderLeftWidth: 1,
     flexDirection: 'column',
-    shadowColor: '#000', shadowOpacity: 0.55, shadowRadius: 40, shadowOffset: { width: -10, height: 0 },
+    boxShadow: '-10px 0px 40px rgba(0,0,0,0.55)',
   },
   header: {
     flexDirection: 'row', alignItems: 'center', gap: 12,

@@ -3,6 +3,7 @@
  * Purple + Glass + Gradient design system
  * Based on official brand sheet specifications
  */
+import { Platform } from 'react-native';
 const Palette = {
   brandPurple: '#5F259F',
   deepPurple: '#3D1468',
@@ -120,25 +121,25 @@ export const Typography = {
 } as const;
 
 export const Shadows = {
-  sm: {
-    shadowColor: '#3D1468',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  md: {
-    shadowColor: '#3D1468',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.14,
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  lg: {
-    shadowColor: '#3D1468',
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.22,
-    shadowRadius: 36,
-    elevation: 14,
-  },
+  sm: Platform.select({
+    web: { boxShadow: '0 4px 12px rgba(61,20,104,0.08)' } as any,
+    default: {
+      boxShadow: '0px 4px 12px rgba(61,20,104,0.08)',
+      elevation: 3,
+    },
+  }) as any,
+  md: Platform.select({
+    web: { boxShadow: '0 8px 24px rgba(61,20,104,0.14)' } as any,
+    default: {
+      boxShadow: '0px 8px 24px rgba(61,20,104,0.14)',
+      elevation: 8,
+    },
+  }) as any,
+  lg: Platform.select({
+    web: { boxShadow: '0 16px 36px rgba(61,20,104,0.22)' } as any,
+    default: {
+      boxShadow: '0px 16px 36px rgba(61,20,104,0.22)',
+      elevation: 14,
+    },
+  }) as any,
 };

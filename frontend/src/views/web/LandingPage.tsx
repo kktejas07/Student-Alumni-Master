@@ -833,7 +833,7 @@ function GradientButton({
       style={({ hovered }: any) => [
         styles.gradBtnWrap,
         small && { borderRadius: 999 },
-        hovered && { transform: [{ translateY: -1 }], shadowOpacity: 0.45 },
+        hovered && { transform: [{ translateY: -1 }], boxShadow: '0px 12px 30px rgba(95,37,159,0.45)' },
       ]}
     >
       <LinearGradient
@@ -932,10 +932,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(176,127,223,0.6)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: PALETTE.accent,
-    shadowOpacity: 0.4,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 0 },
+    boxShadow: '0px 0px 14px rgba(176,127,223,0.4)',
   },
   brandText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 17, letterSpacing: -0.2 },
   navLinks: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -984,10 +981,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: PALETTE.cardBorderGlow,
     marginBottom: 30,
-    shadowColor: PALETTE.accent,
-    shadowOpacity: 0.3,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 0 },
+    boxShadow: '0px 0px 22px rgba(176,127,223,0.3)',
   },
   heroPillText: {
     color: PALETTE.accentBright,
@@ -1059,10 +1053,7 @@ const styles = StyleSheet.create({
     minHeight: 200,
     gap: 16,
     ...({ backdropFilter: 'blur(10px)' } as any),
-    shadowColor: PALETTE.accent,
-    shadowOpacity: 0.12,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 4 },
+    boxShadow: '0px 4px 22px rgba(176,127,223,0.12)',
   },
   iconBubble: {
     width: 48,
@@ -1109,10 +1100,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     flexGrow: 1,
     minWidth: 230,
-    shadowColor: PALETTE.accent,
-    shadowOpacity: 0.16,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 6 },
+    boxShadow: '0px 6px 22px rgba(176,127,223,0.16)',
   },
   eventImageWrap: {
     width: '100%',
@@ -1183,10 +1171,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     borderRadius: 999,
     marginTop: 36,
-    shadowColor: '#000',
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
+    boxShadow: '0px 8px 20px rgba(0,0,0,0.25)',
     ...({ cursor: 'pointer', transitionDuration: '180ms' } as any),
   },
   ctaButtonText: {
@@ -1256,10 +1241,7 @@ const styles = StyleSheet.create({
   gradBtnWrap: {
     borderRadius: 999,
     overflow: 'hidden',
-    shadowColor: PALETTE.accent,
-    shadowOpacity: 0.35,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 6 },
+    boxShadow: '0px 6px 24px rgba(176,127,223,0.35)',
     ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
   },
   gradBtnInner: {

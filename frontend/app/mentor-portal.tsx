@@ -75,7 +75,7 @@ export default function MentorPortalRoute() {
           style: {
             position: 'absolute', inset: 0,
             width: '100%', height: '100%',
-            border: 'none', background: '#071412',
+            border: 'none', backgroundColor: '#071412',
           },
         })}
         <FloatingLogout onPress={onLogout} />

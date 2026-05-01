@@ -2778,4 +2778,44 @@ agent_communication:
         Verification (screenshot tool):
           ✅ All 9 mentor portal screens render without page errors
           ✅ NO PAGE ERRORS captured during nav cycle
+
+agent_communication:
+    -agent: "main"
+    -comment: |
+        Style cleanup sweep complete — zero deprecation warnings.
+
+        ✅ Converted all `shadowColor / shadowOffset / shadowOpacity / shadowRadius`
+           blocks across the codebase to `boxShadow` strings (web-compatible,
+           also valid on iOS/Android in RN ≥0.76).
+
+           Updated files (16 in total):
+             theme/index.ts (Shadows.sm/md/lg now use boxShadow + elevation)
+             src/views/web/AuthWebShell.tsx
+             src/views/web/AuthWebControls.tsx
+             src/views/web/LandingPage.tsx (5 separate shadow blocks)
+             src/views/web/StudentDashboardView.tsx
+             src/views/web/StudentDashboardMobileView.tsx
+             src/views/web/CollegeDashboardView.tsx
+             src/views/web/InstitutionAutocomplete.tsx
+             src/views/web/MentorCategoryGrid.tsx
+             src/views/web/Dropdown.tsx
+             src/views/web/Badges.tsx
+             src/views/web/admin/SlidePanel.tsx
+             src/views/web/platform/components.tsx
+             src/views/components/Toast.tsx
+             app/intro.tsx, app/(auth)/login.tsx, app/(auth)/register.tsx,
+             app/(onboarding)/face-capture.tsx
+
+        ✅ Replaced `background:` shorthand (invalid in RN-Web) with
+           `backgroundColor` / `backgroundImage` long-form props in:
+             app/mentor-portal.tsx, app/college-portal.tsx,
+             app/super-admin.tsx, app/student-portal.tsx,
+             src/views/web/admin/AdminLayout.tsx,
+             src/views/web/admin/primitives.tsx
+
+        Verification:
+          • `grep shadowColor|shadowOffset|shadowOpacity|shadowRadius` → 0 hits
+          • Mentor portal screenshot test: 0 page errors, 0 shadow/bg warnings
+          • Console fully clean now
+
           ✅ Firebase + PostHog SDKs bundle cleanly

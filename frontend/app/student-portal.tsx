@@ -37,7 +37,7 @@ export default function StudentPortalRoute() {
         style: {
           position: 'absolute', inset: 0,
           width: '100%', height: '100%',
-          border: 'none', background: '#1A0438',
+          border: 'none', backgroundColor: '#1A0438',
         },
       })}
 

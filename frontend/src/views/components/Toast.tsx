@@ -235,10 +235,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.14)',
-    shadowColor: '#000',
-    shadowOpacity: 0.45,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
+    boxShadow: '0px 12px 24px rgba(0,0,0,0.45)',
     ...({ backdropFilter: 'blur(18px)' } as any),
   },
   glassOverlay: {

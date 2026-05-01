@@ -166,7 +166,7 @@ function QuickActionTile({ action, onPress }: { action: typeof QUICK_ACTIONS[num
       style={({ hovered }: any) => [styles.qaTile, hovered && { transform: [{ translateY: -2 }] }]}>
       <Animated.View style={{ transform: [{ scale }] }}>
         <LinearGradient colors={action.gradient as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={[styles.qaIconWrap, { shadowColor: action.shadow }]}>
+          style={[styles.qaIconWrap, { boxShadow: `0px 6px 14px ${action.shadow}` } as any]}>
           <action.Icon size={22} color="#FFFFFF" />
         </LinearGradient>
       </Animated.View>
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   qaTile: { width: '22%', alignItems: 'center', gap: 8, paddingVertical: 4, flexGrow: 1, flexBasis: '22%' },
   qaIconWrap: {
     width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
-    shadowOpacity: 0.55, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 6,
+    elevation: 6,
   },
   qaLabel: { color: 'rgba(255,255,255,0.78)', fontFamily: 'DMSans_500Medium', fontSize: 10.5, textAlign: 'center', lineHeight: 13 },
 

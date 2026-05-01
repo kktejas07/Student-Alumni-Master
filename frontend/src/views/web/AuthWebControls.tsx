@@ -250,10 +250,7 @@ const controlStyles = StyleSheet.create({
   },
   wrapFocus: {
     backgroundColor: 'rgba(255,255,255,0.08)',
-    shadowColor: '#B07FDF',
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 0 },
+    boxShadow: '0px 0px 16px rgba(176,127,223,0.25)',
   },
   input: {
     flex: 1,
@@ -278,16 +275,13 @@ const controlStyles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     marginTop: 4,
-    shadowColor: '#7C3AED',
-    shadowOpacity: 0.4,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
+    boxShadow: '0px 8px 18px rgba(124,58,237,0.4)',
     ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
   },
   primaryHover: {
     backgroundColor: '#9059D9',
     transform: [{ translateY: -1 }],
-    shadowOpacity: 0.55,
+    boxShadow: '0px 8px 22px rgba(124,58,237,0.55)',
   },
   primaryText: { color: C.white, fontFamily: 'DMSans_700Bold', fontSize: 15 },
 
@@ -334,9 +328,7 @@ const controlStyles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderColor: '#7C3AED',
     width: 12, height: 12, borderRadius: 6,
-    shadowColor: '#7C3AED',
-    shadowOpacity: 0.6,
-    shadowRadius: 8,
+    boxShadow: '0px 0px 8px rgba(124,58,237,0.6)',
   },
   stepLabel: {
     fontSize: 11,

@@ -37,7 +37,7 @@ export default function CollegePortalRoute() {
         style: {
           position: 'absolute', inset: 0,
           width: '100%', height: '100%',
-          border: 'none', background: '#0A0A0F',
+          border: 'none', backgroundColor: '#0A0A0F',
         },
       })}
 

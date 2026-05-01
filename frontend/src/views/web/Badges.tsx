@@ -87,12 +87,9 @@ export function BadgeChip({ badge, size = 'sm', onPress }: ChipProps) {
           gap: sz.gap,
           borderColor: color + '70',
           backgroundColor: color + '18',
-          shadowColor: color,
-          shadowOpacity: 0.50,
-          shadowRadius: 10,
-          shadowOffset: { width: 0, height: 2 },
         },
         Platform.OS === 'web' && ({ boxShadow: `0 0 12px ${glow}` } as any),
+        Platform.OS !== 'web' && ({ boxShadow: `0px 2px 10px ${color}80` } as any),
       ]}
     >
       <Icon size={sz.iconSize} color={color} />

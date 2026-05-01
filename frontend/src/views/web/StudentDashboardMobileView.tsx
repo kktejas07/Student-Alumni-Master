@@ -254,7 +254,7 @@ function QuickActionTile({
         <LinearGradient
           colors={action.gradient as any}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={[styles.qaIconWrap, { shadowColor: action.shadow }]}
+          style={[styles.qaIconWrap, { boxShadow: `0px 6px 14px ${action.shadow}` } as any]}
         >
           <action.Icon size={22} color="#FFFFFF" />
         </LinearGradient>
@@ -334,7 +334,6 @@ const styles = StyleSheet.create({
   qaIconWrap: {
     width: 56, height: 56, borderRadius: 18,
     alignItems: 'center', justifyContent: 'center',
-    shadowOpacity: 0.55, shadowRadius: 14, shadowOffset: { width: 0, height: 6 },
     elevation: 6,
   },
   qaLabel: {
