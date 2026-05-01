@@ -2747,3 +2747,35 @@ agent_communication:
           - OAuth (Google/LinkedIn) real credentials
           - Replacing `shadow*` with `boxShadow` sweep across older widgets
             (new files already use the modern syntax)
+
+
+agent_communication:
+    -agent: "main"
+    -comment: |
+        Mentor Portal — full True React Native port complete.
+
+        New view files in /app/frontend/src/views/web/portals/mentor/views/:
+          - DashboardView.tsx        (already existed)
+          - ConnectionsView.tsx      ✅ NEW — 4 status filters, search, 6 student cards, drawer modal
+          - SessionsView.tsx         ✅ NEW — Today/Upcoming/Past tabs, Join button, AI Prep
+          - RequestsView.tsx         ✅ NEW — 3 cards, Accept/Decline, AI Fit Score
+          - NetworkView.tsx          ✅ NEW — My Network mentor cards + Discovery feed
+          - EarningsView.tsx         ✅ NEW — Bar chart, transactions list, Withdraw, AI Advisor
+          - FeedbackView.tsx         ✅ NEW — Rating summary, star filter, reviews + AI Reply Drafter
+          - CreateEventView.tsx      ✅ NEW — Form with AI Suggest, My Upcoming Events panel
+          - ProfileView.tsx          ✅ NEW — Profile editor + Digital ID Card with QR
+
+        Wired into MentorPortalRN.tsx — StubViews completely removed.
+        Data extended in data.ts: NETWORK_MENTORS, DISCOVERY_STUDENTS, TRANSACTIONS, MY_EVENTS.
+
+        Analytics:
+          - PostHog key wired in /app/frontend/.env  (phc_oQm…spC)
+          - Firebase Analytics already initialised; both bundles loading cleanly
+            (Web Bundled firebase/app + analytics + posthog-js)
+          - login.tsx fires `login_succeeded` / `login_failed` events
+          - _layout.tsx initialises analytics on app boot
+
+        Verification (screenshot tool):
+          ✅ All 9 mentor portal screens render without page errors
+          ✅ NO PAGE ERRORS captured during nav cycle
+          ✅ Firebase + PostHog SDKs bundle cleanly

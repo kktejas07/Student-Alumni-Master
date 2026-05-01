@@ -21,7 +21,14 @@ import { MC } from './tokens';
 import { Sidebar, NavId } from './Sidebar';
 import { TopBar } from './TopBar';
 import { DashboardView } from './views/DashboardView';
-import { StubView } from './StubView';
+import { ConnectionsView } from './views/ConnectionsView';
+import { SessionsView } from './views/SessionsView';
+import { RequestsView } from './views/RequestsView';
+import { NetworkView } from './views/NetworkView';
+import { EarningsView } from './views/EarningsView';
+import { FeedbackView } from './views/FeedbackView';
+import { CreateEventView } from './views/CreateEventView';
+import { ProfileView } from './views/ProfileView';
 import { STUDENTS, SESSION_REQUESTS } from './data';
 
 const PAGE_TITLES: Record<NavId, string> = {
@@ -71,14 +78,14 @@ export default function MentorPortalRN() {
 
         <ScrollView style={{ flex: 1, backgroundColor: MC.bg }} contentContainerStyle={{ padding: 20 }}>
           {active === 'dashboard' && <DashboardView onNav={(id) => setActive(id as NavId)} />}
-          {active === 'students'  && <StubView title="My Connections" note="Full connections list (with status filter, search, drawer) coming next." />}
-          {active === 'sessions'  && <StubView title="Sessions" note="Availability calendar + past sessions coming next." />}
-          {active === 'requests'  && <StubView title="Session Requests" note="Accept/Decline + AI request scorer coming next." />}
-          {active === 'network'   && <StubView title="Network" note="My network + Discovery + Profile modals coming next." />}
-          {active === 'earnings'  && <StubView title="Earnings" note="Bar chart, transactions, withdrawals + AI advisor coming next." />}
-          {active === 'feedback'  && <StubView title="Feedback" note="Reviews list + AI reply drafter coming next." />}
-          {active === 'event'     && <StubView title="Create Event" note="Event form + AI event generator coming next." />}
-          {active === 'profile'   && <StubView title="Profile" note="Mentor profile + Digital ID card coming next." />}
+          {active === 'students'  && <ConnectionsView />}
+          {active === 'sessions'  && <SessionsView />}
+          {active === 'requests'  && <RequestsView />}
+          {active === 'network'   && <NetworkView />}
+          {active === 'earnings'  && <EarningsView />}
+          {active === 'feedback'  && <FeedbackView />}
+          {active === 'event'     && <CreateEventView />}
+          {active === 'profile'   && <ProfileView />}
         </ScrollView>
       </View>
     </View>

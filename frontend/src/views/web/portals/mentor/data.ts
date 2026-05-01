@@ -96,3 +96,33 @@ export const statusMeta = (s: string) => ({
   pending:   { label:'Pending',   color:'amber' as const, },
   completed: { label:'Completed', color:'blue'  as const, },
 }[s] || { label: s, color: 'gray' as const });
+
+// ── Network — other mentors to connect with + discovery
+export const NETWORK_MENTORS = [
+  { id:1, name:'Anita Desai',    avatar:'AD', color:'#8B5CF6', role:'VP Engineering', company:'Razorpay',     expertise:['Engineering Leadership','Hiring'], rating:4.8, sessions:212, status:'connected'    as const },
+  { id:2, name:'Rajiv Khanna',   avatar:'RK', color:'#F59E0B', role:'Founder',         company:'Plivo',        expertise:['Startups','Product'],            rating:4.9, sessions:88,  status:'pending'      as const },
+  { id:3, name:'Latha Subramani',avatar:'LS', color:'#22C55E', role:'Director PM',    company:'Microsoft',    expertise:['Product Strategy','Design'],     rating:4.7, sessions:154, status:'connect'      as const },
+  { id:4, name:'Vikram Iyer',    avatar:'VI', color:'#3B82F6', role:'Principal SDE',  company:'Amazon',       expertise:['System Design','DSA'],           rating:4.9, sessions:301, status:'connect'      as const },
+];
+
+export const DISCOVERY_STUDENTS = [
+  { id:11, name:'Tanvi Rao',  avatar:'TR', color:'#6366F1', college:'IIM Bangalore', branch:'MBA',       year:2026, looking:'Career switch to Product' },
+  { id:12, name:'Dev Anand',  avatar:'DA', color:'#EC4899', college:'IIT Delhi',     branch:'B.Tech CS', year:2027, looking:'System design mentor' },
+  { id:13, name:'Riya Shah',  avatar:'RS', color:'#22C55E', college:'BITS Goa',      branch:'B.E. CS',   year:2026, looking:'Startup validation help' },
+];
+
+// ── Earnings — recent transactions
+export const TRANSACTIONS = [
+  { id:'TX-9842', date:'May 1, 2026',  desc:'1:1 Session — Arjun Sharma',   amount:899,  status:'paid'    as const, kind:'session' as const },
+  { id:'TX-9803', date:'Apr 29, 2026', desc:'1:1 Session — Kabir Das',      amount:1199, status:'paid'    as const, kind:'session' as const },
+  { id:'TX-9712', date:'Apr 25, 2026', desc:'Withdrawal to ICICI ****4421', amount:-12000,status:'paid'   as const, kind:'withdraw' as const },
+  { id:'TX-9688', date:'Apr 23, 2026', desc:'1:1 Session — Meera Pillai',   amount:899,  status:'paid'    as const, kind:'session' as const },
+  { id:'TX-9612', date:'Apr 18, 2026', desc:'Cohort Workshop · 12 seats',    amount:5400, status:'paid'    as const, kind:'event' as const },
+  { id:'TX-9588', date:'Apr 14, 2026', desc:'1:1 Session — Priya Nair',     amount:899,  status:'pending' as const, kind:'session' as const },
+];
+
+// ── Events created by this mentor
+export const MY_EVENTS = [
+  { id:1, title:'System Design Bootcamp',         date:'May 18, 2026', time:'18:00', seats:24, registered:18, type:'paid' as const, price:499 },
+  { id:2, title:'AMA: Career in Big Tech',         date:'May 24, 2026', time:'19:30', seats:100,registered:71, type:'free' as const },
+];
