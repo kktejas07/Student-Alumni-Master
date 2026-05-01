@@ -2448,3 +2448,45 @@ agent_communication:
         /me → clicked "Digital ID Card" — output matches the
         user-supplied reference screenshots exactly.
 
+
+---
+## 2026-04-30 — Digital ID v3: carousel + hover glow + real download/share + contextual back
+agent_communication:
+    - agent: "main"
+      message: |
+        Implemented all 5 user requirements on the Digital ID view.
+        1) CAROUSEL: 3 slides (Front purple / Back deep-purple / Perks teal)
+           with dot indicator (active dot grows to 22px capsule) +
+           prev/next ring buttons with disabled states + "Swipe through:
+           Front · Back · Perks" caption.
+        2) HOVER GRADIENT RING: On web, card wrapper shows a
+           conic-gradient halo (#A78BFA → #34D399 → #F472B6 → #FCD34D)
+           on mouseEnter (blur 14px, opacity 0.9). Resting state is a
+           softer linear-gradient (blur 4px, opacity 0.5). Smooth .3s
+           transition. PerkCards also lift by 2px with colored border
+           glow on hover.
+        3) NAV FLOW (contextual back):
+             - Inside any sub-page (Digital ID / Manage / Settings /
+               Notifications / Security) → Back btn reads
+               "Back to Profile" + setPage("info") + toast.
+             - On Profile Info → Back reads "Back to Dashboard" +
+               router.replace("/platform") + toast.
+        4) DOWNLOAD: Installed html2canvas. onDownload captures the
+           card ref at 2x scale, creates PNG dataUrl, triggers
+           <a download="SA-ID-{sid}.png"> anchor click.
+           Toasts: generating → downloaded / failed.
+        5) SHARE: Web Share API path chain:
+             a) try html2canvas → PNG blob → File → navigator.share({files})
+             b) fall back to navigator.share({title,text,url})
+             c) fall back to clipboard copy of verify URL
+             d) native: Share.share({message})
+           All paths toast.
+        FILES TOUCHED:
+           • /app/frontend/app/(tabs)/profile.tsx (big rewrite of
+             DigitalIdCardInline; new PerkCard; contextual back btn;
+             useRef import)
+           • /app/frontend/package.json (yarn add html2canvas)
+        VERIFIED by 4 screenshots at 1440×900 (front/back/perks/hover)
+        against user-supplied reference — layout, colors, carousel
+        interaction, and glow ring match expectations.
+

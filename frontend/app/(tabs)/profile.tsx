@@ -3,7 +3,7 @@
  * Three-page editor: Profile Information / Manage Profile / Settings & Preferences.
  * Shell with sidebar navigation (collapses to top tabs on mobile) + save bar.
  */
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator,
   useWindowDimensions, Platform, Image, Alert, Share,
@@ -228,8 +228,17 @@ export default function ProfileScreen() {
               );
             })}
             <View style={{ flex: 1 }} />
-            <Pressable onPress={() => { showToast('Returning to dashboard…'); router.replace('/platform'); }} style={styles.backBtn} testID="profile-back">
-              <ArrowLeft size={14} color={C.text2} /><Text style={styles.backText}>Back to Dashboard</Text>
+            <Pressable onPress={() => {
+              // Contextual back: if on a sub-page → return to Profile Info; if already on Info → go to Dashboard
+              if (page !== 'info') {
+                showToast('Back to Profile');
+                setPage('info');
+              } else {
+                showToast('Returning to dashboard…');
+                router.replace('/platform');
+              }
+            }} style={styles.backBtn} testID="profile-back">
+              <ArrowLeft size={14} color={C.text2} /><Text style={styles.backText}>{page !== 'info' ? 'Back to Profile' : 'Back to Dashboard'}</Text>
             </Pressable>
           </View>
         )}
@@ -378,10 +387,12 @@ export default function ProfileScreen() {
   );
 }
 
-// ── Digital ID Card inline — navigates to existing /id-card route with back button
+// ── Digital ID Card inline — 3-slide carousel, hover glow, real download/share
 function DigitalIdCardInline({ userId, isMobile, draft, completion, showToast }: { userId?: string; isMobile: boolean; draft: any; completion: any; showToast: (m: string) => void }) {
   const router = useRouter();
-  const [flipped, setFlipped] = useState(false);
+  const [slide, setSlide] = useState(0); // 0 front, 1 back, 2 perks
+  const [hoverCard, setHoverCard] = useState(false);
+  const cardRef = useRef<any>(null);
   const sid = draft?.sa_id || draft?.unique_id || draft?.student_id || 'SA-2026-XXXXXX';
   const fullName = draft?.full_name || 'Your Name';
   const institution = draft?.institution || draft?.school_info?.institution_name || 'Your Institution';
@@ -399,103 +410,205 @@ function DigitalIdCardInline({ userId, isMobile, draft, completion, showToast }:
       showToast('Student ID copied to clipboard 📋');
     } catch { showToast('Unable to copy ID'); }
   };
-  const onDownload = () => { showToast('Preparing your ID Card download…'); router.push('/id-card'); };
+
+  // Real Download — html2canvas → PNG → trigger download
+  const onDownload = async () => {
+    showToast('Generating your ID Card…');
+    try {
+      if (Platform.OS === 'web') {
+        const html2canvas = (await import('html2canvas')).default;
+        const node = cardRef.current as unknown as HTMLElement;
+        if (!node) { showToast('Card not ready yet'); return; }
+        const canvas = await html2canvas(node, { backgroundColor: null, scale: 2, useCORS: true, logging: false });
+        const dataUrl = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = `SA-ID-${sid}.png`;
+        document.body.appendChild(a); a.click(); a.remove();
+        showToast('ID Card downloaded ✓');
+      } else {
+        router.push('/id-card');
+      }
+    } catch {
+      showToast('Download failed — please try again');
+    }
+  };
+
+  // Real Share — Web Share API (with image file if supported) → fallback to clipboard copy
   const onShare = async () => {
     try {
-      if (Platform.OS === 'web' && typeof navigator !== 'undefined' && (navigator as any).share) {
-        await (navigator as any).share({ title: 'My Student Alumni ID', text: sid, url: qrValue });
-        showToast('Share dialog opened');
+      const shareText = `My Student Alumni Digital ID\n${sid}\n${qrValue}`;
+      if (Platform.OS === 'web' && typeof navigator !== 'undefined') {
+        const nav = navigator as any;
+        if (nav.share) {
+          try {
+            const html2canvas = (await import('html2canvas')).default;
+            const node = cardRef.current as unknown as HTMLElement;
+            if (node && nav.canShare) {
+              const canvas = await html2canvas(node, { backgroundColor: null, scale: 2, useCORS: true, logging: false });
+              const blob: Blob | null = await new Promise((res) => canvas.toBlob(res, 'image/png'));
+              if (blob) {
+                const file = new File([blob], `SA-ID-${sid}.png`, { type: 'image/png' });
+                if (nav.canShare({ files: [file] })) {
+                  await nav.share({ title: 'My Student Alumni ID', text: shareText, files: [file] });
+                  showToast('Shared ✓'); return;
+                }
+              }
+            }
+          } catch {}
+          await nav.share({ title: 'My Student Alumni ID', text: shareText, url: qrValue });
+          showToast('Shared ✓'); return;
+        }
+        await navigator.clipboard.writeText(qrValue);
+        showToast('Share link copied to clipboard 🔗');
       } else {
-        await Share.share({ message: `My SA Digital ID: ${sid}\n${qrValue}` });
+        await Share.share({ message: shareText });
+        showToast('Shared ✓');
       }
-    } catch {}
+    } catch { showToast('Share cancelled'); }
+  };
+
+  const goSlide = (n: number) => {
+    const next = Math.max(0, Math.min(2, n));
+    setSlide(next);
+    const labels = ['Front', 'Back', 'Perks'];
+    showToast(`Card: ${labels[next]}`);
   };
 
   return (
     <View style={{ borderRadius: 18, overflow: 'hidden', marginBottom: 16 }}>
       <LinearGradient
-        colors={['rgba(139,92,246,0.20)', 'rgba(88,28,135,0.30)', 'rgba(30,20,55,0.90)']}
+        colors={['rgba(139,92,246,0.22)', 'rgba(88,28,135,0.32)', 'rgba(30,20,55,0.92)']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={{ padding: isMobile ? 18 : 28, gap: 18 }}
       >
-        {/* Hero intro */}
         <View style={{ gap: 4 }}>
           <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: isMobile ? 22 : 28, letterSpacing: -0.3 }}>Student Alumni</Text>
           <Text style={{ color: 'rgba(255,255,255,0.70)', fontFamily: 'DMSans_500Medium', fontSize: 13 }}>Your verified digital identity · Used across all platform features</Text>
         </View>
 
-        {/* The ID card (FRONT / BACK flip) */}
-        <View style={{ alignSelf: 'center', width: '100%', maxWidth: 460 }}>
-          <LinearGradient
-            colors={flipped ? ['#1E1B2E', '#3B2A5C'] : ['#7C3AED', '#4C1D95']}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={{ padding: 22, borderRadius: 20, gap: 14, minHeight: 300, borderColor: 'rgba(255,255,255,0.15)', borderWidth: 1 }}
+        {/* CARD CAROUSEL with hover glow ring */}
+        <View style={{ alignSelf: 'center', width: '100%', maxWidth: 500, gap: 12 }}>
+          <View
+            {...(Platform.OS === 'web' ? { onMouseEnter: () => setHoverCard(true), onMouseLeave: () => setHoverCard(false) } : {})}
+            style={{ position: 'relative', padding: 2, borderRadius: 22 } as any}
           >
-            {!flipped ? (
-              <>
-                {/* Head row */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <View>
-                    <Text style={{ color: 'rgba(255,255,255,0.75)', fontFamily: 'DMSans_700Bold', fontSize: 10, letterSpacing: 1.4 }}>STUDENT ALUMNI</Text>
-                    <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14, marginTop: 2 }}>DIGITAL ID · {new Date().getFullYear()}</Text>
+            {Platform.OS === 'web' && (
+              <View
+                // @ts-ignore web-only gradient ring
+                style={{
+                  position: 'absolute', top: -6, left: -6, right: -6, bottom: -6, borderRadius: 26,
+                  backgroundImage: hoverCard
+                    ? 'conic-gradient(from 0deg, #A78BFA, #34D399, #F472B6, #FCD34D, #A78BFA)'
+                    : 'linear-gradient(135deg, rgba(167,139,250,0.30), rgba(255,255,255,0.08))',
+                  opacity: hoverCard ? 0.9 : 0.5,
+                  filter: hoverCard ? 'blur(14px)' : 'blur(4px)',
+                  transition: 'opacity .3s ease, filter .3s ease',
+                  pointerEvents: 'none',
+                } as any}
+              />
+            )}
+            {/* Inner card — captured for download */}
+            <View ref={cardRef as any} style={{ borderRadius: 20, overflow: 'hidden' }}>
+              {slide === 0 && (
+                <LinearGradient colors={['#7C3AED', '#6D28D9', '#4C1D95']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 22, gap: 14, minHeight: 310, borderColor: 'rgba(255,255,255,0.18)', borderWidth: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View>
+                      <Text style={{ color: 'rgba(255,255,255,0.75)', fontFamily: 'DMSans_700Bold', fontSize: 10, letterSpacing: 1.4 }}>STUDENT ALUMNI</Text>
+                      <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14, marginTop: 2 }}>DIGITAL ID · {new Date().getFullYear()}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(16,185,129,0.25)', borderColor: 'rgba(16,185,129,0.60)', borderWidth: 1 }}>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#34D399' }} />
+                      <Text style={{ color: '#86EFAC', fontFamily: 'DMSans_800ExtraBold', fontSize: 10, letterSpacing: 0.6 }}>ACTIVE</Text>
+                    </View>
                   </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(16,185,129,0.20)', borderColor: 'rgba(16,185,129,0.55)', borderWidth: 1 }}>
-                    <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#34D399' }} />
-                    <Text style={{ color: '#86EFAC', fontFamily: 'DMSans_800ExtraBold', fontSize: 10, letterSpacing: 0.6 }}>ACTIVE</Text>
-                  </View>
-                </View>
-                {/* Body */}
-                <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center', marginTop: 4 }}>
-                  <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderColor: 'rgba(255,255,255,0.30)', borderWidth: 2 }}>
-                    {draft?.photo_data || draft?.face_image_base64 ? (
-                      <Image source={{ uri: draft.photo_data || draft.face_image_base64 }} style={{ width: '100%', height: '100%' }} />
-                    ) : (
-                      <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 24 }}>{initials}</Text>
-                    )}
-                  </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 20 }} numberOfLines={1}>{fullName}</Text>
-                    <Text style={{ color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_500Medium', fontSize: 12, marginTop: 3 }} numberOfLines={1}>{[branch, institution].filter(Boolean).join(' · ') || '—'}</Text>
-                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
-                      <View>
-                        <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_700Bold', fontSize: 8.5, letterSpacing: 1 }}>STUDENT ID</Text>
-                        <Text style={{ color: '#fff', fontFamily: Platform.OS === 'web' ? 'monospace' : 'DMSans_800ExtraBold', fontSize: 13, marginTop: 2, fontWeight: '700' as any }}>{sid}</Text>
-                      </View>
-                      <View>
-                        <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_700Bold', fontSize: 8.5, letterSpacing: 1 }}>VALID UNTIL</Text>
-                        <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13, marginTop: 2 }}>{validUntil}</Text>
+                  <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center', marginTop: 4 }}>
+                    <View style={{ width: 78, height: 78, borderRadius: 39, backgroundColor: 'rgba(255,255,255,0.20)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderColor: 'rgba(255,255,255,0.35)', borderWidth: 2 }}>
+                      {draft?.photo_data || draft?.face_image_base64 ? (
+                        <Image source={{ uri: draft.photo_data || draft.face_image_base64 }} style={{ width: '100%', height: '100%' }} />
+                      ) : (
+                        <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 26 }}>{initials}</Text>
+                      )}
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 22 }} numberOfLines={1}>{fullName}</Text>
+                      <Text style={{ color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_500Medium', fontSize: 12.5, marginTop: 3 }} numberOfLines={1}>{[branch, institution].filter(Boolean).join(' · ') || '—'}</Text>
+                      <View style={{ flexDirection: 'row', gap: 14, marginTop: 10 }}>
+                        <View>
+                          <Text style={{ color: 'rgba(255,255,255,0.60)', fontFamily: 'DMSans_700Bold', fontSize: 8.5, letterSpacing: 1 }}>STUDENT ID</Text>
+                          <Text style={{ color: '#fff', fontFamily: Platform.OS === 'web' ? 'monospace' : 'DMSans_800ExtraBold', fontSize: 13, marginTop: 2, fontWeight: '700' as any }}>{sid}</Text>
+                        </View>
+                        <View>
+                          <Text style={{ color: 'rgba(255,255,255,0.60)', fontFamily: 'DMSans_700Bold', fontSize: 8.5, letterSpacing: 1 }}>VALID UNTIL</Text>
+                          <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13, marginTop: 2 }}>{validUntil}</Text>
+                        </View>
                       </View>
                     </View>
                   </View>
-                </View>
-                {/* QR + signature */}
-                <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 6 }}>
-                  <View style={{ backgroundColor: '#fff', padding: 8, borderRadius: 10 }}>
-                    <QRCode value={qrValue} size={72} color="#1E1B2E" backgroundColor="#FFFFFF" />
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 6 }}>
+                    <View style={{ backgroundColor: '#fff', padding: 8, borderRadius: 10 }}>
+                      <QRCode value={qrValue} size={72} color="#1E1B2E" backgroundColor="#FFFFFF" />
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={{ color: 'rgba(255,255,255,0.60)', fontFamily: 'DMSans_700Bold', fontSize: 8.5, letterSpacing: 1 }}>SCAN TO VERIFY</Text>
+                      <Text style={{ color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_500Medium', fontSize: 10, marginTop: 2 }}>studentalumni.in/verify</Text>
+                    </View>
                   </View>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_700Bold', fontSize: 8.5, letterSpacing: 1 }}>SCAN TO VERIFY</Text>
-                    <Text style={{ color: 'rgba(255,255,255,0.80)', fontFamily: 'DMSans_500Medium', fontSize: 10, marginTop: 2 }}>studentalumni.in/verify</Text>
+                </LinearGradient>
+              )}
+              {slide === 1 && (
+                <LinearGradient colors={['#1E1B2E', '#2D1B5C', '#3B2A5C']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 24, gap: 12, minHeight: 310, borderColor: 'rgba(255,255,255,0.15)', borderWidth: 1 }}>
+                  <Text style={{ color: 'rgba(167,139,250,0.90)', fontFamily: 'DMSans_800ExtraBold', fontSize: 10, letterSpacing: 1.4 }}>REVERSE · TERMS OF USE</Text>
+                  <Text style={{ color: '#fff', fontFamily: 'DMSans_500Medium', fontSize: 13, lineHeight: 20, marginTop: 6 }}>This card certifies that the holder is a verified member of the Student Alumni platform. Valid for identity verification at partner events, campuses &amp; mentor bookings. Not transferable.</Text>
+                  <View style={{ marginTop: 14, gap: 4 }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.60)', fontFamily: 'DMSans_700Bold', fontSize: 9, letterSpacing: 1 }}>SIGNATURE</Text>
+                    <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.35)' }} />
+                    <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium', fontSize: 10, marginTop: 2 }}>Not valid without signature</Text>
                   </View>
-                </View>
-              </>
-            ) : (
-              <>
-                <Text style={{ color: 'rgba(255,255,255,0.75)', fontFamily: 'DMSans_700Bold', fontSize: 10, letterSpacing: 1.4 }}>REVERSE · TERMS</Text>
-                <Text style={{ color: '#fff', fontFamily: 'DMSans_500Medium', fontSize: 12.5, lineHeight: 19, marginTop: 6 }}>
-                  This card certifies that the holder is a verified member of the Student Alumni platform.
-                  Valid for identity verification at partner events, campuses & bookings.
-                  Not transferable. Tap to flip back.
-                </Text>
-                <View style={{ marginTop: 16, gap: 4 }}>
-                  <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_700Bold', fontSize: 8.5, letterSpacing: 1 }}>SIGNATURE</Text>
-                  <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.30)' }} />
-                  <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium', fontSize: 10, marginTop: 2 }}>Not valid without signature</Text>
-                </View>
-              </>
-            )}
-          </LinearGradient>
-          <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium', fontSize: 11, textAlign: 'center', marginTop: 10 }}>Tap card to flip · Front &amp; back</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.50)', fontFamily: 'DMSans_500Medium', fontSize: 11 }}>studentalumni.in</Text>
+                    <Text style={{ color: 'rgba(255,255,255,0.50)', fontFamily: Platform.OS === 'web' ? 'monospace' : 'DMSans_700Bold', fontSize: 11, fontWeight: '700' as any }}>{sid}</Text>
+                  </View>
+                </LinearGradient>
+              )}
+              {slide === 2 && (
+                <LinearGradient colors={['#0E7490', '#0F766E', '#065F46']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 22, gap: 12, minHeight: 310, borderColor: 'rgba(52,211,153,0.35)', borderWidth: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_800ExtraBold', fontSize: 11, letterSpacing: 1.4 }}>SA · MEMBER PERKS</Text>
+                    <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(252,211,77,0.20)', borderColor: 'rgba(252,211,77,0.55)', borderWidth: 1 }}>
+                      <Text style={{ color: '#FCD34D', fontFamily: 'DMSans_800ExtraBold', fontSize: 10 }}>TIER · STUDENT</Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 19, marginTop: 2 }}>Unlocked Benefits</Text>
+                  {[
+                    { label: 'Free mentor sessions', v: '3 / month' },
+                    { label: 'Partner workshops', v: 'Free entry' },
+                    { label: 'Resume review credits', v: '5' },
+                    { label: 'Knowledge Room access', v: 'Unlimited' },
+                  ].map((r, i) => (
+                    <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 7, borderBottomColor: 'rgba(255,255,255,0.10)', borderBottomWidth: i < 3 ? 1 : 0 }}>
+                      <Text style={{ color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_500Medium', fontSize: 12.5 }}>{r.label}</Text>
+                      <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12.5 }}>{r.v}</Text>
+                    </View>
+                  ))}
+                </LinearGradient>
+              )}
+            </View>
+          </View>
+
+          {/* Carousel controls */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+            <Pressable onPress={() => goSlide(slide - 1)} disabled={slide === 0} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', opacity: slide === 0 ? 0.35 : 1, ...({ cursor: slide === 0 ? 'not-allowed' : 'pointer' } as any) }} testID="did-prev">
+              <ArrowLeft size={14} color="#fff" />
+            </Pressable>
+            {[0, 1, 2].map((i) => (
+              <Pressable key={i} onPress={() => goSlide(i)} style={{ width: i === slide ? 22 : 8, height: 8, borderRadius: 4, backgroundColor: i === slide ? '#A78BFA' : 'rgba(255,255,255,0.25)', ...({ cursor: 'pointer', transition: 'all .25s ease' } as any) }} testID={`did-dot-${i}`} />
+            ))}
+            <Pressable onPress={() => goSlide(slide + 1)} disabled={slide === 2} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', opacity: slide === 2 ? 0.35 : 1, ...({ cursor: slide === 2 ? 'not-allowed' : 'pointer' } as any) }} testID="did-next">
+              <View style={{ transform: [{ rotate: '180deg' }] }}><ArrowLeft size={14} color="#fff" /></View>
+            </Pressable>
+          </View>
+          <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium', fontSize: 11, textAlign: 'center' }}>Swipe through: Front · Back · Perks</Text>
         </View>
 
         {/* YOUR STUDENT ID box */}
@@ -520,9 +633,9 @@ function DigitalIdCardInline({ userId, isMobile, draft, completion, showToast }:
             <Share2 size={14} color="rgba(255,255,255,0.85)" />
             <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 }}>Share ID</Text>
           </Pressable>
-          <Pressable onPress={() => { setFlipped(!flipped); showToast(flipped ? 'Flipped to front' : 'Flipped to back'); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, ...({ cursor: 'pointer' } as any) }} testID="did-flip">
+          <Pressable onPress={() => goSlide((slide + 1) % 3)} style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, ...({ cursor: 'pointer' } as any) }} testID="did-flip">
             <RotateCw size={14} color="rgba(255,255,255,0.85)" />
-            <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 }}>Flip Card</Text>
+            <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 }}>Next Card</Text>
           </Pressable>
         </View>
 
@@ -531,22 +644,39 @@ function DigitalIdCardInline({ userId, isMobile, draft, completion, showToast }:
           <Text style={{ color: 'rgba(255,255,255,0.60)', fontFamily: 'DMSans_800ExtraBold', fontSize: 11, letterSpacing: 1.2 }}>THIS ID WORKS ACROSS THE PLATFORM</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
             {[
-              { Icon: CalendarCheck, title: 'Event Registration', sub: 'Tap to check in at meetups' },
-              { Icon: UsersRound, title: 'Book a Session', sub: 'Mentor slots auto-verified' },
-              { Icon: Building2, title: 'College Verification', sub: 'Campus gate & partner access' },
-              { Icon: Zap, title: 'Instant Connect', sub: 'Share profile via QR scan' },
+              { Icon: CalendarCheck, title: 'Event Registration', sub: 'Tap to check in at meetups', color: '#A78BFA' },
+              { Icon: UsersRound, title: 'Book a Session', sub: 'Mentor slots auto-verified', color: '#34D399' },
+              { Icon: Building2, title: 'College Verification', sub: 'Campus gate & partner access', color: '#F472B6' },
+              { Icon: Zap, title: 'Instant Connect', sub: 'Share profile via QR scan', color: '#FCD34D' },
             ].map((f, i) => (
-              <View key={i} style={{ flex: 1, minWidth: 180, padding: 14, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.09)', borderWidth: 1, gap: 6 }}>
-                <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(167,139,250,0.20)', borderColor: 'rgba(167,139,250,0.40)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' }}>
-                  <f.Icon size={15} color="#C4B5FD" />
-                </View>
-                <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 }}>{f.title}</Text>
-                <Text style={{ color: 'rgba(255,255,255,0.60)', fontFamily: 'DMSans_400Regular', fontSize: 11.5 }}>{f.sub}</Text>
-              </View>
+              <PerkCard key={i} Icon={f.Icon} title={f.title} sub={f.sub} color={f.color} />
             ))}
           </View>
         </View>
       </LinearGradient>
+    </View>
+  );
+}
+
+// Tiny perk card with hover lift on web
+function PerkCard({ Icon, title, sub, color }: { Icon: any; title: string; sub: string; color: string }) {
+  const [h, setH] = useState(false);
+  const webProps: any = Platform.OS === 'web' ? { onMouseEnter: () => setH(true), onMouseLeave: () => setH(false) } : {};
+  return (
+    <View
+      {...webProps}
+      style={{
+        flex: 1, minWidth: 180, padding: 14, borderRadius: 12,
+        backgroundColor: h ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.04)',
+        borderColor: h ? color + '66' : 'rgba(255,255,255,0.09)', borderWidth: 1,
+        ...(Platform.OS === 'web' ? ({ transition: 'all .25s ease', transform: h ? 'translateY(-2px)' : 'translateY(0)' } as any) : {}),
+      } as any}
+    >
+      <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: color + '22', borderColor: color + '55', borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginBottom: 6 }}>
+        <Icon size={15} color={color} />
+      </View>
+      <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 }}>{title}</Text>
+      <Text style={{ color: 'rgba(255,255,255,0.60)', fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: 4 }}>{sub}</Text>
     </View>
   );
 }
