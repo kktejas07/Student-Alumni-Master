@@ -691,6 +691,59 @@ async def mentor_suggestions():
     }
 
 
+# ----------------------------------------------------------------------------
+# Course / Stream Catalog — Indian Engineering + Popular Global Disciplines
+# ----------------------------------------------------------------------------
+_COURSES_CATALOG = [
+    "Computer Science Engineering (CSE)",
+    "Information Technology (IT)",
+    "Electronics & Communication (ECE)",
+    "Electrical & Electronics (EEE)",
+    "Electrical Engineering",
+    "Mechanical Engineering",
+    "Civil Engineering",
+    "Chemical Engineering",
+    "Aerospace Engineering",
+    "Automobile Engineering",
+    "Biomedical Engineering",
+    "Biotechnology",
+    "Metallurgical Engineering",
+    "Mining Engineering",
+    "Marine Engineering",
+    "Production / Industrial Engineering",
+    "Agricultural Engineering",
+    "Textile Engineering",
+    "Artificial Intelligence & Machine Learning",
+    "Data Science",
+    "Cyber Security",
+    "Robotics & Automation",
+    "Electronics & Instrumentation",
+    "Mechatronics",
+    "Nanotechnology",
+    "Bioinformatics",
+    "Architecture (B.Arch)",
+    "Pharmacy (B.Pharm)",
+    "Design (B.Des)",
+    "Commerce / BBA",
+    "Mathematics",
+    "Physics",
+    "Chemistry",
+    "Economics",
+    "Management (MBA)",
+    "Law (LLB)",
+    "Medicine (MBBS)",
+    "Other",
+]
+
+
+@api_router.get("/courses")
+async def courses():
+    """Return the curated course/stream catalog used by Student onboarding.
+    Engineering-heavy per SA's India-first rollout + a fallback 'Other'."""
+    return {"courses": _COURSES_CATALOG}
+
+
+
 
 # ----------------------------------------------------------------------------
 # Badge endpoints (multi-role tiered + universal)

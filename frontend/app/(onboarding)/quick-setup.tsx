@@ -10,7 +10,7 @@
  * dashboard. Rich onboarding (archetypes, skills, face capture, bio) is
  * offered as an OPTIONAL "Complete your profile" step later.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AuthShell } from '@/src/views/auth/AuthShell';
@@ -18,8 +18,14 @@ import { AuthInput, PrimaryButton, OutlineButton } from '@/src/views/auth/AuthCo
 import { AC, FONTS } from '@/src/views/auth/tokens';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useToast } from '@/src/views/components';
+import { InstitutionAutocomplete } from '@/src/views/web/InstitutionAutocomplete';
+import { SuggestionAutocomplete } from '@/src/views/web/SuggestionAutocomplete';
+import { Dropdown } from '@/src/views/web/Dropdown';
+import { PhoneInput } from '@/src/views/web/PhoneInput';
 import { api } from '@/src/models/services/api';
 import { DarkChip } from '@/src/views/web/OnboardingShell';
+
+const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
 
 const SESSION_PRICES = [499, 799, 999, 1499];
 
@@ -71,6 +77,30 @@ export default function QuickSetup() {
   const [website, setWebsite]     = useState('');
   const [city, setCity]           = useState('');
   const [stateName, setStateName] = useState('');
+
+  // Populated from API on mount — used by Mentor/Alumni Company autocomplete + Student course dropdown
+  const [orgs, setOrgs]       = useState<string[]>([
+    'Google', 'Microsoft', 'Amazon', 'TCS', 'Infosys', 'Flipkart', 'Swiggy',
+    'Razorpay', 'Deloitte', 'IIT Bombay', 'Independent / Freelancer',
+  ]);
+  const [courses, setCourses] = useState<string[]>([
+    'Computer Science Engineering (CSE)', 'Information Technology (IT)',
+    'Electronics & Communication (ECE)', 'Mechanical Engineering',
+    'Civil Engineering', 'Artificial Intelligence & Machine Learning', 'Other',
+  ]);
+  const [courseSel, setCourseSel] = useState('');
+  useEffect(() => {
+    (async () => {
+      try {
+        const [o, c] = await Promise.all([
+          fetch(`${BASE}/api/mentors/suggestions`).then((r) => r.ok ? r.json() : null).catch(() => null),
+          fetch(`${BASE}/api/courses`).then((r) => r.ok ? r.json() : null).catch(() => null),
+        ]);
+        if (o?.organizations?.length) setOrgs(o.organizations);
+        if (c?.courses?.length)       setCourses(c.courses);
+      } catch {/* keep fallbacks */}
+    })();
+  }, []);
 
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
@@ -149,6 +179,8 @@ export default function QuickSetup() {
           career_interests: [],
           cgpa: cgpa.trim() ? parseFloat(cgpa) : undefined,
         };
+        // Capture selected course into school_info.branch_or_stream (existing field)
+        if (courseSel) payload.school_info.branch_or_stream = courseSel;
       }
 
       if (role === 'mentor') {
@@ -217,18 +249,39 @@ export default function QuickSetup() {
           {/* STUDENT */}
           {role === 'student' && (
             <>
-              <AuthInput label="College / University" value={college} onChangeText={setCollege} placeholder="e.g. IIT Bombay" />
+              <Text style={s.section}>College / University *</Text>
+              <InstitutionAutocomplete
+                value={college}
+                onChangeText={setCollege}
+                onSelect={(pick) => {
+                  setCollege(pick.name);
+                  if (!city.trim() && pick.city) setCity(pick.city);
+                  if (!stateName.trim() && pick.state) setStateName(pick.state);
+                }}
+                type="college"
+                placeholder="Search your college / university (Indian institutions)"
+                testID="student-college"
+              />
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ flex: 1 }}>
                   <AuthInput label="Graduation Year" value={gradYear} onChangeText={setGradYear} placeholder="2026" keyboardType="numeric" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <AuthInput label="CGPA (optional)" value={cgpa} onChangeText={setCgpa} placeholder="8.4" keyboardType="decimal-pad" />
+                  <AuthInput label="CGPA (optional, 0.0-10.0)" value={cgpa} onChangeText={setCgpa} placeholder="8.4" keyboardType="decimal-pad" />
                 </View>
               </View>
+              <Dropdown
+                label="Course / Stream"
+                optional
+                value={courseSel}
+                options={courses.map((c) => ({ value: c, label: c }))}
+                onChange={setCourseSel}
+                placeholder="Select your course (Engineering & more)"
+                testID="student-course-dropdown"
+              />
               <AuthInput label="Full Name" value={fullName} onChangeText={setFullName} placeholder="e.g. Arjun Sharma" autoCapitalize="words" />
               <AuthInput label="Email Address" value={user?.email || ''} onChangeText={() => {}} placeholder={user?.email} />
-              <AuthInput label="Phone Number" value={phone} onChangeText={setPhone} placeholder="+91 98765 43210" keyboardType="phone-pad" />
+              <PhoneInput label="Phone Number *" value={phone} onChangeText={setPhone} helper="Country code auto-detected — change it if you're outside India." />
             </>
           )}
 
@@ -236,9 +289,17 @@ export default function QuickSetup() {
           {role === 'mentor' && (
             <>
               <AuthInput label="Current Role" value={currentRole} onChangeText={setCurrentRole} placeholder="e.g. SDE-2 at Google" />
-              <AuthInput label="Company" value={company} onChangeText={setCompany} placeholder="Company name" />
+              <SuggestionAutocomplete
+                label="Company"
+                value={company}
+                onChangeText={setCompany}
+                suggestions={orgs}
+                placeholder="Company name (type to search)"
+                helper="Pick from our curated list — or type your own."
+                testID="mentor-company"
+              />
               <AuthInput label="College & Batch" value={collegeBatch} onChangeText={setCollegeBatch} placeholder="IIT Bombay, 2018" />
-              <AuthInput label="Phone Number" value={phone} onChangeText={setPhone} placeholder="+91 98765 43210" keyboardType="phone-pad" />
+              <PhoneInput label="Phone Number *" value={phone} onChangeText={setPhone} />
               <Text style={s.section}>Session Price (₹)</Text>
               <View style={s.chipRow}>
                 {SESSION_PRICES.map((p) => (
@@ -272,7 +333,14 @@ export default function QuickSetup() {
             <>
               <AuthInput label="Full Name" value={fullName} onChangeText={setFullName} placeholder="e.g. Arjun Sharma" autoCapitalize="words" />
               <AuthInput label="Current Role" value={currentRole} onChangeText={setCurrentRole} placeholder="e.g. Senior Software Engineer" />
-              <AuthInput label="Company" value={company} onChangeText={setCompany} placeholder="Company name" />
+              <SuggestionAutocomplete
+                label="Company"
+                value={company}
+                onChangeText={setCompany}
+                suggestions={orgs}
+                placeholder="Company name (type to search)"
+                testID="alumni-company"
+              />
               <AuthInput label="College & Batch" value={collegeBatch} onChangeText={setCollegeBatch} placeholder="IIT Bombay, 2018" />
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ flex: 1 }}>
@@ -282,14 +350,26 @@ export default function QuickSetup() {
                   <AuthInput label="Years of Experience" value={yoe} onChangeText={setYoe} placeholder="e.g. 5" keyboardType="numeric" />
                 </View>
               </View>
-              <AuthInput label="Phone Number" value={phone} onChangeText={setPhone} placeholder="+91 98765 43210" keyboardType="phone-pad" />
+              <PhoneInput label="Phone Number *" value={phone} onChangeText={setPhone} />
             </>
           )}
 
           {/* COLLEGE — per HTML spec "Your Institution" */}
           {role === 'college' && (
             <>
-              <AuthInput label="Institution Name" value={instName} onChangeText={setInstName} placeholder="e.g. Delhi Technological University" autoCapitalize="words" />
+              <Text style={s.section}>Institution Name *</Text>
+              <InstitutionAutocomplete
+                value={instName}
+                onChangeText={setInstName}
+                onSelect={(pick) => {
+                  setInstName(pick.name);
+                  if (!city.trim() && pick.city) setCity(pick.city);
+                  if (!stateName.trim() && pick.state) setStateName(pick.state);
+                }}
+                type="university"
+                placeholder="Search your institution (Indian universities / colleges)"
+                testID="college-inst-name"
+              />
 
               <Text style={s.section}>Institution Type</Text>
               <View style={s.chipRow}>
@@ -327,7 +407,7 @@ export default function QuickSetup() {
                   <AuthInput label="State" value={stateName} onChangeText={setStateName} placeholder="e.g. Delhi" autoCapitalize="words" />
                 </View>
               </View>
-              <AuthInput label="Admin Phone Number" value={phone} onChangeText={setPhone} placeholder="+91 98765 43210" keyboardType="phone-pad" />
+              <PhoneInput label="Admin Phone Number *" value={phone} onChangeText={setPhone} />
             </>
           )}
         </View>
