@@ -127,7 +127,32 @@ export default function RegisterScreen() {
               placeholder="Min 8 characters"
               secureTextEntry={!showPwd}
               error={errors.pwd}
-              rightSlot={<Pressable onPress={() => setShowPwd((v) => !v)} style={{ paddingHorizontal: 6 }}>{showPwd ? <EyeOff size={16} color={AC.muted} /> : <Eye size={16} color={AC.muted} />}</Pressable>}
+              rightSlot={
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Pressable onPress={() => setShowPwd((v) => !v)} style={{ paddingHorizontal: 6 }}>
+                    {showPwd ? <EyeOff size={16} color={AC.muted} /> : <Eye size={16} color={AC.muted} />}
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      // Generate a strong 14-char password with a mix of upper, lower, digits, symbols.
+                      const U = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+                      const L = 'abcdefghjkmnpqrstuvwxyz';
+                      const D = '23456789';
+                      const S = '!@#$%^&*';
+                      const all = U + L + D + S;
+                      const r = (s: string) => s[Math.floor(Math.random() * s.length)];
+                      let p = r(U) + r(L) + r(D) + r(S);
+                      while (p.length < 14) p += r(all);
+                      // shuffle
+                      p = p.split('').sort(() => Math.random() - 0.5).join('');
+                      setPwd(p); setShowPwd(true); setErrors((e) => ({ ...e, pwd: '' }));
+                    }}
+                    style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(124,58,237,0.28)' }}
+                  >
+                    <Text style={{ color: '#FFF', fontFamily: 'DMSans_700Bold', fontSize: 11 }}>Generate</Text>
+                  </Pressable>
+                </View>
+              }
               onSubmitEditing={onPwdBlur}
             />
             {pwd.length > 0 && <StrengthMeter score={strength.score} label={strength.label} tips={strength.tips} />}

@@ -25,18 +25,20 @@ import { api } from '@/src/models/services/api';
 import { DarkChip } from '@/src/views/web/OnboardingShell';
 import { InstitutionAutocomplete } from '@/src/views/web/InstitutionAutocomplete';
 import { PhoneInput } from '@/src/views/web/PhoneInput';
+import { Dropdown } from '@/src/views/web/Dropdown';
 
 const TOTAL = 7;
 const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+const CURRENT_YEAR = new Date().getFullYear();
+// Per spec — students are currently studying; graduation year ≥ current year.
+const GRAD_YEARS = Array.from({ length: 9 }, (_, i) => String(CURRENT_YEAR + i));
 
 const EDU_LEVELS = [
-  { id: 'plus_two',    label: 'High School',        icon: BookOpen },
   { id: 'diploma',     label: 'Diploma / ITI',      icon: Award },
   { id: 'btech',       label: "Bachelor's Degree",  icon: GraduationCap },
   { id: 'masters',     label: "Master's Degree",    icon: GraduationCap },
   { id: 'mba',         label: 'MBA',                icon: BriefcaseBusiness },
   { id: 'phd',         label: 'PhD / Doctorate',    icon: Award },
-  { id: 'exec',        label: 'Executive Programme', icon: Sparkles },
   { id: 'bootcamp',    label: 'Self-taught / Bootcamp', icon: Code },
 ];
 const INTERESTS  = ['Software Engineering', 'Product Management', 'Data Science', 'UI/UX Design', 'Finance & Banking', 'Consulting', 'Entrepreneurship', 'Research'];
@@ -235,7 +237,15 @@ export default function StudentOnboard() {
               />
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ flex: 1 }}>
-                  <AuthInput label="Graduation Year" value={gradYear} onChangeText={setGradYear} placeholder="2026" keyboardType="numeric" />
+                  <Dropdown
+                    label="Graduation Year"
+                    required
+                    value={gradYear}
+                    options={GRAD_YEARS.map((y) => ({ value: y, label: y }))}
+                    onChange={setGradYear}
+                    placeholder="Select year"
+                    testID="grad-year-dropdown"
+                  />
                 </View>
                 <View style={{ flex: 1 }}>
                   <AuthInput label="CGPA" value={cgpa} onChangeText={setCgpa} placeholder="8.5" keyboardType="decimal-pad" />
