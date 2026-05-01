@@ -103,15 +103,18 @@ export default function Login() {
       const user = (result as any).user;
       toast.success('Welcome back!', `Signed in as ${user.email}`);
       // Role-specific landing — every role lands on its pixel-exact portal:
+      //   admin               → /super-admin       (platform-level)
+      //   college             → /college-portal    (institution admin)
       //   mentor              → /mentor-portal
-      //   college / admin     → /college-portal
       //   student / alumni    → /student-portal
       const home = Platform.OS === 'web'
-        ? (user.role === 'mentor'
-            ? '/mentor-portal'
-            : (user.role === 'college' || user.role === 'admin')
+        ? (user.role === 'admin'
+            ? '/super-admin'
+            : user.role === 'college'
               ? '/college-portal'
-              : '/student-portal')
+              : user.role === 'mentor'
+                ? '/mentor-portal'
+                : '/student-portal')
         : '/(tabs)';
       router.replace(user.onboarding_completed ? home : '/(onboarding)/role-info');
     } catch (e: any) {
