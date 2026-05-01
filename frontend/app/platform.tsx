@@ -36,14 +36,15 @@ export default function PlatformRoute() {
     if (!initialized) return;
     if (!user) router.replace('/welcome');
     else if (!user.onboarding_completed) router.replace('/(onboarding)/role-info');
-    // Mentors go directly to the pixel-exact Mentor Portal
+    // Every role gets routed to its pixel-exact portal
     else if (user.role === 'mentor') router.replace('/mentor-portal');
-    // College / admin go directly to the pixel-exact College Admin Portal
     else if (user.role === 'college' || user.role === 'admin') router.replace('/college-portal');
+    else router.replace('/student-portal'); // student / alumni
   }, [user, initialized, router]);
 
   if (Platform.OS !== 'web') return null;
 
+  // While the redirect is in-flight, show a role-tinted loader so there's no flash
   if (!user) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1A0438' }}>
@@ -52,23 +53,18 @@ export default function PlatformRoute() {
     );
   }
 
-  switch (user.role) {
-    case 'mentor':
-      return (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#071412' }}>
-          <ActivityIndicator color="#14B8A6" />
-        </View>
-      );
-    case 'college':
-    case 'admin':
-      return (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0A0A0F' }}>
-          <ActivityIndicator color="#3B82F6" />
-        </View>
-      );
-    case 'student':
-    case 'alumni':
-    default:
-      return <StudentPlatform />;
-  }
+  const loaderBg =
+    user.role === 'mentor' ? '#071412' :
+    (user.role === 'college' || user.role === 'admin') ? '#0A0A0F' :
+    '#1A0438';
+  const loaderColor =
+    user.role === 'mentor' ? '#14B8A6' :
+    (user.role === 'college' || user.role === 'admin') ? '#3B82F6' :
+    '#A78BFA';
+
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: loaderBg }}>
+      <ActivityIndicator color={loaderColor} />
+    </View>
+  );
 }
