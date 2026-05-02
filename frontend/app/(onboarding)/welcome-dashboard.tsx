@@ -68,10 +68,6 @@ export default function DashboardPreview() {
             </View>
           ))}
         </View>
-
-        <Pressable onPress={() => router.replace('/welcome')} style={s.restartBtn}>
-          <Text style={s.restartText}>← Restart Flow</Text>
-        </Pressable>
       </View>
     </AuthShell>
   );
