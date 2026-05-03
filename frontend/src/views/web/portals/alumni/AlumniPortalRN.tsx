@@ -33,9 +33,19 @@ export function AlumniPortalRN() {
     router.replace('/welcome');
   };
 
+  const handleNav = (id: StudentNavId) => {
+    if (id === 'courses')     { router.push('/courses');          return; }
+    if (id === 'rentals')     { router.push('/rentals');          return; }
+    if (id === 'higher-ed')   { router.push('/higher-education'); return; }
+    if (id === 'financial')   { router.push('/financial');        return; }
+    if (id === 'deals')       { router.push('/deals');            return; }
+    if (id === 'wallet')      { router.push('/wallet');           return; }
+    setActive(id);
+  };
+
   return (
     <View style={s.shell}>
-      <Sidebar active={active} onNav={setActive} onLogout={onLogout} />
+      <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <TopBar />
         <ScrollView

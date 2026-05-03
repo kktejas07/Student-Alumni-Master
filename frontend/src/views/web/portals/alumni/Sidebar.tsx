@@ -17,7 +17,7 @@ import { Av } from './atoms';
 
 export type StudentNavId =
   | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'events'
-  | 'financial' | 'deals' | 'wallet' | 'higher-ed' | 'rentals' | 'profile'
+  | 'financial' | 'deals' | 'wallet' | 'higher-ed' | 'rentals' | 'courses' | 'profile'
   | 'my-bookings' | 'my-applications' | 'my-workshops';
 
 export const NAV: Array<{ id: StudentNavId; label: string; Icon: any }> = [
@@ -29,6 +29,7 @@ export const NAV: Array<{ id: StudentNavId; label: string; Icon: any }> = [
   { id: 'my-bookings',     label: 'My Bookings',        Icon: CalendarCheck },
   { id: 'events',          label: 'Events',             Icon: Calendar },
   { id: 'my-workshops',    label: 'My Workshops',       Icon: BookOpen },
+  { id: 'courses',         label: 'Courses',            Icon: BookOpen },
   { id: 'financial',       label: 'Financial',          Icon: Wallet },
   { id: 'deals',           label: 'Deals & Offers',     Icon: Tag },
   { id: 'wallet',          label: 'SA Wallet',          Icon: CreditCard },

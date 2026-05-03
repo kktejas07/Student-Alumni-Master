@@ -4977,6 +4977,8 @@ from financial_services import router as financial_router  # Financial v2: schol
 api_router.include_router(financial_router)
 from rentals_marketplace import router as rentals_router  # SA Stay: housing, vehicles, hotels, coworking + bookings + AI recommend
 api_router.include_router(rentals_router)
+from courses_marketplace import router as courses_router  # SA Courses: catalog + tracks + enrollments + AI advisor
+api_router.include_router(courses_router)
 
 # Auth analytics & session tracking
 from auth_analytics import router as auth_analytics_router

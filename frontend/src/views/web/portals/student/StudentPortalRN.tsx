@@ -41,6 +41,7 @@ export function StudentPortalRN() {
     if (id === 'wallet')      { router.push('/wallet');           return; }
     if (id === 'higher-ed')   { router.push('/higher-education'); return; }
     if (id === 'rentals')     { router.push('/rentals');          return; }
+    if (id === 'courses')     { router.push('/courses');          return; }
     if (id === 'internships') { router.push('/internships');      return; }
     setActive(id);
   };

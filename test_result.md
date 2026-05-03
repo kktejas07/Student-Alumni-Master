@@ -7751,3 +7751,363 @@ agent_communication:
 
         Backend pre-flight clean: backend logs clean after server.py + rentals_marketplace.py reloads,
         no module import errors. Ready for backend regression.
+
+
+backend:
+  - task: "SA Courses v1 — /api/courses/catalog, /api/courses/list, /api/courses/course/{id}, /api/courses/enroll, /api/courses/my-enrollments, /api/courses/enrollments/{id}/progress, /api/courses/tracks, /api/courses/tracks/{slug}, /api/courses/tracks/{slug}/enroll, /api/courses/ai/recommend, /api/courses/ai/path"
+    implemented: true
+    working: true
+    file: "/app/backend/courses_marketplace.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: |
+          NEW MODULE: SA Courses (Learning Marketplace) — backend.
+
+          Curated catalog (~38 courses) across 24 sub-categories in 3 sections:
+          - 💻 Tech & Engineering (8 sub-cats: web-dev, mobile-dev, ai-ml, data-science,
+            cloud, cybersecurity, system-design, devops)
+          - 🎨 Design & Creative (8 sub-cats incl. figma-mastery highlighted)
+          - 💼 Business & Career (8 sub-cats)
+
+          Sources represented: NPTEL (IIT Madras/IIT Bombay/IIT Kharagpur), SWAYAM (ISI),
+          IIM Bangalore, Coursera (Stanford, Meta, IBM, Yale, Google, DeepLearning.AI,
+          deeplearning-ai-spec), edX, MIT OCW, Harvard Online, fast.ai, freeCodeCamp,
+          Microsoft Learn, AWS Educate, TryHackMe, Educative, Kaggle, Y Combinator,
+          DataCamp, LinkedIn Learning, HubSpot Academy, Google Skillshop, Canva
+          Design School, NSE Academy, Reforge, Udemy, Udacity, School of Motion,
+          Blender Guru/YouTube, Figma Config, IxDF, NN/g, Canva.
+
+          Pricing engine with 6 types: free, free_audit, free_with_sa,
+          discounted_for_sa (+sa_discount_percent), paid, subscription.
+          Cert engine: free vs paid + recognised + accreditor (UGC/AICTE/NSDC/industry/university).
+          Tag engine: 11 smart tags (FREE, FREE_CERT, TOP_RATED, TRENDING, GOVT_CERTIFIED,
+          IVY_LEAGUE, JOB_READY, BEGINNER_FRIENDLY, QUICK_WIN, HAS_MENTOR, NEW).
+
+          Career Tracks (2):
+          - ai-career-track: 12 weeks, 6 modules, 3 mentors, capstone
+            (Python → Math → Core ML → Deep Learning → Capstone → Career Prep)
+          - frontend-engineer-track: 10 weeks, 3 modules, 2 mentors, capstone
+
+          Endpoints:
+          1. GET /courses/catalog → {sections: [3 with hydrated counts], hero: [2],
+                                     stats: {total/free/paid/free_certs}, tracks: [2 meta]}
+          2. GET /courses/list?category=&subcategory=&pricing=&level=&q=&sort=
+             - sort: popular | rating | newest | free_first | shortest
+             - pricing: all | free | paid | discounted
+          3. GET /courses/course/{id} → full detail + syllabus[] + what_youll_learn[]
+          4. POST /courses/enroll {course_id} → MongoDB course_enrollments,
+             ENR-XXXXXXXX id, idempotent (returns duplicate=true if already enrolled)
+          5. GET /courses/my-enrollments → user's enrollments sorted by enrolled_at desc
+          6. POST /courses/enrollments/{id}/progress {percent, completed} → updates progress
+          7. GET /courses/tracks → list 2 tracks
+          8. GET /courses/tracks/{slug} → full track with hydrated course refs in modules
+          9. POST /courses/tracks/{slug}/enroll → MongoDB track_enrollments, TRK-XXXXXXXX
+             (idempotent)
+          10. POST /courses/ai/recommend {goal, weekly_hours, budget} → top 6 scored
+              courses + rationale
+          11. POST /courses/ai/path {role, current_skills, deadline_weeks, weekly_hours}
+              → curated track-based path with hydrated course refs
+
+          UTC-aware datetimes throughout. _serialize_enrollment normalises ObjectId/dt.
+          Wired into /app/backend/server.py (after rentals_router) — backend reloaded
+          successfully. Auth required for all endpoints.
+        -working: true
+        -agent: "testing"
+        -comment: |
+          VERIFIED end-to-end via /app/backend_test_courses.py against
+          https://hiring-mvvm.preview.emergentagent.com/api.
+          
+          RESULT: 121/121 assertions PASS.
+          
+          AUTH:
+            ✅ realtime@studentalumni.in / RealTime@2026 → 200, access_token used.
+          
+          1) GET /api/courses/catalog (40 checks):
+            ✅ Returns sections (3) + hero (2) + stats + tracks (2) + fetched_at.
+            ✅ sections[0]=tech 💻, [1]=design 🎨, [2]=business 💼; each 8 items
+               with hydrated int counts.
+            ✅ design.figma-mastery.highlighted=true.
+            ✅ hero[0]=ai-career-track variant=violet, hero[1]=free-this-month variant=green.
+            ✅ stats.total_courses=45 (>=35), free_courses=34 (>=18), free_certs=21 (>=8).
+            ✅ tracks slugs == {ai-career-track, frontend-engineer-track}.
+          
+          2) GET /api/courses/list (11 checks):
+            ✅ no-filter → 45 courses.
+            ✅ ?category=tech → 23 tech courses.
+            ✅ ?category=tech&subcategory=ai-ml → exactly 5
+               {coursera-andrew-ng-ml, deeplearning-ai-spec, fast-ai-course,
+                nptel-iitb-aiml, kaggle-learn-ml}.
+            ✅ ?pricing=free → 34 items, all in (free/free_audit/free_with_sa).
+            ✅ ?pricing=discounted → 11 items, all type==discounted_for_sa.
+            ✅ ?level=Beginner → 20 items, all Beginner.
+            ✅ ?q=Andrew → 3 results (>=2).
+            ✅ ?sort=free_first → first 10 all free*.
+            ✅ ?sort=rating → strict desc by rating.
+          
+          3) GET /api/courses/course/coursera-andrew-ng-ml (5 checks):
+            ✅ 200, id matches, syllabus has 4 weeks, what_youll_learn has 4 strings.
+            ✅ INVALID id → 404.
+          
+          4) POST /api/courses/enroll (10 checks):
+            ✅ Fresh enroll → 200, ok=true, duplicate=false, enrollment_id=ENR-XXXXXXXX,
+               status=active, progress_percent=0, course_snapshot dict, enrolled_at ISO,
+               enroll_url present.
+            ✅ Re-POST → duplicate=true.
+            ✅ {} body → 400.
+            ✅ unknown course_id → 404.
+          
+          5) GET /api/courses/my-enrollments (2 checks):
+            ✅ 200, contains the just-created enrollment.
+          
+          6) POST /api/courses/enrollments/{id}/progress (8 checks):
+            ✅ {percent:50} → 200, ok=true, updated_fields=[progress_percent, updated_at].
+            ✅ {completed:true} → 200; verified status='completed', progress_percent=100.
+            ✅ {} body → 400.
+            ✅ ENR-NONEXIST → 404.
+          
+          7) GET /api/courses/tracks (2 checks):
+            ✅ 200, tracks length == 2.
+          
+          8) GET /api/courses/tracks/ai-career-track (5 checks):
+            ✅ 200, modules length == 6.
+            ✅ Every module course ref has both course_id AND hydrated course object.
+            ✅ mentors length == 3, capstone defined with deliverables list.
+            ✅ INVALID slug → 404.
+          
+          9) POST /api/courses/tracks/ai-career-track/enroll (5 checks):
+            ✅ 200, ok=true, enrollment_id=TRK-XXXXXXXX, current_week=1, slug correct.
+            ✅ Re-POST → duplicate=true.
+            ✅ Unknown slug → 404.
+          
+          10) POST /api/courses/ai/recommend (5 checks):
+            ✅ Body {goal:'learn ML for career switch', weekly_hours:10, budget:5000}
+               → 200, recommendations length 6 (<=6).
+            ✅ rationale = "Filtered to courses you can audit free or under ₹5,000 ·
+               Weekly availability: 10 hrs · Free/recognised certs prioritised"
+               (mentions both budget AND hours).
+            NOTE: rationale is generated programmatically (no LLM call). The _claude
+            helper exists but is not invoked in the recommend endpoint — current impl
+            is pure scoring + template string. This is fine per spec; LLM can be
+            wired in later.
+          
+          11) POST /api/courses/ai/path (6 checks):
+            ✅ {role:'ML Engineer', current_skills:['python'], deadline_weeks:24,
+               weekly_hours:12} → 200, path has 6 modules with hydrated course objects,
+               track_slug='ai-career-track'.
+            ✅ summary mentions 'ML Engineer', '24', '12':
+               "Goal: become a ML Engineer in 24 weeks @ 12h/week. Recommended track:
+                AI Career Track. Already covered: python."
+            ✅ {role:'Frontend Engineer', weekly_hours:10}
+               → track_slug='frontend-engineer-track'.
+          
+          EDGE — Auth gating (10 checks):
+            ✅ All 10 endpoints reject no-token request with 401.
+          
+          EDGE — Pricing math (5 checks):
+            ✅ Reforge: original_inr=159000, sa_inr=49999, sa_discount_percent=69.
+            ✅ Udemy:   original_inr=3499,   sa_inr=1199,  sa_discount_percent=66.
+            ✅ NSDC:    original_inr=5999,   sa_inr=2499,  sa_discount_percent=58.
+            ✅ All discounted_for_sa entries: sa_inr < original_inr.
+            ✅ All free_with_sa entries (6 items): original_inr > 0 AND sa_inr == 0.
+          
+          DATETIME: All datetime fields (enrolled_at / updated_at / completed_at /
+          fetched_at) returned as ISO strings — no naive/aware comparison errors.
+          
+          NO REGRESSIONS. ZERO FAILURES. Module is production-ready.
+
+frontend:
+  - task: "SA Courses landing (/courses) — search, 2 hero cards (AI Career Track + Free this month), 3 sections × 8 sub-categories icon grid (Figma Mastery highlighted), inline filtered results, course card with FREE/Paid/SA badges + cert pill + smart tags, enroll modal, AdvisorAIBlock, career track chips"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/courses.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: |
+          New /courses landing page (replaces ExploreScreen-based version).
+
+          Layout matches user-supplied screenshot:
+          - Title "Courses" + subtitle
+          - Free count + Free certs count pills in header right
+          - Full-width search bar (52px height, search icon, clearable)
+          - Hero row: violet AI Career Track (flex:2) + green Free this month (flex:1)
+            with LinearGradient backgrounds, soft white blur circle, emoji-in-circle,
+            outlined CTA pills with arrow-right
+          - 3 section cards (Tech / Design / Business) with rgba(67,41,109,0.40) bg
+            and #3D2D5C border
+          - Each section: 5-col grid of 64px circle icon tiles + label + course count
+            (Figma Mastery has highlighted ring + soft glow shadow)
+          - Career Tracks chips strip below sections
+          - AdvisorAIBlock at bottom (context="courses")
+
+          Interactions:
+          - Click sub-category tile → triggers inline filtered results panel with
+            pricing filter chips (All / Free / Paid)
+          - Click "Free this month" → sets pricing filter to "free"
+          - Click AI Career Track → routes to /tracks/ai-career-track
+          - Search query → debounced (250ms) inline results
+          - Click course card "Enroll" → opens EnrollModal:
+              * Course details + 5 facts row (level, language, duration, enrolled, rating)
+              * Cert badge + price box (struck-through orig + SA price for discounted,
+                FREE in green for free)
+              * Click "Enroll & Save to My Learning" → POST /courses/enroll →
+                Success state with check icon + booking_id + Open external CTA
+
+          Course card design (matches spec):
+          - Provider strip top with logo emoji + name + PriceBadge
+            (FREE green, FREE AUDIT cyan, FREE · SA green, SA DEAL pink, etc.)
+          - 16:9 thumbnail box with large emoji
+          - Title + instructor + provider, 3 meta tags (level/language/duration)
+          - Star rating + review count (compacted: 4.8M, 12.4k) + enrolled count
+          - Certificate badge (4 variants: free+recognised emerald,
+            free emerald, paid+recognised gold, paid violet)
+          - Smart tag pills (max 3 + overflow "+N")
+          - Price block (FREE/struck-through+SA price/normal) + violet Enroll CTA
+
+          All icons are MaterialCommunityIcons (no lucide). LinearGradient from
+          expo-linear-gradient. Auth required (uses /api/courses/* with bearer).
+
+  - task: "Career Track timeline page (/tracks/[slug]) — hero, outcomes, prerequisites + certs, expandable 12-week roadmap with courses + live sessions + projects, mentors strip, capstone, AdvisorAIBlock"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/tracks/[slug].tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: |
+          New /tracks/[slug] page for Career Track detail.
+
+          Sections:
+          1. Hero with LinearGradient (track.color → #A78BFA), 🎁 emoji, title, meta line
+             (12 weeks · 10-12 hours/wk · N courses · K enrolled), 3 quick facts
+             (total hours, certificates count, mentors count), Start CTA
+             (changes to "Enrolled · Track Active" after POST /courses/tracks/{slug}/enroll)
+          2. Outcomes grid (2-col): green check + outcome text
+          3. Dual grid: Prerequisites (yellow) + Certificates earned (green)
+          4. 12-week roadmap: collapsible week cards with W{start}-{end} badge,
+             title, CURRENT pill (yellow), expand/collapse chevron. Inside:
+             - Courses list (mini cards with thumbnail + title + provider + duration +
+               REQUIRED/OPTIONAL pill)
+             - Live session card (cyan) — topic + mentor
+             - Project card (yellow) — title + due-by-week
+          5. Mentors strip (avatar + name + role)
+          6. Capstone card (yellow tint) with title + description + deliverables
+          7. AdvisorAIBlock at bottom (track-specific context)
+
+          Auto-opens current week module. Backend serves hydrated course refs inside
+          modules for direct rendering.
+
+  - task: "Sidebar navigation — Courses entry added to Student + Alumni dashboards (routes to /courses)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/views/web/portals/student/Sidebar.tsx, /app/frontend/src/views/web/portals/alumni/Sidebar.tsx, /app/frontend/src/views/web/portals/student/StudentPortalRN.tsx, /app/frontend/src/views/web/portals/alumni/AlumniPortalRN.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: |
+          Added 'courses' nav id to StudentNavId union + NAV array (BookOpen icon)
+          for both Student and Alumni sidebars. Wired router.push('/courses') in
+          handleNav for StudentPortalRN. Added handleNav function with full route
+          dispatcher to AlumniPortalRN (previously didn't have one).
+
+test_plan:
+  current_focus:
+    - "SA Courses v1 — /api/courses/catalog, /api/courses/list, /api/courses/course/{id}, /api/courses/enroll, /api/courses/my-enrollments, /api/courses/enrollments/{id}/progress, /api/courses/tracks, /api/courses/tracks/{slug}, /api/courses/tracks/{slug}/enroll, /api/courses/ai/recommend, /api/courses/ai/path"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "main"
+      message: |
+        Built SA Courses (Learning Marketplace) — Phase 1 + Career Track timeline.
+
+        BACKEND: /app/backend/courses_marketplace.py — 11 endpoints, ~38 curated
+        courses across 24 sub-categories, 2 career tracks (AI + Frontend), SA pricing
+        engine (free/free_audit/free_with_sa/discounted_for_sa/paid/subscription),
+        cert engine (free vs paid + recognised + accreditor), 11 smart tags,
+        MongoDB-persisted enrollments (course_enrollments, track_enrollments).
+
+        FRONTEND: /app/frontend/app/courses.tsx (landing) + /app/frontend/app/tracks/[slug].tsx
+        (track detail). Sidebar entries added to Student + Alumni dashboards routing
+        to /courses.
+
+        TEST PLAN (backend):
+        Login as realtime@studentalumni.in / RealTime@2026 (or student01@test.com / TestPass@123).
+
+        1. GET /api/courses/catalog → 3 sections, each with 8 items (sub-category
+           counts hydrated). Hero[0] = ai-career-track violet, Hero[1] = free-this-month
+           green. stats.total_courses ≥ 35; stats.free_courses ≥ 20; stats.free_certs ≥ 10.
+           tracks=[2 meta with slug, title, duration_weeks, enrolled_count, color].
+
+        2. GET /api/courses/list (no filter) → ≥35 courses, sorted featured-first
+           by enrolled_count.
+           ?category=tech → only tech.
+           ?category=tech&subcategory=ai-ml → 5 courses (coursera-andrew-ng-ml,
+              deeplearning-ai-spec, fast-ai-course, nptel-iitb-aiml, kaggle-learn-ml).
+           ?pricing=free → all results have pricing.type in (free, free_audit, free_with_sa).
+           ?pricing=discounted → only type==discounted_for_sa.
+           ?level=Intermediate → only intermediate courses.
+           ?q=Andrew → finds Andrew Ng courses.
+           ?sort=free_first → free types come first.
+
+        3. GET /api/courses/course/coursera-andrew-ng-ml → returns full detail with
+           syllabus (4 weeks) + what_youll_learn (4 items).
+           GET /api/courses/course/INVALID → 404.
+
+        4. POST /api/courses/enroll {course_id:"coursera-andrew-ng-ml"}
+           → {ok:true, enrollment: {enrollment_id:"ENR-XXXXXXXX", status:"active",
+               progress_percent:0, course_snapshot:{...}}, enroll_url: "https://..."}
+           Save enrollment_id.
+           Re-POST same → {ok:true, duplicate:true, enrollment:{...same id}}.
+           POST without course_id → 400; unknown id → 404.
+
+        5. GET /api/courses/my-enrollments → contains the enrollment created.
+           POST /api/courses/enrollments/{id}/progress {percent: 50}
+              → {ok:true, updated_fields:["progress_percent","updated_at"]}
+           POST {completed: true} → status=completed, progress_percent=100.
+           POST without fields → 400.
+           POST to invalid id → 404.
+
+        6. GET /api/courses/tracks → 2 tracks.
+
+        7. GET /api/courses/tracks/ai-career-track → full track with 6 modules,
+           each module.courses[i].course (hydrated). track.mentors=3, track.capstone defined.
+           GET /api/courses/tracks/INVALID → 404.
+
+        8. POST /api/courses/tracks/ai-career-track/enroll
+           → {ok:true, enrollment:{enrollment_id:"TRK-XXXXXXXX", current_week:1, ...}}
+           Re-POST → {ok:true, duplicate:true}.
+           POST to invalid slug → 404.
+
+        9. POST /api/courses/ai/recommend {goal:"learn ML", weekly_hours:10, budget:5000}
+           → {recommendations: [6 scored courses], rationale: string mentions budget}.
+
+        10. POST /api/courses/ai/path {role:"ML Engineer", current_skills:["python"],
+                                         deadline_weeks:24, weekly_hours:12}
+            → {path: [N modules with hydrated courses], track_slug:"ai-career-track",
+                summary: string mentioning role + weeks + hours}.
+            Test with role:"Frontend Engineer" → track_slug:"frontend-engineer-track".
+
+        EDGE CASES:
+        - Auth required (401 without token) for all endpoints.
+        - Datetimes are ISO strings (no naive/aware comparison errors).
+        - Cost / discount math for discounted_for_sa: Reforge ₹159000 → ₹49999 (69%),
+          Udemy ₹3499 → ₹1199 (66%), etc. Validate sa_discount_percent is consistent.
+
+        Backend pre-flight clean: backend logs show no errors after rentals + courses
+        marketplace + server.py reloads. Ready for backend regression.
+
