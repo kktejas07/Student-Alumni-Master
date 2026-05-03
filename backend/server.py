@@ -447,6 +447,28 @@ class UserResponse(BaseModel):
     country_code: Optional[str] = None
     postal_code: Optional[str] = None
     created_at: datetime
+    # Phase-4 SA Profile Web fields (set via PUT /users/me — must round-trip)
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    headline: Optional[str] = None
+    photo_data: Optional[str] = None
+    institution: Optional[str] = None
+    branch: Optional[str] = None
+    graduation_year: Optional[int] = None
+    cgpa: Optional[float] = None
+    location: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    github_url: Optional[str] = None
+    portfolio_url: Optional[str] = None
+    primary_skill: Optional[str] = None
+    profile_visibility: Optional[str] = None
+    section_toggles: Optional[Dict[str, Any]] = None
+    projects: Optional[List[Dict[str, Any]]] = None
+    preferences: Optional[Dict[str, Any]] = None
+    is_verified: Optional[bool] = None
+    ranking_tier: Optional[str] = None
 
 
 class AuthResponse(BaseModel):
@@ -618,6 +640,28 @@ def serialize_user(user: dict) -> dict:
         "country_code": user.get("country_code"),
         "postal_code":  decrypt_value(user.get("postal_code")),
         "created_at": user.get("created_at"),
+        # Phase-4 SA Profile Web fields — round-trip through PUT /users/me & /auth/me
+        "first_name":     user.get("first_name"),
+        "last_name":      user.get("last_name"),
+        "headline":       user.get("headline"),
+        "photo_data":     user.get("photo_data"),
+        "institution":    user.get("institution"),
+        "branch":         user.get("branch"),
+        "graduation_year": user.get("graduation_year"),
+        "cgpa":           user.get("cgpa"),
+        "location":       user.get("location"),
+        "city":           user.get("city"),
+        "state":          user.get("state"),
+        "linkedin_url":   user.get("linkedin_url"),
+        "github_url":     user.get("github_url"),
+        "portfolio_url":  user.get("portfolio_url"),
+        "primary_skill":  user.get("primary_skill"),
+        "profile_visibility": user.get("profile_visibility"),
+        "section_toggles": user.get("section_toggles"),
+        "projects":       user.get("projects"),
+        "preferences":    user.get("preferences"),
+        "is_verified":    user.get("is_verified"),
+        "ranking_tier":   user.get("ranking_tier"),
     }
 
 
