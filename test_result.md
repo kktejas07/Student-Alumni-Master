@@ -7436,3 +7436,54 @@ agent_communication:
         cleaning mongo: delete_many on he_applications + he_documents
         for realtime@studentalumni.in.
 
+
+agent_communication:
+    - agent: "testing"
+      message: |
+        ## SA Higher Education + Application Tracker — TEST BLOCKED BY AUTH
+        
+        **CRITICAL BLOCKER:** Login with provided credentials `realtime@studentalumni.in / RealTime@2026`
+        does NOT complete — after submitting, URL stays on /login and subsequent navigation to
+        /higher-education displays a red "Not authenticated" banner. The password-hint text on the
+        login screen reads "Password auto-filled · TestPass@123", suggesting the seeded test
+        accounts use `TestPass@123`, not `RealTime@2026`. Please verify the correct creds or re-seed.
+        
+        **WHAT WORKS (verified on both desktop 1440x900 + mobile 390x844):**
+        ✅ Header renders: "Higher Education" title + 🎓 emoji + "AI Tools" pill button (top-right, purple border)
+        ✅ Subtitle "AI-powered programme discovery + Application Tracker"
+        ✅ Three tab pills: Programmes (active/purple), Scholarships, Countries — all clickable + state flips
+        ✅ Programmes tab shows section title "Recommended Programmes" + "0 options matched to your profile" subtitle
+        ✅ AdvisorAIBlock renders at bottom of Programmes tab:
+           - Left card: "Talk to a Higher-Ed Advisor" + "Connect with Advisor" purple CTA
+           - Right card: "Ask the Higher-Ed AI" + "Chat with AI" green CTA
+        ✅ Sidebar link "Higher Education" is active-highlighted
+        ✅ Back-to-Dashboard button top-left
+        ✅ Mobile viewport (390x844) renders the header, tabs and layout without horizontal scroll
+        
+        **WHAT COULD NOT BE TESTED (blocked by empty state + failed auth):**
+        ❌ Programme cards: IIT Bombay / IISc PhD / Stanford MS CS never rendered — API returns 0 programmes
+           for an unauthenticated user. Therefore could not verify:
+             - Degree/country pills, 96% match green pill, 2x2 stats grid
+             - ₹2.5L/yr, $56,000/yr fee formatting
+             - Tag pills TOP_RANKED / FULLY_FUNDED / DEADLINE_SOON / GLOBAL_TOP_50
+             - Apply → / Eligibility / Draft SOP / Cover Letter buttons
+             - Compare checkbox + sticky compare bar + compare modal with 10 rows
+             - AI Tools modal (SOP/CV/COVER/LOR/ELIG/PROFILE) + generate flow
+        ❌ Scholarships tab renders but 0 scholarship cards (same root cause)
+        ❌ Countries tab renders but 0 country cards (same root cause)
+        ❌ /applications/[id] Application Tracker — never reached because Apply flow requires a programme card
+        
+        **ACTION ITEMS FOR MAIN AGENT (HIGH PRIORITY):**
+        1. Fix auth: either (a) confirm the correct test password for realtime@studentalumni.in, or
+           (b) seed that user with password "RealTime@2026" in db.users, or (c) let the testing agent
+           re-test with a known working account like student01@test.com / TestPass@123. 
+           Verify via: POST /api/auth/login → should return 200 with access_token.
+        2. Verify programmes seed data: GET /api/higher-education/programmes (authed) must return
+           at least the three fixtures the test plan calls out (IIT Bombay M.Tech CSE, IISc PhD,
+           Stanford MS CS) with fields match_score, apply_url, fee, tags, etc.
+        3. Verify scholarships (10) + countries (8) seed data is present.
+        4. Once fixed, a single re-test should validate compare flow, AI Tools modal, Apply → external
+           URL + navigation to /applications/[id], and the 7-section Application Tracker.
+        
+        **SCREENSHOTS CAPTURED:** he_02_programmes.png, he_03 (scholarships empty),
+        he_04 (countries empty), he_07/he_08 (tab-switch verified), he_11_mobile.png, login page.
