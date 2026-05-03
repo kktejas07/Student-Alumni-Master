@@ -15,7 +15,7 @@ import { StubView } from './views/StubView';
 import { EventsView } from './views/EventsView';
 import { InternshipsView } from './views/InternshipsView';
 import { NetworkView } from './views/NetworkView';
-import { ProfileView } from './views/ProfileView';
+import { ProfileSettingsView } from './views/ProfileSettingsView';
 import { WalletView } from './views/WalletView';
 import { MyBookingsView } from './views/MyBookingsView';
 import { MyApplicationsView } from './views/MyApplicationsView';
@@ -54,7 +54,7 @@ export function StudentPortalRN() {
           {active === 'wallet'          && <WalletView />}
           {active === 'higher-ed'       && <StubView title="Higher Education"    note="Universities, GRE/GMAT/IELTS prep, application tracker." deepLink="/higher-education" />}
           {active === 'rentals'         && <StubView title="Rentals"             note="Student-friendly accommodation listings." deepLink="/rentals" />}
-          {active === 'profile'         && <ProfileView />}
+          {active === 'profile'         && <ProfileSettingsView />}
         </ScrollView>
       </View>
     </View>

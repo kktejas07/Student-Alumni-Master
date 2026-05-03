@@ -2258,6 +2258,61 @@ async def get_my_completion(user: dict = Depends(get_current_user)):
     return _compute_profile_completion(user)
 
 
+@api_router.get("/users/me/stats")
+async def get_my_stats(user: dict = Depends(get_current_user)):
+    """Return profile-page sidebar stats for the current user.
+
+    Pulls live counts from Mongo where collections exist; falls back to
+    fields stored on the user doc (or zero) otherwise. Used by the
+    Student / Mentor / Alumni / College profile sidebars.
+    """
+    uid = str(user.get("id") or user.get("_id"))
+
+    # Sessions completed (mentor sessions where user was mentee/mentor and status=completed)
+    sessions_completed = 0
+    mentor_sessions = 0
+    try:
+        sessions_completed = await db.mentor_sessions.count_documents({
+            "$or": [{"mentor_id": uid}, {"mentee_id": uid}],
+            "status": {"$in": ["completed", "done", "finished"]},
+        })
+        mentor_sessions = await db.mentor_sessions.count_documents({
+            "mentee_id": uid,
+            "status": {"$in": ["scheduled", "confirmed", "upcoming", "completed"]},
+        })
+    except Exception:
+        sessions_completed = int(user.get("sessions_completed") or user.get("sessions") or 0)
+        mentor_sessions = int(user.get("mentor_sessions") or 0)
+
+    # Connections made
+    connections_made = 0
+    try:
+        connections_made = await db.connections.count_documents({
+            "$or": [{"from_id": uid}, {"to_id": uid}],
+            "status": "accepted",
+        })
+    except Exception:
+        connections_made = int(user.get("connections_made") or 0)
+
+    # Profile views (counter incremented elsewhere; fallback to user field)
+    profile_views = int(user.get("profile_views") or 0)
+
+    # Applications sent (internship/job applications)
+    applications_sent = 0
+    try:
+        applications_sent = await db.applications.count_documents({"user_id": uid})
+    except Exception:
+        applications_sent = int(user.get("applications_sent") or 0)
+
+    return {
+        "sessions_completed": sessions_completed,
+        "connections_made": connections_made,
+        "profile_views": profile_views,
+        "mentor_sessions": mentor_sessions,
+        "applications_sent": applications_sent,
+    }
+
+
 @api_router.get("/users/me/resume")
 async def get_my_resume(user: dict = Depends(get_current_user)):
     """Return resume metadata (not the binary data URL — call /resume/raw for that)."""

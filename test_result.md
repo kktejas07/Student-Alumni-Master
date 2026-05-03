@@ -5071,3 +5071,157 @@ agent_communication:
 
       No backend changes; no testing required for backend.
 
+  - agent: "main"
+    message: |
+      FEATURE ADDITION — Student Portal: Profile & Settings (May 2026)
+
+      Wired the Student Portal "Profile" sub-view end-to-end with real DB data,
+      replacing the previous static mock. Matches the user-provided design spec.
+
+      Backend (1 new endpoint):
+        ✅ GET /api/users/me/stats — returns:
+              { sessions_completed, connections_made, profile_views,
+                mentor_sessions, applications_sent }
+           Pulls counts from db.mentor_sessions / db.connections / db.applications;
+           falls back to fields on the user doc when collections are absent.
+        ✅ Existing endpoints used:
+              · GET  /auth/me                — initial draft hydration
+              · GET  /users/me/completion    — { percentage, items[] } ring + checklist
+              · PUT  /users/me               — save edits (server already accepted
+                                               full safe-list of fields incl. interests,
+                                               skills, headline, bio, social URLs,
+                                               academic, photo_data, etc.)
+
+      Frontend (1 new view, 1 wiring change):
+        ✅ NEW  /app/frontend/src/views/web/portals/student/views/ProfileSettingsView.tsx
+                · Header card: avatar (with verified-check overlay), name, headline,
+                  dynamic badges (CGPA · sessions · Verified Student)
+                · 6-tab bar: Profile Info | Manage Profile | Settings | Notifications |
+                  Security | Digital ID Card (deep-links to /member-id)
+                · Two-column responsive layout (stacks <1100px)
+                  · Main column embeds the existing ProfileInfoPage / ManageProfilePage /
+                    SettingsPage components — all already wired with shared draft state
+                  · Right sidebar:
+                       - Profile Score circular ring (CompletionRing) + ID chip
+                       - Student Stats list (Sessions, Connections, Views, Mentor
+                         Sessions, Applications) with role-tinted icons
+                       - Student ID card with "View Digital ID Card →" CTA
+                · Footer: Discard Changes / Save Profile bar with last-saved timestamp
+                · Diff-aware save (only sends changed fields), proper number coercion
+                  for graduation_year & cgpa, refreshes auth + completion + stats
+                  after save
+        ✅ MODIFIED /app/frontend/src/views/web/portals/student/StudentPortalRN.tsx
+                · Swapped `<ProfileView />` for `<ProfileSettingsView />` on the
+                  'profile' nav route
+
+      Visual QA (screenshot tool, 1920x900):
+        ✅ Header, tabs, completion ring, all 7 form sections render exactly as spec
+        ✅ Save flow validated end-to-end: typed headline + toggled interest chips →
+           clicked Save Profile → Toast "Profile updated successfully" → completion
+           jumped 58% → 72% → "Last saved 08:52 AM" → buttons correctly disabled
+        ✅ Server confirmed via /auth/me: interests array updated correctly
+        ✅ Right sidebar fed live numbers from /users/me/stats
+        ✅ "View Digital ID Card →" routes to /member-id (the previously built
+           flip-card screen)
+
+      Backend testing required: YES — please verify GET /api/users/me/stats works
+      for: (a) authenticated user, (b) unauthenticated → 401, (c) returns valid
+      shape even when collections are empty/missing (graceful fallback).
+
+
+backend:
+  - task: "GET /api/users/me/stats — profile sidebar counters"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py (around line 2261)"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            VERIFIED end-to-end via /app/backend_test_users_me_stats.py against
+            https://hiring-mvvm.preview.emergentagent.com/api.
+
+            Primary endpoint — ALL PASS:
+              ✅ AUTH WALL: GET /api/users/me/stats without bearer token → 401
+                 (FastAPI auth dependency rejects missing token).
+              ✅ AUTHENTICATED HAPPY PATH: GET /api/users/me/stats with valid
+                 bearer (student01@test.com / TestPass@123) → 200.
+                 Response shape contains EXACTLY the 5 required keys, each a
+                 non-negative integer:
+                   · sessions_completed = 0
+                   · connections_made   = 0
+                   · profile_views      = 0
+                   · mentor_sessions    = 0
+                   · applications_sent  = 0
+              ✅ GRACEFUL FALLBACK: called the endpoint 3× in sequence against
+                 a backend whose mentor_sessions / connections / applications
+                 collections are empty/non-existent — never returned 5xx.
+                 try/except branches return zeros cleanly.
+
+            Regression sanity for the same user:
+              ✅ GET /api/auth/me → 200
+              ✅ GET /api/users/me/completion → 200, percentage=72 (int),
+                 items list of 7 entries (basic, photo, bio, college, social,
+                 interests, skills).
+              ✅ PUT /api/users/me {"headline":"Test headline X <ts>"} → 200.
+
+            MINOR / PRE-EXISTING (not a stats-endpoint issue — reported for
+            main agent awareness):
+              - PUT /users/me does persist `headline` to Mongo (verified via
+                earlier Phase-4 tests) BUT the returned UserResponse Pydantic
+                model at /app/backend/server.py:424 does NOT declare a
+                `headline` field. Consequently:
+                  · the PUT response body returns `headline=None` (stripped)
+                  · GET /api/auth/me also returns `headline=None` (stripped)
+                Same applies to: linkedin_url, github_url, portfolio_url,
+                first_name, last_name, institution, branch, graduation_year,
+                location, city, state, cgpa, year, primary_skill,
+                profile_visibility, section_toggles, preferences, projects.
+                These are all whitelisted in the PUT allow-list (line 2197)
+                and stored in DB, but the response model does not echo them
+                back. The web SA-Profile UI therefore cannot round-trip these
+                fields through /auth/me or PUT response — it must reload via
+                /users/me/completion or a dedicated GET.
+                Recommendation: extend UserResponse with these Phase-4 fields
+                OR add a GET /api/users/me endpoint that returns the raw doc
+                shape (minus password_hash). This affects the review request's
+                "After PUT, GET /api/auth/me should reflect the new headline"
+                expectation — core persistence is fine, only response
+                serialization is incomplete.
+
+            Result: 15 assertions PASSED, 2 failed — both failures trace to
+            the same UserResponse schema gap documented above. The new
+            /api/users/me/stats endpoint itself is fully working.
+
+agent_communication:
+    - agent: "testing"
+      message: |
+        Completed backend testing for the new GET /api/users/me/stats endpoint
+        (review request).
+
+        PRIMARY TARGET — /api/users/me/stats: ✅ PASS on all 3 required
+        scenarios (auth wall 401, authenticated 5-key integer shape,
+        graceful fallback when optional collections are empty).
+
+        REGRESSION: /api/auth/me (200), /api/users/me/completion (200 with
+        percentage + 7-item checklist), and PUT /api/users/me (200) all
+        work.
+
+        ISSUE SURFACED (pre-existing, NOT caused by the stats endpoint):
+        PUT /users/me persists `headline` to Mongo but the UserResponse
+        Pydantic model at server.py:424 does not declare the `headline`
+        field, so both the PUT response and subsequent /auth/me responses
+        return `headline=None`. The review request's "After PUT, /auth/me
+        should reflect the new headline" expectation therefore fails at the
+        response-serialization layer. Same gap exists for linkedin_url,
+        github_url, portfolio_url, first_name/last_name, institution,
+        branch, graduation_year, location, city, state, cgpa, etc. Main
+        agent should extend UserResponse with the Phase-4 profile fields to
+        close this round-trip. DB writes are correct; only the API shape
+        is incomplete.
+
+        Test script saved at /app/backend_test_users_me_stats.py.
+
