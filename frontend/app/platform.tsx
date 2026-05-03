@@ -40,7 +40,8 @@ export default function PlatformRoute() {
     else if (user.role === 'admin') router.replace('/super-admin');
     else if (user.role === 'college') router.replace('/college-portal');
     else if (user.role === 'mentor') router.replace('/mentor-portal');
-    else router.replace('/student-portal'); // student / alumni
+    else if (user.role === 'alumni') router.replace('/alumni-portal');
+    else router.replace('/student-portal');
   }, [user, initialized, router]);
 
   if (Platform.OS !== 'web') return null;

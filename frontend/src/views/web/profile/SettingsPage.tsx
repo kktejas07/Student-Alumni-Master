@@ -12,12 +12,14 @@ import { TF, Field } from './primitives';
 const LANGS = ['English', 'हिन्दी', 'Tamil', 'Telugu', 'Kannada', 'Marathi'];
 const TZS = ['Asia/Kolkata', 'Asia/Dubai', 'America/New_York', 'Europe/London', 'America/Los_Angeles', 'Asia/Singapore'];
 
-function defaultPrefs(p: any = {}) {
+function defaultPrefs(p: any) {
+  // p may be null (not just undefined) when the user hasn't set any preferences yet.
+  const safe = (p && typeof p === 'object') ? p : {};
   return {
-    notifications: { messages: true, requests: true, mentions: true, weekly_digest: true, new_matches: false, ...(p.notifications || {}) },
-    privacy: { show_email: false, show_phone: false, allow_dm: true, show_online: true, ...(p.privacy || {}) },
-    ai: { goal_reminders: true, smart_suggestions: true, daily_brief: false, ...(p.ai || {}) },
-    app: { language: 'English', timezone: 'Asia/Kolkata', theme: 'dark', ...(p.app || {}) },
+    notifications: { messages: true, requests: true, mentions: true, weekly_digest: true, new_matches: false, ...(safe.notifications || {}) },
+    privacy:       { show_email: false, show_phone: false, allow_dm: true, show_online: true,                   ...(safe.privacy       || {}) },
+    ai:            { goal_reminders: true, smart_suggestions: true, daily_brief: false,                         ...(safe.ai            || {}) },
+    app:           { language: 'English', timezone: 'Asia/Kolkata', theme: 'dark',                              ...(safe.app           || {}) },
   };
 }
 

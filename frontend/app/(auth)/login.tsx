@@ -132,6 +132,7 @@ export default function LoginScreen() {
       if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
       else if (r === 'mentor') router.replace('/mentor-portal');
       else if (r === 'college') router.replace('/college-portal');
+      else if (r === 'alumni') router.replace('/alumni-portal');
       else router.replace('/student-portal');
     } catch (e: any) {
       trackAuth({ event: 'login_failure', email, reason: e?.message || 'Network error' });
