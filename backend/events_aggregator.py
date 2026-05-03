@@ -72,7 +72,7 @@ router = APIRouter()
 
 # ─── Constants ──────────────────────────────────────────────────────────
 EVENT_TYPES = ["hackathon", "codethon", "workshop", "tech_talk", "training",
-               "founder_talk", "meetup", "fest"]
+               "founder_talk", "meetup", "fest", "boot_camp"]
 
 EVENT_TYPE_TINTS = {
     "hackathon":    "#3B82F6",  # blue
@@ -83,11 +83,65 @@ EVENT_TYPE_TINTS = {
     "founder_talk": "#EC4899",  # pink
     "meetup":       "#64748B",  # slate
     "fest":         "#F59E0B",  # amber
+    "boot_camp":    "#A855F7",  # violet
 }
 
 CACHE_TTL_MIN = 30
 DEFAULT_PAGE_SIZE = 20
 MAX_PAGE_SIZE = 60
+
+# Institution tier classification (regex patterns -> tier)
+TIER_PATTERNS: List[tuple] = [
+    ("top_tier",   re.compile(r"\b(IIT[ -]?(Bombay|Delhi|Madras|Kanpur|Kharagpur|Roorkee|Guwahati|Hyderabad)|ISB|XLRI|IIM[ -]?(Ahmedabad|Bangalore|Calcutta|Lucknow)|Stanford|Harvard|MIT|Oxford|Cambridge|Berkeley|CMU)\b", re.I)),
+    ("tier_one",   re.compile(r"\b(NIT|BITS|IIIT|VIT|Manipal|Ashoka|Anna University|Delhi University|JNU|Jadavpur)\b", re.I)),
+    ("tier_two",   re.compile(r"\b(SRM|Amity|LPU|Symbiosis|Christ University|Thapar|DTU|NSIT|COEP|PEC)\b", re.I)),
+]
+
+# Topic keyword detection (token presence in title+description)
+TOPIC_KEYWORDS: Dict[str, List[str]] = {
+    "ai":               ["ai", "artificial intelligence", "ml", "machine learning", "deep learning", "llm", "neural"],
+    "machine_learning": ["machine learning", "ml ", "ai/ml", "data science"],
+    "cloud":            ["aws", "azure", "gcp", "cloud", "kubernetes", "devops", "docker"],
+    "startup":          ["startup", "entrepreneur", "founder", "yc ", "ycombinator", "incubat"],
+    "innovation":       ["innovation", "innovative", "disrupt"],
+    "engineering":      ["engineering", "engineer", "system design", "architecture"],
+    "technical":        ["technical", "technology", "tech ", "developer", "software"],
+    "leadership":       ["leadership", "leader", "management", "ceo", "cto", "executive"],
+}
+
+# Region India cities
+INDIA_REGIONS = ["hyderabad", "bangalore", "mumbai", "chennai", "pune", "delhi",
+                 "kolkata", "ahmedabad", "gurgaon", "cochin"]
+
+
+def _classify_institution_tier(text: str) -> str:
+    """Returns top_tier / tier_one / tier_two / regional based on text match."""
+    if not text:
+        return "regional"
+    for tier, pat in TIER_PATTERNS:
+        if pat.search(text):
+            return tier
+    return "regional"
+
+
+def _extract_topics(text: str) -> List[str]:
+    if not text:
+        return []
+    t = text.lower()
+    out = []
+    for topic, kws in TOPIC_KEYWORDS.items():
+        if any(kw in t for kw in kws):
+            out.append(topic)
+    return out
+
+
+def _classify_event_mode(city: str, country: str, description: str = "") -> str:
+    blob = f"{city or ''} {description or ''}".lower()
+    if "online" in blob or "virtual" in blob or "remote" in blob or "webinar" in blob:
+        return "virtual"
+    if "hybrid" in blob:
+        return "hybrid"
+    return "in_person"
 
 
 # ─── Auth dependency lazy import ────────────────────────────────────────
@@ -136,14 +190,19 @@ def _normalize(record: Dict[str, Any], source: str) -> Optional[Dict[str, Any]]:
                     or record.get("start") or record.get("startDate"))
     if not when:
         return None
+    organizer = record.get("organizer_name") or record.get("organizer") or source.title()
+    desc = (record.get("description") or "")[:2000]
+    city = record.get("location_city") or record.get("city") or "Online"
+    country = record.get("location_country") or record.get("country") or "Global"
+    classify_text = f"{title} {organizer} {desc}"
     return {
         "event_id": record.get("event_id") or record.get("id") or hashlib.md5(
             f"{source}|{title}|{when}".encode()).hexdigest()[:12],
         "title": title[:255],
-        "description": (record.get("description") or "")[:2000],
+        "description": desc,
         "event_type": record.get("event_type") or "meetup",
-        "location_country": record.get("location_country") or record.get("country") or "Global",
-        "location_city": record.get("location_city") or record.get("city") or "Online",
+        "location_country": country,
+        "location_city": city,
         "event_date_start": when,
         "event_date_end": _safe_iso(record.get("event_date_end") or record.get("ends_at")
                                     or record.get("end") or record.get("endDate")) or when,
@@ -151,7 +210,7 @@ def _normalize(record: Dict[str, Any], source: str) -> Optional[Dict[str, Any]]:
         "price_amount": float(record.get("price_amount") or 0),
         "currency": record.get("currency") or "INR",
         "registration_url": record.get("registration_url") or record.get("url") or "",
-        "organizer_name": record.get("organizer_name") or record.get("organizer") or source.title(),
+        "organizer_name": organizer,
         "attendee_count": int(record.get("attendee_count") or 0),
         "capacity": int(record.get("capacity") or 0),
         "image_url": record.get("image_url") or record.get("image") or "",
@@ -159,6 +218,11 @@ def _normalize(record: Dict[str, Any], source: str) -> Optional[Dict[str, Any]]:
         "posted_date": _safe_iso(record.get("posted_date")) or datetime.now(timezone.utc).isoformat(),
         "source": source,
         "is_active": True,
+        # New v2 fields
+        "event_mode": record.get("event_mode") or _classify_event_mode(city, country, desc),
+        "institution_tier": record.get("institution_tier") or _classify_institution_tier(classify_text),
+        "topic_keywords": record.get("topic_keywords") or _extract_topics(classify_text),
+        "region_india": (city or "").lower() if (country or "").lower() == "india" else None,
     }
 
 
@@ -350,7 +414,7 @@ async def _aggregate_and_store() -> Dict[str, int]:
 
         existing = await _db.events_v2.find_one({"dedup_hash": h})
         if existing:
-            # Update mutable fields
+            # Update mutable + v2 enrichment fields
             await _db.events_v2.update_one(
                 {"_id": existing["_id"]},
                 {"$set": {
@@ -360,6 +424,11 @@ async def _aggregate_and_store() -> Dict[str, int]:
                     "attendee_count": max(ev.get("attendee_count", 0), existing.get("attendee_count", 0) or 0),
                     "registration_url": ev["registration_url"] or existing.get("registration_url"),
                     "is_active": True,
+                    # Backfill v2 fields
+                    "event_mode": ev.get("event_mode"),
+                    "institution_tier": ev.get("institution_tier"),
+                    "topic_keywords": ev.get("topic_keywords"),
+                    "region_india": ev.get("region_india"),
                     "updated_at": datetime.now(timezone.utc),
                 }},
             )
@@ -459,6 +528,10 @@ async def events_search(
     event_type: Optional[str] = Query(None, description="comma-separated"),
     location_country: Optional[str] = Query(None),
     location_city: Optional[str] = Query(None),
+    region_india: Optional[str] = Query(None, description="comma-separated India city slugs"),
+    institution_tier: Optional[str] = Query(None, description="comma-separated tiers: top_tier,tier_one,tier_two,regional"),
+    event_mode: Optional[str] = Query(None, description="virtual|in_person|hybrid|all"),
+    topic: Optional[str] = Query(None, description="comma-separated topics"),
     price_type: Optional[str] = Query(None, regex="^(free|paid|all)?$"),
     date_range_start: Optional[str] = Query(None),
     date_range_end: Optional[str] = Query(None),
@@ -474,13 +547,27 @@ async def events_search(
         if types and "all" not in [t.lower() for t in types]:
             query["event_type"] = {"$in": types}
     if location_country and location_country.lower() not in ("all", "global", ""):
-        # India shorthand
         if location_country.upper() in ("IN", "INDIA"):
             query["location_country"] = "India"
         else:
             query["location_country"] = location_country
     if location_city and location_city.lower() not in ("all", ""):
         query["location_city"] = {"$regex": f"^{re.escape(location_city)}", "$options": "i"}
+    if region_india:
+        regs = [r.strip().lower() for r in region_india.split(",") if r.strip()]
+        if regs and "all_india" not in regs and "all" not in regs:
+            query["location_country"] = "India"
+            query["region_india"] = {"$in": regs}
+    if institution_tier:
+        tiers = [t.strip() for t in institution_tier.split(",") if t.strip()]
+        if tiers:
+            query["institution_tier"] = {"$in": tiers}
+    if event_mode and event_mode != "all":
+        query["event_mode"] = event_mode
+    if topic:
+        topics = [t.strip().lower() for t in topic.split(",") if t.strip()]
+        if topics:
+            query["topic_keywords"] = {"$in": topics}
     if price_type and price_type in ("free", "paid"):
         query["price_type"] = price_type
     if date_range_start:
@@ -498,9 +585,10 @@ async def events_search(
 
     total = await _db.events_v2.count_documents(query)
     skip = (page - 1) * limit
-    cursor = _db.events_v2.find(query).sort("event_date_start", 1).skip(skip).limit(limit)
+    # Tier-priority sort: top_tier (1) → tier_one (2) → tier_two (3) → regional (4) → null (5)
+    tier_order = {"top_tier": 1, "tier_one": 2, "tier_two": 3, "regional": 4}
+    cursor = _db.events_v2.find(query).sort("event_date_start", 1).skip(skip).limit(limit * 2)
 
-    # Augment with user state
     saved_ids = set()
     reg_map: Dict[str, str] = {}
     user_id = str(user["_id"]) if user else None
@@ -510,12 +598,32 @@ async def events_search(
         async for r in _db.event_registrations.find({"user_id": user_id}):
             reg_map[r["event_id"]] = r["status"]
 
-    results = []
+    raw = []
     async for d in cursor:
-        results.append(_doc_to_public(d, user_id=user_id, saved_ids=saved_ids, reg_map=reg_map))
+        raw.append(d)
+    # Stable secondary sort by tier_order, then by date
+    raw.sort(key=lambda d: (tier_order.get(d.get("institution_tier"), 5),
+                             d.get("event_date_start") or ""))
+    raw = raw[:limit]
+
+    results = []
+    indian = []
+    intl = []
+    for d in raw:
+        item = _doc_to_public(d, user_id=user_id, saved_ids=saved_ids, reg_map=reg_map)
+        item["event_mode"] = d.get("event_mode")
+        item["institution_tier"] = d.get("institution_tier")
+        item["topic_keywords"] = d.get("topic_keywords") or []
+        results.append(item)
+        if (d.get("location_country") or "").lower() == "india":
+            indian.append(item)
+        else:
+            intl.append(item)
 
     return {
         "results": results,
+        "india_results": indian,
+        "international_results": intl,
         "page": page,
         "limit": limit,
         "total_count": total,

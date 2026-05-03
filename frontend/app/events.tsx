@@ -49,6 +49,7 @@ const TYPE_TINTS: Record<string, string> = {
   founder_talk: '#EC4899',
   meetup:       '#64748B',
   fest:         '#F59E0B',
+  boot_camp:    '#A855F7',
 };
 
 const TYPE_ICONS: Record<string, any> = {
@@ -60,6 +61,7 @@ const TYPE_ICONS: Record<string, any> = {
   founder_talk: 'account-tie',
   meetup: 'account-group',
   fest: 'party-popper',
+  boot_camp: 'fire',
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -71,9 +73,35 @@ const TYPE_LABELS: Record<string, string> = {
   founder_talk: 'Founder Talk',
   meetup: 'Meetup',
   fest: 'Fest',
+  boot_camp: 'Boot Camp',
 };
 
-const INDIAN_CITIES = ['All', 'Bangalore', 'Mumbai', 'Delhi', 'Pune', 'Chennai', 'Hyderabad', 'Online'];
+const INDIAN_CITIES = ['All', 'Bangalore', 'Mumbai', 'Delhi', 'Pune', 'Chennai', 'Hyderabad', 'Kolkata', 'Ahmedabad', 'Gurgaon', 'Cochin', 'Online'];
+
+const TIER_OPTIONS = [
+  { id: 'top_tier', label: 'Top Tier (IITs, ISB, MIT)' },
+  { id: 'tier_one', label: 'Tier 1 (NITs, BITS, IIIT)' },
+  { id: 'tier_two', label: 'Tier 2 (State, Private)' },
+  { id: 'regional', label: 'Regional / Community' },
+];
+
+const MODE_OPTIONS = [
+  { id: 'all', label: 'All Modes' },
+  { id: 'virtual', label: 'Virtual' },
+  { id: 'in_person', label: 'In-Person' },
+  { id: 'hybrid', label: 'Hybrid' },
+];
+
+const TOPIC_OPTIONS = [
+  { id: 'ai', label: 'AI' },
+  { id: 'machine_learning', label: 'ML' },
+  { id: 'cloud', label: 'Cloud' },
+  { id: 'startup', label: 'Startup' },
+  { id: 'innovation', label: 'Innovation' },
+  { id: 'engineering', label: 'Engineering' },
+  { id: 'technical', label: 'Technical' },
+  { id: 'leadership', label: 'Leadership' },
+];
 
 // ─── Types ────────────────────────────────────────────────────────────
 type EventItem = {
@@ -100,6 +128,9 @@ type EventItem = {
   is_featured?: boolean;
   match_score?: number;
   why?: string[];
+  topic_keywords?: string[];
+  event_mode?: 'virtual' | 'in_person' | 'hybrid';
+  institution_tier?: 'top_tier' | 'tier_one' | 'tier_two' | 'regional';
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────
@@ -138,8 +169,12 @@ export default function EventsScreen() {
   const [scope, setScope] = useState<'india' | 'global'>('india');
   const [city, setCity] = useState<string>('All');
   const [price, setPrice] = useState<'all' | 'free' | 'paid'>('all');
+  const [mode, setMode] = useState<'all' | 'virtual' | 'in_person' | 'hybrid'>('all');
+  const [tiers, setTiers] = useState<string[]>([]);
+  const [topics, setTopics] = useState<string[]>([]);
   const [aiOn, setAiOn] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
 
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [featured, setFeatured] = useState<EventItem[]>([]);
@@ -171,11 +206,20 @@ export default function EventsScreen() {
     if (scope === 'india') p.set('location_country', 'India');
     if (scope === 'india' && city !== 'All') p.set('location_city', city);
     if (price !== 'all') p.set('price_type', price);
+    if (mode !== 'all') p.set('event_mode', mode);
+    if (tiers.length) p.set('institution_tier', tiers.join(','));
+    if (topics.length) p.set('topic', topics.join(','));
     if (search.trim()) p.set('q', search.trim());
     p.set('limit', '24');
     p.set('page', '1');
     return p.toString();
-  }, [type, scope, city, price, search]);
+  }, [type, scope, city, price, mode, tiers, topics, search]);
+
+  const activeFilterCount = (price !== 'all' ? 1 : 0) + (mode !== 'all' ? 1 : 0) + tiers.length + topics.length + (city !== 'All' ? 1 : 0);
+  const resetAllFilters = useCallback(() => {
+    setType('all'); setCity('All'); setPrice('all'); setMode('all');
+    setTiers([]); setTopics([]); setSearch('');
+  }, []);
 
   const handleAuthErr = useCallback((e: any) => {
     const m = (e?.message || '').toLowerCase();
@@ -486,6 +530,16 @@ export default function EventsScreen() {
               <MaterialCommunityIcons name={aiOn ? 'star' : 'star-outline'} size={14} color={aiOn ? '#fff' : '#FCD34D'} />
               <Text style={[s.aiBtnText, aiOn && { color: '#fff' }]}>AI Best Events for Me</Text>
             </Pressable>
+
+            <Pressable
+              onPress={() => setShowFilterPanel(true)}
+              style={[s.ddBtn, activeFilterCount > 0 && { borderColor: C.primary }]}
+            >
+              <MaterialCommunityIcons name="tune-variant" size={14} color={activeFilterCount > 0 ? C.primary : C.textMuted} />
+              <Text style={[s.ddBtnText, activeFilterCount > 0 && { color: C.primary }]}>
+                Filters{activeFilterCount > 0 ? ` · ${activeFilterCount}` : ''}
+              </Text>
+            </Pressable>
           </View>
         )}
 
@@ -594,6 +648,21 @@ export default function EventsScreen() {
             isWide={winW >= 900}
           />
         )}
+      </Modal>
+
+      {/* Filter Panel */}
+      <Modal visible={showFilterPanel} transparent animationType="slide" onRequestClose={() => setShowFilterPanel(false)}>
+        <FilterPanel
+          mode={mode} setMode={setMode}
+          tiers={tiers} setTiers={setTiers}
+          topics={topics} setTopics={setTopics}
+          city={city} setCity={setCity}
+          price={price} setPrice={setPrice}
+          isWide={winW >= 900}
+          onClose={() => setShowFilterPanel(false)}
+          onClear={resetAllFilters}
+          activeCount={activeFilterCount}
+        />
       </Modal>
 
       {/* Toast */}
@@ -768,6 +837,16 @@ function EventCard({
         {ev.description ? (
           <Text style={s.desc} numberOfLines={2}>{ev.description}</Text>
         ) : null}
+
+        {ev.topic_keywords && ev.topic_keywords.length > 0 && (
+          <View style={s.topicRow}>
+            {ev.topic_keywords.slice(0, 3).map((tk) => (
+              <View key={tk} style={s.topicPill}>
+                <Text style={s.topicPillText}>{tk.replace('_', ' ')}</Text>
+              </View>
+            ))}
+          </View>
+        )}
 
         <View style={s.cardFooter}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -997,6 +1076,136 @@ function DetailPanel({
 }
 
 
+// ─── FilterPanel: slide-in left sidebar with collapsible sections ────
+function FilterPanel({
+  mode, setMode, tiers, setTiers, topics, setTopics, city, setCity, price, setPrice,
+  isWide, onClose, onClear, activeCount,
+}: {
+  mode: any; setMode: (m: any) => void;
+  tiers: string[]; setTiers: (t: string[]) => void;
+  topics: string[]; setTopics: (t: string[]) => void;
+  city: string; setCity: (c: string) => void;
+  price: any; setPrice: (p: any) => void;
+  isWide: boolean;
+  onClose: () => void;
+  onClear: () => void;
+  activeCount: number;
+}) {
+  const toggleArr = (arr: string[], setArr: (a: string[]) => void, id: string) => {
+    setArr(arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]);
+  };
+  return (
+    <Pressable onPress={onClose} style={s.modalBackdrop}>
+      <Pressable onPress={(e) => e.stopPropagation()} style={[
+        s.panel,
+        isWide ? { left: 0, top: 0, height: '100%', width: 360, position: 'absolute' as any } :
+                 { bottom: 0, left: 0, right: 0, height: '88%', position: 'absolute' as any },
+      ]}>
+        <View style={{ padding: 18, borderBottomWidth: 1, borderBottomColor: C.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={{ color: C.text, fontSize: 18, fontWeight: '700' }}>Filters</Text>
+            {activeCount > 0 && (
+              <View style={{ backgroundColor: C.primary, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
+                <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>{activeCount}</Text>
+              </View>
+            )}
+          </View>
+          <Pressable onPress={onClear}><Text style={{ color: C.primary, fontSize: 13, fontWeight: '600' }}>Clear all</Text></Pressable>
+        </View>
+        <ScrollView contentContainerStyle={{ padding: 18, gap: 22, paddingBottom: 100 }}>
+          {/* Institution Tier */}
+          <View>
+            <Text style={s.fpSectionTitle}>Institution Tier</Text>
+            <View style={{ gap: 8, marginTop: 10 }}>
+              {TIER_OPTIONS.map((t) => {
+                const active = tiers.includes(t.id);
+                return (
+                  <Pressable key={t.id} onPress={() => toggleArr(tiers, setTiers, t.id)} style={s.fpRow}>
+                    <View style={[s.checkbox, active && { backgroundColor: C.primary, borderColor: C.primary }]}>
+                      {active && <MaterialCommunityIcons name="check" size={12} color="#fff" />}
+                    </View>
+                    <Text style={s.fpRowText}>{t.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Event Mode */}
+          <View>
+            <Text style={s.fpSectionTitle}>Event Mode</Text>
+            <View style={{ gap: 8, marginTop: 10 }}>
+              {MODE_OPTIONS.map((m) => {
+                const active = mode === m.id;
+                return (
+                  <Pressable key={m.id} onPress={() => setMode(m.id)} style={s.fpRow}>
+                    <View style={[s.radio, active && { borderColor: C.primary }]}>
+                      {active && <View style={s.radioDot} />}
+                    </View>
+                    <Text style={s.fpRowText}>{m.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Price Type */}
+          <View>
+            <Text style={s.fpSectionTitle}>Price Type</Text>
+            <View style={{ gap: 8, marginTop: 10 }}>
+              {[{ id: 'all', label: 'All' }, { id: 'free', label: 'Free' }, { id: 'paid', label: 'Paid' }].map((p) => {
+                const active = price === p.id;
+                return (
+                  <Pressable key={p.id} onPress={() => setPrice(p.id)} style={s.fpRow}>
+                    <View style={[s.radio, active && { borderColor: C.primary }]}>
+                      {active && <View style={s.radioDot} />}
+                    </View>
+                    <Text style={s.fpRowText}>{p.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Region India */}
+          <View>
+            <Text style={s.fpSectionTitle}>Region (India)</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+              {INDIAN_CITIES.map((c) => (
+                <Pressable key={c} onPress={() => setCity(c)} style={[s.tagChip, city === c && { backgroundColor: C.primary, borderColor: C.primary }]}>
+                  <Text style={[s.tagChipText, city === c && { color: '#fff' }]}>{c}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          {/* Topic Keywords */}
+          <View>
+            <Text style={s.fpSectionTitle}>Topic Keywords</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+              {TOPIC_OPTIONS.map((t) => {
+                const active = topics.includes(t.id);
+                return (
+                  <Pressable key={t.id} onPress={() => toggleArr(topics, setTopics, t.id)} style={[s.tagChip, active && { backgroundColor: C.primary, borderColor: C.primary }]}>
+                    <Text style={[s.tagChipText, active && { color: '#fff' }]}>{t.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        </ScrollView>
+        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, gap: 8, backgroundColor: C.bg, borderTopWidth: 1, borderTopColor: C.border }}>
+          <Pressable onPress={onClose} style={[s.registerCta, { backgroundColor: C.primary }]}>
+            <Text style={s.registerCtaText}>Apply Filters</Text>
+          </Pressable>
+        </View>
+      </Pressable>
+    </Pressable>
+  );
+}
+
+
+
 // ─── Styles ───────────────────────────────────────────────────────────
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
@@ -1110,4 +1319,31 @@ const s = StyleSheet.create({
 
   toast: { position: 'absolute', bottom: 32, alignSelf: 'center', backgroundColor: '#0F172A', borderWidth: 1, borderColor: C.primary, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12, ...(Platform.OS === 'web' ? { boxShadow: '0 8px 24px rgba(0,0,0,0.4)' } : {}) as any },
   toastText: { color: C.text, fontSize: 13, fontWeight: '500' },
+
+  // FilterPanel styles
+  fpSectionTitle: { color: C.text, fontSize: 15, fontWeight: '700' },
+  fpRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
+  fpRowText: { color: C.text, fontSize: 13 },
+  radio: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+  radioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.primary },
+  tagChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: C.border, backgroundColor: C.card },
+  tagChipText: { color: C.textMuted, fontSize: 12, fontWeight: '600' },
+
+  // Match score circle (top-right of card)
+  matchCircle: { position: 'absolute', top: 50, right: 10, width: 36, height: 36, borderRadius: 18, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
+  matchCircleText: { color: '#fff', fontSize: 10, fontWeight: '800' },
+
+  // Closed overlay for past events
+  closedOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', borderRadius: 16 },
+  closedBadge: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8, backgroundColor: C.red, borderWidth: 1, borderColor: '#fff' },
+  closedBadgeText: { color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: 1 },
+
+  // Countdown banner
+  countdownBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginTop: 12, padding: 12, borderRadius: 12, backgroundColor: '#F59E0B22', borderWidth: 1, borderColor: C.amber },
+  countdownText: { color: C.amber, fontSize: 13, fontWeight: '600', flex: 1 },
+
+  // Topic tag pills row
+  topicRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 8 },
+  topicPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: '#1E293B', borderWidth: 1, borderColor: '#334155' },
+  topicPillText: { color: '#94A3B8', fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
 });
