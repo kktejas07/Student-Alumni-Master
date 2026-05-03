@@ -248,11 +248,11 @@ async def college_analytics(user: dict = Depends(_auth())):
             "color": COLORS[d],
         })
 
-    # Hiring funnel
+    # Hiring funnel — counts must be monotonically non-increasing.
     applied = total
-    interviewed = int(total * 0.62)
-    shortlisted = int(total * 0.34)
     offered = placed
+    shortlisted = max(int(total * 0.34), offered + int(total * 0.05))
+    interviewed = max(int(total * 0.62), shortlisted + int(total * 0.05))
     funnel = [
         {"stage": "Applied",      "count": applied,     "pct": 100.0,                                                "color": "#94A3B8"},
         {"stage": "Interviewed",  "count": interviewed, "pct": round(interviewed / max(1, applied) * 100, 1),       "color": "#3B82F6"},
