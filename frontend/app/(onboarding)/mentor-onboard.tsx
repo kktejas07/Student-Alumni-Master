@@ -12,7 +12,7 @@
  *
  * After Step 8 → /(onboarding)/member-id → /welcome-dashboard
  */
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, TextInput as RNTextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -29,9 +29,11 @@ import { useToast } from '@/src/views/components';
 import { api } from '@/src/models/services/api';
 import { DarkChip } from '@/src/views/web/OnboardingShell';
 import { InstitutionAutocomplete } from '@/src/views/web/InstitutionAutocomplete';
+import { SuggestionAutocomplete } from '@/src/views/web/SuggestionAutocomplete';
 import { Dropdown } from '@/src/views/web/Dropdown';
 
 const TOTAL = 8;
+const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
 const CURRENT_YEAR = new Date().getFullYear();
 // For mentors, batch year is in the past — they've already graduated.
 const BATCH_YEARS = Array.from({ length: 30 }, (_, i) => String(CURRENT_YEAR - i));
@@ -132,6 +134,8 @@ export default function MentorOnboard() {
   const [batch,     setBatch]       = useState('');
   const [yoe,       setYoe]         = useState('5');
   const [price,     setPrice]       = useState<number>(999);
+  const [customOn,  setCustomOn]    = useState(false);
+  const [customPrice, setCustomPrice] = useState('');
 
   // ---- Step 2: Archetypes ----
   const [archetypes, setArchetypes] = useState<string[]>([]);
@@ -151,6 +155,32 @@ export default function MentorOnboard() {
   // ---- Step 7: Bio ----
   const [bio, setBio]     = useState('');
   const [style, setStyle] = useState('');
+
+  // ---- Suggestions (fetched once on mount) ----
+  const [roleSuggestions, setRoleSuggestions]   = useState<string[]>([]);
+  const [orgSuggestions,  setOrgSuggestions]    = useState<string[]>([]);
+  // Fallback defaults if API is slow / offline
+  const FALLBACK_ROLES = ['Software Engineer', 'Senior Software Engineer', 'Engineering Manager', 'Product Manager', 'Data Scientist', 'Designer', 'CTO', 'Founder'];
+  const FALLBACK_ORGS  = ['Google', 'Microsoft', 'Meta', 'Amazon', 'Apple', 'Netflix', 'Flipkart', 'Swiggy', 'Paytm', 'Razorpay'];
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const r = await fetch(`${BASE}/api/mentors/suggestions`);
+        if (!r.ok) throw new Error('suggestions fetch failed');
+        const data = await r.json();
+        if (!alive) return;
+        setRoleSuggestions(Array.isArray(data.job_titles) && data.job_titles.length ? data.job_titles : FALLBACK_ROLES);
+        setOrgSuggestions(Array.isArray(data.organizations) && data.organizations.length ? data.organizations : FALLBACK_ORGS);
+      } catch {
+        if (!alive) return;
+        setRoleSuggestions(FALLBACK_ROLES);
+        setOrgSuggestions(FALLBACK_ORGS);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
 
   // ---- Step 8: Badge (computed client-side for preview) ----
   const badge = useMemo(() => {
@@ -230,8 +260,10 @@ export default function MentorOnboard() {
       };
       await api.completeOnboarding(payload);
       await refreshUser();
-      toast.success(`${badge.tier} badge earned! 🎉`, 'Taking you to your Member ID…');
-      router.replace('/(onboarding)/member-id' as any);
+      toast.success(`${badge.tier} badge earned! 🎉`, 'Verifying your email next…');
+      // Per spec — Step 8 → Email Verify → 2FA Setup → Welcome Dashboard
+      // (Member ID is accessible later from within the Mentor Portal.)
+      router.replace(`/(auth)/email-verify?email=${encodeURIComponent(user?.email || '')}` as any);
     } catch (e: any) {
       toast.error('Setup failed', e?.message || 'Please try again.');
     }
@@ -279,19 +311,21 @@ export default function MentorOnboard() {
           {/* === STEP 1: Profile === */}
           {step === 0 && (
             <>
-              <AuthInput
+              <SuggestionAutocomplete
                 label="Current Role"
                 value={jobTitle}
                 onChangeText={setJobTitle}
                 placeholder="e.g. SDE-2 at Google"
-                leftIcon={<Briefcase size={16} color="rgba(255,255,255,0.55)" />}
+                suggestions={roleSuggestions}
+                helper="Pick from our curated list — or type your own."
               />
-              <AuthInput
+              <SuggestionAutocomplete
                 label="Company"
                 value={company}
                 onChangeText={setCompany}
-                placeholder="Company name"
-                leftIcon={<Building2 size={16} color="rgba(255,255,255,0.55)" />}
+                placeholder="Company name (type to search)"
+                suggestions={orgSuggestions}
+                helper="Pick from our curated list — or type your own."
               />
               <Text style={s.section}>College &amp; Batch</Text>
               <InstitutionAutocomplete
@@ -325,16 +359,40 @@ export default function MentorOnboard() {
               </View>
               <Text style={s.section}>Session Price (₹)</Text>
               <View style={[s.chipRow, { gap: 8 }]}>
-                {PRICE_CHIPS.map((p) => (
-                  <Pressable
-                    key={p}
-                    onPress={() => setPrice(p)}
-                    style={[s.priceChip, price === p && s.priceChipActive]}
-                  >
-                    <Text style={[s.priceChipText, price === p && s.priceChipTextActive]}>₹{p}</Text>
-                  </Pressable>
-                ))}
+                {PRICE_CHIPS.map((p) => {
+                  const active = !customOn && price === p;
+                  return (
+                    <Pressable
+                      key={p}
+                      onPress={() => { setPrice(p); setCustomOn(false); }}
+                      style={[s.priceChip, active && s.priceChipActive]}
+                    >
+                      <Text style={[s.priceChipText, active && s.priceChipTextActive]}>₹{p}</Text>
+                    </Pressable>
+                  );
+                })}
+                <Pressable
+                  onPress={() => setCustomOn(true)}
+                  style={[s.priceChip, customOn && s.priceChipActive]}
+                >
+                  <Text style={[s.priceChipText, customOn && s.priceChipTextActive]}>Custom</Text>
+                </Pressable>
               </View>
+              {customOn && (
+                <AuthInput
+                  label="Custom Price (₹)"
+                  value={customPrice}
+                  onChangeText={(t) => {
+                    const clean = t.replace(/[^0-9]/g, '').slice(0, 6);
+                    setCustomPrice(clean);
+                    const n = parseInt(clean || '0', 10);
+                    if (n > 0) setPrice(n);
+                  }}
+                  placeholder="e.g. 1299"
+                  keyboardType="numeric"
+                  hint="Set your own session price in INR."
+                />
+              )}
             </>
           )}
 
