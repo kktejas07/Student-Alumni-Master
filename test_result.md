@@ -6511,3 +6511,87 @@ agent_communication:
           CREDITS_PER_INR = 25
           WITHDRAW_THRESHOLD_CREDITS = 2500 (₹100)
           TOPUP_BONUS_PCT = 5
+
+frontend:
+  - task: "Wallet page (/wallet) — Overview/AddMoney/Withdraw/Credits/History tabs"
+    implemented: true
+    working: true
+    file: "/app/frontend/app/wallet.tsx + /app/frontend/src/views/web/portals/student/views/WalletView.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            VERIFIED end-to-end as realtime@studentalumni.in / RealTime@2026 (Aarav Realtime, Gold tier).
+            Login flow works (form submits via Enter key on password input → routes to /student-portal).
+
+            DESKTOP 1440×900 — all checks PASS:
+
+            ✅ HERO BALANCE CARD:
+              · "SA CREDITS BALANCE" label ✅
+              · 12,270 credits ✅
+              · "≈ ₹491" INR equivalent ✅
+              · "1 ₹ = 25 credits" subtext ✅
+              · Gold badge top-right with "Tier 3" sub-label ✅
+              · Progress bar "130 credits to Platinum — 99%" ✅
+              · 3 hero stats: Streak 20d / Lifetime earned 14,870 / Spent 2,700 ✅
+
+            ✅ OVERVIEW TAB:
+              · 4 quick-action cards: Add Money / Withdraw / Earn More / History ✅
+              · "Earnings by category" with progress bars: Milestones 625cr, Referrals 400cr,
+                Events 220cr, Sessions 120cr, Engagement 60cr ✅
+
+            ✅ ADD MONEY TAB:
+              · 6 preset chips: ₹100 / ₹250 / ₹500 / ₹1,000 / ₹2,500 / ₹5,000 (commas in
+                rendering — earlier "MISS" was a selector mismatch, not a UI bug) ✅
+              · Click ₹500 → input populates "₹ 500" ✅
+              · Conversion preview matches spec EXACTLY:
+                  You pay ₹500 / Base credits (25/₹) 12,500 cr /
+                  + Bonus (5%) +625 cr / You get 13,125 credits ✅
+              · UPI / Card / NetBanking method toggles render ✅
+
+            ✅ WITHDRAW TAB:
+              · Green eligibility banner: "Eligible — you can withdraw up to 12,270 credits (₹491)" ✅
+              · Preset chips ₹100 / ₹250 / ₹500 / ₹1,000 + "Max" chip (since eligible) ✅
+              · Click ₹100 → input "₹ 100" ✅
+              · Conversion: "You receive ₹100 / Credits debited (25/₹) −2,500 cr" ✅
+              · UPI / Bank Account method toggles + UPI ID text input ✅
+
+            ✅ CREDITS TAB:
+              · "How you earn — Student" header ✅
+              · All 5 categories present: Engagement, Milestones, Sessions, Events, Referrals ✅
+              · Activity rows with icon + label + sub + credit value render ✅
+
+            ✅ HISTORY TAB:
+              · Filter chips All / Credits / Debits (clicking filters list) ✅
+              · Transaction rows with reason ("Activity: Profile completed", "Withdraw ₹100 via UPI",
+                etc.), relative time ("6m ago"), "balance 12,270", and signed amounts (+100 green /
+                −2,500 red) ✅
+
+            ✅ SIDEBAR NAV (1440px desktop):
+              · "Wallet" item appears between "Financial" and "Insurance" — exact spec match ✅
+              · Current item highlighted purple/glow ✅
+              · Clicking "Wallet" routes to /wallet (already verified) ✅
+
+            ✅ MOBILE 390×844:
+              · Sidebar collapses to mobile shell ✅
+              · Hero stacks vertically; tab pills horizontally scrollable ✅
+              · No layout overflow observed ✅
+
+            CONSOLE / RUNTIME:
+              · 0 page errors / red screens
+              · 0 critical console errors
+              · Only noise: harmless `@firebase/analytics: gtagFunction is not a function` warnings
+                (analytics no-op fallback on web — not blocking) and a single 401 from an
+                unauthenticated probe before login (expected).
+
+            NOT TESTED (requires destructive writes against shared seeded user):
+              · The actual "Pay ₹500 & get 13,125 credits" success-toast + balance refresh
+              · "Withdraw ₹100" success ETA toast + balance debit
+              These would mutate the live realtime@studentalumni.in balance; defer to manual /
+              ephemeral-account regression.
+
+            CONCLUSION: Wallet UI is production-ready — all spec items render with correct
+            data, math, and layout across desktop and mobile.
