@@ -38,6 +38,7 @@ import { NetworkSidebar, TopHero, ChatPhonePopup, BookingDrawer } from '@/src/vi
 import { request } from '@/src/models/services/api';
 import { useAuth } from '@/src/viewmodels/hooks';
 import { HoverGlowCard } from '@/src/views/web/HoverGlowCard';
+import { MaterialBadgeChip } from '@/src/views/components/MaterialBadgeChip';
 
 interface Person {
   id: string;
@@ -784,35 +785,9 @@ function ProfileDetailContent({ person, onClose, onConnect, onChat }: {
 }
 
 // ── BadgePill (used inside ProfileDetailContent) ─────────────────────────
-function BadgePill({ badge }: { badge: { id: string; label: string; tier: string; icon?: string; kind?: string } }) {
-  const tier = badge.tier;
-  const isTierOne = /tier[\s-]?1/i.test(badge.label) || tier === 'high';
-  if (isTierOne) {
-    return (
-      <View style={{ overflow: 'hidden', borderRadius: 999 }}>
-        <LinearGradient
-          colors={['#FCD34D', '#F59E0B', '#B45309']}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={[styles.badgeChip, { borderColor: '#FCD34D', borderWidth: 1, backgroundColor: 'transparent' }]}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Crown size={9} color="#fff" />
-            <Text style={[styles.badgeChipText, { color: '#fff' }]} numberOfLines={1}>{badge.label}</Text>
-          </View>
-        </LinearGradient>
-      </View>
-    );
-  }
-  const tColor =
-      tier === 'special'  ? '#A78BFA'
-    : tier === 'verified' ? '#10B981'
-    : tier === 'moderate' ? '#2DD4BF'
-    :                       '#94A3B8';
-  return (
-    <View style={[styles.badgeChip, { backgroundColor: tColor + '1F', borderColor: tColor + '60' }]}>
-      <Text style={[styles.badgeChipText, { color: tColor }]} numberOfLines={1}>{badge.label}</Text>
-    </View>
-  );
+// Now a thin wrapper around MaterialBadgeChip for unified Material You styling.
+function BadgePill({ badge }: { badge: { id: string; label: string; tier: string; icon?: string; kind?: string; category?: string } }) {
+  return <MaterialBadgeChip badge={badge} size="xs" />;
 }
 
 // ── PersonCard ───────────────────────────────────────────────────────────

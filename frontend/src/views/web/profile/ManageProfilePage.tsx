@@ -8,6 +8,7 @@ import { Card, ToggleRow, C } from './primitives';
 import { Globe, Users, Lock, FileUp, Download, Trash2, Plus, Award, Star } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { CertificatesCard } from '@/src/views/web/CertificatesCard';
+import { MaterialBadgeStack } from '@/src/views/components/MaterialBadgeChip';
 
 const VISIBILITY = [
   { key: 'public', icon: Globe, title: 'Public', desc: 'Anyone can find your profile.' },
@@ -158,14 +159,7 @@ export function ManageProfilePage({ draft, setDraft, badges, onCertChange, showT
         {badges.length === 0 ? (
           <View style={st.empty}><Award size={28} color={C.text3} /><Text style={st.emptyText}>Earn badges by completing your profile and engaging with the platform.</Text></View>
         ) : (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {badges.map((b: any, i: number) => (
-              <View key={`b-${i}`} style={st.badgeChip}>
-                <Award size={11} color={C.amber} />
-                <Text style={st.badgeChipText}>{b.label}</Text>
-              </View>
-            ))}
-          </View>
+          <MaterialBadgeStack badges={badges} size="md" />
         )}
       </Card>
     </View>

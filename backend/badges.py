@@ -46,14 +46,14 @@ BADGE_RULES: Dict[str, Dict[str, dict]] = {
         },
         "skill_builder": {
             "metric": "courses_completed",
-            "thresholds": {"low": 1, "moderate": 5, "high": 12},
+            "thresholds": {"low": 1, "moderate": 4, "high": 10},
             "labels":     {"low": "Beginner", "moderate": "Skilled", "high": "Expert"},
             "icons":      {"low": "BookOpen", "moderate": "GraduationCap", "high": "Award"},
             "hint": "Courses completed",
         },
         "networker": {
             "metric": "connections_count",
-            "thresholds": {"low": 1, "moderate": 10, "high": 50},
+            "thresholds": {"low": 1, "moderate": 8, "high": 30},
             "labels":     {"low": "Joiner", "moderate": "Connector", "high": "Influencer"},
             "icons":      {"low": "UserPlus", "moderate": "Network", "high": "Globe2"},
             "hint": "Network connections made",
