@@ -1,23 +1,20 @@
 /**
- * SuggestionAutocomplete — unified component used by ALL onboarding flows
- * (student, mentor, alumni, college).
+ * SuggestionAutocomplete — Search-as-you-type field that opens the
+ * canonical OptionListCard. Used identically across all 4 onboarding flows
+ * for Current Role / Designation / Company / City / State and any other
+ * pre-populated free-text field.
  *
- * Behaviour parity guarantees per spec:
- *  • Single shared design (font, padding, border, focus, hover) across roles.
- *  • Empty list shows nothing (no broken empty box).
- *  • When `allowOther` is true, an explicit "Other (type your own)" item
- *    appears at the bottom. Selecting it switches the field into manual-entry
- *    mode with a labelled free-text input perfectly aligned with the rest of
- *    the form.
- *  • Focus border + checkmark colour pulled from the active RoleTheme so the
- *    component blends with the surrounding flow.
+ * Visual + interaction parity with <Dropdown/> — same row chrome, same
+ * checkmark on selected, same "Other (type your own)" fallback, same
+ * role-aware accent colour.
  */
 import React, { useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Platform, TextInput as RNTextInput } from 'react-native';
-import { Check, Edit3 } from 'lucide-react-native';
+import {
+  View, Text, Pressable, StyleSheet, Platform, TextInput as RNTextInput,
+} from 'react-native';
+import { Edit3, Search } from 'lucide-react-native';
 import { useRoleTheme } from '@/src/views/auth/RoleTheme';
-
-const OTHER_VALUE = '__other__';
+import { OptionListCard } from '@/src/views/components/OptionListCard';
 
 export function SuggestionAutocomplete({
   label,
@@ -44,8 +41,6 @@ export function SuggestionAutocomplete({
 }) {
   const { primary } = useRoleTheme();
   const [focused, setFocused] = useState(false);
-  // When user explicitly picks "Other", we lock into manual-entry mode and
-  // hide the dropdown until the user clears the field.
   const [manualMode, setManualMode] = useState(false);
 
   const filtered = useMemo(() => {
@@ -58,108 +53,73 @@ export function SuggestionAutocomplete({
     () => suggestions.some((s) => s.toLowerCase() === value.trim().toLowerCase()),
     [suggestions, value],
   );
-
   const showDropdown = focused && !manualMode && (filtered.length > 0 || allowOther);
-  const focusBg = `${primary}10`; // 10% alpha role tint
-
-  const onPickSuggestion = (x: string) => {
-    onChangeText(x);
-    setManualMode(false);
-    setFocused(false);
-  };
-  const onPickOther = () => {
-    onChangeText('');
-    setManualMode(true);
-    setFocused(false);
-  };
 
   return (
-    <View style={[s.container, { zIndex: showDropdown ? 9999 : 30 }]}>
-      {label ? <Text style={s.label}>{label}</Text> : null}
-      <View style={[s.wrap, { borderColor: focused ? primary : 'rgba(255,255,255,0.12)', backgroundColor: focused ? focusBg : 'rgba(255,255,255,0.03)' }]}>
+    <View style={[styles.container, { zIndex: showDropdown ? 9999 : 30 }]}>
+      {label ? <Text style={styles.label}>{label}</Text> : null}
+      <View style={[styles.wrap, {
+        borderColor: focused ? primary : 'rgba(255,255,255,0.12)',
+        backgroundColor: focused ? `${primary}10` : 'rgba(255,255,255,0.03)',
+      }]}>
+        {!manualMode && <Search size={14} color="rgba(255,255,255,0.5)" />}
         <RNTextInput
           value={value}
           onChangeText={(t) => { if (manualMode) setManualMode(true); onChangeText(t); }}
-          placeholder={manualMode ? 'Type manually…' : placeholder}
+          placeholder={manualMode ? `Please enter your ${label.toLowerCase()}` : placeholder}
           placeholderTextColor="rgba(255,255,255,0.32)"
           onFocus={() => setFocused(true)}
-          // Delay blur so the dropdown <Pressable> fires before this fires.
           onBlur={() => setTimeout(() => setFocused(false), 180)}
           testID={testID}
           autoCapitalize="words"
-          style={s.input}
+          style={styles.input}
         />
-        {manualMode ? (
-          <Pressable onPress={() => { setManualMode(false); onChangeText(''); }} style={s.editPill}>
+        {manualMode && (
+          <Pressable
+            onPress={() => { setManualMode(false); onChangeText(''); setFocused(true); }}
+            style={styles.editPill}
+          >
             <Edit3 size={12} color="#FFF" />
-            <Text style={s.editPillText}>Manual</Text>
+            <Text style={styles.editPillText}>Pick</Text>
           </Pressable>
-        ) : null}
+        )}
       </View>
-      {helper ? <Text style={s.helper}>{helper}</Text> : null}
+      {helper ? <Text style={styles.helper}>{helper}</Text> : null}
+      {!focused && value && (isMatchedSuggestion || manualMode) ? (
+        <Text style={styles.statusHint}>{isMatchedSuggestion ? '✓ Selected from list' : '✎ Manual entry'}</Text>
+      ) : null}
 
+      {/* Inline dropdown — uses the same canonical card as <Dropdown/> */}
       {showDropdown && (
-        <View style={s.dropdown}>
-          {filtered.map((x) => {
-            const selected = x.toLowerCase() === value.trim().toLowerCase();
-            return (
-              <Pressable
-                key={x}
-                onPress={() => onPickSuggestion(x)}
-                style={({ hovered }: any) => [
-                  s.item,
-                  hovered && { backgroundColor: `${primary}24` },
-                  selected && { backgroundColor: `${primary}38` },
-                ]}
-              >
-                <Text style={s.itemText}>{x}</Text>
-                {selected ? <Check size={14} color="#FFF" /> : null}
-              </Pressable>
-            );
-          })}
-          {allowOther && (
-            <Pressable
-              onPress={onPickOther}
-              style={({ hovered }: any) => [
-                s.item,
-                s.otherItem,
-                hovered && { backgroundColor: `${primary}24` },
-              ]}
-            >
-              <Edit3 size={13} color="rgba(255,255,255,0.7)" />
-              <Text style={[s.itemText, { color: 'rgba(255,255,255,0.85)' }]}>{otherLabel}</Text>
-            </Pressable>
-          )}
+        <View style={styles.dropdownAnchor} pointerEvents="box-none">
+          <OptionListCard
+            headerLabel={label.toUpperCase()}
+            options={filtered.map((label) => ({ value: label, label }))}
+            selectedValue={value}
+            onSelect={(opt) => { onChangeText(opt.value); setManualMode(false); setFocused(false); }}
+            showOther={allowOther}
+            otherLabel={otherLabel}
+            onSelectOther={() => { setManualMode(true); onChangeText(''); setFocused(false); }}
+          />
         </View>
       )}
-
-      {/* When matched OR in manual mode show small status hint for clarity */}
-      {!focused && value && (isMatchedSuggestion || manualMode) ? (
-        <Text style={s.statusHint}>{isMatchedSuggestion ? '✓ Selected from list' : '✎ Manual entry'}</Text>
-      ) : null}
     </View>
   );
 }
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     position: 'relative',
     marginBottom: 14,
     ...(Platform.OS === 'web' ? ({ isolation: 'isolate' } as any) : {}),
   },
-  label: {
-    color: '#FFFFFF',
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 13,
-    marginBottom: 8,
-  },
+  label: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 13, marginBottom: 8 },
   wrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 14,
+    flexDirection: 'row', alignItems: 'center',
     height: 48,
+    borderRadius: 12, borderWidth: 1,
+    paddingHorizontal: 14, gap: 8,
+    ...(Platform.OS === 'web' ? ({ transitionDuration: '160ms' } as any) : {}),
   },
   input: {
     flex: 1,
@@ -187,30 +147,9 @@ const s = StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 3,
   },
   editPillText: { color: '#FFF', fontFamily: 'DMSans_700Bold', fontSize: 10 },
-  dropdown: {
+  dropdownAnchor: {
     position: 'absolute',
-    top: 74, left: 0, right: 0,
-    backgroundColor: '#1A1625',
-    borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1,
-    borderRadius: 12, paddingVertical: 6,
-    maxHeight: 320, overflow: 'hidden', zIndex: 99,
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 12px 32px rgba(0,0,0,0.55)' } as any) : { elevation: 8 }),
-  },
-  item: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 14, paddingVertical: 10, gap: 10,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  otherItem: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.08)',
-    marginTop: 4,
-    paddingTop: 12,
-    justifyContent: 'flex-start',
-  },
-  itemText: {
-    color: '#F3F4F6',
-    fontFamily: 'DMSans_500Medium',
-    fontSize: 13.5,
+    top: 78, left: 0, right: 0,
+    zIndex: 99,
   },
 });

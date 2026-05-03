@@ -4768,3 +4768,21 @@ agent_communication:
 
       No new backend fields — all data already in CollegeInfo (city, state,
          contact_designation). No backend test needed for this round.
+
+
+## 2026-05-03 — Standardised Dropdown System (Institution Type design)
+
+agent_communication:
+  - agent: "main"
+    message: |
+      Implemented the canonical Selector spec — rolled out across all 4
+      onboarding flows + every populated/searchable field.
+
+      1. New primitive: /app/frontend/src/views/components/OptionListCard.tsx
+         - Outer card: 18px radius, deep purple gradient (#1A0E2E → #0A0512)
+         - 1px purple-glow border + 16px outer purple-tinted shadow
+         - Header label: uppercase 11px / letter-spacing 1.4 / muted purple
+         - Each row: 14px vertical / 16px horizontal padding, 12px radius
+             default: transparent, white 92 0.000000e+00xt
+             hover:   primary @ 22 0x0p+0lpha (lighter purple tint)
+             active:  primary @ 100
