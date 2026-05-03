@@ -1273,12 +1273,30 @@ async def ai_recommend(body: Dict[str, Any], user: dict = Depends(_auth())):
         if c.get("duration_hours", 0) <= weekly_hours * 12: s += 5
         return s
     top = sorted(items, key=score, reverse=True)[:6]
-    rationale_bits = []
-    if budget > 0:
-        rationale_bits.append(f"Filtered to courses you can audit free or under ₹{budget:,}")
-    rationale_bits.append(f"Weekly availability: {weekly_hours} hrs")
-    rationale_bits.append("Free/recognised certs prioritised")
-    return {"recommendations": top, "rationale": " · ".join(rationale_bits),
+
+    # AI rationale (Claude). Fallback to programmatic string if LLM fails.
+    rationale = ""
+    try:
+        prog_titles = [t["title"] for t in top[:6]]
+        sys_msg = ("You are SA's Course Advisor. In ≤2 sentences, justify why these "
+                   "specific courses match the user's goal, weekly time, and budget. "
+                   "Be concrete (mention 1–2 course names), warm and directive. "
+                   "No bullet points, no headings, no markdown.")
+        prompt = (f"Goal: {goal}\nWeekly hours: {weekly_hours}\n"
+                  f"Budget: {'₹'+format(budget,',') if budget else 'flexible'}\n"
+                  f"Recommended courses (top 6): {', '.join(prog_titles)}.\n"
+                  f"Write the rationale.")
+        rationale = (await _claude(sys_msg, prompt, "courses-recommend")).strip()
+    except Exception as e:
+        logger.warning(f"[courses] ai/recommend LLM fallback: {e}")
+        bits = []
+        if budget > 0:
+            bits.append(f"Filtered to courses you can audit free or under ₹{budget:,}")
+        bits.append(f"Weekly availability: {weekly_hours} hrs")
+        bits.append("Free / recognised certs prioritised")
+        rationale = " · ".join(bits)
+
+    return {"recommendations": top, "rationale": rationale,
             "fetched_at": datetime.now(timezone.utc).isoformat()}
 
 
@@ -1308,9 +1326,30 @@ async def ai_path(body: Dict[str, Any], user: dict = Depends(_auth())):
                 "live_session": m.get("live_session"),
             })
 
-    summary = (f"Goal: become a {role} in {deadline} weeks @ {weekly_hours}h/week. "
-               f"Recommended track: {track['title'] if track else 'custom'}. "
-               f"Already covered: {', '.join(current) if current else 'starting fresh'}.")
+    # AI summary (Claude). Fallback to programmatic string if LLM fails.
+    summary = ""
+    try:
+        course_titles = []
+        for blk in path:
+            for c in blk["courses"][:1]:
+                course_titles.append(c["title"])
+        sys_msg = ("You are SA's Course Advisor. In ≤3 sentences, give the user a "
+                   "warm, directive overview of their personalised learning path. "
+                   "Mention the role, the timeline (weeks @ hours), 1–2 milestone "
+                   "courses, and 1 outcome they'll achieve. No bullet points, no "
+                   "headings, no markdown.")
+        prompt = (f"Goal role: {role}\n"
+                  f"Timeline: {deadline} weeks @ {weekly_hours} h/week\n"
+                  f"Already covered: {', '.join(current) if current else 'starting fresh'}\n"
+                  f"Selected track: {track['title'] if track else 'custom'}\n"
+                  f"Milestone courses: {', '.join(course_titles[:5])}\n"
+                  f"Write the summary now.")
+        summary = (await _claude(sys_msg, prompt, "courses-path")).strip()
+    except Exception as e:
+        logger.warning(f"[courses] ai/path LLM fallback: {e}")
+        summary = (f"Goal: become a {role} in {deadline} weeks @ {weekly_hours}h/week. "
+                   f"Recommended track: {track['title'] if track else 'custom'}. "
+                   f"Already covered: {', '.join(current) if current else 'starting fresh'}.")
 
     return {"path": path, "track_slug": track_slug if track else None,
             "summary": summary,

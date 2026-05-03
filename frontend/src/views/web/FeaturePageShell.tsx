@@ -150,12 +150,8 @@ export default function FeaturePageShell({
         style={{ flex: 1 }}
         contentContainerStyle={{ padding: isWide ? 28 : 16, gap: 22 }}
       >
-        {/* Top bar */}
+        {/* Top bar — bell only (back button removed; sidebar is the nav) */}
         <View style={styles.topBar}>
-          <Pressable onPress={() => router.replace('/platform')} style={styles.backBtn}>
-            <ArrowLeft size={14} color="#fff" />
-            <Text style={styles.backText}>Dashboard</Text>
-          </Pressable>
           <View style={{ flex: 1 }} />
           <View style={styles.bellBtn}><Bell size={16} color="#fff" /></View>
         </View>
