@@ -86,10 +86,10 @@ export default function LoginScreen() {
   };
 
   const onLogin = async (overrideEmail?: string, overridePwd?: string) => {
-    const e = overrideEmail ?? email;
-    const p = overridePwd ?? password;
+    const e = (typeof overrideEmail === 'string' ? overrideEmail : '') || email;
+    const p = (typeof overridePwd === 'string' ? overridePwd : '') || password;
     setEmailError(''); setPwdError('');
-    if (!e || !e.includes('@')) {
+    if (!e || typeof e !== 'string' || !e.includes('@')) {
       setEmailError('Enter a valid email');
       return;
     }
