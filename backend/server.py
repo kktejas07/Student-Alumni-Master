@@ -203,7 +203,7 @@ class CollegeInfo(BaseModel):
 
 
 class AlumniInfo(BaseModel):
-    """Alumni-specific fields per spec."""
+    """Alumni-specific fields per Alumni 6-step Onboarding Wizard spec."""
     graduation_year: int
     university: str
     current_employer: Optional[str] = None
@@ -215,6 +215,21 @@ class AlumniInfo(BaseModel):
     wants_to_mentor: bool = False
     mentor_category: Optional[MentorCategory] = None
     mentor_categories: Optional[List[MentorCategory]] = None    # multi-select archetypes
+    # Step 1 — Your Career Now: years of experience (auto-derived from grad year if blank)
+    years_of_experience: Optional[int] = None
+    # Step 2 — Interests & Skills: 4 multi-select chip groups
+    domain_expertise: Optional[List[str]] = None  # e.g. Software Engineering, Product, Finance
+    tech_skills: Optional[List[str]] = None       # Python, React, ML/AI, …
+    business_skills: Optional[List[str]] = None   # Excel, Financial Modelling, Sales, …
+    soft_skills: Optional[List[str]] = None       # Communication, Leadership, …
+    # Step 3 — Your Next Chapter: single-select from 6 paths
+    # Slugs: become_mentor / level_up_career / build_startup / higher_education / explore_options / give_back
+    next_chapter: Optional[str] = None
+    # Step 4 — Profile Photo (base64; also stored on user.face_image_base64)
+    profile_photo: Optional[str] = None
+    # Step 5 — Bio + writing style chip
+    bio: Optional[str] = None
+    writing_style: Optional[str] = None  # Friendly & warm / Professional / Inspiring / Concise / Detailed
 
 
 class StudentInfo(BaseModel):

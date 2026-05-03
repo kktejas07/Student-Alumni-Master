@@ -4539,3 +4539,104 @@ agent_communication:
         - Each of the 3 new MentorCategory enum slugs is accepted.
         - Backwards-compat: existing mentors load fine.
         - Existing mentor endpoints (/api/mentors/suggestions etc.) not regressed.
+
+
+## 2026-05-03 — Alumni 6-step Onboarding Wizard
+
+agent_communication:
+  - agent: "main"
+    message: |
+      Built /app/frontend/app/(onboarding)/alumni-onboard.tsx — 6-step wizard:
+        Step 1: Your Career Now (Full Name, Current Role autocomplete, Company autocomplete,
+                College & Batch autocomplete, Graduation Year, YoE)
+        Step 2: Interests & Skills (4 chip groups: Domain Expertise / Tech / Business / Soft)
+        Step 3: Your Next Chapter (6 single-select cards)
+        Step 4: Profile Photo (Selfie / Upload)
+        Step 5: Your Bio (300 chars + 5 writing-style chips) - CTA "See My Badge ✨"
+        Step 6: Your SA Badge (Bronze/Silver/Gold/Platinum recap + perks)
+
+      Backend changes in /app/backend/server.py — extended AlumniInfo with:
+        years_of_experience, domain_expertise, tech_skills, business_skills,
+        soft_skills, next_chapter, profile_photo, bio, writing_style.
+
+      Frontend routing tweaks (3 files):
+        - referral-code.tsx: alumni → /alumni-onboard
+        - index.tsx: alumni with !onboarding_completed → /alumni-onboard
+        - two-fa-challenge.tsx: alumni → /alumni-onboard
+
+      Need backend testing on:
+        - POST /users/onboarding succeeds with full alumni payload incl. all
+          new fields (years_of_experience, domain_expertise, tech_skills,
+          business_skills, soft_skills, next_chapter, profile_photo, bio,
+          writing_style).
+        - GET /api/auth/me returns alumni_info with new fields preserved.
+        - Backwards-compat: existing alumni accounts still load.
+        - next_chapter accepts these slugs: become_mentor, level_up_career,
+          build_startup, higher_education, explore_options, give_back.
+        - When next_chapter == "become_mentor", wants_to_mentor is auto-flagged true.
+
+
+backend:
+  - task: "Alumni 6-step Onboarding Wizard — extended AlumniInfo schema"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py (AlumniInfo)"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            VERIFIED via /app/backend_test_alumni_onboarding.py against
+            https://hiring-mvvm.preview.emergentagent.com/api.
+            RESULT: 32/32 assertions PASS — every sub-case green.
+
+            ✅ TEST 1+2: Register fresh alumni (role=alumni) → POST
+               /users/onboarding with FULL payload exercising ALL 9 new
+               optional fields → 200 OK (no Pydantic 422).
+            ✅ TEST 3: GET /auth/me preserves all new fields verbatim:
+                 · years_of_experience == 6
+                 · domain_expertise == ["Software Engineering","Product","Finance"]
+                 · tech_skills == ["Python","React","SQL","ML / AI"]
+                 · business_skills == ["Excel / Sheets","Financial Modelling"]
+                 · soft_skills == ["Communication","Leadership","Problem Solving"]
+                 · next_chapter == "become_mentor"
+                 · profile_photo retained verbatim ("data:image/jpeg;base64,/9j/4AAQ...")
+                 · bio preserved
+                 · writing_style == "Inspiring"
+                 · wants_to_mentor == true
+                 · graduation_year == 2018, current_employer == "Flipkart",
+                   current_role == "Senior PM", employment_status == "employed",
+                   university == "IIT Bombay"
+            ✅ TEST 4: Each of the 6 valid next_chapter slugs accepted in a
+               separate fresh user — become_mentor / level_up_career /
+               build_startup / higher_education / explore_options / give_back —
+               all 200 OK and echoed back via /auth/me unchanged.
+            ✅ TEST 5: Backwards compat — alumni01@test.com / TestPass@123
+               login → 200; GET /auth/me → 200 (role=alumni). Legacy schema
+               (without any of the 9 new fields) loads cleanly with no
+               Pydantic errors and no crash.
+            ✅ TEST 6a: Edge — minimal alumni_info {graduation_year, university}
+               only (no new fields) → 200 OK.
+            ✅ TEST 6b: Edge — empty arrays domain_expertise=[], tech_skills=[],
+               business_skills=[], soft_skills=[] → 200 OK and echoed back as
+               [] verbatim via /auth/me.
+
+            All 9 newly-added AlumniInfo optional fields work end-to-end.
+            Backwards compat preserved. Zero regressions on existing alumni
+            data. Ready to ship.
+
+agent_communication:
+  - agent: "testing"
+    message: |
+      Alumni 6-step Onboarding Wizard backend — FULLY VERIFIED.
+      32/32 assertions PASS in /app/backend_test_alumni_onboarding.py.
+      AlumniInfo schema extension is solid: all 9 new optional fields
+      (years_of_experience, domain_expertise, tech_skills, business_skills,
+      soft_skills, next_chapter, profile_photo, bio, writing_style) are
+      accepted by POST /users/onboarding, persisted, and echoed back
+      verbatim via GET /auth/me. All 6 next_chapter slugs accepted.
+      Backwards-compat with legacy alumni01@test.com confirmed clean.
+      Edge cases (minimal payload + empty arrays) also pass.
+      No issues found. Recommend main agent summarize and finish.

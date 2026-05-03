@@ -70,6 +70,7 @@ export default function Index() {
           const dest =
             user.role === 'student' ? '/(onboarding)/student-onboard' :
             user.role === 'mentor'  ? '/(onboarding)/mentor-onboard'  :
+            user.role === 'alumni'  ? '/(onboarding)/alumni-onboard'  :
             '/(onboarding)/role-info';
           router.replace(dest as any);
         } else if (IS_WEB) {

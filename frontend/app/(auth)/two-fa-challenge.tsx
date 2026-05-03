@@ -69,6 +69,7 @@ export default function TwoFAChallenge() {
     router.replace(user.onboarding_completed ? dst : (
       user.role === 'student' ? '/(onboarding)/student-onboard' :
       user.role === 'mentor'  ? '/(onboarding)/mentor-onboard'  :
+      user.role === 'alumni'  ? '/(onboarding)/alumni-onboard'  :
       '/(onboarding)/role-info'
     ));
   };
