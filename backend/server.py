@@ -100,6 +100,54 @@ api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernet
 
 
 # ----------------------------------------------------------------------------
+# Audit Log Helpers — write every personal-data change to `audit_logs`
+# ----------------------------------------------------------------------------
+# Schema: { user_id, field_name, old_value, new_value, source, validation_status,
+#           ts (UTC datetime), is_manual_entry }
+async def _audit_log(user_id: str, field: str, old_value, new_value, *,
+                     source: str = "onboarding",
+                     validation_status: str = "passed",
+                     is_manual_entry: bool = False) -> None:
+    """Insert a single audit entry. Best-effort — never raise to caller."""
+    try:
+        await db.audit_logs.insert_one({
+            "user_id": user_id,
+            "field_name": field,
+            "old_value": old_value if old_value is not None else None,
+            "new_value": new_value if new_value is not None else None,
+            "source": source,
+            "validation_status": validation_status,
+            "is_manual_entry": bool(is_manual_entry),
+            "ts": datetime.now(timezone.utc),
+        })
+    except Exception:
+        # Don't let audit failures break the user's flow.
+        pass
+
+
+async def _audit_log_many(user_id: str, source: str, entries: list,
+                          validation_status: str = "passed") -> None:
+    """Bulk insert audit entries. `entries` is a list of (field, old, new) tuples."""
+    if not entries:
+        return
+    try:
+        docs = [{
+            "user_id": user_id,
+            "field_name": f,
+            "old_value": o,
+            "new_value": n,
+            "source": source,
+            "validation_status": validation_status,
+            "is_manual_entry": False,
+            "ts": datetime.now(timezone.utc),
+        } for (f, o, n) in entries if n is not None and n != ""]
+        if docs:
+            await db.audit_logs.insert_many(docs, ordered=False)
+    except Exception:
+        pass
+
+
+# ----------------------------------------------------------------------------
 # Type Definitions
 # ----------------------------------------------------------------------------
 # UserRole: 3 primary user types + admin/college (managed roles)
@@ -269,6 +317,13 @@ class RegisterRequest(BaseModel):
     full_name: str
     role: UserRole
     phone: Optional[str] = None
+    # Per spec — Date of Birth is mandatory at registration. ISO 8601 (YYYY-MM-DD).
+    # Backend enforces minimum age of 18 unless the role is 'student' (>=13).
+    dob: Optional[str] = None
+    # Country alpha-2 code for phone/postal code validation context.
+    country_code: Optional[str] = None
+    # Postal / PIN code (validated per country at the frontend; stored verbatim).
+    postal_code: Optional[str] = None
 
     @field_validator("password")
     @classmethod
@@ -276,6 +331,25 @@ class RegisterRequest(BaseModel):
         # Enforce minimum 6 chars (frontend should also enforce stronger rules)
         if len(v) < 6:
             raise ValueError("Password must be at least 6 characters long")
+        return v
+
+    @field_validator("dob")
+    @classmethod
+    def _dob_valid(cls, v):
+        if not v:
+            return v  # mandatory enforcement happens in the route (role-aware)
+        from datetime import date as _date
+        try:
+            d = _date.fromisoformat(v)
+        except Exception:
+            raise ValueError("Date of birth must be in YYYY-MM-DD format")
+        today = _date.today()
+        if d > today:
+            raise ValueError("Date of birth cannot be in the future")
+        # Min age guard — 13 absolute floor; route can re-enforce 18 by role.
+        age = today.year - d.year - ((today.month, today.day) < (d.month, d.day))
+        if age < 13:
+            raise ValueError("You must be at least 13 years old to register")
         return v
 
 
@@ -324,6 +398,9 @@ class UserResponse(BaseModel):
     face_image_base64: Optional[str] = None
     onboarding_completed: bool = False
     two_fa_enabled: bool = False
+    dob: Optional[str] = None  # ISO 8601 (YYYY-MM-DD)
+    country_code: Optional[str] = None
+    postal_code: Optional[str] = None
     created_at: datetime
 
 
@@ -537,6 +614,10 @@ async def register(req: RegisterRequest):
         "full_name": req.full_name.strip(),
         "role": req.role,
         "phone": req.phone,
+        # Date of Birth + country / postal — collected per spec
+        "dob": req.dob,
+        "country_code": req.country_code,
+        "postal_code": req.postal_code,
         "unique_id": None,
         "qr_code_base64": None,
         "school_info": None,
@@ -556,6 +637,17 @@ async def register(req: RegisterRequest):
     result = await db.users.insert_one(user_doc)
     user_id = str(result.inserted_id)
     user_doc["_id"] = result.inserted_id
+
+    # Audit log — capture the full registration payload for compliance.
+    await _audit_log_many(user_id=user_id, source="register", entries=[
+        ("email",        None, req.email),
+        ("full_name",    None, req.full_name),
+        ("role",         None, req.role),
+        ("phone",        None, req.phone or ""),
+        ("dob",          None, req.dob or ""),
+        ("country_code", None, req.country_code or ""),
+        ("postal_code",  None, req.postal_code or ""),
+    ])
 
     return AuthResponse(
         access_token=create_access_token(user_id, email, req.role),

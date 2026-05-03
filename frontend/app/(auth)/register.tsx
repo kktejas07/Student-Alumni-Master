@@ -12,6 +12,8 @@ import { ROLE_META, RoleCards, type Role } from '@/src/views/auth/RoleCards';
 import { AC, FONTS } from '@/src/views/auth/tokens';
 import { trackAuth, passwordStrength } from '@/src/lib/authAnalytics';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { PhoneInput } from '@/src/views/web/PhoneInput';
+import { DateOfBirthPicker, isDobValid } from '@/src/views/web/DateOfBirthPicker';
 
 const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
 
@@ -25,12 +27,18 @@ export default function RegisterScreen() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState(initialEmail);
+  const [phone, setPhone] = useState('');
+  const [phoneCountry, setPhoneCountry] = useState('IN');
+  const [dob, setDob] = useState('');  // ISO 8601 YYYY-MM-DD
   const [pwd, setPwd] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const setUser = useAuthStore((s) => s.setUser);
   const setTokens = useAuthStore((s) => s.setTokens);
+
+  // Min age varies by role: students 13+, others 18+
+  const minAge = role === 'student' ? 13 : 18;
 
   const strength = passwordStrength(pwd);
 
@@ -49,6 +57,12 @@ export default function RegisterScreen() {
     if (!firstName.trim()) errs.firstName = 'Enter your first name';
     if (!lastName.trim())  errs.lastName  = 'Enter your last name';
     if (!email || !email.includes('@')) errs.email = 'Enter a valid email';
+    // Phone — required, basic length
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (!phoneDigits || phoneDigits.length < 6) errs.phone = 'Enter a valid phone number';
+    // DOB — mandatory + role-aware min age
+    const dobCheck = isDobValid(dob, minAge);
+    if (!dobCheck.ok) errs.dob = dobCheck.message || 'Date of birth required';
     if (strength.score < 2) errs.pwd = 'Pick a stronger password';
     setErrors(errs);
     if (Object.keys(errs).length) return;
@@ -61,7 +75,15 @@ export default function RegisterScreen() {
       const res = await fetch(`${BASE}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: pwd, full_name: fullName, role }),
+        body: JSON.stringify({
+          email,
+          password: pwd,
+          full_name: fullName,
+          role,
+          phone,
+          dob,
+          country_code: phoneCountry,
+        }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -126,6 +148,41 @@ export default function RegisterScreen() {
               </View>
             </View>
             <AuthInput label="Email" value={email} onChangeText={(t) => { setEmail(t); setErrors((p) => ({ ...p, email: '' })); }} placeholder="you@university.edu" keyboardType="email-address" error={errors.email} />
+
+            {/* Personal Information — phone (with country code) + DOB (mandatory) */}
+            <View>
+              <Text style={s.fieldLabel}>Phone Number<Text style={{ color: '#EF4444' }}> *</Text></Text>
+              <PhoneInput
+                value={phone}
+                onChangeText={(v) => {
+                  setPhone(v);
+                  setErrors((p) => ({ ...p, phone: '' }));
+                  // Capture country dial code for the registration payload.
+                  const m = v.match(/^\+(\d+)/);
+                  if (m) {
+                    // Map dial code → ISO 2-letter for postal validation context.
+                    const dial = '+' + m[1];
+                    const dialMap: Record<string, string> = {
+                      '+91': 'IN', '+1': 'US', '+44': 'GB', '+61': 'AU',
+                      '+971': 'AE', '+65': 'SG', '+49': 'DE', '+33': 'FR',
+                    };
+                    if (dialMap[dial]) setPhoneCountry(dialMap[dial]);
+                  }
+                }}
+                placeholder="98765 43210"
+              />
+              {errors.phone ? <Text style={s.fieldErr}>{errors.phone}</Text> : null}
+            </View>
+
+            <DateOfBirthPicker
+              value={dob}
+              onChange={(iso) => { setDob(iso); setErrors((p) => ({ ...p, dob: '' })); }}
+              minAge={minAge}
+              required
+              helper={`You must be at least ${minAge} years old to register as a ${ROLE_META[role].label.toLowerCase()}.`}
+            />
+            {errors.dob ? <Text style={s.fieldErr}>{errors.dob}</Text> : null}
+
             <AuthInput
               label="Password"
               value={pwd}
@@ -198,5 +255,8 @@ const s = StyleSheet.create({
   link: { color: AC.muted, ...(Platform.OS === 'web' ? ({ textDecorationLine: 'underline', cursor: 'pointer' } as any) : {}) },
 
   signin: { textAlign: 'center', color: AC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 18 },
-  signinLink: { color: AC.primaryL, fontFamily: FONTS.bold, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  signinLink: { color: AC.primaryL, fontFamily: FONTS.bold, ...(Platform.OS === 'web' ? ({ textDecorationLine: 'underline', cursor: 'pointer' } as any) : {}) },
+
+  fieldLabel: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13, marginBottom: 8 },
+  fieldErr: { color: '#EF4444', fontFamily: FONTS.med, fontSize: 12, marginTop: -8, marginBottom: 6 },
 });

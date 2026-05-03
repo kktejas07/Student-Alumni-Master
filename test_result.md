@@ -4786,3 +4786,106 @@ agent_communication:
              default: transparent, white 92 0.000000e+00xt
              hover:   primary @ 22 0x0p+0lpha (lighter purple tint)
              active:  primary @ 100
+
+## 2026-05-03 — Phase A: DOB + country_code + postal_code + audit_logs
+
+backend:
+  - task: "RegisterRequest DOB/country_code/postal_code + audit_logs write-path"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py (RegisterRequest, UserResponse, serialize_user, _audit_log, _audit_log_many)"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "testing"
+        comment: |
+          PARTIALLY WORKING — 62/68 assertions PASS. The write-path (MongoDB
+          persistence + audit_logs) is correct, but the READ-path
+          (serialize_user → UserResponse) omits the 3 new fields.
+
+          Full test: /app/backend_test_dob_audit.py
+
+          ✅ A.1 POST /auth/register with {dob,country_code,postal_code}
+             returns 200 OK (accepted).
+          ❌ A.3/A.4/A.5 Response user.dob / user.country_code /
+             user.postal_code are ALL NULL in the returned user object.
+             Example response body (redacted):
+               { "user": { "email": "dob_test_xxx@test.com", "phone":
+                 "+919999998877", ..., "dob": null, "country_code": null,
+                 "postal_code": null } }
+
+          ❌ B.2/B.3/B.4 Same fields NULL on GET /api/auth/me (bearer
+             token of freshly registered user). MongoDB WAS updated — the
+             bug is purely in serialize_user.
+
+          ✅ C. Audit logging CORRECT — 7/7 entries written to
+             db.audit_logs for the 7 fields (email, full_name, role, phone,
+             dob, country_code, postal_code). Each has:
+               source == "register" ✅
+               old_value == null ✅
+               new_value == submitted value (verbatim) ✅
+               validation_status == "passed" ✅
+               ts is a fresh UTC datetime ✅
+             All 35 audit sub-checks PASS.
+
+          ✅ D.1 dob="2030-01-01" (future) → 422 with message mentioning
+             'future'.
+          ✅ D.2 dob under 13 → 422 with age/13 in message.
+          ✅ D.3 dob="not-a-date" → 422 with format message.
+          ✅ D.4 No dob → 200 OK (optional at API level, per spec).
+
+          ✅ E. Legacy mentor01@test.com login + GET /auth/me → 200 OK.
+             No Pydantic 500. dob/country_code/postal_code keys ARE
+             present (null) → no regression on old records.
+
+          ✅ F.1 country_code="" → 200 OK.
+          ✅ F.2 Duplicate email → 400.
+
+          ROOT CAUSE (single-line fix for main agent):
+            server.py → serialize_user() (~line 543) builds the dict
+            returned to UserResponse. It currently does NOT include:
+              "dob":          user.get("dob"),
+              "country_code": user.get("country_code"),
+              "postal_code":  user.get("postal_code"),
+            UserResponse declares these fields (line 401-403) so they
+            default to None — hence the null output. Adding these 3 keys
+            to serialize_user() fixes A.3/A.4/A.5 and B.2/B.3/B.4.
+
+          No other issues. Everything else (Pydantic validators, audit
+          logging, backwards compat, duplicates) is working correctly.
+
+metadata:
+  created_by: "testing"
+  version: "3.0"
+  test_sequence: 4
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "RegisterRequest DOB/country_code/postal_code + audit_logs write-path"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "testing"
+    message: |
+      Phase A VALIDATION COMPLETE — /app/backend_test_dob_audit.py.
+      62/68 PASS. Single issue: serialize_user() in server.py omits the
+      three new fields (dob/country_code/postal_code) from the response
+      dict. MongoDB write-path and audit_logs are 100% correct (verified
+      directly against db.audit_logs — 7 entries per register, each with
+      source='register', old=null, new=<value>, validation_status='passed',
+      fresh UTC ts). Pydantic validators for future-date / <13 age /
+      malformed format all return 422 with informative messages.
+
+      ONE-LINE FIX FOR MAIN AGENT:
+        In serialize_user() at /app/backend/server.py (~line 543), add:
+          "dob":          user.get("dob"),
+          "country_code": user.get("country_code"),
+          "postal_code":  user.get("postal_code"),
+        before "created_at". That alone unblocks A.3-A.5 and B.2-B.4.
+        Please do not rewrite other sections — test is confident the
+        rest of the Phase A surface works correctly.
