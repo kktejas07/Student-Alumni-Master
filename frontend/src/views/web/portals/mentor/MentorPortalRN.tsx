@@ -31,6 +31,8 @@ import { CreateEventView } from './views/CreateEventView';
 import { AvailabilityView } from './views/AvailabilityView';
 import { ProfileView } from './views/ProfileView';
 import { MentorProfileSettingsView } from './views/MentorProfileSettingsView';
+// Shared role-aware comprehensive profile view (purple theme, identical to student).
+import { ProfileSettingsView as SharedProfileSettingsView } from '../student/views/ProfileSettingsView';
 import { STUDENTS, SESSION_REQUESTS } from './data';
 
 const PAGE_TITLES: Record<NavId, string> = {
@@ -88,7 +90,7 @@ export default function MentorPortalRN() {
           {active === 'earnings'  && <EarningsView />}
           {active === 'feedback'  && <FeedbackView />}
           {active === 'event'     && <CreateEventView />}
-          {active === 'profile'   && <MentorProfileSettingsView />}
+          {active === 'profile'   && <SharedProfileSettingsView roleOverride="mentor" />}
         </ScrollView>
       </View>
     </View>
