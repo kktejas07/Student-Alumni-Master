@@ -60,7 +60,10 @@ export default function ReferralCode() {
 
   const onSkip = () => {
     trackAuth({ event: 'referral_skipped' as any });
-    const dest = role === 'student' ? '/(onboarding)/student-onboard' : '/(onboarding)/quick-setup';
+    const dest =
+      role === 'student' ? '/(onboarding)/student-onboard' :
+      role === 'mentor'  ? '/(onboarding)/mentor-onboard'  :
+      '/(onboarding)/quick-setup';
     router.replace(dest as any);
   };
 
