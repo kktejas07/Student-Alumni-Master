@@ -4979,6 +4979,8 @@ from rentals_marketplace import router as rentals_router  # SA Stay: housing, ve
 api_router.include_router(rentals_router)
 from courses_marketplace import router as courses_router  # SA Courses: catalog + tracks + enrollments + AI advisor
 api_router.include_router(courses_router)
+from college_portal import router as college_router  # College admin Phase 3: roster + analytics
+api_router.include_router(college_router)
 
 # Auth analytics & session tracking
 from auth_analytics import router as auth_analytics_router

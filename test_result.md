@@ -8456,3 +8456,235 @@ agent_communication:
         Frontend testing NOT run — would benefit from running the testing agent
         once buckets b+c are both shipped.
 
+
+
+backend:
+  - task: "College Portal Phase 3 — /api/college/students, /api/college/students/{id}, /api/college/analytics, /api/college/departments, /api/college/recruiters"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/college_portal.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: |
+          Bucket (c) of user's "all in order 1→4" plan: College Admin Phase 3.
+
+          NEW backend module /app/backend/college_portal.py with deterministic 120-student
+          seed roster (random.seed(42)) across 7 depts (CSE/ECE/ME/EEE/Civil/Chem/MBA),
+          5 years, with cgpa, attendance, status (top/good/at_risk), placement, company
+          (from 20 top recruiters), package_lpa, sector — all derived from index for
+          stable test fixtures.
+
+          5 endpoints:
+          1. GET /api/college/students?q=&dept=&year=&status=&page=&page_size=
+             - Filter by dept (CSE/ECE/...), year (1st/2nd/.../Final), status
+               (top/good/at_risk), free-text q (name/email/dept/id)
+             - Paginated (default page_size 20, max 100)
+             - Returns {items, total, page, page_size, pages, filters:{departments,
+               years, statuses}, fetched_at}
+          2. GET /api/college/students/{student_id} → student detail + activity feed
+          3. GET /api/college/analytics → comprehensive payload:
+             - kpi: students, placement %, median_lpa, top_offer, median_yoy
+             - placement_trend: 5-year (2022→2026) with rate + median_lpa
+             - salary_dist: 5 bands (<6, 6-10, 10-15, 15-25, 25+) LPA with count + pct
+             - sectors: 6 sectors with count + pct + color
+             - attrition: top/good/at_risk pct breakdown
+             - top_recruiters: top 10 companies sorted by hires
+             - dept_placement: per-dept placement total/placed/rate/color
+             - funnel: Applied→Interviewed→Shortlisted→Offered with count + pct
+          4. GET /api/college/departments → 7 dept summary (students/placed/rate/median_cgpa)
+          5. GET /api/college/recruiters → all hiring companies with pkg ranges + dept list
+
+          All UTC datetimes. Wired into server.py after courses_router. Auth required.
+
+frontend:
+  - task: "College StudentsView — paginated roster table with filters (dept/year/status), search, placement column"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/views/web/portals/college/views/StudentsView.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: |
+          Full rewrite of StudentsView. Lucide icons replaced with MaterialCommunityIcons.
+
+          Features:
+          - Full-text search box (debounced via useState; resets page on input)
+          - 3 horizontally-scrollable filter pill rows (Dept / Year / Status)
+            with backend-supplied options
+          - Total students count badge (top-right)
+          - 8-column table: Student (with email/ID sub-line), Dept, Year, CGPA, Attendance
+            (red if <70%), Status badge, Placement (Company · ₹X LPA in green pill or —)
+          - Empty state with account-search icon when no results
+          - Pagination footer (Prev / Page X of Y / Next) when pages > 1
+          - "Add Student" + "Export CSV" CTAs (UI placeholders for future hook-up)
+
+  - task: "College AnalyticsView — KPIs + 5-year placement trend + salary distribution + hiring funnel + top recruiters + dept-wise placement + sectors + roster health"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/views/web/portals/college/views/AnalyticsView.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: |
+          Full rewrite of AnalyticsView with 7 panels matching new backend payload.
+
+          Panels:
+          1. KPI Row (4 cards): Avg Salary, Highest Offer, Placement Rate, Total Students
+          2. 📈 Placement Trend — 5 vertical bars (2022-2026) with rate% + median LPA
+             (current year highlighted in violet, others blue)
+          3. 🎯 Hiring Funnel — Applied / Interviewed / Shortlisted / Offered with
+             progressive bar widths
+          4. 💰 Salary Distribution — 5 bands with horizontal progress bars + pct
+          5. 🏢 Top Recruiters — top 8 companies with rank/logo/name/hires pill
+          6. 🎓 Dept-Wise Placement — 7 depts with colored progress bars + ratio
+          7. 🌐 Sector Breakdown — chips with sector dot + name + pct
+          8. 📊 Roster Health — top/good/at_risk distribution with colored dots
+
+          Layout: 2-col grid on wide screens (>900px), stacked on mobile.
+
+test_plan:
+  current_focus:
+    - "College Portal Phase 3 — /api/college/students, /api/college/students/{id}, /api/college/analytics, /api/college/departments, /api/college/recruiters"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "main"
+      message: |
+        Bucket (c) College Portal Phase 3 shipped (backend + frontend both done):
+
+        BACKEND: /app/backend/college_portal.py with 5 endpoints, 120-student seed roster
+        across 7 departments, full analytics payload (KPIs, 5-year trend, salary
+        distribution, hiring funnel, top recruiters, dept placement, sectors, roster
+        health). Wired into server.py after courses_router.
+
+        FRONTEND: StudentsView.tsx (paginated + filters + search + placement column)
+        and AnalyticsView.tsx (8 panels) fully rewritten to consume the new APIs.
+
+        TEST PLAN (backend):
+        Login as realtime@studentalumni.in / RealTime@2026 → bearer token.
+
+        1. GET /api/college/students → {total:120, page:1, page_size:20, pages:6,
+           items: [20 students], filters:{departments:[7], years:[5], statuses:[3]}}
+           Each item has id, name, initials, email, dept, year, cgpa, attendance,
+           status, color, placed, company, package_lpa, sector
+        2. GET /api/college/students?dept=CSE → only CSE students
+           ?status=top → only status=='top'; ?year=Final → only Final year
+           ?q=Aarav → only matching name; ?page=2&page_size=10 → second page
+        3. GET /api/college/students/STU-1001 → full detail + activity[]
+           GET /api/college/students/INVALID → 404
+        4. GET /api/college/analytics → {kpi, placement_trend (5 years),
+           salary_dist (5 bands), sectors (6), attrition (3), top_recruiters (≤10),
+           dept_placement (7), funnel (4 stages)}
+           kpi.students == 120; kpi.placement string ends with %
+        5. GET /api/college/departments → 7 entries with students/placed/rate/median_cgpa
+        6. GET /api/college/recruiters → list of company entries with hires/pkg ranges/depts
+
+        EDGE CASES:
+        - Auth required (401 without token)
+        - Page bounds clamped (page=0 → page=1; page_size=999 → page_size=100)
+        - All datetimes ISO strings
+
+
+
+backend:
+  - task: "College Portal Phase 3 — /api/college/students, /api/college/students/{id}, /api/college/analytics, /api/college/departments, /api/college/recruiters"
+    implemented: true
+    working: false
+    file: "/app/backend/college_portal.py + /app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: |
+            CRITICAL ROUTE CONFLICT — 2 of 5 endpoints are UNREACHABLE.
+
+            Verified end-to-end with realtime@studentalumni.in / RealTime@2026 via
+            /app/backend_test_college_portal.py against
+            https://hiring-mvvm.preview.emergentagent.com/api.
+
+            ROOT CAUSE:
+            /app/backend/portals.py ALREADY registers the following routes:
+              · GET /college/students        (portals.py line 977)
+              · GET /college/analytics       (portals.py line 1170)
+            portals_router is included in server.py at line 4957 — BEFORE
+            college_router at line 4983. FastAPI picks the FIRST registered
+            route, so requests to /api/college/students and /api/college/analytics
+            are served by portals.py, NOT by /app/backend/college_portal.py.
+
+            EVIDENCE:
+            - GET /api/college/students returned items with Mongo ObjectID ids
+              (e.g. "69f4ba1d666614d785f74127"), dept="Mechanical Engineering",
+              year="Y2" — this is portals.py's live-DB roster, NOT college_portal's
+              seeded 120-student roster (which should have ids like "STU-1001",
+              dept="CSE", year="1st").
+            - Response lacked top-level fields total / page / page_size / pages /
+              filters that college_portal.py promises.
+            - GET /api/college/analytics returned portals.py's analytics shape
+              (not tested exhaustively but verifiable via same-class conflict).
+
+            WHAT WORKS (3 of 5 endpoints — unique paths under /college):
+            ✅ GET /api/college/students/STU-1001 → 200, returns
+               {student: {id:"STU-1001", name:"Aarav Mehta", dept:"CSE",
+                year:"1st", cgpa:6.5, attendance:70, status:"at_risk",
+                color:"#3B82F6", placed:false, ...},
+                activity: [3 entries with date/type/label]}.
+               All required schema keys present.
+            ✅ GET /api/college/students/INVALID → 404 "Student not found".
+            ✅ GET /api/college/departments → 200, 7 entries
+               [CSE, ECE, ME, EEE, Civil, Chem, MBA] each with
+               {name, color, students, placed, rate, median_cgpa}.
+               Sample: CSE {students:18, placed:10, rate:55.6, median_cgpa:7.82}.
+            ✅ GET /api/college/recruiters → 200, list of companies sorted by
+               hires desc. Each entry has {name, hires, min_pkg, max_pkg,
+               depts[list], logo[1 char]}. Sample: Infosys hires=5,
+               min=8.5, max=14.5, depts=[Chem,Civil,ECE,EEE,MBA], logo="I".
+            ✅ Auth gating: all 5 paths return 403 "Not authenticated"
+               when Authorization header is missing (FastAPI default; the
+               spec says 401 but this is a minor distinction).
+
+            WHAT FAILS (2 of 5 endpoints — unreachable due to portals.py shadow):
+            ❌ GET /api/college/students → SHADOWED by portals.py route.
+               Returns Mongo-backed roster with objectID ids, no pagination
+               envelope, no filters metadata.
+               Expected: {items:[20 seeded students with STU- ids], total:120,
+                          page:1, page_size:20, pages:6, filters:{...}}
+               Received: {items:[17 live-DB students with ObjectID], no total,
+                          no pagination fields}.
+               All 13 assertions on this endpoint (pagination, filters, schema,
+               dept/year/status/q filtering, page_size clamp) FAIL because the
+               wrong module is handling the request.
+            ❌ GET /api/college/analytics → Also shadowed by portals.py route.
+               portals.py returns different payload shape (verified via code
+               inspection at portals.py:1170).
+
+            FIX OPTIONS (choose one, main agent):
+            1. RECOMMENDED: Delete/rename the conflicting routes in
+               /app/backend/portals.py (lines 977 and 1170). These look like
+               earlier prototypes that college_portal.py replaces.
+            2. Move `api_router.include_router(college_router)` call ABOVE
+               `api_router.include_router(portals_router)` in server.py
+               (line 4957 vs 4983). FastAPI will then prefer college_router.
+            3. Change route prefixes on one of the modules (e.g. college_portal
+               → /college-portal/).
+
+            Option 1 is cleanest since portals.py /college/students has
+            different (narrower) contract than the college_portal.py version
+            the frontend expects.
+
+            DO NOT merge until this conflict is resolved — the StudentsView.tsx
+            and AnalyticsView.tsx frontends will receive the wrong payload
+            shape and break.
