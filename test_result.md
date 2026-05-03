@@ -8298,3 +8298,89 @@ agent_communication:
 
         No backend or frontend testing run this turn. Awaiting user direction.
 
+
+
+frontend:
+  - task: "courses tab redirect — /(tabs)/courses now redirects to rich /courses route (no more stale ExploreScreen)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/(tabs)/courses.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: |
+          User reported: clicking Courses redirects to a stand-alone dashboard view
+          instead of the rich /courses page. Root cause: the /(tabs)/courses.tsx
+          route was rendering the OLD <ExploreScreen> with COURSES_HERO/COURSES_SECTIONS
+          stub data — preempting the new /courses route in the tabs context.
+          Fix: replaced the entire file with a single <Redirect href="/courses" />
+          from expo-router so all entry points (sidebar nav, tab nav, deep link)
+          land on the same SA Courses landing page.
+
+  - task: "courses page — horizontal carousels (Featured / Trending Free / Top Universities) above the icon grid"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/courses.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: |
+          User asked for cards + carousel view. Added 3 horizontal scrolling
+          carousels rendered between the hero row and the section icon grid:
+
+          1. ✨ Featured this month — courses with featured:true OR rating ≥ 4.8
+             (accent: #A78BFA violet, count badge)
+          2. 🔥 Trending Free Courses — pricing.type in (free, free_audit, free_with_sa)
+             sorted by enrolled_count desc (accent: #10B981 green)
+          3. 🎓 Top Universities — provider.type === 'university'
+             sorted by rating desc (accent: #F59E0B gold)
+
+          Carousels show only when no filter/search is active (when user clicks
+          a sub-category tile, carousels hide and filtered grid takes over).
+
+          Each carousel renders a horizontal ScrollView of <MiniCourseCard>
+          components (240×280):
+          - 16:10 thumbnail with emoji + featured-star dot (top-right accent)
+          - Provider strip (logo + name)
+          - Title (2-line clamp)
+          - Stats row: ⭐ rating · enrolled count · duration
+          - Footer: FREE / orig+SA / paid price + accent arrow CTA
+          - Click → opens existing EnrollModal
+
+          Data: catalog endpoint loads first (sections + hero + tracks meta),
+          plus a second /courses/list?sort=popular call returns all 38 courses
+          which is split client-side into the 3 carousel buckets via filter()
+          + sort() + slice(10).
+
+          Both fetches happen in parallel via Promise.all in loadCatalog.
+
+agent_communication:
+    - agent: "main"
+      message: |
+        Two course-page fixes shipped:
+
+        1. /(tabs)/courses.tsx replaced with <Redirect href="/courses" /> —
+           eliminates the stale ExploreScreen detour. All paths now land on the
+           rich /courses landing page directly.
+
+        2. Added 3 horizontal carousels (Featured / Trending Free / Top Universities)
+           above the icon grid on /courses, each rendered with a compact
+           MiniCourseCard 240×280 with 16:10 thumbnail, accent CTA arrow, FREE
+           highlight or struck-through SA pricing. Catalog now fetches catalog +
+           courses/list in parallel via Promise.all.
+
+        Bundler clean (page loads, sidebar+hero+search+advisor blocks render).
+        Data-driven sections need authenticated user — verified earlier that
+        backend hits /api/courses/catalog + /api/courses/list 200 OK with
+        realtime@studentalumni.in session.
+
+        No backend changes this turn. Frontend testing NOT run — would benefit
+        from running expo_frontend_testing_agent to verify carousels horizontally
+        scroll + click → enroll modal flow on auth'd session.
+

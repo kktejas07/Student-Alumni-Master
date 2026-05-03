@@ -82,15 +82,33 @@ export default function CoursesPage() {
   const [results, setResults] = useState<Course[]>([]);
   const [resultsLoading, setResultsLoading] = useState(false);
   const [enrollFor, setEnrollFor] = useState<Course | null>(null);
+  const [featured, setFeatured] = useState<Course[]>([]);
+  const [trendingFree, setTrendingFree] = useState<Course[]>([]);
+  const [topUni, setTopUni] = useState<Course[]>([]);
 
   const loadCatalog = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await request<any>('/courses/catalog');
+      const [r, allList] = await Promise.all([
+        request<any>('/courses/catalog'),
+        request<any>('/courses/list?sort=popular'),
+      ]);
       setSections(r.sections || []);
       setHero(r.hero || []);
       setStats(r.stats || stats);
       setTracksMeta(r.tracks || []);
+      const all: Course[] = allList.courses || [];
+      // Featured: featured flag OR rating >= 4.8
+      setFeatured(all.filter(c => c.featured || c.rating >= 4.8).slice(0, 10));
+      // Trending free: free pricing types with high enrollment
+      setTrendingFree(
+        all.filter(c => ['free', 'free_audit', 'free_with_sa'].includes(c.pricing.type))
+           .sort((a, b) => b.enrolled_count - a.enrolled_count)
+           .slice(0, 10));
+      // Top universities: provider type=university
+      setTopUni(all.filter(c => c.provider.type === 'university')
+                   .sort((a, b) => b.rating - a.rating)
+                   .slice(0, 10));
     } catch (e: any) {
       console.warn('courses catalog err', e?.message);
     } finally {
@@ -225,6 +243,21 @@ export default function CoursesPage() {
           courses={results}
           onEnroll={setEnrollFor}
         />
+      )}
+
+      {/* Carousels — Featured / Trending Free / Top Universities */}
+      {!showResults && featured.length > 0 && (
+        <Carousel title="✨ Featured this month" subtitle="Hand-picked by SA editors"
+                   accent="#A78BFA" courses={featured} onEnroll={setEnrollFor} />
+      )}
+      {!showResults && trendingFree.length > 0 && (
+        <Carousel title="🔥 Trending Free Courses"
+                   subtitle="Most-enrolled this week — totally free"
+                   accent="#10B981" courses={trendingFree} onEnroll={setEnrollFor} />
+      )}
+      {!showResults && topUni.length > 0 && (
+        <Carousel title="🎓 Top Universities" subtitle="MIT · Stanford · Harvard · IITs · IIMs · Yale"
+                   accent="#F59E0B" courses={topUni} onEnroll={setEnrollFor} />
       )}
 
       {/* Sections — sub-category icon grid (hide when results visible) */}
@@ -673,6 +706,91 @@ function Fact({ icon, v }: { icon: IconName; v: string }) {
   );
 }
 
+/* ─── Carousel + MiniCard ──────────────────────────────────── */
+function Carousel({ title, subtitle, accent, courses, onEnroll }:
+  { title: string; subtitle: string; accent: string;
+    courses: Course[]; onEnroll: (c: Course) => void }) {
+  return (
+    <View style={s.carouselWrap}>
+      <View style={s.carouselHead}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.carouselTitle}>{title}</Text>
+          <Text style={s.carouselSub}>{subtitle}</Text>
+        </View>
+        <View style={[s.carouselCount,
+          { backgroundColor: accent + '22', borderColor: accent + '55' }]}>
+          <Text style={[s.carouselCountText, { color: accent }]}>
+            {courses.length}
+          </Text>
+        </View>
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 12, paddingRight: 16 }}>
+        {courses.map((c) => (
+          <MiniCourseCard key={c.id} course={c} accent={accent}
+                           onEnroll={() => onEnroll(c)} />
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+function MiniCourseCard({ course, accent, onEnroll }:
+  { course: Course; accent: string; onEnroll: () => void }) {
+  const isFree = ['free', 'free_audit', 'free_with_sa'].includes(course.pricing.type);
+  const isDiscounted = course.pricing.type === 'discounted_for_sa';
+  return (
+    <Pressable onPress={onEnroll}
+      style={[s.miniCard, { borderColor: accent + '44' }]}>
+      <View style={[s.miniThumb, { backgroundColor: accent + '14' }]}>
+        <Text style={s.miniThumbEmoji}>{course.thumbnail}</Text>
+        {course.featured && (
+          <View style={[s.miniFeaturedDot, { backgroundColor: accent }]}>
+            <MaterialCommunityIcons name="star" size={10} color="#fff" />
+          </View>
+        )}
+      </View>
+      <View style={{ padding: 12, gap: 6, flex: 1 }}>
+        <View style={s.miniProvider}>
+          <Text style={{ fontSize: 12 }}>{course.provider.logo}</Text>
+          <Text style={s.miniProviderName} numberOfLines={1}>
+            {course.provider.name}
+          </Text>
+        </View>
+        <Text style={s.miniTitle} numberOfLines={2}>{course.title}</Text>
+        <View style={s.miniStats}>
+          <MaterialCommunityIcons name="star" size={10} color="#FCD34D" />
+          <Text style={s.miniStatText}>{course.rating}</Text>
+          <Text style={s.miniDot}>·</Text>
+          <Text style={s.miniStatText}>{fmtCount(course.enrolled_count)}</Text>
+          <Text style={s.miniDot}>·</Text>
+          <Text style={s.miniStatText}>{course.duration_label}</Text>
+        </View>
+        <View style={{ flex: 1 }} />
+        <View style={s.miniFooter}>
+          {isFree ? (
+            <Text style={s.miniPriceFree}>FREE</Text>
+          ) : isDiscounted ? (
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
+              <Text style={s.miniPriceOrig}>{fmtINR(course.pricing.original_inr)}</Text>
+              <Text style={[s.miniPriceSA, { color: accent }]}>
+                {fmtINR(course.pricing.sa_inr)}
+              </Text>
+            </View>
+          ) : (
+            <Text style={[s.miniPriceSA, { color: accent }]}>
+              {fmtINR(course.pricing.original_inr)}
+            </Text>
+          )}
+          <View style={[s.miniArrow, { backgroundColor: accent }]}>
+            <MaterialCommunityIcons name="arrow-right" size={11} color="#fff" />
+          </View>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
 /* ─── Styles ────────────────────────────────────────────────── */
 const s = StyleSheet.create({
   statsPills: { flexDirection: 'row', gap: 6 },
@@ -868,4 +986,41 @@ const s = StyleSheet.create({
   successCTAText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12.5 },
   successDismiss: { paddingVertical: 10, ...({ cursor: 'pointer' } as any) },
   successDismissText: { color: C.text3, fontFamily: 'DMSans_700Bold', fontSize: 12 },
+
+  /* Carousel */
+  carouselWrap: { gap: 10 },
+  carouselHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  carouselTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
+  carouselSub: { color: C.text3, fontFamily: 'DMSans_500Medium',
+    fontSize: 11.5, marginTop: 2 },
+  carouselCount: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999,
+    borderWidth: 1 },
+  carouselCountText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
+
+  /* Mini card */
+  miniCard: { width: 240, borderRadius: 14, borderWidth: 1,
+    backgroundColor: '#261944', overflow: 'hidden',
+    ...({ cursor: 'pointer' } as any) },
+  miniThumb: { aspectRatio: 16 / 10, alignItems: 'center', justifyContent: 'center',
+    position: 'relative' },
+  miniThumbEmoji: { fontSize: 44 },
+  miniFeaturedDot: { position: 'absolute', top: 8, right: 8,
+    width: 22, height: 22, borderRadius: 999,
+    alignItems: 'center', justifyContent: 'center' },
+  miniProvider: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  miniProviderName: { color: C.text3, fontFamily: 'DMSans_600SemiBold',
+    fontSize: 10.5, flex: 1 },
+  miniTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 13, lineHeight: 17 },
+  miniStats: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  miniStatText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 10 },
+  miniDot: { color: C.text3, fontSize: 10 },
+  miniFooter: { flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', marginTop: 4 },
+  miniPriceFree: { color: '#10B981', fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
+  miniPriceOrig: { color: C.text3, fontFamily: 'DMSans_500Medium',
+    fontSize: 10, textDecorationLine: 'line-through' },
+  miniPriceSA: { fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
+  miniArrow: { width: 22, height: 22, borderRadius: 999,
+    alignItems: 'center', justifyContent: 'center' },
 });
