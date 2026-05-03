@@ -69,7 +69,17 @@ export default function EmailDetect() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.detail || 'Could not check email. Please try again.');
+        // Pydantic 422 returns `detail` as an array of error objects
+        // [{type, loc, msg, input, ctx}, ...]. Convert to a readable string.
+        const raw = data?.detail;
+        const msg = Array.isArray(raw)
+          ? raw.map((e: any) => e?.msg || e?.message || JSON.stringify(e)).filter(Boolean).join(', ')
+          : typeof raw === 'string'
+            ? raw
+            : typeof raw === 'object' && raw !== null
+              ? (raw.msg || raw.message || JSON.stringify(raw))
+              : 'Could not check email. Please try again.';
+        setError(msg);
         setLoading(false);
         return;
       }

@@ -107,7 +107,12 @@ export default function LoginScreen() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        const reason = err.detail || 'Invalid credentials';
+        const raw = err?.detail;
+        const reason = Array.isArray(raw)
+          ? raw.map((e: any) => e?.msg || e?.message || '').filter(Boolean).join(', ') || 'Invalid credentials'
+          : typeof raw === 'string' ? raw
+          : typeof raw === 'object' && raw !== null ? (raw.msg || raw.message || 'Invalid credentials')
+          : 'Invalid credentials';
         trackAuth({ event: 'login_failure', email, reason });
         setPwdError(reason);
         return;

@@ -47,7 +47,7 @@ const SAPaperTheme = {
 };
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     DMSans_400Regular,
     DMSans_500Medium,
     DMSans_600SemiBold,
@@ -64,7 +64,10 @@ export default function RootLayout() {
     analytics.init();
   }, [init]);
 
-  if (!fontsLoaded || !initialized) {
+  // Render the loader only while fonts are still loading AND haven't errored.
+  // If fonts fail to load (e.g. network / CDN issue on web), fall back to
+  // system fonts instead of blocking the entire app indefinitely.
+  if ((!fontsLoaded && !fontError) || !initialized) {
     return (
       <View
         style={{

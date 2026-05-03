@@ -100,7 +100,7 @@ export function AuthInput({
   const [focused, setFocused] = React.useState(false);
   return (
     <View style={inp.wrap}>
-      {label ? <Text style={inp.label}>{label}</Text> : null}
+      {label ? <Text style={inp.label}>{typeof label === 'string' ? label : String(label ?? '')}</Text> : null}
       <View style={[inp.row, focused && inp.rowOn, error && inp.rowErr]}>
         {leftIcon ? <View style={{ marginRight: 10 }}>{leftIcon}</View> : null}
         <TextInput
@@ -119,7 +119,7 @@ export function AuthInput({
         />
         {rightSlot}
       </View>
-      {error ? <Text style={inp.err}>{error}</Text> : hint ? <Text style={inp.hint}>{hint}</Text> : null}
+      {error ? <Text style={inp.err}>{typeof error === 'string' ? error : (error as any)?.msg || (error as any)?.message || JSON.stringify(error)}</Text> : hint ? <Text style={inp.hint}>{hint}</Text> : null}
     </View>
   );
 }

@@ -65,7 +65,13 @@ export default function RegisterScreen() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        const reason = err.detail || 'Could not register';
+        // Pydantic 422 returns `detail` as an array of error objects; flatten to string.
+        const raw = err.detail;
+        const reason = Array.isArray(raw)
+          ? raw.map((e: any) => e?.msg || e?.message || '').filter(Boolean).join(', ') || 'Could not register'
+          : typeof raw === 'string' ? raw
+          : typeof raw === 'object' && raw !== null ? (raw.msg || raw.message || 'Could not register')
+          : 'Could not register';
         trackAuth({ event: 'register_failure', email, reason });
         setErrors({ email: reason });
         return;
