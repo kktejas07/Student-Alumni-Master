@@ -70,6 +70,7 @@ export default function TwoFAChallenge() {
       user.role === 'student' ? '/(onboarding)/student-onboard' :
       user.role === 'mentor'  ? '/(onboarding)/mentor-onboard'  :
       user.role === 'alumni'  ? '/(onboarding)/alumni-onboard'  :
+      user.role === 'college' ? '/(onboarding)/college-onboard' :
       '/(onboarding)/role-info'
     ));
   };

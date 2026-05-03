@@ -18,9 +18,9 @@ export const AC = {
 
   // Role colors
   student:   '#7C3AED',
-  mentor:    '#14B8A6',
-  alumni:    '#F59E0B',
-  college:   '#6366F1',
+  mentor:    '#F59E0B',   // GOLD — propagates to all CTA buttons in mentor flow
+  alumni:    '#FB923C',   // Orange
+  college:   '#3B82F6',   // Blue
 
   // Surface
   card:      'rgba(255,255,255,0.04)',
@@ -40,6 +40,15 @@ export const AC = {
   green:     '#22C55E',
   red:       '#EF4444',
   amber:     '#F59E0B',
+};
+
+// Per-role gradient stops used by PrimaryButton via RoleThemeContext.
+// Each pair is [start, end] for a top-left → bottom-right LinearGradient.
+export const ROLE_GRADIENTS: Record<string, [string, string]> = {
+  student: ['#7C3AED', '#9D5CF6'],   // Purple
+  mentor:  ['#F59E0B', '#FBBF24'],   // GOLD
+  alumni:  ['#FB923C', '#F59E0B'],   // Orange
+  college: ['#3B82F6', '#6366F1'],   // Blue
 };
 
 export const FONTS = {

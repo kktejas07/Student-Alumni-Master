@@ -185,11 +185,7 @@ class MentorInfo(BaseModel):
 
 
 class CollegeInfo(BaseModel):
-    """College / Institution-specific fields per HTML spec ("Your Institution").
-
-    Applies when `user.role == 'college'`. Captures the institution's public
-    profile so students can discover and connect with it.
-    """
+    """College / Institution-specific fields per College 6-step Onboarding spec."""
     institution_name: str
     institution_type: Optional[Literal["school", "college", "university", "institute"]] = "university"
     affiliated_university: Optional[str] = None  # e.g. "Delhi University" (for affiliated colleges)
@@ -200,6 +196,26 @@ class CollegeInfo(BaseModel):
     # Optional admin contact details the college can fill later
     accreditation: Optional[str] = None  # e.g. "NAAC A+", "NBA"
     year_established: Optional[int] = None
+    # Step 1 — National Ranking Tier (single-select chip)
+    # Slugs: top_50 / top_51_200 / top_201_500 / not_ranked
+    ranking_tier: Optional[str] = None
+    # Step 1 — Accreditations & Rankings (multi-select chips — see frontend ACCRED list)
+    accreditations: Optional[List[str]] = None
+    # Step 2 — Contact Person (primary admin)
+    contact_name: Optional[str] = None
+    contact_designation: Optional[str] = None  # e.g. "TPO", "Dean Students", "Principal"
+    contact_official_email: Optional[str] = None  # MUST end in .ac.in / .edu (validated client-side)
+    contact_phone: Optional[str] = None
+    # Step 3 — Features Needed (multi-select tile keys — see frontend FEATURES list)
+    # Possible values: student_placement, alumni_network, mentor_connections,
+    #                  industry_tieups, event_management, job_portal
+    features_needed: Optional[List[str]] = None
+    # Step 4 — Logo & Cover Photo (base64)
+    logo: Optional[str] = None
+    cover_photo: Optional[str] = None
+    # Step 5 — Bio + writing style
+    bio: Optional[str] = None
+    writing_style: Optional[str] = None
 
 
 class AlumniInfo(BaseModel):

@@ -71,6 +71,7 @@ export default function Index() {
             user.role === 'student' ? '/(onboarding)/student-onboard' :
             user.role === 'mentor'  ? '/(onboarding)/mentor-onboard'  :
             user.role === 'alumni'  ? '/(onboarding)/alumni-onboard'  :
+            user.role === 'college' ? '/(onboarding)/college-onboard' :
             '/(onboarding)/role-info';
           router.replace(dest as any);
         } else if (IS_WEB) {

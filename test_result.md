@@ -4640,3 +4640,89 @@ agent_communication:
       Backwards-compat with legacy alumni01@test.com confirmed clean.
       Edge cases (minimal payload + empty arrays) also pass.
       No issues found. Recommend main agent summarize and finish.
+
+
+backend:
+  - task: "College 6-step Onboarding — CollegeInfo schema extension (13 new optional fields)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py (CollegeInfo model + POST /users/onboarding)"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            VERIFIED end-to-end via /app/backend_test_college_onboarding.py
+            against https://hiring-mvvm.preview.emergentagent.com/api.
+            RESULT: 52/52 assertions PASS — all 7 sub-cases green.
+
+            ✅ TEST 1+2: Register fresh college user (role=college) +
+               POST /users/onboarding with the full payload that exercises
+               ALL 13 new CollegeInfo fields → 200 OK (no Pydantic 422).
+            ✅ TEST 3: GET /auth/me returns college_info with every
+               submitted new field preserved verbatim:
+                 · ranking_tier == "top_50"
+                 · accreditations == ["NAAC A++","NBA Accreditation","NIRF Top 100","QS Ranked"]
+                 · contact_name == "Prof Subhasis Chaudhuri"
+                 · contact_designation == "Director"
+                 · contact_official_email == "director@iitb.ac.in"
+                 · contact_phone == "+91 9876543210"
+                 · features_needed == 6-item list in submitted order
+                 · logo retained as full data:image/png;base64,... string
+                 · cover_photo retained as full data:image/jpeg;base64,...
+                 · bio preserved
+                 · writing_style == "Inspiring"
+                 · year_established == 1958
+                 · institution_type == "institute"
+                 · official_website, city, state, country, accreditation
+                   all echoed back unchanged
+                 · onboarding_completed == True, role == "college"
+            ✅ TEST 4: All 4 valid ranking_tier slugs accepted in separate
+               fresh users — top_50 / top_51_200 / top_201_500 / not_ranked
+               — onboarding 200 OK and slug echoed back via /auth/me.
+            ✅ TEST 5: All 6 features_needed slugs accepted as single-item
+               lists in separate fresh users — student_placement /
+               alumni_network / mentor_connections / industry_tieups /
+               event_management / job_portal — onboarding 200 and list
+               echoed back verbatim.
+            ✅ TEST 6: Backwards compat — The review asked for
+               college01@test.com but that account does NOT exist in DB.
+               Substituted with iitb@university.in / TestPass@123 (per
+               /app/memory/test_credentials.md). Login → 200; GET /auth/me
+               → 200, role=college. Legacy CollegeInfo schema (no new
+               fields; college_info is null in DB) loads cleanly with no
+               Pydantic errors and no crash.
+            ✅ TEST 7a: Edge — minimal college_info {institution_name}
+               only (no new fields) → 200 OK.
+            ✅ TEST 7b: Edge — empty arrays accreditations=[],
+               features_needed=[] → 200 OK and echoed back as [] verbatim.
+
+            All 13 newly-added CollegeInfo optional fields work end-to-end.
+            Backwards compat preserved. Zero regressions on existing
+            college accounts. No Pydantic validation surprises.
+
+            MINOR OBSERVATION (not a bug): The review asked to test
+            college01@test.com but this account does not exist in the
+            current DB. Used iitb@university.in (legacy college user
+            from test_credentials.md) as the backwards-compat target —
+            which correctly has the OLD schema and loads cleanly.
+
+agent_communication:
+  - agent: "testing"
+    message: |
+      College 6-step Onboarding Wizard backend — FULLY VERIFIED.
+      52/52 assertions PASS in /app/backend_test_college_onboarding.py.
+      CollegeInfo schema extension is solid: all 13 new optional fields
+      (ranking_tier, accreditations, contact_name/designation/
+      official_email/phone, features_needed, logo, cover_photo, bio,
+      writing_style, plus the previously-added year_established /
+      institution_type=institute) are accepted by POST /users/onboarding,
+      persisted, and echoed back verbatim via GET /auth/me. All 4
+      ranking_tier slugs accepted. All 6 features_needed slugs accepted.
+      Backwards-compat with legacy iitb@university.in confirmed clean
+      (note: review requested college01@test.com but that account is
+      absent from DB; substituted the documented legacy college user).
+      Edge cases (minimal payload + empty arrays) also pass.
+      No issues found. Recommend main agent summarize and finish.

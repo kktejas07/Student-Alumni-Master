@@ -50,6 +50,7 @@ export default function ReferralCode() {
         role === 'student' ? '/(onboarding)/student-onboard' :
         role === 'mentor'  ? '/(onboarding)/mentor-onboard'  :
         role === 'alumni'  ? '/(onboarding)/alumni-onboard'  :
+        role === 'college' ? '/(onboarding)/college-onboard' :
         '/(onboarding)/quick-setup';
       router.replace(dest as any);
     } catch {

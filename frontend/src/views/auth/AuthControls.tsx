@@ -5,6 +5,7 @@ import React from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AC, FONTS } from './tokens';
+import { useRoleTheme } from './RoleTheme';
 
 // ─── Primary CTA button ─────────────────────────────────────────
 export function PrimaryButton({
@@ -23,13 +24,16 @@ export function PrimaryButton({
   fullWidth?: boolean;
 }) {
   const inactive = disabled || loading;
+  // Pull colours from RoleThemeContext (provided by AuthShell). Falls back to
+  // the default purple gradient when used outside of AuthShell.
+  const { gradient } = useRoleTheme();
   return (
     <Pressable
       onPress={inactive ? undefined : onPress}
       style={[btn.wrap, fullWidth ? { width: '100%' } : null, inactive && btn.disabled]}
     >
       <LinearGradient
-        colors={[AC.primary, AC.primaryL] as any}
+        colors={gradient as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={btn.grad}

@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
 import { AuthBrand } from './AuthBrand';
 import { AC, FONTS } from './tokens';
+import { RoleThemeProvider } from './RoleTheme';
 
 function MobileBrand() {
   return (
@@ -37,6 +38,7 @@ export function AuthShell({ children, role }: { children: React.ReactNode; role?
   const isDesktop = width >= 980;
 
   return (
+    <RoleThemeProvider role={role}>
     <View style={[s.root, { backgroundColor: AC.bgVia }]}>
       <LinearGradient colors={[AC.bgFrom, AC.bgVia, AC.bgTo] as any} style={StyleSheet.absoluteFill} />
 
@@ -60,6 +62,7 @@ export function AuthShell({ children, role }: { children: React.ReactNode; role?
         </SafeAreaView>
       )}
     </View>
+    </RoleThemeProvider>
   );
 }
 
