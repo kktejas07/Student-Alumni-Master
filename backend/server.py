@@ -454,6 +454,8 @@ class UserResponse(BaseModel):
     photo_data: Optional[str] = None
     institution: Optional[str] = None
     branch: Optional[str] = None
+    stream: Optional[str] = None
+    department: Optional[str] = None
     graduation_year: Optional[int] = None
     cgpa: Optional[float] = None
     location: Optional[str] = None
@@ -469,6 +471,7 @@ class UserResponse(BaseModel):
     preferences: Optional[Dict[str, Any]] = None
     is_verified: Optional[bool] = None
     ranking_tier: Optional[str] = None
+    badges: List[Dict[str, Any]] = []
 
 
 class AuthResponse(BaseModel):
@@ -647,6 +650,8 @@ def serialize_user(user: dict) -> dict:
         "photo_data":     user.get("photo_data"),
         "institution":    user.get("institution"),
         "branch":         user.get("branch"),
+        "stream":         user.get("stream"),
+        "department":     user.get("department"),
         "graduation_year": user.get("graduation_year"),
         "cgpa":           user.get("cgpa"),
         "location":       user.get("location"),
@@ -658,6 +663,7 @@ def serialize_user(user: dict) -> dict:
         "primary_skill":  user.get("primary_skill"),
         "profile_visibility": user.get("profile_visibility"),
         "section_toggles": user.get("section_toggles"),
+        "badges":         user.get("badges", []),
         "projects":       user.get("projects"),
         "preferences":    user.get("preferences"),
         "is_verified":    user.get("is_verified"),
