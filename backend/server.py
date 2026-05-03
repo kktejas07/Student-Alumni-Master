@@ -2244,6 +2244,7 @@ async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
         "phone", "city", "state", "location", "face_image_base64", "photo_data",
         # Academic
         "institution", "branch", "graduation_year", "year", "cgpa",
+        "stream", "department",
         # Career
         "career_path", "primary_skill", "interests", "skills",
         # Social
@@ -3375,6 +3376,7 @@ async def ai_career_roadmap(
     if not force:
         existing = await db.career_roadmaps.find_one(cache_key)
         if existing and existing.get("weekly_plan"):
+            existing["milestones_completed"] = existing.get("milestones_completed") or []
             return {k: v for k, v in existing.items() if k != "_id"}
 
     # Build profile context
@@ -3457,8 +3459,95 @@ async def ai_career_roadmap(
     # Persist
     payload = {**data, "user_id": str(user["_id"]),
                "generated_at": datetime.now(timezone.utc).isoformat()}
+    # Preserve previously-completed milestones across regenerations
+    existing_for_save = await db.career_roadmaps.find_one(cache_key) or {}
+    payload["milestones_completed"] = existing_for_save.get("milestones_completed") or []
     await db.career_roadmaps.update_one(cache_key, {"$set": payload}, upsert=True)
     return {k: v for k, v in payload.items() if k not in ("_id",)}
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Milestone completion — marks a week's plan complete, awards new badges,
+# and (when all 5 are done) auto-suggests the next 12-week phase.
+# ────────────────────────────────────────────────────────────────────────────
+@api_router.post("/ai/career-roadmap/milestone/{week_idx}/complete")
+async def complete_roadmap_milestone(
+    week_idx: int,
+    body: Dict[str, Any] = None,
+    user: dict = Depends(get_current_user),
+):
+    """Mark week_idx (0..N-1) of the current roadmap as completed.
+
+    Returns:
+      {
+        milestones_completed: [int],
+        new_badges: [badge],          # newly unlocked since last call
+        all_badges: [badge],          # full sorted list for the user
+        next_milestone: {weeks,title,tasks} | None,
+        next_phase_unlocked: bool      # true when all 5 done, hint to call POST /ai/career-roadmap {force:true,extend:true}
+      }
+    """
+    cache_key = {"user_id": str(user["_id"])}
+    rm = await db.career_roadmaps.find_one(cache_key)
+    if not rm or not rm.get("weekly_plan"):
+        raise HTTPException(404, "Roadmap not found — generate one first.")
+
+    plan = rm.get("weekly_plan") or []
+    if week_idx < 0 or week_idx >= len(plan):
+        raise HTTPException(400, "Invalid week_idx")
+
+    completed = list(rm.get("milestones_completed") or [])
+    undo = bool((body or {}).get("undo"))
+    if undo:
+        completed = [w for w in completed if w != week_idx]
+    else:
+        if week_idx not in completed:
+            completed.append(week_idx)
+    completed = sorted(set(int(x) for x in completed))
+
+    await db.career_roadmaps.update_one(
+        cache_key,
+        {"$set": {"milestones_completed": completed,
+                  "milestones_updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+
+    # Capture old badge ids → tier so we can return only NEW unlocks.
+    old_badges = list(user.get("badges") or [])
+    old_keys = {f"{b.get('id')}:{b.get('tier')}" for b in old_badges}
+
+    # Recompute & persist badges (uses updated career_roadmaps doc above)
+    try:
+        from badges import compute_badges
+        # Re-fetch user from DB so compute_badges reads latest data
+        u_full = await db.users.find_one({"_id": user["_id"]}) or user
+        all_badges = await compute_badges(db, u_full)
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"badges": all_badges,
+                      "badges_updated_at": datetime.now(timezone.utc)}},
+        )
+    except Exception as _e:
+        logger.error(f"badge recompute failed: {_e}")
+        all_badges = old_badges
+
+    new_keys = [f"{b.get('id')}:{b.get('tier')}" for b in all_badges]
+    new_badges = [b for b in all_badges if f"{b.get('id')}:{b.get('tier')}" not in old_keys]
+
+    # Next milestone suggestion = first uncompleted week after week_idx, falling
+    # back to the earliest uncompleted week if user just toggled an earlier one.
+    pending = [i for i, _w in enumerate(plan) if i not in completed]
+    next_idx = next((i for i in pending if i > week_idx), pending[0] if pending else None)
+    next_milestone = plan[next_idx] if next_idx is not None else None
+
+    return {
+        "milestones_completed": completed,
+        "total_milestones": len(plan),
+        "new_badges": new_badges,
+        "all_badges": all_badges,
+        "next_milestone": next_milestone,
+        "next_milestone_index": next_idx,
+        "next_phase_unlocked": len(completed) >= len(plan),
+    }
 
 
 @api_router.post("/ai/daily-brief")

@@ -58,6 +58,7 @@ interface RoadmapResp {
   progress_pct?: number;
   skill_scores?: Record<string, number>;
   weekly_plan?: Array<{ weeks: string; title: string; tasks: string[] }>;
+  milestones_completed?: number[];
   suggestion?: string;
   generated_at?: string;
 }
@@ -84,6 +85,35 @@ export default function CareerAIPage() {
   const [profileStrength, setProfileStrength] = useState(0);
   const [aiSessions, setAiSessions] = useState(0);
   const [skillStreak, setSkillStreak] = useState(0);
+  const [completing, setCompleting] = useState<number | null>(null);
+
+  const completed = useMemo<number[]>(() => roadmap.milestones_completed || [], [roadmap]);
+
+  const toggleMilestone = useCallback(async (idx: number) => {
+    if (completing !== null) return;
+    setCompleting(idx);
+    const wasDone = completed.includes(idx);
+    try {
+      const resp: any = await request(`/ai/career-roadmap/milestone/${idx}/complete`, {
+        method: 'POST',
+        body: { undo: wasDone },
+      } as any);
+      setRoadmap((r) => ({ ...r, milestones_completed: resp.milestones_completed || [] }));
+      // Show toasts for new badge unlocks
+      const nb = resp.new_badges || [];
+      if (!wasDone && nb.length) {
+        nb.forEach((b: any) => toast.success('🎉 New badge earned', `${b.label} — view it under Profile › Manage Profile › Earned Badges`));
+      } else if (!wasDone) {
+        const nm = resp.next_milestone;
+        if (nm) toast.info('Milestone complete', `Next up — Week ${nm.weeks}: ${nm.title}`);
+        else if (resp.next_phase_unlocked) toast.success('🎯 Roadmap complete!', 'Tap Regenerate to unlock the next 12-week phase.');
+      }
+    } catch (e: any) {
+      toast.error('Could not update', e?.message || 'Please try again.');
+    } finally {
+      setCompleting(null);
+    }
+  }, [completed, completing, toast]);
 
   const reload = useCallback(async (force = false) => {
     if (force) setRegen(true); else setLoading(true);
@@ -250,24 +280,82 @@ export default function CareerAIPage() {
       {/* 12-week roadmap timeline */}
       <SectionTitle text="12-WEEK AI CAREER ROADMAP" />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingVertical: 4 }}>
-        {(roadmap.weekly_plan || []).map((wk, idx) => (
-          <View key={`wk-${idx}`} style={s.weekCard}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Calendar size={12} color={C.purpleL} />
-              <Text style={s.weekRange}>Week {wk.weeks}</Text>
+        {(roadmap.weekly_plan || []).map((wk, idx) => {
+          const isDone = completed.includes(idx);
+          const isNext = !isDone && idx === ((roadmap.weekly_plan || []).findIndex((_w, i) => !completed.includes(i)));
+          return (
+            <View
+              key={`wk-${idx}`}
+              style={[
+                s.weekCard,
+                isDone && { borderColor: 'rgba(16,185,129,0.55)', backgroundColor: 'rgba(16,185,129,0.08)' },
+                isNext && { borderColor: 'rgba(167,139,250,0.55)', backgroundColor: 'rgba(167,139,250,0.10)' },
+              ]}
+              testID={`week-card-${idx}`}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Calendar size={12} color={isDone ? C.green : C.purpleL} />
+                <Text style={[s.weekRange, isDone && { color: C.green }]}>Week {wk.weeks}</Text>
+                {isNext && (
+                  <View style={s.nextPill}>
+                    <Text style={s.nextPillText}>NEXT</Text>
+                  </View>
+                )}
+                {isDone && (
+                  <View style={[s.nextPill, { backgroundColor: 'rgba(16,185,129,0.18)', borderColor: 'rgba(16,185,129,0.45)' }]}>
+                    <CheckCircle2 size={10} color={C.green} />
+                    <Text style={[s.nextPillText, { color: C.green }]}>DONE</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={s.weekTitle}>{wk.title}</Text>
+              <View style={{ gap: 6, marginTop: 8 }}>
+                {wk.tasks.slice(0, 4).map((t, i) => (
+                  <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
+                    <View style={[s.weekDot, { backgroundColor: isDone ? C.green : (isNext ? C.purpleL : C.dim) }]} />
+                    <Text style={[s.weekTask, isDone && { textDecorationLine: 'line-through', color: C.dim }]}>{t}</Text>
+                  </View>
+                ))}
+              </View>
+              <Pressable
+                onPress={() => toggleMilestone(idx)}
+                disabled={completing !== null}
+                style={[
+                  s.milestoneBtn,
+                  isDone ? s.milestoneBtnDone : (isNext ? s.milestoneBtnNext : s.milestoneBtnDefault),
+                  completing !== null && { opacity: 0.6 },
+                ]}
+                testID={`week-complete-${idx}`}
+              >
+                {completing === idx ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : isDone ? (
+                  <>
+                    <CheckCircle2 size={13} color="#fff" />
+                    <Text style={s.milestoneBtnText}>Completed · Tap to undo</Text>
+                  </>
+                ) : (
+                  <>
+                    <Target size={13} color="#fff" />
+                    <Text style={s.milestoneBtnText}>Mark Milestone Complete</Text>
+                  </>
+                )}
+              </Pressable>
             </View>
-            <Text style={s.weekTitle}>{wk.title}</Text>
-            <View style={{ gap: 6, marginTop: 8 }}>
-              {wk.tasks.slice(0, 4).map((t, i) => (
-                <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
-                  <View style={[s.weekDot, { backgroundColor: idx === 0 ? C.green : C.dim }]} />
-                  <Text style={s.weekTask}>{t}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
+
+      {(roadmap.weekly_plan || []).length > 0 && completed.length >= (roadmap.weekly_plan || []).length && (
+        <Pressable onPress={() => reload(true)} style={s.nextPhaseBanner} testID="generate-next-phase">
+          <Sparkles size={16} color="#fff" />
+          <View style={{ flex: 1 }}>
+            <Text style={s.nextPhaseTitle}>🎯 Roadmap complete!</Text>
+            <Text style={s.nextPhaseSub}>Tap to generate your next 12-week phase based on updated skills.</Text>
+          </View>
+          <RefreshCcw size={14} color="#fff" />
+        </Pressable>
+      )}
 
       {/* Build your profile grid */}
       <SectionTitle text="BUILD YOUR PROFILE" />
@@ -396,6 +484,30 @@ const s = StyleSheet.create({
   weekTitle: { color: C.text, fontFamily: FT.xbold, fontSize: 14, marginTop: 4 },
   weekDot: { width: 6, height: 6, borderRadius: 3, marginTop: 6 },
   weekTask: { flex: 1, color: C.text2, fontFamily: FT.med, fontSize: 11.5, lineHeight: 16 },
+  nextPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999,
+    backgroundColor: 'rgba(167,139,250,0.18)', borderColor: 'rgba(167,139,250,0.45)', borderWidth: 1,
+    marginLeft: 'auto',
+  },
+  nextPillText: { color: C.purpleL, fontFamily: FT.xbold, fontSize: 9, letterSpacing: 0.5 },
+  milestoneBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, marginTop: 12, height: 34, borderRadius: 8,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  milestoneBtnDefault: { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1 },
+  milestoneBtnNext: { backgroundColor: C.purple },
+  milestoneBtnDone: { backgroundColor: C.green },
+  milestoneBtnText: { color: '#fff', fontFamily: FT.bold, fontSize: 11.5 },
+  nextPhaseBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    padding: 14, marginTop: 14, borderRadius: 14,
+    backgroundColor: 'rgba(167,139,250,0.14)', borderColor: 'rgba(167,139,250,0.50)', borderWidth: 1,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  nextPhaseTitle: { color: '#fff', fontFamily: FT.xbold, fontSize: 13 },
+  nextPhaseSub: { color: C.text2, fontFamily: FT.med, fontSize: 11.5, marginTop: 2 },
 
   buildCard: {
     flexDirection: 'row', alignItems: 'center', gap: 10,

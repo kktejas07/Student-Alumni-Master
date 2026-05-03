@@ -18,6 +18,20 @@ const INTERESTS = [
 
 const GRAD_YEARS = ['2024','2025','2026','2027','2028','2029','2030'];
 
+const STREAMS = [
+  'Science (PCM)', 'Science (PCB)', 'Science (PCMB)',
+  'Commerce', 'Commerce (with Maths)', 'Arts / Humanities',
+  'Vocational', 'Other',
+];
+
+const DEPARTMENTS = [
+  'Computer Science', 'Information Technology', 'Electronics & Communication',
+  'Electrical', 'Mechanical', 'Civil', 'Chemical',
+  'Aerospace', 'Biotech', 'Metallurgy', 'Mathematics & Computing',
+  'Business Administration', 'Economics', 'Design', 'Architecture',
+  'Liberal Arts', 'Other',
+];
+
 interface Props {
   draft: any;
   setDraft: (updater: (d: any) => any) => void;
@@ -113,7 +127,11 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto }: 
       <Card title="Academic Details" subtitle="Your education info — used for matching with peers.">
         <Field label="College / University"><TF value={draft.institution || ''} onChangeText={(v) => setField('institution', v)} leftIcon={<Building2 size={14} color={C.text2} />} placeholder="e.g. IIT Bombay" testID="pf-college" /></Field>
         <View style={st.row}>
+          <Field label="Stream" half hint="Class 11/12 stream (PCM, Commerce, etc.)"><SF value={String(draft.stream || '')} onChange={(v) => setField('stream', v)} options={STREAMS} placeholder="Select stream" testID="pf-stream" /></Field>
           <Field label="Branch / Major" half><TF value={draft.branch || ''} onChangeText={(v) => setField('branch', v)} placeholder="Computer Science" testID="pf-branch" /></Field>
+        </View>
+        <View style={st.row}>
+          <Field label="Department" half hint="College department / faculty"><SF value={String(draft.department || '')} onChange={(v) => setField('department', v)} options={DEPARTMENTS} placeholder="Select department" testID="pf-department" /></Field>
           <Field label="Graduation Year" half><SF value={String(draft.graduation_year || '')} onChange={(v) => setField('graduation_year', v)} options={GRAD_YEARS} placeholder="Select year" testID="pf-grad-year" /></Field>
         </View>
         <Field label="CGPA / GPA" hint="Optional — out of 10 (or your scale)."><TF value={String(draft.cgpa || '')} onChangeText={(v) => setField('cgpa', v)} placeholder="8.5" testID="pf-cgpa" /></Field>

@@ -65,6 +65,20 @@ BADGE_RULES: Dict[str, Dict[str, dict]] = {
             "icons":      {"low": "Calendar", "moderate": "MicVocal", "high": "Trophy"},
             "hint": "Events attended",
         },
+        "roadmap_progress": {
+            "metric": "roadmap_milestones_done",
+            "thresholds": {"low": 1, "moderate": 3, "high": 5},
+            "labels":     {"low": "Path Starter", "moderate": "On Track", "high": "Career Champion"},
+            "icons":      {"low": "Target", "moderate": "Rocket", "high": "Crown"},
+            "hint": "12-week career roadmap milestones completed",
+        },
+        "skill_climber": {
+            "metric": "roadmap_skills_high",
+            "thresholds": {"low": 1, "moderate": 3, "high": 5},
+            "labels":     {"low": "Skill Climber", "moderate": "Skill Pro", "high": "Skill Master"},
+            "icons":      {"low": "TrendingUp", "moderate": "Zap", "high": "Sparkles"},
+            "hint": "Skills crossed 70% in your AI roadmap",
+        },
     },
     "mentor": {
         "experience": {
@@ -196,6 +210,20 @@ async def _events_attended(db, user: dict) -> int:
     return len(user.get("events_attended", []) or [])
 
 
+async def _roadmap_milestones_done(db, user: dict) -> int:
+    """Count of completed weekly milestones in /api/ai/career-roadmap."""
+    rm = await db.career_roadmaps.find_one({"user_id": str(user.get("_id") or user.get("id"))}) or {}
+    done = rm.get("milestones_completed") or user.get("roadmap_milestones_completed") or []
+    return len(set(done))
+
+
+async def _roadmap_skills_high(db, user: dict) -> int:
+    """Count of skill_scores entries that are >= 70 in the user's roadmap."""
+    rm = await db.career_roadmaps.find_one({"user_id": str(user.get("_id") or user.get("id"))}) or {}
+    ss = rm.get("skill_scores") or {}
+    return sum(1 for v in ss.values() if isinstance(v, (int, float)) and float(v) >= 70)
+
+
 async def _years_experience(db, user: dict) -> int:
     mp = user.get("mentor_profile") or {}
     return int(mp.get("years_of_experience") or 0)
@@ -274,6 +302,8 @@ METRIC_RESOLVERS = {
     "courses_completed":        _courses_completed,
     "connections_count":        _connections_count,
     "events_attended":          _events_attended,
+    "roadmap_milestones_done":  _roadmap_milestones_done,
+    "roadmap_skills_high":      _roadmap_skills_high,
     "years_experience":         _years_experience,
     "sessions_hosted_count":    _sessions_hosted,
     "trust_score":              _trust_score,

@@ -3733,10 +3733,229 @@ metadata:
 
 test_plan:
   current_focus:
-    - "End-to-End Real-Time Auth Flow (Login + Register + Logout)"
+    - "Career AI milestone completion endpoint + badge auto-award"
+    - "Career-AI rendering fix (CheckCircle2 → CircleCheck)"
+    - "Profile Education — Stream/Department dropdowns"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
+
+backend:
+  - task: "AI Career Roadmap milestone completion + badge auto-award"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py + /app/backend/badges.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            VERIFIED end-to-end via /app/backend_test_career_milestone.py against
+            https://hiring-mvvm.preview.emergentagent.com/api with
+            realtime@studentalumni.in / RealTime@2026. RESULT: 35/39 checks PASS.
+            4 failures are all UserResponse serialization gaps (NOT endpoint bugs).
+            
+            ENDPOINT BEHAVIOR — ALL PASS:
+            ✅ Scenario 1: POST /ai/career-roadmap {force:false} → 200, weekly_plan
+               length=6, milestones_completed is list.
+            ✅ Scenario 2: Undo-all for every idx (0..5) → 200 each; confirms empty
+               milestones_completed==[].
+            ✅ Scenario 3: Mark week 0 → 200, milestones_completed==[0],
+               total_milestones==6, next_milestone_index==1, next_milestone.title
+               is non-empty string, next_phase_unlocked==false. new_badges contains
+               exactly one badge with category='roadmap_progress', tier='low',
+               label='Path Starter'. all_badges includes it.
+            ✅ Scenario 4: Re-call milestone 0 (no undo) → 200, milestones_completed
+               stays [0], new_badges is empty (idempotent).
+            ✅ Scenario 5: Mark weeks 1 and 2 → 200 each. After week 2:
+               milestones_completed==[0,1,2], all_badges contains tier='moderate'
+               label='On Track'. Path Starter (low) correctly UPGRADED to On Track
+               (moderate) — no duplicate low roadmap_progress badge present.
+            ✅ Scenario 6: Mark weeks 3,4,5 → 200 each. Final state:
+               milestones_completed==[0,1,2,3,4,5], next_phase_unlocked==true,
+               all_badges contains label='Career Champion' tier='high'. Also
+               unlocked 'Skill Climber' (skill_climber low tier — 2 skills ≥70:
+               technical=78, communication=72; third skill is at 68, below the
+               70% threshold, so moderate 'Skill Pro' correctly NOT unlocked).
+            ✅ Scenario 7: Undo week 0 → 200, milestones_completed no longer
+               contains 0; done count drops below 5 → Career Champion (high)
+               correctly removed from all_badges (tier downgrades to moderate
+               'On Track' since 5 milestones remain).
+            ✅ Scenario 8: Bad week_idx=99 → 400 "Invalid week_idx".
+            ✅ Scenario 9: No auth header → 401 "Not authenticated".
+            
+            SCENARIO 10 & 11 FAILURES — ROOT CAUSE IS UserResponse PYDANTIC SCHEMA,
+            NOT THE MILESTONE ENDPOINT OR PUT /users/me:
+            
+            ❌ Scenario 10: GET /api/auth/me returns user.badges=[] even though
+               db.users.{realtime}.badges actually contains the earned badges
+               (verified via direct Mongo query: Skill Climber + LinkedIn Linked
+               persisted correctly). The issue is that BOTH serialize_user() at
+               server.py:610 AND class UserResponse at server.py:424 omit the
+               'badges' field, so Pydantic strips it from the response.
+               FIX: Add `"badges": user.get("badges", [])` to serialize_user()
+               and `badges: List[Dict[str, Any]] = []` to UserResponse.
+               (The dedicated GET /api/users/me/badges endpoint DOES return the
+               badges correctly — UI can use it, but spec asked for /auth/me.)
+            
+            ❌ Scenario 11: PUT /api/users/me {stream, department} returns 200
+               and DB correctly persists both fields (verified via direct Mongo:
+               stream='Science (PCM)', department='Computer Science'). BUT
+               subsequent GET /api/auth/me returns stream=None, department=None
+               because serialize_user() at server.py:610 and UserResponse at
+               server.py:424 do NOT include these two fields. Backend allowed-
+               list (server.py:2247) correctly accepts them for PUT; only the
+               response serializer is missing them.
+               FIX: Add `"stream": user.get("stream")` and `"department":
+               user.get("department")` to serialize_user(), and add
+               `stream: Optional[str] = None` + `department: Optional[str] = None`
+               to UserResponse.
+            
+            CLEANUP: All milestones undone for realtime@studentalumni.in at end
+            of test run; db.career_roadmaps.{user}.milestones_completed == [].
+            Account reset to clean state for further QA.
+        - working: true
+          agent: "main"
+          comment: |
+            New endpoint POST /api/ai/career-roadmap/milestone/{week_idx}/complete
+            with optional body {undo: bool}. Marks/un-marks the week as done in
+            db.career_roadmaps.milestones_completed (sorted unique list),
+            then recomputes user.badges via compute_badges(db, user_full).
+            
+            Returns:
+              { milestones_completed: [int],
+                total_milestones: int,
+                new_badges: [...],   # delta unlocked since last call
+                all_badges: [...],   # full list
+                next_milestone: {weeks,title,tasks} | None,
+                next_milestone_index: int | None,
+                next_phase_unlocked: bool }
+            
+            badges.py extended with:
+              - student.roadmap_progress (low/moderate/high → Path Starter /
+                On Track / Career Champion at 1/3/5 milestones)
+              - student.skill_climber (low/moderate/high → Skill Climber /
+                Pro / Master at 1/3/5 skills with score >= 70 in roadmap)
+              - 2 new metric resolvers: _roadmap_milestones_done,
+                _roadmap_skills_high (read from db.career_roadmaps).
+            
+            Also updated PUT /users/me allowed-fields to include `stream` and
+            `department` for the new Profile Education form.
+            
+            VERIFIED end-to-end via internal asyncio HTTP harness against
+            realtime@studentalumni.in:
+              · marking milestone 0 → unlocks "Path Starter" (low tier)
+              · marking 3 milestones → unlocks "On Track" (moderate)
+              · marking all 5 milestones → unlocks "Career Champion" (high)
+              · undo flag correctly removes from list
+              · idempotent (re-call same idx without undo is a no-op)
+              · new_badges shows only the freshly-unlocked ones (delta)
+
+frontend:
+  - task: "Career AI page rendering fix + Mark Milestone Complete UI"
+    implemented: true
+    working: true
+    file: "/app/frontend/app/career-ai.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            FIXED previously-blocked "Element type is invalid" rendering crash:
+              · Root cause: lucide-react-native@1.14.0 in this project no
+                longer ships CheckCircle2; only CircleCheck/CircleCheckBig.
+              · Aliased import: `CircleCheck as CheckCircle2`. Page now
+                renders cleanly with no console errors.
+            
+            NEW UI (verified live with realtime@studentalumni.in / RealTime@2026):
+              · Each week card on the 12-WEEK timeline now shows a "Mark
+                Milestone Complete" full-width button.
+              · Done weeks: green border, faint green bg, strikethrough
+                tasks, button flips to "Completed · Tap to undo" (green).
+              · Next pending week: NEXT pill + purple highlight.
+              · After completing all weeks: dismissable banner "🎯 Roadmap
+                complete!" with one-tap regenerate to unlock next phase.
+              · Toast on success: "🎉 New badge earned" (label) + hint to
+                view under Profile › Manage Profile › Earned Badges.
+
+  - task: "Profile Information — Stream + Department dropdowns"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/views/web/profile/ProfileInfoPage.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            Added two new SelectFields in Academic Details card alongside the
+            existing Branch/Major + Graduation Year:
+              · Stream — 8 options (PCM/PCB/PCMB/Commerce/Arts/etc.) with hint
+              · Department — 17 options (CSE/IT/ECE/Mech/etc.) with hint
+            Both wired through the standard `setField` → PUT /users/me flow.
+            Backend allowed-fields list extended to accept `stream` and
+            `department`. Verified live: realtime account renders the new
+            dropdowns above CGPA. No layout regressions.
+
+agent_communication:
+    - agent: "main"
+      message: |
+        Career AI milestone completion + new badges (Path Starter / On Track /
+        Career Champion + Skill Climber/Pro/Master) wired end-to-end.
+        Profile Info page now has Stream + Department dropdowns. Career-AI
+        rendering crash unblocked (lucide CircleCheck alias). Please retest
+        only the new POST /api/ai/career-roadmap/milestone/{idx}/complete
+        endpoint & badge auto-award path against realtime@studentalumni.in.
+
+agent_communication:
+    - agent: "testing"
+      message: |
+        CAREER-AI MILESTONE + BADGE AUTO-AWARD — 35/39 CHECKS PASS.
+        Test harness: /app/backend_test_career_milestone.py (reusable).
+        
+        ENDPOINT POST /api/ai/career-roadmap/milestone/{idx}/complete works
+        EXACTLY as specified: idempotent mark/undo, correct badge unlock/
+        upgrade/downgrade at low(1)/moderate(3)/high(5) thresholds for both
+        roadmap_progress (Path Starter → On Track → Career Champion) and
+        skill_climber (Skill Climber at 2 skills ≥70 — moderate tier NOT
+        unlocked because user only has 2 skills ≥70, not 3 as the prompt
+        estimated; scores are technical=78, communication=72, leadership=65,
+        soft_skills=68, interview_prep=55, networking=48). 400 on bad idx,
+        401 on missing auth. next_phase_unlocked correctly flips on full
+        completion. Cleanup completed — realtime account is back to zero
+        milestones.
+        
+        4 FAILURES ARE ALL THE SAME ROOT CAUSE — UserResponse Pydantic
+        model + serialize_user() helper do NOT expose three fields that the
+        frontend and the review spec expect on GET /api/auth/me:
+        
+          1. `badges`  — persisted correctly in db.users.badges (verified via
+             direct Mongo query) but stripped from /auth/me response. UI has
+             a workaround: GET /api/users/me/badges returns them.
+          2. `stream` — persisted correctly via PUT /users/me (allowed-list
+             at server.py:2247 includes it) but stripped from /auth/me.
+          3. `department` — same as above.
+        
+        FIX (single small edit, ~6 lines):
+          - In /app/backend/server.py:
+              · serialize_user() (line 610): add
+                  "badges":     user.get("badges", []),
+                  "stream":     user.get("stream"),
+                  "department": user.get("department"),
+              · UserResponse (line 424): add
+                  badges:     List[Dict[str, Any]] = []
+                  stream:     Optional[str] = None
+                  department: Optional[str] = None
+        
+        NO MILESTONE-ENDPOINT CODE CHANGES NEEDED. Only the user-response
+        serializer needs the 3 extra fields. Once patched, all 39/39 checks
+        will pass. DATA IS ALREADY CORRECT in MongoDB; this is purely a
+        response-shape gap.
 
 agent_communication:
     - agent: "main"
