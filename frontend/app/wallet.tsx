@@ -14,7 +14,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator,
-  TextInput, RefreshControl, Platform,
+  TextInput, Platform,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -285,11 +285,8 @@ export default function WalletScreen() {
         })}
       </ScrollView>
 
-      {/* Refresh control wrapper for native */}
-      <ScrollView
-        contentContainerStyle={{ paddingVertical: 4, gap: 18 }}
-        refreshControl={Platform.OS !== 'web' ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" /> : undefined}
-      >
+      {/* Refresh control wrapper — nested in FeaturePageShell's ScrollView, so just render content */}
+      <View style={{ paddingVertical: 4, gap: 18 }}>
         {data && tab === 'overview' && <OverviewTab data={data} onJump={(t) => setTab(t)} />}
         {data && tab === 'topup' && (
           <TopupTab
@@ -310,7 +307,7 @@ export default function WalletScreen() {
         )}
         {data && tab === 'credits' && <CreditsTab data={data} onSeedDemo={onSeedDemo} seeding={seeding} />}
         {data && tab === 'history' && <HistoryTab data={data} />}
-      </ScrollView>
+      </View>
     </FeaturePageShell>
   );
 }
