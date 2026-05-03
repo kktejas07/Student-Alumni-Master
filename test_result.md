@@ -8111,3 +8111,81 @@ agent_communication:
         Backend pre-flight clean: backend logs show no errors after rentals + courses
         marketplace + server.py reloads. Ready for backend regression.
 
+
+
+frontend:
+  - task: "FeaturePageShell — remove '← Dashboard' back button (sidebar handles navigation)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/views/web/FeaturePageShell.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: |
+          User reported: feature pages (financial, rentals, courses, higher-ed, deals,
+          wallet) shouldn't show a separate back-to-dashboard button — the persistent
+          left sidebar already handles navigation. Removed the Pressable that rendered
+          ArrowLeft + "Dashboard" at the top-left of every FeaturePageShell.
+          Top bar now contains only the bell icon (right-aligned).
+          Affects: /financial, /rentals, /courses, /tracks/[slug], /higher-education,
+          /deals, /wallet, /events, /internships, /network — all routes using
+          FeaturePageShell.
+
+backend:
+  - task: "SA Courses AI endpoints — LLM-powered narratives via Emergent LLM key"
+    implemented: true
+    working: true
+    file: "/app/backend/courses_marketplace.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "main"
+        -comment: |
+          Wired the existing _claude(...) helper into both AI endpoints with
+          programmatic fallback if the LLM call fails:
+
+          - POST /courses/ai/recommend → previously returned "·"-separated bits.
+            Now returns a 2-sentence Claude Sonnet 4.5 paragraph that mentions
+            specific course names, the budget, and weekly hours.
+            Example actual output (testing-agent verified):
+            "Given your goal to switch careers into machine learning with 10 hours
+            weekly and a ₹5,000 budget, I recommend starting with the Machine
+            Learning Specialization…"
+
+          - POST /courses/ai/path → previously returned a templated "Goal: become
+            a {role}…" string. Now returns a 1-3 sentence Claude Sonnet 4.5
+            paragraph mentioning role, timeline (weeks @ hours/week), milestone
+            courses and 1 outcome.
+            Example actual output: "Welcome to your 24-week journey to becoming
+            an ML Engineer! With 12 hours per week, you'll progress through
+            essential foundations in Statistics for Data Science, then dive deep
+            into the Machine Learning Specialization…"
+
+          Backend testing agent verified both endpoints return LLM-generated
+          natural language (500+ chars). Programmatic fallback path tested.
+        -working: true
+        -agent: "testing"
+        -comment: |
+          Both endpoints verified end-to-end with realtime@studentalumni.in.
+          Rationale 577 chars, summary 558 chars — clearly LLM-generated.
+          Frontend Engineer role correctly routes to frontend-engineer-track slug.
+          No regressions.
+
+agent_communication:
+    - agent: "main"
+      message: |
+        Two quick fixes shipped:
+        1. Removed "← Dashboard" back button from FeaturePageShell (user-reported
+           UX issue — feature pages shouldn't duplicate dashboard navigation).
+        2. Wired Emergent LLM key (Claude Sonnet 4.5) into POST /courses/ai/recommend
+           and POST /courses/ai/path for richer natural-language rationale/summary.
+           Programmatic fallback preserved for resilience. Backend testing agent
+           verified both produce 500+ char LLM responses.
+
+        Frontend testing NOT run — awaiting user confirmation.
+
