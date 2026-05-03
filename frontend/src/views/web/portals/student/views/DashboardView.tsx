@@ -54,6 +54,7 @@ export function DashboardView() {
 
   const [briefText, setBriefText] = React.useState<string>('');
   const [briefLoading, setBriefLoading] = React.useState<boolean>(false);
+  const [briefProvider, setBriefProvider] = React.useState<string>('');
 
   const { width } = useWindowDimensions();
   const stack = width < 1100;
@@ -68,6 +69,17 @@ export function DashboardView() {
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.briefTitle}>AI Daily Brief</Text>
           <Text style={s.briefSub}>{briefText || 'Your personalised morning summary'}</Text>
+          {!!briefProvider && !!briefText && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
+              <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
+                             backgroundColor: 'rgba(167,139,250,0.16)',
+                             borderColor: 'rgba(167,139,250,0.45)', borderWidth: 1 }}>
+                <Text style={{ color: '#C4B5FD', fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.4 }}>
+                  ⚡ Powered by {briefProvider}
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
         <Pressable
           style={({ hovered }: any) => [s.briefCta, hovered && { backgroundColor: SC.primaryL }, briefLoading && { opacity: 0.6 }]}
@@ -87,6 +99,7 @@ export function DashboardView() {
               });
               const j = await r.json();
               setBriefText(j?.brief || j?.detail || 'Could not generate brief.');
+              setBriefProvider(j?.provider_label || '');
             } catch (e: any) { setBriefText('Error: ' + (e?.message || 'unknown')); }
             finally { setBriefLoading(false); }
           }}

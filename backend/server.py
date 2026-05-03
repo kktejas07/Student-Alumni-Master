@@ -3345,6 +3345,122 @@ async def get_cached_suggestions(user: dict = Depends(get_current_user)):
     return await db.career_suggestions.find_one({"user_id": str(user["_id"])}, {"_id": 0}) or {}
 
 
+# ────────────────────────────────────────────────────────────────────────────
+# Career Roadmap (12-week, richer schema for the /career-ai page)
+# ────────────────────────────────────────────────────────────────────────────
+@api_router.post("/ai/career-roadmap")
+async def ai_career_roadmap(
+    body: Dict[str, Any] = None,
+    user: dict = Depends(get_current_user),
+):
+    """Generate (or return cached) a personalised 12-week career roadmap.
+
+    Body: { force?: bool }
+    Output:
+      {
+        target_role: str,
+        target_company_type: str,
+        progress_pct: int,
+        skill_scores: { communication: pct, soft_skills: pct, technical: pct,
+                         interview_prep: pct, networking: pct, leadership: pct },
+        weekly_plan: [ { weeks: "1-2", title: str, tasks: [str, ...] }, ... ],   // 5 cards
+        suggestion: str          // 1-line headline tip
+      }
+    Cached per user; pass `{force:true}` to regenerate.
+    """
+    body = body or {}
+    force = bool(body.get("force"))
+    cache_key = {"user_id": str(user["_id"])}
+
+    if not force:
+        existing = await db.career_roadmaps.find_one(cache_key)
+        if existing and existing.get("weekly_plan"):
+            return {k: v for k, v in existing.items() if k != "_id"}
+
+    # Build profile context
+    full_name = user.get("full_name") or "Student"
+    interests = ", ".join((user.get("interests") or [])[:8]) or "general tech"
+    skills = ", ".join((user.get("skills") or [])[:10]) or "core CS"
+    institution = user.get("institution") or (user.get("school_info") or {}).get("institution_name") or ""
+    branch = user.get("branch") or (user.get("school_info") or {}).get("branch_or_stream") or ""
+    grad_year = user.get("graduation_year") or ""
+    cgpa = user.get("cgpa") or ""
+    si = user.get("student_info") or {}
+    goal = si.get("career_goal") or "Software Engineer at a top tech company"
+
+    sys_msg = (
+        "You are a career strategist for the Student Alumni platform. "
+        "Generate a concrete 12-week career roadmap as STRICT JSON only — no markdown, no prose. "
+        "All weekly tasks must be specific and actionable (8-14 words each)."
+    )
+    schema_prompt = (
+        "Return JSON with EXACTLY this shape:\n"
+        "{\n"
+        '  "target_role": "Specific role title",\n'
+        '  "target_company_type": "Specific company tier description",\n'
+        '  "progress_pct": <int 0-100>,\n'
+        '  "skill_scores": {"communication": <int>, "soft_skills": <int>, "technical": <int>, "interview_prep": <int>, "networking": <int>, "leadership": <int>},\n'
+        '  "weekly_plan": [\n'
+        '    {"weeks":"1-2","title":"Foundation Assessment","tasks":["...","...","...","..."]},\n'
+        '    {"weeks":"3-4","title":"Profile Building","tasks":["...","...","...","..."]},\n'
+        '    {"weeks":"5-6","title":"Skill Development","tasks":["...","...","...","..."]},\n'
+        '    {"weeks":"7-8","title":"Network & Apply","tasks":["...","...","...","..."]},\n'
+        '    {"weeks":"9-10","title":"Interview Ready","tasks":["...","...","...","..."]}\n'
+        '  ],\n'
+        '  "suggestion": "1-line motivational headline (under 18 words)"\n'
+        "}\n"
+    )
+    prompt = (
+        f"Student: {full_name}\nInstitution: {institution} ({branch}, class of {grad_year}, CGPA {cgpa})\n"
+        f"Interests: {interests}\nKey skills: {skills}\nGoal: {goal}\n\n{schema_prompt}"
+    )
+
+    try:
+        from emergentintegrations.llm.chat import UserMessage
+        chat = await get_claude_chat(f"roadmap-{user['_id']}", sys_msg)
+        raw = await chat.send_message(UserMessage(text=prompt))
+        import json
+        text = (raw or "").strip()
+        if text.startswith("```"):
+            text = text.strip("`")
+            if text.startswith("json"): text = text[4:]
+            text = text.strip()
+        data = json.loads(text)
+    except Exception as e:
+        logger.error(f"career-roadmap AI failed: {e}")
+        # Reasonable fallback so UI never blanks
+        data = {
+            "target_role": "Software Engineer",
+            "target_company_type": "Top Tech Company",
+            "progress_pct": 42,
+            "skill_scores": {"communication": 40, "soft_skills": 45, "technical": 70, "interview_prep": 35, "networking": 30, "leadership": 35},
+            "weekly_plan": [
+                {"weeks": "1-2", "title": "Foundation Assessment",
+                 "tasks": ["Complete profile strength scan", "Take AI skill diagnostic across domains",
+                           "Set career goal/OKR with mentor", "Upload resume for AI review"]},
+                {"weeks": "3-4", "title": "Profile Building",
+                 "tasks": ["Enhance resume with AI suggestions", "Add 3 projects to portfolio",
+                           "Request LinkedIn endorsements", "Get certifications (NPTEL/Coursera)"]},
+                {"weeks": "5-6", "title": "Skill Development",
+                 "tasks": ["Complete Communication module", "Practice 5 mock interviews with AI",
+                           "Improve System Design score by 20%", "Start DSA practice (3 problems/day)"]},
+                {"weeks": "7-8", "title": "Network & Apply",
+                 "tasks": ["Connect with 12 alumni in target domain", "Apply to 5 internship positions",
+                           "Attend 1 industry event", "Book 2 mentor sessions"]},
+                {"weeks": "9-10", "title": "Interview Ready",
+                 "tasks": ["Complete mock interview modules", "Negotiate offer with AI salary coach",
+                           "Get 3 referrals from network", "Final profile polish + go live"]},
+            ],
+            "suggestion": "Your trajectory is solid — focus this week on shipping one polished portfolio piece.",
+        }
+
+    # Persist
+    payload = {**data, "user_id": str(user["_id"]),
+               "generated_at": datetime.now(timezone.utc).isoformat()}
+    await db.career_roadmaps.update_one(cache_key, {"$set": payload}, upsert=True)
+    return {k: v for k, v in payload.items() if k not in ("_id",)}
+
+
 @api_router.post("/ai/daily-brief")
 async def ai_daily_brief(
     body: Dict[str, Any] = None,
@@ -3418,12 +3534,23 @@ async def ai_daily_brief(
         )
 
     now_iso = datetime.now(timezone.utc).isoformat()
+    # Resolve a friendly label for the AI provider that produced this brief.
+    PROVIDER_LABELS = {
+        "openai_chatgpt": "ChatGPT",
+        "anthropic_claude": "Claude",
+        "google_gemini": "Gemini",
+    }
+    # Internal default when user hasn't picked one
+    used_provider = pref_ai if pref_ai in PROVIDER_LABELS else "anthropic_claude"
+    provider_label = PROVIDER_LABELS.get(used_provider, "Claude")
     await db.daily_briefs.update_one(
         cache_key,
-        {"$set": {**cache_key, "brief": brief_text, "generated_at": now_iso}},
+        {"$set": {**cache_key, "brief": brief_text, "generated_at": now_iso,
+                  "provider": used_provider, "provider_label": provider_label}},
         upsert=True,
     )
-    return {"brief": brief_text, "generated_at": now_iso, "cached": False}
+    return {"brief": brief_text, "generated_at": now_iso, "cached": False,
+            "provider": used_provider, "provider_label": provider_label}
 
 
 @api_router.post("/ai/chat", response_model=ChatResponse)
