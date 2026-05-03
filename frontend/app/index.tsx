@@ -65,7 +65,13 @@ export default function Index() {
       // Authed users go straight to their home.
       if (user) {
         if (!user.onboarding_completed) {
-          router.replace('/(onboarding)/role-info');
+          // Route to role-specific spec-compliant wizard instead of the legacy
+          // /role-info → /school-info → /role-details linear chain.
+          const dest =
+            user.role === 'student' ? '/(onboarding)/student-onboard' :
+            user.role === 'mentor'  ? '/(onboarding)/mentor-onboard'  :
+            '/(onboarding)/role-info';
+          router.replace(dest as any);
         } else if (IS_WEB) {
           router.replace('/platform');
         } else {

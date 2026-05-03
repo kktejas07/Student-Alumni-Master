@@ -66,7 +66,11 @@ export default function TwoFAChallenge() {
 
   const home = (user: any) => {
     const dst = Platform.OS === 'web' ? '/platform' : '/(tabs)';
-    router.replace(user.onboarding_completed ? dst : '/(onboarding)/role-info');
+    router.replace(user.onboarding_completed ? dst : (
+      user.role === 'student' ? '/(onboarding)/student-onboard' :
+      user.role === 'mentor'  ? '/(onboarding)/mentor-onboard'  :
+      '/(onboarding)/role-info'
+    ));
   };
 
   // ─── Verify ──────────────────────────────────────────────────────────
