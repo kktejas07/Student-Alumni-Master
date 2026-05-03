@@ -4889,3 +4889,34 @@ agent_communication:
         before "created_at". That alone unblocks A.3-A.5 and B.2-B.4.
         Please do not rewrite other sections — test is confident the
         rest of the Phase A surface works correctly.
+
+
+  - agent: "testing"
+    message: |
+      Phase A RE-VALIDATION COMPLETE — /app/backend_test_dob_audit.py re-run
+      against https://hiring-mvvm.preview.emergentagent.com/api.
+
+      RESULT: 68/68 PASS / 0 FAIL ✅
+
+      serialize_user() patch verified:
+        ✅ A.3 user.dob == '1990-05-12'
+        ✅ A.4 user.country_code == 'IN'
+        ✅ A.5 user.postal_code == '110001'
+        ✅ B.2 /auth/me.dob populated
+        ✅ B.3 /auth/me.country_code populated
+        ✅ B.4 /auth/me.postal_code populated
+        ✅ E.6 Legacy user (mentor01@test.com) — dob/country_code/postal_code
+               keys present in /auth/me response (null values, no 500).
+
+      Full surface confirmed clean:
+        · A: Register with full payload — all 6 asserts PASS
+        · B: GET /auth/me exposes new fields — all 4 asserts PASS
+        · C: 7 audit_logs entries with correct shape (source='register',
+             old_value=null, new_value echoed, validation_status='passed',
+             recent UTC ts) — 36 asserts PASS
+        · D: DOB validation (future / under-13 / malformed / missing) —
+             7 asserts PASS
+        · E: Backwards-compat for legacy mentor01 — 6 asserts PASS
+        · F: Edge cases (empty country_code, duplicate email) — 2 asserts PASS
+
+      No remaining issues. Phase A is production-ready.

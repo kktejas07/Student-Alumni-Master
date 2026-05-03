@@ -565,6 +565,10 @@ def serialize_user(user: dict) -> dict:
         "face_image_base64": user.get("face_image_base64"),
         "onboarding_completed": user.get("onboarding_completed", False),
         "two_fa_enabled": user.get("two_fa_enabled", False),
+        # Phase A — DOB / country / postal — exposed on every user response.
+        "dob":          user.get("dob"),
+        "country_code": user.get("country_code"),
+        "postal_code":  user.get("postal_code"),
         "created_at": user.get("created_at"),
     }
 
