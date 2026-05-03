@@ -31,20 +31,23 @@ import { CreateEventView } from './views/CreateEventView';
 import { AvailabilityView } from './views/AvailabilityView';
 import { ProfileView } from './views/ProfileView';
 import { MentorProfileSettingsView } from './views/MentorProfileSettingsView';
+import { MentorAIStudioView } from './views/MentorAIStudioView';
 // Shared role-aware comprehensive profile view (purple theme, identical to student).
 import { ProfileSettingsView as SharedProfileSettingsView } from '../student/views/ProfileSettingsView';
 import { STUDENTS, SESSION_REQUESTS } from './data';
 
 const PAGE_TITLES: Record<NavId, string> = {
-  dashboard: 'Dashboard',
-  students:  'My Connections',
-  sessions:  'Sessions',
-  requests:  'Session Requests',
-  network:   'Network',
-  earnings:  'Earnings',
-  feedback:  'Feedback',
-  event:     'Create Event',
-  profile:   'Profile',
+  dashboard:    'Dashboard',
+  'ai-studio':  'AI Studio',
+  students:     'My Connections',
+  sessions:     'Sessions',
+  requests:     'Session Requests',
+  availability: 'Set Availability',
+  network:      'Network',
+  earnings:     'Earnings',
+  feedback:     'Feedback',
+  event:        'Create Event',
+  profile:      'Profile',
 };
 
 export default function MentorPortalRN() {
@@ -82,6 +85,7 @@ export default function MentorPortalRN() {
 
         <ScrollView style={{ flex: 1, backgroundColor: MC.bg }} contentContainerStyle={{ padding: 20 }}>
           {active === 'dashboard' && <DashboardView onNav={(id) => setActive(id as NavId)} />}
+          {active === 'ai-studio' && <MentorAIStudioView />}
           {active === 'students'  && <ConnectionsView />}
           {active === 'sessions'  && <SessionsView />}
           {active === 'availability' && <AvailabilityView />}

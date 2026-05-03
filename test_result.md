@@ -3733,13 +3733,80 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Trending Companies widget (live aggregation)"
-    - "New jobs since last visit toast endpoint"
-    - "Alumni Portal Internships — same live feed"
+    - "Mentor AI Studio (mentee pulse, skill gaps, impact, AI session prep)"
+    - "Trending Companies widget"
     - "Live multi-source jobs feed (5 free APIs) with year-tier visibility"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
+
+backend:
+  - task: "Mentor AI Studio endpoints (4)"
+    implemented: true
+    working: true
+    file: "/app/backend/mentor_ai.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            New /app/backend/mentor_ai.py module exposes 4 mentor-facing endpoints:
+              GET  /api/mentor/ai-studio/mentee-pulse
+              GET  /api/mentor/ai-studio/skill-gaps
+              GET  /api/mentor/ai-studio/impact
+              POST /api/mentor/ai-studio/session-prep   { mentee_id }
+            
+            Mentee resolution:
+              · Reads db.connections (mentor_id, connected_user_id, user_id)
+              · Falls back to db.sessions where mentor_id == self
+              · For each mentee, joins career_roadmaps + users for progress,
+                badges, milestones_completed, last_session_at, stuck flag
+                (no login in 7 days).
+            
+            Skill gaps: aggregates skill_scores < 60 across mentees, returns
+            top 5 by mentee_count then ascending avg_score.
+            
+            Impact: 30-day session count + total milestones + total badges
+            earned by mentees + avg_progress.
+            
+            Session prep: pulls mentee's roadmap + skill scores, calls Claude
+            3.5 Sonnet (Emergent LLM key) for 5 talking points; falls back to
+            deterministic coach if LLM call fails. Provider label returned so
+            UI can attribute "Powered by Claude 3.5".
+            
+            All endpoints require role in {mentor, alumni, admin} (403 else).
+
+frontend:
+  - task: "Mentor AI Studio view + Sidebar entry"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/views/web/portals/mentor/views/MentorAIStudioView.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            Built purpose-built Mentor AI Studio view (NOT a copy of student
+            Career AI). Sections: Header → 5 Impact KPIs → Common Skill Gaps
+            → Mentee Pulse → AI Session Prep panel.
+            
+            All icons via @expo/vector-icons MaterialCommunityIcons (head-cog,
+            account-multiple, calendar-clock, flag-checkered, medal,
+            trending-up, alert-circle, account-group, pulse, lightbulb-on,
+            auto-fix). Theme: teal primary + gold accent (mentor portal
+            tokens.MC).
+            
+            Sidebar.tsx: added "AI Studio" nav entry with Sparkles icon +
+            NavId 'ai-studio'. PAGE_TITLES updated. MentorPortalRN router
+            renders <MentorAIStudioView /> when active === 'ai-studio'.
+            
+            Visually verified for mentor01@test.com — header + KPIs + empty
+            state for skill-gaps (no gaps detected) + empty state for pulse
+            (no mentees connected for this seed account).
 
 backend:
   - task: "Live multi-source job aggregator with year-tier visibility"

@@ -8,17 +8,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   Menu, LayoutDashboard, Users, Calendar, UserPlus, Network, Coins,
   Star as StarIcon, Plus, User as UserIcon, QrCode, ExternalLink, LogOut,
-  Clock,
+  Clock, Sparkles,
 } from 'lucide-react-native';
 import { MC, FONTS } from './tokens';
 import { MENTOR } from './data';
 
-export type NavId = 'dashboard'|'students'|'sessions'|'requests'|'network'|'earnings'|'feedback'|'event'|'availability'|'profile';
+export type NavId = 'dashboard'|'students'|'sessions'|'requests'|'network'|'earnings'|'feedback'|'event'|'availability'|'profile'|'ai-studio';
 
 export interface NavSpec { id: NavId; label: string; Icon: any; count?: number; alert?: boolean }
 
 export const NAV_MAIN: (counts: { students: number; sessions: number; requests: number }) => NavSpec[] = ({ students, sessions, requests }) => [
   { id: 'dashboard',    label: 'Dashboard',        Icon: LayoutDashboard },
+  { id: 'ai-studio',    label: 'AI Studio',        Icon: Sparkles },
   { id: 'students',     label: 'My Connections',   Icon: Users,    count: students },
   { id: 'sessions',     label: 'Sessions',         Icon: Calendar, count: sessions },
   { id: 'availability', label: 'Set Availability', Icon: Clock },
