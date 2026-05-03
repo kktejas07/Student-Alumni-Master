@@ -5,20 +5,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, TextInput, Platform } from 'react-native';
 import FeaturePageShell from '@/src/views/web/FeaturePageShell';
-import {
-  Award, Rocket, TrendingUp, Landmark, Sparkles, Calculator, ArrowRight,
-  BadgeCheck, Wallet, Target, Shield, ChevronDown,
-} from 'lucide-react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { request } from '@/src/models/services/api';
+
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+const Icon = (props: { name: IconName; size?: number; color?: string;
+                       style?: any }) =>
+  <MaterialCommunityIcons name={props.name} size={props.size}
+    color={props.color} style={props.style} />;
 
 const C = { text: '#fff', text2: 'rgba(255,255,255,0.70)', text3: 'rgba(255,255,255,0.45)', border: 'rgba(255,255,255,0.09)' };
 
 const TABS = [
-  { id: 'scholarships', label: 'Scholarships', Icon: Award, color: '#F97316', api: '/financial/scholarships/search' },
-  { id: 'loans', label: 'Education Loans', Icon: Landmark, color: '#3B82F6', api: '/financial/loans/search' },
-  { id: 'startup', label: 'Startup Funding', Icon: Rocket, color: '#14B8A6', api: '/financial/startup-funding/search' },
-  { id: 'investors', label: 'Investors & VCs', Icon: TrendingUp, color: '#6366F1', api: '/financial/venture-capital/search' },
-  { id: 'insurance', label: 'Insurance', Icon: Shield, color: '#10B981', api: '/financial/insurance/search' },
+  { id: 'scholarships', label: 'Scholarships',    icon: 'trophy-award' as IconName,    color: '#F97316', api: '/financial/scholarships/search' },
+  { id: 'loans',        label: 'Education Loans', icon: 'bank-outline' as IconName,    color: '#3B82F6', api: '/financial/loans/search' },
+  { id: 'startup',      label: 'Startup Funding', icon: 'rocket-launch' as IconName,   color: '#14B8A6', api: '/financial/startup-funding/search' },
+  { id: 'investors',    label: 'Investors & VCs', icon: 'trending-up' as IconName,     color: '#6366F1', api: '/financial/venture-capital/search' },
+  { id: 'insurance',    label: 'Insurance',       icon: 'shield-outline' as IconName,  color: '#10B981', api: '/financial/insurance/search' },
 ];
 
 const AI_LABELS: Record<string, string> = {
@@ -195,13 +198,13 @@ export default function FinancialPage() {
       subtitle="Scholarships, funding, investors, loans, insurance — matched to your profile."
       heroEmoji="💰"
       accent="#5F259F"
-      rightSlot={<View style={s.savPill}><Wallet size={12} color="#86EFAC" /><Text style={s.savPillText}>SA Savings Advisor</Text></View>}
+      rightSlot={<View style={s.savPill}><Icon name="wallet-outline" size={12} color="#86EFAC" /><Text style={s.savPillText}>SA Savings Advisor</Text></View>}
     >
       <View style={s.statsRow}>
-        <Stat label="HIGH MATCH SCHOLARSHIPS" value="3+" sub="Matched to you" color="#F97316" Icon={Award} />
-        <Stat label="FREE GRANTS" value="4+" sub="Zero repayment" color="#14B8A6" Icon={Sparkles} />
-        <Stat label="ALUMNI INVESTORS" value="2+" sub="Active pitch pipeline" color="#6366F1" Icon={TrendingUp} />
-        <Stat label="TAX BENEFIT" value="Available" sub="Under Sec 80C / 80E" color="#22C55E" Icon={BadgeCheck} />
+        <Stat label="HIGH MATCH SCHOLARSHIPS" value="3+" sub="Matched to you" color="#F97316" iconName="trophy-award" />
+        <Stat label="FREE GRANTS" value="4+" sub="Zero repayment" color="#14B8A6" iconName="auto-fix" />
+        <Stat label="ALUMNI INVESTORS" value="2+" sub="Active pitch pipeline" color="#6366F1" iconName="trending-up" />
+        <Stat label="TAX BENEFIT" value="Available" sub="Under Sec 80C / 80E" color="#22C55E" iconName="check-decagram" />
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 12 }}>
@@ -209,7 +212,7 @@ export default function FinancialPage() {
           const active = tab === t.id;
           return (
             <Pressable key={t.id} onPress={() => setTab(t.id)} style={[s.tab, active && { backgroundColor: t.color + '22', borderColor: t.color + '66' }]}>
-              <t.Icon size={14} color={active ? t.color : 'rgba(255,255,255,0.65)'} />
+              <MaterialCommunityIcons name={t.icon} size={14} color={active ? t.color : 'rgba(255,255,255,0.65)'} />
               <Text style={[s.tabText, active && { color: t.color }]}>{t.label}</Text>
             </Pressable>
           );
@@ -218,9 +221,9 @@ export default function FinancialPage() {
 
       {/* AI Helper button */}
       <Pressable style={s.aiHelper} onPress={() => setAiOpen(!aiOpen)}>
-        <Sparkles size={14} color="#A78BFA" />
+        <Icon name="auto-fix" size={14} color="#A78BFA" />
         <Text style={s.aiHelperText}>{AI_LABELS[tab]}</Text>
-        <ChevronDown size={14} color="rgba(255,255,255,0.5)" style={{ transform: [{ rotate: aiOpen ? '180deg' : '0deg' }] }} />
+        <Icon name="chevron-down" size={14} color="rgba(255,255,255,0.5)" style={{ transform: [{ rotate: aiOpen ? '180deg' : '0deg' }] }} />
       </Pressable>
 
       {/* AI Helper expandable form */}
@@ -249,7 +252,7 @@ export default function FinancialPage() {
           >
             {aiSubmitting ? <ActivityIndicator color="#fff" /> : (
               <>
-                <Sparkles size={14} color="#fff" />
+                <Icon name="auto-fix" size={14} color="#fff" />
                 <Text style={s.aiSubmitText}>Re-rank by match score</Text>
               </>
             )}
@@ -264,7 +267,7 @@ export default function FinancialPage() {
                     <Text style={s.aiTop3Name}>{t.name}</Text>
                   </View>
                   <View style={s.matchBadge}>
-                    <Sparkles size={10} color="#86EFAC" />
+                    <Icon name="auto-fix" size={10} color="#86EFAC" />
                     <Text style={s.matchText}>{t.match_score}%</Text>
                   </View>
                 </View>
@@ -278,7 +281,7 @@ export default function FinancialPage() {
       {tab === 'loans' && (
         <View style={s.emiBox}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-            <Calculator size={18} color="#A78BFA" />
+            <Icon name="calculator-variant" size={18} color="#A78BFA" />
             <Text style={s.emiTitle}>EMI Calculator</Text>
           </View>
           <View style={s.emiGrid}>
@@ -325,7 +328,7 @@ export default function FinancialPage() {
             <View key={p.financial_id} style={[s.card, { borderColor: tint + '44' }]}>
               <View style={s.cardHead}>
                 <View style={[s.iconBox, { backgroundColor: tint + '22', borderColor: tint + '55' }]}>
-                  <tabInfo.Icon size={18} color={tint} />
+                  <MaterialCommunityIcons name={tabInfo.icon} size={18} color={tint} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.cardTitle} numberOfLines={2}>{p.name}</Text>
@@ -333,7 +336,7 @@ export default function FinancialPage() {
                 </View>
                 {ms > 0 && (
                   <View style={s.matchBadge}>
-                    <Sparkles size={10} color="#86EFAC" />
+                    <Icon name="auto-fix" size={10} color="#86EFAC" />
                     <Text style={s.matchText}>{ms}%</Text>
                   </View>
                 )}
@@ -380,7 +383,7 @@ export default function FinancialPage() {
                    tab === 'insurance' ? 'Get Quote' :
                    tab === 'startup' ? 'Learn More' : 'Apply Now'}
                 </Text>
-                <ArrowRight size={12} color="#fff" />
+                <Icon name="arrow-right" size={12} color="#fff" />
               </Pressable>
             </View>
           );
@@ -392,7 +395,7 @@ export default function FinancialPage() {
       <View style={s.widgetCard}>
         <View style={{ flex: 1, gap: 8, minWidth: 240 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <View style={s.widgetIcon}><Calculator size={20} color="#93C5FD" /></View>
+            <View style={s.widgetIcon}><Icon name="calculator-variant" size={20} color="#93C5FD" /></View>
             <View style={{ flex: 1 }}>
               <Text style={s.widgetTitle}>AI EMI Calculator</Text>
               <Text style={s.widgetSub}>Plan your monthly repayment and total interest instantly.</Text>
@@ -413,7 +416,7 @@ export default function FinancialPage() {
               <Text style={[s.emiValue, { color: '#F59E0B' }]}>₹5,42,960</Text>
             </View>
             <Pressable style={s.optimizeBtn}>
-              <Sparkles size={12} color="#fff" />
+              <Icon name="auto-fix" size={12} color="#fff" />
               <Text style={s.optimizeText}>AI Loan Optimiser</Text>
             </Pressable>
           </View>
@@ -423,13 +426,13 @@ export default function FinancialPage() {
       {/* Advisor + AI Chat CTAs */}
       <View style={s.ctaRow}>
         <View style={[s.ctaCard, { backgroundColor: 'rgba(95,37,159,0.12)', borderColor: 'rgba(95,37,159,0.35)' }]}>
-          <Target size={22} color="#C4B5FD" />
+          <Icon name="target" size={22} color="#C4B5FD" />
           <Text style={s.ctaTitle}>Talk to a Student Advisor</Text>
           <Text style={s.ctaSub}>Need personalised financial advice? Connect with our dedicated student advisors.</Text>
           <Pressable style={[s.ctaBtn, { backgroundColor: '#8B5CF6' }]}><Text style={s.ctaBtnText}>Connect with Advisor</Text></Pressable>
         </View>
         <View style={[s.ctaCard, { backgroundColor: 'rgba(20,184,166,0.10)', borderColor: 'rgba(20,184,166,0.35)' }]}>
-          <Sparkles size={22} color="#5EEAD4" />
+          <Icon name="auto-fix" size={22} color="#5EEAD4" />
           <Text style={s.ctaTitle}>Ask the Financial AI</Text>
           <Text style={s.ctaSub}>Got a question about financial products? Chat with our AI assistant 24x7.</Text>
           <Pressable style={[s.ctaBtn, { backgroundColor: '#14B8A6' }]}><Text style={s.ctaBtnText}>Chat with AI</Text></Pressable>
@@ -454,11 +457,11 @@ function Slider({ label, value, color }: { label: string; value: string; color: 
   );
 }
 
-function Stat({ label, value, sub, color, Icon }: any) {
+function Stat({ label, value, sub, color, iconName }: any) {
   return (
     <View style={s.statCard}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <View style={[s.statIcon, { backgroundColor: color + '22', borderColor: color + '55' }]}><Icon size={14} color={color} /></View>
+        <View style={[s.statIcon, { backgroundColor: color + '22', borderColor: color + '55' }]}><MaterialCommunityIcons name={iconName} size={14} color={color} /></View>
         <Text style={s.statLabel}>{label}</Text>
       </View>
       <Text style={[s.statValue, { color }]}>{value}</Text>

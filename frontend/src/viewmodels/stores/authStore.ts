@@ -131,6 +131,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: async () => {
+    // Snapshot user before clearing so we can fire analytics with role/email_domain
+    const u = get().user;
+    try {
+      const analytics = (await import('@/src/lib/analytics')).default;
+      analytics.track?.('auth_logout', {
+        role: u?.role || null,
+        email_domain: u?.email ? u.email.split('@')[1] : null,
+      });
+      analytics.reset?.();
+    } catch {}
+    try {
+      // Best-effort backend log so logout shows up in auth_events too
+      const { trackAuth } = await import('@/src/lib/authAnalytics');
+      await trackAuth({
+        event: 'session_revoked',
+        email: u?.email,
+        extra: { reason: 'user_logout' },
+      });
+    } catch {}
     await tokenStore.clear();
     set({ user: null });
   },
