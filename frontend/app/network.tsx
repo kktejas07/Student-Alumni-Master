@@ -437,7 +437,7 @@ export default function NetworkScreen() {
                   {flatResults.map((p) => (
                     <PersonCard key={p.id} person={p} width={cardWidth}
                       onConnect={() => p.role === 'mentor' ? setBookingMentor(p) : handleConnect(p)}
-                      onOpen={() => router.push(`/profile/${p.id}`)}
+                      onOpen={() => setBookingMentor(p)}
                       onChat={() => setChatPerson(p)}
                     />
                   ))}
@@ -476,7 +476,7 @@ export default function NetworkScreen() {
                 {itemsToShow.map((p) => (
                   <PersonCard key={p.id} person={p} width={cardWidth}
                     onConnect={() => p.role === 'mentor' ? setBookingMentor(p) : handleConnect(p)}
-                    onOpen={() => router.push(`/profile/${p.id}`)}
+                    onOpen={() => setBookingMentor(p)}
                     onChat={() => setChatPerson(p)}
                   />
                 ))}
@@ -515,7 +515,7 @@ export default function NetworkScreen() {
               ) : (
                 <View style={[styles.grid, { columnGap: gap, rowGap: gap }]}>
                   {conns.map((p) => <PersonCard key={p.id} person={p} width={cardWidth}
-                    onOpen={() => router.push(`/profile/${p.id}`)}
+                    onOpen={() => setBookingMentor(p)}
                     onChat={() => setChatPerson(p)}
                   />)}
                 </View>
