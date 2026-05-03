@@ -117,29 +117,56 @@ export default function NetworkScreen() {
     setToast(m); setTimeout(() => setToast(null), 2200);
   }, []);
 
+  const handleAuthError = useCallback((e: any) => {
+    const msg = (e?.message || '').toLowerCase();
+    if (msg.includes('not authenticated') || msg.includes('401') || msg.includes('unauthorized')) {
+      try { router.replace('/(auth)/login'); } catch {}
+      return true;
+    }
+    return false;
+  }, [router]);
+
   const loadDiscover = useCallback(async () => {
     setLoading(true);
     try {
       const r = await request<{ sections: Section[] }>(`/network/discover?q=${encodeURIComponent(q)}`);
       setSections(r.sections);
+    } catch (e: any) {
+      if (!handleAuthError(e)) {
+        setSections([]);
+        setToast(e?.message || 'Could not load network');
+        setTimeout(() => setToast(null), 2500);
+      }
     } finally { setLoading(false); }
-  }, [q]);
+  }, [q, handleAuthError]);
 
   const loadConnections = useCallback(async () => {
     setLoading(true);
     try {
       const r = await request<{ items: Person[] }>('/network/connections');
       setConns(r.items);
+    } catch (e: any) {
+      if (!handleAuthError(e)) {
+        setConns([]);
+        setToast(e?.message || 'Could not load connections');
+        setTimeout(() => setToast(null), 2500);
+      }
     } finally { setLoading(false); }
-  }, []);
+  }, [handleAuthError]);
 
   const loadRequests = useCallback(async () => {
     setLoading(true);
     try {
       const r = await request<{ items: Person[] }>('/network/requests');
       setReqs(r.items);
+    } catch (e: any) {
+      if (!handleAuthError(e)) {
+        setReqs([]);
+        setToast(e?.message || 'Could not load requests');
+        setTimeout(() => setToast(null), 2500);
+      }
     } finally { setLoading(false); }
-  }, []);
+  }, [handleAuthError]);
 
   useEffect(() => {
     if (tab === 'discover') {
