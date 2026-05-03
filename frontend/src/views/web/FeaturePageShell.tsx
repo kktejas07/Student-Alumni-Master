@@ -34,6 +34,7 @@ const NAV: NavItem[] = [
   { id: 'network',           Icon: Users,          label: 'Network',          color: '#F472B6' },
   { id: 'events',            Icon: Calendar,       label: 'Events',           color: '#FB923C' },
   { id: 'financial',         Icon: Wallet,         label: 'Financial',        color: '#FCD34D' },
+  { id: 'wallet',            Icon: Wallet,         label: 'Wallet',           color: '#86EFAC' },
   { id: 'insurance',         Icon: Shield,         label: 'Insurance',        color: '#60A5FA' },
   { id: 'rentals',           Icon: Building2,      label: 'Rentals',          color: '#A78BFA' },
   { id: 'deals',             Icon: Gift,           label: 'Deals',            color: '#F472B6' },
@@ -50,6 +51,7 @@ const ROUTE_MAP: Record<string, string> = {
   network: '/network',
   events: '/events',
   financial: '/financial',
+  wallet: '/wallet',
   insurance: '/financial', // Insurance products live inside /financial
   rentals: '/rentals',
   deals: '/deals',
@@ -66,6 +68,7 @@ function activeIdForPath(path: string): string {
   if (path.startsWith('/network')) return 'network';
   if (path.startsWith('/events')) return 'events';
   if (path.startsWith('/financial')) return 'financial';
+  if (path.startsWith('/wallet')) return 'wallet';
   if (path.startsWith('/rentals')) return 'rentals';
   if (path.startsWith('/deals')) return 'deals';
   if (path.startsWith('/me')) return 'profile';

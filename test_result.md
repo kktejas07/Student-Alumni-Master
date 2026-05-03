@@ -6355,3 +6355,159 @@ agent_communication:
         
         No issues found. Task status: working=true, needs_retesting=
         false. Main agent should summarise and finish.
+
+
+#=========================================================================
+# WALLET v2 — Activity-based earnings + Add Money + Withdraw + Credits + History
+#=========================================================================
+
+backend:
+  - task: "Wallet v2 — /api/wallet/summary, /api/wallet/topup, /api/wallet/withdraw, /api/wallet/track, /api/wallet/seed-demo-earnings"
+    implemented: true
+    working: true
+    file: "/app/backend/activity_credits.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: |
+            New module activity_credits.py wired under api_router. Implements
+            role-aware earning rules (student/mentor/alumni/college/admin),
+            level system (Bronze→Diamond), 25 credits = ₹1 conversion.
+
+            Endpoints to verify with realtime@studentalumni.in / RealTime@2026:
+
+            1. POST /api/wallet/seed-demo-earnings  (idempotent — second call
+               should NOT double-credit; check seeded_events count & balance)
+            2. GET  /api/wallet/summary  → must return:
+                 balance_credits, balance_inr, credits_per_inr=25,
+                 lifetime_earned, lifetime_spent, level{name,icon,color,
+                 progress_pct,credits_to_next}, streak_days, active_days_30,
+                 earnings_by_category[] with items[], activity_breakdown[],
+                 earning_rules[] (role-specific), history[] last 30
+            3. POST /api/wallet/topup {amount_inr:500, payment_method:'upi'}
+                 → base_credits=12500, bonus_credits=625 (5%), total=13125,
+                 balance_credits increases, transaction in history with
+                 metadata.kind='topup'
+            4. POST /api/wallet/topup with amount_inr <= 0 → 400
+            5. POST /api/wallet/topup with amount_inr > 100000 → 400
+            6. POST /api/wallet/withdraw {amount_inr:100, method:'upi',
+               target:'demo@upi'} → debits 2500 credits, balance updates,
+               metadata.kind='withdraw', status='processing'
+            7. POST /api/wallet/withdraw with amount below threshold (e.g.
+               amount_credits=1000) → 400 'Minimum withdrawal'
+            8. POST /api/wallet/withdraw with amount > balance → 402 Insufficient
+            9. POST /api/wallet/track {activity_type:'session_attended'} →
+               credits_added=30, balance updates. Calling again same day
+               for max_per_day=1 rules (e.g. 'daily_login') → duplicate=true
+               and credits_added=0
+            10. POST /api/wallet/track {activity_type:'unknown_type'} →
+                {credited:0, skipped:true}
+            11. GET  /api/wallet/earnings → quick balance + level snapshot
+            12. Verify /api/wallet/balance (legacy from wallet_and_availability)
+                still works alongside new endpoints.
+
+        - working: true
+          agent: "testing"
+          comment: |
+            Wallet v2 FULLY VERIFIED via /app/backend_test_wallet_v2.py against
+            https://hiring-mvvm.preview.emergentagent.com/api with
+            realtime@studentalumni.in / RealTime@2026.
+
+            RESULT: 58/58 assertions PASS.
+
+            1. POST /wallet/seed-demo-earnings — first call → ok=true,
+               seeded_events=19, seeded_credits=1290, lifetime_earned=1610,
+               balance=1510. Second call → seeded_events=0, balance
+               unchanged (idempotent). ✅
+            2. GET /wallet/summary — full shape verified:
+               balance_credits (int >=0), balance_inr == credits/25 (60.4),
+               credits_per_inr=25, lifetime_earned/spent (int),
+               withdraw_threshold_credits=2500, withdraw_threshold_inr=100,
+               topup_bonus_pct=5, level{level 1-5, name, icon, color,
+               progress_pct 0-100, credits_to_next, next_level_name},
+               streak_days, active_days_30, earnings_by_category (5 cats,
+               each has items[]), activity_breakdown (11 items w/ all
+               required keys), earning_rules (12 student rules w/ all
+               required keys), history (23 items, max 30, has id/type/
+               amount/reason/balance_after/ts, type in credit|debit). ✅
+            3. POST /wallet/topup {amount_inr:500, payment_method:'upi'}
+               → base_credits=12500, bonus_credits=625, total=13125,
+               balance 1510→14635 (delta exactly 13125). Summary history[0]
+               = {type:'credit', amount:13125, metadata.kind:'topup'}. ✅
+            4. Topup edges: amount_inr=0 → 400, -100 → 400, 200000 → 400. ✅
+            5. POST /wallet/withdraw {amount_inr:100, method:'upi',
+               target:'demo@upi'} → amount_credits=2500, balance 14635→12135
+               (delta 2500). history[0] = {type:'debit', metadata.kind:
+               'withdraw', status:'processing', eta:'1-2 business days'}. ✅
+            6. Withdraw edges: amount_credits=1000 → 400 'Minimum withdrawal
+               is 2500 credits (₹100)', amount_inr=0 → 400, amount_inr=
+               99999999 → 402 'Insufficient credits — balance X, needed Y'. ✅
+            7. POST /wallet/track:
+               - session_attended (no max_per_day) → credited=30,
+                 duplicate=false, balance +30 ✅
+               - daily_login #1 → credited=5, duplicate=false;
+                 daily_login #2 same day → credited=0, duplicate=true ✅
+               - profile_completed #1 → credited=100, duplicate=false;
+                 profile_completed #2 → credited=0, duplicate=true
+                 (once-only idempotency) ✅
+               - unknown activity 'foo_bar_unknown' → skipped=true,
+                 credited=0, reason=unknown_activity ✅
+            8. GET /wallet/earnings → {balance_credits, lifetime_earned,
+               level (level=3, name=Gold), role=student}. ✅
+            9. Legacy GET /wallet/balance still works alongside new endpoints:
+               200 with keys [balance_credits, balance_inr_equivalent,
+               lifetime_earned, lifetime_spent, history]. ✅
+
+            All constants match spec (CREDITS_PER_INR=25,
+            WITHDRAW_THRESHOLD_CREDITS=2500, TOPUP_BONUS_PCT=5).
+            No bugs found. Task fully working.
+
+agent_communication:
+    - agent: "testing"
+      message: |
+        Wallet v2 backend testing complete — 58/58 checks PASS.
+
+        All endpoints in /app/backend/activity_credits.py work exactly per
+        spec for realtime@studentalumni.in:
+          · seed-demo-earnings is idempotent (2nd call seeds 0)
+          · summary returns full shape incl. level/streak/earnings/history
+          · topup ₹500 → 12500 base + 625 bonus = 13125 credits; edges all 400
+          · withdraw ₹100 → 2500 credits debited; edges 400/402
+          · track handles max_per_day, once, and unknown activities correctly
+          · earnings endpoint + legacy /wallet/balance both 200
+
+        No regressions, no issues. Main agent can summarize and finish.
+
+
+metadata:
+  test_sequence: 21
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Wallet v2 — /api/wallet/summary, /api/wallet/topup, /api/wallet/withdraw, /api/wallet/track, /api/wallet/seed-demo-earnings"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "main"
+      message: |
+        Built /app/backend/activity_credits.py — Activity-based earnings
+        engine with role-aware rules (student/mentor/alumni/college/admin),
+        level system, and 25:1 credits-to-INR conversion.
+
+        Frontend /app/frontend/app/wallet.tsx renders 5 tabs:
+        Overview · Add Money · Withdraw · Credits · History — wired to
+        the new endpoints.
+
+        Please run the focused tests listed under status_history above.
+        Use credentials realtime@studentalumni.in / RealTime@2026.
+
+        Important constants for assertions:
+          CREDITS_PER_INR = 25
+          WITHDRAW_THRESHOLD_CREDITS = 2500 (₹100)
+          TOPUP_BONUS_PCT = 5
