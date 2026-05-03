@@ -4975,6 +4975,8 @@ from events_aggregator import router as events_aggregator_router  # Events v2: a
 api_router.include_router(events_aggregator_router)
 from financial_services import router as financial_router  # Financial v2: scholarships, loans, startup_funding, insurance, venture_capital + match score + AI helper + EMI
 api_router.include_router(financial_router)
+from rentals_marketplace import router as rentals_router  # SA Stay: housing, vehicles, hotels, coworking + bookings + AI recommend
+api_router.include_router(rentals_router)
 
 # Auth analytics & session tracking
 from auth_analytics import router as auth_analytics_router
