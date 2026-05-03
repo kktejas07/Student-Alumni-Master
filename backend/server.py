@@ -4963,6 +4963,8 @@ from jobs_feed import router as jobs_feed_router  # live job aggregator (5 free 
 api_router.include_router(jobs_feed_router)
 from mentor_ai import router as mentor_ai_router  # mentor AI studio (mentee pulse, skill gaps, impact, session prep)
 api_router.include_router(mentor_ai_router)
+from wallet_and_availability import router as wallet_router  # SA Credits + mentor availability + demo seed
+api_router.include_router(wallet_router)
 
 # Auth analytics & session tracking
 from auth_analytics import router as auth_analytics_router

@@ -83,6 +83,17 @@ async def mentee_pulse(user: dict = Depends(_get_current_user_dependency())):
                 sort=[("scheduled_at", -1)],
             )
 
+            # Stuck detection — handle tz-naive last_login from Mongo
+            ll = u.get("last_login")
+            now_utc = datetime.now(timezone.utc)
+            if isinstance(ll, datetime):
+                if ll.tzinfo is None:
+                    ll = ll.replace(tzinfo=timezone.utc)
+                stuck_days = (now_utc - ll).days
+            else:
+                stuck_days = 30
+            stuck = stuck_days >= 7
+
             out.append({
                 "user_id": str(u["_id"]),
                 "name": u.get("full_name") or u.get("name") or u.get("email", "—").split("@")[0],
@@ -99,7 +110,8 @@ async def mentee_pulse(user: dict = Depends(_get_current_user_dependency())):
                 "skill_scores_top": dict(sorted((rm.get("skill_scores") or {}).items(),
                                                   key=lambda kv: -kv[1])[:3]),
                 "last_session_at": (last_session or {}).get("scheduled_at"),
-                "stuck": (datetime.now(timezone.utc) - (u.get("last_login") or datetime.now(timezone.utc) - timedelta(days=30))).days >= 7,
+                "stuck": stuck,
+                "stuck_days": stuck_days,
                 "badges_count": len(u.get("badges") or []),
             })
         except Exception as e:
