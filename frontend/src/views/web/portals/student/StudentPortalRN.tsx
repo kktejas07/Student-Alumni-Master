@@ -34,8 +34,9 @@ export function StudentPortalRN() {
 
   // Redirect specific items to standalone routes; keep others inline
   const handleNav = (id: StudentNavId) => {
-    if (id === 'events')   { router.push('/events');   return; }
-    if (id === 'network')  { router.push('/network');  return; }
+    if (id === 'events')    { router.push('/events');    return; }
+    if (id === 'network')   { router.push('/network');   return; }
+    if (id === 'financial') { router.push('/financial'); return; }
     setActive(id);
   };
 

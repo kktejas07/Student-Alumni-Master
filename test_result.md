@@ -6153,6 +6153,167 @@ agent_communication:
 
         ✅ TASK 3 — Hosting (mentor/college/admin) (19/19)
            • Student POST /events → 403
+
+
+backend:
+  - task: "Financial Services V2 — 5-category aggregator + match score + AI helper + EMI"
+    implemented: true
+    working: true
+    file: "/app/backend/financial_services.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            VERIFIED end-to-end via /app/backend_test_financial_v2.py against
+            https://hiring-mvvm.preview.emergentagent.com/api.
+            Login realtime@studentalumni.in / RealTime@2026 → 200.
+            
+            RESULT: 70/70 assertions PASS across all 21 endpoints.
+            
+            ── Catalog & Search ─────────────────────────────────
+            ✅ POST /financial/refresh → total=46 (wipes+reseeds).
+            ✅ GET /financial/all → by_category keys=[scholarship, loan,
+               startup_funding, insurance, venture_capital], total=46,
+               every item carries match_score.
+            ✅ GET /financial/scholarships/search → 200, 12 results sorted
+               by match_score desc [90,82,80,80,80,...]. ?status=open →
+               10 items, all status='open'.
+            ✅ GET /financial/loans/search?interest_rate_max=10 → 2 items,
+               both rates ≤10 [8.15, 9.7].
+            ✅ GET /financial/startup-funding/search?funding_stage=seed →
+               5 items, every stage='seed'.
+            ✅ GET /financial/insurance/search?coverage_type=health → 2
+               items, both subcategory='health'.
+            ✅ GET /financial/venture-capital/search?funding_stage=seed →
+               4 seed VCs; total VC count=12 (≥10).
+            ✅ GET /financial/{id} → 200 returns doc with match_score;
+               bad id → 404.
+            
+            ── Profile & Match Score ────────────────────────────
+            ✅ GET /financial/me/profile → scholarship_preference='merit'
+               by default.
+            ✅ PATCH {cgpa:8.5, annual_family_income:600000,
+               institution_tier:'top_tier'} → ok:true; subsequent GET
+               reads back all 3 values verbatim.
+            ✅ After PATCH, scholarships/search shows match_score:
+               Google Generation=90, Tata=82, Aditya Birla=80 (all ≥75).
+            
+            ── Save / Activity ──────────────────────────────────
+            ✅ POST /{id}/save twice → action toggles saved↔unsaved.
+            ✅ GET /me/saved → contains saved id after save.
+            ✅ POST /{id}/apply → ok:true (logged to financial_activity_log).
+            ✅ POST /{id}/activity {action:'view'} → ok:true.
+               {action:'bogus'} → 400.
+            
+            ── EMI Calculator ───────────────────────────────────
+            ✅ POST /emi-calculate {P:1500000, r:8.5, n:120} → monthly_emi
+               =18597.85 (spec ≈18598), total_interest=731742.4
+               (spec ≈731723 — within tolerance).
+            ✅ All 3 edges (P=0, r=0, n=0) → 400.
+            
+            ── AI Helper (5 endpoints) ──────────────────────────
+            ✅ POST /ai/scholarships {cgpa:9.2, institution_tier:'top_tier',
+               scholarship_preference:'merit'} → top_3 scores [90,82,80],
+               all ≥80; ranked/top_3/explanations/answers_saved populated.
+            ✅ POST /ai/loans {loan_need:1500000, has_collateral:'yes',
+               cibil:'750-800'} → top_3 rates [8.15, 11.0, 9.7] (SBI
+               Scholar Loan first — low rate favored).
+            ✅ POST /ai/startup-funding {stage:'seed', sector:'fintech'} →
+               top_3 stages=[seed, seed, pre_seed].
+            ✅ POST /ai/venture-capital {stage:'series_a', sector:'fintech'}
+               → top_3 stages=[series_a, series_a, series_a].
+            ✅ POST /ai/insurance {age:25, coverage_type:'health',
+               insurance_budget:5000} → top_3 subs=[health, health, travel].
+            
+            ── Refresh ──────────────────────────────────────────
+            ✅ POST /financial/refresh → total=46 after reseed.
+            
+            All 21 endpoints green. Match-score algorithm correctly
+            boosts Google Generation to 90 for top_tier CS student with
+            CGPA 8.5. EMI formula within ±5 of spec targets. AI helper
+            successfully saves answers to user_financial_profile and
+            re-ranks in a single call. No regressions.
+        - working: "NA"
+          agent: "main"
+          comment: |
+            21 endpoints. Auto-seeds 46 products on first call to any
+            /financial/* endpoint. Login as realtime@studentalumni.in /
+            RealTime@2026.
+
+            Verify ALL of:
+            * GET /api/financial/all → {by_category, total} where total≈46.
+              Each category list has match_score on every item.
+            * GET /api/financial/scholarships/search → 200, results[] sorted
+              by match_score desc. Filter status=open returns subset.
+            * GET /api/financial/loans/search?interest_rate_max=10 → only
+              loans with interest_rate <= 10.
+            * GET /api/financial/startup-funding/search?funding_stage=seed
+              returns startup-funding items with stage matching 'seed'.
+            * GET /api/financial/insurance/search?coverage_type=health → only
+              health insurance.
+            * GET /api/financial/venture-capital/search?funding_stage=seed
+              returns VCs at seed stage. Total VC count >= 10.
+            * GET /api/financial/{financial_id} (use a known id from /all)
+              → returns the doc with match_score.
+            * GET /api/financial/me/profile → defaults
+              {scholarship_preference:'merit'} on first call.
+            * PATCH /api/financial/me/profile {cgpa:8.5, annual_family_income:
+              600000, institution_tier:'top_tier'} → ok:true; reads back.
+            * After PATCH, /api/financial/scholarships/search shows higher
+              match_score for Google/Tata/Aditya Birla (>= 75).
+            * POST /api/financial/{id}/save → action:'saved' first, 'unsaved'
+              second.
+            * GET /api/financial/me/saved → contains saved item.
+            * POST /api/financial/{id}/apply → ok:true, logged in
+              financial_activity_log.
+            * POST /api/financial/{id}/activity {action:'view'} → ok:true.
+              Invalid action → 400.
+            * POST /api/financial/emi-calculate {loan_amount:1500000,
+              interest_rate:8.5, tenure_months:120} → monthly_emi≈18598,
+              total_interest≈731723.
+            * Edge: P=0 → 400.
+            * POST /api/financial/ai/scholarships {cgpa:9.2, institution_tier:
+              'top_tier', scholarship_preference:'merit'} → returns
+              {ranked, top_3, explanations, answers_saved}; top_3 are real
+              merit scholarships with match_score >= 80.
+            * POST /api/financial/ai/loans {loan_need:1500000,
+              loan_repayment_capacity:30000, has_collateral:'yes',
+              cibil_range:'750-800'} → top_3 with low interest_rate.
+            * POST /api/financial/ai/startup-funding {startup_stage:'seed',
+              startup_sector:'fintech', funding_need:5000000} → top_3 with
+              stage:seed.
+            * POST /api/financial/ai/venture-capital {startup_stage:'series_a',
+              startup_sector:'fintech', funding_need:50000000} → top_3 VCs.
+            * POST /api/financial/ai/insurance {age:25, coverage_type:'health',
+              insurance_budget:5000} → top_3 insurance products with
+              health coverage.
+            * POST /api/financial/refresh → wipes + re-seeds; total=46.
+
+metadata:
+  test_sequence: 20
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Financial Services V2 — 5-category aggregator + match score + AI helper + EMI"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "main"
+      message: |
+        New module: /app/backend/financial_services.py with 21 endpoints
+        across 5 categories (scholarships, loans, startup_funding, insurance,
+        venture_capital). Auto-seeds 46 curated products on first call.
+        Match score algorithm per Prompt 13. AI helper endpoints save user
+        answers to user_financial_profile, then re-rank by match score.
+        Server-side EMI calculator. Mounted at api_router. Use realtime@
+        studentalumni.in for testing.
+
            • Mentor POST → status=published, needs_approval=false;
              visible in /events/me/hosted AND /events/search
            • College POST → status=pending_approval, needs_approval=true;
@@ -6167,3 +6328,30 @@ agent_communication:
              event_type='foobar' → 400; duplicate (same title+city+date) → 409
 
         All 23 endpoints + all spec edge cases green. Ready for summary + finish.
+
+    - agent: "testing"
+      message: |
+        Financial Services V2 — ALL 21 ENDPOINTS VERIFIED (70/70 PASS)
+        via /app/backend_test_financial_v2.py. Login realtime@
+        studentalumni.in / RealTime@2026.
+        
+        Green across: /financial/all (total=46, 5 categories with
+        match_score on every item), /financial/scholarships/search
+        (sorted by match_score desc, ?status=open filters correctly),
+        /financial/loans/search?interest_rate_max=10 (only rates ≤10),
+        /financial/startup-funding/search?funding_stage=seed (stage
+        filter works), /financial/insurance/search?coverage_type=health
+        (only health), /financial/venture-capital/search?funding_stage=
+        seed (4 seed VCs, total 12), /financial/{id} (match_score +
+        404 on bad id), /financial/me/profile (default 'merit'), PATCH
+        (cgpa/income/tier round-trip), match_score boost verified
+        (Google=90, Tata=82, Aditya Birla=80 — all ≥75), save toggle,
+        /me/saved, apply, activity (invalid action → 400), EMI
+        calc (18597.85 vs spec 18598, total_interest 731742.4 vs
+        spec 731723 — within ±5 tolerance; all 3 edge cases → 400),
+        all 5 AI helper endpoints (top_3 sizes=3, answers_saved to
+        profile, correct ranking by stage/rate/coverage), refresh
+        wipe+reseed → total=46.
+        
+        No issues found. Task status: working=true, needs_retesting=
+        false. Main agent should summarise and finish.

@@ -3,7 +3,7 @@
  * Wired to /api/financial/* live backend.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, TextInput, Platform } from 'react-native';
 import FeaturePageShell from '@/src/views/web/FeaturePageShell';
 import {
   Award, Rocket, TrendingUp, Landmark, Sparkles, Calculator, ArrowRight,
@@ -62,10 +62,50 @@ function rangeFmt(it: Item): string {
   return `Up to ${fmtINR(it.amount_max)}`;
 }
 
+// Web-friendly slider (uses native range input on web; falls back to numeric input)
+function EmiSlider({ label, value, setValue, min, max, step, fmt }: any) {
+  if (Platform.OS === 'web') {
+    return (
+      <View style={s.emiSliderWrap}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+          <Text style={s.emiSliderLabel}>{label}</Text>
+          <Text style={s.emiSliderValue}>{fmt(value)}</Text>
+        </View>
+        {React.createElement('input' as any, {
+          type: 'range', min, max, step, value,
+          onChange: (e: any) => setValue(Number(e.target.value)),
+          style: { width: '100%', accentColor: '#7C3AED' },
+        })}
+      </View>
+    );
+  }
+  return (
+    <View style={s.emiSliderWrap}>
+      <Text style={s.emiSliderLabel}>{label} {fmt(value)}</Text>
+      <TextInput
+        value={String(value)}
+        onChangeText={(v) => setValue(Number(v.replace(/[^0-9.]/g, '')) || min)}
+        keyboardType="numeric"
+        style={{ color: '#fff', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', borderRadius: 8, padding: 8, marginTop: 4 }}
+      />
+    </View>
+  );
+}
+
 export default function FinancialPage() {
   const [tab, setTab] = useState('scholarships');
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiAnswers, setAiAnswers] = useState<Record<string, string>>({});
+  const [aiSubmitting, setAiSubmitting] = useState(false);
+  const [aiTop3, setAiTop3] = useState<any[]>([]);
+  // EMI calculator
+  const [emiAmt, setEmiAmt] = useState(1500000);
+  const [emiRate, setEmiRate] = useState(8.5);
+  const [emiTen, setEmiTen] = useState(120);
+  const [emi, setEmi] = useState<any>(null);
+
   const tabInfo = TABS.find(t => t.id === tab)!;
 
   const load = useCallback(async (tabId: string) => {
@@ -78,7 +118,76 @@ export default function FinancialPage() {
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { load(tab); }, [tab, load]);
+  useEffect(() => { load(tab); setAiOpen(false); setAiTop3([]); }, [tab, load]);
+
+  // EMI auto-calculate (debounced)
+  useEffect(() => {
+    if (tab !== 'loans') return;
+    const t = setTimeout(async () => {
+      try {
+        const r = await request<any>('/financial/emi-calculate', {
+          method: 'POST', body: { loan_amount: emiAmt, interest_rate: emiRate, tenure_months: emiTen },
+        });
+        setEmi(r);
+      } catch {}
+    }, 350);
+    return () => clearTimeout(t);
+  }, [tab, emiAmt, emiRate, emiTen]);
+
+  const aiQuestions: Record<string, Array<{ key: string; label: string; type: string; placeholder?: string }>> = {
+    scholarships: [
+      { key: 'cgpa', label: 'CGPA', type: 'number', placeholder: '8.5' },
+      { key: 'annual_family_income', label: 'Annual family income (₹)', type: 'number', placeholder: '600000' },
+      { key: 'course_level', label: 'Course level', type: 'text', placeholder: 'undergraduate' },
+      { key: 'institution_tier', label: 'Institution tier', type: 'text', placeholder: 'top_tier / tier_one' },
+    ],
+    loans: [
+      { key: 'loan_need', label: 'Loan amount needed (₹)', type: 'number', placeholder: '1500000' },
+      { key: 'loan_repayment_capacity', label: 'Monthly repayment capacity (₹)', type: 'number', placeholder: '20000' },
+      { key: 'has_collateral', label: 'Have collateral? (yes/no)', type: 'text', placeholder: 'no' },
+      { key: 'cibil_range', label: 'CIBIL score range', type: 'text', placeholder: '750-800' },
+    ],
+    startup: [
+      { key: 'startup_stage', label: 'Startup stage', type: 'text', placeholder: 'pre_seed / seed / series_a' },
+      { key: 'startup_sector', label: 'Sector', type: 'text', placeholder: 'fintech / saas / consumer' },
+      { key: 'funding_need', label: 'Funding needed (₹)', type: 'number', placeholder: '5000000' },
+      { key: 'has_cofounder', label: 'Have a co-founder?', type: 'text', placeholder: 'yes / no' },
+    ],
+    investors: [
+      { key: 'startup_stage', label: 'Stage you\'re raising at', type: 'text', placeholder: 'seed / series_a' },
+      { key: 'startup_sector', label: 'Sector focus', type: 'text', placeholder: 'fintech / saas / consumer' },
+      { key: 'funding_need', label: 'Round size (₹)', type: 'number', placeholder: '50000000' },
+      { key: 'has_cofounder', label: 'Have a co-founder?', type: 'text', placeholder: 'yes / no' },
+    ],
+    insurance: [
+      { key: 'age', label: 'Your age', type: 'number', placeholder: '24' },
+      { key: 'coverage_type', label: 'Coverage type', type: 'text', placeholder: 'health / accident / travel / property' },
+      { key: 'insurance_budget', label: 'Annual budget (₹)', type: 'number', placeholder: '5000' },
+    ],
+  };
+
+  const submitAi = async () => {
+    const aiPath: Record<string, string> = {
+      scholarships: '/financial/ai/scholarships',
+      loans: '/financial/ai/loans',
+      startup: '/financial/ai/startup-funding',
+      investors: '/financial/ai/venture-capital',
+      insurance: '/financial/ai/insurance',
+    };
+    setAiSubmitting(true);
+    try {
+      // Coerce numeric fields
+      const payload: any = {};
+      for (const q of (aiQuestions[tab] || [])) {
+        const v = aiAnswers[q.key];
+        if (v === undefined || v === '') continue;
+        payload[q.key] = q.type === 'number' ? Number(v) : v;
+      }
+      const r = await request<any>(aiPath[tab], { method: 'POST', body: payload });
+      setItems(r.ranked || []);
+      setAiTop3(r.top_3 || []);
+    } catch {} finally { setAiSubmitting(false); }
+  };
 
   return (
     <FeaturePageShell
@@ -108,11 +217,93 @@ export default function FinancialPage() {
       </ScrollView>
 
       {/* AI Helper button */}
-      <Pressable style={s.aiHelper}>
+      <Pressable style={s.aiHelper} onPress={() => setAiOpen(!aiOpen)}>
         <Sparkles size={14} color="#A78BFA" />
         <Text style={s.aiHelperText}>{AI_LABELS[tab]}</Text>
-        <ChevronDown size={14} color="rgba(255,255,255,0.5)" />
+        <ChevronDown size={14} color="rgba(255,255,255,0.5)" style={{ transform: [{ rotate: aiOpen ? '180deg' : '0deg' }] }} />
       </Pressable>
+
+      {/* AI Helper expandable form */}
+      {aiOpen && (
+        <View style={s.aiPanel}>
+          <Text style={s.aiPanelTitle}>Tell us about you — we'll re-rank by match score</Text>
+          <View style={s.aiPanelGrid}>
+            {(aiQuestions[tab] || []).map((q) => (
+              <View key={q.key} style={s.aiField}>
+                <Text style={s.aiFieldLabel}>{q.label}</Text>
+                <TextInput
+                  value={aiAnswers[q.key] || ''}
+                  onChangeText={(v) => setAiAnswers({ ...aiAnswers, [q.key]: v })}
+                  placeholder={q.placeholder}
+                  placeholderTextColor="rgba(255,255,255,0.30)"
+                  keyboardType={q.type === 'number' ? 'numeric' : 'default'}
+                  style={s.aiInput}
+                />
+              </View>
+            ))}
+          </View>
+          <Pressable
+            onPress={submitAi}
+            disabled={aiSubmitting}
+            style={[s.aiSubmit, { opacity: aiSubmitting ? 0.6 : 1 }]}
+          >
+            {aiSubmitting ? <ActivityIndicator color="#fff" /> : (
+              <>
+                <Sparkles size={14} color="#fff" />
+                <Text style={s.aiSubmitText}>Re-rank by match score</Text>
+              </>
+            )}
+          </Pressable>
+          {aiTop3.length > 0 && (
+            <View style={s.aiTop3Box}>
+              <Text style={s.aiTop3Title}>✨ Top 3 matches for you</Text>
+              {aiTop3.map((t, i) => (
+                <View key={t.financial_id} style={s.aiTop3Row}>
+                  <View style={s.aiTop3Rank}><Text style={s.aiTop3RankText}>#{i + 1}</Text></View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.aiTop3Name}>{t.name}</Text>
+                  </View>
+                  <View style={s.matchBadge}>
+                    <Sparkles size={10} color="#86EFAC" />
+                    <Text style={s.matchText}>{t.match_score}%</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* EMI Calculator widget — Loans tab only */}
+      {tab === 'loans' && (
+        <View style={s.emiBox}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+            <Calculator size={18} color="#A78BFA" />
+            <Text style={s.emiTitle}>EMI Calculator</Text>
+          </View>
+          <View style={s.emiGrid}>
+            <EmiSlider label="Loan Amount" value={emiAmt} setValue={setEmiAmt} min={50000} max={10000000} step={50000} fmt={(v) => `₹${(v/100000).toFixed(1)} L`} />
+            <EmiSlider label="Interest Rate" value={emiRate} setValue={setEmiRate} min={5} max={20} step={0.1} fmt={(v) => `${v.toFixed(2)}% p.a.`} />
+            <EmiSlider label="Tenure" value={emiTen} setValue={setEmiTen} min={12} max={240} step={6} fmt={(v) => `${v} mo (${(v/12).toFixed(1)} yrs)`} />
+          </View>
+          {emi && (
+            <View style={s.emiSummary}>
+              <View style={s.emiCol}>
+                <Text style={s.emiColLabel}>Monthly EMI</Text>
+                <Text style={[s.emiColValue, { color: '#A78BFA' }]}>₹{Math.round(emi.monthly_emi).toLocaleString('en-IN')}</Text>
+              </View>
+              <View style={s.emiCol}>
+                <Text style={s.emiColLabel}>Total Payable</Text>
+                <Text style={s.emiColValue}>₹{Math.round(emi.total_payable).toLocaleString('en-IN')}</Text>
+              </View>
+              <View style={s.emiCol}>
+                <Text style={s.emiColLabel}>Total Interest</Text>
+                <Text style={[s.emiColValue, { color: '#FCA5A5' }]}>₹{Math.round(emi.total_interest).toLocaleString('en-IN')}</Text>
+              </View>
+            </View>
+          )}
+        </View>
+      )}
 
       {loading ? (
         <ActivityIndicator color="#7C3AED" style={{ marginTop: 32 }} />
@@ -316,6 +507,34 @@ const s = StyleSheet.create({
   aiHelperText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 12 },
   metaPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: C.border, borderWidth: 1 },
   metaPillText: { color: 'rgba(255,255,255,0.75)', fontFamily: 'DMSans_700Bold', fontSize: 10, textTransform: 'capitalize' as any },
+
+  // AI Helper expandable panel
+  aiPanel: { marginTop: 10, padding: 16, borderRadius: 14, backgroundColor: 'rgba(124,58,237,0.08)', borderColor: 'rgba(124,58,237,0.30)', borderWidth: 1, gap: 12 },
+  aiPanelTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
+  aiPanelGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  aiField: { width: '48%', minWidth: 200, gap: 4 },
+  aiFieldLabel: { color: 'rgba(255,255,255,0.65)', fontSize: 11, fontFamily: 'DMSans_600SemiBold' },
+  aiInput: { paddingHorizontal: 10, paddingVertical: 8, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderRadius: 8, color: '#fff', fontSize: 13, ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}) },
+  aiSubmit: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 11, borderRadius: 10, backgroundColor: '#7C3AED', alignSelf: 'flex-start', paddingHorizontal: 18, ...({ cursor: 'pointer' } as any) },
+  aiSubmitText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 13, letterSpacing: 0.3 },
+  aiTop3Box: { padding: 12, borderRadius: 10, backgroundColor: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.30)', borderWidth: 1, gap: 8 },
+  aiTop3Title: { color: '#86EFAC', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  aiTop3Row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  aiTop3Rank: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#22C55E', alignItems: 'center', justifyContent: 'center' },
+  aiTop3RankText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
+  aiTop3Name: { color: '#fff', fontFamily: 'DMSans_600SemiBold', fontSize: 13 },
+
+  // EMI Calculator widget
+  emiBox: { marginTop: 16, padding: 18, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1 },
+  emiTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
+  emiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
+  emiSliderWrap: { flex: 1, minWidth: 240, gap: 4 },
+  emiSliderLabel: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_600SemiBold', fontSize: 11, textTransform: 'uppercase' as any, letterSpacing: 0.5 },
+  emiSliderValue: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14 },
+  emiSummary: { marginTop: 16, padding: 14, borderRadius: 12, backgroundColor: 'rgba(124,58,237,0.10)', borderColor: 'rgba(124,58,237,0.40)', borderWidth: 1, flexDirection: 'row', gap: 12 },
+  emiCol: { flex: 1, gap: 4 },
+  emiColLabel: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_600SemiBold', fontSize: 10, textTransform: 'uppercase' as any, letterSpacing: 0.5 },
+  emiColValue: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 17 },
 
   widgetCard: { padding: 18, borderRadius: 16, backgroundColor: 'rgba(59,130,246,0.07)', borderColor: 'rgba(59,130,246,0.30)', borderWidth: 1, flexDirection: 'row', gap: 18, flexWrap: 'wrap' },
   widgetIcon: { width: 40, height: 40, borderRadius: 11, backgroundColor: 'rgba(59,130,246,0.18)', borderColor: 'rgba(59,130,246,0.40)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
