@@ -5,6 +5,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import FeaturePageShell from '@/src/views/web/FeaturePageShell';
+import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
 import {
   GraduationCap, Building2, Earth, Award, Microscope, Sparkles,
   MapPin, Clock, Flag, TrendingUp, ArrowRight, BadgeCheck, Target,
@@ -90,6 +91,18 @@ export default function HigherEducationPage() {
         <Stat label="SCHOLARSHIPS" value="8" sub="Funding opportunities" color="#F59E0B" Icon={Award} />
         <Stat label="RESEARCH" value="6" sub="Internships & Fellowships" color="#22C55E" Icon={Microscope} />
       </View>
+
+      <AdvisorAIBlock
+        context="higher-education"
+        advisorTitle="Talk to a Student Advisor"
+        advisorDesc="Need personalised education advice? Connect with our dedicated student advisors."
+        aiTitle="Ask the Higher-Ed AI"
+        aiDesc="Got questions about programmes, scholarships, or visas? Chat with our AI assistant 24×7."
+        advisorAccent="#A78BFA"
+        aiAccent="#10B981"
+        advisorIcon="account-tie"
+        aiIcon="robot-excited"
+      />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 12 }}>
         {TABS.map((t) => {

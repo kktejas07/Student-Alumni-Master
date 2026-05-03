@@ -34,9 +34,14 @@ export function StudentPortalRN() {
 
   // Redirect specific items to standalone routes; keep others inline
   const handleNav = (id: StudentNavId) => {
-    if (id === 'events')    { router.push('/events');    return; }
-    if (id === 'network')   { router.push('/network');   return; }
-    if (id === 'financial') { router.push('/financial'); return; }
+    if (id === 'events')      { router.push('/events');           return; }
+    if (id === 'network')     { router.push('/network');          return; }
+    if (id === 'financial')   { router.push('/financial');        return; }
+    if (id === 'deals')       { router.push('/deals');            return; }
+    if (id === 'wallet')      { router.push('/wallet');           return; }
+    if (id === 'higher-ed')   { router.push('/higher-education'); return; }
+    if (id === 'rentals')     { router.push('/rentals');          return; }
+    if (id === 'internships') { router.push('/internships');      return; }
     setActive(id);
   };
 

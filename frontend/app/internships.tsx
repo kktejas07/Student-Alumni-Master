@@ -27,6 +27,7 @@ import {
 import { Colors as C } from '@/src/theme';
 import { useAuth } from '@/src/viewmodels/hooks';
 import { request } from '@/src/models/services/api';
+import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
 import { HoverGlowCard } from '@/src/views/web/HoverGlowCard';
 
 interface Opp {
@@ -167,6 +168,21 @@ export default function JobsInternshipsScreen() {
           placeholder="Search role, company, skill…"
           placeholderTextColor="rgba(255,255,255,0.30)"
           testID="opps-search"
+        />
+      </View>
+
+      {/* Advisor + AI block */}
+      <View style={{ paddingHorizontal: 16, marginTop: 12 }}>
+        <AdvisorAIBlock
+          context="internships"
+          advisorTitle="Talk to a Career Advisor"
+          advisorDesc="Need help shortlisting roles or polishing your resume? Connect with a career advisor."
+          aiTitle="Ask the Career AI"
+          aiDesc="What roles match my skills? How do I crack this interview? Ask anything 24×7."
+          advisorAccent="#A78BFA"
+          aiAccent="#10B981"
+          advisorIcon="briefcase-account"
+          aiIcon="robot-excited"
         />
       </View>
 

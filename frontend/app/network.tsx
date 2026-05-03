@@ -36,6 +36,7 @@ import {
 } from 'lucide-react-native';
 import { NetworkSidebar, TopHero, ChatPhonePopup, BookingDrawer } from '@/src/views/web/network/NetworkShell';
 import { request } from '@/src/models/services/api';
+import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
 import { useAuth } from '@/src/viewmodels/hooks';
 import { HoverGlowCard } from '@/src/views/web/HoverGlowCard';
 import { MaterialBadgeChip } from '@/src/views/components/MaterialBadgeChip';
@@ -351,6 +352,23 @@ export default function NetworkScreen() {
 
       {/* Top hero (Discover only) */}
       {tab === 'discover' && isWideShell && <TopHero me={user} />}
+
+      {/* Advisor + AI block (Discover tab only) */}
+      {tab === 'discover' && (
+        <View style={{ paddingHorizontal: isMobile ? 12 : 16, marginTop: 12 }}>
+          <AdvisorAIBlock
+            context="network"
+            advisorTitle="Talk to a Network Advisor"
+            advisorDesc="Need warm intros? Our advisors curate mentors, alumni & founders for your goals."
+            aiTitle="Ask the Network AI"
+            aiDesc="Who should I connect with this week? How do I write a great cold message? Ask 24×7."
+            advisorAccent="#A78BFA"
+            aiAccent="#10B981"
+            advisorIcon="account-group"
+            aiIcon="robot-excited"
+          />
+        </View>
+      )}
 
       {/* Search + Filters (Discover only) */}
       {tab === 'discover' && (

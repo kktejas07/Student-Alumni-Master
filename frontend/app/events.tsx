@@ -24,6 +24,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { request, tokenStore } from '@/src/models/services/api';
+import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
 
 // ─── Constants ────────────────────────────────────────────────────────
 const C = {
@@ -501,6 +502,21 @@ export default function EventsScreen() {
               <MaterialCommunityIcons name="close-circle" size={18} color={C.textMuted} />
             </Pressable>
           )}
+        </View>
+
+        {/* Advisor + AI block */}
+        <View style={{ paddingHorizontal: 16, marginTop: 14 }}>
+          <AdvisorAIBlock
+            context="events"
+            advisorTitle="Talk to an Events Advisor"
+            advisorDesc="Need help discovering the right hackathons or workshops? Our advisors curate them for you."
+            aiTitle="Ask the Events AI"
+            aiDesc="What's trending this week? Which event matches my profile? Ask anything 24×7."
+            advisorAccent="#A78BFA"
+            aiAccent="#10B981"
+            advisorIcon="calendar-account"
+            aiIcon="robot-excited"
+          />
         </View>
 
         {/* Tabs */}
