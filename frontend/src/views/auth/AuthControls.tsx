@@ -80,6 +80,7 @@ export function AuthInput({
   autoCapitalize,
   hint,
   error,
+  leftIcon,
   rightSlot,
   onSubmitEditing,
 }: {
@@ -92,6 +93,7 @@ export function AuthInput({
   autoCapitalize?: any;
   hint?: string;
   error?: string;
+  leftIcon?: React.ReactNode;
   rightSlot?: React.ReactNode;
   onSubmitEditing?: () => void;
 }) {
@@ -100,6 +102,7 @@ export function AuthInput({
     <View style={inp.wrap}>
       {label ? <Text style={inp.label}>{label}</Text> : null}
       <View style={[inp.row, focused && inp.rowOn, error && inp.rowErr]}>
+        {leftIcon ? <View style={{ marginRight: 10 }}>{leftIcon}</View> : null}
         <TextInput
           value={value}
           onChangeText={onChangeText}

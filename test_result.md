@@ -521,12 +521,70 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Mentor onboarding 8-step wizard (mentor-onboard.tsx)"
+    - "MentorInfo schema extension (categories, expertise, availability, education_level, profile_photo, college, college_batch)"
+    - "MentorCategory enum extension (interview_prep, creative_design, life_wellness)"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 backend:
+  - task: "Mentor onboarding endpoint accepts new MentorInfo fields"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py (MentorInfo + MentorCategory)"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: |
+            Extended MentorInfo Pydantic model with optional fields needed by the
+            new 8-step wizard: categories (List[MentorCategory], multi-select archetypes),
+            education_level (str), expertise (List[str]), availability (List[str]),
+            profile_photo (base64), college (str), college_batch (int).
+            Extended MentorCategory enum with 3 new slugs:
+            interview_prep, creative_design, life_wellness.
+        - working: true
+          agent: "testing"
+          comment: |
+            VERIFIED end-to-end via /app/backend_test_mentor_onboarding.py against
+            https://hiring-mvvm.preview.emergentagent.com/api.
+            RESULT: 25/25 assertions PASS — all 8 sub-cases green.
+            
+            ✅ TEST 1+2: Register fresh mentor → POST /users/onboarding with full
+               new-field payload → 200 OK (no Pydantic 422).
+            ✅ TEST 3: GET /auth/me returns mentor_info with all new fields preserved
+               verbatim:
+                 · category='interview_prep'
+                 · categories: list of 10 archetype slugs
+                 · expertise: 3 items
+                 · availability: 3 items (mon_18_19, sat_10_12, sun_10_12)
+                 · education_level='btech'
+                 · college='IIT Bombay', college_batch=2018
+                 · session_price_inr=999, organization='Google', job_title='SDE-2'
+                 · years_of_experience=5, bio preserved
+                 · profile_photo: RETAINED VERBATIM (existing behavior keeps base64).
+            ✅ TEST 4: Each new MentorCategory slug accepted INDIVIDUALLY as
+               mentor_info.category — interview_prep / creative_design / life_wellness
+               (3 separate fresh mentors created, each onboarded → 200, slug echoed back).
+            ✅ TEST 5: Backwards compat — mentor01@test.com / TestPass@123 login → 200,
+               GET /auth/me → 200, role=mentor, mentor_info.category='it_software'
+               (legacy single-category schema loads cleanly, no errors).
+            ✅ TEST 6: Regression
+                 · GET /api/mentors/suggestions → 200 (111 orgs + 50 titles)
+                 · GET /api/dashboard (mentor01 bearer) → 200
+                   NOTE: There is no separate /api/mentor/dashboard route — mentors hit
+                   the unified /api/dashboard endpoint, which returns 200.
+            ✅ TEST 7: Edge case — categories=[] (empty list) → 200 OK.
+            ✅ TEST 8: Edge case — category='invalid_slug' → 422 Unprocessable Entity.
+            
+            All 7 newly-added MentorInfo optional fields + 3 new MentorCategory enum
+            slugs work end-to-end. Backwards compat preserved. Zero regressions.
+
+
   - task: "Network — include top-3 badges + total count in user_card payload"
     implemented: true
     working: true
@@ -4434,3 +4492,50 @@ agent_communication:
         review-request stale alias from `college01@test.com` →
         `iitb@university.in` for any future regressions.
 
+
+
+## 2026-05-02 — Mentor Onboarding Wizard build
+
+agent_communication:
+  - agent: "main"
+    message: |
+      Built /app/frontend/app/(onboarding)/mentor-onboard.tsx — 8-step
+      Mentor onboarding wizard matching screenshots in Archive.zip:
+        Step 1: Your Profile (Current Role, Company, College & Batch dropdown,
+                Years of Experience, Session Price ₹ chips)
+        Step 2: Mentorship Archetype (10 multi-select tiles)
+        Step 3: Education Background (8 cards)
+        Step 4: Your Expertise (9 chip multi-select)
+        Step 5: Your Availability (7 day-slot tiles)
+        Step 6: Profile Photo (selfie/upload)
+        Step 7: Your Bio (300-char textarea + 5 writing-style chips)
+        Step 8: Your SA Badge (Bronze/Silver/Gold/Platinum recap + perks)
+
+      Backend changes in /app/backend/server.py:
+        - Extended MentorCategory enum with 3 new slugs:
+          interview_prep, creative_design, life_wellness
+        - Extended MentorInfo model with optional fields:
+          categories: Optional[List[MentorCategory]]    (multi-select archetypes)
+          education_level: Optional[str]
+          expertise: Optional[List[str]]
+          availability: Optional[List[str]]
+          profile_photo: Optional[str]
+          college: Optional[str]
+          college_batch: Optional[int]
+
+      Frontend tweaks:
+        - AuthInput now accepts a leftIcon prop (used for briefcase, building,
+          clock icons in Step 1).
+        - referral-code.tsx routes role=="mentor" → /(onboarding)/mentor-onboard
+          (previously routed to /(onboarding)/quick-setup).
+        - welcome-dashboard.tsx orphan restartBtn / restartText styles +
+          comment removed (no Restart Flow anywhere).
+
+      Need backend testing on:
+        - POST /users/onboarding succeeds with full mentor payload incl. new
+          fields (categories, expertise, availability, education_level,
+          profile_photo, college, college_batch).
+        - GET /api/users/me returns the mentor_info block with new fields.
+        - Each of the 3 new MentorCategory enum slugs is accepted.
+        - Backwards-compat: existing mentors load fine.
+        - Existing mentor endpoints (/api/mentors/suggestions etc.) not regressed.

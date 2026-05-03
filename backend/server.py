@@ -125,6 +125,11 @@ MentorCategory = Literal[
     "career_coach", "higher_education",
     "startup_mentor", "startup_advisor",
     "business_mentor", "industry_advisor",
+    # Per Mentor Onboarding spec — 10 archetype tiles. Below are the 3 new
+    # archetype slugs that don't map cleanly to legacy values above.
+    "interview_prep",       # Mock interviews, DSA, system design rounds
+    "creative_design",      # UX/UI, branding, creative careers & portfolios
+    "life_wellness",        # Work-life balance, mental health & mindfulness
     # Backward-compat aliases (read-only — old data may still have these)
     "startup", "business", "education", "startup_business",
 ]
@@ -153,7 +158,7 @@ class SchoolInfo(BaseModel):
 
 class MentorInfo(BaseModel):
     """Mentor-specific fields per spec — requires admin approval."""
-    category: MentorCategory  # IT/Software, Higher Ed, Startup/Business, Education
+    category: MentorCategory  # Primary archetype (derived from categories[0] if multi-select used)
     organization: str  # Mandatory: company / institution name
     job_title: str  # Mandatory: designation
     linkedin_url: Optional[str] = None  # Recommended for credibility
@@ -162,6 +167,21 @@ class MentorInfo(BaseModel):
     # Per HTML spec — 1:1 session price in INR (revenue-critical).
     # Suggested chips: 499 / 799 / 999 / 1499; free custom values allowed.
     session_price_inr: Optional[int] = None
+    # Per Mentor Onboarding 8-step wizard (Step 2: "Mentorship Archetype")
+    # — multi-select tile grid; mentor can pick all that apply.
+    categories: Optional[List[MentorCategory]] = None
+    # Step 3: Education Background (single select; same taxonomy as students)
+    education_level: Optional[str] = None
+    # Step 4: "Your Expertise" — chip multi-select (free-form skill labels)
+    expertise: Optional[List[str]] = None
+    # Step 5: Availability — list of weekly recurring slot keys
+    # e.g. ["mon_18_19", "sat_10_12"] — see frontend AVAILABILITY_SLOTS map.
+    availability: Optional[List[str]] = None
+    # Step 6: Profile photo (base64) — also stored on user.face_image_base64
+    profile_photo: Optional[str] = None
+    # Step 7: College & Batch (institution name + graduation year)
+    college: Optional[str] = None
+    college_batch: Optional[int] = None  # graduation year
 
 
 class CollegeInfo(BaseModel):

@@ -8,15 +8,14 @@
  *   "You're all set as a {Role}."
  *   "Redirecting to your {Role} Dashboard..."
  *   + 5 quick-link chips (Career AI · Internships · Network · Events · Wallet)
- *   + ← Restart Flow (dev helper)
  *
  * Auto-redirects to the correct portal after 3s.
  */
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AuthShell } from '@/src/views/auth/AuthShell';
-import { AC, FONTS } from '@/src/views/auth/tokens';
+import { FONTS } from '@/src/views/auth/tokens';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 const CHIPS = [
@@ -96,6 +95,4 @@ const s = StyleSheet.create({
   },
   chipEmoji: { fontSize: 13 },
   chipLabel: { color: '#E9D5FF', fontFamily: FONTS.med, fontSize: 12.5 },
-  restartBtn: { paddingHorizontal: 18, paddingVertical: 10 },
-  restartText: { color: AC.muted, fontFamily: FONTS.med, fontSize: 13 },
 });

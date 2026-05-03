@@ -43,9 +43,13 @@ export default function ReferralCode() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: trimmed }),
       }).catch(() => {});
-      // Route by role — students get the 7-step spec-compliant wizard, others
-      // use the shorter flat quick-setup form.
-      const dest = role === 'student' ? '/(onboarding)/student-onboard' : '/(onboarding)/quick-setup';
+      // Route by role — students get the spec-compliant 7-step wizard,
+      // mentors get the spec-compliant 8-step wizard, others use the
+      // shorter flat quick-setup form (until their wizards are built).
+      const dest =
+        role === 'student' ? '/(onboarding)/student-onboard' :
+        role === 'mentor'  ? '/(onboarding)/mentor-onboard'  :
+        '/(onboarding)/quick-setup';
       router.replace(dest as any);
     } catch {
       setError('Could not apply code. Try again or skip.');
