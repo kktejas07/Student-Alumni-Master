@@ -5,21 +5,36 @@
  * If the API call fails (network issue, server down, etc.) the consumer
  * can opt to fall back to local mock — this is what the dashboard views do
  * so the UI never appears empty during development.
+ *
+ * Auth: All requests automatically attach the JWT bearer token stored in
+ * AsyncStorage / localStorage under `scd_access_token` (set during login).
  */
 import { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BASE = (process.env.EXPO_PUBLIC_BACKEND_URL || '').replace(/\/$/, '');
 
+async function getAuthHeader(): Promise<Record<string, string>> {
+  try {
+    const t = await AsyncStorage.getItem('scd_access_token');
+    return t ? { Authorization: `Bearer ${t}` } : {};
+  } catch {
+    return {};
+  }
+}
+
 export async function fetchPortal<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}/api${path}`);
+  const auth = await getAuthHeader();
+  const res = await fetch(`${BASE}/api${path}`, { headers: { ...auth } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
 
 export async function postPortal<T = any>(path: string, body?: any): Promise<T> {
+  const auth = await getAuthHeader();
   const res = await fetch(`${BASE}/api${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...auth },
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);

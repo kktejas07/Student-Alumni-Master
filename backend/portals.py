@@ -274,7 +274,9 @@ async def mentor_dashboard(mentor_email: Optional[str] = None):
 # ─── 2. STUDENT DASHBOARD ────────────────────────────────────────
 @router.get("/student/dashboard")
 async def student_dashboard(student_email: Optional[str] = None):
-    """Real student dashboard."""
+    """Real student dashboard. Uses `student_email` query param if provided
+    (frontend passes the logged-in user's email); otherwise falls back to
+    any onboarded student in the DB for unauthenticated public preview."""
     student = None
     if student_email:
         student = await _db.users.find_one({"email": student_email, "role": "student"})

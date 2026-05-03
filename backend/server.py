@@ -3241,10 +3241,82 @@ async def get_cached_suggestions(user: dict = Depends(get_current_user)):
     return await db.career_suggestions.find_one({"user_id": str(user["_id"])}, {"_id": 0}) or {}
 
 
+@api_router.post("/ai/daily-brief")
+async def ai_daily_brief(
+    body: Dict[str, Any] = None,
+    user: dict = Depends(get_current_user),
+):
+    """
+    Generate (or return cached) a personalized AI daily brief for the user.
+
+    Caches per (user_id + UTC-date) so it's computed at most once a day.
+    Pass `{"force": true}` in the body to regenerate.
+
+    Output: { brief: str, generated_at: iso, cached: bool }
+    """
+    body = body or {}
+    force = bool(body.get("force"))
+
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    cache_key = {"user_id": str(user["_id"]), "date": today}
+
+    if not force:
+        existing = await db.daily_briefs.find_one(cache_key)
+        if existing and existing.get("brief"):
+            return {
+                "brief": existing["brief"],
+                "generated_at": existing.get("generated_at"),
+                "cached": True,
+            }
+
+    # Build profile context
+    full_name = user.get("full_name") or "there"
+    role = user.get("role") or "student"
+    interests = ", ".join((user.get("interests") or [])[:6]) or "general tech"
+    skills = ", ".join((user.get("skills") or [])[:6]) or "core CS"
+    institution = user.get("institution") or (user.get("school_info") or {}).get("institution_name") or ""
+    branch = user.get("branch") or (user.get("school_info") or {}).get("branch_or_stream") or ""
+    grad_year = user.get("graduation_year") or ""
+    si = user.get("student_info") or {}
+    goal = si.get("career_goal") or "Software Engineer at a top tech company"
+
+    system_msg = (
+        "You are an upbeat AI career coach for the Student Alumni platform. "
+        "Write a 2-3 sentence personalised morning brief tailored to the user. "
+        "Keep it warm, action-oriented, and end with a single concrete suggestion. "
+        "Plain text only — no markdown, no lists, no emojis."
+    )
+    prompt = (
+        f"User: {full_name}\nRole: {role}\nInstitution: {institution} ({branch}, class of {grad_year})\n"
+        f"Interests: {interests}\nKey skills: {skills}\nGoal: {goal}\n\n"
+        "Write today's morning brief now."
+    )
+
+    try:
+        from emergentintegrations.llm.chat import UserMessage
+        chat = await get_claude_chat(f"daily-{user['_id']}-{today}", system_msg)
+        brief_text = await chat.send_message(UserMessage(text=prompt))
+        brief_text = (brief_text or "").strip().strip('"').strip()
+        if not brief_text:
+            raise ValueError("empty response")
+    except Exception as e:
+        logger.error(f"daily-brief AI failed: {e}")
+        brief_text = (
+            f"Good morning, {full_name.split(' ')[0]}! Today's a great day to push forward on your "
+            f"{interests.split(',')[0].strip()} goals. Try one focused 25-minute deep-work session before lunch."
+        )
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.daily_briefs.update_one(
+        cache_key,
+        {"$set": {**cache_key, "brief": brief_text, "generated_at": now_iso}},
+        upsert=True,
+    )
+    return {"brief": brief_text, "generated_at": now_iso, "cached": False}
+
+
 @api_router.post("/ai/chat", response_model=ChatResponse)
 async def ai_chat(req: ChatRequest, user: dict = Depends(get_current_user)):
-    """Conversational AI chatbot. Persona adapts to user's chosen career path."""
-    session_id = req.session_id or f"chat-{user['_id']}-{secrets.token_hex(4)}"
     career_path = user.get("career_path") or "job"
     base = CAREER_PATH_SYSTEM_PROMPTS.get(career_path, CAREER_PATH_SYSTEM_PROMPTS["job"])
     system_msg = (

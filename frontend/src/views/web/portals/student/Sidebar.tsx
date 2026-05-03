@@ -3,6 +3,7 @@
  */
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-native';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import {
   LayoutDashboard, Sparkles, Briefcase, Users, Calendar, Wallet,
   Tag, CreditCard, GraduationCap, Home, User, ExternalLink, LogOut,
@@ -37,6 +38,16 @@ export const NAV: Array<{ id: StudentNavId; label: string; Icon: any }> = [
 export function Sidebar({
   active, onNav, onLogout,
 }: { active: StudentNavId; onNav: (id: StudentNavId) => void; onLogout: () => void }) {
+  // Live auth user → name, initials, year, student id
+  const user = useAuthStore((u) => u.user) as any;
+  const fullName: string = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || STUDENT.name;
+  const initials: string = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
+  const gy = user?.graduation_year || (user?.school_info || {}).graduation_year;
+  const yearLabel: string = (gy && Number(gy) === new Date().getFullYear()) ? 'Final Year'
+    : (gy && Number(gy) === new Date().getFullYear() + 1) ? 'Pre-Final Year'
+    : (gy ? `Class of ${gy}` : STUDENT.year);
+  const saId: string = user?.unique_id || STUDENT.saId;
+
   return (
     <View style={s.aside}>
       {/* Brand */}
@@ -52,12 +63,12 @@ export function Sidebar({
       <View style={s.profileCard}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <View style={{ position: 'relative' }}>
-            <Av initials={STUDENT.initials} size={40} color={SC.primaryL} />
+            <Av initials={initials} size={40} color={SC.primaryL} />
             <View style={s.statusDot} />
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text numberOfLines={1} style={s.profileName}>{STUDENT.name}</Text>
-            <Text style={s.profileYear}>{STUDENT.year}</Text>
+            <Text numberOfLines={1} style={s.profileName}>{fullName}</Text>
+            <Text style={s.profileYear}>{yearLabel}</Text>
           </View>
         </View>
       </View>
@@ -66,7 +77,7 @@ export function Sidebar({
       <Pressable style={({ hovered }: any) => [s.idCardPill, hovered && { backgroundColor: SC.cardH }]}>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.idCardLabel}>My Student Card</Text>
-          <Text style={s.idCardNumber}>{STUDENT.saId}</Text>
+          <Text style={s.idCardNumber}>{saId}</Text>
         </View>
         <ExternalLink size={13} color={SC.accent} />
       </Pressable>

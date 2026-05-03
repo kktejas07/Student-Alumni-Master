@@ -22,6 +22,8 @@ import * as MOCK from '../data';
 import { usePortalData } from '@/src/lib/portalApi';
 import { TierBadge } from '@/src/views/web/TierBadge';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const KPI_ICONS = { matches: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp } as const;
 
@@ -35,7 +37,12 @@ const STUDENT_MOCK = {
 };
 
 export function DashboardView() {
-  const { data } = usePortalData<typeof STUDENT_MOCK>('/student/dashboard', STUDENT_MOCK);
+  // Authenticated user — drives per-user dashboard data.
+  const authUser = useAuthStore((u) => u.user);
+  const dashPath = authUser?.email
+    ? `/student/dashboard?student_email=${encodeURIComponent(authUser.email)}`
+    : '/student/dashboard';
+  const { data } = usePortalData<typeof STUDENT_MOCK>(dashPath, STUDENT_MOCK);
   // Live counters polled every 15s so users can SEE auto-refresh working
   const { data: live } = usePortalData<any>('/live/counters', null as any, 15_000);
   const STUDENT = data!.student;
@@ -69,12 +76,17 @@ export function DashboardView() {
             try {
               setBriefLoading(true);
               const base = (process.env.EXPO_PUBLIC_BACKEND_URL || '').replace(/\/$/, '');
+              const token = await AsyncStorage.getItem('scd_access_token');
               const r = await fetch(`${base}/api/ai/daily-brief`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ role: 'student' }),
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({ force: false }),
               });
               const j = await r.json();
-              setBriefText(j?.brief || 'Could not generate brief.');
+              setBriefText(j?.brief || j?.detail || 'Could not generate brief.');
             } catch (e: any) { setBriefText('Error: ' + (e?.message || 'unknown')); }
             finally { setBriefLoading(false); }
           }}

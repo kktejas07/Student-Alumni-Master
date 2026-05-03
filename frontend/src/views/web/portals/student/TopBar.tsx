@@ -2,11 +2,12 @@
  * Student Portal — top bar with greeting + bell + search + avatar.
  */
 import React from 'react';
-import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-native';
+import { View, Text, Pressable, TextInput, StyleSheet, Platform, Image } from 'react-native';
 import { Bell, Search } from 'lucide-react-native';
 import { SC, FONTS } from './tokens';
 import { STUDENT } from './data';
 import { Av } from './atoms';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -16,7 +17,15 @@ function greeting(): string {
 }
 
 export function TopBar() {
-  const firstName = STUDENT.name.split(' ')[0];
+  // Live auth user → name, avatar, initials.
+  const user = useAuthStore((u) => u.user) as any;
+  const fullName: string = (user?.full_name
+    || `${user?.first_name || ''} ${user?.last_name || ''}`).trim()
+    || STUDENT.name;
+  const firstName: string = fullName.split(' ')[0] || STUDENT.name.split(' ')[0];
+  const initials: string = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
+  const photo: string | undefined = user?.photo_data || user?.face_image_base64;
+
   return (
     <View style={s.bar}>
       <View style={{ flex: 1, minWidth: 0 }}>
@@ -34,7 +43,11 @@ export function TopBar() {
         <View style={s.bellDot} />
       </Pressable>
 
-      <Av initials={STUDENT.initials} size={36} color={SC.primary} />
+      {photo ? (
+        <Image source={{ uri: photo }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+      ) : (
+        <Av initials={initials} size={36} color={SC.primary} />
+      )}
     </View>
   );
 }
