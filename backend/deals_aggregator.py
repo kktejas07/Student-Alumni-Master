@@ -722,8 +722,8 @@ def apply_tags(deal: Dict[str, Any], all_deals: List[Dict[str, Any]]) -> List[st
 
         same_cat = [d for d in all_deals if d.get("category") == deal.get("category")]
         same_cat_sorted = sorted(same_cat, key=lambda x: -int(x.get("absolute_savings_inr") or 0))[:3]
-        top_ids = {d["deal_id"] for d in same_cat_sorted}
-        if deal["deal_id"] in top_ids and (deal.get("absolute_savings_inr") or 0) > 0:
+        top_ids = {d.get("deal_id") for d in same_cat_sorted if d.get("deal_id")}
+        if deal.get("deal_id") in top_ids and (deal.get("absolute_savings_inr") or 0) > 0:
             tags.append("BEST_VALUE")
 
     # Dedup while preserving order
@@ -793,6 +793,8 @@ async def _is_cache_fresh() -> bool:
         return False
     last = meta["last_refresh_at"]
     if isinstance(last, datetime):
+        if last.tzinfo is None:
+            last = last.replace(tzinfo=timezone.utc)
         return (datetime.now(timezone.utc) - last) < timedelta(minutes=CACHE_TTL_MIN)
     return False
 
@@ -1053,14 +1055,17 @@ async def deals_ai_generate(
     now = datetime.now(timezone.utc)
     if cache and not force:
         exp = cache.get("expires_at")
-        if isinstance(exp, datetime) and exp > now:
-            return {
-                "ok": True,
-                "cached": True,
-                "expires_at": exp.isoformat(),
-                "generated_count": int(cache.get("generated_count", 0)),
-                "deals": cache.get("deals", []),
-            }
+        if isinstance(exp, datetime):
+            if exp.tzinfo is None:
+                exp = exp.replace(tzinfo=timezone.utc)
+            if exp > now:
+                return {
+                    "ok": True,
+                    "cached": True,
+                    "expires_at": exp.isoformat(),
+                    "generated_count": int(cache.get("generated_count", 0)),
+                    "deals": cache.get("deals", []),
+                }
 
     api_key = os.environ.get("EMERGENT_LLM_KEY")
     if not api_key:

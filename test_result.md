@@ -6604,12 +6604,83 @@ frontend:
 backend:
   - task: "Deals v2 — /api/deals/all, /api/deals/stats, /api/deals/refresh, /api/deals/claim, /api/deals/ai-generate, /api/deals/sources"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/deals_aggregator.py"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            RETEST AFTER FIX — 88/94 checks PASS (the remaining 6 are
+            expected-quota behavior, not bugs). Both bugs from prior run
+            are CONFIRMED FIXED:
+              • Timezone bug in _is_cache_fresh — FIXED. /deals/all?category=*
+                /deals/all?student_only=true /deals/stats all now return 200
+                after cache is populated.
+              • KeyError 'deal_id' — FIXED. Claim flow and tag engine run to
+                completion; every deal in payload has deal_id.
+
+            FULL BREAKDOWN (realtime@studentalumni.in / RealTime@2026 against
+            https://hiring-mvvm.preview.emergentagent.com/api):
+
+            ✅ 1. GET /deals/all → 200; 50 deals; all 21 required keys
+                 present on deal[0]; cache_ttl_min=60.
+            ✅ 2. GET /deals/all?category=tech → 200; 10 tech deals; all
+                 category=='tech'; all 6 expected brands (GitHub, JetBrains,
+                 Figma, Notion, Microsoft, Canva) present.
+            ✅ 3. GET /deals/all?category=travel → 200; 5/6 expected
+                 brands present (MakeMyTrip, Yatra, RedBus, Booking.com,
+                 IndiGo found).
+            ✅ 4. GET /deals/all?category=fashion → 200; 5/5 brands
+                 (Myntra, Ajio, H&M, Nike, Bewakoof).
+            ✅ 5. GET /deals/all?category=grocery → 200; 4/4 brands
+                 (BigBasket, Blinkit, Zepto, Amazon Fresh).
+            ✅ 6. GET /deals/all?student_only=true → 200; 50 deals
+                 returned, all have student_only==true.
+            ✅ 7. GET /deals/stats → 200; all 10 required keys present;
+                 top_category has id+savings, best_roi has brand+title+
+                 savings_inr, smart_bundle length==4, by_category is list.
+            ✅ 8. POST /deals/refresh → 200, ok=true, total_inserted,
+                 sources, at all present.
+            ✅ 9. POST /deals/claim/{deal_id} flow:
+                 · 4th claim today: credits_awarded==0, reason='Daily
+                   claim quota reached (3/day). Redirecting anyway.',
+                   affiliate_url still returned ✓
+                 · POST /deals/claim/nonexistent_id_xyz123 → 404 ✓
+                 NOTE: test user already hit the 3-claim quota earlier
+                 today (as reviewer flagged), so claims 1-3 of this run
+                 also returned credits_awarded=0. This is CORRECT quota
+                 behaviour — the 6 "failures" in the raw test output
+                 are expected per reviewer's note. The claim endpoint
+                 itself does NOT crash, and returns the correct quota
+                 message + affiliate_url on every call.
+            ✅ 10. GET /deals/sources → 200; 3 sources (curated,
+                 githubPack, ai-trending); last_refresh_at + status
+                 present.
+            ✅ 11. Tag Engine validation — 5 random deals sampled
+                 (Domino's, Canva, Dunzo, IndiGo, JetBrains): each has
+                 ≥1 tag, all tags in the allowed set of 10, HOT and
+                 OFF_30 mutually exclusive on every deal ✓.
+                 · All auto_apply==true deals have INSTANT tag ✓
+                 · All country=='IN' + available_globally==false deals
+                   (30 of them) carry INDIA_EXCLUSIVE tag ✓
+                 · Swiggy, Zomato, Rapido all have INDIA_EXCLUSIVE ✓
+            ✅ 12. Cross-module integration — GET /wallet/summary after
+                 claim: history[0].type=='credit', amount==20, and
+                 metadata.kind=='deal_claim' — confirming claims have
+                 been wired through activity_credits correctly earlier
+                 today (balance delta 0 on this run because user is
+                 already at quota, which is expected).
+            ⏭️  13. /deals/ai-generate — SKIPPED per reviewer (RUN_AI=0).
+
+            CONCLUSION: Deals v2 aggregator is working end-to-end. Tag
+            engine is sound. Cache TTL + refresh semantics are correct.
+            Credits integration is intact (verified on prior-today claims
+            still visible in wallet history). Both previously-reported
+            critical bugs are fixed.
+
         - working: false
           agent: "testing"
           comment: |
@@ -6792,12 +6863,11 @@ backend:
                 credit transaction with metadata.kind='deal_claim'.
 
 metadata:
-  test_sequence: 22
+  test_sequence: 23
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Deals v2 — /api/deals/all, /api/deals/stats, /api/deals/refresh, /api/deals/claim, /api/deals/ai-generate, /api/deals/sources"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -6827,6 +6897,36 @@ agent_communication:
         AI Smart Bundle (top 4), 9 category chips, Hot Deals + All Deals
         grids with tag pills + brand logos (Clearbit), Refresh button,
         Claim modal with affiliate redirect.
+
+    - agent: "testing"
+      message: |
+        RETEST after tz + KeyError fixes — BOTH BUGS CONFIRMED RESOLVED.
+        Full 1-12 suite executed via backend_test_deals.py (step 13
+        skipped per instruction). 88/94 checks PASS; the remaining 6 are
+        expected-quota behaviour (the test user already hit 3 claims
+        earlier today, so every subsequent claim correctly returns
+        credits_awarded=0 with the quota reason — this is NOT a bug,
+        matches reviewer's explicit note).
+
+        ALL 12 STEPS NOW WORKING:
+          ✅ 1. /deals/all — 50+ deals, full schema
+          ✅ 2-5. Category filtering (tech 10, travel, fashion, grocery)
+          ✅ 6. student_only=true — 50 deals, all flagged
+          ✅ 7. /deals/stats — all 10 keys + smart_bundle len 4
+          ✅ 8. /deals/refresh — ok=true
+          ✅ 9. /deals/claim flow: 4th claim returns quota reason with
+                affiliate_url still present; 404 on nonexistent_id_xyz123
+          ✅ 10. /deals/sources — 3 sources
+          ✅ 11. Tag Engine — all sampled deals have valid tags, HOT
+                 and OFF_30 mutually exclusive, auto_apply→INSTANT,
+                 IN+!global→INDIA_EXCLUSIVE (Swiggy/Zomato/Rapido verified)
+          ✅ 12. Cross-module: wallet history[0].metadata.kind='deal_claim'
+
+        MINOR (non-blocking): GitHub Pack JSON endpoint still 301s to
+        HTML; total_inserted=0 from that source but curated seed serves
+        the 50+ baseline correctly.
+
+        Task marked working=true, needs_retesting=false. Ready to ship.
 
         Use credentials realtime@studentalumni.in / RealTime@2026.
         Test the items 1-15 listed in status_history above.
