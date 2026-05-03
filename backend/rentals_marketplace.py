@@ -589,6 +589,10 @@ async def rentals_ai_recommend(body: Dict[str, Any], user: dict = Depends(_auth(
     cat = (prefs.get("category") or "").strip().lower()
     vibe = (prefs.get("vibe") or "").strip().lower()
 
+    # Hard filter by category when caller is explicit about it
+    if cat and cat != "all":
+        items = [i for i in items if i.get('category', '') == cat]
+
     def _score(it: Dict[str, Any]) -> float:
         s = 0.0
         if budget and it.get('rent_inr', 0) <= budget:
