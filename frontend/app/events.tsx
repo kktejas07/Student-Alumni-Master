@@ -164,7 +164,7 @@ export default function EventsScreen() {
   const cols = winW >= 1280 ? 3 : winW >= 800 ? 2 : 1;
   const featCols = winW >= 1280 ? 5 : winW >= 800 ? 3 : 1.5; // mobile shows 1.5 to hint scroll
 
-  const [tab, setTab] = useState<'all' | 'saved' | 'registered'>('all');
+  const [tab, setTab] = useState<'all' | 'saved' | 'registered' | 'hosted' | 'approvals'>('all');
   const [type, setType] = useState<string>('all');
   const [scope, setScope] = useState<'india' | 'global'>('india');
   const [city, setCity] = useState<string>('All');
@@ -175,6 +175,10 @@ export default function EventsScreen() {
   const [aiOn, setAiOn] = useState<boolean>(false);
   const [search, setSearch] = useState<string>('');
   const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [showHostModal, setShowHostModal] = useState(false);
+  const [me, setMe] = useState<any>(null);
+  const [hostedItems, setHostedItems] = useState<EventItem[]>([]);
+  const [pendingItems, setPendingItems] = useState<EventItem[]>([]);
 
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [featured, setFeatured] = useState<EventItem[]>([]);
@@ -286,10 +290,37 @@ export default function EventsScreen() {
     } catch (e) { handleAuthErr(e); }
   }, [handleAuthErr]);
 
+  const loadHosted = useCallback(async () => {
+    try {
+      const r = await request<{ items: EventItem[] }>('/events/me/hosted');
+      setHostedItems(r.items || []);
+    } catch (e) { handleAuthErr(e); }
+  }, [handleAuthErr]);
+
+  const loadPending = useCallback(async () => {
+    try {
+      const r = await request<{ items: EventItem[] }>('/admin/events/pending');
+      setPendingItems(r.items || []);
+    } catch (e) { handleAuthErr(e); }
+  }, [handleAuthErr]);
+
+  const loadMe = useCallback(async () => {
+    try {
+      const r = await request<any>('/auth/me');
+      setMe(r);
+    } catch (e) { handleAuthErr(e); }
+  }, [handleAuthErr]);
+
   useEffect(() => { load(); }, [load]);
   useEffect(() => { loadAi(); }, [loadAi]);
+  useEffect(() => { loadMe(); }, [loadMe]);
   useEffect(() => { if (tab === 'saved') loadSaved(); }, [tab, loadSaved]);
   useEffect(() => { if (tab === 'registered') loadRegistered(); }, [tab, loadRegistered]);
+  useEffect(() => { if (tab === 'hosted') loadHosted(); }, [tab, loadHosted]);
+  useEffect(() => { if (tab === 'approvals') loadPending(); }, [tab, loadPending]);
+
+  const canHost = me?.role === 'mentor' || me?.role === 'college' || me?.role === 'alumni' || me?.role === 'admin';
+  const isAdmin = me?.role === 'admin';
 
   // Polling every 30s for new events (silent)
   useEffect(() => {
@@ -388,9 +419,46 @@ export default function EventsScreen() {
   const listToShow: EventItem[] = useMemo(() => {
     if (tab === 'saved') return savedItems;
     if (tab === 'registered') return registeredItems;
+    if (tab === 'hosted') return hostedItems;
+    if (tab === 'approvals') return pendingItems;
     if (aiOn) return aiRecs;
     return more;
-  }, [tab, aiOn, more, aiRecs, savedItems, registeredItems]);
+  }, [tab, aiOn, more, aiRecs, savedItems, registeredItems, hostedItems, pendingItems]);
+
+  const handleApprove = async (ev: EventItem) => {
+    try {
+      await request<any>(`/admin/events/${ev.event_id}/approve`, { method: 'POST' });
+      showToast('✓ Event approved & published');
+      loadPending();
+      load();
+    } catch (e: any) { showToast(e?.message || 'Approve failed'); }
+  };
+
+  const handleReject = async (ev: EventItem) => {
+    try {
+      await request<any>(`/admin/events/${ev.event_id}/reject`, {
+        method: 'POST', body: { reason: 'Rejected by admin' },
+      });
+      showToast('✗ Event rejected');
+      loadPending();
+    } catch (e: any) { showToast(e?.message || 'Reject failed'); }
+  };
+
+  const handleHostCreate = async (form: any) => {
+    try {
+      const r = await request<any>('/events', { method: 'POST', body: form });
+      if (r.needs_approval) {
+        showToast('Submitted for admin approval');
+      } else {
+        showToast('✓ Event published successfully!');
+      }
+      setShowHostModal(false);
+      loadHosted();
+      load();
+    } catch (e: any) {
+      showToast(e?.message || 'Failed to create event');
+    }
+  };
 
   return (
     <SafeAreaView style={s.root} edges={['top']}>
@@ -404,6 +472,12 @@ export default function EventsScreen() {
             <Text style={s.h1}>Events</Text>
             <Text style={s.subtitle}>Discover hackathons, talks, workshops & meetups</Text>
           </View>
+          {canHost && (
+            <Pressable onPress={() => setShowHostModal(true)} style={s.hostBtn}>
+              <MaterialCommunityIcons name="plus-circle" size={16} color="#fff" />
+              <Text style={s.hostBtnText}>{me?.role === 'college' ? 'Publish Event' : 'Host Event'}</Text>
+            </Pressable>
+          )}
           {newCount > 0 && (
             <Pressable onPress={() => { setNewCount(0); load(); }} style={s.newPill}>
               <MaterialCommunityIcons name="bell-ring" size={14} color="#fff" />
@@ -432,10 +506,12 @@ export default function EventsScreen() {
         {/* Tabs */}
         <View style={s.tabsRow}>
           {[
-            { id: 'all', label: 'Discover', n: counts.all || 0 },
-            { id: 'saved', label: 'Saved', n: savedItems.length },
-            { id: 'registered', label: 'Registered', n: registeredItems.length },
-          ].map((t) => (
+            { id: 'all', label: 'Discover', n: counts.all || 0, show: true },
+            { id: 'saved', label: 'Saved', n: savedItems.length, show: true },
+            { id: 'registered', label: 'Registered', n: registeredItems.length, show: true },
+            { id: 'hosted', label: 'My Events', n: hostedItems.length, show: canHost },
+            { id: 'approvals', label: 'Approvals', n: pendingItems.length, show: isAdmin },
+          ].filter((t) => t.show).map((t) => (
             <Pressable
               key={t.id}
               onPress={() => setTab(t.id as any)}
@@ -621,6 +697,18 @@ export default function EventsScreen() {
                       onPress={() => setSelected(ev)}
                       onSave={(e) => handleSave(ev, e)}
                     />
+                    {tab === 'approvals' && (
+                      <View style={s.approvalRow}>
+                        <Pressable onPress={() => handleApprove(ev)} style={[s.approveBtn, { backgroundColor: C.green }]}>
+                          <MaterialCommunityIcons name="check" size={14} color="#fff" />
+                          <Text style={s.approveBtnText}>Approve</Text>
+                        </Pressable>
+                        <Pressable onPress={() => handleReject(ev)} style={[s.approveBtn, { backgroundColor: C.red }]}>
+                          <MaterialCommunityIcons name="close" size={14} color="#fff" />
+                          <Text style={s.approveBtnText}>Reject</Text>
+                        </Pressable>
+                      </View>
+                    )}
                   </View>
                 ))}
               </View>
@@ -662,6 +750,16 @@ export default function EventsScreen() {
           onClose={() => setShowFilterPanel(false)}
           onClear={resetAllFilters}
           activeCount={activeFilterCount}
+        />
+      </Modal>
+
+      {/* Host Event Modal */}
+      <Modal visible={showHostModal} transparent animationType="slide" onRequestClose={() => setShowHostModal(false)}>
+        <HostEventModal
+          isWide={winW >= 900}
+          role={me?.role || ''}
+          onClose={() => setShowHostModal(false)}
+          onSubmit={handleHostCreate}
         />
       </Modal>
 
@@ -1206,6 +1304,248 @@ function FilterPanel({
 
 
 
+// ─── HostEventModal: form for mentors / colleges / alumni / admin ────
+function HostEventModal({
+  isWide, role, onClose, onSubmit,
+}: {
+  isWide: boolean;
+  role: string;
+  onClose: () => void;
+  onSubmit: (form: any) => void;
+}) {
+  const [form, setForm] = useState<any>({
+    title: '', description: '', event_type: 'workshop',
+    location_country: 'India', location_city: 'Bangalore',
+    event_date_start: '', event_date_end: '',
+    price_type: 'free', price_amount: 0,
+    capacity: 100, registration_url: '', image_url: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const isCollege = role === 'college';
+  const allowedTypes = isCollege
+    ? ['hackathon', 'fest', 'codethon', 'workshop', 'training', 'meetup']
+    : ['workshop', 'tech_talk', 'founder_talk', 'training', 'meetup', 'boot_camp'];
+
+  const update = (k: string, v: any) => setForm({ ...form, [k]: v });
+
+  const submit = async () => {
+    if (!form.title.trim()) { setErr('Please enter a title'); return; }
+    if (!form.event_date_start) { setErr('Please pick a start date'); return; }
+    setErr(null); setSubmitting(true);
+    const startIso = new Date(form.event_date_start).toISOString();
+    const endIso = form.event_date_end ? new Date(form.event_date_end).toISOString() : startIso;
+    try {
+      await onSubmit({
+        ...form,
+        event_date_start: startIso,
+        event_date_end: endIso,
+        price_amount: form.price_type === 'paid' ? Number(form.price_amount) || 0 : 0,
+        capacity: Number(form.capacity) || 0,
+      });
+    } finally { setSubmitting(false); }
+  };
+
+  return (
+    <Pressable onPress={onClose} style={s.modalBackdrop}>
+      <Pressable onPress={(e) => e.stopPropagation()} style={[
+        s.panel,
+        isWide ? { right: 0, top: 0, height: '100%', width: 560, position: 'absolute' as any } :
+                 { bottom: 0, left: 0, right: 0, height: '94%', position: 'absolute' as any },
+      ]}>
+        <View style={{ padding: 18, borderBottomWidth: 1, borderBottomColor: C.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View>
+            <Text style={{ color: C.text, fontSize: 18, fontWeight: '700' }}>
+              {isCollege ? 'Publish Event' : 'Host an Event'}
+            </Text>
+            <Text style={{ color: C.textMuted, fontSize: 12, marginTop: 2 }}>
+              {isCollege ? 'Submitted for admin approval' : 'Goes live immediately'}
+            </Text>
+          </View>
+          <Pressable onPress={onClose} hitSlop={10}>
+            <MaterialCommunityIcons name="close" size={22} color={C.text} />
+          </Pressable>
+        </View>
+
+        <ScrollView contentContainerStyle={{ padding: 18, gap: 14, paddingBottom: 120 }}>
+          {/* Title */}
+          <View>
+            <Text style={s.fpSectionTitle}>Title <Text style={{ color: C.red }}>*</Text></Text>
+            <TextInput
+              value={form.title}
+              onChangeText={(v) => update('title', v)}
+              placeholder="e.g. AI/ML Bootcamp 2026"
+              placeholderTextColor={C.textDim}
+              style={s.formInput}
+            />
+          </View>
+
+          {/* Description */}
+          <View>
+            <Text style={s.fpSectionTitle}>Description</Text>
+            <TextInput
+              value={form.description}
+              onChangeText={(v) => update('description', v)}
+              placeholder="What attendees will learn / experience"
+              placeholderTextColor={C.textDim}
+              multiline numberOfLines={4}
+              style={[s.formInput, { minHeight: 88, textAlignVertical: 'top' }]}
+            />
+          </View>
+
+          {/* Event Type */}
+          <View>
+            <Text style={s.fpSectionTitle}>Event Type</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+              {allowedTypes.map((t) => {
+                const active = form.event_type === t;
+                const tint = TYPE_TINTS[t];
+                return (
+                  <Pressable key={t} onPress={() => update('event_type', t)}
+                    style={[s.tagChip, active && { backgroundColor: tint, borderColor: tint }]}>
+                    <Text style={[s.tagChipText, active && { color: '#fff' }]}>{TYPE_LABELS[t]}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Date pickers */}
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={s.fpSectionTitle}>Start Date <Text style={{ color: C.red }}>*</Text></Text>
+              <TextInput
+                value={form.event_date_start}
+                onChangeText={(v) => update('event_date_start', v)}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={C.textDim}
+                style={s.formInput}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.fpSectionTitle}>End Date</Text>
+              <TextInput
+                value={form.event_date_end}
+                onChangeText={(v) => update('event_date_end', v)}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={C.textDim}
+                style={s.formInput}
+              />
+            </View>
+          </View>
+
+          {/* Location */}
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={s.fpSectionTitle}>City</Text>
+              <TextInput
+                value={form.location_city}
+                onChangeText={(v) => update('location_city', v)}
+                placeholder="Bangalore"
+                placeholderTextColor={C.textDim}
+                style={s.formInput}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.fpSectionTitle}>Country</Text>
+              <TextInput
+                value={form.location_country}
+                onChangeText={(v) => update('location_country', v)}
+                placeholder="India"
+                placeholderTextColor={C.textDim}
+                style={s.formInput}
+              />
+            </View>
+          </View>
+
+          {/* Price */}
+          <View>
+            <Text style={s.fpSectionTitle}>Pricing</Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+              {['free', 'paid'].map((p) => (
+                <Pressable key={p} onPress={() => update('price_type', p)}
+                  style={[s.tagChip, form.price_type === p && { backgroundColor: p === 'free' ? C.green : C.primary, borderColor: p === 'free' ? C.green : C.primary }]}>
+                  <Text style={[s.tagChipText, form.price_type === p && { color: '#fff' }]}>{p === 'free' ? 'Free' : 'Paid'}</Text>
+                </Pressable>
+              ))}
+            </View>
+            {form.price_type === 'paid' && (
+              <TextInput
+                value={String(form.price_amount)}
+                onChangeText={(v) => update('price_amount', v.replace(/[^0-9]/g, ''))}
+                placeholder="Price in ₹ (SA Credits)"
+                placeholderTextColor={C.textDim}
+                keyboardType="numeric"
+                style={[s.formInput, { marginTop: 8 }]}
+              />
+            )}
+          </View>
+
+          {/* Capacity */}
+          <View>
+            <Text style={s.fpSectionTitle}>Capacity</Text>
+            <TextInput
+              value={String(form.capacity)}
+              onChangeText={(v) => update('capacity', v.replace(/[^0-9]/g, ''))}
+              placeholder="100 (0 = unlimited)"
+              placeholderTextColor={C.textDim}
+              keyboardType="numeric"
+              style={s.formInput}
+            />
+          </View>
+
+          {/* External registration URL */}
+          <View>
+            <Text style={s.fpSectionTitle}>External Registration URL (optional)</Text>
+            <TextInput
+              value={form.registration_url}
+              onChangeText={(v) => update('registration_url', v)}
+              placeholder="https://..."
+              placeholderTextColor={C.textDim}
+              style={s.formInput}
+              autoCapitalize="none"
+            />
+          </View>
+
+          {/* Image URL */}
+          <View>
+            <Text style={s.fpSectionTitle}>Banner Image URL (optional)</Text>
+            <TextInput
+              value={form.image_url}
+              onChangeText={(v) => update('image_url', v)}
+              placeholder="https://..."
+              placeholderTextColor={C.textDim}
+              style={s.formInput}
+              autoCapitalize="none"
+            />
+          </View>
+
+          {err && (
+            <View style={{ padding: 10, backgroundColor: C.red + '22', borderRadius: 8, borderWidth: 1, borderColor: C.red }}>
+              <Text style={{ color: C.red, fontSize: 13 }}>{err}</Text>
+            </View>
+          )}
+        </ScrollView>
+
+        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, gap: 8, backgroundColor: C.bg, borderTopWidth: 1, borderTopColor: C.border }}>
+          <Pressable onPress={submit} disabled={submitting}
+            style={[s.registerCta, { backgroundColor: submitting ? C.primaryDim : C.primary }]}>
+            {submitting ? <ActivityIndicator color="#fff" /> :
+              <>
+                <Text style={s.registerCtaText}>{isCollege ? 'Submit for Approval' : 'Publish Event'}</Text>
+                <MaterialCommunityIcons name="arrow-right" size={18} color="#fff" />
+              </>
+            }
+          </Pressable>
+        </View>
+      </Pressable>
+    </Pressable>
+  );
+}
+
+
+
 // ─── Styles ───────────────────────────────────────────────────────────
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
@@ -1346,4 +1686,12 @@ const s = StyleSheet.create({
   topicRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 8 },
   topicPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: '#1E293B', borderWidth: 1, borderColor: '#334155' },
   topicPillText: { color: '#94A3B8', fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
+
+  // Host event button + approvals row
+  hostBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: C.primary, borderRadius: 999, ...(Platform.OS === 'web' ? { boxShadow: '0 4px 12px rgba(124,58,237,0.4)' } : {}) as any },
+  hostBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  approvalRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  approveBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 8 },
+  approveBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  formInput: { marginTop: 6, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: C.card, borderRadius: 8, borderWidth: 1, borderColor: C.border, color: C.text, fontSize: 13, ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}) },
 });

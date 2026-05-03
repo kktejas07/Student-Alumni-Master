@@ -5959,3 +5959,211 @@ agent_communication:
            after reload).
 
         Ready for main agent to summarize + finish.
+
+
+
+backend:
+  - task: "Events Aggregator v2 — search + filters + tier sort + AI recs"
+    implemented: true
+    working: true
+    file: "/app/backend/events_aggregator.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: |
+            New events aggregator powering the /events page. Verify ALL of:
+            * GET /api/events/search (no filters) → returns >=14 events incl.
+              both Indian and global. Response has results[], india_results[],
+              international_results[], total_count, has_more.
+            * GET /api/events/search?event_type=hackathon → only hackathons.
+            * GET /api/events/search?event_type=hackathon,fest → both types.
+            * GET /api/events/search?event_type=boot_camp (9th type) → 200 OK.
+            * GET /api/events/search?location_country=India → only India.
+            * GET /api/events/search?location_country=India&location_city=Mumbai
+              → only Mumbai events.
+            * GET /api/events/search?region_india=hyderabad,bangalore
+              → matches region_india field on india events.
+            * GET /api/events/search?event_mode=virtual → only virtual mode.
+            * GET /api/events/search?institution_tier=top_tier → only top-tier
+              (IIT/IIM/ISB/Stanford/MIT). Item must include institution_tier.
+            * GET /api/events/search?topic=ai → events whose topic_keywords
+              contain 'ai'.
+            * GET /api/events/search?price_type=free → all price_type==free.
+            * GET /api/events/search?q=hackathon → text search title/desc.
+            * Pagination: ?page=1&limit=5 returns 5 items + has_more=true.
+            * Tier sort: top_tier comes before tier_one comes before regional.
+            * GET /api/events/category-counts → {all:N, hackathon:..., fest:...,
+              boot_camp:0_or_more, …}.
+            * GET /api/events/me/recommendations?limit=5 → items[] each with
+              match_score (0..100), why[] (array of reason strings).
+              user1 vs user2 may differ.
+            * GET /api/events/{event_id} → full doc with tint, spots_left, etc.
+            * GET /api/events/me/preferences → default
+              {price_preference:'both', location_scope:'india'}.
+            * PATCH /api/events/me/preferences {price_preference:'free_only'}
+              → {ok:true, price_preference:'free_only'} and reads back correctly.
+            * POST /api/events/refresh → triggers fresh aggregation, returns
+              {ok:true, new, updated, total_upstream}.
+
+  - task: "Events RSVP + Capacity + Waitlist + SA Credits + .ics"
+    implemented: true
+    working: true
+    file: "/app/backend/events_aggregator.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: |
+            * POST /api/events/{event_id}/save → first call action=saved,
+              second call action=unsaved.
+            * GET /api/events/me/saved → contains the saved event.
+            * POST /api/events/{event_id}/rsvp {use_credits:false} for FREE
+              event → status=registered, confirmation_id=SA-EVT-…
+            * POST same again → duplicate=true, same status.
+            * GET /api/events/me/registered → contains the event with
+              confirmation_id.
+            * Capacity test: pick an event with capacity and fill to capacity
+              with helper logins → next RSVP returns status=waitlisted with
+              waitlist_position=1.
+            * SA Credits test: paid event RSVP {use_credits:true} → wallet
+              balance decreases by price_amount; replay deducts 0 (idem).
+            * Insufficient credits test: paid event with amount > balance and
+              use_credits:true → 402 Insufficient SA Credits.
+            * POST /api/events/{event_id}/cancel-rsvp → ok:true,
+              refunded_credits=N if paid; promotes head-of-waitlist back to
+              registered.
+            * POST /api/events/{event_id}/activity {action:'view'} → 200 ok:true.
+              Invalid action → 400.
+            * GET /api/events/{event_id}/ics → 200, content-type
+              text/calendar; body starts with 'BEGIN:VCALENDAR' and contains
+              SUMMARY: line.
+
+  - task: "Events Hosting (mentor publish, college pending, admin approve/reject)"
+    implemented: true
+    working: true
+    file: "/app/backend/events_aggregator.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: |
+            Use mentor01@test.com, iitb@university.in, admin@careerpath.app.
+            * Student attempts POST /api/events → 403 (only mentors/colleges/
+              alumni/admin can host).
+            * Mentor POST /api/events {valid full body} → 200 ok:true
+              status='published', needs_approval:false. Appears in
+              GET /api/events/me/hosted and GET /api/events/search w/o filter.
+            * College POST /api/events → 200 status='pending_approval',
+              needs_approval:true. Does NOT appear in /events/search results
+              (status filter excludes pending). Does appear in
+              /admin/events/pending (admin only).
+            * Non-admin GET /admin/events/pending → 403.
+            * Admin GET /admin/events/pending → list with the college event.
+            * Admin POST /admin/events/{eid}/approve → 200, status='published';
+              event now appears in public /events/search.
+            * Admin POST /admin/events/{eid}/reject {reason:'...'} on a fresh
+              pending event → 200 status='rejected', is_active=false; event no
+              longer in /admin/events/pending.
+            * PATCH /api/events/{event_id} by host → 200 with allowed fields
+              (title, description, capacity, etc.).
+            * PATCH by non-host non-admin → 403.
+            * DELETE /api/events/{event_id} by host → 200, soft-delete.
+            * Required fields validation: missing title → 400 "Missing required".
+            * Invalid event_type → 400.
+            * Duplicate dedup_hash (same title+city+date) → 409.
+
+metadata:
+  test_sequence: 19
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Events Aggregator v2 — search + filters + tier sort + AI recs"
+    - "Events RSVP + Capacity + Waitlist + SA Credits + .ics"
+    - "Events Hosting (mentor publish, college pending, admin approve/reject)"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "main"
+      message: |
+        Major new module: /app/backend/events_aggregator.py with 23 endpoints
+        wired via api_router. Aggregates from Devpost/HackClub/Eventyay (free,
+        no key) plus 14 curated India events. New v2 fields auto-classified at
+        normalize time: event_mode, institution_tier (regex match against
+        IIT/NIT/etc patterns), topic_keywords (token presence), region_india.
+        New filters in /events/search: event_mode, institution_tier (CSV),
+        topic (CSV), region_india (CSV). Tier-priority sort: top_tier →
+        tier_one → tier_two → regional. SA Credits wallet integrated for paid
+        RSVPs (deduct on register, refund on cancel). Capacity caps + waitlist
+        with auto-promote on cancel. .ics calendar export. Admin approval
+        gate for college-hosted events; mentor/alumni events auto-publish.
+        Use the test creds in /app/memory/test_credentials.md.
+    - agent: "testing"
+      message: |
+        Events Aggregator v2 — FULLY VERIFIED via /app/backend_test_events_v2.py
+        against https://hiring-mvvm.preview.emergentagent.com/api.
+        RESULT: 64/64 assertions PASS · 0 warnings · 0 failures.
+
+        ✅ TASK 1 — /events/search + filters + tier sort + recs + prefs + refresh (27/27)
+           • /events/refresh → ok, 0 new / 63 updated / 63 upstream
+           • no-filter search → 63 results incl. results[]+india_results[]+
+             international_results[]+total_count+has_more
+           • event_type filter (single + CSV `hackathon,fest` + 9th type boot_camp)
+           • location_country=India, location_city=Mumbai, region_india=hyderabad,bangalore
+           • event_mode=virtual/in_person/hybrid all clean
+           • institution_tier=top_tier → 4 items, all top_tier
+           • topic=ai → 13 items, all with 'ai' in topic_keywords
+           • price_type=free/paid both clean
+           • q=hackathon text search → 23 items
+           • pagination page=1&limit=5 → exactly 5 items + has_more=true
+           • TIER SORT verified: top_tier@index0, tier_two@index4 (top_tier BEFORE tier_two,
+             first item.institution_tier='top_tier')
+           • /events/category-counts → all 10 keys incl. boot_camp
+           • /events/me/recommendations?limit=5 → items with match_score∈[0,100]
+             + why[] array of reasons
+           • /events/in-sih-26 → full doc, tint=#3B82F6, spots_left=176
+           • /events/me/preferences defaults price=both, location_scope=india
+           • PATCH price_preference=free_only → readback matches
+
+        ✅ TASK 2 — RSVP + Capacity + Waitlist + SA Credits + .ics (18/18)
+           • save toggle #1 saved / #2 unsaved / /me/saved contains event
+           • FREE event RSVP → status=registered, confirmation_id matches
+             /^SA-EVT-\d{6}-[A-F0-9]{6}$/
+           • replay → duplicate=true
+           • /me/registered contains event with confirmation_id
+           • CAPACITY+WAITLIST: created capacity=1 mentor event, user A registered,
+             user B waitlisted with waitlist_position=1, A cancelled → B auto-promoted
+             to registered
+           • SA CREDITS paid RSVP: created price=100 event, wallet deducted 100
+             (220→120), credits_paid=100
+           • Insufficient credits → 402 "Insufficient SA Credits to register for this paid event"
+           • cancel-rsvp refunded 100 credits (120→220)
+           • /activity {action:'view'} → ok; invalid action → 400
+           • .ics export → 200, content-type=text/calendar, body starts with
+             BEGIN:VCALENDAR, contains SUMMARY:/DTSTART:, ends with END:VCALENDAR
+
+        ✅ TASK 3 — Hosting (mentor/college/admin) (19/19)
+           • Student POST /events → 403
+           • Mentor POST → status=published, needs_approval=false;
+             visible in /events/me/hosted AND /events/search
+           • College POST → status=pending_approval, needs_approval=true;
+             NOT in /events/search (pending filtered); IS in /admin/events/pending
+           • Non-admin GET /admin/events/pending → 403; Admin → 200 with list
+           • Admin approve → status=published; now visible in /events/search
+           • Second college event → admin reject {reason:'Not relevant'} → rejected;
+             no longer in /admin/events/pending
+           • PATCH permissions: own host 200, other-user 403, admin-on-any 200
+           • DELETE (soft) by host → 200 (is_active=false)
+           • Validation: missing title → 400 'Missing required';
+             event_type='foobar' → 400; duplicate (same title+city+date) → 409
+
+        All 23 endpoints + all spec edge cases green. Ready for summary + finish.
