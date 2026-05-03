@@ -4969,6 +4969,8 @@ from activity_credits import router as activity_credits_router  # Activity-based
 api_router.include_router(activity_credits_router)
 from deals_aggregator import router as deals_aggregator_router  # SA Member Deals + Tag Engine + AI generator
 api_router.include_router(deals_aggregator_router)
+from higher_ed_platform import router as higher_ed_router  # SA Higher Education programmes/scholarships/tracker/AI tools
+api_router.include_router(higher_ed_router)
 from events_aggregator import router as events_aggregator_router  # Events v2: aggregator + RSVP + waitlist + AI recs + host flow
 api_router.include_router(events_aggregator_router)
 from financial_services import router as financial_router  # Financial v2: scholarships, loans, startup_funding, insurance, venture_capital + match score + AI helper + EMI

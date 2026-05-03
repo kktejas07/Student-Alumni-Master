@@ -7104,3 +7104,335 @@ agent_communication:
         Source attribution currently shows only "Sources: 1" instead of multi-source list.
         Neither blocks the MVP; main agent can address as polish if desired.
 
+
+#=========================================================================
+# HIGHER EDUCATION v1 — Programmes/Scholarships/Countries + Tracker + AI
+#=========================================================================
+
+backend:
+  - task: "Higher Ed v1 — /api/he/programmes, /api/he/scholarships, /api/he/countries, /api/he/compare, /api/he/apply, /api/he/applications, /api/he/applications/{id}, /api/he/ai/sop, /api/he/ai/cv, /api/he/ai/cover-letter, /api/he/ai/lor-email, /api/he/ai/eligibility, /api/he/ai/profile-parse, /api/he/ai/next-steps, /api/he/documents"
+    implemented: true
+    working: false
+    file: "/app/backend/higher_ed_platform.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: |
+            New module higher_ed_platform.py — wired under api_router.
+
+            Implements:
+              • 12 curated programmes across 8 countries (matches the
+                user's screenshot exactly: IIT Bombay, Stanford, IIM Ahmedabad,
+                Edinburgh, IISc, IIM Calcutta + 6 more)
+              • 10 curated scholarships (INSPIRE, DAAD, Chevening,
+                Fulbright-Nehru, Inlaks, Commonwealth, QE Commonwealth,
+                Erasmus Mundus, Swiss Govt, KC Mahindra)
+              • 8 country profiles
+              • Match scoring + Tag Engine (TOP_RANKED, FULLY_FUNDED,
+                DEADLINE_SOON, SAFE_BET, STRETCH, INDIA_TOP, GLOBAL_TOP_50,
+                HIGH_ROI, NEW_INTAKE)
+              • Apply → creates Application record + computes
+                expected_decision_at + cost_breakdown + deadlines + timeline
+              • Comparison endpoint with tie-breaker logic (when matches tied)
+              • 7 AI tool endpoints (Claude Sonnet 4.5):
+                  /he/ai/sop          — 4-question interactive SOP
+                  /he/ai/cv           — 6-question CV builder
+                  /he/ai/cover-letter — 3-question cover letter
+                  /he/ai/lor-email    — LOR request to professor
+                  /he/ai/eligibility  — Quick verdict + gaps + actions
+                  /he/ai/profile-parse — Parses bio into structured profile
+                  /he/ai/next-steps   — AI-curated next steps for an app
+              • All AI documents persist to db.he_documents
+              • GET /he/documents to list saved SOPs/CVs/letters
+
+            Test sequence (auth realtime@studentalumni.in / RealTime@2026):
+
+            1. GET /he/programmes
+               → keys: programmes[], total, fetched_at
+               → ≥10 programmes, each has: id, degree, country, match,
+                  name, institution, duration, fee, fee_amount,
+                  fee_inr, total_cost_inr, mode, intake, deadline,
+                  decision_days, apply_url, min_cgpa, acceptance_rate,
+                  qs_rank, gre_required, ielts_required,
+                  post_grad_salary_inr, tags[]
+               → 'iitb-mtech-aiml' present with match=96
+               → 'stanford-ms-cs' present with match=88
+               → tags must be a subset of: TOP_RANKED, FULLY_FUNDED,
+                  DEADLINE_SOON, SAFE_BET, STRETCH, INDIA_TOP,
+                  GLOBAL_TOP_50, HIGH_ROI, NEW_INTAKE
+               → IISc PhD (fee=0) MUST have FULLY_FUNDED tag
+               → Stanford (qs_rank=6) MUST have TOP_RANKED + GLOBAL_TOP_50
+
+            2. GET /he/programmes?country=India → all returned have country='India'
+            3. GET /he/programmes?degree=MS → all returned have degree='MS'
+
+            4. GET /he/scholarships
+               → keys: scholarships[], total
+               → ≥10 items, each has: id, name, funder, country,
+                 degree_levels[], award_inr, coverage, deadline,
+                 eligibility, url
+
+            5. GET /he/scholarships?country=UK → only UK or Multiple
+            6. GET /he/scholarships?degree=PG → all include 'PG' in degree_levels
+
+            7. GET /he/countries → ≥8 countries with flag, name,
+               programmes (int), scholarships (int), avg_fee_inr,
+               avg_living_inr
+
+            8. POST /he/compare {programme_ids: ['iitb-mtech-aiml','stanford-ms-cs']}
+               → keys: programmes[2], rows[12+], tied (bool), tie_breaker_note (or null)
+               → rows includes 'match', 'country', 'duration', 'total_cost_inr',
+                 'decision_days', 'qs_rank', 'min_cgpa', 'gre_required',
+                 'ielts_required', 'post_grad_salary_inr'
+
+            9. POST /he/compare with 1 id → 400
+            10. POST /he/compare with 5 ids → 400
+            11. POST /he/compare with bogus ids → 404
+
+            12. POST /he/apply {programme_id: 'iitb-mtech-aiml'}
+                → keys: ok=true, duplicate=false, application{...},
+                   redirect='/applications/APP-XXXXXXXX', apply_url
+                → application has: app_id (matches APP-XXXXXXXX format),
+                   programme_id, programme_snapshot, status='submitted',
+                   submitted_at, expected_decision_at,
+                   cost_breakdown{tuition_per_year_inr, living_per_year_inr,
+                   app_fee_inr, total_y1_inr, total_programme_inr},
+                   deadlines (4 items), timeline (5 items)
+
+            13. POST /he/apply with same programme_id again
+                → duplicate=true, returns existing application
+
+            14. POST /he/apply with bogus programme_id → 404
+            15. POST /he/apply with no body → 400
+
+            16. GET /he/applications → user's applications list, includes
+                the one from step 12
+
+            17. GET /he/applications/{app_id from step 12}
+                → keys: application{...}
+                → application has days_until_decision (int)
+
+            18. POST /he/applications/{app_id}/update {status:'under_review',
+                notes:'reviewed by adcom'}
+                → ok=true, updated_fields includes 'status' and 'notes'
+
+            19. POST /he/ai/sop {programme_id:'iitb-mtech-aiml'} (no answers)
+                → stage='questions', questions has 4 items with ids q1-q4
+
+            20. POST /he/ai/sop {programme_id:'iitb-mtech-aiml',
+                answers: {q1:'Built ML system for X with 92% accuracy',
+                          q2:'Want to work with Prof Y on NLP',
+                          q3:'Become research scientist at Google AI',
+                          q4:'No red flags'}}
+                → stage='draft', doc_id (string), content (>200 words),
+                   word_count > 200, programme_id
+
+            21. POST /he/ai/cv (no answers)
+                → stage='questions', questions has 6 items
+                   (education, projects, experience, publications, skills, awards)
+
+            22. POST /he/ai/cv with all 6 answers
+                → stage='draft', content (markdown CV), doc_id, tone
+
+            23. POST /he/ai/cover-letter {programme_id:'stanford-ms-cs'}
+                (no answers) → stage='questions', 3 questions
+
+            24. POST /he/ai/cover-letter with answers → draft
+
+            25. POST /he/ai/lor-email (no fields) → questions
+            26. POST /he/ai/lor-email {prof_name:'Dr. Sharma', relationship:'Took
+                ML course Fall 2024', outcome:'A+ grade and lead project'}
+                → draft with content
+
+            27. POST /he/ai/eligibility {programme_id:'stanford-ms-cs'}
+                → content (string with verdict + gaps + actions)
+
+            28. POST /he/ai/profile-parse {bio_text:'I am a final-year CSE
+                student at IIT Bombay with CGPA 8.6, interested in ML and AI'}
+                → profile (object with name, cgpa, current_degree, etc.),
+                   doc_id
+
+            29. POST /he/ai/next-steps {application_id from step 12}
+                → steps[] (array of 3-5 items, each with title, action)
+
+            30. GET /he/documents
+                → documents[] includes the SOP, CV, cover letter, LOR,
+                   profile docs created above. Filter ?kind=sop should
+                   return only SOPs.
+        - working: false
+          agent: "testing"
+          comment: |
+            Ran /app/backend_test_higher_ed.py against
+            https://hiring-mvvm.preview.emergentagent.com/api with
+            realtime@studentalumni.in / RealTime@2026 (login 200 OK).
+            Pre-cleaned he_applications + he_documents for this user to
+            start from zero state.
+
+            RESULT: 30/31 checks PASS — ONE critical bug in item 17.
+
+            ✅ PASSING (29 items + 2 sub-checks in step 30):
+            1.  GET /he/programmes — 12 programmes, all required fields
+               present, IITB match=96, Stanford match=88, tags subset of
+               allowed set. IISc PhD has FULLY_FUNDED. Stanford has
+               TOP_RANKED + GLOBAL_TOP_50.
+            2.  country=India filter → 4 India progs, all country='India'.
+            3.  degree=MS filter → 2 progs, all degree='MS'.
+            4.  GET /he/scholarships → 10 items, all required fields.
+            5.  country=UK → returns only {'UK','Multiple'} (spec-compliant).
+            6.  degree=PG → all 10 include 'PG' in degree_levels.
+            7.  GET /he/countries → 8 countries, programmes/scholarships as int.
+            8.  POST /he/compare [iitb, stanford] → 2 progs, 12 rows, tied=False;
+               all 10 required row keys present (match/country/duration/
+               total_cost_inr/decision_days/qs_rank/min_cgpa/gre_required/
+               ielts_required/post_grad_salary_inr).
+            9.  compare with 1 id → 400 ✅
+            10. compare with 5 ids → 400 ✅
+            11. compare with bogus ids → 404 ✅
+            12. POST /he/apply iitb → 200 ok=true, duplicate=false,
+               app_id=APP-58ED32FD (matches APP-XXXXXXXX format),
+               status='submitted', cost_breakdown has all 5 keys,
+               deadlines=4 items, timeline=5 items, redirect + apply_url.
+            13. 2nd apply → duplicate=True ✅
+            14. apply bogus id → 404 ✅
+            15. apply empty body → 400 ✅
+            16. GET /he/applications → 1 app, includes APP-58ED32FD ✅
+            18. POST /he/applications/{id}/update {status, notes} → 200
+               ok=true, updated_fields=['status','notes','updated_at'] ✅
+            19. SOP no-answers → stage='questions', q1-q4 ✅
+            20. SOP with answers → stage='draft', doc_id, 723 words ✅
+            21. CV no-answers → stage='questions', 6 questions ✅
+            22. CV with answers → stage='draft', doc_id, 2371 chars ✅
+            23. Cover letter no-answers → stage='questions', 3 qs ✅
+            24. Cover letter with answers → stage='draft', doc_id ✅
+            25. LOR email no fields → stage='questions', 3 qs ✅
+               NOTE: handler returns questions if relationship OR outcome
+               is missing (not only when no fields at all). Works correctly
+               for the spec'd case.
+            26. LOR email with {prof_name, relationship, outcome} →
+               stage='draft', doc_id ✅
+            27. Eligibility stanford-ms-cs → 200, content=1870 chars
+               (verdict + gaps + actions). Claude integration working.
+            28. Profile-parse → 200, profile has name/age/location/
+               current_degree/institution/cgpa, doc_id saved ✅
+            29. Next-steps for APP-58ED32FD → 5 steps ✅
+            30a. GET /he/documents → 5 docs, kinds={sop, cv, cover_letter,
+                lor_email, profile} ✅
+            30b. GET /he/documents?kind=sop → filters correctly to 1 doc ✅
+
+            ❌ FAILING (1 item):
+            17. GET /he/applications/{app_id} — days_until_decision
+                returns NULL instead of int.
+
+                ROOT CAUSE: In higher_ed_platform.py::_serialize_app
+                (lines 465-477), the function first converts
+                expected_decision_at to isoformat() on a NAIVE datetime
+                (PyMongo returns stored UTC datetimes without tzinfo).
+                Then it parses the iso string via fromisoformat(...).
+                replace('Z','+00:00') — but since the iso has no 'Z', the
+                result remains NAIVE. The subtraction
+                (naive_dt - datetime.now(timezone.utc)) raises
+                TypeError "can't subtract offset-naive and offset-aware
+                datetimes", which is silently swallowed by the bare
+                `except Exception` → days_until_decision set to None.
+
+                Repro (verified via direct mongo read):
+                  d['expected_decision_at'] = datetime(tzinfo=None)
+                  → isoformat → no tz in string
+                  → fromisoformat → naive datetime
+                  → naive - now(UTC) → TypeError
+
+                FIX (one-line, in _serialize_app or just compute days
+                BEFORE converting to isoformat):
+                  if d.get('expected_decision_at'):
+                      ed = d['expected_decision_at']
+                      if isinstance(ed, datetime) and ed.tzinfo is None:
+                          ed = ed.replace(tzinfo=timezone.utc)
+                      elif isinstance(ed, str):
+                          ed = datetime.fromisoformat(ed.replace('Z','+00:00'))
+                          if ed.tzinfo is None:
+                              ed = ed.replace(tzinfo=timezone.utc)
+                      d['days_until_decision'] = max(0,
+                          (ed - datetime.now(timezone.utc)).days)
+
+                POST /he/applications/{id}/update still works and the
+                app payload is otherwise correct — only this derived
+                field is broken.
+
+            VERDICT: 30/31 PASS. One small, well-scoped datetime-tz bug
+            blocks days_until_decision. All CRITICAL items 1-18 pass
+            except 17. All AI tools (19-30) work end-to-end including
+            the eligibility check with Claude Sonnet 4.5.
+
+metadata:
+  test_sequence: 24
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Higher Ed v1 — /api/he/programmes, /api/he/scholarships, /api/he/countries, /api/he/compare, /api/he/apply, /api/he/applications, /api/he/applications/{id}, /api/he/ai/sop, /api/he/ai/cv, /api/he/ai/cover-letter, /api/he/ai/lor-email, /api/he/ai/eligibility, /api/he/ai/profile-parse, /api/he/ai/next-steps, /api/he/documents"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "main"
+      message: |
+        Built /app/backend/higher_ed_platform.py — Higher Education
+        platform with programmes, scholarships, countries, comparison
+        engine, application tracker, and 7 Claude-powered AI tools
+        (SOP, CV, Cover Letter, LOR Email, Eligibility, Profile Parser,
+        Next Steps).
+
+        12 curated programmes match the screenshot exactly. 10
+        scholarships, 8 countries. Match scoring + 9-tag engine.
+
+        Apply → creates Application + computes cost_breakdown +
+        deadlines + timeline. AI-generated next steps for ongoing apps.
+
+        Frontend rebuilt /app/frontend/app/higher-education.tsx with
+        3 tabs (Programmes/Scholarships/Countries), match% pills, tag
+        pills, Apply→Tracker flow, Compare modal, AI Tools modal.
+
+        New /app/frontend/app/applications/[id].tsx — full Tracker page.
+
+        Use credentials realtime@studentalumni.in / RealTime@2026.
+
+        Run all 30 test items above. AI item tests (19-29) call Claude
+        Sonnet 4.5 — they are slow (8-15s each); skip 19-29 if you're
+        time-constrained, but at minimum verify items 1-18 + item 27
+        (eligibility, fastest AI call).
+
+    - agent: "testing"
+      message: |
+        Higher Ed backend: 30/31 PASS. One bug found — item 17 GET
+        /he/applications/{id} returns days_until_decision=null instead
+        of int.
+
+        ROOT CAUSE (higher_ed_platform.py::_serialize_app, lines 465-477):
+        PyMongo returns expected_decision_at as a NAIVE datetime (no
+        tzinfo). isoformat() on it produces a string without 'Z' or
+        '+00:00'. fromisoformat() then yields a naive datetime. Subtracting
+        it from datetime.now(timezone.utc) raises TypeError, which is
+        swallowed by `except Exception` → field set to None.
+
+        MINIMAL FIX (2-3 lines): in _serialize_app, attach UTC tzinfo
+        before subtracting, e.g.:
+            ed = datetime.fromisoformat(d['expected_decision_at'].replace('Z','+00:00'))
+            if ed.tzinfo is None: ed = ed.replace(tzinfo=timezone.utc)
+            d['days_until_decision'] = max(0, (ed - datetime.now(timezone.utc)).days)
+
+        Everything else works: all 12 programmes, tag engine (IISc
+        FULLY_FUNDED, Stanford TOP_RANKED+GLOBAL_TOP_50), scholarships,
+        countries, compare (valid + 400/404 guards), apply (new +
+        duplicate + 404 + 400), applications list/update, all 7 AI tools
+        (SOP 723 words, CV 2371 chars, cover letter, LOR email,
+        eligibility 1870 chars, profile-parse, next-steps 5 steps),
+        and /he/documents list + kind filter.
+
+        Test harness: /app/backend_test_higher_ed.py — runnable again after
+        cleaning mongo: delete_many on he_applications + he_documents
+        for realtime@studentalumni.in.
+
