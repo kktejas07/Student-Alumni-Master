@@ -32,9 +32,16 @@ export function StudentPortalRN() {
     router.replace('/welcome');
   };
 
+  // Redirect specific items to standalone routes; keep others inline
+  const handleNav = (id: StudentNavId) => {
+    if (id === 'events')   { router.push('/events');   return; }
+    if (id === 'network')  { router.push('/network');  return; }
+    setActive(id);
+  };
+
   return (
     <View style={s.shell}>
-      <Sidebar active={active} onNav={setActive} onLogout={onLogout} />
+      <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <TopBar />
         <ScrollView

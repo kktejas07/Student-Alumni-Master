@@ -273,6 +273,23 @@ export function BookingDrawer({
   const [upiId, setUpiId] = useState('');
   const [paying, setPaying] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [creditBalance, setCreditBalance] = useState<number>(0);
+  const [liveDays, setLiveDays] = useState<Array<{ date: string; weekday: string; label: string; slots: Array<{ time: string; available: boolean }> }> | null>(null);
+
+  // Fetch wallet balance + mentor availability when drawer opens
+  useEffect(() => {
+    if (!visible || !mentor?.id) return;
+    const tok = (typeof localStorage !== 'undefined' ? localStorage.getItem('scd_access_token') : '') || '';
+    const apiBase = (process.env.EXPO_PUBLIC_BACKEND_URL || '') + '/api';
+    fetch(`${apiBase}/wallet/balance`, { headers: { Authorization: `Bearer ${tok}` } })
+      .then((r) => r.ok ? r.json() : null)
+      .then((j) => { if (j) setCreditBalance(Number(j.balance_credits || 0)); })
+      .catch(() => {});
+    fetch(`${apiBase}/mentors/${mentor.id}/availability?days=7`, { headers: { Authorization: `Bearer ${tok}` } })
+      .then((r) => r.ok ? r.json() : null)
+      .then((j) => { if (j?.days) setLiveDays(j.days); })
+      .catch(() => {});
+  }, [visible, mentor?.id]);
 
   // Reset state whenever a new mentor is opened
   useEffect(() => {
@@ -287,7 +304,7 @@ export function BookingDrawer({
   const initials = ((mentor.full_name || '?').split(' ').slice(0, 2).map((s: string) => s[0] || '').join('') || '?').toUpperCase();
   const isFree = freeRemaining > 0;
   const price = mentor.expected_rate_inr || 999;
-  const SA_CREDITS = creditBalance;  // live from /api/wallet/balance
+  const SA_CREDITS = creditBalance;
   const totalAfterCredits = useCredits ? Math.max(0, price - SA_CREDITS) : price;
   // Use live availability when present, else fallback to default 7-day grid
   const days = liveDays && liveDays.length
@@ -403,11 +420,11 @@ export function BookingDrawer({
 
                 <View style={{ width: '100%', gap: 10, marginTop: 8 }}>
                   <View style={[s.notifyCard, { backgroundColor: 'rgba(59,130,246,0.10)', borderColor: 'rgba(59,130,246,0.40)' }]}>
-                    <MCI name="video-outline" size={16} color="#60A5FA" />
+                    <MCI name="email-check-outline" size={16} color="#60A5FA" />
                     <Text style={[s.notifyText, { color: '#BFDBFE' }]}>Zoom link sent to your email</Text>
                   </View>
                   <View style={s.notifyCard}>
-                    <MCI name="account-group-outline" size={16} color="#A78BFA" />
+                    <MCI name="calendar-check-outline" size={16} color="#A78BFA" />
                     <Text style={s.notifyText}>Teams invite sent</Text>
                   </View>
                 </View>
