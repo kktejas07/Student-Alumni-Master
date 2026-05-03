@@ -27,7 +27,7 @@ import { useRouter } from 'expo-router';
 import {
   Target, User as UserIcon, Sparkles, Flame, RefreshCcw, ArrowLeft,
   MessageSquare, Briefcase, Star, Award, Folder, Link2, Code,
-  CheckCircle2, GitBranch, FileText, Mic, Search, ChevronRight, Calendar,
+  CircleCheck as CheckCircle2, GitBranch, FileText, Mic, Search, ChevronRight, Calendar,
 } from 'lucide-react-native';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
