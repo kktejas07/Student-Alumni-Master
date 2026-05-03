@@ -471,6 +471,8 @@ def _serialize_app(d: Dict[str, Any]) -> Dict[str, Any]:
     if d.get('expected_decision_at'):
         try:
             ed = datetime.fromisoformat(d['expected_decision_at'].replace('Z', '+00:00'))
+            if ed.tzinfo is None:
+                ed = ed.replace(tzinfo=timezone.utc)
             d['days_until_decision'] = max(0, (ed - datetime.now(timezone.utc)).days)
         except Exception:
             d['days_until_decision'] = None
