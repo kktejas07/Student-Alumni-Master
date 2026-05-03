@@ -5038,3 +5038,36 @@ agent_communication:
       No issues found. Phase B is production-ready. Main agent should
       summarise & finish.
 
+  - agent: "main"
+    message: |
+      FEATURE ADDITION — Member ID Card with Flip Animation (May 2026)
+
+      Added an interactive 3D flip card on the post-onboarding Member ID screen.
+
+      Files:
+        ✅ NEW  /app/frontend/src/views/components/MemberIdCard.tsx
+                · Reusable role-aware flip card primitive
+                · Front: role icon + Student Alumni / sub-label + Tier pill (Gold default)
+                  + "SCAN TO VERIFY" + Member ID + QR code + verify URL
+                · Back: same header + "MEMBER ID" + large ID + SVG barcode (deterministic
+                  from id) + "Valid from {regYear} · Lifetime membership" + "Tap to flip"
+                · 3D rotateY animation (700ms, ease cubic-bezier 0.4,0,0.2,1) using
+                  react-native-reanimated v4 + backfaceVisibility:'hidden'
+                · Role themes: student=purple, mentor=teal, alumni=orange, college=blue
+                · Tier themes: bronze, silver, gold, platinum
+
+        ✅ UPDATED /app/frontend/app/(onboarding)/member-id.tsx
+                · "Identity Verified" green pill above title (CheckCircle2 icon)
+                · Replaced inline card with <MemberIdCard /> component
+                · Renamed action buttons: Copy ID, Save Card, Share (was Download/Save/Share)
+                · Added info box "Your Member ID is permanent and unique to you…"
+                · Continue button label updated to "Continue to Email Verification →"
+
+      Visual QA (screenshot tool):
+        ✅ Front side renders correctly (matches design screenshot)
+        ✅ Tap flips card → back side with barcode + validity row
+        ✅ Identity Verified pill, Gold tier badge, role icon all themed correctly
+        ✅ Mobile (390x844) and desktop (1920x800) both render properly
+
+      No backend changes; no testing required for backend.
+
