@@ -6595,3 +6595,305 @@ frontend:
 
             CONCLUSION: Wallet UI is production-ready — all spec items render with correct
             data, math, and layout across desktop and mobile.
+
+
+#=========================================================================
+# DEALS v2 — SA Member Deals real-time aggregator + Tag Engine
+#=========================================================================
+
+backend:
+  - task: "Deals v2 — /api/deals/all, /api/deals/stats, /api/deals/refresh, /api/deals/claim, /api/deals/ai-generate, /api/deals/sources"
+    implemented: true
+    working: false
+    file: "/app/backend/deals_aggregator.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: |
+            CRITICAL BUG — timezone mismatch crashes every subsequent call
+            to /deals/all and /deals/stats with HTTP 500. Only the VERY
+            FIRST call to /deals/all succeeds (before the meta doc exists).
+            Every call after the cache is populated returns:
+
+              TypeError: can't subtract offset-naive and offset-aware datetimes
+              File "/app/backend/deals_aggregator.py", line 796, in _is_cache_fresh
+                return (datetime.now(timezone.utc) - last) < timedelta(minutes=CACHE_TTL_MIN)
+
+            ROOT CAUSE: _refresh_live_sources() writes
+              last_refresh_at = datetime.now(timezone.utc)   # aware
+            but Motor / PyMongo by default returns datetimes as NAIVE
+            (tz_aware=False). On read, `last` is naive → subtraction
+            from `datetime.now(timezone.utc)` raises TypeError.
+
+            FIX (one-line): in _is_cache_fresh, coerce `last` to aware
+            UTC before subtracting, e.g.:
+              if last.tzinfo is None:
+                  last = last.replace(tzinfo=timezone.utc)
+              return (datetime.now(timezone.utc) - last) < timedelta(minutes=CACHE_TTL_MIN)
+            Same pattern may be needed anywhere else the code reads
+            stored datetimes (e.g. ai_trending.expires_at read in
+            deals_ai_generate — that block compares `exp > now` but
+            `now` is aware; will hit the same issue).
+
+            DETAILED FAILURE BREAKDOWN (backend_test_deals.py against
+            https://hiring-mvvm.preview.emergentagent.com/api using
+            realtime@studentalumni.in / RealTime@2026):
+
+            ✅ 1. GET /deals/all (no params) → 200, 50 deals, all
+               required keys present, cache_ttl_min=60 — PASSED on
+               first call only.
+            ❌ 2. GET /deals/all?category=tech → 500 (tz bug)
+            ❌ 3. GET /deals/all?category=travel → 500 (tz bug)
+            ❌ 4. GET /deals/all?category=fashion → 500 (tz bug)
+            ❌ 5. GET /deals/all?category=grocery → 500 (tz bug)
+            ❌ 6. GET /deals/all?student_only=true → 500 (tz bug)
+            ❌ 7. GET /deals/stats → 500 (tz bug)
+            ✅ 8. POST /deals/refresh → 200, ok=true (works because it
+               calls _refresh_live_sources unconditionally — never hits
+               _is_cache_fresh). total_inserted=0 (GitHub Pack live
+               fetch itself fails — separate minor issue; warning in
+               logs: "GitHub Pack fetch failed: Expecting value: line
+               1 column 1 (char 0)" because offers.json now 301s to
+               the HTML pack page). Not blocking — curated seed still
+               serves the 50+ baseline.
+            ✅ 9. POST /deals/claim/{deal_id} — ALL SUB-CHECKS PASS:
+                · first claim: credits_awarded=20, todays_claims=1,
+                  max_per_day=3, affiliate_url + code returned ✓
+                · balance delta exactly +20 (baseline=12270 → 12290) ✓
+                · 2nd claim: +20, todays_claims=2 ✓
+                · 3rd claim: +20, todays_claims=3 ✓
+                · 4th claim: credits_awarded=0 with reason
+                  "Daily claim quota reached (3/day). Redirecting
+                  anyway." — affiliate_url still returned ✓
+                · POST /deals/claim/nonexistent_id_xyz123 → 404 ✓
+            ✅ 10. GET /deals/sources → 200, 3 sources (curated,
+                githubPack, ai-trending), last_refresh_at + status
+                present.
+            ❌ 11. Tag Engine validation — could not execute because
+                re-fetching /deals/all after claims returned 500
+                (same tz bug). Tags were present on the first call
+                (step 1), so the engine itself wired up — but a
+                full validation pass requires step 2-6 to work.
+            ✅ 12. Cross-module integration — GET /wallet/summary
+                after first claim: balance delta exactly +20,
+                history[0].type='credit', history[0].amount=20,
+                history[0].metadata.kind='deal_claim' — all verified.
+            ⏭️  13. /deals/ai-generate — skipped (RUN_AI=0 to preserve
+                LLM quota per review request). NOTE: this endpoint
+                ALSO has the same tz-mismatch pattern latent at the
+                cache-check (`exp > now` with mixed-tz datetimes)
+                and will likely crash on the 2nd call.
+
+            RESULT: 47/72 checks PASS, 25 FAIL — ALL failures trace
+            to the single naive-vs-aware datetime bug in
+            _is_cache_fresh (line 796). Claim flow, credits integration,
+            sources listing, first seed load, and refresh all work
+            correctly. A one-line fix in _is_cache_fresh (and an
+            equivalent guard in the AI generator cache check on line
+            1055) will move this to green.
+
+        - working: "NA"
+          agent: "main"
+          comment: |
+            New module deals_aggregator.py — wired under api_router.
+
+            Implements:
+              • 50+ curated seed deals across 9 categories (tech, food,
+                learning, entertainment, insurance, transport, travel,
+                fashion, grocery)
+              • Live ingestion from GitHub Student Pack
+                (https://education.github.com/pack/offers.json — public)
+              • Tag Engine — auto-applies HOT, OFF_30, STUDENT_VERIFIED,
+                INSTANT, ENDING_SOON, NEW, TRENDING, INDIA_EXCLUSIVE,
+                NO_EXPIRY, BEST_VALUE
+              • SA Credits earn-on-claim: +20 credits per claim,
+                idempotent per-day (max 3 claims/day)
+              • Claude (Emergent LLM) trending-deals generator with
+                6-hour cache
+              • 60-min Mongo cache + manual refresh override
+
+            Endpoints to verify (auth as realtime@studentalumni.in /
+            RealTime@2026):
+
+            1. GET /api/deals/all (no params)
+               → response keys: deals[], total_count, last_updated,
+                  cache_ttl_min=60, sources[], category, country
+               → deals[i] schema includes: deal_id, brand, title,
+                  category, description, price_inr, price_label,
+                  original_inr, original_label, discount_pct,
+                  discount_label, absolute_savings_inr, affiliate_url,
+                  code, logo_url, accent, student_only, auto_apply,
+                  country, available_globally, source, tags[]
+               → at least 50 curated deals after first call (auto-seed)
+
+            2. GET /api/deals/all?category=tech
+               → only deals where category=='tech'
+
+            3. GET /api/deals/all?category=travel
+               → returns IRCTC, MakeMyTrip, Yatra, RedBus, Booking, etc.
+
+            4. GET /api/deals/all?category=fashion
+               → returns Myntra, Ajio, H&M, Nike, Bewakoof
+
+            5. GET /api/deals/all?category=grocery
+               → returns BigBasket, Blinkit, Zepto, Amazon Fresh
+
+            6. GET /api/deals/all?student_only=true
+               → returns only deals where student_only=true
+
+            7. GET /api/deals/stats
+               → keys: total_deals, free_deals, hot_deals,
+                 total_savings_inr, yearly_savings_inr,
+                 top_category{id,savings}, best_roi{brand,title,
+                 savings_inr}, smart_bundle[4], smart_bundle_total_
+                 savings_inr, by_category[]
+               → smart_bundle has length 4 (top by absolute savings)
+
+            8. POST /api/deals/refresh (no body)
+               → {ok:true, total_inserted, sources[], at}
+
+            9. POST /api/deals/claim/{deal_id}
+               → first call: credits_awarded=20, balance_credits +20,
+                  todays_claims=1, max_per_day=3,
+                  affiliate_url + code echoed back
+               → 4th call same day: credits_awarded=0, message about
+                  daily quota; affiliate_url still returned
+               → 404 on bad deal_id
+
+            10. GET /api/deals/sources
+                → {sources[3], last_refresh_at, status[]}
+                → 3 sources documented: curated, githubPack, ai-trending
+
+            11. POST /api/deals/ai-generate (no body) [optional, slow]
+                → {ok:true, generated_count, expires_at, model:
+                   'claude-sonnet-4-5', deals[]}
+                → Second call within 6h: cached=true, same payload
+                → {refresh:true} bypasses cache
+
+            12. Tag Engine validation: pick 5 random deals from
+                /deals/all, ensure each has ≥1 tag and tag values are
+                from the allowed set:
+                  HOT, OFF_30, STUDENT_VERIFIED, INSTANT, ENDING_SOON,
+                  NEW, TRENDING, INDIA_EXCLUSIVE, NO_EXPIRY, BEST_VALUE
+                Verify HOT and OFF_30 are mutually exclusive on a
+                single deal (HOT precedence).
+
+            13. Auto-apply rule: deals with auto_apply=true (e.g.
+                GitHub Pro) should include INSTANT tag.
+
+            14. INDIA_EXCLUSIVE only on country='IN' AND
+                available_globally=false (e.g. Swiggy, Zomato).
+
+            15. Claim integrates with activity_credits — verify
+                /api/wallet/summary AFTER a claim shows the new
+                credit transaction with metadata.kind='deal_claim'.
+
+metadata:
+  test_sequence: 22
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Deals v2 — /api/deals/all, /api/deals/stats, /api/deals/refresh, /api/deals/claim, /api/deals/ai-generate, /api/deals/sources"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "main"
+      message: |
+        Built /app/backend/deals_aggregator.py — SA Member Deals
+        aggregator with Tag Engine and AI generator.
+
+        50+ curated seed deals across 9 categories
+        (tech/food/learning/entertainment/insurance/transport/
+        travel/fashion/grocery). GitHub Student Pack live ingestion.
+        Claude (Emergent LLM, anthropic/claude-sonnet-4-5-20250929)
+        generates fresh trending deals on demand.
+
+        Tag Engine: HOT (≥50% or expiring ≤7d), OFF_30 (30-49%),
+        STUDENT_VERIFIED, INSTANT (auto_apply), ENDING_SOON (≤48h),
+        NEW (added ≤7d), TRENDING (top 10% claim count), INDIA_EXCLUSIVE,
+        NO_EXPIRY, BEST_VALUE (top 3 by ₹ savings within category).
+
+        SA Credits earn-on-claim: +20 per claim, max 3/day, idempotent
+        via activity_credits.py wallet helper.
+
+        Frontend /app/frontend/app/deals.tsx fully rebuilt — header
+        card, AI Savings Advisor accordion (computed from real data),
+        AI Smart Bundle (top 4), 9 category chips, Hot Deals + All Deals
+        grids with tag pills + brand logos (Clearbit), Refresh button,
+        Claim modal with affiliate redirect.
+
+        Use credentials realtime@studentalumni.in / RealTime@2026.
+        Test the items 1-15 listed in status_history above.
+        Skip item 11 (AI generator) if it would consume LLM quota —
+        but item 12 (tag validation) is critical.
+
+    - agent: "testing"
+      message: |
+        Deals v2 backend tested end-to-end (backend_test_deals.py).
+        RESULT: 47/72 checks PASS · 25 FAIL — all failures caused by
+        a single CRITICAL timezone bug in _is_cache_fresh
+        (/app/backend/deals_aggregator.py line 796).
+
+        SYMPTOM: Every /deals/all and /deals/stats call AFTER the
+        cache is first populated returns HTTP 500 with:
+          TypeError: can't subtract offset-naive and offset-aware datetimes
+
+        ROOT CAUSE: _refresh_live_sources writes
+            last_refresh_at = datetime.now(timezone.utc)   (aware)
+        but Motor reads datetimes back NAIVE by default, so the
+        subtraction in _is_cache_fresh crashes.
+
+        FIX (one-liner — DO NOT test until fixed):
+            last = meta["last_refresh_at"]
+            if isinstance(last, datetime):
+                if last.tzinfo is None:
+                    last = last.replace(tzinfo=timezone.utc)
+                return (datetime.now(timezone.utc) - last) < timedelta(minutes=CACHE_TTL_MIN)
+        Apply the SAME guard to deals_ai_generate at line ~1055
+        (`exp > now` compares a naive stored datetime to an aware one).
+
+        WHAT DOES WORK (verified):
+         ✅ First /deals/all (before cache doc exists) — 50 deals,
+            all required keys present, cache_ttl_min=60.
+         ✅ POST /deals/refresh — always unconditionally refreshes.
+         ✅ POST /deals/claim/{id} — full flow:
+             · +20 credits on each of first 3 daily claims
+             · 4th claim: credits_awarded=0 with quota message +
+               affiliate_url still returned
+             · 404 on nonexistent deal_id
+         ✅ Cross-module integration: wallet balance delta exactly
+            +20 after claim; history[0].type='credit', amount=20,
+            metadata.kind='deal_claim'.
+         ✅ GET /deals/sources — returns 3 source kinds (curated,
+            githubPack, ai-trending) with last_refresh_at + status.
+
+        WHAT FAILS (all blocked on the tz bug):
+         ❌ /deals/all?category=... (tech / travel / fashion / grocery)
+         ❌ /deals/all?student_only=true
+         ❌ /deals/stats
+         ❌ Tag Engine validation (couldn't re-fetch after claims)
+
+        MINOR ISSUE (not blocking, but worth a look):
+         • GitHub Pack live fetch warns "Expecting value: line 1
+           column 1 (char 0)" because
+           https://education.github.com/pack/offers.json now 301s
+           to the HTML pack page — the JSON endpoint appears to
+           have been deprecated. /deals/refresh still returns
+           ok=true but total_inserted=0 from that source. Curated
+           seed (50+ deals) continues to serve. Consider either
+           replacing the source URL or removing GitHub Pack until
+           a stable JSON endpoint exists.
+
+        NOT TESTED (per reviewer instruction): /deals/ai-generate
+        (RUN_AI=0 to preserve LLM quota). Note this endpoint
+        likely has the same tz bug on the 2nd call — cache lookup
+        compares stored `expires_at` (naive) against aware `now`.
+
+        Next action for main agent: apply the 3-line tz guard, do
+        NOT re-test here — confirm locally then request re-test.

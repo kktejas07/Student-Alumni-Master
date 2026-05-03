@@ -4967,6 +4967,8 @@ from wallet_and_availability import router as wallet_router  # SA Credits + ment
 api_router.include_router(wallet_router)
 from activity_credits import router as activity_credits_router  # Activity-based earnings + Wallet summary/topup/withdraw
 api_router.include_router(activity_credits_router)
+from deals_aggregator import router as deals_aggregator_router  # SA Member Deals + Tag Engine + AI generator
+api_router.include_router(deals_aggregator_router)
 from events_aggregator import router as events_aggregator_router  # Events v2: aggregator + RSVP + waitlist + AI recs + host flow
 api_router.include_router(events_aggregator_router)
 from financial_services import router as financial_router  # Financial v2: scholarships, loans, startup_funding, insurance, venture_capital + match score + AI helper + EMI
