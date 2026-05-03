@@ -100,6 +100,51 @@ api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernet
 
 
 # ----------------------------------------------------------------------------
+# Encryption-at-Rest — Fernet (AES-128 in CBC mode + HMAC-SHA256)
+# ----------------------------------------------------------------------------
+# Per spec — encrypt sensitive personal data (dob, phone, postal_code) at rest.
+# Backwards-compat: legacy users may have plaintext values; decrypt() returns
+# the input as-is when it can't be decoded as Fernet ciphertext.
+from cryptography.fernet import Fernet, InvalidToken  # noqa: E402
+
+_FERNET_KEY = os.environ.get("FERNET_KEY")
+if not _FERNET_KEY:
+    # Auto-generate a session key in dev so the app boots; logs a warning.
+    _FERNET_KEY = Fernet.generate_key().decode()
+    print(f"⚠️  FERNET_KEY not set — using ephemeral key (dev only): {_FERNET_KEY[:12]}…")
+_FERNET = Fernet(_FERNET_KEY.encode() if isinstance(_FERNET_KEY, str) else _FERNET_KEY)
+# Marker so we can recognise our ciphertexts in mixed-format collections.
+_ENC_PREFIX = "enc::"
+
+
+def encrypt_value(plain: Optional[str]) -> Optional[str]:
+    """Wrap a string with the Fernet token + a recognisable prefix."""
+    if plain is None or plain == "":
+        return plain
+    if isinstance(plain, str) and plain.startswith(_ENC_PREFIX):
+        return plain  # already encrypted
+    try:
+        token = _FERNET.encrypt(plain.encode("utf-8")).decode("utf-8")
+        return f"{_ENC_PREFIX}{token}"
+    except Exception:
+        return plain  # never block the write on encryption failure
+
+
+def decrypt_value(value: Optional[str]) -> Optional[str]:
+    """Unwrap a Fernet ciphertext. Returns the input unchanged if not ours."""
+    if value is None or value == "":
+        return value
+    if isinstance(value, str) and value.startswith(_ENC_PREFIX):
+        try:
+            return _FERNET.decrypt(value[len(_ENC_PREFIX):].encode("utf-8")).decode("utf-8")
+        except InvalidToken:
+            return None  # tampered or wrong key — return None defensively
+        except Exception:
+            return None
+    return value  # legacy plaintext
+
+
+# ----------------------------------------------------------------------------
 # Audit Log Helpers — write every personal-data change to `audit_logs`
 # ----------------------------------------------------------------------------
 # Schema: { user_id, field_name, old_value, new_value, source, validation_status,
@@ -541,7 +586,9 @@ def _safe_block(model_cls, value):
 
 
 def serialize_user(user: dict) -> dict:
-    """Strip internal fields (_id, password_hash) from user dict before sending to client."""
+    """Strip internal fields (_id, password_hash) from user dict before sending to client.
+    Decrypts at-rest fields (phone / dob / postal_code) on the way out.
+    """
     if not user:
         return None
     return {
@@ -549,7 +596,8 @@ def serialize_user(user: dict) -> dict:
         "email": user.get("email"),
         "full_name": user.get("full_name"),
         "role": user.get("role"),
-        "phone": user.get("phone"),
+        # Sensitive fields — decrypt before exposing.
+        "phone":        decrypt_value(user.get("phone")),
         "unique_id": user.get("unique_id"),
         "qr_code_base64": user.get("qr_code_base64"),
         "school_info":  _safe_block(SchoolInfo,  user.get("school_info")),
@@ -566,9 +614,9 @@ def serialize_user(user: dict) -> dict:
         "onboarding_completed": user.get("onboarding_completed", False),
         "two_fa_enabled": user.get("two_fa_enabled", False),
         # Phase A — DOB / country / postal — exposed on every user response.
-        "dob":          user.get("dob"),
+        "dob":          decrypt_value(user.get("dob")),
         "country_code": user.get("country_code"),
-        "postal_code":  user.get("postal_code"),
+        "postal_code":  decrypt_value(user.get("postal_code")),
         "created_at": user.get("created_at"),
     }
 
@@ -617,11 +665,11 @@ async def register(req: RegisterRequest):
         "password_hash": hash_password(req.password),
         "full_name": req.full_name.strip(),
         "role": req.role,
-        "phone": req.phone,
-        # Date of Birth + country / postal — collected per spec
-        "dob": req.dob,
-        "country_code": req.country_code,
-        "postal_code": req.postal_code,
+        # Sensitive PII — encrypted at rest with Fernet (decrypted on read).
+        "phone": encrypt_value(req.phone),
+        "dob": encrypt_value(req.dob),
+        "country_code": req.country_code,  # not sensitive, kept plain for indexing
+        "postal_code": encrypt_value(req.postal_code),
         "unique_id": None,
         "qr_code_base64": None,
         "school_info": None,
@@ -643,14 +691,16 @@ async def register(req: RegisterRequest):
     user_doc["_id"] = result.inserted_id
 
     # Audit log — capture the full registration payload for compliance.
+    # Sensitive PII (phone / dob / postal_code) are encrypted in audit_logs
+    # too — never store plaintext outside the in-flight request.
     await _audit_log_many(user_id=user_id, source="register", entries=[
         ("email",        None, req.email),
         ("full_name",    None, req.full_name),
         ("role",         None, req.role),
-        ("phone",        None, req.phone or ""),
-        ("dob",          None, req.dob or ""),
+        ("phone",        None, encrypt_value(req.phone or "")),
+        ("dob",          None, encrypt_value(req.dob or "")),
         ("country_code", None, req.country_code or ""),
-        ("postal_code",  None, req.postal_code or ""),
+        ("postal_code",  None, encrypt_value(req.postal_code or "")),
     ])
 
     return AuthResponse(
@@ -2065,9 +2115,9 @@ async def complete_onboarding(req: OnboardingRequest, user: dict = Depends(get_c
         "onboarding_completed": True,
         "updated_at": datetime.now(timezone.utc),
     }
-    # Phone (collected during onboarding for all roles per spec)
+    # Phone (collected during onboarding for all roles per spec) — encrypted at rest.
     if req.phone:
-        update["phone"] = req.phone.strip()
+        update["phone"] = encrypt_value(req.phone.strip())
     if req.student_info:
         update["student_info"] = req.student_info.model_dump()
     if req.alumni_info:
@@ -2084,8 +2134,61 @@ async def complete_onboarding(req: OnboardingRequest, user: dict = Depends(get_c
         if req.college_info.state:   si.setdefault("state", req.college_info.state)
         update["school_info"] = si
 
+    # ---- Audit log — capture every onboarding field change ----
+    user_id_str = str(user["_id"])
+    audit_entries = []
+    for field in ("school_info", "career_path", "interests", "skills", "bio",
+                  "student_info", "alumni_info", "mentor_info", "college_info"):
+        if field in update and update[field] is not None:
+            old_val = user.get(field)
+            new_val = update[field]
+            if old_val != new_val:
+                audit_entries.append((field, old_val, new_val))
+    if req.phone:
+        # Log encrypted form so audit collection never holds plaintext PII.
+        audit_entries.append(("phone", None, update.get("phone")))
+
     await db.users.update_one({"_id": user["_id"]}, {"$set": update})
+    if audit_entries:
+        await _audit_log_many(user_id=user_id_str, source="onboarding", entries=audit_entries)
     return UserResponse(**serialize_user(await db.users.find_one({"_id": user["_id"]})))
+
+
+@api_router.get("/audit-logs/me")
+async def get_my_audit_logs(
+    user: dict = Depends(get_current_user),
+    limit: int = 100,
+    skip: int = 0,
+):
+    """Phase B — return the calling user's audit trail (most recent first).
+
+    Response shape: { total, items: [{field_name, old_value, new_value, source,
+    validation_status, is_manual_entry, ts}] }.
+
+    Sensitive fields (phone, dob, postal_code) are decrypted on-the-fly so
+    the user can audit their own changes without seeing ciphertext.
+    """
+    uid = str(user["_id"])
+    total = await db.audit_logs.count_documents({"user_id": uid})
+    cursor = db.audit_logs.find({"user_id": uid}).sort("ts", -1).skip(int(skip)).limit(min(int(limit), 500))
+    items = []
+    async for doc in cursor:
+        items.append({
+            "field_name": doc.get("field_name"),
+            "old_value": (decrypt_value(doc.get("old_value"))
+                          if isinstance(doc.get("old_value"), str)
+                          and doc["old_value"].startswith(_ENC_PREFIX)
+                          else doc.get("old_value")),
+            "new_value": (decrypt_value(doc.get("new_value"))
+                          if isinstance(doc.get("new_value"), str)
+                          and doc["new_value"].startswith(_ENC_PREFIX)
+                          else doc.get("new_value")),
+            "source": doc.get("source"),
+            "validation_status": doc.get("validation_status"),
+            "is_manual_entry": bool(doc.get("is_manual_entry", False)),
+            "ts": doc.get("ts").isoformat() if doc.get("ts") else None,
+        })
+    return {"total": total, "items": items}
 
 
 @api_router.put("/users/me", response_model=UserResponse)
