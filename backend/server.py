@@ -4965,6 +4965,8 @@ from mentor_ai import router as mentor_ai_router  # mentor AI studio (mentee pul
 api_router.include_router(mentor_ai_router)
 from wallet_and_availability import router as wallet_router  # SA Credits + mentor availability + demo seed
 api_router.include_router(wallet_router)
+from events_aggregator import router as events_aggregator_router  # Events v2: aggregator + RSVP + waitlist + AI recs + host flow
+api_router.include_router(events_aggregator_router)
 
 # Auth analytics & session tracking
 from auth_analytics import router as auth_analytics_router

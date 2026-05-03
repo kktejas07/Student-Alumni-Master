@@ -264,7 +264,7 @@ export function BookingDrawer({
   onClose: () => void;
   onConfirm: (payload: { date: string; time: string; mentorId: string; isFree: boolean }) => void;
 }) {
-  const days = useMemo(() => nextNDays(7), []);
+  const fallbackDays = useMemo(() => nextNDays(7), []);
   const [tab, setTab] = useState<TabKey>('overview');
   const [pickedDay, setPickedDay] = useState<string | null>(null);
   const [pickedTime, setPickedTime] = useState<string | null>(null);
@@ -292,7 +292,7 @@ export function BookingDrawer({
   // Use live availability when present, else fallback to default 7-day grid
   const days = liveDays && liveDays.length
     ? liveDays.map((d) => ({ key: d.date, label: d.weekday, sub: d.label }))
-    : useMemo(() => nextNDays(7), []);
+    : fallbackDays;
   const dayObj = days.find((d: any) => d.key === pickedDay);
   // Time slots filtered by live availability for the picked day
   const liveDay = liveDays?.find((d) => d.date === pickedDay);
