@@ -618,3 +618,80 @@ async def admin_refresh(user: dict = Depends(_get_current_user_dependency())):
     """Force a re-fetch (any auth'd user can trigger; cheap because of TTL cache)."""
     stats = await fetch_and_cache_all()
     return stats
+
+
+@router.get("/jobs/trending-companies")
+async def trending_companies(
+    limit: int = Query(8, ge=1, le=20),
+    user: dict = Depends(_get_current_user_dependency()),
+):
+    """Top hiring companies in the last 7 days, derived from the live cache.
+
+    Filters by year-tier so a Year-1 student only sees companies hiring
+    interns. Returns logo + open job count + dominant source per company.
+    """
+    allowed = _allowed_job_types_for_user(user)
+    seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
+
+    pipeline = [
+        {"$match": {
+            "expires_at": {"$gt": datetime.now(timezone.utc)},
+            "job_type":   {"$in": allowed},
+            "cached_at":  {"$gte": seven_days_ago},
+            "company":    {"$ne": ""},
+        }},
+        {"$group": {
+            "_id": "$company",
+            "open_jobs": {"$sum": 1},
+            "any_logo":  {"$first": "$logo_url"},
+            "any_source": {"$first": "$sources"},
+            "any_location": {"$first": "$location"},
+            "any_type": {"$first": "$job_type"},
+            "latest_posted": {"$max": "$cached_at"},
+        }},
+        {"$sort": {"open_jobs": -1, "latest_posted": -1}},
+        {"$limit": limit},
+    ]
+    out = []
+    async for doc in _db.jobs_cache.aggregate(pipeline):
+        out.append({
+            "company":     doc["_id"],
+            "open_jobs":   doc["open_jobs"],
+            "logo_url":    doc.get("any_logo") or "",
+            "primary_source": (doc.get("any_source") or [None])[0] if isinstance(doc.get("any_source"), list) else (doc.get("any_source") or ""),
+            "primary_location": doc.get("any_location") or "—",
+            "dominant_type": doc.get("any_type") or "Full-time",
+        })
+    return {"items": out, "total": len(out), "window_days": 7, "tier_filter": allowed}
+
+
+@router.get("/jobs/new-since-last-visit")
+async def new_since_last_visit(user: dict = Depends(_get_current_user_dependency())):
+    """How many new jobs landed in the cache since the user last opened the
+    Internships & Jobs view. Updates `last_jobs_visit` to "now" as a side
+    effect so subsequent calls return 0 until new data arrives.
+    """
+    allowed = _allowed_job_types_for_user(user)
+    last_visit = user.get("last_jobs_visit")
+    if not isinstance(last_visit, datetime):
+        # First-ever visit — peg to 24h ago so we surface fresh content
+        last_visit = datetime.now(timezone.utc) - timedelta(hours=24)
+    elif last_visit.tzinfo is None:
+        last_visit = last_visit.replace(tzinfo=timezone.utc)
+
+    cnt = await _db.jobs_cache.count_documents({
+        "expires_at": {"$gt": datetime.now(timezone.utc)},
+        "job_type":   {"$in": allowed},
+        "cached_at":  {"$gt": last_visit},
+    })
+    # Touch the timestamp
+    now = datetime.now(timezone.utc)
+    await _db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"last_jobs_visit": now}},
+    )
+    return {
+        "new_count": cnt,
+        "since": last_visit.isoformat(),
+        "checked_at": now.isoformat(),
+    }

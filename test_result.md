@@ -3733,10 +3733,10 @@ metadata:
 
 test_plan:
   current_focus:
+    - "Trending Companies widget (live aggregation)"
+    - "New jobs since last visit toast endpoint"
+    - "Alumni Portal Internships — same live feed"
     - "Live multi-source jobs feed (5 free APIs) with year-tier visibility"
-    - "Career AI milestone completion endpoint + badge auto-award"
-    - "Career-AI rendering fix (CheckCircle2 → CircleCheck)"
-    - "Profile Education — Stream/Department dropdowns"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -5629,3 +5629,76 @@ agent_communication:
         endpoints. realtime@studentalumni.in restored to clean baseline
         (gy=2026, saved_jobs=[], applied_jobs=[]) post-test. Test script:
         /app/backend_test_jobs_feed.py. No code changes were made.
+
+backend:
+  - task: "Jobs Feed v2 — /api/jobs/trending-companies + /api/jobs/new-since-last-visit"
+    implemented: true
+    working: true
+    file: "/app/backend/jobs_feed.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            Verified end-to-end via /app/backend_test_jobs_feed_v2.py against
+            https://hiring-mvvm.preview.emergentagent.com/api.
+            RESULT: 30/30 assertions PASS.
+
+            ENDPOINT 1 — GET /api/jobs/trending-companies:
+              ✅ no-auth → 401
+              ✅ student (realtime@studentalumni.in, grad=2026, final-year)
+                 limit=8 → 200; items=8 list; total=8; window_days=7;
+                 tier_filter=['Internship','Full-time','Contract']
+              ✅ each item has company (non-empty), open_jobs (positive int),
+                 primary_source (RemoteOK/ArbeitNow/The Muse/Remotive/Jobicy
+                 or empty), primary_location, dominant_type, logo_url
+              ✅ items sorted by open_jobs desc:
+                 [16, 10, 6, 4, 4, 4, 4, 4]
+              ✅ limit=3 → 3 items; limit=20 → 20 items
+              ✅ limit=21 → 422 (FastAPI validates le=20 upper bound)
+              ✅ alumni (alumni01@test.com) tier_filter contains
+                 ['Full-time','Internship','Contract'] — alumni get all
+              ✅ Mongo override graduation_year=2029 (Year-1) → tier_filter
+                 reverts to ['Internship']; all returned items have
+                 dominant_type='Internship'; counts respect tier
+              ✅ graduation_year RESTORED to 2026 after test
+
+            ENDPOINT 2 — GET /api/jobs/new-since-last-visit:
+              ✅ no-auth → 401
+              ✅ first-ever visit (last_jobs_visit unset) → 200,
+                 new_count=259 (>0, uses 24h fallback), since/checked_at
+                 are ISO timestamps (since=24h ago, checked_at=now)
+              ✅ user.last_jobs_visit persisted as datetime after call
+              ✅ Immediate re-hit → new_count == 0 (correct — no new
+                 cache entries between back-to-back calls)
+              ✅ last_jobs_visit updated on every call
+                 (first<second timestamps verified)
+              ✅ Tier-aware: with grad=2029 (Year-1) and last_jobs_visit
+                 unset, new_count=37 — matches the count of cache entries
+                 with job_type='Internship' cached in last 24h exactly
+                 (37 vs 37; full count was 259). Year-1 student only sees
+                 internship-type new jobs ✅
+
+            CLEANUP verified: realtime@studentalumni.in →
+              graduation_year=2026, last_jobs_visit unset, saved_jobs/
+              applied_jobs cleared. No test data leaked.
+
+            No code changes made. Both endpoints production-ready.
+
+agent_communication:
+    - agent: "testing"
+      message: |
+        Jobs Feed v2 endpoints (/api/jobs/trending-companies +
+        /api/jobs/new-since-last-visit) — 30/30 PASS.
+        Trending: tier-filter works for student/alumni/year-1; sort order
+        correct; bounds enforced (limit 1..20). New-since-last-visit:
+        first-visit fallback works, immediate re-hit returns 0,
+        last_jobs_visit field correctly persisted on user doc each call,
+        and tier-aware filtering verified — Year-1 student only counts
+        Internship-type new jobs (37 vs 259 total in cache). All cleanup
+        completed: realtime@studentalumni.in restored to grad=2026, no
+        last_jobs_visit/saved_jobs/applied_jobs leakage. Test script:
+        /app/backend_test_jobs_feed_v2.py. Zero code changes.
+

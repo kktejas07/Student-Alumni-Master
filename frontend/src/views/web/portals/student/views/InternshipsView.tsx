@@ -112,6 +112,21 @@ export function InternshipsView() {
 
   useEffect(() => { setPage(1); loadFeed({ pageOverride: 1 }); }, [filter]); // eslint-disable-line
 
+  // "X new jobs since you last visited" — fired once on mount.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r: any = await request('/jobs/new-since-last-visit');
+        if (!cancelled && r?.new_count > 0) {
+          toast.success(`🎉 ${r.new_count} new job${r.new_count === 1 ? '' : 's'} since your last visit`,
+            'Pulled fresh from RemoteOK · ArbeitNow · The Muse · Remotive · Jobicy');
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line
+
   // Debounced search
   useEffect(() => {
     const t = setTimeout(() => { if (filter !== 'Saved') { setPage(1); loadFeed({ pageOverride: 1 }); } }, 350);

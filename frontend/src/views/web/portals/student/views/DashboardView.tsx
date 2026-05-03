@@ -22,6 +22,7 @@ import * as MOCK from '../data';
 import { usePortalData } from '@/src/lib/portalApi';
 import { TierBadge } from '@/src/views/web/TierBadge';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
+import { TrendingCompaniesWidget } from './TrendingCompaniesWidget';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -191,6 +192,9 @@ export function DashboardView() {
           return <KpiCard key={k.id} Icon={Icon} label={k.label} value={k.value} delta={k.delta} color={k.color} />;
         })}
       </View>
+
+      {/* Trending Companies — live from /api/jobs/trending-companies */}
+      <TrendingCompaniesWidget />
 
       {/* Top Matches + Recommended Mentors */}
       <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
