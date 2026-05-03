@@ -310,6 +310,8 @@ export function DashboardView() {
 }
 
 const s = StyleSheet.create({
+  briefRowPad: { padding: 14, paddingHorizontal: 18 },
+  briefRowInner: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   briefRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14,
