@@ -72,7 +72,7 @@ const SKILL_META: { key: string; label: string; color: string; Icon: any }[] = [
   { key: 'leadership',     label: 'Leadership',     color: '#F59E0B', Icon: Award },
 ];
 
-export default function CareerAIPage() {
+export default function CareerAIPage({ embedded = false }: { embedded?: boolean } = {}) {
   const router = useRouter();
   const toast = useToast();
   const user = useAuthStore((u) => u.user);
@@ -173,7 +173,7 @@ export default function CareerAIPage() {
 
   if (loading && !roadmap.weekly_plan) {
     return (
-      <View style={[s.shell, { alignItems: 'center', justifyContent: 'center' }]}>
+      <View style={[embedded ? s.embeddedShell : s.shell, { alignItems: 'center', justifyContent: 'center', padding: 40 }]}>
         <ActivityIndicator size="large" color={C.purpleL} />
         <Text style={{ color: C.text2, marginTop: 14, fontFamily: FT.med }}>Generating your roadmap…</Text>
       </View>
@@ -184,14 +184,21 @@ export default function CareerAIPage() {
   const targetCo = roadmap.target_company_type || 'Top Tech Company';
   const progress = roadmap.progress_pct ?? 42;
 
+  const Container: any = embedded ? View : ScrollView;
+  const containerProps: any = embedded
+    ? { style: s.embeddedShell }
+    : { style: s.shell, contentContainerStyle: { padding: 22, paddingBottom: 80 } };
+
   return (
-    <ScrollView style={s.shell} contentContainerStyle={{ padding: 22, paddingBottom: 80 }}>
+    <Container {...containerProps}>
 
       {/* Header */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-        <Pressable onPress={() => router.back()} style={s.backBtn} testID="career-back">
-          <ArrowLeft size={16} color={C.text} />
-        </Pressable>
+        {!embedded && (
+          <Pressable onPress={() => router.back()} style={s.backBtn} testID="career-back">
+            <ArrowLeft size={16} color={C.text} />
+          </Pressable>
+        )}
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Text style={s.title}>AI Career Roadmap</Text>
@@ -383,7 +390,7 @@ export default function CareerAIPage() {
       <Text style={{ color: C.dim, fontFamily: FT.med, fontSize: 11, textAlign: 'center', marginTop: 22 }}>
         Roadmap last generated {roadmap.generated_at ? new Date(roadmap.generated_at).toLocaleString() : '—'} · Powered by Student Alumni AI
       </Text>
-    </ScrollView>
+    </Container>
   );
 }
 
@@ -409,6 +416,7 @@ function SectionTitle({ text }: { text: string }) {
 
 const s = StyleSheet.create({
   shell: { flex: 1, backgroundColor: C.bg },
+  embeddedShell: { flex: 1, backgroundColor: 'transparent' },
 
   backBtn: {
     width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center',

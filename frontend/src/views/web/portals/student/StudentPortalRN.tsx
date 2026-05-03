@@ -12,6 +12,7 @@ import { Sidebar, StudentNavId } from './Sidebar';
 import { TopBar } from './TopBar';
 import { DashboardView } from './views/DashboardView';
 import { StubView } from './views/StubView';
+import { CareerAIView } from './views/CareerAIView';
 import { EventsView } from './views/EventsView';
 import { InternshipsView } from './views/InternshipsView';
 import { NetworkView } from './views/NetworkView';
@@ -42,7 +43,7 @@ export function StudentPortalRN() {
           showsVerticalScrollIndicator={false}
         >
           {active === 'dashboard'       && <DashboardView />}
-          {active === 'career-ai'       && <StubView title="Career AI"          note="Roadmap planner, resume builder, mock interview — the standalone version is already live." deepLink="/career-ai" />}
+          {active === 'career-ai'       && <CareerAIView />}
           {active === 'internships'     && <InternshipsView />}
           {active === 'my-applications' && <MyApplicationsView />}
           {active === 'network'         && <NetworkView />}
