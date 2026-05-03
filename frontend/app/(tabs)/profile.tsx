@@ -27,6 +27,7 @@ import { ProfileInfoPage } from '@/src/views/web/profile/ProfileInfoPage';
 import { ManageProfilePage } from '@/src/views/web/profile/ManageProfilePage';
 import { SettingsPage } from '@/src/views/web/profile/SettingsPage';
 import { SaveBar, C } from '@/src/views/web/profile/primitives';
+import { MemberIdCard } from '@/src/views/components/MemberIdCard';
 
 type PageKey = 'info' | 'digitalid' | 'manage' | 'notifications' | 'privacy' | 'settings';
 
@@ -487,110 +488,15 @@ function DigitalIdCardInline({ userId, isMobile, draft, completion, showToast }:
           <Text style={{ color: 'rgba(255,255,255,0.70)', fontFamily: 'DMSans_500Medium', fontSize: 13 }}>Your verified digital identity · Used across all platform features</Text>
         </View>
 
-        {/* CARD CAROUSEL with hover glow ring */}
+        {/* INTERACTIVE FLIP CARD (replaces previous slide carousel) */}
         <View style={{ alignSelf: 'center', width: '100%', maxWidth: 500, gap: 12 }}>
-          <View
-            {...(Platform.OS === 'web' ? { onMouseEnter: () => setHoverCard(true), onMouseLeave: () => setHoverCard(false) } : {})}
-            style={{
-              position: 'relative', padding: 2, borderRadius: 22,
-              ...(Platform.OS === 'web' ? ({
-                transition: 'transform .35s cubic-bezier(.2,.8,.2,1)',
-                transform: hoverCard ? 'translateY(-4px) scale(1.01)' : 'translateY(0) scale(1)',
-              } as any) : {}),
-            } as any}
-          >
-            {Platform.OS === 'web' && (
-              <View
-                // @ts-ignore web-only hover-triggered purple gradient border
-                style={{
-                  position: 'absolute', top: -3, left: -3, right: -3, bottom: -3, borderRadius: 24,
-                  backgroundImage: 'conic-gradient(from 140deg, #A78BFA, #C4B5FD, #7C3AED, #6D28D9, #A78BFA)',
-                  opacity: hoverCard ? 0.95 : 0,
-                  filter: hoverCard ? 'blur(10px)' : 'blur(4px)',
-                  transition: 'opacity .35s ease, filter .35s ease',
-                  pointerEvents: 'none',
-                } as any}
-              />
-            )}
-            {/* Inner card — captured for download */}
-            <View ref={cardRef as any} style={{ borderRadius: 20, overflow: 'hidden' }}>
-              {slide === 0 && (
-                <LinearGradient colors={['#7C3AED', '#6D28D9', '#4C1D95']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 22, gap: 14, minHeight: 310, borderColor: 'rgba(255,255,255,0.18)', borderWidth: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <View>
-                      <Text style={{ color: 'rgba(255,255,255,0.75)', fontFamily: 'DMSans_700Bold', fontSize: 10, letterSpacing: 1.4 }}>STUDENT ALUMNI</Text>
-                      <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14, marginTop: 2 }}>DIGITAL ID · {new Date().getFullYear()}</Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(16,185,129,0.25)', borderColor: 'rgba(16,185,129,0.60)', borderWidth: 1 }}>
-                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#34D399' }} />
-                      <Text style={{ color: '#86EFAC', fontFamily: 'DMSans_800ExtraBold', fontSize: 10, letterSpacing: 0.6 }}>ACTIVE</Text>
-                    </View>
-                  </View>
-                  <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center', marginTop: 4 }}>
-                    <View style={{ width: 78, height: 78, borderRadius: 39, backgroundColor: 'rgba(255,255,255,0.20)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderColor: 'rgba(255,255,255,0.35)', borderWidth: 2 }}>
-                      {draft?.photo_data || draft?.face_image_base64 ? (
-                        <Image source={{ uri: draft.photo_data || draft.face_image_base64 }} style={{ width: '100%', height: '100%' }} />
-                      ) : (
-                        <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 26 }}>{initials}</Text>
-                      )}
-                    </View>
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 22 }} numberOfLines={1}>{fullName}</Text>
-                      <Text style={{ color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_500Medium', fontSize: 12.5, marginTop: 3 }} numberOfLines={1}>{[branch, institution].filter(Boolean).join(' · ') || '—'}</Text>
-                      <View style={{ flexDirection: 'row', gap: 14, marginTop: 10 }}>
-                        <View>
-                          <Text style={{ color: 'rgba(255,255,255,0.60)', fontFamily: 'DMSans_700Bold', fontSize: 8.5, letterSpacing: 1 }}>STUDENT ID</Text>
-                          <Text style={{ color: '#fff', fontFamily: Platform.OS === 'web' ? 'monospace' : 'DMSans_800ExtraBold', fontSize: 13, marginTop: 2, fontWeight: '700' as any }}>{sid}</Text>
-                        </View>
-                        <View>
-                          <Text style={{ color: 'rgba(255,255,255,0.60)', fontFamily: 'DMSans_700Bold', fontSize: 8.5, letterSpacing: 1 }}>VALID UNTIL</Text>
-                          <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13, marginTop: 2 }}>{validUntil}</Text>
-                        </View>
-                      </View>
-                    </View>
-                  </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 6 }}>
-                    <View style={{ backgroundColor: '#fff', padding: 8, borderRadius: 10 }}>
-                      <QRCode value={qrValue} size={72} color="#1E1B2E" backgroundColor="#FFFFFF" />
-                    </View>
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={{ color: 'rgba(255,255,255,0.60)', fontFamily: 'DMSans_700Bold', fontSize: 8.5, letterSpacing: 1 }}>SCAN TO VERIFY</Text>
-                      <Text style={{ color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_500Medium', fontSize: 10, marginTop: 2 }}>studentalumni.in/verify</Text>
-                    </View>
-                  </View>
-                </LinearGradient>
-              )}
-              {slide === 1 && (
-                <LinearGradient colors={['#1E1B2E', '#2D1B5C', '#3B2A5C']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 24, gap: 12, minHeight: 310, borderColor: 'rgba(255,255,255,0.15)', borderWidth: 1 }}>
-                  <Text style={{ color: 'rgba(167,139,250,0.90)', fontFamily: 'DMSans_800ExtraBold', fontSize: 10, letterSpacing: 1.4 }}>REVERSE · TERMS OF USE</Text>
-                  <Text style={{ color: '#fff', fontFamily: 'DMSans_500Medium', fontSize: 13, lineHeight: 20, marginTop: 6 }}>This card certifies that the holder is a verified member of the Student Alumni platform. Valid for identity verification at partner events, campuses &amp; mentor bookings. Not transferable.</Text>
-                  <View style={{ marginTop: 14, gap: 4 }}>
-                    <Text style={{ color: 'rgba(255,255,255,0.60)', fontFamily: 'DMSans_700Bold', fontSize: 9, letterSpacing: 1 }}>SIGNATURE</Text>
-                    <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.35)' }} />
-                    <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium', fontSize: 10, marginTop: 2 }}>Not valid without signature</Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
-                    <Text style={{ color: 'rgba(255,255,255,0.50)', fontFamily: 'DMSans_500Medium', fontSize: 11 }}>studentalumni.in</Text>
-                    <Text style={{ color: 'rgba(255,255,255,0.50)', fontFamily: Platform.OS === 'web' ? 'monospace' : 'DMSans_700Bold', fontSize: 11, fontWeight: '700' as any }}>{sid}</Text>
-                  </View>
-                </LinearGradient>
-              )}
-              {slide === 2 && null /* perks moved to separate widget below */}
-            </View>
-          </View>
-
-          {/* Carousel controls — 2 slides only (Front / Back) */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-            <Pressable onPress={() => goSlide(slide - 1)} disabled={slide === 0} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', opacity: slide === 0 ? 0.35 : 1, ...({ cursor: slide === 0 ? 'not-allowed' : 'pointer' } as any) }} testID="did-prev">
-              <ArrowLeft size={14} color="#fff" />
-            </Pressable>
-            {[0, 1].map((i) => (
-              <Pressable key={i} onPress={() => goSlide(i)} style={{ width: i === slide ? 22 : 8, height: 8, borderRadius: 4, backgroundColor: i === slide ? '#A78BFA' : 'rgba(255,255,255,0.25)', ...({ cursor: 'pointer', transition: 'all .25s ease' } as any) }} testID={`did-dot-${i}`} />
-            ))}
-            <Pressable onPress={() => goSlide(slide + 1)} disabled={slide === 1} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', opacity: slide === 1 ? 0.35 : 1, ...({ cursor: slide === 1 ? 'not-allowed' : 'pointer' } as any) }} testID="did-next">
-              <View style={{ transform: [{ rotate: '180deg' }] }}><ArrowLeft size={14} color="#fff" /></View>
-            </Pressable>
-          </View>
+          <MemberIdCard
+            uniqueId={sid}
+            role={(user?.role as any) || 'student'}
+            tier={((user as any)?.ranking_tier as any) || 'gold'}
+            qrBase64={user?.qr_code_base64}
+            validFromYear={new Date(user?.created_at || Date.now()).getFullYear()}
+          />
           <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium', fontSize: 11, textAlign: 'center' }}>Tap card to flip · Front &amp; back</Text>
         </View>
 

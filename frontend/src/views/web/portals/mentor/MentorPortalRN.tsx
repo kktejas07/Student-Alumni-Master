@@ -30,6 +30,7 @@ import { FeedbackView } from './views/FeedbackView';
 import { CreateEventView } from './views/CreateEventView';
 import { AvailabilityView } from './views/AvailabilityView';
 import { ProfileView } from './views/ProfileView';
+import { MentorProfileSettingsView } from './views/MentorProfileSettingsView';
 import { STUDENTS, SESSION_REQUESTS } from './data';
 
 const PAGE_TITLES: Record<NavId, string> = {
@@ -87,7 +88,7 @@ export default function MentorPortalRN() {
           {active === 'earnings'  && <EarningsView />}
           {active === 'feedback'  && <FeedbackView />}
           {active === 'event'     && <CreateEventView />}
-          {active === 'profile'   && <ProfileView />}
+          {active === 'profile'   && <MentorProfileSettingsView />}
         </ScrollView>
       </View>
     </View>

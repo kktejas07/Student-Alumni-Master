@@ -2348,12 +2348,46 @@ async def get_my_stats(user: dict = Depends(get_current_user)):
     except Exception:
         applications_sent = int(user.get("applications_sent") or 0)
 
+    # Mentor-specific aggregates (rating + monthly earnings) — cheap if collections empty
+    avg_rating = 0.0
+    rating_count = 0
+    earnings_this_month = 0
+    try:
+        rating_pipeline = [
+            {"$match": {"mentor_id": uid, "rating": {"$gte": 1}}},
+            {"$group": {"_id": None, "avg": {"$avg": "$rating"}, "n": {"$sum": 1}}},
+        ]
+        async for doc in db.feedback.aggregate(rating_pipeline):
+            avg_rating = round(float(doc.get("avg") or 0), 2)
+            rating_count = int(doc.get("n") or 0)
+    except Exception:
+        avg_rating = float(user.get("rating_avg") or 0)
+        rating_count = int(user.get("rating_count") or 0)
+
+    try:
+        from datetime import datetime as _dt
+        now = _dt.utcnow()
+        earnings_pipeline = [
+            {"$match": {
+                "user_id": uid, "type": "earning",
+                "created_at": {"$gte": _dt(now.year, now.month, 1)},
+            }},
+            {"$group": {"_id": None, "total": {"$sum": "$amount"}}},
+        ]
+        async for doc in db.payments.aggregate(earnings_pipeline):
+            earnings_this_month = int(doc.get("total") or 0)
+    except Exception:
+        earnings_this_month = int(user.get("earnings_this_month") or 0)
+
     return {
         "sessions_completed": sessions_completed,
         "connections_made": connections_made,
         "profile_views": profile_views,
         "mentor_sessions": mentor_sessions,
         "applications_sent": applications_sent,
+        "avg_rating": avg_rating,
+        "rating_count": rating_count,
+        "earnings_this_month": earnings_this_month,
     }
 
 
