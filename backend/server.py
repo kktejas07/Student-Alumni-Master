@@ -4959,6 +4959,8 @@ api_router.include_router(portals_router)
 # Career Intel adapters (LinkedIn / Internshala / Buddy4Study) — MOCKED fallback
 from career_intel import router as career_intel_router
 api_router.include_router(career_intel_router)
+from jobs_feed import router as jobs_feed_router  # live job aggregator (5 free APIs + tier filter)
+api_router.include_router(jobs_feed_router)
 
 # Auth analytics & session tracking
 from auth_analytics import router as auth_analytics_router

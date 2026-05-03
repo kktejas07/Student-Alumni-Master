@@ -3733,12 +3733,102 @@ metadata:
 
 test_plan:
   current_focus:
+    - "Live multi-source jobs feed (5 free APIs) with year-tier visibility"
     - "Career AI milestone completion endpoint + badge auto-award"
     - "Career-AI rendering fix (CheckCircle2 → CircleCheck)"
     - "Profile Education — Stream/Department dropdowns"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
+
+backend:
+  - task: "Live multi-source job aggregator with year-tier visibility"
+    implemented: true
+    working: true
+    file: "/app/backend/jobs_feed.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            New /app/backend/jobs_feed.py module aggregates real jobs from 5
+            no-key free APIs in parallel via asyncio.gather:
+              · RemoteOK (general + intern-tagged)
+              · ArbeitNow (Europe)
+              · The Muse (general + level=Internship + level=Entry%20Level)
+              · Remotive
+              · Jobicy
+            
+            Pipeline:
+              · Per-source normaliser → unified schema (title, company, loc,
+                work_mode, job_type, salary, description, tags, posted_date,
+                source(s), source_url)
+              · MD5 dedup hash on (title|company|location) — duplicates merge
+                with combined source_urls + sources arrays
+              · MongoDB TTL cache (30 min) on db.jobs_cache via expireAfter
+                index + bulk upsert by dedup_hash
+              · Year-tier visibility filter:
+                  Year 1, 2  → Internship only
+                  Year 3, 4  → Internship + Full-time + Contract
+                  Alumni / mentor / college / admin → all types
+                Year inferred from year/current_year/academic_year, with
+                graduation_year fallback (gy - cur_year ≤ 0 → year 4, etc.)
+            
+            Endpoints (all under /api):
+              GET  /jobs/feed?type=&work_mode=&q=&location=&source=&page=&per_page=&refresh=
+              POST /jobs/save           { job_id }
+              POST /jobs/unsave         { job_id }
+              GET  /jobs/saved
+              POST /jobs/track-apply    { job_id, source_url }   (audit log)
+              POST /jobs/refresh                                   (force re-fetch)
+            
+            Observed real numbers (live test against realtime@studentalumni.in):
+              · Total fetched: 259 unique jobs across 5 sources
+              · Internship filter returned 37 real internships (Bechtel,
+                Celonis, Uber, Coca-Cola, etc.)
+              · Remote filter returned 126 jobs
+              · Save/unsave persist to user.saved_jobs[] correctly
+              · Year-tier rule confirmed: graduation_year=2026 (current 2026)
+                → year 4 → Internship+Full-time+Contract allowed.
+
+frontend:
+  - task: "Student Portal Internships & Jobs — wired to live multi-source feed"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/views/web/portals/student/views/InternshipsView.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            Replaced the mock-driven InternshipsView with a live feed view
+            that consumes /api/jobs/feed.
+            
+            Features (verified live with realtime@studentalumni.in):
+              · Top tier banner shows "Live jobs from 5 sources" + allowed
+                types ("Internship · Full-time · Contract" for final-year)
+              · Filter chips: All / Internship / Full-time / Remote / Saved
+                (out-of-tier filters render with a Lock icon + tier-locked
+                hint toast)
+              · Debounced search bar (q) hits backend on 350ms idle
+              · Each card shows: company logo (auto-coloured), title, type
+                pill (green for Internship / purple for Full-time), Remote
+                pill, location, source attribution ("via RemoteOK / The Muse"
+                etc.), and salary range when available
+              · Save toggles via /jobs/save + /jobs/unsave with optimistic UI
+              · Apply opens source_url externally + posts /jobs/track-apply
+                so we have an audit trail
+              · "Refresh" button calls upstream APIs again (bypasses cache)
+              · Pagination via "Load more · N remaining"
+              · Empty / loading states handled
+            
+            Visual QA (screenshots saved to /tmp): All filter shows 259 real
+            jobs from RemoteOK; Internship filter shows 37 real internships
+            from The Muse (Bechtel, Celonis, Uber, Coca-Cola, etc.).
 
 backend:
   - task: "AI Career Roadmap milestone completion + badge auto-award"
@@ -5444,3 +5534,98 @@ agent_communication:
 
         Test script saved at /app/backend_test_users_me_stats.py.
 
+
+
+backend:
+  - task: "Live Job Aggregator — /api/jobs/* (refresh, feed, save/unsave/saved, track-apply) with year-tier filter"
+    implemented: true
+    working: true
+    file: "/app/backend/jobs_feed.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            FULLY VERIFIED end-to-end via /app/backend_test_jobs_feed.py.
+            RESULT: 53/53 assertions PASS.
+            Auth: realtime@studentalumni.in / RealTime@2026 (gy=2026 → year=4 →
+            allowed Internship+Full-time+Contract).
+
+            1) POST /api/jobs/refresh → 200 ✅
+               sources={RemoteOK:80, ArbeitNow:60, The Muse:60, Remotive:22,
+               Jobicy:40} — all 5 non-zero. total_unique=259. ttl_minutes=30.
+
+            2) GET /api/jobs/feed?per_page=12
+               • No auth → 401 ✅
+               • With auth → 200, total=259, items=12 (≤12) ✅
+               • Each item has job_id, title, company, location, work_mode,
+                 job_type, sources (list), source_urls (list) ✅
+               • allowed_types == ["Internship","Full-time","Contract"] ✅
+               • available_sources contains all 5 ✅
+
+            3) GET /api/jobs/feed?type=Internship&per_page=10 → 200, total=37,
+               all 10 items job_type=Internship ✅
+
+            4) GET /api/jobs/feed?type=Contract&per_page=5 → 200, total=13,
+               user_tier_locked=false, all 5 items job_type=Contract ✅
+
+            5) GET /api/jobs/feed?work_mode=Remote&per_page=10 → all 10 items
+               work_mode=Remote ✅
+
+            6) GET /api/jobs/feed?q=engineer&per_page=10 → every item matches
+               "engineer" (title/company/tags case-insensitive) ✅
+
+            7) GET /api/jobs/feed?source=The%20Muse&per_page=10 → every item
+               has "The Muse" in sources[] ✅
+
+            8) Pagination: page1 vs page2 (per_page=5) — disjoint job_id sets
+               (overlap=0), total stays 259 across both pages ✅
+
+            9) Save flow:
+               • POST /jobs/save {job_id} → 200 {ok:true, saved:true} ✅
+               • GET /jobs/saved → contains job_id ✅
+               • Feed item.saved == true for that job ✅
+               • POST /jobs/unsave → 200 {ok:true, saved:false} ✅
+               • GET /jobs/saved → no longer contains it ✅
+               • POST /jobs/save with empty body → 400 "job_id required" ✅
+
+            10) Apply tracking:
+                • POST /jobs/track-apply {job_id, source_url} → 200 ✅
+                • Mongo user.applied_jobs[] contains job_id ✅
+                • Feed item.applied == true ✅
+
+            11) Year-tier enforcement (gy=2029 → year≈1):
+                • GET /jobs/feed?type=Full-time → 200, user_tier_locked=true,
+                  items=[], message="Your tier doesn't include Full-time. Try
+                  one of: Internship." ✅
+                • GET /jobs/feed (no filter) → only Internship items
+                  (types={Internship}, len=20) ✅
+                • allowed_types == ["Internship"] ✅
+                • graduation_year RESTORED to 2026 after test ✅
+
+            12) Auth gating: all 6 endpoints (/jobs/feed, /jobs/save,
+                /jobs/unsave, /jobs/saved, /jobs/track-apply, /jobs/refresh)
+                return 401 without Authorization header ✅
+
+            CLEANUP: realtime@studentalumni.in restored — gy=2026,
+            saved_jobs=[], applied_jobs=[]. No test data leaked.
+
+            HIGHLIGHT: This is real live data from 5 free upstream APIs (no
+            mocking). MongoDB TTL cache (30 min) + MD5 dedup on
+            (title|company|location). Year-tier filter correctly derives year
+            from graduation_year when explicit year field is missing. Zero
+            issues found.
+
+agent_communication:
+    - agent: "testing"
+      message: |
+        Live Job Aggregator (/api/jobs/*) — 53/53 assertions PASS across all
+        12 review-request scenarios. Real upstream API integration verified
+        live (RemoteOK + ArbeitNow + The Muse + Remotive + Jobicy all
+        returning 200). MD5 dedup, TTL cache, year-tier filter, save/unsave/
+        apply all working correctly. Auth gating enforced on all 6
+        endpoints. realtime@studentalumni.in restored to clean baseline
+        (gy=2026, saved_jobs=[], applied_jobs=[]) post-test. Test script:
+        /app/backend_test_jobs_feed.py. No code changes were made.
