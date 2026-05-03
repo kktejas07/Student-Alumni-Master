@@ -39,7 +39,16 @@ export function SuggestionAutocomplete({
   const borderColor = focused ? '#B07FDF' : 'rgba(255,255,255,0.14)';
 
   return (
-    <View style={{ position: 'relative', zIndex: 30, marginBottom: 14 }}>
+    // Dynamic zIndex: when this autocomplete is focused / showing the dropdown,
+    // its container needs to sit ABOVE later siblings (each subsequent
+    // SuggestionAutocomplete also has zIndex 30). 9999 ensures the dropdown
+    // overlays any field that comes after it in the same ScrollView.
+    <View style={{
+      position: 'relative',
+      zIndex: showDropdown ? 9999 : 30,
+      ...(Platform.OS === 'web' ? ({ isolation: 'isolate' } as any) : {}),
+      marginBottom: 14,
+    }}>
       {label ? <Text style={s.label}>{label}</Text> : null}
       <View style={[s.wrap, { borderColor }]}>
         <RNTextInput

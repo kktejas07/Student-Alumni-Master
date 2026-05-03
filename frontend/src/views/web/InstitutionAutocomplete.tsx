@@ -13,7 +13,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, ActivityIndicator, TextInput, Image,
+  View, Text, StyleSheet, Pressable, ActivityIndicator, TextInput, Image, Platform,
 } from 'react-native';
 import { GraduationCap, Building2, Search, Plus } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
@@ -119,7 +119,14 @@ export function InstitutionAutocomplete({
   };
 
   return (
-    <View style={{ position: 'relative', zIndex: 50 }}>
+    <View style={{
+      position: 'relative',
+      // Lift above any later siblings (e.g. Batch Year + YoE row, Session
+      // Price chips) when the suggestion list is open. Otherwise stay at
+      // a moderate z so the field itself sits flat with neighbours.
+      zIndex: open ? 9999 : 50,
+      ...(Platform.OS === 'web' ? ({ isolation: 'isolate' } as any) : {}),
+    }}>
       <View style={styles.inputWrap}>
         <Search size={16} color="rgba(255,255,255,0.45)" />
         <TextInput
