@@ -2304,12 +2304,6 @@ async def get_my_completion(user: dict = Depends(get_current_user)):
 
 @api_router.get("/users/me/stats")
 async def get_my_stats(user: dict = Depends(get_current_user)):
-    """Return profile-page sidebar stats for the current user.
-
-    Pulls live counts from Mongo where collections exist; falls back to
-    fields stored on the user doc (or zero) otherwise. Used by the
-    Student / Mentor / Alumni / College profile sidebars.
-    """
     uid = str(user.get("id") or user.get("_id"))
 
     # Sessions completed (mentor sessions where user was mentee/mentor and status=completed)
@@ -2389,6 +2383,116 @@ async def get_my_stats(user: dict = Depends(get_current_user)):
         "rating_count": rating_count,
         "earnings_this_month": earnings_this_month,
     }
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Tools & Integrations (Profile sub-tab)
+# Stores per-user external tool connections used to power AI brief context,
+# default session platform selection and outreach tooling.
+# ════════════════════════════════════════════════════════════════════════════
+INTEGRATION_PROVIDERS = {
+    # AI providers — used for personalising the AI brief
+    "ai":       {"openai_chatgpt", "anthropic_claude", "google_gemini"},
+    # Email services
+    "email":    {"gmail", "outlook", "icloud"},
+    # Video conferencing
+    "video":    {"google_meet", "zoom", "ms_teams"},
+    # Calendar & productivity
+    "calendar": {"google_calendar", "outlook_calendar", "notion", "slack"},
+}
+ALL_INTEGRATION_PROVIDERS: set[str] = {p for s in INTEGRATION_PROVIDERS.values() for p in s}
+
+
+@api_router.get("/users/me/integrations")
+async def list_my_integrations(user: dict = Depends(get_current_user)):
+    """List the current user's connected tools/integrations + default platform."""
+    integrations = (user.get("integrations") or {})
+    prefs = (user.get("preferences") or {})
+    return {
+        "integrations": integrations,
+        "default_video_platform": prefs.get("default_video_platform"),
+        "default_ai_provider":    prefs.get("default_ai_provider"),
+    }
+
+
+@api_router.post("/users/me/integrations")
+async def connect_integration(
+    body: Dict[str, Any],
+    user: dict = Depends(get_current_user),
+):
+    """Connect (or update) a single integration.
+    Body: { provider: 'gmail'|'zoom'|..., email?: str, account_label?: str }
+
+    NOTE: This is a metadata-only stub for MVP — full OAuth flows for
+    each provider will be wired separately when client credentials are
+    supplied.  We persist the user-supplied email/label so the AI brief
+    and session-link generators know which account to use.
+    """
+    provider = (body or {}).get("provider", "").strip().lower()
+    if provider not in ALL_INTEGRATION_PROVIDERS:
+        raise HTTPException(400, f"unknown provider: {provider}")
+    email = (body or {}).get("email") or ""
+    label = (body or {}).get("account_label") or email or provider
+    rec = {
+        "provider": provider,
+        "email": email,
+        "account_label": label,
+        "status": "connected",
+        "connected_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {f"integrations.{provider}": rec}}
+    )
+    try:
+        await _audit_log(  # type: ignore
+            user_id=str(user["_id"]),
+            field_name=f"integrations.{provider}",
+            old_value=None, new_value=rec,
+            source="integration_connect",
+        )
+    except Exception:
+        pass
+    return {"ok": True, "integration": rec}
+
+
+@api_router.delete("/users/me/integrations/{provider}")
+async def disconnect_integration(
+    provider: str,
+    user: dict = Depends(get_current_user),
+):
+    p = provider.strip().lower()
+    if p not in ALL_INTEGRATION_PROVIDERS:
+        raise HTTPException(400, f"unknown provider: {p}")
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$unset": {f"integrations.{p}": ""}}
+    )
+    try:
+        await _audit_log(  # type: ignore
+            user_id=str(user["_id"]),
+            field_name=f"integrations.{p}",
+            old_value=user.get("integrations", {}).get(p),
+            new_value=None,
+            source="integration_disconnect",
+        )
+    except Exception:
+        pass
+    return {"ok": True}
+
+
+@api_router.patch("/users/me/preferences")
+async def patch_preferences(
+    body: Dict[str, Any],
+    user: dict = Depends(get_current_user),
+):
+    """Update user preferences (default_video_platform, default_ai_provider, etc.)."""
+    allowed = {"default_video_platform", "default_ai_provider"}
+    payload = {f"preferences.{k}": v for k, v in (body or {}).items() if k in allowed}
+    if not payload:
+        return {"ok": True, "noop": True}
+    await db.users.update_one({"_id": user["_id"]}, {"$set": payload})
+    return {"ok": True, "updated": list(payload.keys())}
 
 
 @api_router.get("/users/me/resume")
@@ -3280,15 +3384,22 @@ async def ai_daily_brief(
     si = user.get("student_info") or {}
     goal = si.get("career_goal") or "Software Engineer at a top tech company"
 
+    # Connected tools — feeds AI context so the brief can reference them.
+    integrations = user.get("integrations") or {}
+    tools_summary = ", ".join(integrations.keys()) if integrations else "none yet"
+    pref_ai = ((user.get("preferences") or {}).get("default_ai_provider")) or ""
+
     system_msg = (
         "You are an upbeat AI career coach for the Student Alumni platform. "
         "Write a 2-3 sentence personalised morning brief tailored to the user. "
         "Keep it warm, action-oriented, and end with a single concrete suggestion. "
+        "If the user has connected useful tools, gently weave one of them into the suggestion. "
         "Plain text only — no markdown, no lists, no emojis."
     )
     prompt = (
         f"User: {full_name}\nRole: {role}\nInstitution: {institution} ({branch}, class of {grad_year})\n"
-        f"Interests: {interests}\nKey skills: {skills}\nGoal: {goal}\n\n"
+        f"Interests: {interests}\nKey skills: {skills}\nGoal: {goal}\n"
+        f"Connected tools: {tools_summary}\nPreferred AI: {pref_ai or 'auto'}\n\n"
         "Write today's morning brief now."
     )
 

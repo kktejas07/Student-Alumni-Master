@@ -31,18 +31,19 @@ import {
   User, Settings as SettingsIcon, Bell, ShieldCheck, IdCard,
   CheckCircle2, GraduationCap, Award, ExternalLink, Sparkles,
   Briefcase, UsersRound, Eye, CalendarCheck, FileSearch,
-  Star, IndianRupee, Building2,
+  Star, IndianRupee, Building2, Plug,
 } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { ProfileInfoPage } from '@/src/views/web/profile/ProfileInfoPage';
 import { ManageProfilePage } from '@/src/views/web/profile/ManageProfilePage';
 import { SettingsPage } from '@/src/views/web/profile/SettingsPage';
+import { IntegrationsView } from '@/src/views/web/profile/IntegrationsView';
 import { CompletionRing } from '@/src/views/web/profile/CompletionRing';
 import { SaveBar, C } from '@/src/views/web/profile/primitives';
 import { useToast } from '@/src/views/components';
 
-type TabKey = 'profile-info' | 'manage' | 'settings' | 'notifications' | 'security' | 'digital-id';
+type TabKey = 'profile-info' | 'manage' | 'integrations' | 'settings' | 'notifications' | 'security' | 'digital-id';
 
 /**
  * Role-aware copy & sidebar stat configuration.
@@ -117,12 +118,13 @@ const ROLE_CFG: Record<RoleKey, {
 };
 
 const TABS: { key: TabKey; label: string; Icon: any }[] = [
-  { key: 'profile-info', label: 'Profile Info',   Icon: User },
-  { key: 'manage',       label: 'Manage Profile', Icon: SettingsIcon },
-  { key: 'settings',     label: 'Settings',       Icon: SettingsIcon },
-  { key: 'notifications',label: 'Notifications',  Icon: Bell },
-  { key: 'security',     label: 'Security',       Icon: ShieldCheck },
-  { key: 'digital-id',   label: 'Digital ID Card',Icon: IdCard },
+  { key: 'profile-info',  label: 'Profile Info',        Icon: User },
+  { key: 'manage',        label: 'Manage Profile',      Icon: SettingsIcon },
+  { key: 'integrations',  label: 'Tools & Integrations',Icon: Plug },
+  { key: 'settings',      label: 'Settings',            Icon: SettingsIcon },
+  { key: 'notifications', label: 'Notifications',       Icon: Bell },
+  { key: 'security',      label: 'Security',            Icon: ShieldCheck },
+  { key: 'digital-id',    label: 'Digital ID Card',     Icon: IdCard },
 ];
 
 export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
@@ -328,6 +330,8 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
             />
           )}
 
+          {tab === 'integrations' && <IntegrationsView />}
+
           {tab === 'settings' && (
             <SettingsPage
               draft={draft}
@@ -339,7 +343,6 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
           {tab === 'notifications' && <ComingSoon title="Notification Preferences" sub="Granular email / push controls land in Phase 2." />}
           {tab === 'security'      && <ComingSoon title="Security Centre"          sub="2FA, login history & active sessions land in Phase 2." />}
 
-          {/* Save bar */}
           {(tab === 'profile-info' || tab === 'manage' || tab === 'settings') && (
             <View style={{ marginTop: 4 }}>
               <FooterActions
