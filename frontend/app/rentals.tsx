@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import FeaturePageShell from '@/src/views/web/FeaturePageShell';
+import { FAB } from '@/src/views/web/md3';
 import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
 import { request } from '@/src/models/services/api';
 
@@ -255,6 +256,10 @@ export default function RentalsPage() {
         onClose={() => setBookingsOpen(false)}
         onCancelled={loadData}
       />
+
+      {/* MD3 Floating Action Button — open My Bookings */}
+      <FAB icon="ticket-confirmation" label="My Bookings" color="#5F259F"
+            onPress={() => setBookingsOpen(true)} />
     </FeaturePageShell>
   );
 }

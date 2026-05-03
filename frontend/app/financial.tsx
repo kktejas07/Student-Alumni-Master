@@ -6,6 +6,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, TextInput, Platform } from 'react-native';
 import FeaturePageShell from '@/src/views/web/FeaturePageShell';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { FAB } from '@/src/views/web/md3';
 import { request } from '@/src/models/services/api';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -438,6 +439,12 @@ export default function FinancialPage() {
           <Pressable style={[s.ctaBtn, { backgroundColor: '#14B8A6' }]}><Text style={s.ctaBtnText}>Chat with AI</Text></Pressable>
         </View>
       </View>
+
+      {/* MD3 Floating Action Button — open AI chat */}
+      <FAB icon="brain" label="Financial AI" color="#5F259F"
+            onPress={() => {
+              try { (window as any)?.scrollTo?.({ top: 9999, behavior: 'smooth' }); } catch {}
+            }} />
     </FeaturePageShell>
   );
 }

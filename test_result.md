@@ -8384,3 +8384,75 @@ agent_communication:
         from running expo_frontend_testing_agent to verify carousels horizontally
         scroll + click → enroll modal flow on auth'd session.
 
+
+
+frontend:
+  - task: "MD3 fintech polish — AnimatedCard + RippleButton + FAB primitives wired into courses/rentals/financial pages"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/views/web/md3/AnimatedCard.tsx, /app/frontend/src/views/web/md3/RippleButton.tsx, /app/frontend/src/views/web/md3/FAB.tsx, /app/frontend/src/views/web/md3/index.ts, /app/frontend/app/courses.tsx, /app/frontend/app/rentals.tsx, /app/frontend/app/financial.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: |
+          Bucket (b) of user's "all in order 1→4" plan: Material Design 3 fintech-style
+          polish via reusable Reanimated primitives.
+
+          NEW PRIMITIVES (/app/frontend/src/views/web/md3/):
+          1. AnimatedCard.tsx — Pressable wrapper with MD3 hover/press animation:
+             - Web: hover lifts card 4px + glow shadow expands (boxShadow with sharedValue)
+             - Press (all platforms): scale-down 0.97 with Easing.out(Easing.quad) 130ms
+             - Release: scale-up to 1 with 180ms ease
+             - Optional glowColor prop for accent-tinted shadow
+          2. RippleButton.tsx — Pressable with scale-down 0.95 + opacity 0.85 on press
+             (110ms in, 160ms out)
+          3. FAB.tsx — Material Design 3 Floating Action Button:
+             - Bottom-right anchored (web: position:'fixed', native: 'absolute')
+             - Spring entrance animation (damping:12, stiffness:130)
+             - Hover: label expands inline (web only) with width animation
+             - Press: scale-down 0.92 → springs back
+             - Brand-accent box-shadow layered for depth
+
+          INTEGRATION:
+          - /courses page:
+              * Imports AnimatedCard + FAB + RippleButton
+              * MiniCourseCard root replaced from <Pressable> to <AnimatedCard
+                glowColor={accent + '55'}> — carousels now have hover-lift + scale-press
+                with accent-coloured glow per category (violet/green/gold)
+              * FAB (brain icon, label "Course AI", #7C3AED) added at the bottom that
+                scrolls to AdvisorAIBlock at end of page
+          - /rentals page:
+              * FAB (ticket-confirmation icon, label "My Bookings", #5F259F) added
+                that opens the BookingsDrawer modal
+          - /financial page:
+              * FAB (brain icon, label "Financial AI", #5F259F) that scrolls to
+                Talk to Advisor / Ask AI block
+
+          Verified by screenshot at 1440×900: all 3 pages bundle cleanly. FAB visible
+          in bottom-right corner of /courses with proper depth shadow and brain icon.
+          Sidebar nav highlights Courses item correctly. No bundler errors.
+
+          Next: bucket (c) College Portal Phase 3 (Student Roster + Analytics).
+
+agent_communication:
+    - agent: "main"
+      message: |
+        Bucket (b) MD3 fintech polish shipped:
+
+        - 3 reusable Reanimated primitives created (AnimatedCard, RippleButton, FAB)
+        - FABs wired into /courses, /rentals, /financial with accent-tinted shadows
+          and spring entrance animations
+        - MiniCourseCard in carousels now uses AnimatedCard with accent glowColor
+          (violet for Featured, green for Trending Free, gold for Top Universities)
+
+        Screenshot verified — FAB renders at bottom-right with proper depth.
+
+        Pausing here per user's "all in order 1→4" plan. Next turn: bucket (c)
+        College Portal Phase 3 (Student Roster + Analytics view + backend endpoints).
+
+        Frontend testing NOT run — would benefit from running the testing agent
+        once buckets b+c are both shipped.
+

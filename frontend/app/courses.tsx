@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import FeaturePageShell from '@/src/views/web/FeaturePageShell';
 import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
+import { AnimatedCard, FAB, RippleButton } from '@/src/views/web/md3';
 import { request } from '@/src/models/services/api';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -335,6 +336,20 @@ export default function CoursesPage() {
       {/* Enroll modal */}
       <EnrollModal course={enrollFor}
                     onClose={() => setEnrollFor(null)} />
+
+      {/* MD3 Floating Action Button — quick "Find courses" search focus */}
+      <FAB
+        icon="brain"
+        label="Course AI"
+        color="#7C3AED"
+        onPress={() => {
+          if (Platform.OS === 'web') {
+            try {
+              window.scrollTo({ top: 9999, behavior: 'smooth' });
+            } catch {}
+          }
+        }}
+      />
     </FeaturePageShell>
   );
 }
@@ -740,8 +755,9 @@ function MiniCourseCard({ course, accent, onEnroll }:
   const isFree = ['free', 'free_audit', 'free_with_sa'].includes(course.pricing.type);
   const isDiscounted = course.pricing.type === 'discounted_for_sa';
   return (
-    <Pressable onPress={onEnroll}
-      style={[s.miniCard, { borderColor: accent + '44' }]}>
+    <AnimatedCard onPress={onEnroll}
+      glowColor={accent + '55'}
+      style={[s.miniCard, { borderColor: accent + '44' }] as any}>
       <View style={[s.miniThumb, { backgroundColor: accent + '14' }]}>
         <Text style={s.miniThumbEmoji}>{course.thumbnail}</Text>
         {course.featured && (
@@ -787,7 +803,7 @@ function MiniCourseCard({ course, accent, onEnroll }:
           </View>
         </View>
       </View>
-    </Pressable>
+    </AnimatedCard>
   );
 }
 
