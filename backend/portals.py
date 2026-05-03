@@ -974,7 +974,7 @@ async def super_workflows():
 #   COLLEGE SUB-VIEW ENDPOINTS
 # ════════════════════════════════════════════════════════════════
 
-@router.get("/college/students")
+@router.get("/college/students-legacy")
 async def college_students_list(college_name: Optional[str] = None):
     if not college_name:
         agg = await _db.users.aggregate([
@@ -1167,7 +1167,7 @@ async def college_announcements(college_name: Optional[str] = None):
     return {"items": items}
 
 
-@router.get("/college/analytics")
+@router.get("/college/analytics-legacy")
 async def college_analytics(college_name: Optional[str] = None):
     """Aggregated college analytics: cohort placement, salary curve, attrition."""
     if not college_name:
