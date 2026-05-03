@@ -1,68 +1,89 @@
 /**
- * /financial — Scholarships, Startup Funding, Investors, Loans + tools.
+ * /financial — Scholarships, Startup Funding, Investors/VCs, Loans, Insurance.
+ * Wired to /api/financial/* live backend.
  */
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import FeaturePageShell from '@/src/views/web/FeaturePageShell';
 import {
   Award, Rocket, TrendingUp, Landmark, Sparkles, Calculator, ArrowRight,
-  BadgeCheck, Wallet, Target,
+  BadgeCheck, Wallet, Target, Shield, ChevronDown,
 } from 'lucide-react-native';
+import { request } from '@/src/models/services/api';
 
 const C = { text: '#fff', text2: 'rgba(255,255,255,0.70)', text3: 'rgba(255,255,255,0.45)', border: 'rgba(255,255,255,0.09)' };
 
 const TABS = [
-  { id: 'scholarships', label: 'Scholarships', Icon: Award, count: 6, color: '#F97316' },
-  { id: 'startup', label: 'Startup Funding', Icon: Rocket, count: 6, color: '#14B8A6' },
-  { id: 'investors', label: 'Investors & VCs', Icon: TrendingUp, count: 6, color: '#6366F1' },
-  { id: 'loans', label: 'Loans', Icon: Landmark, count: 6, color: '#3B82F6' },
+  { id: 'scholarships', label: 'Scholarships', Icon: Award, color: '#F97316', api: '/financial/scholarships/search' },
+  { id: 'loans', label: 'Education Loans', Icon: Landmark, color: '#3B82F6', api: '/financial/loans/search' },
+  { id: 'startup', label: 'Startup Funding', Icon: Rocket, color: '#14B8A6', api: '/financial/startup-funding/search' },
+  { id: 'investors', label: 'Investors & VCs', Icon: TrendingUp, color: '#6366F1', api: '/financial/venture-capital/search' },
+  { id: 'insurance', label: 'Insurance', Icon: Shield, color: '#10B981', api: '/financial/insurance/search' },
 ];
 
-const SCHOLARSHIPS = [
-  { id: 'sch1', title: 'Google Generation Scholarship', provider: 'Google India', amount: '₹1,00,000 (one-time)', highlights: ['CSE/IT/EE student', 'Women preferred'], color: '#6366F1' },
-  { id: 'sch2', title: 'Tata Scholarship', provider: 'Tata Education Trust', amount: '₹50,000/yr', highlights: ['CGPA 8.0+', 'Annual income <₹8L'], color: '#3B82F6' },
-  { id: 'sch3', title: 'Reliance Foundation UG', provider: 'Reliance Foundation', amount: 'Up to ₹2L/yr', highlights: ['Merit-cum-need', '5,000 scholars'], color: '#EF4444' },
-  { id: 'sch4', title: 'Aditya Birla Scholarship', provider: 'ABG', amount: '₹1.75L/yr', highlights: ['IIT/NIT/IIM only', 'Top 20% of class'], color: '#8B5CF6' },
-  { id: 'sch5', title: 'KC Mahindra Scholarship', provider: 'KC Mahindra Trust', amount: '₹8.5L total', highlights: ['For PG abroad', 'Merit-based'], color: '#F59E0B' },
-  { id: 'sch6', title: 'OP Jindal Scholarship', provider: 'OPJEMS', amount: '₹2L/yr', highlights: ['Engineering, Law, MBA', 'B.Tech 2nd yr+'], color: '#22C55E' },
-];
+const AI_LABELS: Record<string, string> = {
+  scholarships: 'AI: Find Scholarships I Qualify For',
+  loans: 'AI: Which loan is best for me?',
+  startup: 'AI: Best funding for my idea',
+  investors: 'AI: Right VC for my stage',
+  insurance: 'AI: What coverage do I need',
+};
 
-const STARTUPS = [
-  { id: 'st1', title: 'Nasscom Deep Tech Club', provider: 'Nasscom', amount: '₹10–25 Lakhs', highlights: ['AI / ML / IoT', 'MVP stage'], color: '#3B82F6' },
-  { id: 'st2', title: 'iCreate Incubator Funding', provider: 'iCreate Ahmedabad', amount: '₹25L + infra', highlights: ['Tech startup', 'Any domain'], color: '#5F259F' },
-  { id: 'st3', title: 'T-Hub Lab32', provider: 'T-Hub Hyderabad', amount: '₹5–15 Lakhs', highlights: ['Early-stage', '6-month cohort'], color: '#14B8A6' },
-  { id: 'st4', title: 'Startup India Seed Fund', provider: 'DPIIT', amount: 'Up to ₹50 Lakhs', highlights: ['DPIIT registered', 'PoC to market'], color: '#F97316' },
-  { id: 'st5', title: 'Atal Innovation Mission', provider: 'NITI Aayog', amount: '₹10L grants', highlights: ['Tinkering labs', 'School/UG'], color: '#6366F1' },
-  { id: 'st6', title: 'CIIE.CO Bridge Fund', provider: 'IIM-A CIIE', amount: '₹10–20 Lakhs', highlights: ['Cleantech, fintech, edtech', 'Pre-seed'], color: '#22C55E' },
-];
+type Item = {
+  financial_id: string;
+  name: string;
+  provider: string;
+  subcategory?: string;
+  amount_min?: number;
+  amount_max?: number;
+  interest_rate?: number;
+  tenure_months?: number;
+  short_desc?: string;
+  status?: string;
+  match_score?: number;
+  application_url?: string;
+  application_deadline?: string;
+  tint?: string;
+  stage?: string;
+  sector_focus?: string;
+  eligibility_criteria?: string[];
+};
 
-const INVESTORS = [
-  { id: 'in1', title: 'SA Alumni Angels', provider: 'Alumni Network', amount: '₹10L–₹2Cr', highlights: ['Pre-seed stage', 'Alumni-led startups'], color: '#5F259F' },
-  { id: 'in2', title: 'Sequoia Surge', provider: 'Peak XV Partners', amount: '$1M–$2M', highlights: ['SaaS, Fintech, Consumer', 'Pre-seed to Seed'], color: '#3B82F6' },
-  { id: 'in3', title: 'Blume Ventures Fellowship', provider: 'Blume Ventures', amount: '$150K–$500K', highlights: ['Idea to seed', 'Tech-first founders'], color: '#EC4899' },
-  { id: 'in4', title: 'Accel Atoms', provider: 'Accel Partners', amount: '$250K', highlights: ['India-born seed', '3-month programme'], color: '#EF4444' },
-  { id: 'in5', title: 'Y Combinator', provider: 'YC', amount: '$500K (SAFE)', highlights: ['Global · Any stage', '3-month Bay Area'], color: '#F97316' },
-  { id: 'in6', title: 'Better Capital', provider: 'Better Capital', amount: '$100K–$1M', highlights: ['Solo checks · Fast', 'India + SEA focus'], color: '#22C55E' },
-];
-
-const LOANS = [
-  { id: 'l1', title: 'SBI Scholar Loan', provider: 'State Bank of India', amount: 'Up to ₹40 Lakhs', highlights: ['8.15% p.a.', '15 yrs tenure', 'No margin money'], color: '#3B82F6' },
-  { id: 'l2', title: 'KreditBee Student Credit', provider: 'KreditBee', amount: '₹1K–₹2L', highlights: ['18–24% p.a.', 'Instant disbursal', 'No CIBIL'], color: '#EC4899' },
-  { id: 'l3', title: 'HDFC Credila Abroad', provider: 'HDFC Credila', amount: 'Up to ₹1 Cr', highlights: ['10.25% p.a.', 'For MS/MBA', 'No collateral <₹40L'], color: '#EF4444' },
-  { id: 'l4', title: 'Axis Bank Education Loan', provider: 'Axis Bank', amount: 'Up to ₹75L', highlights: ['Women 0.5% off', '15 yrs tenure', 'Moratorium + 6mo'], color: '#F97316' },
-  { id: 'l5', title: 'Avanse Abroad Loan', provider: 'Avanse Financial', amount: 'Up to ₹1 Cr', highlights: ['11% p.a.', 'Pre-visa disbursal', '500+ courses'], color: '#6366F1' },
-  { id: 'l6', title: 'Prodigy Finance (US)', provider: 'Prodigy Finance', amount: 'Up to $120K', highlights: ['No collateral', 'For top 250 unis', 'No Indian co-signer'], color: '#22C55E' },
-];
+function fmtINR(n?: number): string {
+  if (!n) return '—';
+  if (n >= 10000000) return `₹${(n / 10000000).toFixed(n >= 100000000 ? 0 : 1)} Cr`;
+  if (n >= 100000)   return `₹${(n / 100000).toFixed(n >= 1000000 ? 0 : 1)} L`;
+  if (n >= 1000)     return `₹${(n / 1000).toFixed(0)}k`;
+  return `₹${n.toLocaleString('en-IN')}`;
+}
+function rangeFmt(it: Item): string {
+  if (!it.amount_max) return '—';
+  if (it.amount_min && it.amount_min !== it.amount_max) return `${fmtINR(it.amount_min)}–${fmtINR(it.amount_max)}`;
+  return `Up to ${fmtINR(it.amount_max)}`;
+}
 
 export default function FinancialPage() {
   const [tab, setTab] = useState('scholarships');
-  const list = tab === 'scholarships' ? SCHOLARSHIPS : tab === 'startup' ? STARTUPS : tab === 'investors' ? INVESTORS : LOANS;
+  const [items, setItems] = useState<Item[]>([]);
+  const [loading, setLoading] = useState(false);
   const tabInfo = TABS.find(t => t.id === tab)!;
+
+  const load = useCallback(async (tabId: string) => {
+    setLoading(true);
+    try {
+      const t = TABS.find(x => x.id === tabId)!;
+      const r = await request<any>(`${t.api}?limit=20`);
+      setItems(r.results || []);
+    } catch { setItems([]); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(tab); }, [tab, load]);
 
   return (
     <FeaturePageShell
       title="Financial Services"
-      subtitle="Scholarships, funding, investors and student loans — matched to your profile."
+      subtitle="Scholarships, funding, investors, loans, insurance — matched to your profile."
       heroEmoji="💰"
       accent="#5F259F"
       rightSlot={<View style={s.savPill}><Wallet size={12} color="#86EFAC" /><Text style={s.savPillText}>SA Savings Advisor</Text></View>}
@@ -81,43 +102,100 @@ export default function FinancialPage() {
             <Pressable key={t.id} onPress={() => setTab(t.id)} style={[s.tab, active && { backgroundColor: t.color + '22', borderColor: t.color + '66' }]}>
               <t.Icon size={14} color={active ? t.color : 'rgba(255,255,255,0.65)'} />
               <Text style={[s.tabText, active && { color: t.color }]}>{t.label}</Text>
-              <View style={s.tabCount}><Text style={s.tabCountText}>{t.count}</Text></View>
             </Pressable>
           );
         })}
       </ScrollView>
 
+      {/* AI Helper button */}
+      <Pressable style={s.aiHelper}>
+        <Sparkles size={14} color="#A78BFA" />
+        <Text style={s.aiHelperText}>{AI_LABELS[tab]}</Text>
+        <ChevronDown size={14} color="rgba(255,255,255,0.5)" />
+      </Pressable>
+
+      {loading ? (
+        <ActivityIndicator color="#7C3AED" style={{ marginTop: 32 }} />
+      ) : items.length === 0 ? (
+        <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+          <Text style={{ color: 'rgba(255,255,255,0.5)' }}>No items found.</Text>
+        </View>
+      ) : (
       <View style={s.grid}>
-        {list.map((p) => (
-          <View key={p.id} style={[s.card, { borderColor: p.color + '44' }]}>
-            <View style={s.cardHead}>
-              <View style={[s.iconBox, { backgroundColor: p.color + '22', borderColor: p.color + '55' }]}>
-                <tabInfo.Icon size={18} color={p.color} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.cardTitle}>{p.title}</Text>
-                <Text style={s.cardSub}>{p.provider}</Text>
-              </View>
-            </View>
-            <View style={[s.amtBar, { backgroundColor: p.color + '18', borderColor: p.color + '55' }]}>
-              <Text style={s.amtLabel}>AMOUNT / RATE</Text>
-              <Text style={[s.amtValue, { color: p.color }]}>{p.amount}</Text>
-            </View>
-            <View style={{ gap: 5 }}>
-              {p.highlights.map((h, i) => (
-                <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-                  <View style={[s.bullet, { backgroundColor: p.color }]} />
-                  <Text style={s.highlightText}>{h}</Text>
+        {items.map((p) => {
+          const tint = p.tint || tabInfo.color;
+          const ms = p.match_score ?? 0;
+          const amountStr = p.interest_rate && tab === 'loans'
+            ? `${rangeFmt(p)} · ${p.interest_rate}% p.a.`
+            : p.interest_rate && tab === 'insurance'
+              ? `Cover ${rangeFmt(p)} · ₹${p.interest_rate}/yr`
+              : rangeFmt(p);
+          return (
+            <View key={p.financial_id} style={[s.card, { borderColor: tint + '44' }]}>
+              <View style={s.cardHead}>
+                <View style={[s.iconBox, { backgroundColor: tint + '22', borderColor: tint + '55' }]}>
+                  <tabInfo.Icon size={18} color={tint} />
                 </View>
-              ))}
+                <View style={{ flex: 1 }}>
+                  <Text style={s.cardTitle} numberOfLines={2}>{p.name}</Text>
+                  <Text style={s.cardSub}>{p.provider}</Text>
+                </View>
+                {ms > 0 && (
+                  <View style={s.matchBadge}>
+                    <Sparkles size={10} color="#86EFAC" />
+                    <Text style={s.matchText}>{ms}%</Text>
+                  </View>
+                )}
+              </View>
+              <View style={[s.amtBar, { backgroundColor: tint + '18', borderColor: tint + '55' }]}>
+                <Text style={s.amtLabel}>{tab === 'loans' ? 'AMOUNT · RATE' : tab === 'insurance' ? 'COVERAGE · PREMIUM' : 'AMOUNT'}</Text>
+                <Text style={[s.amtValue, { color: tint }]}>{amountStr}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                {p.subcategory && (
+                  <View style={s.metaPill}><Text style={s.metaPillText}>{p.subcategory.replace('_', ' ')}</Text></View>
+                )}
+                {p.stage && (
+                  <View style={s.metaPill}><Text style={s.metaPillText}>{p.stage.replace('_', ' ')}</Text></View>
+                )}
+                {p.status && p.status !== 'open' && (
+                  <View style={[s.metaPill, p.status === 'closing_soon' && { backgroundColor: '#F59E0B22', borderColor: '#F59E0B' }, p.status === 'closed' && { backgroundColor: '#EF444422', borderColor: '#EF4444' }]}>
+                    <Text style={[s.metaPillText, p.status === 'closing_soon' && { color: '#FCD34D' }, p.status === 'closed' && { color: '#FCA5A5' }]}>
+                      {p.status === 'closing_soon' ? 'Closing soon' : 'Closed'}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              {p.short_desc ? (
+                <Text style={[s.highlightText, { marginTop: 4 }]} numberOfLines={2}>{p.short_desc}</Text>
+              ) : null}
+              {p.eligibility_criteria && p.eligibility_criteria.length > 0 && (
+                <View style={{ gap: 4 }}>
+                  {p.eligibility_criteria.slice(0, 2).map((h, i) => (
+                    <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                      <View style={[s.bullet, { backgroundColor: tint }]} />
+                      <Text style={s.highlightText} numberOfLines={1}>{h}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+              <Pressable
+                style={[s.applyBtn, { backgroundColor: tint }]}
+                onPress={() => p.application_url && p.application_url !== '#' && (window as any).open(p.application_url, '_blank')}
+              >
+                <Text style={s.applyText}>
+                  {tab === 'investors' ? 'Pitch / Connect' :
+                   tab === 'loans' ? 'Check Eligibility' :
+                   tab === 'insurance' ? 'Get Quote' :
+                   tab === 'startup' ? 'Learn More' : 'Apply Now'}
+                </Text>
+                <ArrowRight size={12} color="#fff" />
+              </Pressable>
             </View>
-            <Pressable style={[s.applyBtn, { backgroundColor: p.color }]}>
-              <Text style={s.applyText}>{tab === 'investors' ? 'Pitch / Connect' : tab === 'loans' ? 'Apply for Loan' : 'Apply Now'}</Text>
-              <ArrowRight size={12} color="#fff" />
-            </Pressable>
-          </View>
-        ))}
+          );
+        })}
       </View>
+      )}
 
       {/* EMI Calculator Widget */}
       <View style={s.widgetCard}>
@@ -230,6 +308,14 @@ const s = StyleSheet.create({
 
   applyBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 9, ...({ cursor: 'pointer' } as any) },
   applyText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12, letterSpacing: 0.3 },
+
+  // Match% badge + AI helper + meta pills
+  matchBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: 'rgba(34,197,94,0.18)', borderColor: 'rgba(34,197,94,0.45)', borderWidth: 1 },
+  matchText: { color: '#86EFAC', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
+  aiHelper: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, backgroundColor: 'rgba(124,58,237,0.14)', borderColor: 'rgba(124,58,237,0.40)', borderWidth: 1, marginTop: 8, ...({ cursor: 'pointer' } as any) },
+  aiHelperText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  metaPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.05)', borderColor: C.border, borderWidth: 1 },
+  metaPillText: { color: 'rgba(255,255,255,0.75)', fontFamily: 'DMSans_700Bold', fontSize: 10, textTransform: 'capitalize' as any },
 
   widgetCard: { padding: 18, borderRadius: 16, backgroundColor: 'rgba(59,130,246,0.07)', borderColor: 'rgba(59,130,246,0.30)', borderWidth: 1, flexDirection: 'row', gap: 18, flexWrap: 'wrap' },
   widgetIcon: { width: 40, height: 40, borderRadius: 11, backgroundColor: 'rgba(59,130,246,0.18)', borderColor: 'rgba(59,130,246,0.40)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
