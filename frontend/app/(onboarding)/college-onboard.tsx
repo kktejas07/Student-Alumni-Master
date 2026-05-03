@@ -102,10 +102,29 @@ export default function CollegeOnboard() {
   const [type,          setType]          = useState('university');
   const [affiliated,    setAffiliated]    = useState('');
   const [website,       setWebsite]       = useState('');
-  const [cityState,     setCityState]     = useState('');
+  const [city,          setCity]          = useState('');
+  const [stateName,     setStateName]     = useState('');
   const [yearEst,       setYearEst]       = useState('');
   const [rankingTier,   setRankingTier]   = useState('');
   const [accreds,       setAccreds]       = useState<string[]>([]);
+
+  // Curated city + state lists for autocomplete + "Other" manual entry
+  const CITY_LIST = [
+    'Mumbai', 'Delhi', 'Bengaluru', 'Hyderabad', 'Chennai', 'Kolkata',
+    'Pune', 'Ahmedabad', 'Jaipur', 'Lucknow', 'Kanpur', 'Indore',
+    'Bhopal', 'Coimbatore', 'Nagpur', 'Surat', 'Vadodara', 'Patna',
+    'Visakhapatnam', 'Kochi', 'Thiruvananthapuram', 'Chandigarh',
+    'Guwahati', 'Bhubaneswar', 'Mysuru', 'Mangaluru', 'Vijayawada',
+    'Warangal', 'Tiruchirappalli', 'Madurai',
+  ];
+  const STATE_LIST = [
+    'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+    'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
+    'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
+    'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
+    'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+    'Delhi', 'Jammu and Kashmir', 'Ladakh',
+  ];
 
   // Step 2
   const [contactName,        setContactName]        = useState(user?.full_name || '');
@@ -175,7 +194,6 @@ export default function CollegeOnboard() {
 
   const submitOnboarding = async () => {
     try {
-      const [city, state] = cityState.split(',').map((x) => x.trim());
       const payload: any = {
         full_name: contactName,
         school_info: {
@@ -190,7 +208,7 @@ export default function CollegeOnboard() {
           affiliated_university: affiliated || undefined,
           official_website:    website || undefined,
           city:                city || undefined,
-          state:               state || undefined,
+          state:               stateName || undefined,
           country:             'India',
           year_established:    yearEst ? parseInt(yearEst, 10) : undefined,
           ranking_tier:        rankingTier || undefined,
@@ -263,7 +281,15 @@ export default function CollegeOnboard() {
               <InstitutionAutocomplete
                 value={name}
                 onChangeText={setName}
-                onSelect={(pick) => setName(pick.name)}
+                onSelect={(pick) => {
+                  // Auto-populate City + State from the selected college's
+                  // mapped data (Photon returns city/state for most insts).
+                  setName(pick.name);
+                  if (!pick.manual) {
+                    if (pick.city)  setCity(pick.city);
+                    if (pick.state) setStateName(pick.state);
+                  }
+                }}
                 type="college"
                 placeholder="Search your college or university…"
               />
@@ -290,13 +316,28 @@ export default function CollegeOnboard() {
                 autoCapitalize="none"
                 leftIcon={<Globe size={16} color="rgba(255,255,255,0.55)" />}
               />
-              <AuthInput
-                label="City & State"
-                value={cityState}
-                onChangeText={setCityState}
-                placeholder="Mumbai, Maharashtra"
-                leftIcon={<MapPin size={16} color="rgba(255,255,255,0.55)" />}
-              />
+              <Text style={s.section}>City &amp; State</Text>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <SuggestionAutocomplete
+                    label="City"
+                    value={city}
+                    onChangeText={setCity}
+                    placeholder="e.g. Mumbai"
+                    suggestions={CITY_LIST}
+                    helper={city ? undefined : 'Auto-fills when you pick a college above.'}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <SuggestionAutocomplete
+                    label="State"
+                    value={stateName}
+                    onChangeText={setStateName}
+                    placeholder="e.g. Maharashtra"
+                    suggestions={STATE_LIST}
+                  />
+                </View>
+              </View>
               <AuthInput
                 label="Year Established"
                 value={yearEst}
@@ -331,12 +372,23 @@ export default function CollegeOnboard() {
                 autoCapitalize="words"
                 leftIcon={<UserIcon size={16} color="rgba(255,255,255,0.55)" />}
               />
-              <AuthInput
+              <SuggestionAutocomplete
                 label="Designation"
                 value={contactDesignation}
                 onChangeText={setContactDesignation}
-                placeholder="e.g. TPO, Dean Students, Principal"
-                leftIcon={<Briefcase size={16} color="rgba(255,255,255,0.55)" />}
+                placeholder="e.g. TPO, Dean, Principal"
+                suggestions={[
+                  'Training & Placement Officer (TPO)',
+                  'Dean of Students',
+                  'Principal',
+                  'Director',
+                  'Vice Chancellor',
+                  'Registrar',
+                  'Head of Department',
+                  'Coordinator',
+                  'Admin Officer',
+                ]}
+                helper="Pick from our curated list — or choose Other to type your own."
               />
               <AuthInput
                 label="Official Email (.ac.in / .edu)"

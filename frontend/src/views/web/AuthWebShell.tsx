@@ -15,6 +15,7 @@ import { ReactNode } from 'react';
 import { View, Text, ScrollView, StyleSheet, Platform, useWindowDimensions } from 'react-native';
 import { Colors as C } from '@/src/theme';
 import { SALogo } from '@/src/views/components';
+import { RoleThemeProvider, type Role } from '@/src/views/auth/RoleTheme';
 
 type Variant = 'split' | 'center';
 
@@ -22,15 +23,19 @@ export function AuthWebShell({
   variant = 'split',
   children,
   cardMaxWidth = 480,
+  role,
 }: {
   variant?: Variant;
   children: ReactNode;
   cardMaxWidth?: number;
+  /** Active role — propagates accent colour to nested CTAs / inputs. */
+  role?: Role;
 }) {
   const { width } = useWindowDimensions();
   const compact = width < 980;
 
   return (
+    <RoleThemeProvider role={role}>
     <View style={styles.shell}>
       {/* LEFT — brand pane (hidden on small screens) */}
       {!compact && (
@@ -84,6 +89,7 @@ export function AuthWebShell({
         </ScrollView>
       </View>
     </View>
+    </RoleThemeProvider>
   );
 }
 

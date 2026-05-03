@@ -17,6 +17,7 @@ import { ArrowLeft, ShieldCheck } from 'lucide-react-native';
 import { useToast } from '@/src/views/components';
 import { AuthWebShell } from '@/src/views/web/AuthWebShell';
 import { WebPrimaryBtn, WebGhostBtn } from '@/src/views/web/AuthWebControls';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 const IS_WEB = Platform.OS === 'web';
 
@@ -25,6 +26,7 @@ export default function EmailVerify() {
   const params = useLocalSearchParams<{ email?: string }>();
   const email = params.email || 'rahul@alumni.edu';
   const toast = useToast();
+  const role = useAuthStore((u) => u.user?.role) as any;
 
   const [step, setStep] = useState<0 | 1 | 2>(0);
 
@@ -60,7 +62,7 @@ export default function EmailVerify() {
   // ─── Web ─────────────────────────────────────────────────────────────────
   if (IS_WEB) {
     return (
-      <AuthWebShell variant="center" cardMaxWidth={460}>
+      <AuthWebShell variant="center" cardMaxWidth={460} role={role}>
         {step === 0 && (
           <Pressable
             onPress={() => router.back()}

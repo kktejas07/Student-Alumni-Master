@@ -102,10 +102,12 @@ export function AuthInput({
   onSubmitEditing?: () => void;
 }) {
   const [focused, setFocused] = React.useState(false);
+  const { primary } = useRoleTheme();
+  const focusBg = primary ? `${primary}10` : 'rgba(124,58,237,0.06)';
   return (
     <View style={inp.wrap}>
       {label ? <Text style={inp.label}>{typeof label === 'string' ? label : String(label ?? '')}</Text> : null}
-      <View style={[inp.row, focused && inp.rowOn, error && inp.rowErr]}>
+      <View style={[inp.row, focused && [inp.rowOn, { borderColor: primary, backgroundColor: focusBg }], error && inp.rowErr]}>
         {leftIcon ? <View style={{ marginRight: 10 }}>{leftIcon}</View> : null}
         <TextInput
           value={value}

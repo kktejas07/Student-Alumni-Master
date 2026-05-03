@@ -7,6 +7,7 @@ import {
   View, Text, StyleSheet, Pressable, TextInput as RNTextInput, Platform,
 } from 'react-native';
 import { Colors as C } from '@/src/theme';
+import { useRoleTheme } from '@/src/views/auth/RoleTheme';
 
 // ─── Field ───────────────────────────────────────────────────────────────────
 export function WebField({
@@ -91,6 +92,8 @@ export function WebPrimaryBtn({
   testID?: string;
   style?: any;
 }) {
+  // Pull role-specific gradient colors from RoleThemeContext when available.
+  const { primary, primaryL } = useRoleTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -98,7 +101,8 @@ export function WebPrimaryBtn({
       testID={testID}
       style={({ hovered, pressed }: any) => [
         controlStyles.primary,
-        hovered && controlStyles.primaryHover,
+        { backgroundColor: primary, boxShadow: `0px 8px 18px ${primary}66` },
+        hovered && { backgroundColor: primaryL, transform: [{ translateY: -1 }], boxShadow: `0px 8px 22px ${primary}88` },
         pressed && { transform: [{ scale: 0.985 }] },
         (disabled || loading) && { opacity: 0.55 },
         style,

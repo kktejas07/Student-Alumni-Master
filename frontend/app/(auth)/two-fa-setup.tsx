@@ -21,6 +21,7 @@ import { AuthShell } from '@/src/views/auth/AuthShell';
 import {
   WebPrimaryBtn, WebGhostBtn, WebStepBar, WebOptionRow, WebField,
 } from '@/src/views/web/AuthWebControls';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 const IS_WEB = Platform.OS === 'web';
 
@@ -38,6 +39,7 @@ const BACKUP_CODES = ['8F2K-4X9P', '3J7N-2M1Q', '6R4H-8T5W', '1Y3C-9L6E', '5B8D-
 export default function TwoFASetup() {
   const router = useRouter();
   const toast = useToast();
+  const role = useAuthStore((u) => u.user?.role) as any;
   const [step, setStep] = useState<Step>(0);
   const [method, setMethod] = useState<Method | null>(null);
   const [phone, setPhone] = useState('98765 43210');
@@ -260,7 +262,7 @@ export default function TwoFASetup() {
   // ─── Web ─────────────────────────────────────────────────────────────────
   if (IS_WEB) {
     return (
-      <AuthShell>
+      <AuthShell role={role}>
         <Pressable
           onPress={goBackInternal}
           style={({ hovered }: any) => [styles.back, hovered && { opacity: 1 }]}

@@ -4726,3 +4726,45 @@ agent_communication:
       absent from DB; substituted the documented legacy college user).
       Edge cases (minimal payload + empty arrays) also pass.
       No issues found. Recommend main agent summarize and finish.
+
+
+## 2026-05-03 — Selection UX Consistency + Auto-fill + Other + Theme Propagation
+
+agent_communication:
+  - agent: "main"
+    message: |
+      Per the 4-requirement spec (Screens 1-2 + Other + Address alignment):
+
+      1. Created /app/frontend/src/views/auth/RoleTheme.tsx — RoleThemeContext
+         + RoleThemeProvider + useRoleTheme hook. Provides per-role primary +
+         primaryL gradient.
+
+      2. AuthShell + AuthWebShell now wrap children in RoleThemeProvider so all
+         nested CTAs (PrimaryButton, WebPrimaryBtn) and AuthInput focus borders
+         pick up the active role colour automatically.
+
+      3. Token role colours updated: mentor #14B8A6 → #F59E0B (GOLD per user).
+         Plus added ROLE_GRADIENTS export for the 4 roles
+         (student purple / mentor gold / alumni orange / college blue).
+
+      4. Email-Verify and 2FA Setup screens now read user.role from authStore
+         and pass into AuthShell/AuthWebShell so the theme persists from
+         onboarding through to the dashboard.
+
+      5. SuggestionAutocomplete fully rewritten with explicit "Other (type your
+         own)" item + manual-entry mode + role-aware focus border + status hint
+         ("✓ Selected from list" or "✎ Manual entry"). Uniform across all 4
+         flows.
+
+      6. College Step 1 — InstitutionAutocomplete onSelect now auto-populates
+         City + State on the same screen. City and State are individual
+         SuggestionAutocompletes with curated lists (30 cities · 31 states) +
+         "Other" manual entry. Stored under college_info.city / .state
+         (already part of the schema).
+
+      7. College Step 2 — Designation field upgraded to SuggestionAutocomplete
+         with curated list (TPO, Dean, Principal, Director, etc.) + "Other"
+         option for manual entry.
+
+      No new backend fields — all data already in CollegeInfo (city, state,
+         contact_designation). No backend test needed for this round.
