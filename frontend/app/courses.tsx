@@ -86,6 +86,7 @@ export default function CoursesPage() {
   const [featured, setFeatured] = useState<Course[]>([]);
   const [trendingFree, setTrendingFree] = useState<Course[]>([]);
   const [topUni, setTopUni] = useState<Course[]>([]);
+  const [allCourses, setAllCourses] = useState<Course[]>([]);
 
   const loadCatalog = useCallback(async () => {
     setLoading(true);
@@ -99,6 +100,7 @@ export default function CoursesPage() {
       setStats(r.stats || stats);
       setTracksMeta(r.tracks || []);
       const all: Course[] = allList.courses || [];
+      setAllCourses(all);
       // Featured: featured flag OR rating >= 4.8
       setFeatured(all.filter(c => c.featured || c.rating >= 4.8).slice(0, 10));
       // Trending free: free pricing types with high enrollment
@@ -261,39 +263,103 @@ export default function CoursesPage() {
                    accent="#F59E0B" courses={topUni} onEnroll={setEnrollFor} />
       )}
 
-      {/* Sections — sub-category icon grid (hide when results visible) */}
-      {!showResults && sections.map((sec) => (
-        <View key={sec.id} style={s.sectionCard}>
-          <View style={s.sectionHeader}>
-            <Text style={{ fontSize: 22 }}>{sec.emoji}</Text>
-            <Text style={s.sectionName}>{sec.name}</Text>
-          </View>
-          <View style={s.iconGrid}>
-            {sec.items.map((it) => (
-              <Pressable key={it.key}
-                onPress={() => setFilterSubcat({
-                  category: sec.id, subcategory: it.key, label: it.label,
-                })}
-                style={s.tile}>
-                <View style={[
-                  s.tileCircle,
-                  it.highlighted && { backgroundColor: '#3D2D5C',
-                                       borderColor: '#A78BFA',
-                                       borderWidth: 2,
-                                       boxShadow: '0 0 24px -8px rgba(167,139,250,0.6)' as any },
-                ]}>
-                  <MaterialCommunityIcons name={it.icon} size={24}
-                    color={it.highlighted ? '#FFFFFF' : '#FFFFFF'} />
+      {/* Sections — sub-category course rows (hide when results visible) */}
+      {!showResults && sections.map((sec) => {
+        const sectionAccent =
+          sec.id === 'tech' ? '#06B6D4' :
+          sec.id === 'design' ? '#EC4899' :
+          sec.id === 'business' ? '#F59E0B' : '#A78BFA';
+        // For each subcategory, find its courses
+        const subcatGroups = sec.items
+          .map((it) => ({
+            sub: it,
+            courses: allCourses.filter(
+              (c) => c.category === sec.id && c.subcategory === it.key
+            ),
+          }))
+          .filter((g) => g.courses.length > 0);
+
+        if (subcatGroups.length === 0) return null;
+
+        return (
+          <View key={sec.id} style={s.sectionCard}>
+            <View style={s.sectionHeader}>
+              <Text style={{ fontSize: 22 }}>{sec.emoji}</Text>
+              <Text style={s.sectionName}>{sec.name}</Text>
+              <View style={[s.sectionCountPill,
+                { backgroundColor: sectionAccent + '22',
+                  borderColor: sectionAccent + '55' }]}>
+                <Text style={[s.sectionCountText, { color: sectionAccent }]}>
+                  {subcatGroups.reduce((acc, g) => acc + g.courses.length, 0)} courses
+                </Text>
+              </View>
+            </View>
+
+            {/* Sub-category quick filter chips */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8, paddingRight: 16 }}>
+              {sec.items.map((it) => (
+                <Pressable key={it.key}
+                  onPress={() => setFilterSubcat({
+                    category: sec.id, subcategory: it.key, label: it.label,
+                  })}
+                  style={[s.subcatChip,
+                    it.highlighted && { borderColor: sectionAccent,
+                      backgroundColor: sectionAccent + '14' }]}>
+                  <MaterialCommunityIcons name={it.icon} size={13}
+                    color={it.highlighted ? sectionAccent : C.text2} />
+                  <Text style={[s.subcatChipText,
+                    it.highlighted && { color: sectionAccent }]}>
+                    {it.label}
+                  </Text>
+                  {it.count > 0 && (
+                    <View style={s.subcatChipCount}>
+                      <Text style={s.subcatChipCountText}>{it.count}</Text>
+                    </View>
+                  )}
+                </Pressable>
+              ))}
+            </ScrollView>
+
+            {/* Per-subcategory course rows */}
+            {subcatGroups.map(({ sub, courses }) => (
+              <View key={sub.key} style={s.subcatBlock}>
+                <View style={s.subcatHeader}>
+                  <View style={[s.subcatIcon,
+                    { backgroundColor: sectionAccent + '22',
+                      borderColor: sectionAccent + '55' }]}>
+                    <MaterialCommunityIcons name={sub.icon} size={14}
+                      color={sectionAccent} />
+                  </View>
+                  <Text style={s.subcatTitle}>{sub.label}</Text>
+                  <Text style={s.subcatCountSmall}>
+                    {courses.length} {courses.length === 1 ? 'course' : 'courses'}
+                  </Text>
+                  <View style={{ flex: 1 }} />
+                  <Pressable
+                    onPress={() => setFilterSubcat({
+                      category: sec.id, subcategory: sub.key, label: sub.label,
+                    })}
+                    style={s.viewAllBtn}>
+                    <Text style={[s.viewAllText, { color: sectionAccent }]}>
+                      View all
+                    </Text>
+                    <MaterialCommunityIcons name="arrow-right" size={11}
+                      color={sectionAccent} />
+                  </Pressable>
                 </View>
-                <Text style={s.tileLabel}>{it.label}</Text>
-                {it.count > 0 && (
-                  <Text style={s.tileCount}>{it.count}</Text>
-                )}
-              </Pressable>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 12, paddingRight: 16 }}>
+                  {courses.map((c) => (
+                    <MiniCourseCard key={c.id} course={c} accent={sectionAccent}
+                      onEnroll={() => setEnrollFor(c)} />
+                  ))}
+                </ScrollView>
+              </View>
             ))}
           </View>
-        </View>
-      ))}
+        );
+      })}
 
       {/* Career tracks strip */}
       {!showResults && tracksMeta.length > 0 && (
@@ -863,6 +929,36 @@ const s = StyleSheet.create({
     fontSize: 12, textAlign: 'center' },
   tileCount: { color: 'rgba(255,255,255,0.50)', fontFamily: 'DMSans_700Bold',
     fontSize: 10 },
+
+  /* Section count pill (right of section title) */
+  sectionCountPill: { paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 999, borderWidth: 1, marginLeft: 'auto' },
+  sectionCountText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
+
+  /* Sub-category quick-filter chips strip */
+  subcatChip: { flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1,
+    ...({ cursor: 'pointer' } as any) },
+  subcatChipText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
+  subcatChipCount: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.30)' },
+  subcatChipCountText: { color: 'rgba(255,255,255,0.80)',
+    fontFamily: 'DMSans_800ExtraBold', fontSize: 9.5 },
+
+  /* Per-subcategory horizontal block */
+  subcatBlock: { gap: 10, marginTop: 6 },
+  subcatHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  subcatIcon: { width: 26, height: 26, borderRadius: 8, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center' },
+  subcatTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14 },
+  subcatCountSmall: { color: C.text3, fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
+  viewAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    ...({ cursor: 'pointer' } as any) },
+  viewAllText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
 
   tracksStrip: { gap: 10, marginTop: 4 },
   kicker: { color: C.text3, fontFamily: 'DMSans_800ExtraBold',

@@ -1308,6 +1308,18 @@ frontend:
           comment: |
             ✅ P5.21 Logged out + logged in as student01@test.com / TestPass@123. Home tab shows greeting "Hi, Aarav", For You / Career / Events filter chips, "Recommended for you" hero, "Closing soon" deadline strip — original student dashboard, MentorHome NOT shown.
 
+## 2026-05-04 — SA Courses page redesign — direct course cards by sub-category
+- File: /app/frontend/app/courses.tsx
+- Change: Replaced the round icon-tile grids inside Tech & Engineering, Design & Creative,
+  and Business & Career sections with direct course-card horizontal carousels per
+  sub-category. Each section now shows a sub-category quick-filter chip strip + per-subcat
+  rows containing actual MiniCourseCards (provider, title, rating, price, FREE/SA badges),
+  matching the "drill-down view" that was previously hidden behind clicks.
+- Verified visually via screenshot tool (logged in as realtime@studentalumni.in):
+  Communication, Leadership, Graphic Design, Video Editing, Photography subcategory rows
+  all render proper course cards directly on /courses landing.
+
+
 agent_communication:
     - agent: "testing"
       message: |
