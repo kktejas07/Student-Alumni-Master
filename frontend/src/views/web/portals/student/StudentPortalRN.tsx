@@ -1,6 +1,10 @@
 /**
- * Student Portal — outer shell. Routes between Dashboard view and stubs
- * for the other 10 nav items. Mirrors MentorPortalRN structure.
+ * Student Portal — outer shell. All sidebar items render INSIDE this shell.
+ *
+ * Feature pages (Courses / Rentals / Financial / Higher-Ed / Deals / etc.)
+ * are imported as components and rendered inline via EmbeddedShellContext —
+ * which makes their inner FeaturePageShell skip its own sidebar/gradient
+ * and just render the hero + content. SPA-style navigation, no redirects.
  */
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
@@ -11,7 +15,6 @@ import { SC } from './tokens';
 import { Sidebar, StudentNavId } from './Sidebar';
 import { TopBar } from './TopBar';
 import { DashboardView } from './views/DashboardView';
-import { StubView } from './views/StubView';
 import { CareerAIView } from './views/CareerAIView';
 import { EventsView } from './views/EventsView';
 import { InternshipsView } from './views/InternshipsView';
@@ -21,6 +24,15 @@ import { WalletView } from './views/WalletView';
 import { MyBookingsView } from './views/MyBookingsView';
 import { MyApplicationsView } from './views/MyApplicationsView';
 import { MyWorkshopsView } from './views/MyWorkshopsView';
+
+import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
+
+// Feature pages imported as components for inline rendering
+import CoursesPage from '@/app/courses';
+import RentalsPage from '@/app/rentals';
+import FinancialPage from '@/app/financial';
+import HigherEducationPage from '@/app/higher-education';
+import DealsPage from '@/app/deals';
 
 export function StudentPortalRN() {
   const router = useRouter();
@@ -32,19 +44,8 @@ export function StudentPortalRN() {
     router.replace('/welcome');
   };
 
-  // Redirect specific items to standalone routes; keep others inline
-  const handleNav = (id: StudentNavId) => {
-    if (id === 'events')      { router.push('/events');           return; }
-    if (id === 'network')     { router.push('/network');          return; }
-    if (id === 'financial')   { router.push('/financial');        return; }
-    if (id === 'deals')       { router.push('/deals');            return; }
-    if (id === 'wallet')      { router.push('/wallet');           return; }
-    if (id === 'higher-ed')   { router.push('/higher-education'); return; }
-    if (id === 'rentals')     { router.push('/rentals');          return; }
-    if (id === 'courses')     { router.push('/courses');          return; }
-    if (id === 'internships') { router.push('/internships');      return; }
-    setActive(id);
-  };
+  // All sidebar clicks now render inline — no router.push detours.
+  const handleNav = (id: StudentNavId) => setActive(id);
 
   return (
     <View style={s.shell}>
@@ -56,20 +57,23 @@ export function StudentPortalRN() {
           contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
           showsVerticalScrollIndicator={false}
         >
-          {active === 'dashboard'       && <DashboardView />}
-          {active === 'career-ai'       && <CareerAIView />}
-          {active === 'internships'     && <InternshipsView />}
-          {active === 'my-applications' && <MyApplicationsView />}
-          {active === 'network'         && <NetworkView />}
-          {active === 'my-bookings'     && <MyBookingsView />}
-          {active === 'events'          && <EventsView />}
-          {active === 'my-workshops'    && <MyWorkshopsView />}
-          {active === 'financial'       && <StubView title="Financial"           note="Scholarships, loans, education insurance." deepLink="/financial" />}
-          {active === 'deals'           && <StubView title="Deals & Offers"      note="Student-only discounts on tools and food." deepLink="/deals" />}
-          {active === 'wallet'          && <WalletView />}
-          {active === 'higher-ed'       && <StubView title="Higher Education"    note="Universities, GRE/GMAT/IELTS prep, application tracker." deepLink="/higher-education" />}
-          {active === 'rentals'         && <StubView title="Rentals"             note="Student-friendly accommodation listings." deepLink="/rentals" />}
-          {active === 'profile'         && <ProfileSettingsView />}
+          <EmbeddedShellContext.Provider value={true}>
+            {active === 'dashboard'       && <DashboardView />}
+            {active === 'career-ai'       && <CareerAIView />}
+            {active === 'internships'     && <InternshipsView />}
+            {active === 'my-applications' && <MyApplicationsView />}
+            {active === 'network'         && <NetworkView />}
+            {active === 'my-bookings'     && <MyBookingsView />}
+            {active === 'events'          && <EventsView />}
+            {active === 'my-workshops'    && <MyWorkshopsView />}
+            {active === 'courses'         && <CoursesPage />}
+            {active === 'financial'       && <FinancialPage />}
+            {active === 'deals'           && <DealsPage />}
+            {active === 'wallet'          && <WalletView />}
+            {active === 'higher-ed'       && <HigherEducationPage />}
+            {active === 'rentals'         && <RentalsPage />}
+            {active === 'profile'         && <ProfileSettingsView />}
+          </EmbeddedShellContext.Provider>
         </ScrollView>
       </View>
     </View>

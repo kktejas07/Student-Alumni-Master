@@ -1,7 +1,7 @@
 /**
- * Alumni Portal — outer shell. Mirrors StudentPortalRN structure with the
- * orange theme tokens. Identical view set (Dashboard, Network, Events,
- * Profile, etc.); the feeds inside diverge per business logic later.
+ * Alumni Portal — outer shell. Mirrors StudentPortalRN behaviour with the
+ * orange theme tokens. All sidebar items render INSIDE this shell via the
+ * EmbeddedShellContext (no router redirects).
  */
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
@@ -16,12 +16,20 @@ import { StubView } from './views/StubView';
 import { EventsView } from './views/EventsView';
 import { InternshipsView } from './views/InternshipsView';
 import { NetworkView } from './views/NetworkView';
-// Reuse the shared role-aware ProfileSettingsView (stays purple per user spec).
 import { ProfileSettingsView } from '../student/views/ProfileSettingsView';
 import { WalletView } from './views/WalletView';
 import { MyBookingsView } from './views/MyBookingsView';
 import { MyApplicationsView } from './views/MyApplicationsView';
 import { MyWorkshopsView } from './views/MyWorkshopsView';
+
+import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
+
+// Feature pages imported as components for inline rendering
+import CoursesPage from '@/app/courses';
+import RentalsPage from '@/app/rentals';
+import FinancialPage from '@/app/financial';
+import HigherEducationPage from '@/app/higher-education';
+import DealsPage from '@/app/deals';
 
 export function AlumniPortalRN() {
   const router = useRouter();
@@ -33,15 +41,7 @@ export function AlumniPortalRN() {
     router.replace('/welcome');
   };
 
-  const handleNav = (id: StudentNavId) => {
-    if (id === 'courses')     { router.push('/courses');          return; }
-    if (id === 'rentals')     { router.push('/rentals');          return; }
-    if (id === 'higher-ed')   { router.push('/higher-education'); return; }
-    if (id === 'financial')   { router.push('/financial');        return; }
-    if (id === 'deals')       { router.push('/deals');            return; }
-    if (id === 'wallet')      { router.push('/wallet');           return; }
-    setActive(id);
-  };
+  const handleNav = (id: StudentNavId) => setActive(id);
 
   return (
     <View style={s.shell}>
@@ -53,20 +53,23 @@ export function AlumniPortalRN() {
           contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
           showsVerticalScrollIndicator={false}
         >
-          {active === 'dashboard'       && <DashboardView />}
-          {active === 'career-ai'       && <StubView title="Alumni Tools"        note="Mentor matchmaker, alumni-only AMAs and curated content." deepLink="/career-ai" />}
-          {active === 'internships'     && <InternshipsView />}
-          {active === 'my-applications' && <MyApplicationsView />}
-          {active === 'network'         && <NetworkView />}
-          {active === 'my-bookings'     && <MyBookingsView />}
-          {active === 'events'          && <EventsView />}
-          {active === 'my-workshops'    && <MyWorkshopsView />}
-          {active === 'financial'       && <StubView title="Donations & Giving"  note="Endow scholarships, fund research, support your alma mater." deepLink="/financial" />}
-          {active === 'deals'           && <StubView title="Alumni Deals"        note="Exclusive alumni-only discounts on tools and travel." deepLink="/deals" />}
-          {active === 'wallet'          && <WalletView />}
-          {active === 'higher-ed'       && <StubView title="Continuing Education" note="Executive programs, MBAs, online cohorts at partner schools." deepLink="/higher-education" />}
-          {active === 'rentals'         && <StubView title="Housing Network"     note="Connect with fellow alumni for short-stay or relocation help." deepLink="/rentals" />}
-          {active === 'profile'         && <ProfileSettingsView />}
+          <EmbeddedShellContext.Provider value={true}>
+            {active === 'dashboard'       && <DashboardView />}
+            {active === 'career-ai'       && <StubView title="Alumni Tools" note="Mentor matchmaker, alumni-only AMAs and curated content." deepLink="/career-ai" />}
+            {active === 'internships'     && <InternshipsView />}
+            {active === 'my-applications' && <MyApplicationsView />}
+            {active === 'network'         && <NetworkView />}
+            {active === 'my-bookings'     && <MyBookingsView />}
+            {active === 'events'          && <EventsView />}
+            {active === 'my-workshops'    && <MyWorkshopsView />}
+            {active === 'courses'         && <CoursesPage />}
+            {active === 'financial'       && <FinancialPage />}
+            {active === 'deals'           && <DealsPage />}
+            {active === 'wallet'          && <WalletView />}
+            {active === 'higher-ed'       && <HigherEducationPage />}
+            {active === 'rentals'         && <RentalsPage />}
+            {active === 'profile'         && <ProfileSettingsView />}
+          </EmbeddedShellContext.Provider>
         </ScrollView>
       </View>
     </View>

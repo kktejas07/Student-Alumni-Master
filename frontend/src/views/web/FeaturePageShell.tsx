@@ -24,6 +24,13 @@ import { Sidebar, NavItem } from '@/src/views/web/platform/components';
 import { SA } from '@/src/views/web/platform/tokens';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
+/**
+ * EmbeddedShellContext — set to true when this Shell is rendered INSIDE a
+ * portal that already provides its own sidebar/gradient (e.g. StudentPortalRN).
+ * In that case we skip the outer chrome and render only the hero + children.
+ */
+export const EmbeddedShellContext = React.createContext<boolean>(false);
+
 // Single source of truth for sidebar navigation
 const NAV: NavItem[] = [
   { id: 'home',              Icon: HomeIcon,       label: 'Dashboard',        color: '#A78BFA' },
@@ -92,6 +99,7 @@ export default function FeaturePageShell({
   const pathname = usePathname();
   const { width } = useWindowDimensions();
   const isWide = width >= 1024;
+  const isEmbedded = React.useContext(EmbeddedShellContext);
 
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -102,9 +110,7 @@ export default function FeaturePageShell({
   const onNav = (id: string) => {
     const target = ROUTE_MAP[id];
     if (!target) return;
-    // If we're already on that route, do nothing (no flash, no new view)
     if (pathname === target) return;
-    // SPA-style in-place swap: no history stack growth
     router.replace(target as any);
   };
 
@@ -112,6 +118,28 @@ export default function FeaturePageShell({
     await logout();
     router.replace('/welcome');
   };
+
+  // EMBEDDED MODE: skip outer chrome (sidebar/gradient/orbs/topbar/scroll)
+  // because the parent portal already provides them. Render only hero + body.
+  if (isEmbedded) {
+    return (
+      <View style={{ gap: 22 }}>
+        <View style={styles.heroShell}>
+          <View pointerEvents="none" style={[styles.heroOrb, { width: 280, height: 280, top: -80, right: -40, backgroundColor: 'rgba(176,127,223,0.22)' }]} />
+          <View pointerEvents="none" style={[styles.heroOrb, { width: 180, height: 180, bottom: -50, left: 20, backgroundColor: 'rgba(212,170,255,0.18)' }]} />
+          <View style={[styles.heroBody, !isWide && { flexDirection: 'column', alignItems: 'flex-start', gap: 16 }]}>
+            <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+              <View style={styles.heroBadge}><Text style={styles.heroBadgeText}>{heroEmoji}</Text></View>
+              <Text style={styles.heroTitle}>{title}</Text>
+              {!!subtitle && <Text style={styles.heroSub}>{subtitle}</Text>}
+            </View>
+            {!!rightSlot && <View>{rightSlot}</View>}
+          </View>
+        </View>
+        {children}
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, flexDirection: 'row' }}>
