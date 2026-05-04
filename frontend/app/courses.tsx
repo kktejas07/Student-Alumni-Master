@@ -12,6 +12,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import FeaturePageShell from '@/src/views/web/FeaturePageShell';
 import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
 import { AnimatedCard, FAB } from '@/src/views/web/md3';
+import CareerTrackInline from '@/src/views/web/courses/CareerTrackInline';
+import CourseDetailDrawer from '@/src/views/web/courses/CourseDetailDrawer';
+import AICourseAdvisor from '@/src/views/web/courses/AICourseAdvisor';
 import { request } from '@/src/models/services/api';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -108,6 +111,8 @@ export default function CoursesPage() {
   // Search autocomplete (P1(b))
   const [searchFocused, setSearchFocused] = useState(false);
   const [enrollFor, setEnrollFor] = useState<Course | null>(null);
+  const [detailCourse, setDetailCourse] = useState<Course | null>(null);
+  const [activeTrackSlug, setActiveTrackSlug] = useState<string | null>(null);
   const [featured, setFeatured] = useState<Course[]>([]);
   const [trendingFree, setTrendingFree] = useState<Course[]>([]);
   const [topUni, setTopUni] = useState<Course[]>([]);
@@ -288,6 +293,17 @@ export default function CoursesPage() {
         </View>
       }
     >
+      {/* Career Track inline view (replaces catalog when active) */}
+      {activeTrackSlug && (
+        <CareerTrackInline
+          slug={activeTrackSlug}
+          onBack={() => setActiveTrackSlug(null)}
+          onEnrollCourse={(c) => setDetailCourse(c as any)}
+        />
+      )}
+
+      {/* Catalog (hidden when track view is open) */}
+      {!activeTrackSlug && (<>
       {/* Search Bar */}
       <View>
         <View style={s.searchBox}>
@@ -385,10 +401,8 @@ export default function CoursesPage() {
                 setActiveCategory('all');
                 setActiveSubcat(null);
               } else if (h.id === 'ai-career-track') {
-                // Filter to AI/ML subcategory inline
-                setActiveCategory('tech');
-                setActiveSubcat('ai-ml');
-                setPricingFilter('all');
+                // Open inline career track view
+                setActiveTrackSlug('ai-career-track');
               }
             }}
             style={[s.heroCard, i === 0 ? { flex: 2 } : { flex: 1 }]}>
@@ -733,7 +747,8 @@ export default function CoursesPage() {
           <Text style={s.kicker}>CAREER TRACKS</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
             {tracksMeta.map((t: any) => (
-              <View key={t.slug}
+              <Pressable key={t.slug}
+                onPress={() => setActiveTrackSlug(t.slug)}
                 style={[s.trackChip, { borderColor: t.color + '66',
                                         backgroundColor: t.color + '14' }]}>
                 <MaterialCommunityIcons name="rocket-launch" size={14} color={t.color} />
@@ -743,7 +758,7 @@ export default function CoursesPage() {
                     {t.duration_weeks}w · {t.enrolled_count} learners
                   </Text>
                 </View>
-              </View>
+              </Pressable>
             ))}
           </View>
         </View>
@@ -763,6 +778,14 @@ export default function CoursesPage() {
           aiIcon="brain"
         />
       </View>
+      </>)}
+
+      {/* Course Detail Drawer (right-side slide-in) */}
+      <CourseDetailDrawer course={detailCourse}
+                          onClose={() => setDetailCourse(null)} />
+
+      {/* AI Course Advisor floating widget */}
+      <AICourseAdvisor onCourseClick={(c) => setDetailCourse(c)} />
 
       {/* Enroll modal */}
       <EnrollModal course={enrollFor}

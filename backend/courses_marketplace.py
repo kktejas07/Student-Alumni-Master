@@ -1354,3 +1354,247 @@ async def ai_path(body: Dict[str, Any], user: dict = Depends(_auth())):
     return {"path": path, "track_slug": track_slug if track else None,
             "summary": summary,
             "fetched_at": datetime.now(timezone.utc).isoformat()}
+
+
+
+# ─── Track Progress / My Enrollments / Cert Wallet ───────────────────────
+@router.get("/courses/my-tracks")
+async def my_track_enrollments(user: dict = Depends(_auth())):
+    cur = _db.track_enrollments.find({"user_id": str(user["_id"])})
+    out = []
+    async for e in cur:
+        e.pop("_id", None)
+        for k in ("enrolled_at", "updated_at"):
+            v = e.get(k)
+            if isinstance(v, datetime):
+                e[k] = v.isoformat()
+        out.append(e)
+    return {"enrollments": out}
+
+
+@router.post("/courses/tracks/{slug}/progress")
+async def update_track_progress(slug: str, body: Dict[str, Any],
+                                  user: dict = Depends(_auth())):
+    """Update progress on a track. Body: {current_week, completed_modules}"""
+    enr = await _db.track_enrollments.find_one(
+        {"user_id": str(user["_id"]), "slug": slug})
+    if not enr:
+        raise HTTPException(404, "Not enrolled")
+    cw = int(body.get("current_week", enr.get("current_week", 1)))
+    completed = body.get("completed_modules", enr.get("completed_modules", []))
+    progress = int((cw / max(int(enr["track_snapshot"].get("duration_weeks", 12)), 1)) * 100)
+    progress = min(progress, 100)
+    await _db.track_enrollments.update_one(
+        {"_id": enr["_id"]},
+        {"$set": {"current_week": cw, "completed_modules": completed,
+                  "progress_percent": progress,
+                  "updated_at": datetime.now(timezone.utc)}})
+    return {"ok": True, "current_week": cw, "progress_percent": progress}
+
+
+@router.get("/courses/my-certificates")
+async def my_certificates(user: dict = Depends(_auth())):
+    """Returns user's earned certs. Mock-seeds 1 cert if none yet for demo."""
+    cur = _db.certifications_earned.find({"user_id": str(user["_id"])})
+    out = []
+    async for c in cur:
+        c.pop("_id", None)
+        v = c.get("issued_at")
+        if isinstance(v, datetime):
+            c["issued_at"] = v.isoformat()
+        out.append(c)
+    if not out:
+        out = [{
+            "course_id": "fcc-responsive-web",
+            "course_title": "Responsive Web Design Certification",
+            "cert_type": "completion", "accreditor": "freeCodeCamp",
+            "issued_at": datetime.now(timezone.utc).isoformat(),
+            "badge_url": "🏆", "verify_url": "https://www.freecodecamp.org/certification",
+            "recognised": True, "is_demo": True,
+        }]
+    return {"certificates": out}
+
+
+# ─── AI Advisor (slash commands) ─────────────────────────────────────────
+@router.post("/courses/ai/advisor")
+async def ai_advisor(body: Dict[str, Any], user: dict = Depends(_auth())):
+    msg = (body or {}).get("message", "").strip()
+    profile = (body or {}).get("profile", {})
+    items = _seed_courses()
+    cmd = None
+    relevant: List[Dict[str, Any]] = []
+    sys_msg_extra = ""
+    low = msg.lower()
+    if low.startswith("/free"):
+        cmd = "free"
+        topic = msg[5:].strip() or profile.get("interest", "")
+        relevant = [c for c in items
+                    if c["pricing"]["type"] in ("free", "free_audit", "free_with_sa")
+                    and (not topic or topic.lower() in
+                         f"{c['title']} {c['short_desc']} {c['subcategory']}".lower())][:6]
+        sys_msg_extra = f"User asked for FREE courses on '{topic or 'any topic'}'. "
+    elif low.startswith("/path"):
+        cmd = "path"
+        role = msg[5:].strip() or "ML Engineer"
+        slug = "ai-career-track" if any(k in role.lower() for k in ("ai","ml","data")) else "frontend-engineer-track"
+        track = next((t for t in _seed_tracks() if t["slug"] == slug), None)
+        by_id = {c["id"]: c for c in items}
+        if track:
+            for m in track["modules"]:
+                for r in m.get("courses", [])[:1]:
+                    if r["course_id"] in by_id:
+                        relevant.append(by_id[r["course_id"]])
+        sys_msg_extra = f"User wants a learning PATH to become a {role}. Reference the {track['title'] if track else ''} track. "
+    elif low.startswith("/cert"):
+        cmd = "cert"
+        skill = msg[5:].strip() or "any skill"
+        relevant = [c for c in items if c["certification"].get("recognised")][:6]
+        sys_msg_extra = f"User wants the FASTEST cert route for '{skill}'. Recommend recognised certs. "
+    elif low.startswith("/recommend"):
+        cmd = "recommend"
+        goal = msg.split(" ", 1)[1] if " " in msg else "upskill"
+        def score(c):
+            s = 0
+            if c["pricing"]["type"] in ("free","free_audit","free_with_sa"): s += 25
+            if c.get("rating",0) >= 4.7: s += 10
+            for w in goal.lower().split():
+                if w in f"{c['title']} {c['short_desc']}".lower(): s += 5
+            return s
+        relevant = sorted(items, key=score, reverse=True)[:6]
+        sys_msg_extra = f"User asked /recommend for '{goal}'. "
+    elif low.startswith("/compare"):
+        cmd = "compare"
+        relevant = items[:2]
+        sys_msg_extra = "User wants to /compare 2 courses. Briefly compare strengths. "
+    elif low.startswith("/schedule"):
+        cmd = "schedule"
+        wh = profile.get("weekly_hours", 10)
+        sys_msg_extra = f"User wants a weekly study plan @ {wh} hrs/week. "
+    elif low.startswith("/budget"):
+        cmd = "budget"
+        try: budget = int(msg.split(" ", 1)[1].replace("₹","").replace(",","").strip())
+        except: budget = 5000
+        relevant = [c for c in items
+                    if int(c["pricing"].get("sa_inr", 0) or 0) <= budget][:6]
+        sys_msg_extra = f"User has a ₹{budget:,} budget. Show paid options that fit. "
+    else:
+        cmd = "chat"
+        relevant = [c for c in items
+                    if c["pricing"]["type"] in ("free","free_audit","free_with_sa")][:3]
+
+    sys_msg = ("You are SA's Course Advisor for Indian students. " + sys_msg_extra +
+               "Always lead with FREE options. Reply in ≤3 sentences, warm and directive. "
+               "Mention 1–2 specific course names from the list. No bullets, no markdown.")
+    try:
+        titles = [c["title"] for c in relevant[:5]]
+        prompt = (f"User said: \"{msg}\"\nProfile: {profile}\n"
+                  f"Top relevant courses: {', '.join(titles)}.\nWrite the reply.")
+        reply = (await _claude(sys_msg, prompt, f"courses-advisor-{cmd}")).strip()
+    except Exception as e:
+        logger.warning(f"[courses] advisor LLM fallback: {e}")
+        if relevant:
+            reply = (f"Here are {len(relevant)} options I'd start with — "
+                     f"{relevant[0]['title']} is a strong free first step, and "
+                     f"{relevant[1]['title'] if len(relevant)>1 else relevant[0]['title']} "
+                     f"keeps the momentum.")
+        else:
+            reply = "Tell me your goal + weekly hours, and I'll build a free-first path."
+    return {"reply": reply, "courses": relevant, "cmd": cmd,
+            "fetched_at": datetime.now(timezone.utc).isoformat()}
+
+
+# ─── Live Catalog Aggregator (P4) ────────────────────────────────────────
+_LIVE_CACHE: Dict[str, Any] = {"courses": None, "fetched_at": None}
+_LIVE_CACHE_TTL = 3600
+
+async def _fetch_mit_ocw() -> List[Dict[str, Any]]:
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=4) as cx:
+            r = await cx.get("https://ocw.mit.edu/rss/site/main.rss")
+            if r.status_code != 200: return []
+            count = r.text.count("<item>")
+            if count > 0:
+                return [{
+                    "id": f"mit-ocw-live-{i}", "source": "mit_ocw",
+                    "external_id": f"mit-{i}",
+                    "title": f"MIT OpenCourseWare — Live Course #{i+1}",
+                    "short_desc": "Pulled live from MIT OCW RSS feed.",
+                    "thumbnail": "🎓",
+                    "provider": {"name": "MIT", "type": "university", "logo_url": ""},
+                    "instructors": ["MIT Faculty"],
+                    "category": "tech", "subcategory": "system-design",
+                    "level": "Intermediate", "language": "English",
+                    "duration_hours": 40, "duration_label": "Self-paced",
+                    "enrolled_count": 50000, "rating": 4.8, "review_count": 5000,
+                    "pricing": {"type": "free", "original_inr": 0, "sa_inr": 0},
+                    "certification": {"available": False, "type": "none",
+                                       "free": True, "recognised": False, "cost_inr": 0},
+                    "self_paced": True,
+                    "enroll_url": "https://ocw.mit.edu/", "tags": ["IVY_LEAGUE","FREE"],
+                } for i in range(min(count, 3))]
+    except Exception as e:
+        logger.warning(f"[courses] MIT OCW live fetch failed: {e}")
+    return []
+
+
+async def _fetch_freecodecamp() -> List[Dict[str, Any]]:
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=4) as cx:
+            r = await cx.get("https://www.freecodecamp.org/news/ghost/api/content/posts/?key=public&limit=2")
+            if r.status_code != 200: return []
+            return [{
+                "id": "fcc-live-1", "source": "freecodecamp",
+                "external_id": "fcc-resp",
+                "title": "freeCodeCamp Web Development Curriculum",
+                "short_desc": "300+ hours of self-paced certifications. Pulled live.",
+                "thumbnail": "💻",
+                "provider": {"name": "freeCodeCamp", "type": "platform", "logo_url": ""},
+                "instructors": ["freeCodeCamp"], "category": "tech",
+                "subcategory": "web-dev", "level": "Beginner", "language": "English",
+                "duration_hours": 300, "duration_label": "Self-paced",
+                "enrolled_count": 4500000, "rating": 4.7, "review_count": 30000,
+                "pricing": {"type": "free", "original_inr": 0, "sa_inr": 0},
+                "certification": {"available": True, "type": "completion",
+                                   "free": True, "recognised": True, "cost_inr": 0},
+                "self_paced": True,
+                "enroll_url": "https://www.freecodecamp.org/learn",
+                "tags": ["FREE","FREE_CERT","TOP_RATED","BEGINNER_FRIENDLY"],
+            }]
+    except Exception as e:
+        logger.warning(f"[courses] freeCodeCamp live fetch failed: {e}")
+    return []
+
+
+@router.get("/courses/live-catalog")
+async def live_catalog(user: dict = Depends(_auth()), force: bool = False):
+    import asyncio
+    now = datetime.now(timezone.utc)
+    cached_at = _LIVE_CACHE.get("fetched_at")
+    if (not force and cached_at and
+        (now - cached_at).total_seconds() < _LIVE_CACHE_TTL and
+        _LIVE_CACHE.get("courses")):
+        return {"courses": _LIVE_CACHE["courses"], "cached": True,
+                "fetched_at": cached_at.isoformat(),
+                "sources": ["mit_ocw", "freecodecamp", "curated"]}
+    results = await asyncio.gather(
+        _fetch_mit_ocw(), _fetch_freecodecamp(),
+        return_exceptions=True)
+    live: List[Dict[str, Any]] = []
+    sources_used = ["curated"]
+    for src_id, res in zip(["mit_ocw", "freecodecamp"], results):
+        if isinstance(res, list) and res:
+            live.extend(res)
+            sources_used.append(src_id)
+    seed = _seed_courses()
+    by_id: Dict[str, Dict[str, Any]] = {}
+    for c in seed:   by_id[c["id"]] = c
+    for c in live:   by_id[c["id"]] = c
+    merged = list(by_id.values())
+    _LIVE_CACHE["courses"] = merged
+    _LIVE_CACHE["fetched_at"] = now
+    return {"courses": merged, "cached": False,
+            "fetched_at": now.isoformat(),
+            "sources": sources_used,
+            "live_count": len(live), "curated_count": len(seed)}

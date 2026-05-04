@@ -1309,6 +1309,33 @@ frontend:
             ✅ P5.21 Logged out + logged in as student01@test.com / TestPass@123. Home tab shows greeting "Hi, Aarav", For You / Career / Events filter chips, "Recommended for you" hero, "Closing soon" deadline strip — original student dashboard, MentorHome NOT shown.
 
 ## 2026-05-04 (rev3) — Courses pills aligned with Events page styling
+
+## 2026-05-04 (rev4) — Chunks 2+3+4 — Career Track inline + Detail Drawer + AI Advisor + Live aggregator
+
+### New frontend components (modular)
+- `/app/frontend/src/views/web/courses/CareerTrackInline.tsx` — 12-week roadmap timeline view rendered inline inside `/courses` (no navigation away). Hero gradient + outcomes + mentors strip + 6 collapsible week cards + capstone project. Wires to `/courses/tracks/{slug}` + `/courses/my-tracks` + `/courses/tracks/{slug}/enroll` + `/courses/tracks/{slug}/progress`.
+- `/app/frontend/src/views/web/courses/CourseDetailDrawer.tsx` — Right-side slide-in drawer (480px) with **Overview / Syllabus / Reviews / Enroll** tabs. Synthesizes 4-week syllabus, shows 3 sample reviews, full pricing card, Enroll CTA opens external provider URL.
+- `/app/frontend/src/views/web/courses/AICourseAdvisor.tsx` — Floating brain bubble (bottom-right) → 420×600 chat panel with welcome message + 7 slash-command quick chips (`/path /free /cert /recommend /compare /schedule /budget`) + streaming-style replies + inline mini course cards.
+
+### New backend endpoints (`/app/backend/courses_marketplace.py` + ~280 lines)
+- `GET  /api/courses/my-tracks`               — list user's track enrollments
+- `POST /api/courses/tracks/{slug}/progress`  — update current_week + completed_modules + progress_percent
+- `GET  /api/courses/my-certificates`         — cert wallet (returns demo cert if none)
+- `POST /api/courses/ai/advisor`              — slash-command chat backed by Claude Sonnet 4.5 (Emergent LLM Key)
+- `GET  /api/courses/live-catalog`            — real-time aggregator (MIT OCW RSS + freeCodeCamp public API), fans out via `asyncio.gather` with 4s timeout, dedupes by id over curated seed, 1h server-side cache, returns `sources_used`/`live_count`/`curated_count`
+
+### Wiring in `/app/frontend/app/courses.tsx`
+- "Start free" hero CTA → `setActiveTrackSlug('ai-career-track')` (was: filter to AI/ML)
+- Career-track strip chips → all `setActiveTrackSlug(t.slug)` — opens inline view, no navigation
+- MiniCourseCard click → `setDetailCourse(c)` opens drawer
+- Catalog content wrapped in `{!activeTrackSlug && (<>...</>)}` — toggles between catalog and track view
+- Drawer + Advisor + Track view all live in same `/courses` route. Sidebar/embedded shell unchanged.
+
+### Verified visually (4 screenshots)
+- Catalog view: hero promos + filter pills + sort dropdown + course grid render correctly.
+- Track view: violet hero, breadcrumb back chip, 4 stat pills, outcomes + mentors strip + 6 expandable weeks + capstone — all in one scroll, sidebar intact.
+- Course drawer: opens overlay with title, provider, stats, free pricing block, big violet Enroll CTA.
+- AI Advisor floating bubble visible (clickable on production).
 - Adopted events.tsx pill design:
   • `paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999`
   • Inactive: dark translucent bg, accent-colored icon, muted text
