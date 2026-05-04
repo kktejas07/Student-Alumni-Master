@@ -251,36 +251,51 @@ export default function CoursesPage() {
         </View>
       ) : null}
 
-      {/* Primary Category tab strip (deals-style — in-place filter, no navigation) */}
+      {/* Primary Category tab strip (events-style — solid filled when active) */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ gap: 8, paddingRight: 12 }}>
-        {[{ id: 'all', label: 'All', icon: 'view-grid' as IconName, color: '#A78BFA' },
+        {[{ id: 'all', label: 'All', icon: 'view-grid' as IconName, color: '#7C3AED' },
           ...sections.map((sec) => ({
-            id: sec.id, label: sec.name, icon: 'school' as IconName,
+            id: sec.id, label: sec.name,
+            icon: (sec.id === 'tech' ? 'laptop' :
+                   sec.id === 'design' ? 'palette' :
+                   sec.id === 'business' ? 'briefcase' : 'school') as IconName,
             color: sec.id === 'tech' ? '#06B6D4' :
                    sec.id === 'design' ? '#EC4899' :
                    sec.id === 'business' ? '#F59E0B' : '#A78BFA',
           }))].map((cat) => {
           const active = activeCategory === cat.id;
+          // Compute count for this category
+          const count = cat.id === 'all'
+            ? allCourses.length
+            : allCourses.filter((c) => c.category === cat.id).length;
           return (
             <Pressable key={cat.id}
               onPress={() => {
                 setActiveCategory(cat.id);
                 setActiveSubcat(null);
               }}
-              style={[s.tab,
-                active && { backgroundColor: cat.color + '22', borderColor: cat.color + '66' }]}>
+              style={[s.pill,
+                active && { backgroundColor: cat.color, borderColor: cat.color }]}>
               <MaterialCommunityIcons name={cat.icon} size={14}
-                color={active ? cat.color : 'rgba(255,255,255,0.65)'} />
-              <Text style={[s.tabText, active && { color: cat.color }]}>
+                color={active ? '#fff' : cat.color} />
+              <Text style={[s.pillText, active && { color: '#fff' }]}>
                 {cat.label}
               </Text>
+              {count > 0 && (
+                <View style={[s.pillCount,
+                  active && { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
+                  <Text style={[s.pillCountText, active && { color: '#fff' }]}>
+                    {count}
+                  </Text>
+                </View>
+              )}
             </Pressable>
           );
         })}
       </ScrollView>
 
-      {/* Sub-category strip (within active category — only when a category is selected) */}
+      {/* Sub-category strip (within active category — events-style) */}
       {activeCategory !== 'all' && (() => {
         const sec = sections.find((x) => x.id === activeCategory);
         if (!sec) return null;
@@ -292,11 +307,11 @@ export default function CoursesPage() {
             contentContainerStyle={{ gap: 8, paddingRight: 12 }}>
             <Pressable
               onPress={() => setActiveSubcat(null)}
-              style={[s.tab, !activeSubcat &&
-                { backgroundColor: accent + '22', borderColor: accent + '66' }]}>
+              style={[s.pill, !activeSubcat &&
+                { backgroundColor: accent, borderColor: accent }]}>
               <MaterialCommunityIcons name="filter-variant" size={13}
-                color={!activeSubcat ? accent : 'rgba(255,255,255,0.65)'} />
-              <Text style={[s.tabText, !activeSubcat && { color: accent }]}>
+                color={!activeSubcat ? '#fff' : accent} />
+              <Text style={[s.pillText, !activeSubcat && { color: '#fff' }]}>
                 All {sec.name}
               </Text>
             </Pressable>
@@ -305,18 +320,20 @@ export default function CoursesPage() {
               return (
                 <Pressable key={it.key}
                   onPress={() => setActiveSubcat(active ? null : it.key)}
-                  style={[s.tab, active &&
-                    { backgroundColor: accent + '22', borderColor: accent + '66' }]}>
+                  style={[s.pill, active &&
+                    { backgroundColor: accent, borderColor: accent }]}>
                   <MaterialCommunityIcons name={it.icon} size={13}
-                    color={active ? accent : 'rgba(255,255,255,0.65)'} />
-                  <Text style={[s.tabText, active && { color: accent }]}>
+                    color={active ? '#fff' : accent} />
+                  <Text style={[s.pillText, active && { color: '#fff' }]}>
                     {it.label}
                   </Text>
                   {it.count > 0 && (
-                    <Text style={[s.tabCount,
-                      active && { color: accent }]}>
-                      {it.count}
-                    </Text>
+                    <View style={[s.pillCount,
+                      active && { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
+                      <Text style={[s.pillCountText, active && { color: '#fff' }]}>
+                        {it.count}
+                      </Text>
+                    </View>
                   )}
                 </Pressable>
               );
@@ -325,16 +342,20 @@ export default function CoursesPage() {
         );
       })()}
 
-      {/* Pricing filter pill row */}
+      {/* Pricing pill row (events-style) */}
       <View style={s.pricingFilters}>
         {(['all', 'free', 'paid'] as const).map((p) => {
           const active = pricingFilter === p;
           const lbl = p === 'all' ? 'All pricing' : p === 'free' ? 'Free / Free Cert' : 'Paid (with SA discount)';
+          const icon: IconName = p === 'all' ? 'cash-multiple' :
+                                  p === 'free' ? 'gift' : 'currency-inr';
           return (
             <Pressable key={p} onPress={() => setPricingFilter(p)}
-              style={[s.pricingChip,
-                active && { backgroundColor: '#7C3AED33', borderColor: '#A78BFA' }]}>
-              <Text style={[s.pricingChipText, active && { color: '#C4B5FD' }]}>
+              style={[s.pill,
+                active && { backgroundColor: '#7C3AED', borderColor: '#7C3AED' }]}>
+              <MaterialCommunityIcons name={icon} size={13}
+                color={active ? '#fff' : '#A78BFA'} />
+              <Text style={[s.pillText, active && { color: '#fff' }]}>
                 {lbl}
               </Text>
             </Pressable>
@@ -1037,17 +1058,18 @@ const s = StyleSheet.create({
     borderRadius: 999, borderWidth: 1, marginLeft: 'auto' },
   sectionCountText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
 
-  /* Deals-style tab strip */
-  tab: { flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999,
+  /* Events-style filter pill (used for category, sub-category, and pricing) */
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: C.border, borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1,
     ...({ cursor: 'pointer' } as any) },
-  tabText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
-  tabCount: { color: 'rgba(255,255,255,0.50)',
-    fontFamily: 'DMSans_800ExtraBold', fontSize: 10.5,
-    paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.30)' },
+  pillText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  pillCount: { paddingHorizontal: 6, height: 16, minWidth: 16, borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.30)',
+    alignItems: 'center', justifyContent: 'center', marginLeft: 2 },
+  pillCountText: { color: 'rgba(255,255,255,0.80)',
+    fontFamily: 'DMSans_800ExtraBold', fontSize: 10 },
 
   /* Filter status banner */
   filterStatus: { flexDirection: 'row', alignItems: 'center', gap: 8,

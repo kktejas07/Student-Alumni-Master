@@ -1308,7 +1308,20 @@ frontend:
           comment: |
             ✅ P5.21 Logged out + logged in as student01@test.com / TestPass@123. Home tab shows greeting "Hi, Aarav", For You / Career / Events filter chips, "Recommended for you" hero, "Closing soon" deadline strip — original student dashboard, MentorHome NOT shown.
 
-## 2026-05-04 (rev2) — SA Courses page: Deals-style in-place filter UX
+## 2026-05-04 (rev3) — Courses pills aligned with Events page styling
+- File: /app/frontend/app/courses.tsx
+- User wanted the filter pill UX to match the **Events page** spec exactly (not just deals).
+- Adopted events.tsx pill design:
+  • `paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999`
+  • Inactive: dark translucent bg, accent-colored icon, muted text
+  • Active: SOLID accent fill, white icon + white text, translucent-white count badge
+  • Count badge: 16px tall pill with bg `rgba(0,0,0,0.30)` → `rgba(255,255,255,0.25)` when active
+- Applied to all three strips: primary category, sub-category, pricing.
+- Each pill now shows live count (e.g. "All 45", "Tech & Engineering 23", "Web Dev 5").
+- Verified visually: pills look identical to /events; URL stays at /courses while
+  drilling Tech → AI/ML → Free; sidebar intact.
+
+
 - File: /app/frontend/app/courses.tsx
 - Problem: Earlier rev introduced "ResultsBlock" mode that *swapped* the entire view
   when a sub-category was clicked. Felt like navigation. Career-track chips and
