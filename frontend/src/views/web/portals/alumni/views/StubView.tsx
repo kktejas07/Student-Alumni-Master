@@ -3,7 +3,7 @@
  */
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { Sparkles, ArrowRight } from 'lucide-react-native';
+import { Sparkles, ArrowRight } from '../iconShims';
 import { useRouter } from 'expo-router';
 import { SC, FONTS } from '../tokens';
 

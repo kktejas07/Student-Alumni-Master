@@ -27,6 +27,7 @@ import {
 } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { EmptyState, SuccessBurst } from '../EmptyState';
+import { SkeletonList } from '../motion';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
 
@@ -239,10 +240,7 @@ export function InternshipsView() {
       {/* List */}
       <View style={{ gap: 10, marginTop: 8 }}>
         {loading && items.length === 0 ? (
-          <View style={{ padding: 60, alignItems: 'center' }}>
-            <ActivityIndicator size="large" color={SC.accentBright} />
-            <Text style={{ color: SC.muted, marginTop: 10, fontFamily: FONTS.med }}>Fetching live jobs…</Text>
-          </View>
+          <SkeletonList n={5} kind="job" gap={10} />
         ) : items.length === 0 ? (
           filter === 'Saved' ? (
             <EmptyState

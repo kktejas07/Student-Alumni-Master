@@ -21,9 +21,9 @@ export const SC = {
   accent: '#FDBA74',           // soft peach for text/icon accents
   accentBright: '#FED7AA',     // very light peach
 
-  text: 'rgba(255,255,255,0.92)',
-  muted: 'rgba(255,255,255,0.55)',
-  dim: 'rgba(255,255,255,0.30)',
+  text: 'rgba(255,255,255,0.94)',
+  muted: 'rgba(255,255,255,0.66)',  /* WCAG bump: 0.55 → 0.66 (AA) */
+  dim: 'rgba(255,255,255,0.46)',    /* WCAG bump: 0.30 → 0.46 (AA-Large) */
 
   green: '#22C55E',
   amber: '#F59E0B',

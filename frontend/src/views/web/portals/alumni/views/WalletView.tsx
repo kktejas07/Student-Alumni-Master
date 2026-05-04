@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, Modal, TextInput, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Wallet as WalletIcon, ArrowDown, ArrowUp, Gift, Plus, X } from 'lucide-react-native';
+import { Wallet as WalletIcon, ArrowDown, ArrowUp, Gift, Plus, X } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
 import { usePortalData, postPortal, fetchPortal } from '@/src/lib/portalApi';

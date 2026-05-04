@@ -9095,3 +9095,88 @@ agent_communication:
           ~ views/{Internships,MyApplications,MyBookings,MyWorkshops}View.tsx
 
 
+
+agent_communication:
+    - agent: "main"
+      message: |
+        BIG ROUND — 4 of 5 requested items shipped:
+
+        ── 1. Alumni Portal mirror ─────────────────────────────────
+          + alumni/iconShims.tsx     (re-exports student/iconShims)
+          + alumni/motion.tsx        (re-exports student/motion)
+          + alumni/gradients.ts      (orange-glass palette: brand,
+                                      brandHero, brandGlow, premium…)
+          ~ alumni/Sidebar.tsx       (rebuilt: orange gradient active
+                                      pill, FadeIn cascade, PressScale,
+                                      SparkIcon for "Alumni Tools",
+                                      PulseDot status, a11y roles)
+          ~ alumni/AlumniPortalRN.tsx (legacy WalletView → modern
+                                      app/wallet.tsx, same as student)
+          ~ alumni/tokens.ts          (WCAG contrast bumps, same as
+                                      student: muted 0.55→0.66,
+                                      dim 0.30→0.46)
+          + lucide → MCI sweep across all 13 alumni files via shim
+
+        ── 2. Reanimated skeleton loaders ──────────────────────────
+          + motion.tsx now exports:
+              SkeletonBlock, SkeletonCard (kinds: job/kpi/event/mentor/list),
+              SkeletonList
+          ~ InternshipsView replaces ActivityIndicator with
+              <SkeletonList n={5} kind="job" /> — visual layout matches
+              real JobCards; subtle purple shimmer flows L→R.
+
+        ── 3. prefers-reduced-motion support ───────────────────────
+          + motion.tsx exports useReducedMotion() hook —
+              detects window.matchMedia '(prefers-reduced-motion: reduce)'
+              on web and AccessibilityInfo.isReduceMotionEnabled() on native,
+              with live event subscription.
+          ~ FadeInView, ShimmerGradient, PulseDot, SparkIcon, SkeletonBlock
+              all auto-skip animations and render final state when reduced
+              motion is enabled.
+
+        ── 4. Tools & Integrations OAuth wiring ────────────────────
+          + profile/OAuthModal.tsx (NEW, 280 LOC):
+              - Realistic OAuth popup UX with shield-check + URL bar
+                (accounts.{provider}.com), close button, brand icon
+              - 3-step state machine: authorize → email → connecting
+              - Per-provider scope list (13 providers covered)
+              - Green gradient Authorize CTA, ActivityIndicator on connecting
+              - Full a11y (modal role, button labels, hints, autoFocus
+                on email input)
+          ~ IntegrationsView.tsx:
+              - Replaced inline TextInput+Connect pattern with single
+                "Connect with {Provider}" button
+              - Opens OAuthModal with the selected provider
+              - On Approve→Email→Connect, POSTs same /users/me/integrations
+                payload (no backend change needed)
+              - When real client_ids land, swap runMockOAuth for
+                window.open(authorize_url) + postMessage code listener
+                (kept as a clear comment seam in the file).
+
+        ── 5. server.py modular refactor ──────────────────────────
+          DEFERRED — the refactor of a 7000+ LOC monolith into
+          dedicated routers (auth/onboarding/portals/ai/wallet/etc.)
+          has high regression risk and warrants its own dedicated
+          session with comprehensive backend testing. Flagged as the
+          #1 backlog item for the next round.
+
+        Verified visually:
+          + Skeleton loaders cascading in Internships (matches JobCard
+            shape exactly, no layout shift on load)
+          + OAuth modal mounts correctly with brand icons, scope list
+            (Generate AI / Document analysis for Claude), Cancel /
+            Authorize buttons, backdrop blur
+          + Bundle clean, HTTP 200, no regressions.
+
+        Files touched in this round:
+          + alumni/iconShims.tsx, motion.tsx, gradients.ts (NEW)
+          + profile/OAuthModal.tsx (NEW)
+          ~ alumni/Sidebar.tsx (rewrite)
+          ~ alumni/AlumniPortalRN.tsx (wallet swap)
+          ~ alumni/tokens.ts (contrast bump)
+          ~ student/motion.tsx (useReducedMotion + skeletons + auto-skip)
+          ~ student/views/InternshipsView.tsx (skeleton loader)
+          ~ profile/IntegrationsView.tsx (OAuth modal wiring)
+          + alumni: 13 files lucide → ./iconShims (via sed)
+
+

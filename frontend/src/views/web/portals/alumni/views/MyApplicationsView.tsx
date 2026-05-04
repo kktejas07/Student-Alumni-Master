@@ -3,7 +3,7 @@
  */
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Briefcase, CheckCircle, Clock } from 'lucide-react-native';
+import { Briefcase, CheckCircle, Clock } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { usePortalData } from '@/src/lib/portalApi';
 import { useCurrentUser } from '@/src/lib/useCurrentUser';

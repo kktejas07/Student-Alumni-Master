@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { QrCode, Award, MapPin, GraduationCap, Github, Linkedin, ExternalLink } from 'lucide-react-native';
+import { QrCode, Award, MapPin, GraduationCap, Github, Linkedin, ExternalLink } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
 import { STUDENT } from '../data';

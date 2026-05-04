@@ -15,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   Sparkles, Briefcase, BookOpen, Users, TrendingUp, Calendar, MapPin,
   Star, ArrowRight, Check, ExternalLink,
-} from 'lucide-react-native';
+} from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { Av, Badge, KpiCard } from '../atoms';
 import * as MOCK from '../data';

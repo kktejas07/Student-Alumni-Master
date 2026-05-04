@@ -3,7 +3,7 @@
  */
 import React from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-native';
-import { Bell, Search } from 'lucide-react-native';
+import { Bell, Search } from './iconShims';
 import { SC, FONTS } from './tokens';
 import { STUDENT } from './data';
 import { Av } from './atoms';

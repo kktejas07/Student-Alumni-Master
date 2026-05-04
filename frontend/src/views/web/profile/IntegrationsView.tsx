@@ -28,6 +28,7 @@ import {
 } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
+import OAuthModal from './OAuthModal';
 
 type ProviderId =
   | 'openai_chatgpt' | 'anthropic_claude' | 'google_gemini'
@@ -81,6 +82,9 @@ export function IntegrationsView() {
   const [draftEmail, setDraftEmail] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<Record<string, boolean>>({});
 
+  // OAuth modal state
+  const [oauthProvider, setOauthProvider] = useState<ProviderMeta | null>(null);
+
   const reload = async () => {
     setLoading(true);
     try {
@@ -92,19 +96,24 @@ export function IntegrationsView() {
   };
   useEffect(() => { reload(); }, []);
 
-  const onConnect = async (p: ProviderMeta) => {
-    const email = (draftEmail[p.id] || '').trim();
-    if (!email || email.indexOf('@') === -1) { toast.error('Enter your email', 'A valid email is required to connect.'); return; }
-    setBusy((b) => ({ ...b, [p.id]: true }));
+  const onConnectClick = (p: ProviderMeta) => {
+    // Open the OAuth-style authorization popup. The actual POST
+    // happens inside the modal's onAuthorize callback once the user
+    // approves and confirms their email.
+    setOauthProvider(p);
+  };
+
+  const onAuthorize = async (email: string) => {
+    if (!oauthProvider) return;
+    const p = oauthProvider;
     try {
       await request('/users/me/integrations', { method: 'POST', body: { provider: p.id, email } } as any);
       toast.success('Connected', `${p.label} linked to ${email}.`);
-      setDraftEmail((d) => ({ ...d, [p.id]: '' }));
+      setOauthProvider(null);
       await reload();
     } catch (e: any) {
       toast.error('Connect failed', e?.message || 'Please try again.');
-    } finally {
-      setBusy((b) => ({ ...b, [p.id]: false }));
+      throw e;
     }
   };
 
@@ -184,27 +193,18 @@ export function IntegrationsView() {
             </Pressable>
           </View>
         ) : (
-          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-            <TextInput
-              placeholder="your@email.com"
-              placeholderTextColor="rgba(255,255,255,0.32)"
-              value={draftEmail[p.id] || ''}
-              onChangeText={(v) => setDraftEmail((d) => ({ ...d, [p.id]: v }))}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              style={st.input}
-              testID={`integ-email-${p.id}`}
-            />
-            <Pressable
-              onPress={() => onConnect(p)}
-              style={st.btnConnect}
-              disabled={!!busy[p.id]}
-              testID={`integ-connect-${p.id}`}
-            >
-              <Send size={12} color="#0F2922" />
-              <Text style={st.btnConnectText}>{busy[p.id] ? '…' : 'Connect'}</Text>
-            </Pressable>
-          </View>
+          <Pressable
+            onPress={() => onConnectClick(p)}
+            style={[st.btnConnect, { paddingHorizontal: 14 }]}
+            disabled={!!busy[p.id]}
+            testID={`integ-connect-${p.id}`}
+            accessibilityRole="button"
+            accessibilityLabel={`Connect ${p.label}`}
+            accessibilityHint={`Opens an authorization popup to link your ${p.label} account`}
+          >
+            <Send size={12} color="#0F2922" />
+            <Text style={st.btnConnectText}>Connect with {p.label}</Text>
+          </Pressable>
         )}
       </View>
     );
@@ -267,6 +267,14 @@ export function IntegrationsView() {
           })}
         </ScrollView>
       </View>
+
+      {/* OAuth authorization popup */}
+      <OAuthModal
+        visible={!!oauthProvider}
+        provider={oauthProvider}
+        onClose={() => setOauthProvider(null)}
+        onAuthorize={onAuthorize}
+      />
     </View>
   );
 }

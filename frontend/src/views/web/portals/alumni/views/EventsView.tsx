@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
-import { Calendar as CalIcon, MapPin, Users as UsersIcon, Check } from 'lucide-react-native';
+import { Calendar as CalIcon, MapPin, Users as UsersIcon, Check } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
 import { usePortalData, postPortal } from '@/src/lib/portalApi';
