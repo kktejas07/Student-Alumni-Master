@@ -8948,3 +8948,31 @@ agent_communication:
 
         Marked task working: true with stuck_count retained at 1
         (historical) and needs_retesting: false.
+
+
+agent_communication:
+    - agent: "main"
+      message: |
+        Embedded the modern SA Wallet (`/app/frontend/app/wallet.tsx`) into
+        the Student Portal Dashboard as an inline view, replacing the legacy
+        WalletView placeholder. Followed the same `EmbeddedShellContext`
+        pattern used by Courses/Deals — sidebar click sets `active=wallet`
+        and the WalletPage renders inside the dashboard shell with no
+        full-page navigation.
+
+        File changed:
+          - /app/frontend/src/views/web/portals/student/StudentPortalRN.tsx
+            - removed legacy `WalletView` import
+            - imported `WalletPage from '@/app/wallet'`
+            - swapped render: `{active === 'wallet' && <WalletPage />}`
+
+        Visual verification (screenshot tool, 1920x900):
+          - Sidebar "SA Wallet" highlighted active
+          - Hero pill "Wallet · Earn credits …" + Gold tier badge
+          - Balance card 12,330 credits (~₹493) with Verified pill,
+            progress to Platinum, Streak/Lifetime/Spent stats
+          - Tabs: Overview · Add Money · Withdraw · Credits · History
+          - Earnings by category section rendering correctly inline
+
+        No regressions detected. No backend changes required.
+

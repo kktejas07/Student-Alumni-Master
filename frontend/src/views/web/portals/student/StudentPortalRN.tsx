@@ -20,7 +20,6 @@ import { EventsView } from './views/EventsView';
 import { InternshipsView } from './views/InternshipsView';
 import { NetworkView } from './views/NetworkView';
 import { ProfileSettingsView } from './views/ProfileSettingsView';
-import { WalletView } from './views/WalletView';
 import { MyBookingsView } from './views/MyBookingsView';
 import { MyApplicationsView } from './views/MyApplicationsView';
 import { MyWorkshopsView } from './views/MyWorkshopsView';
@@ -33,6 +32,7 @@ import RentalsPage from '@/app/rentals';
 import FinancialPage from '@/app/financial';
 import HigherEducationPage from '@/app/higher-education';
 import DealsPage from '@/app/deals';
+import WalletPage from '@/app/wallet';
 
 export function StudentPortalRN() {
   const router = useRouter();
@@ -69,7 +69,7 @@ export function StudentPortalRN() {
             {active === 'courses'         && <CoursesPage />}
             {active === 'financial'       && <FinancialPage />}
             {active === 'deals'           && <DealsPage />}
-            {active === 'wallet'          && <WalletView />}
+            {active === 'wallet'          && <WalletPage />}
             {active === 'higher-ed'       && <HigherEducationPage />}
             {active === 'rentals'         && <RentalsPage />}
             {active === 'profile'         && <ProfileSettingsView />}
