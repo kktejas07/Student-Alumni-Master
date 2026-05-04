@@ -32,7 +32,7 @@ import {
   CheckCircle2, GraduationCap, Award, ExternalLink, Sparkles,
   Briefcase, UsersRound, Eye, CalendarCheck, FileSearch,
   Star, IndianRupee, Building2, Plug,
-} from 'lucide-react-native';
+} from '../iconShims';
 import { request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { ProfileInfoPage } from '@/src/views/web/profile/ProfileInfoPage';

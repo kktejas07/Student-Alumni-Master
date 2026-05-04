@@ -3,7 +3,7 @@
  */
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, Platform, Linking } from 'react-native';
-import { GraduationCap, CheckCircle, Award, ExternalLink } from 'lucide-react-native';
+import { GraduationCap, CheckCircle, Award, ExternalLink } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { usePortalData } from '@/src/lib/portalApi';
 import { useCurrentUser } from '@/src/lib/useCurrentUser';

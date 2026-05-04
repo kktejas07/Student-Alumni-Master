@@ -1,7 +1,17 @@
+/**
+ * ⚠️  LEGACY — kept as backup only.
+ *
+ * The active SA Wallet experience is rendered by `app/wallet.tsx`
+ * (mounted inline inside StudentPortalRN.tsx via EmbeddedShellContext).
+ * This file is preserved per user request as a backup of the previous
+ * minimal wallet panel and is no longer routed.
+ *
+ * Do NOT add new features here — modify app/wallet.tsx instead.
+ */
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, Modal, TextInput, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Wallet as WalletIcon, ArrowDown, ArrowUp, Gift, Plus, X } from 'lucide-react-native';
+import { Wallet as WalletIcon, ArrowDown, ArrowUp, Gift, Plus, X } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
 import { usePortalData, postPortal, fetchPortal } from '@/src/lib/portalApi';

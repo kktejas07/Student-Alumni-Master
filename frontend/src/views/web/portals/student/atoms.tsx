@@ -3,7 +3,7 @@
  */
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { LucideIcon } from 'lucide-react-native';
+import { LucideIcon } from './iconShims';
 import { SC, FONTS } from './tokens';
 
 export function Av({ initials, size = 40, color }: { initials: string; size?: number; color?: string }) {

@@ -4,7 +4,7 @@
  */
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
-import { Calendar, Clock, X, User } from 'lucide-react-native';
+import { Calendar, Clock, X, User } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { usePortalData } from '@/src/lib/portalApi';
 import { useCurrentUser } from '@/src/lib/useCurrentUser';

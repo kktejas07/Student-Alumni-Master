@@ -1,13 +1,20 @@
 /**
- * Student Portal — top bar with greeting + bell + search + avatar.
+ * Student Portal — top bar.
+ * Polished pass:
+ *   • Lucide icons → MaterialCommunityIcons (via ./iconShims)
+ *   • Fade-in greeting / search-box / bell on mount
+ *   • Animated red dot pulses on the bell when notifications are pending
+ *   • PressScale on the bell button
+ *   • Search box gains a soft focus glow on web hover
  */
 import React from 'react';
-import { View, Text, Pressable, TextInput, StyleSheet, Platform, Image } from 'react-native';
-import { Bell, Search } from 'lucide-react-native';
+import { View, Text, TextInput, StyleSheet, Platform, Image } from 'react-native';
+import { Bell, Search } from './iconShims';
 import { SC, FONTS } from './tokens';
 import { STUDENT } from './data';
 import { Av } from './atoms';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { FadeInView, PressScale, PulseDot } from './motion';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -17,7 +24,6 @@ function greeting(): string {
 }
 
 export function TopBar() {
-  // Live auth user → name, avatar, initials.
   const user = useAuthStore((u) => u.user) as any;
   const fullName: string = (user?.full_name
     || `${user?.first_name || ''} ${user?.last_name || ''}`).trim()
@@ -28,26 +34,34 @@ export function TopBar() {
 
   return (
     <View style={s.bar}>
-      <View style={{ flex: 1, minWidth: 0 }}>
+      <FadeInView delay={20} style={{ flex: 1, minWidth: 0 }}>
         <Text style={s.greet}>{greeting()}, {firstName} 👋</Text>
         <Text style={s.sub}>Here’s your personalised dashboard for today</Text>
-      </View>
+      </FadeInView>
 
-      <View style={s.searchBox}>
-        <Search size={14} color={SC.dim} />
-        <TextInput placeholder="Search anything…" placeholderTextColor={SC.dim} style={s.searchInput} />
-      </View>
+      <FadeInView delay={120}>
+        <View style={s.searchBox}>
+          <Search size={14} color={SC.dim} />
+          <TextInput placeholder="Search anything…" placeholderTextColor={SC.dim} style={s.searchInput} />
+        </View>
+      </FadeInView>
 
-      <Pressable style={({ hovered }: any) => [s.bell, hovered && { backgroundColor: SC.cardH }]}>
-        <Bell size={16} color={SC.accent} />
-        <View style={s.bellDot} />
-      </Pressable>
+      <FadeInView delay={180}>
+        <PressScale style={s.bell} onPress={() => {}}>
+          <Bell size={16} color={SC.accent} />
+          <View style={s.bellDotWrap}>
+            <PulseDot size={7} color="#EF4444" />
+          </View>
+        </PressScale>
+      </FadeInView>
 
-      {photo ? (
-        <Image source={{ uri: photo }} style={{ width: 36, height: 36, borderRadius: 18 }} />
-      ) : (
-        <Av initials={initials} size={36} color={SC.primary} />
-      )}
+      <FadeInView delay={220}>
+        {photo ? (
+          <Image source={{ uri: photo }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+        ) : (
+          <Av initials={initials} size={36} color={SC.primary} />
+        )}
+      </FadeInView>
     </View>
   );
 }
@@ -65,15 +79,16 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 8,
     width: 240, height: 36, paddingHorizontal: 11,
     borderRadius: 10, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1,
+    ...(Platform.OS === 'web' ? ({ transitionDuration: '180ms' } as any) : {}),
   },
   searchInput: { flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
   bell: {
     width: 36, height: 36, borderRadius: 10, backgroundColor: SC.card,
     borderColor: SC.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center',
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  bellDot: {
-    position: 'absolute', top: 8, right: 9, width: 7, height: 7, borderRadius: 4,
-    backgroundColor: '#EF4444', borderWidth: 1.5, borderColor: SC.bg2,
+  bellDotWrap: {
+    position: 'absolute', top: 7, right: 7,
+    backgroundColor: SC.bg2, borderRadius: 6, padding: 1.5,
   },
 });

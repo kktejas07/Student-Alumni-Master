@@ -15,8 +15,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   Sparkles, Briefcase, BookOpen, Users, TrendingUp, Calendar, MapPin,
   Star, ArrowRight, Check, ExternalLink,
-} from 'lucide-react-native';
+} from '../iconShims';
 import { SC, FONTS } from '../tokens';
+import { GRADS } from '../gradients';
+import { FadeInView, Stagger, PressScale, SparkIcon, ShimmerGradient, AnimatedRingFill } from '../motion';
 import { Av, Badge, KpiCard } from '../atoms';
 import * as MOCK from '../data';
 import { usePortalData } from '@/src/lib/portalApi';
@@ -64,9 +66,13 @@ export function DashboardView() {
 
   return (
     <View style={{ gap: 16 }}>
-      {/* AI Daily Brief banner */}
+      {/* AI Daily Brief banner — shimmer aura behind hero icon */}
+      <FadeInView delay={20}>
       <View style={s.briefRow}>
-        <View style={s.briefIcon}><Sparkles size={18} color={SC.accentBright} /></View>
+        <View style={s.briefIcon}>
+          <ShimmerGradient colors={GRADS.brandGlow} duration={4200} />
+          <SparkIcon Icon={Sparkles} size={18} color={SC.accentBright} />
+        </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.briefTitle}>AI Daily Brief</Text>
           <Text style={s.briefSub}>{briefText || 'Your personalised morning summary'}</Text>
@@ -82,8 +88,8 @@ export function DashboardView() {
             </View>
           )}
         </View>
-        <Pressable
-          style={({ hovered }: any) => [s.briefCta, hovered && { backgroundColor: SC.primaryL }, briefLoading && { opacity: 0.6 }]}
+        <PressScale
+          style={[s.briefCta, briefLoading && { opacity: 0.6 }]}
           disabled={briefLoading}
           onPress={async () => {
             try {
@@ -107,8 +113,9 @@ export function DashboardView() {
         >
           <Sparkles size={13} color="#fff" />
           <Text style={s.briefCtaText}>{briefLoading ? 'Generating…' : 'Generate Brief'}</Text>
-        </Pressable>
+        </PressScale>
       </View>
+      </FadeInView>
 
       {/* LIVE-COUNTERS strip — refreshes every 15s to demo auto-refresh */}
       <LiveStrip accent="#22C55E" keys={['users', 'bookings', 'applications', 'workshops']} />
@@ -161,11 +168,7 @@ export function DashboardView() {
             <Text style={s.progPct}>{STUDENT.career.progressPct}%</Text>
           </View>
           <View style={s.progTrack}>
-            <LinearGradient
-              colors={['#7B3DBF', '#A78BFA'] as any}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              style={[s.progFill, { width: `${STUDENT.career.progressPct}%` as any }]}
-            />
+            <AnimatedRingFill progress={STUDENT.career.progressPct} height={6} fillColors={GRADS.brandSoft} />
           </View>
         </View>
 
@@ -185,13 +188,15 @@ export function DashboardView() {
         </View>
       </View>
 
-      {/* 4 KPI tiles */}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-        {KPIS.map((k) => {
-          const Icon = KPI_ICONS[k.id as keyof typeof KPI_ICONS];
-          return <KpiCard key={k.id} Icon={Icon} label={k.label} value={k.value} delta={k.delta} color={k.color} />;
-        })}
-      </View>
+      {/* 4 KPI tiles — staggered fade-in for visual rhythm */}
+      <Stagger gap={70} baseDelay={120}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+          {KPIS.map((k) => {
+            const Icon = KPI_ICONS[k.id as keyof typeof KPI_ICONS];
+            return <KpiCard key={k.id} Icon={Icon} label={k.label} value={k.value} delta={k.delta} color={k.color} />;
+          })}
+        </View>
+      </Stagger>
 
       {/* Trending Companies — live from /api/jobs/trending-companies */}
       <TrendingCompaniesWidget />

@@ -24,7 +24,7 @@ import {
 import {
   Search, MapPin, Bookmark, BookmarkCheck, ExternalLink, RefreshCcw,
   Lock, Sparkles, Briefcase, Globe2,
-} from 'lucide-react-native';
+} from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';

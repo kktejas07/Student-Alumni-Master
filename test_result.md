@@ -8976,3 +8976,56 @@ agent_communication:
 
         No regressions detected. No backend changes required.
 
+
+agent_communication:
+    - agent: "main"
+      message: |
+        Lucide → MaterialCommunityIcons sweep across STUDENT PORTAL +
+        Heavy animation pass + unified gradient theme.
+
+        Foundation files added:
+          - src/views/web/portals/student/iconShims.tsx
+            (50+ lucide-named exports → MCI glyphs; drop-in shim so all
+             existing call sites compile unchanged)
+          - src/views/web/portals/student/gradients.ts
+            (brand / tier / success / danger / info / premium presets;
+             tierGrad() helper)
+          - src/views/web/portals/student/motion.tsx
+            (Reanimated+Moti primitives: FadeInView, Stagger, PressScale,
+             AnimatedCounter, ShimmerGradient, PulseDot, SparkIcon,
+             ParallaxCard, AnimatedRingFill, AnimatedLG)
+
+        Files migrated (lucide → ./iconShims):
+          atoms.tsx, Sidebar.tsx, TopBar.tsx,
+          views/{CareerAIView, DashboardView, EventsView, InternshipsView,
+                 MyApplicationsView, MyBookingsView, MyWorkshopsView,
+                 NetworkView, ProfileSettingsView, ProfileView,
+                 StubView, TrendingCompaniesWidget, WalletView}.tsx
+          (14 files; zero broken named imports)
+
+        Animation upgrades injected:
+          - Sidebar: brand fade-in, profile fade-in, ID-card pill scale,
+            nav items stagger-fade with PressScale, active item is now a
+            LinearGradient pill with white indicator dot + soft purple
+            shadow. Career AI nav uses SparkIcon (gentle wobble+scale).
+          - TopBar: greeting/search/bell fade-in cascade, PulseDot on
+            notification badge, PressScale on bell.
+          - Dashboard: AI Daily Brief icon now wrapped in ShimmerGradient
+            aura + SparkIcon. KPI tiles stagger-fade. Roadmap progress
+            bar now AnimatedRingFill (animated brandSoft gradient).
+            Generate-brief CTA is PressScale.
+
+        Legacy WalletView.tsx — kept as backup per user request, marked
+        with header banner directing future work to app/wallet.tsx.
+
+        Verified visually via screenshot:
+          - Dashboard, Internships & Jobs, SA Wallet all render correctly
+          - HTTP 200 / no bundling errors
+          - Sidebar gradient active state visible across all nav items
+
+        ESLint reported "Unexpected token" parsing errors on every TS
+        file — that's a project-level eslint config issue (no @typescript-eslint
+        parser); metro bundler compiles TS successfully and the app runs
+        fine. Not a regression from this change.
+
+
