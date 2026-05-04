@@ -9,10 +9,9 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
 import FeaturePageShell from '@/src/views/web/FeaturePageShell';
 import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
-import { AnimatedCard, FAB, RippleButton } from '@/src/views/web/md3';
+import { AnimatedCard, FAB } from '@/src/views/web/md3';
 import { request } from '@/src/models/services/api';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -67,7 +66,6 @@ const fmtCount = (n: number) => {
 };
 
 export default function CoursesPage() {
-  const router = useRouter();
   const [sections, setSections] = useState<Section[]>([]);
   const [hero, setHero] = useState<Hero[]>([]);
   const [stats, setStats] = useState({ total_courses: 0, free_courses: 0,
@@ -76,12 +74,9 @@ export default function CoursesPage() {
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState('');
-  const [filterSubcat, setFilterSubcat] = useState<{ category: string;
-                                                      subcategory: string;
-                                                      label: string } | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string>('all');     // 'all' | section.id
+  const [activeSubcat, setActiveSubcat] = useState<string | null>(null);   // subcategory key
   const [pricingFilter, setPricingFilter] = useState<'all' | 'free' | 'paid'>('all');
-  const [results, setResults] = useState<Course[]>([]);
-  const [resultsLoading, setResultsLoading] = useState(false);
   const [enrollFor, setEnrollFor] = useState<Course | null>(null);
   const [featured, setFeatured] = useState<Course[]>([]);
   const [trendingFree, setTrendingFree] = useState<Course[]>([]);
@@ -121,34 +116,57 @@ export default function CoursesPage() {
 
   useEffect(() => { loadCatalog(); }, [loadCatalog]);
 
-  const fetchResults = useCallback(async () => {
-    const hasFilter = !!filterSubcat || !!search.trim() || pricingFilter !== 'all';
-    if (!hasFilter) { setResults([]); return; }
-    setResultsLoading(true);
-    try {
-      const qp = new URLSearchParams();
-      if (filterSubcat) {
-        qp.set('category', filterSubcat.category);
-        qp.set('subcategory', filterSubcat.subcategory);
-      }
-      if (search.trim()) qp.set('q', search.trim());
-      if (pricingFilter !== 'all') qp.set('pricing', pricingFilter);
-      qp.set('sort', 'free_first');
-      const r = await request<any>(`/courses/list?${qp.toString()}`);
-      setResults(r.courses || []);
-    } catch (e: any) {
-      console.warn('courses list err', e?.message);
-    } finally {
-      setResultsLoading(false);
+  /* ─── In-place filter (no API call, no view swap) ──────────── */
+  const filterCourse = useCallback((c: Course) => {
+    if (activeCategory !== 'all' && c.category !== activeCategory) return false;
+    if (activeSubcat && c.subcategory !== activeSubcat) return false;
+    if (pricingFilter === 'free' &&
+        !['free', 'free_audit', 'free_with_sa'].includes(c.pricing.type)) return false;
+    if (pricingFilter === 'paid' &&
+        ['free', 'free_audit', 'free_with_sa'].includes(c.pricing.type)) return false;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      const blob = `${c.title} ${c.short_desc} ${c.provider.name} ${c.instructors.join(' ')} ${(c.tags || []).join(' ')}`.toLowerCase();
+      if (!blob.includes(q)) return false;
     }
-  }, [filterSubcat, search, pricingFilter]);
+    return true;
+  }, [activeCategory, activeSubcat, pricingFilter, search]);
 
-  useEffect(() => {
-    const t = setTimeout(fetchResults, 250);
-    return () => clearTimeout(t);
-  }, [fetchResults]);
+  const filteredCourses = useMemo(
+    () => allCourses.filter(filterCourse),
+    [allCourses, filterCourse]
+  );
 
-  const showResults = !!filterSubcat || !!search.trim() || pricingFilter !== 'all';
+  // Filtered carousels (re-derive when filters change)
+  const fFeatured = useMemo(
+    () => featured.filter(filterCourse),
+    [featured, filterCourse]
+  );
+  const fTrendingFree = useMemo(
+    () => trendingFree.filter(filterCourse),
+    [trendingFree, filterCourse]
+  );
+  const fTopUni = useMemo(
+    () => topUni.filter(filterCourse),
+    [topUni, filterCourse]
+  );
+
+  // Whether any filter is active
+  const filtersActive = activeCategory !== 'all' || activeSubcat ||
+                        pricingFilter !== 'all' || !!search.trim();
+
+  const clearAllFilters = () => {
+    setActiveCategory('all');
+    setActiveSubcat(null);
+    setPricingFilter('all');
+    setSearch('');
+  };
+
+  // The visible sections (parent categories) based on active category
+  const visibleSections = useMemo(() => {
+    if (activeCategory === 'all') return sections;
+    return sections.filter((s) => s.id === activeCategory);
+  }, [sections, activeCategory]);
 
   return (
     <FeaturePageShell
@@ -193,13 +211,16 @@ export default function CoursesPage() {
         {hero.map((h, i) => (
           <Pressable key={h.id}
             onPress={() => {
-              if (h.id === 'ai-career-track') {
-                router.push('/tracks/ai-career-track' as any);
-              } else if (h.id === 'free-this-month') {
+              // No navigation — keep within embedded shell
+              if (h.id === 'free-this-month') {
                 setPricingFilter('free');
-                setFilterSubcat(null);
-              } else if (h.cta_href.startsWith('/')) {
-                router.push(h.cta_href as any);
+                setActiveCategory('all');
+                setActiveSubcat(null);
+              } else if (h.id === 'ai-career-track') {
+                // Filter to AI/ML subcategory inline
+                setActiveCategory('tech');
+                setActiveSubcat('ai-ml');
+                setPricingFilter('all');
               }
             }}
             style={[s.heroCard, i === 0 ? { flex: 2 } : { flex: 1 }]}>
@@ -230,51 +251,145 @@ export default function CoursesPage() {
         </View>
       ) : null}
 
-      {/* Filter results (when active) */}
-      {showResults && (
-        <ResultsBlock
-          subcatLabel={filterSubcat?.label}
-          searchQuery={search}
-          pricing={pricingFilter}
-          onClear={() => {
-            setFilterSubcat(null);
-            setSearch('');
-            setPricingFilter('all');
-          }}
-          onPricingChange={setPricingFilter}
-          loading={resultsLoading}
-          courses={results}
-          onEnroll={setEnrollFor}
-        />
+      {/* Primary Category tab strip (deals-style — in-place filter, no navigation) */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 8, paddingRight: 12 }}>
+        {[{ id: 'all', label: 'All', icon: 'view-grid' as IconName, color: '#A78BFA' },
+          ...sections.map((sec) => ({
+            id: sec.id, label: sec.name, icon: 'school' as IconName,
+            color: sec.id === 'tech' ? '#06B6D4' :
+                   sec.id === 'design' ? '#EC4899' :
+                   sec.id === 'business' ? '#F59E0B' : '#A78BFA',
+          }))].map((cat) => {
+          const active = activeCategory === cat.id;
+          return (
+            <Pressable key={cat.id}
+              onPress={() => {
+                setActiveCategory(cat.id);
+                setActiveSubcat(null);
+              }}
+              style={[s.tab,
+                active && { backgroundColor: cat.color + '22', borderColor: cat.color + '66' }]}>
+              <MaterialCommunityIcons name={cat.icon} size={14}
+                color={active ? cat.color : 'rgba(255,255,255,0.65)'} />
+              <Text style={[s.tabText, active && { color: cat.color }]}>
+                {cat.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      {/* Sub-category strip (within active category — only when a category is selected) */}
+      {activeCategory !== 'all' && (() => {
+        const sec = sections.find((x) => x.id === activeCategory);
+        if (!sec) return null;
+        const accent = activeCategory === 'tech' ? '#06B6D4' :
+                       activeCategory === 'design' ? '#EC4899' :
+                       activeCategory === 'business' ? '#F59E0B' : '#A78BFA';
+        return (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8, paddingRight: 12 }}>
+            <Pressable
+              onPress={() => setActiveSubcat(null)}
+              style={[s.tab, !activeSubcat &&
+                { backgroundColor: accent + '22', borderColor: accent + '66' }]}>
+              <MaterialCommunityIcons name="filter-variant" size={13}
+                color={!activeSubcat ? accent : 'rgba(255,255,255,0.65)'} />
+              <Text style={[s.tabText, !activeSubcat && { color: accent }]}>
+                All {sec.name}
+              </Text>
+            </Pressable>
+            {sec.items.map((it) => {
+              const active = activeSubcat === it.key;
+              return (
+                <Pressable key={it.key}
+                  onPress={() => setActiveSubcat(active ? null : it.key)}
+                  style={[s.tab, active &&
+                    { backgroundColor: accent + '22', borderColor: accent + '66' }]}>
+                  <MaterialCommunityIcons name={it.icon} size={13}
+                    color={active ? accent : 'rgba(255,255,255,0.65)'} />
+                  <Text style={[s.tabText, active && { color: accent }]}>
+                    {it.label}
+                  </Text>
+                  {it.count > 0 && (
+                    <Text style={[s.tabCount,
+                      active && { color: accent }]}>
+                      {it.count}
+                    </Text>
+                  )}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        );
+      })()}
+
+      {/* Pricing filter pill row */}
+      <View style={s.pricingFilters}>
+        {(['all', 'free', 'paid'] as const).map((p) => {
+          const active = pricingFilter === p;
+          const lbl = p === 'all' ? 'All pricing' : p === 'free' ? 'Free / Free Cert' : 'Paid (with SA discount)';
+          return (
+            <Pressable key={p} onPress={() => setPricingFilter(p)}
+              style={[s.pricingChip,
+                active && { backgroundColor: '#7C3AED33', borderColor: '#A78BFA' }]}>
+              <Text style={[s.pricingChipText, active && { color: '#C4B5FD' }]}>
+                {lbl}
+              </Text>
+            </Pressable>
+          );
+        })}
+        {filtersActive && (
+          <Pressable onPress={clearAllFilters} style={s.clearBtn}>
+            <MaterialCommunityIcons name="close" size={12} color={C.text2} />
+            <Text style={s.clearBtnText}>Clear</Text>
+          </Pressable>
+        )}
+      </View>
+
+      {/* Filter status banner */}
+      {filtersActive && (
+        <View style={s.filterStatus}>
+          <MaterialCommunityIcons name="filter-check" size={13} color="#A78BFA" />
+          <Text style={s.filterStatusText}>
+            Showing {filteredCourses.length} {filteredCourses.length === 1 ? 'course' : 'courses'}
+            {activeCategory !== 'all' ? ` in ${sections.find(s=>s.id===activeCategory)?.name}` : ''}
+            {activeSubcat ? ` › ${sections.find(s=>s.id===activeCategory)?.items.find(i=>i.key===activeSubcat)?.label}` : ''}
+            {pricingFilter !== 'all' ? ` · ${pricingFilter}` : ''}
+            {search.trim() ? ` · "${search.trim()}"` : ''}
+          </Text>
+        </View>
       )}
 
-      {/* Carousels — Featured / Trending Free / Top Universities */}
-      {!showResults && featured.length > 0 && (
+      {/* Carousels — Featured / Trending Free / Top Universities (filtered in-place) */}
+      {fFeatured.length > 0 && (
         <Carousel title="✨ Featured this month" subtitle="Hand-picked by SA editors"
-                   accent="#A78BFA" courses={featured} onEnroll={setEnrollFor} />
+                   accent="#A78BFA" courses={fFeatured} onEnroll={setEnrollFor} />
       )}
-      {!showResults && trendingFree.length > 0 && (
+      {fTrendingFree.length > 0 && (
         <Carousel title="🔥 Trending Free Courses"
                    subtitle="Most-enrolled this week — totally free"
-                   accent="#10B981" courses={trendingFree} onEnroll={setEnrollFor} />
+                   accent="#10B981" courses={fTrendingFree} onEnroll={setEnrollFor} />
       )}
-      {!showResults && topUni.length > 0 && (
+      {fTopUni.length > 0 && (
         <Carousel title="🎓 Top Universities" subtitle="MIT · Stanford · Harvard · IITs · IIMs · Yale"
-                   accent="#F59E0B" courses={topUni} onEnroll={setEnrollFor} />
+                   accent="#F59E0B" courses={fTopUni} onEnroll={setEnrollFor} />
       )}
 
-      {/* Sections — sub-category course rows (hide when results visible) */}
-      {!showResults && sections.map((sec) => {
+      {/* Per-section, per-subcategory course rows */}
+      {visibleSections.map((sec) => {
         const sectionAccent =
           sec.id === 'tech' ? '#06B6D4' :
           sec.id === 'design' ? '#EC4899' :
           sec.id === 'business' ? '#F59E0B' : '#A78BFA';
-        // For each subcategory, find its courses
+        // Subcategory groups, filtered by active filters
         const subcatGroups = sec.items
+          .filter((it) => !activeSubcat || it.key === activeSubcat)
           .map((it) => ({
             sub: it,
             courses: allCourses.filter(
-              (c) => c.category === sec.id && c.subcategory === it.key
+              (c) => c.category === sec.id && c.subcategory === it.key && filterCourse(c)
             ),
           }))
           .filter((g) => g.courses.length > 0);
@@ -295,33 +410,6 @@ export default function CoursesPage() {
               </View>
             </View>
 
-            {/* Sub-category quick filter chips */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 8, paddingRight: 16 }}>
-              {sec.items.map((it) => (
-                <Pressable key={it.key}
-                  onPress={() => setFilterSubcat({
-                    category: sec.id, subcategory: it.key, label: it.label,
-                  })}
-                  style={[s.subcatChip,
-                    it.highlighted && { borderColor: sectionAccent,
-                      backgroundColor: sectionAccent + '14' }]}>
-                  <MaterialCommunityIcons name={it.icon} size={13}
-                    color={it.highlighted ? sectionAccent : C.text2} />
-                  <Text style={[s.subcatChipText,
-                    it.highlighted && { color: sectionAccent }]}>
-                    {it.label}
-                  </Text>
-                  {it.count > 0 && (
-                    <View style={s.subcatChipCount}>
-                      <Text style={s.subcatChipCountText}>{it.count}</Text>
-                    </View>
-                  )}
-                </Pressable>
-              ))}
-            </ScrollView>
-
-            {/* Per-subcategory course rows */}
             {subcatGroups.map(({ sub, courses }) => (
               <View key={sub.key} style={s.subcatBlock}>
                 <View style={s.subcatHeader}>
@@ -336,17 +424,20 @@ export default function CoursesPage() {
                     {courses.length} {courses.length === 1 ? 'course' : 'courses'}
                   </Text>
                   <View style={{ flex: 1 }} />
-                  <Pressable
-                    onPress={() => setFilterSubcat({
-                      category: sec.id, subcategory: sub.key, label: sub.label,
-                    })}
-                    style={s.viewAllBtn}>
-                    <Text style={[s.viewAllText, { color: sectionAccent }]}>
-                      View all
-                    </Text>
-                    <MaterialCommunityIcons name="arrow-right" size={11}
-                      color={sectionAccent} />
-                  </Pressable>
+                  {!activeSubcat && (
+                    <Pressable
+                      onPress={() => {
+                        setActiveCategory(sec.id);
+                        setActiveSubcat(sub.key);
+                      }}
+                      style={s.viewAllBtn}>
+                      <Text style={[s.viewAllText, { color: sectionAccent }]}>
+                        Filter
+                      </Text>
+                      <MaterialCommunityIcons name="filter-variant" size={11}
+                        color={sectionAccent} />
+                    </Pressable>
+                  )}
                 </View>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}
                   contentContainerStyle={{ gap: 12, paddingRight: 16 }}>
@@ -361,14 +452,25 @@ export default function CoursesPage() {
         );
       })}
 
-      {/* Career tracks strip */}
-      {!showResults && tracksMeta.length > 0 && (
+      {/* Empty state when filters yield no results */}
+      {filtersActive && filteredCourses.length === 0 && (
+        <View style={s.emptyBox}>
+          <MaterialCommunityIcons name="book-search" size={40} color={C.text3} />
+          <Text style={s.emptyTitle}>No courses match these filters</Text>
+          <Text style={s.emptySub}>Try clearing or switching pricing tier</Text>
+          <Pressable onPress={clearAllFilters} style={s.clearBtnLarge}>
+            <Text style={s.clearBtnLargeText}>Reset filters</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {/* Career tracks strip — visual only, opens advisor instead of navigating */}
+      {!filtersActive && tracksMeta.length > 0 && (
         <View style={s.tracksStrip}>
           <Text style={s.kicker}>CAREER TRACKS</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
             {tracksMeta.map((t: any) => (
-              <Pressable key={t.slug}
-                onPress={() => router.push(`/tracks/${t.slug}` as any)}
+              <View key={t.slug}
                 style={[s.trackChip, { borderColor: t.color + '66',
                                         backgroundColor: t.color + '14' }]}>
                 <MaterialCommunityIcons name="rocket-launch" size={14} color={t.color} />
@@ -378,7 +480,7 @@ export default function CoursesPage() {
                     {t.duration_weeks}w · {t.enrolled_count} learners
                   </Text>
                 </View>
-              </Pressable>
+              </View>
             ))}
           </View>
         </View>
@@ -934,6 +1036,32 @@ const s = StyleSheet.create({
   sectionCountPill: { paddingHorizontal: 10, paddingVertical: 4,
     borderRadius: 999, borderWidth: 1, marginLeft: 'auto' },
   sectionCountText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
+
+  /* Deals-style tab strip */
+  tab: { flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: C.border, borderWidth: 1,
+    ...({ cursor: 'pointer' } as any) },
+  tabText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
+  tabCount: { color: 'rgba(255,255,255,0.50)',
+    fontFamily: 'DMSans_800ExtraBold', fontSize: 10.5,
+    paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.30)' },
+
+  /* Filter status banner */
+  filterStatus: { flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12,
+    backgroundColor: 'rgba(167,139,250,0.08)',
+    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1 },
+  filterStatusText: { color: '#C4B5FD', fontFamily: 'DMSans_600SemiBold',
+    fontSize: 12, flex: 1 },
+
+  /* Large reset button (empty state) */
+  clearBtnLarge: { marginTop: 14, paddingHorizontal: 18, paddingVertical: 10,
+    borderRadius: 999, backgroundColor: '#7C3AED',
+    ...({ cursor: 'pointer' } as any) },
+  clearBtnLargeText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12.5 },
 
   /* Sub-category quick-filter chips strip */
   subcatChip: { flexDirection: 'row', alignItems: 'center', gap: 6,

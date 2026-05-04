@@ -1308,16 +1308,30 @@ frontend:
           comment: |
             ✅ P5.21 Logged out + logged in as student01@test.com / TestPass@123. Home tab shows greeting "Hi, Aarav", For You / Career / Events filter chips, "Recommended for you" hero, "Closing soon" deadline strip — original student dashboard, MentorHome NOT shown.
 
-## 2026-05-04 — SA Courses page redesign — direct course cards by sub-category
+## 2026-05-04 (rev2) — SA Courses page: Deals-style in-place filter UX
 - File: /app/frontend/app/courses.tsx
-- Change: Replaced the round icon-tile grids inside Tech & Engineering, Design & Creative,
-  and Business & Career sections with direct course-card horizontal carousels per
-  sub-category. Each section now shows a sub-category quick-filter chip strip + per-subcat
-  rows containing actual MiniCourseCards (provider, title, rating, price, FREE/SA badges),
-  matching the "drill-down view" that was previously hidden behind clicks.
-- Verified visually via screenshot tool (logged in as realtime@studentalumni.in):
-  Communication, Leadership, Graphic Design, Video Editing, Photography subcategory rows
-  all render proper course cards directly on /courses landing.
+- Problem: Earlier rev introduced "ResultsBlock" mode that *swapped* the entire view
+  when a sub-category was clicked. Felt like navigation. Career-track chips and
+  "AI Career Track" hero CTA also pushed to /tracks/[slug] (real route navigation).
+  User wanted everything to stay inside the embedded student-portal shell exactly
+  like the Deals page.
+- Fix:
+  1. Removed router.push calls — career-track chips are now visual, hero CTAs filter
+     in-place (Free this month → pricingFilter='free'; AI Career Track → activeCategory='tech',
+     activeSubcat='ai-ml').
+  2. Replaced the "showResults / ResultsBlock swap" model with single layout +
+     in-place filtering (deals.tsx pattern):
+       • Primary chip strip: All / Tech & Engineering / Design & Creative / Business & Career
+       • Secondary chip strip (only when category active): All <category> + every sub-category
+         with count badge
+       • Pricing pill row: All pricing / Free or Free Cert / Paid (with SA discount) + × Clear
+       • Filter status banner showing active filters
+       • Same Featured / Trending Free / Top Universities carousels — filtered live
+       • Per-section sub-category rows — filtered live
+  3. Removed unused useRouter import and RippleButton import.
+- Verified visually: URL stays at /courses while Tech & Engineering → AI/ML →
+  Free filters are applied; sidebar (Student Alumni Web Dashboard) remains intact;
+  filter status banner reads "Showing 5 courses in Tech & Engineering › AI / ML · free".
 
 
 agent_communication:
