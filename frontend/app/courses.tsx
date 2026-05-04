@@ -58,6 +58,24 @@ const TAG_META: Record<string, { label: string; color: string }> = {
   HAS_MENTOR:         { label: 'HAS MENTOR',       color: '#22D3EE' },
 };
 
+const SORT_LABELS = {
+  popular:  'Most popular',
+  rating:   'Highest rated',
+  newest:   'Newest',
+  free:     'Free first',
+  shortest: 'Shortest first',
+} as const;
+
+const DURATION_LABELS = {
+  all:    'Any duration',
+  short:  '< 5h',
+  medium: '5–20h',
+  long:   '20–50h',
+  xl:     '50h+',
+} as const;
+
+const LEVEL_OPTIONS = ['all', 'Beginner', 'Intermediate', 'Advanced'];
+
 const fmtINR = (n?: number) => '₹' + (n || 0).toLocaleString('en-IN');
 const fmtCount = (n: number) => {
   if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
@@ -77,6 +95,18 @@ export default function CoursesPage() {
   const [activeCategory, setActiveCategory] = useState<string>('all');     // 'all' | section.id
   const [activeSubcat, setActiveSubcat] = useState<string | null>(null);   // subcategory key
   const [pricingFilter, setPricingFilter] = useState<'all' | 'free' | 'paid'>('all');
+  // Advanced filter state (P1(a))
+  const [levelFilter, setLevelFilter] = useState<string>('all');
+  const [durationFilter, setDurationFilter] = useState<string>('all');
+  const [languageFilter, setLanguageFilter] = useState<string>('all');
+  const [providerFilter, setProviderFilter] = useState<string>('all');
+  const [hasMentorFilter, setHasMentorFilter] = useState<boolean>(false);
+  const [hasCertFilter, setHasCertFilter] = useState<boolean>(false);
+  const [sortBy, setSortBy] = useState<'popular' | 'rating' | 'newest' | 'free' | 'shortest'>('popular');
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  // Search autocomplete (P1(b))
+  const [searchFocused, setSearchFocused] = useState(false);
   const [enrollFor, setEnrollFor] = useState<Course | null>(null);
   const [featured, setFeatured] = useState<Course[]>([]);
   const [trendingFree, setTrendingFree] = useState<Course[]>([]);
@@ -124,17 +154,45 @@ export default function CoursesPage() {
         !['free', 'free_audit', 'free_with_sa'].includes(c.pricing.type)) return false;
     if (pricingFilter === 'paid' &&
         ['free', 'free_audit', 'free_with_sa'].includes(c.pricing.type)) return false;
+    // Advanced filters
+    if (levelFilter !== 'all' && c.level !== levelFilter) return false;
+    if (durationFilter !== 'all') {
+      const h = c.duration_hours || 0;
+      if (durationFilter === 'short'  && h >= 5)            return false;
+      if (durationFilter === 'medium' && (h < 5 || h > 20)) return false;
+      if (durationFilter === 'long'   && (h < 20 || h > 50))return false;
+      if (durationFilter === 'xl'     && h < 50)            return false;
+    }
+    if (languageFilter !== 'all' && c.language !== languageFilter) return false;
+    if (providerFilter !== 'all' && c.provider.name !== providerFilter) return false;
+    if (hasMentorFilter && !(c.tags || []).includes('HAS_MENTOR')) return false;
+    if (hasCertFilter && !c.certification.available) return false;
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       const blob = `${c.title} ${c.short_desc} ${c.provider.name} ${c.instructors.join(' ')} ${(c.tags || []).join(' ')}`.toLowerCase();
       if (!blob.includes(q)) return false;
     }
     return true;
-  }, [activeCategory, activeSubcat, pricingFilter, search]);
+  }, [activeCategory, activeSubcat, pricingFilter, search,
+      levelFilter, durationFilter, languageFilter, providerFilter,
+      hasMentorFilter, hasCertFilter]);
+
+  // Sort comparator
+  const sortComparator = useCallback((a: Course, b: Course) => {
+    if (sortBy === 'rating')   return b.rating - a.rating;
+    if (sortBy === 'newest')   return (b as any).created_at?.localeCompare?.((a as any).created_at || '') || 0;
+    if (sortBy === 'free') {
+      const af = ['free','free_audit','free_with_sa'].includes(a.pricing.type) ? 0 : 1;
+      const bf = ['free','free_audit','free_with_sa'].includes(b.pricing.type) ? 0 : 1;
+      return af - bf;
+    }
+    if (sortBy === 'shortest') return (a.duration_hours || 0) - (b.duration_hours || 0);
+    return b.enrolled_count - a.enrolled_count;  // popular default
+  }, [sortBy]);
 
   const filteredCourses = useMemo(
-    () => allCourses.filter(filterCourse),
-    [allCourses, filterCourse]
+    () => allCourses.filter(filterCourse).sort(sortComparator),
+    [allCourses, filterCourse, sortComparator]
   );
 
   // Filtered carousels (re-derive when filters change)
@@ -153,14 +211,56 @@ export default function CoursesPage() {
 
   // Whether any filter is active
   const filtersActive = activeCategory !== 'all' || activeSubcat ||
-                        pricingFilter !== 'all' || !!search.trim();
+                        pricingFilter !== 'all' || !!search.trim() ||
+                        levelFilter !== 'all' || durationFilter !== 'all' ||
+                        languageFilter !== 'all' || providerFilter !== 'all' ||
+                        hasMentorFilter || hasCertFilter;
+
+  const advancedFilterCount =
+    (levelFilter !== 'all' ? 1 : 0) +
+    (durationFilter !== 'all' ? 1 : 0) +
+    (languageFilter !== 'all' ? 1 : 0) +
+    (providerFilter !== 'all' ? 1 : 0) +
+    (hasMentorFilter ? 1 : 0) +
+    (hasCertFilter ? 1 : 0);
 
   const clearAllFilters = () => {
     setActiveCategory('all');
     setActiveSubcat(null);
     setPricingFilter('all');
     setSearch('');
+    setLevelFilter('all');
+    setDurationFilter('all');
+    setLanguageFilter('all');
+    setProviderFilter('all');
+    setHasMentorFilter(false);
+    setHasCertFilter(false);
   };
+
+  // Derive unique option lists from allCourses
+  const languageOptions = useMemo(
+    () => ['all', ...Array.from(new Set(allCourses.map((c) => c.language))).sort()],
+    [allCourses]
+  );
+  const providerOptions = useMemo(
+    () => ['all', ...Array.from(new Set(allCourses.map((c) => c.provider.name))).sort()],
+    [allCourses]
+  );
+  // Search autocomplete options
+  const searchSuggestions = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q || q.length < 2) return null;
+    const courses = allCourses
+      .filter((c) => c.title.toLowerCase().includes(q) || c.short_desc.toLowerCase().includes(q))
+      .slice(0, 5);
+    const skills = Array.from(new Set(allCourses.flatMap((c) => c.tags || [])))
+      .filter((t) => t.toLowerCase().includes(q.replace(/\s/g, '_')))
+      .slice(0, 8);
+    const providers = Array.from(new Set(allCourses.map((c) => c.provider.name)))
+      .filter((p) => p.toLowerCase().includes(q))
+      .slice(0, 6);
+    return { courses, skills, providers };
+  }, [search, allCourses]);
 
   // The visible sections (parent categories) based on active category
   const visibleSections = useMemo(() => {
@@ -189,20 +289,88 @@ export default function CoursesPage() {
       }
     >
       {/* Search Bar */}
-      <View style={s.searchBox}>
-        <MaterialCommunityIcons name="magnify" size={18} color={C.text3} />
-        <TextInput
-          style={s.searchInput}
-          placeholder="Search courses, skills, instructors…"
-          placeholderTextColor={C.text3}
-          value={search}
-          onChangeText={setSearch}
-          returnKeyType="search"
-        />
-        {!!search && (
-          <Pressable onPress={() => setSearch('')}>
-            <MaterialCommunityIcons name="close-circle" size={16} color={C.text3} />
-          </Pressable>
+      <View>
+        <View style={s.searchBox}>
+          <MaterialCommunityIcons name="magnify" size={18} color={C.text3} />
+          <TextInput
+            style={s.searchInput}
+            placeholder="Search courses, skills, instructors…"
+            placeholderTextColor={C.text3}
+            value={search}
+            onChangeText={setSearch}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+            returnKeyType="search"
+          />
+          {!!search && (
+            <Pressable onPress={() => setSearch('')}>
+              <MaterialCommunityIcons name="close-circle" size={16} color={C.text3} />
+            </Pressable>
+          )}
+        </View>
+        {/* Autocomplete dropdown */}
+        {searchFocused && searchSuggestions && (
+          (searchSuggestions.courses.length > 0 ||
+            searchSuggestions.skills.length > 0 ||
+            searchSuggestions.providers.length > 0) ? (
+          <View style={s.acDropdown}>
+            {searchSuggestions.courses.length > 0 && (
+              <View style={s.acSection}>
+                <Text style={s.acHeader}>Courses</Text>
+                {searchSuggestions.courses.map((c) => (
+                  <Pressable key={c.id}
+                    onPress={() => { setEnrollFor(c); setSearch(''); }}
+                    style={s.acRow}>
+                    <Text style={{ fontSize: 18 }}>{c.thumbnail}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.acTitle} numberOfLines={1}>{c.title}</Text>
+                      <Text style={s.acMeta} numberOfLines={1}>
+                        {c.provider.name} · {c.duration_label}
+                      </Text>
+                    </View>
+                    <MaterialCommunityIcons name="arrow-top-left" size={13} color={C.text3} />
+                  </Pressable>
+                ))}
+              </View>
+            )}
+            {searchSuggestions.skills.length > 0 && (
+              <View style={s.acSection}>
+                <Text style={s.acHeader}>Skills</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {searchSuggestions.skills.map((sk) => {
+                    const m = TAG_META[sk];
+                    return (
+                      <Pressable key={sk}
+                        onPress={() => setSearch(sk.toLowerCase().replace(/_/g, ' '))}
+                        style={[s.smartTag,
+                          { backgroundColor: (m?.color || '#A78BFA') + '22',
+                            borderColor: (m?.color || '#A78BFA') + '55' }]}>
+                        <Text style={[s.smartTagText, { color: m?.color || '#A78BFA' }]}>
+                          {m?.label || sk}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+            {searchSuggestions.providers.length > 0 && (
+              <View style={s.acSection}>
+                <Text style={s.acHeader}>Providers</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {searchSuggestions.providers.map((p) => (
+                    <Pressable key={p}
+                      onPress={() => { setProviderFilter(p); setSearch(''); }}
+                      style={s.acProviderChip}>
+                      <MaterialCommunityIcons name="school-outline" size={11} color="#A78BFA" />
+                      <Text style={s.acProviderText}>{p}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            )}
+          </View>
+          ) : null
         )}
       </View>
 
@@ -342,7 +510,7 @@ export default function CoursesPage() {
         );
       })()}
 
-      {/* Pricing pill row (events-style) */}
+      {/* Pricing pill row (events-style) + Sort + Filters · N */}
       <View style={s.pricingFilters}>
         {(['all', 'free', 'paid'] as const).map((p) => {
           const active = pricingFilter === p;
@@ -361,13 +529,87 @@ export default function CoursesPage() {
             </Pressable>
           );
         })}
+
+        {/* More filters trigger */}
+        <Pressable onPress={() => setShowFilterSheet(true)}
+          style={[s.pill, advancedFilterCount > 0 &&
+            { backgroundColor: '#7C3AED', borderColor: '#7C3AED' }]}>
+          <MaterialCommunityIcons name="tune-variant" size={13}
+            color={advancedFilterCount > 0 ? '#fff' : '#A78BFA'} />
+          <Text style={[s.pillText, advancedFilterCount > 0 && { color: '#fff' }]}>
+            Filters{advancedFilterCount > 0 ? ` · ${advancedFilterCount}` : ''}
+          </Text>
+        </Pressable>
+
+        {/* Sort dropdown trigger */}
+        <View>
+          <Pressable onPress={() => setShowSortMenu(!showSortMenu)}
+            style={[s.pill, sortBy !== 'popular' &&
+              { backgroundColor: '#7C3AED', borderColor: '#7C3AED' }]}>
+            <MaterialCommunityIcons name="sort" size={13}
+              color={sortBy !== 'popular' ? '#fff' : '#A78BFA'} />
+            <Text style={[s.pillText, sortBy !== 'popular' && { color: '#fff' }]}>
+              Sort: {SORT_LABELS[sortBy]}
+            </Text>
+            <MaterialCommunityIcons name="chevron-down" size={12}
+              color={sortBy !== 'popular' ? '#fff' : C.text2} />
+          </Pressable>
+          {showSortMenu && (
+            <View style={s.sortMenu}>
+              {(Object.keys(SORT_LABELS) as Array<keyof typeof SORT_LABELS>).map((k) => (
+                <Pressable key={k}
+                  onPress={() => { setSortBy(k); setShowSortMenu(false); }}
+                  style={[s.sortItem, sortBy === k && s.sortItemActive]}>
+                  <Text style={[s.sortItemText, sortBy === k && { color: '#C4B5FD' }]}>
+                    {SORT_LABELS[k]}
+                  </Text>
+                  {sortBy === k && (
+                    <MaterialCommunityIcons name="check" size={13} color="#A78BFA" />
+                  )}
+                </Pressable>
+              ))}
+            </View>
+          )}
+        </View>
+
         {filtersActive && (
           <Pressable onPress={clearAllFilters} style={s.clearBtn}>
             <MaterialCommunityIcons name="close" size={12} color={C.text2} />
-            <Text style={s.clearBtnText}>Clear</Text>
+            <Text style={s.clearBtnText}>Clear all</Text>
           </Pressable>
         )}
       </View>
+
+      {/* Active advanced filter chips (removable) */}
+      {advancedFilterCount > 0 && (
+        <View style={s.activeChipsRow}>
+          {levelFilter !== 'all' && (
+            <RemovableChip label={`Level: ${levelFilter}`}
+              onClear={() => setLevelFilter('all')} />
+          )}
+          {durationFilter !== 'all' && (
+            <RemovableChip
+              label={`Duration: ${DURATION_LABELS[durationFilter as keyof typeof DURATION_LABELS]}`}
+              onClear={() => setDurationFilter('all')} />
+          )}
+          {languageFilter !== 'all' && (
+            <RemovableChip label={`Lang: ${languageFilter}`}
+              onClear={() => setLanguageFilter('all')} />
+          )}
+          {providerFilter !== 'all' && (
+            <RemovableChip label={`Provider: ${providerFilter}`}
+              onClear={() => setProviderFilter('all')} />
+          )}
+          {hasMentorFilter && (
+            <RemovableChip label="Has mentor"
+              onClear={() => setHasMentorFilter(false)} />
+          )}
+          {hasCertFilter && (
+            <RemovableChip label="Has certificate"
+              onClear={() => setHasCertFilter(false)} />
+          )}
+        </View>
+      )}
 
       {/* Filter status banner */}
       {filtersActive && (
@@ -525,6 +767,23 @@ export default function CoursesPage() {
       {/* Enroll modal */}
       <EnrollModal course={enrollFor}
                     onClose={() => setEnrollFor(null)} />
+
+      {/* Filters sheet modal */}
+      <FilterSheet
+        visible={showFilterSheet}
+        onClose={() => setShowFilterSheet(false)}
+        levelFilter={levelFilter} setLevelFilter={setLevelFilter}
+        durationFilter={durationFilter} setDurationFilter={setDurationFilter}
+        languageFilter={languageFilter} setLanguageFilter={setLanguageFilter}
+        providerFilter={providerFilter} setProviderFilter={setProviderFilter}
+        hasMentorFilter={hasMentorFilter} setHasMentorFilter={setHasMentorFilter}
+        hasCertFilter={hasCertFilter} setHasCertFilter={setHasCertFilter}
+        languageOptions={languageOptions} providerOptions={providerOptions}
+        onClearAll={() => {
+          setLevelFilter('all'); setDurationFilter('all'); setLanguageFilter('all');
+          setProviderFilter('all'); setHasMentorFilter(false); setHasCertFilter(false);
+        }}
+      />
 
       {/* MD3 Floating Action Button — quick "Find courses" search focus */}
       <FAB
@@ -755,6 +1014,150 @@ function CertBadge({ cert }: { cert: Course['certification'] }) {
         {label}
       </Text>
     </View>
+  );
+}
+
+/* ─── Removable Chip helper ─────────────────────────────────── */
+function RemovableChip({ label, onClear }: { label: string; onClear: () => void }) {
+  return (
+    <Pressable onPress={onClear} style={s.removableChip}>
+      <Text style={s.removableChipText}>{label}</Text>
+      <MaterialCommunityIcons name="close" size={11} color="#C4B5FD" />
+    </Pressable>
+  );
+}
+
+/* ─── Filter Sheet (right-side drawer modal) ───────────────── */
+function FilterSheet({
+  visible, onClose,
+  levelFilter, setLevelFilter,
+  durationFilter, setDurationFilter,
+  languageFilter, setLanguageFilter,
+  providerFilter, setProviderFilter,
+  hasMentorFilter, setHasMentorFilter,
+  hasCertFilter, setHasCertFilter,
+  languageOptions, providerOptions, onClearAll,
+}: any) {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable onPress={onClose} style={s.sheetBackdrop}>
+        <Pressable onPress={(e) => e.stopPropagation()} style={s.sheetPanel}>
+          <View style={s.sheetHeader}>
+            <Text style={s.sheetTitle}>Refine results</Text>
+            <Pressable onPress={onClose} style={s.sheetCloseBtn}>
+              <MaterialCommunityIcons name="close" size={18} color="#fff" />
+            </Pressable>
+          </View>
+
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, gap: 22 }}>
+            {/* Level */}
+            <View style={s.filterGroup}>
+              <Text style={s.filterGroupLabel}>Level</Text>
+              <View style={s.filterChipRow}>
+                {LEVEL_OPTIONS.map((lv) => {
+                  const active = levelFilter === lv;
+                  return (
+                    <Pressable key={lv} onPress={() => setLevelFilter(lv)}
+                      style={[s.filterChoice, active && s.filterChoiceActive]}>
+                      <Text style={[s.filterChoiceText, active && { color: '#fff' }]}>
+                        {lv === 'all' ? 'All levels' : lv}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Duration */}
+            <View style={s.filterGroup}>
+              <Text style={s.filterGroupLabel}>Duration</Text>
+              <View style={s.filterChipRow}>
+                {(Object.keys(DURATION_LABELS) as Array<keyof typeof DURATION_LABELS>).map((d) => {
+                  const active = durationFilter === d;
+                  return (
+                    <Pressable key={d} onPress={() => setDurationFilter(d)}
+                      style={[s.filterChoice, active && s.filterChoiceActive]}>
+                      <Text style={[s.filterChoiceText, active && { color: '#fff' }]}>
+                        {DURATION_LABELS[d]}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Language */}
+            <View style={s.filterGroup}>
+              <Text style={s.filterGroupLabel}>Language</Text>
+              <View style={s.filterChipRow}>
+                {(languageOptions || []).slice(0, 12).map((lang: string) => {
+                  const active = languageFilter === lang;
+                  return (
+                    <Pressable key={lang} onPress={() => setLanguageFilter(lang)}
+                      style={[s.filterChoice, active && s.filterChoiceActive]}>
+                      <Text style={[s.filterChoiceText, active && { color: '#fff' }]}>
+                        {lang === 'all' ? 'Any' : lang}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Provider */}
+            <View style={s.filterGroup}>
+              <Text style={s.filterGroupLabel}>Provider / University</Text>
+              <View style={s.filterChipRow}>
+                {(providerOptions || []).slice(0, 16).map((p: string) => {
+                  const active = providerFilter === p;
+                  return (
+                    <Pressable key={p} onPress={() => setProviderFilter(p)}
+                      style={[s.filterChoice, active && s.filterChoiceActive]}>
+                      <Text style={[s.filterChoiceText, active && { color: '#fff' }]} numberOfLines={1}>
+                        {p === 'all' ? 'Any' : p}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Toggles */}
+            <View style={s.filterGroup}>
+              <Text style={s.filterGroupLabel}>Includes</Text>
+              <Pressable onPress={() => setHasMentorFilter(!hasMentorFilter)}
+                style={s.filterToggleRow}>
+                <View style={[s.toggleSwitch,
+                  hasMentorFilter && { backgroundColor: '#7C3AED' }]}>
+                  <View style={[s.toggleKnob,
+                    hasMentorFilter && { left: 18 }]} />
+                </View>
+                <Text style={s.filterToggleText}>Has mentor / live sessions</Text>
+              </Pressable>
+              <Pressable onPress={() => setHasCertFilter(!hasCertFilter)}
+                style={s.filterToggleRow}>
+                <View style={[s.toggleSwitch,
+                  hasCertFilter && { backgroundColor: '#7C3AED' }]}>
+                  <View style={[s.toggleKnob,
+                    hasCertFilter && { left: 18 }]} />
+                </View>
+                <Text style={s.filterToggleText}>Offers a certificate</Text>
+              </Pressable>
+            </View>
+          </ScrollView>
+
+          {/* Footer */}
+          <View style={s.sheetFooter}>
+            <Pressable onPress={onClearAll} style={s.sheetClearBtn}>
+              <Text style={s.sheetClearText}>Reset</Text>
+            </Pressable>
+            <Pressable onPress={onClose} style={s.sheetApplyBtn}>
+              <Text style={s.sheetApplyText}>Apply filters</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -1134,10 +1537,93 @@ const s = StyleSheet.create({
   clearBtnText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11 },
 
   pricingFilters: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  pricingChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border,
+  pricingChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,    backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border,
     borderWidth: 1, ...({ cursor: 'pointer' } as any) },
   pricingChipText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
+
+  /* Sort dropdown */
+  sortMenu: { position: 'absolute', top: 38, right: 0,
+    minWidth: 180, backgroundColor: '#221538', borderRadius: 12,
+    borderWidth: 1, borderColor: C.border, padding: 6,
+    boxShadow: '0 12px 40px rgba(0,0,0,0.55)' as any,
+    zIndex: 1000 },
+  sortItem: { flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', paddingHorizontal: 10, paddingVertical: 9,
+    borderRadius: 8, ...({ cursor: 'pointer' } as any) },
+  sortItemActive: { backgroundColor: 'rgba(124,58,237,0.18)' },
+  sortItemText: { color: C.text2, fontFamily: 'DMSans_600SemiBold', fontSize: 12 },
+
+  /* Active filter chips row */
+  activeChipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  removableChip: { flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
+    backgroundColor: 'rgba(167,139,250,0.16)',
+    borderColor: 'rgba(167,139,250,0.40)', borderWidth: 1,
+    ...({ cursor: 'pointer' } as any) },
+  removableChipText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 11 },
+
+  /* Search autocomplete dropdown */
+  acDropdown: { position: 'absolute', top: 56, left: 0, right: 0,
+    backgroundColor: '#221538', borderRadius: 14, borderWidth: 1,
+    borderColor: C.border, padding: 12, gap: 14,
+    boxShadow: '0 16px 48px rgba(0,0,0,0.65)' as any, zIndex: 999 },
+  acSection: { gap: 6 },
+  acHeader: { color: C.text3, fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 10, letterSpacing: 1, textTransform: 'uppercase' },
+  acRow: { flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 8, paddingVertical: 8, borderRadius: 10,
+    ...({ cursor: 'pointer' } as any) },
+  acTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
+  acMeta: { color: C.text3, fontFamily: 'DMSans_600SemiBold', fontSize: 10.5 },
+  acProviderChip: { flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999,
+    backgroundColor: 'rgba(167,139,250,0.10)',
+    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1 },
+  acProviderText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 11 },
+
+  /* Filter Sheet */
+  sheetBackdrop: { flex: 1, backgroundColor: 'rgba(10,5,22,0.65)',
+    justifyContent: 'flex-end', alignItems: 'flex-end' },
+  sheetPanel: { width: 420, maxWidth: '100%', height: '100%',
+    backgroundColor: '#1A0F2E', borderLeftWidth: 1, borderColor: C.border,
+    flexDirection: 'column' },
+  sheetHeader: { flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 20, paddingVertical: 16,
+    borderBottomWidth: 1, borderColor: C.border },
+  sheetTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 18, flex: 1 },
+  sheetCloseBtn: { width: 32, height: 32, borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    alignItems: 'center', justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any) },
+  filterGroup: { gap: 10 },
+  filterGroupLabel: { color: C.text3, fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' },
+  filterChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  filterChoice: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: C.border, borderWidth: 1,
+    ...({ cursor: 'pointer' } as any) },
+  filterChoiceActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
+  filterChoiceText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  filterToggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 8, ...({ cursor: 'pointer' } as any) },
+  toggleSwitch: { width: 36, height: 20, borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.10)', justifyContent: 'center',
+    paddingHorizontal: 2, position: 'relative' },
+  toggleKnob: { width: 16, height: 16, borderRadius: 999,
+    backgroundColor: '#fff', position: 'absolute', top: 2, left: 2 },
+  filterToggleText: { color: '#fff', fontFamily: 'DMSans_600SemiBold', fontSize: 13 },
+  sheetFooter: { flexDirection: 'row', gap: 10,
+    paddingHorizontal: 20, paddingVertical: 16,
+    borderTopWidth: 1, borderColor: C.border },
+  sheetClearBtn: { paddingHorizontal: 16, paddingVertical: 11, borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: C.border,
+    ...({ cursor: 'pointer' } as any) },
+  sheetClearText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
+  sheetApplyBtn: { flex: 1, paddingVertical: 11, borderRadius: 999,
+    backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any) },
+  sheetApplyText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
 
   emptyBox: { paddingVertical: 40, alignItems: 'center', gap: 6 },
   emptyTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14, marginTop: 6 },

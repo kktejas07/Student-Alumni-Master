@@ -1309,8 +1309,6 @@ frontend:
             ✅ P5.21 Logged out + logged in as student01@test.com / TestPass@123. Home tab shows greeting "Hi, Aarav", For You / Career / Events filter chips, "Recommended for you" hero, "Closing soon" deadline strip — original student dashboard, MentorHome NOT shown.
 
 ## 2026-05-04 (rev3) — Courses pills aligned with Events page styling
-- File: /app/frontend/app/courses.tsx
-- User wanted the filter pill UX to match the **Events page** spec exactly (not just deals).
 - Adopted events.tsx pill design:
   • `paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999`
   • Inactive: dark translucent bg, accent-colored icon, muted text
