@@ -328,10 +328,14 @@ function BalanceHero({ data, onSeedDemo, seeding }: { data: Summary; onSeedDemo:
     >
       <View style={s.heroTopRow}>
         <View style={{ flex: 1 }}>
-          <Text style={s.heroLabel}>SA CREDITS BALANCE</Text>
+          <Text style={s.heroLabel}>SA WALLET BALANCE</Text>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 4 }}>
             <Text style={s.heroBalance}>{fmtCredits(data.balance_credits)}</Text>
             <Text style={s.heroInr}>≈ {fmtINR(data.balance_inr)}</Text>
+          </View>
+          <View style={s.verifiedPill}>
+            <MaterialCommunityIcons name="shield-check" size={11} color="#6EE7B7" />
+            <Text style={s.verifiedPillText}>SA Verified · Instant transfers</Text>
           </View>
           <Text style={s.heroSub}>1 ₹ = {data.credits_per_inr} credits</Text>
         </View>
@@ -633,6 +637,46 @@ function WithdrawTab(props: {
   const credits = inr * data.credits_per_inr;
   const eligible = data.balance_credits >= data.withdraw_threshold_credits;
   const enough = credits > 0 && credits >= data.withdraw_threshold_credits && credits <= data.balance_credits;
+  const requiresOtp = inr > 500;
+
+  // OTP modal state
+  const [otpStep, setOtpStep] = useState<null | 'review' | 'otp'>(null);
+  const [otp, setOtp] = useState('');
+  const [otpResendIn, setOtpResendIn] = useState(0);
+
+  // Mock OTP — in prod this comes from MSG91/Twilio
+  const MOCK_OTP = '123456';
+
+  useEffect(() => {
+    if (otpStep === 'otp' && otpResendIn > 0) {
+      const t = setTimeout(() => setOtpResendIn((v) => v - 1), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [otpStep, otpResendIn]);
+
+  const startSubmit = () => {
+    if (!enough) return;
+    setOtpStep('review');
+  };
+
+  const handleConfirmReview = () => {
+    if (requiresOtp) {
+      setOtpStep('otp');
+      setOtpResendIn(30);
+      setOtp('');
+    } else {
+      // No OTP needed for ≤ ₹500
+      onSubmit();
+      setOtpStep(null);
+    }
+  };
+
+  const handleOtpSubmit = () => {
+    if (otp.trim() !== MOCK_OTP) return; // UI-side check; backend would verify too
+    onSubmit();
+    setOtpStep(null);
+    setOtp('');
+  };
 
   return (
     <View style={{ gap: 16 }}>
@@ -733,12 +777,16 @@ function WithdrawTab(props: {
 
         <Pressable
           style={[s.primaryBtn, { backgroundColor: '#F472B6', opacity: submitting || !enough ? 0.55 : 1 }]}
-          onPress={onSubmit}
+          onPress={startSubmit}
           disabled={submitting || !enough}
         >
           {submitting ? <ActivityIndicator color="#3F0518" /> : <>
-            <MaterialCommunityIcons name="bank-transfer-out" size={16} color="#3F0518" />
-            <Text style={[s.primaryBtnText, { color: '#3F0518' }]}>Withdraw {fmtINR(inr)}</Text>
+            <MaterialCommunityIcons
+              name={requiresOtp ? 'shield-lock' : 'bank-transfer-out'}
+              size={16} color="#3F0518" />
+            <Text style={[s.primaryBtnText, { color: '#3F0518' }]}>
+              {requiresOtp ? 'Confirm withdrawal' : 'Withdraw '} {fmtINR(inr)}
+            </Text>
           </>}
         </Pressable>
 
@@ -762,6 +810,107 @@ function WithdrawTab(props: {
           Mock cash-out — settles in 1–2 business days. Real bank/UPI integration to be wired with payment provider.
         </Text>
       </View>
+
+      {/* Review modal (₹500 fast-track) */}
+      {otpStep === 'review' && (
+        <View style={s.modalBackdrop}>
+          <View style={s.modalCard}>
+            <Text style={s.modalTitle}>Confirm Withdrawal</Text>
+            <View style={{ gap: 8, marginTop: 10 }}>
+              <ReviewRow label="Amount" value={fmtINR(inr)} bold />
+              <ReviewRow label="To" value={target || (method === 'upi' ? '—' : 'Saved bank account')} />
+              <ReviewRow label="Mode" value={method === 'upi' ? 'UPI · Instant' : 'Bank · IMPS'} />
+              <ReviewRow label="Fee" value="₹0" tint="#6EE7B7" />
+              <View style={{ height: 1, backgroundColor: '#2A2636', marginVertical: 6 }} />
+              <ReviewRow label="You'll receive" value={fmtINR(inr)} bold tint="#fff" />
+              {requiresOtp && (
+                <View style={s.otpHintBox}>
+                  <MaterialCommunityIcons name="shield-lock" size={13} color="#FCD34D" />
+                  <Text style={s.otpHintText}>
+                    Amounts above ₹500 require an OTP for security
+                  </Text>
+                </View>
+              )}
+            </View>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
+              <Pressable onPress={() => setOtpStep(null)} style={s.modalCancelBtn}>
+                <Text style={s.modalCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable onPress={handleConfirmReview} style={s.modalConfirmBtn}>
+                <Text style={s.modalConfirmText}>
+                  {requiresOtp ? 'Send OTP' : 'Confirm withdrawal'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* OTP modal */}
+      {otpStep === 'otp' && (
+        <View style={s.modalBackdrop}>
+          <View style={s.modalCard}>
+            <View style={s.otpIconCircle}>
+              <MaterialCommunityIcons name="shield-lock" size={22} color="#FCD34D" />
+            </View>
+            <Text style={s.modalTitle}>Enter OTP</Text>
+            <Text style={s.modalBody}>
+              We sent a 6-digit code to your registered mobile (•••• 1234).{'\n'}
+              <Text style={{ color: '#FCD34D' }}>Demo OTP: 123456</Text>
+            </Text>
+            <TextInput
+              value={otp}
+              onChangeText={(v) => setOtp(v.replace(/[^0-9]/g, '').slice(0, 6))}
+              keyboardType="numeric"
+              placeholder="• • • • • •"
+              placeholderTextColor="#7B7593"
+              style={s.otpInput}
+              autoFocus
+              maxLength={6}
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between',
+                            alignItems: 'center', marginTop: 6 }}>
+              <Pressable
+                onPress={() => otpResendIn === 0 && setOtpResendIn(30)}
+                disabled={otpResendIn > 0}>
+                <Text style={[s.resendText,
+                  otpResendIn > 0 && { color: '#7B7593' }]}>
+                  {otpResendIn > 0
+                    ? `Resend in ${otpResendIn}s`
+                    : 'Resend OTP'}
+                </Text>
+              </Pressable>
+              {otp.length === 6 && otp !== '123456' && (
+                <Text style={s.otpError}>Wrong OTP</Text>
+              )}
+            </View>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+              <Pressable onPress={() => setOtpStep(null)} style={s.modalCancelBtn}>
+                <Text style={s.modalCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable onPress={handleOtpSubmit}
+                disabled={otp.length !== 6 || submitting}
+                style={[s.modalConfirmBtn,
+                  (otp.length !== 6 || submitting) && { opacity: 0.5 }]}>
+                {submitting
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <Text style={s.modalConfirmText}>Verify & Withdraw</Text>}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function ReviewRow({ label, value, bold, tint }: { label: string; value: string; bold?: boolean; tint?: string }) {
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Text style={s.reviewLabel}>{label}</Text>
+      <Text style={[s.reviewValue,
+        bold && { fontFamily: 'DMSans_900Black', fontSize: 15 },
+        tint && { color: tint }]}>{value}</Text>
     </View>
   );
 }
@@ -1061,7 +1210,34 @@ function roleLabel(role: string): string {
 // ─── History tab ─────────────────────────────────────────────────────────
 function HistoryTab({ data }: { data: Summary }) {
   const [filter, setFilter] = useState<'all' | 'credit' | 'debit'>('all');
-  const items = (data.history || []).filter((t) => filter === 'all' || t.type === filter);
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [search, setSearch] = useState('');
+  const [detail, setDetail] = useState<Txn | null>(null);
+
+  // Derive category options from history
+  const categoryOptions = useMemo(() => {
+    const seen = new Set<string>();
+    (data.history || []).forEach((t) => {
+      const c = (t.metadata?.category || t.metadata?.kind || 'other') as string;
+      seen.add(c);
+    });
+    return ['all', ...Array.from(seen).sort()];
+  }, [data.history]);
+
+  const items = useMemo(() => {
+    return (data.history || []).filter((t) => {
+      if (filter !== 'all' && t.type !== filter) return false;
+      const cat = (t.metadata?.category || t.metadata?.kind || 'other') as string;
+      if (categoryFilter !== 'all' && cat !== categoryFilter) return false;
+      if (search.trim()) {
+        const blob = `${t.reason} ${cat}`.toLowerCase();
+        if (!blob.includes(search.trim().toLowerCase())) return false;
+      }
+      return true;
+    });
+  }, [data.history, filter, categoryFilter, search]);
+
+  const filtersActive = filter !== 'all' || categoryFilter !== 'all' || !!search.trim();
 
   return (
     <View style={{ gap: 16 }}>
@@ -1069,29 +1245,173 @@ function HistoryTab({ data }: { data: Summary }) {
         <View style={s.sectionHead}>
           <MaterialCommunityIcons name="history" size={16} color={C.accent} />
           <Text style={s.sectionTitle}>Transaction history</Text>
+          <View style={[s.balPill, { marginLeft: 'auto' }]}>
+            <Text style={s.balPillText}>{items.length} txn{items.length === 1 ? '' : 's'}</Text>
+          </View>
         </View>
 
+        {/* Search */}
+        <View style={s.histSearchBox}>
+          <MaterialCommunityIcons name="magnify" size={15} color={C.text3} />
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search description or category…"
+            placeholderTextColor={C.text3}
+            style={s.histSearchInput}
+          />
+          {!!search && (
+            <Pressable onPress={() => setSearch('')}>
+              <MaterialCommunityIcons name="close-circle" size={14} color={C.text3} />
+            </Pressable>
+          )}
+        </View>
+
+        {/* Type filter */}
         <View style={s.filterRow}>
           {(['all', 'credit', 'debit'] as const).map((f) => {
             const active = filter === f;
             return (
               <Pressable key={f} onPress={() => setFilter(f)} style={[s.filterChip, active && s.filterChipActive]}>
                 <Text style={[s.filterText, active && s.filterTextActive]}>
-                  {f === 'all' ? 'All' : f === 'credit' ? 'Credits' : 'Debits'}
+                  {f === 'all' ? 'All types' : f === 'credit' ? '+ Credits' : '− Debits'}
                 </Text>
               </Pressable>
             );
           })}
         </View>
 
+        {/* Category filter — horizontal scroll */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 6, paddingRight: 12 }}>
+          {categoryOptions.map((c) => {
+            const active = categoryFilter === c;
+            const meta = CATEGORY_META[c] || CATEGORY_META.other;
+            return (
+              <Pressable key={c} onPress={() => setCategoryFilter(c)}
+                style={[s.histCatChip, active && {
+                  backgroundColor: meta.color, borderColor: meta.color }]}>
+                {c !== 'all' && (
+                  <MaterialCommunityIcons name={meta.icon} size={11}
+                    color={active ? '#fff' : meta.color} />
+                )}
+                <Text style={[s.histCatText, active && { color: '#fff' }]}>
+                  {c === 'all' ? 'All sources' : meta.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
+        {/* Active chips */}
+        {filtersActive && (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {filter !== 'all' && (
+              <Pressable onPress={() => setFilter('all')} style={s.removableChip}>
+                <Text style={s.removableChipText}>
+                  Type: {filter === 'credit' ? 'Credits' : 'Debits'}
+                </Text>
+                <MaterialCommunityIcons name="close" size={11} color="#C4B5FD" />
+              </Pressable>
+            )}
+            {categoryFilter !== 'all' && (
+              <Pressable onPress={() => setCategoryFilter('all')} style={s.removableChip}>
+                <Text style={s.removableChipText}>Source: {categoryFilter}</Text>
+                <MaterialCommunityIcons name="close" size={11} color="#C4B5FD" />
+              </Pressable>
+            )}
+            {!!search.trim() && (
+              <Pressable onPress={() => setSearch('')} style={s.removableChip}>
+                <Text style={s.removableChipText}>"{search.trim()}"</Text>
+                <MaterialCommunityIcons name="close" size={11} color="#C4B5FD" />
+              </Pressable>
+            )}
+            <Pressable
+              onPress={() => { setFilter('all'); setCategoryFilter('all'); setSearch(''); }}
+              style={[s.removableChip, { backgroundColor: 'rgba(255,255,255,0.04)',
+                                          borderColor: '#2A2636' }]}>
+              <Text style={[s.removableChipText, { color: C.text2 }]}>Clear all</Text>
+            </Pressable>
+          </View>
+        )}
+
         {items.length === 0 ? (
-          <Text style={s.emptyText}>No transactions to show.</Text>
+          <Text style={s.emptyText}>No transactions match these filters.</Text>
         ) : (
           <View style={{ gap: 8 }}>
-            {items.map((t) => <TxnRow key={t.id} t={t} />)}
+            {items.map((t) => (
+              <Pressable key={t.id} onPress={() => setDetail(t)}>
+                <TxnRow t={t} />
+              </Pressable>
+            ))}
           </View>
         )}
       </View>
+
+      {/* Detail drawer (in-page) */}
+      {detail && <TxnDetailDrawer txn={detail} onClose={() => setDetail(null)} />}
+    </View>
+  );
+}
+
+function TxnDetailDrawer({ txn, onClose }: { txn: Txn; onClose: () => void }) {
+  const isCredit = txn.type === 'credit';
+  const meta = txn.metadata || {};
+  const tint = isCredit ? '#34D399' : '#F87171';
+  return (
+    <View style={s.drawerBackdrop}>
+      <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+      <View style={s.drawerPanel}>
+        <View style={s.drawerHeader}>
+          <Text style={s.drawerTitle}>Transaction details</Text>
+          <Pressable onPress={onClose} style={s.modalCancelBtn}>
+            <MaterialCommunityIcons name="close" size={16} color={C.text2} />
+          </Pressable>
+        </View>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 18, gap: 14 }}>
+          <View style={[s.txnHero, { backgroundColor: tint + '14',
+                                      borderColor: tint + '40' }]}>
+            <Text style={[s.txnHeroAmount, { color: tint }]}>
+              {isCredit ? '+' : '−'}{fmtCredits(txn.amount)} cr
+            </Text>
+            <Text style={s.txnHeroReason}>{txn.reason}</Text>
+            <Text style={s.txnHeroTime}>{relTime(txn.ts)}</Text>
+          </View>
+          <View style={{ gap: 10 }}>
+            <DetailRow label="Type" value={isCredit ? 'Credit (incoming)' : 'Debit (outgoing)'} />
+            <DetailRow label="Category" value={meta.category || meta.kind || 'other'} />
+            <DetailRow label="Balance after" value={`${fmtCredits(txn.balance_after)} cr`} />
+            {meta.related_module && <DetailRow label="Source module" value={meta.related_module} />}
+            {meta.external_ref && <DetailRow label="Reference" value={String(meta.external_ref)} />}
+            <DetailRow label="Transaction ID" value={txn.id} />
+          </View>
+          <Pressable style={s.receiptBtn}
+            onPress={() => Platform.OS === 'web' && window.print && window.print()}>
+            <MaterialCommunityIcons name="receipt" size={14} color="#A78BFA" />
+            <Text style={s.receiptBtnText}>Download receipt (PDF)</Text>
+          </Pressable>
+          <Pressable style={[s.receiptBtn, { backgroundColor: 'rgba(248,113,113,0.10)',
+                                              borderColor: 'rgba(248,113,113,0.30)' }]}>
+            <MaterialCommunityIcons name="alert-circle-outline" size={14} color="#FCA5A5" />
+            <Text style={[s.receiptBtnText, { color: '#FCA5A5' }]}>Report issue</Text>
+          </Pressable>
+        </ScrollView>
+      </View>
+    </View>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between',
+                    alignItems: 'center', paddingVertical: 4 }}>
+      <Text style={{ color: C.text3, fontFamily: 'DMSans_700Bold', fontSize: 11 }}>
+        {label}
+      </Text>
+      <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12, maxWidth: '60%' }}
+        numberOfLines={2}>
+        {value}
+      </Text>
     </View>
   );
 }
@@ -1272,6 +1592,77 @@ const s = StyleSheet.create({
   ruleSub: { color: C.text3, fontSize: 11, marginTop: 2 },
   ruleCredits: { fontSize: 14, fontWeight: '800' },
   ruleEarned: { color: C.text3, fontSize: 10.5, marginTop: 1 },
+
+  /* Verified pill on hero */
+  verifiedPill: { flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
+    backgroundColor: 'rgba(16,185,129,0.14)',
+    borderColor: 'rgba(16,185,129,0.40)', borderWidth: 1,
+    marginTop: 8, alignSelf: 'flex-start' },
+  verifiedPillText: { color: '#6EE7B7', fontFamily: 'DMSans_700Bold', fontSize: 10.5 },
+
+  /* Withdraw — review row */
+  reviewLabel: { color: C.text3, fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
+  reviewValue: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12.5 },
+
+  /* OTP modal */
+  otpHintBox: { flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8,
+    backgroundColor: 'rgba(252,211,77,0.10)',
+    borderColor: 'rgba(252,211,77,0.30)', borderWidth: 1, marginTop: 6 },
+  otpHintText: { color: '#FCD34D', fontFamily: 'DMSans_700Bold', fontSize: 10.5 },
+  otpIconCircle: { width: 48, height: 48, borderRadius: 999,
+    backgroundColor: 'rgba(252,211,77,0.16)',
+    alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 6 },
+  otpInput: { paddingVertical: 14, paddingHorizontal: 16, borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: '#2A2636', borderWidth: 1,
+    color: '#fff', fontFamily: 'DMSans_900Black', fontSize: 22,
+    textAlign: 'center', letterSpacing: 6, marginTop: 12,
+    outlineWidth: 0 } as any,
+  resendText: { color: '#A78BFA', fontFamily: 'DMSans_700Bold', fontSize: 11 },
+  otpError: { color: '#FCA5A5', fontFamily: 'DMSans_700Bold', fontSize: 10.5 },
+
+  /* History — search box & category chips */
+  histSearchBox: { flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.04)', borderColor: '#2A2636', borderWidth: 1 },
+  histSearchInput: { flex: 1, color: '#fff', fontFamily: 'DMSans_600SemiBold',
+    fontSize: 12, outlineWidth: 0 } as any,
+  histCatChip: { flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 11, paddingVertical: 6, borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: '#2A2636', borderWidth: 1,
+    ...({ cursor: 'pointer' } as any) },
+  histCatText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 11 },
+  removableChip: { flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999,
+    backgroundColor: 'rgba(167,139,250,0.16)',
+    borderColor: 'rgba(167,139,250,0.40)', borderWidth: 1,
+    ...({ cursor: 'pointer' } as any) },
+  removableChipText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 10.5 },
+
+  /* Detail drawer */
+  drawerBackdrop: { ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(10,5,22,0.65)',
+    zIndex: 9999, justifyContent: 'flex-end', alignItems: 'flex-end' },
+  drawerPanel: { width: 460, maxWidth: '100%', height: '100%',
+    backgroundColor: '#14121C', borderLeftWidth: 1, borderColor: '#2A2636' },
+  drawerHeader: { flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 18, paddingVertical: 14,
+    borderBottomWidth: 1, borderColor: '#2A2636' },
+  drawerTitle: { color: '#fff', fontFamily: 'DMSans_900Black', fontSize: 16, flex: 1 },
+  txnHero: { padding: 18, borderRadius: 14, borderWidth: 1, gap: 4 },
+  txnHeroAmount: { fontFamily: 'DMSans_900Black', fontSize: 28,
+    ...({ fontVariantNumeric: 'tabular-nums' } as any) },
+  txnHeroReason: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
+  txnHeroTime: { color: C.text3, fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
+  receiptBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, paddingVertical: 11, borderRadius: 10,
+    backgroundColor: 'rgba(167,139,250,0.10)',
+    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1,
+    ...({ cursor: 'pointer' } as any) },
+  receiptBtnText: { color: '#A78BFA', fontFamily: 'DMSans_800ExtraBold', fontSize: 12 },
 
   /* ─── Credits tab — Gold progress card ─────────────────────── */
   creditsProgressCard: {

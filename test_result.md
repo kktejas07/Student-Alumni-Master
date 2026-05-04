@@ -1308,7 +1308,31 @@ frontend:
           comment: |
             ✅ P5.21 Logged out + logged in as student01@test.com / TestPass@123. Home tab shows greeting "Hi, Aarav", For You / Career / Events filter chips, "Recommended for you" hero, "Closing soon" deadline strip — original student dashboard, MentorHome NOT shown.
 
-## 2026-05-04 (rev6) — Credits tab redesign + Optimizer CTA → Money Coach (FIXED)
+## 2026-05-04 (rev7) — Wallet final polish: Hero pill + Withdraw OTP + History filter+drawer
+
+### Hero
+- Added green "✓ SA Verified · Instant transfers" pill below the balance (matches master spec exactly)
+- Renamed `SA CREDITS BALANCE` → `SA WALLET BALANCE` per spec
+
+### Withdraw tab
+- Wraps existing submit with **review modal** showing summary (Amount / To / Mode / Fee / You'll receive)
+- For amounts > ₹500: opens **OTP modal** (mock OTP `123456`, 6-digit pinpad input, 30s resend countdown, "Wrong OTP" inline error)
+- Modal styling matches dark theme with shield-lock icon, FCD34D accent on OTP hint banner, demo OTP shown in chat panel for QA
+
+### History tab
+- Live **search box** (debounced filter on description + category)
+- 3 **type filter pills** (All types / + Credits / − Debits)
+- Horizontal **category chip strip** auto-derived from txn metadata (uses CATEGORY_META icons + colors, solid-fill on active)
+- **Active filter chips** with × remove + "Clear all"
+- Click any txn row → opens **right-side detail drawer** (460px) with hero amount, 6 detail rows (Type, Category, Balance after, Source module, Reference, Transaction ID), Download receipt (PDF) and Report issue CTAs
+- Live count badge `{N} txns` next to title
+
+### Verified
+- All 3 wallet tabs (Hero/History/Withdraw) screenshots confirm the new UI works
+- Money Coach bubble still floating bottom-right
+- TS clean, backend healthy, expo serves 200 OK
+
+
 
 - File: `/app/frontend/app/wallet.tsx` — Credits tab now opens with:
   • SA Credits gold progress card (LinearGradient F59E0B→F97316 fill, "X more to {tier}")
