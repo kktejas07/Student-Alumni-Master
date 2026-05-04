@@ -26,6 +26,7 @@ import {
   Lock, Sparkles, Briefcase, Globe2,
 } from '../iconShims';
 import { SC, FONTS } from '../tokens';
+import { EmptyState, SuccessBurst } from '../EmptyState';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
 
@@ -174,8 +175,19 @@ export function InternshipsView() {
     return allowedTypes.includes(f);
   };
 
+  // Burst toast on save action
+  const [burst, setBurst] = useState<{ show: boolean; label: string }>({ show: false, label: '' });
+
+  // Wrap save handler to show burst overlay
+  const onToggleSaveWithBurst = useCallback(async (job: Job) => {
+    const wasSaved = job.saved;
+    await onToggleSave(job);
+    if (!wasSaved) setBurst({ show: true, label: 'Job saved!' });
+  }, [onToggleSave]);
+
   return (
-    <View>
+    <View accessibilityLabel="Internships and jobs feed">
+      <SuccessBurst visible={burst.show} onHide={() => setBurst({ show: false, label: '' })} label={burst.label} />
       {/* Tier hint banner */}
       <View style={s.tierBanner}>
         <View style={s.tierBadge}>
@@ -232,12 +244,23 @@ export function InternshipsView() {
             <Text style={{ color: SC.muted, marginTop: 10, fontFamily: FONTS.med }}>Fetching live jobs…</Text>
           </View>
         ) : items.length === 0 ? (
-          <View style={s.empty}>
-            <Sparkles size={26} color={SC.muted} />
-            <Text style={s.emptyTxt}>No matches yet. Try a different filter or refresh.</Text>
-          </View>
+          filter === 'Saved' ? (
+            <EmptyState
+              variant="savedJobs"
+              title="No saved jobs yet"
+              body="Bookmark roles you love by tapping the ribbon icon — they'll appear here for easy revisits."
+              cta={{ label: 'Browse all jobs', onPress: () => setFilter('All') }}
+            />
+          ) : (
+            <EmptyState
+              variant="generic"
+              title="No matches yet"
+              body="Try a different filter, broaden your search, or hit refresh to pull the latest jobs from all 5 sources."
+              cta={{ label: 'Refresh feed', onPress: onRefresh }}
+            />
+          )
         ) : items.map((j) => (
-          <JobCard key={j.job_id} job={j} onSave={onToggleSave} onApply={onApply} />
+          <JobCard key={j.job_id} job={j} onSave={onToggleSaveWithBurst} onApply={onApply} />
         ))}
 
         {/* Load more */}
@@ -291,10 +314,24 @@ function JobCard({ job, onSave, onApply }: { job: Job; onSave: (j: Job) => void;
       </View>
       <View style={{ alignItems: 'flex-end', gap: 6 }}>
         <View style={{ flexDirection: 'row', gap: 6 }}>
-          <Pressable onPress={() => onSave(job)} style={s.iconBtn} testID={`job-save-${job.job_id}`}>
+          <Pressable
+            onPress={() => onSave(job)}
+            style={s.iconBtn}
+            testID={`job-save-${job.job_id}`}
+            accessibilityRole="button"
+            accessibilityLabel={job.saved ? `Unsave ${job.title} at ${job.company}` : `Save ${job.title} at ${job.company}`}
+            accessibilityState={{ selected: !!job.saved }}
+          >
             {job.saved ? <BookmarkCheck size={14} color={SC.accentBright} /> : <Bookmark size={14} color={SC.muted} />}
           </Pressable>
-          <Pressable onPress={() => onApply(job)} style={s.applyBtn} testID={`job-apply-${job.job_id}`}>
+          <Pressable
+            onPress={() => onApply(job)}
+            style={s.applyBtn}
+            testID={`job-apply-${job.job_id}`}
+            accessibilityRole="button"
+            accessibilityLabel={job.applied ? `Already applied to ${job.title}` : `Apply to ${job.title} at ${job.company}`}
+            accessibilityState={{ disabled: !!job.applied }}
+          >
             <Text style={s.applyText}>{job.applied ? 'Applied' : 'Apply'}</Text>
             <ExternalLink size={11} color="#fff" />
           </Pressable>

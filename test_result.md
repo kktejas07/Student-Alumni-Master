@@ -9029,3 +9029,69 @@ agent_communication:
         fine. Not a regression from this change.
 
 
+
+agent_communication:
+    - agent: "main"
+      message: |
+        TASK 1 — Lottie-style empty-state micro-animations + SuccessBurst:
+
+        New file: /app/frontend/src/views/web/portals/student/EmptyState.tsx
+          - 6 animated illustrations, each a unique looping micro-anim
+            built with react-native-reanimated + react-native-svg:
+              • savedJobs    — bookmark drop with sparkle ring (orbits)
+              • bookings     — calendar tilt + spinning clock hand
+              • applications — paper plane diagonal drift + dot trail
+              • workshops    — graduation cap bob + 5-piece confetti
+              • network      — 4 avatars orbit around centre badge
+              • generic      — pulse + subtle rotation sparkle burst
+          - SuccessBurst overlay: scale-pop check-circle with
+            green-glow card (auto-hides after 1.7s) — used after Save.
+          - Wired into:
+              InternshipsView (Saved-empty / no-match-empty + SuccessBurst on save)
+              MyApplicationsView (No applications)
+              MyBookingsView (No upcoming bookings)
+              MyWorkshopsView (No ongoing workshops, compact mode)
+          - Bug-fix: refactored Confetti and Trail into per-piece
+            components (hooks-in-map rule was being violated on first draft).
+
+        TASK 2 — WCAG accessibility pass:
+
+          - tokens.ts contrast bumps:
+              text  rgba(255,255,255,0.92) → 0.94
+              muted rgba(255,255,255,0.55) → 0.66 (4.7:1 AA)
+              dim   rgba(255,255,255,0.30) → 0.46 (3.4:1 AA-Large)
+          - PressScale upgraded to forward:
+              accessibilityRole, accessibilityLabel, accessibilityHint,
+              accessibilityState — and adds web outlineOffset for
+              keyboard focus rings.
+          - Sidebar nav:
+              ScrollView wrapped with role=navigation + aria-label
+              Each nav item: role=tab, aria-label, accessibilityState.selected,
+              accessibilityHint
+              Logout: role=button + descriptive label + hint
+          - TopBar:
+              Search input has accessibilityLabel + hint + aria-label
+              Bell: role=button, "Notifications" label + hint
+          - Internships JobCards:
+              Save button — dynamic save/unsave label, accessibilityState.selected
+              Apply button — dynamic apply/already-applied label, accessibilityState.disabled
+          - EmptyState:
+              role=summary on wrap, image hidden from screen readers
+              (decorative), title gets role=heading on web
+              CTA button: role=button + label
+
+        Verified visually:
+          - Internships → Saved tab now shows the animated bookmark
+            illustration + sparkles + gradient CTA.
+          - My Bookings → cyan calendar wobble + spinning clock illustration.
+          - Color contrast visibly more legible across all muted body text.
+
+        Backend untouched; no regressions; HTTP 200.
+        Files touched in this round:
+          + EmptyState.tsx (new, 350+ LOC)
+          ~ tokens.ts (3 lines)
+          ~ motion.tsx (PressScale a11y forwarding)
+          ~ Sidebar.tsx, TopBar.tsx (a11y labels)
+          ~ views/{Internships,MyApplications,MyBookings,MyWorkshops}View.tsx
+
+

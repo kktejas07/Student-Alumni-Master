@@ -105,12 +105,24 @@ export function Sidebar({
       </FadeInView>
 
       {/* Nav */}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 8, paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingTop: 8, paddingBottom: 8 }}
+        showsVerticalScrollIndicator={false}
+        accessibilityRole={Platform.OS === 'web' ? ('navigation' as any) : undefined}
+        accessibilityLabel="Primary navigation"
+      >
         {NAV.map(({ id, label, Icon, spark }, i) => {
           const isActive = id === active;
           return (
             <FadeInView key={id} delay={150 + i * 35} distance={8}>
-              <PressScale onPress={() => onNav(id)}>
+              <PressScale
+                onPress={() => onNav(id)}
+                accessibilityRole="tab"
+                accessibilityLabel={label}
+                accessibilityState={{ selected: isActive }}
+                accessibilityHint={`Opens the ${label} section of the dashboard`}
+              >
                 {isActive ? (
                   <LinearGradient
                     colors={GRADS.brand as any}
@@ -134,7 +146,12 @@ export function Sidebar({
       </ScrollView>
 
       {/* Logout */}
-      <PressScale onPress={onLogout} style={s.logoutRow}>
+      <PressScale
+        onPress={onLogout}
+        style={s.logoutRow}
+        accessibilityLabel="Log out of your account"
+        accessibilityHint="Signs you out and returns to the welcome screen"
+      >
         <LogOut size={14} color="#FCA5A5" />
         <Text style={s.logoutText}>Log out</Text>
       </PressScale>

@@ -50,9 +50,11 @@ export function Stagger({
   );
 }
 
-/* ─── PressScale (gesture-driven scale + ripple) ───────────────────────── */
+/* ─── PressScale (gesture-driven scale + ripple + a11y) ──────────────── */
 export function PressScale({
   children, onPress, style, scaleTo = 0.97, hitSlop, disabled, testID,
+  accessibilityLabel, accessibilityHint, accessibilityRole = 'button',
+  accessibilityState,
 }: {
   children: React.ReactNode;
   onPress?: () => void;
@@ -61,6 +63,10 @@ export function PressScale({
   hitSlop?: number;
   disabled?: boolean;
   testID?: string;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+  accessibilityRole?: 'button' | 'link' | 'tab' | 'switch' | 'header' | 'image';
+  accessibilityState?: { selected?: boolean; disabled?: boolean; expanded?: boolean; checked?: boolean };
 }) {
   const scale = useSharedValue(1);
   const aStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -73,7 +79,18 @@ export function PressScale({
         onPressOut={() => { scale.value = withSpring(1, { damping: 12, stiffness: 220 }); }}
         onPress={onPress}
         hitSlop={hitSlop}
-        style={style as any}
+        accessibilityRole={accessibilityRole as any}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
+        accessibilityState={{ disabled: !!disabled, ...(accessibilityState || {}) }}
+        // @ts-ignore — web-only focus-visible outline for keyboard a11y
+        style={[
+          style as any,
+          Platform.OS === 'web' ? ({
+            // Native focus ring for keyboard users; respects reduced motion
+            outlineOffset: 2,
+          } as any) : null,
+        ]}
       >
         {children}
       </Pressable>

@@ -5,6 +5,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Briefcase, CheckCircle, Clock } from '../iconShims';
 import { SC, FONTS } from '../tokens';
+import { EmptyState } from '../EmptyState';
 import { usePortalData } from '@/src/lib/portalApi';
 import { useCurrentUser } from '@/src/lib/useCurrentUser';
 
@@ -39,7 +40,13 @@ export function MyApplicationsView() {
             </View>
           </View>
         ))}
-        {items.length === 0 && <Text style={s.empty}>No applications yet. Apply from the Internships view.</Text>}
+        {items.length === 0 && (
+          <EmptyState
+            variant="applications"
+            title="No applications yet"
+            body="Once you hit Apply on an internship, you'll see its progress, status, and recruiter feedback right here."
+          />
+        )}
       </View>
     </View>
   );

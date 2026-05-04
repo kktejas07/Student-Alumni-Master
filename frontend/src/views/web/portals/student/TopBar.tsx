@@ -42,12 +42,25 @@ export function TopBar() {
       <FadeInView delay={120}>
         <View style={s.searchBox}>
           <Search size={14} color={SC.dim} />
-          <TextInput placeholder="Search anything…" placeholderTextColor={SC.dim} style={s.searchInput} />
+          <TextInput
+            placeholder="Search anything…"
+            placeholderTextColor={SC.dim}
+            style={s.searchInput}
+            accessibilityLabel="Search the dashboard"
+            accessibilityHint="Type to find courses, mentors, jobs, deals, and more"
+            // @ts-ignore — RN-Web accepts these
+            aria-label="Search the dashboard"
+          />
         </View>
       </FadeInView>
 
       <FadeInView delay={180}>
-        <PressScale style={s.bell} onPress={() => {}}>
+        <PressScale
+          style={s.bell}
+          onPress={() => {}}
+          accessibilityLabel="Notifications"
+          accessibilityHint="Opens the notifications panel — you have unread alerts"
+        >
           <Bell size={16} color={SC.accent} />
           <View style={s.bellDotWrap}>
             <PulseDot size={7} color="#EF4444" />

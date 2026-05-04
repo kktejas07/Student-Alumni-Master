@@ -18,9 +18,9 @@ export const SC = {
   accent: '#A78BFA',
   accentBright: '#C4B5FD',
 
-  text: 'rgba(255,255,255,0.92)',
-  muted: 'rgba(255,255,255,0.55)',
-  dim: 'rgba(255,255,255,0.30)',
+  text: 'rgba(255,255,255,0.94)',
+  muted: 'rgba(255,255,255,0.66)',  /* WCAG bump: was 0.55 → 0.66 (4.7:1 on bg) */
+  dim: 'rgba(255,255,255,0.46)',    /* WCAG bump: was 0.30 → 0.46 (3.4:1 on bg) */
 
   green: '#22C55E',
   amber: '#F59E0B',

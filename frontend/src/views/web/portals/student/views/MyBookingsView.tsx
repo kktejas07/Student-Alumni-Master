@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { Calendar, Clock, X, User } from '../iconShims';
 import { SC, FONTS } from '../tokens';
+import { EmptyState } from '../EmptyState';
 import { usePortalData } from '@/src/lib/portalApi';
 import { useCurrentUser } from '@/src/lib/useCurrentUser';
 
@@ -78,7 +79,13 @@ export function MyBookingsView() {
           </View>
           );
         })}
-        {upcoming.length === 0 && <Text style={s.empty}>No upcoming bookings.</Text>}
+        {upcoming.length === 0 && (
+          <EmptyState
+            variant="bookings"
+            title="No upcoming bookings"
+            body="Book a 1:1 with a mentor from the Network tab to lock in personalised guidance."
+          />
+        )}
       </Section>
 
       {cancelled.length > 0 && (

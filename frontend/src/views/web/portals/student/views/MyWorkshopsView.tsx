@@ -5,6 +5,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, Platform, Linking } from 'react-native';
 import { GraduationCap, CheckCircle, Award, ExternalLink } from '../iconShims';
 import { SC, FONTS } from '../tokens';
+import { EmptyState } from '../EmptyState';
 import { usePortalData } from '@/src/lib/portalApi';
 import { useCurrentUser } from '@/src/lib/useCurrentUser';
 
@@ -44,7 +45,14 @@ export function MyWorkshopsView() {
             </View>
           </View>
         ))}
-        {ongoing.length === 0 && <Text style={s.empty}>No ongoing workshops.</Text>}
+        {ongoing.length === 0 && (
+          <EmptyState
+            variant="workshops"
+            title="No ongoing workshops"
+            body="Enroll in a multi-week program to deepen a skill — your active workshops will land here."
+            compact
+          />
+        )}
       </Section>
 
       <Section title={`Completed (${completed.length})`}>
