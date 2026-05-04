@@ -58,6 +58,21 @@ export default function MoneyCoach({ initialCmd, onAction }: {
     if (initialCmd && !open) setOpen(true);
   }, [initialCmd]);
 
+  // Listen for global events (CTAs from elsewhere can ping-open the coach)
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const handler = (e: any) => {
+      const cmd = e?.detail?.cmd;
+      setOpen(true);
+      if (cmd) {
+        setMessages([]);  // reset chat
+        setTimeout(() => send(cmd), 350);
+      }
+    };
+    window.addEventListener('open-money-coach', handler);
+    return () => window.removeEventListener('open-money-coach', handler);
+  }, []);
+
   const send = async (msg?: string) => {
     const text = (msg ?? input).trim();
     if (!text || busy) return;
@@ -66,7 +81,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
     setBusy(true);
     try {
       const r = await request<any>('/wallet/coach/chat',
-        { method: 'POST', body: JSON.stringify({ message: text }) });
+        { method: 'POST', body: { message: text } });
       setMessages((p) => [...p, {
         role: 'assistant', text: r.reply, cmd: r.cmd,
         cards: r.cards, actions: r.actions,

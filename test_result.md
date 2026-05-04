@@ -1308,7 +1308,28 @@ frontend:
           comment: |
             ✅ P5.21 Logged out + logged in as student01@test.com / TestPass@123. Home tab shows greeting "Hi, Aarav", For You / Career / Events filter chips, "Recommended for you" hero, "Closing soon" deadline strip — original student dashboard, MentorHome NOT shown.
 
-## 2026-05-04 (rev5) — Wallet: Money Coach floating widget + Redeem catalog (Chunks P3 f+g)
+## 2026-05-04 (rev6) — Credits tab redesign + Optimizer CTA → Money Coach (FIXED)
+
+- File: `/app/frontend/app/wallet.tsx` — Credits tab now opens with:
+  • SA Credits gold progress card (LinearGradient F59E0B→F97316 fill, "X more to {tier}")
+  • Credit Earning Optimizer CTA card (gold sparkle, "Get My Plan" pill)
+  • Live Redeem panel (6 rewards from `/api/wallet/rewards`, HOT pills, tone-color cost pills, confirm + success modals with voucher code)
+- File: `MoneyCoach.tsx` — listens to `window`-level `'open-money-coach'` event so any CTA can pop the Coach with pre-typed slash command
+- File: `activity_credits.py` — fixed `/wallet/coach/chat` and `/wallet/redeem` to use `Body(default={})` so empty/missing body parses cleanly; imported `Body` from fastapi
+- File: `MoneyCoach.tsx` + `wallet.tsx` — fixed double-stringify bug on `request()` calls (helper auto-stringifies — passing already-stringified body broke parsing)
+
+**Verified end-to-end:** Click "Get My Plan" → Money Coach opens with `/credit-plan` → backend returns interactive checklist → UI renders 4 actionable checkboxes (Submit application +30cr · Open Higher-Ed; Complete profile +25cr · Open profile; Register for event +15cr · Browse events; Claim a deal +10cr · Browse deals). All deterministic, zero LLM cost.
+
+
+
+- File: `/app/frontend/app/wallet.tsx` — added at top of CreditsTab:
+  • **SA Credits gold progress card** — gold-tinted background, coin icon, big tabular-nums credits balance, Linear gradient gold→orange progress bar, "X more to {tier} status" subtitle, tier badge (Bronze/Silver/Gold/Platinum) on the right
+  • **Credit Earning Optimizer CTA card** — gold sparkle icon, dynamic subtitle ("X credits to {next} · I'll find the fastest path"), gold "Get My Plan" pill that fires `window.dispatchEvent('open-money-coach', { cmd: '/credit-plan' })`
+  • **Redeem panel** wired to live `/api/wallet/rewards` (6 rewards) with HOT pills, tone-color cost pills, and a confirm modal → POST `/api/wallet/redeem` → success modal showing voucher code (`SA-XXXXXXXX`)
+- File: `MoneyCoach.tsx` — added `window` event listener `'open-money-coach'` so any CTA on wallet.tsx (or beyond) can pop the Coach with a pre-typed slash command. Resets messages and auto-sends.
+- Verified visually: Credits tab now matches master spec (progress card + optimizer + 6-reward redeem catalog with HOT badges + tone pills). "Get My Plan" CTA opens Money Coach with `/credit-plan` query already in flight. Redeem confirm + success modals render correctly.
+
+
 
 ### Backend (`/app/backend/activity_credits.py`, +200 lines)
 - `POST /api/wallet/coach/chat` — **deterministic** slash-command router (NO LLM cost, fully free):

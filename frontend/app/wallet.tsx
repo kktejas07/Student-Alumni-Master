@@ -777,8 +777,81 @@ function CreditsTab({ data, onSeedDemo, seeding }: { data: Summary; onSeedDemo: 
   const earnedMap: Record<string, ActivityItem> = {};
   for (const a of data.activity_breakdown) earnedMap[a.activity_type] = a;
 
+  // Tier progress (gold-themed) — use level info
+  const lvl = data.level;
+  const balance = data.balance_credits;
+  const nextAt = lvl?.next_level_at || (balance + (lvl?.credits_to_next || 100));
+  const nextName = lvl?.next_level_name || 'Silver';
+  const pct = Math.max(0, Math.min(100, lvl?.progress_pct || 0));
+  const toNext = lvl?.credits_to_next || (nextAt - balance);
+
   return (
     <View style={{ gap: 16 }}>
+      {/* SA Credits gold progress card (matches master spec) */}
+      <View style={s.creditsProgressCard}>
+        <View style={s.creditsHeaderRow}>
+          <View style={s.creditsCoinCircle}>
+            <MaterialCommunityIcons name="star-four-points" size={22} color="#F59E0B" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.creditsTitle}>SA Credits</Text>
+            <Text style={s.creditsSub}>Earn & redeem for perks</Text>
+          </View>
+          <View style={s.tierBadge}>
+            <MaterialCommunityIcons name={(lvl?.icon as IconName) || 'medal'}
+              size={12} color={lvl?.color || '#FCD34D'} />
+            <Text style={[s.tierBadgeText, { color: lvl?.color || '#FCD34D' }]}>
+              {lvl?.name || 'Bronze'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 8 }}>
+          <Text style={s.creditsBig}>{balance.toLocaleString()}</Text>
+          <Text style={s.creditsUnit}>credits</Text>
+        </View>
+
+        <View style={s.creditsBarBg}>
+          <LinearGradient
+            colors={['#F59E0B', '#F97316']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={[StyleSheet.absoluteFill, { width: `${pct}%`, borderRadius: 999 } as any]}
+          />
+        </View>
+        <Text style={s.creditsProgressText}>
+          {toNext > 0 ? `${toNext} more to ${nextName} status` : '🎉 Top tier reached'}
+        </Text>
+      </View>
+
+      {/* Credit Earning Optimizer CTA */}
+      <Pressable
+        onPress={() => {
+          if (Platform.OS === 'web') {
+            window.dispatchEvent(new CustomEvent('open-money-coach',
+              { detail: { cmd: '/credit-plan' } }));
+          }
+        }}
+        style={s.optimizerCard}>
+        <View style={s.optimizerSparkle}>
+          <MaterialCommunityIcons name="auto-fix" size={18} color="#F59E0B" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={s.optimizerTitle}>Credit Earning Optimizer</Text>
+          <Text style={s.optimizerSub}>
+            {toNext > 0
+              ? `${toNext} credits to ${nextName} · I'll find the fastest path`
+              : 'Optimize for next reward redemptions'}
+          </Text>
+        </View>
+        <View style={s.optimizerCta}>
+          <MaterialCommunityIcons name="star-four-points" size={12} color="#fff" />
+          <Text style={s.optimizerCtaText}>Get My Plan</Text>
+        </View>
+      </Pressable>
+
+      {/* Redeem catalog */}
+      <RedeemPanel balance={balance} />
+
       {/* Earnings summary card */}
       <View style={s.section}>
         <View style={s.sectionHead}>
@@ -841,6 +914,140 @@ function CreditsTab({ data, onSeedDemo, seeding }: { data: Summary; onSeedDemo: 
           </View>
         );
       })}
+    </View>
+  );
+}
+
+/* ─── Redeem Panel ──────────────────────────────────────────────────── */
+type Reward = { id: string; title: string; desc: string; cost: number;
+                tone: string; hot: boolean };
+const TONE_COLORS: Record<string, string> = {
+  teal: '#2DD4BF', indigo: '#A5B4FC', orange: '#FB923C',
+  green: '#6EE7B7', gold: '#FCD34D', pink: '#F9A8D4',
+};
+
+function RedeemPanel({ balance }: { balance: number }) {
+  const [rewards, setRewards] = useState<Reward[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [redeeming, setRedeeming] = useState<string | null>(null);
+  const [confirmFor, setConfirmFor] = useState<Reward | null>(null);
+  const [success, setSuccess] = useState<{ code: string; reward: Reward } | null>(null);
+
+  useEffect(() => {
+    request<{ rewards: Reward[] }>('/wallet/rewards')
+      .then((r) => setRewards(r.rewards))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const onConfirm = async () => {
+    if (!confirmFor) return;
+    setRedeeming(confirmFor.id);
+    try {
+      const r = await request<{ code: string; reward: Reward }>(
+        '/wallet/redeem',
+        { method: 'POST', body: { reward_id: confirmFor.id } });
+      setSuccess({ code: r.code, reward: r.reward });
+      setConfirmFor(null);
+    } catch (e: any) {
+      // surface inline
+    } finally { setRedeeming(null); }
+  };
+
+  return (
+    <View style={s.section}>
+      <View style={s.sectionHead}>
+        <MaterialCommunityIcons name="gift-outline" size={16} color="#F9A8D4" />
+        <Text style={s.sectionTitle}>Redeem Credits</Text>
+        <View style={[s.balPill, { marginLeft: 'auto' }]}>
+          <Text style={s.balPillText}>{balance.toLocaleString()} cr available</Text>
+        </View>
+      </View>
+
+      {loading ? (
+        <ActivityIndicator color="#A78BFA" />
+      ) : (
+        <View style={{ gap: 8 }}>
+          {rewards.map((rw) => {
+            const tint = TONE_COLORS[rw.tone] || '#A78BFA';
+            const canRedeem = balance >= rw.cost;
+            return (
+              <Pressable key={rw.id}
+                onPress={() => canRedeem && setConfirmFor(rw)}
+                style={[s.rewardRow, !canRedeem && { opacity: 0.55 }]}>
+                <View style={[s.rewardIcon,
+                  { backgroundColor: tint + '22', borderColor: tint + '55' }]}>
+                  <MaterialCommunityIcons name="gift" size={16} color={tint} />
+                </View>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={s.rewardTitle}>{rw.title}</Text>
+                    {rw.hot && (
+                      <View style={s.hotPill}>
+                        <Text style={s.hotPillText}>HOT</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={s.rewardDesc}>{rw.desc}</Text>
+                </View>
+                <View style={[s.costPill,
+                  { backgroundColor: tint + '22' }]}>
+                  <Text style={[s.costPillText, { color: tint }]}>
+                    {rw.cost}cr
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+
+      {/* Confirm modal */}
+      {confirmFor && (
+        <View style={s.modalBackdrop}>
+          <View style={s.modalCard}>
+            <Text style={s.modalTitle}>Redeem {confirmFor.cost} credits?</Text>
+            <Text style={s.modalBody}>
+              You'll redeem <Text style={{ color: '#FCD34D', fontFamily: 'DMSans_800ExtraBold' }}>
+                {confirmFor.title}</Text>.
+              {' '}Remaining balance: {(balance - confirmFor.cost).toLocaleString()} credits.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+              <Pressable onPress={() => setConfirmFor(null)} style={s.modalCancelBtn}>
+                <Text style={s.modalCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable onPress={onConfirm} disabled={!!redeeming}
+                style={[s.modalConfirmBtn, !!redeeming && { opacity: 0.6 }]}>
+                {redeeming
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <Text style={s.modalConfirmText}>Confirm redeem</Text>}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Success modal */}
+      {success && (
+        <View style={s.modalBackdrop}>
+          <View style={[s.modalCard, { borderColor: '#10B98166' }]}>
+            <View style={s.successCircle}>
+              <MaterialCommunityIcons name="check" size={28} color="#fff" />
+            </View>
+            <Text style={s.modalTitle}>Redeemed! 🎉</Text>
+            <Text style={s.modalBody}>
+              Your code for <Text style={{ color: '#FCD34D', fontFamily: 'DMSans_800ExtraBold' }}>
+                {success.reward.title}</Text>:
+            </Text>
+            <View style={s.codeBox}>
+              <Text style={s.codeText}>{success.code}</Text>
+            </View>
+            <Pressable onPress={() => setSuccess(null)} style={s.modalConfirmBtn}>
+              <Text style={s.modalConfirmText}>Done</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -1065,6 +1272,101 @@ const s = StyleSheet.create({
   ruleSub: { color: C.text3, fontSize: 11, marginTop: 2 },
   ruleCredits: { fontSize: 14, fontWeight: '800' },
   ruleEarned: { color: C.text3, fontSize: 10.5, marginTop: 1 },
+
+  /* ─── Credits tab — Gold progress card ─────────────────────── */
+  creditsProgressCard: {
+    backgroundColor: 'rgba(245,158,11,0.08)',
+    borderColor: 'rgba(245,158,11,0.30)', borderWidth: 1,
+    borderRadius: 20, padding: 22, gap: 6 },
+  creditsHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  creditsCoinCircle: { width: 44, height: 44, borderRadius: 999,
+    backgroundColor: 'rgba(245,158,11,0.18)',
+    alignItems: 'center', justifyContent: 'center' },
+  creditsTitle: { color: '#fff', fontFamily: 'DMSans_900Black', fontSize: 16 },
+  creditsSub: { color: C.text3, fontFamily: 'DMSans_600SemiBold', fontSize: 11.5 },
+  creditsBig: { color: '#F59E0B', fontFamily: 'DMSans_900Black',
+    fontSize: 44, ...({ fontVariantNumeric: 'tabular-nums' } as any) },
+  creditsUnit: { color: C.text2, fontFamily: 'DMSans_600SemiBold', fontSize: 14 },
+  creditsBarBg: { height: 8, backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 999, overflow: 'hidden', marginTop: 8 },
+  creditsProgressText: { color: C.text2, fontFamily: 'DMSans_600SemiBold',
+    fontSize: 11.5, marginTop: 6 },
+  tierBadge: { flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999,
+    backgroundColor: 'rgba(252,211,77,0.12)',
+    borderColor: 'rgba(252,211,77,0.30)', borderWidth: 1 },
+  tierBadgeText: { fontFamily: 'DMSans_900Black', fontSize: 10.5 },
+
+  /* Optimizer CTA */
+  optimizerCard: { flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 18, paddingVertical: 14, borderRadius: 16,
+    backgroundColor: '#14121C', borderWidth: 1,
+    borderColor: 'rgba(245,158,11,0.30)',
+    ...({ cursor: 'pointer' } as any) },
+  optimizerSparkle: { width: 36, height: 36, borderRadius: 999,
+    backgroundColor: 'rgba(245,158,11,0.15)',
+    alignItems: 'center', justifyContent: 'center' },
+  optimizerTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 14 },
+  optimizerSub: { color: C.text2, fontFamily: 'DMSans_600SemiBold',
+    fontSize: 11.5, marginTop: 2 },
+  optimizerCta: { flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 13, paddingVertical: 8, borderRadius: 999,
+    backgroundColor: '#F59E0B' },
+  optimizerCtaText: { color: '#fff', fontFamily: 'DMSans_900Black', fontSize: 11.5 },
+
+  /* Redeem panel rows */
+  rewardRow: { flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 14, paddingVertical: 11, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: '#2A2636', borderWidth: 1,
+    ...({ cursor: 'pointer' } as any) },
+  rewardIcon: { width: 36, height: 36, borderRadius: 8, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center' },
+  rewardTitle: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 13 },
+  rewardDesc: { color: C.text2, fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
+  hotPill: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4,
+    backgroundColor: '#EF4444' },
+  hotPillText: { color: '#fff', fontFamily: 'DMSans_900Black',
+    fontSize: 8.5, letterSpacing: 0.6 },
+  costPill: { paddingHorizontal: 11, paddingVertical: 5, borderRadius: 999 },
+  costPillText: { fontFamily: 'DMSans_900Black', fontSize: 11.5,
+    ...({ fontVariantNumeric: 'tabular-nums' } as any) },
+  balPill: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999,
+    backgroundColor: 'rgba(245,158,11,0.12)',
+    borderColor: 'rgba(245,158,11,0.30)', borderWidth: 1 },
+  balPillText: { color: '#FCD34D', fontFamily: 'DMSans_700Bold', fontSize: 10.5 },
+
+  /* Confirm/Success modals (in-page) */
+  modalBackdrop: { ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(10,5,22,0.80)',
+    alignItems: 'center', justifyContent: 'center', zIndex: 9999,
+    padding: 20 },
+  modalCard: { width: 380, maxWidth: '100%', backgroundColor: '#14121C',
+    borderRadius: 16, padding: 22, gap: 6, borderWidth: 1,
+    borderColor: '#2A2636' },
+  modalTitle: { color: '#fff', fontFamily: 'DMSans_900Black', fontSize: 16 },
+  modalBody: { color: C.text2, fontFamily: 'DMSans_600SemiBold',
+    fontSize: 12.5, lineHeight: 19, marginTop: 4 },
+  modalCancelBtn: { flex: 1, paddingVertical: 11, borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderColor: '#2A2636', borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any) },
+  modalCancelText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  modalConfirmBtn: { flex: 1, paddingVertical: 11, borderRadius: 999,
+    backgroundColor: '#7C3AED',
+    alignItems: 'center', justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any) },
+  modalConfirmText: { color: '#fff', fontFamily: 'DMSans_900Black', fontSize: 12 },
+  successCircle: { width: 56, height: 56, borderRadius: 999,
+    backgroundColor: '#10B981', alignSelf: 'center',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  codeBox: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10,
+    backgroundColor: 'rgba(252,211,77,0.10)',
+    borderColor: 'rgba(252,211,77,0.40)', borderWidth: 1,
+    marginVertical: 12 },
+  codeText: { color: '#FCD34D', fontFamily: 'DMSans_900Black', fontSize: 18,
+    textAlign: 'center', letterSpacing: 1.5 },
 
   seedBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,

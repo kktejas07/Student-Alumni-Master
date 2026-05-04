@@ -27,7 +27,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from bson import ObjectId
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from motor.motor_asyncio import AsyncIOMotorClient
 from pathlib import Path
 
@@ -645,7 +645,8 @@ async def wallet_seed_demo(user: dict = Depends(_get_current_user_dependency()))
 
 # ─── Money Coach (deterministic — no LLM cost) ───────────────────────────
 @router.post("/wallet/coach/chat")
-async def wallet_coach_chat(body: Dict[str, Any], user: dict = Depends(_get_current_user_dependency())):
+async def wallet_coach_chat(body: Dict[str, Any] = Body(default={}),
+                              user: dict = Depends(_get_current_user_dependency())):
     """Deterministic Money Coach. Returns structured replies based on slash commands.
     No LLM required — fully rule-based & free."""
     msg = (body or {}).get("message", "").strip()
@@ -850,7 +851,8 @@ async def list_rewards(user: dict = Depends(_get_current_user_dependency())):
 
 
 @router.post("/wallet/redeem")
-async def redeem_credits(body: Dict[str, Any], user: dict = Depends(_get_current_user_dependency())):
+async def redeem_credits(body: Dict[str, Any] = Body(default={}),
+                          user: dict = Depends(_get_current_user_dependency())):
     rid = (body or {}).get("reward_id")
     reward = next((r for r in REWARD_CATALOG if r["id"] == rid), None)
     if not reward:
