@@ -19,6 +19,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import FeaturePageShell from '@/src/views/web/FeaturePageShell';
+import MoneyCoach from '@/src/views/web/wallet/MoneyCoach';
 import { request } from '@/src/models/services/api';
 
 // ─── Types ───────────────────────────────────────────────────────────────
@@ -308,6 +309,9 @@ export default function WalletScreen() {
         {data && tab === 'credits' && <CreditsTab data={data} onSeedDemo={onSeedDemo} seeding={seeding} />}
         {data && tab === 'history' && <HistoryTab data={data} />}
       </View>
+
+      {/* Floating Money Coach */}
+      <MoneyCoach />
     </FeaturePageShell>
   );
 }

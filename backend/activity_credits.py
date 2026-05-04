@@ -640,3 +640,240 @@ async def wallet_seed_demo(user: dict = Depends(_get_current_user_dependency()))
         "balance_credits": int((u.get("wallet") or {}).get("balance_credits", 0)),
         "lifetime_earned": int((u.get("wallet") or {}).get("lifetime_earned", 0)),
     }
+
+
+
+# ─── Money Coach (deterministic — no LLM cost) ───────────────────────────
+@router.post("/wallet/coach/chat")
+async def wallet_coach_chat(body: Dict[str, Any], user: dict = Depends(_get_current_user_dependency())):
+    """Deterministic Money Coach. Returns structured replies based on slash commands.
+    No LLM required — fully rule-based & free."""
+    msg = (body or {}).get("message", "").strip()
+    low = msg.lower()
+    wallet = (user.get("wallet") or {})
+    balance_cr = int(wallet.get("balance_credits", 0))
+    lifetime = int(wallet.get("lifetime_earned", 0))
+    balance_inr = balance_cr // CREDITS_PER_INR
+    name = user.get("first_name", "there")
+
+    # Pull last 30d earnings/spend
+    cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+    cur = _db.credit_events.find({"user_id": str(user["_id"]),
+                                   "created_at": {"$gte": cutoff}})
+    total_in = 0
+    total_out = 0
+    by_cat: Dict[str, int] = {}
+    async for e in cur:
+        amt = int(e.get("amount", 0) or 0)
+        if amt > 0: total_in += amt
+        else:       total_out += abs(amt)
+        cat = e.get("category", "other")
+        by_cat[cat] = by_cat.get(cat, 0) + abs(amt)
+
+    cmd = "chat"
+    reply = ""
+    cards: List[Dict[str, Any]] = []
+    actions: List[Dict[str, Any]] = []
+
+    if low.startswith("/spend"):
+        cmd = "spend"
+        sorted_cat = sorted(by_cat.items(), key=lambda x: -x[1])[:6]
+        reply = (f"In the last 30 days you've moved {total_in} credits in & "
+                 f"{total_out} credits out. Top category: "
+                 f"{sorted_cat[0][0]} with {sorted_cat[0][1]} credits."
+                 if sorted_cat else
+                 "No transactions in the last 30 days yet — your wallet ledger is clean.")
+        cards = [{"type": "donut", "data": [
+            {"label": k.title(), "value": v} for k, v in sorted_cat]}]
+
+    elif low.startswith("/save"):
+        cmd = "save"
+        try:
+            goal = int("".join(c for c in msg if c.isdigit())) or 1000
+        except Exception:
+            goal = 1000
+        per_week = max(50, goal // 12)
+        reply = (f"To save ₹{goal:,}, set aside ₹{per_week:,}/week from "
+                 f"campus savings + redirect ₹{per_week//2}/week of cashback "
+                 f"into your wallet. You'd hit the goal in 12 weeks.")
+        actions = [{"label": "Enable Auto-save", "action": "auto_save"},
+                   {"label": "Find cashback offers", "action": "navigate",
+                    "url": "/deals"}]
+
+    elif low.startswith("/credit-plan") or "/optimize" in low:
+        cmd = "credit_plan"
+        # Determine target tier
+        thresholds = [("Silver", 100), ("Gold", 500), ("Platinum", 1500)]
+        target_name, target_at = next(
+            ((n, t) for n, t in thresholds if balance_cr < t),
+            ("Platinum", 1500))
+        gap = max(0, target_at - balance_cr)
+        plan_actions = []
+        # Greedy plan to fill the gap
+        if gap >= 100:
+            plan_actions.append({
+                "title": "Refer 1 friend",
+                "gain": 100, "effort": "low", "eta_days": 5,
+                "action": {"type": "share", "label": "Copy referral link"}})
+        if gap >= 50:
+            plan_actions.append({
+                "title": "Book 1 mentor session",
+                "gain": 50, "effort": "medium", "eta_days": 3,
+                "action": {"type": "navigate", "label": "Browse mentors",
+                            "url": "/mentors"}})
+        if gap >= 30:
+            plan_actions.append({
+                "title": "Submit 1 SA Higher-Ed application",
+                "gain": 30, "effort": "medium", "eta_days": 7,
+                "action": {"type": "navigate", "label": "Open Higher-Ed",
+                            "url": "/higher-education"}})
+        if gap >= 25:
+            plan_actions.append({
+                "title": "Complete profile (one-time)",
+                "gain": 25, "effort": "low", "eta_days": 1,
+                "action": {"type": "navigate", "label": "Open profile",
+                            "url": "/profile"}})
+        if gap >= 15:
+            plan_actions.append({
+                "title": "Register for 1 event",
+                "gain": 15, "effort": "low", "eta_days": 2,
+                "action": {"type": "navigate", "label": "Browse events",
+                            "url": "/events"}})
+        if gap >= 10:
+            plan_actions.append({
+                "title": "Claim 1 deal",
+                "gain": 10, "effort": "low", "eta_days": 1,
+                "action": {"type": "navigate", "label": "Browse deals",
+                            "url": "/deals"}})
+        # Fastest ETA: max of selected
+        eta = max((a["eta_days"] for a in plan_actions), default=7)
+        reply = (f"You need {gap} more credits to reach {target_name}. "
+                 f"Fastest path: {eta} days." if gap > 0 else
+                 f"You're already at {target_name}! 🎉 Next: keep stacking for Platinum.")
+        cards = [{"type": "credit_plan",
+                  "summary": reply,
+                  "fastest_path_days": eta,
+                  "target_tier": target_name,
+                  "credits_needed": gap,
+                  "actions": plan_actions}]
+
+    elif low.startswith("/forecast"):
+        cmd = "forecast"
+        avg_daily_in = total_in / 30
+        avg_daily_out = total_out / 30
+        days_left = 30  # rolling
+        end_credits = balance_cr + int((avg_daily_in - avg_daily_out) * days_left)
+        reply = (f"At your current pace (+{int(avg_daily_in)}/d, "
+                 f"-{int(avg_daily_out)}/d), you'll have ~{end_credits} credits "
+                 f"in 30 days (~₹{end_credits//CREDITS_PER_INR}).")
+
+    elif low.startswith("/cashback"):
+        cmd = "cashback"
+        reply = ("Top cashback opportunities right now: Swiggy One (+25cr), "
+                 "Razorpay UPI top-ups (+10cr), and Uber rides flat 5%. "
+                 "Open Deals to claim.")
+        actions = [{"label": "Open Deals", "action": "navigate", "url": "/deals"}]
+
+    elif low.startswith("/alert"):
+        cmd = "alert"
+        try:
+            amt = int("".join(c for c in msg if c.isdigit())) or 200
+        except Exception:
+            amt = 200
+        reply = (f"Got it — I'll alert you when balance drops below ₹{amt}. "
+                 "(Auto-topup can be enabled too in the Add Money tab.)")
+
+    elif low.startswith("/split"):
+        cmd = "split"
+        digits = [int(x) for x in msg.split() if x.isdigit()]
+        amt = digits[0] if digits else 1000
+        n = digits[1] if len(digits) >= 2 else 4
+        per = round(amt / max(n, 1))
+        reply = (f"Split ₹{amt:,} between {n} people = ₹{per:,} each. "
+                 f"Send a UPI request to each? I can draft a message.")
+
+    elif low.startswith("/dispute"):
+        cmd = "dispute"
+        reply = ("To dispute a transaction, open History → tap the row → "
+                 "'Report issue'. Most disputes resolve in 5-7 working days.")
+
+    elif low.startswith("/tax"):
+        cmd = "tax"
+        reply = (f"Hi {name} — based on the last FY's wallet activity you've "
+                 "spent on courses (80C eligible up to ₹1.5L) and mentor "
+                 "sessions. Generate the formal 80C statement from the "
+                 "History tab → Export.")
+        actions = [{"label": "Export 80C statement", "action": "navigate",
+                    "url": "/wallet?tab=history&export=80c"}]
+
+    else:
+        # General chat — give a tier nudge
+        thresholds = [("Silver", 100), ("Gold", 500), ("Platinum", 1500)]
+        nxt = next(((n, t) for n, t in thresholds if balance_cr < t), None)
+        if nxt:
+            reply = (f"Hi {name}! You have {balance_cr} credits "
+                     f"(~₹{balance_inr}). You're {nxt[1] - balance_cr} away "
+                     f"from {nxt[0]}. Try /credit-plan for a fast path.")
+        else:
+            reply = (f"Hi {name}! You have {balance_cr} credits — top tier already. "
+                     "Try /spend to see your last 30 days, or /forecast to project ahead.")
+
+    return {
+        "reply": reply, "cmd": cmd,
+        "cards": cards, "actions": actions,
+        "context": {"balance_credits": balance_cr, "balance_inr": balance_inr,
+                     "lifetime_earned": lifetime,
+                     "totals_30d": {"in": total_in, "out": total_out}},
+    }
+
+
+# ─── Credit Redemptions ──────────────────────────────────────────────────
+REWARD_CATALOG = [
+    {"id": "free_mentor",      "title": "Free Mentor Session",
+     "desc": "Redeem for a 30-min free session", "cost": 200, "tone": "teal", "hot": True},
+    {"id": "event_pass",       "title": "Free Event Pass",
+     "desc": "Entry to any paid workshop/event", "cost": 100, "tone": "indigo", "hot": True},
+    {"id": "profile_boost",    "title": "Profile Boost",
+     "desc": "Featured in mentor discovery for 7 days", "cost": 75, "tone": "orange", "hot": False},
+    {"id": "deal_extra_5",     "title": "Extra 5% Deal Discount",
+     "desc": "On top of existing SA deal discount", "cost": 50, "tone": "green", "hot": False},
+    {"id": "gold_badge",       "title": "Gold Member Badge",
+     "desc": "Exclusive gold profile badge for 30 days", "cost": 150, "tone": "gold", "hot": False},
+    {"id": "rental_credit",    "title": "Rental Credit ₹200",
+     "desc": "₹200 off on any SA rental booking", "cost": 80, "tone": "pink", "hot": True},
+]
+
+
+@router.get("/wallet/rewards")
+async def list_rewards(user: dict = Depends(_get_current_user_dependency())):
+    return {"rewards": REWARD_CATALOG}
+
+
+@router.post("/wallet/redeem")
+async def redeem_credits(body: Dict[str, Any], user: dict = Depends(_get_current_user_dependency())):
+    rid = (body or {}).get("reward_id")
+    reward = next((r for r in REWARD_CATALOG if r["id"] == rid), None)
+    if not reward:
+        raise HTTPException(404, "Reward not found")
+    cost = int(reward["cost"])
+    cur_bal = int((user.get("wallet") or {}).get("balance_credits", 0))
+    if cur_bal < cost:
+        raise HTTPException(400, f"Insufficient credits: need {cost}, have {cur_bal}")
+    code = f"SA-{uuid.uuid4().hex[:8].upper()}"
+    # Deduct credits
+    await _db.users.update_one(
+        {"_id": user["_id"]},
+        {"$inc": {"wallet.balance_credits": -cost,
+                  "wallet.lifetime_redeemed": cost}})
+    # Log event (append-only)
+    await _db.credit_events.insert_one({
+        "user_id": str(user["_id"]),
+        "activity_type": "redemption",
+        "category": "redeem",
+        "amount": -cost,
+        "description": f"Redeemed: {reward['title']}",
+        "metadata": {"reward_id": rid, "code": code},
+        "created_at": datetime.now(timezone.utc),
+    })
+    return {"ok": True, "code": code, "reward": reward,
+            "new_balance": cur_bal - cost}

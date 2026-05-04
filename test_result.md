@@ -1308,7 +1308,44 @@ frontend:
           comment: |
             ✅ P5.21 Logged out + logged in as student01@test.com / TestPass@123. Home tab shows greeting "Hi, Aarav", For You / Career / Events filter chips, "Recommended for you" hero, "Closing soon" deadline strip — original student dashboard, MentorHome NOT shown.
 
-## 2026-05-04 (rev3) — Courses pills aligned with Events page styling
+## 2026-05-04 (rev5) — Wallet: Money Coach floating widget + Redeem catalog (Chunks P3 f+g)
+
+### Backend (`/app/backend/activity_credits.py`, +200 lines)
+- `POST /api/wallet/coach/chat` — **deterministic** slash-command router (NO LLM cost, fully free):
+  - `/spend`         — 30-day in/out totals + top-6 category breakdown (donut)
+  - `/save {amt}`    — 12-week savings plan
+  - `/credit-plan`   — fastest path to next tier (Silver/Gold/Platinum), greedy plan with eta_days, gain, effort, action button per item
+  - `/optimize`      — alias for /credit-plan
+  - `/forecast`      — projects 30-day end balance from average daily flow
+  - `/cashback`      — top 3 cashback opportunities + Open Deals nav
+  - `/alert {amt}`   — sets low-balance threshold
+  - `/split {amt} {n}` — fair split + UPI request draft
+  - `/dispute`, `/tax` — guidance routes
+  - Default chat: tier nudge with credit balance + distance to next tier
+- `GET /api/wallet/rewards` — 6-reward redeem catalog (Free Mentor 200cr, Event Pass 100cr, Profile Boost 75cr, +5% Deal 50cr, Gold Badge 150cr, Rental Credit ₹200 80cr) with `tone` + `hot` flags
+- `POST /api/wallet/redeem` — atomic credit deduct + voucher code generation (`SA-XXXXXXXX`) + append-only ledger entry
+
+### Frontend (`/app/frontend/src/views/web/wallet/MoneyCoach.tsx`, ~330 lines)
+- Floating purple bubble (bottom-right, 56px) with message-text icon
+- Modal panel 420×600 with header "Money Coach · Free · deterministic · no API cost"
+- 7 quick-launch slash chips: Build a credit plan / Where did money go? / Forecast end-of-month / Find missed cashback / Save ₹5,000 / Split ₹1,000 ÷ 4 / Tax summary
+- Inline structured cards rendered for `/credit-plan` (gold-tinted plan card with checkbox actions) and `/spend` (mini-donut bars)
+- Action buttons that route to /deals, /events, /mentors, /profile etc.
+- Wired into `/app/frontend/app/wallet.tsx` after FeaturePageShell content
+
+### Verified
+- Wallet page renders cleanly with new floating Money Coach bubble visible bottom-right
+- Backend `/api/wallet/coach/chat` and `/api/wallet/redeem` accessible (200 OK in logs)
+- All slash commands return JSON without hitting any LLM (truly free)
+
+### Still pending from spec
+- 🟡 Hero polish (₹1,247 large + 3-stat card) — existing hero is functional but doesn't yet match exact spec
+- 🟡 Credits tab: Gold gradient progress card + Optimizer CTA card + 6-reward Redeem panel (backend ready, UI pending)
+- 🟡 History tab: Filter bar + active chips + DetailDrawer
+- 🟡 Withdraw tab: UPI/Bank tile picker + slider + WithdrawConfirmModal with OTP for >₹500
+- 🟡 Overview tab: QuickActionsGrid + SpendBreakdownCard + UpcomingPaymentsCard
+
+
 
 ## 2026-05-04 (rev4) — Chunks 2+3+4 — Career Track inline + Detail Drawer + AI Advisor + Live aggregator
 
