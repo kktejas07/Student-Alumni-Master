@@ -52,6 +52,11 @@ export function DashboardView() {
     ? `/student/dashboard?student_email=${encodeURIComponent(authUser.email)}`
     : '/student/dashboard';
   const { data } = usePortalData<typeof STUDENT_MOCK>(dashPath, STUDENT_MOCK);
+  // NexusOS Intelligence Center — live sparklines/area-chart/activity feed
+  const intelPath = authUser?.email
+    ? `/student/intelligence?student_email=${encodeURIComponent(authUser.email)}`
+    : '/student/intelligence';
+  const { data: intel } = usePortalData<any>(intelPath, null as any, 60_000);
   // Live counters polled every 15s so users can SEE auto-refresh working
   const { data: live } = usePortalData<any>('/live/counters', null as any, 15_000);
   const STUDENT = data!.student;
@@ -72,19 +77,18 @@ export function DashboardView() {
   const isPhone = width < 768;
   const isDesktop = width >= 1280;
 
-  // ── NexusOS Intelligence Center — student-relevant mock arrays ──
-  // (TODO: wire to backend in next pass — see /api/student/intelligence)
-  const NX_SPARK_APPS    = [3, 5, 4, 7, 6, 9, 11, 10, 13, 15, 14, 18];
-  const NX_SPARK_VIEWS   = [120, 132, 128, 145, 158, 170, 165, 182, 190, 205, 218, 234];
-  const NX_SPARK_MATCH   = [62, 64, 63, 66, 68, 70, 72, 71, 74, 76, 78, 81];
-
-  const NX_AUDIENCE: AreaPoint[] = [
+  // ── NexusOS Intelligence Center — wired to /api/student/intelligence ──
+  // (See backend portals.py @router.get("/student/intelligence"))
+  // Falls back to deterministic mock arrays during initial load.
+  const FALLBACK_SPARK_APPS    = [3, 5, 4, 7, 6, 9, 11, 10, 13, 15, 14, 18];
+  const FALLBACK_SPARK_VIEWS   = [120, 132, 128, 145, 158, 170, 165, 182, 190, 205, 218, 234];
+  const FALLBACK_SPARK_MATCH   = [62, 64, 63, 66, 68, 70, 72, 71, 74, 76, 78, 81];
+  const FALLBACK_AUDIENCE: AreaPoint[] = [
     { m: 'Jan', v: 32 }, { m: 'Feb', v: 41 }, { m: 'Mar', v: 38 },
     { m: 'Apr', v: 56 }, { m: 'May', v: 62 }, { m: 'Jun', v: 78 },
     { m: 'Jul', v: 95 }, { m: 'Aug', v: 112 }, { m: 'Sep', v: 134 },
   ];
-
-  const NX_ACTIVITY: ActivityItem[] = [
+  const FALLBACK_ACTIVITY: ActivityItem[] = [
     {
       title: 'Application Submitted', sub: 'Stripe • Software Engineer Intern',
       amount: '+1', amountTone: 'positive', time: '12m ago',
@@ -95,39 +99,53 @@ export function DashboardView() {
       amount: null, amountTone: null, time: '1h ago',
       icon: 'account-tie-voice-outline', tint: NX.purple, bgTint: 'rgba(168,85,247,0.15)',
     },
-    {
-      title: 'Course Milestone Reached', sub: 'System Design • Module 4 of 6',
-      amount: null, amountTone: null, time: '3h ago',
-      icon: 'trophy-outline', tint: NX.amber, bgTint: 'rgba(245,158,11,0.15)',
-    },
-    {
-      title: 'Profile Score Updated', sub: 'Skills + Projects re-scored',
-      amount: '+4 pts', amountTone: 'positive', time: '5h ago',
-      icon: 'chart-line-variant', tint: NX.cyan, bgTint: 'rgba(6,182,212,0.15)',
-    },
   ];
+
+  const k = intel?.kpis;
+  const NX_AUDIENCE: AreaPoint[] = (intel?.momentum?.data as AreaPoint[]) || FALLBACK_AUDIENCE;
+  const NX_ACTIVITY: ActivityItem[] = (intel?.activity as ActivityItem[]) || FALLBACK_ACTIVITY;
+  const momentumTitle: string = intel?.momentum?.title || 'Career Momentum';
+  const momentumSubtitle: string = intel?.momentum?.subtitle || 'Profile views per month — last 9 months';
 
   const NX_KPIS: (KpiSpark | KpiRing)[] = [
     {
-      kind: 'spark', label: 'Applications Sent', value: '18',
-      numeric: 18, icon: 'briefcase-outline', accent: NX.blue,
-      trend: { value: '12.5%', positive: true }, spark: NX_SPARK_APPS,
+      kind: 'spark',
+      label: k?.applications?.label || 'Applications Sent',
+      value: String(k?.applications?.value ?? 18),
+      numeric: Number(k?.applications?.value ?? 18),
+      icon: 'briefcase-outline', accent: NX.blue,
+      trend: k?.applications?.trend || { value: '12.5%', positive: true },
+      spark: (k?.applications?.spark as number[]) || FALLBACK_SPARK_APPS,
     },
     {
-      kind: 'spark', label: 'Profile Views', value: '234', numeric: 234,
+      kind: 'spark',
+      label: k?.views?.label || 'Profile Views',
+      value: String(k?.views?.value ?? 234),
+      numeric: Number(k?.views?.value ?? 234),
       icon: 'eye-outline', accent: NX.purple,
-      trend: { value: '8.2%', positive: true }, spark: NX_SPARK_VIEWS,
+      trend: k?.views?.trend || { value: '8.2%', positive: true },
+      spark: (k?.views?.spark as number[]) || FALLBACK_SPARK_VIEWS,
     },
     {
-      kind: 'spark', label: 'Avg Match Score', value: '81%', numeric: 81, suffix: '%',
+      kind: 'spark',
+      label: k?.match?.label || 'Avg Match Score',
+      value: `${k?.match?.value ?? 81}%`,
+      numeric: Number(k?.match?.value ?? 81),
+      suffix: k?.match?.suffix || '%',
       icon: 'lightning-bolt', accent: NX.cyan,
-      trend: { value: '4.1%', positive: true }, spark: NX_SPARK_MATCH,
+      trend: k?.match?.trend || { value: '4.1%', positive: true },
+      spark: (k?.match?.spark as number[]) || FALLBACK_SPARK_MATCH,
     },
     {
-      kind: 'ring', label: 'Profile Completion', value: 'On Track',
+      kind: 'ring',
+      label: k?.completion?.label || 'Profile Completion',
+      value: 'On Track',
       icon: 'account-check-outline', accent: NX.blue,
-      ringPct: typeof PROFILE_COMPLETION?.score === 'number' ? PROFILE_COMPLETION.score : 78,
-      metaLine: 'Last updated: just now',
+      ringPct: Number(
+        k?.completion?.ringPct ??
+        (typeof PROFILE_COMPLETION?.score === 'number' ? PROFILE_COMPLETION.score : 78),
+      ),
+      metaLine: k?.completion?.metaLine || 'Last updated: just now',
     },
   ];
 
@@ -288,8 +306,8 @@ export function DashboardView() {
         }}>
           <AreaChartCard
             delay={400}
-            title="Career Momentum"
-            subtitle="Profile views per month — last 9 months"
+            title={momentumTitle}
+            subtitle={momentumSubtitle}
             data={NX_AUDIENCE}
             color={NX.blue}
           />

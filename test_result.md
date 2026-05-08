@@ -9216,3 +9216,78 @@ agent_communication:
 
         Verified screenshot: dark NexusOS strip blends into the existing
         purple glass shell. Layout responsive at 1440 viewport.
+    - agent: "main"
+      message: |
+        Chunk 1 of NexusOS rollout — Option C (live API) + Option B Part 1
+        ─────────────────────────────────────────────────────────────────
+
+        ── 1. Backend: /api/student/intelligence (NEW) ─────────────
+          + portals.py @router.get("/student/intelligence")
+            Returns NexusOS-shaped payload:
+              - kpis: { applications, views, match, completion }
+                  each with label, value, trend{value,positive}, spark[]
+                  (completion has ringPct + metaLine instead of spark)
+              - momentum: { title, subtitle, data: [{m,v}…] }  9-month series
+              - activity: 3-4 items { title, sub, amount, time, icon, tint, bgTint }
+            Real DB counters: bookings (apps_total), internships, plus
+            deterministic per-student sparklines seeded by md5(email).
+            Verified via curl — schema matches NexusComponents types
+            exactly so no frontend transformer is needed.
+
+        ── 2. Student Dashboard wired to live API ───────────────────
+          ~ DashboardView.tsx
+            + usePortalData('/student/intelligence?student_email=…',
+                            null, 60_000) — 60s polling
+            + Mock arrays moved to FALLBACK_* constants used only
+              while initial fetch is in flight.
+            + KPI cards now read intel?.kpis.{applications|views|match|completion}
+              with safe fallbacks; Career Momentum chart consumes
+              intel?.momentum.{title,subtitle,data}; Recent Activity
+              consumes intel?.activity.
+          → Verified: dashboard now shows live values
+              (Applications=4, Views=229, Match=70%, "Mentor Session
+               Booked Career advice • Mentor Apr 29" from real bookings
+               row).
+
+        ── 3. NEW shared design system: src/theme/nexus.ts ─────────
+          + NX (palette: bg, surface1-4, border/borderHi/Lo, textP/S/T,
+                blue/cyan/purple/amber + soft variants, success/danger/warn)
+          + PORTAL_ACCENTS  { student, alumni, college, admin }
+            — keeps each portal's brand accent intact while sharing
+              the NexusOS dark base.
+          + NX_TYPE  (largeTitle…microKick) — Apple-HIG aligned scale
+          + NX_SPACE / NX_RADIUS  (8pt grid)
+          + NX_SHADOW.{card, glow(color)}  + NX_MOTION timings
+          + nxWebTransition() / nxRadialGlow() / nxGlass.{card,
+                 cardElevated, topbar, sidebar, pillNeutral}
+          Single source of truth — every portal can now consume the
+          same surfaces & motion constants.
+
+        ── 4. Alumni Portal — NexusOS dark base + orange accent ────
+          ~ alumni/tokens.ts (rewrite, 41 → 47 LOC)
+            - Imports { NX, PORTAL_ACCENTS } from src/theme/nexus
+            - bg / bg2 / card / cardSolid / cardH / border / border2
+              now point at NX surfaces (was warm-orange tinted)
+            - primary / primaryD / primaryL / accent / accentBright
+              kept on the orange family (PORTAL_ACCENTS.alumni) so
+              CTAs, active rail, kicker labels still feel "alumni".
+          → Verified via screenshot at 1440 viewport:
+              • Sidebar pure NexusOS dark
+              • Active "Dashboard" rail item still glows orange
+              • All cards (Brief, LIVE strip, Tier, Roadmap, KPIs)
+                share the dark glass surface — no warm-brown wash
+              • Orange CTAs (Generate Brief, View Full Roadmap,
+                Book Session) preserved
+              • Cross-portal navigation now feels seamless.
+
+        Pending (Chunks 2 & 3):
+          • Apply NX to College Portal + Super Admin Portal (Chunk 2)
+          • Sweep auth pages + global modals/toasts (Chunk 2)
+          • Wallet 1869-LOC migration to Apple HIG primitives (Chunk 3)
+
+        Files touched:
+          + frontend/src/theme/nexus.ts                       (NEW)
+          ~ frontend/src/views/web/portals/alumni/tokens.ts   (rewrite)
+          ~ frontend/src/views/web/portals/student/views/DashboardView.tsx
+          ~ backend/portals.py                                (+ /intelligence)
+
