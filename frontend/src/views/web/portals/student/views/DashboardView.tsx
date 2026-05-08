@@ -16,7 +16,7 @@ import {
   Sparkles, Briefcase, BookOpen, Users, TrendingUp, Calendar, MapPin,
   Star, ArrowRight, Check, ExternalLink,
 } from '../iconShims';
-import { SC, FONTS } from '../tokens';
+import { SC, FONTS, useColors } from '../tokens';
 import { GRADS } from '../gradients';
 import { FadeInView, Stagger, PressScale, SparkIcon, ShimmerGradient, AnimatedRingFill } from '../motion';
 import { Av, Badge, KpiCard } from '../atoms';
@@ -40,6 +40,8 @@ const STUDENT_MOCK = {
 };
 
 export function DashboardView() {
+  // Theme-reactive colors (Apple HIG light + dark)
+  const C = useColors();
   // Authenticated user — drives per-user dashboard data.
   const authUser = useAuthStore((u) => u.user);
   const dashPath = authUser?.email
@@ -68,14 +70,14 @@ export function DashboardView() {
     <View style={{ gap: 16 }}>
       {/* AI Daily Brief banner — shimmer aura behind hero icon */}
       <FadeInView delay={20}>
-      <View style={s.briefRow}>
-        <View style={s.briefIcon}>
+      <View style={[s.briefRow, { backgroundColor: C.card, borderColor: C.border }]}>
+        <View style={[s.briefIcon, { backgroundColor: C.cardH }]}>
           <ShimmerGradient colors={GRADS.brandGlow} duration={4200} />
-          <SparkIcon Icon={Sparkles} size={18} color={SC.accentBright} />
+          <SparkIcon Icon={Sparkles} size={18} color={C.accentBright} />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.briefTitle}>AI Daily Brief</Text>
-          <Text style={s.briefSub}>{briefText || 'Your personalised morning summary'}</Text>
+          <Text style={[s.briefTitle, { color: C.text }]}>AI Daily Brief</Text>
+          <Text style={[s.briefSub, { color: C.muted }]}>{briefText || 'Your personalised morning summary'}</Text>
           {!!briefProvider && !!briefText && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
               <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
@@ -122,7 +124,7 @@ export function DashboardView() {
 
       {/* TIER BANNER — glowing badge + score + tier-driven suggestions */}
       {STUDENT.tier && (
-        <View style={s.tierCard}>
+        <View style={[s.tierCard, { backgroundColor: C.card, borderColor: C.border }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
             <TierBadge tier={STUDENT.tier.tier} size="lg" />
             <View style={{ flex: 1, minWidth: 0 }}>
@@ -154,7 +156,7 @@ export function DashboardView() {
       )}
 
       {/* AI Career Assistant Roadmap */}
-      <View style={s.roadmapCard}>
+      <View style={[s.roadmapCard, { backgroundColor: C.card, borderColor: C.border }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14 }}>
           <Sparkles size={13} color={SC.accent} />
           <Text style={s.kicker}>AI CAREER ASSISTANT · PERSONALISED ROADMAP</Text>

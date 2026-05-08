@@ -15,6 +15,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { ThemeProvider, useTheme } from '@/src/theme/ThemeContext';
 import { useBreakpoint } from '@/src/theme/breakpoints';
 import { SP } from '@/src/theme/apple';
+import { ToastProvider } from '@/src/motion/apple/toast';
 
 import { Sidebar, StudentNavId } from './Sidebar';
 import { TopBar } from './TopBar';
@@ -38,11 +39,13 @@ import HigherEducationPage from '@/app/higher-education';
 import DealsPage from '@/app/deals';
 import WalletPage from '@/app/wallet';
 
-/** Public component — wraps the inner shell with the theme provider. */
+/** Public component — wraps the inner shell with theme + toast providers. */
 export function StudentPortalRN() {
   return (
     <ThemeProvider>
-      <PortalShell />
+      <ToastProvider>
+        <PortalShell />
+      </ToastProvider>
     </ThemeProvider>
   );
 }

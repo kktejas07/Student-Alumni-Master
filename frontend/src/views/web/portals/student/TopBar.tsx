@@ -12,8 +12,9 @@
  * Accepts optional `scrolled` prop from the portal shell so the glass
  * blur can react to scroll without re-rendering the whole tree.
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, Platform, Image } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Bell, Search } from './iconShims';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { STUDENT } from './data';
@@ -81,7 +82,7 @@ export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
           </FadeInView>
         )}
 
-        {/* Theme toggle — sun / moon / auto */}
+        {/* Theme toggle — sun ↔ moon morph (Apple-style rotation + scale) */}
         <FadeInView delay={160}>
           <PressScale
             style={[s.iconBtn, { backgroundColor: theme.bgInset, borderColor: theme.hairline }]}
@@ -89,11 +90,7 @@ export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
             accessibilityLabel={`Theme: ${mode}. Tap to cycle.`}
             accessibilityHint="Switches between light, dark, and automatic"
           >
-            <MaterialCommunityIcons
-              name={mode === 'light' ? 'weather-sunny' : mode === 'dark' ? 'weather-night' : 'theme-light-dark'}
-              size={16}
-              color={theme.text}
-            />
+            <ThemeMorphIcon mode={mode} color={theme.text} />
           </PressScale>
         </FadeInView>
 
@@ -142,3 +139,33 @@ const s = StyleSheet.create({
     borderRadius: 6, padding: 1.5,
   },
 });
+
+/* ─── ThemeMorphIcon — animated sun ↔ moon morph ──────────────────── */
+function ThemeMorphIcon({ mode, color }: { mode: 'light' | 'dark' | 'system'; color: string }) {
+  const target = mode === 'light' ? 0 : mode === 'dark' ? 1 : 0.5;
+  const v = useSharedValue(target);
+  useEffect(() => {
+    v.value = withSpring(target, { damping: 16, stiffness: 220 });
+  }, [target, v]);
+
+  // Sun visible when v ≈ 0 (light), moon when v ≈ 1 (dark), both half-fade for system
+  const aSun = useAnimatedStyle(() => ({
+    opacity: 1 - v.value,
+    transform: [{ rotate: `${v.value * -90}deg` }, { scale: 1 - v.value * 0.2 }],
+  }));
+  const aMoon = useAnimatedStyle(() => ({
+    opacity: v.value,
+    transform: [{ rotate: `${(1 - v.value) * 90}deg` }, { scale: 0.8 + v.value * 0.2 }],
+  }));
+
+  return (
+    <View style={{ width: 16, height: 16, alignItems: 'center', justifyContent: 'center' }}>
+      <Animated.View style={[{ position: 'absolute' }, aSun]}>
+        <MaterialCommunityIcons name="weather-sunny" size={16} color={color} />
+      </Animated.View>
+      <Animated.View style={[{ position: 'absolute' }, aMoon]}>
+        <MaterialCommunityIcons name="weather-night" size={16} color={color} />
+      </Animated.View>
+    </View>
+  );
+}
