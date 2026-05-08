@@ -93,18 +93,22 @@ type Summary = {
 };
 
 // ─── Constants ───────────────────────────────────────────────────────────
+// Pulls from the shared NexusOS palette (theme/nexus.ts) so the wallet
+// surface aligns with every other portal. The translucent overlays are
+// kept (slightly raised for AA contrast on the dark NexusOS canvas).
+import { NX, NX_RADIUS, NX_SPACE } from '@/src/theme/nexus';
 const C = {
-  text: '#fff',
-  text2: 'rgba(255,255,255,0.72)',
-  text3: 'rgba(255,255,255,0.46)',
-  border: 'rgba(255,255,255,0.10)',
+  text:    NX.textP,
+  text2:   'rgba(255,255,255,0.72)',
+  text3:   'rgba(255,255,255,0.50)',
+  border:  NX.borderHi,                   // 'rgba(255,255,255,0.10)'
   borderHi: 'rgba(255,255,255,0.20)',
-  card: 'rgba(255,255,255,0.06)',
-  cardHi: 'rgba(255,255,255,0.10)',
-  good: '#34D399',
-  bad: '#F87171',
-  accent: '#A78BFA',
-  warn: '#F59E0B',
+  card:    NX.surface2,                   // '#121218'
+  cardHi:  NX.surface3,                   // '#1A1A22'
+  good:    NX.success,                    // '#10B981' (was #34D399)
+  bad:     NX.danger,
+  accent:  NX.purple,                     // '#A855F7'
+  warn:    NX.warning,
 };
 
 const CATEGORY_META: Record<string, { label: string; icon: IconName; color: string }> = {
@@ -238,7 +242,7 @@ export default function WalletScreen() {
 
   if (loading) {
     return (
-      <FeaturePageShell title="Wallet" subtitle="Your SA Credits + earnings" heroEmoji="💰" accent="#5F259F">
+      <FeaturePageShell title="Wallet" subtitle="Your SA Credits + earnings" heroEmoji="💰" accent={NX.purple}>
         <View style={s.loaderBox}>
           <ActivityIndicator color="#A78BFA" size="large" />
           <Text style={s.loaderText}>Loading your wallet…</Text>
@@ -252,7 +256,7 @@ export default function WalletScreen() {
       title="Wallet"
       subtitle="Earn credits by being active. Convert to ₹ when you cross the threshold."
       heroEmoji="💰"
-      accent="#5F259F"
+      accent={NX.purple}
       rightSlot={headerRight}
     >
       {errorMsg ? (

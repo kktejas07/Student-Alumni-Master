@@ -61,8 +61,10 @@ export const NX = {
 export const PORTAL_ACCENTS = {
   student: { primary: NX.blue,   primaryD: '#1D4ED8', primaryL: '#60A5FA', accent: NX.cyan,   accentSoft: NX.cyanSoft   },
   alumni:  { primary: '#F97316', primaryD: '#C2410C', primaryL: '#FB923C', accent: '#FDBA74', accentSoft: 'rgba(253,186,116,0.18)' },
-  college: { primary: '#10B981', primaryD: '#047857', primaryL: '#34D399', accent: '#6EE7B7', accentSoft: 'rgba(16,185,129,0.18)' },
-  admin:   { primary: '#A855F7', primaryD: '#7E22CE', primaryL: '#C084FC', accent: '#E879F9', accentSoft: 'rgba(168,85,247,0.18)' },
+  // College keeps its established indigo + cyan identity
+  college: { primary: '#6366F1', primaryD: '#4338CA', primaryL: '#818CF8', accent: '#22D3EE', accentSoft: 'rgba(34,211,238,0.18)' },
+  // Super Admin pivots to purple (premium/elevated feel) — distinct from alumni's orange
+  admin:   { primary: NX.purple, primaryD: '#7E22CE', primaryL: '#C084FC', accent: '#FBBF24', accentSoft: NX.amberSoft },
 } as const;
 
 export type PortalKey = keyof typeof PORTAL_ACCENTS;

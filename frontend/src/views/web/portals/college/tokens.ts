@@ -1,38 +1,50 @@
 /**
- * College Admin Portal — design tokens (dark navy + teal/indigo accent).
+ * College Admin Portal — design tokens (NexusOS dark glass + indigo accent).
+ *
+ * Adopts shared NexusOS palette (deep neutrals, glass surfaces) and
+ * layers the established indigo+cyan college identity on top so cross-
+ * portal navigation feels seamless. Surfaces match every other portal.
  */
+import { NX, PORTAL_ACCENTS } from '@/src/theme/nexus';
+
+const A = PORTAL_ACCENTS.college;
+
 export const CC = {
-  bg: '#0A0A0F',
-  bg2: '#15151E',
-  card: '#1C1C28',
-  cardSolid: '#1C1C28',
-  cardH: '#262636',
+  // NexusOS deep surfaces
+  bg:        NX.bg,
+  bg2:       NX.surface1,
+  card:      NX.surface2,
+  cardSolid: NX.surface3,
+  cardH:     NX.surface3,
 
-  border: 'rgba(255,255,255,0.06)',
-  border2: 'rgba(99,102,241,0.30)',
+  border:    NX.border,
+  border2:   NX.borderHi,
 
-  primary: '#6366F1',          // indigo
-  primaryD: '#4338CA',
-  primaryL: '#818CF8',
-  accent: '#22D3EE',            // cyan
+  // College accent identity (indigo + cyan)
+  primary:   A.primary,        // 500
+  primaryD:  A.primaryD,       // 700
+  primaryL:  A.primaryL,       // 400
+  accent:    A.accent,         // cyan accent
   accentBright: '#67E8F9',
-  accent2: '#A78BFA',           // purple highlight
+  accent2:   NX.purple,        // purple highlight
 
-  text: 'rgba(255,255,255,0.92)',
-  muted: 'rgba(255,255,255,0.55)',
-  dim: 'rgba(255,255,255,0.30)',
+  // Text on dark NexusOS surface
+  text:  NX.textP,
+  muted: 'rgba(255,255,255,0.66)',
+  dim:   'rgba(255,255,255,0.46)',
 
-  green: '#22C55E',
-  amber: '#F59E0B',
-  red: '#EF4444',
-  blue: '#3B82F6',
-  pink: '#EC4899',
+  // Status / utility
+  green:  NX.success,
+  amber:  NX.amber,
+  red:    NX.danger,
+  blue:   NX.blue,
+  pink:   '#EC4899',
   orange: '#F97316',
 } as const;
 
 export const FONTS = {
-  bold: 'DMSans_700Bold',
-  semi: 'DMSans_600SemiBold',
-  med: 'DMSans_500Medium',
+  bold:  'DMSans_700Bold',
+  semi:  'DMSans_600SemiBold',
+  med:   'DMSans_500Medium',
   xbold: 'DMSans_800ExtraBold',
 };

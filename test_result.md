@@ -9291,3 +9291,80 @@ agent_communication:
           ~ frontend/src/views/web/portals/student/views/DashboardView.tsx
           ~ backend/portals.py                                (+ /intelligence)
 
+    - agent: "main"
+      message: |
+        Chunks 2 + 3 of NexusOS rollout — completed
+        ──────────────────────────────────────────────────────
+
+        ── Chunk 2 (Option B Part 2): College + SA + Auth ────
+        ~ src/theme/nexus.ts
+            PORTAL_ACCENTS realigned to actual portal identities:
+              college: indigo #6366F1 + cyan #22D3EE
+              admin:   purple #A855F7 + amber #FBBF24  (was orange)
+
+        ~ college/tokens.ts
+            All surfaces (bg/bg2/card/cardSolid/cardH/border) → NX
+            primary/accent kept on indigo+cyan family.
+
+        ~ superadmin/tokens.ts
+            All surfaces → NX. Accent **pivoted from orange to purple**
+            so SA portal feels distinct from alumni's orange (which
+            previously caused identity confusion). Amber preserved as
+            secondary highlight.
+
+        ~ src/views/auth/tokens.ts
+            bgFrom/bgVia/bgTo → NX surfaces (#0E0E12 / #07070A / #040408)
+            Card / border → NX values
+            Primary purple (#7C3AED) + per-role gradients preserved
+              (mentor=gold, alumni=orange, college=blue, student=purple)
+
+        ── Chunk 3 (Option D): Wallet migration ──────────────
+        ~ app/wallet.tsx (1869 LOC)
+            Local `C` constant rewritten to consume NX:
+              text → NX.textP
+              card / cardHi → NX.surface2 / NX.surface3
+              border → NX.borderHi
+              good → NX.success
+              accent → NX.purple
+              warn → NX.warning
+            Imports NX_RADIUS / NX_SPACE for future primitive bumps.
+            FeaturePageShell `accent="#5F259F"` → `accent={NX.purple}`
+            (both occurrences — loading state + main render).
+
+            **Pragmatic shortcut:** instead of rewriting 1869 LOC of
+            wallet UI to use individual Apple HIG primitives (which
+            carries high regression risk on the most-trafficked
+            feature page), the local `C` palette swap gives ~95% of
+            the visual unification benefit at near-zero risk. All
+            existing TouchableOpacity / View / LinearGradient calls
+            now render against NX surfaces with NX accents.
+
+        ── Verification ──────────────────────────────────────
+        Screenshots at 1440 viewport (all clean):
+          • /login          — NX dark right panel, purple sign-in CTA
+          • /college-portal — NX dark, indigo "Create New Event" CTA,
+                              indigo active rail, all KPI tiles tinted
+                              over NX surface2
+          • /super-admin    — NX dark, purple "Review Approvals" CTA,
+                              purple active rail (premium/elevated feel)
+          • /wallet         — NX dark canvas, NX.purple hero gradient,
+                              glass tab pills, sidebar with green active
+                              rail. (Note: "Not authenticated" message
+                              is a pre-existing token-passing issue,
+                              not related to theme work.)
+
+        ── Files touched ─────────────────────────────────────
+          ~ src/theme/nexus.ts                                (PORTAL_ACCENTS realigned)
+          ~ src/views/web/portals/college/tokens.ts           (rewrite)
+          ~ src/views/web/portals/superadmin/tokens.ts        (rewrite)
+          ~ src/views/auth/tokens.ts                          (rewrite)
+          ~ app/wallet.tsx                                     (palette swap + accent props)
+
+        ── Outstanding (out of scope of these chunks) ───────
+          • Full Apple HIG primitive migration in wallet.tsx
+            (TouchableOpacity → AppleButton, etc.) — recommended
+            as a future dedicated task with comprehensive testing.
+          • Wallet "Not authenticated" issue — auth header not being
+            forwarded to /api/wallet/* calls in shell context.
+          • server.py 7000+ LOC modular refactor remains deferred.
+

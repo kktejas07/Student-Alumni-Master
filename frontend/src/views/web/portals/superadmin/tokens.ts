@@ -1,38 +1,50 @@
 /**
- * Super Admin Portal — design tokens (warm dark + amber accent).
+ * Super Admin Portal — design tokens (NexusOS dark glass + purple accent).
+ *
+ * Pivots from the old warm-orange to a premium purple identity so it
+ * feels distinct from the alumni orange portal while still using the
+ * shared NexusOS dark glass surfaces. Amber preserved as secondary.
  */
+import { NX, PORTAL_ACCENTS } from '@/src/theme/nexus';
+
+const A = PORTAL_ACCENTS.admin;
+
 export const SAC = {
-  bg: '#0F0A05',
-  bg2: '#1A1207',
-  card: '#241910',
-  cardSolid: '#241910',
-  cardH: '#2E2014',
+  // NexusOS deep surfaces
+  bg:        NX.bg,
+  bg2:       NX.surface1,
+  card:      NX.surface2,
+  cardSolid: NX.surface3,
+  cardH:     NX.surface3,
 
-  border: 'rgba(255,255,255,0.06)',
-  border2: 'rgba(249,115,22,0.30)',
+  border:    NX.border,
+  border2:   NX.borderHi,
 
-  primary: '#F97316',         // orange
-  primaryD: '#C2410C',
-  primaryL: '#FB923C',
-  accent: '#FBBF24',           // amber
+  // Super Admin accent identity (purple + amber)
+  primary:   A.primary,        // purple 500
+  primaryD:  A.primaryD,       // 700
+  primaryL:  A.primaryL,       // 400
+  accent:    A.accent,         // amber
   accentBright: '#FCD34D',
 
-  text: 'rgba(255,255,255,0.92)',
-  muted: 'rgba(255,255,255,0.55)',
-  dim: 'rgba(255,255,255,0.30)',
+  // Text on dark NexusOS surface
+  text:  NX.textP,
+  muted: 'rgba(255,255,255,0.66)',
+  dim:   'rgba(255,255,255,0.46)',
 
-  green: '#22C55E',
-  amber: '#F59E0B',
-  red: '#EF4444',
-  blue: '#3B82F6',
-  purple: '#A78BFA',
-  pink: '#EC4899',
-  teal: '#14B8A6',
+  // Status / utility
+  green:  NX.success,
+  amber:  NX.amber,
+  red:    NX.danger,
+  blue:   NX.blue,
+  purple: NX.purple,
+  pink:   '#EC4899',
+  teal:   NX.cyan,
 } as const;
 
 export const FONTS = {
-  bold: 'DMSans_700Bold',
-  semi: 'DMSans_600SemiBold',
-  med: 'DMSans_500Medium',
+  bold:  'DMSans_700Bold',
+  semi:  'DMSans_600SemiBold',
+  med:   'DMSans_500Medium',
   xbold: 'DMSans_800ExtraBold',
 };
