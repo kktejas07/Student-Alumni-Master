@@ -1,17 +1,21 @@
 /**
- * Student Portal — outer shell. All sidebar items render INSIDE this shell.
+ * Student Portal — outer shell.
  *
- * Feature pages (Courses / Rentals / Financial / Higher-Ed / Deals / etc.)
- * are imported as components and rendered inline via EmbeddedShellContext —
- * which makes their inner FeaturePageShell skip its own sidebar/gradient
- * and just render the hero + content. SPA-style navigation, no redirects.
+ * Slice 2A migration: Apple HIG primitives applied.
+ * • Wrapped in <ThemeProvider> so every nested view can call useTheme()
+ * • Shell background follows theme (light #F5F5F7 / dark brand-purple)
+ * • TopBar receives `scrolled` state for glass blur (kicks in past 8px)
+ * • All existing routing, state, props, API calls preserved 1:1
  */
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import { View, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
-import { SC } from './tokens';
+import { ThemeProvider, useTheme } from '@/src/theme/ThemeContext';
+import { useBreakpoint } from '@/src/theme/breakpoints';
+import { SP } from '@/src/theme/apple';
+
 import { Sidebar, StudentNavId } from './Sidebar';
 import { TopBar } from './TopBar';
 import { DashboardView } from './views/DashboardView';
@@ -34,28 +38,46 @@ import HigherEducationPage from '@/app/higher-education';
 import DealsPage from '@/app/deals';
 import WalletPage from '@/app/wallet';
 
+/** Public component — wraps the inner shell with the theme provider. */
 export function StudentPortalRN() {
+  return (
+    <ThemeProvider>
+      <PortalShell />
+    </ThemeProvider>
+  );
+}
+
+function PortalShell() {
   const router = useRouter();
+  const { theme } = useTheme();
+  const bp = useBreakpoint();
   const logout = useAuthStore((sx) => sx.logout);
   const [active, setActive] = useState<StudentNavId>('dashboard');
+  const [scrolled, setScrolled] = useState(false);
 
   const onLogout = async () => {
     try { await logout(); } catch {}
     router.replace('/welcome');
   };
-
-  // All sidebar clicks now render inline — no router.push detours.
   const handleNav = (id: StudentNavId) => setActive(id);
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    setScrolled(e.nativeEvent.contentOffset.y > 8);
+  };
+
+  // Responsive page padding (page padding clamp 16 → 32)
+  const padH = bp.isPhone ? SP.base : bp.atLeast('xl') ? SP.xxl : SP.lg;
 
   return (
-    <View style={s.shell}>
+    <View style={[s.shell, { backgroundColor: theme.bg }]}>
       <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0 }}>
-        <TopBar />
+        <TopBar scrolled={scrolled} />
         <ScrollView
-          style={{ flex: 1, backgroundColor: SC.bg }}
-          contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
+          style={{ flex: 1, backgroundColor: theme.bg }}
+          contentContainerStyle={{ paddingHorizontal: padH, paddingTop: SP.lg, paddingBottom: SP.giga }}
           showsVerticalScrollIndicator={false}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
         >
           <EmbeddedShellContext.Provider value={true}>
             {active === 'dashboard'       && <DashboardView />}
@@ -81,5 +103,5 @@ export function StudentPortalRN() {
 }
 
 const s = StyleSheet.create({
-  shell: { flex: 1, flexDirection: 'row', backgroundColor: SC.bg, height: '100%' as any },
+  shell: { flex: 1, flexDirection: 'row', height: '100%' as any },
 });

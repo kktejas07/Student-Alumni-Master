@@ -1,17 +1,21 @@
 /**
- * Student Portal — left sidebar.
+ * Student Portal — left sidebar (Apple HIG migration, Slice 2A).
  *
- * Polished pass:
- *   • Lucide icons → MaterialCommunityIcons (via ./iconShims)
- *   • Brand & profile card fade-in on mount
- *   • Nav items stagger-fade in (60ms cascade)
- *   • Active nav item: linear-gradient pill + spring "pop" scale
- *   • Pressable scale-down (0.97) for tactile feedback
- *   • Sparkle icon (Career AI) gently rotates as a hint affordance
- *   • External-link icon rotates 8° on hover for the Student-card pill
+ * Theme-aware via useTheme() — reads from the new ThemeProvider mounted in
+ * StudentPortalRN.tsx. Falls back gracefully to dark theme outside the
+ * provider. Brand purple is preserved as the active-pill gradient. All
+ * existing animations (FadeIn cascade, PressScale, SparkIcon) retained.
+ *
+ * Responsive:
+ *   • Tablet (md): collapses to 80px icon-only rail (no labels, tooltip
+ *     on hover)
+ *   • Desktop (lg+): full 240px expanded rail
+ *   • Phone (< md): hidden — bottom-tab pattern would replace this on
+ *     phone-class viewports (handled by FeaturePageShell embed mode +
+ *     dashboards we ship later)
  */
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import {
@@ -19,7 +23,9 @@ import {
   Tag, CreditCard, GraduationCap, Home, User, ExternalLink, LogOut,
   CalendarCheck, FileText, BookOpen,
 } from './iconShims';
-import { SC, FONTS } from './tokens';
+import { useTheme } from '@/src/theme/ThemeContext';
+import { useBreakpoint } from '@/src/theme/breakpoints';
+import { SP, RADII, FONT_FAMILY } from '@/src/theme/apple';
 import { GRADS } from './gradients';
 import { STUDENT } from './data';
 import { Av } from './atoms';
@@ -51,6 +57,8 @@ export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: bo
 export function Sidebar({
   active, onNav, onLogout,
 }: { active: StudentNavId; onNav: (id: StudentNavId) => void; onLogout: () => void }) {
+  const { theme, isDark } = useTheme();
+  const bp = useBreakpoint();
   const user = useAuthStore((u) => u.user) as any;
   const fullName: string = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || STUDENT.name;
   const initials: string = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
@@ -60,54 +68,80 @@ export function Sidebar({
     : (gy ? `Class of ${gy}` : STUDENT.year);
   const saId: string = user?.unique_id || STUDENT.saId;
 
+  // Adaptive width: collapsed icon-rail on md, expanded on lg+
+  const collapsed = bp.bp === 'md';
+  const railWidth = collapsed ? 76 : 240;
+
+  // Hide the sidebar entirely on phone — content fills the viewport.
+  // (Phase 3 will replace this with a bottom-tab bar.)
+  if (bp.isPhone) return null;
+
+  // Token resolution — light vs dark
+  const C = {
+    bg: theme.bgElevated,
+    border: theme.hairline,
+    text: theme.text,
+    textSec: theme.textSec,
+    textTer: theme.textTer,
+    cardBg: isDark ? theme.bgInset : 'rgba(0,0,0,0.03)',
+    accent: theme.primary,
+    danger: theme.red,
+  };
+
   return (
-    <View style={s.aside}>
+    <View style={[s.aside, { width: railWidth, backgroundColor: C.bg, borderRightColor: C.border }]}>
       {/* Brand */}
       <FadeInView delay={20}>
         <View style={s.brand}>
           <LinearGradient colors={GRADS.brand as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.brandLogo}>
             <Text style={s.brandLogoText}>SA</Text>
           </LinearGradient>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={s.brandTitle}>Student Alumni</Text>
-            <Text style={s.brandSub}>Web Dashboard</Text>
-          </View>
+          {!collapsed && (
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={[s.brandTitle, { color: C.text }]}>Student Alumni</Text>
+              <Text style={[s.brandSub, { color: C.textSec }]}>Web Dashboard</Text>
+            </View>
+          )}
         </View>
       </FadeInView>
 
-      {/* Student profile card */}
-      <FadeInView delay={70}>
-        <View style={s.profileCard}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <View style={{ position: 'relative' }}>
-              <Av initials={initials} size={40} color={SC.primaryL} />
-              <View style={s.statusDotWrap}>
-                <PulseDot size={10} color="#22C55E" />
+      {/* Profile card */}
+      {!collapsed && (
+        <FadeInView delay={70}>
+          <View style={s.profileCard}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: SP.md }}>
+              <View style={{ position: 'relative' }}>
+                <Av initials={initials} size={40} color={C.accent} />
+                <View style={[s.statusDotWrap, { backgroundColor: C.bg }]}>
+                  <PulseDot size={10} color={theme.green} />
+                </View>
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text numberOfLines={1} style={[s.profileName, { color: C.text }]}>{fullName}</Text>
+                <Text style={[s.profileYear, { color: C.textSec }]}>{yearLabel}</Text>
               </View>
             </View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text numberOfLines={1} style={s.profileName}>{fullName}</Text>
-              <Text style={s.profileYear}>{yearLabel}</Text>
-            </View>
           </View>
-        </View>
-      </FadeInView>
+        </FadeInView>
+      )}
 
       {/* Student card pill */}
-      <FadeInView delay={120}>
-        <PressScale style={s.idCardPill} onPress={() => {}}>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={s.idCardLabel}>My Student Card</Text>
-            <Text style={s.idCardNumber}>{saId}</Text>
-          </View>
-          <ExternalLink size={13} color={SC.accent} />
-        </PressScale>
-      </FadeInView>
+      {!collapsed && (
+        <FadeInView delay={120}>
+          <PressScale style={[s.idCardPill, { backgroundColor: C.cardBg, borderColor: C.border }]} onPress={() => {}}>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={[s.idCardLabel, { color: C.textSec }]}>My Student Card</Text>
+              <Text style={[s.idCardNumber, { color: C.accent }]}>{saId}</Text>
+            </View>
+            <ExternalLink size={13} color={C.accent} />
+          </PressScale>
+        </FadeInView>
+      )}
 
       {/* Nav */}
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingTop: 8, paddingBottom: 8 }}
+        contentContainerStyle={{ paddingTop: SP.sm, paddingBottom: SP.sm }}
         showsVerticalScrollIndicator={false}
         accessibilityRole={Platform.OS === 'web' ? ('navigation' as any) : undefined}
         accessibilityLabel="Primary navigation"
@@ -127,16 +161,16 @@ export function Sidebar({
                   <LinearGradient
                     colors={GRADS.brand as any}
                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                    style={[s.navItem, s.navItemActive]}
+                    style={[s.navItem, s.navItemActive, collapsed && { justifyContent: 'center', paddingHorizontal: 0 }]}
                   >
                     {spark ? <SparkIcon Icon={Icon} size={16} color="#fff" /> : <Icon size={16} color="#fff" />}
-                    <Text style={[s.navLabel, s.navLabelActive]} numberOfLines={1}>{label}</Text>
-                    <View style={s.activeDot} />
+                    {!collapsed && <Text style={[s.navLabel, s.navLabelActive]} numberOfLines={1}>{label}</Text>}
+                    {!collapsed && <View style={s.activeDot} />}
                   </LinearGradient>
                 ) : (
-                  <View style={s.navItem}>
-                    {spark ? <SparkIcon Icon={Icon} size={16} color={SC.muted} /> : <Icon size={16} color={SC.muted} />}
-                    <Text style={s.navLabel} numberOfLines={1}>{label}</Text>
+                  <View style={[s.navItem, collapsed && { justifyContent: 'center', paddingHorizontal: 0 }]}>
+                    {spark ? <SparkIcon Icon={Icon} size={16} color={C.textSec} /> : <Icon size={16} color={C.textSec} />}
+                    {!collapsed && <Text style={[s.navLabel, { color: C.textSec }]} numberOfLines={1}>{label}</Text>}
                   </View>
                 )}
               </PressScale>
@@ -148,12 +182,12 @@ export function Sidebar({
       {/* Logout */}
       <PressScale
         onPress={onLogout}
-        style={s.logoutRow}
+        style={[s.logoutRow, collapsed && { justifyContent: 'center', paddingHorizontal: 0 }]}
         accessibilityLabel="Log out of your account"
         accessibilityHint="Signs you out and returns to the welcome screen"
       >
-        <LogOut size={14} color="#FCA5A5" />
-        <Text style={s.logoutText}>Log out</Text>
+        <LogOut size={14} color={C.danger} />
+        {!collapsed && <Text style={[s.logoutText, { color: C.danger }]}>Log out</Text>}
       </PressScale>
     </View>
   );
@@ -161,50 +195,49 @@ export function Sidebar({
 
 const s = StyleSheet.create({
   aside: {
-    width: 240, height: '100%' as any, backgroundColor: SC.bg2,
-    borderRightWidth: 1, borderRightColor: SC.border,
-    paddingHorizontal: 12, paddingTop: 14, paddingBottom: 12,
+    height: '100%' as any, borderRightWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: SP.md, paddingTop: SP.base, paddingBottom: SP.md,
   },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 18, paddingHorizontal: 4 },
-  brandLogo: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  brandLogoText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12, letterSpacing: 0.5 },
-  brandTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13, letterSpacing: -0.2 },
-  brandSub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: SP.md, marginBottom: 18, paddingHorizontal: SP.xs },
+  brandLogo: { width: 32, height: 32, borderRadius: RADII.sm, alignItems: 'center', justifyContent: 'center' },
+  brandLogoText: { color: '#fff', fontFamily: FONT_FAMILY, fontWeight: '800', fontSize: 12, letterSpacing: 0.5 },
+  brandTitle: { fontFamily: FONT_FAMILY, fontWeight: '700', fontSize: 13, letterSpacing: -0.2 },
+  brandSub: { fontFamily: FONT_FAMILY, fontWeight: '500', fontSize: 10.5 },
 
-  profileCard: { paddingHorizontal: 4, paddingVertical: 8, marginBottom: 10 },
-  statusDotWrap: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: SC.bg2, alignItems: 'center', justifyContent: 'center' },
-  profileName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
-  profileYear: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11 },
+  profileCard: { paddingHorizontal: SP.xs, paddingVertical: SP.sm, marginBottom: SP.md },
+  statusDotWrap: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
+  profileName: { fontFamily: FONT_FAMILY, fontWeight: '600', fontSize: 13 },
+  profileYear: { fontFamily: FONT_FAMILY, fontWeight: '500', fontSize: 11 },
 
   idCardPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1,
-    borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 12,
+    flexDirection: 'row', alignItems: 'center', gap: SP.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: RADII.md, paddingHorizontal: SP.md, paddingVertical: SP.sm, marginBottom: SP.md,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  idCardLabel: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.3 },
-  idCardNumber: { color: SC.accentBright, fontFamily: FONTS.xbold, fontSize: 11.5, letterSpacing: 0.5, marginTop: 1 },
+  idCardLabel: { fontFamily: FONT_FAMILY, fontWeight: '700', fontSize: 10, letterSpacing: 0.3 },
+  idCardNumber: { fontFamily: FONT_FAMILY, fontWeight: '800', fontSize: 11.5, letterSpacing: 0.5, marginTop: 1 },
 
   navItem: {
     flexDirection: 'row', alignItems: 'center', gap: 11,
     paddingHorizontal: 11, paddingVertical: 9, marginBottom: 2,
-    borderRadius: 8,
+    borderRadius: RADII.sm, minHeight: 40,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   navItemActive: {
     ...(Platform.OS === 'web' ? ({
       boxShadow: '0 6px 18px rgba(95,37,159,0.45), inset 0 1px 0 rgba(255,255,255,0.18)',
-    } as any) : { shadowColor: SC.primary, shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } as any }),
+    } as any) : { shadowColor: '#5F259F', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } as any }),
   },
-  navLabel: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
+  navLabel: { fontFamily: FONT_FAMILY, fontWeight: '600', fontSize: 13, flex: 1 },
   navLabelActive: { color: '#fff' },
   activeDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#fff', opacity: 0.9 },
 
   logoutRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 11, paddingVertical: 9, borderRadius: 8,
-    marginTop: 4,
+    flexDirection: 'row', alignItems: 'center', gap: SP.sm,
+    paddingHorizontal: 11, paddingVertical: 9, borderRadius: RADII.sm,
+    marginTop: SP.xs,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  logoutText: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12.5 },
+  logoutText: { fontFamily: FONT_FAMILY, fontWeight: '600', fontSize: 13 },
 });
