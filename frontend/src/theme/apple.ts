@@ -84,26 +84,35 @@ export const LIGHT = {
   },
 } as const;
 
-// ── Dark theme (preserves Student-Alumni purple) ───────────────────────
+// ── Dark theme — NexusOS palette (near-black canvas, cyan/blue glow) ─
 export const DARK = {
   name: 'dark' as const,
 
-  bg:        '#0D0818',                 // brand-tinted near-black
-  bgElevated:'#1E1037',                 // cards, modals
-  bgGlass:   'rgba(30,16,55,0.72)',     // glass topbar
-  bgInset:   '#15101F',
+  bg:        '#07070A',                 // near-black with hint of blue
+  bgElevated:'#121218',                 // cards, panels (surface-2)
+  bgGlass:   'rgba(14,14,18,0.72)',     // glass topbar
+  bgInset:   '#0E0E12',                 // sidebar, top bar (surface-1)
 
-  text:      'rgba(255,255,255,0.94)',
-  textSec:   'rgba(255,255,255,0.66)',
-  textTer:   'rgba(255,255,255,0.46)',
-  textDis:   'rgba(255,255,255,0.30)',
+  text:      '#F4F4F6',
+  textSec:   '#8A8A95',
+  textTer:   '#5A5A66',
+  textDis:   'rgba(255,255,255,0.20)',
 
-  hairline:  'rgba(255,255,255,0.10)',
-  divider:   'rgba(255,255,255,0.08)',
-  separator: 'rgba(255,255,255,0.14)',
+  hairline:  'rgba(255,255,255,0.06)',
+  divider:   'rgba(255,255,255,0.06)',
+  separator: 'rgba(255,255,255,0.10)',
 
-  primary: BRAND.primaryLight,          // brighter purple pops on dark
-  ...APPLE_SEMANTIC,
+  // NexusOS accents — primary is Apple blue (matches active Dashboard pill);
+  // brand purple is preserved as the `purple` semantic token.
+  primary:  '#3B82F6',
+  blue:     '#3B82F6',
+  green:    '#10B981',
+  red:      '#EF4444',
+  orange:   '#F59E0B',
+  purple:   '#A855F7',
+  pink:     '#EC4899',
+  yellow:   '#FFD60A',
+  teal:     '#06B6D4',           // NexusOS cyan
 
   shadow: {
     sm: { shadowColor: '#000', shadowOpacity: 0.40, shadowRadius: 3,  shadowOffset: { width: 0, height: 1 } },

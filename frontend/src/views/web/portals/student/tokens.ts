@@ -9,31 +9,32 @@
 import { useTheme } from '@/src/theme/ThemeContext';
 
 export const SC = {
-  bg: '#0C0818',
-  bg2: '#130A28',
-  card: 'rgba(95,37,159,0.15)',
-  cardSolid: '#1A0E36',
-  cardH: 'rgba(95,37,159,0.25)',
+  bg:        '#07070A',                 // NexusOS near-black canvas
+  bg2:       '#0E0E12',                 // sidebar / topbar surface-1
+  card:      'rgba(59,130,246,0.08)',   // subtle blue-tinted card
+  cardSolid: '#121218',                 // solid card surface-2
+  cardH:     'rgba(59,130,246,0.14)',   // card hover
 
-  border: 'rgba(176,127,223,0.20)',
-  border2: 'rgba(176,127,223,0.35)',
+  border:    'rgba(255,255,255,0.06)',  // hairline
+  border2:   'rgba(59,130,246,0.30)',   // accent border
 
-  primary: '#5F259F',
-  primaryD: '#3D1468',
-  primaryL: '#7B3DBF',
-  accent: '#A78BFA',
-  accentBright: '#C4B5FD',
+  // Brand purple is preserved as semantic accent
+  primary:      '#3B82F6',              // NexusOS blue
+  primaryD:     '#1E40AF',
+  primaryL:     '#60A5FA',
+  accent:       '#06B6D4',              // NexusOS cyan
+  accentBright: '#67E8F9',
 
-  text: 'rgba(255,255,255,0.94)',
-  muted: 'rgba(255,255,255,0.66)',  /* WCAG bump: was 0.55 → 0.66 (4.7:1 on bg) */
-  dim: 'rgba(255,255,255,0.46)',    /* WCAG bump: was 0.30 → 0.46 (3.4:1 on bg) */
+  text:  '#F4F4F6',                     // NexusOS primary text
+  muted: '#8A8A95',                     // secondary
+  dim:   '#5A5A66',                     // tertiary
 
-  green: '#22C55E',
+  green: '#10B981',
   amber: '#F59E0B',
-  red: '#EF4444',
-  blue: '#3B82F6',
-  teal: '#14B8A6',
-  pink: '#EC4899',
+  red:   '#EF4444',
+  blue:  '#3B82F6',
+  teal:  '#06B6D4',
+  pink:  '#EC4899',
 } as const;
 
 /* ─── Light variant (Apple HIG) — used by useColors() in light mode ── */
