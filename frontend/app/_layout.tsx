@@ -17,6 +17,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { Colors } from '@/src/theme';
 import { ToastProvider } from '@/src/views/components';
 import analytics from '@/src/lib/analytics';
+import { AgentKQuickLauncher } from '@/src/views/web/agent-k/AgentKQuickLauncher';
 
 // Material 3 theme — overrides primary/secondary to brand purple. This means
 // all react-native-paper components (Surface, Card, Button, Ripple) will pick
@@ -96,6 +97,8 @@ export default function RootLayout() {
                 animationDuration: 280,
               }}
             />
+            {/* Agent K — global Cmd/Ctrl+K quick launcher modal */}
+            <AgentKQuickLauncher />
           </ToastProvider>
         </SafeAreaProvider>
       </PaperProvider>

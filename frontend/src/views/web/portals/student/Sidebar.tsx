@@ -15,14 +15,16 @@
  *     dashboards we ship later)
  */
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useSidebarStore } from '@/src/viewmodels/stores/sidebarStore';
 import {
   LayoutDashboard, Sparkles, Briefcase, Users, Calendar, Wallet,
   Tag, CreditCard, GraduationCap, Home, User, ExternalLink, LogOut,
   CalendarCheck, FileText, BookOpen,
 } from './iconShims';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '@/src/theme/ThemeContext';
 import { useBreakpoint } from '@/src/theme/breakpoints';
 import { SP, RADII, FONT_FAMILY } from '@/src/theme/apple';
@@ -30,6 +32,7 @@ import { GRADS } from './gradients';
 import { STUDENT } from './data';
 import { Av } from './atoms';
 import { FadeInView, PressScale, SparkIcon, PulseDot } from './motion';
+import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
 
 export type StudentNavId =
   | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'events'
@@ -68,8 +71,13 @@ export function Sidebar({
     : (gy ? `Class of ${gy}` : STUDENT.year);
   const saId: string = user?.unique_id || STUDENT.saId;
 
-  // Adaptive width: collapsed icon-rail on md, expanded on lg+
-  const collapsed = bp.bp === 'md';
+  // Adaptive width: collapsed icon-rail on md, OR forced-collapsed via store toggle.
+  const userCollapsed = useSidebarStore((s) => s.isCollapsed);
+  const toggleCollapse = useSidebarStore((s) => s.toggle);
+  const hydrate = useSidebarStore((s) => s.hydrate);
+  const hydrated = useSidebarStore((s) => s.hydrated);
+  React.useEffect(() => { if (!hydrated) hydrate(); }, [hydrate, hydrated]);
+  const collapsed = bp.bp === 'md' || userCollapsed;
   const railWidth = collapsed ? 76 : 240;
 
   // Hide the sidebar entirely on phone — content fills the viewport.
@@ -92,7 +100,7 @@ export function Sidebar({
     <View style={[s.aside, { width: railWidth, backgroundColor: C.bg, borderRightColor: C.border }]}>
       {/* Brand */}
       <FadeInView delay={20}>
-        <View style={s.brand}>
+        <View style={[s.brand, collapsed && { justifyContent: 'center' }]}>
           <LinearGradient colors={GRADS.brand as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.brandLogo}>
             <Text style={s.brandLogoText}>SA</Text>
           </LinearGradient>
@@ -102,6 +110,27 @@ export function Sidebar({
               <Text style={[s.brandSub, { color: C.textSec }]}>Web Dashboard</Text>
             </View>
           )}
+          {/* Collapse toggle — visible at every breakpoint above phone */}
+          <Pressable
+            onPress={toggleCollapse}
+            accessibilityRole="button"
+            accessibilityLabel={userCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-expanded={!userCollapsed}
+            style={({ hovered }: any) => ([
+              s.collapseBtn,
+              {
+                borderColor: C.border,
+                backgroundColor: hovered && Platform.OS === 'web' ? C.cardBg : 'transparent',
+              },
+              collapsed && { position: 'absolute', right: -10, top: 4 },
+            ])}
+          >
+            <MaterialCommunityIcons
+              name={userCollapsed ? 'chevron-right' : 'chevron-left'}
+              size={14}
+              color={C.textSec}
+            />
+          </Pressable>
         </View>
       </FadeInView>
 
@@ -137,6 +166,11 @@ export function Sidebar({
           </PressScale>
         </FadeInView>
       )}
+
+      {/* Agent K launcher — sits ABOVE the main nav */}
+      <FadeInView delay={150}>
+        <AgentKLauncher collapsed={collapsed} />
+      </FadeInView>
 
       {/* Nav */}
       <ScrollView
@@ -198,7 +232,12 @@ const s = StyleSheet.create({
     height: '100%' as any, borderRightWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: SP.md, paddingTop: SP.base, paddingBottom: SP.md,
   },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: SP.md, marginBottom: 18, paddingHorizontal: SP.xs },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: SP.md, marginBottom: 18, paddingHorizontal: SP.xs, position: 'relative' },
+  collapseBtn: {
+    width: 24, height: 24, borderRadius: 12, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
+  },
   brandLogo: { width: 32, height: 32, borderRadius: RADII.sm, alignItems: 'center', justifyContent: 'center' },
   brandLogoText: { color: '#fff', fontFamily: FONT_FAMILY, fontWeight: '800', fontSize: 12, letterSpacing: 0.5 },
   brandTitle: { fontFamily: FONT_FAMILY, fontWeight: '700', fontSize: 13, letterSpacing: -0.2 },

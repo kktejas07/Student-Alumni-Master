@@ -9368,3 +9368,119 @@ agent_communication:
             forwarded to /api/wallet/* calls in shell context.
           • server.py 7000+ LOC modular refactor remains deferred.
 
+    - agent: "main"
+      message: |
+        ✦ Chunk 1 of Agent K rollout — MVP complete ✦
+        ─────────────────────────────────────────────────────────────
+
+        ── Backend (NEW: agent_k.py, 380 LOC) ────────────────────────
+        Tool registry (TOOL_REGISTRY):
+          • read tools (ENABLED): search_jobs, get_wallet_balance,
+            search_mentors, search_courses, get_profile
+          • write/spend/submit/communicate tools (DEFINED, DISABLED):
+            draft_application, tailor_cv_for_job, draft_sop, draft_message,
+            add_money_to_wallet, withdraw_to_upi, book_mentor_session,
+            submit_application, send_message
+        Endpoints (all under /api):
+          POST /agent-k/run                  — plan a run via Claude (JSON output)
+          POST /agent-k/runs/{id}/execute    — run all approved steps
+          POST /agent-k/runs/{id}/cancel
+          GET  /agent-k/runs                 — user's recent runs
+          GET  /agent-k/runs/{id}            — single run + audit log
+          GET  /agent-k/templates            — pre-built automations catalog
+          GET  /agent-k/preferences          — auto-approve settings
+          PATCH /agent-k/preferences
+          GET  /user/preferences             — for sidebar collapse persistence
+          PATCH /user/preferences
+        Mongo collections:
+          agent_runs, agent_k_prefs (auto-created on first write).
+        Auth: JWT decoded (HS256, JWT_SECRET env). Verified working via
+        curl with token from /api/auth/login.
+
+        Claude integration: emergentintegrations.LlmChat → claude-sonnet-4-5
+        with structured-prompt JSON output (planner system prompt
+        forces { summary, steps[{tool,args,rationale}], requires_clarification }).
+        After execution we call Claude again for a friendly summary.
+
+        Verified end-to-end with `curl + python3`:
+          prompt = "Find 3 SWE internships in India"
+          → Claude planned: search_jobs(role='SWE intern', location='India', limit=3)
+          → Tool ran: returned 0 items (correct — no DB matches)
+          → Claude summary: "I searched for SWE internships in India,
+             but unfortunately didn't find any results... try alternative
+             titles like Software Developer Intern."
+
+        ── Frontend (5 NEW files + 2 EDITED) ─────────────────────────
+        + src/viewmodels/stores/sidebarStore.ts      Zustand. Hydrated from
+            AsyncStorage + GET /user/preferences. Cmd/Ctrl+B keyboard
+            shortcut (web). Mirror to PATCH /user/preferences on toggle.
+        + src/viewmodels/stores/agentKStore.ts        Zustand. Tracks
+            activeRun + quickLauncherOpen. Cmd/Ctrl+K shortcut (web)
+            opens the modal; Escape closes.
+        + src/views/web/agent-k/AgentKLauncher.tsx     Sidebar feature
+            card (gradient violet→cyan, BETA pill, pulsing ring,
+            Cmd+K hint). Collapsed-mode = 48px circle with same
+            gradient + pulse. Click → router.push('/agent-k').
+        + src/views/web/agent-k/AgentKQuickLauncher.tsx Cmd+K modal:
+            backdrop blur, gradient icon tile, autofocus input,
+            5 suggestion chips, footer "Enter to run · Esc to close".
+            Submitting routes to /agent-k?prompt=…&autorun=1.
+        + app/agent-k.tsx                             3-column workspace:
+            • LEFT  AutomationCatalog (templates grouped by module,
+                    one-click run)
+            • CENTER AgentKSession (empty state with hero + big input,
+                    or active session: user bubble → Plan card with
+                    timed pill + warn banner + numbered StepCards
+                    [pending/running/completed/failed/skipped status
+                    pills] → Approve & run / Cancel footer → final
+                    success summary card)
+            • RIGHT  ExecutionLog (chronological tool-call history
+                    with monospace timestamps + status colour-coded)
+
+        Sidebar (Student) updates:
+        ~ src/views/web/portals/student/Sidebar.tsx
+            + CollapseToggle button (chevron-left / chevron-right) in
+              brand row, top-right edge. aria-expanded wired.
+            + Reads useSidebarStore for `userCollapsed` and
+              hydrates on mount. `collapsed = bp.md || userCollapsed`.
+            + AgentKLauncher rendered after Student-Card pill,
+              ABOVE the main nav (per spec §3.1 placement).
+
+        Global mount:
+        ~ app/_layout.tsx — AgentKQuickLauncher placed inside the
+            ToastProvider so Cmd/Ctrl+K works from every screen.
+
+        ── Spec items DONE in Chunk 1 ────────────────────────────────
+          ✓ Sidebar collapse 264 ⟷ 72 with persisted user preference
+          ✓ Cmd/Ctrl+B toggle shortcut (web)
+          ✓ Agent K sidebar launcher with gradient + pulse + BETA pill
+          ✓ Collapsed-state launcher (48px circle)
+          ✓ Cmd/Ctrl+K Quick Launcher modal with suggestion chips
+          ✓ /agent-k 3-column workspace (catalog · session · log)
+          ✓ AutomationCatalog with module-grouped templates from API
+          ✓ Plan preview before execution (numbered steps + ETA pill)
+          ✓ Read-only tool execution end-to-end (5 tools)
+          ✓ Final summary card via Claude
+          ✓ Tools defined for write/spend/submit/communicate
+            (DISABLED — physically blocked by `enabled: false` flag
+             in TOOL_REGISTRY; Chunk 3 will wire approval UX)
+
+        ── Spec items DEFERRED to Chunks 2 & 3 ───────────────────────
+          • Sidebar collapse + Agent K launcher in Alumni / College / Mentor portals
+          • Approval cards for spend/submit/communicate
+          • /agent-k/settings auto-approve preferences UI
+          • /agent-k/runs history page + audit log viewer
+          • Scheduled (cron) automations
+          • SSE streaming (currently uses request → execute polling)
+
+        ── Files touched ─────────────────────────────────────────────
+          + backend/agent_k.py                                 (NEW, 380 LOC)
+          ~ backend/server.py                                  (+1 router include)
+          + frontend/src/viewmodels/stores/sidebarStore.ts     (NEW)
+          + frontend/src/viewmodels/stores/agentKStore.ts      (NEW)
+          + frontend/src/views/web/agent-k/AgentKLauncher.tsx  (NEW)
+          + frontend/src/views/web/agent-k/AgentKQuickLauncher.tsx (NEW)
+          + frontend/app/agent-k.tsx                            (NEW, 3-col workspace)
+          ~ frontend/app/_layout.tsx                            (mount QuickLauncher)
+          ~ frontend/src/views/web/portals/student/Sidebar.tsx  (collapse + AgentKLauncher)
+
