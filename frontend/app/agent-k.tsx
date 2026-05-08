@@ -378,13 +378,26 @@ function StepCard({ index, step, exec }: { index: number; step: PlanStep; exec?:
         {step.rationale ? <Text style={s.stepRationale}>{step.rationale}</Text> : null}
         {argSummary ? <Text style={s.stepArgs}>{argSummary}</Text> : null}
         {exec?.error && <Text style={s.stepError}>{exec.error}</Text>}
-        {exec?.result && (
-          <Text style={s.stepResult}>
-            {typeof exec.result === 'object'
-              ? `Returned ${exec.result.count ?? Object.keys(exec.result).length} item${(exec.result.count || 0) === 1 ? '' : 's'}`
-              : String(exec.result)}
-          </Text>
-        )}
+        {exec?.result && (() => {
+          const r = exec.result;
+          // Write-tool drafts: show the body / message / summary / draft preview
+          const draftText = (r.body || r.message || r.summary || r.draft || '').toString();
+          if (draftText) {
+            return (
+              <View style={s.draftBox}>
+                <Text style={s.draftLabel}>DRAFT GENERATED</Text>
+                <Text style={s.draftText} numberOfLines={6}>{draftText}</Text>
+                {r.draft_id ? <Text style={s.stepArgs}>id: {r.draft_id}</Text> : null}
+              </View>
+            );
+          }
+          // Read-tool list: show an item count
+          if (typeof r === 'object') {
+            const n = r.count ?? (Array.isArray(r.results) ? r.results.length : Object.keys(r).length);
+            return <Text style={s.stepResult}>Returned {n} item{n === 1 ? '' : 's'}</Text>;
+          }
+          return <Text style={s.stepResult}>{String(r)}</Text>;
+        })()}
       </View>
     </View>
   );
@@ -533,6 +546,12 @@ const s = StyleSheet.create({
   },
   stepError: { color: NX.danger, fontFamily: FONT, fontSize: 11, marginTop: 4 },
   stepResult: { color: NX.success, fontFamily: FONT, fontSize: 11, marginTop: 4 },
+  draftBox: {
+    marginTop: 8, padding: 10, borderRadius: 10,
+    backgroundColor: NX.surface3, borderWidth: 1, borderColor: NX.border,
+  },
+  draftLabel: { color: NX.cyan, fontFamily: FONT, fontSize: 9, fontWeight: '700', letterSpacing: 1.4, marginBottom: 4 },
+  draftText: { color: NX.textP, fontFamily: FONT, fontSize: 12, lineHeight: 17 },
 
   // Final summary
   summaryCard: {

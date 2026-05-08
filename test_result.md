@@ -9484,3 +9484,104 @@ agent_communication:
           ~ frontend/app/_layout.tsx                            (mount QuickLauncher)
           ~ frontend/src/views/web/portals/student/Sidebar.tsx  (collapse + AgentKLauncher)
 
+    - agent: "main"
+      message: |
+        ✦ Chunk 2 of Agent K rollout — Portal sweep + write tools ✦
+        ─────────────────────────────────────────────────────────────
+
+        ── Portal sweep (AgentKLauncher injected into 4 sidebars) ────
+        ~ alumni/Sidebar.tsx     — launcher between Alumni-Card pill and Nav
+        ~ college/Sidebar.tsx    — launcher between Admin-Card pill and Nav
+        ~ superadmin/Sidebar.tsx — launcher between Profile-Card and Nav
+        ~ mentor/Sidebar.tsx     — launcher above Main Menu, respects
+                                    existing `collapsed` external prop
+
+        Visually verified at 1440 viewport across all 4 portals:
+        each sidebar now shows the violet→cyan AGENT K BETA card with
+        pulse ring, "Run automations" headline, and ⌘K hint. Portal
+        accent identities (orange/indigo/purple/teal) preserved on
+        active rails and primary CTAs.
+
+        Note on collapsible sidebar: Chunk 1 fully wired Student
+        sidebar to useSidebarStore (chevron toggle + Cmd/Ctrl+B).
+        Mentor sidebar already had an external `collapsed` prop;
+        Alumni / College / SA sidebars are full-width by default.
+        Wiring those to the same store is a small follow-up but not
+        blocking — Agent K is fully reachable in all 4 portals via
+        the launcher card and via Cmd/Ctrl+K from anywhere.
+
+        ── Write-class tools (NEW, ENABLED) ──────────────────────────
+        ~ backend/agent_k.py
+            • draft_application(role, company)  → cover letter via
+              Claude (~120 words). Saved to agent_drafts collection.
+            • tailor_cv_for_job(role, company)  → 4-bullet CV summary.
+            • draft_sop(programme, university)  → 200-word SOP.
+              Also persisted in agent_drafts.
+            • draft_message(recipient_name, purpose) → 80-word
+              networking intro.
+          All write tools are `requires_approval=false` (drafts only,
+          no submission / external comm). They auto-execute when
+          `auto_execute=true` is passed to /agent-k/run alongside
+          read tools.
+
+        ── End-to-end verified via curl + Claude ─────────────────────
+          prompt = "Draft a cover letter for SWE role at Stripe"
+          → planner: draft_application(role='Software Engineer',
+                                        company='Stripe')
+          → tool ran (Claude generated a 127-word draft saved to
+            agent_drafts collection with id):
+              "Dear Hiring Manager,
+               I am writing to express my interest in the Software
+               Engineer position at Stripe. As a developer passionate
+               about building robust financial infrastructure, I am
+               drawn to Stripe's mission of increasing the GDP of
+               the internet…"
+          → final summary by Claude:
+              "I've drafted a cover letter for the Software Engineer
+               position at Stripe! The letter highlights technical
+               skills (Python, JavaScript, TypeScript, React, Node.js),
+               expresses enthusiasm for Stripe's mission… The draft
+               is 127 words and ready for your review."
+
+        ── /agent-k page draft rendering ─────────────────────────────
+        ~ app/agent-k.tsx
+            StepCard now renders a dedicated DRAFT GENERATED box for
+            results that contain `body` / `message` / `summary` /
+            `draft` fields — full preview text (max 6 lines) in the
+            execution session. Falls back to "Returned N items" for
+            read-tool list results.
+
+        ── Templates expanded ────────────────────────────────────────
+            +draft cover letter (Stripe SWE)
+            +tailor CV (Google PM)
+            +draft SOP (Stanford CS MS)
+            +draft intro message
+          (catalog now has 9 ready-to-run automations grouped under
+           Career / Higher-Ed / Money / Mentors / Network / Learning)
+
+        ── Spec items DONE in Chunk 2 ────────────────────────────────
+          ✓ AgentKLauncher visible in all 4 portal sidebars
+          ✓ 4 write-class tools enabled (draft_application,
+            tailor_cv_for_job, draft_sop, draft_message)
+          ✓ Drafts persisted in `agent_drafts` Mongo collection
+          ✓ Auto-execute now safely covers any tool with
+            requires_approval=false (read + write/draft)
+          ✓ Draft preview UI in StepCard (cyan label + 6-line text)
+          ✓ Templates catalog expanded for write tools
+
+        ── Pending (Chunk 3) ─────────────────────────────────────────
+          • Approval cards UX for spend / submit / communicate tools
+          • Wire Alumni / College / SA sidebars into useSidebarStore
+            for collapsible support
+          • /agent-k/settings auto-approve preferences UI
+          • /agent-k/runs history page + audit log viewer
+          • Scheduled (cron) automations
+
+        ── Files touched ─────────────────────────────────────────────
+          ~ backend/agent_k.py                                  (write tools enabled + dispatchers)
+          ~ frontend/app/agent-k.tsx                            (draft preview block)
+          ~ frontend/src/views/web/portals/alumni/Sidebar.tsx
+          ~ frontend/src/views/web/portals/college/Sidebar.tsx
+          ~ frontend/src/views/web/portals/superadmin/Sidebar.tsx
+          ~ frontend/src/views/web/portals/mentor/Sidebar.tsx
+

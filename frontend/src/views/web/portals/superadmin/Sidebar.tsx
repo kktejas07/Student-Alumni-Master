@@ -10,6 +10,7 @@ import {
 import { SAC, FONTS } from './tokens';
 import { ADMIN } from './data';
 import { Av, Badge } from './atoms';
+import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
 
 export type SuperAdminNavId =
   | 'overview' | 'colleges' | 'students' | 'mentors' | 'alumni' | 'events'
@@ -55,6 +56,9 @@ export function Sidebar({
           <ExternalLink size={13} color={SAC.muted} />
         </View>
       </View>
+
+      {/* Agent K launcher (Chunk 2 — super admin) */}
+      <AgentKLauncher />
 
       {/* Nav */}
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 4, paddingBottom: 8 }} showsVerticalScrollIndicator={false}>

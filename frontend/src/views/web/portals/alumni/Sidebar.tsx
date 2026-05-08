@@ -18,6 +18,7 @@ import { GRADS } from './gradients';
 import { STUDENT } from './data';
 import { Av } from './atoms';
 import { FadeInView, PressScale, SparkIcon, PulseDot } from './motion';
+import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
 
 export type StudentNavId =
   | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'events'
@@ -98,6 +99,11 @@ export function Sidebar({
           </View>
           <ExternalLink size={13} color={SC.accent} />
         </PressScale>
+      </FadeInView>
+
+      {/* Agent K launcher — sits above the main nav (Chunk 2) */}
+      <FadeInView delay={140}>
+        <AgentKLauncher />
       </FadeInView>
 
       {/* Nav */}

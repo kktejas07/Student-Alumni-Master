@@ -10,6 +10,7 @@ import {
 import { CC, FONTS } from './tokens';
 import { COLLEGE } from './data';
 import { Av, Badge } from './atoms';
+import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
 
 export type CollegeNavId =
   | 'dashboard' | 'students' | 'alumni' | 'mentors' | 'events' | 'create-event'
@@ -67,6 +68,9 @@ export function Sidebar({
         </View>
         <ExternalLink size={13} color={CC.accentBright} />
       </Pressable>
+
+      {/* Agent K launcher (Chunk 2 — college portal) */}
+      <AgentKLauncher />
 
       {/* Nav */}
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 6, paddingBottom: 8 }} showsVerticalScrollIndicator={false}>

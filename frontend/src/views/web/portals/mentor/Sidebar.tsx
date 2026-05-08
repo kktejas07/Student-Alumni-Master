@@ -12,6 +12,7 @@ import {
 } from 'lucide-react-native';
 import { MC, FONTS } from './tokens';
 import { MENTOR } from './data';
+import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
 
 export type NavId = 'dashboard'|'students'|'sessions'|'requests'|'network'|'earnings'|'feedback'|'event'|'availability'|'profile'|'ai-studio';
 
@@ -96,6 +97,9 @@ export function Sidebar({
           </View>
         )}
       </View>
+
+      {/* Agent K launcher (Chunk 2 — mentor portal) */}
+      <AgentKLauncher collapsed={collapsed} />
 
       {/* Main nav */}
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: collapsed ? 4 : 6, paddingVertical: 4 }}>

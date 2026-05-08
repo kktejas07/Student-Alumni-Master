@@ -116,11 +116,39 @@ TOOL_REGISTRY: Dict[str, Dict[str, Any]] = {
         "description": "Get the user's own profile (skills, tier, career goal, year).",
         "parameters": {"type": "object", "properties": {}},
     },
-    # ── Write/Spend/Submit/Communicate (DISABLED in Chunk 1) ──────
-    "draft_application":      {"module": "jobs",       "side_effect": "write",       "requires_approval": False, "enabled": False, "description": "Draft a job application (does not submit).", "parameters": {"type": "object"}},
-    "tailor_cv_for_job":      {"module": "jobs",       "side_effect": "write",       "requires_approval": False, "enabled": False, "description": "Tailor user's CV for a specific job.",         "parameters": {"type": "object"}},
-    "draft_sop":              {"module": "higher-ed",  "side_effect": "write",       "requires_approval": False, "enabled": False, "description": "Draft a Statement of Purpose.",                 "parameters": {"type": "object"}},
-    "draft_message":          {"module": "network",    "side_effect": "write",       "requires_approval": False, "enabled": False, "description": "Draft a message to a connection.",              "parameters": {"type": "object"}},
+    # ── Write tools (Chunk 2: ENABLED — generate drafts only, no submission) ──
+    "draft_application": {
+        "module": "jobs", "side_effect": "write", "requires_approval": False, "enabled": True,
+        "description": "Draft a job application cover letter for a specific role. Stores draft, does NOT submit.",
+        "parameters": {"type": "object", "properties": {
+            "role":    {"type": "string", "description": "Job title"},
+            "company": {"type": "string", "description": "Company name"},
+        }},
+    },
+    "tailor_cv_for_job": {
+        "module": "jobs", "side_effect": "write", "requires_approval": False, "enabled": True,
+        "description": "Tailor a short CV summary for a specific role.",
+        "parameters": {"type": "object", "properties": {
+            "role":    {"type": "string"},
+            "company": {"type": "string"},
+        }},
+    },
+    "draft_sop": {
+        "module": "higher-ed", "side_effect": "write", "requires_approval": False, "enabled": True,
+        "description": "Draft a Statement of Purpose for a programme.",
+        "parameters": {"type": "object", "properties": {
+            "programme":  {"type": "string"},
+            "university": {"type": "string"},
+        }},
+    },
+    "draft_message": {
+        "module": "network", "side_effect": "write", "requires_approval": False, "enabled": True,
+        "description": "Draft a connection / introduction message.",
+        "parameters": {"type": "object", "properties": {
+            "recipient_name": {"type": "string"},
+            "purpose":        {"type": "string"},
+        }},
+    },
     "add_money_to_wallet":    {"module": "wallet",     "side_effect": "spend",       "requires_approval": True,  "enabled": False, "description": "Top up the wallet via UPI.",                    "parameters": {"type": "object"}},
     "withdraw_to_upi":        {"module": "wallet",     "side_effect": "spend",       "requires_approval": True,  "enabled": False, "description": "Withdraw earned credits.",                       "parameters": {"type": "object"}},
     "book_mentor_session":    {"module": "mentors",    "side_effect": "spend",       "requires_approval": True,  "enabled": False, "description": "Book a mentor session.",                         "parameters": {"type": "object"}},
@@ -225,12 +253,101 @@ async def _tool_get_profile(args: dict, user: dict) -> dict:
     }
 
 
+async def _generate_text(prompt: str, system: str = "You are a helpful drafting assistant.") -> str:
+    """Helper: ask Claude to generate a short piece of text and return it raw."""
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+    except ImportError:
+        return "(LLM unavailable in this environment.)"
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        return "(EMERGENT_LLM_KEY missing.)"
+    chat = (
+        LlmChat(api_key=api_key, session_id=f"agentk-draft-{uuid4().hex[:8]}", system_message=system)
+        .with_model("anthropic", "claude-sonnet-4-5-20250929")
+    )
+    try:
+        return ((await chat.send_message(UserMessage(text=prompt))) or "").strip()
+    except Exception as e:
+        return f"(Draft generation failed: {e})"
+
+
+async def _tool_draft_application(args: dict, user: dict) -> dict:
+    role = args.get("role") or "the role"
+    company = args.get("company") or "the company"
+    skills = ", ".join((user.get("skills") or [])[:5]) or "various technical skills"
+    goal = (user.get("student_info") or {}).get("career_goal") or "starting a strong career"
+    name = user.get("full_name") or "the applicant"
+    text = await _generate_text(
+        f"Write a concise, professional cover-letter draft (about 120 words) "
+        f"for {name} applying to {role} at {company}. Skills to highlight: {skills}. "
+        f"Career goal: {goal}. Tone: confident but humble. Do not invent companies "
+        f"or projects. Sign off with 'Best regards,' and the name.",
+        system="You are an expert career-coach drafting cover letters.",
+    )
+    sid = str(user.get("_id"))
+    saved = await _db.agent_drafts.insert_one({
+        "user_id": sid, "kind": "cover_letter", "role": role, "company": company,
+        "body": text, "created_at": datetime.now(timezone.utc),
+    })
+    return {"draft_id": str(saved.inserted_id), "body": text, "word_count": len(text.split())}
+
+
+async def _tool_tailor_cv_for_job(args: dict, user: dict) -> dict:
+    role = args.get("role") or "the role"
+    company = args.get("company") or "the company"
+    skills = ", ".join((user.get("skills") or [])[:8]) or "—"
+    text = await _generate_text(
+        f"Write a 4-bullet CV summary tailored for {role} at {company}. "
+        f"Skills to emphasise: {skills}. Use strong action verbs. Each bullet ~14-20 words.",
+        system="You are an expert resume writer.",
+    )
+    return {"summary": text}
+
+
+async def _tool_draft_sop(args: dict, user: dict) -> dict:
+    programme = args.get("programme") or "the programme"
+    university = args.get("university") or "the university"
+    skills = ", ".join((user.get("skills") or [])[:5]) or "—"
+    goal = (user.get("student_info") or {}).get("career_goal") or "advancing my career"
+    text = await _generate_text(
+        f"Draft a Statement of Purpose (about 200 words) for applying to {programme} at "
+        f"{university}. Background skills: {skills}. Long-term goal: {goal}. "
+        f"Style: scholarly, specific, motivated. Avoid clichés.",
+        system="You are an admissions essay coach.",
+    )
+    sid = str(user.get("_id"))
+    saved = await _db.agent_drafts.insert_one({
+        "user_id": sid, "kind": "sop", "programme": programme, "university": university,
+        "body": text, "created_at": datetime.now(timezone.utc),
+    })
+    return {"draft_id": str(saved.inserted_id), "body": text, "word_count": len(text.split())}
+
+
+async def _tool_draft_message(args: dict, user: dict) -> dict:
+    recipient = args.get("recipient_name") or "the recipient"
+    purpose = args.get("purpose") or "to introduce myself"
+    name = user.get("full_name") or "Student"
+    text = await _generate_text(
+        f"Draft a polite ~80-word LinkedIn-style intro message from {name} "
+        f"to {recipient}. Purpose: {purpose}. Tone: warm, confident, low-pressure. "
+        f"Do NOT include a subject line. End with 'Looking forward to connecting.'",
+        system="You are a professional networking coach.",
+    )
+    return {"message": text}
+
+
 _TOOL_DISPATCH = {
     "search_jobs":         _tool_search_jobs,
     "get_wallet_balance":  _tool_get_wallet_balance,
     "search_mentors":      _tool_search_mentors,
     "search_courses":      _tool_search_courses,
     "get_profile":         _tool_get_profile,
+    # Write tools — generate drafts using Claude (Chunk 2)
+    "draft_application":   _tool_draft_application,
+    "tailor_cv_for_job":   _tool_tailor_cv_for_job,
+    "draft_sop":           _tool_draft_sop,
+    "draft_message":       _tool_draft_message,
 }
 
 
@@ -405,9 +522,10 @@ async def create_run(body: RunRequest, authorization: Optional[str] = Header(Non
     res = await _db.agent_runs.insert_one(run_doc)
     run_id = str(res.inserted_id)
 
-    # If user explicitly asked auto-execute and plan is all read-only, run now.
+    # If user explicitly asked auto-execute and plan has no approval-required tools, run now.
+    # (read + write/draft tools are safe; spend/submit/communicate require explicit approval.)
     if body.auto_execute and plan["steps"] and all(
-        TOOL_REGISTRY.get(s.get("tool", ""), {}).get("side_effect") == "read"
+        not TOOL_REGISTRY.get(s.get("tool", ""), {}).get("requires_approval", True)
         for s in plan["steps"]
     ):
         await _execute_run(run_id, user)
@@ -535,12 +653,15 @@ async def get_run(run_id: str, authorization: Optional[str] = Header(None)):
 async def get_templates():
     """Pre-built automation templates grouped by SA module."""
     return {"templates": [
-        {"module": "Career",         "icon": "briefcase-search-outline",   "title": "Find top SWE internships",            "prompt": "Search the top 5 SWE internships in India that match my profile and show me details."},
-        {"module": "Career",         "icon": "file-document-edit-outline", "title": "Audit my resume vs current goal",      "prompt": "Get my profile and identify 3 missing skills for my career goal."},
-        {"module": "Money",          "icon": "wallet-outline",             "title": "Wallet snapshot",                       "prompt": "Show me my current wallet balance, lifetime earnings and tier."},
-        {"module": "Mentors",        "icon": "account-tie-voice-outline",  "title": "Find React mentors",                    "prompt": "Find 5 mentors with React or frontend expertise and list their rates."},
-        {"module": "Learning",       "icon": "book-open-page-variant",     "title": "Free system-design courses",            "prompt": "Find 5 free courses on system design."},
-        {"module": "Networking",     "icon": "account-multiple-plus",      "title": "Alumni at Google",                      "prompt": "Find 5 mentors who work at Google or other FAANG companies."},
+        {"module": "Career",     "icon": "briefcase-search-outline",   "title": "Find top SWE internships",            "prompt": "Search the top 5 SWE internships in India that match my profile and show me details."},
+        {"module": "Career",     "icon": "file-document-edit-outline", "title": "Audit my profile vs goal",             "prompt": "Get my profile and identify 3 missing skills for my career goal."},
+        {"module": "Career",     "icon": "email-edit-outline",         "title": "Draft cover letter (Stripe SWE)",      "prompt": "Draft a cover letter for a Software Engineer role at Stripe."},
+        {"module": "Career",     "icon": "file-edit-outline",          "title": "Tailor CV for Google PM",              "prompt": "Tailor a CV summary for a Product Manager role at Google."},
+        {"module": "Higher-Ed",  "icon": "school-outline",             "title": "Draft SOP for Stanford CS MS",         "prompt": "Draft a Statement of Purpose for the MS in Computer Science programme at Stanford University."},
+        {"module": "Money",      "icon": "wallet-outline",             "title": "Wallet snapshot",                       "prompt": "Show me my current wallet balance, lifetime earnings and tier."},
+        {"module": "Mentors",    "icon": "account-tie-voice-outline",  "title": "Find React mentors",                    "prompt": "Find 5 mentors with React or frontend expertise and list their rates."},
+        {"module": "Network",    "icon": "message-draw",               "title": "Draft message to a senior alum",        "prompt": "Draft a short LinkedIn intro message to Suresh Rao asking for career advice."},
+        {"module": "Learning",   "icon": "book-open-page-variant",     "title": "Free system design courses",            "prompt": "Find 5 free courses on system design."},
     ]}
 
 
