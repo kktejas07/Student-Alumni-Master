@@ -21,6 +21,10 @@ import { GRADS } from '../gradients';
 import { FadeInView, Stagger, PressScale, SparkIcon, ShimmerGradient, AnimatedRingFill } from '../motion';
 import { Av, Badge, KpiCard } from '../atoms';
 import * as MOCK from '../data';
+import {
+  NX, KpiCard as NxKpiCard, AreaChartCard, ActivityCard, NxPageHeader,
+} from './NexusComponents';
+import type { KpiSpark, KpiRing, AreaPoint, ActivityItem } from './NexusComponents';
 import { usePortalData } from '@/src/lib/portalApi';
 import { TierBadge } from '@/src/views/web/TierBadge';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
@@ -65,6 +69,67 @@ export function DashboardView() {
   const stack = width < 1100;
   const matchW = stack ? '100%' : '64%';
   const mentorW = stack ? '100%' : '34%';
+  const isPhone = width < 768;
+  const isDesktop = width >= 1280;
+
+  // ── NexusOS Intelligence Center — student-relevant mock arrays ──
+  // (TODO: wire to backend in next pass — see /api/student/intelligence)
+  const NX_SPARK_APPS    = [3, 5, 4, 7, 6, 9, 11, 10, 13, 15, 14, 18];
+  const NX_SPARK_VIEWS   = [120, 132, 128, 145, 158, 170, 165, 182, 190, 205, 218, 234];
+  const NX_SPARK_MATCH   = [62, 64, 63, 66, 68, 70, 72, 71, 74, 76, 78, 81];
+
+  const NX_AUDIENCE: AreaPoint[] = [
+    { m: 'Jan', v: 32 }, { m: 'Feb', v: 41 }, { m: 'Mar', v: 38 },
+    { m: 'Apr', v: 56 }, { m: 'May', v: 62 }, { m: 'Jun', v: 78 },
+    { m: 'Jul', v: 95 }, { m: 'Aug', v: 112 }, { m: 'Sep', v: 134 },
+  ];
+
+  const NX_ACTIVITY: ActivityItem[] = [
+    {
+      title: 'Application Submitted', sub: 'Stripe • Software Engineer Intern',
+      amount: '+1', amountTone: 'positive', time: '12m ago',
+      icon: 'briefcase-check-outline', tint: NX.blue, bgTint: 'rgba(59,130,246,0.15)',
+    },
+    {
+      title: 'Mentor Session Booked', sub: 'Aarav Sharma • Wed 4:00 PM',
+      amount: null, amountTone: null, time: '1h ago',
+      icon: 'account-tie-voice-outline', tint: NX.purple, bgTint: 'rgba(168,85,247,0.15)',
+    },
+    {
+      title: 'Course Milestone Reached', sub: 'System Design • Module 4 of 6',
+      amount: null, amountTone: null, time: '3h ago',
+      icon: 'trophy-outline', tint: NX.amber, bgTint: 'rgba(245,158,11,0.15)',
+    },
+    {
+      title: 'Profile Score Updated', sub: 'Skills + Projects re-scored',
+      amount: '+4 pts', amountTone: 'positive', time: '5h ago',
+      icon: 'chart-line-variant', tint: NX.cyan, bgTint: 'rgba(6,182,212,0.15)',
+    },
+  ];
+
+  const NX_KPIS: (KpiSpark | KpiRing)[] = [
+    {
+      kind: 'spark', label: 'Applications Sent', value: '18',
+      numeric: 18, icon: 'briefcase-outline', accent: NX.blue,
+      trend: { value: '12.5%', positive: true }, spark: NX_SPARK_APPS,
+    },
+    {
+      kind: 'spark', label: 'Profile Views', value: '234', numeric: 234,
+      icon: 'eye-outline', accent: NX.purple,
+      trend: { value: '8.2%', positive: true }, spark: NX_SPARK_VIEWS,
+    },
+    {
+      kind: 'spark', label: 'Avg Match Score', value: '81%', numeric: 81, suffix: '%',
+      icon: 'lightning-bolt', accent: NX.cyan,
+      trend: { value: '4.1%', positive: true }, spark: NX_SPARK_MATCH,
+    },
+    {
+      kind: 'ring', label: 'Profile Completion', value: 'On Track',
+      icon: 'account-check-outline', accent: NX.blue,
+      ringPct: typeof PROFILE_COMPLETION?.score === 'number' ? PROFILE_COMPLETION.score : 78,
+      metaLine: 'Last updated: just now',
+    },
+  ];
 
   return (
     <View style={{ gap: 16 }}>
@@ -190,7 +255,54 @@ export function DashboardView() {
         </View>
       </View>
 
-      {/* 4 KPI tiles — staggered fade-in for visual rhythm */}
+      {/* ── NexusOS Intelligence Center ─────────────────────────
+          Sparkline KPI tiles + Audience growth area chart + Activity stream.
+          Mock arrays for now; backend wiring is the next pass. */}
+      <View style={s.nxFrame}>
+        <NxPageHeader
+          title="Intelligence Center"
+          subtitle="Real-time signals across applications, profile views and momentum."
+          statusLabel="Live"
+          ctaLabel="Generate Report"
+          onCta={() => alert('Career intelligence report coming soon')}
+        />
+
+        {/* KPI cards row */}
+        <View style={{
+          flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginTop: 18, marginBottom: 16,
+        }}>
+          {NX_KPIS.map((k, i) => {
+            const w = isPhone ? '100%' : (!isDesktop ? ('48%' as any) : undefined);
+            return (
+              <View key={k.label} style={{ flex: isDesktop ? 1 : undefined, minWidth: isPhone ? 0 : 220, width: w }}>
+                <NxKpiCard data={k} delay={50 + i * 80} sparkWidth={260} />
+              </View>
+            );
+          })}
+        </View>
+
+        {/* Main row: chart (2fr) + activity (1fr) */}
+        <View style={{
+          flexDirection: isDesktop ? 'row' : 'column',
+          gap: 16, alignItems: 'stretch',
+        }}>
+          <AreaChartCard
+            delay={400}
+            title="Career Momentum"
+            subtitle="Profile views per month — last 9 months"
+            data={NX_AUDIENCE}
+            color={NX.blue}
+          />
+          <ActivityCard
+            delay={480}
+            title="Recent Activity"
+            items={NX_ACTIVITY}
+            ctaLabel="View All Activity"
+          />
+        </View>
+      </View>
+
+      {/* Legacy 4 KPI tiles — staggered fade-in for visual rhythm */}
       <Stagger gap={70} baseDelay={120}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           {KPIS.map((k) => {
@@ -317,6 +429,19 @@ export function DashboardView() {
 }
 
 const s = StyleSheet.create({
+  nxFrame: {
+    backgroundColor: NX.bg,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: NX.border,
+    padding: 22,
+    overflow: 'hidden',
+    ...(Platform.OS === 'web' ? ({
+      // Subtle radial accent to match standalone NexusOS spec
+      backgroundImage: 'radial-gradient(circle at 90% 0%, rgba(6,182,212,0.06) 0%, rgba(7,7,10,0) 50%), radial-gradient(circle at 10% 100%, rgba(168,85,247,0.05) 0%, rgba(7,7,10,0) 60%)',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+    } as any) : {}),
+  },
   briefRowPad: { padding: 14, paddingHorizontal: 18 },
   briefRowInner: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   briefRow: {
