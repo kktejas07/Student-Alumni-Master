@@ -54,9 +54,29 @@ export default function AgentKWorkspace() {
 
   const [text, setText] = useState('');
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [run, setRun] = useState<{ id?: string; prompt?: string; plan?: Plan; status?: string; steps?: ExecStep[]; result_summary?: string | null } | null>(null);
+  const [run, setRun] = useState<{ id?: string; prompt?: string; plan?: Plan; status?: string; steps?: ExecStep[]; result_summary?: string | null; pending_step_index?: number | null } | null>(null);
   const [loadingPlan, setLoadingPlan] = useState(false);
   const [executing, setExecuting] = useState(false);
+  const [approving, setApproving] = useState(false);
+
+  const refetchRun = useCallback(async (rid: string) => {
+    try {
+      const got: any = await request(`/agent-k/runs/${rid}`);
+      setRun({
+        id: got.id, prompt: got.prompt, plan: got.plan, status: got.status,
+        steps: got.steps, result_summary: got.result_summary,
+        pending_step_index: got.pending_step_index ?? null,
+      });
+    } catch {}
+  }, []);
+
+  // Poll the run until terminal (completed / cancelled / failed / awaiting_step_approval)
+  useEffect(() => {
+    if (!run?.id || !run.status) return;
+    if (run.status === 'completed' || run.status === 'cancelled' || run.status === 'failed' || run.status === 'awaiting_step_approval') return;
+    const t = setTimeout(() => { refetchRun(run.id!); }, 1500);
+    return () => clearTimeout(t);
+  }, [run?.id, run?.status, refetchRun]);
 
   // Load templates on mount
   useEffect(() => {
@@ -108,14 +128,31 @@ export default function AgentKWorkspace() {
     setExecuting(true);
     try {
       const r: any = await request(`/agent-k/runs/${run.id}/execute`, { method: 'POST' });
-      setRun((prev) => prev ? ({ ...prev, status: r.status, steps: r.steps, result_summary: r.result_summary }) : prev);
+      setRun((prev) => prev ? ({ ...prev, status: r.status, steps: r.steps || prev.steps, result_summary: r.result_summary, pending_step_index: r.pending_step_index ?? null }) : prev);
+      // If we hit awaiting_step_approval mid-run, refetch full run for the approval card data
+      if (r.status === 'awaiting_step_approval') await refetchRun(run.id);
     } catch (e: any) {
-      // Show error on summary line
       setRun((prev) => prev ? ({ ...prev, status: 'failed', result_summary: String(e?.message || e) }) : prev);
     } finally {
       setExecuting(false);
     }
-  }, [run?.id]);
+  }, [run?.id, refetchRun]);
+
+  const approveStep = useCallback(async (stepIdx: number, decision: 'approved' | 'rejected', reason?: string) => {
+    if (!run?.id) return;
+    setApproving(true);
+    try {
+      await request(`/agent-k/runs/${run.id}/approve-step`, {
+        method: 'POST',
+        body: { step_index: stepIdx, decision, reason: reason || null },
+      });
+      await refetchRun(run.id);
+    } catch (e: any) {
+      // surface error in summary
+    } finally {
+      setApproving(false);
+    }
+  }, [run?.id, refetchRun]);
 
   const reset = () => { setRun(null); setText(''); };
 
@@ -132,7 +169,7 @@ export default function AgentKWorkspace() {
           {!run ? (
             <EmptyState text={text} setText={setText} onSubmit={() => submit()} suggestions={templates.slice(0, 4)} loading={loadingPlan} onPick={(p) => { setText(p); submit(p, true); }} />
           ) : (
-            <ActiveSession run={run} loadingPlan={loadingPlan} executing={executing} onExecute={execute} onReset={reset} />
+            <ActiveSession run={run} loadingPlan={loadingPlan} executing={executing} approving={approving} onExecute={execute} onApprove={approveStep} onReset={reset} />
           )}
         </View>
 
@@ -250,14 +287,19 @@ function EmptyState({
 }
 
 function ActiveSession({
-  run, loadingPlan, executing, onExecute, onReset,
+  run, loadingPlan, executing, approving, onExecute, onApprove, onReset,
 }: {
-  run: any; loadingPlan: boolean; executing: boolean;
-  onExecute: () => void; onReset: () => void;
+  run: any; loadingPlan: boolean; executing: boolean; approving: boolean;
+  onExecute: () => void;
+  onApprove: (stepIdx: number, decision: 'approved' | 'rejected', reason?: string) => void;
+  onReset: () => void;
 }) {
   const plan: Plan | undefined = run.plan;
   const steps: ExecStep[] = run.steps || [];
   const finished = run.status === 'completed' || run.status === 'failed' || run.status === 'cancelled';
+  const awaitingApproval = run.status === 'awaiting_step_approval';
+  const pendingIdx: number | null = run.pending_step_index ?? null;
+  const pendingStep = pendingIdx !== null && plan ? plan.steps[pendingIdx] : null;
 
   return (
     <ScrollView style={s.panel} showsVerticalScrollIndicator={false}>
@@ -305,8 +347,19 @@ function ActiveSession({
             })}
           </View>
 
+          {/* Approval card — appears inline when an irreversible step is awaiting consent */}
+          {awaitingApproval && pendingStep && (
+            <ApprovalCard
+              stepIdx={pendingIdx!}
+              step={pendingStep}
+              busy={approving}
+              onApprove={(reason) => onApprove(pendingIdx!, 'approved', reason)}
+              onReject={(reason) => onApprove(pendingIdx!, 'rejected', reason)}
+            />
+          )}
+
           {/* Footer actions */}
-          {!finished && plan.steps.length > 0 && (
+          {!finished && !awaitingApproval && plan.steps.length > 0 && (
             <View style={s.planFooter}>
               <Pressable onPress={onReset} style={s.cancelBtn}>
                 <Text style={s.cancelBtnText}>Cancel</Text>
@@ -343,6 +396,98 @@ function ActiveSession({
         </Animated.View>
       )}
     </ScrollView>
+  );
+}
+
+function ApprovalCard({
+  stepIdx, step, busy, onApprove, onReject,
+}: {
+  stepIdx: number; step: PlanStep; busy: boolean;
+  onApprove: (reason?: string) => void;
+  onReject: (reason?: string) => void;
+}) {
+  const [showRejectInput, setShowRejectInput] = useState(false);
+  const [reason, setReason] = useState('');
+  const argLines = step.args
+    ? Object.entries(step.args).map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
+    : [];
+
+  return (
+    <Animated.View entering={FadeInDown.duration(220)} style={s.approvalCard}>
+      <View style={s.approvalHeader}>
+        <View style={s.warnIcon}>
+          <MaterialCommunityIcons name="alert-decagram-outline" size={16} color={NX.warning} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={s.approvalTitle}>Approve this action?</Text>
+          <Text style={s.approvalSub}>Step {stepIdx + 1} requires your explicit consent before Agent K runs it.</Text>
+        </View>
+      </View>
+
+      <View style={s.toolChipRow}>
+        <View style={s.toolChipPill}>
+          <MaterialCommunityIcons name="cog-outline" size={11} color={NX.purple} />
+          <Text style={s.toolChipText}>{step.tool}</Text>
+        </View>
+        {step.rationale ? <Text style={s.approvalRationale} numberOfLines={2}>{step.rationale}</Text> : null}
+      </View>
+
+      {argLines.length > 0 && (
+        <View style={s.argList}>
+          <Text style={s.argListLabel}>ARGUMENTS</Text>
+          {argLines.map((line, i) => <Text key={i} style={s.argLineText}>{line}</Text>)}
+        </View>
+      )}
+
+      <View style={s.approvalNote}>
+        <MaterialCommunityIcons name="information-outline" size={12} color={NX.textS} />
+        <Text style={s.approvalNoteText}>
+          MOCKED in this build — no real money, ATS submissions, or messages
+          are sent. The action is recorded in the audit log only.
+        </Text>
+      </View>
+
+      {showRejectInput && (
+        <View style={s.rejectInputWrap}>
+          <Text style={s.argListLabel}>WHY ARE YOU DECLINING? (optional)</Text>
+          <TextInput
+            value={reason}
+            onChangeText={setReason}
+            placeholder="e.g. wrong amount, want to do this manually…"
+            placeholderTextColor={NX.textT}
+            style={s.rejectInput}
+          />
+        </View>
+      )}
+
+      <View style={s.approvalFooter}>
+        {showRejectInput ? (
+          <>
+            <Pressable onPress={() => { setShowRejectInput(false); setReason(''); }} disabled={busy} style={s.cancelBtn}>
+              <Text style={s.cancelBtnText}>Back</Text>
+            </Pressable>
+            <Pressable onPress={() => onReject(reason)} disabled={busy} style={({ hovered }: any) => ([s.rejectBtn, busy ? { opacity: 0.5 } : null])}>
+              {busy ? <ActivityIndicator size="small" color="#fff" /> : <Text style={s.rejectBtnText}>Decline this step</Text>}
+            </Pressable>
+          </>
+        ) : (
+          <>
+            <Pressable onPress={() => setShowRejectInput(true)} disabled={busy} style={s.cancelBtn}>
+              <MaterialCommunityIcons name="close" size={12} color={NX.textP} />
+              <Text style={s.cancelBtnText}>Reject</Text>
+            </Pressable>
+            <Pressable onPress={() => onApprove()} disabled={busy} style={({ hovered }: any) => ([s.approveBtn, busy ? { opacity: 0.5 } : null])}>
+              {busy ? <ActivityIndicator size="small" color="#fff" /> : (
+                <>
+                  <MaterialCommunityIcons name="check" size={14} color="#fff" />
+                  <Text style={s.approveBtnText}>Approve & continue</Text>
+                </>
+              )}
+            </Pressable>
+          </>
+        )}
+      </View>
+    </Animated.View>
   );
 }
 
@@ -552,6 +697,66 @@ const s = StyleSheet.create({
   },
   draftLabel: { color: NX.cyan, fontFamily: FONT, fontSize: 9, fontWeight: '700', letterSpacing: 1.4, marginBottom: 4 },
   draftText: { color: NX.textP, fontFamily: FONT, fontSize: 12, lineHeight: 17 },
+
+  // ── Approval card (NEW in Chunk 3) ──
+  approvalCard: {
+    marginTop: 14, padding: 16, borderRadius: 14,
+    backgroundColor: 'rgba(245,158,11,0.06)',
+    borderWidth: 1, borderColor: 'rgba(245,158,11,0.30)',
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 0 1px rgba(245,158,11,0.18)' } as any) : {}),
+  },
+  approvalHeader: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  warnIcon: {
+    width: 28, height: 28, borderRadius: 8,
+    backgroundColor: 'rgba(245,158,11,0.18)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  approvalTitle: { color: NX.warning, fontFamily: FONT, fontSize: 14, fontWeight: '700' },
+  approvalSub: { color: NX.textS, fontFamily: FONT, fontSize: 12, marginTop: 2 },
+
+  toolChipRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, flexWrap: 'wrap' },
+  toolChipPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
+    backgroundColor: NX.surface3, borderWidth: 1, borderColor: 'rgba(168,85,247,0.30)',
+  },
+  toolChipText: { color: NX.textP, fontFamily: FONT, fontSize: 11, fontWeight: '600',
+    ...(Platform.OS === 'web' ? ({ fontFamily: '"JetBrains Mono", "SF Mono", monospace' } as any) : {}),
+  },
+  approvalRationale: { color: NX.textS, fontFamily: FONT, fontSize: 12, flex: 1 },
+
+  argList: {
+    marginTop: 12, padding: 10, borderRadius: 10,
+    backgroundColor: NX.surface2, borderWidth: 1, borderColor: NX.border,
+  },
+  argListLabel: { color: NX.textT, fontFamily: FONT, fontSize: 9, fontWeight: '700', letterSpacing: 1.4, marginBottom: 6 },
+  argLineText: { color: NX.textP, fontFamily: FONT, fontSize: 12, lineHeight: 18,
+    ...(Platform.OS === 'web' ? ({ fontFamily: '"JetBrains Mono", "SF Mono", monospace' } as any) : {}),
+  },
+
+  approvalNote: {
+    flexDirection: 'row', gap: 6, alignItems: 'flex-start',
+    marginTop: 12, paddingHorizontal: 10, paddingVertical: 8,
+    backgroundColor: NX.surface3, borderRadius: 8,
+  },
+  approvalNoteText: { color: NX.textS, fontFamily: FONT, fontSize: 11, lineHeight: 15, flex: 1 },
+
+  rejectInputWrap: { marginTop: 12 },
+  rejectInput: {
+    color: NX.textP, fontFamily: FONT, fontSize: 13,
+    backgroundColor: NX.surface2, borderRadius: 10, borderWidth: 1, borderColor: NX.borderHi,
+    paddingHorizontal: 12, paddingVertical: 10,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+  },
+
+  approvalFooter: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 14 },
+  rejectBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 16, paddingVertical: 9,
+    backgroundColor: NX.danger, borderRadius: 10,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  rejectBtnText: { color: '#fff', fontFamily: FONT, fontSize: 12.5, fontWeight: '600' },
 
   // Final summary
   summaryCard: {

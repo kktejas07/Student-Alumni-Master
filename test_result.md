@@ -9585,3 +9585,99 @@ agent_communication:
           ~ frontend/src/views/web/portals/superadmin/Sidebar.tsx
           ~ frontend/src/views/web/portals/mentor/Sidebar.tsx
 
+    - agent: "main"
+      message: |
+        ✦ Chunk 3 of Agent K rollout — Approval gates + Run history ✦
+        ─────────────────────────────────────────────────────────────
+
+        ── Backend: per-step approval gates + spend/submit/comm tools
+        ~ agent_k.py — _execute_run() rewritten to support pause/resume:
+            • Read + write/draft tools auto-execute (requires_approval=false)
+            • Spend / submit / communicate tools (requires_approval=true)
+              halt the run with status='awaiting_step_approval' and
+              pending_step_index=i. step_approvals dict tracks per-step
+              consents so resume continues from the next un-executed step.
+
+        ~ Enabled tools (now ALL with explicit approval gate, MOCKED):
+            • add_money_to_wallet(amount_inr)   — spend
+            • book_mentor_session(mentor_id, topic) — spend
+            • submit_application(draft_id, role, company) — submit
+            • send_message(recipient_name, message) — communicate
+          Each writes a row to a new agent_actions Mongo collection
+          (kind='mock_*', status='mock_*') so the audit trail is
+          preserved even though no real money / ATS / LinkedIn calls
+          are made. Notes in the result_summary clearly mark the
+          actions as MOCKED.
+
+        ~ NEW endpoint:
+          POST /agent-k/runs/{id}/approve-step
+            body: { step_index: int, decision: 'approved'|'rejected', reason?: string }
+            • approved → records consent, resumes _execute_run()
+            • rejected → cancels run with reason logged in audit_log
+
+        End-to-end verified via curl + Claude:
+          prompt = "Top up my wallet by 500 rupees"
+          → planner: add_money_to_wallet(amount_inr=500)
+          → /execute returns awaiting_step_approval (pending_step=0)
+          → /approve-step {step_index:0, decision:'approved'}
+          → resumes, runs mock dispatcher, marks completed
+          → Claude summary:
+              "I've successfully initiated a wallet top-up of ₹500 for
+               you. The transaction has been recorded (action ID:
+               …mock…), though please note this is a mock transaction
+               as real payment integration isn't available in the
+               current build."
+
+        ── Frontend: ApprovalCard + run-history page ──────────────────
+        ~ frontend/app/agent-k.tsx
+            • Polling: useEffect re-fetches the run every 1.5s while
+              status is intermediate ('running' / 'awaiting_approval'),
+              stops on terminal states.
+            • approveStep(stepIdx, decision, reason) wired to backend.
+            • <ApprovalCard /> inline component renders when status ==
+              'awaiting_step_approval':
+                amber-tinted glass surface, ⚠ icon + "Approve this
+                action?" header, monospace tool-name pill,
+                ARGUMENTS box (key/value list), MOCKED-build note,
+                Reject (with optional reason input) / Approve buttons.
+                Approve resumes; Reject cancels with reason logged.
+            • Cancel/Approve plan-level footer hidden while inline
+              approval card is showing.
+
+        + frontend/app/agent-k/runs.tsx                       (NEW)
+            Run history page at /agent-k/runs:
+              • Hero "Run history · All your Agent K automations"
+              • New automation CTA → /agent-k
+              • Empty state with bot icon
+              • List of recent runs (last 40) with status pill
+                colour-coded: completed (green), running (blue),
+                awaiting plan OK (amber), needs approval (amber),
+                failed (red), cancelled (grey).
+              • Click any row → /agent-k?resume_run=<id>
+                (resume-handler is a stub; deeper resume UX is a
+                follow-up).
+              • Pull-to-refresh via RefreshControl.
+
+        ── Spec items DONE in Chunk 3 ─────────────────────────────────
+          ✓ Per-step approval gates (spend/submit/communicate)
+          ✓ ApprovalCard inline UX (with reject reason capture)
+          ✓ /approve-step API
+          ✓ 4 spend/submit/communicate tools enabled (MOCKED dispatchers
+            writing to agent_actions audit collection)
+          ✓ /agent-k/runs history page with status pills
+          ✓ End-to-end happy path verified (top-up wallet)
+
+        ── Spec items DEFERRED (future polish) ────────────────────────
+          • /agent-k/settings auto-approve preferences UI
+            (backend endpoint already exists at GET/PATCH /agent-k/preferences)
+          • Resume-from-history (deeper run-detail page with audit log)
+          • Scheduled (cron) automations (schema exists in spec)
+          • Real Razorpay / partner ATS / SMS integration
+            (currently MOCKED — see action notes in tool results)
+          • Sidebar collapse for Alumni/College/SA portals (Student done)
+
+        ── Files touched ─────────────────────────────────────────────
+          ~ backend/agent_k.py            (approval gates + 4 mock dispatchers + /approve-step)
+          ~ frontend/app/agent-k.tsx      (polling + ApprovalCard + reject-reason input)
+          + frontend/app/agent-k/runs.tsx (NEW history page)
+

@@ -149,11 +149,11 @@ TOOL_REGISTRY: Dict[str, Dict[str, Any]] = {
             "purpose":        {"type": "string"},
         }},
     },
-    "add_money_to_wallet":    {"module": "wallet",     "side_effect": "spend",       "requires_approval": True,  "enabled": False, "description": "Top up the wallet via UPI.",                    "parameters": {"type": "object"}},
+    "add_money_to_wallet":    {"module": "wallet",     "side_effect": "spend",       "requires_approval": True,  "enabled": True,  "description": "Top up the SA wallet via UPI. Requires approval. (MOCKED in this build — no real payment.)", "parameters": {"type": "object", "properties": {"amount_inr": {"type": "integer"}}}},
     "withdraw_to_upi":        {"module": "wallet",     "side_effect": "spend",       "requires_approval": True,  "enabled": False, "description": "Withdraw earned credits.",                       "parameters": {"type": "object"}},
-    "book_mentor_session":    {"module": "mentors",    "side_effect": "spend",       "requires_approval": True,  "enabled": False, "description": "Book a mentor session.",                         "parameters": {"type": "object"}},
-    "submit_application":     {"module": "jobs",       "side_effect": "submit",      "requires_approval": True,  "enabled": False, "description": "Submit a drafted application to the partner ATS.","parameters": {"type": "object"}},
-    "send_message":           {"module": "network",    "side_effect": "communicate", "requires_approval": True,  "enabled": False, "description": "Send a drafted message to a connection.",        "parameters": {"type": "object"}},
+    "book_mentor_session":    {"module": "mentors",    "side_effect": "spend",       "requires_approval": True,  "enabled": True,  "description": "Book a mentor session — requires approval. (MOCKED — creates a pending booking, no payment.)", "parameters": {"type": "object", "properties": {"mentor_id": {"type": "string"}, "topic": {"type": "string"}}}},
+    "submit_application":     {"module": "jobs",       "side_effect": "submit",      "requires_approval": True,  "enabled": True,  "description": "Submit a previously-drafted application — requires approval. (MOCKED — records intent, does not contact partner ATS.)", "parameters": {"type": "object", "properties": {"draft_id": {"type": "string"}, "role": {"type": "string"}, "company": {"type": "string"}}}},
+    "send_message":           {"module": "network",    "side_effect": "communicate", "requires_approval": True,  "enabled": True,  "description": "Send a drafted message to a connection — requires approval. (MOCKED — records intent, does not actually send.)", "parameters": {"type": "object", "properties": {"recipient_name": {"type": "string"}, "message": {"type": "string"}}}},
 }
 
 
@@ -534,24 +534,37 @@ async def create_run(body: RunRequest, authorization: Optional[str] = Header(Non
 
 
 async def _execute_run(run_id: str, user: dict) -> dict:
-    """Run all steps in the plan sequentially. Read-only tools auto-pass."""
+    """Run all steps in the plan sequentially.
+
+    Read + write/draft tools auto-execute. Spend/submit/communicate tools
+    pause execution at that step (status='awaiting_approval', pending_step_index=i).
+    Frontend polls and calls /runs/:id/approve {step_index} to resume.
+    """
     from bson import ObjectId
     run = await _db.agent_runs.find_one({"_id": ObjectId(run_id)})
     if not run:
         raise HTTPException(404, "Run not found")
-    if run["status"] not in {"awaiting_approval", "running"}:
+    if run["status"] not in {"awaiting_approval", "running", "awaiting_step_approval"}:
         raise HTTPException(400, f"Cannot execute run in status '{run['status']}'")
 
     await _db.agent_runs.update_one({"_id": ObjectId(run_id)}, {"$set": {"status": "running"}})
     plan = run["plan"]
-    step_results = []
+    step_results = list(run.get("steps", []))
     audit = list(run.get("audit_log", []))
+    approvals = run.get("step_approvals", {}) or {}
+    plan_steps = plan.get("steps", [])
 
-    for idx, step in enumerate(plan.get("steps", [])):
+    # Resume from the first un-completed/un-skipped index
+    completed_idx = {r["index"] for r in step_results if r.get("status") in {"completed", "skipped", "failed"}}
+    start = next((i for i in range(len(plan_steps)) if i not in completed_idx), len(plan_steps))
+
+    for idx in range(start, len(plan_steps)):
+        step = plan_steps[idx]
         tool_name = step.get("tool")
         args = step.get("args", {}) or {}
         meta = TOOL_REGISTRY.get(tool_name)
         t0 = datetime.now(timezone.utc)
+
         if not meta or not meta.get("enabled") or tool_name not in _TOOL_DISPATCH:
             err = f"Tool '{tool_name}' is unavailable in this build."
             step_results.append({"index": idx, "tool": tool_name, "args": args,
@@ -559,6 +572,24 @@ async def _execute_run(run_id: str, user: dict) -> dict:
                                  "started_at": t0.isoformat()})
             audit.append({"t": t0.isoformat(), "event": "step_skipped", "tool": tool_name, "reason": err})
             continue
+
+        # Approval gate: spend / submit / communicate need explicit consent
+        # unless user pre-approved this step or has auto-approve preference.
+        if meta.get("requires_approval") and approvals.get(str(idx)) != "approved":
+            await _db.agent_runs.update_one(
+                {"_id": ObjectId(run_id)},
+                {"$set": {
+                    "status": "awaiting_step_approval",
+                    "pending_step_index": idx,
+                    "steps": step_results,
+                    "audit_log": audit + [{"t": t0.isoformat(), "event": "awaiting_approval",
+                                           "tool": tool_name, "step": idx}],
+                }},
+            )
+            return {"run_id": run_id, "status": "awaiting_step_approval",
+                    "pending_step_index": idx, "tool": tool_name, "args": args,
+                    "side_effect": meta.get("side_effect")}
+
         try:
             result = await _TOOL_DISPATCH[tool_name](args, user)
             step_results.append({
@@ -584,9 +615,115 @@ async def _execute_run(run_id: str, user: dict) -> dict:
             "audit_log": audit,
             "result_summary": summary,
             "completed_at": completed,
+            "pending_step_index": None,
         }},
     )
     return {"run_id": run_id, "status": "completed", "steps": step_results, "result_summary": summary}
+
+
+# ─── Spend / Submit / Communicate dispatchers (MOCKED — Chunk 3) ──
+# These tools are gated by an explicit user-approval card in the UI.
+# They write a row into agent_actions (kind='mock_*') so the audit trail
+# is preserved, but they DO NOT make real payments / API calls / send
+# messages. Wiring real partner ATS / Razorpay / SMS lives behind these
+# stubs in production.
+async def _tool_add_money_to_wallet(args: dict, user: dict) -> dict:
+    amount = int(args.get("amount_inr") or 0)
+    rec = await _db.agent_actions.insert_one({
+        "user_id": str(user.get("_id")), "kind": "mock_wallet_topup",
+        "amount_inr": amount, "status": "mock_success",
+        "created_at": datetime.now(timezone.utc),
+    })
+    return {"action_id": str(rec.inserted_id), "amount_inr": amount,
+            "status": "mock_success",
+            "note": "Mock top-up recorded. Real payment integration is out of scope in this build."}
+
+
+async def _tool_book_mentor_session(args: dict, user: dict) -> dict:
+    rec = await _db.agent_actions.insert_one({
+        "user_id": str(user.get("_id")), "kind": "mock_mentor_booking",
+        "mentor_id": args.get("mentor_id"), "topic": args.get("topic"),
+        "status": "mock_pending",
+        "created_at": datetime.now(timezone.utc),
+    })
+    return {"action_id": str(rec.inserted_id), "status": "mock_pending",
+            "note": "Mock booking recorded. Real mentor calendar sync is out of scope in this build."}
+
+
+async def _tool_submit_application(args: dict, user: dict) -> dict:
+    rec = await _db.agent_actions.insert_one({
+        "user_id": str(user.get("_id")), "kind": "mock_application_submission",
+        "draft_id": args.get("draft_id"),
+        "role": args.get("role"), "company": args.get("company"),
+        "status": "mock_recorded",
+        "created_at": datetime.now(timezone.utc),
+    })
+    return {"action_id": str(rec.inserted_id), "status": "mock_recorded",
+            "note": "Mock submission recorded. Real partner ATS forwarding is out of scope in this build."}
+
+
+async def _tool_send_message(args: dict, user: dict) -> dict:
+    rec = await _db.agent_actions.insert_one({
+        "user_id": str(user.get("_id")), "kind": "mock_message_send",
+        "recipient_name": args.get("recipient_name"),
+        "message": args.get("message"),
+        "status": "mock_queued",
+        "created_at": datetime.now(timezone.utc),
+    })
+    return {"action_id": str(rec.inserted_id), "status": "mock_queued",
+            "note": "Mock message recorded. Real send (LinkedIn/email) is out of scope in this build."}
+
+
+_TOOL_DISPATCH.update({
+    "add_money_to_wallet":  _tool_add_money_to_wallet,
+    "book_mentor_session":  _tool_book_mentor_session,
+    "submit_application":   _tool_submit_application,
+    "send_message":         _tool_send_message,
+})
+
+
+# ─── Per-step approval endpoint ───────────────────────────────────
+class StepApproveBody(BaseModel):
+    step_index: int
+    decision: str  # 'approved' | 'rejected'
+    reason: Optional[str] = None
+
+
+@router.post("/agent-k/runs/{run_id}/approve-step")
+async def approve_step(run_id: str, body: StepApproveBody, authorization: Optional[str] = Header(None)):
+    """Approve or reject a single pending step. On 'approved' the run resumes;
+    on 'rejected' the run is cancelled with the reason logged."""
+    user = await _resolve_user(authorization)
+    if not user:
+        raise HTTPException(401, "Not authenticated")
+    from bson import ObjectId
+    run = await _db.agent_runs.find_one({"_id": ObjectId(run_id), "user_id": str(user["_id"])})
+    if not run:
+        raise HTTPException(404, "Run not found")
+    if run.get("status") != "awaiting_step_approval":
+        raise HTTPException(400, f"Run is not awaiting approval (status={run.get('status')})")
+    if body.decision == "rejected":
+        await _db.agent_runs.update_one(
+            {"_id": ObjectId(run_id)},
+            {"$set": {"status": "cancelled",
+                      "completed_at": datetime.now(timezone.utc),
+                      "result_summary": f"Cancelled by user at step {body.step_index}." +
+                                        (f" Reason: {body.reason}" if body.reason else "")},
+             "$push": {"audit_log": {"t": datetime.now(timezone.utc).isoformat(),
+                                     "event": "step_rejected", "step": body.step_index,
+                                     "reason": body.reason}}},
+        )
+        return {"ok": True, "status": "cancelled"}
+    # approved — record and resume
+    approvals = run.get("step_approvals", {}) or {}
+    approvals[str(body.step_index)] = "approved"
+    await _db.agent_runs.update_one(
+        {"_id": ObjectId(run_id)},
+        {"$set": {"step_approvals": approvals, "status": "running"},
+         "$push": {"audit_log": {"t": datetime.now(timezone.utc).isoformat(),
+                                 "event": "step_approved", "step": body.step_index}}},
+    )
+    return await _execute_run(run_id, user)
 
 
 @router.post("/agent-k/runs/{run_id}/execute")
