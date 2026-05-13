@@ -9776,3 +9776,81 @@ agent_communication:
              security / digital-id endpoints)
           ~ frontend/src/views/web/portals/superadmin/views/SettingsView.tsx
             (complete rewrite, 1600 lines, 7 tabs + Connect modal)
+
+    - agent: "main"
+      message: |
+        ✦ Super Admin portal — Apple HIG warm-gradient re-skin (Phase 1) ✦
+        ─────────────────────────────────────────────────────────────────
+
+        Scope agreed with user: (a) Super Admin only — keep other portals
+        visually distinct.  (i)+(ii)+(iii): re-skin + add missing features
+        + wire real backend.
+
+        ── Foundation ────────────────────────────────────────────────────
+        ~ src/theme/nexus.ts
+            PORTAL_ACCENTS.admin flipped from purple → warm amber
+            (#F59E0B / #D97706 / #FB923C).  All shared atoms that reference
+            SAC.primary now cascade to the gradient identity automatically.
+        + src/views/web/portals/superadmin/applekit.tsx     (NEW shared kit)
+            Exports: GRAD constants, GradientButton, SecondaryButton, Card,
+            SectionLabel, IconBox, StatusPill, GradientPill, TopTabs,
+            SearchField, useToast, Toast, KpiTile, EmptyState, LoadingBox.
+            Single source of truth — every refactored view imports from
+            here so the look stays consistent.
+
+        ── Chrome refactors ──────────────────────────────────────────────
+        ~ superadmin/Sidebar.tsx
+            Active nav item now wrapped in LinearGradient (orange → amber)
+            with white-tinted count pill.  Hover state retained on
+            inactive items.
+        ~ superadmin/atoms.tsx
+            KpiCard icon tint updated to amber for legacy callers.
+
+        ── View refactors (this phase) ──────────────────────────────────
+        ~ views/OverviewView.tsx
+            • Hero "Review Approvals" CTA → GradientButton.
+            • "Full Report" → SecondaryButton.
+            • 8 KPI tiles → KpiTile (consistent gradient icon box,
+              hairline border, success/neutral delta pills).
+            • Recent Activity icon box tint shifted to amber.
+            • LiveStrip accent unified to GRAD.to.
+
+        ~ views/ApprovalsView.tsx  (full rewrite)
+            • Header Card with IconBox + title/subtitle.
+            • SearchField (search by name or meta).
+            • Bulk-select checkboxes on each row + Select-all /
+              Approve-N CTAs.
+            • TopTabs with per-tab counts (All / Colleges / Mentors /
+              Events) — gradient on active.
+            • Each row now uses StatusPill (kind, priority) instead of
+              the legacy Badge atom.
+            • GradientButton for Approve, SecondaryButton(danger) for
+              Reject.
+            • Toast auto-flashes on every approve/reject action.
+            • EmptyState ("Nothing here right now") for filtered empty
+              results.
+            • Real backend wiring retained — postPortal `/admin/super/
+              approvals/{id}/{approve|reject}`.
+
+        ── Verified via screenshot tool ──────────────────────────────────
+          ✓ Sidebar active item = orange→amber gradient
+          ✓ Overview hero CTAs are gradient + secondary outline
+          ✓ KPI tiles + Recent Activity icons = amber identity
+          ✓ Approvals queue header card + search + gradient tabs +
+            row pills + Approve/Reject CTAs all rendering
+          ✓ LIVE strip pill is now amber (was purple)
+
+        ── Files touched ─────────────────────────────────────────────────
+          ~ src/theme/nexus.ts                                 (admin accent flip)
+          + src/views/web/portals/superadmin/applekit.tsx      (NEW design kit)
+          ~ src/views/web/portals/superadmin/Sidebar.tsx       (gradient active)
+          ~ src/views/web/portals/superadmin/atoms.tsx         (amber icon tint)
+          ~ src/views/web/portals/superadmin/views/OverviewView.tsx
+          ~ src/views/web/portals/superadmin/views/ApprovalsView.tsx
+
+        ── Pending in next phases ────────────────────────────────────────
+          • Colleges, Students, Mentors, Alumni (list/table views)
+          • Events, Payments, Analytics
+          • AI Insights, Workflows
+          • TopBar — search hover state + bell badge alignment
+

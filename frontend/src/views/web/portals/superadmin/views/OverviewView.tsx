@@ -9,7 +9,8 @@ import {
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SAC, FONTS } from '../tokens';
-import { Av, KpiCard } from '../atoms';
+import { Av } from '../atoms';
+import { GRAD, GradientButton, SecondaryButton, KpiTile, IconBox } from '../applekit';
 import * as MOCK from '../data';
 import { usePortalData } from '@/src/lib/portalApi';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
@@ -46,7 +47,7 @@ export function OverviewView() {
   return (
     <View style={{ gap: 16 }}>
       {/* Live counters */}
-      <LiveStrip accent="#A78BFA" keys={['users', 'students', 'mentors', 'colleges', 'bookings']} />
+      <LiveStrip accent={GRAD.to} keys={['users', 'students', 'mentors', 'colleges', 'bookings']} />
 
       {/* Hero */}
       <View style={s.hero}>
@@ -54,21 +55,31 @@ export function OverviewView() {
           <Text style={s.heroKicker}>GOOD MORNING, ADMIN 👋</Text>
           <Text style={s.heroTitle}>Platform is healthy. 12 items need your attention.</Text>
         </View>
-        <Pressable style={({ hovered }: any) => [s.heroPrimary, hovered && { backgroundColor: SAC.primaryD }]}>
+        <GradientButton size="md">
           <CheckCircle size={14} color="#fff" />
           <Text style={s.heroPrimaryText}>Review Approvals</Text>
-        </Pressable>
-        <Pressable style={({ hovered }: any) => [s.heroSec, hovered && { backgroundColor: SAC.cardH }]}>
+        </GradientButton>
+        <SecondaryButton size="md">
           <FileText size={14} color={SAC.muted} />
           <Text style={s.heroSecText}>Full Report</Text>
-        </Pressable>
+        </SecondaryButton>
       </View>
 
       {/* 8 KPI tiles in 2 rows */}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
         {KPIS.map((k) => {
           const Icon = KPI_ICONS[k.icon] || Building2;
-          return <KpiCard key={k.id} Icon={Icon} label={k.label} value={k.value} delta={k.delta} />;
+          const isUp = (k.delta || '').includes('↑');
+          return (
+            <KpiTile
+              key={k.id}
+              Icon={Icon}
+              label={k.label}
+              value={k.value}
+              delta={k.delta}
+              deltaKind={isUp ? 'success' : 'neutral'}
+            />
+          );
         })}
       </View>
 
@@ -85,7 +96,7 @@ export function OverviewView() {
               const Icon = ACT_ICONS[a.icon] || Building2;
               return (
                 <View key={a.id} style={s.activityRow}>
-                  <View style={s.activityIcon}><Icon size={14} color={SAC.accent} /></View>
+                  <View style={s.activityIcon}><Icon size={14} color={GRAD.to} /></View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text numberOfLines={1} style={s.activityText}>{a.text}</Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
@@ -188,7 +199,7 @@ const s = StyleSheet.create({
   linkRight: { color: SAC.accentBright, fontFamily: FONTS.bold, fontSize: 11.5 },
 
   activityRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  activityIcon: { width: 34, height: 34, borderRadius: 9, backgroundColor: 'rgba(251,191,36,0.10)', borderColor: 'rgba(251,191,36,0.20)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  activityIcon: { width: 34, height: 34, borderRadius: 9, backgroundColor: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   activityText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
   activitySub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
   activityDot: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11 },

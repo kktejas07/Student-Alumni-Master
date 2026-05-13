@@ -3,6 +3,7 @@
  */
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   LayoutDashboard, Building2, GraduationCap, UserCheck, Users, Calendar, CreditCard,
   BarChart3, CheckCircle, Sparkles, Settings, Workflow, ExternalLink, LogOut,
@@ -10,6 +11,7 @@ import {
 import { SAC, FONTS } from './tokens';
 import { ADMIN } from './data';
 import { Av, Badge } from './atoms';
+import { GRAD } from './applekit';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
 
 export type SuperAdminNavId =
@@ -64,18 +66,34 @@ export function Sidebar({
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 4, paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
         {NAV.map(({ id, label, Icon, count, tag }) => {
           const isActive = id === active;
+          if (isActive) {
+            return (
+              <Pressable key={id} onPress={() => onNav(id)}>
+                <LinearGradient
+                  colors={[GRAD.from, GRAD.to]}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                  style={s.navItem}
+                >
+                  <Icon size={16} color="#fff" />
+                  <Text style={[s.navLabel, s.navLabelActive]} numberOfLines={1}>{label}</Text>
+                  {count != null && (
+                    <View style={s.countPillActive}>
+                      <Text style={s.countTextActive}>{count}</Text>
+                    </View>
+                  )}
+                  {tag && <Badge label={tag} color="amber" />}
+                </LinearGradient>
+              </Pressable>
+            );
+          }
           return (
             <Pressable
               key={id}
               onPress={() => onNav(id)}
-              style={({ hovered }: any) => [
-                s.navItem,
-                isActive && s.navItemActive,
-                !isActive && hovered && s.navItemHover,
-              ]}
+              style={({ hovered }: any) => [s.navItem, hovered && s.navItemHover]}
             >
-              <Icon size={16} color={isActive ? '#fff' : SAC.muted} />
-              <Text style={[s.navLabel, isActive && s.navLabelActive]} numberOfLines={1}>{label}</Text>
+              <Icon size={16} color={SAC.muted} />
+              <Text style={s.navLabel} numberOfLines={1}>{label}</Text>
               {count != null && (
                 <View style={s.countPill}>
                   <Text style={s.countText}>{count}</Text>
@@ -125,12 +143,13 @@ const s = StyleSheet.create({
     borderRadius: 8,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
   },
-  navItemActive: { backgroundColor: SAC.primary },
-  navItemHover: { backgroundColor: 'rgba(249,115,22,0.10)' },
+  navItemHover: { backgroundColor: 'rgba(245,158,11,0.10)' },
   navLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
   navLabelActive: { color: '#fff' },
-  countPill: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, backgroundColor: 'rgba(251,191,36,0.18)', minWidth: 20, alignItems: 'center' },
+  countPill: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, backgroundColor: 'rgba(245,158,11,0.18)', minWidth: 20, alignItems: 'center' },
   countText: { color: SAC.accentBright, fontFamily: FONTS.xbold, fontSize: 10 },
+  countPillActive: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.22)', minWidth: 20, alignItems: 'center' },
+  countTextActive: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 10 },
 
   footer: {
     flexDirection: 'row', alignItems: 'center', gap: 10,

@@ -63,8 +63,8 @@ export const PORTAL_ACCENTS = {
   alumni:  { primary: '#F97316', primaryD: '#C2410C', primaryL: '#FB923C', accent: '#FDBA74', accentSoft: 'rgba(253,186,116,0.18)' },
   // College keeps its established indigo + cyan identity
   college: { primary: '#6366F1', primaryD: '#4338CA', primaryL: '#818CF8', accent: '#22D3EE', accentSoft: 'rgba(34,211,238,0.18)' },
-  // Super Admin pivots to purple (premium/elevated feel) — distinct from alumni's orange
-  admin:   { primary: NX.purple, primaryD: '#7E22CE', primaryL: '#C084FC', accent: '#FBBF24', accentSoft: NX.amberSoft },
+  // Super Admin uses the warm amber/orange identity from the Apple HIG settings spec
+  admin:   { primary: '#F59E0B', primaryD: '#D97706', primaryL: '#FB923C', accent: '#FBBF24', accentSoft: NX.amberSoft },
 } as const;
 
 export type PortalKey = keyof typeof PORTAL_ACCENTS;

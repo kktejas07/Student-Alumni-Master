@@ -53,8 +53,8 @@ const styles = StyleSheet.create({
     backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14,
   },
   kpiIcon: {
-    width: 32, height: 32, borderRadius: 9, backgroundColor: 'rgba(251,191,36,0.10)',
-    borderColor: 'rgba(251,191,36,0.20)', borderWidth: 1, alignItems: 'center', justifyContent: 'center',
+    width: 32, height: 32, borderRadius: 9, backgroundColor: 'rgba(245,158,11,0.10)',
+    borderColor: 'rgba(245,158,11,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center',
     marginBottom: 14,
   },
   kpiLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, letterSpacing: 0.3, marginBottom: 4 },
