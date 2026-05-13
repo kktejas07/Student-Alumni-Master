@@ -1,262 +1,484 @@
 /**
- * SettingsView — Super Admin Settings.
+ * SettingsView — Super Admin Settings (Apple HIG + NexusOS dark glass).
  *
- * Sections:
- *   • General toggles                      (existing)
- *   • Roles & Permissions  (NEW — list + Create / Edit / Delete with modal)
- *   • Marketplace          (NEW — install/uninstall integrations)
- *   • Integrations status                  (existing, simplified)
- *   • Security                             (existing)
- *   • Notifications                        (existing)
+ * Top horizontal tab navigation with 7 sections matching the provided design:
+ *   • Manage Profile      — editable admin profile, role tags, platform status
+ *   • Platform Controls   — feature flags (toggles) + system settings + danger zone
+ *   • Integrations        — connect/disconnect tools with API-key entry modal
+ *   • Roles & Permissions — system + custom roles with CRUD
+ *   • Notifications       — per-event channel matrix (email / push / sms / in-app)
+ *   • Security            — 2FA, password, active sessions, access log
+ *   • Digital ID          — branded gradient ID card with copy/share/download
  *
- * Backend endpoints used:
- *   GET    /api/admin/roles
- *   POST   /api/admin/roles
- *   PATCH  /api/admin/roles/{id}
- *   DELETE /api/admin/roles/{id}
- *   GET    /api/admin/permissions
- *   GET    /api/marketplace/tools
- *   POST   /api/marketplace/install
- *   DELETE /api/marketplace/tools/{tool_id}
+ * Backend:
+ *   GET/PATCH  /api/admin/profile
+ *   GET/PATCH  /api/admin/platform-controls
+ *   GET/POST/PATCH/DELETE /api/admin/roles
+ *   GET        /api/admin/permissions
+ *   GET        /api/marketplace/tools
+ *   POST       /api/marketplace/install   (now accepts credentials)
+ *   DELETE     /api/marketplace/tools/{tool_id}
+ *   GET/PATCH  /api/admin/notifications/preferences
+ *   GET        /api/admin/security/sessions
+ *   DELETE     /api/admin/security/sessions/{id}
+ *   GET        /api/admin/security/access-log
+ *   PUT        /api/admin/security/password
+ *   GET        /api/admin/digital-id
  */
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View, Text, Pressable, StyleSheet, Switch, Platform, Modal,
-  TextInput, ScrollView, ActivityIndicator,
+  TextInput, ScrollView, ActivityIndicator, Image,
 } from 'react-native';
 import {
-  Settings as SettingsIcon, Shield, UserCog, Plug, Bell, Lock, Plus,
-  Pencil, Trash2, Check, X, Store, Download,
+  UserCog, Sliders, Plug, Shield, Bell, Lock, IdCard, Plus,
+  Pencil, Trash2, Check, X, Copy, Share2, Download, Eye, EyeOff,
+  ExternalLink, RotateCcw, Monitor, Smartphone, AlertTriangle, KeyRound,
+  ChevronRight, QrCode, Building2, ShieldCheck,
 } from 'lucide-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SAC, FONTS } from '../tokens';
-import { Badge } from '../atoms';
 import { request } from '@/src/models/services/api';
 
-// ─── Types ────────────────────────────────────────────────────────
-type Role = {
-  id: string; key: string; name: string; description: string;
-  is_system: boolean; permissions: string[]; user_count: number;
-  created_at: string;
-};
-type Permission = { id: string; group: string; label: string };
-type PermissionGroup = { group: string; items: Permission[] };
+/* ─────────────────────────────────────────────────────────────────
+ * Design tokens — warm orange/amber gradient (matches screenshots)
+ * Layered on top of NexusOS dark surfaces so it stays in-app.
+ * ───────────────────────────────────────────────────────────────── */
+const GRAD_FROM = '#FB923C';  // orange 400
+const GRAD_TO   = '#F59E0B';  // amber  500
+const GRAD_DEEP = '#D97706';  // amber  600
+const GRAD_BG   = ['rgba(251,146,60,0.20)', 'rgba(245,158,11,0.10)'] as const;
+
+/* ─────────────────────────────────────────────────────────────────
+ * Types
+ * ───────────────────────────────────────────────────────────────── */
+type TabId =
+  | 'profile' | 'platform' | 'integrations' | 'roles'
+  | 'notifications' | 'security' | 'digital-id';
+
 type Tool = {
   id: string; name: string; category: string; icon: string; tint: string;
   description: string; auth_type: string; popular?: boolean;
   installed: boolean; status?: string | null; installed_at?: string | null;
+  auth_fields?: Array<{ key: string; label: string; type: string; placeholder?: string; help?: string }>;
+  credentials_masked?: Record<string, string>;
 };
+type Role = {
+  id: string; key: string; name: string; description: string;
+  is_system: boolean; permissions: string[]; user_count: number; created_at: string;
+};
+type Permission = { id: string; group: string; label: string };
+type PermissionGroup = { group: string; items: Permission[] };
 
-// ─── Static fallback for non-CRUD sections ───────────────────────
-const STATIC = [
-  { id: 'general', title: 'General', icon: SettingsIcon, items: [
-    { k:'platform_name',  label:'Platform name',     val:'Student Alumni',         kind:'text' },
-    { k:'support_email',  label:'Support email',     val:'support@studentalumni.app', kind:'text' },
-    { k:'default_currency',label:'Default currency', val:'INR (₹)',                 kind:'text' },
-    { k:'maintenance',    label:'Maintenance mode',  val: false,                    kind:'toggle' },
-  ]},
-  { id: 'security', title: 'Security', icon: Shield, items: [
-    { k:'2fa',          label:'Require 2FA for super admins', val: true,  kind:'toggle' },
-    { k:'session_ttl',  label:'Session timeout (minutes)',    val:'30',   kind:'text' },
-    { k:'audit_log',    label:'Verbose audit log',             val: true,  kind:'toggle' },
-    { k:'pwd_strength', label:'Strong password policy',        val: true,  kind:'toggle' },
-  ]},
-  { id: 'notifications', title: 'Notifications', icon: Bell, items: [
-    { k:'daily_digest', label:'Daily digest email',                val: true,  kind:'toggle' },
-    { k:'approval_pings',label:'Slack ping for new approvals',     val: true,  kind:'toggle' },
-    { k:'risk_alerts',  label:'AI risk alerts (Claude)',           val: true,  kind:'toggle' },
-  ]},
+const TABS: { id: TabId; label: string; icon: any }[] = [
+  { id: 'profile',       label: 'Manage Profile',      icon: UserCog },
+  { id: 'platform',      label: 'Platform Controls',   icon: Sliders },
+  { id: 'integrations',  label: 'Integrations',        icon: Plug },
+  { id: 'roles',         label: 'Roles & Permissions', icon: Shield },
+  { id: 'notifications', label: 'Notifications',       icon: Bell },
+  { id: 'security',      label: 'Security',            icon: Lock },
+  { id: 'digital-id',    label: 'Digital ID',          icon: IdCard },
 ];
 
-// ─── Toast (auto-save confirmation) ──────────────────────────────
+/* ─────────────────────────────────────────────────────────────────
+ * Toast (Auto-save confirmation)
+ * ───────────────────────────────────────────────────────────────── */
 function Toast({ text, visible }: { text: string; visible: boolean }) {
   if (!visible) return null;
   return (
-    <Animated.View entering={FadeIn.duration(180)} style={s.toast}>
+    <Animated.View entering={FadeIn.duration(180)} style={s.toast} pointerEvents="none">
       <Check size={12} color={SAC.green} />
       <Text style={s.toastText}>{text}</Text>
     </Animated.View>
   );
 }
 
+/* ─────────────────────────────────────────────────────────────────
+ * Main view
+ * ───────────────────────────────────────────────────────────────── */
 export function SettingsView() {
-  const [, force] = useState(0);
-
-  // Roles
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [permGroups, setPermGroups] = useState<PermissionGroup[]>([]);
-  const [editingRole, setEditingRole] = useState<Role | null>(null);
-  const [creatingRole, setCreatingRole] = useState(false);
-  const [deleteCandidate, setDeleteCandidate] = useState<Role | null>(null);
-
-  // Marketplace
-  const [toolGroups, setToolGroups] = useState<{ category: string; items: Tool[] }[]>([]);
-  const [marketStats, setMarketStats] = useState({ installed: 0, available: 0 });
-  const [toolFilter, setToolFilter] = useState('All');
-  const [busyToolId, setBusyToolId] = useState<string | null>(null);
-
-  // Toast
+  const [tab, setTab] = useState<TabId>('profile');
   const [toast, setToast] = useState({ visible: false, text: 'Saved' });
   const flashToast = (text = 'Saved') => {
     setToast({ visible: true, text });
-    setTimeout(() => setToast((t) => ({ ...t, visible: false })), 1400);
+    setTimeout(() => setToast((t) => ({ ...t, visible: false })), 1500);
   };
-
-  const loadRoles = useCallback(async () => {
-    try {
-      const r = await request<{ roles: Role[] }>('/admin/roles');
-      setRoles(r?.roles || []);
-    } catch {}
-  }, []);
-  const loadPerms = useCallback(async () => {
-    try {
-      const r = await request<{ groups: PermissionGroup[] }>('/admin/permissions');
-      setPermGroups(r?.groups || []);
-    } catch {}
-  }, []);
-  const loadTools = useCallback(async () => {
-    try {
-      const r = await request<any>('/marketplace/tools');
-      setToolGroups(r?.groups || []);
-      setMarketStats({ installed: r?.installed_count || 0, available: r?.available_count || 0 });
-    } catch {}
-  }, []);
-
-  useEffect(() => { loadRoles(); loadPerms(); loadTools(); }, [loadRoles, loadPerms, loadTools]);
-
-  const installTool = async (toolId: string) => {
-    setBusyToolId(toolId);
-    try {
-      await request('/marketplace/install', { method: 'POST', body: { tool_id: toolId } });
-      flashToast(`Installed`);
-      await loadTools();
-    } catch (e: any) { flashToast(`Install failed`); }
-    finally { setBusyToolId(null); }
-  };
-  const uninstallTool = async (toolId: string) => {
-    setBusyToolId(toolId);
-    try {
-      await request(`/marketplace/tools/${toolId}`, { method: 'DELETE' });
-      flashToast(`Disconnected`);
-      await loadTools();
-    } catch (e: any) { flashToast(`Disconnect failed`); }
-    finally { setBusyToolId(null); }
-  };
-
-  const onToggle = (sectionIdx: number, itemIdx: number) => {
-    const it: any = STATIC[sectionIdx].items[itemIdx];
-    it.val = !it.val;
-    force((x) => x + 1);
-    flashToast('Saved');
-  };
-
-  const filteredToolGroups = toolFilter === 'All'
-    ? toolGroups
-    : toolGroups.filter((g) => g.category === toolFilter);
-  const categories = ['All', ...toolGroups.map((g) => g.category)];
 
   return (
-    <View style={{ gap: 14 }}>
-      {/* ── Roles & Permissions (NEW) ──────────────── */}
+    <View style={{ gap: 16 }}>
+      <TopTabBar active={tab} onChange={setTab} />
+      <View style={{ minHeight: 480 }}>
+        {tab === 'profile'       && <ProfileTab onSaved={flashToast} />}
+        {tab === 'platform'      && <PlatformTab onSaved={flashToast} />}
+        {tab === 'integrations'  && <IntegrationsTab onSaved={flashToast} />}
+        {tab === 'roles'         && <RolesTab onSaved={flashToast} />}
+        {tab === 'notifications' && <NotificationsTab onSaved={flashToast} />}
+        {tab === 'security'      && <SecurityTab onSaved={flashToast} />}
+        {tab === 'digital-id'    && <DigitalIdTab onSaved={flashToast} />}
+      </View>
+      <Toast text={toast.text} visible={toast.visible} />
+    </View>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────
+ * Top horizontal tab bar
+ * ───────────────────────────────────────────────────────────────── */
+function TopTabBar({ active, onChange }: { active: TabId; onChange: (t: TabId) => void }) {
+  return (
+    <View style={s.tabBarOuter}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 6, padding: 6 }}
+      >
+        {TABS.map((t) => {
+          const isActive = active === t.id;
+          const Icon = t.icon;
+          if (isActive) {
+            return (
+              <Pressable key={t.id} onPress={() => onChange(t.id)}>
+                <LinearGradient
+                  colors={[GRAD_FROM, GRAD_TO]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={s.tabActive}
+                >
+                  <Icon size={14} color="#fff" />
+                  <Text style={s.tabActiveText}>{t.label}</Text>
+                </LinearGradient>
+              </Pressable>
+            );
+          }
+          return (
+            <Pressable
+              key={t.id}
+              onPress={() => onChange(t.id)}
+              style={({ hovered }: any) => [
+                s.tabInactive,
+                hovered && Platform.OS === 'web' ? { backgroundColor: 'rgba(255,255,255,0.05)' } : null,
+              ]}
+            >
+              <Icon size={13} color={SAC.muted} />
+              <Text style={s.tabInactiveText}>{t.label}</Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════════════
+ * TAB 1 — Manage Profile
+ * ═══════════════════════════════════════════════════════════════ */
+function ProfileTab({ onSaved }: { onSaved: (s?: string) => void }) {
+  const [data, setData] = useState<any>(null);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<any>({});
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const r = await request<any>('/admin/profile');
+      setData(r);
+      setDraft({ name: r?.name, phone: r?.phone, title: r?.title, org: r?.org });
+    } catch (e) { /* ignore */ }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await request('/admin/profile', { method: 'PATCH', body: draft });
+      await load();
+      setEditing(false);
+      onSaved('Profile saved');
+    } finally { setSaving(false); }
+  };
+
+  if (!data) return <Loading />;
+
+  const initials = (data.name || 'SA').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase();
+
+  return (
+    <Animated.View entering={FadeIn.duration(180)} style={{ gap: 14 }}>
+      {/* Header card with gradient avatar + status */}
       <View style={s.card}>
-        <View style={s.cardHeadRow}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <View style={s.cardIcon}><UserCog size={14} color={SAC.accent} /></View>
-            <View>
-              <Text style={s.cardTitle}>Roles & Permissions</Text>
-              <Text style={s.cardSub}>{roles.length} roles • Fine-grained access control</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <LinearGradient
+            colors={[GRAD_FROM, GRAD_DEEP]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={s.avatarLg}
+          >
+            <Text style={s.avatarText}>{initials}</Text>
+          </LinearGradient>
+          <View style={{ flex: 1, minWidth: 200, gap: 4 }}>
+            <Text style={s.h1}>{data.name}</Text>
+            <Text style={s.subtle}>{data.title} · {data.org}</Text>
+            <View style={{ flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+              <LinearGradient colors={[GRAD_FROM, GRAD_TO]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.pillGrad}>
+                <Text style={s.pillGradText}>{data.role_label}</Text>
+              </LinearGradient>
+              <View style={s.pillGreen}>
+                <Text style={s.pillGreenText}>{data.access_label}</Text>
+              </View>
+              <View style={s.pillNeutral}>
+                <Text style={s.pillNeutralText}>{data.admin_id}</Text>
+              </View>
             </View>
           </View>
-          <Pressable onPress={() => setCreatingRole(true)} style={({ hovered }: any) => [s.primaryBtn, hovered && Platform.OS === 'web' ? { opacity: 0.9 } as any : null]}>
-            <Plus size={14} color="#fff" />
-            <Text style={s.primaryBtnText}>Create New Role</Text>
-          </Pressable>
+          <View style={{ alignItems: 'flex-end', gap: 4 }}>
+            <Text style={s.label}>Platform status</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={s.dotGreen} />
+              <Text style={s.valueText}>{data.platform_status}</Text>
+            </View>
+            <Text style={s.muted}>Last login: {data.last_login ? new Date(data.last_login).toLocaleString() : 'Today, 9:41 AM'}</Text>
+          </View>
         </View>
-        <View style={{ marginTop: 16, gap: 10 }}>
-          {roles.length === 0 && (
-            <View style={s.emptyBox}>
-              <ActivityIndicator color={SAC.primary} size="small" />
-              <Text style={s.emptyText}>Loading roles…</Text>
+      </View>
+
+      {/* Editable profile fields */}
+      <View style={s.card}>
+        <View style={s.cardHeadRow}>
+          <Text style={s.cardTitle}>Profile details</Text>
+          {!editing ? (
+            <Pressable onPress={() => setEditing(true)} style={s.linkBtn}>
+              <Pencil size={12} color={GRAD_TO} />
+              <Text style={s.linkBtnText}>Edit</Text>
+            </Pressable>
+          ) : (
+            <View style={{ flexDirection: 'row', gap: 6 }}>
+              <Pressable onPress={() => { setEditing(false); load(); }} style={s.secondaryBtn}>
+                <Text style={s.secondaryBtnText}>Cancel</Text>
+              </Pressable>
+              <GradientButton onPress={save} loading={saving}>
+                <Check size={14} color="#fff" />
+                <Text style={s.primaryBtnText}>Save changes</Text>
+              </GradientButton>
             </View>
           )}
-          {roles.map((role) => (
-            <Animated.View key={role.id} entering={FadeInDown.duration(160)} style={s.roleRow}>
-              <View style={s.roleIcon}>
-                <MaterialCommunityIcons
-                  name={role.is_system ? 'shield-check' : 'shield-account-outline'}
-                  size={18}
-                  color={role.is_system ? SAC.accent : SAC.green}
-                />
+        </View>
+
+        <View style={{ gap: 14, marginTop: 16 }}>
+          <Field label="Full name" value={data.name} editing={editing}
+                 onChange={(v) => setDraft({ ...draft, name: v })} draft={draft.name} />
+          <Field label="Email"     value={data.email} editing={false} />
+          <Field label="Phone"     value={data.phone || '—'} editing={editing}
+                 onChange={(v) => setDraft({ ...draft, phone: v })} draft={draft.phone} placeholder="+91 9xxxx xxxxx" />
+          <Field label="Title"     value={data.title} editing={editing}
+                 onChange={(v) => setDraft({ ...draft, title: v })} draft={draft.title} />
+          <Field label="Organisation" value={data.org} editing={editing}
+                 onChange={(v) => setDraft({ ...draft, org: v })} draft={draft.org} />
+        </View>
+      </View>
+    </Animated.View>
+  );
+}
+
+function Field({ label, value, editing, draft, onChange, placeholder }: {
+  label: string; value: string; editing: boolean; draft?: string;
+  onChange?: (v: string) => void; placeholder?: string;
+}) {
+  return (
+    <View style={s.fieldRow}>
+      <Text style={s.fieldLabel}>{label}</Text>
+      {editing && onChange ? (
+        <TextInput
+          value={draft || ''} onChangeText={onChange}
+          placeholder={placeholder} placeholderTextColor={SAC.dim}
+          style={s.input}
+        />
+      ) : (
+        <Text style={s.fieldValue}>{value}</Text>
+      )}
+    </View>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════════════
+ * TAB 2 — Platform Controls
+ * ═══════════════════════════════════════════════════════════════ */
+function PlatformTab({ onSaved }: { onSaved: (s?: string) => void }) {
+  const [data, setData] = useState<any>(null);
+
+  const load = useCallback(async () => {
+    try { setData(await request<any>('/admin/platform-controls')); } catch {}
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const toggleFlag = async (key: string, value: boolean) => {
+    if (!data) return;
+    const newFlags = data.feature_flags.map((f: any) => f.key === key ? { ...f, value } : f);
+    setData({ ...data, feature_flags: newFlags });
+    try {
+      await request('/admin/platform-controls', { method: 'PATCH', body: { key, value, section: 'feature_flags' } });
+      onSaved('Saved');
+    } catch {}
+  };
+
+  if (!data) return <Loading />;
+
+  return (
+    <Animated.View entering={FadeIn.duration(180)} style={s.twoCol}>
+      {/* FEATURE FLAGS */}
+      <View style={[s.card, { flex: 1, minWidth: 320 }]}>
+        <Text style={s.sectionLabel}>FEATURE FLAGS</Text>
+        <View style={{ marginTop: 14, gap: 4 }}>
+          {data.feature_flags.map((f: any) => (
+            <View key={f.key} style={s.toggleRow}>
+              <View style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+                <Text style={s.toggleTitle}>{f.label}</Text>
+                <Text style={s.toggleDesc}>{f.description}</Text>
               </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={s.roleName} numberOfLines={1}>{role.name}</Text>
-                  {role.is_system && (
-                    <View style={s.sysPill}><Text style={s.sysPillText}>SYSTEM</Text></View>
-                  )}
-                </View>
-                <Text style={s.roleDesc} numberOfLines={1}>{role.description || '—'}</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 6 }}>
-                  <Text style={s.roleStat}>{role.permissions.length} permissions</Text>
-                  <Text style={s.roleStat}>•  {role.user_count} users</Text>
-                </View>
-              </View>
-              {!role.is_system && (
-                <View style={{ flexDirection: 'row', gap: 6 }}>
-                  <Pressable onPress={() => setEditingRole(role)} style={s.iconBtn} accessibilityLabel="Edit role">
-                    <Pencil size={13} color={SAC.muted} />
-                  </Pressable>
-                  <Pressable onPress={() => setDeleteCandidate(role)} style={[s.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]} accessibilityLabel="Delete role">
-                    <Trash2 size={13} color={SAC.red} />
-                  </Pressable>
-                </View>
-              )}
-            </Animated.View>
+              <Switch
+                value={!!f.value}
+                onValueChange={(v) => toggleFlag(f.key, v)}
+                trackColor={{ false: 'rgba(255,255,255,0.10)', true: GRAD_TO }}
+                thumbColor={f.value ? '#fff' : '#ccc'}
+                {...(Platform.OS === 'web' ? ({ activeThumbColor: '#fff' } as any) : {})}
+              />
+            </View>
           ))}
         </View>
       </View>
 
-      {/* ── Marketplace (NEW) ──────────────────────── */}
+      {/* SYSTEM SETTINGS + DANGER ZONE */}
+      <View style={{ flex: 1, minWidth: 320, gap: 14 }}>
+        <View style={s.card}>
+          <Text style={s.sectionLabel}>SYSTEM SETTINGS</Text>
+          <View style={{ marginTop: 12 }}>
+            {data.system_settings.map((it: any, idx: number) => (
+              <View
+                key={it.key}
+                style={[s.systemRow, idx === data.system_settings.length - 1 ? { borderBottomWidth: 0 } : null]}
+              >
+                <Text style={s.toggleTitle}>{it.label}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Text style={s.valueGrad}>{it.value}</Text>
+                  <Pressable style={s.editBtn}>
+                    <Text style={s.editBtnText}>Edit</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={[s.card, { borderColor: 'rgba(239,68,68,0.30)' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <AlertTriangle size={14} color={SAC.red} />
+            <Text style={[s.sectionLabel, { color: SAC.red }]}>DANGER ZONE</Text>
+          </View>
+          <View style={{ gap: 10, marginTop: 14 }}>
+            <DangerBtn icon={RotateCcw} label="Reset all platform settings" />
+            <DangerBtn icon={Trash2}    label="Wipe analytics history" />
+            <DangerBtn icon={KeyRound}  label="Rotate JWT signing key" />
+          </View>
+        </View>
+      </View>
+    </Animated.View>
+  );
+}
+
+function DangerBtn({ icon: Icon, label }: { icon: any; label: string }) {
+  return (
+    <Pressable style={({ hovered }: any) => [
+      s.dangerBtn,
+      hovered && Platform.OS === 'web' ? { backgroundColor: 'rgba(239,68,68,0.10)' } : null,
+    ]}>
+      <Icon size={13} color={SAC.red} />
+      <Text style={s.dangerBtnText}>{label}</Text>
+      <View style={{ flex: 1 }} />
+      <ChevronRight size={13} color={SAC.red} />
+    </Pressable>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════════════
+ * TAB 3 — Integrations  (with Connect API-key modal)
+ * ═══════════════════════════════════════════════════════════════ */
+function IntegrationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
+  const [groups, setGroups] = useState<{ category: string; items: Tool[] }[]>([]);
+  const [filter, setFilter] = useState('All');
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [connectTool, setConnectTool] = useState<Tool | null>(null);
+  const [stats, setStats] = useState({ installed: 0, available: 0 });
+
+  const load = useCallback(async () => {
+    try {
+      const r = await request<any>('/marketplace/tools');
+      setGroups(r?.groups || []);
+      setStats({ installed: r?.installed_count || 0, available: r?.available_count || 0 });
+    } catch {}
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const disconnect = async (toolId: string) => {
+    setBusyId(toolId);
+    try {
+      await request(`/marketplace/tools/${toolId}`, { method: 'DELETE' });
+      onSaved('Disconnected');
+      await load();
+    } finally { setBusyId(null); }
+  };
+
+  const onConnected = async () => {
+    setConnectTool(null);
+    onSaved('Connected');
+    await load();
+  };
+
+  const filtered = filter === 'All' ? groups : groups.filter((g) => g.category === filter);
+  const cats = ['All', ...groups.map((g) => g.category)];
+
+  return (
+    <Animated.View entering={FadeIn.duration(180)} style={{ gap: 14 }}>
       <View style={s.card}>
         <View style={s.cardHeadRow}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <View style={s.cardIcon}><Store size={14} color={SAC.accent} /></View>
+            <View style={s.iconBox}><Plug size={14} color={GRAD_TO} /></View>
             <View>
-              <Text style={s.cardTitle}>Marketplace</Text>
-              <Text style={s.cardSub}>{marketStats.installed} of {marketStats.available} tools connected</Text>
+              <Text style={s.cardTitle}>Integrations</Text>
+              <Text style={s.cardSub}>{stats.installed} of {stats.available} tools connected</Text>
             </View>
           </View>
         </View>
-        {/* Category filter pills */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12 }}>
-          {categories.map((c) => {
-            const active = c === toolFilter;
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 14 }}>
+          {cats.map((c) => {
+            const active = c === filter;
+            if (active) {
+              return (
+                <Pressable key={c} onPress={() => setFilter(c)}>
+                  <LinearGradient colors={[GRAD_FROM, GRAD_TO]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.catPillActive}>
+                    <Text style={s.catPillActiveText}>{c}</Text>
+                  </LinearGradient>
+                </Pressable>
+              );
+            }
             return (
-              <Pressable key={c} onPress={() => setToolFilter(c)} style={[s.catPill, active && s.catPillActive]}>
-                <Text style={[s.catPillText, active && { color: '#fff' }]}>{c}</Text>
+              <Pressable key={c} onPress={() => setFilter(c)} style={s.catPill}>
+                <Text style={s.catPillText}>{c}</Text>
               </Pressable>
             );
           })}
         </ScrollView>
 
-        <View style={{ marginTop: 14, gap: 14 }}>
-          {filteredToolGroups.length === 0 && (
-            <View style={s.emptyBox}><ActivityIndicator color={SAC.primary} size="small" /><Text style={s.emptyText}>Loading marketplace…</Text></View>
-          )}
-          {filteredToolGroups.map((g) => (
+        <View style={{ marginTop: 16, gap: 18 }}>
+          {filtered.map((g) => (
             <View key={g.category}>
-              {toolFilter === 'All' && (
-                <Text style={s.catLabel}>{g.category.toUpperCase()}</Text>
-              )}
+              {filter === 'All' && <Text style={s.catLabel}>{g.category.toUpperCase()}</Text>}
               <View style={s.toolGrid}>
                 {g.items.map((t) => (
                   <ToolCard
-                    key={t.id}
-                    tool={t}
-                    busy={busyToolId === t.id}
-                    onInstall={() => installTool(t.id)}
-                    onUninstall={() => uninstallTool(t.id)}
+                    key={t.id} tool={t}
+                    busy={busyId === t.id}
+                    onConnect={() => setConnectTool(t)}
+                    onDisconnect={() => disconnect(t.id)}
                   />
                 ))}
               </View>
@@ -265,96 +487,274 @@ export function SettingsView() {
         </View>
       </View>
 
-      {/* ── Static existing sections ───────────────── */}
-      {STATIC.map((sec, si) => {
-        const Icon = sec.icon;
-        return (
-          <View key={sec.id} style={s.card}>
-            <View style={s.cardHead}>
-              <View style={s.cardIcon}><Icon size={14} color={SAC.accent} /></View>
-              <Text style={s.cardTitle}>{sec.title}</Text>
-            </View>
-            <View style={{ marginTop: 12 }}>
-              {sec.items.map((it: any, ii: number) => (
-                <View key={it.k} style={s.row}>
-                  <Text numberOfLines={1} style={s.label}>{it.label}</Text>
-                  {it.kind === 'toggle' && (
-                    <Switch
-                      value={!!it.val}
-                      onValueChange={() => onToggle(si, ii)}
-                      trackColor={{ false: 'rgba(255,255,255,0.10)', true: SAC.primary }}
-                      thumbColor={it.val ? '#fff' : '#ccc'}
-                      {...(Platform.OS === 'web' ? ({ activeThumbColor: '#fff' } as any) : {})}
-                    />
-                  )}
-                  {it.kind === 'text' && <Text style={s.valueText}>{it.val}</Text>}
-                </View>
-              ))}
-            </View>
-          </View>
-        );
-      })}
-
-      {/* ── Modals ─────────────────────────────────── */}
-      <RoleModal
-        visible={creatingRole || !!editingRole}
-        role={editingRole}
-        permissionGroups={permGroups}
-        onClose={() => { setCreatingRole(false); setEditingRole(null); }}
-        onSaved={() => { flashToast(editingRole ? 'Role updated' : 'Role created'); setCreatingRole(false); setEditingRole(null); loadRoles(); }}
-      />
-      <ConfirmDeleteModal
-        role={deleteCandidate}
-        onClose={() => setDeleteCandidate(null)}
-        onDeleted={() => { flashToast('Role deleted'); setDeleteCandidate(null); loadRoles(); }}
-      />
-      <Toast text={toast.text} visible={toast.visible} />
-    </View>
+      <ConnectModal tool={connectTool} onClose={() => setConnectTool(null)} onConnected={onConnected} />
+    </Animated.View>
   );
 }
 
-// ─── Tool card ────────────────────────────────────────────────────
-function ToolCard({ tool, busy, onInstall, onUninstall }: {
-  tool: Tool; busy: boolean; onInstall: () => void; onUninstall: () => void;
+function ToolCard({ tool, busy, onConnect, onDisconnect }: {
+  tool: Tool; busy: boolean; onConnect: () => void; onDisconnect: () => void;
 }) {
   return (
     <View style={s.toolCard}>
-      <View style={[s.toolIcon, { backgroundColor: tool.tint + '22', borderColor: tool.tint + '44' }]}>
-        <MaterialCommunityIcons name={tool.icon as any} size={20} color={tool.tint} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View style={[s.toolIcon, { backgroundColor: tool.tint + '22', borderColor: tool.tint + '55' }]}>
+          <MaterialCommunityIcons name={tool.icon as any} size={20} color={tool.tint} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={s.toolName} numberOfLines={1}>{tool.name}</Text>
+          {tool.installed ? (
+            <View style={s.connectedPill}>
+              <View style={s.connectedDot} />
+              <Text style={s.connectedPillText}>Connected</Text>
+            </View>
+          ) : (
+            <View style={s.disconnectedPill}>
+              <Text style={s.disconnectedPillText}>Disconnected</Text>
+            </View>
+          )}
+        </View>
       </View>
-      <Text style={s.toolName} numberOfLines={1}>{tool.name}</Text>
       <Text style={s.toolDesc} numberOfLines={2}>{tool.description}</Text>
       <View style={{ flex: 1 }} />
       {tool.installed ? (
-        <View style={{ flexDirection: 'row', gap: 6, marginTop: 10 }}>
-          <View style={s.connectedPill}>
-            <View style={s.connectedDot} />
-            <Text style={s.connectedPillText}>Connected</Text>
-          </View>
-          <Pressable onPress={onUninstall} disabled={busy} style={[s.toolBtnSec, busy && { opacity: 0.5 }]}>
-            {busy ? <ActivityIndicator size="small" color={SAC.muted} /> : <Text style={s.toolBtnSecText}>Disconnect</Text>}
-          </Pressable>
-        </View>
-      ) : (
-        <Pressable onPress={onInstall} disabled={busy} style={[s.toolBtn, busy && { opacity: 0.5 }]}>
-          {busy ? <ActivityIndicator size="small" color="#fff" /> : (
-            <>
-              <Download size={12} color="#fff" />
-              <Text style={s.toolBtnText}>Install</Text>
-            </>
+        <Pressable onPress={onDisconnect} disabled={busy} style={[s.toolBtnSec, busy && { opacity: 0.5 }]}>
+          {busy ? <ActivityIndicator size="small" color={SAC.muted} /> : (
+            <Text style={s.toolBtnSecText}>Disconnect</Text>
           )}
+        </Pressable>
+      ) : (
+        <Pressable onPress={onConnect} disabled={busy} style={[{ marginTop: 10 }, busy && { opacity: 0.5 }]}>
+          <LinearGradient colors={[GRAD_FROM, GRAD_TO]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.toolBtnGrad}>
+            {busy ? <ActivityIndicator size="small" color="#fff" /> : (
+              <>
+                <Plug size={12} color="#fff" />
+                <Text style={s.toolBtnText}>Connect</Text>
+              </>
+            )}
+          </LinearGradient>
         </Pressable>
       )}
       {tool.popular && (
-        <View style={s.popPill}>
+        <LinearGradient colors={[GRAD_FROM, GRAD_DEEP]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.popPill}>
           <Text style={s.popPillText}>POPULAR</Text>
-        </View>
+        </LinearGradient>
       )}
     </View>
   );
 }
 
-// ─── Role create/edit modal ─────────────────────────────────────
+function ConnectModal({ tool, onClose, onConnected }: {
+  tool: Tool | null; onClose: () => void; onConnected: () => void;
+}) {
+  const [creds, setCreds] = useState<Record<string, string>>({});
+  const [showSecret, setShowSecret] = useState<Record<string, boolean>>({});
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (tool) { setCreds({}); setError(null); setShowSecret({}); }
+  }, [tool]);
+
+  if (!tool) return null;
+
+  const fields = tool.auth_fields || [];
+
+  const submit = async () => {
+    setBusy(true); setError(null);
+    try {
+      await request('/marketplace/install', {
+        method: 'POST',
+        body: { tool_id: tool.id, credentials: creds },
+      });
+      onConnected();
+    } catch (e: any) {
+      setError(String(e?.message || e));
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <View style={s.modalBackdrop}>
+        <Animated.View entering={FadeInDown.duration(220)} style={s.modalCard}>
+          <LinearGradient colors={GRAD_BG} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.modalHero}>
+            <View style={[s.toolIcon, { width: 44, height: 44, backgroundColor: tool.tint + '22', borderColor: tool.tint + '55' }]}>
+              <MaterialCommunityIcons name={tool.icon as any} size={24} color={tool.tint} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={s.modalTitle}>Connect {tool.name}</Text>
+              <Text style={s.modalSub}>{tool.description}</Text>
+            </View>
+            <Pressable onPress={onClose} style={s.modalClose}><X size={16} color={SAC.muted} /></Pressable>
+          </LinearGradient>
+
+          <ScrollView style={{ maxHeight: 460 }} contentContainerStyle={{ padding: 20, gap: 16 }}>
+            <View style={s.helpBox}>
+              <KeyRound size={13} color={GRAD_TO} />
+              <Text style={s.helpText}>
+                Enter your {tool.name} credentials below. Keys are stored encrypted and never shared.
+                You can disconnect at any time.
+              </Text>
+            </View>
+
+            {fields.length === 0 ? (
+              <Text style={s.muted}>No credentials required — click Connect to enable.</Text>
+            ) : fields.map((f) => {
+              const isPwd = f.type === 'password';
+              const show = !!showSecret[f.key];
+              return (
+                <View key={f.key} style={{ gap: 6 }}>
+                  <Text style={s.modalLabel}>{f.label}</Text>
+                  <View style={s.inputWrap}>
+                    <TextInput
+                      value={creds[f.key] || ''}
+                      onChangeText={(v) => setCreds({ ...creds, [f.key]: v })}
+                      placeholder={f.placeholder || ''}
+                      placeholderTextColor={SAC.dim}
+                      secureTextEntry={isPwd && !show}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      style={s.input}
+                    />
+                    {isPwd && (
+                      <Pressable onPress={() => setShowSecret({ ...showSecret, [f.key]: !show })} style={s.inputIconBtn}>
+                        {show ? <EyeOff size={14} color={SAC.muted} /> : <Eye size={14} color={SAC.muted} />}
+                      </Pressable>
+                    )}
+                  </View>
+                  {f.help && <Text style={s.helpInline}>{f.help}</Text>}
+                </View>
+              );
+            })}
+
+            <Pressable style={s.docLink} onPress={() => {}}>
+              <ExternalLink size={11} color={GRAD_TO} />
+              <Text style={s.docLinkText}>How to get {tool.name} API credentials</Text>
+            </Pressable>
+
+            {error && <Text style={s.errorText}>{error}</Text>}
+          </ScrollView>
+
+          <View style={s.modalFooter}>
+            <Pressable onPress={onClose} style={s.secondaryBtn}>
+              <Text style={s.secondaryBtnText}>Cancel</Text>
+            </Pressable>
+            <GradientButton onPress={submit} loading={busy}>
+              <Plug size={13} color="#fff" />
+              <Text style={s.primaryBtnText}>Connect {tool.name}</Text>
+            </GradientButton>
+          </View>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════════════
+ * TAB 4 — Roles & Permissions
+ * ═══════════════════════════════════════════════════════════════ */
+function RolesTab({ onSaved }: { onSaved: (s?: string) => void }) {
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [perms, setPerms] = useState<PermissionGroup[]>([]);
+  const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<Role | null>(null);
+  const [del, setDel] = useState<Role | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const [r, p] = await Promise.all([
+        request<{ roles: Role[] }>('/admin/roles'),
+        request<{ groups: PermissionGroup[] }>('/admin/permissions'),
+      ]);
+      setRoles(r?.roles || []); setPerms(p?.groups || []);
+    } catch {}
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  // Map role keys → initials + tint
+  const tintFor = (key: string) => {
+    const palette: Record<string, string> = {
+      super_admin:  '#FB923C', // orange
+      platform_admin: '#3B82F6', // blue
+      college_admin:'#10B981', // green
+      support:      '#A78BFA', // purple
+      mentor:       '#06B6D4', // cyan
+    };
+    return palette[key] || '#94A3B8';
+  };
+  const initials = (name: string) => name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+
+  return (
+    <Animated.View entering={FadeIn.duration(180)} style={{ gap: 14 }}>
+      <View style={s.card}>
+        <View style={s.cardHeadRow}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View style={s.iconBox}><Shield size={14} color={GRAD_TO} /></View>
+            <View>
+              <Text style={s.cardTitle}>Roles & Permissions</Text>
+              <Text style={s.cardSub}>{roles.length} roles · Fine-grained access control</Text>
+            </View>
+          </View>
+          <GradientButton onPress={() => setCreating(true)}>
+            <Plus size={14} color="#fff" />
+            <Text style={s.primaryBtnText}>Create New Role</Text>
+          </GradientButton>
+        </View>
+
+        <View style={s.roleGrid}>
+          {roles.map((r) => (
+            <Animated.View key={r.id} entering={FadeInUp.duration(180)} style={s.roleCard}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={[s.roleBadge, { backgroundColor: tintFor(r.key) + '22', borderColor: tintFor(r.key) + '66' }]}>
+                  <Text style={[s.roleBadgeText, { color: tintFor(r.key) }]}>{initials(r.name)}</Text>
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={s.roleName} numberOfLines={1}>{r.name}</Text>
+                  <Text style={s.muted}>{r.user_count} user{r.user_count === 1 ? '' : 's'}</Text>
+                </View>
+                {r.is_system && (
+                  <View style={s.sysPill}><Text style={s.sysPillText}>SYSTEM</Text></View>
+                )}
+              </View>
+              <View style={{ gap: 6, marginTop: 12, marginBottom: 12 }}>
+                {(r.permissions || []).slice(0, 4).map((p) => (
+                  <View key={p} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Check size={11} color={GRAD_TO} />
+                    <Text style={s.permLine}>{p.replace(/\./g, ' · ').replace(/_/g, ' ')}</Text>
+                  </View>
+                ))}
+                {(r.permissions || []).length > 4 && (
+                  <Text style={[s.muted, { fontSize: 10.5 }]}>+ {r.permissions.length - 4} more</Text>
+                )}
+              </View>
+              <View style={{ flex: 1 }} />
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                <Pressable onPress={() => setEditing(r)} style={s.editBtnFull}>
+                  <Text style={s.editBtnText}>Edit</Text>
+                </Pressable>
+                {!r.is_system && (
+                  <Pressable onPress={() => setDel(r)} style={s.iconDangerBtn}>
+                    <Trash2 size={13} color={SAC.red} />
+                  </Pressable>
+                )}
+              </View>
+            </Animated.View>
+          ))}
+        </View>
+      </View>
+
+      <RoleModal
+        visible={creating || !!editing}
+        role={editing}
+        permissionGroups={perms}
+        onClose={() => { setCreating(false); setEditing(null); }}
+        onSaved={() => { onSaved(editing ? 'Role updated' : 'Role created'); setCreating(false); setEditing(null); load(); }}
+      />
+      <DeleteRoleModal role={del} onClose={() => setDel(null)} onDeleted={() => { onSaved('Role deleted'); setDel(null); load(); }} />
+    </Animated.View>
+  );
+}
+
 function RoleModal({ visible, role, permissionGroups, onClose, onSaved }: {
   visible: boolean; role: Role | null; permissionGroups: PermissionGroup[];
   onClose: () => void; onSaved: () => void;
@@ -368,20 +768,14 @@ function RoleModal({ visible, role, permissionGroups, onClose, onSaved }: {
 
   useEffect(() => {
     if (visible) {
-      setName(role?.name || '');
-      setDescription(role?.description || '');
-      setPermissions(new Set(role?.permissions || []));
-      setError(null);
+      setName(role?.name || ''); setDescription(role?.description || '');
+      setPermissions(new Set(role?.permissions || [])); setError(null);
     }
   }, [visible, role]);
 
-  const togglePerm = (id: string) => {
-    setPermissions((prev) => {
-      const n = new Set(prev);
-      n.has(id) ? n.delete(id) : n.add(id);
-      return n;
-    });
-  };
+  const togglePerm = (id: string) => setPermissions((prev) => {
+    const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n;
+  });
 
   const save = async () => {
     if (!name.trim()) { setError('Name is required'); return; }
@@ -403,34 +797,37 @@ function RoleModal({ visible, role, permissionGroups, onClose, onSaved }: {
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={s.modalBackdrop}>
         <Animated.View entering={FadeInDown.duration(220)} style={s.modalCard}>
-          <View style={s.modalHead}>
-            <Text style={s.modalTitle}>{isEdit ? 'Edit role' : 'Create new role'}</Text>
+          <LinearGradient colors={GRAD_BG} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.modalHero}>
+            <View style={[s.toolIcon, { width: 40, height: 40, backgroundColor: 'rgba(251,146,60,0.20)', borderColor: 'rgba(251,146,60,0.40)' }]}>
+              <Shield size={20} color={GRAD_TO} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={s.modalTitle}>{isEdit ? 'Edit role' : 'Create new role'}</Text>
+              <Text style={s.modalSub}>{isEdit ? 'Adjust permissions and metadata.' : 'Define a custom permission set for your team.'}</Text>
+            </View>
             <Pressable onPress={onClose} style={s.modalClose}><X size={16} color={SAC.muted} /></Pressable>
-          </View>
+          </LinearGradient>
 
-          <ScrollView style={{ maxHeight: 560 }} contentContainerStyle={{ padding: 18, gap: 14 }}>
-            <View>
-              <Text style={s.fieldLabel}>Role name</Text>
+          <ScrollView style={{ maxHeight: 520 }} contentContainerStyle={{ padding: 20, gap: 14 }}>
+            <View style={{ gap: 6 }}>
+              <Text style={s.modalLabel}>Role name</Text>
               <TextInput
                 value={name} onChangeText={setName}
-                placeholder="e.g. Content Reviewer"
-                placeholderTextColor={SAC.muted}
+                placeholder="e.g. Content Reviewer" placeholderTextColor={SAC.dim}
                 style={s.input}
               />
             </View>
-            <View>
-              <Text style={s.fieldLabel}>Description</Text>
+            <View style={{ gap: 6 }}>
+              <Text style={s.modalLabel}>Description</Text>
               <TextInput
                 value={description} onChangeText={setDescription}
-                placeholder="What can this role do? (optional)"
-                placeholderTextColor={SAC.muted}
-                style={[s.input, { minHeight: 64 }]}
-                multiline
+                placeholder="What can this role do? (optional)" placeholderTextColor={SAC.dim}
+                style={[s.input, { minHeight: 64 }]} multiline
               />
             </View>
 
-            <View>
-              <Text style={s.fieldLabel}>Permissions ({permissions.size} selected)</Text>
+            <View style={{ gap: 6 }}>
+              <Text style={s.modalLabel}>Permissions ({permissions.size} selected)</Text>
               <View style={{ gap: 10, marginTop: 4 }}>
                 {permissionGroups.map((g) => (
                   <View key={g.group} style={s.permGroup}>
@@ -440,7 +837,7 @@ function RoleModal({ visible, role, permissionGroups, onClose, onSaved }: {
                         const on = permissions.has(p.id);
                         return (
                           <Pressable key={p.id} onPress={() => togglePerm(p.id)} style={s.permRow}>
-                            <View style={[s.checkbox, on && s.checkboxOn]}>
+                            <View style={[s.checkbox, on && { backgroundColor: GRAD_TO, borderColor: GRAD_TO }]}>
                               {on && <Check size={11} color="#fff" />}
                             </View>
                             <Text style={s.permLabel}>{p.label}</Text>
@@ -461,14 +858,10 @@ function RoleModal({ visible, role, permissionGroups, onClose, onSaved }: {
             <Pressable onPress={onClose} style={s.secondaryBtn}>
               <Text style={s.secondaryBtnText}>Cancel</Text>
             </Pressable>
-            <Pressable onPress={save} disabled={saving} style={[s.primaryBtn, saving && { opacity: 0.6 }]}>
-              {saving ? <ActivityIndicator color="#fff" size="small" /> : (
-                <>
-                  <Check size={14} color="#fff" />
-                  <Text style={s.primaryBtnText}>{isEdit ? 'Save changes' : 'Create role'}</Text>
-                </>
-              )}
-            </Pressable>
+            <GradientButton onPress={save} loading={saving}>
+              <Check size={14} color="#fff" />
+              <Text style={s.primaryBtnText}>{isEdit ? 'Save changes' : 'Create role'}</Text>
+            </GradientButton>
           </View>
         </Animated.View>
       </View>
@@ -476,18 +869,14 @@ function RoleModal({ visible, role, permissionGroups, onClose, onSaved }: {
   );
 }
 
-// ─── Delete confirmation modal ──────────────────────────────────
-function ConfirmDeleteModal({ role, onClose, onDeleted }: {
+function DeleteRoleModal({ role, onClose, onDeleted }: {
   role: Role | null; onClose: () => void; onDeleted: () => void;
 }) {
   const [busy, setBusy] = useState(false);
   if (!role) return null;
   const confirm = async () => {
     setBusy(true);
-    try {
-      await request(`/admin/roles/${role.id}`, { method: 'DELETE' });
-      onDeleted();
-    } finally { setBusy(false); }
+    try { await request(`/admin/roles/${role.id}`, { method: 'DELETE' }); onDeleted(); } finally { setBusy(false); }
   };
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
@@ -497,14 +886,14 @@ function ConfirmDeleteModal({ role, onClose, onDeleted }: {
             <Text style={s.modalTitle}>Delete role?</Text>
             <Pressable onPress={onClose} style={s.modalClose}><X size={16} color={SAC.muted} /></Pressable>
           </View>
-          <View style={{ padding: 18, gap: 12 }}>
-            <Text style={{ color: SAC.text, fontFamily: FONTS.med, fontSize: 13.5, lineHeight: 19 }}>
-              You're about to delete the role <Text style={{ color: SAC.accent, fontFamily: FONTS.xbold }}>{role.name}</Text>.
+          <View style={{ padding: 20, gap: 10 }}>
+            <Text style={s.modalLabel}>
+              You're about to delete <Text style={{ color: '#fff', fontFamily: FONTS.xbold }}>{role.name}</Text>.
             </Text>
-            <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, lineHeight: 17 }}>
+            <Text style={s.muted}>
               {role.user_count > 0
-                ? `${role.user_count} user${role.user_count === 1 ? '' : 's'} currently have this role and will lose its permissions.`
-                : 'No users currently have this role assigned.'}
+                ? `${role.user_count} user${role.user_count === 1 ? '' : 's'} will lose its permissions.`
+                : 'No users are assigned to this role.'}
             </Text>
           </View>
           <View style={s.modalFooter}>
@@ -526,141 +915,678 @@ function ConfirmDeleteModal({ role, onClose, onDeleted }: {
   );
 }
 
-// ─── Styles ────────────────────────────────────────────────────
+/* ═════════════════════════════════════════════════════════════════
+ * TAB 5 — Notifications
+ * ═══════════════════════════════════════════════════════════════ */
+function NotificationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
+  const [prefs, setPrefs] = useState<any[] | null>(null);
+
+  const load = useCallback(async () => {
+    try { const r = await request<any>('/admin/notifications/preferences'); setPrefs(r?.preferences || []); } catch {}
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const toggle = async (key: string, channel: string, value: boolean) => {
+    if (!prefs) return;
+    setPrefs(prefs.map((p) => p.key === key ? { ...p, [channel]: value } : p));
+    try { await request('/admin/notifications/preferences', { method: 'PATCH', body: { key, channel, value } }); onSaved('Saved'); } catch {}
+  };
+
+  if (!prefs) return <Loading />;
+
+  const channels: { key: 'email' | 'push' | 'sms' | 'inapp'; label: string }[] = [
+    { key: 'email', label: 'Email' }, { key: 'push', label: 'Push' },
+    { key: 'sms', label: 'SMS' },     { key: 'inapp', label: 'In-app' },
+  ];
+
+  return (
+    <Animated.View entering={FadeIn.duration(180)} style={{ gap: 14 }}>
+      <View style={s.card}>
+        <View style={s.cardHeadRow}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View style={s.iconBox}><Bell size={14} color={GRAD_TO} /></View>
+            <View>
+              <Text style={s.cardTitle}>Notifications</Text>
+              <Text style={s.cardSub}>Choose which events you want delivered, and where.</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Header row */}
+        <View style={s.notifHeadRow}>
+          <Text style={[s.notifHead, { flex: 1 }]}>Event</Text>
+          {channels.map((c) => <Text key={c.key} style={[s.notifHead, { width: 60, textAlign: 'center' }]}>{c.label}</Text>)}
+        </View>
+
+        {prefs.map((p, i) => (
+          <View key={p.key} style={[s.notifRow, i === prefs.length - 1 && { borderBottomWidth: 0 }]}>
+            <View style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+              <Text style={s.toggleTitle}>{p.label}</Text>
+              <Text style={s.toggleDesc}>{p.description}</Text>
+            </View>
+            {channels.map((c) => (
+              <View key={c.key} style={{ width: 60, alignItems: 'center' }}>
+                <Switch
+                  value={!!p[c.key]}
+                  onValueChange={(v) => toggle(p.key, c.key, v)}
+                  trackColor={{ false: 'rgba(255,255,255,0.10)', true: GRAD_TO }}
+                  thumbColor={p[c.key] ? '#fff' : '#ccc'}
+                  {...(Platform.OS === 'web' ? ({ activeThumbColor: '#fff' } as any) : {})}
+                />
+              </View>
+            ))}
+          </View>
+        ))}
+      </View>
+    </Animated.View>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════════════
+ * TAB 6 — Security
+ * ═══════════════════════════════════════════════════════════════ */
+function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
+  const [twoFa, setTwoFa] = useState(true);
+  const [cur, setCur] = useState(''); const [next, setNext] = useState(''); const [conf, setConf] = useState('');
+  const [showCur, setShowCur] = useState(false); const [showNext, setShowNext] = useState(false);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [log, setLog] = useState<any[]>([]);
+  const [pwdErr, setPwdErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const [sessR, logR] = await Promise.all([
+        request<any>('/admin/security/sessions'),
+        request<any>('/admin/security/access-log'),
+      ]);
+      setSessions(sessR?.sessions || []); setLog(logR?.entries || []);
+    } catch {}
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const updatePwd = async () => {
+    setPwdErr(null);
+    if (next.length < 12) { setPwdErr('Password must be at least 12 characters'); return; }
+    if (next !== conf) { setPwdErr('Passwords do not match'); return; }
+    setBusy(true);
+    try {
+      await request('/admin/security/password', { method: 'PUT', body: { current_password: cur, new_password: next } });
+      setCur(''); setNext(''); setConf('');
+      onSaved('Password updated');
+    } catch (e: any) {
+      setPwdErr(String(e?.message || e));
+    } finally { setBusy(false); }
+  };
+
+  const revoke = async (id: string) => {
+    setSessions(sessions.filter((sx) => sx.id !== id));
+    try { await request(`/admin/security/sessions/${id}`, { method: 'DELETE' }); onSaved('Session revoked'); } catch {}
+  };
+
+  return (
+    <Animated.View entering={FadeIn.duration(180)} style={s.twoCol}>
+      {/* AUTHENTICATION */}
+      <View style={{ flex: 1, minWidth: 320, gap: 14 }}>
+        <View style={s.card}>
+          <Text style={s.sectionLabel}>AUTHENTICATION</Text>
+          <View style={[s.toggleRow, { marginTop: 14, borderBottomWidth: 1, borderBottomColor: SAC.border, paddingBottom: 14 }]}>
+            <View style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+              <Text style={s.toggleTitle}>Two-Factor Authentication</Text>
+              <Text style={s.toggleDesc}>Required for all admin logins</Text>
+            </View>
+            <Switch
+              value={twoFa} onValueChange={(v) => { setTwoFa(v); onSaved('2FA ' + (v ? 'enabled' : 'disabled')); }}
+              trackColor={{ false: 'rgba(255,255,255,0.10)', true: GRAD_TO }}
+              thumbColor={twoFa ? '#fff' : '#ccc'}
+              {...(Platform.OS === 'web' ? ({ activeThumbColor: '#fff' } as any) : {})}
+            />
+          </View>
+
+          <Text style={[s.sectionLabel, { marginTop: 18 }]}>CHANGE PASSWORD</Text>
+          <View style={{ marginTop: 12, gap: 10 }}>
+            <PasswordField icon={Lock} value={cur} onChange={setCur}
+              placeholder="Current password" show={showCur} onToggle={() => setShowCur(!showCur)} />
+            <PasswordField icon={Lock} value={next} onChange={setNext}
+              placeholder="New password (min 12 chars)" show={showNext} onToggle={() => setShowNext(!showNext)} />
+            <PasswordField icon={Lock} value={conf} onChange={setConf}
+              placeholder="Confirm new password" show={showNext} onToggle={() => setShowNext(!showNext)} />
+            {pwdErr && <Text style={s.errorText}>{pwdErr}</Text>}
+            <GradientButton onPress={updatePwd} loading={busy}>
+              <Check size={13} color="#fff" />
+              <Text style={s.primaryBtnText}>Update Password</Text>
+            </GradientButton>
+          </View>
+        </View>
+
+        {/* ACCESS LOG */}
+        <View style={s.card}>
+          <Text style={s.sectionLabel}>ACCESS LOG</Text>
+          <View style={{ marginTop: 12, gap: 10 }}>
+            {log.length === 0 && <Text style={s.muted}>No activity yet.</Text>}
+            {log.map((it, i) => (
+              <View key={i} style={s.logRow}>
+                <View style={s.logDot} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={s.logAction}>{prettyAction(it.action)} {it.target && it.target !== 'self' && `: ${it.target}`}</Text>
+                  <Text style={s.muted}>{it.ip} · {new Date(it.at).toLocaleString()}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
+
+      {/* ACTIVE SESSIONS */}
+      <View style={{ flex: 1, minWidth: 320 }}>
+        <View style={s.card}>
+          <Text style={s.sectionLabel}>ACTIVE SESSIONS</Text>
+          <View style={{ marginTop: 12, gap: 10 }}>
+            {sessions.map((sess) => {
+              const Icon = (sess.device || '').toLowerCase().includes('iphone') ? Smartphone : Monitor;
+              return (
+                <View key={sess.id} style={s.sessRow}>
+                  <View style={s.sessIcon}><Icon size={16} color={SAC.muted} /></View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={s.toggleTitle}>{sess.browser} · {sess.device}</Text>
+                    <Text style={s.muted}>{sess.location} · {sess.last_active}</Text>
+                  </View>
+                  {sess.current ? (
+                    <View style={s.activeChip}>
+                      <View style={s.dotGreen} />
+                      <Text style={s.activeChipText}>Active</Text>
+                    </View>
+                  ) : (
+                    <Pressable onPress={() => revoke(sess.id)} style={s.revokeBtn}>
+                      <Text style={s.revokeBtnText}>Revoke</Text>
+                    </Pressable>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      </View>
+    </Animated.View>
+  );
+}
+
+function PasswordField({ icon: Icon, value, onChange, placeholder, show, onToggle }: {
+  icon: any; value: string; onChange: (s: string) => void; placeholder: string;
+  show: boolean; onToggle: () => void;
+}) {
+  return (
+    <View style={[s.inputWrap, { paddingLeft: 10 }]}>
+      <Icon size={13} color={SAC.muted} />
+      <TextInput
+        value={value} onChangeText={onChange}
+        placeholder={placeholder} placeholderTextColor={SAC.dim}
+        secureTextEntry={!show}
+        autoCapitalize="none" autoCorrect={false}
+        style={[s.input, { flex: 1, backgroundColor: 'transparent', borderWidth: 0, paddingLeft: 8 }]}
+      />
+      <Pressable onPress={onToggle} style={s.inputIconBtn}>
+        {show ? <EyeOff size={14} color={SAC.muted} /> : <Eye size={14} color={SAC.muted} />}
+      </Pressable>
+    </View>
+  );
+}
+
+function prettyAction(a: string) {
+  const map: Record<string, string> = {
+    'session.login': 'Logged in',
+    'security.password_changed': 'Changed password',
+    'integration.connected': 'Connected integration',
+    'integration.disconnected': 'Disconnected integration',
+    'college.approved': 'Approved college',
+    'payout.processed': 'Processed payout',
+  };
+  return map[a] || a.replace(/[._]/g, ' ');
+}
+
+/* ═════════════════════════════════════════════════════════════════
+ * TAB 7 — Digital ID
+ * ═══════════════════════════════════════════════════════════════ */
+function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
+  const [data, setData] = useState<any>(null);
+  const [flipped, setFlipped] = useState(false);
+
+  useEffect(() => {
+    (async () => { try { setData(await request<any>('/admin/digital-id')); } catch {} })();
+  }, []);
+
+  if (!data) return <Loading />;
+
+  const copyId = async () => {
+    try {
+      // @ts-ignore - web only
+      if (Platform.OS === 'web' && navigator?.clipboard) {
+        await navigator.clipboard.writeText(data.admin_id);
+      }
+      onSaved('Admin ID copied');
+    } catch { onSaved('Copy failed'); }
+  };
+
+  return (
+    <Animated.View entering={FadeIn.duration(180)} style={{ gap: 16 }}>
+      {/* The ID Card */}
+      <Pressable onPress={() => setFlipped(!flipped)} style={{ alignSelf: 'center', width: '100%', maxWidth: 540 }}>
+        <LinearGradient
+          colors={['#FBBF24', '#F97316', '#B45309']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={s.idCard}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <View>
+              <Text style={s.idOrg}>{(data.org || 'Student Alumni').toUpperCase()}</Text>
+              <Text style={s.idLabel}>{data.label || 'OFFICIAL ID'}</Text>
+            </View>
+            <View style={s.idBadge}>
+              <Text style={s.idBadgeText}>SUPER ADMIN</Text>
+            </View>
+          </View>
+
+          <View style={{ marginTop: 28 }}>
+            <Text style={s.idName}>{data.name}</Text>
+            <Text style={s.idTitle}>{data.title} · {data.access_label}</Text>
+          </View>
+
+          <View style={{ marginTop: 20, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+            <View>
+              <Text style={s.idAdminLabel}>ADMIN ID</Text>
+              <Text style={s.idAdminVal}>{data.admin_id}</Text>
+            </View>
+            <View style={s.qrBox}>
+              <QrCode size={56} color="#1f1107" strokeWidth={1.5} />
+            </View>
+          </View>
+
+          <View style={{ marginTop: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+            <Text style={s.idFlipHint}>Tap to flip</Text>
+            <ChevronRight size={12} color="rgba(31,17,7,0.7)" />
+          </View>
+        </LinearGradient>
+      </Pressable>
+
+      {/* Actions */}
+      <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <Pressable onPress={copyId} style={s.idActionBtn}>
+          <Copy size={13} color="#fff" />
+          <Text style={s.idActionText}>Copy Admin ID</Text>
+        </Pressable>
+        <Pressable onPress={() => onSaved('Share link copied')} style={s.idActionBtn}>
+          <Share2 size={13} color="#fff" />
+          <Text style={s.idActionText}>Share Profile Link</Text>
+        </Pressable>
+        <Pressable onPress={() => onSaved('ID downloaded')} style={s.idActionBtn}>
+          <Download size={13} color="#fff" />
+          <Text style={s.idActionText}>Download ID Card</Text>
+        </Pressable>
+      </View>
+
+      {/* 4 feature cards */}
+      <View style={s.featGrid}>
+        <FeatureCard icon={ShieldCheck} tint={SAC.green}    title="Verified Identity"   text="Your admin status is verified by the platform." />
+        <FeatureCard icon={Building2}   tint="#3B82F6"      title="Platform Authority"  text={`Recognised across all ${data.colleges_count || 48} colleges.`} />
+        <FeatureCard icon={QrCode}      tint="#A78BFA"      title="Instant Share"       text="Share QR at events or board meetings." />
+        <FeatureCard icon={Lock}        tint={GRAD_TO}      title="Secure Access"       text="Cryptographically signed and tamper-proof." />
+      </View>
+    </Animated.View>
+  );
+}
+
+function FeatureCard({ icon: Icon, tint, title, text }: { icon: any; tint: string; title: string; text: string }) {
+  return (
+    <View style={s.featCard}>
+      <View style={[s.featIcon, { backgroundColor: tint + '22', borderColor: tint + '55' }]}>
+        <Icon size={16} color={tint} />
+      </View>
+      <Text style={s.featTitle}>{title}</Text>
+      <Text style={s.muted}>{text}</Text>
+    </View>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────
+ * Shared building blocks
+ * ───────────────────────────────────────────────────────────────── */
+function GradientButton({ onPress, loading, children, disabled }: {
+  onPress: () => void; loading?: boolean; children: React.ReactNode; disabled?: boolean;
+}) {
+  return (
+    <Pressable onPress={onPress} disabled={loading || disabled} style={({ hovered }: any) => [
+      { opacity: loading || disabled ? 0.6 : 1 },
+      hovered && Platform.OS === 'web' ? { transform: [{ translateY: -1 }] } : null,
+    ]}>
+      <LinearGradient colors={[GRAD_FROM, GRAD_TO]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.primaryBtn}>
+        {loading ? <ActivityIndicator size="small" color="#fff" /> : children}
+      </LinearGradient>
+    </Pressable>
+  );
+}
+
+function Loading() {
+  return (
+    <View style={{ padding: 60, alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+      <ActivityIndicator color={GRAD_TO} size="small" />
+      <Text style={s.muted}>Loading…</Text>
+    </View>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────
+ * Styles
+ * ───────────────────────────────────────────────────────────────── */
 const s = StyleSheet.create({
-  card: { backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, padding: 18 },
-  cardHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  cardHeadRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
-  cardIcon: { width: 32, height: 32, borderRadius: 9, backgroundColor: 'rgba(251,191,36,0.10)', borderColor: 'rgba(251,191,36,0.20)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  // Top tab bar
+  tabBarOuter: {
+    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14,
+  },
+  tabActive: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10,
+  },
+  tabActiveText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  tabInactive: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
+  },
+  tabInactiveText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12.5 },
+
+  // Cards
+  card: {
+    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14, padding: 20,
+  },
+  cardHeadRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
+  },
   cardTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
   cardSub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
+  sectionLabel: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1.8 },
 
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: SAC.border, gap: 12 },
-  label: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5, flex: 1, minWidth: 0 },
-  valueText: { color: SAC.accentBright, fontFamily: FONTS.xbold, fontSize: 12 },
-
-  emptyBox: { flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', padding: 20 },
-  emptyText: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
-
-  // Role rows
-  roleRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 14, paddingVertical: 12,
-    backgroundColor: SAC.cardSolid, borderRadius: 10, borderWidth: 1, borderColor: SAC.border,
+  iconBox: {
+    width: 32, height: 32, borderRadius: 9,
+    backgroundColor: 'rgba(245,158,11,0.10)', borderColor: 'rgba(245,158,11,0.30)', borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
   },
-  roleIcon: { width: 36, height: 36, borderRadius: 9, backgroundColor: 'rgba(251,191,36,0.10)', borderColor: 'rgba(251,191,36,0.20)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  roleName: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13.5 },
-  roleDesc: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
-  roleStat: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5 },
-  sysPill: { backgroundColor: 'rgba(251,191,36,0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  sysPillText: { color: SAC.accentBright, fontFamily: FONTS.xbold, fontSize: 8.5, letterSpacing: 0.8 },
-  iconBtn: { width: 28, height: 28, borderRadius: 7, borderWidth: 1, borderColor: SAC.border, alignItems: 'center', justifyContent: 'center',
+
+  twoCol: { flexDirection: 'row', gap: 14, flexWrap: 'wrap' as any },
+
+  // Profile
+  avatarLg: {
+    width: 72, height: 72, borderRadius: 18,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  avatarText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 24 },
+  h1: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 },
+  subtle: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5 },
+  pillGrad: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+  pillGradText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.4 },
+  pillGreen: { backgroundColor: 'rgba(16,185,129,0.15)', borderColor: 'rgba(16,185,129,0.30)', borderWidth: 1, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 },
+  pillGreenText: { color: SAC.green, fontFamily: FONTS.xbold, fontSize: 10.5 },
+  pillNeutral: { backgroundColor: SAC.cardSolid, borderColor: SAC.border, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 },
+  pillNeutralText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10.5,
+    ...(Platform.OS === 'web' ? ({ fontFamily: '"JetBrains Mono", "SF Mono", monospace' } as any) : {}),
+  },
+  label: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
+  valueText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  valueGrad: { color: GRAD_TO, fontFamily: FONTS.xbold, fontSize: 12.5 },
+  muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
+  dotGreen: { width: 8, height: 8, borderRadius: 4, backgroundColor: SAC.green },
+
+  fieldRow: { flexDirection: 'row', alignItems: 'center', gap: 12, justifyContent: 'space-between' },
+  fieldLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12, width: 130 },
+  fieldValue: { color: '#fff', fontFamily: FONTS.med, fontSize: 13, flex: 1, textAlign: 'right' },
+  input: {
+    color: '#fff', fontFamily: FONTS.med, fontSize: 13,
+    backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
+    paddingHorizontal: 12, paddingVertical: 10, flex: 1,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+  },
+
+  linkBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 7,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  linkBtnText: { color: GRAD_TO, fontFamily: FONTS.xbold, fontSize: 12 },
+
+  // Platform Controls
+  toggleRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 11, paddingHorizontal: 4,
+  },
+  toggleTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
+  toggleDesc: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
+  systemRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: SAC.border, gap: 12,
+  },
+  editBtn: {
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 7, borderWidth: 1, borderColor: SAC.border,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  editBtnText: { color: GRAD_TO, fontFamily: FONTS.xbold, fontSize: 11 },
+  editBtnFull: {
+    flex: 1, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: SAC.border,
+    alignItems: 'center', justifyContent: 'center',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  iconDangerBtn: {
+    width: 36, height: 36, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(239,68,68,0.30)',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  dangerBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 12, paddingVertical: 10, borderRadius: 9,
+    backgroundColor: 'rgba(239,68,68,0.06)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
   },
+  dangerBtnText: { color: SAC.red, fontFamily: FONTS.bold, fontSize: 12 },
 
-  // Buttons
+  // Integrations
+  catPill: {
+    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999,
+    backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border, marginRight: 6,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  catPillActive: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, marginRight: 6 },
+  catPillText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
+  catPillActiveText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 },
+  catLabel: { color: SAC.dim, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1.6, marginBottom: 10 },
+  toolGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  toolCard: {
+    width: 240, minHeight: 170, padding: 14, borderRadius: 12,
+    backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border, position: 'relative',
+  },
+  toolIcon: {
+    width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1,
+  },
+  toolName: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  toolDesc: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 10, lineHeight: 15.5, minHeight: 30 },
+  toolBtnGrad: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: 8, borderRadius: 8,
+  },
+  toolBtnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  toolBtnSec: {
+    marginTop: 10, alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: SAC.border,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  toolBtnSecText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
+  connectedPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4,
+    paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999, alignSelf: 'flex-start',
+    backgroundColor: 'rgba(16,185,129,0.12)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.30)',
+  },
+  connectedDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: SAC.green },
+  connectedPillText: { color: SAC.green, fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 0.3 },
+  disconnectedPill: {
+    marginTop: 4, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999, alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: SAC.border,
+  },
+  disconnectedPillText: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 0.3 },
+  popPill: {
+    position: 'absolute', top: 10, right: 10,
+    paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5,
+  },
+  popPillText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 8.5, letterSpacing: 0.6 },
+
+  // Roles
+  roleGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 16 },
+  roleCard: {
+    width: 280, minHeight: 200, padding: 16, borderRadius: 12,
+    backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border,
+    flexDirection: 'column',
+  },
+  roleBadge: {
+    width: 40, height: 40, borderRadius: 999, borderWidth: 1.4,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  roleBadgeText: { fontFamily: FONTS.xbold, fontSize: 13.5 },
+  roleName: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13.5 },
+  permLine: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, flex: 1 },
+  sysPill: { backgroundColor: 'rgba(251,146,60,0.16)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(251,146,60,0.40)' },
+  sysPillText: { color: '#FB923C', fontFamily: FONTS.xbold, fontSize: 8.5, letterSpacing: 0.8 },
+
+  // Notifications
+  notifHeadRow: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 10, marginTop: 14,
+    borderBottomWidth: 1, borderBottomColor: SAC.border,
+  },
+  notifHead: { color: SAC.dim, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1.4 },
+  notifRow: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: SAC.border,
+  },
+
+  // Security
+  inputWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
+    paddingHorizontal: 4,
+  },
+  inputIconBtn: {
+    width: 32, height: 32, borderRadius: 7, alignItems: 'center', justifyContent: 'center',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  sessRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 12, paddingHorizontal: 12, borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: SAC.border,
+  },
+  sessIcon: { width: 32, height: 32, borderRadius: 8, backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border, alignItems: 'center', justifyContent: 'center' },
+  activeChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(16,185,129,0.12)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.30)' },
+  activeChipText: { color: SAC.green, fontFamily: FONTS.xbold, fontSize: 10.5 },
+  revokeBtn: {
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
+    backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.35)',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  revokeBtnText: { color: SAC.red, fontFamily: FONTS.xbold, fontSize: 11 },
+  logRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 4 },
+  logDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: GRAD_TO, marginTop: 5 },
+  logAction: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+
+  // Digital ID
+  idCard: {
+    padding: 26, borderRadius: 22,
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 30px 70px rgba(217,119,6,0.30)' } as any) : { shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 30, shadowOffset: { width: 0, height: 18 } }),
+  },
+  idOrg: { color: 'rgba(31,17,7,0.75)', fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 2 },
+  idLabel: { color: 'rgba(31,17,7,0.55)', fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 1.4, marginTop: 2 },
+  idBadge: { backgroundColor: 'rgba(31,17,7,0.18)', paddingHorizontal: 9, paddingVertical: 4, borderRadius: 7, borderWidth: 1, borderColor: 'rgba(31,17,7,0.25)' },
+  idBadgeText: { color: '#1f1107', fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 1 },
+  idName: { color: '#1f1107', fontFamily: FONTS.xbold, fontSize: 28, letterSpacing: -0.5 },
+  idTitle: { color: 'rgba(31,17,7,0.75)', fontFamily: FONTS.bold, fontSize: 13, marginTop: 4 },
+  idAdminLabel: { color: 'rgba(31,17,7,0.55)', fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 1.4 },
+  idAdminVal: { color: '#1f1107', fontFamily: FONTS.xbold, fontSize: 19,
+    ...(Platform.OS === 'web' ? ({ fontFamily: '"JetBrains Mono", "SF Mono", monospace' } as any) : {}),
+  },
+  qrBox: { width: 72, height: 72, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.85)', alignItems: 'center', justifyContent: 'center' },
+  idFlipHint: { color: 'rgba(31,17,7,0.7)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.3 },
+  idActionBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9,
+    backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
+  },
+  idActionText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  featGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8 },
+  featCard: {
+    flex: 1, minWidth: 220, padding: 16, borderRadius: 12,
+    backgroundColor: SAC.card, borderWidth: 1, borderColor: SAC.border, gap: 8,
+  },
+  featIcon: { width: 34, height: 34, borderRadius: 9, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  featTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+
+  // Primary buttons
   primaryBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 9,
-    backgroundColor: SAC.primary,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
+    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9,
   },
   primaryBtnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
   secondaryBtn: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 9,
+    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9,
     borderWidth: 1, borderColor: SAC.border, backgroundColor: 'transparent',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   secondaryBtnText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
   destructiveBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 9,
-    backgroundColor: SAC.red,
+    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9, backgroundColor: SAC.red,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
 
-  // Marketplace
-  catPill: {
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border,
-    marginRight: 6,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  catPillActive: { backgroundColor: SAC.primary, borderColor: SAC.primary },
-  catPillText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
-  catLabel: { color: SAC.dim, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1.4, marginBottom: 8 },
-  toolGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  toolCard: {
-    width: 220, minHeight: 170, padding: 12, borderRadius: 12,
-    backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border,
-    position: 'relative',
-    ...(Platform.OS === 'web' ? ({ transitionDuration: '150ms' } as any) : {}),
-  },
-  toolIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, marginBottom: 8 },
-  toolName: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
-  toolDesc: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 4, lineHeight: 15, minHeight: 30 },
-  toolBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
-    marginTop: 10, paddingVertical: 7, borderRadius: 7, backgroundColor: SAC.primary,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  toolBtnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 },
-  toolBtnSec: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 7, borderRadius: 7, borderWidth: 1, borderColor: SAC.border,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  toolBtnSecText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
-  connectedPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 8, paddingVertical: 6, borderRadius: 7,
-    backgroundColor: 'rgba(16,185,129,0.12)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.30)',
-  },
-  connectedDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: SAC.green },
-  connectedPillText: { color: SAC.green, fontFamily: FONTS.xbold, fontSize: 10 },
-  popPill: {
-    position: 'absolute', top: 8, right: 8,
-    paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5,
-    backgroundColor: 'rgba(251,191,36,0.20)',
-  },
-  popPillText: { color: SAC.accentBright, fontFamily: FONTS.xbold, fontSize: 8.5, letterSpacing: 0.6 },
-
-  // Modal
+  // Modals
   modalBackdrop: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
     alignItems: 'center', justifyContent: 'center', padding: 20,
-    ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(6px)' } as any) : {}),
+    ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
   },
   modalCard: {
-    width: '100%', maxWidth: 640, maxHeight: '90%',
+    width: '100%', maxWidth: 600, maxHeight: '90%',
     backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2,
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.6)' } as any) : {}),
+    overflow: 'hidden',
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } as any) : {}),
   },
-  modalHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: SAC.border },
-  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  modalHead: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    padding: 16, borderBottomWidth: 1, borderBottomColor: SAC.border,
+  },
+  modalHero: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border,
+  },
+  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  modalSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
   modalClose: { width: 28, height: 28, borderRadius: 7, alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
+  modalLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
   modalFooter: {
     flexDirection: 'row', justifyContent: 'flex-end', gap: 8,
-    padding: 14, borderTopWidth: 1, borderTopColor: SAC.border,
-    backgroundColor: SAC.card,
-    borderBottomLeftRadius: 16, borderBottomRightRadius: 16,
+    padding: 14, borderTopWidth: 1, borderTopColor: SAC.border, backgroundColor: SAC.card,
   },
-  fieldLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12, marginBottom: 6 },
-  input: {
-    color: SAC.text, fontFamily: FONTS.med, fontSize: 13,
-    backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
-    paddingHorizontal: 12, paddingVertical: 10,
-    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+  helpBox: {
+    flexDirection: 'row', gap: 8, padding: 12, borderRadius: 9,
+    backgroundColor: 'rgba(245,158,11,0.06)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.20)',
+    alignItems: 'flex-start',
   },
+  helpText: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, lineHeight: 16, flex: 1 },
+  helpInline: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5, lineHeight: 14 },
+  docLink: { flexDirection: 'row', alignItems: 'center', gap: 5,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  docLinkText: { color: GRAD_TO, fontFamily: FONTS.bold, fontSize: 11.5, textDecorationLine: 'underline' },
+
   permGroup: { backgroundColor: SAC.cardSolid, borderRadius: 10, borderWidth: 1, borderColor: SAC.border, padding: 10 },
   permGroupTitle: { color: SAC.dim, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1.4 },
   permRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   checkbox: { width: 17, height: 17, borderRadius: 5, borderWidth: 1.4, borderColor: SAC.border2, alignItems: 'center', justifyContent: 'center' },
-  checkboxOn: { backgroundColor: SAC.primary, borderColor: SAC.primary },
   permLabel: { color: SAC.text, fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
   permId: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10,
     ...(Platform.OS === 'web' ? ({ fontFamily: '"JetBrains Mono", "SF Mono", monospace' } as any) : {}),
@@ -669,12 +1595,10 @@ const s = StyleSheet.create({
 
   // Toast
   toast: {
-    position: 'absolute', bottom: 24, left: 0, right: 0,
-    alignSelf: 'center', alignItems: 'center', justifyContent: 'center',
-    flexDirection: 'row', gap: 6,
+    position: 'absolute', bottom: 24, alignSelf: 'center',
+    flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: 'rgba(16,185,129,0.15)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.30)',
-    maxWidth: 200, alignContent: 'center',
+    backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.35)',
   },
   toastText: { color: SAC.green, fontFamily: FONTS.xbold, fontSize: 11.5 },
 });

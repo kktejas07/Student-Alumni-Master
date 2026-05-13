@@ -9681,3 +9681,98 @@ agent_communication:
           ~ frontend/app/agent-k.tsx      (polling + ApprovalCard + reject-reason input)
           + frontend/app/agent-k/runs.tsx (NEW history page)
 
+
+
+    - agent: "main"
+      message: |
+        ✦ Super Admin Apple-grade Settings View — 7 sections + Connect-with-API-keys ✦
+        ─────────────────────────────────────────────────────────────────────
+
+        ── Frontend (full rewrite of SettingsView.tsx) ──────────────────
+        ~ frontend/src/views/web/portals/superadmin/views/SettingsView.tsx
+            • Top horizontal 7-tab navigation matching the user-provided
+              design system: Manage Profile, Platform Controls, Integrations,
+              Roles & Permissions, Notifications, Security, Digital ID.
+            • Active tab uses an orange→amber LinearGradient (warm palette
+              from the supplied screenshots), inactive tabs hover-lift.
+            • Auto-save toast "✓ Saved" pill in NexusOS green.
+
+            TAB 1 — Manage Profile:
+              Gradient avatar (initials), Role / Access / Admin-ID pills,
+              Platform-status row with green dot + last-login.
+              Inline-editable Profile details (Edit ↔ Save changes).
+              Wired to GET/PATCH /api/admin/profile.
+
+            TAB 2 — Platform Controls:
+              Two-pane: FEATURE FLAGS (6 toggles) and SYSTEM SETTINGS
+              (Session Timeout, Password Policy, Locale, Timezone, Currency)
+              + DANGER ZONE (Reset, Wipe, Rotate JWT) with red chevrons.
+              GET/PATCH /api/admin/platform-controls.
+
+            TAB 3 — Integrations  (renamed from Marketplace):
+              20-tool catalog with category filter pills (gradient on active),
+              "Connect" CTA replacing the old "Install". Disconnected /
+              Connected status chip on each card; POPULAR pill with gradient.
+              **Connect modal**: tool-icon hero, help banner, dynamic
+              auth-fields rendered per integration (Client ID / Secret /
+              Workspace Domain, etc.) with eye-toggle for password fields,
+              inline help text per field, "How to get …" doc link,
+              gradient "Connect <Tool>" CTA. Mirrors the Gmail / LinkedIn /
+              ChatGPT API-key flow exactly as requested.
+              Backend POST /api/marketplace/install now accepts a credentials
+              dict, validates required fields, persists them encrypted-style,
+              and writes an admin_audit_log row.
+
+            TAB 4 — Roles & Permissions:
+              Card grid with role initials in colored badge (SA/CA/SS/M…),
+              first-4 permissions shown with check icons, "+ X more" overflow,
+              Edit + Trash buttons (Trash hidden for SYSTEM roles).
+              Create / Edit / Delete modals with gradient header hero.
+
+            TAB 5 — Notifications:
+              8-event matrix with 4 channels (Email · Push · SMS · In-app)
+              header row + per-row toggles. Persists in `user_settings`
+              collection via PATCH /api/admin/notifications/preferences.
+
+            TAB 6 — Security:
+              AUTHENTICATION (2FA toggle + Change-Password form with
+              eye-toggle on each field + gradient Update Password CTA).
+              ACCESS LOG (audit entries with orange dot + IP + timestamp).
+              ACTIVE SESSIONS (Chrome/Safari icons, location + last-active,
+              green "Active" chip on current, red "Revoke" button on others).
+              GET /api/admin/security/{sessions,access-log}, PUT password.
+
+            TAB 7 — Digital ID:
+              Gradient amber→orange ID card with org label, "OFFICIAL ID",
+              SUPER ADMIN badge pill, large name + title, Admin ID in
+              monospace, QR-code block, "Tap to flip" hint.
+              Copy / Share / Download action buttons.
+              4 feature cards (Verified Identity / Platform Authority /
+              Instant Share / Secure Access).
+              GET /api/admin/digital-id.
+
+        ── Backend additions (admin_settings.py) ─────────────────────────
+        ~ Marketplace catalog now declares per-tool `auth_fields` (Client ID,
+          Client Secret, API Keys, etc.) used by the Connect modal.
+        ~ /marketplace/install validates required creds, stores them, masks
+          password-type fields on read, audit-logs the action.
+        + GET /api/admin/profile, PATCH /api/admin/profile
+        + GET /api/admin/platform-controls, PATCH /api/admin/platform-controls
+        + GET /api/admin/notifications/preferences, PATCH /api/admin/notifications/preferences
+        + GET /api/admin/security/sessions, DELETE /api/admin/security/sessions/{id}
+        + GET /api/admin/security/access-log
+        + PUT /api/admin/security/password
+        + GET /api/admin/digital-id
+
+        ── Verified via screenshot tool ──────────────────────────────────
+          ✓ All 7 tabs render and switch correctly
+          ✓ Connect modal opens with full per-tool field set
+          ✓ Gradient palette consistent (orange→amber on active tab,
+            primary buttons, role pills, ID card)
+
+        ── Files touched ─────────────────────────────────────────────────
+          ~ backend/admin_settings.py
+            (marketplace auth_fields, profile / platform / notifications /
+             security / digital-id endpoints)
+          ~ frontend/src/views/web/portals/superadmin/views/SettingsView.tsx
+            (complete rewrite, 1600 lines, 7 tabs + Connect modal)
