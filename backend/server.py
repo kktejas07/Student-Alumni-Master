@@ -4993,6 +4993,10 @@ api_router.include_router(ai_briefs_router)
 # Agent K — automation operator (Claude tool-use loop)
 from agent_k import router as agent_k_router
 api_router.include_router(agent_k_router)
+
+# Admin settings — Roles & Permissions + Marketplace
+from admin_settings import router as admin_settings_router
+api_router.include_router(admin_settings_router)
 api_router.include_router(ai_briefs_router)
 
 # CRUD endpoints — append-only mutations (book, RSVP, enroll, apply)

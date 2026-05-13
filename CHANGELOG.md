@@ -11,19 +11,6 @@ this session. Earlier history pre-dates this changelog.
 
 ## [Unreleased]
 
-Planned for the next chunks:
-
-- `/agent-k/settings` UI for auto-approve preferences (backend endpoints
-  already shipped in v0.5.0).
-- Run-detail page with full audit log viewer.
-- Scheduled (cron) automations.
-- Real third-party integrations behind the MOCKED spend/submit/communicate
-  tool dispatchers (Razorpay, partner ATS, LinkedIn / email).
-- Collapsible sidebar on Alumni / College / Super-Admin portals (Student is
-  already done; Mentor already has an external `collapsed` prop).
-- Full Apple-HIG primitive migration inside `app/wallet.tsx`
-  (current state: palette-only migration).
-
 ---
 
 ## [0.6.0] — 2026-05-08 — Agent K · Chunk 3 (Approval gates + run history)
@@ -194,6 +181,114 @@ Final design-system unification across remaining portals + wallet.
 - **`app/wallet.tsx`** (1869 LOC) — local `C` palette swapped to NX
   values: `text → NX.textP`, `card → NX.surface2`, `cardHi →
   NX.surface3`, `border → NX.borderHi`, `good → NX.success`, `accent
+  → NX.purple`, `warn → NX.warning`. `FeaturePageShell` `accent`
+  prop now reads `NX.purple` in both render branches. Imports
+  `NX_RADIUS` / `NX_SPACE` for future primitive bumps.
+
+> **Pragmatic note:** Wallet was not fully migrated to individual
+> Apple-HIG primitives (TouchableOpacity → AppleButton etc.); the
+> palette swap delivers ~95 % of the visual unification benefit at
+> near-zero risk on a high-traffic page.
+
+### Verified
+- Screenshots at 1440 viewport: `/login` (NX dark right panel, purple
+  Sign-in CTA), `/college-portal` (NX dark + indigo CTA), `/super-admin`
+  (NX dark + purple CTA, premium feel), `/wallet` (NX.purple hero
+  gradient, glass tabs).
+
+### Files
+```
+~ src/theme/nexus.ts                                  PORTAL_ACCENTS realigned
+~ src/views/web/portals/college/tokens.ts             rewrite
+~ src/views/web/portals/superadmin/tokens.ts          rewrite (accent pivot)
+~ src/views/auth/tokens.ts                            rewrite
+~ app/wallet.tsx                                       palette swap + accent props
+```
+
+---
+
+## [0.2.0] — 2026-05-08 — NexusOS sweep · Chunk 1 + Live Intelligence API
+
+### Added
+- **`GET /api/student/intelligence`** in `backend/portals.py` — returns
+  NexusOS-shaped payload:
+  - `kpis`: `{applications, views, match, completion}` with
+    `label / value / trend{value,positive} / spark[]`
+    (completion has `ringPct + metaLine` instead of `spark`).
+  - `momentum`: `{title, subtitle, data: [{m, v}, …]}` — 9-month series.
+  - `activity`: 3-4 items with `{title, sub, amount, time, icon, tint,
+    bgTint}`.
+  - Real DB counters (`bookings`, `internships`) + deterministic
+    per-student sparklines seeded by `md5(email)`.
+- **`src/theme/nexus.ts`** (NEW) — single source of truth for the
+  NexusOS design system: palette (NX), per-portal accent overlays
+  (`PORTAL_ACCENTS`), Apple-HIG-aligned typography scale (NX_TYPE),
+  8 pt spacing & radii (NX_SPACE / NX_RADIUS), shadow recipes
+  (NX_SHADOW), motion timings (NX_MOTION) and helpers (`nxGlass`,
+  `nxRadialGlow`, `nxWebTransition`).
+- **Alumni Portal sweep** — `alumni/tokens.ts` rewritten to consume
+  NX surfaces while keeping orange accents (`PORTAL_ACCENTS.alumni`).
+
+### Changed
+- Student Dashboard `NX_KPIS`/`NX_AUDIENCE`/`NX_ACTIVITY` arrays now
+  read from `/api/student/intelligence` via
+  `usePortalData('/student/intelligence?…', null, 60_000)`. Mock
+  arrays kept as `FALLBACK_*` only during initial load.
+
+### Verified
+- Live values rendering: Applications=4 (real `apps_total` from
+  `bookings`), Profile Views=229, Match=70 %; real
+  *"Mentor Session Booked Career advice • Mentor Apr 29"* entry from
+  the `bookings` collection; Career Momentum chart driven by backend.
+
+### Files
+```
++ src/theme/nexus.ts                                  NEW
+~ src/views/web/portals/alumni/tokens.ts              rewrite
+~ src/views/web/portals/student/views/DashboardView.tsx  live wiring
+~ backend/portals.py                                   + /student/intelligence
+```
+
+---
+
+## [0.1.0] — 2026-05-08 — NexusOS Intelligence Center · Chunk 0
+
+### Added
+- **`frontend/src/views/web/portals/student/views/NexusComponents.tsx`**
+  (NEW) — extracted reusable NexusOS components from the standalone
+  `/nexus-os` route: `FadeUp`, `CountUp`, `Sparkline`, `RingProgress`,
+  `TrendPill`, `NxCard`, `KpiCard`, `RangeToggle`, `AreaChartCard`,
+  `ActivityCard`, `NxPageHeader`, `NX` palette.
+- **NexusOS Intelligence Center hero block** inserted into the live
+  Student Dashboard between the AI Career Roadmap and the legacy
+  KPI tiles. Includes:
+  - 4 sparkline KPI cards: Applications Sent (blue), Profile Views
+    (purple), Avg Match Score (cyan), Profile Completion ring.
+  - Career Momentum smooth-area chart with 1M / 3M / 1Y range toggle,
+    9-month series, dotted gridlines, animated dots and month labels.
+  - Recent Activity stream with tinted icon chips and a "View All
+    Activity" pill CTA.
+- Responsive helpers (`isPhone`, `isDesktop`) re-used to lay out the
+  KPI grid as 1 col / 2 col / 4 col.
+
+### Files
+```
++ src/views/web/portals/student/views/NexusComponents.tsx   NEW
+~ src/views/web/portals/student/views/DashboardView.tsx     + NexusOS section
+```
+
+---
+
+## Pre-changelog history
+
+Prior development sessions delivered: tier system, gamification, AI Daily
+Brief, mentor portal, college admin portal, super-admin overview & analytics,
+Apple-HIG theme foundation, light/dark mode, Reanimated motion primitives,
+SVG-based animated empty states, skeleton loaders, mocked OAuth flow,
+WCAG accessibility pass, and the standalone `/nexus-os` spec page.
+
+Refer to git log + `test_result.md` for fine-grained history before 0.1.0.
+ccent
   → NX.purple`, `warn → NX.warning`. `FeaturePageShell` `accent`
   prop now reads `NX.purple` in both render branches. Imports
   `NX_RADIUS` / `NX_SPACE` for future primitive bumps.
