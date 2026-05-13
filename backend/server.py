@@ -4999,6 +4999,10 @@ from admin_settings import router as admin_settings_router
 api_router.include_router(admin_settings_router)
 api_router.include_router(ai_briefs_router)
 
+# Admin imports — bulk-upload + categorization (Students / Alumni / Mentors)
+from admin_imports import router as admin_imports_router
+api_router.include_router(admin_imports_router)
+
 # CRUD endpoints — append-only mutations (book, RSVP, enroll, apply)
 from crud_endpoints import router as crud_router
 api_router.include_router(crud_router)

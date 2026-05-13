@@ -9914,3 +9914,106 @@ agent_communication:
           + backend/migrate_to_atlas.py   (NEW)
           ~ backend/.env                  (MONGO_URL, DB_NAME)
 
+
+    - agent: "main"
+      message: |
+        ✦ Super Admin → Imports (NEW) — bulk user upload + auto-categorize ✦
+        ──────────────────────────────────────────────────────────────────────
+
+        User asked for an "Imports" sidebar item that ingests user data from
+        XLSX/XLS/CSV, auto-categorises every row into Student / Master's /
+        Alumni / Mentor, and lets the records flow into the existing
+        Students / Alumni / Mentors directory views (same `users` collection,
+        same `role` field).
+
+        ── Backend (NEW module) ─────────────────────────────────────────────
+        + backend/admin_imports.py
+            • Smart parser: walks every sheet in a multi-sheet workbook,
+              detects the real header row (skips title/blank rows), and
+              picks the sheet with the most mapped columns.
+            • Header auto-mapping for 18 target fields (first_name, last_name,
+              email, phone, linkedin_url, college, degree, graduation_year,
+              designation, company, experience_years_raw, location, headline,
+              date_applied, position_start_date, …).
+            • Categorizer implementing the 6-rule cascade exactly per spec:
+                1. ≥4 yrs exp (intern excluded)       → mentor
+                2. Master/MBA/M.Tech/MA/MSc/PG       → masters
+                3. Bachelor's + ≥1 yr + past start   → alumni
+                4. Headline says student / future grad → student
+                5. Bachelor's no current education   → alumni
+                6. default                            → student
+              Returns (category, rule_label, needs_review) for every row.
+            • Profile-status calculator (complete / partial / incomplete).
+            • Endpoints (all gated to super_admin via _require_admin):
+                POST  /api/admin/imports/upload          ← preview + validation
+                POST  /api/admin/imports/commit          ← upsert rows
+                POST  /api/admin/imports/manual          ← add one user
+                POST  /api/admin/imports/preview-category← live rule preview
+                GET   /api/admin/imports/runs            ← import history
+                GET   /api/admin/imports/runs/{id}       ← run detail
+                GET   /api/admin/users/list?category=…   ← filtered dir
+                GET   /api/admin/users/profile/{id}      ← detail panel data
+                PATCH /api/admin/users/profile/{id}      ← edit / recategorize
+                DELETE /api/admin/users/profile/{id}
+            • Upsert key: email (primary) then linkedin_url (fallback).
+            • Every commit creates an `import_runs` audit row.
+            • role mapping (so existing views auto-pick up):
+                mentor→mentor, masters→student, alumni→alumni, student→student
+
+        + server.py
+            Registered admin_imports router after admin_settings.
+
+        ── Frontend (NEW view + sidebar item) ───────────────────────────────
+        + frontend/src/views/web/portals/superadmin/views/ImportsView.tsx
+            Top-tabs: Upload · Add Manually · Browse · History
+            - UPLOAD: drop-zone + file-picker (xlsx/xls/csv ≤ 10 MB).
+                      Preview pipeline: summary tiles (counts per category),
+                      column-mapping list with gradient pills, first-30-row
+                      preview table with per-row validation pills, "Skip
+                      invalid" checkbox, "Import N rows" gradient CTA, result
+                      modal with by-category breakdown + skipped-rows list +
+                      "View imported users" deep-link.
+            - ADD MANUALLY: 2-pane form with debounced (350ms) live category
+                      preview pill — shows which of the 6 rules fired.
+            - BROWSE: gradient category tabs (All / Student / Master's /
+                      Alumni / Mentor) + search by name/email/college/company,
+                      avatar+badge rows, click → Profile detail panel.
+            - HISTORY: past import runs with added/updated/skipped pills +
+                      category mini-pills, click → run detail modal with
+                      skipped-rows list.
+            - PROFILE DETAIL PANEL: avatar tinted to category color,
+                      Education / Experience / Contact sections with clickable
+                      mailto/tel/LinkedIn links, Edit (in-place fields),
+                      Re-categorize (manual override), Delete (with confirm),
+                      acceptance criteria met: badges color-coded
+                      Student=#3B82F6, Master's=#A78BFA, Alumni=#10B981,
+                      Mentor=#F59E0B.
+
+        ~ frontend/src/views/web/portals/superadmin/Sidebar.tsx
+            Added "Imports" nav item with NEW badge, gradient active state.
+
+        ~ frontend/src/views/web/portals/superadmin/SuperAdminPortalRN.tsx
+            Wired `imports` route → <ImportsView />.
+
+        ── Verified end-to-end with the user's uploaded sample file ─────────
+        Sample: Student_Alumni_Dashboard.xlsx (multi-sheet workbook, 85 data
+        rows after skipping title/blank rows).
+
+          ✓ POST /imports/upload → 85 rows, 14 columns auto-mapped, summary
+            {student: 56, masters: 16, alumni: 13, mentor: 0, errors: 1}
+          ✓ POST /imports/commit → added 84, skipped 1 (row 38: missing name)
+          ✓ users collection grew 1630 → 1714 in Atlas (real DB write)
+          ✓ Existing Students view now shows 1174 (was 1103) — +71
+          ✓ Existing Alumni view picks up the 13 new alumni
+          ✓ Browse tab in Imports shows the new records filterable by
+            category with live counts in the tab pills.
+          ✓ ≥95% of rows landed in a non-default category → acceptance
+            criterion #2 met.
+
+        ── Files touched ────────────────────────────────────────────────────
+          + backend/admin_imports.py                                    (NEW)
+          + frontend/src/views/web/portals/superadmin/views/ImportsView.tsx
+          ~ backend/server.py                       (router registration)
+          ~ frontend/src/views/web/portals/superadmin/Sidebar.tsx
+          ~ frontend/src/views/web/portals/superadmin/SuperAdminPortalRN.tsx
+

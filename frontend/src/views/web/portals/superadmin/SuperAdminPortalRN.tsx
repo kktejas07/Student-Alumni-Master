@@ -22,6 +22,7 @@ import { ApprovalsView } from './views/ApprovalsView';
 import { AIInsightsView } from './views/AIInsightsView';
 import { SettingsView } from './views/SettingsView';
 import { WorkflowsView } from './views/WorkflowsView';
+import { ImportsView } from './views/ImportsView';
 
 export function SuperAdminPortalRN() {
   const router = useRouter();
@@ -57,6 +58,7 @@ export function SuperAdminPortalRN() {
           {active === 'ai-insights' && <AIInsightsView />}
           {active === 'settings'    && <SettingsView />}
           {active === 'workflows'   && <WorkflowsView />}
+          {active === 'imports'     && <ImportsView />}
         </ScrollView>
       </View>
     </View>

@@ -1,0 +1,1082 @@
+/**
+ * Super Admin → Imports view.
+ *
+ * Bulk-upload users from XLSX/XLS/CSV with automatic categorization into
+ * Student / Master's / Alumni / Mentor.  Once committed, records flow
+ * into the existing Students / Alumni / Mentors directory views.
+ *
+ * Tabs: Upload · Add Manually · History · Browse
+ */
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  View, Text, Pressable, StyleSheet, TextInput, ScrollView, Platform, Modal,
+  ActivityIndicator,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
+import {
+  Upload, UserPlus, History, Users, FileSpreadsheet, X, Check, AlertTriangle,
+  CheckCircle2, ChevronRight, Sparkles, GraduationCap, UserCheck, Briefcase,
+  Mail, Phone, Linkedin, MapPin, Building2, Calendar, ExternalLink, Trash2,
+  Pencil, Eye, EyeOff, RefreshCw, Filter, Download, FileText, Globe,
+} from 'lucide-react-native';
+import { SAC, FONTS } from '../tokens';
+import {
+  GRAD, GradientButton, SecondaryButton, Card, IconBox, SectionLabel,
+  TopTabs, SearchField, StatusPill, GradientPill, Toast, useToast, EmptyState,
+  LoadingBox,
+} from '../applekit';
+import { request, tokenStore } from '@/src/models/services/api';
+import * as Linking from 'expo-linking';
+
+/* ────────────────────────────────────────────────────────────────────
+ * Category palette (per the spec)
+ * ────────────────────────────────────────────────────────────────── */
+const CAT = {
+  student: { color: '#3B82F6', label: 'Student',  icon: GraduationCap },
+  masters: { color: '#A78BFA', label: "Master's", icon: Briefcase },
+  alumni:  { color: '#10B981', label: 'Alumni',   icon: UserCheck },
+  mentor:  { color: '#F59E0B', label: 'Mentor',   icon: Sparkles },
+} as const;
+type CatKey = keyof typeof CAT;
+
+function CategoryBadge({ cat, small }: { cat: CatKey; small?: boolean }) {
+  const c = CAT[cat] || CAT.student;
+  const Icon = c.icon;
+  return (
+    <View style={[
+      s.catBadge,
+      { backgroundColor: c.color + '22', borderColor: c.color + '55' },
+      small && { paddingHorizontal: 7, paddingVertical: 2.5 },
+    ]}>
+      <Icon size={small ? 10 : 11} color={c.color} />
+      <Text style={[s.catBadgeText, { color: c.color, fontSize: small ? 10 : 11 }]}>{c.label}</Text>
+    </View>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────── */
+type TabId = 'upload' | 'manual' | 'history' | 'browse';
+
+export function ImportsView() {
+  const [tab, setTab] = useState<TabId>('upload');
+  const { toast, flash } = useToast();
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [profileId, setProfileId] = useState<string | null>(null);
+
+  const tabs = [
+    { id: 'upload',  label: 'Upload',       icon: Upload },
+    { id: 'manual',  label: 'Add Manually', icon: UserPlus },
+    { id: 'browse',  label: 'Browse',       icon: Users },
+    { id: 'history', label: 'History',      icon: History },
+  ] as const;
+
+  return (
+    <View style={{ gap: 14 }}>
+      <Card>
+        <View style={s.headRow}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <IconBox size={38}><FileSpreadsheet size={18} color={GRAD.to} /></IconBox>
+            <View>
+              <Text style={s.title}>Imports</Text>
+              <Text style={s.sub}>
+                Upload spreadsheets or add users manually. The system auto-classifies
+                each profile into Student, Master's, Alumni or Mentor, then routes
+                them into the matching directory view.
+              </Text>
+            </View>
+          </View>
+        </View>
+      </Card>
+
+      <TopTabs<TabId> tabs={tabs as any} active={tab} onChange={setTab} />
+
+      {tab === 'upload'  && <UploadTab onSaved={flash} onSwitchTab={setTab} bump={() => setRefreshKey((k) => k + 1)} />}
+      {tab === 'manual'  && <ManualTab onSaved={flash} />}
+      {tab === 'browse'  && <BrowseTab onOpen={setProfileId} key={refreshKey} />}
+      {tab === 'history' && <HistoryTab key={refreshKey} />}
+
+      <ProfilePanel userId={profileId} onClose={() => setProfileId(null)} onSaved={() => { flash('Profile updated'); setRefreshKey((k) => k + 1); }} />
+
+      <Toast text={toast.text} visible={toast.visible} />
+    </View>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ *  UPLOAD TAB
+ * ══════════════════════════════════════════════════════════════════ */
+function UploadTab({ onSaved, onSwitchTab, bump }: { onSaved: (s?: string) => void; onSwitchTab: (t: TabId) => void; bump: () => void; }) {
+  const fileRef = useRef<any>(null);
+  const [busy, setBusy] = useState(false);
+  const [data, setData] = useState<any>(null);
+  const [skipInvalid, setSkipInvalid] = useState(true);
+  const [committing, setCommitting] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+
+  // Web-only file picker hookup
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const el = fileRef.current;
+    if (!el) return;
+    const handler = async (e: any) => {
+      const f = e.target.files?.[0];
+      if (f) await uploadFile(f);
+    };
+    el.addEventListener('change', handler);
+    return () => el.removeEventListener('change', handler);
+  }, []);
+
+  const uploadFile = async (file: File) => {
+    setError(null); setBusy(true); setData(null); setResult(null);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const token = (await tokenStore.getAccess()) || '';
+      const resp = await fetch(base + '/api/admin/imports/upload', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: form,
+      });
+      if (!resp.ok) {
+        const t = await resp.text();
+        throw new Error(`Upload failed (${resp.status}): ${t}`);
+      }
+      const json = await resp.json();
+      setData(json);
+    } catch (e: any) {
+      setError(String(e?.message || e));
+    } finally { setBusy(false); }
+  };
+
+  const onPick = () => {
+    if (Platform.OS === 'web' && fileRef.current) {
+      fileRef.current.click();
+    }
+  };
+
+  // Web drag/drop bindings
+  const dropProps = Platform.OS === 'web' ? {
+    onDragOver: (e: any) => { e.preventDefault(); setDragOver(true); },
+    onDragLeave: () => setDragOver(false),
+    onDrop: async (e: any) => {
+      e.preventDefault();
+      setDragOver(false);
+      const f = e.dataTransfer?.files?.[0];
+      if (f) await uploadFile(f);
+    },
+  } : {};
+
+  const commit = async () => {
+    if (!data?.cache_id) return;
+    setCommitting(true); setError(null);
+    try {
+      const json = await request<any>('/admin/imports/commit', {
+        method: 'POST',
+        body: { cache_id: data.cache_id, mapping: data.auto_mapping, skip_invalid: skipInvalid },
+      });
+      setResult(json);
+      onSaved(`Imported ${json.added + json.updated} profiles`);
+      bump();
+    } catch (e: any) {
+      setError(String(e?.message || e));
+    } finally { setCommitting(false); }
+  };
+
+  return (
+    <View style={{ gap: 14 }}>
+      {/* Drop zone */}
+      {!data && (
+        <View
+          // @ts-ignore web-only
+          {...dropProps}
+          style={[s.dropZone, dragOver && { borderColor: GRAD.to, backgroundColor: 'rgba(245,158,11,0.06)' }]}
+        >
+          <LinearGradient colors={GRAD.soft} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.dropIcon}>
+            <Upload size={22} color={GRAD.to} />
+          </LinearGradient>
+          <Text style={s.dropTitle}>Drop your spreadsheet here</Text>
+          <Text style={s.dropSub}>Supports .xlsx, .xls, and .csv · max 10 MB</Text>
+          <GradientButton onPress={onPick}>
+            <FileSpreadsheet size={13} color="#fff" />
+            <Text style={s.btnText}>Choose file</Text>
+          </GradientButton>
+          {Platform.OS === 'web' && (
+            // @ts-ignore native input
+            <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} />
+          )}
+          {busy && <View style={{ marginTop: 12 }}><ActivityIndicator color={GRAD.to} /></View>}
+          {error && <Text style={[s.err, { marginTop: 12 }]}>{error}</Text>}
+        </View>
+      )}
+
+      {/* Preview + commit */}
+      {data && !result && (
+        <Animated.View entering={FadeIn.duration(180)} style={{ gap: 14 }}>
+          {/* Summary banner */}
+          <Card>
+            <View style={s.summaryRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                <FileSpreadsheet size={18} color={GRAD.to} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={s.fileName} numberOfLines={1}>{data.filename}</Text>
+                  <Text style={s.muted}>{data.total_rows} rows · {Object.keys(data.auto_mapping || {}).length} columns auto-mapped</Text>
+                </View>
+              </View>
+              <SecondaryButton size="sm" onPress={() => { setData(null); setResult(null); }}>
+                <RefreshCw size={11} color={SAC.muted} />
+                <Text style={s.secText}>Replace file</Text>
+              </SecondaryButton>
+            </View>
+
+            <View style={s.summaryStats}>
+              <SumStat label="Total"      value={data.total_rows} tint="#fff" />
+              <SumStat label="Student"    value={data.summary.student || 0} tint={CAT.student.color} />
+              <SumStat label="Master's"   value={data.summary.masters || 0} tint={CAT.masters.color} />
+              <SumStat label="Alumni"     value={data.summary.alumni || 0}  tint={CAT.alumni.color}  />
+              <SumStat label="Mentor"     value={data.summary.mentor || 0}  tint={CAT.mentor.color}  />
+              <SumStat label="Errors"     value={data.summary.errors || 0}  tint={SAC.red} />
+              <SumStat label="Review"     value={data.summary.needs_review || 0} tint="#FBBF24" />
+            </View>
+          </Card>
+
+          {/* Column mapping */}
+          <Card>
+            <SectionLabel>COLUMN MAPPING</SectionLabel>
+            <Text style={[s.muted, { marginTop: 4 }]}>Detected columns → target fields. Re-map with the dropdowns if headers differ.</Text>
+            <View style={{ marginTop: 14, gap: 6 }}>
+              {(data.headers || []).map((h: string) => {
+                const target = data.auto_mapping?.[h] || '';
+                return (
+                  <View key={h} style={s.mapRow}>
+                    <Text style={s.mapSrc} numberOfLines={1}>{h || '—'}</Text>
+                    <ChevronRight size={11} color={SAC.dim} />
+                    {target ? (
+                      <GradientPill label={target} />
+                    ) : (
+                      <View style={s.mapUnused}><Text style={s.mapUnusedText}>not mapped</Text></View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          </Card>
+
+          {/* Row preview */}
+          <Card padded={false}>
+            <View style={{ padding: 18, paddingBottom: 4 }}>
+              <SectionLabel>PREVIEW · first {(data.preview || []).length} rows</SectionLabel>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+              <View>
+                <View style={s.tableHead}>
+                  <Text style={[s.th, { width: 50 }]}>Row</Text>
+                  <Text style={[s.th, { width: 100 }]}>Category</Text>
+                  <Text style={[s.th, { width: 200 }]}>Name</Text>
+                  <Text style={[s.th, { width: 240 }]}>Email</Text>
+                  <Text style={[s.th, { width: 200 }]}>College</Text>
+                  <Text style={[s.th, { width: 160 }]}>Degree</Text>
+                  <Text style={[s.th, { width: 80 }]}>Exp (yr)</Text>
+                  <Text style={[s.th, { width: 240 }]}>Rule fired</Text>
+                  <Text style={[s.th, { width: 180 }]}>Validation</Text>
+                </View>
+                {(data.preview || []).slice(0, 30).map((p: any, i: number) => {
+                  const hasErr = (p.errors || []).length > 0;
+                  return (
+                    <View key={i} style={[s.tableRow, hasErr && s.tableRowErr]}>
+                      <Text style={[s.td, { width: 50, color: SAC.dim }]}>{p.row}</Text>
+                      <View style={{ width: 100 }}>{p.category && <CategoryBadge cat={p.category} small />}</View>
+                      <Text numberOfLines={1} style={[s.td, { width: 200 }]}>{p.full_name || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { width: 240, color: SAC.muted }]}>{p.email || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { width: 200, color: SAC.muted }]}>{p.college || '—'}</Text>
+                      <Text numberOfLines={1} style={[s.td, { width: 160, color: SAC.muted }]}>{p.degree || '—'}</Text>
+                      <Text style={[s.td, { width: 80 }]}>{(p.experience_years ?? 0).toString()}</Text>
+                      <Text numberOfLines={1} style={[s.td, { width: 240, color: SAC.muted }]}>{p.category_rule || '—'}</Text>
+                      <View style={{ width: 180 }}>
+                        {hasErr ? (
+                          <StatusPill kind="danger" label={(p.errors || []).join(', ')} />
+                        ) : (
+                          <StatusPill kind="success" label="OK" dot />
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </ScrollView>
+            {(data.preview || []).length > 30 && (
+              <Text style={[s.muted, { padding: 14, textAlign: 'center' }]}>
+                + {(data.preview || []).length - 30} more rows in preview · all {data.total_rows} rows will be processed on commit
+              </Text>
+            )}
+          </Card>
+
+          {/* Commit footer */}
+          <Card>
+            <View style={s.commitRow}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={s.commitTitle}>Ready to import</Text>
+                <Text style={s.muted}>
+                  Duplicate emails will be updated (not duplicated). LinkedIn URL is used as a fallback key.
+                </Text>
+                <Pressable onPress={() => setSkipInvalid(!skipInvalid)} style={s.checkRow}>
+                  <View style={[s.checkBox, skipInvalid && { backgroundColor: GRAD.to, borderColor: GRAD.to }]}>
+                    {skipInvalid && <Check size={11} color="#fff" />}
+                  </View>
+                  <Text style={s.checkLabel}>Skip invalid rows (recommended)</Text>
+                </Pressable>
+              </View>
+              <GradientButton onPress={commit} loading={committing}>
+                <CheckCircle2 size={14} color="#fff" />
+                <Text style={s.btnText}>Import {data.total_rows} rows</Text>
+              </GradientButton>
+            </View>
+            {error && <Text style={[s.err, { marginTop: 8 }]}>{error}</Text>}
+          </Card>
+        </Animated.View>
+      )}
+
+      {/* Result modal */}
+      <Modal visible={!!result} transparent animationType="fade" onRequestClose={() => setResult(null)}>
+        <View style={s.modalBg}>
+          <Animated.View entering={FadeInDown.duration(220)} style={s.modalCard}>
+            <LinearGradient colors={GRAD.soft} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.modalHero}>
+              <IconBox size={40}><CheckCircle2 size={20} color={SAC.green} /></IconBox>
+              <View style={{ flex: 1 }}>
+                <Text style={s.modalTitle}>Import complete</Text>
+                <Text style={s.muted}>
+                  {result?.added} added · {result?.updated} updated · {result?.skipped} skipped
+                </Text>
+              </View>
+              <Pressable onPress={() => setResult(null)}><X size={16} color={SAC.muted} /></Pressable>
+            </LinearGradient>
+
+            <View style={{ padding: 18, gap: 14 }}>
+              <View style={s.resultGrid}>
+                {(['student', 'masters', 'alumni', 'mentor'] as CatKey[]).map((c) => (
+                  <View key={c} style={s.resultTile}>
+                    <CategoryBadge cat={c} />
+                    <Text style={[s.kpiVal, { color: CAT[c].color }]}>{result?.by_category?.[c] || 0}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {(result?.skipped_rows || []).length > 0 && (
+                <View>
+                  <Text style={s.modalLabel}>Skipped rows ({(result?.skipped_rows || []).length})</Text>
+                  <ScrollView style={{ maxHeight: 140, marginTop: 6 }}>
+                    {(result?.skipped_rows || []).slice(0, 30).map((sr: any, i: number) => (
+                      <View key={i} style={s.skipRow}>
+                        <Text style={s.muted}>Row {sr.row}{sr.email ? ` · ${sr.email}` : ''}</Text>
+                        <Text style={[s.muted, { color: '#FCA5A5', flex: 1, textAlign: 'right' }]}>{sr.reason}</Text>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+                <SecondaryButton onPress={() => { setResult(null); setData(null); }}>
+                  <Text style={s.secText}>Upload another</Text>
+                </SecondaryButton>
+                <GradientButton onPress={() => { setResult(null); setData(null); onSwitchTab('browse'); }}>
+                  <Users size={13} color="#fff" />
+                  <Text style={s.btnText}>View imported users</Text>
+                </GradientButton>
+              </View>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
+function SumStat({ label, value, tint }: { label: string; value: number; tint: string }) {
+  return (
+    <View style={s.sumStat}>
+      <Text style={[s.sumVal, { color: tint }]}>{value}</Text>
+      <Text style={s.sumLabel}>{label}</Text>
+    </View>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ *  MANUAL ADD TAB — live category preview
+ * ══════════════════════════════════════════════════════════════════ */
+function ManualTab({ onSaved }: { onSaved: (s?: string) => void }) {
+  const [form, setForm] = useState<any>({
+    first_name: '', last_name: '', email: '', phone: '', linkedin_url: '',
+    college: '', degree: '', graduation_year: '', designation: '', company: '',
+    experience_years_raw: '', position_start_date: '', location: '', headline: '',
+  });
+  const [preview, setPreview] = useState<any>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Debounced category preview
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      if (!form.email && !form.degree && !form.designation && !form.headline) {
+        setPreview(null); return;
+      }
+      try {
+        const r = await request<any>('/admin/imports/preview-category', { method: 'POST', body: form });
+        setPreview(r);
+      } catch {}
+    }, 350);
+    return () => clearTimeout(t);
+  }, [form]);
+
+  const update = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
+
+  const submit = async () => {
+    setBusy(true); setError(null);
+    try {
+      const r = await request<any>('/admin/imports/manual', { method: 'POST', body: form });
+      onSaved(`${r.action === 'added' ? 'Added' : 'Updated'} as ${r.category}`);
+      // reset
+      setForm({
+        first_name: '', last_name: '', email: '', phone: '', linkedin_url: '',
+        college: '', degree: '', graduation_year: '', designation: '', company: '',
+        experience_years_raw: '', position_start_date: '', location: '', headline: '',
+      });
+      setPreview(null);
+    } catch (e: any) {
+      setError(String(e?.message || e));
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <View style={s.manualGrid}>
+      <View style={{ flex: 2, minWidth: 360 }}>
+        <Card>
+          <SectionLabel>BASIC DETAILS</SectionLabel>
+          <View style={s.formGrid}>
+            <FormField label="First name" value={form.first_name} onChange={(v) => update('first_name', v)} />
+            <FormField label="Last name"  value={form.last_name}  onChange={(v) => update('last_name', v)} />
+            <FormField label="Email *"    value={form.email}      onChange={(v) => update('email', v)} keyboardType="email-address" />
+            <FormField label="Phone"      value={form.phone}      onChange={(v) => update('phone', v)} keyboardType="phone-pad" />
+            <FormField label="LinkedIn URL" value={form.linkedin_url} onChange={(v) => update('linkedin_url', v)} full />
+            <FormField label="Location"   value={form.location}   onChange={(v) => update('location', v)} />
+            <FormField label="Headline"   value={form.headline}   onChange={(v) => update('headline', v)} full />
+          </View>
+
+          <SectionLabel style={{ marginTop: 18 }}>EDUCATION</SectionLabel>
+          <View style={s.formGrid}>
+            <FormField label="College / Institution" value={form.college} onChange={(v) => update('college', v)} full />
+            <FormField label="Degree"           value={form.degree}          onChange={(v) => update('degree', v)} full
+              placeholder="e.g. Bachelor of Technology, MBA, M.Sc Data Science" />
+            <FormField label="Graduation year"  value={form.graduation_year} onChange={(v) => update('graduation_year', v)} keyboardType="numeric" />
+          </View>
+
+          <SectionLabel style={{ marginTop: 18 }}>EXPERIENCE</SectionLabel>
+          <View style={s.formGrid}>
+            <FormField label="Current title / Designation" value={form.designation} onChange={(v) => update('designation', v)} full />
+            <FormField label="Current company"  value={form.company}  onChange={(v) => update('company', v)} />
+            <FormField label="Years of experience"  value={form.experience_years_raw} onChange={(v) => update('experience_years_raw', v)}
+              placeholder="3.5" />
+            <FormField label="Position start date" value={form.position_start_date} onChange={(v) => update('position_start_date', v)}
+              placeholder="YYYY-MM-DD" full />
+          </View>
+
+          {error && <Text style={[s.err, { marginTop: 12 }]}>{error}</Text>}
+
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
+            <GradientButton onPress={submit} loading={busy} disabled={!form.email}>
+              <UserPlus size={13} color="#fff" />
+              <Text style={s.btnText}>Add user</Text>
+            </GradientButton>
+          </View>
+        </Card>
+      </View>
+
+      <View style={{ flex: 1, minWidth: 280 }}>
+        <Card style={{ position: 'sticky' as any, top: 20 }}>
+          <SectionLabel>LIVE CATEGORY PREVIEW</SectionLabel>
+          {preview ? (
+            <Animated.View entering={FadeIn.duration(180)} style={{ marginTop: 14, gap: 12 }}>
+              <View style={{ alignItems: 'center', gap: 10, paddingVertical: 10 }}>
+                <CategoryBadge cat={preview.category} />
+                <Text style={[s.previewBigVal, { color: CAT[preview.category as CatKey]?.color || '#fff' }]}>
+                  → {CAT[preview.category as CatKey]?.label}
+                </Text>
+              </View>
+              <View style={s.previewRule}>
+                <Sparkles size={11} color={GRAD.to} />
+                <Text style={s.previewRuleText}>{preview.rule}</Text>
+              </View>
+              <View style={{ gap: 6 }}>
+                <PreviewRow label="Experience" value={`${preview.experience_years} yrs (${preview.experience_source})`} />
+                <PreviewRow label="Profile status" value={preview.profile_status}
+                  pill={preview.profile_status === 'complete' ? 'success' : preview.profile_status === 'partial' ? 'warn' : 'danger'} />
+                <PreviewRow label="Role"     value={preview.role} />
+                {preview.needs_review && (
+                  <View style={s.warnBox}>
+                    <AlertTriangle size={12} color="#FBBF24" />
+                    <Text style={[s.muted, { color: '#FBBF24' }]}>Needs review · incomplete profile</Text>
+                  </View>
+                )}
+              </View>
+            </Animated.View>
+          ) : (
+            <View style={{ marginTop: 14, gap: 6, alignItems: 'center', paddingVertical: 20 }}>
+              <Sparkles size={20} color={SAC.dim} />
+              <Text style={[s.muted, { textAlign: 'center' }]}>
+                Start typing email + degree + experience{'\n'}to see the live category prediction.
+              </Text>
+            </View>
+          )}
+        </Card>
+      </View>
+    </View>
+  );
+}
+
+function FormField({ label, value, onChange, placeholder, full, keyboardType }: any) {
+  return (
+    <View style={[s.formField, full && { flexBasis: '100%' }]}>
+      <Text style={s.formLabel}>{label}</Text>
+      <TextInput
+        value={value} onChangeText={onChange}
+        placeholder={placeholder} placeholderTextColor={SAC.dim}
+        keyboardType={keyboardType}
+        autoCapitalize="none" autoCorrect={false}
+        style={s.formInput}
+      />
+    </View>
+  );
+}
+
+function PreviewRow({ label, value, pill }: { label: string; value: string; pill?: 'success' | 'warn' | 'danger' }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <Text style={s.previewLbl}>{label}</Text>
+      {pill ? <StatusPill kind={pill} label={value} /> : <Text style={s.previewVal}>{value}</Text>}
+    </View>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ *  BROWSE TAB — list imported users
+ * ══════════════════════════════════════════════════════════════════ */
+function BrowseTab({ onOpen }: { onOpen: (id: string) => void }) {
+  const [cat, setCat] = useState<'all' | CatKey>('all');
+  const [q, setQ] = useState('');
+  const [data, setData] = useState<any>(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    setBusy(true);
+    try {
+      const r = await request<any>(`/admin/users/list?category=${cat}&q=${encodeURIComponent(q)}&limit=200`);
+      setData(r);
+    } finally { setBusy(false); }
+  }, [cat, q]);
+  useEffect(() => { load(); }, [load]);
+
+  const counts = data?.counts || {};
+  const tabs = [
+    { id: 'all',     label: 'All',       count: counts.all || 0 },
+    { id: 'student', label: 'Student',   count: counts.student || 0 },
+    { id: 'masters', label: "Master's",  count: counts.masters || 0 },
+    { id: 'alumni',  label: 'Alumni',    count: counts.alumni || 0 },
+    { id: 'mentor',  label: 'Mentor',    count: counts.mentor || 0 },
+  ] as const;
+
+  return (
+    <View style={{ gap: 12 }}>
+      <Card>
+        <View style={s.browseHead}>
+          <TopTabs<'all' | CatKey> tabs={tabs as any} active={cat} onChange={(c) => setCat(c as any)} />
+          <SearchField value={q} onChange={setQ} placeholder="Search name, email, college, company…" width={300} />
+        </View>
+      </Card>
+
+      {busy && !data ? <LoadingBox /> : (data?.items || []).length === 0 ? (
+        <EmptyState
+          icon={Users}
+          title="No profiles yet"
+          sub={q ? 'No results match your search.' : 'Upload a spreadsheet or add users manually to populate this view.'}
+        />
+      ) : (
+        <View style={{ gap: 8 }}>
+          {(data?.items || []).map((u: any) => (
+            <Pressable key={u.id} onPress={() => onOpen(u.id)}
+              style={({ hovered }: any) => [s.userRow, hovered && Platform.OS === 'web' && { backgroundColor: 'rgba(255,255,255,0.04)' }]}>
+              <View style={[s.avatar, { backgroundColor: (CAT[u.category as CatKey]?.color || GRAD.to) + '22', borderColor: (CAT[u.category as CatKey]?.color || GRAD.to) + '55' }]}>
+                <Text style={[s.avatarInit, { color: CAT[u.category as CatKey]?.color || GRAD.to }]}>
+                  {(u.name || '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()}
+                </Text>
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={s.userName} numberOfLines={1}>{u.name}</Text>
+                  <CategoryBadge cat={u.category as CatKey} small />
+                </View>
+                <Text style={s.muted} numberOfLines={1}>
+                  {u.email}{u.designation ? ` · ${u.designation}` : ''}{u.company ? ` @ ${u.company}` : ''}
+                </Text>
+                {!!u.college && <Text style={[s.muted, { fontSize: 10.5 }]} numberOfLines={1}>🎓 {u.college}</Text>}
+              </View>
+              {u.profile_status !== 'complete' && (
+                <StatusPill kind={u.profile_status === 'partial' ? 'warn' : 'neutral'} label={u.profile_status} />
+              )}
+              <ChevronRight size={14} color={SAC.dim} />
+            </Pressable>
+          ))}
+          <Text style={[s.muted, { textAlign: 'center', paddingVertical: 8 }]}>
+            Showing {(data?.items || []).length} of {data?.total || 0}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ *  HISTORY TAB — past import runs
+ * ══════════════════════════════════════════════════════════════════ */
+function HistoryTab() {
+  const [runs, setRuns] = useState<any[] | null>(null);
+  const [detail, setDetail] = useState<any>(null);
+
+  useEffect(() => {
+    (async () => {
+      try { const r = await request<any>('/admin/imports/runs'); setRuns(r?.runs || []); } catch {}
+    })();
+  }, []);
+
+  if (!runs) return <LoadingBox />;
+  if (runs.length === 0) {
+    return <EmptyState icon={History} title="No imports yet" sub="Your first uploaded file will appear here with a full breakdown of added/updated/skipped rows." />;
+  }
+
+  return (
+    <View style={{ gap: 10 }}>
+      {runs.map((r) => (
+        <Pressable key={r.id} onPress={async () => {
+          try { setDetail(await request<any>(`/admin/imports/runs/${r.id}`)); } catch {}
+        }} style={({ hovered }: any) => [
+          s.runCard,
+          hovered && Platform.OS === 'web' && { borderColor: GRAD.ring, backgroundColor: 'rgba(245,158,11,0.04)' },
+        ]}>
+          <IconBox size={36}><FileText size={16} color={GRAD.to} /></IconBox>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={s.userName} numberOfLines={1}>{r.filename || 'Import'}</Text>
+            <Text style={s.muted}>
+              {new Date(r.at).toLocaleString()} · by {r.by_name || 'admin'}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+              <StatusPill kind="success" label={`+${r.added} added`} />
+              <StatusPill kind="info"    label={`${r.updated} updated`} />
+              {r.skipped > 0 && <StatusPill kind="warn" label={`${r.skipped} skipped`} />}
+              {(['student', 'masters', 'alumni', 'mentor'] as CatKey[]).map((c) => r.by_category?.[c] ? (
+                <View key={c} style={[s.miniPill, { borderColor: CAT[c].color + '55', backgroundColor: CAT[c].color + '15' }]}>
+                  <Text style={[s.miniPillText, { color: CAT[c].color }]}>{CAT[c].label} {r.by_category[c]}</Text>
+                </View>
+              ) : null)}
+            </View>
+          </View>
+          <ChevronRight size={14} color={SAC.dim} />
+        </Pressable>
+      ))}
+
+      {/* Detail modal */}
+      <Modal visible={!!detail} transparent animationType="fade" onRequestClose={() => setDetail(null)}>
+        <View style={s.modalBg}>
+          <Animated.View entering={FadeInDown.duration(220)} style={s.modalCard}>
+            <View style={s.modalHero}>
+              <IconBox size={40}><FileText size={20} color={GRAD.to} /></IconBox>
+              <View style={{ flex: 1 }}>
+                <Text style={s.modalTitle}>{detail?.filename}</Text>
+                <Text style={s.muted}>{detail && new Date(detail.at).toLocaleString()}</Text>
+              </View>
+              <Pressable onPress={() => setDetail(null)}><X size={16} color={SAC.muted} /></Pressable>
+            </View>
+            <View style={{ padding: 18, gap: 10 }}>
+              <View style={s.resultGrid}>
+                <View style={s.resultTile}><Text style={s.miniLabel}>ADDED</Text><Text style={[s.kpiVal, { color: SAC.green }]}>{detail?.added}</Text></View>
+                <View style={s.resultTile}><Text style={s.miniLabel}>UPDATED</Text><Text style={[s.kpiVal, { color: '#93C5FD' }]}>{detail?.updated}</Text></View>
+                <View style={s.resultTile}><Text style={s.miniLabel}>SKIPPED</Text><Text style={[s.kpiVal, { color: '#FBBF24' }]}>{detail?.skipped}</Text></View>
+                <View style={s.resultTile}><Text style={s.miniLabel}>TOTAL</Text><Text style={[s.kpiVal, { color: '#fff' }]}>{detail?.total}</Text></View>
+              </View>
+              {(detail?.skipped_rows || []).length > 0 && (
+                <View>
+                  <Text style={s.modalLabel}>Skipped rows</Text>
+                  <ScrollView style={{ maxHeight: 200 }}>
+                    {(detail?.skipped_rows || []).map((sr: any, i: number) => (
+                      <View key={i} style={s.skipRow}>
+                        <Text style={s.muted}>Row {sr.row}{sr.email ? ` · ${sr.email}` : ''}</Text>
+                        <Text style={[s.muted, { color: '#FCA5A5', flex: 1, textAlign: 'right' }]} numberOfLines={1}>{sr.reason}</Text>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ *  PROFILE DETAIL PANEL (side-drawer modal)
+ * ══════════════════════════════════════════════════════════════════ */
+function ProfilePanel({ userId, onClose, onSaved }: { userId: string | null; onClose: () => void; onSaved: () => void }) {
+  const [data, setData] = useState<any>(null);
+  const [edit, setEdit] = useState(false);
+  const [draft, setDraft] = useState<any>({});
+  const [confirmDel, setConfirmDel] = useState(false);
+
+  useEffect(() => {
+    if (!userId) { setData(null); setEdit(false); return; }
+    (async () => {
+      try {
+        const r = await request<any>(`/admin/users/profile/${userId}`);
+        setData(r); setDraft({});
+      } catch {}
+    })();
+  }, [userId]);
+
+  if (!userId) return null;
+
+  const save = async () => {
+    try {
+      await request(`/admin/users/profile/${userId}`, { method: 'PATCH', body: draft });
+      const r = await request<any>(`/admin/users/profile/${userId}`);
+      setData(r); setEdit(false); setDraft({});
+      onSaved();
+    } catch {}
+  };
+
+  const del = async () => {
+    try { await request(`/admin/users/profile/${userId}`, { method: 'DELETE' }); onClose(); onSaved(); } catch {}
+  };
+
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <View style={s.modalBg}>
+        <Animated.View entering={FadeInDown.duration(220)} style={[s.modalCard, { maxWidth: 540 }]}>
+          {!data ? <View style={{ padding: 60 }}><LoadingBox /></View> : (
+            <>
+              {/* Header */}
+              <LinearGradient colors={GRAD.soft} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.modalHero}>
+                <View style={[s.avatarLg, { borderColor: (CAT[data.category as CatKey]?.color || GRAD.to) + '88' }]}>
+                  <Text style={[s.avatarLgText, { color: CAT[data.category as CatKey]?.color || GRAD.to }]}>
+                    {(data.full_name || '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()}
+                  </Text>
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={s.modalTitle} numberOfLines={1}>{data.full_name || '—'}</Text>
+                  <View style={{ flexDirection: 'row', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+                    <CategoryBadge cat={data.category as CatKey} />
+                    {data.profile_status && <StatusPill kind={data.profile_status === 'complete' ? 'success' : data.profile_status === 'partial' ? 'warn' : 'danger'} label={data.profile_status} />}
+                  </View>
+                  {!!data.designation && <Text style={[s.muted, { marginTop: 4 }]}>{data.designation}{data.company ? ` @ ${data.company}` : ''}</Text>}
+                </View>
+                <Pressable onPress={onClose}><X size={16} color={SAC.muted} /></Pressable>
+              </LinearGradient>
+
+              <ScrollView style={{ maxHeight: 520 }} contentContainerStyle={{ padding: 20, gap: 16 }}>
+                {/* Education */}
+                <View>
+                  <SectionLabel>EDUCATION</SectionLabel>
+                  <View style={{ marginTop: 8, gap: 8 }}>
+                    {!edit ? (
+                      <DetailRow Icon={GraduationCap} label="College"        value={data.college || '—'} />
+                    ) : (
+                      <EditRow label="College" value={draft.college ?? data.college} onChange={(v) => setDraft({ ...draft, college: v })} />
+                    )}
+                    {!edit ? (
+                      <DetailRow Icon={FileText} label="Degree"          value={data.degree || '—'} />
+                    ) : (
+                      <EditRow label="Degree" value={draft.degree ?? data.degree} onChange={(v) => setDraft({ ...draft, degree: v })} />
+                    )}
+                    <DetailRow Icon={Calendar} label="Graduation year"  value={data.graduation_year ? String(data.graduation_year) : '—'} />
+                  </View>
+                </View>
+
+                {/* Experience */}
+                <View>
+                  <SectionLabel>EXPERIENCE</SectionLabel>
+                  <View style={{ marginTop: 8, gap: 8 }}>
+                    {!edit ? (
+                      <DetailRow Icon={Briefcase} label="Designation" value={data.designation || '—'} />
+                    ) : (
+                      <EditRow label="Designation" value={draft.designation ?? data.designation} onChange={(v) => setDraft({ ...draft, designation: v })} />
+                    )}
+                    {!edit ? (
+                      <DetailRow Icon={Building2} label="Company"     value={data.company || '—'} />
+                    ) : (
+                      <EditRow label="Company" value={draft.company ?? data.company} onChange={(v) => setDraft({ ...draft, company: v })} />
+                    )}
+                    <DetailRow Icon={Sparkles} label="Years of experience" value={`${data.experience_years ?? 0} yrs`} />
+                  </View>
+                </View>
+
+                {/* Contact */}
+                <View>
+                  <SectionLabel>CONTACT</SectionLabel>
+                  <View style={{ marginTop: 8, gap: 8 }}>
+                    <LinkRow Icon={Mail}     label="Email"        value={data.email}        href={data.email ? `mailto:${data.email}` : undefined} />
+                    <LinkRow Icon={Phone}    label="Phone"        value={data.phone || '—'} href={data.phone ? `tel:${data.phone}` : undefined} />
+                    <LinkRow Icon={Linkedin} label="LinkedIn"     value={data.linkedin_url || '—'} href={data.linkedin_url} />
+                    <DetailRow Icon={MapPin} label="Location"     value={data.location || '—'} />
+                  </View>
+                </View>
+
+                {/* Meta */}
+                <View>
+                  <SectionLabel>META</SectionLabel>
+                  <View style={{ marginTop: 8, gap: 8 }}>
+                    <DetailRow Icon={Sparkles}  label="Categorization rule" value={data.category_rule || '—'} />
+                    {edit ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={s.detailLabel}>Re-categorize</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                          {(['student', 'masters', 'alumni', 'mentor'] as CatKey[]).map((c) => (
+                            <Pressable key={c} onPress={() => setDraft({ ...draft, category: c })}
+                              style={[s.catPick, (draft.category || data.category) === c && { borderColor: CAT[c].color, backgroundColor: CAT[c].color + '22' }]}>
+                              <CategoryBadge cat={c} small />
+                            </Pressable>
+                          ))}
+                        </ScrollView>
+                      </View>
+                    ) : null}
+                    {data.created_at && <DetailRow Icon={Calendar} label="Created" value={new Date(data.created_at).toLocaleString()} />}
+                  </View>
+                </View>
+
+                {/* Actions */}
+                <View style={s.actionsRow}>
+                  {!edit ? (
+                    <>
+                      <SecondaryButton onPress={() => setEdit(true)}>
+                        <Pencil size={12} color={SAC.muted} />
+                        <Text style={s.secText}>Edit</Text>
+                      </SecondaryButton>
+                      <SecondaryButton danger onPress={() => setConfirmDel(true)}>
+                        <Trash2 size={12} color={'#FCA5A5'} />
+                        <Text style={[s.secText, { color: '#FCA5A5' }]}>Delete</Text>
+                      </SecondaryButton>
+                    </>
+                  ) : (
+                    <>
+                      <SecondaryButton onPress={() => { setEdit(false); setDraft({}); }}>
+                        <Text style={s.secText}>Cancel</Text>
+                      </SecondaryButton>
+                      <GradientButton onPress={save}>
+                        <Check size={13} color="#fff" />
+                        <Text style={s.btnText}>Save changes</Text>
+                      </GradientButton>
+                    </>
+                  )}
+                </View>
+
+                {confirmDel && (
+                  <View style={[s.warnBox, { borderColor: SAC.red, backgroundColor: 'rgba(239,68,68,0.08)' }]}>
+                    <AlertTriangle size={13} color={'#FCA5A5'} />
+                    <Text style={[s.muted, { color: '#FCA5A5', flex: 1 }]}>
+                      Permanently delete this profile?
+                    </Text>
+                    <SecondaryButton size="sm" onPress={() => setConfirmDel(false)}>
+                      <Text style={s.secText}>No</Text>
+                    </SecondaryButton>
+                    <Pressable onPress={del} style={s.destructiveBtn}>
+                      <Text style={s.btnText}>Yes, delete</Text>
+                    </Pressable>
+                  </View>
+                )}
+              </ScrollView>
+            </>
+          )}
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+}
+
+function DetailRow({ Icon, label, value }: { Icon: any; label: string; value: string }) {
+  return (
+    <View style={s.detailRow}>
+      <Icon size={13} color={SAC.muted} />
+      <Text style={s.detailLabel}>{label}</Text>
+      <Text style={s.detailValue} numberOfLines={2}>{value}</Text>
+    </View>
+  );
+}
+
+function LinkRow({ Icon, label, value, href }: { Icon: any; label: string; value: string; href?: string }) {
+  const open = () => { if (href) Linking.openURL(href).catch(() => {}); };
+  return (
+    <Pressable onPress={href ? open : undefined} style={s.detailRow}>
+      <Icon size={13} color={SAC.muted} />
+      <Text style={s.detailLabel}>{label}</Text>
+      <Text style={[s.detailValue, href && { color: GRAD.to, textDecorationLine: 'underline' }]} numberOfLines={1}>{value}</Text>
+      {href && <ExternalLink size={11} color={GRAD.to} />}
+    </Pressable>
+  );
+}
+
+function EditRow({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+      <Text style={[s.detailLabel, { width: 120 }]}>{label}</Text>
+      <TextInput
+        value={value || ''} onChangeText={onChange}
+        placeholderTextColor={SAC.dim}
+        style={s.formInput}
+      />
+    </View>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────────
+ * Styles
+ * ────────────────────────────────────────────────────────────────── */
+const s = StyleSheet.create({
+  headRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  sub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4, lineHeight: 17, maxWidth: 720 },
+  muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
+  err: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 12 },
+
+  catBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 9, paddingVertical: 3.5, borderRadius: 999, borderWidth: 1, alignSelf: 'flex-start',
+  },
+  catBadgeText: { fontFamily: FONTS.xbold, letterSpacing: 0.3 },
+
+  // Upload
+  dropZone: {
+    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 14,
+    borderStyle: 'dashed', padding: 40, alignItems: 'center', gap: 10,
+    ...(Platform.OS === 'web' ? ({ transitionDuration: '150ms' } as any) : {}),
+  },
+  dropIcon: { width: 56, height: 56, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  dropTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15, marginTop: 6 },
+  dropSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
+
+  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  fileName: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
+  summaryStats: {
+    flexDirection: 'row', gap: 8, marginTop: 14, flexWrap: 'wrap',
+  },
+  sumStat: {
+    flex: 1, minWidth: 80, paddingVertical: 10, paddingHorizontal: 12,
+    backgroundColor: SAC.cardSolid, borderRadius: 10, borderColor: SAC.border, borderWidth: 1,
+    alignItems: 'center', gap: 2,
+  },
+  sumVal: { fontFamily: FONTS.xbold, fontSize: 18 },
+  sumLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.4 },
+
+  mapRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
+  mapSrc: { color: SAC.text, fontFamily: FONTS.med, fontSize: 12, width: 220,
+    ...(Platform.OS === 'web' ? ({ fontFamily: '"JetBrains Mono", "SF Mono", monospace' } as any) : {}) },
+  mapUnused: { backgroundColor: 'rgba(255,255,255,0.04)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, borderWidth: 1, borderColor: SAC.border },
+  mapUnusedText: { color: SAC.dim, fontFamily: FONTS.bold, fontSize: 10.5 },
+
+  tableHead: {
+    flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 10,
+    backgroundColor: 'rgba(255,255,255,0.03)', borderBottomWidth: 1, borderBottomColor: SAC.border,
+  },
+  th: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 1.2, paddingRight: 10 },
+  tableRow: {
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: SAC.border,
+  },
+  tableRowErr: { backgroundColor: 'rgba(239,68,68,0.04)' },
+  td: { color: '#fff', fontFamily: FONTS.med, fontSize: 11.5, paddingRight: 10 },
+
+  commitRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
+  commitTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  checkRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  checkBox: { width: 16, height: 16, borderRadius: 5, borderWidth: 1.4, borderColor: SAC.border2, alignItems: 'center', justifyContent: 'center' },
+  checkLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 11.5 },
+
+  // Manual
+  manualGrid: { flexDirection: 'row', gap: 14, flexWrap: 'wrap' as any },
+  formGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 },
+  formField: { flex: 1, minWidth: 180, gap: 6 },
+  formLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
+  formInput: {
+    color: '#fff', fontFamily: FONTS.med, fontSize: 13,
+    backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border,
+    paddingHorizontal: 12, paddingVertical: 10,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+  },
+  previewBigVal: { fontFamily: FONTS.xbold, fontSize: 18 },
+  previewRule: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 10, borderRadius: 9, backgroundColor: 'rgba(245,158,11,0.08)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)' },
+  previewRuleText: { color: GRAD.to, fontFamily: FONTS.xbold, fontSize: 11.5, flex: 1 },
+  previewLbl: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
+  previewVal: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  warnBox: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8, backgroundColor: 'rgba(251,191,36,0.08)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.30)' },
+
+  // Browse
+  browseHead: { flexDirection: 'row', alignItems: 'center', gap: 12, justifyContent: 'space-between', flexWrap: 'wrap' },
+  userRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 11, paddingHorizontal: 14,
+    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
+  },
+  avatar: { width: 38, height: 38, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  avatarInit: { fontFamily: FONTS.xbold, fontSize: 12.5 },
+  userName: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+
+  // History
+  runCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 12, paddingHorizontal: 14,
+    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
+  },
+  miniPill: { paddingHorizontal: 7, paddingVertical: 2.5, borderRadius: 999, borderWidth: 1 },
+  miniPillText: { fontFamily: FONTS.xbold, fontSize: 9.5, letterSpacing: 0.3 },
+  miniLabel: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1.4 },
+  kpiVal: { fontFamily: FONTS.xbold, fontSize: 22, marginTop: 4 },
+
+  // Modal
+  modalBg: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
+    alignItems: 'center', justifyContent: 'center', padding: 20,
+    ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
+  },
+  modalCard: {
+    width: '100%', maxWidth: 720, maxHeight: '92%',
+    backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2,
+    overflow: 'hidden',
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } as any) : {}),
+  },
+  modalHero: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border,
+  },
+  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  modalLabel: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
+
+  resultGrid: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  resultTile: { flex: 1, minWidth: 100, padding: 12, borderRadius: 10, backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border, alignItems: 'center', gap: 2 },
+  skipRow: { flexDirection: 'row', gap: 10, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: SAC.border },
+
+  // Profile panel
+  avatarLg: { width: 56, height: 56, borderRadius: 14, borderWidth: 1.5, backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center' },
+  avatarLgText: { fontFamily: FONTS.xbold, fontSize: 18 },
+
+  detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  detailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, width: 130 },
+  detailValue: { color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
+  catPick: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, marginRight: 6, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+
+  actionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
+  destructiveBtn: { backgroundColor: SAC.red, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+
+  btnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
+});
