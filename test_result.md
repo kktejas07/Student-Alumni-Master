@@ -9854,3 +9854,63 @@ agent_communication:
           • AI Insights, Workflows
           • TopBar — search hover state + bell badge alignment
 
+
+    - agent: "main"
+      message: |
+        ✦ MongoDB Atlas cut-over — backend now live on Atlas ✦
+        ────────────────────────────────────────────────────────────────────
+
+        User-driven migration: switched the live backend from local MongoDB
+        to user-provided MongoDB Atlas cluster (studentalumniadmin).
+
+        ── Why TLS handshake initially failed ──────────────────────────────
+        First connection attempts from the container were rejected by Atlas
+        with TLSV1_ALERT_INTERNAL_ERROR (a server-side rejection).  Root
+        cause: container egress IP was not on Atlas Network Access
+        allow-list.  After user added 0.0.0.0/0 the SRV handshake succeeded.
+
+        ── Migration script (one-shot) ─────────────────────────────────────
+        + backend/migrate_to_atlas.py
+            • Mirrors all collections 1:1 from local career_platform to
+              Atlas studentalumniadmin.  Drops target collection first, then
+              streams in batches of 500.  Replays indexes (except _id_).
+            • 63 collections, 9,342 documents copied successfully.
+              Spot-checks (post-migration):
+                users               1630
+                events               131
+                internships          320
+                wallet_transactions  388
+                auth_events          750  (now 753 — live writes confirmed)
+                analytics_events    5090
+                colleges_meta        151
+                installed_tools        1
+                platform_controls      1
+            • Empty collection (jobs_cache) skipped.
+
+        ── Live cut-over ───────────────────────────────────────────────────
+        ~ backend/.env
+            MONGO_URL  ← mongodb+srv://…@studentalumniadmin.hhu4uao.mongodb.net
+            DB_NAME    ← studentalumniadmin
+        ~ Backend restarted via supervisorctl.  Startup OK, no errors.
+
+        ── Verification ────────────────────────────────────────────────────
+          ✓ POST /api/auth/login returns access_token + refresh_token + user
+          ✓ Super Admin → Settings → Manage Profile loads "Platform Admin"
+            with admin_id SA-2024-000037 (read straight from Atlas)
+          ✓ /api/admin/super/students returns 200 (writes against Atlas)
+          ✓ auth_events count grew 750 → 753 in Atlas after new logins —
+            confirming writes are landing in Atlas, not local.
+
+        ── Notes / follow-ups ──────────────────────────────────────────────
+          • Local MongoDB is untouched; you can switch back instantly by
+            reverting MONGO_URL / DB_NAME.
+          • Allow-list is currently 0.0.0.0/0; for production, tighten to
+            specific egress CIDR (Atlas → Network Access).
+          • Existing recurring tz-naive datetime issue in portals.py:930
+            (super_events) still raises 500; unrelated to migration but
+            worth fixing in next phase.
+
+        ── Files touched ───────────────────────────────────────────────────
+          + backend/migrate_to_atlas.py   (NEW)
+          ~ backend/.env                  (MONGO_URL, DB_NAME)
+
