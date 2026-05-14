@@ -64,13 +64,16 @@ async def _resolve_user(authorization: Optional[str]) -> Optional[dict]:
     uid = payload.get("sub") or payload.get("user_id") or payload.get("id")
     if not uid:
         return None
+    u = None
     try:
         u = await _db.users.find_one({"_id": ObjectId(uid)})
-        if u:
-            return u
     except Exception:
         pass
-    return await _db.users.find_one({"_id": uid})
+    if not u:
+        u = await _db.users.find_one({"_id": uid})
+    if not u and payload.get("email"):
+        u = await _db.users.find_one({"email": payload.get("email")})
+    return u
 
 
 async def _require_admin(authorization: Optional[str]) -> dict:

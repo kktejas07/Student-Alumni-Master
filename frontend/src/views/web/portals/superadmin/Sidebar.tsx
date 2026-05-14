@@ -14,6 +14,30 @@ import { ADMIN } from './data';
 import { Av, Badge } from './atoms';
 import { GRAD } from './applekit';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+
+/* Display info for the sidebar profile blocks — uses the real logged-in
+ * user if available, falls back to ADMIN mock so legacy/storybook flows
+ * still render. */
+function useAdminProfile() {
+  const user = useAuthStore((s) => s.user);
+  if (!user) return ADMIN;
+  const full = [user.first_name, user.last_name].filter(Boolean).join(' ').trim();
+  const name = full || user.name || user.email || ADMIN.name;
+  const parts = name.split(' ').filter(Boolean);
+  const initials = parts.length >= 2
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : (name[0] + (name[1] || '')).toUpperCase();
+  const role = String(user.role || '').toLowerCase();
+  return {
+    name,
+    email: user.email || ADMIN.email,
+    role: role === 'super_admin' || role === 'superadmin' ? 'Super Admin'
+        : role === 'admin' ? 'Super Admin'
+        : ADMIN.role,
+    initials,
+  };
+}
 
 export type SuperAdminNavId =
   | 'overview' | 'colleges' | 'students' | 'mentors' | 'alumni' | 'events'
@@ -39,6 +63,7 @@ export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?:
 export function Sidebar({
   active, onNav, onLogout,
 }: { active: SuperAdminNavId; onNav: (id: SuperAdminNavId) => void; onLogout: () => void }) {
+  const profile = useAdminProfile();
   return (
     <View style={s.aside}>
       {/* Brand */}
@@ -53,10 +78,10 @@ export function Sidebar({
       {/* Profile card */}
       <View style={s.profileCard}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Av initials={ADMIN.initials} size={38} color={SAC.primary} />
+          <Av initials={profile.initials} size={38} color={SAC.primary} />
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text numberOfLines={1} style={s.profileName}>{ADMIN.name}</Text>
-            <Text numberOfLines={1} style={s.profileRole}>{ADMIN.role}</Text>
+            <Text numberOfLines={1} style={s.profileName}>{profile.name}</Text>
+            <Text numberOfLines={1} style={s.profileRole}>{profile.role}</Text>
           </View>
           <ExternalLink size={13} color={SAC.muted} />
         </View>
@@ -113,10 +138,10 @@ export function Sidebar({
         onPress={onLogout}
         style={({ hovered }: any) => [s.footer, hovered && { backgroundColor: 'rgba(239,68,68,0.10)' }]}
       >
-        <Av initials={ADMIN.initials} size={32} color={SAC.primaryD} />
+        <Av initials={profile.initials} size={32} color={SAC.primaryD} />
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>{ADMIN.name}</Text>
-          <Text numberOfLines={1} style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5 }}>{ADMIN.email}</Text>
+          <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>{profile.name}</Text>
+          <Text numberOfLines={1} style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5 }}>{profile.email}</Text>
         </View>
         <LogOut size={14} color="#FCA5A5" />
       </Pressable>

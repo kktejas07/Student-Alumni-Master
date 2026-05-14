@@ -3,8 +3,8 @@
  *
  * Renders <SuperAdminPortalRN /> by default. ?legacy=1 → original HTML iframe.
  */
-import React from 'react';
-import { View, Platform, StyleSheet, Text, Pressable } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Platform, StyleSheet, Text, Pressable, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LogOut } from 'lucide-react-native';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
@@ -13,7 +13,43 @@ import { SuperAdminPortalRN } from '@/src/views/web/portals/superadmin/SuperAdmi
 export default function SuperAdminRoute() {
   const { legacy } = useLocalSearchParams<{ legacy?: string }>();
   const router = useRouter();
-  const logout = useAuthStore((s) => s.logout);
+  const user        = useAuthStore((s) => s.user);
+  const loading     = useAuthStore((s) => s.loading);
+  const initialized = useAuthStore((s) => s.initialized);
+  const init        = useAuthStore((s) => s.init);
+  const logout      = useAuthStore((s) => s.logout);
+
+  // Ensure auth store is initialized (loads JWT from storage, hydrates user)
+  useEffect(() => { if (!initialized) init(); }, [initialized, init]);
+
+  // After init, if no logged-in user → bounce to /login
+  useEffect(() => {
+    if (!initialized) return;
+    if (!user) {
+      router.replace('/login?redirect=/super-admin');
+      return;
+    }
+    const role = String(user.role || '').toLowerCase();
+    if (!['admin', 'super_admin', 'superadmin'].includes(role)) {
+      router.replace('/login?redirect=/super-admin');
+    }
+  }, [initialized, user]);
+
+  if (!initialized || loading) {
+    return (
+      <View style={s.gate}>
+        <ActivityIndicator size="small" color="#F59E0B" />
+        <Text style={s.gateText}>Authenticating…</Text>
+      </View>
+    );
+  }
+  if (!user) {
+    return (
+      <View style={s.gate}>
+        <Text style={s.gateText}>Redirecting to login…</Text>
+      </View>
+    );
+  }
 
   const onLogout = async () => {
     try { await logout(); } catch {}
@@ -63,6 +99,8 @@ export default function SuperAdminRoute() {
 
 const s = StyleSheet.create({
   shell: { flex: 1, backgroundColor: '#0F0A05', position: 'relative' as any },
+  gate: { flex: 1, backgroundColor: '#0F0A05', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  gateText: { color: '#C4A788', fontFamily: 'DMSans_500Medium', fontSize: 12.5 },
   logoutBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, height: 30, borderRadius: 999,
