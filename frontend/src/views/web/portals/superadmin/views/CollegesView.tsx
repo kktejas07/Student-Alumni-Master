@@ -15,7 +15,7 @@ import {
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import {
   Building2, Search, X, Check, Pencil, Trash2, ShieldCheck, ShieldOff, RefreshCw,
-  AlertTriangle, ExternalLink, Sparkles, Award, MapPin, Users, Globe, BookOpen, Plus,
+  AlertTriangle, ExternalLink, Sparkles, Award, MapPin, Users, Globe, BookOpen, Plus, Download,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
@@ -52,7 +52,18 @@ export function CollegesView() {
   const [bump, setBump] = useState(0);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
+  const [backfilling, setBackfilling] = useState(false);
   const { toast, flash } = useToast();
+
+  const backfill = async () => {
+    setBackfilling(true);
+    try {
+      const r: any = await request('/admin/colleges/backfill', { method: 'POST' });
+      flash(`Backfill done · ${r?.newly_created ?? 0} created, ${r?.reenriched_existing ?? 0} refreshed`);
+      setBump((b) => b + 1);
+    } catch { flash('Backfill failed'); }
+    finally { setBackfilling(false); }
+  };
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -132,6 +143,10 @@ export function CollegesView() {
           <GradientButton onPress={() => setCreating(true)}>
             <Plus size={13} color="#fff" /><Text style={s.btnText}>Onboard college</Text>
           </GradientButton>
+          <SecondaryButton onPress={backfill} disabled={backfilling}>
+            <Download size={12} color={SAC.muted} />
+            <Text style={s.secText}>{backfilling ? 'Backfilling…' : 'Backfill from users'}</Text>
+          </SecondaryButton>
         </View>
       </Card>
 

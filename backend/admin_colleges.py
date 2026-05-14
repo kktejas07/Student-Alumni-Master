@@ -134,6 +134,147 @@ DEPARTMENT_KEYWORDS = [
 
 WIKI_UA = "NexusOS/1.0 (https://studentalumni.in; admin@studentalumni.in)"
 
+# ─── Name normalization & alias expansion ─────────────────────────
+COLLEGE_ALIASES = {
+    # IITs
+    "iit bombay": ["Indian Institute of Technology Bombay", "IIT Bombay"],
+    "iit delhi":  ["Indian Institute of Technology Delhi",  "IIT Delhi"],
+    "iit madras": ["Indian Institute of Technology Madras", "IIT Madras"],
+    "iit kanpur": ["Indian Institute of Technology Kanpur", "IIT Kanpur"],
+    "iit kharagpur": ["Indian Institute of Technology Kharagpur", "IIT Kharagpur"],
+    "iit roorkee":   ["Indian Institute of Technology Roorkee",   "IIT Roorkee"],
+    "iit guwahati":  ["Indian Institute of Technology Guwahati",  "IIT Guwahati"],
+    "iit hyderabad": ["Indian Institute of Technology Hyderabad", "IIT Hyderabad"],
+    "iit indore":    ["Indian Institute of Technology Indore",    "IIT Indore"],
+    "iit bhu":       ["Indian Institute of Technology (BHU) Varanasi", "IIT BHU"],
+    # IIMs
+    "iim ahmedabad": ["Indian Institute of Management Ahmedabad", "IIM Ahmedabad"],
+    "iim bangalore": ["Indian Institute of Management Bangalore", "IIM Bangalore"],
+    "iim calcutta":  ["Indian Institute of Management Calcutta",  "IIM Calcutta"],
+    "iim lucknow":   ["Indian Institute of Management Lucknow",   "IIM Lucknow"],
+    "iim kozhikode": ["Indian Institute of Management Kozhikode", "IIM Kozhikode"],
+    "iim indore":    ["Indian Institute of Management Indore",    "IIM Indore"],
+    # NITs
+    "nit trichy":    ["National Institute of Technology, Tiruchirappalli", "NIT Trichy"],
+    "nit warangal":  ["National Institute of Technology, Warangal", "NIT Warangal"],
+    "nit surathkal": ["National Institute of Technology Karnataka", "NIT Surathkal"],
+    "nit calicut":   ["National Institute of Technology Calicut",   "NIT Calicut"],
+    "nit rourkela":  ["National Institute of Technology Rourkela",  "NIT Rourkela"],
+    "nit silchar":   ["National Institute of Technology Silchar",   "NIT Silchar"],
+    # IIITs
+    "iiit hyderabad": ["International Institute of Information Technology, Hyderabad", "IIIT Hyderabad"],
+    "iiit bangalore": ["International Institute of Information Technology, Bangalore", "IIIT Bangalore"],
+    "iiit delhi":     ["Indraprastha Institute of Information Technology, Delhi", "IIIT Delhi"],
+    # Other top
+    "iisc":           ["Indian Institute of Science",             "Indian Institute of Science Bangalore"],
+    "bits pilani":    ["Birla Institute of Technology and Science, Pilani", "BITS Pilani"],
+    "bits hyderabad": ["BITS Pilani Hyderabad Campus"],
+    "bits goa":       ["BITS Pilani Goa Campus"],
+    "vit vellore":    ["Vellore Institute of Technology"],
+    "vit chennai":    ["Vellore Institute of Technology Chennai"],
+    "srm chennai":    ["SRM Institute of Science and Technology"],
+    "manipal":        ["Manipal Academy of Higher Education", "Manipal Institute of Technology"],
+    "anna university":["Anna University"],
+    "du":             ["University of Delhi", "Delhi University"],
+    "ju":             ["Jadavpur University"],
+    "ip university":  ["Guru Gobind Singh Indraprastha University"],
+    "bhu":            ["Banaras Hindu University"],
+    "amu":            ["Aligarh Muslim University"],
+    "jamia":          ["Jamia Millia Islamia"],
+    "jnu":            ["Jawaharlal Nehru University"],
+    "iisc bangalore": ["Indian Institute of Science"],
+    "xlri":           ["XLRI - Xavier School of Management"],
+    "fms":            ["Faculty of Management Studies, University of Delhi"],
+    "mdi gurgaon":    ["Management Development Institute, Gurgaon"],
+    "sp jain":        ["S P Jain Institute of Management and Research"],
+    "iift":           ["Indian Institute of Foreign Trade"],
+    "isb":            ["Indian School of Business"],
+    "nift":           ["National Institute of Fashion Technology"],
+    "nid":            ["National Institute of Design"],
+    "aiims delhi":    ["All India Institute of Medical Sciences, Delhi", "AIIMS Delhi"],
+    "aiims":          ["All India Institute of Medical Sciences, New Delhi"],
+    "cmc vellore":    ["Christian Medical College, Vellore"],
+    "afmc":           ["Armed Forces Medical College, Pune"],
+    "nlsiu":          ["National Law School of India University"],
+    "nls bangalore":  ["National Law School of India University"],
+    "nlu delhi":      ["National Law University, Delhi"],
+    "nalsar":         ["NALSAR University of Law"],
+    "iict":           ["Indian Institute of Chemical Technology"],
+}
+
+# Static fallback dataset for top Indian colleges (used when Wikipedia
+# extract doesn't yield specific accreditation/rank info)
+STATIC_FALLBACK: Dict[str, Dict[str, Any]] = {
+    "indian institute of technology bombay":  {"type": "Public · Autonomous", "ranking": ["NIRF #3", "Tier-1 (IIT)"], "accreditation": ["UGC-recognised", "MoE Institute of Eminence"]},
+    "indian institute of technology delhi":   {"type": "Public · Autonomous", "ranking": ["NIRF #2", "Tier-1 (IIT)"], "accreditation": ["UGC-recognised", "MoE Institute of Eminence"]},
+    "indian institute of technology madras":  {"type": "Public · Autonomous", "ranking": ["NIRF #1", "Tier-1 (IIT)"], "accreditation": ["UGC-recognised", "MoE Institute of Eminence"]},
+    "indian institute of technology kanpur":  {"type": "Public · Autonomous", "ranking": ["NIRF #4", "Tier-1 (IIT)"], "accreditation": ["UGC-recognised"]},
+    "indian institute of technology kharagpur":{"type":"Public · Autonomous","ranking": ["NIRF #5", "Tier-1 (IIT)"], "accreditation": ["UGC-recognised"]},
+    "indian institute of technology roorkee": {"type": "Public · Autonomous", "ranking": ["NIRF #6", "Tier-1 (IIT)"], "accreditation": ["UGC-recognised"]},
+    "indian institute of technology guwahati":{"type": "Public · Autonomous", "ranking": ["NIRF #7", "Tier-1 (IIT)"], "accreditation": ["UGC-recognised"]},
+    "indian institute of science":            {"type": "Public · Autonomous", "ranking": ["NIRF #1 (Research)", "Top Research Institute"], "accreditation": ["MoE Institute of Eminence", "NAAC A++"]},
+    "indian institute of management ahmedabad":{"type":"Public · Autonomous","ranking": ["NIRF #1 (Management)", "Tier-1 (IIM)"], "accreditation": ["EQUIS", "AACSB"]},
+    "indian institute of management bangalore":{"type":"Public · Autonomous","ranking": ["NIRF #2 (Management)", "Tier-1 (IIM)"], "accreditation": ["EQUIS", "AACSB", "AMBA"]},
+    "indian institute of management calcutta": {"type":"Public · Autonomous","ranking": ["NIRF #3 (Management)", "Tier-1 (IIM)"], "accreditation": ["EQUIS", "AACSB", "AMBA"]},
+    "birla institute of technology and science, pilani": {"type": "Private", "ranking": ["NIRF #25", "Tier-1 (Private)"], "accreditation": ["NAAC A", "UGC-recognised"]},
+    "vellore institute of technology":        {"type": "Private", "ranking": ["NIRF #11", "Tier-1 (Private)"], "accreditation": ["NAAC A++", "UGC-recognised"]},
+    "manipal academy of higher education":    {"type": "Private", "ranking": ["NIRF #15", "Tier-1 (Private)"], "accreditation": ["NAAC A+"]},
+    "srm institute of science and technology":{"type": "Private", "ranking": ["NIRF #28"], "accreditation": ["NAAC A++"]},
+    "anna university":                        {"type": "Public",  "ranking": ["NIRF #18", "Affiliating"], "accreditation": ["NAAC A++", "UGC-recognised"]},
+    "university of delhi":                    {"type": "Public",  "ranking": ["NIRF #11 (University)"], "accreditation": ["MoE Institute of Eminence", "NAAC A+", "UGC-recognised"]},
+    "banaras hindu university":               {"type": "Public",  "ranking": ["NIRF #5 (University)"], "accreditation": ["MoE Institute of Eminence", "NAAC A+"]},
+    "jawaharlal nehru university":            {"type": "Public",  "ranking": ["NIRF #2 (University)"], "accreditation": ["NAAC A++", "UGC-recognised"]},
+    "all india institute of medical sciences, delhi": {"type": "Public", "ranking": ["NIRF #1 (Medical)"], "accreditation": ["Institute of National Importance"]},
+}
+
+
+def _name_candidates(name: str) -> List[str]:
+    """Generate up to ~4 alias candidates to query free APIs with."""
+    if not name: return []
+    norm = _normalize(name)
+    candidates = [name.strip()]
+    # alias lookup
+    for key, aliases in COLLEGE_ALIASES.items():
+        if key == norm or key in norm or norm in key:
+            for a in aliases:
+                if a not in candidates: candidates.append(a)
+            break
+    # Compact abbrev: "Indian Institute of Technology Bombay" → "IIT Bombay"
+    abbrev_pattern = re.compile(r"^(indian|national|international) institute of (technology|management|science|information technology)\s*[,]?\s*(.+)$", re.I)
+    m = abbrev_pattern.match(name.strip())
+    if m:
+        word = m.group(2).lower()
+        abbr = {"technology":"IIT","management":"IIM","science":"IISc","information technology":"IIIT"}.get(word, "")
+        if abbr:
+            cand = f"{abbr} {m.group(3).strip()}"
+            if cand not in candidates: candidates.append(cand)
+    # Drop trailing comma-suffix
+    if "," in name:
+        head = name.split(",", 1)[0].strip()
+        if head and head not in candidates: candidates.append(head)
+    return candidates[:5]
+
+
+async def _wikipedia_search(query: str) -> Optional[str]:
+    """Use Wikipedia's full-text search to find the best matching page title."""
+    if not query: return None
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as c:
+            r = await c.get("https://en.wikipedia.org/w/api.php",
+                params={"action":"query","list":"search","srsearch":query,"srlimit":3,"format":"json"},
+                headers={"User-Agent": WIKI_UA, "Accept": "application/json"})
+            if r.status_code != 200: return None
+            hits = ((r.json() or {}).get("query") or {}).get("search") or []
+            if not hits: return None
+            # Prefer titles that mention "Institute"/"University"/"College"
+            for h in hits:
+                t = h.get("title") or ""
+                if re.search(r"institute|university|college|school", t, re.I):
+                    return t
+            return hits[0].get("title")
+    except Exception:
+        return None
+
 
 async def _hipolabs_lookup(name: str) -> Optional[dict]:
     if not name:
@@ -233,7 +374,11 @@ def _heuristic_specialties(extract: str) -> List[str]:
 
 
 async def _enrich(name: str) -> Dict[str, Any]:
-    """Run all enrichment in parallel and merge.  Never raises."""
+    """Run all enrichment in parallel and merge.  Never raises.
+    Tries multiple name aliases (full name, abbrev like 'IIT Bombay') to
+    maximise hit rate on Hipolabs + Wikipedia.  Falls back to a static
+    dataset of top Indian colleges if the free APIs return nothing useful.
+    """
     out: Dict[str, Any] = {
         "name":          name,
         "country":       "",
@@ -247,22 +392,46 @@ async def _enrich(name: str) -> Dict[str, Any]:
         "accreditation": [],
         "ranking":       [],
         "specialties":   [],
-        "type":          "",     # to be derived (Public/Private/Autonomous)
+        "type":          "",
         "enrichment_status": "failed",
         "enrichment_sources": [],
     }
     if not name or len(name.strip()) < 3:
         return out
-    try:
-        hipo, wiki, extract = await asyncio.gather(
-            _hipolabs_lookup(name),
-            _wikipedia_summary(name),
-            _wikipedia_extract(name),
-            return_exceptions=False,
-        )
-    except Exception:
-        hipo, wiki, extract = None, None, ""
 
+    candidates = _name_candidates(name)
+
+    # ── 1) Hipolabs: try each alias, take first that returns results
+    hipo = None
+    for cand in candidates:
+        hipo = await _hipolabs_lookup(cand)
+        if hipo:
+            break
+
+    # ── 2) Wikipedia summary + extract: same alias loop
+    wiki = None
+    extract = ""
+    chosen_title = ""
+    for cand in candidates:
+        w = await _wikipedia_summary(cand)
+        if w and (w.get("extract") or w.get("title")):
+            wiki = w
+            chosen_title = w.get("title") or cand
+            break
+    # If summary still empty, use search API to find a likely page
+    if not wiki:
+        for cand in candidates:
+            best = await _wikipedia_search(cand)
+            if best:
+                w = await _wikipedia_summary(best)
+                if w and w.get("extract"):
+                    wiki = w
+                    chosen_title = best
+                    break
+    if chosen_title:
+        extract = await _wikipedia_extract(chosen_title)
+
+    # ── 3) Merge results
     if hipo:
         out["country"] = hipo.get("country") or ""
         out["state"]   = (hipo.get("state-province") or hipo.get("stateProvince") or "") or ""
@@ -275,7 +444,6 @@ async def _enrich(name: str) -> Dict[str, Any]:
     if wiki:
         out["description"] = wiki.get("extract") or out["description"]
         out["wiki_url"] = (wiki.get("content_urls") or {}).get("desktop", {}).get("page") or ""
-        # Thumbnail makes a great fallback logo
         thumb = (wiki.get("thumbnail") or {}).get("source") or \
                 (wiki.get("originalimage") or {}).get("source") or ""
         if thumb:
@@ -294,12 +462,26 @@ async def _enrich(name: str) -> Dict[str, Any]:
         out["type"] = "Private"
     elif "government" in lower_blob or "state university" in lower_blob:
         out["type"] = "Public"
-    else:
-        out["type"] = ""
+
+    # ── 4) Static fallback for top Indian colleges — fills in any missing fields
+    static = STATIC_FALLBACK.get(_normalize(name)) or STATIC_FALLBACK.get(_normalize(chosen_title or "")) or {}
+    if static:
+        if not out["type"]:           out["type"] = static.get("type", "")
+        # accreditation: merge & dedupe
+        merged_acc = list(dict.fromkeys((out["accreditation"] or []) + static.get("accreditation", [])))
+        out["accreditation"] = merged_acc
+        # ranking: prefer static (curated) over heuristic
+        if static.get("ranking"):
+            out["ranking"] = list(dict.fromkeys(static["ranking"] + (out["ranking"] or [])))
+        out["enrichment_sources"].append("curated")
+
+    # Country fallback
+    if not out["country"] and (IIT_RE.search(name) or NIT_RE.search(name) or IIM_RE.search(name) or "india" in lower_blob):
+        out["country"] = "India"
 
     out["enrichment_status"] = (
         "enriched" if (hipo and wiki) else
-        ("partial" if (hipo or wiki) else "failed")
+        ("partial" if (hipo or wiki or static) else "failed")
     )
     return out
 
@@ -572,3 +754,80 @@ async def reenrich_college(cid: str, authorization: Optional[str] = Header(None)
     await _db.colleges.update_one({"_id": oid}, {"$set": data})
     fresh = await _db.colleges.find_one({"_id": oid})
     return _serialize(fresh, 0)
+
+
+# ─── BACKFILL: onboard colleges for every existing imported user ──
+@router.post("/admin/colleges/backfill")
+async def backfill_colleges(authorization: Optional[str] = Header(None)):
+    """
+    Scan `users` collection for every distinct college name and ensure
+    a matching `colleges` document exists.  Idempotent — only creates
+    rows that don't already exist.  Returns a summary report.
+
+    Also re-enriches any pre-existing college rows whose `enrichment_status`
+    is 'failed' or 'pending' so the data fields catch up.
+    """
+    await _require_admin(authorization)
+
+    # 1) Collect distinct college names from users (case-insensitive)
+    pipeline = [
+        {"$match": {"college": {"$exists": True, "$nin": [None, ""]}}},
+        {"$group": {"_id": {"$trim": {"input": "$college"}}}},
+    ]
+    distinct_names: List[str] = []
+    async for row in _db.users.aggregate(pipeline):
+        nm = (row.get("_id") or "").strip()
+        if nm:
+            distinct_names.append(nm)
+
+    created_ids: List[str] = []
+    skipped = 0
+    reenriched = 0
+    failed: List[str] = []
+
+    # 2) For each name, ensure a colleges row exists
+    for nm in distinct_names:
+        try:
+            cid = await ensure_college(nm, created_by="backfill")
+            if not cid:
+                continue
+            existing = await _db.colleges.find_one({"_id": ObjectId(cid)})
+            if not existing:
+                continue
+            # newly inserted ones will already have a background enrichment task
+            if existing.get("created_by") == "backfill" and existing.get("enrichment_status") == "pending":
+                created_ids.append(cid)
+            else:
+                # already existed: re-enrich if previously failed
+                status_ = existing.get("enrichment_status")
+                if status_ in (None, "failed", "pending"):
+                    data = await _enrich(existing.get("name") or "")
+                    for skip_field in ("status", "approved_by", "approved_at", "created_by", "created_at"):
+                        data.pop(skip_field, None)
+                    await _db.colleges.update_one({"_id": ObjectId(cid)}, {"$set": data})
+                    reenriched += 1
+                else:
+                    skipped += 1
+        except Exception as e:
+            failed.append(f"{nm}: {e}")
+
+    # 3) Also re-enrich any colleges in the DB whose status is still failed
+    cur = _db.colleges.find({"enrichment_status": {"$in": [None, "failed"]}})
+    async for c in cur:
+        try:
+            data = await _enrich(c.get("name") or "")
+            for skip_field in ("status", "approved_by", "approved_at", "created_by", "created_at"):
+                data.pop(skip_field, None)
+            await _db.colleges.update_one({"_id": c["_id"]}, {"$set": data})
+            reenriched += 1
+        except Exception:
+            pass
+
+    return {
+        "ok": True,
+        "distinct_names_in_users": len(distinct_names),
+        "newly_created":           len(created_ids),
+        "reenriched_existing":     reenriched,
+        "already_complete":        skipped,
+        "failed":                  failed[:10],
+    }

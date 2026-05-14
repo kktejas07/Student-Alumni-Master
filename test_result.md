@@ -10126,3 +10126,74 @@ agent_communication:
         extracted, which is a more specific and useful ranking.
         No action needed.
 
+
+
+backend:
+  - task: "Colleges Backfill + Enriched Catalog + Expanded Marketplace AI Tools"
+    implemented: true
+    working: true
+    file: "/app/backend/admin_colleges.py + /app/backend/admin_settings.py + /app/backend/admin_imports.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            Quick verification via /app/backend_test_review.py — 29/29 PASS.
+            Auth: admin-super1@persona.demo / TestPass@123 → 200.
+
+            1) POST /api/admin/colleges/backfill (idempotent) → 200 in 39s.
+               Response shape exactly matches spec:
+                 {ok:true, distinct_names_in_users:74, newly_created:0,
+                  reenriched_existing:4, already_complete:72, failed:[]}
+               All 5 keys present; `failed` is a list.
+
+            2) GET /api/admin/colleges/list?limit=200 → 200, 73 colleges:
+                 ≥70 colleges      ✅ (got 73)
+                 ≥60 description   ✅ (got 71)
+                 ≥40 logo_url      ✅ (got 47)
+                 ≥30 ranking       ✅ (got 37, mix of NIRF #x and Tier-1)
+                 ≥50 specialties   ✅ (got 57)
+               Sample of 5 confirmed quality enrichment.
+
+            3) GET /api/marketplace/tools → 200, available_count=62 (≥60 ✅).
+               AI-focused category breakdown all match spec:
+                 · [AI] 11 LLM providers: Claude, OpenAI, Gemini, Mistral,
+                   Cohere, Perplexity, Groq, Together, Fireworks,
+                   Hugging Face, Replicate ✅
+                 · [AI · Image] 3: Stability AI, DALL·E, fal.ai ✅
+                 · [AI · Video] 1: Runway ✅
+                 · [AI · Audio] 4: ElevenLabs, Whisper, AssemblyAI, Deepgram ✅
+                 · [AI · Language] 2: DeepL, Google Translate ✅
+                 · [AI · Vector DB] 4: Pinecone, Weaviate, Chroma, Qdrant ✅
+                 · [AI · Ops] 2: LangSmith, Helicone ✅
+                 · [AI · Agents] 1: Agent K (Studio) ✅
+                 Total AI-related tools = 28 across 8 sub-categories.
+
+            4) Auto-onboard on manual user add:
+               POST /api/admin/imports/manual with college="Test College CF633D"
+                → 200, action="added", category="alumni".
+               After 3.5s wait, GET /api/admin/colleges/list?q=Test%20College
+                → 1 match, status="pending" ✅. Auto-onboarding pipeline works.
+
+            All 29 assertions PASS. No regressions. Backend ready.
+
+agent_communication:
+    - agent: "testing"
+      message: |
+        Quick verification of the 4 review-request items — ALL PASS (29/29).
+
+        1. POST /admin/colleges/backfill — idempotent ✅. Response:
+           {ok:true, distinct_names_in_users:74, newly_created:0,
+            reenriched_existing:4, already_complete:72, failed:[]}
+           (DB already had backfill run earlier; second call only re-enriched 4
+           previously-failed rows.)
+        2. GET /admin/colleges/list?limit=200 — 73 colleges with strong
+           enrichment: 71 desc / 47 logos / 37 rankings / 57 specialties.
+        3. GET /marketplace/tools — available_count=62. All 8 AI sub-categories
+           populated with the exact tools listed in the spec.
+        4. Auto-onboard on /admin/imports/manual — new college appears in
+           /admin/colleges/list with status="pending" within 3.5s.
+
+        No code changes were made during this verification.
