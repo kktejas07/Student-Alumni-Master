@@ -10197,3 +10197,149 @@ agent_communication:
            /admin/colleges/list with status="pending" within 3.5s.
 
         No code changes were made during this verification.
+
+backend:
+  - task: "POST /api/marketplace/test — Test Connection endpoint (live provider check)"
+    implemented: true
+    working: false
+    file: "/app/backend/admin_settings.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: |
+            Verified via /app/backend_test.py against
+            https://hiring-mvvm.preview.emergentagent.com/api as
+            admin-super1@persona.demo / TestPass@123.
+            Result: 46 PASS / 2 FAIL out of 48 assertions.
+
+            ✅ 1a) {tool_id:"openai", credentials:{}} → 200, ok:false,
+                  msg="Missing: OpenAI API Key, Organization ID" (contains
+                  "Missing" + "OpenAI API Key" as the request expects).
+            ✅ 1d) {tool_id:"github", credentials:{api_key:"ghp_INVALID"}} → 200,
+                  ok:false, msg="GitHub: HTTP 401".
+            ✅ 1e) {tool_id:"doesnotexist", credentials:{}} → 404,
+                  detail="Tool not found".
+            ✅ 1f) {tool_id:"calendly", credentials:{api_key:"any"}} → 200,
+                  ok:true, msg="Credentials look valid (no live check for this
+                  provider)".
+
+            ❌ 1b) {tool_id:"openai", credentials:{api_key:"sk-INVALID-..."}}
+                  EXPECTED: ok:false, msg="OpenAI: HTTP 401"
+                  ACTUAL:   ok:false, msg="Missing: Organization ID"
+                  ROOT CAUSE (admin_settings.py:268-270):
+                      {"id": "openai", "auth_fields": [
+                          _f("api_key","OpenAI API Key","password","sk-xxxxxxxx",...),
+                          _f("organization_id","Organization ID","text","org-xxxx (optional)")
+                      ]}
+                  The "required" filter at line 574 marks a field optional only
+                  when placeholder STARTS WITH the string "optional" OR
+                  help text contains "optional". For organization_id the
+                  placeholder is "org-xxxx (optional)" (starts with "org-..."),
+                  so it is treated as REQUIRED. Hence the live HTTP-401 check
+                  is never reached when only api_key is provided.
+                  FIX: either (a) move "(optional)" to the help text so the
+                  helper picks it up, OR (b) change the placeholder to start
+                  with "optional", OR (c) introduce an explicit
+                  `"required": False` flag and base the filter on that.
+
+            ❌ 1c) {tool_id:"notion", credentials:{api_key:"secret_INVALID"}}
+                  EXPECTED: ok:false, msg="Notion: HTTP 401"
+                  ACTUAL:   ok:false, msg="Missing: Internal Integration Token"
+                  ROOT CAUSE (admin_settings.py:245-247):
+                      {"id": "notion", "auth_fields": [
+                          _f("integration_token","Internal Integration Token","password",...),
+                          _f("workspace_id","Workspace ID","text","optional")
+                      ]}
+                  Notion's credential key is `integration_token`, NOT `api_key`.
+                  The test sends `api_key` (as the request describes), so the
+                  missing-fields validator reports "Internal Integration Token"
+                  missing and never makes the live call.
+                  Compounding bug: even if the caller did send the correct key,
+                  `_live_test` reads `creds.get("api_key")` at line 483, so the
+                  token would still not be picked up for Notion.
+                  FIX: rename the Notion auth_field key from `integration_token`
+                  → `api_key` (consistent with how the live-test function
+                  expects it) OR teach `_live_test` to fall back to alternative
+                  keys per tool (e.g., `creds.get("integration_token") or
+                  creds.get("api_key")`).
+
+            BACKEND IS REACHABLE AND THE ENDPOINT IS WIRED CORRECTLY —
+            the two failures are CONFIG/SCHEMA issues, not infrastructure.
+
+  - task: "Existing super-admin endpoints regression check"
+    implemented: true
+    working: true
+    file: "/app/backend/admin_settings.py + portals.py + admin_colleges.py + admin_imports.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            All 6 regression checks PASS:
+            ✅ GET  /api/marketplace/tools         → 200, 62 tools / 19 categories
+            ✅ POST /api/admin/colleges/backfill   → 200 (called twice; idempotent)
+            ✅ GET  /api/admin/super/events        → 200 (timezone-bug-free)
+            ✅ GET  /api/admin/super/payments      → 200
+            ✅ GET  /api/admin/super/analytics     → 200
+            ✅ GET  /api/admin/colleges/list       → 200, returned a list of 74
+
+  - task: "User lifecycle bulk-style — approve / disable / restore"
+    implemented: true
+    working: true
+    file: "/app/backend/admin_imports.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            Verified end-to-end on 3 alumni users from
+            /api/admin/users/list?category=alumni&limit=5:
+              · Auto Onboard          <6a05213367ad080a7d98d65d>
+              · Test Bombay           <6a05194ea70d733478dcff84>
+              · Prametha Darapuneni   <6a050a8f9a11f28c2da97c6c>
+            For each user, the sequence approve → disable → restore returned
+            200 OK with body ok:true (3 endpoints × 3 users = 9 calls, all
+            green; 18 assertions PASS).
+
+agent_communication:
+    - agent: "testing"
+      message: |
+        Marketplace test-connection + regression + lifecycle pass — 46/48
+        assertions green. Two real provider-config bugs surfaced on
+        /api/marketplace/test:
+
+        1) OpenAI: `organization_id` field is wrongly marked required because
+           its placeholder is "org-xxxx (optional)" — the helper only treats a
+           field optional when the placeholder STARTS WITH "optional".
+           Sending just `api_key` returns "Missing: Organization ID" instead
+           of doing the live HTTP-401 probe the spec expects.
+
+        2) Notion: the auth_field key is `integration_token`, but
+           `_live_test` only reads `creds.get("api_key")`. So even when the
+           UI sends the field correctly, the live test cannot find the token.
+           When the spec/tester sends `api_key` (as the request says), the
+           missing-fields check fires first.
+
+        Fix suggestion (smallest change):
+          - For OpenAI, set the organization_id placeholder to "optional org-xxxx"
+            OR add `"required": False` and update the filter logic.
+          - For Notion, rename the auth_field key `integration_token`
+            → `api_key` (matching the live-test function), and update any
+            existing installed_tools rows OR change `_live_test` notion branch
+            to read `creds.get("integration_token") or creds.get("api_key")`.
+
+        All other endpoints in the review request are working (marketplace
+        tools count = 62/19, colleges backfill idempotent, super/events,
+        super/payments, super/analytics all 200, colleges list returns 74,
+        user lifecycle approve/disable/restore 200 with ok:true for all 3
+        alumni IDs).
+
+        No code edits were made.
+

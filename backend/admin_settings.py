@@ -465,6 +465,120 @@ async def uninstall_tool(tool_id: str, authorization: Optional[str] = Header(Non
     return {"ok": True, "removed": res.deleted_count}
 
 
+# ─── Test connection ──────────────────────────────────────────────
+class TestBody(BaseModel):
+    tool_id: str
+    credentials: Optional[Dict[str, str]] = None
+
+
+async def _live_test(tool_id: str, creds: Dict[str, str]) -> tuple[bool, str]:
+    """Run a lightweight provider-specific connectivity check.
+    Returns (ok, message). Falls back to format validation for tools
+    without an implemented live test."""
+    try:
+        import httpx as _h
+    except Exception:
+        return True, "Saved (format validation only — httpx unavailable)"
+
+    api_key = (creds.get("api_key") or "").strip()
+    timeout = 8.0
+    headers_json = {"Accept": "application/json"}
+
+    async def _get(url, **kwargs):
+        async with _h.AsyncClient(timeout=timeout) as c:
+            return await c.get(url, **kwargs)
+
+    try:
+        if tool_id in {"openai", "openai-images", "openai-whisper"}:
+            r = await _get("https://api.openai.com/v1/models", headers={"Authorization": f"Bearer {api_key}", **headers_json})
+            return (r.status_code == 200, "Verified — API key accepted" if r.status_code == 200 else f"OpenAI: HTTP {r.status_code}")
+        if tool_id == "claude":
+            r = await _get("https://api.anthropic.com/v1/models", headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", **headers_json})
+            return (r.status_code == 200, "Verified — Anthropic key accepted" if r.status_code == 200 else f"Anthropic: HTTP {r.status_code}")
+        if tool_id == "gemini":
+            r = await _get(f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}")
+            return (r.status_code == 200, "Verified — Gemini key accepted" if r.status_code == 200 else f"Gemini: HTTP {r.status_code}")
+        if tool_id == "mistral":
+            r = await _get("https://api.mistral.ai/v1/models", headers={"Authorization": f"Bearer {api_key}"})
+            return (r.status_code == 200, "Verified — Mistral key accepted" if r.status_code == 200 else f"Mistral: HTTP {r.status_code}")
+        if tool_id == "groq":
+            r = await _get("https://api.groq.com/openai/v1/models", headers={"Authorization": f"Bearer {api_key}"})
+            return (r.status_code == 200, "Verified — Groq key accepted" if r.status_code == 200 else f"Groq: HTTP {r.status_code}")
+        if tool_id == "cohere":
+            r = await _get("https://api.cohere.com/v1/models", headers={"Authorization": f"Bearer {api_key}"})
+            return (r.status_code == 200, "Verified — Cohere key accepted" if r.status_code == 200 else f"Cohere: HTTP {r.status_code}")
+        if tool_id == "perplexity":
+            # perplexity has no models endpoint; do a trivial completion
+            async with _h.AsyncClient(timeout=timeout) as c:
+                r = await c.post(
+                    "https://api.perplexity.ai/chat/completions",
+                    headers={"Authorization": f"Bearer {api_key}"},
+                    json={"model": "sonar", "messages": [{"role": "user", "content": "ping"}], "max_tokens": 1},
+                )
+            return (r.status_code in (200, 400), "Verified — Perplexity key accepted") if r.status_code in (200, 400) else (False, f"Perplexity: HTTP {r.status_code}")
+        if tool_id == "elevenlabs":
+            r = await _get("https://api.elevenlabs.io/v1/user", headers={"xi-api-key": api_key})
+            return (r.status_code == 200, "Verified — ElevenLabs key accepted" if r.status_code == 200 else f"ElevenLabs: HTTP {r.status_code}")
+        if tool_id == "huggingface":
+            r = await _get("https://huggingface.co/api/whoami-v2", headers={"Authorization": f"Bearer {api_key}"})
+            return (r.status_code == 200, "Verified — HF token accepted" if r.status_code == 200 else f"HF: HTTP {r.status_code}")
+        if tool_id == "replicate":
+            r = await _get("https://api.replicate.com/v1/account", headers={"Authorization": f"Bearer {api_key}"})
+            return (r.status_code == 200, "Verified — Replicate token accepted" if r.status_code == 200 else f"Replicate: HTTP {r.status_code}")
+        if tool_id == "deepgram":
+            r = await _get("https://api.deepgram.com/v1/projects", headers={"Authorization": f"Token {api_key}"})
+            return (r.status_code == 200, "Verified — Deepgram key accepted" if r.status_code == 200 else f"Deepgram: HTTP {r.status_code}")
+        if tool_id == "assemblyai":
+            r = await _get("https://api.assemblyai.com/v2/transcript?limit=1", headers={"Authorization": api_key})
+            return (r.status_code == 200, "Verified — AssemblyAI key accepted" if r.status_code == 200 else f"AssemblyAI: HTTP {r.status_code}")
+        if tool_id == "deepl":
+            r = await _get("https://api-free.deepl.com/v2/usage", headers={"Authorization": f"DeepL-Auth-Key {api_key}"})
+            return (r.status_code == 200, "Verified — DeepL key accepted" if r.status_code == 200 else f"DeepL: HTTP {r.status_code}")
+        if tool_id == "stripe":
+            r = await _get("https://api.stripe.com/v1/balance", auth=(creds.get("secret_key", api_key), ""))
+            return (r.status_code == 200, "Verified — Stripe key accepted" if r.status_code == 200 else f"Stripe: HTTP {r.status_code}")
+        if tool_id == "razorpay":
+            r = await _get("https://api.razorpay.com/v1/payments?count=1", auth=(creds.get("key_id", api_key), creds.get("key_secret", "")))
+            return (r.status_code == 200, "Verified — Razorpay keys accepted" if r.status_code == 200 else f"Razorpay: HTTP {r.status_code}")
+        if tool_id == "sendgrid":
+            r = await _get("https://api.sendgrid.com/v3/user/profile", headers={"Authorization": f"Bearer {api_key}"})
+            return (r.status_code == 200, "Verified — SendGrid key accepted" if r.status_code == 200 else f"SendGrid: HTTP {r.status_code}")
+        if tool_id == "github":
+            r = await _get("https://api.github.com/user", headers={"Authorization": f"Bearer {api_key}"})
+            return (r.status_code == 200, "Verified — GitHub token accepted" if r.status_code == 200 else f"GitHub: HTTP {r.status_code}")
+        if tool_id == "notion":
+            r = await _get("https://api.notion.com/v1/users/me", headers={"Authorization": f"Bearer {api_key}", "Notion-Version": "2022-06-28"})
+            return (r.status_code == 200, "Verified — Notion token accepted" if r.status_code == 200 else f"Notion: HTTP {r.status_code}")
+        if tool_id == "slack":
+            tok = creds.get("bot_token", api_key)
+            r = await _get("https://slack.com/api/auth.test", headers={"Authorization": f"Bearer {tok}"})
+            ok = r.status_code == 200 and (r.json() or {}).get("ok") is True
+            return (ok, "Verified — Slack token accepted" if ok else "Slack: token rejected")
+        # No live test implemented — accept after basic format checks
+        return True, "Credentials look valid (no live check for this provider)"
+    except Exception as e:
+        return False, f"Connection failed: {e}"
+
+
+@router.post("/marketplace/test")
+async def test_tool_connection(body: TestBody, authorization: Optional[str] = Header(None)):
+    """Live connectivity check for a provider's credentials BEFORE saving."""
+    user = await _resolve_user(authorization)
+    if not user:
+        raise HTTPException(401, "Not authenticated")
+    tool = next((t for t in MARKETPLACE if t["id"] == body.tool_id), None)
+    if not tool:
+        raise HTTPException(404, "Tool not found")
+    creds = body.credentials or {}
+    # Basic format checks first
+    required = [f for f in tool.get("auth_fields", []) if (f.get("help") or "").lower().find("optional") < 0 and not str(f.get("placeholder", "")).startswith("optional")]
+    missing = [f["label"] for f in required if not creds.get(f["key"])]
+    if missing:
+        return {"ok": False, "message": f"Missing: {', '.join(missing)}"}
+    ok, msg = await _live_test(body.tool_id, creds)
+    return {"ok": ok, "message": msg}
+
+
 # ═══════════════════════════════════════════════════════════════════
 # PROFILE
 # ═══════════════════════════════════════════════════════════════════

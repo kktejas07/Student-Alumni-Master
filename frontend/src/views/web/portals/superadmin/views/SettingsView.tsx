@@ -691,15 +691,30 @@ function ConnectModal({ tool, onClose, onConnected }: {
   const [creds, setCreds] = useState<Record<string, string>>({});
   const [showSecret, setShowSecret] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [test, setTest] = useState<{ ok: boolean; message: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (tool) { setCreds({}); setError(null); setShowSecret({}); }
+    if (tool) { setCreds({}); setError(null); setShowSecret({}); setTest(null); }
   }, [tool]);
 
   if (!tool) return null;
 
   const fields = tool.auth_fields || [];
+
+  const runTest = async () => {
+    setTesting(true); setTest(null); setError(null);
+    try {
+      const r = await request<any>('/marketplace/test', {
+        method: 'POST',
+        body: { tool_id: tool.id, credentials: creds },
+      });
+      setTest({ ok: !!r?.ok, message: r?.message || (r?.ok ? 'Verified' : 'Test failed') });
+    } catch (e: any) {
+      setTest({ ok: false, message: String(e?.message || e) });
+    } finally { setTesting(false); }
+  };
 
   const submit = async () => {
     setBusy(true); setError(null);
@@ -779,11 +794,23 @@ function ConnectModal({ tool, onClose, onConnected }: {
             </Pressable>
 
             {error && <Text style={s.errorText}>{error}</Text>}
+            {test && (
+              <View style={[s.testResult, test.ok ? s.testResultOk : s.testResultErr]}>
+                {test.ok ? <CheckCircle2 size={13} color="#22C55E" /> : <AlertTriangle size={13} color="#FCA5A5" />}
+                <Text style={[s.testResultText, test.ok ? { color: '#22C55E' } : { color: '#FCA5A5' }]}>
+                  {test.message}
+                </Text>
+              </View>
+            )}
           </ScrollView>
 
           <View style={s.modalFooter}>
             <Pressable onPress={onClose} style={s.secondaryBtn}>
               <Text style={s.secondaryBtnText}>Cancel</Text>
+            </Pressable>
+            <Pressable onPress={runTest} disabled={testing || busy} style={[s.secondaryBtn, (testing || busy) && { opacity: 0.6 }]}>
+              <Sparkles size={12} color={SAC.muted} />
+              <Text style={s.secondaryBtnText}>{testing ? 'Testing…' : 'Test connection'}</Text>
             </Pressable>
             <GradientButton onPress={submit} loading={busy}>
               <Plug size={13} color="#fff" />
@@ -1569,6 +1596,15 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   clearBtnText: { color: GRAD_TO, fontFamily: FONTS.bold, fontSize: 12 },
+
+  testResult: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10,
+    borderWidth: 1,
+  },
+  testResultOk:  { backgroundColor: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.30)' },
+  testResultErr: { backgroundColor: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.30)' },
+  testResultText: { fontFamily: FONTS.bold, fontSize: 12, flex: 1 },
 
   catPill: {
     paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999,

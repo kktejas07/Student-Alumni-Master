@@ -17,6 +17,7 @@ import {
   Users, GraduationCap, UserCheck, Sparkles, Briefcase, X, Check,
   Pencil, Trash2, ShieldCheck, ShieldOff, RefreshCw, AlertTriangle,
   Filter, Mail, Phone, MapPin, Building2, ExternalLink, Calendar, FileText,
+  SquareCheck, Square, CheckSquare,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
@@ -58,6 +59,9 @@ export function UserDirectoryView({
   const [profileId, setProfileId] = useState<string | null>(null);
   const [pendingOnly, setPendingOnly] = useState(false);
   const [bump, setBump] = useState(0);
+  /* Bulk selection */
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
   const { toast, flash } = useToast();
 
   const load = useCallback(async () => {
@@ -111,6 +115,34 @@ export function UserDirectoryView({
     } catch { flash('Failed to delete'); }
   };
 
+  /* ── Bulk actions ── */
+  const toggleSelect = (id: string) =>
+    setSelected((s) => ({ ...s, [id]: !s[id] }));
+  const selectedIds = useMemo(() => Object.keys(selected).filter((k) => selected[k]), [selected]);
+  const selectAll = () => {
+    const all: Record<string, boolean> = {};
+    (data?.items || []).forEach((u: any) => { all[u.id] = true; });
+    setSelected(all);
+  };
+  const clearSelection = () => setSelected({});
+  const bulkRun = async (kind: 'approve' | 'disable' | 'delete', label: string) => {
+    const ids = selectedIds;
+    if (ids.length === 0) return;
+    let ok = 0, fail = 0;
+    for (const id of ids) {
+      try {
+        if (kind === 'approve') await request(`/admin/users/profile/${id}/approve`, { method: 'POST' });
+        else if (kind === 'disable') await request(`/admin/users/profile/${id}/disable`, { method: 'POST' });
+        else await request(`/admin/users/profile/${id}`, { method: 'DELETE' });
+        ok++;
+      } catch { fail++; }
+    }
+    flash(`${label} · ${ok} done${fail > 0 ? ` · ${fail} failed` : ''}`);
+    clearSelection();
+    setSelectMode(false);
+    setBump((b) => b + 1);
+  };
+
   const Icon = meta.icon;
   const pendingCount = counts.pending_approval || 0;
 
@@ -152,6 +184,12 @@ export function UserDirectoryView({
             <TopTabs<Cat> tabs={directoryTabs as any} active={cat} onChange={setCat} />
           ) : null}
           <SearchField value={q} onChange={setQ} placeholder={`Search ${meta.label.toLowerCase()}s…`} width={300} />
+          <Pressable onPress={() => { setSelectMode(!selectMode); if (selectMode) clearSelection(); }} style={[st.toggleBtn, selectMode && { borderColor: GRAD.to, backgroundColor: 'rgba(245,158,11,0.10)' }]}>
+            <CheckSquare size={11} color={selectMode ? GRAD.to : SAC.muted} />
+            <Text style={[st.toggleBtnText, selectMode && { color: GRAD.to }]}>
+              {selectMode ? 'Cancel selection' : 'Select'}
+            </Text>
+          </Pressable>
           {pendingCount > 0 && (
             <Pressable onPress={() => setPendingOnly(!pendingOnly)} style={st.toggleBtn}>
               <Filter size={11} color={pendingOnly ? GRAD.to : SAC.muted} />
@@ -182,11 +220,14 @@ export function UserDirectoryView({
             <View key={u.id} style={st.gridCell}>
               <ProfileCardWithActions
                 user={u}
-                onView={(id) => setProfileId(id)}
+                onView={(id) => selectMode ? toggleSelect(id) : setProfileId(id)}
                 onApprove={approve}
                 onDisable={disable}
                 onRestore={restore}
                 onRemove={remove}
+                selectMode={selectMode}
+                selected={!!selected[u.id]}
+                onToggleSelect={() => toggleSelect(u.id)}
               />
             </View>
           ))}
@@ -201,6 +242,29 @@ export function UserDirectoryView({
 
       <ProfilePanel userId={profileId} onClose={() => setProfileId(null)} onSaved={() => { flash('Updated'); setBump((b) => b + 1); }} />
       <Toast text={toast.text} visible={toast.visible} />
+
+      {/* Floating bulk action bar */}
+      {selectMode && selectedIds.length > 0 && (
+        <Animated.View entering={FadeInDown.duration(200)} style={st.bulkBar}>
+          <Text style={st.bulkText}>{selectedIds.length} selected</Text>
+          <Pressable onPress={selectAll} style={st.bulkLinkBtn}>
+            <Text style={st.bulkLink}>Select all ({(data?.items || []).length})</Text>
+          </Pressable>
+          <View style={{ flex: 1 }} />
+          <SecondaryButton onPress={() => bulkRun('approve', 'Approved')}>
+            <ShieldCheck size={12} color={SAC.muted} /><Text style={st.secText}>Approve</Text>
+          </SecondaryButton>
+          <SecondaryButton onPress={() => bulkRun('disable', 'Disabled')}>
+            <ShieldOff size={12} color={SAC.muted} /><Text style={st.secText}>Disable</Text>
+          </SecondaryButton>
+          <SecondaryButton danger onPress={() => bulkRun('delete', 'Deleted')}>
+            <Trash2 size={12} color={'#FCA5A5'} /><Text style={[st.secText, { color: '#FCA5A5' }]}>Delete</Text>
+          </SecondaryButton>
+          <Pressable onPress={clearSelection} style={st.bulkClose}>
+            <X size={13} color="#fff" />
+          </Pressable>
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -208,19 +272,23 @@ export function UserDirectoryView({
 /* ────────────────────────────────────────────────────────────────────
  *  ProfileCard wrapper that adds the admin overflow menu (Disable / Restore)
  * ────────────────────────────────────────────────────────────────── */
-function ProfileCardWithActions({ user, onView, onApprove, onDisable, onRestore, onRemove }: {
+function ProfileCardWithActions({ user, onView, onApprove, onDisable, onRestore, onRemove, selectMode, selected, onToggleSelect }: {
   user: any;
   onView: (id: string) => void;
   onApprove: (id: string) => void;
   onDisable: (id: string) => void;
   onRestore: (id: string) => void;
   onRemove: (id: string) => void;
+  selectMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <View style={{ position: 'relative' }}>
-      <ProfileCard
+      <View style={selectMode && selected ? st.selectedHalo : null}>
+        <ProfileCard
         user={{
           id: user.id,
           firstName: user.first_name || (user.name || '').split(' ')[0] || '',
@@ -246,8 +314,19 @@ function ProfileCardWithActions({ user, onView, onApprove, onDisable, onRestore,
         onApprove={!user.approved && !user.disabled ? onApprove : undefined}
         onRemove={onRemove}
       />
+      </View>
 
-      {/* Floating menu trigger (top-right of the card) */}
+      {/* Selection checkbox (top-left, only in select mode) */}
+      {selectMode && (
+        <Pressable onPress={onToggleSelect} style={st.selectBox}>
+          {selected
+            ? <SquareCheck size={20} color={GRAD.to} fill="rgba(245,158,11,0.18)" />
+            : <Square size={20} color="rgba(255,255,255,0.6)" />}
+        </Pressable>
+      )}
+
+      {/* Floating menu trigger (top-right of the card) — hidden in select mode */}
+      {!selectMode && (
       <Pressable
         onPress={() => setMenuOpen((m) => !m)}
         style={st.menuTrigger}
@@ -255,8 +334,9 @@ function ProfileCardWithActions({ user, onView, onApprove, onDisable, onRestore,
       >
         <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14, lineHeight: 14 }}>⋯</Text>
       </Pressable>
+      )}
 
-      {menuOpen && (
+      {menuOpen && !selectMode && (
         <Animated.View entering={FadeInDown.duration(140)} style={st.menu}>
           {!user.approved && !user.disabled ? (
             <MenuItem icon={ShieldCheck} label="Approve" onPress={() => { setMenuOpen(false); onApprove(user.id); }} />
@@ -475,6 +555,41 @@ const st = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   menuLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+
+  /* selection */
+  selectBox: {
+    position: 'absolute', top: 14, left: 14, width: 28, height: 28, borderRadius: 8,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)', borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
+    zIndex: 12,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  selectedHalo: {
+    borderRadius: 22, borderWidth: 2, borderColor: GRAD.to,
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 0 4px rgba(251,146,60,0.18)' } as any) : {}),
+  },
+
+  /* floating bulk-action bar */
+  bulkBar: {
+    position: 'absolute', bottom: 18, left: 0, right: 0,
+    marginHorizontal: 'auto', maxWidth: 880,
+    flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+    paddingHorizontal: 18, paddingVertical: 12,
+    backgroundColor: '#1A0E04', borderColor: 'rgba(251,146,60,0.45)', borderWidth: 1,
+    borderRadius: 14,
+    ...(Platform.OS === 'web' ? ({
+      boxShadow: '0 18px 50px rgba(0,0,0,0.65), 0 0 0 4px rgba(251,146,60,0.10)',
+      position: 'sticky' as any, bottom: 18,
+    } as any) : {}),
+  },
+  bulkText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
+  bulkLinkBtn: { ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  bulkLink: { color: GRAD.to, fontFamily: FONTS.bold, fontSize: 12 },
+  bulkClose: {
+    width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
 
   /* modal */
   modalBg: {
