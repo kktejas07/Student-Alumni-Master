@@ -16,10 +16,10 @@ import {
   Sparkles, Briefcase, BookOpen, Users, TrendingUp, Calendar, MapPin,
   Star, ArrowRight, Check, ExternalLink,
 } from '../iconShims';
-import { SC, FONTS, useColors } from '../tokens';
+import { SC, FONTS, useColors, PALETTE, TYPO } from '../tokens';
 import { GRADS } from '../gradients';
 import { GRAD, IconBox, SectionLabel } from '../portalkit';
-import { Aurora, glassStyle } from '../glass';
+import { GlassCard, glassStyle } from '../glass';
 import { FadeInView, Stagger, PressScale, SparkIcon, ShimmerGradient, AnimatedRingFill } from '../motion';
 import { Av, Badge, KpiCard } from '../atoms';
 import * as MOCK from '../data';
@@ -490,23 +490,6 @@ export function DashboardView() {
 }
 
 const s = StyleSheet.create({
-  dashboardCanvas: {
-    // Aurora-lit canvas for the glass-morphism Dashboard. The radial
-    // gradients sit behind every card so the backdrop-blur on each
-    // glass surface refracts a hint of purple / lavender / magenta.
-    ...(Platform.OS === 'web' ? ({
-      backgroundImage:
-        'radial-gradient(900px 720px at 12% 6%,  rgba(167,139,250,0.55) 0%, rgba(167,139,250,0) 60%), ' +
-        'radial-gradient(900px 720px at 95% 10%, rgba(236, 72,153,0.40) 0%, rgba(236, 72,153,0) 65%), ' +
-        'radial-gradient(1100px 900px at 60% 110%, rgba(123, 61,191,0.58) 0%, rgba(123, 61,191,0) 70%)',
-      marginHorizontal: -32,
-      marginTop: -16,
-      paddingHorizontal: 32,
-      paddingTop: 16,
-      paddingBottom: 24,
-      borderRadius: 28,
-    } as any) : {}),
-  },
   nxFrame: {
     backgroundColor: NX.bg,
     borderRadius: 20,

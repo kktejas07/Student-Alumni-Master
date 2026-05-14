@@ -19,6 +19,8 @@ import { ToastProvider } from '@/src/motion/apple/toast';
 
 import { Sidebar, StudentNavId } from './Sidebar';
 import { TopBar } from './TopBar';
+import { AnimatedAurora, GridOverlay, RouteTransition } from './glass';
+import { PALETTE } from './tokens';
 import { DashboardView } from './views/DashboardView';
 import { CareerAIView } from './views/CareerAIView';
 import { EventsView } from './views/EventsView';
@@ -71,33 +73,40 @@ function PortalShell() {
   const padH = bp.isPhone ? SP.base : bp.atLeast('xl') ? SP.xxl : SP.lg;
 
   return (
-    <View style={[s.shell, { backgroundColor: theme.bg }]}>
+    <View style={[s.shell, { backgroundColor: PALETTE.bg0 }]}>
+      {/* Animated multicolor aurora behind everything */}
+      <AnimatedAurora intensity="normal" />
+      {/* 64px grid overlay (web only, radial-fade masked) */}
+      <GridOverlay />
+
       <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <TopBar scrolled={scrolled} />
         <ScrollView
-          style={{ flex: 1, backgroundColor: theme.bg }}
+          style={{ flex: 1 }}
           contentContainerStyle={{ paddingHorizontal: padH, paddingTop: SP.lg, paddingBottom: SP.giga }}
           showsVerticalScrollIndicator={false}
           onScroll={onScroll}
           scrollEventThrottle={16}
         >
           <EmbeddedShellContext.Provider value={true}>
-            {active === 'dashboard'       && <DashboardView />}
-            {active === 'career-ai'       && <CareerAIView />}
-            {active === 'internships'     && <InternshipsView />}
-            {active === 'my-applications' && <MyApplicationsView />}
-            {active === 'network'         && <NetworkView />}
-            {active === 'my-bookings'     && <MyBookingsView />}
-            {active === 'events'          && <EventsView />}
-            {active === 'my-workshops'    && <MyWorkshopsView />}
-            {active === 'courses'         && <CoursesPage />}
-            {active === 'financial'       && <FinancialPage />}
-            {active === 'deals'           && <DealsPage />}
-            {active === 'wallet'          && <WalletPage />}
-            {active === 'higher-ed'       && <HigherEducationPage />}
-            {active === 'rentals'         && <RentalsPage />}
-            {active === 'profile'         && <ProfileSettingsView />}
+            <RouteTransition deps={[active]}>
+              {active === 'dashboard'       && <DashboardView />}
+              {active === 'career-ai'       && <CareerAIView />}
+              {active === 'internships'     && <InternshipsView />}
+              {active === 'my-applications' && <MyApplicationsView />}
+              {active === 'network'         && <NetworkView />}
+              {active === 'my-bookings'     && <MyBookingsView />}
+              {active === 'events'          && <EventsView />}
+              {active === 'my-workshops'    && <MyWorkshopsView />}
+              {active === 'courses'         && <CoursesPage />}
+              {active === 'financial'       && <FinancialPage />}
+              {active === 'deals'           && <DealsPage />}
+              {active === 'wallet'          && <WalletPage />}
+              {active === 'higher-ed'       && <HigherEducationPage />}
+              {active === 'rentals'         && <RentalsPage />}
+              {active === 'profile'         && <ProfileSettingsView />}
+            </RouteTransition>
           </EmbeddedShellContext.Provider>
         </ScrollView>
       </View>
