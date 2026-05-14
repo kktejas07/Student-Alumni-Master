@@ -13,6 +13,337 @@ this session. Earlier history pre-dates this changelog.
 
 ---
 
+## [0.18.1] — 2026-06-?? — FinTax360 polish: Sidebar + TopBar + calmer aurora
+
+Sweeping refinements to the v0.18.0 theme based on the first design review.
+
+### Changed
+- 🌌 **Aurora calmed** — rose/pink orb dropped entirely; remaining
+  three orbs (violet · blue · teal) now render at 0.16 – 0.26 opacity
+  with 140 – 160 px blur so the canvas reads as a *plain* dark navy
+  with subtle color hints rather than a vivid wash.
+- 🪟 **Sidebar** — translucent navy `rgba(10,15,30,0.72)` +
+  `backdropFilter: blur(24px) saturate(160%)`. Active nav pill uses
+  the spec violet→violetD gradient with `violetGlow` boxShadow.
+- 🔝 **TopBar** — translucent navy + `backdropFilter: blur(20px)
+  saturate(160%)`. Greeting renders in **Outfit 700** (`18 px`,
+  `letterSpacing -0.5`). Subtitle in Plus Jakarta Sans 500. Search,
+  theme-toggle and notifications buttons reskinned to glass-soft.
+
+### Files
+- `frontend/src/views/web/portals/student/glass.tsx`
+- `frontend/src/views/web/portals/student/Sidebar.tsx`
+- `frontend/src/views/web/portals/student/TopBar.tsx`
+
+---
+
+## [0.18.0] — 2026-06-?? — FinTax360 Glass-Dark theme (Student portal foundation)
+
+A complete visual rebuild for the Student portal modelled on the
+FinTax360 design spec. Other portals (Alumni / College / Mentor /
+Super Admin) are intentionally left on their existing identities.
+
+### Added — Theme foundation
+- 🎨 New `PALETTE` in `tokens.ts` — deep navy canvas (`#0a0f1e →
+  #131938`), violet primary (`#8B5CF6` / `#7C3AED`), semantic
+  accents (`#3B82F6 blue`, `#10B981 teal`, `#F59E0B amber`,
+  `#f43f5e rose`), glass surfaces (`rgba(20,26,45,0.55)`), violet
+  glow (`0 10px 30px rgba(139,92,246,0.35)`).
+- 🔤 New typography stack — **Outfit** (display headings), **Plus
+  Jakarta Sans** (body), **JetBrains Mono** (KPI numerics) loaded
+  via `@expo-google-fonts/*` in `app/_layout.tsx`. Legacy DMSans
+  aliases kept for unmigrated views.
+- 🌌 `<AnimatedAurora>` — multi-orb canvas with CSS `@keyframes
+  orbA/B/C` 22 s – 32 s loops on web, static orbs on native.
+- 📐 `<GridOverlay>` — 64 px lattice with radial-fade mask (web only).
+
+### Added — Primitives in `glass.tsx`
+- `<GlassCard>` with fade+slide-in on mount (350 ms easeOut), hover
+  lift `translateY(-3px)` + violet glow, press scale 0.985×, 1 px
+  top white-alpha highlight.
+- `<GlassSoft>` · `<KpiTile>` (eyebrow + JetBrains-mono number +
+  delta + radial glow) · `<PillChip>` (semantic variants) ·
+  `<GradientButton>` (violet gradient pill + glow) ·
+  `<RouteTransition>` (250 ms fade + 6 px y-shift).
+- `glassStyle()` spread helper for legacy migration.
+
+### Added — Shell wiring
+- `StudentPortalRN.tsx` now renders `<AnimatedAurora>` +
+  `<GridOverlay>` + `<RouteTransition>` so every student view
+  inherits the new canvas and view-switch animation.
+
+### Dependencies
+- Frontend: `@expo-google-fonts/plus-jakarta-sans`,
+  `@expo-google-fonts/jetbrains-mono` (Outfit was already
+  installed).
+
+### Files
+- `frontend/app/_layout.tsx` — added 13 Google font hooks
+- `frontend/src/views/web/portals/student/tokens.ts` — full rebuild
+- `frontend/src/views/web/portals/student/glass.tsx` — full rebuild
+- `frontend/src/views/web/portals/student/StudentPortalRN.tsx`
+- `frontend/src/views/web/portals/student/views/DashboardView.tsx`
+
+---
+
+## [0.17.0] — 2026-06-?? — Glass-morphism Dark + Purple preview (Dashboard only)
+
+Initial glass-morphism preview applied just to the Dashboard so
+the team could review the look before committing to a full
+re-theme. Superseded by the FinTax360 rollout in 0.18.0 but the
+primitives live on as `glassStyle()` and `<GlassSurface>` aliases.
+
+### Added
+- `glass.tsx` (first version) with `<Aurora>` and `<GlassSurface>`.
+- DashboardView restyled with translucent purple-tinted cards and a
+  triple radial-gradient aurora behind the card grid.
+- Top white-alpha highlights, blurred backdrops, and refined
+  hairline borders on cards.
+
+---
+
+## [0.16.0] — 2026-06-?? — Agent K · Scheduled (cron) automations
+
+Agent K can now run on a recurring schedule. From any portal's
+prescription card, tap the calendar icon to set a cadence (daily,
+weekly, hourly, or full crontab) and Agent K will re-execute the
+canned prompt through your connected AI on every tick.
+
+### Added — Backend `agent_k_scheduled.py`
+- **APScheduler** AsyncIOScheduler boots with FastAPI; one 60-second
+  tick polls `agent_k_schedules` for due rows and dispatches each
+  through the existing planner + executor pipeline.
+- Mongo collection `agent_k_schedules` with indexes on
+  `(status, next_run_at)` and `(user_id, created_at)`.
+- Each scheduled run inserts an `agent_runs` row tagged with
+  `schedule_id` + `trigger="scheduled"` so the history view shows
+  automated and manual runs side by side.
+- **BYO-AI gate** is enforced per tick — admins bypass, all other
+  users skip with `last_status="no_ai_provider"` if they haven't
+  connected an AI tool in Profile → Tools & Integrations.
+- Plans containing **spend / submit / communicate** steps pause at
+  approval (no auto-execute) — they appear in `/agent-k` for the
+  user to confirm.
+- A scheduling lock prevents overlapping ticks, and the tick reserves
+  due rows by bumping `next_run_at` so a slow run never double-fires.
+
+### Added — REST endpoints (all `/api`)
+- `GET    /agent-k/scheduled`              — list user's schedules
+- `POST   /agent-k/scheduled`              — create (max 25/user)
+- `GET    /agent-k/scheduled/{id}`         — fetch
+- `PATCH  /agent-k/scheduled/{id}`         — edit / pause / resume
+- `DELETE /agent-k/scheduled/{id}`         — delete
+- `POST   /agent-k/scheduled/{id}/run-now` — fire immediately
+- `GET    /agent-k/scheduled/{id}/runs`    — past runs for this schedule
+- `GET    /agent-k/scheduled-meta/cadences` — cadence picker presets
+
+### Added — Frontend `/agent-k`
+- New "Schedule" calendar button next to every prescription card's
+  CTA; tapping it opens a **`<ScheduleEditor />`** modal:
+  - Title (auto-filled from card)
+  - Cadence chips: Daily · Weekly · Hourly · Advanced (crontab)
+  - Hour/minute steppers (daily/weekly), N-hours field (hourly),
+    crontab textbox (advanced) with help text
+  - Timezone field (auto-detected from `Intl.DateTimeFormat`)
+- New **"Scheduled Automations"** section on `/agent-k` rendering
+  each schedule with its cadence pill, next-run timestamp, last
+  status, and three icon buttons: **Run now**, **Pause / Resume**,
+  **Delete**.
+
+### Dependencies
+- Backend: `APScheduler==3.10.4`, `croniter==2.0.5`, `pytz==2026.2`,
+  `tzlocal==5.3.1` (added to `requirements.txt`).
+
+### Deployment notes
+- The scheduler runs **in-process** with FastAPI. For Dokploy single-
+  container deployments this is fine. For multi-replica setups, only
+  one replica should be a scheduler leader — see DOKPLOY §10.
+
+---
+
+## [0.15.0] — 2026-06-?? — Super Admin Settings drill-ins (Signature + Role-detail)
+
+The Super Admin Settings screen gains two long-pending drill-ins so admins
+can manage their email signature **and** explore any role's full
+permission matrix + assignees without leaving the page.
+
+### Added — Email signature editor (Profile tab)
+- New **`signature`** field on the user document, returned by
+  `GET /api/admin/profile` (with a sensible auto-generated default from
+  name / title / org / email when the user hasn't customised one).
+- `PATCH /api/admin/profile` now accepts `signature` (capped at 1500 chars).
+- Frontend: new **`<SignatureCard />`** in the Profile tab showing a live
+  preview; tap **"Edit signature"** to open a modal with:
+  - 3 template chips (Professional / Minimal / Friendly) that prefill the textarea
+  - Multi-line editor with `{{name}} / {{title}} / {{org}} / {{email}} / {{phone}}` placeholders
+  - Live preview pane below the editor
+  - Character counter (`xxx/1500`)
+
+### Added — Role detail drill-in (Roles tab)
+- New **`GET /api/admin/roles/{role_id}`** endpoint — accepts both
+  Mongo `_id` AND short `key`. Returns:
+  - role document (name, description, type, timestamps)
+  - **`permission_groups`** — full catalog merged with `granted: bool`
+    per permission for fast UI rendering
+  - **`users`** — up to 50 admins currently assigned to this role
+    (`name`, `email`, `last_login`, `avatar_url`)
+  - `user_count`
+- Frontend: each role card in the grid now exposes a **"View"** button
+  alongside Edit / Delete. Tapping View slides in **`<RoleDetailPanel />`**
+  in-place (no modal pop-up), showing:
+  - Back chip + role badge + title + description
+  - Three stat tiles (Users assigned · Permissions granted · Type)
+  - Grouped permission matrix (granted = filled checkbox + colour-tinted)
+  - List of users with this role (avatar, name, email, last-login)
+  - **"Edit role"** CTA that hands off to the existing RoleModal
+
+### Files
+```
+~ backend/admin_settings.py                                   +85 LOC
+~ frontend/src/views/web/portals/superadmin/views/SettingsView.tsx +320 LOC
+~ frontend/package.json                                       0.14.0 → 0.15.0
+```
+
+---
+
+## [0.14.0] — 2026-06-?? — Agent K · BYO-AI + Prescription Cards + single view
+
+Agent K becomes a true personalised co-pilot: **users connect their own AI
+provider** (OpenAI / Anthropic / Gemini / Mistral / Cohere / Perplexity /
+Groq), then **Agent K turns each dashboard recommendation into a 1-click
+"run this for me" action**. The 3-route, free-form-templates UI is
+consolidated to a **single portal-aware view**.
+
+### Added — BYO-AI gating
+- New endpoint **`GET /api/agent-k/installed-providers`** — returns the
+  AI tools the current user has marked `connected` in `installed_tools`.
+  Response includes `can_use_agent_k` (`true` for admins always; for
+  everyone else only when ≥1 AI provider is connected).
+- `POST /agent-k/run` now calls **`_assert_ai_provider_or_412`** before
+  planning. Non-admin users without a connected provider receive
+  **HTTP 412 Precondition Required** with:
+  ```json
+  {
+    "setup_required": "ai_provider",
+    "deeplink":       "/marketplace?category=AI",
+    "message":        "Connect an AI provider …"
+  }
+  ```
+  Frontend intercepts the 412 and routes to the Marketplace.
+
+### Added — Prescription Cards (`GET /api/agent-k/prescriptions?portal=…`)
+Portal-aware action catalog derived from the active dashboard — **no
+new AI calls, pure data shaping**. Five tailored generators in
+`backend/agent_k.py`:
+
+| Portal | Sample cards |
+|---|---|
+| 🟣 **student** | *Draft application for top match* · *Find 3 courses for skill gap* · *Book mentor + draft intro* · *Bring profile to 100%* |
+| 🔵 **alumni**  | *Refer top student to my company* · *Reply to pending mentorship requests* · *Volunteer for upcoming panel* |
+| 🌊 **mentor**  | *Generate prep notes for today's sessions* · *Draft follow-up feedback* · *Run pricing review* |
+| 🟦 **college** | *Find departments lagging on placements* · *Invite 5 recruiters + draft email* · *Plan alumni placement-prep panel* |
+| 🟠 **admin**   | *Triage pending approvals queue* · *Generate weekly exec summary* · *Scan 24h anomalies* |
+
+Each card returns `{id, icon, tint, kicker, title, subtitle, cta, prompt, tools}`.
+
+### Changed — Single Agent K view
+- **`frontend/app/agent-k.tsx`** completely rewritten (781 → 425 LOC).
+  Three states: (1) loading → spinner, (2) **no AI connected** →
+  hero "Bring your own AI" empty state with chips of supported
+  providers + CTA to `/marketplace?category=AI`, (3) **ready** →
+  prescription cards grid (responsive 1/2/3 cols) + Recent Runs list.
+- View is **portal-aware** — pulls the current user's role, picks the
+  matching `PORTAL_ACCENTS` gradient (purple/blue/teal/indigo/amber),
+  and fetches `/agent-k/prescriptions?portal=…` accordingly.
+- **`frontend/app/agent-k/runs.tsx`** → reduced to a `router.replace('/agent-k')`
+  redirect. Run history now lives below the prescription cards on the
+  unified page.
+
+### Files
+```
+~ backend/agent_k.py                   +252 LOC (gate + prescriptions + helpers)
+~ frontend/app/agent-k.tsx             full rewrite, single unified view
+~ frontend/app/agent-k/runs.tsx        legacy → redirect
+~ frontend/package.json                0.13.0 → 0.14.0
+```
+
+---
+
+## [0.13.0] — 2026-06-?? — SA Events CRUD + multi-portal brand identities
+
+### Added — Super Admin Events CRUD
+- **`POST /api/admin/super/events`** — create an event from the Super Admin
+  UI. Accepts `title`, `start_date` (ISO), `mode`, `venue`, `category`,
+  `capacity`, `price` (null/0 → free), `description`. Sensible defaults
+  when fields are blank.
+- **`PATCH /api/admin/super/events/{event_id}`** — partial update. Resolves
+  the event by Mongo `_id` first, then falls back to the short `id` used
+  by the GET list endpoint.
+- **`DELETE /api/admin/super/events/{event_id}`** — idempotent delete;
+  returns `{ok: true, deleted: 0|1}`.
+- `EventPayload` Pydantic model + `_parse_event_dt` + `_serialize_event`
+  helpers in `backend/portals.py`.
+
+### Added — Event modal in Super Admin UI
+- Rewrote `superadmin/views/EventsView.tsx` (~470 LOC) with a
+  full-featured `<EventModal />`:
+  - Validated form (title required), 7 fields, segmented controls for
+    Mode + Category, error banner, save spinner.
+  - **"New event"** header CTA → opens modal in create mode.
+  - **"Manage event"** per-card CTA → opens modal in edit mode with a
+    Delete button.
+  - **"Review & approve"** on pending events → PATCH-bumps `start_date`
+    one day forward so the event enters the 30-day "live" window,
+    then refreshes the grid.
+  - `useToast` feedback after every action.
+
+### Added — Multi-portal brand identities
+- `src/theme/nexus.ts` `PORTAL_ACCENTS` flipped to give each portal a
+  distinct brand:
+  - 🟣 **Student** — Brand purple `#7B3DBF → #5F259F` ("AI / creative")
+  - 🔵 **Alumni** — LinkedIn blue `#0A66C2 → #004182` ("professional network")
+  - 🟦 **College** — Indigo `#4F46E5 → #3730A3` ("academic prestige")
+  - 🌊 **Mentor** — Teal `#0D9488` family ("guidance / calm", unchanged)
+  - 🟠 **Super Admin** — Amber (unchanged)
+- Identity cascades automatically through every view that reads
+  `SC.primary` / `CC.primary` / `MC.teal` — zero per-view code edits.
+- New helper files exposing a `GRAD` constant for any view that wants
+  to upgrade a solid CTA to a `LinearGradient`:
+  - `frontend/src/views/web/portals/alumni/brand.ts`
+  - `frontend/src/views/web/portals/college/brand.ts`
+  - `frontend/src/views/web/portals/mentor/brand.ts`
+
+### Changed — Embedded shell screen sweep
+- `frontend/app/financial.tsx` — "AI Loan Optimiser" CTA (was solid
+  `#3B82F6`) now uses purple gradient + a proper `LinearGradient` import.
+- All other blue/cyan accents across `app/wallet.tsx`, `courses.tsx`,
+  `career-ai.tsx`, `internships.tsx`, `events.tsx`, `deals.tsx`,
+  `network.tsx` were audited and intentionally **kept** — they are
+  semantic / categorical / brand-of-platform colours (tech section,
+  hackathon tag, LinkedIn brand, loans category, session kind) that
+  must stay distinct so users can scan and distinguish.
+
+### Verified
+- Backend reload picked up the new routes cleanly; OpenAPI catalog
+  now exposes `events` POST/PATCH/DELETE.
+- "Generate Brief" / "View Full Roadmap" / "Connect" / "RSVP" / "Apply"
+  / "AI Loan Optimiser" CTAs all confirmed rendering with the new
+  brand gradients (screenshots in test_result.md).
+
+### Files
+```
+~ backend/portals.py                                            CRUD routes
+~ frontend/src/views/web/portals/superadmin/views/EventsView.tsx full rewrite
+~ frontend/src/theme/nexus.ts                                   PORTAL_ACCENTS
++ frontend/src/views/web/portals/alumni/brand.ts                LinkedIn blue
++ frontend/src/views/web/portals/college/brand.ts               Indigo
++ frontend/src/views/web/portals/mentor/brand.ts                Teal
+~ frontend/app/financial.tsx                                    optimizeBtn → gradient
+~ frontend/package.json                                         0.12.0 → 0.13.0
+```
+
+---
+
 ## [0.12.0] — 2026-06-?? — Dokploy / Docker deployment readiness
 
 Production-ready container stack for one-click VPS deployment via

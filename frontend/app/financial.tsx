@@ -4,6 +4,7 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, TextInput, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import FeaturePageShell from '@/src/views/web/FeaturePageShell';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { FAB } from '@/src/views/web/md3';
@@ -417,8 +418,14 @@ export default function FinancialPage() {
               <Text style={[s.emiValue, { color: '#F59E0B' }]}>₹5,42,960</Text>
             </View>
             <Pressable style={s.optimizeBtn}>
-              <Icon name="auto-fix" size={12} color="#fff" />
-              <Text style={s.optimizeText}>AI Loan Optimiser</Text>
+              <LinearGradient
+                colors={['#7B3DBF', '#5F259F']}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                style={s.optimizeBtnGrad}
+              >
+                <Icon name="auto-fix" size={12} color="#fff" />
+                <Text style={s.optimizeText}>AI Loan Optimiser</Text>
+              </LinearGradient>
             </Pressable>
           </View>
         </View>
@@ -560,7 +567,8 @@ const s = StyleSheet.create({
   emiResult: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 14, marginTop: 8, paddingTop: 10, borderTopColor: 'rgba(255,255,255,0.07)', borderTopWidth: 1 },
   emiLabel: { color: C.text3, fontFamily: 'DMSans_800ExtraBold', fontSize: 9.5, letterSpacing: 1 },
   emiValue: { color: '#93C5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 18, marginTop: 2 },
-  optimizeBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 999, backgroundColor: '#3B82F6', ...({ cursor: 'pointer' } as any) },
+  optimizeBtn: { borderRadius: 999, overflow: 'hidden', ...({ cursor: 'pointer' } as any) },
+  optimizeBtnGrad: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 999 },
   optimizeText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 11 },
 
   ctaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },

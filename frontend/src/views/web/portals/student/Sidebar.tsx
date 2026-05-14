@@ -29,6 +29,7 @@ import { useTheme } from '@/src/theme/ThemeContext';
 import { useBreakpoint } from '@/src/theme/breakpoints';
 import { SP, RADII, FONT_FAMILY } from '@/src/theme/apple';
 import { GRADS } from './gradients';
+import { SC, PALETTE, TYPO } from './tokens';
 import { STUDENT } from './data';
 import { Av } from './atoms';
 import { FadeInView, PressScale, SparkIcon, PulseDot } from './motion';
@@ -84,20 +85,28 @@ export function Sidebar({
   // (Phase 3 will replace this with a bottom-tab bar.)
   if (bp.isPhone) return null;
 
-  // Token resolution — light vs dark
+  // Token resolution — FinTax360 glass-dark theme overrides.
+  // The sidebar is a translucent navy rail with a violet accent.
   const C = {
-    bg: theme.bgElevated,
-    border: theme.hairline,
-    text: theme.text,
-    textSec: theme.textSec,
-    textTer: theme.textTer,
-    cardBg: isDark ? theme.bgInset : 'rgba(0,0,0,0.03)',
-    accent: theme.primary,
-    danger: theme.red,
+    bg:      'rgba(10,15,30,0.72)',       // translucent navy (spec value)
+    border:  PALETTE.glassBorder,
+    text:    PALETTE.text,
+    textSec: PALETTE.muted,
+    textTer: PALETTE.dim,
+    cardBg:  PALETTE.glassSoft,
+    accent:  PALETTE.violet,
+    danger:  PALETTE.rose,
   };
 
+  // Web-only frosted-glass effect for the rail.
+  const railGlass = Platform.OS === 'web' ? ({
+    backdropFilter: 'blur(24px) saturate(160%)',
+    WebkitBackdropFilter: 'blur(24px) saturate(160%)',
+    boxShadow: '4px 0 40px rgba(2,6,23,0.40)',
+  } as any) : {};
+
   return (
-    <View style={[s.aside, { width: railWidth, backgroundColor: C.bg, borderRightColor: C.border }]}>
+    <View style={[s.aside, { width: railWidth, backgroundColor: C.bg, borderRightColor: C.border }, railGlass]}>
       {/* Brand */}
       <FadeInView delay={20}>
         <View style={[s.brand, collapsed && { justifyContent: 'center' }]}>
@@ -193,9 +202,10 @@ export function Sidebar({
               >
                 {isActive ? (
                   <LinearGradient
-                    colors={GRADS.brand as any}
+                    colors={[PALETTE.violet, PALETTE.violetD] as any}
                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                    style={[s.navItem, s.navItemActive, collapsed && { justifyContent: 'center', paddingHorizontal: 0 }]}
+                    style={[s.navItem, s.navItemActive, collapsed && { justifyContent: 'center', paddingHorizontal: 0 },
+                            Platform.OS === 'web' ? ({ boxShadow: PALETTE.violetGlow } as any) : {}]}
                   >
                     {spark ? <SparkIcon Icon={Icon} size={16} color="#fff" /> : <Icon size={16} color="#fff" />}
                     {!collapsed && <Text style={[s.navLabel, s.navLabelActive]} numberOfLines={1}>{label}</Text>}
@@ -239,9 +249,9 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
   },
   brandLogo: { width: 32, height: 32, borderRadius: RADII.sm, alignItems: 'center', justifyContent: 'center' },
-  brandLogoText: { color: '#fff', fontFamily: FONT_FAMILY, fontWeight: '800', fontSize: 12, letterSpacing: 0.5 },
-  brandTitle: { fontFamily: FONT_FAMILY, fontWeight: '700', fontSize: 13, letterSpacing: -0.2 },
-  brandSub: { fontFamily: FONT_FAMILY, fontWeight: '500', fontSize: 10.5 },
+  brandLogoText: { color: '#fff', fontFamily: TYPO.display800, fontSize: 12, letterSpacing: 0.5 },
+  brandTitle: { fontFamily: TYPO.display700, fontSize: 14, letterSpacing: -0.3 },
+  brandSub: { fontFamily: TYPO.body500, fontSize: 10.5 },
 
   profileCard: { paddingHorizontal: SP.xs, paddingVertical: SP.sm, marginBottom: SP.md },
   statusDotWrap: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
@@ -268,7 +278,7 @@ const s = StyleSheet.create({
       boxShadow: '0 6px 18px rgba(95,37,159,0.45), inset 0 1px 0 rgba(255,255,255,0.18)',
     } as any) : { shadowColor: '#5F259F', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } as any }),
   },
-  navLabel: { fontFamily: FONT_FAMILY, fontWeight: '600', fontSize: 13, flex: 1 },
+  navLabel: { fontFamily: TYPO.body600, fontSize: 13, flex: 1 },
   navLabelActive: { color: '#fff' },
   activeDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#fff', opacity: 0.9 },
 

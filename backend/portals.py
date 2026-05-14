@@ -917,8 +917,10 @@ async def super_alumni(limit: int = 60):
 
 @router.get("/admin/super/events")
 async def super_events():
-    """All platform events with registration counts."""
-    cur = _db.events.find().limit(60)
+    """All platform events with registration counts (newest first)."""
+    # Sort newest-first so freshly created events appear at the top of the
+    # admin grid. Raised to 200 to accommodate seeded + user-created events.
+    cur = _db.events.find().sort("created_at", -1).limit(200)
     palette = ["#A78BFA", "#22C55E", "#FCD34D", "#3B82F6", "#22D3EE", "#EC4899", "#F59E0B", "#FB923C"]
     now = datetime.now(timezone.utc)
     out = []
@@ -947,6 +949,125 @@ async def super_events():
         })
         i += 1
     return {"items": out}
+
+
+class EventPayload(BaseModel):
+    title: str
+    start_date: Optional[str] = None      # ISO 8601
+    mode: Optional[str] = "Online"        # Online | Offline | Hybrid
+    venue: Optional[str] = "Online"
+    category: Optional[str] = "Workshop"
+    capacity: Optional[int] = 200
+    price: Optional[float] = None          # null/0 → free
+    description: Optional[str] = None
+
+
+def _parse_event_dt(s: Optional[str]) -> Optional[datetime]:
+    if not s:
+        return None
+    try:
+        # accept "2026-07-15T10:00" or full ISO
+        if len(s) == 16 and "T" in s:
+            s = s + ":00"
+        dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        return None
+
+
+def _serialize_event(ev: Dict[str, Any]) -> Dict[str, Any]:
+    sd = ev.get("start_date")
+    if isinstance(sd, datetime) and sd.tzinfo is None:
+        sd = sd.replace(tzinfo=timezone.utc)
+    return {
+        "id": _short_id(ev.get("_id")),
+        "_id": str(ev.get("_id")),
+        "title": ev.get("title", "Event"),
+        "start_date": sd.isoformat() if isinstance(sd, datetime) else None,
+        "mode": ev.get("mode") or "Online",
+        "venue": ev.get("venue") or "Online",
+        "category": ev.get("category", "Workshop"),
+        "capacity": ev.get("capacity") or 1000,
+        "price": ev.get("price"),
+        "description": ev.get("description"),
+    }
+
+
+@router.post("/admin/super/events")
+async def create_super_event(payload: EventPayload):
+    """Create a new event (Super Admin). Empty fields fall back to sensible defaults."""
+    doc: Dict[str, Any] = {
+        "title": payload.title.strip() or "Untitled event",
+        "mode": payload.mode or "Online",
+        "venue": payload.venue or "Online",
+        "category": payload.category or "Workshop",
+        "capacity": int(payload.capacity or 200),
+        "price": float(payload.price) if payload.price else None,
+        "description": payload.description or "",
+        "start_date": _parse_event_dt(payload.start_date) or (datetime.now(timezone.utc) + timedelta(days=14)),
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
+    }
+    res = await _db.events.insert_one(doc)
+    doc["_id"] = res.inserted_id
+    return {"ok": True, "event": _serialize_event(doc)}
+
+
+@router.patch("/admin/super/events/{event_id}")
+async def update_super_event(event_id: str, payload: EventPayload):
+    """Update an existing event by Mongo `_id` or short `id`."""
+    # try ObjectId first, then fall back to short-id match
+    ev = None
+    try:
+        ev = await _db.events.find_one({"_id": ObjectId(event_id)})
+    except Exception:
+        ev = None
+    if not ev:
+        # short-id lookup
+        async for cand in _db.events.find().limit(200):
+            if _short_id(cand.get("_id")) == event_id:
+                ev = cand
+                break
+    if not ev:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    updates: Dict[str, Any] = {"updated_at": datetime.now(timezone.utc)}
+    if payload.title is not None:        updates["title"]       = payload.title.strip() or ev.get("title", "Event")
+    if payload.mode is not None:         updates["mode"]        = payload.mode
+    if payload.venue is not None:        updates["venue"]       = payload.venue
+    if payload.category is not None:     updates["category"]    = payload.category
+    if payload.capacity is not None:     updates["capacity"]    = int(payload.capacity)
+    if payload.description is not None:  updates["description"] = payload.description
+    # price: explicit zero/null both mean "free"
+    if payload.price is not None:
+        updates["price"] = float(payload.price) if payload.price else None
+    sd = _parse_event_dt(payload.start_date)
+    if sd:
+        updates["start_date"] = sd
+
+    await _db.events.update_one({"_id": ev["_id"]}, {"$set": updates})
+    ev.update(updates)
+    return {"ok": True, "event": _serialize_event(ev)}
+
+
+@router.delete("/admin/super/events/{event_id}")
+async def delete_super_event(event_id: str):
+    """Delete an event. Idempotent — returns ok even if already deleted."""
+    deleted = 0
+    try:
+        r = await _db.events.delete_one({"_id": ObjectId(event_id)})
+        deleted = r.deleted_count
+    except Exception:
+        pass
+    if not deleted:
+        async for cand in _db.events.find().limit(200):
+            if _short_id(cand.get("_id")) == event_id:
+                r = await _db.events.delete_one({"_id": cand["_id"]})
+                deleted = r.deleted_count
+                break
+    return {"ok": True, "deleted": int(deleted)}
 
 
 @router.get("/admin/super/payments")

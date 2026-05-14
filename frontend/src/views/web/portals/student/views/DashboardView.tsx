@@ -16,8 +16,10 @@ import {
   Sparkles, Briefcase, BookOpen, Users, TrendingUp, Calendar, MapPin,
   Star, ArrowRight, Check, ExternalLink,
 } from '../iconShims';
-import { SC, FONTS, useColors } from '../tokens';
+import { SC, FONTS, useColors, PALETTE, TYPO } from '../tokens';
 import { GRADS } from '../gradients';
+import { GRAD, IconBox, SectionLabel } from '../portalkit';
+import { GlassCard, glassStyle } from '../glass';
 import { FadeInView, Stagger, PressScale, SparkIcon, ShimmerGradient, AnimatedRingFill } from '../motion';
 import { Av, Badge, KpiCard } from '../atoms';
 import * as MOCK from '../data';
@@ -92,12 +94,12 @@ export function DashboardView() {
     {
       title: 'Application Submitted', sub: 'Stripe • Software Engineer Intern',
       amount: '+1', amountTone: 'positive', time: '12m ago',
-      icon: 'briefcase-check-outline', tint: NX.blue, bgTint: 'rgba(59,130,246,0.15)',
+      icon: 'briefcase-check-outline', tint: '#7B3DBF', bgTint: 'rgba(123,61,191,0.16)',
     },
     {
       title: 'Mentor Session Booked', sub: 'Aarav Sharma • Wed 4:00 PM',
       amount: null, amountTone: null, time: '1h ago',
-      icon: 'account-tie-voice-outline', tint: NX.purple, bgTint: 'rgba(168,85,247,0.15)',
+      icon: 'account-tie-voice-outline', tint: '#A78BFA', bgTint: 'rgba(167,139,250,0.18)',
     },
   ];
 
@@ -113,7 +115,7 @@ export function DashboardView() {
       label: k?.applications?.label || 'Applications Sent',
       value: String(k?.applications?.value ?? 18),
       numeric: Number(k?.applications?.value ?? 18),
-      icon: 'briefcase-outline', accent: NX.blue,
+      icon: 'briefcase-outline', accent: '#7B3DBF',
       trend: k?.applications?.trend || { value: '12.5%', positive: true },
       spark: (k?.applications?.spark as number[]) || FALLBACK_SPARK_APPS,
     },
@@ -122,7 +124,7 @@ export function DashboardView() {
       label: k?.views?.label || 'Profile Views',
       value: String(k?.views?.value ?? 234),
       numeric: Number(k?.views?.value ?? 234),
-      icon: 'eye-outline', accent: NX.purple,
+      icon: 'eye-outline', accent: '#A78BFA',
       trend: k?.views?.trend || { value: '8.2%', positive: true },
       spark: (k?.views?.spark as number[]) || FALLBACK_SPARK_VIEWS,
     },
@@ -132,7 +134,7 @@ export function DashboardView() {
       value: `${k?.match?.value ?? 81}%`,
       numeric: Number(k?.match?.value ?? 81),
       suffix: k?.match?.suffix || '%',
-      icon: 'lightning-bolt', accent: NX.cyan,
+      icon: 'lightning-bolt', accent: '#C4B5FD',
       trend: k?.match?.trend || { value: '4.1%', positive: true },
       spark: (k?.match?.spark as number[]) || FALLBACK_SPARK_MATCH,
     },
@@ -140,7 +142,7 @@ export function DashboardView() {
       kind: 'ring',
       label: k?.completion?.label || 'Profile Completion',
       value: 'On Track',
-      icon: 'account-check-outline', accent: NX.blue,
+      icon: 'account-check-outline', accent: '#7B3DBF',
       ringPct: Number(
         k?.completion?.ringPct ??
         (typeof PROFILE_COMPLETION?.score === 'number' ? PROFILE_COMPLETION.score : 78),
@@ -150,10 +152,36 @@ export function DashboardView() {
   ];
 
   return (
-    <View style={{ gap: 16 }}>
+    <View
+      style={[
+        { gap: 16, position: 'relative' },
+        Platform.OS === 'web' ? ({
+          // Aurora baked into the wrapper background so it's never
+          // clipped by an outer overflow:hidden. We use multiple
+          // radial gradients to create the lavender / magenta /
+          // purple blobs that the glass cards refract.
+          backgroundImage:
+            'radial-gradient(900px 720px at 12% 6%,  rgba(167,139,250,0.55) 0%, rgba(167,139,250,0) 60%),' +
+            'radial-gradient(900px 720px at 95% 10%, rgba(236, 72,153,0.40) 0%, rgba(236, 72,153,0) 65%),' +
+            'radial-gradient(1100px 900px at 60% 110%, rgba(123, 61,191,0.58) 0%, rgba(123, 61,191,0) 70%)',
+          // Negative margins so the gradient bleeds into the
+          // surrounding canvas (cancels the parent's padding).
+          marginHorizontal: -24,
+          marginTop: -16,
+          marginBottom: -16,
+          paddingHorizontal: 24,
+          paddingTop: 16,
+          paddingBottom: 16,
+          borderRadius: 24,
+        } as any) : null,
+      ]}
+    >
+      {/* Aurora — native fallback (web bakes it into the bg above). */}
+      {Platform.OS !== 'web' && <Aurora intensity="strong" />}
+
       {/* AI Daily Brief banner — shimmer aura behind hero icon */}
       <FadeInView delay={20}>
-      <View style={[s.briefRow, { backgroundColor: C.card, borderColor: C.border }]}>
+      <View style={[s.briefRow, glassStyle()]}>
         <View style={[s.briefIcon, { backgroundColor: C.cardH }]}>
           <ShimmerGradient colors={GRADS.brandGlow} duration={4200} />
           <SparkIcon Icon={Sparkles} size={18} color={C.accentBright} />
@@ -196,8 +224,14 @@ export function DashboardView() {
             finally { setBriefLoading(false); }
           }}
         >
-          <Sparkles size={13} color="#fff" />
-          <Text style={s.briefCtaText}>{briefLoading ? 'Generating…' : 'Generate Brief'}</Text>
+          <LinearGradient
+            colors={[GRAD.from, GRAD.to]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={s.gradCta}
+          >
+            <Sparkles size={13} color="#fff" />
+            <Text style={s.briefCtaText}>{briefLoading ? 'Generating…' : 'Generate Brief'}</Text>
+          </LinearGradient>
         </PressScale>
       </View>
       </FadeInView>
@@ -207,7 +241,7 @@ export function DashboardView() {
 
       {/* TIER BANNER — glowing badge + score + tier-driven suggestions */}
       {STUDENT.tier && (
-        <View style={[s.tierCard, { backgroundColor: C.card, borderColor: C.border }]}>
+        <View style={[s.tierCard, glassStyle()]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
             <TierBadge tier={STUDENT.tier.tier} size="lg" />
             <View style={{ flex: 1, minWidth: 0 }}>
@@ -239,10 +273,10 @@ export function DashboardView() {
       )}
 
       {/* AI Career Assistant Roadmap */}
-      <View style={[s.roadmapCard, { backgroundColor: C.card, borderColor: C.border }]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14 }}>
-          <Sparkles size={13} color={SC.accent} />
-          <Text style={s.kicker}>AI CAREER ASSISTANT · PERSONALISED ROADMAP</Text>
+      <View style={[s.roadmapCard, glassStyle()]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+          <IconBox size={28}><Sparkles size={13} color={GRAD.from} /></IconBox>
+          <SectionLabel>AI CAREER ASSISTANT · PERSONALISED ROADMAP</SectionLabel>
         </View>
         <Text style={s.roadmapTitle}>You’re {STUDENT.career.progressPct}% toward your goal:</Text>
         <Text style={s.roadmapGoal}>{STUDENT.career.goal}</Text>
@@ -258,11 +292,14 @@ export function DashboardView() {
         </View>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
-          <Pressable
-            style={({ hovered }: any) => [s.primaryCta, hovered && { backgroundColor: SC.primaryL }]}
-            onPress={() => alert('Open full roadmap')}
-          >
-            <Text style={s.primaryCtaText}>View Full Roadmap →</Text>
+          <Pressable onPress={() => alert('Open full roadmap')}>
+            <LinearGradient
+              colors={[GRAD.from, GRAD.to]}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={s.primaryCta}
+            >
+              <Text style={s.primaryCtaText}>View Full Roadmap →</Text>
+            </LinearGradient>
           </Pressable>
           <Pressable
             style={({ hovered }: any) => [s.secCta, hovered && { backgroundColor: SC.cardH }]}
@@ -309,7 +346,7 @@ export function DashboardView() {
             title={momentumTitle}
             subtitle={momentumSubtitle}
             data={NX_AUDIENCE}
-            color={NX.blue}
+            color="#7B3DBF"
           />
           <ActivityCard
             delay={480}
@@ -388,9 +425,15 @@ export function DashboardView() {
                   </View>
                   <Text style={s.mentorPrice}>₹{m.price}/session</Text>
                 </View>
-                <Pressable style={({ hovered }: any) => [s.bookCta, hovered && { backgroundColor: SC.primaryL }]}>
-                  <Calendar size={12} color="#fff" />
-                  <Text style={s.bookCtaText}>Book Session</Text>
+                <Pressable onPress={() => alert('Book session: ' + m.name)}>
+                  <LinearGradient
+                    colors={[GRAD.from, GRAD.to]}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                    style={s.bookCta}
+                  >
+                    <Calendar size={12} color="#fff" />
+                    <Text style={s.bookCtaText}>Book Session</Text>
+                  </LinearGradient>
                 </Pressable>
               </View>
             ))}
@@ -467,10 +510,11 @@ const s = StyleSheet.create({
     backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14,
     paddingVertical: 14, paddingHorizontal: 18,
   },
-  briefIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(176,127,223,0.15)', alignItems: 'center', justifyContent: 'center' },
+  briefIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(123,61,191,0.18)', alignItems: 'center', justifyContent: 'center' },
   briefTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
   briefSub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 1 },
-  briefCta: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 10, backgroundColor: SC.primary, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  briefCta: { borderRadius: 10, overflow: 'hidden', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  gradCta: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 10 },
   briefCtaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
 
   liveStrip: {
@@ -514,7 +558,7 @@ const s = StyleSheet.create({
   progTrack: { height: 6, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden' },
   progFill:  { height: '100%', borderRadius: 4 },
 
-  primaryCta: { paddingHorizontal: 16, height: 36, borderRadius: 10, backgroundColor: SC.primary, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  primaryCta: { paddingHorizontal: 16, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
   primaryCtaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
   secCta: { paddingHorizontal: 16, height: 36, borderRadius: 10, backgroundColor: SC.card, borderWidth: 1, borderColor: SC.border, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
   secCtaText: { color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 12.5 },
@@ -526,9 +570,14 @@ const s = StyleSheet.create({
 
   matchRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 12,
+    backgroundColor: SC.glassBg, borderColor: SC.glassBorder, borderWidth: 1, borderRadius: 12,
     paddingHorizontal: 14, paddingVertical: 12,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
+    ...(Platform.OS === 'web' ? ({
+      cursor: 'pointer', transitionDuration: '160ms',
+      backdropFilter: 'blur(18px) saturate(140%)',
+      WebkitBackdropFilter: 'blur(18px) saturate(140%)',
+      boxShadow: SC.glassShadow,
+    } as any) : {}),
   },
   companyLogo: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   companyLogoText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
@@ -539,21 +588,31 @@ const s = StyleSheet.create({
   matchPillText: { color: '#86EFAC', fontFamily: FONTS.bold, fontSize: 11 },
 
   mentorCard: {
-    backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 12,
+    backgroundColor: SC.glassBg, borderColor: SC.glassBorder, borderWidth: 1, borderRadius: 12,
     padding: 14,
+    ...(Platform.OS === 'web' ? ({
+      backdropFilter: 'blur(18px) saturate(140%)',
+      WebkitBackdropFilter: 'blur(18px) saturate(140%)',
+      boxShadow: SC.glassShadow,
+    } as any) : {}),
   },
   mentorName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 },
   mentorRole: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
   mentorMeta: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 11 },
   mentorPrice: { color: SC.accentBright, fontFamily: FONTS.xbold, fontSize: 12 },
-  bookCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, height: 34, borderRadius: 8, backgroundColor: SC.primary, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  bookCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, height: 34, borderRadius: 8, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
   bookCtaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
 
   eventCard: {
     flex: 1, minWidth: 220,
-    backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 12,
+    backgroundColor: SC.glassBg, borderColor: SC.glassBorder, borderWidth: 1, borderRadius: 12,
     padding: 14,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
+    ...(Platform.OS === 'web' ? ({
+      cursor: 'pointer', transitionDuration: '160ms',
+      backdropFilter: 'blur(18px) saturate(140%)',
+      WebkitBackdropFilter: 'blur(18px) saturate(140%)',
+      boxShadow: SC.glassShadow,
+    } as any) : {}),
   },
   eventIcon: { width: 30, height: 30, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   eventTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5, lineHeight: 18 },

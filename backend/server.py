@@ -4941,12 +4941,28 @@ async def on_startup():
     await db.career_suggestions.create_index("user_id")
     await db.chat_messages.create_index([("user_id", 1), ("session_id", 1)])
     await db.bookings.create_index([("student_id", 1), ("mentor_id", 1)])
+    # Agent K scheduled — indexes that the tick query and per-user list rely on
+    await db.agent_k_schedules.create_index([("status", 1), ("next_run_at", 1)])
+    await db.agent_k_schedules.create_index([("user_id", 1), ("created_at", -1)])
+    await db.agent_runs.create_index([("schedule_id", 1), ("started_at", -1)])
     await seed_admin()
     await seed_data()
+
+    # Start the Agent K scheduler (60s polling tick).
+    try:
+        from agent_k_scheduled import start_scheduler as _ak_start_scheduler
+        _ak_start_scheduler()
+    except Exception as _e:
+        logger.warning("Could not start Agent K scheduler: %s", _e)
 
 
 @app.on_event("shutdown")
 async def on_shutdown():
+    try:
+        from agent_k_scheduled import stop_scheduler as _ak_stop_scheduler
+        _ak_stop_scheduler()
+    except Exception:
+        pass
     client.close()
 
 
@@ -4993,6 +5009,10 @@ api_router.include_router(ai_briefs_router)
 # Agent K — automation operator (Claude tool-use loop)
 from agent_k import router as agent_k_router
 api_router.include_router(agent_k_router)
+
+# Agent K — scheduled (cron) automations
+from agent_k_scheduled import router as agent_k_scheduled_router
+api_router.include_router(agent_k_scheduled_router)
 
 # Admin settings — Roles & Permissions + Marketplace
 from admin_settings import router as admin_settings_router

@@ -231,3 +231,40 @@ docker logs -f studentalumni-frontend
 ```
 
 …and ping the assistant with the exact error string + the failing endpoint.
+
+---
+
+## 10. Agent K scheduled (cron) automations — Production notes
+
+Since `v0.16.0`, the backend boots an **APScheduler `AsyncIOScheduler`**
+in-process and polls `agent_k_schedules` every 60 seconds. This works
+out-of-the-box on **single-replica** Dokploy deployments (the default).
+
+### If you ever scale to multiple replicas
+Multiple replicas would each run their own scheduler tick and could
+double-fire every schedule. Pick **one** of:
+
+1. **Leader election by env var** — set `AGENT_K_SCHEDULER_ENABLED=1`
+   on exactly one replica; gate `start_scheduler()` on it. (Easiest.)
+2. **Run the API + scheduler as separate services** — keep your N
+   API replicas with the env flag OFF, and run one dedicated `worker`
+   service with the flag ON, same image, same Mongo, no public port.
+3. **Switch APScheduler to a `MongoDBJobStore`** — out of scope here,
+   but the schedule rows are already in Mongo so the migration is
+   small. Open an issue if you need it.
+
+### Verifying the scheduler is healthy
+```bash
+docker logs studentalumni-backend 2>&1 | grep -i "agent-k.scheduled"
+# Expected:
+#   agent-k.scheduled scheduler started (tick=60s)
+#   agent-k.scheduled[fire] 6a0617…  user=…  title=…
+```
+
+If you see schedules accumulating in `agent_k_schedules` with stale
+`next_run_at`, the scheduler isn't ticking — check the container is
+healthy and that the import didn't fail (`pip show apscheduler`).
+
+### Backups
+The schedule rows + their `agent_runs` history are stored in Mongo;
+no extra backup wiring is required beyond Atlas point-in-time backup.

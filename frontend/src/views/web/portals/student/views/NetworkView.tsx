@@ -65,7 +65,16 @@ export function NetworkView() {
                 ) : pn ? (
                   <View style={s.pending}><Check size={13} color={SC.amber} /><Text style={{ color: SC.amber, fontFamily: FONTS.bold, fontSize: 11.5 }}>Pending</Text></View>
                 ) : (
-                  <Pressable onPress={() => send(p.id)} style={s.connect}><UserPlus size={13} color="#fff" /><Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 }}>Connect</Text></Pressable>
+                  <Pressable onPress={() => send(p.id)}>
+                    <LinearGradient
+                      colors={[GRAD.from, GRAD.to]}
+                      start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                      style={s.connect}
+                    >
+                      <UserPlus size={13} color="#fff" />
+                      <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 }}>Connect</Text>
+                    </LinearGradient>
+                  </Pressable>
                 )}
               </View>
             </View>
@@ -88,7 +97,7 @@ const s = StyleSheet.create({
   meta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
   collegeMeta: { color: SC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 8 },
   tag: { backgroundColor: 'rgba(167,139,250,0.10)', borderColor: SC.border, borderWidth: 1, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
-  connect: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 14, height: 30, borderRadius: 8, backgroundColor: SC.primary },
+  connect: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 14, height: 30, borderRadius: 8 },
   pending: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 14, height: 30, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(245,158,11,0.40)', backgroundColor: 'rgba(245,158,11,0.10)' },
   msgBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 14, height: 30, borderRadius: 8, borderWidth: 1, borderColor: SC.border2, backgroundColor: SC.card },
   msgText: { color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 11.5 },

@@ -35,6 +35,7 @@ import {
   Pencil, Trash2, Check, X, Copy, Share2, Download, Eye, EyeOff,
   ExternalLink, RotateCcw, Monitor, Smartphone, AlertTriangle, KeyRound,
   ChevronRight, QrCode, Building2, ShieldCheck, Search, Sparkles, CheckCircle2,
+  Mail, Users as UsersIcon, ArrowLeft, Clock,
 } from 'lucide-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
@@ -345,11 +346,158 @@ function ProfileTab({ onSaved }: { onSaved: (s?: string) => void }) {
                  onChange={(v) => setDraft({ ...draft, org: v })} draft={draft.org} />
         </View>
       </View>
+
+      {/* Email signature drill-in card */}
+      <SignatureCard
+        signature={data.signature || ''}
+        onSaved={async () => { await load(); onSaved('Signature saved'); }}
+      />
     </Animated.View>
   );
 }
 
-function Field({ label, value, editing, draft, onChange, placeholder }: {
+/* ─── Signature editor (drill-in modal) ─────────────────────────────
+ * Lives inside ProfileTab. Card shows a preview; tapping Edit opens a
+ * modal with multi-line editor + live preview + template chips. */
+function SignatureCard({ signature, onSaved }: { signature: string; onSaved: () => Promise<void> | void }) {
+  const [open, setOpen] = useState(false);
+  const lines = (signature || '').split('\n').filter(Boolean);
+  return (
+    <>
+      <View style={s.card}>
+        <View style={s.cardHeadRow}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View style={s.iconBox}><Mail size={14} color={GRAD_TO} /></View>
+            <View>
+              <Text style={s.cardTitle}>Email signature</Text>
+              <Text style={s.cardSub}>Appended to outbound emails sent from the platform</Text>
+            </View>
+          </View>
+          <Pressable onPress={() => setOpen(true)} style={s.linkBtn}>
+            <Pencil size={12} color={GRAD_TO} />
+            <Text style={s.linkBtnText}>Edit signature</Text>
+          </Pressable>
+        </View>
+        <View style={s.sigPreview}>
+          {lines.length === 0 ? (
+            <Text style={s.muted}>No signature set — tap "Edit signature" to add one.</Text>
+          ) : lines.map((ln, i) => (
+            <Text key={i} style={[s.sigPreviewLine, i === 0 && s.sigPreviewLineFirst]}>{ln}</Text>
+          ))}
+        </View>
+      </View>
+      <SignatureEditorModal
+        visible={open}
+        initial={signature}
+        onClose={() => setOpen(false)}
+        onSaved={async () => { setOpen(false); await onSaved(); }}
+      />
+    </>
+  );
+}
+
+function SignatureEditorModal({ visible, initial, onClose, onSaved }: {
+  visible: boolean; initial: string; onClose: () => void; onSaved: () => void | Promise<void>;
+}) {
+  const [val, setVal] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+
+  useEffect(() => { if (visible) { setVal(initial); setErr(''); } }, [visible, initial]);
+
+  const TEMPLATES: Array<{ id: string; label: string; body: string }> = [
+    {
+      id: 'professional', label: 'Professional',
+      body: 'Best regards,\n{{name}}\n{{title}} · {{org}}\n{{email}} · {{phone}}',
+    },
+    {
+      id: 'minimal', label: 'Minimal',
+      body: '{{name}}\n{{title}}, {{org}}',
+    },
+    {
+      id: 'friendly', label: 'Friendly',
+      body: 'Cheers,\n{{name}} ✨\n{{org}}',
+    },
+  ];
+
+  const save = async () => {
+    setBusy(true); setErr('');
+    try {
+      await request('/admin/profile', { method: 'PATCH', body: { signature: val } });
+      await onSaved();
+    } catch (e: any) {
+      setErr(e?.message || 'Could not save');
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={s.modalBackdrop} onPress={onClose}>
+        <Pressable style={s.modalCard} onPress={(e) => e.stopPropagation?.()}>
+          <View style={s.modalHead}>
+            <View style={s.iconBox}><Mail size={14} color={GRAD_TO} /></View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={s.modalTitle}>Edit email signature</Text>
+              <Text style={s.cardSub}>Use {`{{name}}`}, {`{{title}}`}, {`{{org}}`}, {`{{email}}`}, {`{{phone}}`} as placeholders.</Text>
+            </View>
+            <Pressable onPress={onClose} style={s.modalClose}>
+              <X size={14} color={SAC.muted} />
+            </Pressable>
+          </View>
+
+          <ScrollView contentContainerStyle={{ padding: 18, gap: 14 }} style={{ maxHeight: 520 }}>
+            {/* Template chips */}
+            <View>
+              <Text style={s.fieldLabel}>Templates</Text>
+              <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                {TEMPLATES.map((t) => (
+                  <Pressable key={t.id} onPress={() => setVal(t.body)} style={s.tplChip}>
+                    <Text style={s.tplChipText}>{t.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            {/* Editor */}
+            <View>
+              <Text style={s.fieldLabel}>Signature</Text>
+              <TextInput
+                value={val} onChangeText={setVal}
+                multiline numberOfLines={6}
+                placeholder="Best regards,\nName\nTitle · Org\nemail@org.com"
+                placeholderTextColor={SAC.dim}
+                style={s.sigEditor}
+              />
+              <Text style={[s.muted, { marginTop: 4 }]}>{val.length}/1500</Text>
+            </View>
+
+            {/* Live preview */}
+            <View>
+              <Text style={s.fieldLabel}>Preview</Text>
+              <View style={[s.sigPreview, { marginTop: 6 }]}>
+                {val.split('\n').filter(Boolean).map((ln, i) => (
+                  <Text key={i} style={[s.sigPreviewLine, i === 0 && s.sigPreviewLineFirst]}>{ln}</Text>
+                )) || <Text style={s.muted}>—</Text>}
+              </View>
+            </View>
+
+            {!!err && <Text style={{ color: SAC.red, fontFamily: FONTS.bold, fontSize: 11.5 }}>{err}</Text>}
+          </ScrollView>
+
+          <View style={s.modalFooter}>
+            <Pressable onPress={onClose} style={s.secondaryBtn}>
+              <Text style={s.secondaryBtnText}>Cancel</Text>
+            </Pressable>
+            <GradientButton onPress={save} loading={busy}>
+              <Check size={14} color="#fff" />
+              <Text style={s.primaryBtnText}>Save signature</Text>
+            </GradientButton>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}function Field({ label, value, editing, draft, onChange, placeholder }: {
   label: string; value: string; editing: boolean; draft?: string;
   onChange?: (v: string) => void; placeholder?: string;
 }) {
@@ -832,6 +980,7 @@ function RolesTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Role | null>(null);
   const [del, setDel] = useState<Role | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -856,6 +1005,20 @@ function RolesTab({ onSaved }: { onSaved: (s?: string) => void }) {
     return palette[key] || '#94A3B8';
   };
   const initials = (name: string) => name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+
+  // Drill-in mode
+  if (selectedId) {
+    return (
+      <RoleDetailPanel
+        roleId={selectedId}
+        tintFor={tintFor}
+        initials={initials}
+        onBack={() => setSelectedId(null)}
+        onEdit={(r) => { setSelectedId(null); setEditing(r); }}
+        onSaved={onSaved}
+      />
+    );
+  }
 
   return (
     <Animated.View entering={FadeIn.duration(180)} style={{ gap: 14 }}>
@@ -902,6 +1065,9 @@ function RolesTab({ onSaved }: { onSaved: (s?: string) => void }) {
               </View>
               <View style={{ flex: 1 }} />
               <View style={{ flexDirection: 'row', gap: 6 }}>
+                <Pressable onPress={() => setSelectedId(r.id)} style={s.editBtnFull}>
+                  <Text style={s.editBtnText}>View</Text>
+                </Pressable>
                 <Pressable onPress={() => setEditing(r)} style={s.editBtnFull}>
                   <Text style={s.editBtnText}>Edit</Text>
                 </Pressable>
@@ -929,6 +1095,159 @@ function RolesTab({ onSaved }: { onSaved: (s?: string) => void }) {
 }
 
 function RoleModal({ visible, role, permissionGroups, onClose, onSaved }: {
+  visible: boolean; role: Role | null; permissionGroups: PermissionGroup[];
+  onClose: () => void; onSaved: () => void;
+}) {
+  // moved below RoleDetailPanel
+  return <RoleModalImpl visible={visible} role={role} permissionGroups={permissionGroups} onClose={onClose} onSaved={onSaved} />;
+}
+
+/* ─── Role detail drill-in panel ────────────────────────────────────
+ * Replaces the role grid in-place when a card's "View" is tapped.
+ * Shows: full description, three stat tiles (Users / Permissions /
+ * Type), grouped permission matrix with granted/missing checks, and
+ * the list of users currently assigned to this role. */
+function RoleDetailPanel({ roleId, tintFor, initials, onBack, onEdit, onSaved }: {
+  roleId: string;
+  tintFor: (k: string) => string;
+  initials: (n: string) => string;
+  onBack: () => void;
+  onEdit: (r: any) => void;
+  onSaved: (s?: string) => void;
+}) {
+  const [data, setData] = useState<any>(null);
+  const [busy, setBusy] = useState(true);
+  const [err, setErr] = useState('');
+
+  const load = useCallback(async () => {
+    setBusy(true); setErr('');
+    try {
+      const r = await request<any>(`/admin/roles/${roleId}`);
+      setData(r);
+    } catch (e: any) {
+      setErr(e?.message || 'Could not load role');
+    } finally {
+      setBusy(false);
+    }
+  }, [roleId]);
+  useEffect(() => { load(); }, [load]);
+
+  if (busy) return <Loading />;
+  if (err)  return <Text style={s.errorText}>{err}</Text>;
+  if (!data) return null;
+
+  const tint = tintFor(data.key);
+  const totalPerms = (data.permission_groups || []).reduce(
+    (n: number, g: any) => n + (g.permissions || []).length,
+    0,
+  );
+
+  return (
+    <Animated.View entering={FadeIn.duration(180)} style={{ gap: 14 }}>
+      {/* Header */}
+      <View style={s.roleDetailHead}>
+        <Pressable onPress={onBack} style={s.roleDetailBack}>
+          <ArrowLeft size={13} color={SAC.text} />
+          <Text style={s.roleDetailBackText}>Back</Text>
+        </Pressable>
+        <View style={[s.roleBadge, { backgroundColor: tint + '22', borderColor: tint + '66' }]}>
+          <Text style={[s.roleBadgeText, { color: tint }]}>{initials(data.name)}</Text>
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={s.roleDetailTitle}>{data.name}</Text>
+          <Text style={s.roleDetailSub}>{data.description || 'No description provided.'}</Text>
+        </View>
+        {!data.is_system && (
+          <GradientButton onPress={() => onEdit(data)}>
+            <Pencil size={13} color="#fff" />
+            <Text style={s.primaryBtnText}>Edit role</Text>
+          </GradientButton>
+        )}
+      </View>
+
+      {/* Stat tiles */}
+      <View style={s.roleStatRow}>
+        <View style={s.roleStat}>
+          <Text style={s.roleStatLabel}>USERS WITH THIS ROLE</Text>
+          <Text style={s.roleStatValue}>{data.user_count || 0}</Text>
+        </View>
+        <View style={s.roleStat}>
+          <Text style={s.roleStatLabel}>PERMISSIONS GRANTED</Text>
+          <Text style={s.roleStatValue}>{(data.permissions || []).length} / {totalPerms}</Text>
+        </View>
+        <View style={s.roleStat}>
+          <Text style={s.roleStatLabel}>TYPE</Text>
+          <Text style={s.roleStatValue}>{data.is_system ? 'System' : 'Custom'}</Text>
+        </View>
+      </View>
+
+      {/* Permission groups */}
+      <View style={s.card}>
+        <Text style={s.cardTitle}>Permission matrix</Text>
+        <Text style={s.cardSub}>Grouped view of every permission this role can access.</Text>
+        <View style={{ gap: 12, marginTop: 14 }}>
+          {(data.permission_groups || []).map((g: any) => (
+            <View key={g.key} style={s.permGroup}>
+              <Text style={s.permGroupTitle}>{g.label}</Text>
+              <View style={{ gap: 4, marginTop: 8 }}>
+                {(g.permissions || []).map((p: any) => (
+                  <View key={p.key} style={s.permRow}>
+                    <View style={[s.checkbox, p.granted && { backgroundColor: tint, borderColor: tint }]}>
+                      {p.granted && <Check size={11} color="#fff" />}
+                    </View>
+                    <Text style={[s.permLabel, !p.granted && { color: SAC.muted }]}>{p.label}</Text>
+                    <Text style={s.permId}>{p.key}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Users with this role */}
+      <View style={s.card}>
+        <View style={s.cardHeadRow}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View style={s.iconBox}><UsersIcon size={14} color={GRAD_TO} /></View>
+            <View>
+              <Text style={s.cardTitle}>Users with this role</Text>
+              <Text style={s.cardSub}>{data.user_count || 0} user{data.user_count === 1 ? '' : 's'} assigned</Text>
+            </View>
+          </View>
+        </View>
+        {(!data.users || data.users.length === 0) ? (
+          <Text style={[s.muted, { marginTop: 12 }]}>No users currently assigned to this role.</Text>
+        ) : (
+          <View style={{ gap: 8, marginTop: 12 }}>
+            {data.users.map((u: any) => (
+              <View key={u.id} style={s.roleUserRow}>
+                <View style={s.roleUserAv}>
+                  <Text style={{ color: '#FB923C', fontFamily: FONTS.xbold, fontSize: 11 }}>
+                    {(u.name || u.email || '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()}
+                  </Text>
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={s.roleUserName} numberOfLines={1}>{u.name}</Text>
+                  <Text style={s.roleUserMeta} numberOfLines={1}>{u.email}</Text>
+                </View>
+                {u.last_login && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Clock size={11} color={SAC.dim} />
+                    <Text style={s.roleUserMeta}>{new Date(u.last_login).toLocaleDateString()}</Text>
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+    </Animated.View>
+  );
+}
+
+function RoleModalLegacy_unused_marker() { return null; }
+function RoleModalImpl({ visible, role, permissionGroups, onClose, onSaved }: {
   visible: boolean; role: Role | null; permissionGroups: PermissionGroup[];
   onClose: () => void; onSaved: () => void;
 }) {
@@ -1822,4 +2141,57 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(16,185,129,0.18)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.35)',
   },
   toastText: { color: SAC.green, fontFamily: FONTS.xbold, fontSize: 11.5 },
+
+  // Signature editor
+  sigPreview: {
+    backgroundColor: SAC.cardSolid, borderRadius: 10, borderWidth: 1, borderColor: SAC.border,
+    padding: 14, marginTop: 14, gap: 2,
+  },
+  sigPreviewLine:      { color: SAC.text,  fontFamily: FONTS.med,   fontSize: 12.5, lineHeight: 17 },
+  sigPreviewLineFirst: { color: '#fff',    fontFamily: FONTS.xbold, fontSize: 13 },
+  sigEditor: {
+    minHeight: 130, paddingHorizontal: 12, paddingTop: 10,
+    color: SAC.text, fontFamily: FONTS.med, fontSize: 13,
+    backgroundColor: SAC.cardSolid, borderColor: SAC.border, borderWidth: 1, borderRadius: 10,
+    textAlignVertical: 'top' as any, marginTop: 6,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+  },
+  tplChip: {
+    paddingHorizontal: 12, height: 28, borderRadius: 999,
+    backgroundColor: SAC.cardSolid, borderColor: SAC.border2, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  tplChipText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 11 },
+
+  // Role drill-in
+  roleDetailHead: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16,
+  },
+  roleDetailBack: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 11, height: 30, borderRadius: 8,
+    backgroundColor: SAC.cardSolid, borderColor: SAC.border, borderWidth: 1,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  roleDetailBackText: { color: SAC.text, fontFamily: FONTS.bold, fontSize: 12 },
+  roleDetailTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 },
+  roleDetailSub:   { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
+  roleStatRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginBottom: 14 },
+  roleStat: {
+    flex: 1, minWidth: 140,
+    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12,
+    paddingVertical: 12, paddingHorizontal: 14,
+  },
+  roleStatLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.4 },
+  roleStatValue: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, marginTop: 4 },
+  roleUserRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    padding: 11, borderRadius: 10, backgroundColor: SAC.cardSolid,
+    borderWidth: 1, borderColor: SAC.border,
+  },
+  roleUserAv: { width: 30, height: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(245,158,11,0.14)', borderColor: 'rgba(245,158,11,0.32)', borderWidth: 1 },
+  roleUserName: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12.5 },
+  roleUserMeta: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
 });

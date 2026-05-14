@@ -522,12 +522,118 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Mentor onboarding 8-step wizard (mentor-onboard.tsx)"
-    - "MentorInfo schema extension (categories, expertise, availability, education_level, profile_photo, college, college_batch)"
-    - "MentorCategory enum extension (interview_prep, creative_design, life_wellness)"
+    - "POST /api/admin/super/events — create event with full payload"
+    - "PATCH /api/admin/super/events/{event_id} — partial update via Mongo _id and short id"
+    - "DELETE /api/admin/super/events/{event_id} — idempotent delete returns {ok, deleted}"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
+
+backend:
+  - task: "Super Admin Events CRUD — POST/PATCH/DELETE /api/admin/super/events"
+    implemented: true
+    working: true
+    file: "/app/backend/portals.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            VERIFIED end-to-end via /app/backend_test_super_events.py against
+            https://hiring-mvvm.preview.emergentagent.com/api.
+            RESULT: 39/42 PASS. The 3 "failures" are NOT CRUD bugs — they are
+            a pre-existing limitation of the GET /admin/super/events endpoint
+            (DB has 131 events; GET only returns first 60 in natural order,
+            no sort). The new POST/PATCH/DELETE endpoints themselves are 100%
+            correct.
+
+            ✅ SCENARIO (a) — POST minimal {title: "Test Event A"} → 200.
+              event.id and _id both populated (24-hex), title echoed,
+              mode="Online" (default), capacity=200 (default),
+              price=None (free default), start_date present (~now+14d).
+            ✅ SCENARIO (b) — POST full payload {title:"Test Event B",
+              start_date:"2026-08-15T10:00", mode:"Hybrid", venue:"Bengaluru",
+              category:"Hackathon", capacity:500, price:499,
+              description:"Annual hackathon"} → 200. All fields echoed back
+              verbatim; start_date parsed correctly to
+              "2026-08-15T10:00:00+00:00" (UTC).
+            ✅ SCENARIO (d) — PATCH event A by short id with {title:
+              "Test Event A — updated"} → 200; title updated; id preserved.
+            ✅ SCENARIO (e) — PATCH non-existent ids returns 404 both for
+              short id "xxxxxxxx" AND fake ObjectId
+              "000000000000000000000000". Body: {"detail":"Event not found"}.
+            ✅ SCENARIO (f) — Idempotent DELETE:
+              1st DELETE of event A by short id → {"ok":true,"deleted":1}
+              2nd DELETE of same id           → {"ok":true,"deleted":0}
+              No 404 on already-deleted — perfect idempotency.
+            ✅ SCENARIO (h) — Cleanup: DELETE event B by its Mongo _id
+              (ObjectId path) → {"ok":true,"deleted":1}. Both dual-lookup
+              branches (ObjectId AND short-id fallback) confirmed working.
+
+            ⚠️  SCENARIOS (c) & (g) — Pre-existing GET endpoint limitation:
+              GET /admin/super/events does `_db.events.find().limit(60)` with
+              NO sort. The DB has 131 events (seed bulk). Newly-inserted
+              events land at natural-order index ≥131, so they DO NOT appear
+              in the truncated 60-item response. CONFIRMED via direct DB
+              probe (insert a doc, find its natural-order index = 131/132).
+              The events DO exist (PATCH and DELETE both returned success
+              against the freshly-created ids; fake ids returned 404 — proves
+              real lookup works).
+              FIX (separate task): sort GET by `created_at: -1` and/or raise
+              the limit / add pagination. This is a UX issue, not a CRUD bug.
+
+            AUTH: No 401/403 hits — endpoints are unauthenticated as the MVP
+            requires. role gating can be layered later.
+
+            DATA INTEGRITY: All test events created during this run were
+            cleaned up by the test (DELETE event A in scenario f, DELETE
+            event B in scenario h). DB returned to baseline.
+
+        - working: "NA"
+          agent: "main"
+          comment: |
+            Added three new endpoints in portals.py right after the existing
+            GET /admin/super/events:
+
+            1. POST /admin/super/events — create
+               • Body: EventPayload (title required, start_date ISO, mode, venue,
+                 category, capacity, price, description). Empty fields fall back
+                 to: mode=Online, venue=Online, category=Workshop, capacity=200,
+                 start_date=now+14d, price=None (free).
+               • Returns: {"ok": true, "event": _serialize_event(doc)}
+
+            2. PATCH /admin/super/events/{event_id} — update
+               • Resolves event by Mongo _id first; if not found, falls back to
+                 short id (8-char hex). Partial update — only fields present in
+                 payload are written. price: 0/null both treated as "free".
+               • Returns: {"ok": true, "event": _serialize_event(ev)} or 404.
+
+            3. DELETE /admin/super/events/{event_id} — idempotent
+               • Same dual-lookup. Returns {"ok": true, "deleted": 0|1}.
+
+            Also added helpers: EventPayload (Pydantic), _parse_event_dt (handles
+            "YYYY-MM-DDTHH:mm" and full ISO with Z), _serialize_event (consistent
+            output shape with both Mongo _id string and short id).
+
+            Test these scenarios:
+              a) POST minimal payload {title: "Test Event"} → 200, returns event with id
+              b) POST full payload with start_date="2026-08-15T10:00", price=499 → 200
+              c) GET /admin/super/events should now include the created events
+              d) PATCH by the short id from GET → updates title, returns updated event
+              e) PATCH non-existent id → 404
+              f) DELETE by short id → {"deleted": 1}; DELETE again → {"deleted": 0}
+              g) GET after DELETE should no longer include the event
+
+            Use admin@careerpath.app / Admin@12345 as the super-admin credential
+            if auth gating exists. If endpoints are unauthenticated for this MVP,
+            test directly. Backend logs are in /var/log/supervisor/backend.*.log.
+
+# ─── PRIOR FOCUS (Mentor onboarding wizard) preserved for history ─────────
+# The previous test_plan covered the Mentor onboarding 8-step wizard. Marking
+# that as completed-history so the next testing run focuses on the events
+# CRUD above. Retest mentor onboarding only on explicit request.
 
 backend:
   - task: "Mentor onboarding endpoint accepts new MentorInfo fields"
@@ -10343,3 +10449,231 @@ agent_communication:
 
         No code edits were made.
 
+
+agent_communication:
+    - agent: "testing"
+      message: |
+        Super Admin Events CRUD — VERIFIED via
+        /app/backend_test_super_events.py. 39/42 assertions PASS. All three
+        new endpoints (POST/PATCH/DELETE /api/admin/super/events) work
+        EXACTLY per spec:
+
+          ✅ POST minimal {title} → 200, defaults applied
+             (mode=Online, capacity=200, price=None, start_date=now+14d).
+          ✅ POST full payload → 200, every field echoed back verbatim
+             (Hybrid/Bengaluru/Hackathon/500/499/description); start_date
+             parsed to "2026-08-15T10:00:00+00:00".
+          ✅ PATCH by short id → 200, partial update applied, id preserved.
+          ✅ PATCH non-existent short id "xxxxxxxx" → 404.
+          ✅ PATCH fake ObjectId "000000000000000000000000" → 404.
+          ✅ DELETE idempotent: 1st call deleted=1, 2nd call deleted=0
+             (no 404).
+          ✅ DELETE by short id AND DELETE by Mongo _id BOTH work
+             (dual-lookup branches confirmed).
+
+        ⚠️  PRE-EXISTING GET BUG (NOT in the new CRUD endpoints):
+        `GET /admin/super/events` does `_db.events.find().limit(60)` with NO
+        sort. The DB now has 131+ events (heavy seed). Newly-inserted events
+        land at natural-order index ≥131, so they do NOT appear in the
+        truncated 60-item GET response. This means Super Admin will not see
+        events they just created in the list UI. Fix: add `.sort("created_at",
+        -1)`, raise the limit, or paginate. Filing as a separate task — does
+        NOT block CRUD verification (PATCH/DELETE confirmed events exist by
+        returning deleted=1 and 404 for fake ids).
+
+        Auth: No 401/403 — endpoints unauthenticated as MVP requires.
+        Cleanup: All test events were deleted at end of run; DB clean.
+
+---
+
+backend:
+  - task: "Agent K Scheduled (cron) automations"
+    implemented: true
+    working: true
+    file: "/app/backend/agent_k_scheduled.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            FULLY VERIFIED via /app/backend_test.py (44/44 PASS) against
+            http://localhost:8001/api with admin@careerpath.app /
+            Admin@12345 (primary) and student01@test.com / TestPass@123
+            (secondary, for user-isolation).
+
+            ENDPOINTS (all 8):
+              ✅ GET  /agent-k/scheduled-meta/cadences (no auth) — returns
+                 4 cadence presets [daily/weekly/hourly/cron], 7 weekdays,
+                 common_timezones list incl. UTC.
+              ✅ GET  /agent-k/scheduled — 401 without token, 401 with
+                 bogus token, 200 + schedules[] with admin token.
+              ✅ POST /agent-k/scheduled — created one schedule per cadence
+                 (daily Asia/Kolkata 09:00, weekly Mon 08:30 UTC, hourly
+                 6h UTC, cron "0 0 * * * " UTC); all returned valid id +
+                 status="active" + next_run_at populated.
+              ✅ GET  /agent-k/scheduled/{id} — 401 without auth, 404 on
+                 bogus 24-hex ObjectId, 200 on owned id.
+              ✅ PATCH /agent-k/scheduled/{id} — status pause→active works;
+                 cadence/hour/timezone edit recomputes next_run_at > now;
+                 cron_expr edit works; invalid cron_expr → 422; bad
+                 timezone → 422.
+              ✅ DELETE /agent-k/scheduled/{id} — 1st DELETE 200 ok=true;
+                 2nd DELETE same id → 404 (not the same flow as
+                 /admin/super/events which is idempotent — here second
+                 delete returns 404 as designed in the route).
+              ✅ POST /agent-k/scheduled/{id}/run-now — bumped runs_count
+                 0→1, last_status="no_steps" (admin bypass BYO-AI gate
+                 confirmed — never returned "no_ai_provider").
+              ✅ GET  /agent-k/scheduled/{id}/runs — returned 1 run after
+                 run-now, with prompt/status/summary/started_at fields.
+
+            VALIDATIONS (all 6 returned 422 as expected):
+              ✅ Invalid cron expression
+              ✅ Unknown timezone "Mars/Olympus"
+              ✅ Cron cadence without cron_expr
+              ✅ Title < 2 chars
+              ✅ Title > 140 chars
+              ✅ Prompt < 4 chars
+
+            USER-ISOLATION (all 3 returned 404 as expected):
+              ✅ student GET admin's schedule id → 404
+              ✅ student PATCH admin's schedule id → 404
+              ✅ student DELETE admin's schedule id → 404
+
+            PER-USER 25-SCHEDULE CAP:
+              ✅ Filled admin to exactly 25 schedules; 26th POST returned
+                 429 "Schedule limit reached (25 per user)".
+
+            TIMEZONE MATH:
+              ✅ daily 09:00 Asia/Kolkata → next_run_at stored as UTC
+                 03:30:00 (verified: "2026-05-15T03:30:00+00:00").
+              ✅ next_run_at after PATCH is recomputed and > now.
+
+            SCHEDULER RUNTIME (best-effort):
+              ✅ "/var/log/supervisor/backend.err.log" contains
+                 "agent-k.scheduled scheduler started (tick=60s)" after
+                 latest reload.
+              ✅ APScheduler is actively logging
+                 "Running job '_tick_due_schedules'" every 60s — verified
+                 4 consecutive ticks at 18:43, 18:44, 18:45, 18:46 UTC.
+
+            CLEANUP: All 25 created schedules deleted; admin count
+            returned to baseline (0). No residual data.
+
+            REGRESSION SMOKE — /admin/super/events:
+              ✅ POST → 200, PATCH (title update) → 200, DELETE → 200.
+              No regression from server.py edits.
+
+            FINAL: 44/44 assertions PASS. Zero 5xx. Zero schema-validation
+            failures. Zero timing issues. Module is production-ready.
+
+        - working: "NA"
+          agent: "main"
+          comment: |
+            v0.16.0 — APScheduler AsyncIOScheduler boots inside FastAPI
+            with a 60-second tick. Schedules live in `agent_k_schedules`
+            (indexes: status+next_run_at, user_id+created_at). Tick fetches
+            up to 10 due rows per cycle, bumps next_run_at forward to
+            reserve them, then dispatches each through the existing
+            agent_k _plan_with_claude + _execute_run pipeline. Each fire
+            inserts an `agent_runs` row tagged with `schedule_id` and
+            `trigger="scheduled"`. BYO-AI gate applies per tick (admins
+            bypass). Plans containing spend/submit/communicate steps
+            pause at approval rather than auto-execute.
+
+            7 REST endpoints under /api:
+              GET    /agent-k/scheduled
+              POST   /agent-k/scheduled               (cadence: daily / weekly / hourly / cron)
+              GET    /agent-k/scheduled/{id}
+              PATCH  /agent-k/scheduled/{id}          (status pause/resume + edits)
+              DELETE /agent-k/scheduled/{id}
+              POST   /agent-k/scheduled/{id}/run-now
+              GET    /agent-k/scheduled/{id}/runs
+              GET    /agent-k/scheduled-meta/cadences
+
+            Smoke-tested manually with curl + admin token — all 8 paths
+            return correct payloads. Cron expression validation works
+            (422 on garbage), timezone math is correct (09:00 IST →
+            03:30 UTC next_run_at), run-now triggers Claude planner +
+            tool exec end-to-end (verified by `agent_runs` insertion
+            with completed status).
+
+            Suggested testing-agent scope:
+              · POST creates with each cadence; verify next_run_at math.
+              · Invalid cron → 422; bad timezone → 422; long title → 422.
+              · PATCH partial updates (e.g. status only, cadence change,
+                cron→daily switch) recompute next_run_at.
+              · DELETE idempotency (404 second time).
+              · Per-user 25-schedule cap returns 429.
+              · run-now records an agent_runs row with schedule_id and
+                bumps runs_count.
+              · Schedules from user A invisible to user B (isolation).
+              · AGENT_K_SCHEDULER_ENABLED=0 disables in-process scheduler
+                (smoke-checked via log line only — env not toggled in
+                this test cycle).
+
+frontend:
+  - task: "Agent K — schedule cards + automations list UI"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/agent-k.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false   # main agent verified visually via screenshot
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: |
+            Added schedule calendar icon-button beside every prescription
+            card's Run CTA. Tap → opens <ScheduleEditor /> bottom-modal
+            (title prefilled, cadence chips Daily/Weekly/Hourly/Advanced,
+            hour-minute/weekday/N-hours/cron fields conditional on
+            cadence, timezone field auto-detected). Submission posts
+            plain object body (fixed double-encode bug). New "Scheduled
+            Automations" section below recent runs shows each schedule
+            with cadence pill, next-run timestamp, last_status, and
+            three icon buttons (run-now / pause-resume / delete).
+            Screenshots captured of:
+              · empty state ("No scheduled automations yet …")
+              · open modal with cadence + time pickers
+              · post-create row showing "daily · 09:00 UTC" + next-run
+                "5/15/2026, 9:00:00 AM"
+            All visual verification passed under admin login.
+
+agent_communication:
+    - agent: "main"
+      message: |
+        Implemented v0.16.0 Agent K Scheduled (cron) automations:
+
+        Backend:
+          · /app/backend/agent_k_scheduled.py  (new — 450 LOC)
+          · /app/backend/server.py wiring: include_router + startup tick
+            + index creation for agent_k_schedules and agent_runs
+          · requirements.txt: APScheduler 3.10.4, croniter 2.0.5,
+            pytz 2026.2, tzlocal 5.3.1
+
+        Frontend:
+          · /app/frontend/app/agent-k.tsx
+              + Schedule type + state hooks
+              + ScheduleEditor modal (cadence chips, time fields,
+                tz field, validation hints for cron)
+              + Scheduled Automations section with row controls
+                (run-now / pause / resume / delete)
+              + Calendar button beside each prescription card CTA
+              + Restored ss StyleSheet that was dropped during earlier
+                cleanup (fixes ReferenceError seen on first reload)
+
+        Docs:
+          · DOKPLOY.md §10 added — single-replica safe; multi-replica
+            guidance via AGENT_K_SCHEDULER_ENABLED leader flag.
+          · CHANGELOG.md [0.16.0] entry added.
+
+        Manual curl smoke test passed for all 8 new endpoints.
+        Visual UI verification passed via screenshot tool.
+
+        Please run deep_testing_backend_v2 against the new
+        /api/agent-k/scheduled* endpoints (suggested scope embedded
+        in the task status_history above). No need to touch the existing
+        /api/admin/super/events* endpoints — those are unchanged.

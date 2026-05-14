@@ -21,11 +21,13 @@ import {
   View, Text, Pressable, TextInput, StyleSheet, useWindowDimensions,
   Platform, ActivityIndicator, Linking,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   Search, MapPin, Bookmark, BookmarkCheck, ExternalLink, RefreshCcw,
   Lock, Sparkles, Briefcase, Globe2,
 } from '../iconShims';
 import { SC, FONTS } from '../tokens';
+import { GRAD } from '../portalkit';
 import { EmptyState, SuccessBurst } from '../EmptyState';
 import { SkeletonList } from '../motion';
 import { request } from '@/src/models/services/api';
@@ -324,14 +326,19 @@ function JobCard({ job, onSave, onApply }: { job: Job; onSave: (j: Job) => void;
           </Pressable>
           <Pressable
             onPress={() => onApply(job)}
-            style={s.applyBtn}
             testID={`job-apply-${job.job_id}`}
             accessibilityRole="button"
             accessibilityLabel={job.applied ? `Already applied to ${job.title}` : `Apply to ${job.title} at ${job.company}`}
             accessibilityState={{ disabled: !!job.applied }}
           >
-            <Text style={s.applyText}>{job.applied ? 'Applied' : 'Apply'}</Text>
-            <ExternalLink size={11} color="#fff" />
+            <LinearGradient
+              colors={[GRAD.from, GRAD.to]}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={s.applyBtn}
+            >
+              <Text style={s.applyText}>{job.applied ? 'Applied' : 'Apply'}</Text>
+              <ExternalLink size={11} color="#fff" />
+            </LinearGradient>
           </Pressable>
         </View>
       </View>
@@ -408,7 +415,7 @@ const s = StyleSheet.create({
   modePillTxt: { color: '#A78BFA', fontFamily: FONTS.bold, fontSize: 10 },
 
   iconBtn: { width: 30, height: 30, borderRadius: 8, backgroundColor: SC.card, borderWidth: 1, borderColor: SC.border, alignItems: 'center', justifyContent: 'center' },
-  applyBtn: { flexDirection: 'row', gap: 4, alignItems: 'center', paddingHorizontal: 12, height: 30, borderRadius: 8, backgroundColor: SC.primary, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  applyBtn: { flexDirection: 'row', gap: 4, alignItems: 'center', paddingHorizontal: 12, height: 30, borderRadius: 8, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   applyText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 },
 
   empty: { padding: 40, alignItems: 'center', gap: 12, backgroundColor: SC.card, borderRadius: 12, borderWidth: 1, borderColor: SC.border },

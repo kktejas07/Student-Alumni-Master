@@ -9,11 +9,11 @@ type G2 = readonly [string, string];
 type G3 = readonly [string, string, string];
 
 export const GRADS = {
-  // NexusOS-leaning brand (used as default by static consumers)
-  brand:    ['#3B82F6', '#06B6D4'] as G2,         // NexusOS blue → cyan
-  brandSoft:['#60A5FA', '#67E8F9'] as G2,
-  brandHero:['#3B82F6', '#06B6D4', '#A855F7'] as G3,
-  brandGlow:['rgba(59,130,246,0.55)', 'rgba(7,7,10,0.0)'] as G2,
+  // Brand identity — purple gradient (consistent across dark & light)
+  brand:    ['#7B3DBF', '#5F259F'] as G2,                  // purple 500 → 700
+  brandSoft:['#A78BFA', '#C4B5FD'] as G2,                  // soft lavender
+  brandHero:['#7B3DBF', '#5F259F', '#EC4899'] as G3,       // purple → magenta
+  brandGlow:['rgba(123,61,191,0.55)', 'rgba(7,7,10,0.0)'] as G2,
 
   bronze:   ['#92400E', '#B45309'] as G2,
   silver:   ['#94A3B8', '#CBD5E1'] as G2,
@@ -30,10 +30,10 @@ export const GRADS = {
   amber:    ['#B45309', '#F59E0B'] as G2,
   amberSoft:['rgba(245,158,11,0.18)', 'rgba(245,158,11,0.04)'] as G2,
 
-  premium:  ['#3B82F6', '#06B6D4', '#FCD34D'] as G3,
-  glass:    ['rgba(59,130,246,0.10)', 'rgba(7,7,10,0.06)'] as G2,
-  glassDark:['rgba(59,130,246,0.18)', 'rgba(7,7,10,0.6)'] as G2,
-  card:     ['rgba(18,18,24,0.85)', 'rgba(7,7,10,0.85)'] as G2,
+  premium:  ['#7B3DBF', '#A78BFA', '#FCD34D'] as G3,
+  glass:    ['rgba(123,61,191,0.10)', 'rgba(7,7,10,0.06)'] as G2,
+  glassDark:['rgba(123,61,191,0.18)', 'rgba(7,7,10,0.6)'] as G2,
+  card:     ['rgba(20,16,33,0.85)', 'rgba(7,7,10,0.85)'] as G2,
 } as const;
 
 export type GradKey = keyof typeof GRADS;
