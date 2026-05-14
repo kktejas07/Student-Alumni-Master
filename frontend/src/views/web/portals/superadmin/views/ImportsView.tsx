@@ -577,6 +577,18 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
     try {
       const r = await request<any>(`/admin/users/list?category=${cat}&q=${encodeURIComponent(q)}&limit=200`);
       setData(r);
+    } catch (e: any) {
+      // Token may not be ready on first paint — retry once after a short delay
+      if (/401|Not authenticated/i.test(String(e?.message || ''))) {
+        await new Promise((r) => setTimeout(r, 600));
+        try {
+          const r = await request<any>(`/admin/users/list?category=${cat}&q=${encodeURIComponent(q)}&limit=200`);
+          setData(r);
+          return;
+        } catch {}
+      }
+      console.warn('Imports browse load failed', e);
+      setData({ items: [], total: 0, counts: {} });
     } finally { setBusy(false); }
   }, [cat, q]);
   useEffect(() => { load(); }, [load]);
