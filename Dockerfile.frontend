@@ -52,12 +52,6 @@ RUN if [ -f yarn.lock ]; then yarn install --frozen-lockfile --network-timeout 6
 
 COPY frontend/ .
 
-RUN if [ -z "$EXPO_PUBLIC_BACKEND_URL" ]; then \
-    echo "WARNING: EXPO_PUBLIC_BACKEND_URL not set, using default"; \
-    export EXPO_PUBLIC_BACKEND_URL="http://localhost:8000"; \
-    fi && \
-    echo "Using EXPO_PUBLIC_BACKEND_URL=$EXPO_PUBLIC_BACKEND_URL"
-
 RUN npx expo export --platform web --output-dir dist
 
 FROM nginx:1.27-alpine
