@@ -1,14 +1,27 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# ─────────────────────────────────────────────────────────────────
+# Project .gitignore — Student Alumni / NexusOS
+# ─────────────────────────────────────────────────────────────────
 
-# IDE and editors
+# ── IDE / editor
 .idea/
 .vscode/
+*.swp
+*.swo
+*.bak
+*~
 
-# Dependencies
+# ── OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Node / JS deps
 node_modules/
-/node_modules
-/.pnp
+.pnp
 .pnp.js
+.pnpm-debug.log*
+
+# ── Yarn
 .yarn/install-state.gz
 .yarn/*
 !.yarn/patches
@@ -16,147 +29,97 @@ node_modules/
 !.yarn/releases
 !.yarn/versions
 
-# Testing
-/coverage
-
-# Next.js
-/.next/
-/out/
-next-env.d.ts
-*.tsbuildinfo
-
-# Production builds
-/build
-dist/
-dist
-
-# Environment files (comprehensive coverage)
-
-*token.json*
-*credentials.json*
-
-# Logs and debug files
+# ── npm / yarn logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
-dump.rdb
 
-# System files
-.DS_Store
-*.pem
+# ── Build outputs
+/build
+/out
+/dist
+dist/
+.next/
+*.tsbuildinfo
 
-# Python
+# ── Expo / React Native
+.expo/
+.expo-shared/
+expo-env.d.ts
+web-build/
+
+# ── Metro / Babel / Watchman caches
+.metro-cache/
+.metro-health-check*
+.haste_cache/
+.babel-cache/
+.jest-cache/
+
+# ── Coverage / tests
+/coverage
+test_reports/
+
+# ── Python
 __pycache__/
-*pyc*
-venv/
+*.py[cod]
+*$py.class
 .venv/
+venv/
+env/
+.python-version
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# Development tools
-chainlit.md
-.chainlit
+# ── Notebook checkpoints
 .ipynb_checkpoints/
-.ac
 
-# Deployment
-.vercel
+# ── Environment files (NEVER commit secrets)
+.env
+.env.*
+!.env.example
+*.env
+credentials.json
+*token.json*
+*credentials.json*
+*.pem
+*.key
+.credentials
 
-# Data and databases
-agenthub/agents/youtube/db
+# ── Database / runtime
+dump.rdb
+*.sqlite
+*.sqlite3
+*.db-journal
 
-# Archive files and large assets
-**/*.zip
-**/*.tar.gz
-**/*.tar
-**/*.tgz
+# ── Seed / export data (regenerable, often huge)
+backend/seed_data_export/
+
+# ── Archives / large binaries
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.rar
 *.pack
 *.deb
 *.dylib
 
-# Build caches
+# ── Deployment caches
+.vercel
+.dokploy/
+
+# ── Misc
 .cache/
-
+chainlit.md
+.chainlit
+.ac
 memory/test_credentials.md
+agenthub/agents/youtube/db
+android-sdk/
 
-# Mobile development
-android-sdk/-e 
-# Environment and credential files
-.env
-.env.*
-*.env
-credentials.json
-*.pem
-*.key
-.credentials
--e 
-# Environment and credential files
-.env
-.env.*
-*.env
-credentials.json
-*.pem
-*.key
-.credentials
--e 
-# Environment and credential files
-.env
-.env.*
-*.env
-credentials.json
-*.pem
-*.key
-.credentials
--e 
-# Environment and credential files
-.env
-.env.*
-*.env
-credentials.json
-*.pem
-*.key
-.credentials
--e 
-# Environment and credential files
-.env
-.env.*
-*.env
-credentials.json
-*.pem
-*.key
-.credentials
--e 
-# Environment and credential files
-.env
-.env.*
-*.env
-credentials.json
-*.pem
-*.key
-.credentials
--e 
-# Environment and credential files
-.env
-.env.*
-*.env
-credentials.json
-*.pem
-*.key
-.credentials
--e 
-# Environment and credential files
-.env
-.env.*
-*.env
-credentials.json
-*.pem
-*.key
-.credentials
--e 
-# Environment and credential files
-.env
-.env.*
-*.env
-credentials.json
-*.pem
-*.key
-.credentials
+# ── Files that should never have been committed
+# (binary-named cruft, accidental drops)
+frontend/\001*
