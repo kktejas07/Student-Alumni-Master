@@ -1,0 +1,140 @@
+name: Release on CHANGELOG bump
+
+# ────────────────────────────────────────────────────────────────────
+# What this does
+# ────────────────────────────────────────────────────────────────────
+# Every time `CHANGELOG.md` is pushed to `main`:
+#   1. Parses the newest `## [x.y.z]` section out of the changelog.
+#   2. If `vX.Y.Z` does NOT yet exist as a git tag → creates it.
+#   3. Creates a GitHub Release using that section's body as the notes.
+#
+# You can also run it manually from the Actions tab with `backfill: true`
+# to tag + release EVERY missing version in one go (use after the first
+# push from Emergent).
+# ────────────────────────────────────────────────────────────────────
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'CHANGELOG.md'
+      - 'scripts/extract-changelog.sh'
+      - '.github/workflows/release.yml'
+
+  workflow_dispatch:
+    inputs:
+      backfill:
+        description: 'Tag + release EVERY missing version (not just the latest)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # required to push tags and create releases
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (with full history + tags)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Make extractor executable
+        run: chmod +x scripts/extract-changelog.sh
+
+      - name: Decide which versions to release
+        id: pick
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.backfill }}" == "true" ]]; then
+            echo "🔁 Backfill mode — considering ALL semver entries"
+            VERS=$(scripts/extract-changelog.sh --list-versions)
+          else
+            echo "⚡ Latest mode — considering only the newest entry"
+            VERS=$(scripts/extract-changelog.sh --version || true)
+          fi
+          if [[ -z "$VERS" ]]; then
+            echo "ℹ️  No semver entries found in CHANGELOG — nothing to release."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Versions to consider:"
+          printf '  %s\n' $VERS
+          # Save newline-delimited so the next step can read them safely.
+          printf '%s\n' "$VERS" > /tmp/versions.txt
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Configure git identity
+        if: steps.pick.outputs.skip != 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Create missing tags + GitHub Releases
+        if: steps.pick.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          CREATED=0
+          SKIPPED=0
+
+          while IFS= read -r VERSION; do
+            [[ -z "$VERSION" ]] && continue
+            TAG="v$VERSION"
+
+            if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
+              echo "⏭  Tag $TAG already exists — skipping"
+              SKIPPED=$((SKIPPED+1))
+              continue
+            fi
+
+            echo "🏷  Creating tag $TAG"
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin "$TAG"
+
+            BODY_FILE="$(mktemp)"
+            scripts/extract-changelog.sh --body-for "$VERSION" > "$BODY_FILE"
+
+            # Decide if this is a prerelease (semver pre-release suffix or 0.x.y)
+            PRERELEASE_FLAG=""
+            if [[ "$VERSION" == *-* ]]; then
+              PRERELEASE_FLAG="--prerelease"
+            fi
+
+            echo "📦 Publishing GitHub Release $TAG"
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              echo "    Release already exists — updating notes only"
+              gh release edit "$TAG" --notes-file "$BODY_FILE" --title "$TAG"
+            else
+              gh release create "$TAG" \
+                --title "$TAG" \
+                --notes-file "$BODY_FILE" \
+                $PRERELEASE_FLAG
+            fi
+
+            CREATED=$((CREATED+1))
+          done < /tmp/versions.txt
+
+          echo ""
+          echo "✅ Done. Created: $CREATED   Skipped: $SKIPPED"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Release workflow summary"
+            echo ""
+            if [[ "${{ steps.pick.outputs.skip }}" == "true" ]]; then
+              echo "ℹ️  No releasable versions found in \`CHANGELOG.md\`."
+            else
+              echo "Mode: \`${{ github.event_name == 'workflow_dispatch' && inputs.backfill && 'backfill' || 'latest' }}\`"
+              echo ""
+              echo "See the **Create missing tags + GitHub Releases** step above for details."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
