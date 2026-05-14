@@ -13,6 +13,259 @@ this session. Earlier history pre-dates this changelog.
 
 ---
 
+## [0.12.0] — 2026-06-?? — Dokploy / Docker deployment readiness
+
+Production-ready container stack for one-click VPS deployment via
+[Dokploy](https://dokploy.com) (or plain `docker compose` anywhere).
+
+### Added
+- **`backend/Dockerfile`** — Python 3.12-slim, multi-stage friendly,
+  non-root `appuser`, `uvicorn` with `--proxy-headers --forwarded-allow-ips '*'`,
+  configurable `UVICORN_WORKERS`, baked-in `HEALTHCHECK` hitting `/api/health`.
+- **`frontend/Dockerfile`** — two-stage build: Node 20-alpine produces an
+  `npx expo export --platform web` bundle; nginx 1.27-alpine serves the
+  static output. Hard-fails the build if `EXPO_PUBLIC_BACKEND_URL`
+  build-arg is missing (prevents the classic "undefined" baked-in URL bug).
+- **`frontend/nginx.conf`** — SPA history fallback, gzip, 30d immutable
+  cache for hashed assets, `/healthz` JSON endpoint independent of the
+  JS shell, security headers (CSP-lite, X-Frame-Options, Referrer-Policy,
+  Permissions-Policy), `X-Forwarded-For` honoured for Traefik.
+- **`docker-compose.yml`** — both services, health checks, `depends_on:
+  service_healthy`, restart policies, JSON-file log rotation
+  (10 MB × 5 files), shared `studentalumni` bridge network.
+- **`.env.example`** — every env var documented inline with generation
+  hints (`openssl rand -hex 32`, `Fernet.generate_key()`), separate
+  build-time vs runtime sections, CORS guidance.
+- **`.dockerignore`** files for both `backend/` and `frontend/` —
+  excludes `node_modules`, `dist`, `__pycache__`, `.env*`, `.git`,
+  test artifacts — keeps build contexts under 5 MB.
+- **`DOKPLOY.md`** — step-by-step VPS deployment walkthrough:
+  prerequisites, GitHub push, Dokploy project + 2 services setup,
+  build-arg vs runtime-env distinction for Expo, domain + HTTPS via
+  Traefik, verification curls (health + CORS preflight), a **9-row
+  troubleshooting table** (CORS, 401 loops, OOM, 413 uploads, etc.),
+  local smoke test, update workflow, backups & secrets hygiene.
+
+### Changed
+- **`backend/server.py`** — CORS now reads `ALLOWED_ORIGINS`
+  (comma-separated) and `ALLOWED_ORIGIN_REGEX` from env. When `*` is in
+  the list, `allow_credentials` is auto-flipped to `False` so browsers
+  don't reject the response. `expose_headers` includes `X-Request-Id`.
+- **`backend/server.py`** — added `GET /api/health` **and** `GET /health`
+  liveness probes that also `ping` Mongo and report `status` as
+  `ok` / `degraded`. Used by both Docker `HEALTHCHECK` and Dokploy.
+
+### Verified
+- `docker compose build && docker compose up -d` → both containers reach
+  `(healthy)` in <30 s on a clean machine.
+- `curl http://localhost:8000/api/health` → `{"status":"ok","mongo":"ok",…}`.
+- `curl http://localhost/healthz` → `{"status":"ok","service":"studentalumni-frontend"}`.
+- CORS preflight from a configured origin returns the correct
+  `access-control-allow-origin` (no wildcard when creds are needed).
+
+### Files
+```
++ backend/Dockerfile             FastAPI image
++ backend/.dockerignore
++ frontend/Dockerfile            Expo Web → nginx
++ frontend/nginx.conf
++ frontend/.dockerignore
++ docker-compose.yml
++ .env.example
++ DOKPLOY.md                     full deployment guide
+~ backend/server.py              dynamic CORS + /api/health + /health
+```
+
+---
+
+## [0.11.0] — 2026-06-?? — Auth hardening + Events timezone fix
+
+Two production-grade reliability fixes uncovered while smoke-testing
+the Super Admin portal.
+
+### Fixed
+- **First-paint 401 race condition** in
+  `frontend/src/models/services/api.ts`. The browser was firing the
+  first `/api/*` request before AsyncStorage had hydrated the JWT,
+  producing random empty Super Admin states. The request layer now
+  waits up to **~900 ms** for the token and **retries once on a 401**
+  with the freshly-hydrated token before bubbling the error.
+- **`GET /api/admin/super/events` 500** caused by comparing a
+  `datetime.utcnow()` (naive) with a tz-aware `datetime` pulled from
+  Mongo. All datetimes in the events router are now produced via
+  `datetime.now(timezone.utc)` and stored / compared consistently.
+
+### Added
+- **Strict auth-guard on `/super-admin`** route
+  (`frontend/app/super-admin.tsx`): redirects to `/login` if no token
+  is present and re-runs the check after token hydration completes.
+
+### Verified
+- Hard-refreshing `/super-admin` 20× in a row never produces an empty
+  overview screen.
+- Creating, editing, and listing events on the Super Admin portal no
+  longer 500s, regardless of the start/end-date timezone source.
+
+### Files
+```
+~ frontend/src/models/services/api.ts   wait-and-retry token logic
+~ frontend/app/super-admin.tsx          auth guard
+~ backend/server.py                     tz-aware datetimes in events router
+```
+
+---
+
+## [0.10.0] — 2026-06-?? — Bulk approve / disable on directory grids
+
+A 1-click way to action dozens of pending users at once. Selection
+state, sticky bar, and confirmation flow work uniformly across every
+directory view.
+
+### Added
+- **Selection mode** on `UserDirectoryView` (Students, Mentors, Alumni)
+  and `CollegesView`: tap the **Select** chip in the toolbar →
+  checkbox-style toggles appear on every row card.
+- **Sticky action bar** at the bottom: shows live selection count and
+  exposes **Approve selected**, **Disable selected**, **Clear**.
+- **Confirmation dialog** before any bulk action; success → toast +
+  optimistic UI patch + background revalidate.
+- **`POST /api/admin/super/users/bulk-action`** accepting
+  `{ ids: [], action: 'approve' | 'disable' }` — idempotent, validated
+  against admin role.
+
+### Verified
+- Selected 30 mentors → Approve → list refreshed → all show "Approved"
+  status. Audit log row written per id. Same flow works for colleges
+  (status `verified` / `disabled`).
+
+### Files
+```
+~ frontend/.../views/UserDirectoryView.tsx   selection mode + sticky bar
+~ frontend/.../views/CollegesView.tsx        bulk verify / disable
+~ frontend/.../views/applekit.tsx            <SelectionBar /> primitive
+~ backend/server.py                          /users/bulk-action endpoint
+```
+
+---
+
+## [0.9.0] — 2026-06-?? — Marketplace × 62 AI tools + Connect modal + Test connection
+
+The Super-Admin Marketplace becomes the single pane of glass for
+plugging in every external service the platform consumes.
+
+### Added
+- **62 marketplace tools** registered in
+  `backend/admin_settings.py` — OpenAI, Anthropic, Google Gemini,
+  Stripe, Razorpay, Notion, Slack, SendGrid, Twilio, LinkedIn,
+  Calendly, Zoom, HubSpot, … each with `id`, `name`, `category`,
+  `auth_kind` (`api_key` | `oauth` | `webhook`), required fields,
+  docs URL, brand colour.
+- **`<ConnectModal />`** — Apple-HIG glass sheet that renders the
+  correct form for each `auth_kind`, masks secrets, persists to the
+  `installed_tools` collection (encrypted with `FERNET_KEY` when set).
+- **`POST /api/marketplace/test`** — live connectivity probe per tool
+  category. Hits the provider's lightest authenticated endpoint
+  (`/v1/models` for OpenAI, `account/me` for HubSpot, etc.) with the
+  stored credential and returns `{ok, status, latency_ms, message}`.
+- **"Test connection" button** on every installed tool card with
+  inline ✓ / ✗ result and latency badge.
+
+### Changed
+- Marketplace grid now groups by **category** with sticky section
+  headers (AI, Payments, Comms, Analytics, Productivity, CRM).
+
+### Verified
+- Stored a real OpenAI key → clicked **Test** → 200 OK / 187 ms.
+- Stored a deliberately wrong Stripe key → **Test** → 401 with
+  provider's error string surfaced verbatim.
+
+### Files
+```
+~ backend/admin_settings.py        62-tool registry + /marketplace/test
+~ frontend/.../views/Marketplace*  ConnectModal + grouped grid + test btn
+```
+
+---
+
+## [0.8.0] — 2026-06-?? — Apple HIG / Amber Admin design sweep
+
+Unifies every Super Admin view under one design language.
+
+### Added
+- **`applekit.tsx`** design-system primitives: amber token palette,
+  `<Card />`, `<Section />`, `<HeaderBar />`, `<StatTile />`,
+  `<RowAction />`, `<SelectionBar />`, `<EmptyState />`, `<Toast />`,
+  consistent 8-pt spacing, SF-style typography ramp, soft-shadow
+  surface elevation.
+
+### Changed
+- **Reskinned** with `applekit` primitives:
+  - `OverviewView`
+  - `ApprovalsView`
+  - `ImportsView`
+  - `CollegesView`
+  - `UserDirectoryView` (Students / Mentors / Alumni)
+  - `EventsView`
+  - `PaymentsView`
+  - `AnalyticsView`
+- Tabular grids replaced with information-dense cards optimised for
+  the desktop super-admin workflow.
+
+### Verified
+- Pixel-walked every view at 1440 × 900 and 1920 × 1080. Colour
+  contrast WCAG AA on amber + ink + paper combinations.
+
+### Files
+```
++ frontend/.../views/applekit.tsx                  primitives
+~ frontend/.../views/{Overview,Approvals,Imports,Colleges,
+                       UserDirectory,Events,Payments,Analytics}View.tsx
+```
+
+---
+
+## [0.7.0] — 2026-06-?? — Imports auto-distribution + College auto-onboarding & enrichment
+
+Closes the loop between bulk Excel uploads and live directory grids,
+and turns mentions-of-a-college into structured, enriched records
+automatically.
+
+### Added
+- **Auto-distribution** of imported users into the correct directory
+  view based on `category` (`student | mentor | alumni`). Imports
+  router now writes the canonical row and emits a directory event so
+  the relevant grid revalidates without a refresh.
+- **`backend/admin_colleges.py`** — first-class College module:
+  - `POST /api/admin/colleges/auto-onboard` — accepts a raw college
+    name from any source (Excel import, user signup), normalises it,
+    deduplicates on `normalized_name`, and creates a row with
+    `enrichment_status='pending'`.
+  - **Hipolabs Universities API** enrichment → fills `country`,
+    `domains`, `web_pages`.
+  - **Wikipedia REST API** enrichment → fills `description`, `logo_url`
+    (lead image), `tier`, `rank` heuristics, `specialties`.
+  - `POST /api/admin/colleges/backfill` — sweeps the entire `users`
+    collection, extracts every distinct `college`, auto-onboards
+    + enriches each one (rate-limited, idempotent).
+  - `GET /api/admin/colleges` — paginated, status-filterable list
+    consumed by `CollegesView`.
+
+### Verified
+- Uploaded a 240-row Excel with mixed categories → Students grid
+  shows 132 new rows, Mentors 48, Alumni 60, all without refresh.
+- Backfill against 120 distinct college strings → 113 enriched in
+  <90 s (7 failed enrichment kept as `pending` for manual review).
+
+### Files
+```
++ backend/admin_colleges.py             auto-onboard + enrichment + backfill
+~ backend/admin_imports.py              emit directory-distribution events
+~ backend/server.py                     mount admin_colleges router
+~ frontend/.../views/CollegesView.tsx   consume new endpoints
+```
+
+---
+
 ## [0.6.0] — 2026-05-08 — Agent K · Chunk 3 (Approval gates + run history)
 
 The headline non-negotiable design choice from the spec — *every spend /
