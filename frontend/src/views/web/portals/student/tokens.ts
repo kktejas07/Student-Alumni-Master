@@ -11,21 +11,21 @@ import { useTheme } from '@/src/theme/ThemeContext';
 export const SC = {
   bg:        '#07070A',                 // NexusOS near-black canvas
   bg2:       '#0E0E12',                 // sidebar / topbar surface-1
-  card:      'rgba(59,130,246,0.08)',   // subtle blue-tinted card
-  cardSolid: '#121218',                 // solid card surface-2
-  cardH:     'rgba(59,130,246,0.14)',   // card hover
+  card:      'rgba(123,61,191,0.10)',   // subtle purple-tinted card
+  cardSolid: '#141021',                 // solid card surface-2 (deep violet-black)
+  cardH:     'rgba(123,61,191,0.16)',   // card hover
 
   border:    'rgba(255,255,255,0.06)',  // hairline
-  border2:   'rgba(59,130,246,0.30)',   // accent border
+  border2:   'rgba(123,61,191,0.32)',   // accent purple border
 
-  // Brand purple is preserved as semantic accent
-  primary:      '#3B82F6',              // NexusOS blue
-  primaryD:     '#1E40AF',
-  primaryL:     '#60A5FA',
-  accent:       '#06B6D4',              // NexusOS cyan
-  accentBright: '#67E8F9',
+  // Brand purple — unified across dark & light for consistent identity
+  primary:      '#7B3DBF',              // brand purple 500
+  primaryD:     '#5F259F',              // brand purple 700
+  primaryL:     '#A78BFA',              // soft lavender (hover)
+  accent:       '#7B3DBF',              // purple accent
+  accentBright: '#C4B5FD',              // bright lavender for highlights on dark
 
-  text:  '#F4F4F6',                     // NexusOS primary text
+  text:  '#F4F4F6',                     // primary text on dark
   muted: '#8A8A95',                     // secondary
   dim:   '#5A5A66',                     // tertiary
 

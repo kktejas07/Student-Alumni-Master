@@ -18,6 +18,7 @@ import {
 } from '../iconShims';
 import { SC, FONTS, useColors } from '../tokens';
 import { GRADS } from '../gradients';
+import { GRAD, IconBox, SectionLabel } from '../portalkit';
 import { FadeInView, Stagger, PressScale, SparkIcon, ShimmerGradient, AnimatedRingFill } from '../motion';
 import { Av, Badge, KpiCard } from '../atoms';
 import * as MOCK from '../data';
@@ -196,8 +197,14 @@ export function DashboardView() {
             finally { setBriefLoading(false); }
           }}
         >
-          <Sparkles size={13} color="#fff" />
-          <Text style={s.briefCtaText}>{briefLoading ? 'Generating…' : 'Generate Brief'}</Text>
+          <LinearGradient
+            colors={[GRAD.from, GRAD.to]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={s.gradCta}
+          >
+            <Sparkles size={13} color="#fff" />
+            <Text style={s.briefCtaText}>{briefLoading ? 'Generating…' : 'Generate Brief'}</Text>
+          </LinearGradient>
         </PressScale>
       </View>
       </FadeInView>
@@ -240,9 +247,9 @@ export function DashboardView() {
 
       {/* AI Career Assistant Roadmap */}
       <View style={[s.roadmapCard, { backgroundColor: C.card, borderColor: C.border }]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14 }}>
-          <Sparkles size={13} color={SC.accent} />
-          <Text style={s.kicker}>AI CAREER ASSISTANT · PERSONALISED ROADMAP</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+          <IconBox size={28}><Sparkles size={13} color={GRAD.from} /></IconBox>
+          <SectionLabel>AI CAREER ASSISTANT · PERSONALISED ROADMAP</SectionLabel>
         </View>
         <Text style={s.roadmapTitle}>You’re {STUDENT.career.progressPct}% toward your goal:</Text>
         <Text style={s.roadmapGoal}>{STUDENT.career.goal}</Text>
@@ -258,11 +265,14 @@ export function DashboardView() {
         </View>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
-          <Pressable
-            style={({ hovered }: any) => [s.primaryCta, hovered && { backgroundColor: SC.primaryL }]}
-            onPress={() => alert('Open full roadmap')}
-          >
-            <Text style={s.primaryCtaText}>View Full Roadmap →</Text>
+          <Pressable onPress={() => alert('Open full roadmap')}>
+            <LinearGradient
+              colors={[GRAD.from, GRAD.to]}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={s.primaryCta}
+            >
+              <Text style={s.primaryCtaText}>View Full Roadmap →</Text>
+            </LinearGradient>
           </Pressable>
           <Pressable
             style={({ hovered }: any) => [s.secCta, hovered && { backgroundColor: SC.cardH }]}
@@ -388,9 +398,15 @@ export function DashboardView() {
                   </View>
                   <Text style={s.mentorPrice}>₹{m.price}/session</Text>
                 </View>
-                <Pressable style={({ hovered }: any) => [s.bookCta, hovered && { backgroundColor: SC.primaryL }]}>
-                  <Calendar size={12} color="#fff" />
-                  <Text style={s.bookCtaText}>Book Session</Text>
+                <Pressable onPress={() => alert('Book session: ' + m.name)}>
+                  <LinearGradient
+                    colors={[GRAD.from, GRAD.to]}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                    style={s.bookCta}
+                  >
+                    <Calendar size={12} color="#fff" />
+                    <Text style={s.bookCtaText}>Book Session</Text>
+                  </LinearGradient>
                 </Pressable>
               </View>
             ))}
@@ -467,10 +483,11 @@ const s = StyleSheet.create({
     backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14,
     paddingVertical: 14, paddingHorizontal: 18,
   },
-  briefIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(176,127,223,0.15)', alignItems: 'center', justifyContent: 'center' },
+  briefIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(123,61,191,0.18)', alignItems: 'center', justifyContent: 'center' },
   briefTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
   briefSub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 1 },
-  briefCta: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 10, backgroundColor: SC.primary, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  briefCta: { borderRadius: 10, overflow: 'hidden', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  gradCta: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 10 },
   briefCtaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
 
   liveStrip: {
@@ -514,7 +531,7 @@ const s = StyleSheet.create({
   progTrack: { height: 6, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden' },
   progFill:  { height: '100%', borderRadius: 4 },
 
-  primaryCta: { paddingHorizontal: 16, height: 36, borderRadius: 10, backgroundColor: SC.primary, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  primaryCta: { paddingHorizontal: 16, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
   primaryCtaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
   secCta: { paddingHorizontal: 16, height: 36, borderRadius: 10, backgroundColor: SC.card, borderWidth: 1, borderColor: SC.border, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
   secCtaText: { color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 12.5 },
@@ -546,7 +563,7 @@ const s = StyleSheet.create({
   mentorRole: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
   mentorMeta: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 11 },
   mentorPrice: { color: SC.accentBright, fontFamily: FONTS.xbold, fontSize: 12 },
-  bookCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, height: 34, borderRadius: 8, backgroundColor: SC.primary, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  bookCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, height: 34, borderRadius: 8, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
   bookCtaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
 
   eventCard: {

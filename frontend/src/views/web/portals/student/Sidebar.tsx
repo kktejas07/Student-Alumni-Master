@@ -29,6 +29,7 @@ import { useTheme } from '@/src/theme/ThemeContext';
 import { useBreakpoint } from '@/src/theme/breakpoints';
 import { SP, RADII, FONT_FAMILY } from '@/src/theme/apple';
 import { GRADS } from './gradients';
+import { SC } from './tokens';
 import { STUDENT } from './data';
 import { Av } from './atoms';
 import { FadeInView, PressScale, SparkIcon, PulseDot } from './motion';
@@ -85,6 +86,8 @@ export function Sidebar({
   if (bp.isPhone) return null;
 
   // Token resolution — light vs dark
+  // Brand accent is FORCED to student-portal purple for consistent identity,
+  // regardless of the global theme.primary (which is shared across portals).
   const C = {
     bg: theme.bgElevated,
     border: theme.hairline,
@@ -92,7 +95,7 @@ export function Sidebar({
     textSec: theme.textSec,
     textTer: theme.textTer,
     cardBg: isDark ? theme.bgInset : 'rgba(0,0,0,0.03)',
-    accent: theme.primary,
+    accent: SC.primary,
     danger: theme.red,
   };
 
