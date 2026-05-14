@@ -34,13 +34,83 @@ import {
   UserCog, Sliders, Plug, Shield, Bell, Lock, IdCard, Plus,
   Pencil, Trash2, Check, X, Copy, Share2, Download, Eye, EyeOff,
   ExternalLink, RotateCcw, Monitor, Smartphone, AlertTriangle, KeyRound,
-  ChevronRight, QrCode, Building2, ShieldCheck,
+  ChevronRight, QrCode, Building2, ShieldCheck, Search, Sparkles, CheckCircle2,
 } from 'lucide-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Linking from 'expo-linking';
 import { SAC, FONTS } from '../tokens';
 import { request } from '@/src/models/services/api';
+
+/* ─────────────────────────────────────────────────────────────────
+ * Provider docs map — used by the "How to get credentials" link in
+ * the Connect modal. Maintained by tool_id.
+ * ───────────────────────────────────────────────────────────────── */
+const TOOL_DOCS: Record<string, string> = {
+  'google-workspace': 'https://console.cloud.google.com/apis/credentials',
+  'google-calendar' : 'https://console.cloud.google.com/apis/credentials',
+  'outlook'         : 'https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade',
+  'slack'           : 'https://api.slack.com/apps',
+  'zoom'            : 'https://marketplace.zoom.us/develop/create',
+  'whatsapp'        : 'https://developers.facebook.com/docs/whatsapp/cloud-api/get-started',
+  'gmail'           : 'https://console.cloud.google.com/apis/credentials',
+  'sendgrid'        : 'https://app.sendgrid.com/settings/api_keys',
+  'aws-s3'          : 'https://console.aws.amazon.com/iam/home#/security_credentials',
+  'hubspot'         : 'https://app.hubspot.com/private-apps',
+  'salesforce'      : 'https://help.salesforce.com/s/articleView?id=sf.connected_app_create.htm',
+  'zoho'            : 'https://api-console.zoho.com',
+  'notion'          : 'https://www.notion.so/my-integrations',
+  'linear'          : 'https://linear.app/settings/api',
+  'stripe'          : 'https://dashboard.stripe.com/apikeys',
+  'razorpay'        : 'https://dashboard.razorpay.com/app/keys',
+  'linkedin'        : 'https://www.linkedin.com/developers/apps',
+  'twilio'          : 'https://console.twilio.com',
+  'claude'          : 'https://console.anthropic.com/settings/keys',
+  'openai'          : 'https://platform.openai.com/api-keys',
+  'gemini'          : 'https://aistudio.google.com/apikey',
+  'mistral'         : 'https://console.mistral.ai/api-keys/',
+  'cohere'          : 'https://dashboard.cohere.com/api-keys',
+  'perplexity'      : 'https://www.perplexity.ai/settings/api',
+  'groq'            : 'https://console.groq.com/keys',
+  'together-ai'     : 'https://api.together.xyz/settings/api-keys',
+  'fireworks-ai'    : 'https://fireworks.ai/api-keys',
+  'huggingface'     : 'https://huggingface.co/settings/tokens',
+  'replicate'       : 'https://replicate.com/account/api-tokens',
+  'stability'       : 'https://platform.stability.ai/account/keys',
+  'openai-images'   : 'https://platform.openai.com/api-keys',
+  'fal-ai'          : 'https://fal.ai/dashboard/keys',
+  'runway'          : 'https://app.runwayml.com/account',
+  'elevenlabs'      : 'https://elevenlabs.io/app/settings/api-keys',
+  'openai-whisper'  : 'https://platform.openai.com/api-keys',
+  'assemblyai'      : 'https://www.assemblyai.com/app/account',
+  'deepgram'        : 'https://console.deepgram.com/api-keys',
+  'deepl'           : 'https://www.deepl.com/account/summary',
+  'google-translate': 'https://console.cloud.google.com/apis/credentials',
+  'pinecone'        : 'https://app.pinecone.io/organizations/-/keys',
+  'weaviate'        : 'https://console.weaviate.cloud/dashboard',
+  'chroma'          : 'https://docs.trychroma.com/getting-started',
+  'qdrant'          : 'https://cloud.qdrant.io/accounts/-/api-keys',
+  'langsmith'       : 'https://smith.langchain.com/o/-/settings',
+  'helicone'        : 'https://www.helicone.ai/developer',
+  'agent-k'         : 'https://emergent.sh/profile',
+  'proxycurl'       : 'https://nubela.co/proxycurl/dashboard',
+  'rchilli'         : 'https://www.rchilli.com/contact-us',
+  'affinda'         : 'https://app.affinda.com/account/api-keys',
+  'clearbit'        : 'https://dashboard.clearbit.com/api',
+  'apollo'          : 'https://app.apollo.io/#/settings/integrations/api',
+  'lever'           : 'https://hire.lever.co/settings/integrations',
+  'greenhouse'      : 'https://app.greenhouse.io/configure/dev_center',
+  'calendly'        : 'https://calendly.com/integrations/api_webhooks',
+  'tally'           : 'https://tally.so/help/api',
+  'typeform'        : 'https://admin.typeform.com/account#/section/tokens',
+  'posthog'         : 'https://app.posthog.com/project/settings',
+  'mixpanel'        : 'https://mixpanel.com/settings/project',
+  'amplitude'       : 'https://app.amplitude.com/settings/projects',
+  'sentry'          : 'https://sentry.io/settings/account/api/auth-tokens/',
+  'datadog'         : 'https://app.datadoghq.com/organization-settings/api-keys',
+  'github'          : 'https://github.com/settings/tokens',
+};
 
 /* ─────────────────────────────────────────────────────────────────
  * Design tokens — warm orange/amber gradient (matches screenshots)
@@ -407,6 +477,8 @@ function IntegrationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [connectTool, setConnectTool] = useState<Tool | null>(null);
   const [stats, setStats] = useState({ installed: 0, available: 0 });
+  const [query, setQuery] = useState('');
+  const [popularOnly, setPopularOnly] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -432,8 +504,27 @@ function IntegrationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
     await load();
   };
 
-  const filtered = filter === 'All' ? groups : groups.filter((g) => g.category === filter);
+  // Filter pipeline: category → popular toggle → search
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return groups
+      .filter((g) => filter === 'All' || g.category === filter)
+      .map((g) => ({
+        category: g.category,
+        items: g.items.filter((t) => {
+          if (popularOnly && !t.popular) return false;
+          if (q && !`${t.name} ${t.description} ${t.category}`.toLowerCase().includes(q)) return false;
+          return true;
+        }),
+      }))
+      .filter((g) => g.items.length > 0);
+  }, [groups, filter, query, popularOnly]);
+
   const cats = ['All', ...groups.map((g) => g.category)];
+  const totalShown = filtered.reduce((n, g) => n + g.items.length, 0);
+  const popularCount = groups.reduce(
+    (n, g) => n + g.items.filter((t) => t.popular).length, 0,
+  );
 
   return (
     <Animated.View entering={FadeIn.duration(180)} style={{ gap: 14 }}>
@@ -443,12 +534,47 @@ function IntegrationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
             <View style={s.iconBox}><Plug size={14} color={GRAD_TO} /></View>
             <View>
               <Text style={s.cardTitle}>Integrations</Text>
-              <Text style={s.cardSub}>{stats.installed} of {stats.available} tools connected</Text>
+              <Text style={s.cardSub}>
+                {stats.installed} of {stats.available} tools connected
+                {(query || popularOnly || filter !== 'All') ? ` · showing ${totalShown}` : ''}
+              </Text>
             </View>
           </View>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 14 }}>
+        {/* Search + popular toggle */}
+        <View style={s.searchRow}>
+          <View style={s.searchWrap}>
+            <Search size={13} color={SAC.muted} />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search 60+ integrations…"
+              placeholderTextColor={SAC.dim}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={s.searchInput}
+            />
+            {query.length > 0 && (
+              <Pressable onPress={() => setQuery('')} hitSlop={6}>
+                <X size={13} color={SAC.muted} />
+              </Pressable>
+            )}
+          </View>
+          {popularCount > 0 && (
+            <Pressable
+              onPress={() => setPopularOnly(!popularOnly)}
+              style={[s.popularToggle, popularOnly && s.popularToggleActive]}
+            >
+              <Sparkles size={11} color={popularOnly ? GRAD_TO : SAC.muted} />
+              <Text style={[s.popularToggleText, popularOnly && { color: GRAD_TO }]}>
+                Popular {popularOnly ? `(${popularCount})` : ''}
+              </Text>
+            </Pressable>
+          )}
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12 }}>
           {cats.map((c) => {
             const active = c === filter;
             if (active) {
@@ -468,23 +594,38 @@ function IntegrationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
           })}
         </ScrollView>
 
-        <View style={{ marginTop: 16, gap: 18 }}>
-          {filtered.map((g) => (
-            <View key={g.category}>
-              {filter === 'All' && <Text style={s.catLabel}>{g.category.toUpperCase()}</Text>}
-              <View style={s.toolGrid}>
-                {g.items.map((t) => (
-                  <ToolCard
-                    key={t.id} tool={t}
-                    busy={busyId === t.id}
-                    onConnect={() => setConnectTool(t)}
-                    onDisconnect={() => disconnect(t.id)}
-                  />
-                ))}
+        {filtered.length === 0 ? (
+          <View style={s.emptyBox}>
+            <Search size={20} color={SAC.muted} />
+            <Text style={s.emptyTitle}>No tools match your search</Text>
+            <Text style={s.emptySub}>
+              Try clearing filters or searching for a different name (e.g. "ChatGPT", "Stripe", "Notion").
+            </Text>
+            {(query || popularOnly || filter !== 'All') && (
+              <Pressable onPress={() => { setQuery(''); setPopularOnly(false); setFilter('All'); }} style={s.clearBtn}>
+                <Text style={s.clearBtnText}>Clear filters</Text>
+              </Pressable>
+            )}
+          </View>
+        ) : (
+          <View style={{ marginTop: 16, gap: 18 }}>
+            {filtered.map((g) => (
+              <View key={g.category}>
+                {filter === 'All' && <Text style={s.catLabel}>{g.category.toUpperCase()}</Text>}
+                <View style={s.toolGrid}>
+                  {g.items.map((t) => (
+                    <ToolCard
+                      key={t.id} tool={t}
+                      busy={busyId === t.id}
+                      onConnect={() => setConnectTool(t)}
+                      onDisconnect={() => disconnect(t.id)}
+                    />
+                  ))}
+                </View>
               </View>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        )}
       </View>
 
       <ConnectModal tool={connectTool} onClose={() => setConnectTool(null)} onConnected={onConnected} />
@@ -627,9 +768,14 @@ function ConnectModal({ tool, onClose, onConnected }: {
               );
             })}
 
-            <Pressable style={s.docLink} onPress={() => {}}>
+            <Pressable style={s.docLink} onPress={() => {
+              const url = TOOL_DOCS[tool.id];
+              if (url) Linking.openURL(url).catch(() => {});
+            }}>
               <ExternalLink size={11} color={GRAD_TO} />
-              <Text style={s.docLinkText}>How to get {tool.name} API credentials</Text>
+              <Text style={s.docLinkText}>
+                {TOOL_DOCS[tool.id] ? `Open ${tool.name} dashboard to get credentials` : `How to get ${tool.name} API credentials`}
+              </Text>
             </Pressable>
 
             {error && <Text style={s.errorText}>{error}</Text>}
@@ -1385,6 +1531,45 @@ const s = StyleSheet.create({
   dangerBtnText: { color: SAC.red, fontFamily: FONTS.bold, fontSize: 12 },
 
   // Integrations
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14, flexWrap: 'wrap' },
+  searchWrap: {
+    flex: 1, minWidth: 240, flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: SAC.cardSolid, borderRadius: 10, borderWidth: 1, borderColor: SAC.border,
+    paddingHorizontal: 12, paddingVertical: 8,
+  },
+  searchInput: {
+    flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 13,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+  },
+  popularToggle: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10,
+    backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  popularToggleActive: {
+    borderColor: 'rgba(251,146,60,0.55)',
+    backgroundColor: 'rgba(251,146,60,0.10)',
+  },
+  popularToggleText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
+
+  emptyBox: {
+    marginTop: 18, padding: 30, alignItems: 'center', gap: 10,
+    borderRadius: 14, borderWidth: 1, borderColor: SAC.border,
+    backgroundColor: SAC.cardSolid,
+  },
+  emptyTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
+  emptySub: {
+    color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center',
+    maxWidth: 360, lineHeight: 17,
+  },
+  clearBtn: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8,
+    backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  clearBtnText: { color: GRAD_TO, fontFamily: FONTS.bold, fontSize: 12 },
+
   catPill: {
     paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999,
     backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border, marginRight: 6,
