@@ -917,8 +917,10 @@ async def super_alumni(limit: int = 60):
 
 @router.get("/admin/super/events")
 async def super_events():
-    """All platform events with registration counts."""
-    cur = _db.events.find().limit(60)
+    """All platform events with registration counts (newest first)."""
+    # Sort newest-first so freshly created events appear at the top of the
+    # admin grid. Raised to 200 to accommodate seeded + user-created events.
+    cur = _db.events.find().sort("created_at", -1).limit(200)
     palette = ["#A78BFA", "#22C55E", "#FCD34D", "#3B82F6", "#22D3EE", "#EC4899", "#F59E0B", "#FB923C"]
     now = datetime.now(timezone.utc)
     out = []
