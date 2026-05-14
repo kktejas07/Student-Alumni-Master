@@ -13,6 +13,65 @@ this session. Earlier history pre-dates this changelog.
 
 ---
 
+## [0.16.0] — 2026-06-?? — Agent K · Scheduled (cron) automations
+
+Agent K can now run on a recurring schedule. From any portal's
+prescription card, tap the calendar icon to set a cadence (daily,
+weekly, hourly, or full crontab) and Agent K will re-execute the
+canned prompt through your connected AI on every tick.
+
+### Added — Backend `agent_k_scheduled.py`
+- **APScheduler** AsyncIOScheduler boots with FastAPI; one 60-second
+  tick polls `agent_k_schedules` for due rows and dispatches each
+  through the existing planner + executor pipeline.
+- Mongo collection `agent_k_schedules` with indexes on
+  `(status, next_run_at)` and `(user_id, created_at)`.
+- Each scheduled run inserts an `agent_runs` row tagged with
+  `schedule_id` + `trigger="scheduled"` so the history view shows
+  automated and manual runs side by side.
+- **BYO-AI gate** is enforced per tick — admins bypass, all other
+  users skip with `last_status="no_ai_provider"` if they haven't
+  connected an AI tool in Profile → Tools & Integrations.
+- Plans containing **spend / submit / communicate** steps pause at
+  approval (no auto-execute) — they appear in `/agent-k` for the
+  user to confirm.
+- A scheduling lock prevents overlapping ticks, and the tick reserves
+  due rows by bumping `next_run_at` so a slow run never double-fires.
+
+### Added — REST endpoints (all `/api`)
+- `GET    /agent-k/scheduled`              — list user's schedules
+- `POST   /agent-k/scheduled`              — create (max 25/user)
+- `GET    /agent-k/scheduled/{id}`         — fetch
+- `PATCH  /agent-k/scheduled/{id}`         — edit / pause / resume
+- `DELETE /agent-k/scheduled/{id}`         — delete
+- `POST   /agent-k/scheduled/{id}/run-now` — fire immediately
+- `GET    /agent-k/scheduled/{id}/runs`    — past runs for this schedule
+- `GET    /agent-k/scheduled-meta/cadences` — cadence picker presets
+
+### Added — Frontend `/agent-k`
+- New "Schedule" calendar button next to every prescription card's
+  CTA; tapping it opens a **`<ScheduleEditor />`** modal:
+  - Title (auto-filled from card)
+  - Cadence chips: Daily · Weekly · Hourly · Advanced (crontab)
+  - Hour/minute steppers (daily/weekly), N-hours field (hourly),
+    crontab textbox (advanced) with help text
+  - Timezone field (auto-detected from `Intl.DateTimeFormat`)
+- New **"Scheduled Automations"** section on `/agent-k` rendering
+  each schedule with its cadence pill, next-run timestamp, last
+  status, and three icon buttons: **Run now**, **Pause / Resume**,
+  **Delete**.
+
+### Dependencies
+- Backend: `APScheduler==3.10.4`, `croniter==2.0.5`, `pytz==2026.2`,
+  `tzlocal==5.3.1` (added to `requirements.txt`).
+
+### Deployment notes
+- The scheduler runs **in-process** with FastAPI. For Dokploy single-
+  container deployments this is fine. For multi-replica setups, only
+  one replica should be a scheduler leader — see DOKPLOY §10.
+
+---
+
 ## [0.15.0] — 2026-06-?? — Super Admin Settings drill-ins (Signature + Role-detail)
 
 The Super Admin Settings screen gains two long-pending drill-ins so admins

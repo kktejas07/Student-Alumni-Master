@@ -10483,3 +10483,197 @@ agent_communication:
 
         Auth: No 401/403 — endpoints unauthenticated as MVP requires.
         Cleanup: All test events were deleted at end of run; DB clean.
+
+---
+
+backend:
+  - task: "Agent K Scheduled (cron) automations"
+    implemented: true
+    working: true
+    file: "/app/backend/agent_k_scheduled.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            FULLY VERIFIED via /app/backend_test.py (44/44 PASS) against
+            http://localhost:8001/api with admin@careerpath.app /
+            Admin@12345 (primary) and student01@test.com / TestPass@123
+            (secondary, for user-isolation).
+
+            ENDPOINTS (all 8):
+              ✅ GET  /agent-k/scheduled-meta/cadences (no auth) — returns
+                 4 cadence presets [daily/weekly/hourly/cron], 7 weekdays,
+                 common_timezones list incl. UTC.
+              ✅ GET  /agent-k/scheduled — 401 without token, 401 with
+                 bogus token, 200 + schedules[] with admin token.
+              ✅ POST /agent-k/scheduled — created one schedule per cadence
+                 (daily Asia/Kolkata 09:00, weekly Mon 08:30 UTC, hourly
+                 6h UTC, cron "0 0 * * * " UTC); all returned valid id +
+                 status="active" + next_run_at populated.
+              ✅ GET  /agent-k/scheduled/{id} — 401 without auth, 404 on
+                 bogus 24-hex ObjectId, 200 on owned id.
+              ✅ PATCH /agent-k/scheduled/{id} — status pause→active works;
+                 cadence/hour/timezone edit recomputes next_run_at > now;
+                 cron_expr edit works; invalid cron_expr → 422; bad
+                 timezone → 422.
+              ✅ DELETE /agent-k/scheduled/{id} — 1st DELETE 200 ok=true;
+                 2nd DELETE same id → 404 (not the same flow as
+                 /admin/super/events which is idempotent — here second
+                 delete returns 404 as designed in the route).
+              ✅ POST /agent-k/scheduled/{id}/run-now — bumped runs_count
+                 0→1, last_status="no_steps" (admin bypass BYO-AI gate
+                 confirmed — never returned "no_ai_provider").
+              ✅ GET  /agent-k/scheduled/{id}/runs — returned 1 run after
+                 run-now, with prompt/status/summary/started_at fields.
+
+            VALIDATIONS (all 6 returned 422 as expected):
+              ✅ Invalid cron expression
+              ✅ Unknown timezone "Mars/Olympus"
+              ✅ Cron cadence without cron_expr
+              ✅ Title < 2 chars
+              ✅ Title > 140 chars
+              ✅ Prompt < 4 chars
+
+            USER-ISOLATION (all 3 returned 404 as expected):
+              ✅ student GET admin's schedule id → 404
+              ✅ student PATCH admin's schedule id → 404
+              ✅ student DELETE admin's schedule id → 404
+
+            PER-USER 25-SCHEDULE CAP:
+              ✅ Filled admin to exactly 25 schedules; 26th POST returned
+                 429 "Schedule limit reached (25 per user)".
+
+            TIMEZONE MATH:
+              ✅ daily 09:00 Asia/Kolkata → next_run_at stored as UTC
+                 03:30:00 (verified: "2026-05-15T03:30:00+00:00").
+              ✅ next_run_at after PATCH is recomputed and > now.
+
+            SCHEDULER RUNTIME (best-effort):
+              ✅ "/var/log/supervisor/backend.err.log" contains
+                 "agent-k.scheduled scheduler started (tick=60s)" after
+                 latest reload.
+              ✅ APScheduler is actively logging
+                 "Running job '_tick_due_schedules'" every 60s — verified
+                 4 consecutive ticks at 18:43, 18:44, 18:45, 18:46 UTC.
+
+            CLEANUP: All 25 created schedules deleted; admin count
+            returned to baseline (0). No residual data.
+
+            REGRESSION SMOKE — /admin/super/events:
+              ✅ POST → 200, PATCH (title update) → 200, DELETE → 200.
+              No regression from server.py edits.
+
+            FINAL: 44/44 assertions PASS. Zero 5xx. Zero schema-validation
+            failures. Zero timing issues. Module is production-ready.
+
+        - working: "NA"
+          agent: "main"
+          comment: |
+            v0.16.0 — APScheduler AsyncIOScheduler boots inside FastAPI
+            with a 60-second tick. Schedules live in `agent_k_schedules`
+            (indexes: status+next_run_at, user_id+created_at). Tick fetches
+            up to 10 due rows per cycle, bumps next_run_at forward to
+            reserve them, then dispatches each through the existing
+            agent_k _plan_with_claude + _execute_run pipeline. Each fire
+            inserts an `agent_runs` row tagged with `schedule_id` and
+            `trigger="scheduled"`. BYO-AI gate applies per tick (admins
+            bypass). Plans containing spend/submit/communicate steps
+            pause at approval rather than auto-execute.
+
+            7 REST endpoints under /api:
+              GET    /agent-k/scheduled
+              POST   /agent-k/scheduled               (cadence: daily / weekly / hourly / cron)
+              GET    /agent-k/scheduled/{id}
+              PATCH  /agent-k/scheduled/{id}          (status pause/resume + edits)
+              DELETE /agent-k/scheduled/{id}
+              POST   /agent-k/scheduled/{id}/run-now
+              GET    /agent-k/scheduled/{id}/runs
+              GET    /agent-k/scheduled-meta/cadences
+
+            Smoke-tested manually with curl + admin token — all 8 paths
+            return correct payloads. Cron expression validation works
+            (422 on garbage), timezone math is correct (09:00 IST →
+            03:30 UTC next_run_at), run-now triggers Claude planner +
+            tool exec end-to-end (verified by `agent_runs` insertion
+            with completed status).
+
+            Suggested testing-agent scope:
+              · POST creates with each cadence; verify next_run_at math.
+              · Invalid cron → 422; bad timezone → 422; long title → 422.
+              · PATCH partial updates (e.g. status only, cadence change,
+                cron→daily switch) recompute next_run_at.
+              · DELETE idempotency (404 second time).
+              · Per-user 25-schedule cap returns 429.
+              · run-now records an agent_runs row with schedule_id and
+                bumps runs_count.
+              · Schedules from user A invisible to user B (isolation).
+              · AGENT_K_SCHEDULER_ENABLED=0 disables in-process scheduler
+                (smoke-checked via log line only — env not toggled in
+                this test cycle).
+
+frontend:
+  - task: "Agent K — schedule cards + automations list UI"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/agent-k.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false   # main agent verified visually via screenshot
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: |
+            Added schedule calendar icon-button beside every prescription
+            card's Run CTA. Tap → opens <ScheduleEditor /> bottom-modal
+            (title prefilled, cadence chips Daily/Weekly/Hourly/Advanced,
+            hour-minute/weekday/N-hours/cron fields conditional on
+            cadence, timezone field auto-detected). Submission posts
+            plain object body (fixed double-encode bug). New "Scheduled
+            Automations" section below recent runs shows each schedule
+            with cadence pill, next-run timestamp, last_status, and
+            three icon buttons (run-now / pause-resume / delete).
+            Screenshots captured of:
+              · empty state ("No scheduled automations yet …")
+              · open modal with cadence + time pickers
+              · post-create row showing "daily · 09:00 UTC" + next-run
+                "5/15/2026, 9:00:00 AM"
+            All visual verification passed under admin login.
+
+agent_communication:
+    - agent: "main"
+      message: |
+        Implemented v0.16.0 Agent K Scheduled (cron) automations:
+
+        Backend:
+          · /app/backend/agent_k_scheduled.py  (new — 450 LOC)
+          · /app/backend/server.py wiring: include_router + startup tick
+            + index creation for agent_k_schedules and agent_runs
+          · requirements.txt: APScheduler 3.10.4, croniter 2.0.5,
+            pytz 2026.2, tzlocal 5.3.1
+
+        Frontend:
+          · /app/frontend/app/agent-k.tsx
+              + Schedule type + state hooks
+              + ScheduleEditor modal (cadence chips, time fields,
+                tz field, validation hints for cron)
+              + Scheduled Automations section with row controls
+                (run-now / pause / resume / delete)
+              + Calendar button beside each prescription card CTA
+              + Restored ss StyleSheet that was dropped during earlier
+                cleanup (fixes ReferenceError seen on first reload)
+
+        Docs:
+          · DOKPLOY.md §10 added — single-replica safe; multi-replica
+            guidance via AGENT_K_SCHEDULER_ENABLED leader flag.
+          · CHANGELOG.md [0.16.0] entry added.
+
+        Manual curl smoke test passed for all 8 new endpoints.
+        Visual UI verification passed via screenshot tool.
+
+        Please run deep_testing_backend_v2 against the new
+        /api/agent-k/scheduled* endpoints (suggested scope embedded
+        in the task status_history above). No need to touch the existing
+        /api/admin/super/events* endpoints — those are unchanged.
