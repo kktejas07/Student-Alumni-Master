@@ -243,7 +243,7 @@ MARKETPLACE = [
     {"id": "zoho",            "name": "Zoho CRM",        "category": "CRM",       "icon": "account-group-outline",   "tint": "#E42527", "description": "CRM sync (popular in India).",                     "auth_type": "oauth",
      "auth_fields": [_f("client_id","Client ID","text"), _f("client_secret","Client Secret","password"), _f("refresh_token","Refresh Token","password")]},
     {"id": "notion",          "name": "Notion",          "category": "Productivity","icon": "notebook-outline",      "tint": "#FFFFFF", "description": "Auto-create reports in Notion.",                   "auth_type": "api_key",
-     "auth_fields": [_f("integration_token","Internal Integration Token","password","secret_xxxxxxxx","From notion.so/my-integrations"),
+     "auth_fields": [_f("api_key","Internal Integration Token","password","secret_xxxxxxxx","From notion.so/my-integrations"),
                      _f("workspace_id","Workspace ID","text","optional")]},
     {"id": "linear",          "name": "Linear",          "category": "Productivity","icon": "lightning-bolt-outline","tint": "#5E6AD2", "description": "Create Linear issues from support tickets.",       "auth_type": "api_key",
      "auth_fields": [_f("api_key","Personal API Key","password","lin_api_xxxxxxxx","From linear.app → Settings → API")]},
@@ -267,7 +267,7 @@ MARKETPLACE = [
      "auth_fields": [_f("api_key","Anthropic API Key","password","sk-ant-xxxxxxxx","From console.anthropic.com → API Keys")]},
     {"id": "openai",          "name": "OpenAI ChatGPT",  "category": "AI",        "icon": "creation",                "tint": "#10A37F", "description": "Alternative LLM backend for AI features.",         "auth_type": "api_key", "popular": True,
      "auth_fields": [_f("api_key","OpenAI API Key","password","sk-xxxxxxxx","From platform.openai.com → API keys"),
-                     _f("organization_id","Organization ID","text","org-xxxx (optional)")]},
+                     _f("organization_id","Organization ID","text","optional · org-xxxx","Optional — leave blank if you use a personal account")]},
     {"id": "gemini",          "name": "Google Gemini",   "category": "AI",        "icon": "google",                  "tint": "#4285F4", "description": "Long-context LLM with native image + audio inputs.","auth_type": "api_key", "popular": True,
      "auth_fields": [_f("api_key","Google API Key","password","AIzaSyXXXXXX","From aistudio.google.com/apikey")]},
     {"id": "mistral",         "name": "Mistral AI",      "category": "AI",        "icon": "weather-windy",           "tint": "#FF7000", "description": "Fast open-weight LLM family (Mistral Large/Codestral).","auth_type": "api_key",
@@ -547,7 +547,8 @@ async def _live_test(tool_id: str, creds: Dict[str, str]) -> tuple[bool, str]:
             r = await _get("https://api.github.com/user", headers={"Authorization": f"Bearer {api_key}"})
             return (r.status_code == 200, "Verified — GitHub token accepted" if r.status_code == 200 else f"GitHub: HTTP {r.status_code}")
         if tool_id == "notion":
-            r = await _get("https://api.notion.com/v1/users/me", headers={"Authorization": f"Bearer {api_key}", "Notion-Version": "2022-06-28"})
+            tok = (creds.get("api_key") or creds.get("integration_token") or "").strip()
+            r = await _get("https://api.notion.com/v1/users/me", headers={"Authorization": f"Bearer {tok}", "Notion-Version": "2022-06-28"})
             return (r.status_code == 200, "Verified — Notion token accepted" if r.status_code == 200 else f"Notion: HTTP {r.status_code}")
         if tool_id == "slack":
             tok = creds.get("bot_token", api_key)
