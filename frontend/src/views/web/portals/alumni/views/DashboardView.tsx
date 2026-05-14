@@ -111,8 +111,8 @@ export function DashboardView() {
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
               {(STUDENT.tier.suggestions.skills || []).slice(0, 3).map((skill: string) => (
                 <View key={skill} style={s.tierChip}>
-                  <Sparkles size={10} color={STUDENT.tier.visuals?.glow || '#A78BFA'} />
-                  <Text style={[s.tierChipText, { color: STUDENT.tier.visuals?.glow || '#A78BFA' }]}>{skill}</Text>
+                  <Sparkles size={10} color={STUDENT.tier.visuals?.glow || '#378FE9'} />
+                  <Text style={[s.tierChipText, { color: STUDENT.tier.visuals?.glow || '#378FE9' }]}>{skill}</Text>
                 </View>
               ))}
             </View>
@@ -136,7 +136,7 @@ export function DashboardView() {
           </View>
           <View style={s.progTrack}>
             <LinearGradient
-              colors={['#7B3DBF', '#A78BFA'] as any}
+              colors={['#0A66C2', '#378FE9'] as any}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               style={[s.progFill, { width: `${STUDENT.career.progressPct}%` as any }]}
             />
@@ -286,7 +286,7 @@ const s = StyleSheet.create({
     backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14,
     paddingVertical: 14, paddingHorizontal: 18,
   },
-  briefIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(176,127,223,0.15)', alignItems: 'center', justifyContent: 'center' },
+  briefIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(10,102,194,0.18)', alignItems: 'center', justifyContent: 'center' },
   briefTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
   briefSub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 1 },
   briefCta: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 10, backgroundColor: SC.primary, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
@@ -317,7 +317,7 @@ const s = StyleSheet.create({
   tierChip: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6,
-    backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1,
+    backgroundColor: 'rgba(10,102,194,0.12)', borderColor: 'rgba(10,102,194,0.32)', borderWidth: 1,
   },
   tierChipText: { fontFamily: FONTS.bold, fontSize: 11 },
 
