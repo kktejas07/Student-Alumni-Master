@@ -5011,10 +5011,38 @@ api_router.include_router(crud_router)
 
 app.include_router(api_router)
 
+# ── CORS — origins configurable via env for production deployments ──
+# Comma-separated list, e.g.
+#   ALLOWED_ORIGINS="https://app.example.com,https://admin.example.com"
+# Use "*" only when allow_credentials is False; we coerce safely below.
+_origins_env = (os.getenv("ALLOWED_ORIGINS") or os.getenv("FRONTEND_URL") or "*").strip()
+_origins_list = [o.strip() for o in _origins_env.split(",") if o.strip()]
+_allow_creds = "*" not in _origins_list  # browsers reject credentials+wildcard
+
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=["*"],
+    allow_credentials=_allow_creds,
+    allow_origins=_origins_list or ["*"],
+    allow_origin_regex=os.getenv("ALLOWED_ORIGIN_REGEX") or None,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Length", "X-Request-Id"],
 )
+
+
+# ── Health-check endpoints (used by Dokploy / Docker / load-balancers) ──
+@app.get("/api/health")
+@app.get("/health")
+async def _health():
+    """Lightweight liveness + Mongo connectivity probe."""
+    try:
+        await db.command("ping")
+        mongo_ok = True
+    except Exception:
+        mongo_ok = False
+    return {
+        "status": "ok" if mongo_ok else "degraded",
+        "service": "studentalumni-backend",
+        "mongo": "ok" if mongo_ok else "down",
+        "time": datetime.now(timezone.utc).isoformat(),
+    }
