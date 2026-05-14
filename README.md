@@ -1,22 +1,40 @@
 # SA Platform — Student / Alumni / College / Super-Admin / Mentor
 
 A unified, multi-portal career platform with an automation-grade AI operator
-(**Agent K**), live dashboards, and the **NexusOS** dark-glass design system.
+(**Agent K**), live dashboards, and a **FinTax360 Glass-Dark** design system
+(Student portal) layered on top of the **NexusOS** multi-portal foundation.
 
 > One codebase. Five portals. One AI agent that can plan, ask for consent,
-> and run multi-step tasks across every module on the user's behalf.
+> run multi-step tasks, AND now operate on a **cron schedule** — across
+> every module on the user's behalf.
 
 ---
 
 ## ✦ Highlights
 
 * 🤖 **Agent K** — Claude-powered automation operator with planner → approval
-  gates → mocked tool execution → friendly summary, accessible via Cmd/Ctrl+K
-  from anywhere, with a dedicated 3-column workspace at `/agent-k` and a
-  run-history page at `/agent-k/runs`.
-* 🎨 **NexusOS design system** — shared dark-glass palette (`src/theme/nexus.ts`)
-  applied across Student, Alumni, College, Super-Admin, Mentor portals and
-  auth pages; each portal keeps its accent identity.
+  gates → tool execution → friendly summary, accessible via Cmd/Ctrl+K from
+  anywhere, with a dedicated full-screen view at `/agent-k`. **BYO-AI**:
+  users connect their own provider key via Profile → Tools & Integrations.
+  **Prescription Cards** drive the UI — the agent derives action cards from
+  dashboard data rather than asking for free-form prompts.
+* ⏰ **Agent K Scheduler** (`v0.16.0`) — recurring automations on
+  `daily / weekly / hourly / cron` cadences. Powered by an in-process
+  **APScheduler** AsyncIOScheduler that polls Mongo every 60 seconds.
+  Plans containing spend / submit / communicate steps pause at approval
+  rather than auto-execute. Multi-replica safe via
+  `AGENT_K_SCHEDULER_ENABLED` env flag (see DOKPLOY.md §10).
+* 🎨 **FinTax360 Glass-Dark theme** (`v0.18.x`, Student portal) — animated
+  multicolor aurora (violet · blue · teal orbs drifting across a deep
+  navy canvas), translucent glass cards with `backdrop-filter: blur(22px)
+  saturate(180%)`, fade+slide-in on mount, hover lift + violet glow, 64-px
+  grid overlay with radial mask. Typography deliberately distinct from
+  the usual Inter/Roboto: **Outfit** (display) · **Plus Jakarta Sans**
+  (body) · **JetBrains Mono** (KPI numerics).
+* 🎨 **NexusOS design system** — shared dark palette (`src/theme/nexus.ts`)
+  applied across Alumni, College, Super-Admin, Mentor portals and auth
+  pages; each portal keeps its accent identity (Alumni LinkedIn blue,
+  College indigo, Mentor teal, Super Admin amber).
 * 📊 **Intelligence Center dashboard** — sparkline KPI tiles, smooth-area
   growth chart, live activity stream, powered by `/api/student/intelligence`.
 * 🪟 **Collapsible sidebar** — 264 ⟷ 72 px on Student portal with persisted
@@ -29,15 +47,19 @@ A unified, multi-portal career platform with an automation-grade AI operator
 
 ## 🧱 Tech Stack
 
-| Layer    | Stack                                                                |
-|----------|----------------------------------------------------------------------|
-| Frontend | React Native (Expo SDK 54) · Expo Router · Reanimated 3 · Zustand    |
-| Charting | react-native-svg (no web-only chart libs)                            |
-| Theming  | Shared NexusOS palette via `src/theme/nexus.ts`                      |
-| Backend  | FastAPI · Motor (async Mongo) · PyJWT                                |
-| AI       | Anthropic Claude 4.5 via `emergentintegrations.LlmChat`              |
-| DB       | MongoDB (local Mongo via `MONGO_URL`)                                |
-| Auth     | JWT access + refresh tokens (HS256)                                  |
+| Layer       | Stack                                                                    |
+| ----------- | ------------------------------------------------------------------------ |
+| Frontend    | React Native (Expo SDK 54) · Expo Router · Reanimated 3 · Zustand        |
+| Charting    | react-native-svg (no web-only chart libs)                                |
+| Theming     | NexusOS palette (`src/theme/nexus.ts`) + FinTax360 PALETTE (student)     |
+| Typography  | DM Sans (multi-portal) · Outfit + Plus Jakarta + JetBrains Mono (student)|
+| Backend     | FastAPI · Motor (async Mongo) · PyJWT · **APScheduler 3.10**             |
+| AI          | Anthropic Claude 4.5 via `emergentintegrations.LlmChat` (admin tasks)    |
+|             | + user-provided OpenAI / Anthropic / Gemini keys via BYO-AI integrations |
+| DB          | MongoDB (local Mongo via `MONGO_URL`)                                    |
+| Auth        | JWT access + refresh tokens (HS256)                                      |
+| Scheduling  | APScheduler `AsyncIOScheduler` (60 s tick) + croniter for cron parsing   |
+| CI / CD     | GitHub Actions (release.yml + extract-changelog.sh) → Dokploy            |
 
 ---
 

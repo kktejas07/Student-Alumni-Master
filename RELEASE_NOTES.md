@@ -1,12 +1,147 @@
 # 🚢 Release Notes — Push Plan
 
-Six logical commits taking the project from **`v0.6.0` → `v0.12.0`**. Each
+Logical commits taking the project from **`v0.6.0` → `v0.18.1`**. Each
 commit maps 1:1 to a `CHANGELOG.md` section so reviewers can read the diff
 and the release note side-by-side.
 
 > Format: **Conventional Commits** (`type(scope): subject` + body). Tag each
 > commit with the matching `vX.Y.Z` after pushing. Order matters — push them
 > in sequence, oldest first.
+
+**Latest tags (newest first):**
+
+| Tag        | Headline                                                                                              | Surface                |
+| ---------- | ----------------------------------------------------------------------------------------------------- | ---------------------- |
+| `v0.18.1`  | FinTax360 polish — calmer aurora (no pink) · sidebar / topbar restyled · Outfit + Plus Jakarta fonts  | Student portal         |
+| `v0.18.0`  | FinTax360 Glass-Dark theme — animated multicolor aurora · GlassCard / KpiTile / PillChip primitives   | Student portal         |
+| `v0.17.0`  | Glass-morphism preview — first pass on Dashboard only (superseded by 0.18.0)                          | Student / Dashboard    |
+| `v0.16.0`  | Agent K · Scheduled (cron) automations — APScheduler · 8 new endpoints · BYO-AI gated                 | Backend + Agent K UI   |
+| `v0.15.0`  | Super Admin Settings drill-ins — Signature editor · Role-detail panel                                 | Super Admin            |
+| `v0.14.0`  | Agent K · BYO-AI + Prescription Cards + single view                                                   | Agent K                |
+| `v0.13.0`  | SA Events CRUD + multi-portal brand identities (Alumni / College / Mentor)                            | Super Admin · Portals  |
+| `v0.12.0`  | Dokploy / Docker deployment readiness                                                                 | DevOps                 |
+
+---
+
+## Commit 8 — `v0.18.1`  ▸ FinTax360 polish: Sidebar + TopBar + calmer aurora
+
+```text
+style(student): calm aurora · restyle sidebar + topbar to FinTax360 (v0.18.1)
+
+- Aurora: removed rose/pink orb entirely. Remaining three orbs (violet,
+  blue, teal) reduced to 0.16-0.26 opacity with 140-160px blur so the
+  canvas reads as a plain dark navy with subtle color hints.
+- Sidebar: translucent navy rgba(10,15,30,0.72) + backdrop-filter
+  blur(24px) saturate(160%). Active nav pill uses the spec
+  [#8B5CF6 → #7C3AED] gradient with violetGlow shadow. Brand title and
+  nav labels migrated to Outfit / Plus Jakarta typography.
+- TopBar: matching navy glass + Outfit 700 greeting (18px, -0.5
+  letterSpacing). Search box, theme toggle, bell button reskinned to
+  FinTax360 glass-soft surfaces.
+
+Files: glass.tsx · Sidebar.tsx · TopBar.tsx
+
+Refs: CHANGELOG.md §0.18.1
+```
+
+---
+
+## Commit 7 — `v0.18.0`  ▸ FinTax360 Glass-Dark theme (Student portal foundation)
+
+```text
+feat(student): FinTax360 Glass-Dark theme — palette · typography · primitives (v0.18.0)
+
+- PALETTE: navy canvas (#0a0f1e → #131938), violet primary (#8B5CF6 /
+  #7C3AED), semantic accents (blue #3B82F6, teal #10B981, amber #F59E0B,
+  rose #f43f5e), glass surfaces rgba(20,26,45,0.55), violet glow
+  shadow. Legacy SC tokens kept as aliases for unmigrated views.
+- Typography: Outfit (display), Plus Jakarta Sans (body), JetBrains
+  Mono (KPI numerics) via @expo-google-fonts. Loaded in app/_layout.tsx.
+- Primitives in glass.tsx: <AnimatedAurora>, <GridOverlay>, <GlassCard>
+  (fade+slide mount, hover lift, press scale), <GlassSoft>, <KpiTile>,
+  <PillChip>, <GradientButton>, <RouteTransition>, glassStyle() helper.
+- Shell wiring: StudentPortalRN renders AnimatedAurora + GridOverlay
+  + RouteTransition. Every student view inherits the canvas + transition.
+
+Deps: @expo-google-fonts/plus-jakarta-sans, @expo-google-fonts/jetbrains-mono
+
+Files: tokens.ts · glass.tsx · StudentPortalRN.tsx · DashboardView.tsx
+       · app/_layout.tsx · package.json
+
+Refs: CHANGELOG.md §0.18.0
+```
+
+---
+
+## Commit 6 — `v0.17.0`  ▸ Glass-morphism preview (Dashboard only)
+
+```text
+feat(student): glass-morphism dark+purple preview on Dashboard (v0.17.0)
+
+First-cut glass effect applied only to DashboardView so the team could
+review the look. Aurora gradients behind cards, translucent purple-
+tinted fills, top white-alpha highlights. Superseded by v0.18.0 but
+the <GlassSurface> + glassStyle() primitives remain as compatibility
+aliases for the new system.
+
+Files: glass.tsx (initial) · DashboardView.tsx · tokens.ts
+
+Refs: CHANGELOG.md §0.17.0
+```
+
+---
+
+## Commit 5 — `v0.16.0`  ▸ Agent K · Scheduled (cron) automations
+
+```text
+feat(agent-k): scheduled cron automations · APScheduler · 8 endpoints (v0.16.0)
+
+- agent_k_scheduled.py (new, ~450 LOC) — APScheduler AsyncIOScheduler
+  with 60-second tick polling agent_k_schedules collection. Indexes on
+  (status, next_run_at) and (user_id, created_at). Lock-protected tick
+  reserves due rows by bumping next_run_at forward so a slow run can't
+  double-fire. Plans containing spend/submit/communicate steps pause
+  at approval rather than auto-execute. Admin bypasses BYO-AI gate.
+
+- 8 REST endpoints under /api:
+    GET    /agent-k/scheduled
+    POST   /agent-k/scheduled            cadence: daily / weekly / hourly / cron
+    GET    /agent-k/scheduled/{id}
+    PATCH  /agent-k/scheduled/{id}       status pause/resume + edits
+    DELETE /agent-k/scheduled/{id}
+    POST   /agent-k/scheduled/{id}/run-now
+    GET    /agent-k/scheduled/{id}/runs
+    GET    /agent-k/scheduled-meta/cadences
+
+- Frontend: <ScheduleEditor> modal (title prefilled, cadence chips,
+  hour/minute/weekday/N-hours/cron fields, IANA timezone). "Scheduled
+  Automations" section on /agent-k with cadence pill, next-run
+  timestamp, last status, and run-now / pause-resume / delete buttons.
+
+- Deps: APScheduler 3.10.4 · croniter 2.0.5 · pytz 2026.2 · tzlocal 5.3.1
+- Multi-replica safety: AGENT_K_SCHEDULER_ENABLED env flag (see
+  DOKPLOY.md §10).
+
+Verified: 44/44 backend assertions PASS (deep_testing_backend_v2).
+
+Files: backend/agent_k_scheduled.py · server.py · requirements.txt
+       · frontend/app/agent-k.tsx · DOKPLOY.md · CHANGELOG.md
+
+Refs: CHANGELOG.md §0.16.0
+```
+
+---
+
+## Build variants — bumped this release
+
+| Channel              | Identifier          | Version | Build #     |
+| -------------------- | ------------------- | ------- | ----------- |
+| `frontend` (NPM)     | `frontend`          | 0.18.1  | —           |
+| Expo iOS             | `com.careerpath.app`| 1.1.0   | 18          |
+| Expo Android         | `com.careerpath.app`| 1.1.0   | 18 (vc 18)  |
+| Splash backgroundColor + Android adaptive icon backgroundColor migrated from cream `#FDFBF7` → navy `#0a0f1e` to match the FinTax360 dark theme. |
+
+
 
 ---
 

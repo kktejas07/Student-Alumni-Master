@@ -13,6 +13,95 @@ this session. Earlier history pre-dates this changelog.
 
 ---
 
+## [0.18.1] — 2026-06-?? — FinTax360 polish: Sidebar + TopBar + calmer aurora
+
+Sweeping refinements to the v0.18.0 theme based on the first design review.
+
+### Changed
+- 🌌 **Aurora calmed** — rose/pink orb dropped entirely; remaining
+  three orbs (violet · blue · teal) now render at 0.16 – 0.26 opacity
+  with 140 – 160 px blur so the canvas reads as a *plain* dark navy
+  with subtle color hints rather than a vivid wash.
+- 🪟 **Sidebar** — translucent navy `rgba(10,15,30,0.72)` +
+  `backdropFilter: blur(24px) saturate(160%)`. Active nav pill uses
+  the spec violet→violetD gradient with `violetGlow` boxShadow.
+- 🔝 **TopBar** — translucent navy + `backdropFilter: blur(20px)
+  saturate(160%)`. Greeting renders in **Outfit 700** (`18 px`,
+  `letterSpacing -0.5`). Subtitle in Plus Jakarta Sans 500. Search,
+  theme-toggle and notifications buttons reskinned to glass-soft.
+
+### Files
+- `frontend/src/views/web/portals/student/glass.tsx`
+- `frontend/src/views/web/portals/student/Sidebar.tsx`
+- `frontend/src/views/web/portals/student/TopBar.tsx`
+
+---
+
+## [0.18.0] — 2026-06-?? — FinTax360 Glass-Dark theme (Student portal foundation)
+
+A complete visual rebuild for the Student portal modelled on the
+FinTax360 design spec. Other portals (Alumni / College / Mentor /
+Super Admin) are intentionally left on their existing identities.
+
+### Added — Theme foundation
+- 🎨 New `PALETTE` in `tokens.ts` — deep navy canvas (`#0a0f1e →
+  #131938`), violet primary (`#8B5CF6` / `#7C3AED`), semantic
+  accents (`#3B82F6 blue`, `#10B981 teal`, `#F59E0B amber`,
+  `#f43f5e rose`), glass surfaces (`rgba(20,26,45,0.55)`), violet
+  glow (`0 10px 30px rgba(139,92,246,0.35)`).
+- 🔤 New typography stack — **Outfit** (display headings), **Plus
+  Jakarta Sans** (body), **JetBrains Mono** (KPI numerics) loaded
+  via `@expo-google-fonts/*` in `app/_layout.tsx`. Legacy DMSans
+  aliases kept for unmigrated views.
+- 🌌 `<AnimatedAurora>` — multi-orb canvas with CSS `@keyframes
+  orbA/B/C` 22 s – 32 s loops on web, static orbs on native.
+- 📐 `<GridOverlay>` — 64 px lattice with radial-fade mask (web only).
+
+### Added — Primitives in `glass.tsx`
+- `<GlassCard>` with fade+slide-in on mount (350 ms easeOut), hover
+  lift `translateY(-3px)` + violet glow, press scale 0.985×, 1 px
+  top white-alpha highlight.
+- `<GlassSoft>` · `<KpiTile>` (eyebrow + JetBrains-mono number +
+  delta + radial glow) · `<PillChip>` (semantic variants) ·
+  `<GradientButton>` (violet gradient pill + glow) ·
+  `<RouteTransition>` (250 ms fade + 6 px y-shift).
+- `glassStyle()` spread helper for legacy migration.
+
+### Added — Shell wiring
+- `StudentPortalRN.tsx` now renders `<AnimatedAurora>` +
+  `<GridOverlay>` + `<RouteTransition>` so every student view
+  inherits the new canvas and view-switch animation.
+
+### Dependencies
+- Frontend: `@expo-google-fonts/plus-jakarta-sans`,
+  `@expo-google-fonts/jetbrains-mono` (Outfit was already
+  installed).
+
+### Files
+- `frontend/app/_layout.tsx` — added 13 Google font hooks
+- `frontend/src/views/web/portals/student/tokens.ts` — full rebuild
+- `frontend/src/views/web/portals/student/glass.tsx` — full rebuild
+- `frontend/src/views/web/portals/student/StudentPortalRN.tsx`
+- `frontend/src/views/web/portals/student/views/DashboardView.tsx`
+
+---
+
+## [0.17.0] — 2026-06-?? — Glass-morphism Dark + Purple preview (Dashboard only)
+
+Initial glass-morphism preview applied just to the Dashboard so
+the team could review the look before committing to a full
+re-theme. Superseded by the FinTax360 rollout in 0.18.0 but the
+primitives live on as `glassStyle()` and `<GlassSurface>` aliases.
+
+### Added
+- `glass.tsx` (first version) with `<Aurora>` and `<GlassSurface>`.
+- DashboardView restyled with translucent purple-tinted cards and a
+  triple radial-gradient aurora behind the card grid.
+- Top white-alpha highlights, blurred backdrops, and refined
+  hairline borders on cards.
+
+---
+
 ## [0.16.0] — 2026-06-?? — Agent K · Scheduled (cron) automations
 
 Agent K can now run on a recurring schedule. From any portal's
