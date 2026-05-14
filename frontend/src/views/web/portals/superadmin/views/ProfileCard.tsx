@@ -1,0 +1,470 @@
+/**
+ * ProfileCard — Student/Alumni dashboard profile card.
+ *
+ * Matches the warm amber/orange admin theme exactly:
+ *   • Near-black surface with brown-amber undertone
+ *   • Orange→amber gradient on primary CTAs + glow
+ *   • Avatar with category-tinted ring + status dot
+ *   • Goals · Progress bar · Tag pills · Next-session sub-card
+ *   • View Profile (gradient) + LinkedIn + GitHub action row
+ *   • Hover lifts the card 2px and intensifies the border + amber glow
+ *
+ * Renders gracefully when optional sections (goals, progress, next session,
+ * socials) are missing — never shows an empty inner shell.
+ */
+import React from 'react';
+import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import {
+  Eye, ChevronRight, Calendar, Check, Play, Code, Sparkles,
+  ShieldCheck, Trash2,
+} from 'lucide-react-native';
+import { SAC, FONTS } from '../tokens';
+import { GRAD } from '../applekit';
+
+/** LinkedIn 'in' glyph — `lucide-react-native` doesn't ship the Linkedin icon
+ *  in this version, so we render a compact text glyph instead. */
+function LinkedinGlyph({ size = 16, color = '#fff' }: { size?: number; color?: string }) {
+  return (
+    <Text style={{
+      color, fontSize: Math.round(size * 0.78),
+      fontFamily: Platform.OS === 'web' ? 'Inter, system-ui, sans-serif' as any : FONTS.xbold,
+      fontWeight: '800' as any, letterSpacing: -0.5,
+    }}>in</Text>
+  );
+}
+
+/* ─── Tokens (per spec) ──────────────────────────────────────────── */
+export const PC = {
+  bgPage:           '#0B0703',
+  cardBgFrom:       '#1A0F05',
+  cardBgTo:         '#120A03',
+  cardBorder:       'rgba(251,146,60,0.18)',
+  cardBorderHover:  'rgba(251,146,60,0.38)',
+  accent:           '#F97316',
+  accentBright:     '#FB923C',
+  accentDeep:       '#EA580C',
+  statusActive:     '#FBBF24',
+  statusActiveBg:   'rgba(251,191,36,0.10)',
+  statusActiveBd:   'rgba(251,191,36,0.35)',
+  textPrimary:      '#FFFFFF',
+  textSecondary:    '#C4A788',
+  textMuted:        '#8B6F52',
+  textLabel:        '#6B5237',
+  pillBg:           'rgba(255,255,255,0.04)',
+  pillBorder:       'rgba(251,146,60,0.12)',
+  trackBg:          'rgba(255,255,255,0.05)',
+  linkedinBg:       '#0A66C2',
+  githubBg:         '#1F1208',
+  danger:           '#EF4444',
+  dangerBg:         'rgba(239,68,68,0.08)',
+} as const;
+
+/* ─── Types ──────────────────────────────────────────────────────── */
+export type ProfileCardCategory = 'student' | 'masters' | 'alumni' | 'mentor';
+export type ProfileCardStatus   = 'active' | 'inactive' | 'archived';
+
+export type ProfileCardProps = {
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    avatarUrl?: string;
+    status: ProfileCardStatus;
+    degree: string;
+    institution: string;
+    batchYear?: number;
+    category: ProfileCardCategory;
+    isNew?: boolean;          // newly imported, not yet approved
+    approved?: boolean;
+  };
+  goals?: string[];
+  progress?: {
+    percent: number;
+    sessionsCompleted: number;
+    sessionsTotal: number;
+    cgpa?: number;
+  };
+  tags?: string[];
+  nextSession?: { dateISO: string; title: string };
+  socials?: { linkedinUrl?: string; githubUrl?: string };
+  onViewProfile: (userId: string) => void;
+  onApprove?: (userId: string) => void;
+  onRemove?: (userId: string) => void;
+};
+
+/* ─── Category accent dots (warm amber family) ───────────────────── */
+const CAT_DOT: Record<ProfileCardCategory, { c: string; label: string }> = {
+  student: { c: '#FCD34D', label: 'Student'  },  // amber-300
+  masters: { c: '#F59E0B', label: "Master's" },  // amber-500
+  alumni:  { c: '#D97706', label: 'Alumni'   },  // amber-600
+  mentor:  { c: '#B45309', label: 'Mentor'   },  // amber-700
+};
+
+/* ─── Helpers ────────────────────────────────────────────────────── */
+const initials = (fn: string, ln: string) =>
+  ((fn?.[0] || '') + (ln?.[0] || fn?.[1] || '')).toUpperCase() || '?';
+
+function fmtNextSession(iso: string) {
+  try {
+    const d = new Date(iso);
+    const date = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    const time = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    return `${date} · ${time}`;
+  } catch { return iso; }
+}
+
+/* ─── Component ──────────────────────────────────────────────────── */
+export function ProfileCard(props: ProfileCardProps) {
+  const { user, goals, progress, tags, nextSession, socials, onViewProfile, onApprove, onRemove } = props;
+  const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown user';
+  const cat = CAT_DOT[user.category] || CAT_DOT.student;
+  const visibleGoals = (goals || []).slice(0, 2);
+  const overflow = (goals?.length || 0) - visibleGoals.length;
+  const isComplete = (progress?.percent ?? 0) >= 100;
+  const isNew = !!user.isNew && !user.approved;
+  const showApprove = !!onApprove && !user.approved;
+  const showRemove = !!onRemove;
+  const initialsStr = initials(user.firstName, user.lastName);
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`View profile of ${fullName}`}
+      onPress={() => onViewProfile(user.id)}
+      style={({ hovered, focused }: any) => [
+        s.card,
+        hovered && Platform.OS === 'web' ? s.cardHover : null,
+        focused ? s.cardFocus : null,
+      ]}
+    >
+      <View style={s.cardInner}>
+        {isNew ? (
+          <View style={s.newPill}>
+            <Text style={s.newPillText}>NEW</Text>
+          </View>
+        ) : null}
+
+        {/* HEADER */}
+        <View style={s.header}>
+          <View>
+            <View style={[s.avatar, { borderColor: PC.accent }]}>
+              <Text style={s.avatarText}>{initialsStr}</Text>
+            </View>
+            <View style={[s.statusDot, {
+              backgroundColor:
+                user.status === 'active' ? PC.statusActive :
+                user.status === 'archived' ? PC.danger : PC.textMuted,
+            }]} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <Text style={s.name} numberOfLines={1}>{fullName}</Text>
+              <View style={[s.catDot, { backgroundColor: cat.c }]} />
+              <Text style={s.catLabel}>{cat.label}</Text>
+            </View>
+            <Text style={s.degree} numberOfLines={1}>
+              {user.degree || '—'}{user.institution ? ` · ${user.institution}` : ''}
+            </Text>
+            {user.batchYear ? (
+              <Text style={s.idLine} numberOfLines={1}>Batch {user.batchYear}</Text>
+            ) : null}
+          </View>
+          <StatusPillCard status={user.status} />
+        </View>
+
+        {/* GOALS */}
+        {visibleGoals.length > 0 ? (
+          <View style={{ gap: 8, marginTop: 14 }}>
+            {visibleGoals.map((g, i) => (
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <ChevronRight size={12} color={PC.accentBright} />
+                <Text numberOfLines={1} style={s.goalText}>{g}</Text>
+              </View>
+            ))}
+            {overflow > 0 ? <Text style={s.muted}>+ {overflow} more</Text> : null}
+          </View>
+        ) : null}
+
+        {/* PROGRESS */}
+        {progress && (progress.percent > 0 || progress.sessionsTotal > 0) ? (
+          <View style={{ marginTop: 16, gap: 8 }}>
+            <View style={s.progressHeader}>
+              <Text style={s.sectionLabel}>PROGRESS</Text>
+              <Text style={[s.percent, isComplete ? { color: PC.accentBright } : null]}>
+                {Math.round(progress.percent)}%
+              </Text>
+            </View>
+            <View style={s.progressTrack}>
+              <View style={[
+                s.progressFill,
+                {
+                  width: `${Math.min(100, Math.max(0, progress.percent))}%`,
+                  backgroundColor: isComplete ? PC.accentBright : PC.accent,
+                },
+              ]} />
+            </View>
+            {(progress.sessionsTotal > 0 || progress.cgpa) ? (
+              <View style={s.progressMeta}>
+                <Text style={s.metaCount}>{progress.sessionsCompleted}</Text>
+                <Text style={s.metaMuted}>/ {progress.sessionsTotal} sessions</Text>
+                {progress.cgpa ? (
+                  <Text style={s.metaMuted}>  ·  CGPA {progress.cgpa.toFixed(1)}</Text>
+                ) : null}
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        {/* TAGS */}
+        {(tags || []).length > 0 ? (
+          <View style={s.tagRow}>
+            {(tags || []).slice(0, 4).map((t, i) => (
+              <View key={i} style={s.tag}><Text style={s.tagText}>{t}</Text></View>
+            ))}
+          </View>
+        ) : null}
+
+        {/* NEXT SESSION */}
+        {nextSession ? (
+          <View style={s.nextCard}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Calendar size={12} color={PC.accentBright} />
+              <Text style={s.nextLabel}>Next Session</Text>
+            </View>
+            <Text style={s.nextDate}>{fmtNextSession(nextSession.dateISO)}</Text>
+            <Text style={s.nextTitle} numberOfLines={1}>{nextSession.title}</Text>
+          </View>
+        ) : null}
+
+        {/* APPROVE / REMOVE */}
+        {(showApprove || showRemove) ? (
+          <View style={s.adminRow}>
+            {showApprove ? (
+              <Pressable
+                accessibilityLabel={`Approve profile of ${fullName}`}
+                onPress={(e: any) => { e?.stopPropagation?.(); onApprove?.(user.id); }}
+                style={s.approveBtn}
+              >
+                <ShieldCheck size={12} color={PC.statusActive} />
+                <Text style={[s.approveText, { color: PC.statusActive }]}>Approve</Text>
+              </Pressable>
+            ) : null}
+            {showRemove ? (
+              <Pressable
+                accessibilityLabel={`Remove profile of ${fullName}`}
+                onPress={(e: any) => { e?.stopPropagation?.(); onRemove?.(user.id); }}
+                style={s.removeBtn}
+              >
+                <Trash2 size={12} color={'#FCA5A5'} />
+                <Text style={[s.approveText, { color: '#FCA5A5' }]}>Remove</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
+
+        {/* ACTION ROW */}
+        <View style={s.actionRow}>
+          <Pressable
+            accessibilityLabel={`View profile of ${fullName}`}
+            onPress={(e: any) => { e?.stopPropagation?.(); onViewProfile(user.id); }}
+            style={{ flex: 1 }}
+          >
+            <LinearGradient
+              colors={[PC.accentBright, PC.accent, PC.accentDeep]}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={s.viewBtn}
+            >
+              <Eye size={14} color="#fff" />
+              <Text style={s.viewBtnText}>View Profile</Text>
+            </LinearGradient>
+          </Pressable>
+
+          {socials?.linkedinUrl ? (
+            <Pressable
+              accessibilityLabel={`Open LinkedIn of ${fullName}`}
+              onPress={(e: any) => { e?.stopPropagation?.(); openSocial(socials.linkedinUrl!); }}
+              style={[s.socialBtn, { backgroundColor: PC.linkedinBg }]}
+            >
+              <LinkedinGlyph size={16} color="#fff" />
+            </Pressable>
+          ) : null}
+          {socials?.githubUrl ? (
+            <Pressable
+              accessibilityLabel={`Open GitHub of ${fullName}`}
+              onPress={(e: any) => { e?.stopPropagation?.(); openSocial(socials.githubUrl!); }}
+              style={[s.socialBtn, { backgroundColor: PC.githubBg, borderColor: PC.cardBorder, borderWidth: 1 }]}
+            >
+              <Code size={16} color="#fff" />
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+function openSocial(url: string) {
+  try {
+    if (Platform.OS === 'web') {
+      // @ts-ignore
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  } catch {}
+}
+
+function StatusPillCard({ status }: { status: ProfileCardStatus }) {
+  if (status === 'active') {
+    return (
+      <View style={[s.statusPill, { backgroundColor: PC.statusActiveBg, borderColor: PC.statusActiveBd }]}>
+        <View style={[s.statusInnerDot, { backgroundColor: PC.statusActive }]} />
+        <Text style={[s.statusText, { color: PC.statusActive }]}>Active</Text>
+      </View>
+    );
+  }
+  if (status === 'archived') {
+    return (
+      <View style={[s.statusPill, { backgroundColor: PC.dangerBg, borderColor: 'rgba(239,68,68,0.35)' }]}>
+        <Text style={[s.statusText, { color: '#FCA5A5' }]}>Archived</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={[s.statusPill, { backgroundColor: PC.pillBg, borderColor: PC.pillBorder }]}>
+      <Text style={[s.statusText, { color: PC.textMuted }]}>Inactive</Text>
+    </View>
+  );
+}
+
+/* ─── Skeleton loader (page loader) ──────────────────────────────── */
+export function ProfileCardSkeleton() {
+  return (
+    <View style={s.card}>
+      <View style={s.cardInner}>
+        <View style={[s.skBox, { width: '60%', height: 16, marginBottom: 8 }]} />
+        <View style={[s.skBox, { width: '90%', height: 12, marginBottom: 6 }]} />
+        <View style={[s.skBox, { width: '50%', height: 10, marginBottom: 20 }]} />
+        <View style={[s.skBox, { width: '100%', height: 6, marginBottom: 14, borderRadius: 99 }]} />
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+          <View style={[s.skBox, { width: 80, height: 22, borderRadius: 99 }]} />
+          <View style={[s.skBox, { width: 90, height: 22, borderRadius: 99 }]} />
+        </View>
+        <View style={[s.skBox, { width: '100%', height: 48 }]} />
+      </View>
+    </View>
+  );
+}
+
+/* ─── Styles ─────────────────────────────────────────────────────── */
+const s = StyleSheet.create({
+  card: {
+    borderRadius: 20, borderWidth: 1, borderColor: PC.cardBorder,
+    backgroundColor: PC.cardBgFrom,
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 0 0 1px rgba(251,146,60,0.06), 0 10px 30px rgba(0,0,0,0.45)', transitionDuration: '200ms', cursor: 'pointer' } as any)
+      : { shadowColor: '#000', shadowOpacity: 0.45, shadowRadius: 20, shadowOffset: { width: 0, height: 8 } }),
+  },
+  cardHover: {
+    borderColor: PC.cardBorderHover,
+    transform: [{ translateY: -2 }],
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 0 0 1px rgba(251,146,60,0.18), 0 18px 44px rgba(0,0,0,0.55)' } as any) : {}),
+  },
+  cardFocus: { borderColor: PC.accent, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  cardInner: { padding: 22, borderRadius: 20 },
+
+  newPill: {
+    position: 'absolute', top: 14, right: 14,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, zIndex: 5,
+  },
+  newPillText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.8 },
+
+  header: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
+  avatar: {
+    width: 60, height: 60, borderRadius: 999, borderWidth: 2,
+    backgroundColor: 'rgba(249,115,22,0.18)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  avatarText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 19 },
+  statusDot: {
+    position: 'absolute', right: -2, bottom: -2,
+    width: 14, height: 14, borderRadius: 999,
+    borderWidth: 2, borderColor: PC.bgPage,
+  },
+
+  name: { color: PC.textPrimary, fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.2 },
+  catDot: { width: 6, height: 6, borderRadius: 4 },
+  catLabel: { color: PC.textMuted, fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 0.4 },
+  degree: { color: PC.textSecondary, fontFamily: FONTS.med, fontSize: 12.5 },
+  idLine: { color: PC.textMuted, fontFamily: FONTS.med, fontSize: 11,
+    ...(Platform.OS === 'web' ? ({ fontFamily: '"JetBrains Mono", "SF Mono", monospace' } as any) : {}) },
+
+  statusPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 4.5, borderRadius: 999, borderWidth: 1, alignSelf: 'flex-start',
+  },
+  statusInnerDot: { width: 6, height: 6, borderRadius: 4 },
+  statusText: { fontFamily: FONTS.xbold, fontSize: 10.5, letterSpacing: 0.3 },
+
+  goalText: { color: PC.textPrimary, fontFamily: FONTS.med, fontSize: 13, flex: 1 },
+  muted: { color: PC.textMuted, fontFamily: FONTS.med, fontSize: 11, marginLeft: 20 },
+
+  sectionLabel: { color: PC.textLabel, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1.6 },
+  percent: { color: PC.accentBright, fontFamily: FONTS.xbold, fontSize: 13 },
+  progressHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  progressTrack: { height: 6, borderRadius: 99, backgroundColor: PC.trackBg, overflow: 'hidden' },
+  progressFill: { height: 6, borderRadius: 99 },
+  progressMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
+  playSq: { width: 16, height: 16, borderRadius: 4, backgroundColor: PC.accent, alignItems: 'center', justifyContent: 'center' },
+  metaCount: { color: PC.textPrimary, fontFamily: FONTS.bold, fontSize: 11.5 },
+  metaMuted: { color: PC.textMuted, fontFamily: FONTS.med, fontSize: 11 },
+  metaSep: { width: 1, height: 10, backgroundColor: PC.pillBorder, marginHorizontal: 4 },
+
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
+  tag: {
+    paddingHorizontal: 11, paddingVertical: 4.5, borderRadius: 999,
+    backgroundColor: PC.pillBg, borderWidth: 1, borderColor: PC.pillBorder,
+  },
+  tagText: { color: PC.textSecondary, fontFamily: FONTS.bold, fontSize: 11 },
+
+  nextCard: {
+    marginTop: 14, padding: 12, borderRadius: 12,
+    backgroundColor: 'rgba(249,115,22,0.08)', borderWidth: 1, borderColor: 'rgba(249,115,22,0.22)', gap: 4,
+  },
+  nextLabel: { color: PC.accentBright, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.4 },
+  nextDate:  { color: PC.textPrimary, fontFamily: FONTS.bold, fontSize: 12.5, marginTop: 2 },
+  nextTitle: { color: PC.textSecondary, fontFamily: FONTS.med, fontSize: 11.5 },
+
+  adminRow: { flexDirection: 'row', gap: 8, marginTop: 14 },
+  approveBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 11, paddingVertical: 7, borderRadius: 8,
+    backgroundColor: PC.statusActiveBg, borderWidth: 1, borderColor: PC.statusActiveBd,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  removeBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 11, paddingVertical: 7, borderRadius: 8,
+    backgroundColor: PC.dangerBg, borderWidth: 1, borderColor: 'rgba(239,68,68,0.30)',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  approveText: { fontFamily: FONTS.xbold, fontSize: 11 },
+
+  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 },
+  viewBtn: {
+    height: 44, borderRadius: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 8px 24px rgba(249,115,22,0.35)', transitionDuration: '160ms' } as any)
+      : { shadowColor: PC.accent, shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } }),
+  },
+  viewBtnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13.5, letterSpacing: 0.1 },
+  socialBtn: {
+    width: 44, height: 44, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
+  },
+
+  skBox: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 6 },
+});

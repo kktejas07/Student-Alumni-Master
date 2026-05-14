@@ -17,7 +17,7 @@ import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated'
 import {
   Upload, UserPlus, History, Users, FileSpreadsheet, X, Check, AlertTriangle,
   CheckCircle2, ChevronRight, Sparkles, GraduationCap, UserCheck, Briefcase,
-  Mail, Phone, Linkedin, MapPin, Building2, Calendar, ExternalLink, Trash2,
+  Mail, Phone, MapPin, Building2, Calendar, ExternalLink, Trash2,
   Pencil, Eye, EyeOff, RefreshCw, Filter, Download, FileText, Globe,
 } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
@@ -28,6 +28,8 @@ import {
 } from '../applekit';
 import { request, tokenStore } from '@/src/models/services/api';
 import * as Linking from 'expo-linking';
+import { ProfileCard, ProfileCardSkeleton } from './ProfileCard';
+import type { ProfileCardCategory, ProfileCardStatus } from './ProfileCard';
 
 /* ────────────────────────────────────────────────────────────────────
  * Category palette (per the spec)
@@ -93,7 +95,7 @@ export function ImportsView() {
 
       {tab === 'upload'  && <UploadTab onSaved={flash} onSwitchTab={setTab} bump={() => setRefreshKey((k) => k + 1)} />}
       {tab === 'manual'  && <ManualTab onSaved={flash} />}
-      {tab === 'browse'  && <BrowseTab onOpen={setProfileId} key={refreshKey} />}
+      {tab === 'browse'  && <BrowseTab onOpen={setProfileId} onAction={flash} key={refreshKey} />}
       {tab === 'history' && <HistoryTab key={refreshKey} />}
 
       <ProfilePanel userId={profileId} onClose={() => setProfileId(null)} onSaved={() => { flash('Profile updated'); setRefreshKey((k) => k + 1); }} />
@@ -561,13 +563,14 @@ function PreviewRow({ label, value, pill }: { label: string; value: string; pill
 }
 
 /* ════════════════════════════════════════════════════════════════════
- *  BROWSE TAB — list imported users
+ *  BROWSE TAB — list imported users as ProfileCard grid
  * ══════════════════════════════════════════════════════════════════ */
-function BrowseTab({ onOpen }: { onOpen: (id: string) => void }) {
+function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onAction: (text: string) => void }) {
   const [cat, setCat] = useState<'all' | CatKey>('all');
   const [q, setQ] = useState('');
   const [data, setData] = useState<any>(null);
   const [busy, setBusy] = useState(false);
+  const [showPendingOnly, setShowPendingOnly] = useState(false);
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -587,6 +590,30 @@ function BrowseTab({ onOpen }: { onOpen: (id: string) => void }) {
     { id: 'mentor',  label: 'Mentor',    count: counts.mentor || 0 },
   ] as const;
 
+  const items = useMemo(() => {
+    const list = data?.items || [];
+    if (showPendingOnly) return list.filter((u: any) => !u.approved);
+    return list;
+  }, [data, showPendingOnly]);
+
+  const approve = async (id: string) => {
+    try {
+      await request(`/admin/users/profile/${id}/approve`, { method: 'POST' });
+      onAction('Approved');
+      // Mark in place so the card doesn't disappear from the grid
+      setData((d: any) => d ? { ...d, items: d.items.map((u: any) => u.id === id ? { ...u, approved: true, is_new: false } : u) } : d);
+    } catch { onAction('Failed to approve'); }
+  };
+  const remove = async (id: string) => {
+    try {
+      await request(`/admin/users/profile/${id}`, { method: 'DELETE' });
+      onAction('Profile removed · archived for auto-restore');
+      setData((d: any) => d ? { ...d, items: d.items.filter((u: any) => u.id !== id) } : d);
+    } catch { onAction('Failed to remove'); }
+  };
+
+  const pendingCount = counts.pending_approval || 0;
+
   return (
     <View style={{ gap: 12 }}>
       <Card>
@@ -594,44 +621,72 @@ function BrowseTab({ onOpen }: { onOpen: (id: string) => void }) {
           <TopTabs<'all' | CatKey> tabs={tabs as any} active={cat} onChange={(c) => setCat(c as any)} />
           <SearchField value={q} onChange={setQ} placeholder="Search name, email, college, company…" width={300} />
         </View>
+        {pendingCount > 0 && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+            <Text style={s.muted}>
+              <Text style={{ color: '#FBBF24', fontFamily: FONTS.xbold }}>{pendingCount}</Text> profile{pendingCount === 1 ? '' : 's'} awaiting your approval
+            </Text>
+            <Pressable onPress={() => setShowPendingOnly(!showPendingOnly)} style={s.toggleBtn}>
+              <Filter size={11} color={showPendingOnly ? GRAD.to : SAC.muted} />
+              <Text style={[s.toggleBtnText, showPendingOnly && { color: GRAD.to }]}>
+                {showPendingOnly ? 'Showing pending only' : 'Show pending only'}
+              </Text>
+            </Pressable>
+          </View>
+        )}
       </Card>
 
-      {busy && !data ? <LoadingBox /> : (data?.items || []).length === 0 ? (
+      {busy && !data ? (
+        <View style={s.cardGrid}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <View key={i} style={s.gridCell}><ProfileCardSkeleton /></View>
+          ))}
+        </View>
+      ) : (items || []).length === 0 ? (
         <EmptyState
           icon={Users}
-          title="No profiles yet"
+          title="No profiles to show"
           sub={q ? 'No results match your search.' : 'Upload a spreadsheet or add users manually to populate this view.'}
         />
       ) : (
-        <View style={{ gap: 8 }}>
-          {(data?.items || []).map((u: any) => (
-            <Pressable key={u.id} onPress={() => onOpen(u.id)}
-              style={({ hovered }: any) => [s.userRow, hovered && Platform.OS === 'web' && { backgroundColor: 'rgba(255,255,255,0.04)' }]}>
-              <View style={[s.avatar, { backgroundColor: (CAT[u.category as CatKey]?.color || GRAD.to) + '22', borderColor: (CAT[u.category as CatKey]?.color || GRAD.to) + '55' }]}>
-                <Text style={[s.avatarInit, { color: CAT[u.category as CatKey]?.color || GRAD.to }]}>
-                  {(u.name || '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()}
-                </Text>
+        <>
+          <View style={s.cardGrid}>
+            {items.map((u: any) => (
+              <View key={u.id} style={s.gridCell}>
+                <ProfileCard
+                  user={{
+                    id: u.id,
+                    firstName: u.first_name || (u.name || '').split(' ')[0] || '',
+                    lastName:  u.last_name  || (u.name || '').split(' ').slice(1).join(' ') || '',
+                    status: u.approved ? 'active' : 'inactive',
+                    degree: u.degree || '',
+                    institution: u.college || '',
+                    batchYear: u.graduation_year || undefined,
+                    category: (u.category as ProfileCardCategory) || 'student',
+                    isNew: !!u.is_new,
+                    approved: !!u.approved,
+                  }}
+                  goals={u.designation ? [
+                    u.company ? `Working as ${u.designation} @ ${u.company}` : `Build career as ${u.designation}`,
+                  ] : (u.category === 'student' ? ['Grow into a strong professional', 'Find the right first role'] : undefined)}
+                  progress={u.experience_years != null ? {
+                    percent: Math.min(100, Math.round(((u.experience_years || 0) / 4) * 100)),
+                    sessionsCompleted: 0,
+                    sessionsTotal: 0,
+                  } : undefined}
+                  tags={u.tags || []}
+                  socials={{ linkedinUrl: u.linkedin_url || undefined }}
+                  onViewProfile={onOpen}
+                  onApprove={approve}
+                  onRemove={remove}
+                />
               </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={s.userName} numberOfLines={1}>{u.name}</Text>
-                  <CategoryBadge cat={u.category as CatKey} small />
-                </View>
-                <Text style={s.muted} numberOfLines={1}>
-                  {u.email}{u.designation ? ` · ${u.designation}` : ''}{u.company ? ` @ ${u.company}` : ''}
-                </Text>
-                {!!u.college && <Text style={[s.muted, { fontSize: 10.5 }]} numberOfLines={1}>🎓 {u.college}</Text>}
-              </View>
-              {u.profile_status !== 'complete' && (
-                <StatusPill kind={u.profile_status === 'partial' ? 'warn' : 'neutral'} label={u.profile_status} />
-              )}
-              <ChevronRight size={14} color={SAC.dim} />
-            </Pressable>
-          ))}
+            ))}
+          </View>
           <Text style={[s.muted, { textAlign: 'center', paddingVertical: 8 }]}>
-            Showing {(data?.items || []).length} of {data?.total || 0}
+            Showing {items.length} of {data?.total || 0} · newest first
           </Text>
-        </View>
+        </>
       )}
     </View>
   );
@@ -826,7 +881,7 @@ function ProfilePanel({ userId, onClose, onSaved }: { userId: string | null; onC
                   <View style={{ marginTop: 8, gap: 8 }}>
                     <LinkRow Icon={Mail}     label="Email"        value={data.email}        href={data.email ? `mailto:${data.email}` : undefined} />
                     <LinkRow Icon={Phone}    label="Phone"        value={data.phone || '—'} href={data.phone ? `tel:${data.phone}` : undefined} />
-                    <LinkRow Icon={Linkedin} label="LinkedIn"     value={data.linkedin_url || '—'} href={data.linkedin_url} />
+                    <LinkRow Icon={ExternalLink} label="LinkedIn"     value={data.linkedin_url || '—'} href={data.linkedin_url} />
                     <DetailRow Icon={MapPin} label="Location"     value={data.location || '—'} />
                   </View>
                 </View>
@@ -1020,6 +1075,18 @@ const s = StyleSheet.create({
 
   // Browse
   browseHead: { flexDirection: 'row', alignItems: 'center', gap: 12, justifyContent: 'space-between', flexWrap: 'wrap' },
+  cardGrid: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 16,
+    ...(Platform.OS === 'web' ? ({ display: 'grid' as any, gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' as any, gap: 16 } as any) : {}),
+  },
+  gridCell: { minWidth: 320, flexBasis: 320, flexGrow: 1 },
+  toggleBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 9, paddingVertical: 4, borderRadius: 7,
+    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  toggleBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
   userRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 11, paddingHorizontal: 14,

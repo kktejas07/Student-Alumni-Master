@@ -575,8 +575,19 @@ async def commit_import(body: CommitBody, authorization: Optional[str] = Header(
                 await _db.users.update_one({"_id": existing["_id"]}, {"$set": row})
                 updated += 1
             else:
+                # Auto-revert: if archived snapshot exists for this email/linkedin,
+                # restore it (preserve old goals/progress/tags/etc.) and merge new data on top.
+                archived = await _try_restore_archived(row.get("email", ""), row.get("linkedin_url", ""))
+                if archived:
+                    archived.update(row)
+                    archived["updated_at"] = datetime.now(timezone.utc)
+                    res_ins = await _db.users.insert_one(archived)
+                    updated += 1  # treat as updated since data existed before
+                    cat_counts[archived.get("category", "student")] = cat_counts.get(archived.get("category", "student"), 0) + 1
+                    continue
                 row["created_at"] = datetime.now(timezone.utc)
                 row["created_by"] = "import"
+                row["approved"] = False
                 await _db.users.insert_one(row)
                 added += 1
             cat_counts[row["category"]] = cat_counts.get(row["category"], 0) + 1
@@ -648,8 +659,17 @@ async def manual_add(body: ManualUser, authorization: Optional[str] = Header(Non
         await _db.users.update_one({"_id": existing["_id"]}, {"$set": row})
         return {"ok": True, "action": "updated", "id": str(existing["_id"]),
                 "category": row["category"], "rule": row["category_rule"]}
+    # Auto-revert: same email/linkedin in archive → restore
+    archived = await _try_restore_archived(row.get("email", ""), row.get("linkedin_url", ""))
+    if archived:
+        archived.update(row)
+        archived["updated_at"] = datetime.now(timezone.utc)
+        res = await _db.users.insert_one(archived)
+        return {"ok": True, "action": "restored", "id": str(res.inserted_id),
+                "category": archived.get("category"), "rule": archived.get("category_rule")}
     row["created_at"] = datetime.now(timezone.utc)
     row["created_by"] = "manual"
+    row["approved"] = False
     res = await _db.users.insert_one(row)
     return {"ok": True, "action": "added", "id": str(res.inserted_id),
             "category": row["category"], "rule": row["category_rule"]}
@@ -790,11 +810,58 @@ async def patch_profile(user_id: str, body: PatchUser, authorization: Optional[s
 
 @router.delete("/admin/users/profile/{user_id}")
 async def delete_profile(user_id: str, authorization: Optional[str] = Header(None)):
-    await _require_admin(authorization)
+    """Soft-delete: move user to `users_archive` so the record can be auto-
+    restored if the same email/LinkedIn reappears in a future import."""
+    user = await _require_admin(authorization)
     try: oid = ObjectId(user_id)
     except Exception: raise HTTPException(400, "Invalid user id")
+    u = await _db.users.find_one({"_id": oid})
+    if not u:
+        return {"ok": True, "removed": 0}
+    u["archived_at"] = datetime.now(timezone.utc)
+    u["archived_by"] = str(user["_id"])
+    # Insert into archive collection (preserving the original _id under archived_user_id)
+    archive_doc = dict(u)
+    archive_doc["archived_user_id"] = str(u["_id"])
+    archive_doc.pop("_id", None)
+    await _db.users_archive.insert_one(archive_doc)
     res = await _db.users.delete_one({"_id": oid})
-    return {"ok": True, "removed": res.deleted_count}
+    return {"ok": True, "removed": res.deleted_count, "archived": True}
+
+
+@router.post("/admin/users/profile/{user_id}/approve")
+async def approve_profile(user_id: str, authorization: Optional[str] = Header(None)):
+    user = await _require_admin(authorization)
+    try: oid = ObjectId(user_id)
+    except Exception: raise HTTPException(400, "Invalid user id")
+    await _db.users.update_one(
+        {"_id": oid},
+        {"$set": {
+            "approved": True,
+            "approved_at": datetime.now(timezone.utc),
+            "approved_by": str(user["_id"]),
+            "profile_status": "complete",
+        }},
+    )
+    return {"ok": True, "approved": True}
+
+
+async def _try_restore_archived(email: str, linkedin_url: str) -> Optional[dict]:
+    """If the given email or LinkedIn matches an archived user, restore the
+    archive snapshot and return its fields (caller will merge with new data)."""
+    if not email and not linkedin_url:
+        return None
+    q: List[dict] = []
+    if email:        q.append({"email":        email})
+    if linkedin_url: q.append({"linkedin_url": linkedin_url})
+    arch = await _db.users_archive.find_one({"$or": q})
+    if not arch:
+        return None
+    # Delete the archive record (it will be re-inserted into users)
+    await _db.users_archive.delete_one({"_id": arch["_id"]})
+    arch.pop("_id", None)
+    arch["restored_at"] = datetime.now(timezone.utc)
+    return arch
 
 
 # ─── Filtered user list (for dashboard tabs / search) ──────────────
@@ -818,21 +885,43 @@ async def list_users(
             {"company":      {"$regex": q, "$options": "i"}},
         ]
     total = await _db.users.count_documents(match)
-    cur = _db.users.find(match).sort("created_at", -1).skip(offset).limit(limit)
+    # Sort newest first — created_at desc, falling back to _id desc
+    cur = _db.users.find(match).sort([("created_at", -1), ("_id", -1)]).skip(offset).limit(limit)
     items = []
     async for u in cur:
+        # Derive 2 tags from category + degree/headline keywords
+        tags: List[str] = []
+        cat = u.get("category") or u.get("role") or "student"
+        if cat == "mentor":  tags.append("Mentor")
+        if cat == "masters": tags.append("Master's")
+        if cat == "alumni":  tags.append("Alumni")
+        if u.get("degree"):
+            deg = (u.get("degree") or "").upper()
+            if "CSE" in deg or "COMPUTER" in deg: tags.append("CSE")
+            elif "ECE" in deg: tags.append("ECE")
+            elif "MBA" in deg: tags.append("MBA")
+            elif "MECH" in deg: tags.append("Mech")
         items.append({
-            "id": str(u["_id"]),
-            "name": u.get("full_name") or "—",
-            "email": u.get("email"),
-            "phone": u.get("phone"),
-            "category": u.get("category") or u.get("role") or "student",
-            "college": u.get("college") or (u.get("school_info") or {}).get("institution_name") or "",
+            "id":         str(u["_id"]),
+            "first_name": u.get("first_name") or "",
+            "last_name":  u.get("last_name") or "",
+            "name":       u.get("full_name") or "—",
+            "email":      u.get("email"),
+            "phone":      u.get("phone"),
+            "linkedin_url": u.get("linkedin_url"),
+            "category":   cat,
+            "college":    u.get("college") or (u.get("school_info") or {}).get("institution_name") or "",
+            "degree":     u.get("degree"),
+            "graduation_year": u.get("graduation_year"),
             "designation": u.get("designation"),
-            "company": u.get("company"),
-            "location": u.get("location"),
+            "company":     u.get("company"),
+            "location":   u.get("location"),
             "experience_years": u.get("experience_years"),
             "profile_status": u.get("profile_status") or "complete",
+            "approved":   bool(u.get("approved", False)),
+            "tags":       tags[:2],
+            "is_new":     bool(u.get("created_by") in ("import", "manual")) and not u.get("approved"),
+            "created_at": (u.get("created_at").isoformat() if isinstance(u.get("created_at"), datetime) else None),
         })
     counts = {
         "all":     await _db.users.count_documents({}),
@@ -840,5 +929,6 @@ async def list_users(
         "masters": await _db.users.count_documents({"category": "masters"}),
         "alumni":  await _db.users.count_documents({"category": "alumni"}),
         "mentor":  await _db.users.count_documents({"category": "mentor"}),
+        "pending_approval": await _db.users.count_documents({"approved": False, "created_by": {"$in": ["import", "manual"]}}),
     }
     return {"items": items, "total": total, "counts": counts}
