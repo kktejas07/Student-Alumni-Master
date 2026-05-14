@@ -59,10 +59,11 @@ export const NX = {
 // active-rail colour stays distinct so users can tell which portal
 // they're in at a glance.
 export const PORTAL_ACCENTS = {
-  student: { primary: NX.blue,   primaryD: '#1D4ED8', primaryL: '#60A5FA', accent: NX.cyan,   accentSoft: NX.cyanSoft   },
-  alumni:  { primary: '#F97316', primaryD: '#C2410C', primaryL: '#FB923C', accent: '#FDBA74', accentSoft: 'rgba(253,186,116,0.18)' },
-  // College keeps its established indigo + cyan identity
-  college: { primary: '#6366F1', primaryD: '#4338CA', primaryL: '#818CF8', accent: '#22D3EE', accentSoft: 'rgba(34,211,238,0.18)' },
+  student: { primary: '#7B3DBF', primaryD: '#5F259F', primaryL: '#A78BFA', accent: '#7B3DBF', accentSoft: 'rgba(123,61,191,0.18)' },
+  // Alumni — LinkedIn blue identity ("professional network")
+  alumni:  { primary: '#0A66C2', primaryD: '#004182', primaryL: '#378FE9', accent: '#0A66C2', accentSoft: 'rgba(10,102,194,0.18)' },
+  // College — Indigo identity ("academic prestige")
+  college: { primary: '#4F46E5', primaryD: '#3730A3', primaryL: '#818CF8', accent: '#4F46E5', accentSoft: 'rgba(79,70,229,0.18)' },
   // Super Admin uses the warm amber/orange identity from the Apple HIG settings spec
   admin:   { primary: '#F59E0B', primaryD: '#D97706', primaryL: '#FB923C', accent: '#FBBF24', accentSoft: NX.amberSoft },
 } as const;
