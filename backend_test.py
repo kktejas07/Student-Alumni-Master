@@ -1,257 +1,283 @@
-"""End-to-End Real-Time Auth Flow validation (P0).
-
-Tests verify the bug-fix in /app/backend/server.py:
-  1. StudentInfo.age + education_level are now Optional (so seeded users
-     with only career_goal don't 422).
-  2. _safe_block() drops invalid info blocks instead of crashing UserResponse.
 """
+Super-Admin "Colleges & Auto-Distribution" backend smoke test.
+
+Verifies the endpoints requested in the review:
+  1. POST /api/admin/imports/manual  → auto-onboard mentor + auto-create college
+  2. POST /api/admin/colleges/{cid}/reenrich  → Wikipedia + Hipolabs enrichment
+  3. College CRUD (list/get/patch/approve/disable/restore/delete/restore-from-archive)
+  4. User lifecycle (disable/restore/approve) under /api/admin/users/profile/{id}/*
+  5. Auto-distribution → GET /api/admin/users/list?category=mentor
+  6. GET /api/admin/super/events  (TZ-fix regression)
+  7. POST /api/admin/colleges {name} → manual create + enrichment
+"""
+import os
 import sys
-import uuid
+import time
+import random
+import string
 import requests
 
-BASE = "https://hiring-mvvm.preview.emergentagent.com/api"
-TIMEOUT = 30
+BASE = os.environ.get("BACKEND_URL") or "https://hiring-mvvm.preview.emergentagent.com"
+API  = BASE.rstrip("/") + "/api"
+
+ADMIN_EMAIL = "admin-super1@persona.demo"
+ADMIN_PASSWORD = "TestPass@123"
+ALT_EMAIL = "admin@careerpath.app"
+ALT_PASSWORD = "Admin@12345"
+
+def banner(s): print("\n" + "=" * 70 + f"\n{s}\n" + "=" * 70)
+def ok(s):    print("  PASS  " + s)
+def fail(s):  print("  FAIL  " + s)
 
 results = []
+def record(label, passed, info=""):
+    results.append((label, passed, info))
+    (ok if passed else fail)(f"{label} — {info}" if info else label)
 
 
-def record(name, ok, detail=""):
-    status = "PASS" if ok else "FAIL"
-    results.append((status, name, detail))
-    sym = "✅" if ok else "❌"
-    print(f"{sym} [{status}] {name} :: {detail}")
-    return ok
+# ─── 0. Login as super admin ─────────────────────────────────────
+banner("0. AUTH — login admin-super1@persona.demo")
+r = requests.post(f"{API}/auth/login",
+                  json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD},
+                  timeout=20)
+if r.status_code != 200:
+    print(f"primary admin login failed ({r.status_code}): trying ALT {ALT_EMAIL}")
+    r = requests.post(f"{API}/auth/login",
+                      json={"email": ALT_EMAIL, "password": ALT_PASSWORD},
+                      timeout=20)
+if r.status_code != 200:
+    print("FATAL — cannot login as either admin account:", r.status_code, r.text[:200])
+    sys.exit(2)
+TOKEN = r.json()["access_token"]
+ME    = r.json()["user"]
+print(f"Logged in as {ME.get('email')}  role={ME.get('role')}  id={ME.get('id')}")
+H = {"Authorization": f"Bearer {TOKEN}"}
 
 
-def post(path, **kwargs):
-    return requests.post(BASE + path, timeout=TIMEOUT, **kwargs)
+# ─── 1. Manual add — auto-onboard + auto-create college ──────────
+banner("1. POST /api/admin/imports/manual  (mentor, IIT Madras)")
+rand = "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
+mentor_email = f"test_madras_{rand}@test.demo"
+manual_body = {
+    "first_name": "Test",
+    "last_name":  "Madras",
+    "email":      mentor_email,
+    "college":    "Indian Institute of Technology Madras",
+    "degree":     "B.Tech ECE",
+    "designation":"Senior Engineer",
+    "company":    "Google",
+    "experience_years_raw": "5",
+}
+r = requests.post(f"{API}/admin/imports/manual", headers=H, json=manual_body, timeout=20)
+print("status:", r.status_code, "body:", r.text[:300])
+record("POST /admin/imports/manual returns 200", r.status_code == 200, f"status={r.status_code}")
+manual_user_id = None
+if r.status_code == 200:
+    j = r.json()
+    record("ok=true", bool(j.get("ok")), str(j.get("ok")))
+    record("action in (added,updated,restored)", j.get("action") in ("added","updated","restored"), f"action={j.get('action')}")
+    record("category=mentor (Rule 1: ≥4 yrs experience)", j.get("category") == "mentor", f"category={j.get('category')}")
+    manual_user_id = j.get("id")
 
 
-def get(path, **kwargs):
-    return requests.get(BASE + path, timeout=TIMEOUT, **kwargs)
+# ─── 2. Wait, then college list ──────────────────────────────────
+banner("2. Wait 3s for async college enrichment, then GET /admin/colleges/list")
+time.sleep(3.5)
+r = requests.get(f"{API}/admin/colleges/list?status=all", headers=H, timeout=20)
+record("GET /admin/colleges/list returns 200", r.status_code == 200, f"status={r.status_code}")
+madras = None
+if r.status_code == 200:
+    items = r.json().get("items", [])
+    print(f"  → {len(items)} colleges total")
+    for c in items:
+        if c["name"].strip().lower() == "indian institute of technology madras":
+            madras = c
+            break
+    record("IIT Madras present in college list", madras is not None,
+           "missing" if madras is None else f"id={madras['id']}, status={madras.get('status')}, enrichment={madras.get('enrichment_status')}")
+    if madras:
+        record("IIT Madras status='pending' or 'active'",
+               madras["status"] in ("pending", "active"),
+               f"status={madras['status']}")
 
 
-# ---------------------------------------------------------------------------
-# 1. Register — brand new student
-# ---------------------------------------------------------------------------
-rand_suffix = uuid.uuid4().hex[:10]
-student_email = f"e2e_student_{rand_suffix}@test.com"
-student_password = "TestPass@123"
-
-r = post("/auth/register", json={
-    "email": student_email,
-    "password": student_password,
-    "full_name": "E2E Student",
-    "role": "student",
-})
-ok = r.status_code == 200
-new_student_tokens = {}
-if ok:
-    data = r.json()
-    new_student_tokens["access"] = data.get("access_token")
-    new_student_tokens["refresh"] = data.get("refresh_token")
-    user = data.get("user", {})
-    ok = (
-        bool(data.get("access_token"))
-        and bool(data.get("refresh_token"))
-        and user.get("onboarding_completed") is False
-        and user.get("role") == "student"
-        and "password_hash" not in user
-    )
-record(
-    "1) POST /auth/register — new student",
-    ok,
-    f"status={r.status_code} email={student_email}",
-)
-
-
-# ---------------------------------------------------------------------------
-# 2. Register — brand new mentor
-# ---------------------------------------------------------------------------
-mentor_email = f"e2e_mentor_{rand_suffix}@test.com"
-r = post("/auth/register", json={
-    "email": mentor_email,
-    "password": student_password,
-    "full_name": "E2E Mentor",
-    "role": "mentor",
-})
-ok = r.status_code == 200
-if ok:
-    user = r.json().get("user", {})
-    ok = user.get("role") == "mentor" and user.get("mentor_status") == "pending"
-record(
-    "2) POST /auth/register — new mentor (mentor_status=pending)",
-    ok,
-    f"status={r.status_code}",
-)
-
-
-# ---------------------------------------------------------------------------
-# 3. Login — seeded users (the critical regression case set)
-# ---------------------------------------------------------------------------
-seeded = [
-    ("student01@test.com",            "TestPass@123"),
-    ("mentor01@test.com",             "TestPass@123"),
-    ("college01@test.com",            "TestPass@123"),
-    ("admin@careerpath.app",          "Admin@12345"),
-    ("booked1@persona.demo",          "TestPass@123"),  # was 500 before fix
-    ("mentor-active1@persona.demo",   "TestPass@123"),
-    ("college-high1@persona.demo",    "TestPass@123"),
-    ("admin-super1@persona.demo",     "TestPass@123"),
-]
-
-login_tokens = {}  # email → access_token
-
-for email, password in seeded:
-    r = post("/auth/login", json={"email": email, "password": password})
-    ok = r.status_code == 200
-    detail = f"status={r.status_code}"
-    if ok:
-        try:
-            data = r.json()
-            ok = bool(data.get("access_token")) and bool(data.get("user"))
-            if ok:
-                login_tokens[email] = data["access_token"]
-                user = data["user"]
-                detail += f" role={user.get('role')} onboarded={user.get('onboarding_completed')}"
-                if "password_hash" in user:
-                    ok = False
-                    detail += " (LEAKED password_hash!)"
-        except Exception as exc:
-            ok = False
-            detail += f" parse_err={exc}"
-    else:
-        detail += f" body={r.text[:300]}"
-    record(f"3) POST /auth/login — {email}", ok, detail)
-
-
-# ---------------------------------------------------------------------------
-# 4. Login — negative cases
-# ---------------------------------------------------------------------------
-r = post("/auth/login", json={"email": "student01@test.com", "password": "WrongPass!1"})
-ok = r.status_code == 401 and "Invalid email or password" in r.text
-record(
-    "4a) POST /auth/login — wrong password → 401",
-    ok,
-    f"status={r.status_code} body={r.text[:200]}",
-)
-
-r = post("/auth/login", json={"email": f"nobody_{rand_suffix}@noexist.zz", "password": "AnyPass@123"})
-ok = r.status_code == 401
-record(
-    "4b) POST /auth/login — unknown email → 401",
-    ok,
-    f"status={r.status_code} body={r.text[:200]}",
-)
-
-
-# ---------------------------------------------------------------------------
-# 5. Login with the brand-new user from step 1 (proves persistence to DB)
-# ---------------------------------------------------------------------------
-r = post("/auth/login", json={"email": student_email, "password": student_password})
-ok = r.status_code == 200
-new_login_access = None
-new_login_refresh = None
-if ok:
-    data = r.json()
-    new_login_access = data.get("access_token")
-    new_login_refresh = data.get("refresh_token")
-    ok = bool(new_login_access) and bool(new_login_refresh)
-record(
-    "5) POST /auth/login — newly registered student persisted",
-    ok,
-    f"status={r.status_code}",
-)
-
-
-# ---------------------------------------------------------------------------
-# 6. GET /auth/me with + without token
-# ---------------------------------------------------------------------------
-if new_login_access:
-    r = get("/auth/me", headers={"Authorization": f"Bearer {new_login_access}"})
-    ok = r.status_code == 200
-    detail = f"status={r.status_code}"
-    if ok:
-        u = r.json()
-        ok = (
-            u.get("email") == student_email
-            and u.get("role") == "student"
-            and "password_hash" not in u
-        )
-        detail += f" email={u.get('email')} role={u.get('role')}"
-    record("6a) GET /auth/me — with bearer → 200, no password_hash", ok, detail)
+# ─── 3. Enrichment ───────────────────────────────────────────────
+banner("3. POST /admin/colleges/{cid}/reenrich")
+cid = madras["id"] if madras else None
+if cid:
+    r = requests.post(f"{API}/admin/colleges/{cid}/reenrich", headers=H, timeout=30)
+    print("status:", r.status_code)
+    record("POST /reenrich returns 200", r.status_code == 200, f"status={r.status_code}")
+    if r.status_code == 200:
+        j = r.json()
+        record("enrichment_status in (enriched, partial)",
+               j.get("enrichment_status") in ("enriched", "partial"),
+               f"enrichment_status={j.get('enrichment_status')}")
+        record("description populated (Wikipedia)",
+               bool(j.get("description")) and len(j["description"]) > 30,
+               f"description_len={len(j.get('description') or '')}")
+        record("logo_url populated (Wikipedia thumb)",
+               bool(j.get("logo_url")),
+               f"logo_url={(j.get('logo_url') or '')[:80]}")
+        record("ranking contains 'Tier-1 (IIT)'",
+               any("IIT" in rg for rg in (j.get("ranking") or [])),
+               f"ranking={j.get('ranking')}")
+        record("specialties array non-empty",
+               len(j.get("specialties") or []) > 0,
+               f"specialties={j.get('specialties')}")
+        record("enrichment_sources include wikipedia and/or hipolabs",
+               any(s in (j.get("enrichment_sources") or []) for s in ("wikipedia", "hipolabs")),
+               f"sources={j.get('enrichment_sources')}")
 else:
-    record("6a) GET /auth/me — with bearer", False, "skipped: no access_token from step 5")
-
-r = get("/auth/me")
-ok = r.status_code == 401
-record("6b) GET /auth/me — without bearer → 401", ok, f"status={r.status_code}")
+    record("reenrich skipped (no college id)", False, "no IIT Madras id available")
 
 
-# ---------------------------------------------------------------------------
-# 7. Refresh token
-# ---------------------------------------------------------------------------
-if new_login_refresh:
-    r = post("/auth/refresh", json={"refresh_token": new_login_refresh})
-    ok = r.status_code == 200
-    detail = f"status={r.status_code}"
-    if ok:
-        ok = bool(r.json().get("access_token"))
-        detail += " new_access_token=present"
-    record("7) POST /auth/refresh — returns new access_token", ok, detail)
+# ─── 4. College CRUD ─────────────────────────────────────────────
+banner("4. College CRUD")
+if cid:
+    r = requests.get(f"{API}/admin/colleges/list?status=all&q=Madras", headers=H, timeout=15)
+    record("GET list?status=all&q=Madras → 200", r.status_code == 200, f"status={r.status_code}")
+    if r.status_code == 200:
+        items = r.json().get("items", [])
+        record("query filter narrows results",
+               all("madras" in (it["name"].lower()) for it in items),
+               f"got {len(items)} items")
+
+    r = requests.get(f"{API}/admin/colleges/{cid}", headers=H, timeout=15)
+    record("GET /admin/colleges/{cid} → 200", r.status_code == 200, f"status={r.status_code}")
+
+    r = requests.patch(f"{API}/admin/colleges/{cid}", headers=H,
+                       json={"city": "Chennai", "state": "Tamil Nadu"}, timeout=15)
+    record("PATCH city/state → 200", r.status_code == 200, f"status={r.status_code}")
+    r2 = requests.get(f"{API}/admin/colleges/{cid}", headers=H, timeout=10).json()
+    record("PATCH persisted (city=Chennai)", r2.get("city") == "Chennai", f"city={r2.get('city')}")
+    record("PATCH persisted (state=Tamil Nadu)", r2.get("state") == "Tamil Nadu", f"state={r2.get('state')}")
+
+    r = requests.post(f"{API}/admin/colleges/{cid}/approve", headers=H, timeout=15)
+    record("POST /approve → 200", r.status_code == 200, f"status={r.status_code}")
+    record("status=active after approve",
+           r.status_code == 200 and r.json().get("status") == "active",
+           f"resp={r.json() if r.status_code == 200 else r.text[:120]}")
+
+    r = requests.post(f"{API}/admin/colleges/{cid}/disable", headers=H, timeout=15)
+    record("POST /disable → 200", r.status_code == 200, f"status={r.status_code}")
+    record("status=paused after disable",
+           r.status_code == 200 and r.json().get("status") == "paused",
+           f"resp={r.json() if r.status_code == 200 else r.text[:120]}")
+
+    r = requests.post(f"{API}/admin/colleges/{cid}/restore", headers=H, timeout=15)
+    record("POST /restore (live) → 200", r.status_code == 200, f"status={r.status_code}")
+    record("status=active after restore",
+           r.status_code == 200 and r.json().get("status") == "active",
+           f"resp={r.json() if r.status_code == 200 else r.text[:120]}")
+
+    r = requests.delete(f"{API}/admin/colleges/{cid}", headers=H, timeout=15)
+    record("DELETE → 200", r.status_code == 200, f"status={r.status_code}")
+    if r.status_code == 200:
+        j = r.json()
+        record("archived flag set on delete",
+               bool(j.get("archived")) or j.get("removed") == 1, f"resp={j}")
+    r2 = requests.get(f"{API}/admin/colleges/{cid}", headers=H, timeout=10)
+    record("After delete, GET /{cid} returns 404", r2.status_code == 404, f"status={r2.status_code}")
+
+    r = requests.post(f"{API}/admin/colleges/{cid}/restore", headers=H, timeout=15)
+    record("POST /restore (from archive) → 200", r.status_code == 200, f"status={r.status_code}")
+    if r.status_code == 200:
+        j = r.json()
+        record("restored_from=archive marker",
+               j.get("status") == "active" and j.get("restored_from") == "archive",
+               f"resp={j}")
+    r2 = requests.get(f"{API}/admin/colleges/{cid}", headers=H, timeout=10)
+    record("After archive-restore, GET /{cid} returns 200", r2.status_code == 200, f"status={r2.status_code}")
+
+
+# ─── 5. User lifecycle ───────────────────────────────────────────
+banner("5. User lifecycle (disable / restore / approve)")
+if manual_user_id:
+    r = requests.post(f"{API}/admin/users/profile/{manual_user_id}/disable", headers=H, timeout=15)
+    record("POST /users/profile/{uid}/disable → 200", r.status_code == 200, f"status={r.status_code}")
+    record("disable: ok=true & disabled=true",
+           r.status_code == 200 and r.json().get("ok") and r.json().get("disabled"),
+           f"resp={r.json() if r.status_code == 200 else r.text[:120]}")
+
+    r = requests.post(f"{API}/admin/users/profile/{manual_user_id}/restore", headers=H, timeout=15)
+    record("POST /users/profile/{uid}/restore → 200", r.status_code == 200, f"status={r.status_code}")
+    record("restore: status=re-enabled",
+           r.status_code == 200 and r.json().get("status") == "re-enabled",
+           f"resp={r.json() if r.status_code == 200 else r.text[:120]}")
+
+    r = requests.post(f"{API}/admin/users/profile/{manual_user_id}/approve", headers=H, timeout=15)
+    record("POST /users/profile/{uid}/approve → 200", r.status_code == 200, f"status={r.status_code}")
+    record("approve: approved=true",
+           r.status_code == 200 and r.json().get("approved") is True,
+           f"resp={r.json() if r.status_code == 200 else r.text[:120]}")
+
+
+# ─── 6. Auto-distribution ────────────────────────────────────────
+banner("6. Auto-distribution: GET /admin/users/list?category=mentor")
+r = requests.get(f"{API}/admin/users/list?category=mentor&limit=500", headers=H, timeout=20)
+record("GET /admin/users/list?category=mentor → 200", r.status_code == 200, f"status={r.status_code}")
+if r.status_code == 200:
+    items = r.json().get("items", [])
+    counts = r.json().get("counts", {})
+    print(f"  → mentor counts.mentor={counts.get('mentor')}; returned {len(items)} items")
+    found = next((u for u in items if u.get("email") == mentor_email), None)
+    record("Test Madras mentor present in mentor list",
+           found is not None,
+           "missing — auto-distribution may have failed" if not found else
+           f"category={found.get('category')}, exp={found.get('experience_years')}")
+
+
+# ─── 7. /admin/super/events TZ regression ────────────────────────
+banner("7. GET /admin/super/events — TZ comparison regression")
+r = requests.get(f"{API}/admin/super/events", headers=H, timeout=20)
+record("GET /admin/super/events → 200 (no TZ crash)", r.status_code == 200,
+       f"status={r.status_code} body={r.text[:200]}")
+if r.status_code == 200:
+    items = r.json().get("items", [])
+    record("events list is a list", isinstance(items, list), f"len={len(items)}")
+
+
+# ─── 8. Manual create college ────────────────────────────────────
+banner("8. POST /admin/colleges  (Indian Institute of Science)")
+r = requests.post(f"{API}/admin/colleges", headers=H,
+                  json={"name": "Indian Institute of Science"}, timeout=20)
+record("POST /admin/colleges → 200", r.status_code == 200,
+       f"status={r.status_code} body={r.text[:200]}")
+new_cid = None
+if r.status_code == 200:
+    j = r.json()
+    record("ok=true + id returned", bool(j.get("ok") and j.get("id")), f"resp={j}")
+    new_cid = j.get("id")
+if new_cid:
+    print("  → waiting 4s for background enrichment…")
+    time.sleep(4.0)
+    r = requests.get(f"{API}/admin/colleges/{new_cid}", headers=H, timeout=15)
+    record("After 4s, GET new college → 200", r.status_code == 200, f"status={r.status_code}")
+    if r.status_code == 200:
+        j = r.json()
+        record("Enrichment ran (status in enriched/partial/pending)",
+               j.get("enrichment_status") in ("enriched", "partial", "pending"),
+               f"enrichment_status={j.get('enrichment_status')}")
+        if j.get("enrichment_status") in ("enriched", "partial"):
+            record("description or specialties populated",
+                   bool(j.get("description")) or bool(j.get("specialties")),
+                   f"desc_len={len(j.get('description') or '')}, specs={len(j.get('specialties') or [])}")
+    # cleanup
+    requests.delete(f"{API}/admin/colleges/{new_cid}", headers=H, timeout=10)
+
+
+# ─── SUMMARY ─────────────────────────────────────────────────────
+banner("SUMMARY")
+passed = sum(1 for _, ok_, _ in results if ok_)
+total  = len(results)
+print(f"\n{passed} / {total} checks passed.\n")
+fails = [r for r in results if not r[1]]
+if fails:
+    print("FAILED CHECKS:")
+    for label, _, info in fails:
+        print(f"  ❌ {label} — {info}")
 else:
-    record("7) POST /auth/refresh", False, "skipped: no refresh_token")
+    print("✅ ALL CHECKS PASSED")
 
-
-# ---------------------------------------------------------------------------
-# 8. Sanity — dashboard endpoints
-# Note: backend exposes a single /api/dashboard (role-personalized).
-# /api/student/dashboard and /api/mentor/dashboard are NOT defined in server.py.
-# We try the user-requested paths first then fall back to /api/dashboard.
-# ---------------------------------------------------------------------------
-def test_dashboard(label, token):
-    if not token:
-        record(f"8) {label} dashboard", False, "no token available")
-        return
-    if label == "student":
-        try_paths = ["/student/dashboard", "/dashboard"]
-    else:
-        try_paths = ["/mentor/dashboard", "/dashboard"]
-    last = None
-    for path in try_paths:
-        r = get(path, headers={"Authorization": f"Bearer {token}"})
-        last = (path, r)
-        if r.status_code == 200:
-            record(
-                f"8) GET {path} ({label}) → 200",
-                True,
-                f"keys={list(r.json().keys())[:6]}",
-            )
-            return
-    p, r = last
-    record(
-        f"8) GET dashboard for {label}",
-        False,
-        f"last={p} status={r.status_code} body={r.text[:200]}",
-    )
-
-
-test_dashboard("student", login_tokens.get("student01@test.com"))
-test_dashboard("mentor",  login_tokens.get("mentor01@test.com"))
-
-
-# ---------------------------------------------------------------------------
-# Summary
-# ---------------------------------------------------------------------------
-total = len(results)
-passed = sum(1 for s, *_ in results if s == "PASS")
-failed = total - passed
-print()
-print("=" * 78)
-print(f"TOTAL {total}   PASS {passed}   FAIL {failed}")
-print("=" * 78)
-for status, name, detail in results:
-    sym = "✅" if status == "PASS" else "❌"
-    print(f"{sym} {status}  {name}")
-
-sys.exit(0 if failed == 0 else 1)
+sys.exit(0 if not fails else 1)

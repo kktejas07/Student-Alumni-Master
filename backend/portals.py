@@ -925,6 +925,9 @@ async def super_events():
     i = 0
     async for ev in cur:
         sd = ev.get("start_date")
+        # normalize to tz-aware UTC to avoid offset-naive vs aware comparisons
+        if isinstance(sd, datetime) and sd.tzinfo is None:
+            sd = sd.replace(tzinfo=timezone.utc)
         date_str = sd.strftime("%b %d") if isinstance(sd, datetime) else "TBD"
         regs = await _db.event_registrations.count_documents({"event_id": str(ev.get("_id"))})
         is_pending = isinstance(sd, datetime) and sd > now + timedelta(days=30)

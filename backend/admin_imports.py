@@ -39,6 +39,13 @@ load_dotenv()
 
 router = APIRouter()
 
+# Auto-onboard colleges from imports/manual-add
+try:
+    from admin_colleges import ensure_college  # type: ignore
+except Exception:
+    async def ensure_college(name: str, created_by: str = "import"):  # type: ignore
+        return None
+
 # ─── Mongo ─────────────────────────────────────────────────────────
 _MONGO_URL = os.getenv("MONGO_URL") or "mongodb://localhost:27017"
 _DB_NAME   = os.getenv("DB_NAME") or "career_platform"
@@ -590,6 +597,10 @@ async def commit_import(body: CommitBody, authorization: Optional[str] = Header(
                 row["approved"] = False
                 await _db.users.insert_one(row)
                 added += 1
+            # Auto-onboard college (idempotent, async enrichment)
+            if row.get("college"):
+                try: await ensure_college(row["college"], created_by="import")
+                except Exception: pass
             cat_counts[row["category"]] = cat_counts.get(row["category"], 0) + 1
         except HTTPException:
             raise
@@ -671,6 +682,9 @@ async def manual_add(body: ManualUser, authorization: Optional[str] = Header(Non
     row["created_by"] = "manual"
     row["approved"] = False
     res = await _db.users.insert_one(row)
+    if row.get("college"):
+        try: await ensure_college(row["college"], created_by="manual")
+        except Exception: pass
     return {"ok": True, "action": "added", "id": str(res.inserted_id),
             "category": row["category"], "rule": row["category_rule"]}
 
@@ -841,9 +855,61 @@ async def approve_profile(user_id: str, authorization: Optional[str] = Header(No
             "approved_at": datetime.now(timezone.utc),
             "approved_by": str(user["_id"]),
             "profile_status": "complete",
+            "disabled": False,
         }},
     )
     return {"ok": True, "approved": True}
+
+
+@router.post("/admin/users/profile/{user_id}/disable")
+async def disable_profile(user_id: str, authorization: Optional[str] = Header(None)):
+    """Disable an approved user — keep the record visible but mark inactive."""
+    user = await _require_admin(authorization)
+    try: oid = ObjectId(user_id)
+    except Exception: raise HTTPException(400, "Invalid user id")
+    await _db.users.update_one(
+        {"_id": oid},
+        {"$set": {
+            "disabled": True,
+            "approved": False,
+            "disabled_at": datetime.now(timezone.utc),
+            "disabled_by": str(user["_id"]),
+        }},
+    )
+    return {"ok": True, "disabled": True}
+
+
+@router.post("/admin/users/profile/{user_id}/restore")
+async def restore_profile(user_id: str, authorization: Optional[str] = Header(None)):
+    """Restore either a disabled user or one from `users_archive`."""
+    await _require_admin(authorization)
+    try: oid = ObjectId(user_id)
+    except Exception: raise HTTPException(400, "Invalid user id")
+    # Live user? Just re-enable.
+    live = await _db.users.find_one({"_id": oid})
+    if live:
+        await _db.users.update_one(
+            {"_id": oid},
+            {"$set": {
+                "disabled": False, "approved": True,
+                "restored_at": datetime.now(timezone.utc),
+            }},
+        )
+        return {"ok": True, "status": "re-enabled"}
+    # Otherwise, pull back from archive
+    arch = await _db.users_archive.find_one({"_id": oid})
+    if not arch:
+        # Try by archived_user_id (older docs)
+        arch = await _db.users_archive.find_one({"archived_user_id": user_id})
+    if not arch:
+        raise HTTPException(404, "User not found in live records or archive")
+    arch.pop("_id", None)
+    arch["restored_at"] = datetime.now(timezone.utc)
+    arch["disabled"] = False
+    arch["approved"] = True
+    res = await _db.users.insert_one(arch)
+    await _db.users_archive.delete_one({"archived_user_id": user_id})
+    return {"ok": True, "status": "restored", "id": str(res.inserted_id)}
 
 
 async def _try_restore_archived(email: str, linkedin_url: str) -> Optional[dict]:
