@@ -32,52 +32,44 @@ import { PALETTE, SC, TYPO } from './tokens';
 export function AnimatedAurora({ intensity = 'normal' }: {
   intensity?: 'subtle' | 'normal' | 'strong';
 }) {
-  const mul = intensity === 'subtle' ? 0.5 : intensity === 'strong' ? 1.3 : 1.0;
+  const mul = intensity === 'subtle' ? 0.3 : intensity === 'strong' ? 0.9 : 0.55;
 
   if (Platform.OS === 'web') {
-    // Pure CSS: four positioned div "orbs" with their own keyframe loops.
-    // Wrapping it in a single layer so the parent only sees one absolutely-
-    // positioned descendant.
+    // Pure CSS: three positioned div "orbs" with their own keyframe loops.
+    // Wrapping in a single layer so the parent only sees one absolutely-
+    // positioned descendant. Pink/rose orb dropped per design feedback;
+    // remaining palette is violet · blue · teal for a calmer canvas.
     return (
       <View pointerEvents="none" style={[a.layer]}>
         {/* @ts-expect-error web-only — styled via inline JSX style sheet */}
         <style>{`
-@keyframes orbA { 0%{transform:translate(0,0)} 50%{transform:translate(20vw,15vh)} 100%{transform:translate(0,0)} }
-@keyframes orbB { 0%{transform:translate(0,0)} 50%{transform:translate(-22vw,18vh)} 100%{transform:translate(0,0)} }
-@keyframes orbC { 0%{transform:translate(0,0)} 50%{transform:translate(15vw,-12vh)} 100%{transform:translate(0,0)} }
-@keyframes orbD { 0%{transform:translate(0,0)} 50%{transform:translate(-18vw,-15vh)} 100%{transform:translate(0,0)} }
+@keyframes orbA { 0%{transform:translate(0,0)} 50%{transform:translate(15vw,10vh)} 100%{transform:translate(0,0)} }
+@keyframes orbB { 0%{transform:translate(0,0)} 50%{transform:translate(-18vw,12vh)} 100%{transform:translate(0,0)} }
+@keyframes orbC { 0%{transform:translate(0,0)} 50%{transform:translate(12vw,-10vh)} 100%{transform:translate(0,0)} }
         `}</style>
         <View style={[a.orb, {
-          top: '-8%', left: '-6%', width: 560, height: 560,
+          top: '-12%', left: '-10%', width: 540, height: 540,
           backgroundColor: PALETTE.violet,
-          opacity: 0.40 * mul,
-          // @ts-expect-error web-only
-          filter: 'blur(120px)',
-          animation: 'orbA 18s ease-in-out infinite',
-        } as any]} />
-        <View style={[a.orb, {
-          top: '6%', right: '-10%', width: 520, height: 520,
-          backgroundColor: PALETTE.blue,
-          opacity: 0.32 * mul,
-          // @ts-expect-error web-only
-          filter: 'blur(120px)',
-          animation: 'orbB 22s ease-in-out infinite',
-        } as any]} />
-        <View style={[a.orb, {
-          bottom: '-12%', left: '20%', width: 620, height: 620,
-          backgroundColor: PALETTE.teal,
-          opacity: 0.28 * mul,
+          opacity: 0.26 * mul,
           // @ts-expect-error web-only
           filter: 'blur(140px)',
-          animation: 'orbC 26s ease-in-out infinite',
+          animation: 'orbA 22s ease-in-out infinite',
         } as any]} />
         <View style={[a.orb, {
-          bottom: '-8%', right: '8%', width: 440, height: 440,
-          backgroundColor: PALETTE.rose,
-          opacity: 0.22 * mul,
+          top: '8%', right: '-14%', width: 500, height: 500,
+          backgroundColor: PALETTE.blue,
+          opacity: 0.20 * mul,
           // @ts-expect-error web-only
-          filter: 'blur(110px)',
-          animation: 'orbD 30s ease-in-out infinite',
+          filter: 'blur(140px)',
+          animation: 'orbB 28s ease-in-out infinite',
+        } as any]} />
+        <View style={[a.orb, {
+          bottom: '-18%', left: '25%', width: 620, height: 620,
+          backgroundColor: PALETTE.teal,
+          opacity: 0.16 * mul,
+          // @ts-expect-error web-only
+          filter: 'blur(160px)',
+          animation: 'orbC 32s ease-in-out infinite',
         } as any]} />
       </View>
     );
@@ -87,14 +79,12 @@ export function AnimatedAurora({ intensity = 'normal' }: {
   // hit on a moving image is too costly on lower-end devices).
   return (
     <View pointerEvents="none" style={a.layer}>
-      <View style={[a.orb, { top: -40,  left: -40,  width: 360, height: 360,
-                             backgroundColor: PALETTE.violet, opacity: 0.40 * mul }]} />
-      <View style={[a.orb, { top: 60,   right: -60, width: 320, height: 320,
-                             backgroundColor: PALETTE.blue,   opacity: 0.32 * mul }]} />
-      <View style={[a.orb, { bottom: 80, left: 100, width: 400, height: 400,
-                             backgroundColor: PALETTE.teal,   opacity: 0.28 * mul }]} />
-      <View style={[a.orb, { bottom: 40, right: 40, width: 280, height: 280,
-                             backgroundColor: PALETTE.rose,   opacity: 0.22 * mul }]} />
+      <View style={[a.orb, { top: -50,  left: -50,  width: 360, height: 360,
+                             backgroundColor: PALETTE.violet, opacity: 0.24 * mul }]} />
+      <View style={[a.orb, { top: 80,   right: -70, width: 320, height: 320,
+                             backgroundColor: PALETTE.blue,   opacity: 0.18 * mul }]} />
+      <View style={[a.orb, { bottom: 60, left: 120, width: 400, height: 400,
+                             backgroundColor: PALETTE.teal,   opacity: 0.14 * mul }]} />
     </View>
   );
 }

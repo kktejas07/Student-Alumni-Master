@@ -25,6 +25,7 @@ import { useBreakpoint } from '@/src/theme/breakpoints';
 import { SP, RADII, FONT_FAMILY } from '@/src/theme/apple';
 import { GlassTopbar } from '@/src/motion/apple/components';
 import { FadeInView, PressScale, PulseDot } from './motion';
+import { PALETTE, TYPO } from './tokens';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -52,14 +53,22 @@ export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
   const showSearch = bp.atLeast('lg');
 
   return (
-    <GlassTopbar scrolled={scrolled} style={{ height: bp.isPhone ? 56 : 64, paddingHorizontal: bp.isPhone ? SP.base : SP.lg }}>
+    <GlassTopbar scrolled={scrolled} style={{
+      height: bp.isPhone ? 56 : 64,
+      paddingHorizontal: bp.isPhone ? SP.base : SP.lg,
+      backgroundColor: 'rgba(10,15,30,0.72)',
+      borderBottomColor: PALETTE.glassBorder,
+      // @ts-expect-error web-only
+      backdropFilter: 'blur(20px) saturate(160%)',
+      WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+    } as any}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: SP.md, flex: 1 }}>
         <FadeInView delay={20} style={{ flex: 1, minWidth: 0 }}>
-          <Text style={{ fontFamily: FONT_FAMILY, fontSize: bp.isPhone ? 15 : 17, fontWeight: '700', color: theme.text, letterSpacing: -0.4 }}>
+          <Text style={{ fontFamily: TYPO.display700, fontSize: bp.isPhone ? 16 : 18, color: PALETTE.text, letterSpacing: -0.5 }}>
             {greeting()}, {firstName} 👋
           </Text>
           {!bp.isPhone && (
-            <Text style={{ fontFamily: FONT_FAMILY, fontSize: 12, fontWeight: '500', color: theme.textSec, marginTop: 2 }}>
+            <Text style={{ fontFamily: TYPO.body500, fontSize: 12, color: PALETTE.muted, marginTop: 2 }}>
               Here's your personalised dashboard for today
             </Text>
           )}
@@ -67,12 +76,12 @@ export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
 
         {showSearch && (
           <FadeInView delay={120}>
-            <View style={[s.searchBox, { backgroundColor: theme.bgInset, borderColor: theme.hairline }]}>
-              <Search size={14} color={theme.textTer} />
+            <View style={[s.searchBox, { backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder }]}>
+              <Search size={14} color={PALETTE.dim} />
               <TextInput
                 placeholder="Search anything…"
-                placeholderTextColor={theme.textTer}
-                style={[s.searchInput, { color: theme.text }]}
+                placeholderTextColor={PALETTE.dim}
+                style={[s.searchInput, { color: PALETTE.text, fontFamily: TYPO.body500 }]}
                 accessibilityLabel="Search the dashboard"
                 accessibilityHint="Type to find courses, mentors, jobs, deals, and more"
                 // @ts-ignore — RN-Web accepts these
@@ -85,25 +94,25 @@ export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
         {/* Theme toggle — sun ↔ moon morph (Apple-style rotation + scale) */}
         <FadeInView delay={160}>
           <PressScale
-            style={[s.iconBtn, { backgroundColor: theme.bgInset, borderColor: theme.hairline }]}
+            style={[s.iconBtn, { backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder }]}
             onPress={cycleTheme}
             accessibilityLabel={`Theme: ${mode}. Tap to cycle.`}
             accessibilityHint="Switches between light, dark, and automatic"
           >
-            <ThemeMorphIcon mode={mode} color={theme.text} />
+            <ThemeMorphIcon mode={mode} color={PALETTE.text} />
           </PressScale>
         </FadeInView>
 
         <FadeInView delay={180}>
           <PressScale
-            style={[s.iconBtn, { backgroundColor: theme.bgInset, borderColor: theme.hairline }]}
+            style={[s.iconBtn, { backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder }]}
             onPress={() => {}}
             accessibilityLabel="Notifications"
             accessibilityHint="Opens the notifications panel"
           >
-            <Bell size={16} color={theme.primary} />
-            <View style={[s.bellDotWrap, { backgroundColor: theme.bgElevated }]}>
-              <PulseDot size={7} color={theme.red} />
+            <Bell size={16} color={PALETTE.violet} />
+            <View style={[s.bellDotWrap, { backgroundColor: PALETTE.bg1 }]}>
+              <PulseDot size={7} color={PALETTE.rose} />
             </View>
           </PressScale>
         </FadeInView>
