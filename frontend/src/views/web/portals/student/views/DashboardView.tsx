@@ -19,6 +19,7 @@ import {
 import { SC, FONTS, useColors } from '../tokens';
 import { GRADS } from '../gradients';
 import { GRAD, IconBox, SectionLabel } from '../portalkit';
+import { Aurora, glassStyle } from '../glass';
 import { FadeInView, Stagger, PressScale, SparkIcon, ShimmerGradient, AnimatedRingFill } from '../motion';
 import { Av, Badge, KpiCard } from '../atoms';
 import * as MOCK from '../data';
@@ -151,10 +152,36 @@ export function DashboardView() {
   ];
 
   return (
-    <View style={{ gap: 16 }}>
+    <View
+      style={[
+        { gap: 16, position: 'relative' },
+        Platform.OS === 'web' ? ({
+          // Aurora baked into the wrapper background so it's never
+          // clipped by an outer overflow:hidden. We use multiple
+          // radial gradients to create the lavender / magenta /
+          // purple blobs that the glass cards refract.
+          backgroundImage:
+            'radial-gradient(900px 720px at 12% 6%,  rgba(167,139,250,0.55) 0%, rgba(167,139,250,0) 60%),' +
+            'radial-gradient(900px 720px at 95% 10%, rgba(236, 72,153,0.40) 0%, rgba(236, 72,153,0) 65%),' +
+            'radial-gradient(1100px 900px at 60% 110%, rgba(123, 61,191,0.58) 0%, rgba(123, 61,191,0) 70%)',
+          // Negative margins so the gradient bleeds into the
+          // surrounding canvas (cancels the parent's padding).
+          marginHorizontal: -24,
+          marginTop: -16,
+          marginBottom: -16,
+          paddingHorizontal: 24,
+          paddingTop: 16,
+          paddingBottom: 16,
+          borderRadius: 24,
+        } as any) : null,
+      ]}
+    >
+      {/* Aurora — native fallback (web bakes it into the bg above). */}
+      {Platform.OS !== 'web' && <Aurora intensity="strong" />}
+
       {/* AI Daily Brief banner — shimmer aura behind hero icon */}
       <FadeInView delay={20}>
-      <View style={[s.briefRow, { backgroundColor: C.card, borderColor: C.border }]}>
+      <View style={[s.briefRow, glassStyle()]}>
         <View style={[s.briefIcon, { backgroundColor: C.cardH }]}>
           <ShimmerGradient colors={GRADS.brandGlow} duration={4200} />
           <SparkIcon Icon={Sparkles} size={18} color={C.accentBright} />
@@ -214,7 +241,7 @@ export function DashboardView() {
 
       {/* TIER BANNER — glowing badge + score + tier-driven suggestions */}
       {STUDENT.tier && (
-        <View style={[s.tierCard, { backgroundColor: C.card, borderColor: C.border }]}>
+        <View style={[s.tierCard, glassStyle()]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
             <TierBadge tier={STUDENT.tier.tier} size="lg" />
             <View style={{ flex: 1, minWidth: 0 }}>
@@ -246,7 +273,7 @@ export function DashboardView() {
       )}
 
       {/* AI Career Assistant Roadmap */}
-      <View style={[s.roadmapCard, { backgroundColor: C.card, borderColor: C.border }]}>
+      <View style={[s.roadmapCard, glassStyle()]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
           <IconBox size={28}><Sparkles size={13} color={GRAD.from} /></IconBox>
           <SectionLabel>AI CAREER ASSISTANT · PERSONALISED ROADMAP</SectionLabel>
@@ -463,6 +490,23 @@ export function DashboardView() {
 }
 
 const s = StyleSheet.create({
+  dashboardCanvas: {
+    // Aurora-lit canvas for the glass-morphism Dashboard. The radial
+    // gradients sit behind every card so the backdrop-blur on each
+    // glass surface refracts a hint of purple / lavender / magenta.
+    ...(Platform.OS === 'web' ? ({
+      backgroundImage:
+        'radial-gradient(900px 720px at 12% 6%,  rgba(167,139,250,0.55) 0%, rgba(167,139,250,0) 60%), ' +
+        'radial-gradient(900px 720px at 95% 10%, rgba(236, 72,153,0.40) 0%, rgba(236, 72,153,0) 65%), ' +
+        'radial-gradient(1100px 900px at 60% 110%, rgba(123, 61,191,0.58) 0%, rgba(123, 61,191,0) 70%)',
+      marginHorizontal: -32,
+      marginTop: -16,
+      paddingHorizontal: 32,
+      paddingTop: 16,
+      paddingBottom: 24,
+      borderRadius: 28,
+    } as any) : {}),
+  },
   nxFrame: {
     backgroundColor: NX.bg,
     borderRadius: 20,
@@ -543,9 +587,14 @@ const s = StyleSheet.create({
 
   matchRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 12,
+    backgroundColor: SC.glassBg, borderColor: SC.glassBorder, borderWidth: 1, borderRadius: 12,
     paddingHorizontal: 14, paddingVertical: 12,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
+    ...(Platform.OS === 'web' ? ({
+      cursor: 'pointer', transitionDuration: '160ms',
+      backdropFilter: 'blur(18px) saturate(140%)',
+      WebkitBackdropFilter: 'blur(18px) saturate(140%)',
+      boxShadow: SC.glassShadow,
+    } as any) : {}),
   },
   companyLogo: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   companyLogoText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
@@ -556,8 +605,13 @@ const s = StyleSheet.create({
   matchPillText: { color: '#86EFAC', fontFamily: FONTS.bold, fontSize: 11 },
 
   mentorCard: {
-    backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 12,
+    backgroundColor: SC.glassBg, borderColor: SC.glassBorder, borderWidth: 1, borderRadius: 12,
     padding: 14,
+    ...(Platform.OS === 'web' ? ({
+      backdropFilter: 'blur(18px) saturate(140%)',
+      WebkitBackdropFilter: 'blur(18px) saturate(140%)',
+      boxShadow: SC.glassShadow,
+    } as any) : {}),
   },
   mentorName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 },
   mentorRole: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
@@ -568,9 +622,14 @@ const s = StyleSheet.create({
 
   eventCard: {
     flex: 1, minWidth: 220,
-    backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 12,
+    backgroundColor: SC.glassBg, borderColor: SC.glassBorder, borderWidth: 1, borderRadius: 12,
     padding: 14,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
+    ...(Platform.OS === 'web' ? ({
+      cursor: 'pointer', transitionDuration: '160ms',
+      backdropFilter: 'blur(18px) saturate(140%)',
+      WebkitBackdropFilter: 'blur(18px) saturate(140%)',
+      boxShadow: SC.glassShadow,
+    } as any) : {}),
   },
   eventIcon: { width: 30, height: 30, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   eventTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5, lineHeight: 18 },

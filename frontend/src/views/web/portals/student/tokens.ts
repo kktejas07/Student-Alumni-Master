@@ -18,6 +18,18 @@ export const SC = {
   border:    'rgba(255,255,255,0.06)',  // hairline
   border2:   'rgba(123,61,191,0.32)',   // accent purple border
 
+  // ── Glass-morphism layer (Dashboard) ──
+  // Lower-alpha translucent surfaces that sit on top of the Aurora blobs;
+  // pair `glassBg` with `backdropFilter: blur(…)` on web / `BlurView` on
+  // native to achieve the frosted glass effect.
+  glassBg:        'rgba(20,16,33,0.55)',         // primary glass card fill
+  glassBgStrong:  'rgba(20,16,33,0.72)',         // dialogs / KPI tiles needing legibility
+  glassBgSoft:    'rgba(123,61,191,0.10)',       // hover / row-level glass
+  glassBorder:    'rgba(167,139,250,0.22)',      // lavender hairline
+  glassBorderHi:  'rgba(167,139,250,0.40)',      // active state
+  glassHighlight: 'rgba(255,255,255,0.08)',      // top inner highlight (1px)
+  glassShadow:    '0 12px 40px rgba(95,37,159,0.18), 0 1px 0 rgba(255,255,255,0.06) inset' as string,
+
   // Brand purple — unified across dark & light for consistent identity
   primary:      '#7B3DBF',              // brand purple 500
   primaryD:     '#5F259F',              // brand purple 700
