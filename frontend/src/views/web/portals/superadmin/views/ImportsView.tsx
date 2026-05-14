@@ -19,6 +19,7 @@ import {
   CheckCircle2, ChevronRight, Sparkles, GraduationCap, UserCheck, Briefcase,
   Mail, Phone, MapPin, Building2, Calendar, ExternalLink, Trash2,
   Pencil, Eye, EyeOff, RefreshCw, Filter, Download, FileText, Globe,
+  Square, SquareCheck, CheckSquare, ShieldCheck,
 } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import {
@@ -571,6 +572,10 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
   const [data, setData] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [showPendingOnly, setShowPendingOnly] = useState(false);
+  /* Bulk selection */
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -624,6 +629,60 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
     } catch { onAction('Failed to remove'); }
   };
 
+  /* ── Bulk-action helpers ── */
+  const toggleSelect = (id: string) => setSelected((s) => ({ ...s, [id]: !s[id] }));
+  const selectedIds = useMemo(() => Object.keys(selected).filter((k) => selected[k]), [selected]);
+  const selectAllVisible = () => {
+    const all: Record<string, boolean> = {};
+    items.forEach((u: any) => { all[u.id] = true; });
+    setSelected(all);
+  };
+  const selectAllPending = () => {
+    const sel: Record<string, boolean> = {};
+    (data?.items || []).filter((u: any) => !u.approved).forEach((u: any) => { sel[u.id] = true; });
+    setSelected(sel);
+    setSelectMode(true);
+  };
+  const clearSelection = () => setSelected({});
+
+  const bulkRun = async (kind: 'approve' | 'delete', label: string) => {
+    const ids = selectedIds;
+    if (ids.length === 0) return;
+    setBulkBusy(true);
+    let ok = 0, fail = 0;
+    for (const id of ids) {
+      try {
+        if (kind === 'approve') {
+          await request(`/admin/users/profile/${id}/approve`, { method: 'POST' });
+        } else {
+          await request(`/admin/users/profile/${id}`, { method: 'DELETE' });
+        }
+        ok++;
+      } catch { fail++; }
+    }
+    onAction(`${label} · ${ok} done${fail ? ` · ${fail} failed` : ''}`);
+    setBulkBusy(false);
+    clearSelection();
+    setSelectMode(false);
+    // Re-load to get fresh `approved` flags
+    await load();
+  };
+
+  /* One-click: approve every pending profile right now */
+  const approveAllPending = async () => {
+    const ids = (data?.items || []).filter((u: any) => !u.approved).map((u: any) => u.id);
+    if (ids.length === 0) return;
+    setBulkBusy(true);
+    let ok = 0, fail = 0;
+    for (const id of ids) {
+      try { await request(`/admin/users/profile/${id}/approve`, { method: 'POST' }); ok++; }
+      catch { fail++; }
+    }
+    onAction(`Approved ${ok} profile${ok === 1 ? '' : 's'}${fail ? ` · ${fail} failed` : ''}`);
+    setBulkBusy(false);
+    await load();
+  };
+
   const pendingCount = counts.pending_approval || 0;
 
   return (
@@ -632,6 +691,15 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
         <View style={s.browseHead}>
           <TopTabs<'all' | CatKey> tabs={tabs as any} active={cat} onChange={(c) => setCat(c as any)} />
           <SearchField value={q} onChange={setQ} placeholder="Search name, email, college, company…" width={300} />
+          <Pressable
+            onPress={() => { setSelectMode(!selectMode); if (selectMode) clearSelection(); }}
+            style={[s.toggleBtn, selectMode && { borderColor: GRAD.to, backgroundColor: 'rgba(245,158,11,0.10)' }]}
+          >
+            <CheckSquare size={11} color={selectMode ? GRAD.to : SAC.muted} />
+            <Text style={[s.toggleBtnText, selectMode && { color: GRAD.to }]}>
+              {selectMode ? 'Cancel selection' : 'Select'}
+            </Text>
+          </Pressable>
         </View>
         {pendingCount > 0 && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
@@ -642,6 +710,16 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
               <Filter size={11} color={showPendingOnly ? GRAD.to : SAC.muted} />
               <Text style={[s.toggleBtnText, showPendingOnly && { color: GRAD.to }]}>
                 {showPendingOnly ? 'Showing pending only' : 'Show pending only'}
+              </Text>
+            </Pressable>
+            <Pressable onPress={selectAllPending} style={s.toggleBtn}>
+              <CheckSquare size={11} color={SAC.muted} />
+              <Text style={s.toggleBtnText}>Select all pending</Text>
+            </Pressable>
+            <Pressable onPress={approveAllPending} disabled={bulkBusy} style={[s.toggleBtn, { borderColor: 'rgba(34,197,94,0.45)', backgroundColor: 'rgba(34,197,94,0.10)' }]}>
+              <ShieldCheck size={11} color="#86EFAC" />
+              <Text style={[s.toggleBtnText, { color: '#86EFAC' }]}>
+                {bulkBusy ? 'Approving…' : `Approve all (${pendingCount})`}
               </Text>
             </Pressable>
           </View>
@@ -665,6 +743,7 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
           <View style={s.cardGrid}>
             {items.map((u: any) => (
               <View key={u.id} style={s.gridCell}>
+                <View style={selectMode && selected[u.id] ? s.selectedHalo : null}>
                 <ProfileCard
                   user={{
                     id: u.id,
@@ -688,10 +767,18 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
                   } : undefined}
                   tags={u.tags || []}
                   socials={{ linkedinUrl: u.linkedin_url || undefined }}
-                  onViewProfile={onOpen}
-                  onApprove={approve}
-                  onRemove={remove}
+                  onViewProfile={selectMode ? (id) => toggleSelect(id) : onOpen}
+                  onApprove={selectMode ? undefined : approve}
+                  onRemove={selectMode ? undefined : remove}
                 />
+                </View>
+                {selectMode && (
+                  <Pressable onPress={() => toggleSelect(u.id)} style={s.selectBox}>
+                    {selected[u.id]
+                      ? <SquareCheck size={20} color={GRAD.to} fill="rgba(245,158,11,0.18)" />
+                      : <Square size={20} color="rgba(255,255,255,0.6)" />}
+                  </Pressable>
+                )}
               </View>
             ))}
           </View>
@@ -699,6 +786,26 @@ function BrowseTab({ onOpen, onAction }: { onOpen: (id: string) => void; onActio
             Showing {items.length} of {data?.total || 0} · newest first
           </Text>
         </>
+      )}
+
+      {/* Floating bulk-action bar */}
+      {selectMode && selectedIds.length > 0 && (
+        <Animated.View entering={FadeInDown.duration(200)} style={s.bulkBar}>
+          <Text style={s.bulkText}>{selectedIds.length} selected</Text>
+          <Pressable onPress={selectAllVisible} style={s.bulkLinkBtn}>
+            <Text style={s.bulkLink}>Select all visible ({items.length})</Text>
+          </Pressable>
+          <View style={{ flex: 1 }} />
+          <SecondaryButton onPress={() => bulkRun('approve', 'Approved')} disabled={bulkBusy}>
+            <ShieldCheck size={12} color={SAC.muted} /><Text style={s.secText}>{bulkBusy ? '…' : 'Approve'}</Text>
+          </SecondaryButton>
+          <SecondaryButton danger onPress={() => bulkRun('delete', 'Deleted')} disabled={bulkBusy}>
+            <Trash2 size={12} color={'#FCA5A5'} /><Text style={[s.secText, { color: '#FCA5A5' }]}>{bulkBusy ? '…' : 'Delete'}</Text>
+          </SecondaryButton>
+          <Pressable onPress={clearSelection} style={s.bulkClose}>
+            <X size={13} color="#fff" />
+          </Pressable>
+        </Animated.View>
       )}
     </View>
   );
@@ -1099,6 +1206,39 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   toggleBtnText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
+
+  /* selection mode */
+  selectBox: {
+    position: 'absolute', top: 14, left: 14, width: 28, height: 28, borderRadius: 8,
+    alignItems: 'center', justifyContent: 'center', zIndex: 12,
+    backgroundColor: 'rgba(0,0,0,0.55)', borderColor: 'rgba(251,146,60,0.25)', borderWidth: 1,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  selectedHalo: {
+    borderRadius: 22, borderWidth: 2, borderColor: GRAD.to,
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 0 4px rgba(251,146,60,0.18)' } as any) : {}),
+  },
+  bulkBar: {
+    position: 'absolute', bottom: 18, left: 0, right: 0,
+    marginHorizontal: 'auto', maxWidth: 880,
+    flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+    paddingHorizontal: 18, paddingVertical: 12,
+    backgroundColor: '#1A0E04', borderColor: 'rgba(251,146,60,0.45)', borderWidth: 1,
+    borderRadius: 14,
+    ...(Platform.OS === 'web' ? ({
+      boxShadow: '0 18px 50px rgba(0,0,0,0.65), 0 0 0 4px rgba(251,146,60,0.10)',
+      position: 'sticky' as any, bottom: 18,
+    } as any) : {}),
+  },
+  bulkText:   { color: '#fff',  fontFamily: FONTS.xbold, fontSize: 13 },
+  bulkLinkBtn:{ ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  bulkLink:   { color: GRAD.to, fontFamily: FONTS.bold,  fontSize: 12 },
+  bulkClose: {
+    width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
   userRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 11, paddingHorizontal: 14,
