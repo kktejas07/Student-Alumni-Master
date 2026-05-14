@@ -21,6 +21,7 @@ import {
   View, Text, ScrollView, Pressable, StyleSheet, Platform, useWindowDimensions,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -28,7 +29,6 @@ import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { useTheme } from '@/src/theme/ThemeContext';
 import { PORTAL_ACCENTS } from '@/src/theme/nexus';
 import { request } from '@/src/models/services/api';
-import FeaturePageShell from '@/src/views/web/FeaturePageShell';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 const FONT = Platform.select({
@@ -41,6 +41,7 @@ type Card = {
   kicker: string; title: string; subtitle?: string;
   cta: string; prompt: string; tools: string[];
 };
+type Provider = { tool_id: string; label: string; connected_at?: string };
 type Prescriptions = {
   portal: string;
   cards: Card[];
@@ -72,6 +73,7 @@ function portalGradient(p: PortalKey): [string, string] {
 
 export default function AgentKPage() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { theme } = useTheme();
   const user = useAuthStore((s) => s.user);
@@ -80,20 +82,48 @@ export default function AgentKPage() {
   const grad = portalGradient(portal);
 
   const [presc, setPresc] = useState<Prescriptions | null>(null);
+  const [providers, setProviders] = useState<Provider[]>([]);
   const [runs, setRuns]   = useState<RunRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState('');
   const [busyCardId, setBusyCardId] = useState<string | null>(null);
 
-  // Fetch prescriptions + recent runs in parallel
+  // Where to send the user when they tap "Open AI Marketplace" — the
+  // Profile → Tools & Integrations sub-tab is the official place to
+  // connect / disconnect their AI providers.
+  const integrationsRoute = '/me?tab=integrations';
+
+  // Pretty-print the connected providers for the "Powered by …" badge.
+  const poweredByLabel = useMemo(() => {
+    if (!providers.length) return '';
+    const labels = providers.map((p) =>
+      p.label || ({
+        openai: 'OpenAI', claude: 'Anthropic', anthropic: 'Anthropic',
+        gemini: 'Gemini', google: 'Gemini', mistral: 'Mistral',
+        cohere: 'Cohere', perplexity: 'Perplexity', groq: 'Groq',
+        'together-ai': 'Together AI', 'fireworks-ai': 'Fireworks',
+        huggingface: 'Hugging Face', deepseek: 'DeepSeek',
+      } as Record<string, string>)[p.tool_id] || p.tool_id,
+    );
+    return labels.length === 1 ? labels[0] : `${labels.slice(0, -1).join(', ')} & ${labels.slice(-1)}`;
+  }, [providers]);
+
+  const goBack = useCallback(() => {
+    if (router.canGoBack?.()) router.back();
+    else router.replace('/(tabs)' as any);
+  }, [router]);
+
+  // Fetch prescriptions + providers + recent runs in parallel
   const load = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const [p, r] = await Promise.all([
+      const [p, pv, r] = await Promise.all([
         request(`/agent-k/prescriptions?portal=${portal}`),
+        request('/agent-k/installed-providers').catch(() => ({ providers: [] as Provider[] })),
         request('/agent-k/runs?limit=5').catch(() => ({ runs: [] })),
       ]);
       setPresc(p as Prescriptions);
+      setProviders(((pv as any)?.providers as Provider[]) || []);
       setRuns(((r as any)?.runs as RunRow[]) || []);
     } catch (e: any) {
       setError(e?.message || 'Could not load Agent K');
@@ -148,7 +178,7 @@ export default function AgentKPage() {
         textColor={theme.text}
         subColor={theme.textSec}
         borderColor={theme.hairline}
-        onConnect={() => router.push((presc?.deeplink_marketplace as any) || '/marketplace?category=AI')}
+        onConnect={() => router.push(integrationsRoute as any)}
       />
     );
   } else {
@@ -255,8 +285,27 @@ export default function AgentKPage() {
   }
 
   return (
-    <FeaturePageShell title="Agent K" subtitle="One-tap automations from your dashboard">
-      <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 40 }}>
+    <View style={[ss.shell, { backgroundColor: theme.bg, paddingTop: insets.top }]}>
+      {/* Top bar — Back + title + "Powered by …" pill */}
+      <View style={[ss.topBar, { borderBottomColor: theme.hairline }]}>
+        <Pressable onPress={goBack} style={[ss.backBtn, { borderColor: theme.hairline }]}>
+          <MaterialCommunityIcons name="arrow-left" size={16} color={theme.text} />
+          <Text style={[ss.backText, { color: theme.text }]}>Back to Dashboard</Text>
+        </Pressable>
+        <View style={{ flex: 1 }} />
+        {!!poweredByLabel && (
+          <LinearGradient
+            colors={grad}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={ss.poweredBy}
+          >
+            <MaterialCommunityIcons name="flash" size={11} color="#fff" />
+            <Text style={ss.poweredByText}>Powered by {poweredByLabel}</Text>
+          </LinearGradient>
+        )}
+      </View>
+
+      <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 60 + (insets.bottom || 0) }}>
         {/* Header card */}
         <View style={[s.hero, { borderColor: theme.hairline, backgroundColor: theme.bgElevated }]}>
           <View style={[s.heroIcon, { borderColor: grad[0] + '60', backgroundColor: grad[0] + '18' }]}>
@@ -269,7 +318,7 @@ export default function AgentKPage() {
             </Text>
           </View>
           {presc?.ai_connected && !presc?.is_admin && (
-            <Pressable onPress={() => router.push((presc?.deeplink_marketplace as any) || '/marketplace?category=AI')}
+            <Pressable onPress={() => router.push(integrationsRoute as any)}
                        style={[s.miniBtn, { borderColor: theme.hairline }]}>
               <MaterialCommunityIcons name="key-outline" size={12} color={theme.textSec} />
               <Text style={[s.miniBtnText, { color: theme.textSec }]}>Manage providers</Text>
@@ -286,7 +335,7 @@ export default function AgentKPage() {
 
         {body}
       </ScrollView>
-    </FeaturePageShell>
+    </View>
   );
 }
 
@@ -394,4 +443,6 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   chipText: { fontFamily: FONT, fontSize: 11, fontWeight: '700' as any },
+});
+' as any },
 });
