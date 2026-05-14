@@ -13,6 +13,69 @@ this session. Earlier history pre-dates this changelog.
 
 ---
 
+## [0.14.0] — 2026-06-?? — Agent K · BYO-AI + Prescription Cards + single view
+
+Agent K becomes a true personalised co-pilot: **users connect their own AI
+provider** (OpenAI / Anthropic / Gemini / Mistral / Cohere / Perplexity /
+Groq), then **Agent K turns each dashboard recommendation into a 1-click
+"run this for me" action**. The 3-route, free-form-templates UI is
+consolidated to a **single portal-aware view**.
+
+### Added — BYO-AI gating
+- New endpoint **`GET /api/agent-k/installed-providers`** — returns the
+  AI tools the current user has marked `connected` in `installed_tools`.
+  Response includes `can_use_agent_k` (`true` for admins always; for
+  everyone else only when ≥1 AI provider is connected).
+- `POST /agent-k/run` now calls **`_assert_ai_provider_or_412`** before
+  planning. Non-admin users without a connected provider receive
+  **HTTP 412 Precondition Required** with:
+  ```json
+  {
+    "setup_required": "ai_provider",
+    "deeplink":       "/marketplace?category=AI",
+    "message":        "Connect an AI provider …"
+  }
+  ```
+  Frontend intercepts the 412 and routes to the Marketplace.
+
+### Added — Prescription Cards (`GET /api/agent-k/prescriptions?portal=…`)
+Portal-aware action catalog derived from the active dashboard — **no
+new AI calls, pure data shaping**. Five tailored generators in
+`backend/agent_k.py`:
+
+| Portal | Sample cards |
+|---|---|
+| 🟣 **student** | *Draft application for top match* · *Find 3 courses for skill gap* · *Book mentor + draft intro* · *Bring profile to 100%* |
+| 🔵 **alumni**  | *Refer top student to my company* · *Reply to pending mentorship requests* · *Volunteer for upcoming panel* |
+| 🌊 **mentor**  | *Generate prep notes for today's sessions* · *Draft follow-up feedback* · *Run pricing review* |
+| 🟦 **college** | *Find departments lagging on placements* · *Invite 5 recruiters + draft email* · *Plan alumni placement-prep panel* |
+| 🟠 **admin**   | *Triage pending approvals queue* · *Generate weekly exec summary* · *Scan 24h anomalies* |
+
+Each card returns `{id, icon, tint, kicker, title, subtitle, cta, prompt, tools}`.
+
+### Changed — Single Agent K view
+- **`frontend/app/agent-k.tsx`** completely rewritten (781 → 425 LOC).
+  Three states: (1) loading → spinner, (2) **no AI connected** →
+  hero "Bring your own AI" empty state with chips of supported
+  providers + CTA to `/marketplace?category=AI`, (3) **ready** →
+  prescription cards grid (responsive 1/2/3 cols) + Recent Runs list.
+- View is **portal-aware** — pulls the current user's role, picks the
+  matching `PORTAL_ACCENTS` gradient (purple/blue/teal/indigo/amber),
+  and fetches `/agent-k/prescriptions?portal=…` accordingly.
+- **`frontend/app/agent-k/runs.tsx`** → reduced to a `router.replace('/agent-k')`
+  redirect. Run history now lives below the prescription cards on the
+  unified page.
+
+### Files
+```
+~ backend/agent_k.py                   +252 LOC (gate + prescriptions + helpers)
+~ frontend/app/agent-k.tsx             full rewrite, single unified view
+~ frontend/app/agent-k/runs.tsx        legacy → redirect
+~ frontend/package.json                0.13.0 → 0.14.0
+```
+
+---
+
 ## [0.13.0] — 2026-06-?? — SA Events CRUD + multi-portal brand identities
 
 ### Added — Super Admin Events CRUD
