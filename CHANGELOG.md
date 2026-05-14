@@ -13,6 +13,51 @@ this session. Earlier history pre-dates this changelog.
 
 ---
 
+## [0.15.0] — 2026-06-?? — Super Admin Settings drill-ins (Signature + Role-detail)
+
+The Super Admin Settings screen gains two long-pending drill-ins so admins
+can manage their email signature **and** explore any role's full
+permission matrix + assignees without leaving the page.
+
+### Added — Email signature editor (Profile tab)
+- New **`signature`** field on the user document, returned by
+  `GET /api/admin/profile` (with a sensible auto-generated default from
+  name / title / org / email when the user hasn't customised one).
+- `PATCH /api/admin/profile` now accepts `signature` (capped at 1500 chars).
+- Frontend: new **`<SignatureCard />`** in the Profile tab showing a live
+  preview; tap **"Edit signature"** to open a modal with:
+  - 3 template chips (Professional / Minimal / Friendly) that prefill the textarea
+  - Multi-line editor with `{{name}} / {{title}} / {{org}} / {{email}} / {{phone}}` placeholders
+  - Live preview pane below the editor
+  - Character counter (`xxx/1500`)
+
+### Added — Role detail drill-in (Roles tab)
+- New **`GET /api/admin/roles/{role_id}`** endpoint — accepts both
+  Mongo `_id` AND short `key`. Returns:
+  - role document (name, description, type, timestamps)
+  - **`permission_groups`** — full catalog merged with `granted: bool`
+    per permission for fast UI rendering
+  - **`users`** — up to 50 admins currently assigned to this role
+    (`name`, `email`, `last_login`, `avatar_url`)
+  - `user_count`
+- Frontend: each role card in the grid now exposes a **"View"** button
+  alongside Edit / Delete. Tapping View slides in **`<RoleDetailPanel />`**
+  in-place (no modal pop-up), showing:
+  - Back chip + role badge + title + description
+  - Three stat tiles (Users assigned · Permissions granted · Type)
+  - Grouped permission matrix (granted = filled checkbox + colour-tinted)
+  - List of users with this role (avatar, name, email, last-login)
+  - **"Edit role"** CTA that hands off to the existing RoleModal
+
+### Files
+```
+~ backend/admin_settings.py                                   +85 LOC
+~ frontend/src/views/web/portals/superadmin/views/SettingsView.tsx +320 LOC
+~ frontend/package.json                                       0.14.0 → 0.15.0
+```
+
+---
+
 ## [0.14.0] — 2026-06-?? — Agent K · BYO-AI + Prescription Cards + single view
 
 Agent K becomes a true personalised co-pilot: **users connect their own AI

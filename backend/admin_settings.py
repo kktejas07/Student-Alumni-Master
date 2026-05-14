@@ -600,6 +600,11 @@ async def get_admin_profile(authorization: Optional[str] = Header(None)):
         "phone": user.get("phone") or "",
         "title": user.get("title") or "Platform Administrator",
         "org": user.get("org") or "Student Alumni Pvt. Ltd.",
+        "signature": user.get("signature") or (
+            f"{user.get('full_name') or user.get('name') or 'Super Admin'}\n"
+            f"{user.get('title') or 'Platform Administrator'} · {user.get('org') or 'Student Alumni Pvt. Ltd.'}\n"
+            f"{user.get('email')}"
+        ),
         "role_label": "Super Admin",
         "access_label": "Full Access",
         "admin_id": admin_id,
@@ -614,6 +619,7 @@ class ProfilePatch(BaseModel):
     phone: Optional[str] = None
     title: Optional[str] = None
     org: Optional[str] = None
+    signature: Optional[str] = None    # email signature (multi-line)
 
 
 @router.patch("/admin/profile")
@@ -622,9 +628,81 @@ async def update_admin_profile(body: ProfilePatch, authorization: Optional[str] 
     update = {k: v for k, v in body.dict().items() if v is not None}
     if "name" in update:
         update["full_name"] = update.pop("name")
+    # Sanitise signature length to keep DB lean
+    if "signature" in update and isinstance(update["signature"], str):
+        update["signature"] = update["signature"][:1500]
     if update:
         await _db.users.update_one({"_id": user["_id"]}, {"$set": update})
     return {"ok": True}
+
+
+# ───────────────────────────────────────────────────────────────────
+# Full role detail — used by SettingsView roles drill-in.
+# ───────────────────────────────────────────────────────────────────
+@router.get("/admin/roles/{role_id}")
+async def get_role_detail(role_id: str, authorization: Optional[str] = Header(None)):
+    """Return the full role record + grouped permission resolution + a
+    sample of users currently assigned to this role. Drill-in view."""
+    await _require_admin(authorization)
+    from bson import ObjectId
+    role = None
+    try:
+        role = await _db.admin_roles.find_one({"_id": ObjectId(role_id)})
+    except Exception:
+        role = None
+    if not role:
+        # fall back: match by key (system roles aren't stored as docs)
+        role = await _db.admin_roles.find_one({"key": role_id})
+    if not role:
+        # synthesise stub for system roles defined only in code
+        from admin_settings import DEFAULT_SYSTEM_ROLES  # type: ignore[attr-defined]
+        for sr in DEFAULT_SYSTEM_ROLES if 'DEFAULT_SYSTEM_ROLES' in dir() else []:
+            if sr.get("key") == role_id:
+                role = sr
+                break
+    if not role:
+        raise HTTPException(404, "Role not found")
+
+    # User sample currently assigned to this role
+    users_cur = _db.users.find(
+        {"role": role.get("key") or role.get("name", "").lower().replace(" ", "_")},
+        {"full_name": 1, "name": 1, "email": 1, "last_login_at": 1, "avatar_url": 1},
+    ).limit(50)
+    users: List[Dict[str, Any]] = []
+    async for u in users_cur:
+        users.append({
+            "id":         str(u.get("_id")),
+            "name":       u.get("full_name") or u.get("name") or "—",
+            "email":      u.get("email"),
+            "last_login": u.get("last_login_at").isoformat() if u.get("last_login_at") else None,
+            "avatar_url": u.get("avatar_url"),
+        })
+
+    # Permission groups for nicer display
+    perms_full = []
+    perms_set = set(role.get("permissions") or [])
+    # fetch the permission catalog
+    cat = await _db.admin_permission_catalog.find_one({"_id": "singleton"})
+    groups = (cat or {}).get("groups") or []
+    for g in groups:
+        items = []
+        for p in g.get("permissions", []):
+            items.append({**p, "granted": p["key"] in perms_set})
+        perms_full.append({"label": g.get("label"), "key": g.get("key"), "permissions": items})
+
+    return {
+        "id":           str(role.get("_id") or role.get("key")),
+        "key":          role.get("key"),
+        "name":         role.get("name"),
+        "description":  role.get("description") or "",
+        "permissions":  list(perms_set),
+        "permission_groups": perms_full,
+        "users":        users,
+        "user_count":   len(users),
+        "is_system":    bool(role.get("is_system")),
+        "created_at":   role.get("created_at").isoformat() if role.get("created_at") else None,
+        "updated_at":   role.get("updated_at").isoformat() if role.get("updated_at") else None,
+    }
 
 
 # ═══════════════════════════════════════════════════════════════════
