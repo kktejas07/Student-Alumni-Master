@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Calendar as CalIcon, MapPin, Users as UsersIcon, Check } from '../iconShims';
 import { SC, FONTS } from '../tokens';
+import { GRAD } from '../portalkit';
 import { Badge } from '../atoms';
 import { usePortalData, postPortal } from '@/src/lib/portalApi';
 
@@ -73,8 +75,14 @@ export function EventsView() {
                     <Text style={s.ctaText}>Registered</Text>
                   </View>
                 ) : (
-                  <Pressable style={s.cta} onPress={() => onRSVP(e.id)}>
-                    <Text style={s.ctaText}>{e.kind === 'free' ? 'RSVP' : 'Book seat'}</Text>
+                  <Pressable onPress={() => onRSVP(e.id)}>
+                    <LinearGradient
+                      colors={[GRAD.from, GRAD.to]}
+                      start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                      style={s.cta}
+                    >
+                      <Text style={s.ctaText}>{e.kind === 'free' ? 'RSVP' : 'Book seat'}</Text>
+                    </LinearGradient>
                   </Pressable>
                 )}
               </View>
@@ -95,6 +103,6 @@ const s = StyleSheet.create({
   title: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14, lineHeight: 18 },
   meta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11 },
   dot: { color: SC.dim, fontSize: 11 },
-  cta: { marginTop: 12, height: 34, borderRadius: 8, backgroundColor: SC.primary, alignItems: 'center', justifyContent: 'center' },
+  cta: { marginTop: 12, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   ctaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
 });

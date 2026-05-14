@@ -93,12 +93,12 @@ export function DashboardView() {
     {
       title: 'Application Submitted', sub: 'Stripe • Software Engineer Intern',
       amount: '+1', amountTone: 'positive', time: '12m ago',
-      icon: 'briefcase-check-outline', tint: NX.blue, bgTint: 'rgba(59,130,246,0.15)',
+      icon: 'briefcase-check-outline', tint: '#7B3DBF', bgTint: 'rgba(123,61,191,0.16)',
     },
     {
       title: 'Mentor Session Booked', sub: 'Aarav Sharma • Wed 4:00 PM',
       amount: null, amountTone: null, time: '1h ago',
-      icon: 'account-tie-voice-outline', tint: NX.purple, bgTint: 'rgba(168,85,247,0.15)',
+      icon: 'account-tie-voice-outline', tint: '#A78BFA', bgTint: 'rgba(167,139,250,0.18)',
     },
   ];
 
@@ -114,7 +114,7 @@ export function DashboardView() {
       label: k?.applications?.label || 'Applications Sent',
       value: String(k?.applications?.value ?? 18),
       numeric: Number(k?.applications?.value ?? 18),
-      icon: 'briefcase-outline', accent: NX.blue,
+      icon: 'briefcase-outline', accent: '#7B3DBF',
       trend: k?.applications?.trend || { value: '12.5%', positive: true },
       spark: (k?.applications?.spark as number[]) || FALLBACK_SPARK_APPS,
     },
@@ -123,7 +123,7 @@ export function DashboardView() {
       label: k?.views?.label || 'Profile Views',
       value: String(k?.views?.value ?? 234),
       numeric: Number(k?.views?.value ?? 234),
-      icon: 'eye-outline', accent: NX.purple,
+      icon: 'eye-outline', accent: '#A78BFA',
       trend: k?.views?.trend || { value: '8.2%', positive: true },
       spark: (k?.views?.spark as number[]) || FALLBACK_SPARK_VIEWS,
     },
@@ -133,7 +133,7 @@ export function DashboardView() {
       value: `${k?.match?.value ?? 81}%`,
       numeric: Number(k?.match?.value ?? 81),
       suffix: k?.match?.suffix || '%',
-      icon: 'lightning-bolt', accent: NX.cyan,
+      icon: 'lightning-bolt', accent: '#C4B5FD',
       trend: k?.match?.trend || { value: '4.1%', positive: true },
       spark: (k?.match?.spark as number[]) || FALLBACK_SPARK_MATCH,
     },
@@ -141,7 +141,7 @@ export function DashboardView() {
       kind: 'ring',
       label: k?.completion?.label || 'Profile Completion',
       value: 'On Track',
-      icon: 'account-check-outline', accent: NX.blue,
+      icon: 'account-check-outline', accent: '#7B3DBF',
       ringPct: Number(
         k?.completion?.ringPct ??
         (typeof PROFILE_COMPLETION?.score === 'number' ? PROFILE_COMPLETION.score : 78),
@@ -319,7 +319,7 @@ export function DashboardView() {
             title={momentumTitle}
             subtitle={momentumSubtitle}
             data={NX_AUDIENCE}
-            color={NX.blue}
+            color="#7B3DBF"
           />
           <ActivityCard
             delay={480}
