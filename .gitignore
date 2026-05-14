@@ -123,3 +123,12 @@ android-sdk/
 # ── Files that should never have been committed
 # (binary-named cruft, accidental drops)
 frontend/\001*
+-e 
+# Environment and credential files
+.env
+.env.*
+*.env
+credentials.json
+*.pem
+*.key
+.credentials
