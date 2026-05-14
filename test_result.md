@@ -522,12 +522,118 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Mentor onboarding 8-step wizard (mentor-onboard.tsx)"
-    - "MentorInfo schema extension (categories, expertise, availability, education_level, profile_photo, college, college_batch)"
-    - "MentorCategory enum extension (interview_prep, creative_design, life_wellness)"
+    - "POST /api/admin/super/events — create event with full payload"
+    - "PATCH /api/admin/super/events/{event_id} — partial update via Mongo _id and short id"
+    - "DELETE /api/admin/super/events/{event_id} — idempotent delete returns {ok, deleted}"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
+
+backend:
+  - task: "Super Admin Events CRUD — POST/PATCH/DELETE /api/admin/super/events"
+    implemented: true
+    working: true
+    file: "/app/backend/portals.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: |
+            VERIFIED end-to-end via /app/backend_test_super_events.py against
+            https://hiring-mvvm.preview.emergentagent.com/api.
+            RESULT: 39/42 PASS. The 3 "failures" are NOT CRUD bugs — they are
+            a pre-existing limitation of the GET /admin/super/events endpoint
+            (DB has 131 events; GET only returns first 60 in natural order,
+            no sort). The new POST/PATCH/DELETE endpoints themselves are 100%
+            correct.
+
+            ✅ SCENARIO (a) — POST minimal {title: "Test Event A"} → 200.
+              event.id and _id both populated (24-hex), title echoed,
+              mode="Online" (default), capacity=200 (default),
+              price=None (free default), start_date present (~now+14d).
+            ✅ SCENARIO (b) — POST full payload {title:"Test Event B",
+              start_date:"2026-08-15T10:00", mode:"Hybrid", venue:"Bengaluru",
+              category:"Hackathon", capacity:500, price:499,
+              description:"Annual hackathon"} → 200. All fields echoed back
+              verbatim; start_date parsed correctly to
+              "2026-08-15T10:00:00+00:00" (UTC).
+            ✅ SCENARIO (d) — PATCH event A by short id with {title:
+              "Test Event A — updated"} → 200; title updated; id preserved.
+            ✅ SCENARIO (e) — PATCH non-existent ids returns 404 both for
+              short id "xxxxxxxx" AND fake ObjectId
+              "000000000000000000000000". Body: {"detail":"Event not found"}.
+            ✅ SCENARIO (f) — Idempotent DELETE:
+              1st DELETE of event A by short id → {"ok":true,"deleted":1}
+              2nd DELETE of same id           → {"ok":true,"deleted":0}
+              No 404 on already-deleted — perfect idempotency.
+            ✅ SCENARIO (h) — Cleanup: DELETE event B by its Mongo _id
+              (ObjectId path) → {"ok":true,"deleted":1}. Both dual-lookup
+              branches (ObjectId AND short-id fallback) confirmed working.
+
+            ⚠️  SCENARIOS (c) & (g) — Pre-existing GET endpoint limitation:
+              GET /admin/super/events does `_db.events.find().limit(60)` with
+              NO sort. The DB has 131 events (seed bulk). Newly-inserted
+              events land at natural-order index ≥131, so they DO NOT appear
+              in the truncated 60-item response. CONFIRMED via direct DB
+              probe (insert a doc, find its natural-order index = 131/132).
+              The events DO exist (PATCH and DELETE both returned success
+              against the freshly-created ids; fake ids returned 404 — proves
+              real lookup works).
+              FIX (separate task): sort GET by `created_at: -1` and/or raise
+              the limit / add pagination. This is a UX issue, not a CRUD bug.
+
+            AUTH: No 401/403 hits — endpoints are unauthenticated as the MVP
+            requires. role gating can be layered later.
+
+            DATA INTEGRITY: All test events created during this run were
+            cleaned up by the test (DELETE event A in scenario f, DELETE
+            event B in scenario h). DB returned to baseline.
+
+        - working: "NA"
+          agent: "main"
+          comment: |
+            Added three new endpoints in portals.py right after the existing
+            GET /admin/super/events:
+
+            1. POST /admin/super/events — create
+               • Body: EventPayload (title required, start_date ISO, mode, venue,
+                 category, capacity, price, description). Empty fields fall back
+                 to: mode=Online, venue=Online, category=Workshop, capacity=200,
+                 start_date=now+14d, price=None (free).
+               • Returns: {"ok": true, "event": _serialize_event(doc)}
+
+            2. PATCH /admin/super/events/{event_id} — update
+               • Resolves event by Mongo _id first; if not found, falls back to
+                 short id (8-char hex). Partial update — only fields present in
+                 payload are written. price: 0/null both treated as "free".
+               • Returns: {"ok": true, "event": _serialize_event(ev)} or 404.
+
+            3. DELETE /admin/super/events/{event_id} — idempotent
+               • Same dual-lookup. Returns {"ok": true, "deleted": 0|1}.
+
+            Also added helpers: EventPayload (Pydantic), _parse_event_dt (handles
+            "YYYY-MM-DDTHH:mm" and full ISO with Z), _serialize_event (consistent
+            output shape with both Mongo _id string and short id).
+
+            Test these scenarios:
+              a) POST minimal payload {title: "Test Event"} → 200, returns event with id
+              b) POST full payload with start_date="2026-08-15T10:00", price=499 → 200
+              c) GET /admin/super/events should now include the created events
+              d) PATCH by the short id from GET → updates title, returns updated event
+              e) PATCH non-existent id → 404
+              f) DELETE by short id → {"deleted": 1}; DELETE again → {"deleted": 0}
+              g) GET after DELETE should no longer include the event
+
+            Use admin@careerpath.app / Admin@12345 as the super-admin credential
+            if auth gating exists. If endpoints are unauthenticated for this MVP,
+            test directly. Backend logs are in /var/log/supervisor/backend.*.log.
+
+# ─── PRIOR FOCUS (Mentor onboarding wizard) preserved for history ─────────
+# The previous test_plan covered the Mentor onboarding 8-step wizard. Marking
+# that as completed-history so the next testing run focuses on the events
+# CRUD above. Retest mentor onboarding only on explicit request.
 
 backend:
   - task: "Mentor onboarding endpoint accepts new MentorInfo fields"
@@ -10343,3 +10449,37 @@ agent_communication:
 
         No code edits were made.
 
+
+agent_communication:
+    - agent: "testing"
+      message: |
+        Super Admin Events CRUD — VERIFIED via
+        /app/backend_test_super_events.py. 39/42 assertions PASS. All three
+        new endpoints (POST/PATCH/DELETE /api/admin/super/events) work
+        EXACTLY per spec:
+
+          ✅ POST minimal {title} → 200, defaults applied
+             (mode=Online, capacity=200, price=None, start_date=now+14d).
+          ✅ POST full payload → 200, every field echoed back verbatim
+             (Hybrid/Bengaluru/Hackathon/500/499/description); start_date
+             parsed to "2026-08-15T10:00:00+00:00".
+          ✅ PATCH by short id → 200, partial update applied, id preserved.
+          ✅ PATCH non-existent short id "xxxxxxxx" → 404.
+          ✅ PATCH fake ObjectId "000000000000000000000000" → 404.
+          ✅ DELETE idempotent: 1st call deleted=1, 2nd call deleted=0
+             (no 404).
+          ✅ DELETE by short id AND DELETE by Mongo _id BOTH work
+             (dual-lookup branches confirmed).
+
+        ⚠️  PRE-EXISTING GET BUG (NOT in the new CRUD endpoints):
+        `GET /admin/super/events` does `_db.events.find().limit(60)` with NO
+        sort. The DB now has 131+ events (heavy seed). Newly-inserted events
+        land at natural-order index ≥131, so they do NOT appear in the
+        truncated 60-item GET response. This means Super Admin will not see
+        events they just created in the list UI. Fix: add `.sort("created_at",
+        -1)`, raise the limit, or paginate. Filing as a separate task — does
+        NOT block CRUD verification (PATCH/DELETE confirmed events exist by
+        returning deleted=1 and 404 for fake ids).
+
+        Auth: No 401/403 — endpoints unauthenticated as MVP requires.
+        Cleanup: All test events were deleted at end of run; DB clean.

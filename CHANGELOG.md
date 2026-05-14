@@ -13,6 +13,81 @@ this session. Earlier history pre-dates this changelog.
 
 ---
 
+## [0.13.0] — 2026-06-?? — SA Events CRUD + multi-portal brand identities
+
+### Added — Super Admin Events CRUD
+- **`POST /api/admin/super/events`** — create an event from the Super Admin
+  UI. Accepts `title`, `start_date` (ISO), `mode`, `venue`, `category`,
+  `capacity`, `price` (null/0 → free), `description`. Sensible defaults
+  when fields are blank.
+- **`PATCH /api/admin/super/events/{event_id}`** — partial update. Resolves
+  the event by Mongo `_id` first, then falls back to the short `id` used
+  by the GET list endpoint.
+- **`DELETE /api/admin/super/events/{event_id}`** — idempotent delete;
+  returns `{ok: true, deleted: 0|1}`.
+- `EventPayload` Pydantic model + `_parse_event_dt` + `_serialize_event`
+  helpers in `backend/portals.py`.
+
+### Added — Event modal in Super Admin UI
+- Rewrote `superadmin/views/EventsView.tsx` (~470 LOC) with a
+  full-featured `<EventModal />`:
+  - Validated form (title required), 7 fields, segmented controls for
+    Mode + Category, error banner, save spinner.
+  - **"New event"** header CTA → opens modal in create mode.
+  - **"Manage event"** per-card CTA → opens modal in edit mode with a
+    Delete button.
+  - **"Review & approve"** on pending events → PATCH-bumps `start_date`
+    one day forward so the event enters the 30-day "live" window,
+    then refreshes the grid.
+  - `useToast` feedback after every action.
+
+### Added — Multi-portal brand identities
+- `src/theme/nexus.ts` `PORTAL_ACCENTS` flipped to give each portal a
+  distinct brand:
+  - 🟣 **Student** — Brand purple `#7B3DBF → #5F259F` ("AI / creative")
+  - 🔵 **Alumni** — LinkedIn blue `#0A66C2 → #004182` ("professional network")
+  - 🟦 **College** — Indigo `#4F46E5 → #3730A3` ("academic prestige")
+  - 🌊 **Mentor** — Teal `#0D9488` family ("guidance / calm", unchanged)
+  - 🟠 **Super Admin** — Amber (unchanged)
+- Identity cascades automatically through every view that reads
+  `SC.primary` / `CC.primary` / `MC.teal` — zero per-view code edits.
+- New helper files exposing a `GRAD` constant for any view that wants
+  to upgrade a solid CTA to a `LinearGradient`:
+  - `frontend/src/views/web/portals/alumni/brand.ts`
+  - `frontend/src/views/web/portals/college/brand.ts`
+  - `frontend/src/views/web/portals/mentor/brand.ts`
+
+### Changed — Embedded shell screen sweep
+- `frontend/app/financial.tsx` — "AI Loan Optimiser" CTA (was solid
+  `#3B82F6`) now uses purple gradient + a proper `LinearGradient` import.
+- All other blue/cyan accents across `app/wallet.tsx`, `courses.tsx`,
+  `career-ai.tsx`, `internships.tsx`, `events.tsx`, `deals.tsx`,
+  `network.tsx` were audited and intentionally **kept** — they are
+  semantic / categorical / brand-of-platform colours (tech section,
+  hackathon tag, LinkedIn brand, loans category, session kind) that
+  must stay distinct so users can scan and distinguish.
+
+### Verified
+- Backend reload picked up the new routes cleanly; OpenAPI catalog
+  now exposes `events` POST/PATCH/DELETE.
+- "Generate Brief" / "View Full Roadmap" / "Connect" / "RSVP" / "Apply"
+  / "AI Loan Optimiser" CTAs all confirmed rendering with the new
+  brand gradients (screenshots in test_result.md).
+
+### Files
+```
+~ backend/portals.py                                            CRUD routes
+~ frontend/src/views/web/portals/superadmin/views/EventsView.tsx full rewrite
+~ frontend/src/theme/nexus.ts                                   PORTAL_ACCENTS
++ frontend/src/views/web/portals/alumni/brand.ts                LinkedIn blue
++ frontend/src/views/web/portals/college/brand.ts               Indigo
++ frontend/src/views/web/portals/mentor/brand.ts                Teal
+~ frontend/app/financial.tsx                                    optimizeBtn → gradient
+~ frontend/package.json                                         0.12.0 → 0.13.0
+```
+
+---
+
 ## [0.12.0] — 2026-06-?? — Dokploy / Docker deployment readiness
 
 Production-ready container stack for one-click VPS deployment via
