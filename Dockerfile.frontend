@@ -1,6 +1,7 @@
-# Student Alumni Frontend - Dokploy compatible Dockerfile
-# Build Path: ./frontend
-# Dockerfile Path: ../Dockerfile.frontend
+# Student Alumni Frontend Dockerfile (CI build)
+# Build context: . (repository root)
+# This Dockerfile is used by CI with root context
+# For Dokploy/production, use frontend/Dockerfile with context ./frontend
 
 ARG EXPO_PUBLIC_BACKEND_URL
 ARG EXPO_PUBLIC_FIREBASE_API_KEY=""
@@ -46,11 +47,11 @@ WORKDIR /app
 
 RUN apk add --no-cache git python3 make g++ libc6-compat bash
 
-COPY package.json yarn.lock* ./
+COPY frontend/package.json frontend/yarn.lock* ./
 RUN if [ -f yarn.lock ]; then yarn install --network-timeout 600000; \
     else npm install --no-audit --no-fund; fi
 
-COPY . .
+COPY frontend/ .
 
 RUN npx expo export --platform web --output-dir dist
 
@@ -59,7 +60,7 @@ FROM nginx:1.27-alpine
 RUN apk add --no-cache curl
 
 RUN rm /etc/nginx/conf.d/default.conf
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 RUN printf '%s\n' '{"status":"ok","service":"studentalumni-frontend"}' \
