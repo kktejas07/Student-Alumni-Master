@@ -35,11 +35,7 @@ import {
   Pencil, Trash2, Check, X, Copy, Share2, Download, Eye, EyeOff,
   ExternalLink, RotateCcw, Monitor, Smartphone, AlertTriangle, KeyRound,
   ChevronRight, QrCode, Building2, ShieldCheck, Search, Sparkles, CheckCircle2,
-<<<<<<< Updated upstream
-  Mail, Users as UsersIcon, ArrowLeft, Clock,
-=======
-  MapPin, Globe, Wifi, Clock, Activity,
->>>>>>> Stashed changes
+  Mail, Users as UsersIcon, ArrowLeft, Clock, MapPin, Globe, Wifi, Activity,
 } from 'lucide-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
