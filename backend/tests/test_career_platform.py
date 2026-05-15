@@ -10,6 +10,7 @@ import pytest
 BASE_URL = (
     os.environ.get("EXPO_BACKEND_URL")
     or os.environ.get("EXPO_PUBLIC_BACKEND_URL")
+    or "http://localhost:8000"
 ).rstrip("/")
 
 ADMIN_EMAIL = "admin@careerpath.app"

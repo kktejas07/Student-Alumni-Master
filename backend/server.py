@@ -3467,6 +3467,7 @@ async def get_career_suggestions(req: CareerSuggestionRequest, user: dict = Depe
         "}"
     )
 
+    session_id = req.session_id or f"chat-{uuid.uuid4().hex[:12]}"
     try:
         from emergentintegrations.llm.chat import UserMessage
         chat = await get_claude_chat(session_id, system_msg)
@@ -3809,6 +3810,7 @@ async def ai_chat(req: ChatRequest, user: dict = Depends(get_current_user)):
         f"{base}\n\nYou are speaking with {user.get('full_name')}, a {user.get('role')}. "
         "Keep replies concise (2-4 short paragraphs), friendly, and actionable."
     )
+    session_id = req.session_id or f"chat-{uuid.uuid4().hex[:12]}"
     try:
         from emergentintegrations.llm.chat import UserMessage
         chat = await get_claude_chat(session_id, system_msg)
