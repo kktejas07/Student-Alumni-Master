@@ -2035,26 +2035,46 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
     return user_doc
 
 
-def _verify_google_token(id_token: Optional[str]) -> Optional[dict]:
-    """STUB — verifies a Google ID token. In production replace with:
+async def _get_oauth_creds() -> dict:
+    """Read OAuth credentials from platform_controls DB collection."""
+    doc = await db.platform_controls.find_one({"_id": "singleton"})
+    if not doc:
+        return {}
+    settings = {s["key"]: s.get("value", "") for s in (doc.get("system_settings") or [])}
+    return settings
+
+
+def _verify_google_token(id_token: Optional[str], client_id: str = "") -> Optional[dict]:
+    """Verify a Google ID token if credentials are configured, else return None (mock fallback)."""
+    if not id_token or not client_id:
+        return None
+    try:
         from google.auth.transport import requests as g_req
         from google.oauth2 import id_token as g_id
-        g_id.verify_oauth2_token(id_token, g_req.Request(), GOOGLE_OAUTH_CLIENT_ID)
-    For dev/Option-C: returns None so the route falls back to the email/full_name
-    sent in the body.
-    """
-    return None
+        info = g_id.verify_oauth2_token(id_token, g_req.Request(), client_id)
+        if info.get("iss") not in ("accounts.google.com", "https://accounts.google.com"):
+            return None
+        return {"email": info.get("email"), "name": info.get("name"), "picture": info.get("picture"),
+                "sub": info.get("sub")}
+    except Exception:
+        return None
 
 
-def _verify_linkedin_token(access_token: Optional[str]) -> Optional[dict]:
-    """STUB — verifies a LinkedIn access token by calling /v2/userinfo.
-    In production replace with:
-        async with httpx.AsyncClient() as c:
-            r = await c.get('https://api.linkedin.com/v2/userinfo',
-                            headers={'Authorization': f'Bearer {access_token}'})
-            return r.json() if r.is_success else None
-    """
-    return None
+async def _verify_linkedin_token(access_token: Optional[str], client_id: str = "", client_secret: str = "") -> Optional[dict]:
+    """Verify a LinkedIn access token if credentials are configured, else return None (mock fallback)."""
+    if not access_token or not client_id:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=10) as c:
+            r = await c.get("https://api.linkedin.com/v2/userinfo",
+                            headers={"Authorization": f"Bearer {access_token}"})
+            if r.is_success:
+                data = r.json()
+                return {"email": data.get("email"), "name": data.get("name"),
+                        "picture": data.get("picture")}
+            return None
+    except Exception:
+        return None
 
 
 @api_router.post("/auth/google", response_model=AuthResponse)
@@ -2062,10 +2082,11 @@ async def auth_google(req: OAuthCallback):
     """Continue-with-Google flow.
 
     Real flow: client (Expo) opens Google OAuth → receives `id_token` → POSTs here.
-    Mock flow (Option C): client sends {email, full_name} directly for now.
+    Mock flow: client sends {email, full_name} directly (when no credentials configured).
     Returns our JWT pair so the rest of the app remains agnostic of the provider.
     """
-    profile = _verify_google_token(req.id_token)
+    creds = await _get_oauth_creds()
+    profile = _verify_google_token(req.id_token, creds.get("google_oauth_client_id", ""))
     if profile is None:
         if not req.email or not req.full_name:
             raise HTTPException(400, "Missing email/full_name (mock OAuth requires these in dev mode)")
@@ -2088,7 +2109,12 @@ async def auth_google(req: OAuthCallback):
 @api_router.post("/auth/linkedin", response_model=AuthResponse)
 async def auth_linkedin(req: OAuthCallback):
     """Continue-with-LinkedIn flow. Same structure as /auth/google."""
-    profile = _verify_linkedin_token(req.access_token)
+    creds = await _get_oauth_creds()
+    profile = await _verify_linkedin_token(
+        req.access_token,
+        creds.get("linkedin_oauth_client_id", ""),
+        creds.get("linkedin_oauth_client_secret", ""),
+    )
     if profile is None:
         if not req.email or not req.full_name:
             raise HTTPException(400, "Missing email/full_name (mock OAuth requires these in dev mode)")
