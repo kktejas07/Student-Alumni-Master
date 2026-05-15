@@ -1,0 +1,7 @@
+[
+  {
+    "install": "cd frontend && yarn install",
+    "start": ".continue/start-dev.sh",
+    "resourceSize": "large"
+  }
+]

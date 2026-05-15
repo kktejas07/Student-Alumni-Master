@@ -1,0 +1,68 @@
+# Development environment for Continue
+# This compose file provides MongoDB and builds/runs the backend
+# The frontend can be started separately with: cd frontend && npm start
+
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:6
+    container_name: studentalumni-mongo-dev
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - studentalumni
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../Dockerfile.backend
+    image: studentalumni/backend:dev
+    container_name: studentalumni-backend-dev
+    restart: unless-stopped
+    expose:
+      - "8000"
+    ports:
+      - "8001:8000"
+    environment:
+      MONGO_URL: mongodb://mongo:27017
+      DB_NAME: studentalumniadmin
+      JWT_SECRET: dev-secret-change-me
+      ALLOWED_ORIGINS: "*"
+      FRONTEND_URL: "*"
+      ADMIN_EMAIL: admin@careerpath.app
+      ADMIN_PASSWORD: ChangeMe@12345
+      EMERGENT_LLM_KEY: ""
+      FERNET_KEY: ""
+      UVICORN_WORKERS: "2"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 8s
+      retries: 3
+      start_period: 25s
+    networks:
+      - studentalumni
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+networks:
+  studentalumni:
+    driver: bridge
+
+volumes:
+  mongo-data:
