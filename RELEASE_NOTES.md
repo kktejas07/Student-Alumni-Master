@@ -12,7 +12,7 @@ and the release note side-by-side.
 
 | Tag        | Headline                                                                                              | Surface                |
 | ---------- | ----------------------------------------------------------------------------------------------------- | ---------------------- |
-| `v0.18.1`  | FinTax360 polish — calmer aurora (no pink) · sidebar / topbar restyled · Outfit + Plus Jakarta fonts  | Student portal         |
+| `v0.18.2`  | FinTax360 polish — calmer aurora (no pink) · sidebar / topbar restyled · Outfit + Plus Jakarta fonts  | Student portal         |
 | `v0.18.0`  | FinTax360 Glass-Dark theme — animated multicolor aurora · GlassCard / KpiTile / PillChip primitives   | Student portal         |
 | `v0.17.0`  | Glass-morphism preview — first pass on Dashboard only (superseded by 0.18.0)                          | Student / Dashboard    |
 | `v0.16.0`  | Agent K · Scheduled (cron) automations — APScheduler · 8 new endpoints · BYO-AI gated                 | Backend + Agent K UI   |
@@ -23,10 +23,14 @@ and the release note side-by-side.
 
 ---
 
-## Commit 8 — `v0.18.1`  ▸ FinTax360 polish: Sidebar + TopBar + calmer aurora
+## Commit 8 — `v0.18.2`  ▸ FinTax360 polish: Sidebar + TopBar + calmer aurora
 
 ```text
-style(student): calm aurora · restyle sidebar + topbar to FinTax360 (v0.18.1)
+style(student): calm aurora · restyle sidebar + topbar to FinTax360 (v0.18.2)
+
+(Renumbered from v0.18.1 — the v0.18.1 tag was already claimed by an
+unrelated merge commit on origin and could not be force-overwritten
+under the active repository rules.)
 
 - Aurora: removed rose/pink orb entirely. Remaining three orbs (violet,
   blue, teal) reduced to 0.16-0.26 opacity with 140-160px blur so the
@@ -136,9 +140,9 @@ Refs: CHANGELOG.md §0.16.0
 
 | Channel              | Identifier          | Version | Build #     |
 | -------------------- | ------------------- | ------- | ----------- |
-| `frontend` (NPM)     | `frontend`          | 0.18.1  | —           |
-| Expo iOS             | `com.careerpath.app`| 1.1.0   | 18          |
-| Expo Android         | `com.careerpath.app`| 1.1.0   | 18 (vc 18)  |
+| `frontend` (NPM)     | `frontend`          | 0.18.2  | —           |
+| Expo iOS             | `com.careerpath.app`| 1.1.1   | 19          |
+| Expo Android         | `com.careerpath.app`| 1.1.1   | 19 (vc 19)  |
 | Splash backgroundColor + Android adaptive icon backgroundColor migrated from cream `#FDFBF7` → navy `#0a0f1e` to match the FinTax360 dark theme. |
 
 
