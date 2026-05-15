@@ -2039,8 +2039,6 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
     (async () => { try { setData(await request<any>('/admin/digital-id')); } catch {} })();
   }, []);
 
-  if (!data) return <Loading />;
-
   const flipStyle = useAnimatedStyle(() => ({
     transform: [{ perspective: 1200 }, { rotateY: `${flipped ? 180 : 0}deg` }],
   }), [flipped]);
@@ -2048,7 +2046,7 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const copyId = async () => {
     try {
       if (Platform.OS === 'web' && navigator?.clipboard) {
-        await navigator.clipboard.writeText(data.admin_id);
+        await navigator.clipboard.writeText(data?.admin_id || '');
       }
       onSaved('Admin ID copied');
     } catch { onSaved('Copy failed'); }
@@ -2071,13 +2069,15 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
       if (Platform.OS === 'web') {
         const link = document.createElement('a');
         link.href = `data:image/png;base64,${r.qr_code_base64}`;
-        link.download = `admin-id-${data.admin_id}.png`;
+        link.download = `admin-id-${data?.admin_id || 'unknown'}.png`;
         link.click();
       } else {
         onSaved('QR code available');
       }
     } catch { onSaved('Download failed'); }
   };
+
+  if (!data) return <Loading />;
 
   return (
     <Animated.View entering={FadeIn.duration(180)} style={{ gap: 16 }}>

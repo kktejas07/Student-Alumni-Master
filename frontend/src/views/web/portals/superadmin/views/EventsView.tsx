@@ -11,7 +11,6 @@
  *   • "Review & approve" → patches start_date to "now+1 day" + reloads
  */
 import React, { useMemo, useState } from 'react';
-<<<<<<< Updated upstream
 import { View, Text, Pressable, StyleSheet, Platform, useWindowDimensions, Modal, TextInput, ScrollView, Alert } from 'react-native';
 import { Calendar as CalIcon, MapPin, Users as UsersIcon, ShieldCheck, AlertTriangle, IndianRupee, Sparkles, Plus, X, Trash2 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,16 +18,6 @@ import { SAC, FONTS } from '../tokens';
 import { GRAD, Card, IconBox, KpiTile, StatusPill, GradientButton, SecondaryButton, SearchField, TopTabs, EmptyState, useToast, Toast } from '../applekit';
 import { usePortalData } from '@/src/lib/portalApi';
 import { request } from '@/src/models/services/api';
-=======
-import { View, Text, Pressable, StyleSheet, Platform, useWindowDimensions, Modal, ScrollView } from 'react-native';
-import { Calendar as CalIcon, MapPin, Users as UsersIcon, ShieldCheck, AlertTriangle, IndianRupee, Sparkles, Plus, X, Check, Pencil } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { SAC, FONTS } from '../tokens';
-import { GRAD, Card, IconBox, KpiTile, StatusPill, GradientButton, SecondaryButton, SearchField, TopTabs, EmptyState, Toast, useToast, LoadingBox, SectionLabel } from '../applekit';
-import { usePortalData, postPortal } from '@/src/lib/portalApi';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { TextInput } from 'react-native';
->>>>>>> Stashed changes
 
 type Ev = { id: string; title: string; date: string; mode: string; city: string; cat: string; attending: number; capacity: number; status: string; kind: string; price?: number; accent: string };
 const FALLBACK = { items: [] as Ev[] };
@@ -273,16 +262,8 @@ export function EventsView() {
   const { width } = useWindowDimensions();
   const [tab, setTab] = useState<Tab>('all');
   const [q, setQ] = useState('');
-<<<<<<< Updated upstream
-  const [modalOpen, setModalOpen] = useState(false);
+const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Ev | null>(null);
-=======
-  const [creating, setCreating] = useState(false);
-  const [newEvent, setNewEvent] = useState({ title: '', date: '', city: '', cat: 'WORKSHOP', kind: 'free', price: 0, capacity: 50 });
-  const [eventDetail, setEventDetail] = useState<Ev | null>(null);
-  const [edit, setEdit] = useState(false);
-  const [draft, setDraft] = useState<any>({});
->>>>>>> Stashed changes
   const { toast, flash } = useToast();
 
   const list = useMemo(() => {
@@ -314,50 +295,18 @@ export function EventsView() {
   const cols = width >= 1280 ? 3 : width >= 760 ? 2 : 1;
   const totalRevenue = EVENTS.filter((e) => e.kind === 'paid').reduce((n, e) => n + (e.price || 0) * (e.attending || 0), 0);
 
-<<<<<<< Updated upstream
-  const openCreate = () => { setEditing(null); setModalOpen(true); };
+const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit  = (e: Ev) => { setEditing(e); setModalOpen(true); };
 
   const reviewApprove = async (e: Ev) => {
     try {
-      // bump start_date forward to mark "approved" (within 30-day live window)
       const sd = new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 16);
       await request(`/admin/super/events/${e.id}`, { method: 'PATCH', body: JSON.stringify({ title: e.title, start_date: sd }) });
       await refresh?.();
       flash('Event approved');
     } catch (err: any) {
-      // eslint-disable-next-line no-console
       console.warn('approve failed', err?.message);
     }
-=======
-  const createEvent = async () => {
-    if (!newEvent.title.trim() || !newEvent.date.trim()) return;
-    try {
-      await postPortal('/admin/super/events', { body: newEvent });
-      flash('Event created successfully');
-      setCreating(false);
-      setNewEvent({ title: '', date: '', city: '', cat: 'WORKSHOP', kind: 'free', price: 0, capacity: 50 });
-      refresh();
-    } catch { flash('Failed to create event'); }
-  };
-
-  const approveEvent = async (id: string) => {
-    try { await postPortal(`/admin/super/events/${id}/approve`); flash('Event approved'); refresh(); } catch { flash('Failed to approve'); }
-  };
-
-  const openEvent = (e: Ev) => {
-    setEventDetail(e);
-    setEdit(false);
-    setDraft({});
-  };
-  const saveEvent = async () => {
-    if (!eventDetail) return;
-    try { await postPortal(`/admin/super/events/${eventDetail.id}`, { method: 'PATCH', body: draft }); flash('Event updated'); setEdit(false); setDraft({}); refresh(); } catch { flash('Failed to update'); }
-  };
-  const deleteEvent = async () => {
-    if (!eventDetail) return;
-    try { await postPortal(`/admin/super/events/${eventDetail.id}`, { method: 'DELETE' }); flash('Event deleted'); setEventDetail(null); refresh(); } catch { flash('Failed to delete'); }
->>>>>>> Stashed changes
   };
 
   return (
@@ -369,14 +318,10 @@ export function EventsView() {
             <Text style={st.title}>Events</Text>
             <Text style={st.sub}>Manage live + upcoming events across all colleges. Approve new submissions and track attendance live.</Text>
           </View>
-<<<<<<< Updated upstream
-          <GradientButton onPress={openCreate}>
+<GradientButton onPress={openCreate}>
             <Plus size={13} color="#fff" />
             <Text style={st.btnText}>New event</Text>
           </GradientButton>
-=======
-          <GradientButton onPress={() => setCreating(true)}><Plus size={13} color="#fff" /><Text style={st.btnText}>New event</Text></GradientButton>
->>>>>>> Stashed changes
         </View>
       </Card>
 
@@ -435,13 +380,8 @@ export function EventsView() {
                   </View>
                   <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
                     {e.status === 'pending'
-<<<<<<< Updated upstream
                       ? <GradientButton onPress={() => reviewApprove(e)}><Text style={st.btnText}>Review & approve</Text></GradientButton>
                       : <SecondaryButton onPress={() => openEdit(e)}><Text style={st.secText}>Manage event</Text></SecondaryButton>
-=======
-                      ? <GradientButton onPress={() => approveEvent(e.id)}><Text style={st.btnText}>Review & approve</Text></GradientButton>
-                      : <SecondaryButton onPress={() => openEvent(e)}><Text style={st.secText}>Manage event</Text></SecondaryButton>
->>>>>>> Stashed changes
                     }
                   </View>
                 </View>
@@ -450,7 +390,6 @@ export function EventsView() {
           })}
         </View>
       )}
-<<<<<<< Updated upstream
 
       <EventModal
         visible={modalOpen}
@@ -459,67 +398,6 @@ export function EventsView() {
         onSaved={() => { refresh?.(); flash(editing ? 'Event updated' : 'Event created'); }}
         onDeleted={() => { refresh?.(); flash('Event deleted'); }}
       />
-=======
-      {/* Create Event Modal */}
-      <Modal visible={creating} transparent animationType="fade" onRequestClose={() => setCreating(false)}>
-        <View style={st.modalBg}>
-          <Animated.View entering={FadeInDown.duration(200)} style={[st.modalCard, { maxWidth: 420 }]}>
-            <LinearGradient colors={GRAD.soft} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.modalHero}>
-              <IconBox size={36}><CalIcon size={16} color={GRAD.to} /></IconBox>
-              <View style={{ flex: 1 }}><Text style={st.modalTitle}>Create new event</Text><Text style={st.muted}>Fill in the details below.</Text></View>
-              <Pressable onPress={() => setCreating(false)}><X size={16} color={SAC.muted} /></Pressable>
-            </LinearGradient>
-            <View style={{ padding: 18, gap: 12 }}>
-              <TextInput value={newEvent.title} onChangeText={(v) => setNewEvent({ ...newEvent, title: v })} placeholder="Event title" placeholderTextColor={SAC.dim} style={st.input} />
-              <TextInput value={newEvent.date} onChangeText={(v) => setNewEvent({ ...newEvent, date: v })} placeholder="Date (e.g. 2025-06-15)" placeholderTextColor={SAC.dim} style={st.input} />
-              <TextInput value={newEvent.city} onChangeText={(v) => setNewEvent({ ...newEvent, city: v })} placeholder="City" placeholderTextColor={SAC.dim} style={st.input} />
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
-                <SecondaryButton onPress={() => setCreating(false)}><Text style={st.secText}>Cancel</Text></SecondaryButton>
-                <GradientButton onPress={createEvent} disabled={!newEvent.title.trim()}><Check size={13} color="#fff" /><Text style={st.btnText}>Create</Text></GradientButton>
-              </View>
-            </View>
-          </Animated.View>
-        </View>
-      </Modal>
-
-      {/* Event Detail Modal */}
-      <Modal visible={!!eventDetail} transparent animationType="fade" onRequestClose={() => setEventDetail(null)}>
-        <View style={st.modalBg}>
-          <Animated.View entering={FadeInDown.duration(220)} style={st.modalCard}>
-            <LinearGradient colors={GRAD.soft} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.modalHero}>
-              <View style={{ flex: 1, minWidth: 0 }}><Text style={st.modalTitle} numberOfLines={1}>{eventDetail?.title}</Text><Text style={st.muted}>{eventDetail?.date} · {eventDetail?.city}</Text></View>
-              <Pressable onPress={() => setEventDetail(null)}><X size={16} color={SAC.muted} /></Pressable>
-            </LinearGradient>
-            <ScrollView style={{ maxHeight: 480 }} contentContainerStyle={{ padding: 20, gap: 16 }}>
-              <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-                <StatusPill kind="info" label={eventDetail?.cat?.toUpperCase() || 'EVENT'} />
-                <StatusPill kind={eventDetail?.status === 'pending' ? 'warn' : 'success'} label={eventDetail?.status?.toUpperCase() || 'LIVE'} />
-                <StatusPill kind={eventDetail?.kind === 'paid' ? 'info' : 'success'} label={eventDetail?.kind === 'paid' ? `₹${eventDetail?.price}` : 'FREE'} />
-              </View>
-              <View>
-                <SectionLabel>ATTENDANCE</SectionLabel>
-                <View style={{ marginTop: 8, gap: 6 }}>
-                  <View style={st.detailRow}><UsersIcon size={13} color={SAC.muted} /><Text style={st.detailLabel}>Attending</Text><Text style={st.detailValue}>{eventDetail?.attending}/{eventDetail?.capacity}</Text></View>
-                  <View style={st.detailRow}><MapPin size={13} color={SAC.muted} /><Text style={st.detailLabel}>City</Text><Text style={st.detailValue}>{eventDetail?.city || '—'}</Text></View>
-                  <View style={st.detailRow}><CalIcon size={13} color={SAC.muted} /><Text style={st.detailLabel}>Date</Text><Text style={st.detailValue}>{eventDetail?.date || '—'}</Text></View>
-                </View>
-              </View>
-              <View style={st.actionsRow}>
-                {!edit ? (
-                  <SecondaryButton onPress={() => setEdit(true)}><Pencil size={12} color={SAC.muted} /><Text style={st.secText}>Edit</Text></SecondaryButton>
-                ) : (
-                  <>
-                    <SecondaryButton onPress={() => { setEdit(false); setDraft({}); }}><Text style={st.secText}>Cancel</Text></SecondaryButton>
-                    <GradientButton onPress={saveEvent}><Check size={13} color="#fff" /><Text style={st.btnText}>Save</Text></GradientButton>
-                  </>
-                )}
-              </View>
-            </ScrollView>
-          </Animated.View>
-        </View>
-      </Modal>
-
->>>>>>> Stashed changes
       <Toast text={toast.text} visible={toast.visible} />
     </View>
   );
