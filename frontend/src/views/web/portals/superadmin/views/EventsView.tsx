@@ -262,7 +262,7 @@ export function EventsView() {
   const { width } = useWindowDimensions();
   const [tab, setTab] = useState<Tab>('all');
   const [q, setQ] = useState('');
-const [modalOpen, setModalOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Ev | null>(null);
   const { toast, flash } = useToast();
 
@@ -295,7 +295,7 @@ const [modalOpen, setModalOpen] = useState(false);
   const cols = width >= 1280 ? 3 : width >= 760 ? 2 : 1;
   const totalRevenue = EVENTS.filter((e) => e.kind === 'paid').reduce((n, e) => n + (e.price || 0) * (e.attending || 0), 0);
 
-const openCreate = () => { setEditing(null); setModalOpen(true); };
+  const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit  = (e: Ev) => { setEditing(e); setModalOpen(true); };
 
   const reviewApprove = async (e: Ev) => {
@@ -318,7 +318,7 @@ const openCreate = () => { setEditing(null); setModalOpen(true); };
             <Text style={st.title}>Events</Text>
             <Text style={st.sub}>Manage live + upcoming events across all colleges. Approve new submissions and track attendance live.</Text>
           </View>
-<GradientButton onPress={openCreate}>
+          <GradientButton onPress={openCreate}>
             <Plus size={13} color="#fff" />
             <Text style={st.btnText}>New event</Text>
           </GradientButton>
