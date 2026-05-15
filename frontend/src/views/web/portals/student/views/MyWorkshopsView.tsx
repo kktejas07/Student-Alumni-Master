@@ -5,6 +5,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, Platform, Linking } from 'react-native';
 import { GraduationCap, CheckCircle, Award, ExternalLink } from '../iconShims';
 import { SC, FONTS } from '../tokens';
+import { GlassCard } from '../glass';
 import { EmptyState } from '../EmptyState';
 import { usePortalData } from '@/src/lib/portalApi';
 import { useCurrentUser } from '@/src/lib/useCurrentUser';
@@ -33,8 +34,8 @@ export function MyWorkshopsView() {
       </View>
 
       <Section title={`Ongoing (${ongoing.length})`}>
-        {ongoing.map((w) => (
-          <View key={w.id} style={s.row}>
+        {ongoing.map((w, idx) => (
+          <GlassCard key={w.id} delay={idx * 30} radius={12} padding={14} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <View style={s.iconBox}><GraduationCap size={18} color={SC.accentBright} /></View>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={s.title}>{w.title}</Text>
@@ -43,7 +44,7 @@ export function MyWorkshopsView() {
             <View style={[s.statusPill, s.statusPending]}>
               <Text style={[s.statusText, { color: '#FBBF24' }]}>In progress</Text>
             </View>
-          </View>
+          </GlassCard>
         ))}
         {ongoing.length === 0 && (
           <EmptyState
@@ -56,8 +57,8 @@ export function MyWorkshopsView() {
       </Section>
 
       <Section title={`Completed (${completed.length})`}>
-        {completed.map((w) => (
-          <View key={w.id} style={s.row}>
+        {completed.map((w, idx) => (
+          <GlassCard key={w.id} delay={idx * 30} radius={12} padding={14} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <View style={[s.iconBox, { backgroundColor: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.30)' }]}>
               <CheckCircle size={18} color="#22C55E" />
             </View>
@@ -75,7 +76,7 @@ export function MyWorkshopsView() {
                 <ExternalLink size={11} color="#FCD34D" />
               </Pressable>
             )}
-          </View>
+          </GlassCard>
         ))}
         {completed.length === 0 && <Text style={s.empty}>No workshops completed yet.</Text>}
       </Section>

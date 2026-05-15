@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { Calendar, Clock, X, User } from '../iconShims';
 import { SC, FONTS } from '../tokens';
+import { GlassCard } from '../glass';
 import { EmptyState } from '../EmptyState';
 import { usePortalData } from '@/src/lib/portalApi';
 import { useCurrentUser } from '@/src/lib/useCurrentUser';
@@ -50,10 +51,10 @@ export function MyBookingsView() {
       </View>
 
       <Section title={`Upcoming (${upcoming.length})`}>
-        {upcoming.map((b) => {
+        {upcoming.map((b, idx) => {
           const when = b.scheduled_at ? new Date(b.scheduled_at) : null;
           return (
-          <View key={b.id} style={s.card}>
+          <GlassCard key={b.id} delay={idx * 30} radius={12} padding={14} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <View style={s.iconBox}><Calendar size={18} color={SC.accentBright} /></View>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={s.topic}>{b.topic || 'Session'}</Text>
@@ -76,7 +77,7 @@ export function MyBookingsView() {
               <X size={12} color="#EF4444" />
               <Text style={s.cancelText}>{cancellingId === b.id ? 'Cancelling…' : 'Cancel'}</Text>
             </Pressable>
-          </View>
+          </GlassCard>
           );
         })}
         {upcoming.length === 0 && (
@@ -90,16 +91,16 @@ export function MyBookingsView() {
 
       {cancelled.length > 0 && (
         <Section title={`Cancelled (${cancelled.length})`}>
-          {cancelled.map((b) => {
+          {cancelled.map((b, idx) => {
             const when = b.scheduled_at ? new Date(b.scheduled_at) : null;
             return (
-            <View key={b.id} style={[s.card, { opacity: 0.55 }]}>
+            <GlassCard key={b.id} delay={idx * 30} radius={12} padding={14} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, opacity: 0.55 }}>
               <View style={[s.iconBox, { backgroundColor: '#EF444422' }]}><X size={16} color="#EF4444" /></View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={s.topic}>{b.topic || 'Session'}</Text>
                 <Text style={s.meta}>{b.mentor_name || 'Mentor'} · {when ? when.toLocaleDateString() : 'TBD'}</Text>
               </View>
-            </View>
+            </GlassCard>
             );
           })}
         </Section>

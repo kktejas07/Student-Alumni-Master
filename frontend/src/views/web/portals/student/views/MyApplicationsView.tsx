@@ -5,6 +5,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Briefcase, CheckCircle, Clock } from '../iconShims';
 import { SC, FONTS } from '../tokens';
+import { GlassCard } from '../glass';
 import { EmptyState } from '../EmptyState';
 import { usePortalData } from '@/src/lib/portalApi';
 import { useCurrentUser } from '@/src/lib/useCurrentUser';
@@ -27,8 +28,14 @@ export function MyApplicationsView() {
         <Text style={s.sub}>{items.length} applications · auto-refreshes every 30s</Text>
       </View>
       <View style={{ gap: 8 }}>
-        {items.map((a) => (
-          <View key={a.id} style={s.row}>
+        {items.map((a, idx) => (
+          <GlassCard
+            key={a.id}
+            delay={idx * 30}
+            radius={12}
+            padding={14}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
+          >
             <View style={s.iconBox}><Briefcase size={18} color={SC.accentBright} /></View>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={s.title}>{a.internship_title}</Text>
@@ -38,7 +45,7 @@ export function MyApplicationsView() {
               {a.status === 'submitted' ? <Clock size={11} color="#FBBF24" /> : <CheckCircle size={11} color="#22C55E" />}
               <Text style={[s.statusText, { color: a.status === 'submitted' ? '#FBBF24' : '#22C55E' }]}>{a.status}</Text>
             </View>
-          </View>
+          </GlassCard>
         ))}
         {items.length === 0 && (
           <EmptyState

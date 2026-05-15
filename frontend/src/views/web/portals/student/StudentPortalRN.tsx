@@ -19,7 +19,7 @@ import { ToastProvider } from '@/src/motion/apple/toast';
 
 import { Sidebar, StudentNavId } from './Sidebar';
 import { TopBar } from './TopBar';
-import { AnimatedAurora, GridOverlay, RouteTransition } from './glass';
+import { AnimatedAurora, GridOverlay, RouteTransition, AiCopilotFab } from './glass';
 import { PALETTE } from './tokens';
 import { DashboardView } from './views/DashboardView';
 import { CareerAIView } from './views/CareerAIView';
@@ -110,6 +110,9 @@ function PortalShell() {
           </EmbeddedShellContext.Provider>
         </ScrollView>
       </View>
+
+      {/* Global AI Copilot FAB — visible on every Student screen */}
+      <AiCopilotFab onPress={() => router.push('/agent-k')} />
     </View>
   );
 }

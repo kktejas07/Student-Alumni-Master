@@ -11,6 +11,45 @@ this session. Earlier history pre-dates this changelog.
 
 ## [Unreleased]
 
+## [0.19.0] — 2026-06-?? — Global AI Copilot FAB + FinTax360 sweep across all Student views
+
+Two big polish items that complete the v0.18.x theme rollout for Student.
+
+### Added
+- 🤖 **AI Copilot FAB** (`AiCopilotFab` in `glass.tsx`) — fixed
+  bottom-right floating action button (pill, 56 px tall) with a
+  breathing violet glow ring. Visible on every Student screen
+  **including `/agent-k` itself** per design contract. Tap →
+  `router.push('/agent-k')`.
+  - Web: `position: fixed`, hover-lifts to scale 1.08×, press
+    scales to 0.96×.
+  - Native: `position: absolute` with press-scale.
+  - Mount-in fade + slide (350 ms) and 3.2 s breathing loop on the
+    glow ring.
+- 🪟 **FinTax360 Glass sweep** — replaced legacy `<View style={s.card}>`
+  with the `GlassCard` primitive (frosted blur, edge-highlight, hover
+  lift, staggered mount-in) across:
+  - `EventsView` — event cards
+  - `NetworkView` — people cards (also fixed missing
+    `LinearGradient` / `GRAD` imports that were causing a runtime
+    bug when a non-connected, non-pending person was shown)
+  - `InternshipsView` — JobCard rows
+  - `MyApplicationsView` — application rows
+  - `MyBookingsView` — upcoming + cancelled booking rows
+  - `MyWorkshopsView` — ongoing + completed workshop rows
+- 🔗 **Single-import contract** — `AiCopilotFab` is exported from
+  `glass.tsx` and re-used in `/agent-k.tsx` (aliased as
+  `StudentAiCopilotFab`) so the visual is identical in both shells.
+
+### Why this matters
+- Quick access to Agent K from anywhere in the Student portal — no
+  longer requires opening the sidebar.
+- Theme consistency: every Student view now uses the same glass
+  primitive instead of bespoke borders/backgrounds, so the FinTax360
+  identity is unbroken end-to-end.
+- The hidden NetworkView bug (undefined `LinearGradient`/`GRAD`) is
+  now resolved as a side-effect of the glass-card refactor.
+
 ---
 
 ## [0.18.2] — 2026-06-?? — FinTax360 polish: Sidebar + TopBar + calmer aurora

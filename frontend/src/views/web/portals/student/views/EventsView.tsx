@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Calendar as CalIcon, MapPin, Users as UsersIcon, Check } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { GRAD } from '../portalkit';
+import { GlassCard } from '../glass';
 import { Badge } from '../atoms';
 import { usePortalData, postPortal } from '@/src/lib/portalApi';
 
@@ -45,10 +46,16 @@ export function EventsView() {
       </View>
 
       <View style={s.grid}>
-        {list.map((e) => {
+        {list.map((e, idx) => {
           const isReg = e.registered || rsvpd.has(e.id);
           return (
-            <View key={e.id} style={[s.card, { width: cardW as any }]}>
+            <GlassCard
+              key={e.id}
+              delay={idx * 40}
+              radius={14}
+              padding={0}
+              style={{ width: cardW as any, overflow: 'hidden' }}
+            >
               <View style={[s.cover, { backgroundColor: e.accent + '22', borderColor: e.accent + '40' }]}>
                 <CalIcon size={28} color={e.accent} />
               </View>
@@ -86,7 +93,7 @@ export function EventsView() {
                   </Pressable>
                 )}
               </View>
-            </View>
+            </GlassCard>
           );
         })}
       </View>

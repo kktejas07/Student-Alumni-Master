@@ -30,6 +30,7 @@ import { useTheme } from '@/src/theme/ThemeContext';
 import { PORTAL_ACCENTS } from '@/src/theme/nexus';
 import { request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { AiCopilotFab as StudentAiCopilotFab } from '@/src/views/web/portals/student/glass';
 
 const FONT = Platform.select({
   ios: 'System', android: 'sans-serif',
@@ -513,6 +514,12 @@ export default function AgentKPage() {
           onClose={() => setScheduleEditor(null)}
           onSubmit={createSchedule}
         />
+      )}
+
+      {/* Global AI Copilot FAB (student portal only) — visible on
+          Agent K too per design contract. Tapping is a no-op visual. */}
+      {portal === 'student' && (
+        <StudentAiCopilotFab onPress={() => router.push('/agent-k')} />
       )}
     </View>
   );
