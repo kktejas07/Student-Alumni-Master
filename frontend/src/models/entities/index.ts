@@ -184,6 +184,7 @@ export interface Deal {
 export interface CampusEvent {
   id: string;
   title: string;
+  category: 'hackathon' | 'codethon' | 'workshop' | 'tech_talk' | 'training' | 'founder_talk' | 'meetup' | 'fest' | 'boot_camp';
   organizer: string;
   image: string;
   venue: string;

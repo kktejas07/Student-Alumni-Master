@@ -1,13 +1,42 @@
 {
   "name": "frontend",
   "main": "expo-router/entry",
+  "version": "0.18.2",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test": "jest"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "transform": {
+      "^.+\\.tsx?$": [
+        "ts-jest",
+        {
+          "tsconfig": {
+            "jsx": "react-jsx"
+          }
+        }
+      ]
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!lucide-react-native)"
+    ],
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "jsx"
+    ],
+    "moduleNameMapper": {
+      "^react-native$": "react-native-web",
+      "^lucide-react-native$": "<rootDir>/__mocks__/lucide-react-native.tsx"
+    }
   },
   "dependencies": {
     "@babel/runtime": "^7.20.6",
