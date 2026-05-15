@@ -13,7 +13,12 @@ this session. Earlier history pre-dates this changelog.
 
 ---
 
-## [0.18.1] — 2026-06-?? — FinTax360 polish: Sidebar + TopBar + calmer aurora
+## [0.18.2] — 2026-06-?? — FinTax360 polish: Sidebar + TopBar + calmer aurora
+
+> Originally tagged locally as `v0.18.1` but renumbered to `v0.18.2`
+> because `v0.18.1` was already claimed by an unrelated merge commit
+> on the remote and the tag could not be force-overwritten under the
+> active repository rules.
 
 Sweeping refinements to the v0.18.0 theme based on the first design review.
 
