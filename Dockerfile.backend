@@ -1,5 +1,6 @@
 # Student Alumni Backend - Dokploy compatible Dockerfile
-# Use with: Build Path = ./ , Dockerfile Path = Dockerfile.backend
+# Build Path: ./backend
+# Dockerfile Path: ../Dockerfile.backend
 
 FROM python:3.12-slim
 
@@ -18,12 +19,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-COPY backend/requirements.txt .
+COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt && \
     pip install "uvicorn[standard]" gunicorn
 
-COPY backend/ .
+COPY . .
 
 RUN useradd --create-home --shell /usr/sbin/nologin appuser && \
     chown -R appuser:appuser /app

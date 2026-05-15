@@ -1,6 +1,6 @@
 # Student Alumni Frontend - Dokploy compatible Dockerfile
-# Use with: Build Path = ./frontend , Dockerfile Path = ../Dockerfile.frontend
-# Build Args: EXPO_PUBLIC_BACKEND_URL (required)
+# Build Path: ./frontend
+# Dockerfile Path: ../Dockerfile.frontend
 
 ARG EXPO_PUBLIC_BACKEND_URL
 ARG EXPO_PUBLIC_FIREBASE_API_KEY=""
