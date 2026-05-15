@@ -35,7 +35,11 @@ import {
   Pencil, Trash2, Check, X, Copy, Share2, Download, Eye, EyeOff,
   ExternalLink, RotateCcw, Monitor, Smartphone, AlertTriangle, KeyRound,
   ChevronRight, QrCode, Building2, ShieldCheck, Search, Sparkles, CheckCircle2,
+<<<<<<< Updated upstream
   Mail, Users as UsersIcon, ArrowLeft, Clock,
+=======
+  MapPin, Globe, Wifi, Clock, Activity,
+>>>>>>> Stashed changes
 } from 'lucide-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
@@ -152,6 +156,58 @@ const TABS: { id: TabId; label: string; icon: any }[] = [
   { id: 'security',      label: 'Security',            icon: Lock },
   { id: 'digital-id',    label: 'Digital ID',          icon: IdCard },
 ];
+
+const DEFAULT_SYSTEM_OPTIONS: Record<string, { value: string; label: string }[]> = {
+  session_timeout: [
+    { value: '15 minutes', label: '15 minutes' },
+    { value: '30 minutes', label: '30 minutes' },
+    { value: '1 hour',     label: '1 hour' },
+    { value: '2 hours',    label: '2 hours' },
+    { value: '4 hours',    label: '4 hours' },
+    { value: '8 hours',    label: '8 hours' },
+    { value: '12 hours',   label: '12 hours' },
+    { value: '24 hours',   label: '24 hours' },
+  ],
+  password_policy: [
+    { value: 'Weak (8+ chars)',        label: 'Weak (8+ chars)' },
+    { value: 'Medium (10+ chars)',     label: 'Medium (10+ chars)' },
+    { value: 'Strong (12+ chars)',    label: 'Strong (12+ chars)' },
+    { value: 'Very Strong (16+ chars)',label: 'Very Strong (16+ chars)' },
+    { value: 'Maximum (20+ chars)',   label: 'Maximum (20+ chars)' },
+  ],
+  default_locale: [
+    { value: 'en-IN', label: 'English (India) — en-IN' },
+    { value: 'en-US', label: 'English (US) — en-US' },
+    { value: 'en-GB', label: 'English (UK) — en-GB' },
+    { value: 'hi-IN', label: 'Hindi — hi-IN' },
+    { value: 'ta-IN', label: 'Tamil — ta-IN' },
+    { value: 'bn-IN', label: 'Bengali — bn-IN' },
+    { value: 'te-IN', label: 'Telugu — te-IN' },
+    { value: 'mr-IN', label: 'Marathi — mr-IN' },
+  ],
+  default_tz: [
+    { value: 'Asia/Kolkata',       label: 'IST — Asia/Kolkata (UTC+5:30)' },
+    { value: 'UTC',                label: 'UTC — Coordinated Universal Time' },
+    { value: 'Asia/Dubai',        label: 'GST — Asia/Dubai (UTC+4)' },
+    { value: 'Asia/Singapore',     label: 'SGT — Asia/Singapore (UTC+8)' },
+    { value: 'Asia/Tokyo',        label: 'JST — Asia/Tokyo (UTC+9)' },
+    { value: 'America/New_York',   label: 'EST — America/New_York (UTC-5)' },
+    { value: 'America/Chicago',    label: 'CST — America/Chicago (UTC-6)' },
+    { value: 'America/Los_Angeles',label: 'PST — America/Los_Angeles (UTC-8)' },
+    { value: 'Europe/London',     label: 'GMT — Europe/London (UTC+0)' },
+    { value: 'Europe/Paris',      label: 'CET — Europe/Paris (UTC+1)' },
+  ],
+  default_currency: [
+    { value: 'INR (₹)',  label: 'Indian Rupee — INR (₹)' },
+    { value: 'USD ($)',  label: 'US Dollar — USD ($)' },
+    { value: 'EUR (€)',  label: 'Euro — EUR (€)' },
+    { value: 'GBP (£)',  label: 'British Pound — GBP (£)' },
+    { value: 'AED',      label: 'UAE Dirham — AED' },
+    { value: 'SGD',      label: 'Singapore Dollar — SGD' },
+    { value: 'AUD ($)',  label: 'Australian Dollar — AUD ($)' },
+    { value: 'CAD ($)',  label: 'Canadian Dollar — CAD ($)' },
+  ],
+};
 
 /* ─────────────────────────────────────────────────────────────────
  * Toast (Auto-save confirmation)
@@ -522,6 +578,9 @@ function SignatureEditorModal({ visible, initial, onClose, onSaved }: {
  * ═══════════════════════════════════════════════════════════════ */
 function PlatformTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [data, setData] = useState<any>(null);
+  const [pickerSetting, setPickerSetting] = useState<any>(null);
+  const [busy, setBusy] = useState(false);
+  const [confirm, setConfirm] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try { setData(await request<any>('/admin/platform-controls')); } catch {}
@@ -535,10 +594,35 @@ function PlatformTab({ onSaved }: { onSaved: (s?: string) => void }) {
     try {
       await request('/admin/platform-controls', { method: 'PATCH', body: { key, value, section: 'feature_flags' } });
       onSaved('Saved');
-    } catch {}
+    } catch { load(); }
+  };
+
+  const saveSetting = async (key: string, value: string) => {
+    setBusy(true);
+    try {
+      await request('/admin/platform-controls/system-settings', {
+        method: 'PATCH', body: { key, value },
+      });
+      setPickerSetting(null);
+      onSaved('Setting updated');
+      await load();
+    } catch { onSaved('Failed'); }
+    finally { setBusy(false); }
+  };
+
+  const dangerAction = async (action: string, label: string) => {
+    if (!confirm) { setConfirm(action); return; }
+    setBusy(true);
+    try {
+      await request(`/admin/${action}`, { method: 'POST' });
+      setConfirm(null);
+      onSaved(label);
+    } catch (e: any) { onSaved('Failed: ' + String(e?.message || '')); }
+    finally { setBusy(false); }
   };
 
   if (!data) return <Loading />;
+  const options = data.system_settings_options || DEFAULT_SYSTEM_OPTIONS;
 
   return (
     <Animated.View entering={FadeIn.duration(180)} style={s.twoCol}>
@@ -569,20 +653,23 @@ function PlatformTab({ onSaved }: { onSaved: (s?: string) => void }) {
         <View style={s.card}>
           <Text style={s.sectionLabel}>SYSTEM SETTINGS</Text>
           <View style={{ marginTop: 12 }}>
-            {data.system_settings.map((it: any, idx: number) => (
-              <View
-                key={it.key}
-                style={[s.systemRow, idx === data.system_settings.length - 1 ? { borderBottomWidth: 0 } : null]}
-              >
-                <Text style={s.toggleTitle}>{it.label}</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <Text style={s.valueGrad}>{it.value}</Text>
-                  <Pressable style={s.editBtn}>
-                    <Text style={s.editBtnText}>Edit</Text>
+            {data.system_settings.map((it: any, idx: number) => {
+              const opts = options[it.key] || DEFAULT_SYSTEM_OPTIONS[it.key] || [];
+              return (
+                <View key={it.key} style={[s.systemRow, idx === data.system_settings.length - 1 ? { borderBottomWidth: 0 } : null]}>
+                  <Text style={s.toggleTitle}>{it.label}</Text>
+                  <Pressable
+                    onPress={() => setPickerSetting({ key: it.key, label: it.label, value: it.value, options: opts })}
+                    style={({ hovered }: any) => [s.selectBtn, hovered && Platform.OS === 'web' ? { borderColor: 'rgba(251,146,60,0.60)' } : null]}
+                  >
+                    <Text style={s.selectValue}>{it.value}</Text>
+                    <View style={{ opacity: 0.6 }}>
+                      <ChevronRight size={12} color={SAC.muted} />
+                    </View>
                   </Pressable>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </View>
 
@@ -592,23 +679,98 @@ function PlatformTab({ onSaved }: { onSaved: (s?: string) => void }) {
             <Text style={[s.sectionLabel, { color: SAC.red }]}>DANGER ZONE</Text>
           </View>
           <View style={{ gap: 10, marginTop: 14 }}>
-            <DangerBtn icon={RotateCcw} label="Reset all platform settings" />
-            <DangerBtn icon={Trash2}    label="Wipe analytics history" />
-            <DangerBtn icon={KeyRound}  label="Rotate JWT signing key" />
+            <DangerBtn
+              icon={RotateCcw}
+              label="Reset all platform settings"
+              loading={confirm === 'platform-controls/reset' && busy}
+              onConfirm={() => dangerAction('platform-controls/reset', 'Settings reset to defaults')}
+            />
+            <DangerBtn
+              icon={Trash2}
+              label="Wipe analytics history"
+              loading={confirm === 'analytics/wipe' && busy}
+              onConfirm={() => dangerAction('analytics/wipe', 'Analytics cleared')}
+            />
+            <DangerBtn
+              icon={KeyRound}
+              label="Rotate JWT signing key"
+              loading={confirm === 'security/rotate-jwt' && busy}
+              onConfirm={() => dangerAction('security/rotate-jwt', 'JWT key rotated')}
+            />
           </View>
         </View>
       </View>
+
+      {pickerSetting && (
+        <SettingPickerModal
+          setting={pickerSetting}
+          onSelect={(value) => saveSetting(pickerSetting.key, value)}
+          onClose={() => setPickerSetting(null)}
+        />
+      )}
     </Animated.View>
   );
 }
 
-function DangerBtn({ icon: Icon, label }: { icon: any; label: string }) {
+function SettingPickerModal({ setting, onSelect, onClose }: {
+  setting: { key: string; label: string; value: string; options: { value: string; label: string }[] };
+  onSelect: (v: string) => void; onClose: () => void;
+}) {
   return (
-    <Pressable style={({ hovered }: any) => [
-      s.dangerBtn,
-      hovered && Platform.OS === 'web' ? { backgroundColor: 'rgba(239,68,68,0.10)' } : null,
-    ]}>
-      <Icon size={13} color={SAC.red} />
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={s.pickerBackdrop} onPress={onClose}>
+        <Animated.View entering={FadeInDown.duration(220)} style={s.pickerCard}>
+          <LinearGradient colors={GRAD_BG} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.pickerHero}>
+            <View style={s.pickerIcon}>
+              <Sliders size={16} color={GRAD_TO} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.pickerTitle}>{setting.label}</Text>
+              <Text style={s.pickerSub}>Select an option to update this setting</Text>
+            </View>
+            <Pressable onPress={onClose} style={s.modalClose}><X size={16} color={SAC.muted} /></Pressable>
+          </LinearGradient>
+          <ScrollView style={{ maxHeight: 340 }} contentContainerStyle={{ padding: 12, gap: 6 }}>
+            {setting.options.map((opt) => {
+              const isSelected = opt.value === setting.value;
+              return (
+                <Pressable
+                  key={opt.value}
+                  onPress={() => { onSelect(opt.value); onClose(); }}
+                  style={[s.pickerOption, isSelected && s.pickerOptionActive]}
+                >
+                  <View style={[s.pickerOptionRadio, isSelected && { borderColor: GRAD_TO, backgroundColor: GRAD_TO + '22' }]}>
+                    {isSelected && <View style={s.pickerRadioDot} />}
+                  </View>
+                  <Text style={[s.pickerOptionText, isSelected && { color: GRAD_TO, fontFamily: FONTS.xbold }]}>
+                    {opt.label}
+                  </Text>
+                  {isSelected && <Check size={13} color={GRAD_TO} />}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </Animated.View>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function DangerBtn({ icon: Icon, label, loading, onConfirm }: { icon: any; label: string; loading?: boolean; onConfirm: () => void }) {
+  return (
+    <Pressable
+      onPress={onConfirm}
+      disabled={loading}
+      style={({ hovered }: any) => [
+        s.dangerBtn,
+        hovered && Platform.OS === 'web' ? { backgroundColor: 'rgba(239,68,68,0.10)' } : null,
+        loading ? { opacity: 0.6 } : null,
+      ]}>
+      {loading ? (
+        <ActivityIndicator size="small" color={SAC.red} />
+      ) : (
+        <Icon size={13} color={SAC.red} />
+      )}
       <Text style={s.dangerBtnText}>{label}</Text>
       <View style={{ flex: 1 }} />
       <ChevronRight size={13} color={SAC.red} />
@@ -722,19 +884,14 @@ function IntegrationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
           )}
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12 }}>
+<ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12 }}>
           {cats.map((c) => {
             const active = c === filter;
-            if (active) {
-              return (
-                <Pressable key={c} onPress={() => setFilter(c)}>
-                  <LinearGradient colors={[GRAD_FROM, GRAD_TO]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.catPillActive}>
-                    <Text style={s.catPillActiveText}>{c}</Text>
-                  </LinearGradient>
-                </Pressable>
-              );
-            }
-            return (
+            return active ? (
+              <View key={c} style={s.catPillActive}>
+                <Text style={s.catPillTextActive}>{c}</Text>
+              </View>
+            ) : (
               <Pressable key={c} onPress={() => setFilter(c)} style={s.catPill}>
                 <Text style={s.catPillText}>{c}</Text>
               </Pressable>
@@ -1478,7 +1635,13 @@ function NotificationsTab({ onSaved }: { onSaved: (s?: string) => void }) {
  * TAB 6 — Security
  * ═══════════════════════════════════════════════════════════════ */
 function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
-  const [twoFa, setTwoFa] = useState(true);
+  const [twoFa, setTwoFa] = useState(false);
+  const [twoFaLoading, setTwoFaLoading] = useState(false);
+  const [qrData, setQrData] = useState<{ qr_base64: string; secret: string } | null>(null);
+  const [otp, setOtp] = useState('');
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [showDisablePwd, setShowDisablePwd] = useState(false);
+  const [disablePwd, setDisablePwd] = useState('');
   const [cur, setCur] = useState(''); const [next, setNext] = useState(''); const [conf, setConf] = useState('');
   const [showCur, setShowCur] = useState(false); const [showNext, setShowNext] = useState(false);
   const [sessions, setSessions] = useState<any[]>([]);
@@ -1490,14 +1653,78 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
   const load = useCallback(async () => {
     try {
-      const [sessR, logR] = await Promise.all([
+      // Record current session (fire & forget)
+      request('/admin/security/sessions/record', { method: 'POST' }).catch(() => {});
+      const [sessR, logR, analysisR, tdR] = await Promise.all([
         request<any>('/admin/security/sessions'),
         request<any>('/admin/security/access-log'),
+        request<any>('/admin/security/sessions/analysis').catch(() => null),
+        request<any>('/admin/security/trusted-devices').catch(() => null),
       ]);
-      setSessions(sessR?.sessions || []); setLog(logR?.entries || []);
+      setSessions(sessR?.sessions || []);
+      setLog(logR?.entries || []);
+      setAnalysis(analysisR || null);
+      setTrustedDevices(tdR?.trusted_devices || []);
+    } catch {}
+    try {
+      const r = await request<{ enabled: boolean }>('/admin/security/2fa/status');
+      setTwoFa(r?.enabled ?? false);
     } catch {}
   }, []);
   useEffect(() => { load(); }, [load]);
+
+  const onToggle2fa = async (value: boolean) => {
+    if (value) {
+      // Enabling — generate QR
+      setTwoFaLoading(true);
+      try {
+        const r = await request<{ qr_base64: string; secret: string }>('/admin/security/2fa/generate', { method: 'POST' });
+        setQrData(r);
+        setOtp('');
+        setOtpError(null);
+      } catch { onSaved('Failed to generate 2FA secret'); setTwoFaLoading(false); return; }
+      setTwoFaLoading(false);
+    } else {
+      // Disabling — show password prompt
+      setShowDisablePwd(true);
+    }
+  };
+
+  const verifyOtp = async () => {
+    if (otp.length < 6) { setOtpError('Enter a 6-digit code from your authenticator app'); return; }
+    setTwoFaLoading(true);
+    setOtpError(null);
+    try {
+      await request('/admin/security/2fa/enable', { method: 'POST', body: { token: otp } });
+      setQrData(null);
+      setTwoFa(true);
+      setOtp('');
+      onSaved('2FA enabled');
+    } catch (e: any) {
+      setOtpError(String(e?.message || e));
+    } finally { setTwoFaLoading(false); }
+  };
+
+  const disable2fa = async () => {
+    if (!disablePwd.trim()) return;
+    setTwoFaLoading(true);
+    try {
+      await request('/admin/security/2fa/disable', { method: 'POST', body: { password: disablePwd } });
+      setShowDisablePwd(false);
+      setDisablePwd('');
+      setTwoFa(false);
+      onSaved('2FA disabled');
+    } catch { onSaved('Failed to disable 2FA'); }
+    finally { setTwoFaLoading(false); }
+  };
+
+  const cancel2fa = () => {
+    setQrData(null);
+    setOtp('');
+    setOtpError(null);
+    setShowDisablePwd(false);
+    setDisablePwd('');
+  };
 
   const updatePwd = async () => {
     setPwdErr(null);
@@ -1527,15 +1754,80 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
           <View style={[s.toggleRow, { marginTop: 14, paddingBottom: 14 }]}>
             <View style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
               <Text style={s.toggleTitle}>Two-Factor Authentication</Text>
-              <Text style={s.toggleDesc}>Required for all admin logins</Text>
+              <Text style={s.toggleDesc}>{twoFa ? 'Active · OTP from authenticator app required at login' : 'Not configured — add extra security to your account'}</Text>
             </View>
             <Switch
-              value={twoFa} onValueChange={(v) => { setTwoFa(v); onSaved('2FA ' + (v ? 'enabled' : 'disabled')); }}
+              value={twoFa || !!qrData}
+              onValueChange={onToggle2fa}
+              disabled={twoFaLoading}
               trackColor={{ false: 'rgba(255,255,255,0.10)', true: GRAD_TO }}
-              thumbColor={twoFa ? '#fff' : '#ccc'}
+              thumbColor={(twoFa || !!qrData) ? '#fff' : '#ccc'}
               {...(Platform.OS === 'web' ? ({ activeThumbColor: '#fff' } as any) : {})}
             />
           </View>
+
+          {/* 2FA Setup — QR + OTP */}
+          {qrData && (
+            <View style={{ marginTop: 8, gap: 14, padding: 16, borderRadius: 12, backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: 'rgba(251,146,60,0.25)' }}>
+              <Text style={{ color: GRAD_TO, fontFamily: FONTS.xbold, fontSize: 13 }}>Set up authenticator</Text>
+              <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, lineHeight: 16 }}>
+                Scan this QR code with Google Authenticator, Authy, or any TOTP app. Then enter the 6-digit code below to verify.
+              </Text>
+              <View style={{ alignItems: 'center', padding: 10 }}>
+                {Platform.OS === 'web' ? (
+                  <img src={`data:image/png;base64,${qrData.qr_base64}`} alt="2FA QR Code" style={{ width: 160, height: 160, borderRadius: 8 }} />
+                ) : (
+                  <Image source={{ uri: `data:image/png;base64,${qrData.qr_base64}` }} style={{ width: 160, height: 160, borderRadius: 8 }} />
+                )}
+              </View>
+              <Text style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5, textAlign: 'center' }}>
+                Key: {qrData.secret}
+              </Text>
+              <View style={{ gap: 8 }}>
+                <Text style={s.modalLabel}>Verification code</Text>
+                <TextInput
+                  value={otp}
+                  onChangeText={setOtp}
+                  placeholder="000000"
+                  placeholderTextColor={SAC.dim}
+                  maxLength={6}
+                  keyboardType="number-pad"
+                  autoFocus
+                  style={[s.input, { textAlign: 'center', fontSize: 22, fontFamily: FONTS.xbold, letterSpacing: 8 }]}
+                />
+                {otpError && <Text style={s.errorText}>{otpError}</Text>}
+              </View>
+              <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'flex-end' }}>
+                <Pressable onPress={cancel2fa} style={s.secondaryBtn}><Text style={s.secondaryBtnText}>Cancel</Text></Pressable>
+                <GradientButton onPress={verifyOtp} loading={twoFaLoading}>
+                  <Check size={13} color="#fff" />
+                  <Text style={s.primaryBtnText}>Verify & Enable</Text>
+                </GradientButton>
+              </View>
+            </View>
+          )}
+
+          {/* 2FA Disable Password Prompt */}
+          {showDisablePwd && (
+            <View style={{ marginTop: 8, gap: 10, padding: 16, borderRadius: 12, backgroundColor: 'rgba(239,68,68,0.06)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.30)' }}>
+              <Text style={{ color: SAC.red, fontFamily: FONTS.xbold, fontSize: 13 }}>Disable Two-Factor Authentication</Text>
+              <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5 }}>Enter your current password to confirm.</Text>
+              <TextInput
+                value={disablePwd}
+                onChangeText={setDisablePwd}
+                placeholder="Current password"
+                placeholderTextColor={SAC.dim}
+                secureTextEntry
+                style={s.input}
+              />
+              <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'flex-end' }}>
+                <Pressable onPress={cancel2fa} style={s.secondaryBtn}><Text style={s.secondaryBtnText}>Cancel</Text></Pressable>
+                <Pressable onPress={disable2fa} disabled={twoFaLoading || !disablePwd.trim()} style={[s.destructiveBtn, (twoFaLoading || !disablePwd.trim()) && { opacity: 0.5 }]}>
+                  {twoFaLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.primaryBtnText}>Disable 2FA</Text>}
+                </Pressable>
+              </View>
+            </View>
+          )}
 
           <Text style={[s.sectionLabel, { marginTop: 18 }]}>CHANGE PASSWORD</Text>
           <View style={{ marginTop: 12, gap: 10 }}>
@@ -1571,19 +1863,32 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
         </View>
       </View>
 
-      {/* ACTIVE SESSIONS */}
-      <View style={{ flex: 1, minWidth: 320 }}>
+      {/* ACTIVE SESSIONS + ANALYSIS */}
+      <View style={{ flex: 1, minWidth: 320, gap: 14 }}>
         <View style={s.card}>
           <Text style={s.sectionLabel}>ACTIVE SESSIONS</Text>
-          <View style={{ marginTop: 12, gap: 10 }}>
+          <View style={{ marginTop: 12, gap: 8 }}>
             {sessions.map((sess) => {
-              const Icon = (sess.device || '').toLowerCase().includes('iphone') ? Smartphone : Monitor;
+              const isMobile = (sess.device || '').toLowerCase().includes('iphone') || (sess.device || '').toLowerCase().includes('android');
+              const Icon = isMobile ? Smartphone : Monitor;
               return (
                 <View key={sess.id} style={s.sessRow}>
-                  <View style={s.sessIcon}><Icon size={16} color={SAC.muted} /></View>
+                  <View style={[s.sessIcon, sess.current && { borderColor: GRAD_TO, backgroundColor: 'rgba(251,146,60,0.12)' }]}>
+                    <Icon size={16} color={sess.current ? GRAD_TO : SAC.muted} />
+                  </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={s.toggleTitle}>{sess.browser} · {sess.device}</Text>
-                    <Text style={s.muted}>{sess.location} · {sess.last_active}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <Text style={s.toggleTitle}>{sess.browser} · {sess.device}</Text>
+                      {sess.os && <Text style={s.muted}>{sess.os}</Text>}
+                    </View>
+                    <View style={{ gap: 1, marginTop: 2 }}>
+                      <Text style={s.muted} numberOfLines={1}>
+                        <MapPin size={10} color={SAC.muted} /> {sess.location}
+                        {sess.isp ? ` · ${sess.isp}` : ''}
+                        {sess.ip ? ` · IP: ${sess.ip}` : ''}
+                      </Text>
+                      <Text style={s.muted}>{sess.last_active}</Text>
+                    </View>
                   </View>
                   {sess.current ? (
                     <View style={s.activeChip}>
@@ -1599,9 +1904,98 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
               );
             })}
           </View>
+          <Pressable
+            onPress={async () => {
+              try {
+                const r = await request<any>('/admin/security/trusted-devices', { method: 'POST' });
+                if (r?.trusted) {
+                  const td = await request<any>('/admin/security/trusted-devices');
+                  setTrustedDevices(td?.trusted_devices || []);
+                }
+              } catch {}
+            }}
+            style={[s.trustBtn, { marginTop: 10 }]}
+          >
+            <ShieldCheck size={12} color={GRAD_TO} />
+            <Text style={s.trustBtnText}>Trust this device</Text>
+          </Pressable>
         </View>
+
+        {/* TRUSTED DEVICES */}
+        {trustedDevices.length > 0 && (
+          <View style={s.card}>
+            <Text style={s.sectionLabel}>TRUSTED DEVICES</Text>
+            <Text style={[s.muted, { marginTop: 4, marginBottom: 10, fontSize: 11 }]}>These devices are exempt from automatic session expiry.</Text>
+            <View style={{ gap: 6 }}>
+              {trustedDevices.map((d) => (
+                <View key={d.id} style={s.trustedRow}>
+                  <View style={s.trustedIcon}>
+                    <ShieldCheck size={13} color={SAC.green} />
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={s.toggleTitle}>{d.browser} · {d.device}</Text>
+                    <Text style={s.muted} numberOfLines={1}>{d.location}{d.ip ? ` · IP: ${d.ip}` : ''}</Text>
+                  </View>
+                  <Text style={s.muted}>{d.added_ago}</Text>
+                  <Pressable
+                    onPress={async () => {
+                      try {
+                        await request(`/admin/security/trusted-devices/${d.id}`, { method: 'DELETE' });
+                        setTrustedDevices(trustedDevices.filter((td) => td.id !== d.id));
+                      } catch {}
+                    }}
+                    style={s.revokeBtn}
+                  >
+                    <Text style={s.revokeBtnText}>Remove</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {analysis && (
+          <View style={s.card}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Activity size={14} color={GRAD_TO} />
+              <Text style={s.sectionLabel}>SESSION ANALYSIS</Text>
+            </View>
+            <View style={{ marginTop: 14, gap: 12 }}>
+              <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                <MiniStat icon={Monitor} label="Total sessions" value={String(analysis.total_sessions || 0)} />
+                {Object.entries(analysis.device_breakdown || {}).map(([k, v]) => (
+                  <MiniStat key={k} icon={Smartphone} label={k} value={String(v)} />
+                ))}
+              </View>
+              {analysis.locations && analysis.locations.length > 0 && (
+                <View>
+                  <Text style={[s.sectionLabel, { marginBottom: 8 }]}>LOCATIONS</Text>
+                  {analysis.locations.slice(0, 4).map((loc: any, i: number) => (
+                    <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 }}>
+                      <Globe size={11} color={SAC.muted} />
+                      <Text style={{ color: '#fff', fontFamily: FONTS.med, fontSize: 12 }}>{loc.city}{loc.country ? `, ${loc.country}` : ''}</Text>
+                      <Text style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5 }}>{loc.count} session{loc.count === 1 ? '' : 's'}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          </View>
+        )}
       </View>
     </Animated.View>
+  );
+}
+
+function MiniStat({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8, backgroundColor: SAC.cardSolid, borderWidth: 1, borderColor: SAC.border }}>
+      <Icon size={12} color={GRAD_TO} />
+      <View>
+        <Text style={{ color: SAC.dim, fontFamily: FONTS.xbold, fontSize: 9, letterSpacing: 0.6 }}>{label.toUpperCase()}</Text>
+        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 }}>{value}</Text>
+      </View>
+    </View>
   );
 }
 
@@ -1653,7 +2047,6 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
   const copyId = async () => {
     try {
-      // @ts-ignore - web only
       if (Platform.OS === 'web' && navigator?.clipboard) {
         await navigator.clipboard.writeText(data.admin_id);
       }
@@ -1661,45 +2054,98 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
     } catch { onSaved('Copy failed'); }
   };
 
+  const shareLink = async () => {
+    try {
+      const r = await request<any>('/admin/digital-id/share-link');
+      if (Platform.OS === 'web' && navigator?.clipboard) {
+        await navigator.clipboard.writeText(r.share_url);
+      }
+      onSaved('Share link copied');
+    } catch { onSaved('Share link failed'); }
+  };
+
+  const downloadCard = async () => {
+    try {
+      const r = await request<{ qr_code_base64: string }>('/admin/digital-id');
+      if (!r?.qr_code_base64) { onSaved('Download failed'); return; }
+      if (Platform.OS === 'web') {
+        const link = document.createElement('a');
+        link.href = `data:image/png;base64,${r.qr_code_base64}`;
+        link.download = `admin-id-${data.admin_id}.png`;
+        link.click();
+      } else {
+        onSaved('QR code available');
+      }
+    } catch { onSaved('Download failed'); }
+  };
+
   return (
     <Animated.View entering={FadeIn.duration(180)} style={{ gap: 16 }}>
       {/* The ID Card */}
       <Pressable onPress={() => setFlipped(!flipped)} style={{ alignSelf: 'center', width: '100%', maxWidth: 540 }}>
-        <LinearGradient
-          colors={['#FBBF24', '#F97316', '#B45309']}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={s.idCard}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-            <View>
-              <Text style={s.idOrg}>{(data.org || 'Student Alumni').toUpperCase()}</Text>
-              <Text style={s.idLabel}>{data.label || 'OFFICIAL ID'}</Text>
-            </View>
-            <View style={s.idBadge}>
-              <Text style={s.idBadgeText}>SUPER ADMIN</Text>
-            </View>
-          </View>
-
-          <View style={{ marginTop: 28 }}>
-            <Text style={s.idName}>{data.name}</Text>
-            <Text style={s.idTitle}>{data.title} · {data.access_label}</Text>
-          </View>
-
-          <View style={{ marginTop: 20, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-            <View>
-              <Text style={s.idAdminLabel}>ADMIN ID</Text>
-              <Text style={s.idAdminVal}>{data.admin_id}</Text>
-            </View>
-            <View style={s.qrBox}>
-              <QrCode size={56} color="#1f1107" strokeWidth={1.5} />
-            </View>
-          </View>
-
-          <View style={{ marginTop: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
-            <Text style={s.idFlipHint}>Tap to flip</Text>
-            <ChevronRight size={12} color="rgba(31,17,7,0.7)" />
-          </View>
-        </LinearGradient>
+        <Animated.View style={{
+          transform: [{ rotateY: `${flipped ? 180 : 0}deg` }],
+          backfaceVisibility: 'hidden',
+          width: '100%',
+        }}>
+          {flipped ? (
+            <LinearGradient colors={['#1f1107', '#2D1B0E', '#3D2510']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
+              <View style={{ alignItems: 'center', gap: 14 }}>
+                <View>
+                  <Text style={s.flipOrg}>SCAN TO VERIFY</Text>
+                  <Text style={s.flipTitle}>Platform Admin</Text>
+                  <Text style={s.flipSub}>Student Alumni Platform · Super Admin</Text>
+                </View>
+                <View style={{ padding: 12, backgroundColor: '#fff', borderRadius: 16 }}>
+                  <Image source={{ uri: `data:image/png;base64,${data.qr_code_base64}` }} style={{ width: 180, height: 180 }} resizeMode="contain" />
+                </View>
+                <View style={{ alignItems: 'center', gap: 6, marginTop: 4 }}>
+                  <Text style={s.flipDataLabel}>ENCODED DATA</Text>
+                  <Text style={s.flipQrData}>{data.admin_id}</Text>
+                  <Text style={s.flipQrData}>{data.email || 'admin@careerpath.app'}</Text>
+                  <Text style={s.flipQrData}>admin · {data.access_label}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
+                  <Text style={s.idFlipHintDark}>Tap to flip back</Text>
+                  <ChevronRight size={12} color="rgba(251,191,36,0.7)" style={{ transform: [{ rotate: '180deg' }] }} />
+                </View>
+              </View>
+            </LinearGradient>
+          ) : (
+            <LinearGradient colors={['#FBBF24', '#F97316', '#B45309']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                <View>
+                  <Text style={s.idOrg}>{(data.org || 'Student Alumni').toUpperCase()}</Text>
+                  <Text style={s.idLabel}>{data.label || 'OFFICIAL ID'}</Text>
+                </View>
+                <View style={s.idBadge}>
+                  <Text style={s.idBadgeText}>SUPER ADMIN</Text>
+                </View>
+              </View>
+              <View style={{ marginTop: 28 }}>
+                <Text style={s.idName}>{data.name}</Text>
+                <Text style={s.idTitle}>{data.title} · {data.access_label}</Text>
+              </View>
+              <View style={{ marginTop: 20, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+                <View>
+                  <Text style={s.idAdminLabel}>ADMIN ID</Text>
+                  <Text style={s.idAdminVal}>{data.admin_id}</Text>
+                </View>
+                <View style={s.qrBox}>
+                  {data.qr_code_base64 ? (
+                    <Image source={{ uri: `data:image/png;base64,${data.qr_code_base64}` }} style={{ width: 70, height: 70 }} resizeMode="contain" />
+                  ) : (
+                    <QrCode size={56} color="#1f1107" strokeWidth={1.5} />
+                  )}
+                </View>
+              </View>
+              <View style={{ marginTop: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                <Text style={s.idFlipHint}>Tap to scan QR</Text>
+                <ChevronRight size={12} color="rgba(31,17,7,0.7)" />
+              </View>
+            </LinearGradient>
+          )}
+        </Animated.View>
       </Pressable>
 
       {/* Actions */}
@@ -1708,13 +2154,13 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
           <Copy size={13} color="#fff" />
           <Text style={s.idActionText}>Copy Admin ID</Text>
         </Pressable>
-        <Pressable onPress={() => onSaved('Share link copied')} style={s.idActionBtn}>
+        <Pressable onPress={shareLink} style={s.idActionBtn}>
           <Share2 size={13} color="#fff" />
           <Text style={s.idActionText}>Share Profile Link</Text>
         </Pressable>
-        <Pressable onPress={() => onSaved('ID downloaded')} style={s.idActionBtn}>
+        <Pressable onPress={downloadCard} style={s.idActionBtn}>
           <Download size={13} color="#fff" />
-          <Text style={s.idActionText}>Download ID Card</Text>
+          <Text style={s.idActionText}>Download QR Card</Text>
         </Pressable>
       </View>
 
@@ -1855,11 +2301,68 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: SAC.border, gap: 12,
   },
-  editBtn: {
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 7, borderWidth: 1, borderColor: SAC.border,
+  editBtnText: { color: GRAD_TO, fontFamily: FONTS.xbold, fontSize: 11 },
+  selectBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 9,
+    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
+    minWidth: 160,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  editBtnText: { color: GRAD_TO, fontFamily: FONTS.xbold, fontSize: 11 },
+  selectValue: { color: GRAD_TO, fontFamily: FONTS.bold, fontSize: 12 },
+
+  // Picker Modal
+  pickerBackdrop: {
+    position: 'fixed', inset: 0, zIndex: 1000,
+    backgroundColor: 'rgba(0,0,0,0.60)',
+    alignItems: 'center', justifyContent: 'center',
+    ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
+  },
+  pickerCard: {
+    width: '100%', maxWidth: 440,
+    backgroundColor: SAC.bg2, borderRadius: 16,
+    borderWidth: 1, borderColor: 'rgba(251,146,60,0.25)',
+    overflow: 'hidden',
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } as any) : {}),
+  },
+  pickerHero: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    padding: 16, borderBottomWidth: 1, borderBottomColor: SAC.border,
+  },
+  pickerIcon: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.30)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  pickerTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  pickerSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
+  pickerOption: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 12, paddingHorizontal: 14, borderRadius: 10,
+    borderWidth: 1, borderColor: 'transparent',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  pickerOptionActive: {
+    backgroundColor: 'rgba(251,146,60,0.10)',
+    borderColor: 'rgba(251,146,60,0.30)',
+  },
+  pickerOptionRadio: {
+    width: 18, height: 18, borderRadius: 9,
+    borderWidth: 1.5, borderColor: SAC.border2,
+    alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
+  pickerRadioDot: {
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: GRAD_TO,
+  },
+  pickerOptionText: { color: SAC.text, fontFamily: FONTS.med, fontSize: 13, flex: 1 },
+
+  // Old dropdown styles (kept for reference, not used)
+  dropdown: {},
+  dropdownItem: {},
+  dropdownItemActive: {},
+  dropdownItemText: {},
   editBtnFull: {
     flex: 1, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: SAC.border,
     alignItems: 'center', justifyContent: 'center',
@@ -2031,6 +2534,21 @@ const s = StyleSheet.create({
   logDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: GRAD_TO, marginTop: 5 },
   logAction: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
 
+  trustBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8,
+    borderWidth: 1, borderColor: 'rgba(16,185,129,0.35)',
+    backgroundColor: 'rgba(16,185,129,0.08)',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  trustBtnText: { color: SAC.green, fontFamily: FONTS.xbold, fontSize: 11 },
+  trustedRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10,
+    backgroundColor: 'rgba(16,185,129,0.04)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.18)',
+  },
+  trustedIcon: { width: 28, height: 28, borderRadius: 7, backgroundColor: 'rgba(16,185,129,0.12)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.25)', alignItems: 'center', justifyContent: 'center' },
+
   // Digital ID
   idCard: {
     padding: 26, borderRadius: 22,
@@ -2048,6 +2566,12 @@ const s = StyleSheet.create({
   },
   qrBox: { width: 72, height: 72, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.85)', alignItems: 'center', justifyContent: 'center' },
   idFlipHint: { color: 'rgba(31,17,7,0.7)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.3 },
+  idFlipHintDark: { color: 'rgba(251,191,36,0.7)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.3 },
+  flipOrg: { color: 'rgba(251,191,36,0.9)', fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 2, textAlign: 'center' },
+  flipTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22, letterSpacing: -0.4, textAlign: 'center' },
+  flipSub: { color: 'rgba(255,255,255,0.6)', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 2 },
+  flipDataLabel: { color: 'rgba(251,191,36,0.7)', fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 1.4 },
+  flipQrData: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.5, textAlign: 'center' },
   idActionBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9,
