@@ -26,9 +26,67 @@ frontend health: `GET /healthz` (returned by nginx independently of the JS shell
 
 - A VPS (DigitalOcean / Hetzner / OVH / Contabo — 2 vCPU + 2 GB RAM minimum).
 - Dokploy installed (`curl -sSL https://dokploy.com/install.sh | sh`).
-- A domain you can point at the VPS (e.g. `app.studentalumni.in` + `api.studentalumni.in`).
+- A domain you can point at the VPS (e.g. `app.studentalumni.ai` + `api.studentalumni.ai`).
 - A MongoDB Atlas cluster (free tier works). Whitelist the VPS public IP.
 - (Optional) An Emergent LLM Key from your Emergent profile for Agent K.
+
+---
+
+## 0.1 ⚡ Quick-start checklist
+
+> ✅ = tick once done. The order below is the path of least surprise.
+
+```
+[ ] VPS provisioned with public IPv4
+[ ] Dokploy installed and reachable at http://<VPS_IP>:3000
+[ ] GitHub repo accessible:  Tejascss/Student-Alumni-Master @ main
+[ ] DNS A-records pointing at the VPS:
+       app.studentalumni.ai   →  <VPS_IP>
+       api.studentalumni.ai   →  <VPS_IP>
+       (optional) studentalumni.ai → <VPS_IP> with 301 redirect to app.*
+[ ] Mongo Atlas cluster URL + DB user created and VPS IP whitelisted
+[ ] Random JWT_SECRET + FERNET_KEY generated and stored in a password manager
+[ ] Emergent LLM key (if Agent K backend tasks are enabled)
+
+[ ] Dokploy Project   →  "studentalumni"
+[ ] Dokploy Service A →  backend  (build path ./backend, port 8000)
+[ ] Dokploy Service B →  frontend (build path ./frontend, port 80)
+[ ] Backend env vars set, "On Push" autodeploy enabled
+[ ] Frontend BUILD ARGS set (NOT runtime env — Expo bakes them in)
+[ ] Backend domain api.studentalumni.ai + HTTPS toggled
+[ ] Frontend domain app.studentalumni.ai + HTTPS toggled
+[ ] First Deploy ran green (both services healthy)
+[ ] curl https://api.studentalumni.ai/api/health → 200
+[ ] curl https://app.studentalumni.ai/healthz    → 200
+[ ] Login as admin from app.studentalumni.ai with seeded credentials
+```
+
+---
+
+## 0.2 🌐 DNS records (registrar dashboard)
+
+Studentalumni.ai is the canonical domain. Add these A-records at your DNS
+host (Cloudflare / Namecheap / Route 53 / etc.):
+
+| Type | Name | Value          | TTL | Proxy / Cloud |
+| ---- | ---- | -------------- | --- | ------------- |
+| A    | `app`| `<VPS_IPv4>`   | 300 | DNS-only (Dokploy/Traefik handles TLS) |
+| A    | `api`| `<VPS_IPv4>`   | 300 | DNS-only |
+| A    | `@`  | `<VPS_IPv4>`   | 300 | DNS-only (optional — for the apex; Dokploy can redirect → `app.*`) |
+| A    | `www`| `<VPS_IPv4>`   | 300 | DNS-only (optional) |
+
+> ⚠️ **If you use Cloudflare**, set the records to **"DNS only" (grey cloud)**
+> at first so Dokploy's Traefik can complete the Let's Encrypt HTTP-01
+> challenge. You can re-enable the orange-cloud proxy AFTER the cert is
+> issued (and switch SSL mode to **"Full (strict)"**).
+
+Confirm propagation before deploying:
+
+```bash
+dig +short app.studentalumni.ai
+dig +short api.studentalumni.ai
+# both should return your VPS IP
+```
 
 ---
 
@@ -79,8 +137,8 @@ JWT_SECRET=<openssl rand -hex 32>
 FERNET_KEY=<python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())">
 ADMIN_EMAIL=admin@careerpath.app
 ADMIN_PASSWORD=<your-strong-password>
-ALLOWED_ORIGINS=https://app.studentalumni.in
-FRONTEND_URL=https://app.studentalumni.in
+ALLOWED_ORIGINS=https://app.studentalumni.ai
+FRONTEND_URL=https://app.studentalumni.ai
 UVICORN_WORKERS=2
 EMERGENT_LLM_KEY=<your-emergent-key>   # optional, only if you use Agent K
 ```
@@ -90,7 +148,7 @@ EMERGENT_LLM_KEY=<your-emergent-key>   # optional, only if you use Agent K
 
 ### 3.3 Domain
 
-- **Domains → Add Domain** → `api.studentalumni.in`
+- **Domains → Add Domain** → `api.studentalumni.ai`
 - Toggle **HTTPS** → Dokploy will fetch a Let's Encrypt cert via Traefik.
 - **Path**: `/`  **Port**: `8000`
 
@@ -119,7 +177,7 @@ Expo bakes `EXPO_PUBLIC_*` vars into the JS bundle at **build time**, so they
 must be supplied as **Build Args**, not runtime env:
 
 ```env
-EXPO_PUBLIC_BACKEND_URL=https://api.studentalumni.in
+EXPO_PUBLIC_BACKEND_URL=https://api.studentalumni.ai
 # Optional — only if you use Firebase / PostHog
 EXPO_PUBLIC_FIREBASE_API_KEY=...
 EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=...
@@ -134,7 +192,7 @@ backend URL you MUST trigger a rebuild.
 
 ### 4.3 Domain
 
-- **Domains → Add Domain** → `app.studentalumni.in`
+- **Domains → Add Domain** → `app.studentalumni.ai`
 - Toggle HTTPS, port `80`, path `/`.
 
 Click **Deploy**.
@@ -145,21 +203,21 @@ Click **Deploy**.
 
 ```bash
 # Backend liveness + Mongo connectivity
-curl -fsS https://api.studentalumni.in/api/health
+curl -fsS https://api.studentalumni.ai/api/health
 # → {"status":"ok","service":"studentalumni-backend","mongo":"ok",...}
 
 # Frontend liveness
-curl -fsS https://app.studentalumni.in/healthz
+curl -fsS https://app.studentalumni.ai/healthz
 # → {"status":"ok","service":"studentalumni-frontend"}
 
 # CORS preflight from the frontend domain
-curl -i -X OPTIONS https://api.studentalumni.in/api/health \
-  -H "Origin: https://app.studentalumni.in" \
+curl -i -X OPTIONS https://api.studentalumni.ai/api/health \
+  -H "Origin: https://app.studentalumni.ai" \
   -H "Access-Control-Request-Method: GET"
-# → 200 with `access-control-allow-origin: https://app.studentalumni.in`
+# → 200 with `access-control-allow-origin: https://app.studentalumni.ai`
 ```
 
-Open `https://app.studentalumni.in` and sign in with the seeded admin:
+Open `https://app.studentalumni.ai` and sign in with the seeded admin:
 
 - **Email**: value of `ADMIN_EMAIL`
 - **Password**: value of `ADMIN_PASSWORD`
@@ -171,7 +229,7 @@ Open `https://app.studentalumni.in` and sign in with the seeded admin:
 | Symptom | Cause | Fix |
 |---|---|---|
 | Frontend loads but every API call 404s | `EXPO_PUBLIC_BACKEND_URL` was missing or set as runtime env | Put it under **Build Args** and rebuild |
-| `CORS: response not allowed` in browser console | `ALLOWED_ORIGINS` doesn't include the frontend domain (or has a trailing slash) | `ALLOWED_ORIGINS=https://app.studentalumni.in` — no trailing `/` |
+| `CORS: response not allowed` in browser console | `ALLOWED_ORIGINS` doesn't include the frontend domain (or has a trailing slash) | `ALLOWED_ORIGINS=https://app.studentalumni.ai` — no trailing `/` |
 | Backend container is **unhealthy** | Mongo URL wrong, IP not whitelisted, or DNS blocked | `docker logs studentalumni-backend`; whitelist VPS IP in Atlas → Network Access |
 | 401 on every request right after login | `JWT_SECRET` rotated between builds | Set a permanent `JWT_SECRET` (32+ random chars) and keep it stable |
 | Build OOM on small VPS | Expo web export needs ~3 GB RAM | Bump the swap: `sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile` |
@@ -268,3 +326,37 @@ healthy and that the import didn't fail (`pip show apscheduler`).
 ### Backups
 The schedule rows + their `agent_runs` history are stored in Mongo;
 no extra backup wiring is required beyond Atlas point-in-time backup.
+
+---
+
+## 11. 🛠 Operator cheat-sheet
+
+| Need to… | Command (run on the VPS via Dokploy → Open Terminal) |
+| --- | --- |
+| Tail backend logs | `docker logs -f studentalumni-backend` |
+| Tail frontend logs | `docker logs -f studentalumni-frontend` |
+| Force a rebuild (frontend, after BUILD ARG change) | Dokploy → service → **Rebuild** |
+| Restart only (no rebuild) | Dokploy → service → **Reload** |
+| Confirm Atlas connection | `docker exec studentalumni-backend python -c "from pymongo import MongoClient,os; print(MongoClient(os.environ['MONGO_URL']).admin.command('ping'))"` |
+| Check Agent K scheduler heartbeat | `docker logs studentalumni-backend 2>&1 \| grep "agent-k.scheduled"` |
+| Rotate Mongo password | Atlas → Database Access → Edit user → set new password → update `MONGO_URL` in Dokploy env → **Reload** backend |
+| Rotate JWT_SECRET | Set new value in Dokploy env → **Reload** backend (all sessions invalidated) |
+| Force HTTPS cert reissue | Dokploy → Domain → **Generate Cert** |
+
+---
+
+## 12. 🌍 Domain summary (current canonical)
+
+| Surface | URL | Service | Build path | Container port |
+| --- | --- | --- | --- | --- |
+| Student / Alumni / College / Mentor / Super-Admin web app | https://app.studentalumni.ai | `frontend` | `./frontend` | 80 |
+| REST API + Agent K | https://api.studentalumni.ai | `backend` | `./backend` | 8000 |
+| Apex (optional) | https://studentalumni.ai | redirect → `app.*` (Dokploy → Frontend → Domains → enable **"Redirect from root"**) | — | — |
+| `www` (optional) | https://www.studentalumni.ai | same redirect | — | — |
+
+> **Single source of truth:** the production domain is **`studentalumni.ai`**
+> — anywhere you find the legacy `studentalumni.in` references in code
+> comments, README, or CI scripts, swap to `.ai`. The seed admin email
+> `admin@studentalumni.in` (in `backend/portals.py` and tests) is **mock
+> data** and is NOT a deliverable user email; leave it alone unless you
+> intend to seed a different admin.
