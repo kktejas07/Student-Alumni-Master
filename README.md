@@ -29,11 +29,13 @@ Student-Alumni-Master/
 
 ## 🐳 Dockerfiles Explanation
 
-### Dockerfile.frontend (Root Level)
+### Dockerfile.frontend (Inside frontend/ directory)
 
-**Location:** `Dockerfile.frontend`
+**Location:** `frontend/Dockerfile.frontend`
 
 **Purpose:** Builds the React Native/Expo web app and serves it via nginx
+
+**Build Context:** `./frontend` (Docker Context Path must be `./frontend`)
 
 **Build Process:**
 1. **Stage 1 (builder):** Uses Node.js 20 Alpine to run `npx expo export --platform web`
@@ -51,11 +53,13 @@ Student-Alumni-Master/
 EXPO_PUBLIC_BACKEND_URL=https://studentalumni.ai
 ```
 
-### Dockerfile.backend (Root Level)
+### Dockerfile.backend (Inside backend/ directory)
 
-**Location:** `Dockerfile.backend`
+**Location:** `backend/Dockerfile.backend`
 
 **Purpose:** Builds the FastAPI Python backend
+
+**Build Context:** `./backend` (Docker Context Path must be `./backend`)
 
 **Key Features:**
 - Python 3.12 slim image
@@ -83,7 +87,7 @@ In Dokploy dashboard:
 | **Branch** | `main` |
 | **Build Path** | `./backend` |
 | **Build Type** | Dockerfile |
-| **Dockerfile Path** | `../Dockerfile.backend` |
+| **Dockerfile Path** | `./Dockerfile` |
 | **Docker Context Path** | `./backend` |
 | **Port** | `8000` |
 
@@ -108,7 +112,7 @@ UVICORN_WORKERS=2
 | **Branch** | `main` |
 | **Build Path** | `./frontend` |
 | **Build Type** | Dockerfile |
-| **Dockerfile Path** | `../Dockerfile.frontend` |
+| **Dockerfile Path** | `./Dockerfile` |
 | **Docker Context Path** | `./frontend` |
 | **Port** | `80` |
 
