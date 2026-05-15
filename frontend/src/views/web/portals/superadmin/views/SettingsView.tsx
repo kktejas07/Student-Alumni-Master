@@ -203,6 +203,10 @@ const DEFAULT_SYSTEM_OPTIONS: Record<string, { value: string; label: string }[]>
     { value: 'AUD ($)',  label: 'Australian Dollar — AUD ($)' },
     { value: 'CAD ($)',  label: 'Canadian Dollar — CAD ($)' },
   ],
+  google_oauth_client_id: [],
+  google_oauth_client_secret: [],
+  linkedin_oauth_client_id: [],
+  linkedin_oauth_client_secret: [],
 };
 
 /* ─────────────────────────────────────────────────────────────────
@@ -712,6 +716,11 @@ function SettingPickerModal({ setting, onSelect, onClose }: {
   setting: { key: string; label: string; value: string; options: { value: string; label: string }[] };
   onSelect: (v: string) => void; onClose: () => void;
 }) {
+  const isTextInput = setting.options.length === 0;
+  const isPassword = setting.key.toLowerCase().includes('secret') || setting.key.toLowerCase().includes('password');
+  const [textValue, setTextValue] = useState(setting.value);
+  const [showPwd, setShowPwd] = useState(false);
+
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={s.pickerBackdrop} onPress={onClose}>
@@ -722,30 +731,59 @@ function SettingPickerModal({ setting, onSelect, onClose }: {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.pickerTitle}>{setting.label}</Text>
-              <Text style={s.pickerSub}>Select an option to update this setting</Text>
+              <Text style={s.pickerSub}>
+                {isTextInput ? 'Enter the value for this setting' : 'Select an option to update this setting'}
+              </Text>
             </View>
             <Pressable onPress={onClose} style={s.modalClose}><X size={16} color={SAC.muted} /></Pressable>
           </LinearGradient>
-          <ScrollView style={{ maxHeight: 340 }} contentContainerStyle={{ padding: 12, gap: 6 }}>
-            {setting.options.map((opt) => {
-              const isSelected = opt.value === setting.value;
-              return (
-                <Pressable
-                  key={opt.value}
-                  onPress={() => { onSelect(opt.value); onClose(); }}
-                  style={[s.pickerOption, isSelected && s.pickerOptionActive]}
-                >
-                  <View style={[s.pickerOptionRadio, isSelected && { borderColor: GRAD_TO, backgroundColor: GRAD_TO + '22' }]}>
-                    {isSelected && <View style={s.pickerRadioDot} />}
-                  </View>
-                  <Text style={[s.pickerOptionText, isSelected && { color: GRAD_TO, fontFamily: FONTS.xbold }]}>
-                    {opt.label}
-                  </Text>
-                  {isSelected && <Check size={13} color={GRAD_TO} />}
-                </Pressable>
-              );
-            })}
-          </ScrollView>
+          {isTextInput ? (
+            <View style={{ padding: 16, gap: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <TextInput
+                  style={[s.textInput, { flex: 1, color: SAC.light, fontFamily: FONTS.regular, fontSize: 14 }]}
+                  value={textValue}
+                  onChangeText={setTextValue}
+                  placeholder={isPassword ? 'Enter secret value' : 'Enter value'}
+                  placeholderTextColor={SAC.dim}
+                  secureTextEntry={isPassword && !showPwd}
+                  autoFocus
+                />
+                {isPassword && (
+                  <Pressable onPress={() => setShowPwd(!showPwd)} style={{ padding: 8 }}>
+                    {showPwd ? <EyeOff size={16} color={SAC.muted} /> : <Eye size={16} color={SAC.muted} />}
+                  </Pressable>
+                )}
+              </View>
+              <Pressable
+                onPress={() => { onSelect(textValue); onClose(); }}
+                style={{ backgroundColor: GRAD_TO, paddingVertical: 10, borderRadius: 8, alignItems: 'center' }}
+              >
+                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 14 }}>Save</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <ScrollView style={{ maxHeight: 340 }} contentContainerStyle={{ padding: 12, gap: 6 }}>
+              {setting.options.map((opt) => {
+                const isSelected = opt.value === setting.value;
+                return (
+                  <Pressable
+                    key={opt.value}
+                    onPress={() => { onSelect(opt.value); onClose(); }}
+                    style={[s.pickerOption, isSelected && s.pickerOptionActive]}
+                  >
+                    <View style={[s.pickerOptionRadio, isSelected && { borderColor: GRAD_TO, backgroundColor: GRAD_TO + '22' }]}>
+                      {isSelected && <View style={s.pickerRadioDot} />}
+                    </View>
+                    <Text style={[s.pickerOptionText, isSelected && { color: GRAD_TO, fontFamily: FONTS.xbold }]}>
+                      {opt.label}
+                    </Text>
+                    {isSelected && <Check size={13} color={GRAD_TO} />}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          )}
         </Animated.View>
       </Pressable>
     </Modal>
@@ -2356,6 +2394,14 @@ const s = StyleSheet.create({
     backgroundColor: GRAD_TO,
   },
   pickerOptionText: { color: SAC.text, fontFamily: FONTS.med, fontSize: 13, flex: 1 },
+  textInput: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: SAC.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
 
   // Old dropdown styles (kept for reference, not used)
   dropdown: {},

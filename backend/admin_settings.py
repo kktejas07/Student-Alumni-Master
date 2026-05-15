@@ -756,6 +756,10 @@ SYSTEM_SETTING_OPTIONS = {
         {"value": "AUD ($)",   "label": "Australian Dollar — AUD ($)"},
         {"value": "CAD ($)",   "label": "Canadian Dollar — CAD ($)"},
     ],
+    "google_oauth_client_id": [],
+    "google_oauth_client_secret": [],
+    "linkedin_oauth_client_id": [],
+    "linkedin_oauth_client_secret": [],
 }
 
 
