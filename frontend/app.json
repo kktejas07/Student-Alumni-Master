@@ -2,7 +2,6 @@
   "expo": {
     "name": "Career Path",
     "slug": "frontend",
-    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "frontend",
@@ -11,7 +10,6 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.careerpath.app",
-      "buildNumber": "18",
       "infoPlist": {
         "NSCameraUsageDescription": "Capture your profile photo for your unique student ID.",
         "NSPhotoLibraryUsageDescription": "Choose a profile photo for your student ID."
@@ -19,7 +17,6 @@
     },
     "android": {
       "package": "com.careerpath.app",
-      "versionCode": 18,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#0a0f1e"
