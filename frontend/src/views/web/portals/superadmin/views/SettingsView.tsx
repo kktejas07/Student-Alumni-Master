@@ -35,14 +35,10 @@ import {
   Pencil, Trash2, Check, X, Copy, Share2, Download, Eye, EyeOff,
   ExternalLink, RotateCcw, Monitor, Smartphone, AlertTriangle, KeyRound,
   ChevronRight, QrCode, Building2, ShieldCheck, Search, Sparkles, CheckCircle2,
-<<<<<<< Updated upstream
-  Mail, Users as UsersIcon, ArrowLeft, Clock,
-=======
-  MapPin, Globe, Wifi, Clock, Activity,
->>>>>>> Stashed changes
+Mail, Users as UsersIcon, MapPin, Globe, Wifi, Clock, Activity, ArrowLeft,
 } from 'lucide-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, FadeInUp, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
 import { SAC, FONTS } from '../tokens';
@@ -2045,6 +2041,10 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
   if (!data) return <Loading />;
 
+  const flipStyle = useAnimatedStyle(() => ({
+    transform: [{ perspective: 1200 }, { rotateY: `${flipped ? 180 : 0}deg` }],
+  }), [flipped]);
+
   const copyId = async () => {
     try {
       if (Platform.OS === 'web' && navigator?.clipboard) {
@@ -2081,37 +2081,11 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
   return (
     <Animated.View entering={FadeIn.duration(180)} style={{ gap: 16 }}>
-      {/* The ID Card */}
+      {/* The ID Card — 3D flip */}
       <Pressable onPress={() => setFlipped(!flipped)} style={{ alignSelf: 'center', width: '100%', maxWidth: 540 }}>
-        <Animated.View style={{
-          transform: [{ rotateY: `${flipped ? 180 : 0}deg` }],
-          backfaceVisibility: 'hidden',
-          width: '100%',
-        }}>
-          {flipped ? (
-            <LinearGradient colors={['#1f1107', '#2D1B0E', '#3D2510']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
-              <View style={{ alignItems: 'center', gap: 14 }}>
-                <View>
-                  <Text style={s.flipOrg}>SCAN TO VERIFY</Text>
-                  <Text style={s.flipTitle}>Platform Admin</Text>
-                  <Text style={s.flipSub}>Student Alumni Platform · Super Admin</Text>
-                </View>
-                <View style={{ padding: 12, backgroundColor: '#fff', borderRadius: 16 }}>
-                  <Image source={{ uri: `data:image/png;base64,${data.qr_code_base64}` }} style={{ width: 180, height: 180 }} resizeMode="contain" />
-                </View>
-                <View style={{ alignItems: 'center', gap: 6, marginTop: 4 }}>
-                  <Text style={s.flipDataLabel}>ENCODED DATA</Text>
-                  <Text style={s.flipQrData}>{data.admin_id}</Text>
-                  <Text style={s.flipQrData}>{data.email || 'admin@careerpath.app'}</Text>
-                  <Text style={s.flipQrData}>admin · {data.access_label}</Text>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
-                  <Text style={s.idFlipHintDark}>Tap to flip back</Text>
-                  <ChevronRight size={12} color="rgba(251,191,36,0.7)" style={{ transform: [{ rotate: '180deg' }] }} />
-                </View>
-              </View>
-            </LinearGradient>
-          ) : (
+        <Animated.View style={[{ position: 'relative', width: '100%' }, flipStyle]}>
+          {/* Front */}
+          <View style={[StyleSheet.absoluteFill, { backfaceVisibility: 'hidden' }]}>
             <LinearGradient colors={['#FBBF24', '#F97316', '#B45309']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <View>
@@ -2144,7 +2118,32 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
                 <ChevronRight size={12} color="rgba(31,17,7,0.7)" />
               </View>
             </LinearGradient>
-          )}
+          </View>
+          {/* Back */}
+          <View style={[StyleSheet.absoluteFill, { backfaceVisibility: 'hidden', transform: [{ rotateY: '180deg' }] }]}>
+            <LinearGradient colors={['#1f1107', '#2D1B0E', '#3D2510']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
+              <View style={{ alignItems: 'center', gap: 14 }}>
+                <View>
+                  <Text style={s.flipOrg}>SCAN TO VERIFY</Text>
+                  <Text style={s.flipTitle}>Platform Admin</Text>
+                  <Text style={s.flipSub}>Student Alumni Platform · Super Admin</Text>
+                </View>
+                <View style={{ padding: 12, backgroundColor: '#fff', borderRadius: 16 }}>
+                  <Image source={{ uri: `data:image/png;base64,${data.qr_code_base64}` }} style={{ width: 180, height: 180 }} resizeMode="contain" />
+                </View>
+                <View style={{ alignItems: 'center', gap: 6, marginTop: 4 }}>
+                  <Text style={s.flipDataLabel}>ENCODED DATA</Text>
+                  <Text style={s.flipQrData}>{data.admin_id}</Text>
+                  <Text style={s.flipQrData}>{data.email || 'admin@careerpath.app'}</Text>
+                  <Text style={s.flipQrData}>admin · {data.access_label}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
+                  <Text style={s.idFlipHintDark}>Tap to flip back</Text>
+                  <ChevronRight size={12} color="rgba(251,191,36,0.7)" style={{ transform: [{ rotate: '180deg' }] }} />
+                </View>
+              </View>
+            </LinearGradient>
+          </View>
         </Animated.View>
       </Pressable>
 
