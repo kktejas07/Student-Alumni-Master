@@ -56,6 +56,8 @@ RUN npx expo export --platform web --output-dir dist
 
 FROM nginx:1.27-alpine
 
+RUN apk add --no-cache curl
+
 RUN rm /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
@@ -66,6 +68,6 @@ RUN printf '%s\n' '{"status":"ok","service":"studentalumni-frontend"}' \
 EXPOSE 80
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD wget -q -O - http://localhost/healthz || exit 1
+    CMD curl -fsS http://localhost/healthz || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]
