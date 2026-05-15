@@ -399,7 +399,6 @@ const s = StyleSheet.create({
 
   metaCount: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 6 },
 
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 12, padding: 14 },
   logo: { width: 42, height: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   logoText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
   role: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 },

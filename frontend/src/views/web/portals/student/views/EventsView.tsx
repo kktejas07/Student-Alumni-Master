@@ -105,7 +105,6 @@ const s = StyleSheet.create({
   chip: { paddingHorizontal: 14, height: 32, borderRadius: 8, backgroundColor: SC.card, borderWidth: 1, borderColor: SC.border, justifyContent: 'center' },
   chipOn: { backgroundColor: SC.primary, borderColor: SC.primary },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  card: { backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 14, overflow: 'hidden' },
   cover: { height: 90, borderBottomWidth: 1, alignItems: 'center', justifyContent: 'center' },
   title: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14, lineHeight: 18 },
   meta: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11 },
