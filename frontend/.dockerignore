@@ -16,7 +16,7 @@ README.md
 !.env.example
 Dockerfile
 .dockerignore
-nginx.conf
+# nginx.conf
 ios
 android
 DOKPLOY.md
