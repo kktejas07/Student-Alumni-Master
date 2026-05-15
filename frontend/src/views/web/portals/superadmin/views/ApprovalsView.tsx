@@ -33,7 +33,7 @@ const kindLabel = (k: Approval['kind']) => (k === 'college' ? 'COLLEGE' : k === 
 const priorityKind = (p: Approval['priority']) => (p === 'high' ? 'danger' : p === 'med' ? 'warn' : 'neutral') as const;
 
 export function ApprovalsView() {
-  const { data } = usePortalData<typeof FALLBACK>('/admin/super/approvals', FALLBACK);
+  const { data, refresh } = usePortalData<typeof FALLBACK>('/admin/super/approvals', FALLBACK);
   const [tab, setTab] = useState<'all' | 'college' | 'mentor' | 'event'>('all');
   const [actioned, setActioned] = useState<Record<string, 'approved' | 'rejected'>>({});
   const [selection, setSelection] = useState<Set<string>>(new Set());
@@ -64,22 +64,22 @@ export function ApprovalsView() {
   const onApprove = async (id: string, label?: string) => {
     setActioned((p) => ({ ...p, [id]: 'approved' }));
     setSelection((p) => { const n = new Set(p); n.delete(id); return n; });
-    try { await postPortal(`/admin/super/approvals/${id}/approve`); flash(`Approved${label ? `: ${label}` : ''}`); } catch { flash('Approved'); }
+    try { await postPortal(`/admin/super/approvals/${id}/approve`); flash(`Approved${label ? `: ${label}` : ''}`); refresh(); } catch { flash('Failed to approve'); }
   };
   const onReject = async (id: string, label?: string) => {
     setActioned((p) => ({ ...p, [id]: 'rejected' }));
     setSelection((p) => { const n = new Set(p); n.delete(id); return n; });
-    try { await postPortal(`/admin/super/approvals/${id}/reject`); flash(`Rejected${label ? `: ${label}` : ''}`); } catch { flash('Rejected'); }
+    try { await postPortal(`/admin/super/approvals/${id}/reject`); flash(`Rejected${label ? `: ${label}` : ''}`); refresh(); } catch { flash('Failed to reject'); }
   };
   const bulkApprove = async () => {
     const ids = Array.from(selection);
     for (const id of ids) {
-      // fire in parallel
       setActioned((p) => ({ ...p, [id]: 'approved' }));
-      postPortal(`/admin/super/approvals/${id}/approve`).catch(() => {});
+      try { await postPortal(`/admin/super/approvals/${id}/approve`); } catch {}
     }
     setSelection(new Set());
     flash(`Approved ${ids.length} item${ids.length === 1 ? '' : 's'}`);
+    refresh();
   };
 
   const tabs = [
@@ -159,7 +159,7 @@ export function ApprovalsView() {
                     <Text numberOfLines={1} style={s.meta}>{a.meta}</Text>
                   </View>
                 </View>
-                <SecondaryButton size="sm">
+                <SecondaryButton size="sm" onPress={() => onApprove(a.id, a.who)}>
                   <Eye size={12} color={SAC.muted} />
                   <Text style={s.secText}>Review</Text>
                 </SecondaryButton>

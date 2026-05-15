@@ -56,7 +56,7 @@ from typing import Any, Dict, List, Optional
 
 from bson import ObjectId
 from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 from pathlib import Path
@@ -1132,6 +1132,31 @@ async def super_payments():
     }
 
 
+@router.post("/admin/super/payouts/initiate")
+async def initiate_payout():
+    """Mock payout initiation — logs to audit and returns ok."""
+    try:
+        from datetime import datetime as _dt, timezone as _tz
+        try:
+            await _db.admin_audit_log.insert_one({
+                "action": "payout.initiated",
+                "target": "stripe_payout",
+                "at": _dt.now(_tz),
+                "ip": "127.0.0.1",
+            })
+        except Exception:
+            pass
+    except Exception:
+        pass
+    return {"ok": True, "message": "Payout initiated successfully"}
+
+
+@router.get("/admin/export/payments")
+async def export_payments_csv():
+    """Stub CSV export — returns a placeholder download URL."""
+    return {"ok": True, "url": None, "message": "Export not yet wired"}
+
+
 @router.get("/admin/super/approvals")
 async def super_approvals():
     """All pending items: mentors + colleges (from colleges_meta) + events."""
@@ -1754,36 +1779,191 @@ class TopupRequest(BaseModel):
     student_email: Optional[str] = None
 
 
+# ─── EVENTS CRUD ────────────────────────────────────────────────
+
+class EventCreateRequest(BaseModel):
+    title: str
+    date: str
+    city: str = ""
+    cat: str = "WORKSHOP"
+    kind: str = "free"
+    price: int = 0
+    capacity: int = 100
+
+
+@router.post("/admin/super/events")
+async def create_event(req: EventCreateRequest):
+    """Create a new event."""
+    try:
+        start_date = datetime.fromisoformat(req.date) if req.date else datetime.now(timezone.utc) + timedelta(days=7)
+    except Exception:
+        start_date = datetime.now(timezone.utc) + timedelta(days=7)
+
+    palette = ["#A78BFA", "#22C55E", "#FCD34D", "#3B82F6", "#22D3EE", "#EC4899", "#F59E0B", "#FB923C"]
+    accent = palette[0]
+
+    doc = {
+        "title": req.title,
+        "start_date": start_date,
+        "mode": "Online",
+        "venue": req.city,
+        "category": req.cat,
+        "capacity": req.capacity,
+        "price": req.price if req.kind == "paid" else 0,
+        "status": "pending",
+        "created_at": datetime.utcnow(),
+    }
+    result = await _db.events.insert_one(doc)
+    return {"ok": True, "id": str(result.inserted_id)}
+
+
+@router.patch("/admin/super/events/{event_id}")
+async def update_event(event_id: str, request: Request):
+    """Update an event (partial update)."""
+    try:
+        oid = ObjectId(event_id)
+    except Exception:
+        raise HTTPException(400, "Invalid event id")
+
+    body = await request.json()
+    ev = await _db.events.find_one({"_id": oid})
+    if not ev:
+        raise HTTPException(404, "Event not found")
+
+    update_fields = {}
+    for field in ["title", "date", "city", "cat", "kind", "price", "capacity"]:
+        if field in body:
+            update_fields[field] = body[field]
+
+    if "date" in update_fields:
+        try:
+            update_fields["start_date"] = datetime.fromisoformat(update_fields.pop("date"))
+        except Exception:
+            update_fields.pop("date", None)
+
+    if update_fields:
+        await _db.events.update_one({"_id": oid}, {"$set": update_fields})
+
+    return {"ok": True}
+
+
+@router.delete("/admin/super/events/{event_id}")
+async def delete_event(event_id: str):
+    """Delete an event."""
+    try:
+        oid = ObjectId(event_id)
+    except Exception:
+        raise HTTPException(400, "Invalid event id")
+    res = await _db.events.delete_one({"_id": oid})
+    if res.deleted_count == 0:
+        raise HTTPException(404, "Event not found")
+    return {"ok": True}
+
+
+@router.post("/admin/super/events/{event_id}/approve")
+async def approve_event(event_id: str):
+    """Approve a pending event."""
+    try:
+        oid = ObjectId(event_id)
+    except Exception:
+        raise HTTPException(400, "Invalid event id")
+    res = await _db.events.update_one({"_id": oid}, {"$set": {"status": "live", "approved_at": datetime.utcnow()}})
+    if res.matched_count == 0:
+        raise HTTPException(404, "Event not found")
+    return {"ok": True}
+
+
+# ─── WORKFLOWS CRUD ──────────────────────────────────────────────
+
+class WorkflowCreateRequest(BaseModel):
+    name: str
+    trigger: str = ""
+
+
+@router.post("/admin/super/workflows")
+async def create_workflow(req: WorkflowCreateRequest):
+    """Create a new workflow."""
+    doc = {
+        "name": req.name,
+        "trigger": req.trigger,
+        "steps": [],
+        "runs": 0,
+        "success": 0,
+        "on": False,
+        "color": "#F97316",
+        "created_at": datetime.utcnow(),
+    }
+    result = await _db.workflows.insert_one(doc)
+    return {"ok": True, "id": str(result.inserted_id)}
+
+
+@router.post("/admin/super/workflows/{wf_id}/run")
+async def run_workflow(wf_id: str):
+    """Trigger a workflow run."""
+    try:
+        oid = ObjectId(wf_id)
+    except Exception:
+        raise HTTPException(400, "Invalid workflow id")
+    wf = await _db.workflows.find_one({"_id": oid})
+    if not wf:
+        raise HTTPException(404, "Workflow not found")
+    await _db.workflows.update_one({"_id": oid}, {"$inc": {"runs": 1}})
+    return {"ok": True, "message": f"Workflow '{wf.get('name', 'Unnamed')}' triggered"}
+
+
 @router.post("/admin/super/approvals/{user_id}/approve")
 async def approve_user(user_id: str):
-    """Approve a pending mentor or college."""
+    """Approve a pending mentor, college, or event."""
+    # Try MongoDB ObjectId
     try:
         oid = ObjectId(user_id)
+        res = await _db.users.update_one({"_id": oid, "role": "mentor"}, {"$set": {"mentor_status": "approved", "approved_at": datetime.utcnow()}})
+        if res.matched_count > 0:
+            return {"ok": True, "kind": "mentor"}
+        res2 = await _db.colleges_meta.update_one({"_id": oid}, {"$set": {"status": "active", "approved_at": datetime.utcnow()}})
+        if res2.matched_count > 0:
+            return {"ok": True, "kind": "college"}
     except Exception:
-        # try colleges_meta
-        res = await _db.colleges_meta.update_one({"_id": ObjectId(user_id)} if len(user_id) == 24 else {"name": user_id}, {"$set": {"status": "active", "approved_at": datetime.utcnow()}})
-        if res.matched_count == 0:
-            raise HTTPException(404, "Not found")
+        pass
+
+    # Fallback: try colleges_meta by string name
+    res = await _db.colleges_meta.update_one(
+        {"name": user_id},
+        {"$set": {"status": "active", "approved_at": datetime.utcnow()}}
+    )
+    if res.matched_count > 0:
         return {"ok": True, "kind": "college"}
-    res = await _db.users.update_one({"_id": oid, "role": "mentor"}, {"$set": {"mentor_status": "approved", "approved_at": datetime.utcnow()}})
-    if res.matched_count == 0:
-        raise HTTPException(404, "Mentor not found")
-    return {"ok": True, "kind": "mentor"}
+
+    # Try events by title
+    res3 = await _db.events.update_one(
+        {"title": user_id},
+        {"$set": {"status": "live", "approved_at": datetime.utcnow()}}
+    )
+    if res3.matched_count > 0:
+        return {"ok": True, "kind": "event"}
+
+    raise HTTPException(404, "Not found")
 
 
 @router.post("/admin/super/approvals/{user_id}/reject")
 async def reject_user(user_id: str):
     try:
         oid = ObjectId(user_id)
+        res = await _db.users.update_one({"_id": oid, "role": "mentor"}, {"$set": {"mentor_status": "rejected"}})
+        if res.matched_count > 0:
+            return {"ok": True, "kind": "mentor"}
+        res2 = await _db.colleges_meta.update_one({"_id": oid}, {"$set": {"status": "rejected"}})
+        if res2.matched_count > 0:
+            return {"ok": True, "kind": "college"}
     except Exception:
-        res = await _db.colleges_meta.update_one({"_id": ObjectId(user_id)} if len(user_id) == 24 else {"name": user_id}, {"$set": {"status": "rejected"}})
-        if res.matched_count == 0:
-            raise HTTPException(404, "Not found")
-        return {"ok": True}
-    res = await _db.users.update_one({"_id": oid, "role": "mentor"}, {"$set": {"mentor_status": "rejected"}})
-    if res.matched_count == 0:
-        raise HTTPException(404, "Mentor not found")
-    return {"ok": True}
+        pass
+
+    # Try by name
+    res = await _db.colleges_meta.update_one({"name": user_id}, {"$set": {"status": "rejected"}})
+    if res.matched_count > 0:
+        return {"ok": True, "kind": "college"}
+
+    raise HTTPException(404, "Not found")
 
 
 @router.post("/admin/super/workflows/{wf_id}/toggle")

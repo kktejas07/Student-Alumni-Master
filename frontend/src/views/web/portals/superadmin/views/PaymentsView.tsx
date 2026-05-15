@@ -2,13 +2,14 @@
  * PaymentsView — Amber Admin theme.
  * KPI tiles + Stripe ledger + balance card, all using applekit primitives.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform, useWindowDimensions } from 'react-native';
 import { ArrowDown, ArrowUp, CreditCard, Download, IndianRupee, TrendingUp, AlertTriangle, BadgePercent } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SAC, FONTS } from '../tokens';
 import { GRAD, Card, IconBox, KpiTile, StatusPill, GradientButton, SecondaryButton, SectionLabel } from '../applekit';
 import { usePortalData } from '@/src/lib/portalApi';
+import { request } from '@/src/models/services/api';
 
 type Tx = { id: string; date: string; desc: string; type: string; amount: number; by: string; status: string };
 type Tier = { tier: string; cut: string; count: number };
@@ -20,10 +21,32 @@ const FALLBACK = {
 };
 
 export function PaymentsView() {
-  const { data } = usePortalData<typeof FALLBACK>('/admin/super/payments', FALLBACK);
+  const [exporting, setExporting] = useState(false);
+  const [payoutLoading, setPayoutLoading] = useState(false);
+  const [payoutDone, setPayoutDone] = useState(false);
+  const { data, refresh } = usePortalData<typeof FALLBACK>('/admin/super/payments', FALLBACK);
   const { width } = useWindowDimensions();
   const stack = width < 1100;
   const totalMentors = data.tiers.reduce((a, t) => a + t.count, 0);
+
+  const doExport = async () => {
+    setExporting(true);
+    try {
+      const r = await request<{ url: string }>('/admin/export/payments', { method: 'GET' });
+      if (r?.url && Platform.OS === 'web') {
+        window.open(r.url, '_blank');
+      }
+    } catch { /* silent */ } finally { setExporting(false); }
+  };
+
+  const doPayout = async () => {
+    setPayoutLoading(true);
+    try {
+      await request('/admin/super/payouts/initiate', { method: 'POST' });
+      setPayoutDone(true);
+      setTimeout(() => setPayoutDone(false), 3000);
+    } catch { /* silent */ } finally { setPayoutLoading(false); }
+  };
 
   return (
     <View style={{ gap: 14 }}>
@@ -34,7 +57,7 @@ export function PaymentsView() {
             <Text style={st.title}>Payments</Text>
             <Text style={st.sub}>Stripe ledger, mentor payouts and refund queue across the platform.</Text>
           </View>
-          <SecondaryButton onPress={() => {}}><Download size={12} color={SAC.muted} /><Text style={st.secText}>Export CSV</Text></SecondaryButton>
+          <SecondaryButton onPress={doExport} loading={exporting}><Download size={12} color={SAC.muted} /><Text style={st.secText}>{exporting ? 'Exporting…' : 'Export CSV'}</Text></SecondaryButton>
         </View>
       </Card>
 
@@ -87,8 +110,14 @@ export function PaymentsView() {
             <Text style={st.gradKicker}>STRIPE BALANCE</Text>
             <Text style={st.gradVal}>{data.stripe_balance}</Text>
             <Text style={st.gradSub}>Settles on May 5 to HDFC ****8821</Text>
-            <Pressable style={st.gradCta}>
-              <Text style={st.gradCtaText}>Initiate payout</Text>
+            <Pressable style={st.gradCta} onPress={doPayout} disabled={payoutLoading}>
+              {payoutLoading ? (
+                <Text style={st.gradCtaText}>Processing…</Text>
+              ) : payoutDone ? (
+                <Text style={st.gradCtaText}>Payout Initiated!</Text>
+              ) : (
+                <Text style={st.gradCtaText}>Initiate payout</Text>
+              )}
             </Pressable>
           </LinearGradient>
 

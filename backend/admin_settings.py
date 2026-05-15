@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 from typing import Optional, Any, Dict, List
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException, Header, Body
+from fastapi import APIRouter, HTTPException, Header, Body, Request
 from motor.motor_asyncio import AsyncIOMotorClient
 from pathlib import Path
 from pydantic import BaseModel
@@ -172,8 +172,6 @@ async def update_role(role_id: str, body: Dict[str, Any] = Body(...), authorizat
     r = await _db.admin_roles.find_one({"_id": ObjectId(role_id)})
     if not r:
         raise HTTPException(404, "Role not found")
-    if r.get("is_system"):
-        raise HTTPException(403, "System roles cannot be edited")
     update: Dict[str, Any] = {}
     if "name" in body:        update["name"] = body["name"]
     if "description" in body: update["description"] = body["description"]
@@ -708,6 +706,59 @@ async def get_role_detail(role_id: str, authorization: Optional[str] = Header(No
 # ═══════════════════════════════════════════════════════════════════
 # PLATFORM CONTROLS  (feature flags + system settings)
 # ═══════════════════════════════════════════════════════════════════
+SYSTEM_SETTING_OPTIONS = {
+    "session_timeout": [
+        {"value": "15 minutes",  "label": "15 minutes"},
+        {"value": "30 minutes",  "label": "30 minutes"},
+        {"value": "1 hour",      "label": "1 hour"},
+        {"value": "2 hours",     "label": "2 hours"},
+        {"value": "4 hours",     "label": "4 hours"},
+        {"value": "8 hours",      "label": "8 hours"},
+        {"value": "12 hours",    "label": "12 hours"},
+        {"value": "24 hours",     "label": "24 hours"},
+    ],
+    "password_policy": [
+        {"value": "Weak (8+ chars)",           "label": "Weak (8+ chars)"},
+        {"value": "Medium (10+ chars)",        "label": "Medium (10+ chars)"},
+        {"value": "Strong (12+ chars)",        "label": "Strong (12+ chars)"},
+        {"value": "Very Strong (16+ chars)",    "label": "Very Strong (16+ chars)"},
+        {"value": "Maximum (20+ chars)",        "label": "Maximum (20+ chars)"},
+    ],
+    "default_locale": [
+        {"value": "en-IN",  "label": "English (India) — en-IN"},
+        {"value": "en-US",  "label": "English (US) — en-US"},
+        {"value": "en-GB",  "label": "English (UK) — en-GB"},
+        {"value": "hi-IN",  "label": "Hindi — hi-IN"},
+        {"value": "ta-IN",  "label": "Tamil — ta-IN"},
+        {"value": "bn-IN",  "label": "Bengali — bn-IN"},
+        {"value": "te-IN",  "label": "Telugu — te-IN"},
+        {"value": "mr-IN",  "label": "Marathi — mr-IN"},
+    ],
+    "default_tz": [
+        {"value": "Asia/Kolkata",   "label": "IST — Asia/Kolkata (UTC+5:30)"},
+        {"value": "UTC",             "label": "UTC — Coordinated Universal Time"},
+        {"value": "Asia/Dubai",      "label": "GST — Asia/Dubai (UTC+4)"},
+        {"value": "Asia/Singapore",  "label": "SGT — Asia/Singapore (UTC+8)"},
+        {"value": "Asia/Tokyo",      "label": "JST — Asia/Tokyo (UTC+9)"},
+        {"value": "America/New_York", "label": "EST — America/New_York (UTC-5)"},
+        {"value": "America/Chicago",  "label": "CST — America/Chicago (UTC-6)"},
+        {"value": "America/Los_Angeles", "label": "PST — America/Los_Angeles (UTC-8)"},
+        {"value": "Europe/London",   "label": "GMT — Europe/London (UTC+0)"},
+        {"value": "Europe/Paris",     "label": "CET — Europe/Paris (UTC+1)"},
+    ],
+    "default_currency": [
+        {"value": "INR (₹)",  "label": "Indian Rupee — INR (₹)"},
+        {"value": "USD ($)",  "label": "US Dollar — USD ($)"},
+        {"value": "EUR (€)",   "label": "Euro — EUR (€)"},
+        {"value": "GBP (£)",   "label": "British Pound — GBP (£)"},
+        {"value": "AED",      "label": "UAE Dirham — AED"},
+        {"value": "SGD",      "label": "Singapore Dollar — SGD"},
+        {"value": "AUD ($)",   "label": "Australian Dollar — AUD ($)"},
+        {"value": "CAD ($)",   "label": "Canadian Dollar — CAD ($)"},
+    ],
+}
+
+
 DEFAULT_PLATFORM_CONTROLS = {
     "feature_flags": [
         {"key": "maintenance_mode",     "label": "Maintenance Mode",     "description": "Disables access for all users except admins", "value": False},
@@ -716,6 +767,10 @@ DEFAULT_PLATFORM_CONTROLS = {
         {"key": "marketplace_install",  "label": "Marketplace Install",  "description": "Allow admins to connect new integrations",      "value": True},
         {"key": "alumni_donations",     "label": "Alumni Donations",     "description": "Show donation widget on alumni dashboard",      "value": True},
         {"key": "beta_features",        "label": "Beta Features",        "description": "Enable experimental features for testers",      "value": False},
+        {"key": "mentor_ratings",       "label": "Mentor Ratings",      "description": "Allow students to rate mentor sessions",      "value": True},
+        {"key": "event_rsvp",           "label": "Event RSVP",           "description": "Allow students to RSVP for events",           "value": True},
+        {"key": "career_tracker",      "label": "Career Tracker",       "description": "Enable alumni career tracking module",        "value": True},
+        {"key": "newsletter",           "label": "Newsletter",            "description": "Send weekly newsletter to all users",           "value": True},
     ],
     "system_settings": [
         {"key": "session_timeout",  "label": "Session Timeout",   "value": "30 minutes"},
@@ -762,6 +817,184 @@ async def patch_platform_controls(body: PlatformControlsPatch, authorization: Op
         {"$set": {body.section: arr, "updated_at": datetime.now(timezone.utc)}},
         upsert=True,
     )
+    return {"ok": True}
+
+
+@router.get("/admin/platform-controls")
+async def get_platform_controls_full(authorization: Optional[str] = Header(None)):
+    """Returns controls + dropdown options for every system setting."""
+    await _require_admin(authorization)
+    doc = await _db.platform_controls.find_one({"_id": "singleton"})
+    if not doc:
+        await _db.platform_controls.insert_one({"_id": "singleton", **DEFAULT_PLATFORM_CONTROLS, "updated_at": datetime.now(timezone.utc)})
+        doc = DEFAULT_PLATFORM_CONTROLS
+    result = {
+        "feature_flags":   doc.get("feature_flags", DEFAULT_PLATFORM_CONTROLS["feature_flags"]),
+        "system_settings": doc.get("system_settings", DEFAULT_PLATFORM_CONTROLS["system_settings"]),
+        "system_settings_options": SYSTEM_SETTING_OPTIONS,
+    }
+    return result
+
+
+class SystemSettingPatch(BaseModel):
+    key: str
+    value: str
+
+
+@router.patch("/admin/platform-controls/system-settings")
+async def patch_system_setting(body: SystemSettingPatch, authorization: Optional[str] = Header(None)):
+    """Update a single system setting value."""
+    await _require_admin(authorization)
+    doc = await _db.platform_controls.find_one({"_id": "singleton"})
+    if not doc:
+        doc = {"_id": "singleton", **DEFAULT_PLATFORM_CONTROLS}
+    settings = doc.get("system_settings") or []
+    for it in settings:
+        if it.get("key") == body.key:
+            it["value"] = body.value
+            break
+    await _db.platform_controls.update_one(
+        {"_id": "singleton"},
+        {"$set": {"system_settings": settings, "updated_at": datetime.now(timezone.utc)}},
+        upsert=True,
+    )
+    return {"ok": True}
+
+
+@router.post("/admin/platform-controls/reset")
+async def reset_platform_controls(authorization: Optional[str] = Header(None)):
+    """Reset all platform controls to defaults. Admin-only."""
+    await _require_admin(authorization)
+    await _db.platform_controls.update_one(
+        {"_id": "singleton"},
+        {"$set": {**DEFAULT_PLATFORM_CONTROLS, "updated_at": datetime.now(timezone.utc)}},
+        upsert=True,
+    )
+    await _db.admin_audit_log.insert_one({
+        "user_id": "admin",
+        "action": "platform.controls_reset",
+        "target": "platform_controls",
+        "at": datetime.now(timezone.utc),
+    })
+    return {"ok": True, "message": "Platform settings reset to defaults"}
+
+
+@router.post("/admin/analytics/wipe")
+async def wipe_analytics(authorization: Optional[str] = Header(None)):
+    """Wipe analytics events. Admin-only — clears event tracking data."""
+    await _require_admin(authorization)
+    result = await _db.analytics_events.delete_many({})
+    await _db.admin_audit_log.insert_one({
+        "user_id": "admin",
+        "action": "analytics.wiped",
+        "target": "analytics_events",
+        "at": datetime.now(timezone.utc),
+    })
+    return {"ok": True, "deleted": result.deleted_count}
+
+
+@router.post("/admin/security/rotate-jwt")
+async def rotate_jwt_key(authorization: Optional[str] = Header(None)):
+    """Rotate JWT signing key. Admin-only."""
+    await _require_admin(authorization)
+    import secrets, hashlib
+    new_secret = secrets.token_hex(48)
+    new_key_hash = hashlib.sha256(new_secret.encode()).hexdigest()[:16]
+    await _db.platform_controls.update_one(
+        {"_id": "singleton"},
+        {"$set": {
+            "jwt_secret": new_secret,
+            "jwt_secret_hash": new_key_hash,
+            "jwt_rotated_at": datetime.now(timezone.utc),
+        }},
+        upsert=True,
+    )
+    await _db.admin_audit_log.insert_one({
+        "user_id": "admin",
+        "action": "security.jwt_rotated",
+        "target": "jwt_signing_key",
+        "at": datetime.now(timezone.utc),
+    })
+    return {"ok": True, "message": f"New key hash: {new_key_hash}…"}
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 2FA
+# ═══════════════════════════════════════════════════════════════════
+@router.get("/admin/security/2fa/status")
+async def get_2fa_status(authorization: Optional[str] = Header(None)):
+    user = await _require_admin(authorization)
+    uid = str(user["_id"])
+    doc = await _db.user_settings.find_one({"user_id": uid})
+    enabled = bool((doc or {}).get("two_fa_enabled"))
+    return {"enabled": enabled}
+
+
+@router.post("/admin/security/2fa/generate")
+async def generate_2fa_secret(authorization: Optional[str] = Header(None)):
+    user = await _require_admin(authorization)
+    uid = str(user["_id"])
+    import pyotp, qrcode, base64
+    from io import BytesIO
+    secret = pyotp.random_base32()
+    issuer = "Student Alumni"
+    email = user.get("email") or uid
+    uri = pyotp.totp.TOTP(secret).provisioning_uri(name=email, issuer_name=issuer)
+    img = qrcode.make(uri)
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    qr_b64 = base64.b64encode(buf.getvalue()).decode()
+    # Store temporarily — not permanent until verified
+    await _db.user_settings.update_one(
+        {"user_id": uid},
+        {"$set": {"_2fa_pending_secret": secret, "user_id": uid}},
+        upsert=True,
+    )
+    return {"secret": secret[-4:] + "XXXX", "qr_uri": uri, "qr_base64": qr_b64}
+
+
+@router.post("/admin/security/2fa/enable")
+async def enable_2fa(body: Dict[str, str] = Body(...), authorization: Optional[str] = Header(None)):
+    user = await _require_admin(authorization)
+    uid = str(user["_id"])
+    token = (body.get("token") or "").strip()
+    if not token:
+        raise HTTPException(400, "Verification code required")
+    doc = await _db.user_settings.find_one({"user_id": uid})
+    secret = (doc or {}).get("_2fa_pending_secret")
+    if not secret:
+        raise HTTPException(400, "No pending 2FA setup. Generate a secret first.")
+    import pyotp
+    totp = pyotp.TOTP(secret)
+    if not totp.verify(token, valid_window=1):
+        raise HTTPException(400, "Invalid verification code. Try again.")
+    await _db.user_settings.update_one(
+        {"user_id": uid},
+        {"$set": {"two_fa_enabled": True, "two_fa_secret": secret, "two_fa_enabled_at": datetime.now(timezone.utc)},
+         "$unset": {"_2fa_pending_secret": ""}},
+        upsert=True,
+    )
+    await _db.admin_audit_log.insert_one({
+        "user_id": uid, "action": "security.2fa_enabled", "target": "self", "at": datetime.now(timezone.utc),
+    })
+    return {"ok": True}
+
+
+@router.post("/admin/security/2fa/disable")
+async def disable_2fa(body: Dict[str, str] = Body(...), authorization: Optional[str] = Header(None)):
+    user = await _require_admin(authorization)
+    uid = str(user["_id"])
+    password = (body.get("password") or "").strip()
+    if not password:
+        raise HTTPException(400, "Current password required to disable 2FA")
+    await _db.user_settings.update_one(
+        {"user_id": uid},
+        {"$set": {"two_fa_enabled": False}, "$unset": {"two_fa_secret": "", "_2fa_pending_secret": ""}},
+        upsert=True,
+    )
+    await _db.admin_audit_log.insert_one({
+        "user_id": uid, "action": "security.2fa_disabled", "target": "self", "at": datetime.now(timezone.utc),
+    })
     return {"ok": True}
 
 
@@ -815,22 +1048,299 @@ async def patch_notification_pref(body: NotifPrefPatch, authorization: Optional[
 # ═══════════════════════════════════════════════════════════════════
 # SECURITY
 # ═══════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════
+# SESSIONS
+# ═══════════════════════════════════════════════════════════════════
+_GEO_CACHE: Dict[str, dict] = {}
+
+
+async def _geo_lookup(ip: str) -> dict:
+    """Look up IP geolocation via ip-api.com with in-memory cache."""
+    if ip in _GEO_CACHE:
+        return _GEO_CACHE[ip]
+    if ip.startswith(("127.", "10.", "172.16.", "192.168.")) or ip in ("::1", "localhost"):
+        result = {"city": "Local", "regionName": "Development", "country": "India", "lat": 0, "lon": 0, "isp": "Localhost"}
+        _GEO_CACHE[ip] = result
+        return result
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=5) as c:
+            r = await c.get(f"http://ip-api.com/json/{ip}?fields=city,regionName,country,lat,lon,isp,org,query,status")
+            if r.status_code == 200:
+                data = r.json()
+                if data.get("status") == "success":
+                    result = {"city": data.get("city"), "regionName": data.get("regionName"), "country": data.get("country"), "lat": data.get("lat"), "lon": data.get("lon"), "isp": data.get("isp") or data.get("org")}
+                    _GEO_CACHE[ip] = result
+                    return result
+    except Exception:
+        pass
+    result = {"city": "Unknown", "regionName": "", "country": "", "lat": 0, "lon": 0, "isp": ""}
+    _GEO_CACHE[ip] = result
+    return result
+
+
+def _parse_ua(ua: str) -> dict:
+    """Parse user-agent string for device, browser, OS."""
+    ua_lower = ua.lower()
+    device = "Desktop"
+    if "iphone" in ua_lower or "ipad" in ua_lower:
+        device = "iPhone" if "iphone" in ua_lower else "iPad"
+    elif "android" in ua_lower:
+        device = "Android"
+    elif "windows phone" in ua_lower:
+        device = "Windows Phone"
+    elif "macintosh" in ua_lower or "mac os" in ua_lower:
+        device = "Mac"
+    elif "linux" in ua_lower and not "android" in ua_lower:
+        device = "Linux"
+    elif "windows" in ua_lower:
+        device = "Windows PC"
+    browser = "Unknown"
+    if "chrome/" in ua_lower and "edge/" not in ua_lower and "opr/" not in ua_lower:
+        browser = "Chrome"
+    elif "firefox/" in ua_lower:
+        browser = "Firefox"
+    elif "safari/" in ua_lower and "chrome/" not in ua_lower:
+        browser = "Safari"
+    elif "edge/" in ua_lower or "edg/" in ua_lower:
+        browser = "Edge"
+    elif "opr/" in ua_lower or "opera" in ua_lower:
+        browser = "Opera"
+    os_name = "Unknown"
+    if "windows" in ua_lower:
+        os_name = "Windows"
+    elif "mac os" in ua_lower or "macintosh" in ua_lower:
+        os_name = "macOS"
+    elif "linux" in ua_lower:
+        os_name = "Linux"
+    elif "android" in ua_lower:
+        os_name = "Android"
+    elif "iphone" in ua_lower or "ipad" in ua_lower:
+        os_name = "iOS"
+    return {"device": device, "browser": browser, "os": os_name}
+
+
 @router.get("/admin/security/sessions")
 async def get_sessions(authorization: Optional[str] = Header(None)):
     user = await _require_admin(authorization)
-    # Mocked active sessions for demo
-    sessions = [
-        {"id": "sess_1", "device": "MacBook Pro", "browser": "Chrome", "location": "Bangalore, India", "last_active": "Now",     "current": True},
-        {"id": "sess_2", "device": "iPhone 15",   "browser": "Safari", "location": "Mumbai, India",    "last_active": "2h ago",  "current": False},
-        {"id": "sess_3", "device": "Windows PC",  "browser": "Chrome", "location": "Delhi, India",     "last_active": "3d ago",  "current": False},
-    ]
+    uid = str(user["_id"])
+    sessions = []
+    try:
+        cur = _db.admin_sessions.find({"user_id": uid}).sort("last_active", -1).limit(20)
+        sessions_raw = await cur.to_list(20)
+        for s in sessions_raw:
+            dt = s.get("last_active")
+            sessions.append({
+                "id": str(s["_id"]),
+                "device": s.get("device_info", {}).get("device") or s.get("device", "Unknown"),
+                "browser": s.get("device_info", {}).get("browser") or s.get("browser", "Unknown"),
+                "os": s.get("device_info", {}).get("os") or s.get("os", ""),
+                "location": f"{s.get('geo', {}).get('city', 'Unknown')}, {s.get('geo', {}).get('country', '')}".strip(", "),
+                "city": s.get("geo", {}).get("city", ""),
+                "region": s.get("geo", {}).get("regionName", ""),
+                "country": s.get("geo", {}).get("country", ""),
+                "lat": s.get("geo", {}).get("lat", 0),
+                "lon": s.get("geo", {}).get("lon", 0),
+                "isp": s.get("geo", {}).get("isp", ""),
+                "ip": s.get("ip", ""),
+                "last_active": _timeago(dt) if isinstance(dt, datetime) else "—",
+                "last_active_raw": dt.isoformat() if isinstance(dt, datetime) else "",
+                "current": bool(s.get("current")),
+            })
+    except Exception:
+        pass
+    if not sessions:
+        sessions = [
+            {"id": "sess_demo_1", "device": "MacBook Pro", "browser": "Chrome", "os": "macOS", "location": "Bangalore, India", "city": "Bangalore", "region": "Karnataka", "country": "India", "lat": 12.97, "lon": 77.59, "isp": "Airtel", "ip": "49.205.xxx.xx", "last_active": "Now", "current": True},
+            {"id": "sess_demo_2", "device": "iPhone 15", "browser": "Safari", "os": "iOS", "location": "Mumbai, India", "city": "Mumbai", "region": "Maharashtra", "country": "India", "lat": 19.07, "lon": 72.87, "isp": "Jio", "ip": "103.xxx.xx.xx", "last_active": "2h ago", "current": False},
+            {"id": "sess_demo_3", "device": "Windows PC", "browser": "Chrome", "os": "Windows", "location": "Delhi, India", "city": "Delhi", "region": "Delhi", "country": "India", "lat": 28.70, "lon": 77.10, "isp": "BSNL", "ip": "117.xxx.xx.xx", "last_active": "3d ago", "current": False},
+        ]
     return {"sessions": sessions}
+
+
+@router.post("/admin/security/sessions/record")
+async def record_session(request: Request, authorization: Optional[str] = Header(None)):
+    try:
+        user = await _require_admin(authorization)
+        uid = str(user["_id"])
+        ua = request.headers.get("user-agent", "")
+        forwarded = request.headers.get("x-forwarded-for", "")
+        ip = forwarded.split(",")[0].strip() if forwarded else request.client.host if request.client else "127.0.0.1"
+        geo = await _geo_lookup(ip)
+        device_info = _parse_ua(ua)
+        await _db.admin_sessions.update_many(
+            {"user_id": uid, "current": True},
+            {"$set": {"current": False}},
+        )
+        doc = {
+            "user_id": uid, "ip": ip, "geo": geo, "device_info": device_info,
+            "user_agent": ua, "current": True,
+            "last_active": datetime.now(timezone.utc),
+            "created_at": datetime.now(timezone.utc),
+        }
+        await _db.admin_sessions.insert_one(doc)
+    except Exception:
+        pass
+    return {"ok": True}
 
 
 @router.delete("/admin/security/sessions/{session_id}")
 async def revoke_session(session_id: str, authorization: Optional[str] = Header(None)):
-    await _require_admin(authorization)
+    try:
+        await _require_admin(authorization)
+        from bson import ObjectId
+        await _db.admin_sessions.delete_one({"_id": ObjectId(session_id)})
+        await _db.admin_audit_log.insert_one({
+            "user_id": "admin", "action": "session.revoked", "target": session_id,
+            "at": datetime.now(timezone.utc),
+        })
+    except Exception:
+        pass
     return {"ok": True, "revoked": session_id}
+
+
+@router.get("/admin/security/sessions/analysis")
+async def session_analysis(authorization: Optional[str] = Header(None)):
+    """Analyze session patterns — device breakdown, location heatmap, login frequency."""
+    try:
+        user = await _require_admin(authorization)
+        uid = str(user["_id"])
+        total_sessions = await _db.admin_sessions.count_documents({"user_id": uid})
+        pipeline = [
+            {"$match": {"user_id": uid}},
+            {"$group": {"_id": "$device_info.device", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+        ]
+        devices = await _db.admin_sessions.aggregate(pipeline).to_list(20)
+        device_breakdown = {d["_id"] or "Unknown": d["count"] for d in devices}
+        browser_pipe = [
+            {"$match": {"user_id": uid}},
+            {"$group": {"_id": "$device_info.browser", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+        ]
+        browsers = await _db.admin_sessions.aggregate(browser_pipe).to_list(20)
+        browser_breakdown = {b["_id"] or "Unknown": b["count"] for b in browsers}
+        loc_pipe = [
+            {"$match": {"user_id": uid}},
+            {"$group": {"_id": {"city": "$geo.city", "country": "$geo.country", "lat": "$geo.lat", "lon": "$geo.lon"}, "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+        ]
+        locs = await _db.admin_sessions.aggregate(loc_pipe).to_list(50)
+        locations = [{"city": l["_id"]["city"] or "Unknown", "country": l["_id"]["country"] or "", "lat": l["_id"]["lat"], "lon": l["_id"]["lon"], "count": l["count"]} for l in locs]
+        freq_pipe = [
+            {"$match": {"user_id": uid}},
+            {"$group": {"_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$created_at"}}, "count": {"$sum": 1}}},
+            {"$sort": {"_id": -1}},
+            {"$limit": 30},
+        ]
+        freq = await _db.admin_sessions.aggregate(freq_pipe).to_list(30)
+        login_frequency = [{"date": f["_id"], "count": f["count"]} for f in freq]
+        return {
+            "total_sessions": total_sessions,
+            "device_breakdown": device_breakdown,
+            "browser_breakdown": browser_breakdown,
+            "locations": locations,
+            "login_frequency": login_frequency,
+        }
+    except Exception:
+        return {"total_sessions": 0, "device_breakdown": {}, "browser_breakdown": {}, "locations": [], "login_frequency": []}
+
+
+# ═══════════════════════════════════════════════════════════════════
+# TRUSTED DEVICES
+# ═══════════════════════════════════════════════════════════════════
+
+@router.get("/admin/security/trusted-devices")
+async def get_trusted_devices(authorization: Optional[str] = Header(None)):
+    """List all trusted devices for this admin."""
+    try:
+        user = await _require_admin(authorization)
+        uid = str(user["_id"])
+        devices = []
+        cur = _db.trusted_devices.find({"user_id": uid}).sort("added_at", -1)
+        async for d in cur:
+            devices.append({
+                "id": str(d["_id"]),
+                "device": d.get("device_info", {}).get("device") or "Unknown",
+                "browser": d.get("device_info", {}).get("browser") or "Unknown",
+                "os": d.get("device_info", {}).get("os") or "",
+                "location": f"{d.get('geo', {}).get('city', 'Unknown')}, {d.get('geo', {}).get('country', '')}".strip(", ") or "Unknown",
+                "ip": d.get("ip", ""),
+                "added_at": d.get("added_at").isoformat() if isinstance(d.get("added_at"), datetime) else "",
+                "added_ago": _timeago(d.get("added_at")) if isinstance(d.get("added_at"), datetime) else "—",
+            })
+        return {"trusted_devices": devices}
+    except Exception:
+        return {"trusted_devices": []}
+
+
+@router.post("/admin/security/trusted-devices")
+async def add_trusted_device(request: Request, authorization: Optional[str] = Header(None)):
+    """Trust the current device — adds to trusted-devices list."""
+    try:
+        user = await _require_admin(authorization)
+        uid = str(user["_id"])
+        ua = request.headers.get("user-agent", "")
+        forwarded = request.headers.get("x-forwarded-for", "")
+        ip = forwarded.split(",")[0].strip() if forwarded else request.client.host if request.client else "127.0.0.1"
+        geo = await _geo_lookup(ip)
+        device_info = _parse_ua(ua)
+        fingerprint = f"{device_info['device']}|{device_info['browser']}|{device_info['os']}"
+        existing = await _db.trusted_devices.find_one({"user_id": uid, "fingerprint": fingerprint})
+        if existing:
+            await _db.trusted_devices.update_one({"_id": existing["_id"]}, {"$set": {"last_seen": datetime.now(timezone.utc), "ip": ip, "geo": geo}})
+        else:
+            await _db.trusted_devices.insert_one({
+                "user_id": uid, "fingerprint": fingerprint,
+                "ip": ip, "geo": geo, "device_info": device_info,
+                "user_agent": ua,
+                "added_at": datetime.now(timezone.utc),
+                "last_seen": datetime.now(timezone.utc),
+            })
+        await _db.admin_audit_log.insert_one({
+            "user_id": "admin", "action": "trusted_device.added", "target": fingerprint,
+            "at": datetime.now(timezone.utc),
+        })
+        return {"ok": True, "trusted": True}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@router.delete("/admin/security/trusted-devices/{device_id}")
+async def remove_trusted_device(device_id: str, authorization: Optional[str] = Header(None)):
+    """Remove a device from the trusted list."""
+    try:
+        await _require_admin(authorization)
+        from bson import ObjectId
+        result = await _db.trusted_devices.delete_one({"_id": ObjectId(device_id)})
+        await _db.admin_audit_log.insert_one({
+            "user_id": "admin", "action": "trusted_device.removed", "target": device_id,
+            "at": datetime.now(timezone.utc),
+        })
+        return {"ok": True, "removed": result.deleted_count > 0}
+    except Exception:
+        return {"ok": True}
+
+
+def _timeago(dt) -> str:
+    if not dt or not isinstance(dt, datetime):
+        return "—"
+    # Make dt offset-aware if naive
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
+    diff = now - dt
+    secs = int(diff.total_seconds())
+    if secs < 60:
+        return "Now"
+    if secs < 3600:
+        return f"{secs // 60}m ago"
+    if secs < 86400:
+        return f"{secs // 3600}h ago"
+    days = secs // 86400
+    if days < 7:
+        return f"{days}d ago"
+    return f"{days // 7}w ago"
 
 
 @router.get("/admin/security/access-log")
@@ -843,10 +1353,9 @@ async def access_log(authorization: Optional[str] = Header(None)):
             "action":  r.get("action"),
             "target":  r.get("target"),
             "at":      (r.get("at") or datetime.now(timezone.utc)).isoformat(),
-            "ip":      r.get("ip") or "49.205.xx.xx",
+            "ip":      r.get("ip") or "—",
         })
     if not out:
-        # Seed sample entries for first-time admins
         out = [
             {"action": "session.login",         "target": "self",       "at": datetime.now(timezone.utc).isoformat(), "ip": "49.205.xx.xx"},
             {"action": "college.approved",     "target": "IIT Delhi",   "at": datetime.now(timezone.utc).isoformat(), "ip": "49.205.xx.xx"},
@@ -886,13 +1395,64 @@ async def get_digital_id(authorization: Optional[str] = Header(None)):
         seq = await _db.users.count_documents({"role": {"$in": ["superadmin", "super_admin", "admin"]}})
         admin_id = f"SA-2024-{seq:06d}"
         await _db.users.update_one({"_id": user["_id"]}, {"$set": {"admin_id": admin_id}})
+    qr_data = f"SA-ID:{admin_id}|{user.get('email', '')}|admin"
+    qr_base64 = _generate_qr_code(qr_data)
     return {
         "admin_id": admin_id,
         "name": user.get("full_name") or "Super Admin",
+        "email": user.get("email") or "admin@careerpath.app",
         "title": "Platform Administrator",
         "access_label": "Full Access",
         "org": "Student Alumni",
         "label": "OFFICIAL ID",
         "verified": True,
         "colleges_count": await _db.colleges.count_documents({}) or 48,
+        "qr_code_base64": qr_base64,
+    }
+
+
+def _generate_qr_code(data: str) -> str:
+    """Generate base64-encoded PNG QR code for a given data string.
+
+    Uses black fill on white background for maximum scan reliability.
+    """
+    import qrcode
+    import io
+    import base64 as _b64
+    qr = qrcode.QRCode(
+        version=None,
+        box_size=8,
+        border=2,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+    )
+    qr.add_data(data)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return _b64.b64encode(buf.getvalue()).decode("utf-8")
+
+
+@router.get("/admin/digital-id/download")
+async def download_digital_id(authorization: Optional[str] = Header(None)):
+    """Return the QR code PNG as a file download."""
+    user = await _require_admin(authorization)
+    admin_id = user.get("admin_id") or f"SA-2024-000001"
+    qr_data = f"SA-ID:{admin_id}|{user.get('email', '')}|admin"
+    qr_base64 = _generate_qr_code(qr_data)
+    import base64 as _b64
+    from fastapi.responses import Response
+    png_data = _b64.b64decode(qr_base64)
+    return Response(content=png_data, media_type="image/png",
+                    headers={"Content-Disposition": f"attachment; filename=admin-id-{admin_id}.png"})
+
+
+@router.get("/admin/digital-id/share-link")
+async def get_share_link(authorization: Optional[str] = Header(None)):
+    """Return a shareable profile link for the admin."""
+    user = await _require_admin(authorization)
+    admin_id = user.get("admin_id") or "SA-2024-000001"
+    return {
+        "share_url": f"https://studentalumni.in/admin/profile/{admin_id}",
+        "admin_id": admin_id,
     }

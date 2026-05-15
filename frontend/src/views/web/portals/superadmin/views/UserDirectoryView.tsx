@@ -391,10 +391,10 @@ function ProfilePanel({ userId, onClose, onSaved }: { userId: string | null; onC
       const r = await request<any>(`/admin/users/profile/${userId}`);
       setData(r); setEdit(false); setDraft({});
       onSaved();
-    } catch {}
+    } catch { flash('Failed to save changes'); }
   };
   const del = async () => {
-    try { await request(`/admin/users/profile/${userId}`, { method: 'DELETE' }); onClose(); onSaved(); } catch {}
+    try { await request(`/admin/users/profile/${userId}`, { method: 'DELETE' }); onClose(); onSaved(); } catch { flash('Failed to delete'); }
   };
 
   return (

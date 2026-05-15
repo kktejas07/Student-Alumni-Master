@@ -30,12 +30,12 @@ export async function fetchPortal<T>(path: string): Promise<T> {
   return res.json();
 }
 
-export async function postPortal<T = any>(path: string, body?: any): Promise<T> {
+export async function postPortal<T = any>(path: string, opts?: { method?: string; body?: any }): Promise<T> {
   const auth = await getAuthHeader();
   const res = await fetch(`${BASE}/api${path}`, {
-    method: 'POST',
+    method: opts?.method || 'POST',
     headers: { 'Content-Type': 'application/json', ...auth },
-    body: body ? JSON.stringify(body) : undefined,
+    body: opts?.body ? JSON.stringify(opts.body) : undefined,
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();

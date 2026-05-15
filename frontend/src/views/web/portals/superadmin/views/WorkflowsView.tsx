@@ -1,22 +1,39 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Switch, Platform } from 'react-native';
-import { Workflow, Zap, Clock, ChevronRight, Plus, Play, AlertTriangle } from 'lucide-react-native';
+import { View, Text, Pressable, StyleSheet, Switch, Platform, Modal, ScrollView, TextInput } from 'react-native';
+import { Workflow, Zap, Clock, ChevronRight, Plus, Play, AlertTriangle, X, Check } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
+import { GradientButton, SecondaryButton, Toast, useToast, IconBox, SectionLabel } from '../applekit';
 import { usePortalData, postPortal } from '@/src/lib/portalApi';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import { GRAD } from '../applekit';
 
 type Wf = { id: string; name: string; trigger: string; steps: string[]; runs: number; success: number; on: boolean; color: string };
 const FALLBACK = { items: [] as Wf[] };
 
 export function WorkflowsView() {
-  const { data } = usePortalData<typeof FALLBACK>('/admin/super/workflows', FALLBACK);
+  const { data, refresh } = usePortalData<typeof FALLBACK>('/admin/super/workflows', FALLBACK);
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+  const [creating, setCreating] = useState(false);
+  const [newWorkflow, setNewWorkflow] = useState({ name: '', trigger: '' });
+  const [wfDetail, setWfDetail] = useState<Wf | null>(null);
+  const { toast, flash } = useToast();
 
   const items: Wf[] = (data?.items || []).map((w) => ({ ...w, on: overrides[w.id] !== undefined ? overrides[w.id] : w.on }));
 
   const toggle = async (id: string, current: boolean) => {
     setOverrides((p) => ({ ...p, [id]: !current }));
-    try { await postPortal(`/admin/super/workflows/${id}/toggle`); } catch {}
+    try { await postPortal(`/admin/super/workflows/${id}/toggle`); flash('Toggled'); } catch { setOverrides((p) => ({ ...p, [id]: current })); flash('Failed to toggle'); }
+  };
+
+  const runWorkflow = async (id: string) => {
+    try { await postPortal(`/admin/super/workflows/${id}/run`); flash('Workflow triggered'); refresh(); } catch { flash('Failed to run'); }
+  };
+
+  const createWorkflow = async () => {
+    if (!newWorkflow.name.trim()) return;
+    try { await postPortal('/admin/super/workflows', { body: newWorkflow }); flash('Workflow created'); setCreating(false); setNewWorkflow({ name: '', trigger: '' }); refresh(); } catch { flash('Failed to create'); }
   };
 
   return (
@@ -30,7 +47,7 @@ export function WorkflowsView() {
           </View>
           <Text style={s.bSub}>Build event-triggered workflows visually. Approvals, alerts, payouts, and re-engagement — all without writing code.</Text>
         </View>
-        <Pressable style={s.cta}><Plus size={13} color="#fff" /><Text style={s.ctaText}>New workflow</Text></Pressable>
+        <Pressable onPress={() => setCreating(true)} style={s.cta}><Plus size={13} color="#fff" /><Text style={s.ctaText}>New workflow</Text></Pressable>
       </View>
 
       <View style={{ gap: 10 }}>
@@ -74,11 +91,33 @@ export function WorkflowsView() {
                 thumbColor={w.on ? '#fff' : '#ccc'}
                 {...(Platform.OS === 'web' ? ({ activeThumbColor: '#fff' } as any) : {})}
               />
-              <Pressable style={s.runBtn}><Play size={11} color={SAC.muted} /><Text style={s.runText}>Run</Text></Pressable>
+              <Pressable onPress={() => runWorkflow(w.id)} style={s.runBtn}><Play size={11} color={SAC.muted} /><Text style={s.runText}>Run</Text></Pressable>
             </View>
           );
         })}
       </View>
+
+      <Modal visible={creating} transparent animationType="fade" onRequestClose={() => setCreating(false)}>
+        <View style={s.modalBg}>
+          <Animated.View entering={FadeInDown.duration(200)} style={[s.modalCard, { maxWidth: 400 }]}>
+            <LinearGradient colors={GRAD.soft} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.modalHero}>
+              <IconBox size={36}><Workflow size={16} color={GRAD.to} /></IconBox>
+              <View style={{ flex: 1 }}><Text style={s.modalTitle}>New workflow</Text><Text style={s.muted}>Set name and trigger.</Text></View>
+              <Pressable onPress={() => setCreating(false)}><X size={16} color={SAC.muted} /></Pressable>
+            </LinearGradient>
+            <View style={{ padding: 18, gap: 12 }}>
+              <TextInput value={newWorkflow.name} onChangeText={(v) => setNewWorkflow({ ...newWorkflow, name: v })} placeholder="Workflow name" placeholderTextColor={SAC.dim} style={s.input} />
+              <TextInput value={newWorkflow.trigger} onChangeText={(v) => setNewWorkflow({ ...newWorkflow, trigger: v })} placeholder="Trigger (e.g. new_signup)" placeholderTextColor={SAC.dim} style={s.input} />
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+                <SecondaryButton onPress={() => setCreating(false)}><Text style={s.secText}>Cancel</Text></SecondaryButton>
+                <GradientButton onPress={createWorkflow} disabled={!newWorkflow.name.trim()}><Check size={13} color="#fff" /><Text style={s.btnText}>Create</Text></GradientButton>
+              </View>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
+
+      <Toast text={toast.text} visible={toast.visible} />
     </View>
   );
 }
@@ -88,8 +127,12 @@ const s = StyleSheet.create({
   bIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(249,115,22,0.15)', borderColor: 'rgba(249,115,22,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   bTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
   bSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 4, lineHeight: 17 },
-  cta: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 36, borderRadius: 10, backgroundColor: SAC.primary },
+  cta: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 36, borderRadius: 10, backgroundColor: SAC.primary, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   ctaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  muted: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
+  btnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
+  secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
 
   card: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12 },
   dot: { width: 4, alignSelf: 'stretch', borderRadius: 2 },
@@ -100,6 +143,11 @@ const s = StyleSheet.create({
 
   statRuns: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 },
   statSuccess: { fontFamily: FONTS.bold, fontSize: 11 },
-  runBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 11, height: 30, borderRadius: 8, borderWidth: 1, borderColor: SAC.border },
+  runBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 11, height: 30, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   runText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
+
+  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center', padding: 20 },
+  modalCard: { width: '100%', maxWidth: 560, maxHeight: '92%', backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2, overflow: 'hidden' },
+  modalHero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderBottomWidth: 1, borderBottomColor: SAC.border },
+  input: { flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 13, backgroundColor: SAC.cardSolid, borderRadius: 9, borderWidth: 1, borderColor: SAC.border, paddingHorizontal: 12, paddingVertical: 10 },
 });
