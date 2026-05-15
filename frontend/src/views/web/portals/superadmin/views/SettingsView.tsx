@@ -1482,6 +1482,8 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [cur, setCur] = useState(''); const [next, setNext] = useState(''); const [conf, setConf] = useState('');
   const [showCur, setShowCur] = useState(false); const [showNext, setShowNext] = useState(false);
   const [sessions, setSessions] = useState<any[]>([]);
+  const [trustedDevices, setTrustedDevices] = useState<any[]>([]);
+  const [analysis, setAnalysis] = useState<any>(null);
   const [log, setLog] = useState<any[]>([]);
   const [pwdErr, setPwdErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -1522,7 +1524,7 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
       <View style={{ flex: 1, minWidth: 320, gap: 14 }}>
         <View style={s.card}>
           <Text style={s.sectionLabel}>AUTHENTICATION</Text>
-          <View style={[s.toggleRow, { marginTop: 14, borderBottomWidth: 1, borderBottomColor: SAC.border, paddingBottom: 14 }]}>
+          <View style={[s.toggleRow, { marginTop: 14, paddingBottom: 14 }]}>
             <View style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
               <Text style={s.toggleTitle}>Two-Factor Authentication</Text>
               <Text style={s.toggleDesc}>Required for all admin logins</Text>

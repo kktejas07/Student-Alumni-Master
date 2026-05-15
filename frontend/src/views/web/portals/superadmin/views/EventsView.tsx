@@ -382,6 +382,7 @@ export function EventsView() {
                   </View>
                   <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
                     {e.status === 'pending'
+<<<<<<< Updated upstream
                       ? <GradientButton onPress={() => reviewApprove(e)}><Text style={st.btnText}>Review & approve</Text></GradientButton>
                       : <SecondaryButton onPress={() => openEdit(e)}><Text style={st.secText}>Manage event</Text></SecondaryButton>
                     }
