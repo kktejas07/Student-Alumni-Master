@@ -41,6 +41,7 @@
   "dependencies": {
     "@babel/runtime": "^7.20.6",
     "@expo-google-fonts/dm-sans": "^0.4.2",
+    "@expo-google-fonts/inter": "^0.4.2",
     "@expo-google-fonts/jetbrains-mono": "^0.4.1",
     "@expo-google-fonts/manrope": "^0.4.2",
     "@expo-google-fonts/outfit": "^0.4.3",

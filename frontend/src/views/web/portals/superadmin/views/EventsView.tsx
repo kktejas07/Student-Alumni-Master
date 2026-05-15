@@ -300,13 +300,11 @@ export function EventsView() {
 
   const reviewApprove = async (e: Ev) => {
     try {
-      // bump start_date forward to mark "approved" (within 30-day live window)
       const sd = new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 16);
       await request(`/admin/super/events/${e.id}`, { method: 'PATCH', body: JSON.stringify({ title: e.title, start_date: sd }) });
       await refresh?.();
       flash('Event approved');
     } catch (err: any) {
-      // eslint-disable-next-line no-console
       console.warn('approve failed', err?.message);
     }
   };
