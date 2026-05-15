@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet, useWindowDimensions, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Search, UserPlus, Check, MessageSquare } from '../iconShims';
 import { SC, FONTS } from '../tokens';
+import { GRAD } from '../portalkit';
+import { GlassCard } from '../glass';
 import { Av, Badge } from '../atoms';
 import { usePortalData } from '@/src/lib/portalApi';
 
@@ -43,10 +46,16 @@ export function NetworkView() {
       </View>
 
       <View style={s.grid}>
-        {list.map((p) => {
+        {list.map((p, idx) => {
           const c = conn.has(p.id), pn = pending.has(p.id);
           return (
-            <View key={p.id} style={[s.card, { width: cardW as any }]}>
+            <GlassCard
+              key={p.id}
+              delay={idx * 30}
+              radius={14}
+              padding={14}
+              style={{ width: cardW as any }}
+            >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <Av initials={p.initials} size={42} color={p.color} />
                 <View style={{ flex: 1, minWidth: 0 }}>
@@ -77,7 +86,7 @@ export function NetworkView() {
                   </Pressable>
                 )}
               </View>
-            </View>
+            </GlassCard>
           );
         })}
       </View>

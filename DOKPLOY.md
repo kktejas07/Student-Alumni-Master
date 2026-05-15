@@ -26,7 +26,7 @@ frontend health: `GET /healthz` (returned by nginx independently of the JS shell
 
 - A VPS (DigitalOcean / Hetzner / OVH / Contabo — 2 vCPU + 2 GB RAM minimum).
 - Dokploy installed (`curl -sSL https://dokploy.com/install.sh | sh`).
-- A domain you can point at the VPS (e.g. `app.studentalumni.ai` + `api.studentalumni.ai`).
+- A domain you can point at the VPS — **single canonical host** `studentalumni.ai`. Both frontend and backend live on the same domain; the backend is reached via the `/api/*` path prefix (NO subdomains).
 - A MongoDB Atlas cluster (free tier works). Whitelist the VPS public IP.
 - (Optional) An Emergent LLM Key from your Emergent profile for Agent K.
 
@@ -41,9 +41,8 @@ frontend health: `GET /healthz` (returned by nginx independently of the JS shell
 [ ] Dokploy installed and reachable at http://<VPS_IP>:3000
 [ ] GitHub repo accessible:  Tejascss/Student-Alumni-Master @ main
 [ ] DNS A-records pointing at the VPS:
-       app.studentalumni.ai   →  <VPS_IP>
-       api.studentalumni.ai   →  <VPS_IP>
-       (optional) studentalumni.ai → <VPS_IP> with 301 redirect to app.*
+       studentalumni.ai       →  <VPS_IP>          (apex, primary)
+       www.studentalumni.ai   →  <VPS_IP>          (optional, redirects to apex)
 [ ] Mongo Atlas cluster URL + DB user created and VPS IP whitelisted
 [ ] Random JWT_SECRET + FERNET_KEY generated and stored in a password manager
 [ ] Emergent LLM key (if Agent K backend tasks are enabled)
@@ -53,12 +52,13 @@ frontend health: `GET /healthz` (returned by nginx independently of the JS shell
 [ ] Dokploy Service B →  frontend (build path ./frontend, port 80)
 [ ] Backend env vars set, "On Push" autodeploy enabled
 [ ] Frontend BUILD ARGS set (NOT runtime env — Expo bakes them in)
-[ ] Backend domain api.studentalumni.ai + HTTPS toggled
-[ ] Frontend domain app.studentalumni.ai + HTTPS toggled
+[ ] Backend service domain studentalumni.ai · **Path = `/api`**  · HTTPS toggled
+[ ] Frontend service domain studentalumni.ai · **Path = `/`**     · HTTPS toggled
+[ ] Frontend service priority < Backend service priority (so `/api/*` matches first)
 [ ] First Deploy ran green (both services healthy)
-[ ] curl https://api.studentalumni.ai/api/health → 200
-[ ] curl https://app.studentalumni.ai/healthz    → 200
-[ ] Login as admin from app.studentalumni.ai with seeded credentials
+[ ] curl https://studentalumni.ai/api/health → 200
+[ ] curl https://studentalumni.ai/healthz    → 200
+[ ] Login as admin from studentalumni.ai with seeded credentials
 ```
 
 ---
@@ -83,8 +83,8 @@ host (Cloudflare / Namecheap / Route 53 / etc.):
 Confirm propagation before deploying:
 
 ```bash
-dig +short app.studentalumni.ai
-dig +short api.studentalumni.ai
+dig +short studentalumni.ai
+dig +short studentalumni.ai
 # both should return your VPS IP
 ```
 
@@ -137,8 +137,8 @@ JWT_SECRET=<openssl rand -hex 32>
 FERNET_KEY=<python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())">
 ADMIN_EMAIL=admin@careerpath.app
 ADMIN_PASSWORD=<your-strong-password>
-ALLOWED_ORIGINS=https://app.studentalumni.ai
-FRONTEND_URL=https://app.studentalumni.ai
+ALLOWED_ORIGINS=https://studentalumni.ai
+FRONTEND_URL=https://studentalumni.ai
 UVICORN_WORKERS=2
 EMERGENT_LLM_KEY=<your-emergent-key>   # optional, only if you use Agent K
 ```
@@ -148,9 +148,13 @@ EMERGENT_LLM_KEY=<your-emergent-key>   # optional, only if you use Agent K
 
 ### 3.3 Domain
 
-- **Domains → Add Domain** → `api.studentalumni.ai`
-- Toggle **HTTPS** → Dokploy will fetch a Let's Encrypt cert via Traefik.
-- **Path**: `/`  **Port**: `8000`
+- **Domains → Add Domain** → `studentalumni.ai`
+- **Path**: `/api`   ← critical — backend only owns the `/api/*` prefix
+- **Port**: `8000`
+- **Priority**: leave default (Dokploy auto-prioritises longer paths;
+  `/api` will match before `/`).
+- Toggle **HTTPS** → Dokploy will fetch a Let's Encrypt cert via Traefik
+  (shared with the frontend service since they're on the same host).
 
 ### 3.4 Health check
 
@@ -174,10 +178,12 @@ Click **Deploy**. First build takes ~3-4 min.
 ### 4.2 Build args (CRITICAL)
 
 Expo bakes `EXPO_PUBLIC_*` vars into the JS bundle at **build time**, so they
-must be supplied as **Build Args**, not runtime env:
+must be supplied as **Build Args**, not runtime env. With single-domain
+path routing, `EXPO_PUBLIC_BACKEND_URL` is the bare host (the `/api`
+prefix is appended by the client code):
 
 ```env
-EXPO_PUBLIC_BACKEND_URL=https://api.studentalumni.ai
+EXPO_PUBLIC_BACKEND_URL=https://studentalumni.ai
 # Optional — only if you use Firebase / PostHog
 EXPO_PUBLIC_FIREBASE_API_KEY=...
 EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=...
@@ -192,8 +198,14 @@ backend URL you MUST trigger a rebuild.
 
 ### 4.3 Domain
 
-- **Domains → Add Domain** → `app.studentalumni.ai`
-- Toggle HTTPS, port `80`, path `/`.
+- **Domains → Add Domain** → `studentalumni.ai`
+- **Path**: `/`   ← the frontend catches everything that isn't `/api/*`
+- **Port**: `80`
+- Toggle HTTPS → reuses the same Let's Encrypt cert issued for the backend.
+
+> ℹ Both services share the cert because they share the host. Traefik
+> takes care of TLS termination at the edge and forwards plain HTTP to
+> each container on its internal port.
 
 Click **Deploy**.
 
@@ -202,25 +214,31 @@ Click **Deploy**.
 ## 5. Verify the deployment
 
 ```bash
-# Backend liveness + Mongo connectivity
-curl -fsS https://api.studentalumni.ai/api/health
+# Backend liveness + Mongo connectivity (routed via /api prefix)
+curl -fsS https://studentalumni.ai/api/health
 # → {"status":"ok","service":"studentalumni-backend","mongo":"ok",...}
 
-# Frontend liveness
-curl -fsS https://app.studentalumni.ai/healthz
+# Frontend liveness (nginx static)
+curl -fsS https://studentalumni.ai/healthz
 # → {"status":"ok","service":"studentalumni-frontend"}
 
-# CORS preflight from the frontend domain
-curl -i -X OPTIONS https://api.studentalumni.ai/api/health \
-  -H "Origin: https://app.studentalumni.ai" \
+# CORS preflight from the same-origin SPA (should be unnecessary on same
+# domain — included as a sanity check that backend mounts /api correctly)
+curl -i -X OPTIONS https://studentalumni.ai/api/health \
+  -H "Origin: https://studentalumni.ai" \
   -H "Access-Control-Request-Method: GET"
-# → 200 with `access-control-allow-origin: https://app.studentalumni.ai`
+# → 200 with `access-control-allow-origin: https://studentalumni.ai`
 ```
 
-Open `https://app.studentalumni.ai` and sign in with the seeded admin:
+Open `https://studentalumni.ai` and sign in with the seeded admin:
 
 - **Email**: value of `ADMIN_EMAIL`
 - **Password**: value of `ADMIN_PASSWORD`
+
+> 💡 **Same-origin = simpler CORS.** Because the SPA and the API share the
+> apex host, the browser treats `fetch('/api/...')` as same-origin and
+> skips preflights. `ALLOWED_ORIGINS=https://studentalumni.ai` is still
+> required for explicit cross-origin tooling (curl, mobile apps, partners).
 
 ---
 
@@ -229,7 +247,7 @@ Open `https://app.studentalumni.ai` and sign in with the seeded admin:
 | Symptom | Cause | Fix |
 |---|---|---|
 | Frontend loads but every API call 404s | `EXPO_PUBLIC_BACKEND_URL` was missing or set as runtime env | Put it under **Build Args** and rebuild |
-| `CORS: response not allowed` in browser console | `ALLOWED_ORIGINS` doesn't include the frontend domain (or has a trailing slash) | `ALLOWED_ORIGINS=https://app.studentalumni.ai` — no trailing `/` |
+| `CORS: response not allowed` in browser console | `ALLOWED_ORIGINS` doesn't include the frontend domain (or has a trailing slash) | `ALLOWED_ORIGINS=https://studentalumni.ai` — no trailing `/` |
 | Backend container is **unhealthy** | Mongo URL wrong, IP not whitelisted, or DNS blocked | `docker logs studentalumni-backend`; whitelist VPS IP in Atlas → Network Access |
 | 401 on every request right after login | `JWT_SECRET` rotated between builds | Set a permanent `JWT_SECRET` (32+ random chars) and keep it stable |
 | Build OOM on small VPS | Expo web export needs ~3 GB RAM | Bump the swap: `sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile` |
@@ -349,8 +367,8 @@ no extra backup wiring is required beyond Atlas point-in-time backup.
 
 | Surface | URL | Service | Build path | Container port |
 | --- | --- | --- | --- | --- |
-| Student / Alumni / College / Mentor / Super-Admin web app | https://app.studentalumni.ai | `frontend` | `./frontend` | 80 |
-| REST API + Agent K | https://api.studentalumni.ai | `backend` | `./backend` | 8000 |
+| Student / Alumni / College / Mentor / Super-Admin web app | https://studentalumni.ai | `frontend` | `./frontend` | 80 |
+| REST API + Agent K | https://studentalumni.ai | `backend` | `./backend` | 8000 |
 | Apex (optional) | https://studentalumni.ai | redirect → `app.*` (Dokploy → Frontend → Domains → enable **"Redirect from root"**) | — | — |
 | `www` (optional) | https://www.studentalumni.ai | same redirect | — | — |
 

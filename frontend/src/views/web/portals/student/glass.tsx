@@ -440,6 +440,131 @@ const gb = StyleSheet.create({
 });
 
 /* ─────────────────────────────────────────────────────────────────
+ * AiCopilotFab — fixed floating action button that opens Agent K.
+ *
+ * Visible on every Student screen INCLUDING /agent-k itself. Sits at
+ * bottom-right, breathes with a soft violet glow, scales 1.08× on
+ * hover (web) and 0.96× on press (native). Z-index above scroll
+ * content via absolute positioning.
+ *
+ * Placement contract: render INSIDE the Student shell root (after the
+ * scroll content) so it overlays every embedded view.
+ * ───────────────────────────────────────────────────────────────── */
+export function AiCopilotFab({
+  onPress, label = 'Agent K', accessibilityLabel = 'Open AI Copilot — Agent K',
+}: {
+  onPress: () => void;
+  label?: string;
+  accessibilityLabel?: string;
+}) {
+  const [hover, setHover] = React.useState(false);
+  const [pressed, setPressed] = React.useState(false);
+
+  // Soft "breathing" glow loop
+  const pulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 1600, easing: Easing.inOut(Easing.quad), useNativeDriver: false }),
+        Animated.timing(pulse, { toValue: 0, duration: 1600, easing: Easing.inOut(Easing.quad), useNativeDriver: false }),
+      ]),
+    ).start();
+  }, [pulse]);
+
+  // Mount-in entrance
+  const opacity = useRef(new Animated.Value(0)).current;
+  const ty = useRef(new Animated.Value(16)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: 380, delay: 220,
+        easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(ty, { toValue: 0, duration: 380, delay: 220,
+        easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+    ]).start();
+  }, [opacity, ty]);
+
+  const glowOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.75] });
+
+  return (
+    <Animated.View
+      pointerEvents="box-none"
+      style={[fab.layer, { opacity, transform: [{ translateY: ty }] }]}
+    >
+      <Pressable
+        onPress={onPress}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
+        onHoverIn={Platform.OS === 'web' ? () => setHover(true) : undefined}
+        onHoverOut={Platform.OS === 'web' ? () => setHover(false) : undefined}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        testID="ai-copilot-fab"
+      >
+        <View style={fab.wrap}>
+          {/* breathing glow ring (behind the button) */}
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              fab.glow,
+              {
+                opacity: glowOpacity,
+                ...(Platform.OS === 'web' ? ({ filter: 'blur(20px)' } as any) : {}),
+              },
+            ]}
+          />
+          <LinearGradient
+            colors={[PALETTE.violet, PALETTE.violetD]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={[
+              fab.btn,
+              Platform.OS === 'web' && ({
+                boxShadow: hover
+                  ? '0 18px 44px rgba(139,92,246,0.55), 0 0 0 1px rgba(139,92,246,0.42)'
+                  : '0 12px 32px rgba(139,92,246,0.40), 0 0 0 1px rgba(139,92,246,0.28)',
+                transitionProperty: 'transform, box-shadow',
+                transitionDuration: '180ms',
+                transform: hover ? 'scale(1.08)' : pressed ? 'scale(0.96)' : 'scale(1)',
+                cursor: 'pointer',
+              } as any),
+            ]}
+          >
+            <Text style={fab.spark}>✦</Text>
+            <Text style={fab.label}>{label}</Text>
+          </LinearGradient>
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+const fab = StyleSheet.create({
+  layer: {
+    position: 'absolute',
+    right: 22,
+    bottom: 22,
+    zIndex: 1000,
+    ...(Platform.OS === 'web' ? ({ position: 'fixed' as any } as any) : {}),
+  },
+  wrap: { position: 'relative', alignItems: 'center', justifyContent: 'center' },
+  glow: {
+    position: 'absolute',
+    width: 80, height: 80,
+    borderRadius: 9999,
+    backgroundColor: PALETTE.violet,
+    top: -10, left: -10,
+  },
+  btn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8,
+    height: 56,
+    paddingHorizontal: 22,
+    borderRadius: 9999,
+  },
+  spark: { color: '#fff', fontSize: 18, fontFamily: TYPO.display700, lineHeight: 22 },
+  label: { color: '#fff', fontSize: 14, fontFamily: TYPO.body700, letterSpacing: 0.3 },
+});
+
+/* ─────────────────────────────────────────────────────────────────
  * RouteTransition — fade + 6px y-shift wrapper for view changes.
  *                   Wrap each view's root with this.
  * ───────────────────────────────────────────────────────────────── */

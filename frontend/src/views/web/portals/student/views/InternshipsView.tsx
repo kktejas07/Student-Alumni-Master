@@ -28,6 +28,7 @@ import {
 } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { GRAD } from '../portalkit';
+import { GlassCard } from '../glass';
 import { EmptyState, SuccessBurst } from '../EmptyState';
 import { SkeletonList } from '../motion';
 import { request } from '@/src/models/services/api';
@@ -281,7 +282,7 @@ function JobCard({ job, onSave, onApply }: { job: Job; onSave: (j: Job) => void;
   const salary = formatSalary(job);
 
   return (
-    <View style={s.row} testID={`job-card-${job.job_id}`}>
+    <GlassCard radius={12} padding={14} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
       <View style={[s.logo, { backgroundColor: logoBg }]}>
         <Text style={s.logoText}>{initials}</Text>
       </View>
@@ -342,7 +343,7 @@ function JobCard({ job, onSave, onApply }: { job: Job; onSave: (j: Job) => void;
           </Pressable>
         </View>
       </View>
-    </View>
+    </GlassCard>
   );
 }
 
@@ -398,7 +399,6 @@ const s = StyleSheet.create({
 
   metaCount: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 6 },
 
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 12, padding: 14 },
   logo: { width: 42, height: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   logoText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
   role: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 },

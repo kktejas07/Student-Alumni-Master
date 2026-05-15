@@ -10677,3 +10677,41 @@ agent_communication:
         /api/agent-k/scheduled* endpoints (suggested scope embedded
         in the task status_history above). No need to touch the existing
         /api/admin/super/events* endpoints — those are unchanged.
+
+
+    - agent: "main"
+      message: |
+        Implemented v0.19.0 — Global AI Copilot FAB + FinTax360 sweep
+        across remaining Student views.
+
+        Frontend changes (only — no backend changes):
+          · src/views/web/portals/student/glass.tsx
+              + new <AiCopilotFab /> primitive (fixed bottom-right
+                pill with breathing violet glow, hover-lift on web)
+          · src/views/web/portals/student/StudentPortalRN.tsx
+              + mounts <AiCopilotFab /> globally, wired to
+                router.push('/agent-k')
+          · frontend/app/agent-k.tsx
+              + imports AiCopilotFab (aliased StudentAiCopilotFab)
+                and mounts it when portal === 'student' so the FAB
+                is visible on Agent K itself per design contract
+          · Student views — replaced legacy <View style={s.card|s.row}>
+            with <GlassCard> (frosted blur + edge highlight +
+            staggered mount-in):
+              - EventsView
+              - NetworkView (also fixed missing LinearGradient/GRAD
+                imports that were a latent crash for non-connected
+                people cards)
+              - InternshipsView (JobCard rows)
+              - MyApplicationsView
+              - MyBookingsView (upcoming + cancelled)
+              - MyWorkshopsView (ongoing + completed)
+
+        Verification:
+          · Visual check via screenshot tool — FAB renders at
+            bottom-right of every Student view tested (Dashboard,
+            Events, Network). aria-label="Open AI Copilot — Agent K".
+          · Network view bug (undefined LinearGradient/GRAD) is now
+            resolved as a side-effect.
+          · No backend changes — no backend testing required.
+          · No new dependencies.
