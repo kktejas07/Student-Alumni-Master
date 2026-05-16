@@ -716,15 +716,15 @@ function SettingPickerModal({ setting, onSelect, onClose }: {
   setting: { key: string; label: string; value: string; options: { value: string; label: string }[] };
   onSelect: (v: string) => void; onClose: () => void;
 }) {
-  const isTextInput = setting.options.length === 0;
-  const isPassword = setting.key.toLowerCase().includes('secret') || setting.key.toLowerCase().includes('password');
-  const [textValue, setTextValue] = useState(setting.value);
+  const isTextInput = (setting.options || []).length === 0;
+  const isPassword = (setting.key || '').toLowerCase().includes('secret') || (setting.key || '').toLowerCase().includes('password');
+  const [textValue, setTextValue] = useState(setting.value || '');
   const [showPwd, setShowPwd] = useState(false);
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={s.pickerBackdrop} onPress={onClose}>
-        <Animated.View entering={FadeInDown.duration(220)} style={s.pickerCard}>
+        <Animated.View entering={FadeInDown.duration(220)} style={s.pickerCard} onStartShouldSetResponder={() => true}>
           <LinearGradient colors={GRAD_BG} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.pickerHero}>
             <View style={s.pickerIcon}>
               <Sliders size={16} color={GRAD_TO} />
@@ -739,27 +739,51 @@ function SettingPickerModal({ setting, onSelect, onClose }: {
           </LinearGradient>
           {isTextInput ? (
             <View style={{ padding: 16, gap: 12 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                backgroundColor: 'rgba(255,255,255,0.08)',
+                borderWidth: 1,
+                borderColor: 'rgba(251,146,60,0.40)',
+                borderRadius: 10,
+                paddingHorizontal: 12,
+                paddingVertical: 4,
+              }}>
                 <TextInput
-                  style={[s.textInput, { flex: 1, color: SAC.light, fontFamily: FONTS.regular, fontSize: 14 }]}
+                  style={{
+                    flex: 1,
+                    color: '#FFFFFF',
+                    fontSize: 14,
+                    fontFamily: 'DMSans_500Medium',
+                    paddingVertical: 10,
+                    outlineStyle: 'none',
+                  }}
                   value={textValue}
                   onChangeText={setTextValue}
                   placeholder={isPassword ? 'Enter secret value' : 'Enter value'}
-                  placeholderTextColor={SAC.dim}
+                  placeholderTextColor="rgba(255,255,255,0.35)"
                   secureTextEntry={isPassword && !showPwd}
                   autoFocus
+                  multiline={false}
                 />
                 {isPassword && (
-                  <Pressable onPress={() => setShowPwd(!showPwd)} style={{ padding: 8 }}>
-                    {showPwd ? <EyeOff size={16} color={SAC.muted} /> : <Eye size={16} color={SAC.muted} />}
+                  <Pressable onPress={() => setShowPwd(!showPwd)} style={{ padding: 4 }}>
+                    {showPwd ? <EyeOff size={18} color="rgba(255,255,255,0.6)" /> : <Eye size={18} color="rgba(255,255,255,0.6)" />}
                   </Pressable>
                 )}
               </View>
               <Pressable
                 onPress={() => { onSelect(textValue); onClose(); }}
-                style={{ backgroundColor: GRAD_TO, paddingVertical: 10, borderRadius: 8, alignItems: 'center' }}
+                style={{
+                  backgroundColor: GRAD_TO,
+                  paddingVertical: 12,
+                  borderRadius: 10,
+                  alignItems: 'center',
+                  ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+                }}
               >
-                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 14 }}>Save</Text>
+                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 14, fontWeight: '700' }}>Save</Text>
               </Pressable>
             </View>
           ) : (
