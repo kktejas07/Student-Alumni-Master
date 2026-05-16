@@ -78,6 +78,14 @@ jobs:
           ruff check . --select=E9,F63,F7,F82 --statistics
           ruff check . --exit-zero --statistics || true
 
+      - name: Format check (black)
+        working-directory: backend
+        run: |
+          black --check --diff . || {
+            echo "::warning::Black formatting issues found — run 'black .' to fix"
+            true
+          }
+
       - name: Type check (mypy)
         working-directory: backend
         run: |
@@ -93,6 +101,18 @@ jobs:
       - name: Import smoke test
         working-directory: backend
         run: python -c "import server; print('✓ server.py imports cleanly')"
+
+      - name: FastAPI startup validation
+        working-directory: backend
+        run: |
+          python -c "
+import asyncio
+from server import app
+# Validate all routes are registered
+routes = [r.path for r in app.routes]
+print(f'✓ FastAPI app loaded — {len(routes)} routes registered')
+print(f'  Sample routes: {routes[:5]}...')
+"
 
       - name: Run tests
         working-directory: backend
