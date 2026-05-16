@@ -2082,15 +2082,20 @@ async def auth_google(req: OAuthCallback):
     """Continue-with-Google flow.
 
     Real flow: client (Expo) opens Google OAuth → receives `id_token` → POSTs here.
-    Mock flow: client sends {email, full_name} directly (when no credentials configured).
-    Returns our JWT pair so the rest of the app remains agnostic of the provider.
+    The `id_token` must be a real Google JWT that is verified against the configured
+    GOOGLE_OAUTH_CLIENT_ID. Mock mode (passing email/full_name directly) is ONLY
+    allowed when ENV=development and no client_id is configured.
     """
     creds = await _get_oauth_creds()
-    profile = _verify_google_token(req.id_token, creds.get("google_oauth_client_id", ""))
+    client_id = creds.get("google_oauth_client_id", "")
+    profile = _verify_google_token(req.id_token, client_id) if req.id_token else None
     if profile is None:
-        if not req.email or not req.full_name:
-            raise HTTPException(400, "Missing email/full_name (mock OAuth requires these in dev mode)")
-        profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+        if not client_id and os.getenv("ENV") == "development":
+            if not req.email or not req.full_name:
+                raise HTTPException(400, "Development mock mode requires email/full_name")
+            profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+        else:
+            raise HTTPException(400, "Google OAuth requires a valid id_token. Configure google_oauth_client_id in platform settings or set ENV=development for mock mode.")
 
     user = await _upsert_oauth_user(
         provider="google",
@@ -2110,15 +2115,16 @@ async def auth_google(req: OAuthCallback):
 async def auth_linkedin(req: OAuthCallback):
     """Continue-with-LinkedIn flow. Same structure as /auth/google."""
     creds = await _get_oauth_creds()
-    profile = await _verify_linkedin_token(
-        req.access_token,
-        creds.get("linkedin_oauth_client_id", ""),
-        creds.get("linkedin_oauth_client_secret", ""),
-    )
+    client_id = creds.get("linkedin_oauth_client_id", "")
+    client_secret = creds.get("linkedin_oauth_client_secret", "")
+    profile = await _verify_linkedin_token(req.access_token, client_id, client_secret) if req.access_token else None
     if profile is None:
-        if not req.email or not req.full_name:
-            raise HTTPException(400, "Missing email/full_name (mock OAuth requires these in dev mode)")
-        profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+        if not client_id and os.getenv("ENV") == "development":
+            if not req.email or not req.full_name:
+                raise HTTPException(400, "Development mock mode requires email/full_name")
+            profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+        else:
+            raise HTTPException(400, "LinkedIn OAuth requires a valid access_token. Configure linkedin_oauth_client_id in platform settings or set ENV=development for mock mode.")
 
     user = await _upsert_oauth_user(
         provider="linkedin",
