@@ -2153,17 +2153,16 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
   return (
     <Animated.View entering={FadeIn.duration(180)} style={{ gap: 20 }}>
-      {/* The ID Card — front & back */}
-      <Pressable onPress={() => setFlipped(!flipped)} style={{ alignSelf: 'center', width: '100%', maxWidth: 540 }}>
-        <View style={{ position: 'relative', height: 440, width: '100%' }}>
+      {/* The ID Card — 3D CSS Flip */}
+      <Pressable onPress={() => setFlipped(!flipped)} style={{ alignSelf: 'center', width: '100%', maxWidth: 540, ...(Platform.OS === 'web' ? { perspective: 1000, WebkitPerspective: 1000 } as any : {}) }}>
+        <View style={{ position: 'relative', height: 440, width: '100%', transformStyle: 'preserve-3d' as any, ...(Platform.OS === 'web' ? { transition: 'transform 0.6s ease', transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)' } as any : {}), ...(Platform.OS !== 'web' ? { opacity: flipped ? 0 : 1 } as any : {}) }}>
           {/* FRONT: Identity */}
-          <View style={{ position: 'absolute', width: '100%', height: '100%', opacity: flipped ? 0 : 1, pointerEvents: flipped ? 'none' as any : 'auto' as any, zIndex: flipped ? 0 : 1, ...(Platform.OS === 'web' ? ({ transition: 'opacity 0.3s ease' } as any) : {}) }}>
+          <View style={{ position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' as any }}>
             <LinearGradient colors={['#FBBF24', '#F97316', '#B45309']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
               <View style={{ position: 'absolute', top: -10, right: -10, opacity: 0.08 }}>
                 <Text style={{ fontSize: 140, fontFamily: FONTS.xbold, color: '#1f1107', letterSpacing: -6 }}>SA</Text>
               </View>
               <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 22, padding: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(6px)' } as any) : {}) }}>
-                {/* Top row */}
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <View>
                     <Text style={s.idOrg}>{(data.org || 'Student Alumni').toUpperCase()}</Text>
@@ -2173,7 +2172,6 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
                     <Text style={s.idBadgeText}>SUPER ADMIN</Text>
                   </View>
                 </View>
-                {/* Profile photo + name */}
                 <View style={{ marginTop: 22, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
                   <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(31,17,7,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)', overflow: 'hidden' }}>
                     {data.photo ? (
@@ -2187,7 +2185,6 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
                     <Text style={s.idTitle}>{data.title} · {data.access_label}</Text>
                   </View>
                 </View>
-                {/* Admin ID + Issue */}
                 <View style={{ marginTop: 22 }}>
                   <View>
                     <Text style={s.idAdminLabel}>ADMIN ID</Text>
@@ -2206,8 +2203,8 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
             </LinearGradient>
           </View>
 
-          {/* BACK: Verification */}
-          <View style={{ position: 'absolute', width: '100%', height: '100%', opacity: flipped ? 1 : 0, pointerEvents: flipped ? 'auto' as any : 'none' as any, zIndex: flipped ? 1 : 0, ...(Platform.OS === 'web' ? ({ transition: 'opacity 0.3s ease' } as any) : {}) }}>
+          {/* BACK: Verification — pre-rotated 180deg so it faces away when parent is at 0deg */}
+          <View style={{ position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' as any, transform: [{ rotateY: '180deg' }] }}>
             <LinearGradient colors={['#FBBF24', '#F97316', '#B45309']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
               <View style={{ position: 'absolute', top: -10, right: -10, opacity: 0.08 }}>
                 <Text style={{ fontSize: 140, fontFamily: FONTS.xbold, color: '#1f1107', letterSpacing: -6 }}>SA</Text>
