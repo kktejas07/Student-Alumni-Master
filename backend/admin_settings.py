@@ -24,6 +24,8 @@ from pathlib import Path
 from pydantic import BaseModel
 import jwt as _jwt
 
+from core.roles import Role, Perm, SYSTEM_ROLES, seed_admin_roles
+
 load_dotenv(Path(__file__).parent / ".env")
 
 _mongo = AsyncIOMotorClient(os.environ["MONGO_URL"])
@@ -56,48 +58,39 @@ async def _require_admin(authorization: Optional[str]) -> dict:
     user = await _resolve_user(authorization)
     if not user:
         raise HTTPException(401, "Not authenticated")
-    if user.get("role") not in {"admin"}:
-        raise HTTPException(403, "Super-admin only")
+    if (user.get("role") or "").lower().strip() != Role.ADMIN:
+        raise HTTPException(403, "Admin access required")
     return user
 
 
 # ─── Permission catalog (read-only) ───────────────────────────────
 PERMISSIONS_CATALOG = [
-    {"id": "users.view",       "group": "Users",       "label": "View users"},
-    {"id": "users.edit",       "group": "Users",       "label": "Edit users"},
-    {"id": "users.delete",     "group": "Users",       "label": "Delete users"},
-    {"id": "users.export",     "group": "Users",       "label": "Export users to CSV"},
-    {"id": "colleges.view",    "group": "Colleges",    "label": "View colleges"},
-    {"id": "colleges.manage",  "group": "Colleges",    "label": "Add / edit colleges"},
-    {"id": "mentors.approve",  "group": "Mentors",     "label": "Approve mentor signups"},
-    {"id": "events.create",    "group": "Events",      "label": "Create events"},
-    {"id": "events.delete",    "group": "Events",      "label": "Delete events"},
-    {"id": "payments.view",    "group": "Payments",    "label": "View payments + transactions"},
-    {"id": "payments.refund",  "group": "Payments",    "label": "Issue refunds"},
-    {"id": "analytics.view",   "group": "Analytics",   "label": "View analytics dashboards"},
-    {"id": "settings.manage",  "group": "Settings",    "label": "Edit platform settings"},
-    {"id": "roles.manage",     "group": "Settings",    "label": "Create / edit roles"},
-    {"id": "marketplace.install", "group": "Settings", "label": "Install marketplace tools"},
-    {"id": "ai.run",           "group": "AI",          "label": "Run Agent K + AI tools"},
+    {"id": Perm.USERS_VIEW,       "group": "Users",       "label": "View users"},
+    {"id": Perm.USERS_EDIT,       "group": "Users",       "label": "Edit users"},
+    {"id": Perm.USERS_DELETE,     "group": "Users",       "label": "Delete users"},
+    {"id": Perm.USERS_EXPORT,     "group": "Users",       "label": "Export users to CSV"},
+    {"id": Perm.COLLEGES_VIEW,    "group": "Colleges",    "label": "View colleges"},
+    {"id": Perm.COLLEGES_MANAGE,  "group": "Colleges",    "label": "Add / edit colleges"},
+    {"id": Perm.MENTORS_APPROVE,  "group": "Mentors",     "label": "Approve mentor signups"},
+    {"id": Perm.EVENTS_CREATE,    "group": "Events",      "label": "Create events"},
+    {"id": Perm.EVENTS_DELETE,    "group": "Events",      "label": "Delete events"},
+    {"id": Perm.PAYMENTS_VIEW,    "group": "Payments",    "label": "View payments + transactions"},
+    {"id": Perm.PAYMENTS_REFUND,  "group": "Payments",    "label": "Issue refunds"},
+    {"id": Perm.ANALYTICS_VIEW,   "group": "Analytics",   "label": "View analytics dashboards"},
+    {"id": Perm.SETTINGS_MANAGE,  "group": "Settings",    "label": "Edit platform settings"},
+    {"id": Perm.ROLES_MANAGE,     "group": "Settings",    "label": "Create / edit roles"},
+    {"id": Perm.MARKETPLACE_INSTALL, "group": "Settings", "label": "Install marketplace tools"},
+    {"id": Perm.AI_RUN,           "group": "AI",          "label": "Run Agent K + AI tools"},
 ]
 
-
-# Built-in (system) roles seeded on first read
-SYSTEM_ROLES = [
-    {"key": "super_admin", "name": "Super Admin",   "description": "Full platform access. Cannot be edited.", "is_system": True, "permissions": [p["id"] for p in PERMISSIONS_CATALOG]},
-    {"key": "college_admin","name": "College Admin", "description": "Manages students and events for one college.", "is_system": True, "permissions": ["users.view","users.edit","colleges.view","events.create","events.delete","analytics.view"]},
-    {"key": "mentor",      "name": "Mentor",        "description": "Provides mentorship + workshops.",       "is_system": True, "permissions": ["users.view","events.create","analytics.view"]},
-    {"key": "support",     "name": "Support Agent", "description": "Read-only with limited mutate rights.",  "is_system": True, "permissions": ["users.view","payments.view","analytics.view"]},
-]
+# Note: SYSTEM_ROLES are now imported from core.roles (above).
+# The _ensure_system_roles function is replaced by seed_admin_roles() from core.roles.
 
 
 async def _ensure_system_roles():
-    for r in SYSTEM_ROLES:
-        await _db.admin_roles.update_one(
-            {"key": r["key"]},
-            {"$setOnInsert": {**r, "created_at": datetime.now(timezone.utc), "user_count": 0}},
-            upsert=True,
-        )
+    """Seed system roles into the database."""
+    from core.roles import seed_admin_roles
+    await seed_admin_roles(_db)
 
 
 @router.get("/admin/permissions")
