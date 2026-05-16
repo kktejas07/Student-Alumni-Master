@@ -2157,7 +2157,7 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
       <Pressable onPress={() => setFlipped(!flipped)} style={{ alignSelf: 'center', width: '100%', maxWidth: 540 }}>
         {!flipped ? (
           /* ─── FRONT: Identity ─── */
-          <Animated.View entering={FadeIn.duration(200)} style={{ minHeight: 440 }}>
+          <Animated.View style={{ minHeight: 440 }}>
             <LinearGradient colors={['#FBBF24', '#F97316', '#B45309']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
               <View style={{ position: 'absolute', top: -10, right: -10, opacity: 0.08 }}>
                 <Text style={{ fontSize: 140, fontFamily: FONTS.xbold, color: '#1f1107', letterSpacing: -6 }}>SA</Text>
@@ -2208,7 +2208,7 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
           </Animated.View>
         ) : (
           /* ─── BACK: Verification ─── */
-          <Animated.View entering={FadeIn.duration(200)} style={{ minHeight: 440 }}>
+          <Animated.View style={{ minHeight: 440 }}>
             <LinearGradient colors={['#FBBF24', '#F97316', '#B45309']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
               <View style={{ position: 'absolute', top: -10, right: -10, opacity: 0.08 }}>
                 <Text style={{ fontSize: 140, fontFamily: FONTS.xbold, color: '#1f1107', letterSpacing: -6 }}>SA</Text>
