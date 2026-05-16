@@ -201,8 +201,8 @@ jobs:
       - name: Build backend image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: Dockerfile.backend
+          context: ./backend
+          file: ./backend/Dockerfile
           push: false
           load: false
           tags: studentalumni-backend:ci
@@ -212,8 +212,8 @@ jobs:
       - name: Build frontend image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: Dockerfile.frontend
+          context: ./frontend
+          file: ./frontend/Dockerfile
           push: false
           load: false
           tags: studentalumni-frontend:ci
