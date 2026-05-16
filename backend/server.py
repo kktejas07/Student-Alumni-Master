@@ -1392,12 +1392,15 @@ async def verify_id_card(identifier: str):
         raise HTTPException(404, "Invalid ID")
 
     role = (u.get("role") or "").lower()
+    raw_role = role.replace("_", " ")
+    role_label = " ".join(w.capitalize() for w in raw_role.split()) or "Member"
     base = {
         "valid": True,
         "id": u.get("sa_id") or u.get("admin_id") or identifier,
         "full_name": u.get("full_name") or u.get("name") or "—",
         "email": u.get("email") or "—",
         "role": role,
+        "role_label": role_label,
         "org": u.get("org") or "Student Alumni",
         "status": _student_status_label(u),
         "photo": u.get("photo") or u.get("avatar_url") or "",

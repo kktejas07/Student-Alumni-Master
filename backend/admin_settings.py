@@ -593,18 +593,18 @@ async def get_admin_profile(authorization: Optional[str] = Header(None)):
         await _db.users.update_one({"_id": user["_id"]}, {"$set": {"admin_id": admin_id}})
     return {
         "id": uid,
-        "name": user.get("full_name") or user.get("name") or "Super Admin",
+        "name": user.get("full_name") or user.get("name") or "Administrator",
         "email": user.get("email"),
         "phone": user.get("phone") or "",
         "title": user.get("title") or "Platform Administrator",
-        "org": user.get("org") or "Student Alumni Pvt. Ltd.",
+        "org": user.get("org") or "Student Alumni",
         "signature": user.get("signature") or (
-            f"{user.get('full_name') or user.get('name') or 'Super Admin'}\n"
-            f"{user.get('title') or 'Platform Administrator'} · {user.get('org') or 'Student Alumni Pvt. Ltd.'}\n"
+            f"{user.get('full_name') or user.get('name') or 'Administrator'}\n"
+            f"{user.get('title') or 'Platform Administrator'} · {user.get('org') or 'Student Alumni'}\n"
             f"{user.get('email')}"
         ),
-        "role_label": "Super Admin",
-        "access_label": "Full Access",
+        "role_label": " ".join(w.capitalize() for w in (user.get("role") or "admin").replace("_", " ").split()),
+        "access_label": user.get("access_label") or "Full Access",
         "admin_id": admin_id,
         "platform_status": "Operational",
         "last_login": (user.get("last_login_at").isoformat() if user.get("last_login_at") else None),
@@ -1447,7 +1447,8 @@ async def get_digital_id(authorization: Optional[str] = Header(None)):
     if isinstance(issue_date, datetime):
         issue_date = issue_date.isoformat()
     expiry_date = (now + timedelta(days=365)).isoformat()
-    role_label = user.get("role", "").capitalize() or "Administrator"
+    raw_role = (user.get("role") or "").lower().replace("_", " ")
+    role_label = " ".join(w.capitalize() for w in raw_role.split()) or "Administrator"
     org = user.get("org") or "Student Alumni"
     title = user.get("title") or f"Platform {role_label}"
     access = user.get("access_label") or "Full Access"
@@ -1517,7 +1518,9 @@ async def get_share_link(authorization: Optional[str] = Header(None)):
     """Return a shareable profile link for the admin."""
     user = await _require_admin(authorization)
     admin_id = user.get("admin_id") or "SA-2024-000001"
+    raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
+    frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
     return {
-        "share_url": f"https://studentalumni.in/admin/profile/{admin_id}",
+        "share_url": f"{frontend_url}/admin/profile/{admin_id}",
         "admin_id": admin_id,
     }
