@@ -2153,7 +2153,7 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
     <Animated.View entering={FadeIn.duration(180)} style={{ gap: 16 }}>
       {/* The ID Card — 3D flip */}
       <Pressable onPress={() => setFlipped(!flipped)} style={{ alignSelf: 'center', width: '100%', maxWidth: 540 }}>
-        <Animated.View style={[{ position: 'relative', width: '100%' }, flipStyle]}>
+        <Animated.View style={[{ position: 'relative', width: '100%', minHeight: 240 }, flipStyle]}>
           {/* Front */}
           <View style={[StyleSheet.absoluteFill, { backfaceVisibility: 'hidden' }]}>
             <LinearGradient colors={['#FBBF24', '#F97316', '#B45309']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
@@ -2218,7 +2218,7 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
       </Pressable>
 
       {/* Actions */}
-      <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+      <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginTop: 24 }}>
         <Pressable onPress={copyId} style={s.idActionBtn}>
           <Copy size={13} color="#fff" />
           <Text style={s.idActionText}>Copy Admin ID</Text>
@@ -2234,7 +2234,7 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
       </View>
 
       {/* 4 feature cards */}
-      <View style={s.featGrid}>
+      <View style={[s.featGrid, { marginTop: 16 }]}>
         <FeatureCard icon={ShieldCheck} tint={SAC.green}    title="Verified Identity"   text="Your admin status is verified by the platform." />
         <FeatureCard icon={Building2}   tint="#3B82F6"      title="Platform Authority"  text={`Recognised across all ${data.colleges_count || 48} colleges.`} />
         <FeatureCard icon={QrCode}      tint="#A78BFA"      title="Instant Share"       text="Share QR at events or board meetings." />
