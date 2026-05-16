@@ -2145,87 +2145,157 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
   if (!data) return <Loading />;
 
+  const fmtDate = (iso: string) => {
+    if (!iso) return 'N/A';
+    try { return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }); }
+    catch { return iso.slice(0, 10); }
+  };
+
   return (
-    <Animated.View entering={FadeIn.duration(180)} style={{ gap: 24 }}>
-      {/* The ID Card — simple conditional render, no 3D flip */}
+    <Animated.View entering={FadeIn.duration(180)} style={{ gap: 20 }}>
+      {/* The ID Card — front & back */}
       <Pressable onPress={() => setFlipped(!flipped)} style={{ alignSelf: 'center', width: '100%', maxWidth: 540 }}>
         {!flipped ? (
           <Animated.View entering={FadeIn.duration(200)}>
             <LinearGradient colors={['#FBBF24', '#F97316', '#B45309']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                <View>
-                  <Text style={s.idOrg}>{(data.org || 'Student Alumni').toUpperCase()}</Text>
-                  <Text style={s.idLabel}>{data.label || 'OFFICIAL ID'}</Text>
-                </View>
-                <View style={s.idBadge}>
-                  <Text style={s.idBadgeText}>SUPER ADMIN</Text>
-                </View>
+              {/* Watermark logo */}
+              <View style={{ position: 'absolute', top: -10, right: -10, opacity: 0.08 }}>
+                <Text style={{ fontSize: 140, fontFamily: FONTS.xbold, color: '#1f1107', letterSpacing: -6 }}>SA</Text>
               </View>
-              <View style={{ marginTop: 28 }}>
-                <Text style={s.idName}>{data.name}</Text>
-                <Text style={s.idTitle}>{data.title} · {data.access_label}</Text>
-              </View>
-              <View style={{ marginTop: 20, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-                <View>
-                  <Text style={s.idAdminLabel}>ADMIN ID</Text>
-                  <Text style={s.idAdminVal}>{data.admin_id}</Text>
+              {/* Glassmorphism overlay */}
+              <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 22, padding: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(6px)' } as any) : {}) }}>
+                {/* Top row */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <MaterialCommunityIcons name="contactless-payment" size={18} color="rgba(31,17,7,0.5)" />
+                    <View>
+                      <Text style={s.idOrg}>{(data.org || 'Student Alumni').toUpperCase()}</Text>
+                      <Text style={s.idLabel}>{data.label || 'OFFICIAL ID'}</Text>
+                    </View>
+                  </View>
+                  <View style={s.idBadge}>
+                    <Text style={s.idBadgeText}>SUPER ADMIN</Text>
+                  </View>
                 </View>
-                <View style={s.qrBox}>
-                  {data.qr_code_base64 ? (
-                    <Image source={{ uri: `data:image/png;base64,${data.qr_code_base64}` }} style={{ width: 70, height: 70 }} resizeMode="contain" />
-                  ) : (
-                    <QrCode size={56} color="#1f1107" strokeWidth={1.5} />
-                  )}
+                {/* Profile photo + name */}
+                <View style={{ marginTop: 20, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                  <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(31,17,7,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)', overflow: 'hidden' }}>
+                    {data.photo ? (
+                      <Image source={{ uri: data.photo }} style={{ width: 64, height: 64 }} resizeMode="cover" />
+                    ) : (
+                      <UserCog size={28} color="rgba(31,17,7,0.5)" />
+                    )}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.idName}>{data.name}</Text>
+                    <Text style={s.idTitle}>{data.title} · {data.access_label}</Text>
+                  </View>
                 </View>
-              </View>
-              <View style={{ marginTop: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
-                <Text style={s.idFlipHint}>Tap to scan QR</Text>
-                <ChevronRight size={12} color="rgba(31,17,7,0.7)" />
+                {/* Admin ID + QR */}
+                <View style={{ marginTop: 20, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+                  <View style={{ gap: 6 }}>
+                    <View>
+                      <Text style={s.idAdminLabel}>ADMIN ID</Text>
+                      <Text style={s.idAdminVal}>{data.admin_id}</Text>
+                    </View>
+                    <View>
+                      <Text style={s.idAdminLabel}>ISSUED</Text>
+                      <Text style={{ color: 'rgba(31,17,7,0.75)', fontFamily: FONTS.bold, fontSize: 12 }}>{fmtDate(data.issue_date)}</Text>
+                    </View>
+                  </View>
+                  <View style={s.qrBox}>
+                    {data.qr_code_base64 ? (
+                      <Image source={{ uri: `data:image/png;base64,${data.qr_code_base64}` }} style={{ width: 70, height: 70 }} resizeMode="contain" />
+                    ) : (
+                      <QrCode size={56} color="#1f1107" strokeWidth={1.5} />
+                    )}
+                  </View>
+                </View>
+                {/* Hologram badge + flip hint */}
+                <View style={{ marginTop: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <LinearGradient colors={['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#ff6b6b']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 8, color: '#fff', letterSpacing: 1 }}>HOLOGRAM</Text>
+                    </LinearGradient>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Text style={s.idFlipHint}>Tap to view details</Text>
+                    <ChevronRight size={12} color="rgba(31,17,7,0.7)" />
+                  </View>
+                </View>
               </View>
             </LinearGradient>
           </Animated.View>
         ) : (
           <Animated.View entering={FadeIn.duration(200)}>
             <LinearGradient colors={['#FBBF24', '#F97316', '#B45309']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                <View>
-                  <Text style={s.idOrg}>{(data.org || 'Student Alumni').toUpperCase()}</Text>
-                  <Text style={s.idLabel}>VERIFIED CREDENTIAL</Text>
-                </View>
-                <View style={[s.idBadge, { backgroundColor: 'rgba(22,163,74,0.25)', borderColor: 'rgba(22,163,74,0.4)' }]}>
-                  <Text style={[s.idBadgeText, { color: '#166534' }]}>VERIFIED</Text>
-                </View>
+              {/* Watermark logo */}
+              <View style={{ position: 'absolute', top: -10, right: -10, opacity: 0.08 }}>
+                <Text style={{ fontSize: 140, fontFamily: FONTS.xbold, color: '#1f1107', letterSpacing: -6 }}>SA</Text>
               </View>
-              <View style={{ marginTop: 24, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <View style={{ gap: 16 }}>
-                  <View>
-                    <Text style={s.idAdminLabel}>EMAIL</Text>
-                    <Text style={[s.idAdminVal, { fontSize: 15 }]}>{data.email || 'admin@careerpath.app'}</Text>
+              {/* Glassmorphism overlay */}
+              <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 22, padding: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(6px)' } as any) : {}) }}>
+                {/* Top row */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <MaterialCommunityIcons name="contactless-payment" size={18} color="rgba(31,17,7,0.5)" />
+                    <View>
+                      <Text style={s.idOrg}>{(data.org || 'Student Alumni').toUpperCase()}</Text>
+                      <Text style={s.idLabel}>VERIFIED CREDENTIAL</Text>
+                    </View>
                   </View>
-                  <View>
-                    <Text style={s.idAdminLabel}>ROLE</Text>
-                    <Text style={[s.idAdminVal, { fontSize: 15 }]}>Super Administrator</Text>
-                  </View>
-                  <View>
-                    <Text style={s.idAdminLabel}>COLLEGES</Text>
-                    <Text style={[s.idAdminVal, { fontSize: 15 }]}>{data.colleges_count || 74} verified institutions</Text>
-                  </View>
-                  <View>
-                    <Text style={s.idAdminLabel}>ACCESS</Text>
-                    <Text style={[s.idAdminVal, { fontSize: 15 }]}>{data.access_label || 'Full Access'}</Text>
+                  <View style={[s.idBadge, { backgroundColor: 'rgba(22,163,74,0.25)', borderColor: 'rgba(22,163,74,0.4)' }]}>
+                    <Text style={[s.idBadgeText, { color: '#166534' }]}>VERIFIED</Text>
                   </View>
                 </View>
-                <View style={s.qrBox}>
-                  {data.qr_code_base64 ? (
-                    <Image source={{ uri: `data:image/png;base64,${data.qr_code_base64}` }} style={{ width: 70, height: 70 }} resizeMode="contain" />
-                  ) : (
-                    <QrCode size={56} color="#1f1107" strokeWidth={1.5} />
-                  )}
+                {/* Details grid */}
+                <View style={{ marginTop: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <View style={{ gap: 14 }}>
+                    <View>
+                      <Text style={s.idAdminLabel}>EMAIL</Text>
+                      <Text style={[s.idAdminVal, { fontSize: 14 }]}>{data.email || 'admin@careerpath.app'}</Text>
+                    </View>
+                    <View>
+                      <Text style={s.idAdminLabel}>ROLE</Text>
+                      <Text style={[s.idAdminVal, { fontSize: 14 }]}>Super Administrator</Text>
+                    </View>
+                    <View>
+                      <Text style={s.idAdminLabel}>COLLEGES</Text>
+                      <Text style={[s.idAdminVal, { fontSize: 14 }]}>{data.colleges_count || 74} verified</Text>
+                    </View>
+                    <View>
+                      <Text style={s.idAdminLabel}>ACCESS</Text>
+                      <Text style={[s.idAdminVal, { fontSize: 14 }]}>{data.access_label || 'Full Access'}</Text>
+                    </View>
+                    <View>
+                      <Text style={s.idAdminLabel}>EXPIRES</Text>
+                      <Text style={{ color: 'rgba(31,17,7,0.75)', fontFamily: FONTS.bold, fontSize: 12 }}>{fmtDate(data.expiry_date)}</Text>
+                    </View>
+                  </View>
+                  <View style={{ alignItems: 'center', gap: 8 }}>
+                    <View style={s.qrBox}>
+                      {data.qr_code_base64 ? (
+                        <Image source={{ uri: `data:image/png;base64,${data.qr_code_base64}` }} style={{ width: 70, height: 70 }} resizeMode="contain" />
+                      ) : (
+                        <QrCode size={56} color="#1f1107" strokeWidth={1.5} />
+                      )}
+                    </View>
+                    {/* NFC chip visual */}
+                    <View style={{ width: 32, height: 24, borderRadius: 4, backgroundColor: 'rgba(31,17,7,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(31,17,7,0.2)' }}>
+                      <MaterialCommunityIcons name="nfc" size={14} color="rgba(31,17,7,0.5)" />
+                    </View>
+                  </View>
                 </View>
-              </View>
-              <View style={{ marginTop: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
-                <Text style={s.idFlipHint}>Tap to flip back</Text>
-                <ChevronRight size={12} color="rgba(31,17,7,0.7)" />
+                {/* Hologram badge + flip hint */}
+                <View style={{ marginTop: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <LinearGradient colors={['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#ff6b6b']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 }}>
+                    <Text style={{ fontFamily: FONTS.bold, fontSize: 8, color: '#fff', letterSpacing: 1 }}>HOLOGRAM</Text>
+                  </LinearGradient>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Text style={s.idFlipHint}>Tap to flip back</Text>
+                    <ChevronRight size={12} color="rgba(31,17,7,0.7)" />
+                  </View>
+                </View>
               </View>
             </LinearGradient>
           </Animated.View>
@@ -2690,7 +2760,7 @@ const s = StyleSheet.create({
 
   // Digital ID
   idCard: {
-    padding: 26, borderRadius: 22,
+    padding: 6, borderRadius: 22,
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 30px 70px rgba(217,119,6,0.30)' } as any) : { shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 30, shadowOffset: { width: 0, height: 18 } }),
   },
   idOrg: { color: 'rgba(31,17,7,0.75)', fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 2 },
