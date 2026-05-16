@@ -1276,7 +1276,7 @@ def _generate_sa_id() -> str:
 
 
 def _student_status_label(user: dict) -> dict:
-    """Compute display status (Final Year / Pre-Final / Junior / Alumni / etc.)."""
+    """Compute display status for any user role. Returns label + color."""
     role = (user.get("role") or "").lower()
     if role == "alumni":
         return {"label": "Alumni", "color": "#A78BFA"}
@@ -1284,6 +1284,8 @@ def _student_status_label(user: dict) -> dict:
         return {"label": "Mentor", "color": "#F59E0B"}
     if role == "college":
         return {"label": "Institution", "color": "#22D3EE"}
+    if role == "admin":
+        return {"label": "Super Admin" if user.get("is_super_admin") else "Admin", "color": "#10B981"}
     si = user.get("school_info") or {}
     cls = (si.get("class_or_year") or si.get("current_course") or "").lower()
     gy = si.get("graduation_year")
@@ -1391,9 +1393,17 @@ async def verify_id_card(identifier: str):
     if not u:
         raise HTTPException(404, "Invalid ID")
 
-    role = (u.get("role") or "").lower()
-    raw_role = role.replace("_", " ")
-    role_label = " ".join(w.capitalize() for w in raw_role.split()) or "Member"
+    role = (u.get("role") or "").lower().strip()
+    is_super = u.get("is_super_admin", False)
+    ROLE_LABELS = {
+        "admin": "Super Admin" if is_super else "Admin",
+        "student": "Student",
+        "alumni": "Alumni",
+        "mentor": "Mentor",
+        "college": "College",
+        "college_admin": "College Admin",
+    }
+    role_label = ROLE_LABELS.get(role) or " ".join(w.capitalize() for w in role.replace("_", " ").split()) or "Member"
     base = {
         "valid": True,
         "id": u.get("sa_id") or u.get("admin_id") or identifier,
@@ -1448,7 +1458,7 @@ async def verify_id_card(identifier: str):
         base["students_count"] = ci.get("students_count") or ""
         base["affiliation"] = ci.get("affiliation") or ""
 
-    elif role in ("admin", "superadmin", "super_admin"):
+    elif role == "admin":
         colleges_count = await db.colleges.count_documents({}) or 0
         base["title"] = u.get("title") or ""
         base["access_label"] = u.get("access_label") or "Full Access"

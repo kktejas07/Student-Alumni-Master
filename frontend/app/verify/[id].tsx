@@ -192,7 +192,7 @@ export default function VerifyScreen() {
             </>
           )}
 
-          {(role === 'admin' || role === 'superadmin' || role === 'super_admin') && (
+          {role === 'admin' && (
             <>
               <DetailRow icon={Award} label="Title" value={data.title} />
               <DetailRow icon={ShieldCheck} label="Access" value={data.access_label} />

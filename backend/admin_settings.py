@@ -56,7 +56,7 @@ async def _require_admin(authorization: Optional[str]) -> dict:
     user = await _resolve_user(authorization)
     if not user:
         raise HTTPException(401, "Not authenticated")
-    if user.get("role") not in {"superadmin", "super_admin", "admin"}:
+    if user.get("role") not in {"admin"}:
         raise HTTPException(403, "Super-admin only")
     return user
 
@@ -588,7 +588,7 @@ async def get_admin_profile(authorization: Optional[str] = Header(None)):
     # admin_id is generated once per user
     admin_id = user.get("admin_id")
     if not admin_id:
-        seq = await _db.users.count_documents({"role": {"$in": ["superadmin", "super_admin", "admin"]}})
+        seq = await _db.users.count_documents({"role": {"$in": ["admin"]}})
         admin_id = f"SA-2024-{seq:06d}"
         await _db.users.update_one({"_id": user["_id"]}, {"$set": {"admin_id": admin_id}})
     return {
@@ -603,7 +603,13 @@ async def get_admin_profile(authorization: Optional[str] = Header(None)):
             f"{user.get('title') or 'Platform Administrator'} · {user.get('org') or 'Student Alumni'}\n"
             f"{user.get('email')}"
         ),
-        "role_label": " ".join(w.capitalize() for w in (user.get("role") or "admin").replace("_", " ").split()),
+        "role_label": "Super Admin" if user.get("is_super_admin") else ({
+            "admin": "Admin",
+            "student": "Student",
+            "alumni": "Alumni",
+            "mentor": "Mentor",
+            "college": "College",
+        }.get((user.get("role") or "").lower().strip()) or " ".join(w.capitalize() for w in (user.get("role") or "admin").replace("_", " ").split())),
         "access_label": user.get("access_label") or "Full Access",
         "admin_id": admin_id,
         "platform_status": "Operational",
@@ -653,8 +659,7 @@ async def get_role_detail(role_id: str, authorization: Optional[str] = Header(No
         role = await _db.admin_roles.find_one({"key": role_id})
     if not role:
         # synthesise stub for system roles defined only in code
-        from admin_settings import DEFAULT_SYSTEM_ROLES  # type: ignore[attr-defined]
-        for sr in DEFAULT_SYSTEM_ROLES if 'DEFAULT_SYSTEM_ROLES' in dir() else []:
+        for sr in SYSTEM_ROLES:
             if sr.get("key") == role_id:
                 role = sr
                 break
@@ -1438,7 +1443,7 @@ async def get_digital_id(authorization: Optional[str] = Header(None)):
     user = await _require_admin(authorization)
     admin_id = user.get("admin_id")
     if not admin_id:
-        seq = await _db.users.count_documents({"role": {"$in": ["superadmin", "super_admin", "admin"]}})
+        seq = await _db.users.count_documents({"role": {"$in": ["admin"]}})
         admin_id = f"SA-2024-{seq:06d}"
         await _db.users.update_one({"_id": user["_id"]}, {"$set": {"admin_id": admin_id}})
     from datetime import datetime, timedelta
@@ -1447,8 +1452,17 @@ async def get_digital_id(authorization: Optional[str] = Header(None)):
     if isinstance(issue_date, datetime):
         issue_date = issue_date.isoformat()
     expiry_date = (now + timedelta(days=365)).isoformat()
-    raw_role = (user.get("role") or "").lower().replace("_", " ")
-    role_label = " ".join(w.capitalize() for w in raw_role.split()) or "Administrator"
+    raw_role = (user.get("role") or "").lower().strip()
+    is_super = user.get("is_super_admin", False)
+    ROLE_LABELS = {
+        "admin": "Super Admin" if is_super else "Admin",
+        "student": "Student",
+        "alumni": "Alumni",
+        "mentor": "Mentor",
+        "college": "College",
+        "college_admin": "College Admin",
+    }
+    role_label = ROLE_LABELS.get(raw_role) or " ".join(w.capitalize() for w in raw_role.replace("_", " ").split()) or "Administrator"
     org = user.get("org") or "Student Alumni"
     title = user.get("title") or f"Platform {role_label}"
     access = user.get("access_label") or "Full Access"

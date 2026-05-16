@@ -128,7 +128,7 @@ export default function LoginScreen() {
       trackAuth({ event: 'login_success', email, role: data.user.role });
       // Navigate based on role
       const r = (data.user.role || '').toLowerCase();
-      if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
+      if (r === 'admin') router.replace('/super-admin');
       else if (r === 'mentor') router.replace('/mentor-portal');
       else if (r === 'college') router.replace('/college-portal');
       else if (r === 'alumni') router.replace('/alumni-portal');
@@ -163,7 +163,7 @@ export default function LoginScreen() {
       setTokens(data.access_token, data.refresh_token);
       trackAuth({ event: 'login_success', email: oauthEmail, role: data.user.role });
       const r = (data.user.role || '').toLowerCase();
-      if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
+      if (r === 'admin') router.replace('/super-admin');
       else if (r === 'mentor') router.replace('/mentor-portal');
       else if (r === 'college') router.replace('/college-portal');
       else if (r === 'alumni') router.replace('/alumni-portal');

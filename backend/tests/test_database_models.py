@@ -249,7 +249,7 @@ class TestDataIntegrity:
 
     def test_user_has_valid_role(self):
         """All users should have valid role enum"""
-        valid_roles = ["student", "alumni", "mentor", "college", "admin", "super_admin"]
+        valid_roles = ["student", "alumni", "mentor", "college", "admin"]
         assert len(valid_roles) >= 6
 
     def test_booking_references_valid_user(self):
