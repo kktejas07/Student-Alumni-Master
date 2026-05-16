@@ -1441,26 +1441,61 @@ async def get_digital_id(authorization: Optional[str] = Header(None)):
         seq = await _db.users.count_documents({"role": {"$in": ["superadmin", "super_admin", "admin"]}})
         admin_id = f"SA-2024-{seq:06d}"
         await _db.users.update_one({"_id": user["_id"]}, {"$set": {"admin_id": admin_id}})
-    qr_data = f"SA-ID:{admin_id}|{user.get('email', '')}|admin"
-    qr_base64 = _generate_qr_code(qr_data)
     from datetime import datetime, timedelta
     now = datetime.utcnow()
-    issue_date = now.isoformat()
+    issue_date = user.get("sa_id_issued_at") or now.isoformat()
+    if isinstance(issue_date, datetime):
+        issue_date = issue_date.isoformat()
     expiry_date = (now + timedelta(days=365)).isoformat()
+    role_label = user.get("role", "").capitalize() or "Administrator"
+    org = user.get("org") or "Student Alumni"
+    title = user.get("title") or f"Platform {role_label}"
+    access = user.get("access_label") or "Full Access"
+    colleges_count = await _db.colleges.count_documents({}) or 0
+    frontend_url = os.environ.get("FRONTEND_URL", "").rstrip("/") or "https://studentalumni.ai"
+    verify_url = f"{frontend_url}/admin/verify/{admin_id}"
+    qr_data = verify_url
+    qr_base64 = _generate_qr_code(qr_data)
     return {
         "admin_id": admin_id,
-        "name": user.get("full_name") or "Super Admin",
-        "email": user.get("email") or "admin@careerpath.app",
+        "name": user.get("full_name") or user.get("name") or "Administrator",
+        "email": user.get("email") or "",
         "photo": user.get("photo") or user.get("avatar_url") or "",
-        "title": "Platform Administrator",
-        "access_label": "Full Access",
-        "org": "Student Alumni",
+        "title": title,
+        "role_label": role_label,
+        "access_label": access,
+        "org": org,
         "label": "OFFICIAL ID",
         "verified": True,
-        "colleges_count": await _db.colleges.count_documents({}) or 48,
-        "issue_date": issue_date,
+        "colleges_count": colleges_count,
+        "issue_date": str(issue_date),
         "expiry_date": expiry_date,
         "qr_code_base64": qr_base64,
+        "verify_url": verify_url,
+    }
+
+
+@router.get("/admin/digital-id/verify/{admin_id}")
+async def verify_admin_digital_id(admin_id: str):
+    """Public endpoint — anyone scanning the QR code gets non-sensitive details."""
+    u = await _db.users.find_one(
+        {"admin_id": admin_id},
+        {"password_hash": 0, "phone": 0, "two_fa_secret": 0, "face_image_base64": 0},
+    )
+    if not u:
+        raise HTTPException(404, "Invalid Admin ID")
+    colleges_count = await _db.colleges.count_documents({}) or 0
+    return {
+        "valid": True,
+        "admin_id": admin_id,
+        "name": u.get("full_name") or u.get("name") or "—",
+        "email": u.get("email") or "—",
+        "title": u.get("title") or "Platform Administrator",
+        "role": (u.get("role") or "admin").capitalize(),
+        "org": u.get("org") or "Student Alumni",
+        "colleges_count": colleges_count,
+        "verified": True,
+        "issued_at": str(u.get("sa_id_issued_at") or u.get("created_at") or ""),
     }
 
 

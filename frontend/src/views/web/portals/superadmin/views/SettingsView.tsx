@@ -2163,6 +2163,7 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
                 <Text style={{ fontSize: 140, fontFamily: FONTS.xbold, color: '#1f1107', letterSpacing: -6 }}>SA</Text>
               </View>
               <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 22, padding: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(6px)' } as any) : {}) }}>
+                {/* Top row */}
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <View>
                     <Text style={s.idOrg}>{(data.org || 'Student Alumni').toUpperCase()}</Text>
@@ -2195,10 +2196,8 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
                     <Text style={{ color: 'rgba(31,17,7,0.75)', fontFamily: FONTS.bold, fontSize: 12 }}>{fmtDate(data.issue_date)}</Text>
                   </View>
                 </View>
-                <View style={{ marginTop: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <LinearGradient colors={['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#ff6b6b']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 }}>
-                    <Text style={{ fontFamily: FONTS.bold, fontSize: 8, color: '#fff', letterSpacing: 1 }}>HOLOGRAM</Text>
-                  </LinearGradient>
+                <View style={{ flex: 1 }} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                     <Text style={s.idFlipHint}>Tap for verification</Text>
                     <ChevronRight size={12} color="rgba(31,17,7,0.7)" />
@@ -2232,7 +2231,7 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
                     </View>
                     <View>
                       <Text style={s.idAdminLabel}>ROLE</Text>
-                      <Text style={[s.idAdminVal, { fontSize: 14 }]}>Super Administrator</Text>
+                      <Text style={[s.idAdminVal, { fontSize: 14 }]}>{data.role_label || 'Administrator'}</Text>
                     </View>
                     <View>
                       <Text style={s.idAdminLabel}>COLLEGES</Text>
@@ -2261,10 +2260,7 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
                     </View>
                   </View>
                 </View>
-                <View style={{ marginTop: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <LinearGradient colors={['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#ff6b6b']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 }}>
-                    <Text style={{ fontFamily: FONTS.bold, fontSize: 8, color: '#fff', letterSpacing: 1 }}>HOLOGRAM</Text>
-                  </LinearGradient>
+                <View style={{ marginTop: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                     <Text style={s.idFlipHint}>Tap to flip back</Text>
                     <ChevronRight size={12} color="rgba(31,17,7,0.7)" />
