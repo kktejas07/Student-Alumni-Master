@@ -603,7 +603,7 @@ async def get_admin_profile(authorization: Optional[str] = Header(None)):
             f"{user.get('title') or 'Platform Administrator'} · {user.get('org') or 'Student Alumni'}\n"
             f"{user.get('email')}"
         ),
-        "role_label": ({
+        "role_label": "Super Admin" if user.get("is_super_admin") else ({
             "admin": "Admin",
             "student": "Student",
             "alumni": "Alumni",
@@ -1454,8 +1454,9 @@ async def get_digital_id(authorization: Optional[str] = Header(None)):
         issue_date = issue_date.isoformat()
     expiry_date = (now + timedelta(days=365)).isoformat()
     raw_role = (user.get("role") or "").lower().strip()
+    is_super = user.get("is_super_admin", False)
     ROLE_LABELS = {
-        "admin": "Admin",
+        "admin": "Super Admin" if is_super else "Admin",
         "student": "Student",
         "alumni": "Alumni",
         "mentor": "Mentor",

@@ -1285,7 +1285,7 @@ def _student_status_label(user: dict) -> dict:
     if role == "college":
         return {"label": "Institution", "color": "#22D3EE"}
     if role == "admin":
-        return {"label": "Administrator", "color": "#10B981"}
+        return {"label": "Super Admin" if user.get("is_super_admin") else "Admin", "color": "#10B981"}
     si = user.get("school_info") or {}
     cls = (si.get("class_or_year") or si.get("current_course") or "").lower()
     gy = si.get("graduation_year")
@@ -1394,8 +1394,9 @@ async def verify_id_card(identifier: str):
         raise HTTPException(404, "Invalid ID")
 
     role = (u.get("role") or "").lower().strip()
+    is_super = u.get("is_super_admin", False)
     ROLE_LABELS = {
-        "admin": "Admin",
+        "admin": "Super Admin" if is_super else "Admin",
         "student": "Student",
         "alumni": "Alumni",
         "mentor": "Mentor",
