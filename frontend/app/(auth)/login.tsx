@@ -50,6 +50,16 @@ export default function LoginScreen() {
   const [pwdError, setPwdError] = useState('');
   const [exists, setExists] = useState<boolean | null>(null);
   const [oauthModal, setOauthModal] = useState<{ provider: 'google' | 'linkedin'; name: string; email: string } | null>(null);
+  const [oauthCfg, setOauthCfg] = useState<{ google_client_id: string; linkedin_client_id: string; redirect_uri: string; configured: boolean } | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${BASE}/api/auth/oauth-config`);
+        if (res.ok) setOauthCfg(await res.json());
+      } catch {}
+    })();
+  }, []);
 
   const setUser = useAuthStore((s) => s.setUser);
   const setTokens = useAuthStore((s) => s.setTokens);
@@ -188,10 +198,24 @@ export default function LoginScreen() {
       {/* OAuth row */}
       <View style={s.oauthRow}>
         <View style={{ flex: 1 }}>
-          <OutlineButton label="Google" icon={<GoogleG size={16} />} onPress={() => setOauthModal({ provider: 'google', name: '', email: '' })} />
+          <OutlineButton label="Google" icon={<GoogleG size={16} />} onPress={() => {
+            if (oauthCfg?.google_client_id && Platform.OS === 'web') {
+              const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${oauthCfg.google_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&response_type=id_token&scope=openid%20email%20profile&nonce=${Math.random().toString(36)}`;
+              window.open(url, '_blank', 'width=600,height=700');
+            } else {
+              setOauthModal({ provider: 'google', name: '', email: '' });
+            }
+          }} />
         </View>
         <View style={{ flex: 1 }}>
-          <OutlineButton label="LinkedIn" icon={<LinkedInIn size={16} />} onPress={() => setOauthModal({ provider: 'linkedin', name: '', email: '' })} />
+          <OutlineButton label="LinkedIn" icon={<LinkedInIn size={16} />} onPress={() => {
+            if (oauthCfg?.linkedin_client_id && Platform.OS === 'web') {
+              const url = `https://www.linkedin.com/oauth/v2/authorization?client_id=${oauthCfg.linkedin_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&response_type=code&scope=openid%20email%20profile`;
+              window.open(url, '_blank', 'width=600,height=700');
+            } else {
+              setOauthModal({ provider: 'linkedin', name: '', email: '' });
+            }
+          }} />
         </View>
       </View>
 
@@ -251,6 +275,13 @@ export default function LoginScreen() {
           <View style={s.modal}>
             <Text style={s.modalTitle}>Continue with {oauthModal.provider === 'google' ? 'Google' : 'LinkedIn'}</Text>
             <Text style={s.modalSub}>Enter your details to continue</Text>
+            {!oauthCfg?.configured && (
+              <View style={{ marginBottom: 12, padding: 10, borderRadius: 8, backgroundColor: 'rgba(251,191,36,0.12)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.25)' }}>
+                <Text style={{ color: '#fbbf24', fontFamily: FONTS.med, fontSize: 11, textAlign: 'center' }}>
+                  OAuth not configured — enter details directly (development mode)
+                </Text>
+              </View>
+            )}
             <AuthInput
               label="Full Name"
               value={oauthModal.name}

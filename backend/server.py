@@ -2122,6 +2122,21 @@ async def _get_oauth_creds() -> dict:
     return settings
 
 
+@api_router.get("/auth/oauth-config")
+async def oauth_config():
+    """Returns OAuth client IDs and redirect URI for frontend login buttons.
+    Only returns client IDs (safe), never secrets. If not configured, returns empty strings."""
+    creds = await _get_oauth_creds()
+    raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
+    frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
+    return {
+        "google_client_id": creds.get("google_oauth_client_id", ""),
+        "linkedin_client_id": creds.get("linkedin_oauth_client_id", ""),
+        "redirect_uri": f"{frontend_url}/api/auth/callback",
+        "configured": bool(creds.get("google_oauth_client_id")) or bool(creds.get("linkedin_oauth_client_id")),
+    }
+
+
 def _verify_google_token(id_token: Optional[str], client_id: str = "") -> Optional[dict]:
     """Verify a Google ID token if credentials are configured, else return None (mock fallback)."""
     if not id_token or not client_id:
