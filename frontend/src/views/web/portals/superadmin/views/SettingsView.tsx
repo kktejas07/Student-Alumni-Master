@@ -2186,26 +2186,46 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
           </Animated.View>
         ) : (
           <Animated.View entering={FadeIn.duration(200)}>
-            <LinearGradient colors={['#1f1107', '#2D1B0E', '#3D2510']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[s.idCard, { alignItems: 'center', paddingVertical: 36 }]}>
-              <View style={{ alignItems: 'center', gap: 14 }}>
-                <View style={{ alignItems: 'center' }}>
-                  <Text style={s.flipOrg}>SCAN TO VERIFY</Text>
-                  <Text style={s.flipTitle}>Platform Admin</Text>
-                  <Text style={s.flipSub}>Student Alumni Platform · Super Admin</Text>
+            <LinearGradient colors={['#FBBF24', '#F97316', '#B45309']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                <View>
+                  <Text style={s.idOrg}>{(data.org || 'Student Alumni').toUpperCase()}</Text>
+                  <Text style={s.idLabel}>VERIFIED CREDENTIAL</Text>
                 </View>
-                <View style={{ padding: 12, backgroundColor: '#fff', borderRadius: 16 }}>
-                  <Image source={{ uri: `data:image/png;base64,${data.qr_code_base64}` }} style={{ width: 140, height: 140 }} resizeMode="contain" />
+                <View style={[s.idBadge, { backgroundColor: 'rgba(22,163,74,0.25)', borderColor: 'rgba(22,163,74,0.4)' }]}>
+                  <Text style={[s.idBadgeText, { color: '#166534' }]}>VERIFIED</Text>
                 </View>
-                <View style={{ alignItems: 'center', gap: 4 }}>
-                  <Text style={s.flipDataLabel}>ENCODED DATA</Text>
-                  <Text style={s.flipQrData}>{data.admin_id}</Text>
-                  <Text style={s.flipQrData}>{data.email || 'admin@careerpath.app'}</Text>
-                  <Text style={s.flipQrData}>admin · {data.access_label}</Text>
+              </View>
+              <View style={{ marginTop: 24, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <View style={{ gap: 16 }}>
+                  <View>
+                    <Text style={s.idAdminLabel}>EMAIL</Text>
+                    <Text style={[s.idAdminVal, { fontSize: 15 }]}>{data.email || 'admin@careerpath.app'}</Text>
+                  </View>
+                  <View>
+                    <Text style={s.idAdminLabel}>ROLE</Text>
+                    <Text style={[s.idAdminVal, { fontSize: 15 }]}>Super Administrator</Text>
+                  </View>
+                  <View>
+                    <Text style={s.idAdminLabel}>COLLEGES</Text>
+                    <Text style={[s.idAdminVal, { fontSize: 15 }]}>{data.colleges_count || 74} verified institutions</Text>
+                  </View>
+                  <View>
+                    <Text style={s.idAdminLabel}>ACCESS</Text>
+                    <Text style={[s.idAdminVal, { fontSize: 15 }]}>{data.access_label || 'Full Access'}</Text>
+                  </View>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                  <Text style={s.idFlipHintDark}>Tap to flip back</Text>
-                  <ChevronRight size={12} color="rgba(251,191,36,0.7)" style={{ transform: [{ rotate: '180deg' }] }} />
+                <View style={s.qrBox}>
+                  {data.qr_code_base64 ? (
+                    <Image source={{ uri: `data:image/png;base64,${data.qr_code_base64}` }} style={{ width: 70, height: 70 }} resizeMode="contain" />
+                  ) : (
+                    <QrCode size={56} color="#1f1107" strokeWidth={1.5} />
+                  )}
                 </View>
+              </View>
+              <View style={{ marginTop: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                <Text style={s.idFlipHint}>Tap to flip back</Text>
+                <ChevronRight size={12} color="rgba(31,17,7,0.7)" />
               </View>
             </LinearGradient>
           </Animated.View>
