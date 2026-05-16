@@ -2169,7 +2169,7 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
                     <Text style={s.idLabel}>{data.label || 'OFFICIAL ID'}</Text>
                   </View>
                   <View style={s.idBadge}>
-                    <Text style={s.idBadgeText}>SUPER ADMIN</Text>
+                    <Text style={s.idBadgeText}>{(data.role_label || 'ADMIN').toUpperCase()}</Text>
                   </View>
                 </View>
                 <View style={{ marginTop: 22, flexDirection: 'row', alignItems: 'center', gap: 16 }}>

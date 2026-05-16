@@ -1392,12 +1392,15 @@ async def verify_id_card(identifier: str):
         raise HTTPException(404, "Invalid ID")
 
     role = (u.get("role") or "").lower()
+    raw_role = role.replace("_", " ")
+    role_label = " ".join(w.capitalize() for w in raw_role.split()) or "Member"
     base = {
         "valid": True,
         "id": u.get("sa_id") or u.get("admin_id") or identifier,
         "full_name": u.get("full_name") or u.get("name") or "—",
         "email": u.get("email") or "—",
         "role": role,
+        "role_label": role_label,
         "org": u.get("org") or "Student Alumni",
         "status": _student_status_label(u),
         "photo": u.get("photo") or u.get("avatar_url") or "",
@@ -2120,6 +2123,21 @@ async def _get_oauth_creds() -> dict:
         return {}
     settings = {s["key"]: s.get("value", "") for s in (doc.get("system_settings") or [])}
     return settings
+
+
+@api_router.get("/auth/oauth-config")
+async def oauth_config():
+    """Returns OAuth client IDs and redirect URI for frontend login buttons.
+    Only returns client IDs (safe), never secrets. If not configured, returns empty strings."""
+    creds = await _get_oauth_creds()
+    raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
+    frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
+    return {
+        "google_client_id": creds.get("google_oauth_client_id", ""),
+        "linkedin_client_id": creds.get("linkedin_oauth_client_id", ""),
+        "redirect_uri": f"{frontend_url}/api/auth/callback",
+        "configured": bool(creds.get("google_oauth_client_id")) or bool(creds.get("linkedin_oauth_client_id")),
+    }
 
 
 def _verify_google_token(id_token: Optional[str], client_id: str = "") -> Optional[dict]:

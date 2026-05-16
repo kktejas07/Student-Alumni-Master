@@ -94,7 +94,7 @@ export default function VerifyScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={s.cardName}>{data.full_name}</Text>
                 <View style={s.roleBadge}>
-                  <Text style={s.roleText}>{(data.role || '').toUpperCase()}</Text>
+                  <Text style={s.roleText}>{data.role_label || (data.role || '').toUpperCase()}</Text>
                 </View>
               </View>
             </View>
