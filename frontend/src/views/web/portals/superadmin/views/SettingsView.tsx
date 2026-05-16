@@ -2190,7 +2190,11 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
                     <Text style={s.idAdminLabel}>ADMIN ID</Text>
                     <Text style={s.idAdminVal}>{data.admin_id}</Text>
                   </View>
-                  <View style={{ marginTop: 8 }}>
+                  <View style={{ marginTop: 10 }}>
+                    <Text style={s.idAdminLabel}>EMAIL</Text>
+                    <Text style={{ color: 'rgba(31,17,7,0.8)', fontFamily: FONTS.xbold, fontSize: 13 }}>{data.email || ''}</Text>
+                  </View>
+                  <View style={{ marginTop: 10 }}>
                     <Text style={s.idAdminLabel}>ISSUED</Text>
                     <Text style={{ color: 'rgba(31,17,7,0.75)', fontFamily: FONTS.bold, fontSize: 12 }}>{fmtDate(data.issue_date)}</Text>
                   </View>
@@ -2245,7 +2249,7 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
                   <View style={{ alignItems: 'center', gap: 8 }}>
                     <View style={s.qrBox}>
                       {data.qr_code_base64 ? (
-                        <Image source={{ uri: `data:image/png;base64,${data.qr_code_base64}` }} style={{ width: 70, height: 70 }} resizeMode="contain" />
+                        <Image source={{ uri: `data:image/png;base64,${data.qr_code_base64}` }} style={{ width: 100, height: 100 }} resizeMode="contain" />
                       ) : (
                         <QrCode size={56} color="#1f1107" strokeWidth={1.5} />
                       )}
@@ -2735,7 +2739,7 @@ const s = StyleSheet.create({
   idAdminVal: { color: '#1f1107', fontFamily: FONTS.xbold, fontSize: 19,
     ...(Platform.OS === 'web' ? ({ fontFamily: '"JetBrains Mono", "SF Mono", monospace' } as any) : {}),
   },
-  qrBox: { width: 72, height: 72, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.85)', alignItems: 'center', justifyContent: 'center' },
+  qrBox: { width: 106, height: 106, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center' },
   idFlipHint: { color: 'rgba(31,17,7,0.7)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.3 },
   idFlipHintDark: { color: 'rgba(251,191,36,0.7)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.3 },
   flipOrg: { color: 'rgba(251,191,36,0.9)', fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 2, textAlign: 'center' },

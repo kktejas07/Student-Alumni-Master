@@ -1353,7 +1353,8 @@ async def my_id_card(user: dict = Depends(get_current_user)):
         except Exception:
             batch = str(batch)
 
-    frontend_url = os.environ.get("FRONTEND_URL", "").rstrip("/") or "https://studentalumni.ai"
+    raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
+    frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
     public_verify_url = f"{frontend_url}/verify/{sa_id}"
 
     return {
