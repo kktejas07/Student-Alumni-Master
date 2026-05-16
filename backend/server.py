@@ -1353,7 +1353,8 @@ async def my_id_card(user: dict = Depends(get_current_user)):
         except Exception:
             batch = str(batch)
 
-    public_verify_url = f"/api/id-cards/{sa_id}"
+    frontend_url = os.environ.get("FRONTEND_URL", "").rstrip("/") or "https://studentalumni.ai"
+    public_verify_url = f"{frontend_url}/verify/{sa_id}"
 
     return {
         "sa_id": sa_id,
@@ -1371,31 +1372,32 @@ async def my_id_card(user: dict = Depends(get_current_user)):
         "issued_at": (user.get("sa_id_issued_at") or datetime.utcnow()).isoformat()
             if isinstance(user.get("sa_id_issued_at"), datetime) else str(user.get("sa_id_issued_at") or datetime.utcnow().isoformat()),
         "verify_url": public_verify_url,
-        # QR encodes a JSON-friendly compact string for offline verification
-        "qr_payload": f"sa://verify?id={sa_id}",
+        "qr_payload": public_verify_url,
     }
 
 
-@api_router.get("/id-cards/{sa_id}")
-async def verify_id_card(sa_id: str):
+@api_router.get("/id-cards/{identifier}")
+async def verify_id_card(identifier: str):
     """
-    Public ID verification endpoint — returns ONLY non-sensitive fields,
-    used by anyone scanning the QR code.
+    Universal public ID verification — works for ALL user roles.
+    Accepts either sa_id (students, alumni, mentors, colleges) or admin_id (admins).
+    Returns ONLY non-sensitive public fields.
     """
     u = await db.users.find_one(
-        {"sa_id": sa_id},
+        {"$or": [{"sa_id": identifier}, {"admin_id": identifier}]},
         {"password_hash": 0, "phone": 0, "face_image_base64": 0, "two_fa_secret": 0},
     )
     if not u:
-        raise HTTPException(404, "Invalid SA-ID")
+        raise HTTPException(404, "Invalid ID")
     si = u.get("school_info") or {}
     institution = si.get("institution_name") or u.get("full_name") or "—"
     return {
-        "sa_id": sa_id,
         "valid": True,
-        "full_name": u.get("full_name") or "—",
+        "id": u.get("sa_id") or u.get("admin_id") or identifier,
+        "full_name": u.get("full_name") or u.get("name") or "—",
         "role": u.get("role"),
         "institution": institution,
+        "org": u.get("org") or "Student Alumni",
         "status": _student_status_label(u),
         "issued_at": (u.get("sa_id_issued_at") or u.get("created_at") or "").isoformat()
             if isinstance(u.get("sa_id_issued_at") or u.get("created_at"), datetime) else "",
