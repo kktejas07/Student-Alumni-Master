@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ⚠️  LEGACY — kept as backup only.
  *

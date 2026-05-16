@@ -10,35 +10,17 @@
  * AsyncStorage / localStorage under `scd_access_token` (set during login).
  */
 import { useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const BASE = (process.env.EXPO_PUBLIC_BACKEND_URL || '').replace(/\/$/, '');
-
-async function getAuthHeader(): Promise<Record<string, string>> {
-  try {
-    const t = await AsyncStorage.getItem('scd_access_token');
-    return t ? { Authorization: `Bearer ${t}` } : {};
-  } catch {
-    return {};
-  }
-}
+import { request } from '@/src/models/services/api';
 
 export async function fetchPortal<T>(path: string): Promise<T> {
-  const auth = await getAuthHeader();
-  const res = await fetch(`${BASE}/api${path}`, { headers: { ...auth } });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  return request<T>(path);
 }
 
 export async function postPortal<T = any>(path: string, opts?: { method?: string; body?: any }): Promise<T> {
-  const auth = await getAuthHeader();
-  const res = await fetch(`${BASE}/api${path}`, {
+  return request<T>(path, {
     method: opts?.method || 'POST',
-    headers: { 'Content-Type': 'application/json', ...auth },
-    body: opts?.body ? JSON.stringify(opts.body) : undefined,
+    body: opts?.body,
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
 }
 
 export type FetchState<T> = {

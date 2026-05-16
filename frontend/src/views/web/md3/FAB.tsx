@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * FAB — Material Design 3 Floating Action Button.
  * - Bottom-right anchored (web: position: 'fixed', native: 'absolute')

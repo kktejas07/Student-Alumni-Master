@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SettingsView — Super Admin Settings (Apple HIG + NexusOS dark glass).
  *

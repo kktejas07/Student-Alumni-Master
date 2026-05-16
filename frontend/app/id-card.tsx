@@ -177,7 +177,6 @@ export default function DigitalIDScreen() {
                   {card.photo_data ? (
                     <View style={styles.photo}>
                       {/* Image base64 */}
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={card.photo_data}
                         alt={card.full_name}

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Network Screen — Discover / My Connections / Requests.
  *

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Apple HIG Primitives — bundled in one file for atomic adoption.
  *

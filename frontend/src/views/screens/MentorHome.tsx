@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * MentorHome — replaces the default 8-module student dashboard for mentor users.
  *

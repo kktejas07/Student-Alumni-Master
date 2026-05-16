@@ -492,10 +492,10 @@ function DigitalIdCardInline({ userId, isMobile, draft, completion, showToast }:
         <View style={{ alignSelf: 'center', width: '100%', maxWidth: 500, gap: 12 }}>
           <MemberIdCard
             uniqueId={sid}
-            role={(user?.role as any) || 'student'}
-            tier={((user as any)?.ranking_tier as any) || 'gold'}
-            qrBase64={user?.qr_code_base64}
-            validFromYear={new Date(user?.created_at || Date.now()).getFullYear()}
+            role={(draft?.role as any) || 'student'}
+            tier={((draft as any)?.ranking_tier as any) || 'gold'}
+            qrBase64={draft?.qr_code_base64}
+            validFromYear={new Date(draft?.created_at || Date.now()).getFullYear()}
           />
           <Text style={{ color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium', fontSize: 11, textAlign: 'center' }}>Tap card to flip · Front &amp; back</Text>
         </View>

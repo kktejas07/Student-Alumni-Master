@@ -90,7 +90,7 @@ export default function CareerTrackInline({
     setEnrolling(true);
     try {
       const r = await request<{ enrollment: any }>(
-        `/courses/tracks/${slug}/enroll`, { method: 'POST', body: JSON.stringify({}) });
+        `/courses/tracks/${slug}/enroll`, { method: 'POST', body: {} });
       setEnrollment(r.enrollment);
     } catch (e: any) {
       console.warn('enroll err', e?.message);
@@ -103,7 +103,7 @@ export default function CareerTrackInline({
     try {
       const r = await request<{ current_week: number; progress_percent: number }>(
         `/courses/tracks/${slug}/progress`,
-        { method: 'POST', body: JSON.stringify({ current_week: next }) });
+        { method: 'POST', body: { current_week: next } });
       setEnrollment({ ...enrollment, current_week: r.current_week,
                        progress_percent: r.progress_percent });
       setExpandedWeek(r.current_week);

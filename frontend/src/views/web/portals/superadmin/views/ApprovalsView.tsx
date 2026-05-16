@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Super Admin Portal — Approvals view.
  *

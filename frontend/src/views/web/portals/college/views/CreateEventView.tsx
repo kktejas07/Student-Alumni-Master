@@ -6,6 +6,7 @@ import { View, Text, TextInput, Pressable, StyleSheet, Platform } from 'react-na
 import { Calendar, CheckCircle, Sparkles } from 'lucide-react-native';
 import { CC, FONTS } from '../tokens';
 import { useCurrentUser } from '@/src/lib/useCurrentUser';
+import { request } from '@/src/models/services/api';
 
 const MODES = ['Online', 'In-person', 'Hybrid'];
 const CATEGORIES = ['Workshop', 'Hackathon', 'Career Fair', 'Talk', 'Networking'];
@@ -25,16 +26,14 @@ export function CreateEventView() {
   const create = async () => {
     try {
       setCreating(true);
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL || '').replace(/\/$/, '');
       const sd = startDate || new Date(Date.now() + 14 * 86400000).toISOString();
-      const res = await fetch(`${base}/api/college/events`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const j = await request<any>('/college/events', {
+        method: 'POST',
+        body: {
           title, category, mode, college_name: collegeName,
           start_date: sd, capacity: parseInt(capacity, 10) || 100, price: parseInt(price, 10) || 0,
-        }),
+        },
       });
-      const j = await res.json();
       if (j.ok) setCreatedEvent({ ...j, title, category, mode });
     } finally { setCreating(false); }
   };

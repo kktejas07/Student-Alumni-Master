@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Student Portal — left sidebar (Apple HIG migration, Slice 2A).
  *

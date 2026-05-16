@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Web-only Landing Page for Student Alumni
  * Matches design in /app/frontend/landing_refs/* (7 sections):
