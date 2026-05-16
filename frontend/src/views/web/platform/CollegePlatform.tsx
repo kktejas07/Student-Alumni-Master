@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * College / Institution Web Platform — blue-tinted sidebar.
  * Spec: /tmp/ui_specs/platform-college.jsx

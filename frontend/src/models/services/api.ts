@@ -268,9 +268,6 @@ export const api = {
   liveCourses: (q?: string) => request<any>(`/integrations/courses${q ? `?query=${encodeURIComponent(q)}` : ''}`),
   liveInternships: (q?: string) => request<any>(`/integrations/internships${q ? `?query=${encodeURIComponent(q)}` : ''}`),
 
-  // Bookings
-  myBookings: () => request<any>('/bookings/me'),
-
   // Reviews
   postReview: (payload: { mentor_id: string; rating: number; comment?: string; booking_id?: string }) =>
     request<any>('/reviews', { method: 'POST', body: payload }),

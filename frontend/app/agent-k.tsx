@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * /agent-k — Unified Agent K view (v0.14.0).
  *

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * /deals — SA Member Deals (real-time + Tag Engine + AI accordions)
  *

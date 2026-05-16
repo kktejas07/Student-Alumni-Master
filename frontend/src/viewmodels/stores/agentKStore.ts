@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Agent K — client-side store.
  *

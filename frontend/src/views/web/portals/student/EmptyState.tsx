@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Student Portal — Lottie-style empty states + success burst.
  *

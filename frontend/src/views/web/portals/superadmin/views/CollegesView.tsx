@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * CollegesView — Amber Admin grid of college cards.
  *

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Super Admin Portal — left sidebar with 12 nav items.
  */

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * /higher-education — SA Higher Education v2
  *

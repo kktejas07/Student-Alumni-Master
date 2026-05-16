@@ -6,6 +6,7 @@ import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-na
 import { Clock, CheckCircle, Plus, X } from 'lucide-react-native';
 import { MC, FONTS } from '../tokens';
 import { useCurrentUser } from '@/src/lib/useCurrentUser';
+import { request } from '@/src/models/services/api';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -29,12 +30,10 @@ export function AvailabilityView() {
   const save = async () => {
     try {
       setSaving(true);
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL || '').replace(/\/$/, '');
-      const res = await fetch(`${base}/api/mentor/availability`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mentor_email: email, slots }),
+      const j = await request<{ ok?: boolean }>('/mentor/availability', {
+        method: 'POST',
+        body: { mentor_email: email, slots },
       });
-      const j = await res.json();
       if (j.ok) setSavedAt(new Date().toLocaleTimeString());
     } finally { setSaving(false); }
   };

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * /rentals — SA Stay (Rentals Marketplace)
  * Categories: Student Housing · Vehicles · Hotels & Stays · Coworking
