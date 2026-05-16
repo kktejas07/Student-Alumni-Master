@@ -17,10 +17,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 
-load_dotenv(Path(__file__).parent.parent / ".env")
+BASE = Path(__file__).parent.parent
+load_dotenv(BASE / ".env")
 
-# Import shared role definitions
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(BASE / "backend"))
 from core.roles import SYSTEM_ROLES
 
 
