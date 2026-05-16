@@ -17,20 +17,22 @@ import LandingPage from '@/src/views/web/LandingPage';
 const { width } = Dimensions.get('window');
 
 export default function Welcome() {
-  // Web users see the marketing landing page instead of the mobile splash.
-  if (Platform.OS === 'web') {
-    return <LandingPage />;
-  }
   const router = useRouter();
   const fade = useRef(new Animated.Value(0)).current;
   const slide = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
+    if (Platform.OS === 'web') return;
     Animated.parallel([
       Animated.timing(fade, { toValue: 1, duration: 800, useNativeDriver: true }),
       Animated.timing(slide, { toValue: 0, duration: 800, useNativeDriver: true }),
     ]).start();
   }, []);
+
+  // Web users see the marketing landing page instead of the mobile splash.
+  if (Platform.OS === 'web') {
+    return <LandingPage />;
+  }
 
   return (
     <GradientBackground colors={Gradients.splash}>

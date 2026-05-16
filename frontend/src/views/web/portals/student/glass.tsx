@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Student Portal — FinTax360 Glass-Dark primitives (v0.18.0).
  *

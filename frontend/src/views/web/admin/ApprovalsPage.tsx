@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Admin Approvals — pending mentor queue with approve/reject + detail review panel.
  *

@@ -782,25 +782,22 @@ DEFAULT_PLATFORM_CONTROLS = {
         {"key": "default_locale",  "label": "Default Locale",    "value": "en-IN"},
         {"key": "default_tz",      "label": "Default Timezone",  "value": "Asia/Kolkata"},
         {"key": "default_currency","label": "Default Currency",  "value": "INR (₹)"},
-        {"key": "google_oauth_client_id","label": "Google OAuth Client ID","value": "", "type": "password", "help": "From Google Cloud Console → APIs & Services → Credentials"},
+        {"key": "google_oauth_client_id","label": "Google OAuth Client ID","value": "", "type": "text", "help": "From Google Cloud Console → APIs & Services → Credentials"},
         {"key": "google_oauth_client_secret","label": "Google OAuth Client Secret","value": "", "type": "password"},
-        {"key": "linkedin_oauth_client_id","label": "LinkedIn OAuth Client ID","value": "", "type": "password", "help": "From LinkedIn Developer Portal → Apps → Auth"},
+        {"key": "linkedin_oauth_client_id","label": "LinkedIn OAuth Client ID","value": "", "type": "text", "help": "From LinkedIn Developer Portal → Apps → Auth"},
         {"key": "linkedin_oauth_client_secret","label": "LinkedIn OAuth Client Secret","value": "", "type": "password"},
     ],
 }
 
 
-@router.get("/admin/platform-controls")
-async def get_platform_controls(authorization: Optional[str] = Header(None)):
-    await _require_admin(authorization)
-    doc = await _db.platform_controls.find_one({"_id": "singleton"})
-    if not doc:
-        await _db.platform_controls.insert_one({"_id": "singleton", **DEFAULT_PLATFORM_CONTROLS, "updated_at": datetime.now(timezone.utc)})
-        return DEFAULT_PLATFORM_CONTROLS
-    return {
-        "feature_flags":   doc.get("feature_flags", DEFAULT_PLATFORM_CONTROLS["feature_flags"]),
-        "system_settings": doc.get("system_settings", DEFAULT_PLATFORM_CONTROLS["system_settings"]),
-    }
+def _merge_settings_with_defaults(db_list, default_list):
+    """Merge DB settings with defaults, adding any new fields from defaults."""
+    db_keys = {item["key"] for item in db_list}
+    result = list(db_list)
+    for item in default_list:
+        if item["key"] not in db_keys:
+            result.append(item)
+    return result
 
 
 class PlatformControlsPatch(BaseModel):
@@ -816,10 +813,18 @@ async def patch_platform_controls(body: PlatformControlsPatch, authorization: Op
     if not doc:
         doc = {"_id": "singleton", **DEFAULT_PLATFORM_CONTROLS}
     arr = doc.get(body.section) or []
+    defaults = DEFAULT_PLATFORM_CONTROLS.get(body.section) or []
+    found = False
     for it in arr:
         if it.get("key") == body.key:
             it["value"] = body.value
+            found = True
             break
+    if not found:
+        for def_it in defaults:
+            if def_it["key"] == body.key:
+                arr.append({**def_it, "value": body.value})
+                break
     await _db.platform_controls.update_one(
         {"_id": "singleton"},
         {"$set": {body.section: arr, "updated_at": datetime.now(timezone.utc)}},
@@ -836,9 +841,15 @@ async def get_platform_controls_full(authorization: Optional[str] = Header(None)
     if not doc:
         await _db.platform_controls.insert_one({"_id": "singleton", **DEFAULT_PLATFORM_CONTROLS, "updated_at": datetime.now(timezone.utc)})
         doc = DEFAULT_PLATFORM_CONTROLS
+    db_flags = doc.get("feature_flags") or []
+    db_settings = doc.get("system_settings") or []
+    defaults_flags = DEFAULT_PLATFORM_CONTROLS["feature_flags"]
+    defaults_settings = DEFAULT_PLATFORM_CONTROLS["system_settings"]
+    merged_flags = _merge_settings_with_defaults(db_flags, defaults_flags)
+    merged_settings = _merge_settings_with_defaults(db_settings, defaults_settings)
     result = {
-        "feature_flags":   doc.get("feature_flags", DEFAULT_PLATFORM_CONTROLS["feature_flags"]),
-        "system_settings": doc.get("system_settings", DEFAULT_PLATFORM_CONTROLS["system_settings"]),
+        "feature_flags":   merged_flags,
+        "system_settings": merged_settings,
         "system_settings_options": SYSTEM_SETTING_OPTIONS,
     }
     return result
@@ -851,16 +862,24 @@ class SystemSettingPatch(BaseModel):
 
 @router.patch("/admin/platform-controls/system-settings")
 async def patch_system_setting(body: SystemSettingPatch, authorization: Optional[str] = Header(None)):
-    """Update a single system setting value."""
+    """Update a single system setting value. Adds new fields if they don't exist yet."""
     await _require_admin(authorization)
     doc = await _db.platform_controls.find_one({"_id": "singleton"})
     if not doc:
         doc = {"_id": "singleton", **DEFAULT_PLATFORM_CONTROLS}
     settings = doc.get("system_settings") or []
+    found = False
     for it in settings:
         if it.get("key") == body.key:
             it["value"] = body.value
+            found = True
             break
+    if not found:
+        defaults = DEFAULT_PLATFORM_CONTROLS["system_settings"]
+        for def_it in defaults:
+            if def_it["key"] == body.key:
+                settings.append({**def_it, "value": body.value})
+                break
     await _db.platform_controls.update_one(
         {"_id": "singleton"},
         {"$set": {"system_settings": settings, "updated_at": datetime.now(timezone.utc)}},

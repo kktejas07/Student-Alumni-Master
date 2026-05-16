@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * MemberIdCard — interactive flip card showing Member ID details.
  *

@@ -10,6 +10,7 @@ import { GlassCard } from '../glass';
 import { EmptyState } from '../EmptyState';
 import { usePortalData } from '@/src/lib/portalApi';
 import { useCurrentUser } from '@/src/lib/useCurrentUser';
+import { request } from '@/src/models/services/api';
 
 type Booking = {
   id: string; topic: string; mentor_name: string; mentor_email: string;
@@ -33,8 +34,7 @@ export function MyBookingsView() {
   const cancel = async (id: string) => {
     try {
       setCancellingId(id);
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL || '').replace(/\/$/, '');
-      await fetch(`${base}/api/student/bookings/${id}`, { method: 'DELETE' });
+      await request(`/student/bookings/${id}`, { method: 'DELETE' });
       refresh();
     } finally { setCancellingId(null); }
   };

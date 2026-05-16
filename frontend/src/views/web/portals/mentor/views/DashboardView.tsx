@@ -25,6 +25,7 @@ import * as MOCK from '../data';
 import { usePortalData } from '@/src/lib/portalApi';
 import { TierBadge } from '@/src/views/web/TierBadge';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
+import { request } from '@/src/models/services/api';
 
 interface Props { onNav: (id: string) => void; }
 
@@ -254,12 +255,10 @@ function AIDailyBriefing({ onNav }: { onNav: (id: string) => void }) {
   const generate = async () => {
     try {
       setBriefLoading(true);
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL || '').replace(/\/$/, '');
-      const r = await fetch(`${base}/api/ai/daily-brief`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'mentor' }),
+      const j = await request<any>('/ai/daily-brief', {
+        method: 'POST',
+        body: { role: 'mentor' },
       });
-      const j = await r.json();
       setBriefText(j?.brief || 'Could not generate brief.');
     } catch (e: any) { setBriefText('Error: ' + (e?.message || 'unknown')); }
     finally { setBriefLoading(false); }

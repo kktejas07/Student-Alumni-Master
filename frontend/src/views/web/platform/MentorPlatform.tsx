@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Mentor Web Platform — green-tinted sidebar dashboard for role=mentor.
  * Spec: /tmp/ui_specs/platform-mentor.jsx

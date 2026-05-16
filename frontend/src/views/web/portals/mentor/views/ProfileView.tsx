@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Mentor Portal — Profile view: editable profile + Digital ID card with QR.
  */

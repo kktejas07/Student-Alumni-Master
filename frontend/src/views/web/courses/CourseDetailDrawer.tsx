@@ -32,7 +32,7 @@ export default function CourseDetailDrawer({
     try {
       await request<any>('/courses/enroll', {
         method: 'POST',
-        body: JSON.stringify({ course_id: course.id }),
+        body: { course_id: course.id },
       });
       setEnrolled(true);
       // open external URL
