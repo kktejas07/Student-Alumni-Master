@@ -603,7 +603,15 @@ async def get_admin_profile(authorization: Optional[str] = Header(None)):
             f"{user.get('title') or 'Platform Administrator'} · {user.get('org') or 'Student Alumni'}\n"
             f"{user.get('email')}"
         ),
-        "role_label": " ".join(w.capitalize() for w in (user.get("role") or "admin").replace("_", " ").split()),
+        "role_label": ({
+            "superadmin": "Super Admin",
+            "super_admin": "Super Admin",
+            "admin": "Admin",
+            "student": "Student",
+            "alumni": "Alumni",
+            "mentor": "Mentor",
+            "college": "College",
+        }.get((user.get("role") or "").lower().strip()) or " ".join(w.capitalize() for w in (user.get("role") or "admin").replace("_", " ").split())),
         "access_label": user.get("access_label") or "Full Access",
         "admin_id": admin_id,
         "platform_status": "Operational",
@@ -1447,8 +1455,18 @@ async def get_digital_id(authorization: Optional[str] = Header(None)):
     if isinstance(issue_date, datetime):
         issue_date = issue_date.isoformat()
     expiry_date = (now + timedelta(days=365)).isoformat()
-    raw_role = (user.get("role") or "").lower().replace("_", " ")
-    role_label = " ".join(w.capitalize() for w in raw_role.split()) or "Administrator"
+    raw_role = (user.get("role") or "").lower().strip()
+    ROLE_LABELS = {
+        "superadmin": "Super Admin",
+        "super_admin": "Super Admin",
+        "admin": "Admin",
+        "student": "Student",
+        "alumni": "Alumni",
+        "mentor": "Mentor",
+        "college": "College",
+        "college_admin": "College Admin",
+    }
+    role_label = ROLE_LABELS.get(raw_role) or " ".join(w.capitalize() for w in raw_role.replace("_", " ").split()) or "Administrator"
     org = user.get("org") or "Student Alumni"
     title = user.get("title") or f"Platform {role_label}"
     access = user.get("access_label") or "Full Access"
