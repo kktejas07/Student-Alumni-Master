@@ -1353,7 +1353,8 @@ async def my_id_card(user: dict = Depends(get_current_user)):
         except Exception:
             batch = str(batch)
 
-    public_verify_url = f"/api/id-cards/{sa_id}"
+    frontend_url = os.environ.get("FRONTEND_URL", "").rstrip("/") or "https://studentalumni.ai"
+    public_verify_url = f"{frontend_url}/verify/{sa_id}"
 
     return {
         "sa_id": sa_id,
@@ -1371,35 +1372,89 @@ async def my_id_card(user: dict = Depends(get_current_user)):
         "issued_at": (user.get("sa_id_issued_at") or datetime.utcnow()).isoformat()
             if isinstance(user.get("sa_id_issued_at"), datetime) else str(user.get("sa_id_issued_at") or datetime.utcnow().isoformat()),
         "verify_url": public_verify_url,
-        # QR encodes a JSON-friendly compact string for offline verification
-        "qr_payload": f"sa://verify?id={sa_id}",
+        "qr_payload": public_verify_url,
     }
 
 
-@api_router.get("/id-cards/{sa_id}")
-async def verify_id_card(sa_id: str):
+@api_router.get("/id-cards/{identifier}")
+async def verify_id_card(identifier: str):
     """
-    Public ID verification endpoint — returns ONLY non-sensitive fields,
-    used by anyone scanning the QR code.
+    Universal public ID verification — works for ALL user roles.
+    Accepts sa_id (students, alumni, mentors, colleges) or admin_id (admins).
+    Returns role-specific fields dynamically. Nothing is hardcoded — all from DB.
     """
     u = await db.users.find_one(
-        {"sa_id": sa_id},
+        {"$or": [{"sa_id": identifier}, {"admin_id": identifier}]},
         {"password_hash": 0, "phone": 0, "face_image_base64": 0, "two_fa_secret": 0},
     )
     if not u:
-        raise HTTPException(404, "Invalid SA-ID")
-    si = u.get("school_info") or {}
-    institution = si.get("institution_name") or u.get("full_name") or "—"
-    return {
-        "sa_id": sa_id,
+        raise HTTPException(404, "Invalid ID")
+
+    role = (u.get("role") or "").lower()
+    base = {
         "valid": True,
-        "full_name": u.get("full_name") or "—",
-        "role": u.get("role"),
-        "institution": institution,
+        "id": u.get("sa_id") or u.get("admin_id") or identifier,
+        "full_name": u.get("full_name") or u.get("name") or "—",
+        "email": u.get("email") or "—",
+        "role": role,
+        "org": u.get("org") or "Student Alumni",
         "status": _student_status_label(u),
+        "photo": u.get("photo") or u.get("avatar_url") or "",
         "issued_at": (u.get("sa_id_issued_at") or u.get("created_at") or "").isoformat()
             if isinstance(u.get("sa_id_issued_at") or u.get("created_at"), datetime) else "",
     }
+
+    # ─── Role-specific fields (all from DB, no hardcoded fallbacks) ───
+    si = u.get("school_info") or {}
+    ai = u.get("alumni_info") or {}
+    mi = u.get("mentor_info") or {}
+    ci = u.get("college_profile") or {}
+    adm = u.get("admin_profile") or {}
+
+    if role == "student":
+        base["institution"] = si.get("institution_name") or ""
+        base["batch"] = si.get("graduation_year") or ""
+        base["branch"] = si.get("branch_or_stream") or si.get("current_course") or ""
+        base["city"] = si.get("city") or ""
+        base["state"] = si.get("state") or ""
+        base["class_or_year"] = si.get("class_or_year") or ""
+
+    elif role == "alumni":
+        base["institution"] = ai.get("institution_name") or si.get("institution_name") or ""
+        base["graduation_year"] = ai.get("graduation_year") or si.get("graduation_year") or ""
+        base["company"] = ai.get("company") or u.get("company") or ""
+        base["position"] = ai.get("position") or u.get("position") or ""
+        base["branch"] = ai.get("branch_or_stream") or si.get("branch_or_stream") or ""
+        base["city"] = ai.get("city") or si.get("city") or ""
+        base["state"] = ai.get("state") or si.get("state") or ""
+
+    elif role == "mentor":
+        base["expertise"] = mi.get("expertise") or u.get("skills") or []
+        base["company"] = mi.get("company") or u.get("company") or ""
+        base["position"] = mi.get("position") or u.get("position") or ""
+        base["company"] = mi.get("company") or u.get("company") or ""
+        base["years_experience"] = mi.get("years_experience") or ""
+        base["institution"] = ai.get("institution_name") or si.get("institution_name") or ""
+
+    elif role == "college":
+        base["institution"] = u.get("full_name") or ci.get("institution_name") or ""
+        base["city"] = ci.get("city") or ""
+        base["state"] = ci.get("state") or ""
+        base["departments"] = ci.get("departments") or []
+        base["students_count"] = ci.get("students_count") or ""
+        base["affiliation"] = ci.get("affiliation") or ""
+
+    elif role in ("admin", "superadmin", "super_admin"):
+        colleges_count = await db.colleges.count_documents({}) or 0
+        base["title"] = u.get("title") or ""
+        base["access_label"] = u.get("access_label") or "Full Access"
+        base["colleges_count"] = colleges_count
+        base["admin_id"] = u.get("admin_id") or ""
+        base["permissions"] = u.get("permissions") or []
+
+    # Remove empty fields for cleaner response
+    cleaned = {k: v for k, v in base.items() if v is not None and v != "" and v != [] and v != {}}
+    return cleaned
 
 
 

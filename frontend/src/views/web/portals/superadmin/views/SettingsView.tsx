@@ -2157,7 +2157,7 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
       <Pressable onPress={() => setFlipped(!flipped)} style={{ alignSelf: 'center', width: '100%', maxWidth: 540 }}>
         {!flipped ? (
           /* ─── FRONT: Identity ─── */
-          <Animated.View entering={FadeIn.duration(200)}>
+          <Animated.View entering={FadeIn.duration(200)} style={{ minHeight: 440 }}>
             <LinearGradient colors={['#FBBF24', '#F97316', '#B45309']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
               <View style={{ position: 'absolute', top: -10, right: -10, opacity: 0.08 }}>
                 <Text style={{ fontSize: 140, fontFamily: FONTS.xbold, color: '#1f1107', letterSpacing: -6 }}>SA</Text>
@@ -2208,7 +2208,7 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
           </Animated.View>
         ) : (
           /* ─── BACK: Verification ─── */
-          <Animated.View entering={FadeIn.duration(200)}>
+          <Animated.View entering={FadeIn.duration(200)} style={{ minHeight: 440 }}>
             <LinearGradient colors={['#FBBF24', '#F97316', '#B45309']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
               <View style={{ position: 'absolute', top: -10, right: -10, opacity: 0.08 }}>
                 <Text style={{ fontSize: 140, fontFamily: FONTS.xbold, color: '#1f1107', letterSpacing: -6 }}>SA</Text>
@@ -2217,52 +2217,39 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <View>
                     <Text style={s.idOrg}>{(data.org || 'Student Alumni').toUpperCase()}</Text>
-                    <Text style={s.idLabel}>VERIFIED CREDENTIAL</Text>
+                    <Text style={s.idLabel}>{data.label || 'OFFICIAL ID'}</Text>
                   </View>
-                  <View style={[s.idBadge, { backgroundColor: 'rgba(22,163,74,0.25)', borderColor: 'rgba(22,163,74,0.4)' }]}>
-                    <Text style={[s.idBadgeText, { color: '#166534' }]}>VERIFIED</Text>
-                  </View>
-                </View>
-                <View style={{ marginTop: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <View style={{ gap: 12 }}>
-                    <View>
-                      <Text style={s.idAdminLabel}>EMAIL</Text>
-                      <Text style={[s.idAdminVal, { fontSize: 14 }]}>{data.email || 'admin@careerpath.app'}</Text>
-                    </View>
-                    <View>
-                      <Text style={s.idAdminLabel}>ROLE</Text>
-                      <Text style={[s.idAdminVal, { fontSize: 14 }]}>{data.role_label || 'Administrator'}</Text>
-                    </View>
-                    <View>
-                      <Text style={s.idAdminLabel}>COLLEGES</Text>
-                      <Text style={[s.idAdminVal, { fontSize: 14 }]}>{data.colleges_count || 74} verified</Text>
-                    </View>
-                    <View>
-                      <Text style={s.idAdminLabel}>ACCESS</Text>
-                      <Text style={[s.idAdminVal, { fontSize: 14 }]}>{data.access_label || 'Full Access'}</Text>
-                    </View>
-                    <View>
-                      <Text style={s.idAdminLabel}>EXPIRES</Text>
-                      <Text style={{ color: 'rgba(31,17,7,0.75)', fontFamily: FONTS.bold, fontSize: 12 }}>{fmtDate(data.expiry_date)}</Text>
-                    </View>
-                  </View>
-                  {/* QR + NFC (back only) */}
-                  <View style={{ alignItems: 'center', gap: 8 }}>
-                    <View style={s.qrBox}>
-                      {data.qr_code_base64 ? (
-                        <Image source={{ uri: `data:image/png;base64,${data.qr_code_base64}` }} style={{ width: 70, height: 70 }} resizeMode="contain" />
-                      ) : (
-                        <QrCode size={56} color="#1f1107" strokeWidth={1.5} />
-                      )}
-                    </View>
-                    <View style={{ width: 32, height: 24, borderRadius: 4, backgroundColor: 'rgba(31,17,7,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(31,17,7,0.2)' }}>
-                      <MaterialCommunityIcons name="nfc" size={14} color="rgba(31,17,7,0.5)" />
-                    </View>
+                  <View style={s.idBadge}>
+                    <Text style={s.idBadgeText}>SUPER ADMIN</Text>
                   </View>
                 </View>
-                <View style={{ marginTop: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
+                <View style={{ marginTop: 22, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                  <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(31,17,7,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)', overflow: 'hidden' }}>
+                    {data.photo ? (
+                      <Image source={{ uri: data.photo }} style={{ width: 64, height: 64 }} resizeMode="cover" />
+                    ) : (
+                      <UserCog size={28} color="rgba(31,17,7,0.5)" />
+                    )}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.idName}>{data.name}</Text>
+                    <Text style={s.idTitle}>{data.title} · {data.access_label}</Text>
+                  </View>
+                </View>
+                <View style={{ marginTop: 22 }}>
+                  <View>
+                    <Text style={s.idAdminLabel}>ADMIN ID</Text>
+                    <Text style={s.idAdminVal}>{data.admin_id}</Text>
+                  </View>
+                  <View style={{ marginTop: 8 }}>
+                    <Text style={s.idAdminLabel}>ISSUED</Text>
+                    <Text style={{ color: 'rgba(31,17,7,0.75)', fontFamily: FONTS.bold, fontSize: 12 }}>{fmtDate(data.issue_date)}</Text>
+                  </View>
+                </View>
+                <View style={{ flex: 1 }} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <Text style={s.idFlipHint}>Tap to flip back</Text>
+                    <Text style={s.idFlipHint}>Tap for verification</Text>
                     <ChevronRight size={12} color="rgba(31,17,7,0.7)" />
                   </View>
                 </View>

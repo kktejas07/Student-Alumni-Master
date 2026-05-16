@@ -1453,7 +1453,7 @@ async def get_digital_id(authorization: Optional[str] = Header(None)):
     access = user.get("access_label") or "Full Access"
     colleges_count = await _db.colleges.count_documents({}) or 0
     frontend_url = os.environ.get("FRONTEND_URL", "").rstrip("/") or "https://studentalumni.ai"
-    verify_url = f"{frontend_url}/admin/verify/{admin_id}"
+    verify_url = f"{frontend_url}/verify/{admin_id}"
     qr_data = verify_url
     qr_base64 = _generate_qr_code(qr_data)
     return {
@@ -1472,30 +1472,6 @@ async def get_digital_id(authorization: Optional[str] = Header(None)):
         "expiry_date": expiry_date,
         "qr_code_base64": qr_base64,
         "verify_url": verify_url,
-    }
-
-
-@router.get("/admin/digital-id/verify/{admin_id}")
-async def verify_admin_digital_id(admin_id: str):
-    """Public endpoint — anyone scanning the QR code gets non-sensitive details."""
-    u = await _db.users.find_one(
-        {"admin_id": admin_id},
-        {"password_hash": 0, "phone": 0, "two_fa_secret": 0, "face_image_base64": 0},
-    )
-    if not u:
-        raise HTTPException(404, "Invalid Admin ID")
-    colleges_count = await _db.colleges.count_documents({}) or 0
-    return {
-        "valid": True,
-        "admin_id": admin_id,
-        "name": u.get("full_name") or u.get("name") or "—",
-        "email": u.get("email") or "—",
-        "title": u.get("title") or "Platform Administrator",
-        "role": (u.get("role") or "admin").capitalize(),
-        "org": u.get("org") or "Student Alumni",
-        "colleges_count": colleges_count,
-        "verified": True,
-        "issued_at": str(u.get("sa_id_issued_at") or u.get("created_at") or ""),
     }
 
 
