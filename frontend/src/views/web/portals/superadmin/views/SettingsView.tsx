@@ -2155,9 +2155,9 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
     <Animated.View entering={FadeIn.duration(180)} style={{ gap: 20 }}>
       {/* The ID Card — front & back */}
       <Pressable onPress={() => setFlipped(!flipped)} style={{ alignSelf: 'center', width: '100%', maxWidth: 540 }}>
-        <View style={{ position: 'relative', minHeight: 440, width: '100%' }}>
+        <View style={{ position: 'relative', height: 440, width: '100%' }}>
           {/* FRONT: Identity */}
-          <View style={{ position: 'absolute', width: '100%', height: '100%', opacity: flipped ? 0 : 1, pointerEvents: flipped ? 'none' as any : 'auto' as any, zIndex: flipped ? 0 : 1 }}>
+          <View style={{ position: 'absolute', width: '100%', height: '100%', opacity: flipped ? 0 : 1, pointerEvents: flipped ? 'none' as any : 'auto' as any, zIndex: flipped ? 0 : 1, ...(Platform.OS === 'web' ? ({ transition: 'opacity 0.3s ease' } as any) : {}) }}>
             <LinearGradient colors={['#FBBF24', '#F97316', '#B45309']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
               <View style={{ position: 'absolute', top: -10, right: -10, opacity: 0.08 }}>
                 <Text style={{ fontSize: 140, fontFamily: FONTS.xbold, color: '#1f1107', letterSpacing: -6 }}>SA</Text>
@@ -2207,7 +2207,7 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
           </View>
 
           {/* BACK: Verification */}
-          <View style={{ position: 'absolute', width: '100%', height: '100%', opacity: flipped ? 1 : 0, pointerEvents: flipped ? 'auto' as any : 'none' as any, zIndex: flipped ? 1 : 0 }}>
+          <View style={{ position: 'absolute', width: '100%', height: '100%', opacity: flipped ? 1 : 0, pointerEvents: flipped ? 'auto' as any : 'none' as any, zIndex: flipped ? 1 : 0, ...(Platform.OS === 'web' ? ({ transition: 'opacity 0.3s ease' } as any) : {}) }}>
             <LinearGradient colors={['#FBBF24', '#F97316', '#B45309']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
               <View style={{ position: 'absolute', top: -10, right: -10, opacity: 0.08 }}>
                 <Text style={{ fontSize: 140, fontFamily: FONTS.xbold, color: '#1f1107', letterSpacing: -6 }}>SA</Text>
