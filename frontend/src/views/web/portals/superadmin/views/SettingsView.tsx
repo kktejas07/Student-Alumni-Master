@@ -39,7 +39,7 @@ import {
   Mail, Users as UsersIcon, ArrowLeft, Clock, MapPin, Globe, Wifi, Activity,
 } from 'lucide-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Animated, { FadeIn, FadeInDown, FadeInUp, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
 import { SAC, FONTS } from '../tokens';
@@ -2109,10 +2109,6 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
     (async () => { try { setData(await request<any>('/admin/digital-id')); } catch {} })();
   }, []);
 
-  const flipStyle = useAnimatedStyle(() => ({
-    transform: [{ rotateY: `${flipped ? 180 : 0}deg` }],
-  }), [flipped]);
-
   const copyId = async () => {
     try {
       if (Platform.OS === 'web' && navigator?.clipboard) {
@@ -2149,14 +2145,12 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
   if (!data) return <Loading />;
 
-  const webPerspective = Platform.OS === 'web' ? ({ perspective: 1200, WebkitPerspective: 1200 } as any) : {};
-
   return (
     <Animated.View entering={FadeIn.duration(180)} style={{ gap: 24 }}>
-      {/* The ID Card — 3D flip */}
+      {/* The ID Card — simple conditional render, no 3D flip */}
       <Pressable onPress={() => setFlipped(!flipped)} style={{ alignSelf: 'center', width: '100%', maxWidth: 540 }}>
-        <View style={[{ position: 'relative', width: '100%', height: 260, transformStyle: 'preserve-3d' as any }, webPerspective]}>
-          <Animated.View style={[{ position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }, flipStyle]}>
+        {!flipped ? (
+          <Animated.View entering={FadeIn.duration(200)}>
             <LinearGradient colors={['#FBBF24', '#F97316', '#B45309']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <View>
@@ -2190,36 +2184,36 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
               </View>
             </LinearGradient>
           </Animated.View>
-          {/* Back */}
-          <Animated.View style={[{ position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: [{ rotateY: '180deg' }] }, flipStyle]}>
-            <LinearGradient colors={['#1f1107', '#2D1B0E', '#3D2510']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[s.idCard, { justifyContent: 'center' }]}>
+        ) : (
+          <Animated.View entering={FadeIn.duration(200)}>
+            <LinearGradient colors={['#1f1107', '#2D1B0E', '#3D2510']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[s.idCard, { alignItems: 'center', paddingVertical: 36 }]}>
               <View style={{ alignItems: 'center', gap: 14 }}>
-                <View>
+                <View style={{ alignItems: 'center' }}>
                   <Text style={s.flipOrg}>SCAN TO VERIFY</Text>
                   <Text style={s.flipTitle}>Platform Admin</Text>
                   <Text style={s.flipSub}>Student Alumni Platform · Super Admin</Text>
                 </View>
                 <View style={{ padding: 12, backgroundColor: '#fff', borderRadius: 16 }}>
-                  <Image source={{ uri: `data:image/png;base64,${data.qr_code_base64}` }} style={{ width: 120, height: 120 }} resizeMode="contain" />
+                  <Image source={{ uri: `data:image/png;base64,${data.qr_code_base64}` }} style={{ width: 140, height: 140 }} resizeMode="contain" />
                 </View>
-                <View style={{ alignItems: 'center', gap: 6, marginTop: 4 }}>
+                <View style={{ alignItems: 'center', gap: 4 }}>
                   <Text style={s.flipDataLabel}>ENCODED DATA</Text>
                   <Text style={s.flipQrData}>{data.admin_id}</Text>
                   <Text style={s.flipQrData}>{data.email || 'admin@careerpath.app'}</Text>
                   <Text style={s.flipQrData}>admin · {data.access_label}</Text>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
                   <Text style={s.idFlipHintDark}>Tap to flip back</Text>
                   <ChevronRight size={12} color="rgba(251,191,36,0.7)" style={{ transform: [{ rotate: '180deg' }] }} />
                 </View>
               </View>
             </LinearGradient>
           </Animated.View>
-        </View>
+        )}
       </Pressable>
 
       {/* Actions */}
-      <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginTop: 32 }}>
+      <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
         <Pressable onPress={copyId} style={s.idActionBtn}>
           <Copy size={13} color="#fff" />
           <Text style={s.idActionText}>Copy Admin ID</Text>
@@ -2235,7 +2229,7 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
       </View>
 
       {/* 4 feature cards */}
-      <View style={[s.featGrid, { marginTop: 24 }]}>
+      <View style={s.featGrid}>
         <FeatureCard icon={ShieldCheck} tint={SAC.green}    title="Verified Identity"   text="Your admin status is verified by the platform." />
         <FeatureCard icon={Building2}   tint="#3B82F6"      title="Platform Authority"  text={`Recognised across all ${data.colleges_count || 48} colleges.`} />
         <FeatureCard icon={QrCode}      tint="#A78BFA"      title="Instant Share"       text="Share QR at events or board meetings." />
@@ -2676,7 +2670,7 @@ const s = StyleSheet.create({
 
   // Digital ID
   idCard: {
-    padding: 26, borderRadius: 22, flex: 1,
+    padding: 26, borderRadius: 22,
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 30px 70px rgba(217,119,6,0.30)' } as any) : { shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 30, shadowOffset: { width: 0, height: 18 } }),
   },
   idOrg: { color: 'rgba(31,17,7,0.75)', fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 2 },
