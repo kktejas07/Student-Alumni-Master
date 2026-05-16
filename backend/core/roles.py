@@ -3,15 +3,38 @@ roles.py — Single source of truth for all role definitions, permissions, and l
 Import this instead of hardcoding role strings everywhere.
 
 Usage:
-    from core.roles import Role, PERMISSIONS, ROLE_LABELS, has_role, is_admin
+    from core.roles import Role, Perm, require_admin, is_admin, get_role_label
 
-    if has_role(user, Role.ADMIN):
+    user = await require_admin(authorization)  # raises 401/403 if not admin
+    if is_admin(user):
         # admin-only logic
-
-    label = ROLE_LABELS.get(user.get("role"), "Member")
+    label = get_role_label(user)
 """
 
 from typing import Dict, List, Optional, Literal, Set
+from fastapi import HTTPException, Header
+import jwt as _jwt
+import os
+from datetime import datetime
+from motor.motor_asyncio import AsyncIOMotorClient
+from dotenv import load_dotenv
+from pathlib import Path
+
+load_dotenv(Path(__file__).parent.parent / ".env")
+
+# Lazy MongoDB connection — only connects when first needed
+_mongo = None
+_db = None
+
+def _get_db():
+    global _mongo, _db
+    if _db is None:
+        from motor.motor_asyncio import AsyncIOMotorClient
+        _mongo = AsyncIOMotorClient(os.environ["MONGO_URL"])
+        _db = _mongo[os.environ["DB_NAME"]]
+    return _db
+_JWT_SECRET = os.environ.get("JWT_SECRET", "")
+_JWT_ALG = os.environ.get("JWT_ALGORITHM", "HS256")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -207,3 +230,71 @@ def user_portal_route(user: dict) -> str:
         Role.STUDENT: "/student-portal",
     }
     return routes.get(role, "/student-portal")
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# 6. AUTHENTICATION HELPERS
+# ═══════════════════════════════════════════════════════════════════════
+
+async def _resolve_user(authorization: Optional[str]) -> Optional[dict]:
+    """Decode JWT and return user doc from DB."""
+    if not authorization:
+        return None
+    token = authorization.replace("Bearer ", "")
+    try:
+        payload = _jwt.decode(token, _JWT_SECRET, algorithms=[_JWT_ALG])
+        user_id = payload.get("sub")
+        if not user_id:
+            return None
+        from bson.objectid import ObjectId
+        return await _get_db().users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        return None
+
+
+async def require_admin(authorization: Optional[str] = Header(None)) -> dict:
+    """Unified FastAPI dependency: ensures user is authenticated as admin.
+    Usage: user = await require_admin(authorization)"""
+    if not authorization:
+        raise HTTPException(401, "Not authenticated")
+    user = await _resolve_user(authorization)
+    if not user:
+        raise HTTPException(401, "Invalid token or user not found")
+    role = (user.get("role") or "").lower().strip()
+    if role != Role.ADMIN:
+        raise HTTPException(403, "Admin access required")
+    return user
+
+
+async def require_super_admin(authorization: Optional[str] = Header(None)) -> dict:
+    """Like require_admin but also checks is_super_admin flag.
+    Use for sensitive operations: settings, roles, marketplace."""
+    user = await require_admin(authorization)
+    if not user.get("is_super_admin"):
+        raise HTTPException(403, "Super admin access required")
+    return user
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# 7. SEED SYSTEM ROLES INTO DATABASE
+# ═══════════════════════════════════════════════════════════════════════
+
+async def seed_admin_roles(db=None):
+    """Ensure all system roles exist in admin_roles collection.
+    Call on startup or via migration. Uses $setOnInsert for idempotency.
+    If db is provided, uses it; otherwise creates its own connection."""
+    target_db = db or _db
+    for role_def in SYSTEM_ROLES:
+        await target_db.admin_roles.update_one(
+            {"key": role_def["key"]},
+            {"$setOnInsert": {
+                "key": role_def["key"],
+                "name": role_def["name"],
+                "description": role_def["description"],
+                "permissions": role_def["permissions"],
+                "is_system": role_def["is_system"],
+                "created_at": datetime.utcnow(),
+            }},
+            upsert=True,
+        )
+    print(f"✅ Seeded {len(SYSTEM_ROLES)} system roles to admin_roles collection")
