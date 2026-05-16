@@ -790,6 +790,25 @@ DEFAULT_PLATFORM_CONTROLS = {
 }
 
 
+@router.get("/admin/platform-controls")
+async def get_platform_controls(authorization: Optional[str] = Header(None)):
+    await _require_admin(authorization)
+    doc = await _db.platform_controls.find_one({"_id": "singleton"})
+    if not doc:
+        await _db.platform_controls.insert_one({"_id": "singleton", **DEFAULT_PLATFORM_CONTROLS, "updated_at": datetime.now(timezone.utc)})
+        return DEFAULT_PLATFORM_CONTROLS
+    db_flags = doc.get("feature_flags") or []
+    db_settings = doc.get("system_settings") or []
+    defaults_flags = DEFAULT_PLATFORM_CONTROLS["feature_flags"]
+    defaults_settings = DEFAULT_PLATFORM_CONTROLS["system_settings"]
+    merged_flags = _merge_settings_with_defaults(db_flags, defaults_flags)
+    merged_settings = _merge_settings_with_defaults(db_settings, defaults_settings)
+    return {
+        "feature_flags":   merged_flags,
+        "system_settings": merged_settings,
+    }
+
+
 def _merge_settings_with_defaults(db_list, default_list):
     """Merge DB settings with defaults, adding any new fields from defaults."""
     db_keys = {item["key"] for item in db_list}

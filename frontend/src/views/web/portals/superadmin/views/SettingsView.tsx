@@ -656,14 +656,25 @@ function PlatformTab({ onSaved }: { onSaved: (s?: string) => void }) {
           <View style={{ marginTop: 12 }}>
             {data.system_settings.map((it: any, idx: number) => {
               const opts = options[it.key] || DEFAULT_SYSTEM_OPTIONS[it.key] || [];
+              const isSecret = /secret|password/i.test(String(it.key));
+              const displayValue = it.value || (opts.length === 0 ? 'Add value' : 'Select');
               return (
                 <View key={it.key} style={[s.systemRow, idx === data.system_settings.length - 1 ? { borderBottomWidth: 0 } : null]}>
                   <Text style={s.toggleTitle}>{it.label}</Text>
                   <Pressable
-                    onPress={() => setPickerSetting({ key: it.key, label: it.label, value: it.value, options: opts })}
+                    onPress={() => setPickerSetting({
+                      key: it.key,
+                      label: it.label,
+                      value: it.value || '',
+                      type: it.type,
+                      help: it.help,
+                      options: opts,
+                    })}
                     style={({ hovered }: any) => [s.selectBtn, hovered && Platform.OS === 'web' ? { borderColor: 'rgba(251,146,60,0.60)' } : null]}
                   >
-                    <Text style={s.selectValue}>{it.value}</Text>
+                    <Text style={[s.selectValue, !it.value ? { color: SAC.dim } : null]}>
+                      {isSecret && it.value ? '••••••••••••' : displayValue}
+                    </Text>
                     <View style={{ opacity: 0.6 }}>
                       <ChevronRight size={12} color={SAC.muted} />
                     </View>
@@ -714,78 +725,98 @@ function PlatformTab({ onSaved }: { onSaved: (s?: string) => void }) {
 }
 
 function SettingPickerModal({ setting, onSelect, onClose }: {
-  setting: { key: string; label: string; value: string; options: { value: string; label: string }[] };
+  setting: {
+    key: string;
+    label: string;
+    value: string;
+    type?: string;
+    help?: string;
+    options: { value: string; label: string }[];
+  };
   onSelect: (v: string) => void; onClose: () => void;
 }) {
-  const isTextInput = setting.options.length === 0;
-  const isPassword = setting.key.toLowerCase().includes('secret') || setting.key.toLowerCase().includes('password');
-  const [textValue, setTextValue] = useState(setting.value);
+  const isTextInput = (setting.options || []).length === 0;
+  const isPassword = /secret|password/i.test(setting.key || '');
+  const [textValue, setTextValue] = useState(setting.value || '');
   const [showPwd, setShowPwd] = useState(false);
+  const inputPlaceholder = isPassword ? 'Paste secret value' : 'Paste client ID';
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={s.pickerBackdrop} onPress={onClose}>
-        <Animated.View entering={FadeInDown.duration(220)} style={s.pickerCard}>
-          <LinearGradient colors={GRAD_BG} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.pickerHero}>
-            <View style={s.pickerIcon}>
-              <Sliders size={16} color={GRAD_TO} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.pickerTitle}>{setting.label}</Text>
-              <Text style={s.pickerSub}>
-                {isTextInput ? 'Enter the value for this setting' : 'Select an option to update this setting'}
-              </Text>
-            </View>
-            <Pressable onPress={onClose} style={s.modalClose}><X size={16} color={SAC.muted} /></Pressable>
-          </LinearGradient>
-          {isTextInput ? (
-            <View style={{ padding: 16, gap: 12 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <TextInput
-                  style={[s.textInput, { flex: 1, color: SAC.light, fontFamily: FONTS.regular, fontSize: 14 }]}
-                  value={textValue}
-                  onChangeText={setTextValue}
-                  placeholder={isPassword ? 'Enter secret value' : 'Enter value'}
-                  placeholderTextColor={SAC.dim}
-                  secureTextEntry={isPassword && !showPwd}
-                  autoFocus
-                />
-                {isPassword && (
-                  <Pressable onPress={() => setShowPwd(!showPwd)} style={{ padding: 8 }}>
-                    {showPwd ? <EyeOff size={16} color={SAC.muted} /> : <Eye size={16} color={SAC.muted} />}
-                  </Pressable>
-                )}
+        <Pressable onPress={(e) => e.stopPropagation?.()}>
+          <Animated.View entering={FadeInDown.duration(220)} style={s.pickerCard}>
+            <LinearGradient colors={GRAD_BG} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.pickerHero}>
+              <View style={s.pickerIcon}>
+                {isTextInput ? <KeyRound size={16} color={GRAD_TO} /> : <Sliders size={16} color={GRAD_TO} />}
               </View>
-              <Pressable
-                onPress={() => { onSelect(textValue); onClose(); }}
-                style={{ backgroundColor: GRAD_TO, paddingVertical: 10, borderRadius: 8, alignItems: 'center' }}
-              >
-                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 14 }}>Save</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <ScrollView style={{ maxHeight: 340 }} contentContainerStyle={{ padding: 12, gap: 6 }}>
-              {setting.options.map((opt) => {
-                const isSelected = opt.value === setting.value;
-                return (
-                  <Pressable
-                    key={opt.value}
-                    onPress={() => { onSelect(opt.value); onClose(); }}
-                    style={[s.pickerOption, isSelected && s.pickerOptionActive]}
-                  >
-                    <View style={[s.pickerOptionRadio, isSelected && { borderColor: GRAD_TO, backgroundColor: GRAD_TO + '22' }]}>
-                      {isSelected && <View style={s.pickerRadioDot} />}
+              <View style={{ flex: 1 }}>
+                <Text style={s.pickerTitle}>{setting.label}</Text>
+                <Text style={s.pickerSub}>
+                  {isTextInput ? 'Enter and save this platform credential' : 'Select an option to update this setting'}
+                </Text>
+              </View>
+              <Pressable onPress={onClose} style={s.modalClose}><X size={16} color={SAC.muted} /></Pressable>
+            </LinearGradient>
+            {isTextInput ? (
+              <>
+                <View style={s.credentialBody}>
+                  {!!setting.help && <Text style={s.credentialHelp}>{setting.help}</Text>}
+                  <View>
+                    <Text style={s.credentialLabel}>{setting.label}</Text>
+                    <View style={s.credentialInputWrap}>
+                      <TextInput
+                        style={s.credentialInput}
+                        value={textValue}
+                        onChangeText={setTextValue}
+                        placeholder={inputPlaceholder}
+                        placeholderTextColor="rgba(255,255,255,0.35)"
+                        secureTextEntry={isPassword && !showPwd}
+                        autoFocus
+                        multiline={false}
+                      />
+                      {isPassword && (
+                        <Pressable onPress={() => setShowPwd(!showPwd)} style={s.iconOnlyBtn}>
+                          {showPwd ? <EyeOff size={18} color="rgba(255,255,255,0.6)" /> : <Eye size={18} color="rgba(255,255,255,0.6)" />}
+                        </Pressable>
+                      )}
                     </View>
-                    <Text style={[s.pickerOptionText, isSelected && { color: GRAD_TO, fontFamily: FONTS.xbold }]}>
-                      {opt.label}
-                    </Text>
-                    {isSelected && <Check size={13} color={GRAD_TO} />}
+                  </View>
+                </View>
+                <View style={s.modalFooter}>
+                  <Pressable onPress={onClose} style={s.secondaryBtn}>
+                    <Text style={s.secondaryBtnText}>Cancel</Text>
                   </Pressable>
-                );
-              })}
-            </ScrollView>
-          )}
-        </Animated.View>
+                  <GradientButton onPress={() => onSelect(textValue)}>
+                    <Check size={14} color="#fff" />
+                    <Text style={s.primaryBtnText}>Save credential</Text>
+                  </GradientButton>
+                </View>
+              </>
+            ) : (
+              <ScrollView style={{ maxHeight: 340 }} contentContainerStyle={{ padding: 12, gap: 6 }}>
+                {setting.options.map((opt) => {
+                  const isSelected = opt.value === setting.value;
+                  return (
+                    <Pressable
+                      key={opt.value}
+                      onPress={() => { onSelect(opt.value); onClose(); }}
+                      style={[s.pickerOption, isSelected && s.pickerOptionActive]}
+                    >
+                      <View style={[s.pickerOptionRadio, isSelected && { borderColor: GRAD_TO, backgroundColor: GRAD_TO + '22' }]}>
+                        {isSelected && <View style={s.pickerRadioDot} />}
+                      </View>
+                      <Text style={[s.pickerOptionText, isSelected && { color: GRAD_TO, fontFamily: FONTS.xbold }]}>
+                        {opt.label}
+                      </Text>
+                      {isSelected && <Check size={13} color={GRAD_TO} />}
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </Animated.View>
+        </Pressable>
       </Pressable>
     </Modal>
   );
@@ -2374,6 +2405,53 @@ const s = StyleSheet.create({
   },
   pickerTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
   pickerSub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
+  credentialBody: {
+    padding: 16,
+    gap: 12,
+  },
+  credentialHelp: {
+    color: SAC.muted,
+    fontFamily: FONTS.med,
+    fontSize: 11.5,
+    lineHeight: 17,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: SAC.border,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  credentialLabel: {
+    color: SAC.muted,
+    fontFamily: FONTS.bold,
+    fontSize: 11.5,
+    marginBottom: 6,
+  },
+  credentialInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(251,146,60,0.40)',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  credentialInput: {
+    flex: 1,
+    minWidth: 0,
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: FONTS.med,
+    paddingVertical: 10,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+  },
+  iconOnlyBtn: {
+    padding: 4,
+    borderRadius: 8,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
   pickerOption: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 12, paddingHorizontal: 14, borderRadius: 10,
