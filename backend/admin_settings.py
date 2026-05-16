@@ -782,9 +782,9 @@ DEFAULT_PLATFORM_CONTROLS = {
         {"key": "default_locale",  "label": "Default Locale",    "value": "en-IN"},
         {"key": "default_tz",      "label": "Default Timezone",  "value": "Asia/Kolkata"},
         {"key": "default_currency","label": "Default Currency",  "value": "INR (₹)"},
-        {"key": "google_oauth_client_id","label": "Google OAuth Client ID","value": "", "type": "password", "help": "From Google Cloud Console → APIs & Services → Credentials"},
+        {"key": "google_oauth_client_id","label": "Google OAuth Client ID","value": "", "type": "text", "help": "From Google Cloud Console → APIs & Services → Credentials"},
         {"key": "google_oauth_client_secret","label": "Google OAuth Client Secret","value": "", "type": "password"},
-        {"key": "linkedin_oauth_client_id","label": "LinkedIn OAuth Client ID","value": "", "type": "password", "help": "From LinkedIn Developer Portal → Apps → Auth"},
+        {"key": "linkedin_oauth_client_id","label": "LinkedIn OAuth Client ID","value": "", "type": "text", "help": "From LinkedIn Developer Portal → Apps → Auth"},
         {"key": "linkedin_oauth_client_secret","label": "LinkedIn OAuth Client Secret","value": "", "type": "password"},
     ],
 }

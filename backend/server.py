@@ -27,6 +27,7 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 import os
+import re
 import uuid
 import io
 import base64
@@ -46,6 +47,15 @@ from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr, field_validator
+
+# Rate limiting
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Content prioritization engine — implements interest + edu-level + deadline + frequency scoring
 from personalization import (
@@ -373,9 +383,16 @@ class RegisterRequest(BaseModel):
     @field_validator("password")
     @classmethod
     def _password_strength(cls, v):
-        # Enforce minimum 6 chars (frontend should also enforce stronger rules)
-        if len(v) < 6:
-            raise ValueError("Password must be at least 6 characters long")
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one digit")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
+            raise ValueError("Password must contain at least one special character (!@#$%^&*...)")
         return v
 
     @field_validator("dob")
@@ -704,7 +721,8 @@ def validate_student_class(school_info: SchoolInfo, age: Optional[int] = None) -
 # Auth Endpoints
 # ----------------------------------------------------------------------------
 @api_router.post("/auth/register", response_model=AuthResponse)
-async def register(req: RegisterRequest):
+@limiter.limit("10/minute")
+async def register(request: Request, req: RegisterRequest):
     """Register a new user. Role is captured upfront — onboarding collects role-specific fields."""
     email = req.email.lower().strip()
     if await db.users.find_one({"email": email}):
@@ -765,7 +783,8 @@ class CheckEmailRequest(BaseModel):
 
 
 @api_router.post("/auth/check-email")
-async def check_email(req: CheckEmailRequest):
+@limiter.limit("30/minute")
+async def check_email(request: Request, req: CheckEmailRequest):
     """Smart Email Detect (per HTML spec) — checks whether an email already has
     an account so the client can decide whether to route to Login (existing)
     or Register (new). Also returns the user's role if we have one, so Login
@@ -788,7 +807,8 @@ async def check_email(req: CheckEmailRequest):
 
 
 @api_router.post("/auth/login")
-async def login(req: LoginRequest):
+@limiter.limit("20/minute")
+async def login(request: Request, req: LoginRequest):
     """Email + password login. Returns JWT pair, OR a 2FA challenge if user has 2FA enabled."""
     email = req.email.lower().strip()
     user = await db.users.find_one({"email": email})
@@ -1386,7 +1406,8 @@ async def verify_id_card(sa_id: str):
 
 
 @api_router.post("/auth/refresh")
-async def refresh_token(payload: dict):
+@limiter.limit("30/minute")
+async def refresh_token(request: Request, payload: dict):
     """Exchanges a valid refresh token for a fresh access token."""
     token = payload.get("refresh_token")
     if not token:
@@ -1859,7 +1880,8 @@ async def two_fa_enable(req: TwoFAEnableRequest, user: dict = Depends(get_curren
 
 
 @api_router.post("/auth/2fa/verify", response_model=AuthResponse)
-async def two_fa_verify(req: TwoFAVerifyRequest):
+@limiter.limit("10/minute")
+async def two_fa_verify(request: Request, req: TwoFAVerifyRequest):
     """User submits TOTP/backup code with the challenge_id from /auth/login.
     On success → returns full access + refresh JWT pair."""
     challenge = await db.two_fa_challenges.find_one({"_id": req.challenge_id})
@@ -2078,19 +2100,25 @@ async def _verify_linkedin_token(access_token: Optional[str], client_id: str = "
 
 
 @api_router.post("/auth/google", response_model=AuthResponse)
-async def auth_google(req: OAuthCallback):
+@limiter.limit("20/minute")
+async def auth_google(request: Request, req: OAuthCallback):
     """Continue-with-Google flow.
 
     Real flow: client (Expo) opens Google OAuth → receives `id_token` → POSTs here.
-    Mock flow: client sends {email, full_name} directly (when no credentials configured).
-    Returns our JWT pair so the rest of the app remains agnostic of the provider.
+    The `id_token` must be a real Google JWT that is verified against the configured
+    GOOGLE_OAUTH_CLIENT_ID. Mock mode (passing email/full_name directly) is ONLY
+    allowed when ENV=development and no client_id is configured.
     """
     creds = await _get_oauth_creds()
-    profile = _verify_google_token(req.id_token, creds.get("google_oauth_client_id", ""))
+    client_id = creds.get("google_oauth_client_id", "")
+    profile = _verify_google_token(req.id_token, client_id) if req.id_token else None
     if profile is None:
-        if not req.email or not req.full_name:
-            raise HTTPException(400, "Missing email/full_name (mock OAuth requires these in dev mode)")
-        profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+        if not client_id and os.getenv("ENV") == "development":
+            if not req.email or not req.full_name:
+                raise HTTPException(400, "Development mock mode requires email/full_name")
+            profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+        else:
+            raise HTTPException(400, "Google OAuth requires a valid id_token. Configure google_oauth_client_id in platform settings or set ENV=development for mock mode.")
 
     user = await _upsert_oauth_user(
         provider="google",
@@ -2107,18 +2135,20 @@ async def auth_google(req: OAuthCallback):
 
 
 @api_router.post("/auth/linkedin", response_model=AuthResponse)
-async def auth_linkedin(req: OAuthCallback):
+@limiter.limit("20/minute")
+async def auth_linkedin(request: Request, req: OAuthCallback):
     """Continue-with-LinkedIn flow. Same structure as /auth/google."""
     creds = await _get_oauth_creds()
-    profile = await _verify_linkedin_token(
-        req.access_token,
-        creds.get("linkedin_oauth_client_id", ""),
-        creds.get("linkedin_oauth_client_secret", ""),
-    )
+    client_id = creds.get("linkedin_oauth_client_id", "")
+    client_secret = creds.get("linkedin_oauth_client_secret", "")
+    profile = await _verify_linkedin_token(req.access_token, client_id, client_secret) if req.access_token else None
     if profile is None:
-        if not req.email or not req.full_name:
-            raise HTTPException(400, "Missing email/full_name (mock OAuth requires these in dev mode)")
-        profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+        if not client_id and os.getenv("ENV") == "development":
+            if not req.email or not req.full_name:
+                raise HTTPException(400, "Development mock mode requires email/full_name")
+            profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+        else:
+            raise HTTPException(400, "LinkedIn OAuth requires a valid access_token. Configure linkedin_oauth_client_id in platform settings or set ENV=development for mock mode.")
 
     user = await _upsert_oauth_user(
         provider="linkedin",
@@ -2512,20 +2542,6 @@ async def disconnect_integration(
     except Exception:
         pass
     return {"ok": True}
-
-
-@api_router.patch("/users/me/preferences")
-async def patch_preferences(
-    body: Dict[str, Any],
-    user: dict = Depends(get_current_user),
-):
-    """Update user preferences (default_video_platform, default_ai_provider, etc.)."""
-    allowed = {"default_video_platform", "default_ai_provider"}
-    payload = {f"preferences.{k}": v for k, v in (body or {}).items() if k in allowed}
-    if not payload:
-        return {"ok": True, "noop": True}
-    await db.users.update_one({"_id": user["_id"]}, {"$set": payload})
-    return {"ok": True, "updated": list(payload.keys())}
 
 
 @api_router.get("/users/me/resume")
@@ -5119,9 +5135,14 @@ async def on_startup():
     await db.users.create_index("email", unique=True)
     await db.users.create_index("unique_id")
     await db.users.create_index([("role", 1), ("mentor_status", 1)])
+    await db.users.create_index("sa_id", unique=True, sparse=True)
     await db.career_suggestions.create_index("user_id")
     await db.chat_messages.create_index([("user_id", 1), ("session_id", 1)])
     await db.bookings.create_index([("student_id", 1), ("mentor_id", 1)])
+    await db.audit_logs.create_index("user_id")
+    await db.audit_logs.create_index([("ts", -1)])
+    await db.sessions.create_index("user_id")
+    await db.sessions.create_index([("expires_at", 1)], expireAfterSeconds=0)
     # Agent K scheduled — indexes that the tick query and per-user list rely on
     await db.agent_k_schedules.create_index([("status", 1), ("next_run_at", 1)])
     await db.agent_k_schedules.create_index([("user_id", 1), ("created_at", -1)])
@@ -5198,7 +5219,6 @@ api_router.include_router(agent_k_scheduled_router)
 # Admin settings — Roles & Permissions + Marketplace
 from admin_settings import router as admin_settings_router
 api_router.include_router(admin_settings_router)
-api_router.include_router(ai_briefs_router)
 
 # Admin imports — bulk-upload + categorization (Students / Alumni / Mentors)
 from admin_imports import router as admin_imports_router
@@ -5219,6 +5239,10 @@ app.include_router(api_router)
 _origins_env = (os.getenv("ALLOWED_ORIGINS") or os.getenv("FRONTEND_URL") or "*").strip()
 _origins_list = [o.strip() for o in _origins_env.split(",") if o.strip()]
 _allow_creds = "*" not in _origins_list  # browsers reject credentials+wildcard
+
+# Fail-fast: wildcard CORS is insecure in production
+if os.getenv("ENV") == "production" and "*" in _origins_list:
+    raise ValueError("CORS wildcard (*) is not allowed in production. Set ALLOWED_ORIGINS to specific domains.")
 
 app.add_middleware(
     CORSMiddleware,

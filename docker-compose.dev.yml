@@ -24,7 +24,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: ../Dockerfile.backend
+      dockerfile: Dockerfile
     image: studentalumni/backend:dev
     container_name: studentalumni-backend-dev
     restart: unless-stopped
