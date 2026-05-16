@@ -1284,7 +1284,7 @@ def _student_status_label(user: dict) -> dict:
         return {"label": "Mentor", "color": "#F59E0B"}
     if role == "college":
         return {"label": "Institution", "color": "#22D3EE"}
-    if role in ("admin", "superadmin", "super_admin"):
+    if role == "admin":
         return {"label": "Administrator", "color": "#10B981"}
     si = user.get("school_info") or {}
     cls = (si.get("class_or_year") or si.get("current_course") or "").lower()
@@ -1395,8 +1395,6 @@ async def verify_id_card(identifier: str):
 
     role = (u.get("role") or "").lower().strip()
     ROLE_LABELS = {
-        "superadmin": "Super Admin",
-        "super_admin": "Super Admin",
         "admin": "Admin",
         "student": "Student",
         "alumni": "Alumni",
@@ -1459,7 +1457,7 @@ async def verify_id_card(identifier: str):
         base["students_count"] = ci.get("students_count") or ""
         base["affiliation"] = ci.get("affiliation") or ""
 
-    elif role in ("admin", "superadmin", "super_admin"):
+    elif role == "admin":
         colleges_count = await db.colleges.count_documents({}) or 0
         base["title"] = u.get("title") or ""
         base["access_label"] = u.get("access_label") or "Full Access"

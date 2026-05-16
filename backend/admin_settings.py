@@ -56,7 +56,7 @@ async def _require_admin(authorization: Optional[str]) -> dict:
     user = await _resolve_user(authorization)
     if not user:
         raise HTTPException(401, "Not authenticated")
-    if user.get("role") not in {"superadmin", "super_admin", "admin"}:
+    if user.get("role") not in {"admin"}:
         raise HTTPException(403, "Super-admin only")
     return user
 
@@ -588,7 +588,7 @@ async def get_admin_profile(authorization: Optional[str] = Header(None)):
     # admin_id is generated once per user
     admin_id = user.get("admin_id")
     if not admin_id:
-        seq = await _db.users.count_documents({"role": {"$in": ["superadmin", "super_admin", "admin"]}})
+        seq = await _db.users.count_documents({"role": {"$in": ["admin"]}})
         admin_id = f"SA-2024-{seq:06d}"
         await _db.users.update_one({"_id": user["_id"]}, {"$set": {"admin_id": admin_id}})
     return {
@@ -604,8 +604,6 @@ async def get_admin_profile(authorization: Optional[str] = Header(None)):
             f"{user.get('email')}"
         ),
         "role_label": ({
-            "superadmin": "Super Admin",
-            "super_admin": "Super Admin",
             "admin": "Admin",
             "student": "Student",
             "alumni": "Alumni",
@@ -1446,7 +1444,7 @@ async def get_digital_id(authorization: Optional[str] = Header(None)):
     user = await _require_admin(authorization)
     admin_id = user.get("admin_id")
     if not admin_id:
-        seq = await _db.users.count_documents({"role": {"$in": ["superadmin", "super_admin", "admin"]}})
+        seq = await _db.users.count_documents({"role": {"$in": ["admin"]}})
         admin_id = f"SA-2024-{seq:06d}"
         await _db.users.update_one({"_id": user["_id"]}, {"$set": {"admin_id": admin_id}})
     from datetime import datetime, timedelta
@@ -1457,8 +1455,6 @@ async def get_digital_id(authorization: Optional[str] = Header(None)):
     expiry_date = (now + timedelta(days=365)).isoformat()
     raw_role = (user.get("role") or "").lower().strip()
     ROLE_LABELS = {
-        "superadmin": "Super Admin",
-        "super_admin": "Super Admin",
         "admin": "Admin",
         "student": "Student",
         "alumni": "Alumni",
