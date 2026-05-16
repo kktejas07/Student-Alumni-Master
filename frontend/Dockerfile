@@ -54,7 +54,7 @@ COPY . .
 
 RUN npx expo export --platform web --output-dir dist
 
-FROM nginx:1.27-alpine
+FROM nginx:1.31-alpine
 
 RUN apk add --no-cache curl
 
