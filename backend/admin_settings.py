@@ -1443,16 +1443,23 @@ async def get_digital_id(authorization: Optional[str] = Header(None)):
         await _db.users.update_one({"_id": user["_id"]}, {"$set": {"admin_id": admin_id}})
     qr_data = f"SA-ID:{admin_id}|{user.get('email', '')}|admin"
     qr_base64 = _generate_qr_code(qr_data)
+    from datetime import datetime, timedelta
+    now = datetime.utcnow()
+    issue_date = now.isoformat()
+    expiry_date = (now + timedelta(days=365)).isoformat()
     return {
         "admin_id": admin_id,
         "name": user.get("full_name") or "Super Admin",
         "email": user.get("email") or "admin@careerpath.app",
+        "photo": user.get("photo") or user.get("avatar_url") or "",
         "title": "Platform Administrator",
         "access_label": "Full Access",
         "org": "Student Alumni",
         "label": "OFFICIAL ID",
         "verified": True,
         "colleges_count": await _db.colleges.count_documents({}) or 48,
+        "issue_date": issue_date,
+        "expiry_date": expiry_date,
         "qr_code_base64": qr_base64,
     }
 
