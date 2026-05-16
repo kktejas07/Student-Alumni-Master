@@ -2110,7 +2110,7 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
   }, []);
 
   const flipStyle = useAnimatedStyle(() => ({
-    transform: [{ perspective: 1200 }, { rotateY: `${flipped ? 180 : 0}deg` }],
+    transform: [{ rotateY: `${flipped ? 180 : 0}deg` }],
   }), [flipped]);
 
   const copyId = async () => {
@@ -2149,13 +2149,14 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
 
   if (!data) return <Loading />;
 
+  const webPerspective = Platform.OS === 'web' ? ({ perspective: 1200, WebkitPerspective: 1200 } as any) : {};
+
   return (
-    <Animated.View entering={FadeIn.duration(180)} style={{ gap: 16 }}>
+    <Animated.View entering={FadeIn.duration(180)} style={{ gap: 24 }}>
       {/* The ID Card — 3D flip */}
       <Pressable onPress={() => setFlipped(!flipped)} style={{ alignSelf: 'center', width: '100%', maxWidth: 540 }}>
-        <Animated.View style={[{ position: 'relative', width: '100%', minHeight: 240 }, flipStyle]}>
-          {/* Front */}
-          <View style={[StyleSheet.absoluteFill, { backfaceVisibility: 'hidden' }]}>
+        <View style={[{ position: 'relative', width: '100%', height: 260, transformStyle: 'preserve-3d' as any }, webPerspective]}>
+          <Animated.View style={[{ position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }, flipStyle]}>
             <LinearGradient colors={['#FBBF24', '#F97316', '#B45309']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <View>
@@ -2188,10 +2189,10 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
                 <ChevronRight size={12} color="rgba(31,17,7,0.7)" />
               </View>
             </LinearGradient>
-          </View>
+          </Animated.View>
           {/* Back */}
-          <View style={[StyleSheet.absoluteFill, { backfaceVisibility: 'hidden', transform: [{ rotateY: '180deg' }] }]}>
-            <LinearGradient colors={['#1f1107', '#2D1B0E', '#3D2510']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
+          <Animated.View style={[{ position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: [{ rotateY: '180deg' }] }, flipStyle]}>
+            <LinearGradient colors={['#1f1107', '#2D1B0E', '#3D2510']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[s.idCard, { justifyContent: 'center' }]}>
               <View style={{ alignItems: 'center', gap: 14 }}>
                 <View>
                   <Text style={s.flipOrg}>SCAN TO VERIFY</Text>
@@ -2199,7 +2200,7 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
                   <Text style={s.flipSub}>Student Alumni Platform · Super Admin</Text>
                 </View>
                 <View style={{ padding: 12, backgroundColor: '#fff', borderRadius: 16 }}>
-                  <Image source={{ uri: `data:image/png;base64,${data.qr_code_base64}` }} style={{ width: 180, height: 180 }} resizeMode="contain" />
+                  <Image source={{ uri: `data:image/png;base64,${data.qr_code_base64}` }} style={{ width: 120, height: 120 }} resizeMode="contain" />
                 </View>
                 <View style={{ alignItems: 'center', gap: 6, marginTop: 4 }}>
                   <Text style={s.flipDataLabel}>ENCODED DATA</Text>
@@ -2213,12 +2214,12 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
                 </View>
               </View>
             </LinearGradient>
-          </View>
-        </Animated.View>
+          </Animated.View>
+        </View>
       </Pressable>
 
       {/* Actions */}
-      <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginTop: 24 }}>
+      <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginTop: 32 }}>
         <Pressable onPress={copyId} style={s.idActionBtn}>
           <Copy size={13} color="#fff" />
           <Text style={s.idActionText}>Copy Admin ID</Text>
@@ -2234,7 +2235,7 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
       </View>
 
       {/* 4 feature cards */}
-      <View style={[s.featGrid, { marginTop: 16 }]}>
+      <View style={[s.featGrid, { marginTop: 24 }]}>
         <FeatureCard icon={ShieldCheck} tint={SAC.green}    title="Verified Identity"   text="Your admin status is verified by the platform." />
         <FeatureCard icon={Building2}   tint="#3B82F6"      title="Platform Authority"  text={`Recognised across all ${data.colleges_count || 48} colleges.`} />
         <FeatureCard icon={QrCode}      tint="#A78BFA"      title="Instant Share"       text="Share QR at events or board meetings." />
@@ -2675,7 +2676,7 @@ const s = StyleSheet.create({
 
   // Digital ID
   idCard: {
-    padding: 26, borderRadius: 22,
+    padding: 26, borderRadius: 22, flex: 1,
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 30px 70px rgba(217,119,6,0.30)' } as any) : { shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 30, shadowOffset: { width: 0, height: 18 } }),
   },
   idOrg: { color: 'rgba(31,17,7,0.75)', fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 2 },
