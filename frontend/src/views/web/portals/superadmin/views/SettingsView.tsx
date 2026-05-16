@@ -741,7 +741,7 @@ function SettingPickerModal({ setting, onSelect, onClose }: {
             <View style={{ padding: 16, gap: 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <TextInput
-                  style={[s.textInput, { flex: 1, color: SAC.light, fontFamily: FONTS.regular, fontSize: 14 }]}
+                  style={[s.textInput, { flex: 1, color: SAC.text, fontFamily: 'DMSans_500Medium', fontSize: 14 }]}
                   value={textValue}
                   onChangeText={setTextValue}
                   placeholder={isPassword ? 'Enter secret value' : 'Enter value'}
