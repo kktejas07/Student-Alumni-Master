@@ -659,8 +659,7 @@ async def get_role_detail(role_id: str, authorization: Optional[str] = Header(No
         role = await _db.admin_roles.find_one({"key": role_id})
     if not role:
         # synthesise stub for system roles defined only in code
-        from admin_settings import DEFAULT_SYSTEM_ROLES  # type: ignore[attr-defined]
-        for sr in DEFAULT_SYSTEM_ROLES if 'DEFAULT_SYSTEM_ROLES' in dir() else []:
+        for sr in SYSTEM_ROLES:
             if sr.get("key") == role_id:
                 role = sr
                 break
