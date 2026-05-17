@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Signing in... — Student Alumni</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a; color: #e2e8f0;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 20px;
+    }
+    .card {
+      background: #1e293b; border-radius: 16px; padding: 32px;
+      text-align: center; border: 1px solid #334155;
+      max-width: 400px; width: 100%;
+    }
+    .spinner {
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 3px solid #334155; border-top-color: #F59E0B;
+      animation: spin 0.8s linear infinite; margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    h2 { color: #fff; font-size: 18px; margin-bottom: 8px; }
+    p { color: #94a3b8; font-size: 14px; line-height: 1.5; }
+    .error { color: #ef4444; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="spinner" id="spinner"></div>
+    <h2 id="status">Signing in...</h2>
+    <p id="subtext">Please wait while we verify your account.</p>
+    <p class="error" id="error" style="display:none"></p>
+  </div>
+
+  <script>
+  (async function() {
+    const status = document.getElementById('status');
+    const subtext = document.getElementById('subtext');
+    const errorEl = document.getElementById('error');
+    const spinner = document.getElementById('spinner');
+
+    function showError(msg) {
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
+      spinner.style.display = 'none';
+      status.textContent = 'Sign-in failed';
+      subtext.textContent = 'Close this window and try again.';
+    }
+
+    try {
+      // Parse hash (Google returns id_token in URL fragment)
+      const hash = window.location.hash.replace(/^#/, '');
+      const params = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(hash);
+
+      const idToken = hashParams.get('id_token');
+      const code = params.get('code');
+      const state = params.get('state') || hashParams.get('state') || '';
+
+      const API_BASE = 'https://studentalumni.ai/api';
+      let data;
+
+      if (idToken) {
+        status.textContent = 'Verifying Google account...';
+        const res = await fetch(API_BASE + '/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id_token: idToken }),
+        });
+        if (!res.ok) throw new Error('Google verification failed');
+        data = await res.json();
+      } else if (code) {
+        status.textContent = 'Verifying LinkedIn account...';
+        const res = await fetch(API_BASE + '/auth/linkedin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: code }),
+        });
+        if (!res.ok) throw new Error('LinkedIn verification failed');
+        data = await res.json();
+      } else {
+        showError('No authorization code received.');
+        return;
+      }
+
+      // Send tokens to parent window (popup) or redirect
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage({
+          type: 'OAUTH_SUCCESS',
+          payload: {
+            access_token: data.access_token,
+            refresh_token: data.refresh_token,
+            user: data.user,
+          }
+        }, '*');
+        status.textContent = 'Signed in!';
+        subtext.textContent = 'This window will close automatically.';
+        setTimeout(() => window.close(), 1000);
+      } else {
+        // Not a popup - store tokens and redirect
+        localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('refresh_token', data.refresh_token || '');
+        const role = (data.user?.role || '').toLowerCase();
+        const routes = {
+          admin: '/super-admin', mentor: '/mentor-portal',
+          college: '/college-portal', alumni: '/alumni-portal',
+        };
+        window.location.href = routes[role] || '/student-portal';
+      }
+    } catch (e) {
+      showError(e?.message || 'OAuth sign-in failed');
+    }
+  })();
+  </script>
+</body>
+</html>
