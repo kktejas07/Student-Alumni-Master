@@ -662,7 +662,7 @@ function PlatformTab({ onSaved }: { onSaved: (s?: string) => void }) {
               const displayValue = it.value || (opts.length === 0 ? 'Add value' : 'Select');
               return (
                 <View key={it.key} style={[s.systemRow, idx === data.system_settings.length - 1 ? { borderBottomWidth: 0 } : null]}>
-                  <Text style={s.toggleTitle}>{it.label}</Text>
+                  <Text style={[s.toggleTitle, { flex: 1 }]}>{it.label}</Text>
                   <Pressable
                     onPress={() => setPickerSetting({
                       key: it.key,
@@ -2479,7 +2479,7 @@ const s = StyleSheet.create({
 
   // Cards
   card: {
-    flex: 1, minWidth: 300, maxWidth: '100%' as any,
+    flex: 1, minWidth: 280, maxWidth: '100%' as any,
     padding: 18, borderRadius: 14,
     backgroundColor: SAC.card, borderWidth: 1, borderColor: SAC.border,
     ...(Platform.OS === 'web' ? { boxSizing: 'border-box' as any } : {}),
@@ -2542,18 +2542,18 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 11, paddingHorizontal: 4, flexWrap: 'wrap' as any,
   },
-  toggleTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13, flexShrink: 1, ...(Platform.OS === 'web' ? { wordBreak: 'break-word' as any } : {}) },
+  toggleTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13, ...(Platform.OS === 'web' ? { wordBreak: 'break-word' as any } : {}) },
   toggleDesc: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
   systemRow: {
-    flexDirection: 'column', gap: 4,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: SAC.border,
   },
   selectBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9,
     borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
-    alignSelf: 'stretch',
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', maxWidth: '100%' } as any) : {}),
+    flexShrink: 0,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', maxWidth: '60%' } as any) : {}),
   },
   editBtnText: { color: GRAD_TO, fontFamily: FONTS.xbold, fontSize: 11 },
   selectBtn: {
@@ -2563,7 +2563,7 @@ const s = StyleSheet.create({
     flexShrink: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', maxWidth: '100%' } as any) : {}),
   },
-  selectValue: { color: GRAD_TO, fontFamily: FONTS.bold, fontSize: 12 },
+  selectValue: { color: GRAD_TO, fontFamily: FONTS.bold, fontSize: 12, numberOfLines: 1 as any, ellipsizeMode: 'tail' as any },
 
   // Picker Modal
   pickerBackdrop: {
