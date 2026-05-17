@@ -236,9 +236,9 @@ export function SettingsView() {
   };
 
   return (
-    <View style={{ gap: 16, maxWidth: '100%' as any, overflow: 'hidden' as any }}>
+    <View style={{ gap: 16, maxWidth: '100%' as any }}>
       <TopTabBar active={tab} onChange={setTab} />
-      <View style={{ minHeight: 480, maxWidth: '100%' as any, overflow: 'hidden' as any }}>
+      <View style={{ minHeight: 480, maxWidth: '100%' as any }}>
         {tab === 'profile'       && <ProfileTab onSaved={flashToast} />}
         {tab === 'platform'      && <PlatformTab onSaved={flashToast} />}
         {tab === 'integrations'  && <IntegrationsTab onSaved={flashToast} />}
@@ -1713,6 +1713,8 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [cur, setCur] = useState(''); const [next, setNext] = useState(''); const [conf, setConf] = useState('');
   const [showCur, setShowCur] = useState(false); const [showNext, setShowNext] = useState(false);
   const [sessions, setSessions] = useState<any[]>([]);
+  const [sessionTotal, setSessionTotal] = useState(0);
+  const [showAllSessions, setShowAllSessions] = useState(false);
   const [trustedDevices, setTrustedDevices] = useState<any[]>([]);
   const [analysis, setAnalysis] = useState<any>(null);
   const [log, setLog] = useState<any[]>([]);
@@ -1730,6 +1732,7 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
         request<any>('/admin/security/trusted-devices').catch(() => null),
       ]);
       setSessions(sessR?.sessions || []);
+      setSessionTotal(sessR?.total || 0);
       setLog(logR?.entries || []);
       setAnalysis(analysisR || null);
       setTrustedDevices(tdR?.trusted_devices || []);
@@ -1972,6 +1975,28 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
               );
             })}
           </View>
+          {sessionTotal > 5 && !showAllSessions && (
+            <Pressable
+              onPress={async () => {
+                const r = await request<any>('/admin/security/sessions?all=true');
+                if (r?.sessions) { setSessions(r.sessions); setShowAllSessions(true); }
+              }}
+              style={[s.linkBtn, { alignSelf: 'center', marginTop: 8 }]}
+            >
+              <Text style={s.linkBtnText}>View all {sessionTotal} sessions →</Text>
+            </Pressable>
+          )}
+          {showAllSessions && (
+            <Pressable
+              onPress={async () => {
+                const r = await request<any>('/admin/security/sessions');
+                if (r?.sessions) { setSessions(r.sessions); setShowAllSessions(false); }
+              }}
+              style={[s.linkBtn, { alignSelf: 'center', marginTop: 8 }]}
+            >
+              <Text style={s.linkBtnText}>Show last 5 only ↑</Text>
+            </Pressable>
+          )}
           <Pressable
             onPress={async () => {
               try {
@@ -2472,7 +2497,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
 
-  twoCol: { flexDirection: 'row', gap: 14, flexWrap: 'wrap' as any, overflow: 'hidden' as any },
+  twoCol: { flexDirection: 'row', gap: 14, flexWrap: 'wrap' as any },
   // Use s.card (defined above) for card styles
 
   // Profile
@@ -2520,9 +2545,15 @@ const s = StyleSheet.create({
   toggleTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13, flexShrink: 1, ...(Platform.OS === 'web' ? { wordBreak: 'break-word' as any } : {}) },
   toggleDesc: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
   systemRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
+    flexDirection: 'column', gap: 4,
     paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: SAC.border,
-    flexWrap: 'wrap' as any,
+  },
+  selectBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9,
+    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
+    alignSelf: 'stretch',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', maxWidth: '100%' } as any) : {}),
   },
   editBtnText: { color: GRAD_TO, fontFamily: FONTS.xbold, fontSize: 11 },
   selectBtn: {

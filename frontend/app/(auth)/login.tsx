@@ -61,6 +61,29 @@ export default function LoginScreen() {
     })();
   }, []);
 
+  // Listen for OAuth popup callback (web only)
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'OAUTH_SUCCESS') {
+        const { access_token, refresh_token, user } = event.data.payload;
+        if (access_token && user) {
+          setUser(user);
+          setTokens(access_token, refresh_token);
+          trackAuth({ event: 'login_success', email: user.email, role: user.role });
+          const r = (user.role || '').toLowerCase();
+          if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
+          else if (r === 'mentor') router.replace('/mentor-portal');
+          else if (r === 'college') router.replace('/college-portal');
+          else if (r === 'alumni') router.replace('/alumni-portal');
+          else router.replace('/student-portal');
+        }
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
   const setUser = useAuthStore((s) => s.setUser);
   const setTokens = useAuthStore((s) => s.setTokens);
 
