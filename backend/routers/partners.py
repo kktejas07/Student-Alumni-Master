@@ -60,6 +60,13 @@ class PartnerUpdate(BaseModel):
     display_order: Optional[int] = Field(default=None, ge=0, le=10_000)
     is_active: Optional[bool] = None
 
+    @field_validator("logo_url", "logo_white_url")
+    @classmethod
+    def _check_logo_size(cls, v):
+        if v is not None and len(v) > MAX_LOGO_LEN:
+            raise ValueError("Logo too large (max ~2MB binary)")
+        return v
+
 
 class ReorderIn(BaseModel):
     ordered_ids: list[str]

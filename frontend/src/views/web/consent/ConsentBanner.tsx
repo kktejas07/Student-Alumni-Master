@@ -16,7 +16,10 @@ import Animated, { FadeInUp, FadeIn, FadeOut } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Cookie, Shield, BarChart3, Megaphone, Settings2, Check, X } from 'lucide-react-native';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { saveConsent, shouldShowBanner, readLocal } from './consentStore';
+import {
+  saveConsent, shouldShowBanner, readLocal,
+  fetchServerConsent, mirrorConsent, needsBanner,
+} from './consentStore';
 
 export function ConsentBanner() {
   // Web-only. (Native apps don't render the cookie banner.)
@@ -32,16 +35,47 @@ export function ConsentBanner() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const show = shouldShowBanner(null);
-    if (show) {
-      // small delay so it doesn't slam in on cold-load
-      const t = setTimeout(() => setOpen(true), 700);
-      return () => clearTimeout(t);
-    } else {
-      const p = readLocal();
-      if (p) setPrefs({ analytics: p.analytics, functional: p.functional, marketing: p.marketing });
-    }
-  }, []);
+    let cancelled = false;
+
+    (async () => {
+      if (isAuthed) {
+        // Authenticated: server is source of truth; fall back to localStorage
+        const server = await fetchServerConsent();
+        if (!cancelled) {
+          if (server) {
+            mirrorConsent(server);
+            const show = needsBanner(server);
+            if (!show) {
+              setPrefs({ analytics: server.analytics, functional: server.functional, marketing: server.marketing });
+              return;
+            }
+          }
+          const local = readLocal();
+          const show = needsBanner(local);
+          if (show) {
+            const t = setTimeout(() => setOpen(true), 700);
+            return () => clearTimeout(t);
+          } else if (local) {
+            setPrefs({ analytics: local.analytics, functional: local.functional, marketing: local.marketing });
+          }
+        }
+      } else {
+        // Anonymous: localStorage only
+        const show = shouldShowBanner();
+        if (!cancelled) {
+          if (show) {
+            const t = setTimeout(() => setOpen(true), 700);
+            return () => clearTimeout(t);
+          } else {
+            const p = readLocal();
+            if (p) setPrefs({ analytics: p.analytics, functional: p.functional, marketing: p.marketing });
+          }
+        }
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [isAuthed]);
 
   const finalize = async (mode: 'all' | 'essential' | 'custom') => {
     setSubmitting(true);

@@ -51,9 +51,7 @@ function safeClear() {
   try { window.localStorage.removeItem(STORAGE_KEY); } catch {}
 }
 
-export function shouldShowBanner(authToken: string | null): boolean {
-  if (Platform.OS !== 'web') return false;
-  const p = safeGet();
+export function needsBanner(p: ConsentPrefs | null): boolean {
   if (!p) return true;
   if (p.version !== CONSENT_VERSION) return true;
   const age = Date.now() - new Date(p.updated_at).getTime();
@@ -61,7 +59,60 @@ export function shouldShowBanner(authToken: string | null): boolean {
   return false;
 }
 
+/** Local-only banner check (for anonymous / pre-auth paths). */
+export function shouldShowBanner(_authToken?: string | null): boolean {
+  if (Platform.OS !== 'web') return false;
+  return needsBanner(safeGet());
+}
+
+/** Write a server-fetched record into localStorage without backend sync. */
+export function mirrorConsent(p: ConsentPrefs) {
+  safeSet(p);
+}
+
+/** Fetch consent from backend for authenticated users. Returns null on error/no record. */
+export async function fetchServerConsent(): Promise<ConsentPrefs | null> {
+  try {
+    const res = await request('/me/consent', { method: 'GET' });
+    if (!res || !res.data) return null;
+    const d = res.data;
+    if (!d.version || !d.updated_at) return null;
+    return {
+      essential: true,
+      analytics: !!d.analytics,
+      functional: !!d.functional,
+      marketing: !!d.marketing,
+      accepted_all: !!d.accepted_all,
+      version: d.version,
+      updated_at: d.updated_at,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function readLocal(): ConsentPrefs | null { return safeGet(); }
+
+/** Fetch consent from backend for authenticated users. Returns null on error/no record. */
+export async function fetchServerConsent(): Promise<ConsentPrefs | null> {
+  try {
+    const res: any = await request('/me/consent', { method: 'GET' });
+    if (!res || !res.exists) return null;
+    const d = res;
+    if (!d.version || !d.updated_at) return null;
+    return {
+      essential: true,
+      analytics: !!d.analytics,
+      functional: !!d.functional,
+      marketing: !!d.marketing,
+      accepted_all: !!d.accepted_all,
+      version: d.version,
+      updated_at: d.updated_at,
+    };
+  } catch {
+    return null;
+  }
+}
 
 /** Persist locally + (if authenticated) sync to backend. Fire-and-forget. */
 export async function saveConsent(

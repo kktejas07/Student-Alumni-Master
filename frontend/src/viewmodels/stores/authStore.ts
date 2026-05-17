@@ -151,6 +151,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
     } catch {}
     await tokenStore.clear();
+    try {
+      window.localStorage.removeItem('sa.consent.v1');
+    } catch {}
     set({ user: null });
   },
 
