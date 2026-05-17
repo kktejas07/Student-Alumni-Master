@@ -22,6 +22,7 @@ import { Sidebar, NavId } from './Sidebar';
 import { TopBar } from './TopBar';
 import { AnimatedAurora, GridOverlay } from '../student/glass';
 import { LinearGradient } from 'expo-linear-gradient';
+import { DashboardFooter } from '../../components/SponsorStrip';
 import { DashboardView } from './views/DashboardView';
 import { ConnectionsView } from './views/ConnectionsView';
 import { SessionsView } from './views/SessionsView';
@@ -107,6 +108,7 @@ export default function MentorPortalRN() {
           {active === 'feedback'  && <FeedbackView />}
           {active === 'event'     && <CreateEventView />}
           {active === 'profile'   && <SharedProfileSettingsView roleOverride="mentor" />}
+          <DashboardFooter portal="mentor" />
         </ScrollView>
       </View>
     </View>

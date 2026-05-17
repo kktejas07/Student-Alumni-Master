@@ -11,6 +11,7 @@ import { Sidebar, SuperAdminNavId, NAV } from './Sidebar';
 import { TopBar } from './TopBar';
 import { AnimatedAurora, GridOverlay } from '../student/glass';
 import { LinearGradient } from 'expo-linear-gradient';
+import { DashboardFooter } from '../../components/SponsorStrip';
 import { OverviewView } from './views/OverviewView';
 import { StubView } from './views/StubView';
 import { CollegesView } from './views/CollegesView';
@@ -71,6 +72,7 @@ export function SuperAdminPortalRN() {
           {active === 'settings'    && <SettingsView />}
           {active === 'workflows'   && <WorkflowsView />}
           {active === 'imports'     && <ImportsView />}
+          <DashboardFooter portal="super_admin" />
         </ScrollView>
       </View>
     </View>

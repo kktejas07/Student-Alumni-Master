@@ -21,6 +21,7 @@ import { Sidebar, StudentNavId } from './Sidebar';
 import { TopBar } from './TopBar';
 import { AnimatedAurora, GridOverlay, RouteTransition, AiCopilotFab } from './glass';
 import { PALETTE } from './tokens';
+import { DashboardFooter } from '../../components/SponsorStrip';
 import { DashboardView } from './views/DashboardView';
 import { CareerAIView } from './views/CareerAIView';
 import { EventsView } from './views/EventsView';
@@ -108,6 +109,7 @@ function PortalShell() {
               {active === 'profile'         && <ProfileSettingsView />}
             </RouteTransition>
           </EmbeddedShellContext.Provider>
+          <DashboardFooter portal="student" />
         </ScrollView>
       </View>
 

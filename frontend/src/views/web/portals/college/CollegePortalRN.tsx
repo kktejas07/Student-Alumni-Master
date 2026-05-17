@@ -11,6 +11,7 @@ import { Sidebar, CollegeNavId, NAV } from './Sidebar';
 import { TopBar } from './TopBar';
 import { AnimatedAurora, GridOverlay } from '../student/glass';
 import { LinearGradient } from 'expo-linear-gradient';
+import { DashboardFooter } from '../../components/SponsorStrip';
 import { DashboardView } from './views/DashboardView';
 import { StubView } from './views/StubView';
 import { StudentsView } from './views/StudentsView';
@@ -71,6 +72,7 @@ export function CollegePortalRN() {
           {active === 'career-intel' && <CareerIntelView />}
           {active === 'placements'   && <PlacementsView />}
           {active === 'profile'      && <SharedProfileSettingsView roleOverride="college" />}
+          <DashboardFooter portal="college" />
         </ScrollView>
       </View>
     </View>

@@ -13,6 +13,7 @@ import { Sidebar, StudentNavId } from './Sidebar';
 import { TopBar } from './TopBar';
 import { AnimatedAurora, GridOverlay } from '../student/glass';
 import { LinearGradient } from 'expo-linear-gradient';
+import { DashboardFooter } from '../../components/SponsorStrip';
 import { DashboardView } from './views/DashboardView';
 import { StubView } from './views/StubView';
 import { EventsView } from './views/EventsView';
@@ -82,6 +83,7 @@ export function AlumniPortalRN() {
             {active === 'rentals'         && <RentalsPage />}
             {active === 'profile'         && <ProfileSettingsView />}
           </EmbeddedShellContext.Provider>
+          <DashboardFooter portal="alumni" />
         </ScrollView>
       </View>
     </View>

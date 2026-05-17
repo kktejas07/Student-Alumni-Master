@@ -5182,6 +5182,10 @@ api_router.include_router(admin_colleges_router)
 from crud_endpoints import router as crud_router
 api_router.include_router(crud_router)
 
+# Collaboration partners (Phase A) — public landing strip + admin CRUD
+from routers.partners import router as partners_router
+app.include_router(partners_router)
+
 app.include_router(api_router)
 
 # ── CORS — origins configurable via env for production deployments ──
