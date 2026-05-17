@@ -100,7 +100,7 @@ export function Sidebar({
 
   // Web-only frosted-glass effect for the rail.
   const railGlass = Platform.OS === 'web' ? ({
-    backdropFilter: 'blur(24px) saturate(160%)',
+    backdropFilter: 'blur(24px) saturate(180%)',
     WebkitBackdropFilter: 'blur(24px) saturate(160%)',
     boxShadow: '4px 0 40px rgba(2,6,23,0.40)',
   } as any) : {};

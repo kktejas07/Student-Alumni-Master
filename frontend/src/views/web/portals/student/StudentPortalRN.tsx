@@ -21,6 +21,7 @@ import { Sidebar, StudentNavId } from './Sidebar';
 import { TopBar } from './TopBar';
 import { AnimatedAurora, GridOverlay, RouteTransition, AiCopilotFab } from './glass';
 import { PALETTE } from './tokens';
+import { LinearGradient } from 'expo-linear-gradient';
 import { DashboardView } from './views/DashboardView';
 import { CareerAIView } from './views/CareerAIView';
 import { EventsView } from './views/EventsView';
@@ -74,6 +75,13 @@ function PortalShell() {
 
   return (
     <View style={[s.shell, { backgroundColor: PALETTE.bg0 }]}>
+      {/* Body gradient — deep navy → midnight (per FinTax360 Jewel spec) */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={[PALETTE.bg0, PALETTE.bg2]}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject as any}
+      />
       {/* Animated multicolor aurora behind everything */}
       <AnimatedAurora intensity="normal" />
       {/* 64px grid overlay (web only, radial-fade masked) */}
