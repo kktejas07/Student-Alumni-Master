@@ -1531,3 +1531,56 @@ async def get_share_link(authorization: Optional[str] = Header(None)):
         "share_url": f"{frontend_url}/admin/profile/{admin_id}",
         "admin_id": admin_id,
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# PAGE MANAGEMENT — Static policy/service pages
+# ═══════════════════════════════════════════════════════════════════════
+
+PAGE_SCHEMA = {
+    "privacy": {"title": "Privacy Policy", "route": "/policy/privacy"},
+    "terms": {"title": "Terms of Service", "route": "/policy/terms"},
+    "cookies": {"title": "Cookie Policy", "route": "/policy/cookies"},
+    "refund": {"title": "Refund Policy", "route": "/policy/refund"},
+    "about": {"title": "About Us", "route": "/about"},
+    "faq": {"title": "FAQ", "route": "/faq"},
+}
+
+
+@router.get("/admin/pages")
+async def list_pages(authorization: Optional[str] = Header(None)):
+    """Return all static pages with their editable content from DB."""
+    await _require_admin(authorization)
+    pages = await _db.pages.find().to_list(length=100)
+    page_map = {p["key"]: p for p in pages}
+    result = []
+    for key, meta in PAGE_SCHEMA.items():
+        doc = page_map.get(key, {})
+        result.append({
+            "key": key,
+            "title": meta["title"],
+            "route": meta["route"],
+            "content": doc.get("content", ""),
+            "active": doc.get("active", True),
+            "updated_at": str(doc.get("updated_at", "")),
+        })
+    return result
+
+
+class PageUpdate(BaseModel):
+    content: str
+    active: bool = True
+
+
+@router.patch("/admin/pages/{page_key}")
+async def update_page(page_key: str, body: PageUpdate, authorization: Optional[str] = Header(None)):
+    """Update a static page's content and visibility."""
+    await _require_admin(authorization)
+    if page_key not in PAGE_SCHEMA:
+        raise HTTPException(404, "Page not found")
+    await _db.pages.update_one(
+        {"key": page_key},
+        {"$set": {"content": body.content, "active": body.active, "updated_at": datetime.now(timezone.utc)}},
+        upsert=True,
+    )
+    return {"status": "ok", "key": page_key, "updated": True}

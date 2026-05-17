@@ -1,4 +1,9 @@
 import { Stack } from 'expo-router';
+import { usePathname } from 'expo-router';
+import AppFooter from '@/src/views/web/AppFooter';
+
+// Routes where the footer should appear
+const FOOTER_ROUTES = ['/', '/login', '/register', '/policy/', '/faq', '/about', '/contact', '/intro', '/welcome', '/forgot-password'];
 import {
   useFonts,
   DMSans_400Regular,
@@ -61,6 +66,8 @@ const SAPaperTheme = {
 };
 
 export default function RootLayout() {
+  const pathname = usePathname();
+  const showFooter = ['/', '/login', '/register', '/policy/', '/faq', '/about', '/contact', '/intro', '/welcome', '/forgot-password'].some((r) => pathname.startsWith(r));
   const [fontsLoaded, fontError] = useFonts({
     DMSans_400Regular,
     DMSans_500Medium,
@@ -124,6 +131,7 @@ export default function RootLayout() {
                 animationDuration: 280,
               }}
             />
+            {showFooter && <AppFooter />}
             {/* Agent K — global Cmd/Ctrl+K quick launcher modal */}
             <AgentKQuickLauncher />
           </ToastProvider>
