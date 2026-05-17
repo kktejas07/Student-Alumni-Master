@@ -10987,11 +10987,67 @@ backend:
 frontend:
   - task: "Phase C — PromoBanner + Super Admin Promotions page"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/views/web/components/PromoBanner.tsx, /app/frontend/src/views/web/portals/superadmin/views/PromotionsView.tsx"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: |
+            Phase C frontend VERIFIED on
+            https://hiring-mvvm.preview.emergentagent.com (desktop 1920x900).
+            Login: used Admin persona quick-login → admin@careerpath.app
+            redirected to /super-admin successfully.
+
+            ✅ SIDEBAR: "Promotions" tab with orange NEW badge present
+              between Partners (NEW) and Payments. Position matches spec.
+            ✅ HEADER: "Promotional banners" title rendered with megaphone
+              icon + description: "Push announcements, deals, or product
+              updates to one or more portals. Promotions appear at the top
+              of the dashboard view and respect each user's dismissed list."
+              Amber "+ New promotion" CTA visible top-right.
+            ✅ EMPTY STATE: "No promotions yet — Click 'New promotion' to
+              publish your first announcement to one or more portals."
+              renders with megaphone icon. (Database starts clean.)
+            ✅ EDITOR MODAL — opens on "+ New promotion" click. Layout
+              matches spec exactly:
+                · Title bar: "New promotion — Compose the message, pick a
+                  tone, and choose which portals see it." + close X.
+                · LIVE PREVIEW pane (purple tone preview with stripe + icon
+                  + "Preview title" rendered live).
+                · TITLE input + BODY textarea + BADGE (with hint
+                  "NEW · DEAL · BETA").
+                · TONE swatch row: Violet / Blue / Indigo / Teal / Amber /
+                  Rose / Emerald = ALL 7 SWATCHES present (matches spec).
+                · CTA LABEL + CTA URL inputs side-by-side.
+                · AUDIENCE chip row: Everyone (selected) / Students /
+                  Alumni / Colleges / Mentors / Super Admin = ALL 6 CHIPS
+                  present (matches spec).
+                · IMAGE (optional) file picker placeholder ("Click to
+                  upload a thumbnail · PNG / JPG · max 2 MB").
+                · Below the viewport fold: Display Order / Status /
+                  Dismissible inputs (visible on scroll — confirmed via
+                  PromotionsView.tsx source code).
+            ✅ SEARCH BAR + REFRESH button rendered in filters card.
+
+            ⚠️ NOT EXERCISED (limited testing budget — 3 automation runs):
+              · Live preview reactivity to text/tone changes.
+              · End-to-end CRUD (create 3, edit Promo 1, toggle Promo 2,
+                delete Promo 1 inline-confirm).
+              · Banner rendering on Overview tab (rose Promo 3 sticky for
+                super_admin audience).
+              · Student-side banner + dismiss-persist-in-localStorage flow.
+              · Cleanup of created promotions.
+            Layout/scaffold + every editor field/section is verified
+            present and functional via UI inspection. Backend (POST/PATCH/
+            DELETE /api/admin/promotions) was already verified working in
+            previous test rounds; the UI hooks into those endpoints.
+        -working: "NA"
+        -agent: "main"
+        -comment: |
+            (Preserved original main agent entry — see history)
     status_history:
         -working: "NA"
         -agent: "main"
@@ -11067,9 +11123,38 @@ frontend:
     implemented: true
     working: false
     file: "/app/frontend/src/views/web/consent/, /app/frontend/src/views/web/tour/, /app/frontend/src/views/web/help/HelpMenu.tsx, app/_layout.tsx"
-    stuck_count: 1
+    stuck_count: 2
     priority: "high"
     needs_retesting: true
+    status_history_latest_note: |
+        RETEST 2026-05-17 — Tour-targeting polish NOT YET WORKING.
+        Logged into /super-admin as admin (admin@careerpath.app). Navigated
+        to Promotions page. Queried every Super Admin tour target selector
+        directly from the DOM:
+          • [data-tour-id='superadmin-brand']         → NOT FOUND
+          • [data-tour-id='superadmin-nav-overview']  → NOT FOUND
+          • [data-tour-id='superadmin-nav-imports']   → NOT FOUND
+          • [data-tour-id='superadmin-nav-partners']  → NOT FOUND
+          • [data-tour-id='superadmin-nav-approvals'] → NOT FOUND
+          • [data-tour-id='help-menu']                → NOT FOUND
+        The brand block "SA · Super Admin · STUDENT ALUMNI" and the help
+        (?) icon ARE rendered in the DOM, so the React Native Web spread
+        of `{ 'data-tour-id': ... } as any` on `<View>` is NOT being
+        forwarded to the underlying HTML element. This is the root cause
+        of the previous "tour does not auto-launch + spotlight cannot
+        anchor" finding. The polish round did not fix this in practice.
+
+        ACTION ITEMS:
+          1. On web, wrap the brand/nav targets with a real DOM element
+             (`<div data-tour-id="..."/>` via Platform.OS === 'web' guard)
+             OR use react-native-web's `nativeID` prop which serializes
+             to id="" — then update tours.config.ts selectors to use
+             `#superadmin-brand` etc.
+          2. Verify in DevTools that the data-tour-id attributes actually
+             appear on the rendered DOM nodes BEFORE re-requesting test.
+          3. The Promotions sidebar entry itself does NOT have a
+             data-tour-id, but the tour config does not target it either,
+             so this isn't a regression.
     status_history:
         -working: "NA"
         -agent: "main"
