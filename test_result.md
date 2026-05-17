@@ -10904,31 +10904,101 @@ backend:
 frontend:
   - task: "Phase B — Consent banner, Tour engine, Help menu"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/frontend/src/views/web/consent/, /app/frontend/src/views/web/tour/, /app/frontend/src/views/web/help/HelpMenu.tsx, app/_layout.tsx"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
         -working: "NA"
         -agent: "main"
         -comment: |
             • ConsentBanner mounted globally in app/_layout.tsx — sticky bottom
-              with Accept all / Reject optional / Customize (4-category modal:
-              Essential always-on, Analytics, Functional, Marketing). Local-first,
-              syncs to backend when authenticated.
-            • TourProvider + TourOverlay mounted globally — SVG spotlight with
-              cutout, accent-coloured tooltip, Back/Next/Skip/Done flow.
-            • tours.config.ts has 5 tour configs (Student, Alumni, College,
-              Mentor, Super Admin) with 5-7 steps each + portal accent color.
-            • useAutoTour(<portal>) wired into all 5 portal shells — auto-launches
-              once per portal then quiets down via tour status persistence.
-            • HelpMenu (? button + dropdown) added to all 5 TopBars with
-              "Take/Replay tour" + Privacy/Terms/Cookies links.
-            • data-tour-id attributes added on Super Admin Sidebar (brand +
-              all nav items) for spotlight targeting.
-            • Fixed: SponsorStrip was double-prefixing /api (now uses
-              relative /landing/partners).
+              with Accept all / Reject optional / Customize (4-category modal).
+            • TourProvider + TourOverlay mounted globally.
+            • tours.config.ts has 5 tour configs.
+            • useAutoTour(<portal>) wired into all 5 portal shells.
+            • HelpMenu (? button + dropdown) added to all 5 TopBars.
+        -working: false
+        -agent: "testing"
+        -comment: |
+            Phase B partial verification on
+            https://hiring-mvvm.preview.emergentagent.com — 2 CRITICAL bugs found,
+            consent banner itself works correctly.
+
+            ✅ CONSENT BANNER (verified on /login route, since / is broken):
+              • Banner appears within ~1s with title "We use cookies to make this
+                better", body mentions Privacy Policy + Cookie Policy links,
+                shows Customize / Reject optional / Accept all buttons. (A1-A2 ✅)
+              • Customize → modal "Privacy & Cookie preferences" with all 4
+                category rows (Essential / Analytics / Functional / Marketing). (B1-B2 ✅)
+              • Save preferences (defaults) writes localStorage sa.consent.v1:
+                  {essential:true, analytics:false, functional:false,
+                   marketing:false, accepted_all:false, version:"2026-05-1",
+                   updated_at:...} ✅ (B6)
+              • Accept all → all 3 optional flags = true, accepted_all = true. ✅ (C2)
+              • Reject optional → all 3 optional = false, accepted_all = false. ✅ (C1)
+              • Banner is visible on mobile 390×844 viewport without horizontal
+                scroll; Customize modal opens on mobile. ✅ (H1, H2)
+
+            ❌ CRITICAL BUG #1 — Landing page (/) is fully broken:
+              RED ERROR SCREEN on https://.../ : "Uncaught Error: Element type is
+              invalid: expected a string ... but got: undefined. Check the render
+              method of `Section`." Source: src/views/web/LandingPageFinTax360.tsx
+              line 559 (the Section component renders <Kicker> and <StatusChip>).
+              Root cause: lines 32-34 import { ..., StatusChip, Kicker } from
+              '@/src/views/web/portals/student/glass'  — but neither symbol is
+              exported from glass.tsx (verified by `grep '^export' glass.tsx`:
+              only AnimatedAurora, Aurora, GridOverlay, GlassCard, GlassSurface,
+              GlassSoft, KpiTile, PillChip, GradientButton, AiCopilotFab,
+              RouteTransition, glassStyle are exported). Result: Kicker =
+              undefined → React throws on render → entire landing route is
+              unreachable, blocking sections A.1-A.5 of the test plan.
+              FIX: either (a) add `export function Kicker(...)` + `export const
+              StatusChip = ...` to glass.tsx, or (b) inline-define them in
+              LandingPageFinTax360.tsx and remove from the import. Not a Phase B
+              regression per se but blocks the Phase B test scenario on /.
+
+            ❌ CRITICAL BUG #2 — Super Admin auto-tour does NOT auto-launch:
+              Logged in as admin@careerpath.app / Admin@12345 via the "Admin"
+              quick-login persona. After redirect to /super-admin (Overview
+              page fully loaded — Total Colleges 243, Total Students 1175, the
+              sidebar with brand "SA · Super Admin · STUDENT ALUMNI" and all
+              nav items visible), waited 2s — NO tour overlay appears. No
+              spotlight, no "Step 1 of 6 · Super Admin Console" tooltip, no
+              Skip/Next buttons. The localStorage had been cleared just prior
+              and backend tour-status for this admin user should have allowed
+              auto-launch (or at minimum on a freshly-cleared session it should
+              re-trigger after a Replay click). Sections D.1-D.6 + E.1-E.5
+              UNVERIFIED. Likely causes to investigate:
+                1. useAutoTour('super_admin') may not be wired into the actual
+                   SuperAdmin portal shell (the rendered one is admin-super)
+                2. The shouldAutoLaunch() check may be returning false because
+                   the admin account already has a tour-status doc in
+                   user_tour_status (per backend test 4 — admin's super_admin
+                   tour was set to status=completed during backend QA, never
+                   reset). Need either a server-side reset or a frontend
+                   "new tour version" mechanism.
+                3. data-tour-id attributes may exist on sidebar but the
+                   TourProvider isn't mounted at this layout level.
+
+            ⏸  NOT TESTED (blocked by bug #2):
+              • Help menu (?) dropdown — could not visually locate Help icon
+                in top-right of /super-admin; needs a data-testid or
+                aria-label to be findable reliably. Stepping through tour,
+                Skip button, Replay flow, Student/Alumni/Mentor/College tours
+                (sections E, F) all depend on bug #2 being fixed.
+
+            ACTION ITEMS FOR MAIN AGENT:
+              1. Fix LandingPageFinTax360.tsx broken imports (Kicker, StatusChip)
+                 — landing route is critical.
+              2. Investigate why Super Admin tour doesn't auto-launch — either
+                 the prior backend test left status=completed and there is no
+                 client-side "force replay" path, or useAutoTour is not wired
+                 into the right layout. After fix, also verify the Help menu
+                 button is reachable via aria-label or a stable selector.
+              3. After fixes, request re-test of sections D, E, F (tours +
+                 help menu) and A (consent banner on actual landing route).
 
 test_plan:
   current_focus:
