@@ -36,7 +36,7 @@ import {
   Pencil, Trash2, Check, X, Copy, Share2, Download, Eye, EyeOff,
   ExternalLink, RotateCcw, Monitor, Smartphone, AlertTriangle, KeyRound,
   ChevronRight, QrCode, Building2, ShieldCheck, Search, Sparkles, CheckCircle2,
-  Mail, Users as UsersIcon, ArrowLeft, Clock, MapPin, Globe, Wifi, Activity,
+  Mail, Users as UsersIcon, ArrowLeft, Clock, MapPin, Globe, Wifi, Activity, FileText,
 } from 'lucide-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
@@ -128,7 +128,7 @@ const GRAD_BG   = ['rgba(251,146,60,0.20)', 'rgba(245,158,11,0.10)'] as const;
  * ───────────────────────────────────────────────────────────────── */
 type TabId =
   | 'profile' | 'platform' | 'integrations' | 'roles'
-  | 'notifications' | 'security' | 'digital-id';
+  | 'notifications' | 'security' | 'digital-id' | 'pages';
 
 type Tool = {
   id: string; name: string; category: string; icon: string; tint: string;
@@ -152,6 +152,7 @@ const TABS: { id: TabId; label: string; icon: any }[] = [
   { id: 'notifications', label: 'Notifications',       icon: Bell },
   { id: 'security',      label: 'Security',            icon: Lock },
   { id: 'digital-id',    label: 'Digital ID',          icon: IdCard },
+  { id: 'pages',         label: 'Pages',               icon: FileText },
 ];
 
 const DEFAULT_SYSTEM_OPTIONS: Record<string, { value: string; label: string }[]> = {
@@ -245,6 +246,7 @@ export function SettingsView() {
         {tab === 'notifications' && <NotificationsTab onSaved={flashToast} />}
         {tab === 'security'      && <SecurityTab onSaved={flashToast} />}
         {tab === 'digital-id'    && <DigitalIdTab onSaved={flashToast} />}
+        {tab === 'pages'         && <PagesTab onSaved={flashToast} />}
       </View>
       <Toast text={toast.text} visible={toast.visible} />
     </View>
@@ -2294,6 +2296,102 @@ function DigitalIdTab({ onSaved }: { onSaved: (s?: string) => void }) {
     </Animated.View>
   );
 }
+
+
+/* ═════════════════════════════════════════════════════════════════
+ * TAB 8 — Pages (policy/service content manager)
+ * ═══════════════════════════════════════════════════════════════ */
+function PagesTab({ onSaved }: { onSaved: (s?: string) => void }) {
+  const [pages, setPages] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<any>(null);
+  const [editContent, setEditContent] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      try { setPages(await request<any[]>('/admin/pages')); } catch {}
+      setLoading(false);
+    })();
+  }, []);
+
+  const savePage = async (key: string) => {
+    try {
+      await request<any>(`/admin/pages/${key}`, {
+        method: 'PATCH',
+        body: { content: editContent, active: editing?.active ?? true },
+      });
+      onSaved('Page updated');
+      setEditing(null);
+      const updated = await request<any[]>('/admin/pages');
+      setPages(updated);
+    } catch { onSaved('Failed to update page'); }
+  };
+
+  if (loading) return <Loading />;
+
+  if (editing) {
+    return (
+      <Animated.View entering={FadeIn.duration(180)} style={{ gap: 14 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Pressable onPress={() => setEditing(null)} style={s.linkBtn}>
+            <ArrowLeft size={16} color="#fff" />
+            <Text style={s.linkBtnText}>Back</Text>
+          </Pressable>
+          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 }}>{editing.title}</Text>
+        </View>
+        <Text style={{ color: '#94a3b8', fontFamily: FONTS.med, fontSize: 12 }}>Route: {editing.route}</Text>
+        <TextInput
+          style={[s.input, { minHeight: 400, fontFamily: 'monospace', fontSize: 13 }]}
+          multiline
+          value={editContent}
+          onChangeText={setEditContent}
+          placeholder="Enter HTML/Markdown content..."
+        />
+        <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'flex-end' }}>
+          <Pressable onPress={() => setEditing(null)} style={s.secondaryBtn}>
+            <Text style={s.secondaryBtnText}>Cancel</Text>
+          </Pressable>
+          <Pressable onPress={() => savePage(editing.key)} style={s.primaryBtn}>
+            <Check size={14} color="#fff" />
+            <Text style={s.primaryBtnText}>Save</Text>
+          </Pressable>
+        </View>
+      </Animated.View>
+    );
+  }
+
+  return (
+    <Animated.View entering={FadeIn.duration(180)} style={{ gap: 14 }}>
+      <Text style={{ color: '#94a3b8', fontFamily: FONTS.med, fontSize: 13, marginBottom: 4 }}>
+        Manage policy and content pages displayed in the footer.
+      </Text>
+      <View style={s.toolGrid}>
+        {pages.map((p) => (
+          <View key={p.key} style={s.toolCard}>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 }}>{p.title}</Text>
+              <Text style={{ color: '#64748b', fontFamily: FONTS.med, fontSize: 11 }}>{p.route}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: p.active ? '#22c55e' : '#ef4444' }} />
+                <Text style={{ color: p.active ? '#22c55e' : '#ef4444', fontFamily: FONTS.bold, fontSize: 10 }}>
+                  {p.active ? 'Published' : 'Hidden'}
+                </Text>
+              </View>
+            </View>
+            <Pressable
+              onPress={() => { setEditing(p); setEditContent(p.content || ''); }}
+              style={[s.idActionBtn, { paddingHorizontal: 10, paddingVertical: 6 }]}
+            >
+              <Pencil size={12} color="#fff" />
+              <Text style={s.idActionText}>Edit</Text>
+            </Pressable>
+          </View>
+        ))}
+      </View>
+    </Animated.View>
+  );
+}
+
 
 function FeatureCard({ icon: Icon, tint, title, text }: { icon: any; tint: string; title: string; text: string }) {
   return (
