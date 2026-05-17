@@ -57,10 +57,10 @@ export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
     <GlassTopbar scrolled={scrolled} style={{
       height: bp.isPhone ? 56 : 64,
       paddingHorizontal: bp.isPhone ? SP.base : SP.lg,
-      backgroundColor: 'rgba(10,15,30,0.72)',
+      backgroundColor: 'rgba(10,15,30,0.80)',
       borderBottomColor: PALETTE.glassBorder,
       // @ts-expect-error web-only
-      backdropFilter: 'blur(20px) saturate(160%)',
+      backdropFilter: 'blur(20px) saturate(180%)',
       WebkitBackdropFilter: 'blur(20px) saturate(160%)',
     } as any}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: SP.md, flex: 1 }}>
