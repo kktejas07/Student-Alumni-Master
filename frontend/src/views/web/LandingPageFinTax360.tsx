@@ -18,7 +18,7 @@
  */
 import React, { useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, Pressable, Image,
+  View, Text, StyleSheet, ScrollView, Pressable,
   useWindowDimensions, Animated, Easing, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -26,7 +26,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import {
   ArrowRight, Sparkles, Users, Calendar, Briefcase, Wallet,
-  MessageSquare, Mail, ChevronRight, Star,
+  Mail, ChevronRight, Star,
 } from 'lucide-react-native';
 
 import {
@@ -142,7 +142,7 @@ export default function LandingPageFinTax360() {
 // ─────────────────────────────────────────────────────────────────────────
 // 1. NAVBAR — sticky glass
 // ─────────────────────────────────────────────────────────────────────────
-function Navbar({ isDesktop, router }: any) {
+function Navbar({ isDesktop, router }: { isDesktop: boolean; router: ReturnType<typeof useRouter> }) {
   return (
     <View style={[nav.bar, Platform.OS === 'web' && ({
       backdropFilter: 'blur(24px) saturate(180%)',
@@ -188,30 +188,26 @@ function Navbar({ isDesktop, router }: any) {
 
 function NavLink({ label }: { label: string }) {
   return (
-    <Pressable
-      onHoverIn={undefined}
-      style={({ hovered }: any) => [
-        nav.linkWrap,
-        hovered && { backgroundColor: 'rgba(255,255,255,0.05)' },
-      ]}
-    >
+    <View style={nav.linkWrap}>
       <Text style={nav.link}>{label}</Text>
-    </Pressable>
+    </View>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────
 // 2. HERO — animated headline + CTAs + KPI strip
 // ─────────────────────────────────────────────────────────────────────────
-function Hero({ isDesktop, router }: any) {
+function Hero({ isDesktop, router }: { isDesktop: boolean; router: ReturnType<typeof useRouter> }) {
   const opacity = useRef(new Animated.Value(0)).current;
   const ty = useRef(new Animated.Value(24)).current;
 
   useEffect(() => {
-    Animated.parallel([
+    const anim = Animated.parallel([
       Animated.timing(opacity, { toValue: 1, duration: 600, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       Animated.timing(ty,      { toValue: 0, duration: 600, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-    ]).start();
+    ]);
+    anim.start();
+    return () => anim.stop();
   }, [opacity, ty]);
 
   return (
@@ -299,7 +295,7 @@ const FEATURES = [
   { icon: Wallet,        tone: '#22D3EE',        kicker: 'Wallet & deals',    title: 'Student wallet',      body: 'Curated discounts on tools and learning platforms, on-campus deals, scholarship discovery and referral cashback.' },
 ];
 
-function FeaturePillars({ isDesktop, isTablet }: any) {
+function FeaturePillars({ isDesktop, isTablet }: { isDesktop: boolean; isTablet: boolean }) {
   const cols = isDesktop ? 3 : isTablet ? 2 : 1;
   const gap = 20;
   const cardW = `${100 / cols}%` as any;
@@ -337,7 +333,7 @@ const STEPS = [
   { n: '03', title: 'Activate Agent K',    body: 'Plug in your AI key (Claude / GPT / Gemini), and Agent K writes you weekly career briefs, resume edits and scheduled automations.' },
 ];
 
-function HowItWorks({ isDesktop }: any) {
+function HowItWorks({ isDesktop }: { isDesktop: boolean }) {
   const dir = isDesktop ? 'row' : 'column';
   return (
     <Section
@@ -375,7 +371,7 @@ const STATS = [
   { k: '₹4.2 Cr', v: 'Scholarships unlocked' },
 ];
 
-function StatsStrip({ isDesktop }: any) {
+function StatsStrip({ isDesktop }: { isDesktop: boolean }) {
   return (
     <View style={{ paddingHorizontal: 20, marginTop: 40 }}>
       <View style={{ maxWidth: 1280, width: '100%', alignSelf: 'center' }}>
@@ -403,7 +399,7 @@ const TESTIMONIALS = [
   { name: 'Reema S.',   role: 'Final year, NIT Trichy', quote: 'The wallet alone covered 4 SaaS subscriptions for my hackathon team. The mentor network is the cherry on top.', tone: '#F59E0B', avatar: 'R' },
 ];
 
-function Testimonials({ isDesktop }: any) {
+function Testimonials({ isDesktop }: { isDesktop: boolean }) {
   return (
     <Section
       kicker="What students say"
@@ -436,7 +432,7 @@ function Testimonials({ isDesktop }: any) {
 // ─────────────────────────────────────────────────────────────────────────
 // 7. CTA BANNER
 // ─────────────────────────────────────────────────────────────────────────
-function CTABanner({ router }: any) {
+function CTABanner({ router }: { router: ReturnType<typeof useRouter> }) {
   return (
     <View style={{ paddingHorizontal: 20, marginTop: 80, marginBottom: 80 }}>
       <View style={{ maxWidth: 1280, width: '100%', alignSelf: 'center' }}>
@@ -476,7 +472,7 @@ function CTABanner({ router }: any) {
 // ─────────────────────────────────────────────────────────────────────────
 // 8. FOOTER
 // ─────────────────────────────────────────────────────────────────────────
-function Footer({ isDesktop }: any) {
+function Footer({ isDesktop }: { isDesktop: boolean }) {
   return (
     <View style={[footer.wrap, Platform.OS === 'web' && ({
       backdropFilter: 'blur(20px) saturate(180%)',
@@ -527,26 +523,21 @@ function FootCol({ heading, links }: { heading: string; links: string[] }) {
     <View style={{ gap: 10, minWidth: 140 }}>
       <Text style={footer.colHead}>{heading}</Text>
       {links.map((l) => (
-        <Pressable key={l} style={({ hovered }: any) => [{ paddingVertical: 2 }]}>
-          <Text style={footer.colLink}>{l}</Text>
-        </Pressable>
+        <Text key={l} style={[footer.colLink, { paddingVertical: 2 }]}>{l}</Text>
       ))}
     </View>
   );
 }
 
-function Social({ Icon, label }: { Icon: any; label?: string }) {
+function Social({ Icon, label }: { Icon: React.ComponentType<{ size?: number; color?: string }>; label?: string }) {
   return (
-    <Pressable
+    <View
       accessibilityLabel={label ? `Visit ${label}` : 'Social link'}
       accessibilityRole="button"
-      style={({ hovered }: any) => [
-        footer.social,
-        hovered && { backgroundColor: 'rgba(139,92,246,0.20)', borderColor: PALETTE.violet },
-      ]}
+      style={footer.social}
     >
       <Icon size={14} color="rgba(255,255,255,0.80)" />
-    </Pressable>
+    </View>
   );
 }
 
@@ -557,10 +548,10 @@ function Section({ kicker, title, sub, children }: { kicker: string; title: stri
   return (
     <View style={{ paddingHorizontal: 20, marginTop: 80, marginBottom: 20 }}>
       <View style={{ maxWidth: 1280, width: '100%', alignSelf: 'center' }}>
-        <View style={{ alignItems: 'center', maxWidth: 720, alignSelf: 'center', textAlign: 'center' as any }}>
+        <View style={{ alignItems: 'center', maxWidth: 720, alignSelf: 'center' }}>
           <Kicker color="rgba(167,139,250,0.85)">{kicker}</Kicker>
-          <Text style={section.title}>{title}</Text>
-          {sub && <Text style={section.sub}>{sub}</Text>}
+          <Text style={[section.title, { textAlign: 'center' }]}>{title}</Text>
+          {sub && <Text style={[section.sub, { textAlign: 'center' }]}>{sub}</Text>}
         </View>
         {children}
       </View>

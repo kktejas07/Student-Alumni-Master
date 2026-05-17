@@ -431,6 +431,26 @@ export function GradientButton({
   );
 }
 
+/* ─────────────────────────────────────────────────────────────────
+ * StatusChip — semantic pill for status indicators (success, warning,
+ * danger, neutral). Thin wrapper around PillChip for API parity.
+ * ───────────────────────────────────────────────────────────────── */
+export function StatusChip({
+  tone = 'neutral',
+  children,
+}: {
+  tone?: 'success' | 'warning' | 'danger' | 'neutral';
+  children: React.ReactNode;
+}) {
+  const variantMap = {
+    success: 'success',
+    warning: 'warning',
+    danger: 'danger',
+    neutral: 'neutral',
+  } as const;
+  return <PillChip variant={variantMap[tone]} label={String(children)} />;
+}
+
 const gb = StyleSheet.create({
   btn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
@@ -590,6 +610,24 @@ export function RouteTransition({ children, deps = [] }: {
     <Animated.View style={{ flex: 1, opacity, transform: [{ translateY: ty }] }}>
       {children}
     </Animated.View>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────
+ * Kicker — small uppercase eyebrow label used above section titles.
+ * ───────────────────────────────────────────────────────────────── */
+export function Kicker({ children, color }: { children: React.ReactNode; color?: string }) {
+  return (
+    <Text style={{
+      fontFamily: TYPO.body600,
+      fontSize: 11,
+      letterSpacing: 1.4,
+      textTransform: 'uppercase',
+      color: color || PALETTE.muted,
+      marginBottom: 8,
+    }}>
+      {children}
+    </Text>
   );
 }
 
