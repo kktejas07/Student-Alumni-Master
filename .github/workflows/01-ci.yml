@@ -106,13 +106,13 @@ jobs:
         working-directory: backend
         run: |
           python -c "
-import asyncio
-from server import app
-# Validate all routes are registered
-routes = [r.path for r in app.routes]
-print(f'✓ FastAPI app loaded — {len(routes)} routes registered')
-print(f'  Sample routes: {routes[:5]}...')
-"
+          import asyncio
+          from server import app
+          # Validate all routes are registered
+          routes = [r.path for r in app.routes]
+          print(f'✓ FastAPI app loaded — {len(routes)} routes registered')
+          print(f'  Sample routes: {routes[:5]}...')
+          "
 
       - name: Run tests
         working-directory: backend
@@ -160,17 +160,18 @@ print(f'  Sample routes: {routes[:5]}...')
           }
 
       - name: TypeScript check
-        run: npx tsc --noEmit --pretty || {
-          echo "::warning::TypeScript errors found"
-          true
-        }
+        run: |
+          npx tsc --noEmit --pretty || {
+            echo "::warning::TypeScript errors found"
+            true
+          }
 
       - name: Run jest tests
         run: |
           if [ -d __tests__ ] || find . -maxdepth 3 \( -name "*.test.ts*" -o -name "*.test.js*" \) 2>/dev/null | grep -q .; then
             yarn test --ci --passWithNoTests --watchAll=false
           else
-            echo "ℹ️  No tests found — skipping"
+            echo "No tests found — skipping"
           fi
 
       - name: Expo export (web build)
