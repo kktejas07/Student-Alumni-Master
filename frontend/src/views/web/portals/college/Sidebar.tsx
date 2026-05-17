@@ -38,7 +38,7 @@ export function Sidebar({
   return (
     <View style={s.aside}>
       {/* Brand */}
-      <View style={s.brand} {...({ 'data-tour-id': 'college-brand' } as any)}>
+      <View style={s.brand} nativeID="college-brand">
         <View style={s.brandLogo}><Text style={s.brandLogoText}>SA</Text></View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.brandTitle}>Admin Portal</Text>
@@ -80,7 +80,7 @@ export function Sidebar({
             <Pressable
               key={id}
               onPress={() => onNav(id)}
-              {...({ 'data-tour-id': `college-nav-${id}` } as any)}
+              nativeID={`college-nav-${id}`}
               style={({ hovered }: any) => [
                 s.navItem,
                 isActive && s.navItemActive,

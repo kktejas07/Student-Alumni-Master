@@ -42,8 +42,7 @@ export function HelpMenu({ portal }: { portal: TourKey }) {
     <View ref={ref} style={s.wrap}>
       <Pressable
         onPress={() => setOpen(!open)}
-        // @ts-ignore data attr
-        data-tour-id="help-menu"
+        nativeID="help-menu"
         style={({ hovered }: any) => [
           s.btn,
           open && { borderColor: accent + '88', backgroundColor: accent + '15' },

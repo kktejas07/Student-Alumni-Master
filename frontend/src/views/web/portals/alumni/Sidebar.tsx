@@ -61,7 +61,7 @@ export function Sidebar({
     <View style={s.aside}>
       {/* Brand */}
       <FadeInView delay={20}>
-        <View style={s.brand} {...({ 'data-tour-id': 'alumni-brand' } as any)}>
+        <View style={s.brand} nativeID="alumni-brand">
           <LinearGradient colors={GRADS.brand as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.brandLogo}>
             <Text style={s.brandLogoText}>SA</Text>
           </LinearGradient>
@@ -124,7 +124,7 @@ export function Sidebar({
                 accessibilityLabel={label}
                 accessibilityState={{ selected: isActive }}
                 accessibilityHint={`Opens the ${label} section of the dashboard`}
-                {...({ 'data-tour-id': `alumni-nav-${id}` } as any)}
+                nativeID={`alumni-nav-${id}`}
               >
                 {isActive ? (
                   <LinearGradient

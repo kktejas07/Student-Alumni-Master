@@ -22,7 +22,17 @@ const BORDER_RADIUS = 14;
 
 function measureTarget(selector: string): Rect | null {
   if (Platform.OS !== 'web') return null;
-  const el = document.querySelector(selector) as HTMLElement | null;
+  // Accept both the legacy [data-tour-id="..."] form and the new #id form.
+  let el: HTMLElement | null = document.querySelector(selector) as HTMLElement | null;
+  if (!el && selector.startsWith('[data-tour-id="')) {
+    // Fall back to id selector for the same key, since RN Web doesn't forward
+    // unknown HTML attributes on View / Pressable — we now use nativeID.
+    const m = selector.match(/^\[data-tour-id="([^"]+)"\]$/);
+    if (m) {
+      const id = m[1];
+      el = (document.getElementById(id) || document.querySelector('#' + id)) as HTMLElement | null;
+    }
+  }
   if (!el) return null;
   const r = el.getBoundingClientRect();
   // Skip if hidden or off-screen with zero size

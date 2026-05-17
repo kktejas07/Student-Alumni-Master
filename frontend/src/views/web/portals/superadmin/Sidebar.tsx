@@ -69,7 +69,7 @@ export function Sidebar({
   return (
     <View style={s.aside}>
       {/* Brand */}
-      <View style={s.brand} {...({ 'data-tour-id': 'superadmin-brand' } as any)}>
+      <View style={s.brand} nativeID="superadmin-brand">
         <View style={s.brandLogo}><Text style={s.brandLogoText}>SA</Text></View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.brandTitle}>Super Admin</Text>
@@ -99,7 +99,7 @@ export function Sidebar({
           const tourId = `superadmin-nav-${id === 'ai-insights' ? 'ai-insights' : id}`;
           if (isActive) {
             return (
-              <Pressable key={id} onPress={() => onNav(id)} {...({ 'data-tour-id': tourId } as any)}>
+              <Pressable key={id} onPress={() => onNav(id)} nativeID={tourId}>
                 <LinearGradient
                   colors={[GRAD.from, GRAD.to]}
                   start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
@@ -121,7 +121,7 @@ export function Sidebar({
             <Pressable
               key={id}
               onPress={() => onNav(id)}
-              {...({ 'data-tour-id': tourId } as any)}
+              nativeID={tourId}
               style={({ hovered }: any) => [s.navItem, hovered && s.navItemHover]}
             >
               <Icon size={16} color={SAC.muted} />

@@ -48,7 +48,7 @@ export function Sidebar({
   return (
     <View style={[s.sidebar, { width: w }]}>
       {/* Hamburger + brand */}
-      <View style={s.brandRow} {...({ 'data-tour-id': 'mentor-brand' } as any)}>
+      <View style={s.brandRow} nativeID="mentor-brand">
         <Pressable onPress={onToggle} style={({ hovered }: any) => [s.hamburger, hovered && { backgroundColor: 'rgba(20,184,166,0.10)' }]}>
           <Menu size={18} color={MC.muted} />
         </Pressable>
@@ -111,7 +111,7 @@ export function Sidebar({
             <Pressable
               key={n.id}
               onPress={() => onNav(n.id)}
-              {...({ 'data-tour-id': `mentor-nav-${n.id}` } as any)}
+              nativeID={`mentor-nav-${n.id}`}
               style={({ hovered }: any) => [
                 s.navRow,
                 { padding: collapsed ? 9 : 11, justifyContent: collapsed ? 'center' : 'flex-start', gap: collapsed ? 0 : 11 },
