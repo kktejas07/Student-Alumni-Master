@@ -14,7 +14,10 @@ export default function LegalShell({ title, children }: LegalShellProps) {
   return (
     <ScrollView style={s.scroll} contentContainerStyle={s.container}>
       <Animated.View entering={FadeIn.duration(300)}>
-        <Pressable onPress={() => router.back()} style={s.back}>
+        <Pressable onPress={() => {
+          if (Platform.OS === 'web' && window.history.length > 1) router.back();
+          else router.replace('/');
+        }} style={s.back}>
           <ChevronLeft size={18} color="#94a3b8" />
           <Text style={s.backText}>Back</Text>
         </Pressable>
@@ -28,8 +31,8 @@ export default function LegalShell({ title, children }: LegalShellProps) {
 
 const s = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: '#0f172a' },
-  container: { padding: 20, paddingBottom: 60, maxWidth: 800, width: '100%', alignSelf: 'center' },
-  back: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 20, marginTop: Platform.OS === 'web' ? 20 : 50 },
+  container: { padding: 20, paddingBottom: 60, maxWidth: 800, width: '100%', alignSelf: 'center', overflow: 'hidden' as any },
+  back: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 20, marginTop: Platform.OS === 'web' ? 20 : 50, ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}) },
   backText: { color: '#94a3b8', fontFamily: FONTS.med, fontSize: 14 },
   title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 28, letterSpacing: -0.5, marginBottom: 8 },
   divider: { height: 2, width: 60, backgroundColor: '#F59E0B', borderRadius: 2, marginBottom: 24 },
