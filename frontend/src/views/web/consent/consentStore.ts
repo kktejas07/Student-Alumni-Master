@@ -70,27 +70,6 @@ export function mirrorConsent(p: ConsentPrefs) {
   safeSet(p);
 }
 
-/** Fetch consent from backend for authenticated users. Returns null on error/no record. */
-export async function fetchServerConsent(): Promise<ConsentPrefs | null> {
-  try {
-    const res = await request('/me/consent', { method: 'GET' });
-    if (!res || !res.data) return null;
-    const d = res.data;
-    if (!d.version || !d.updated_at) return null;
-    return {
-      essential: true,
-      analytics: !!d.analytics,
-      functional: !!d.functional,
-      marketing: !!d.marketing,
-      accepted_all: !!d.accepted_all,
-      version: d.version,
-      updated_at: d.updated_at,
-    };
-  } catch {
-    return null;
-  }
-}
-
 export function readLocal(): ConsentPrefs | null { return safeGet(); }
 
 /** Fetch consent from backend for authenticated users. Returns null on error/no record. */
