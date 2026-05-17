@@ -236,9 +236,9 @@ export function SettingsView() {
   };
 
   return (
-    <View style={{ gap: 16, maxWidth: '100%' as any, overflow: 'hidden' as any }}>
+    <View style={{ gap: 16, maxWidth: '100%' as any }}>
       <TopTabBar active={tab} onChange={setTab} />
-      <View style={{ minHeight: 480, maxWidth: '100%' as any, overflow: 'hidden' as any }}>
+      <View style={{ minHeight: 480, maxWidth: '100%' as any }}>
         {tab === 'profile'       && <ProfileTab onSaved={flashToast} />}
         {tab === 'platform'      && <PlatformTab onSaved={flashToast} />}
         {tab === 'integrations'  && <IntegrationsTab onSaved={flashToast} />}
@@ -2497,7 +2497,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
 
-  twoCol: { flexDirection: 'row', gap: 14, flexWrap: 'wrap' as any, overflow: 'hidden' as any },
+  twoCol: { flexDirection: 'row', gap: 14, flexWrap: 'wrap' as any },
   // Use s.card (defined above) for card styles
 
   // Profile
@@ -2545,9 +2545,15 @@ const s = StyleSheet.create({
   toggleTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13, flexShrink: 1, ...(Platform.OS === 'web' ? { wordBreak: 'break-word' as any } : {}) },
   toggleDesc: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
   systemRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
+    flexDirection: 'column', gap: 4,
     paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: SAC.border,
-    flexWrap: 'wrap' as any,
+  },
+  selectBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9,
+    borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
+    alignSelf: 'stretch',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', maxWidth: '100%' } as any) : {}),
   },
   editBtnText: { color: GRAD_TO, fontFamily: FONTS.xbold, fontSize: 11 },
   selectBtn: {
