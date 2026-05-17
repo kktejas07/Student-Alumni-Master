@@ -179,7 +179,13 @@ export default function LoginScreen() {
 
   return (
     <AuthShell role={role}>
-      <Pressable onPress={() => router.back()} style={s.back}>
+      <Pressable onPress={() => {
+        if (Platform.OS === 'web' && window.history.length > 1) {
+          router.back();
+        } else {
+          router.replace('/');
+        }
+      }} style={s.back}>
         <ArrowLeft size={16} color={AC.muted} />
         <Text style={s.backText}>Back</Text>
       </Pressable>
