@@ -26,7 +26,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import {
   ArrowRight, Sparkles, Users, Calendar, Briefcase, Wallet,
-  Mail, ChevronRight, Star,
+  Mail, ChevronRight, Star, MessageSquare,
 } from 'lucide-react-native';
 
 import {
