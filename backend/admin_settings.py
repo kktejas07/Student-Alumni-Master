@@ -88,9 +88,23 @@ PERMISSIONS_CATALOG = [
 
 
 async def _ensure_system_roles():
-    """Seed system roles into the database."""
-    from core.roles import seed_admin_roles
-    await seed_admin_roles(_db)
+    """Seed system roles into admin_roles collection.
+    Uses the shared SYSTEM_ROLES from core.roles."""
+    from datetime import timezone
+    for r in SYSTEM_ROLES:
+        await _db.admin_roles.update_one(
+            {"key": r["key"]},
+            {"$setOnInsert": {
+                "key": r["key"],
+                "name": r["name"],
+                "description": r["description"],
+                "permissions": r["permissions"],
+                "is_system": r["is_system"],
+                "created_at": datetime.now(timezone.utc),
+                "user_count": 0,
+            }},
+            upsert=True,
+        )
 
 
 @router.get("/admin/permissions")
