@@ -23,6 +23,7 @@ import { TopBar } from './TopBar';
 import { AnimatedAurora, GridOverlay, RouteTransition, AiCopilotFab } from './glass';
 import { PALETTE } from './tokens';
 import { DashboardFooter } from '../../components/SponsorStrip';
+import { PromoBanner } from '../../components/PromoBanner';
 import { DashboardView } from './views/DashboardView';
 import { CareerAIView } from './views/CareerAIView';
 import { EventsView } from './views/EventsView';
@@ -94,6 +95,7 @@ function PortalShell() {
           scrollEventThrottle={16}
         >
           <EmbeddedShellContext.Provider value={true}>
+            <PromoBanner portal="student" />
             <RouteTransition deps={[active]}>
               {active === 'dashboard'       && <DashboardView />}
               {active === 'career-ai'       && <CareerAIView />}

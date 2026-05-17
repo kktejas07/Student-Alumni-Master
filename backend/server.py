@@ -5192,6 +5192,10 @@ from routers.tour import router as tour_router
 app.include_router(consent_router)
 app.include_router(tour_router)
 
+# Phase C — promotional banners (cross-portal)
+from routers.promotions import router as promotions_router
+app.include_router(promotions_router)
+
 app.include_router(api_router)
 
 # ── CORS — origins configurable via env for production deployments ──

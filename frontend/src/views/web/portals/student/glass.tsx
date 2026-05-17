@@ -612,3 +612,75 @@ export function glassStyle(opts: { strong?: boolean; blur?: number } = {}) {
     borderColor: PALETTE.glassBorder,
   } as any;
 }
+
+
+/* ─────────────────────────────────────────────────────────────────
+ * Kicker — small uppercase label (used above feature titles).
+ * StatusChip — pill with success/info/warn tone (used in landing footer).
+ *
+ * Added in Phase B so the public landing page (LandingPageFinTax360) can
+ * import these without crashing.
+ * ───────────────────────────────────────────────────────────────── */
+export function Kicker({
+  color = 'rgba(167,139,250,0.8)',
+  children,
+}: { color?: string; children: React.ReactNode }) {
+  return (
+    <Text
+      style={{
+        color,
+        fontFamily: 'DMSans_800ExtraBold',
+        fontSize: 11,
+        fontWeight: '800',
+        letterSpacing: 1.6,
+        textTransform: 'uppercase' as any,
+      }}
+    >
+      {children}
+    </Text>
+  );
+}
+
+const STATUS_TONES: Record<string, { bg: string; border: string; fg: string; dot: string }> = {
+  success: { bg: 'rgba(34,197,94,0.12)',  border: 'rgba(34,197,94,0.40)',  fg: '#86EFAC', dot: '#22C55E' },
+  info:    { bg: 'rgba(56,189,248,0.12)', border: 'rgba(56,189,248,0.40)', fg: '#7DD3FC', dot: '#38BDF8' },
+  warn:    { bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.40)', fg: '#FCD34D', dot: '#F59E0B' },
+  danger:  { bg: 'rgba(239,68,68,0.12)',  border: 'rgba(239,68,68,0.40)',  fg: '#FCA5A5', dot: '#EF4444' },
+  neutral: { bg: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.16)', fg: 'rgba(255,255,255,0.85)', dot: 'rgba(255,255,255,0.55)' },
+};
+
+export function StatusChip({
+  tone = 'success',
+  dot = true,
+  children,
+}: { tone?: keyof typeof STATUS_TONES; dot?: boolean; children: React.ReactNode }) {
+  const t = STATUS_TONES[tone] || STATUS_TONES.success;
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 999,
+        borderWidth: 1,
+        backgroundColor: t.bg,
+        borderColor: t.border,
+        alignSelf: 'flex-start',
+      }}
+    >
+      {dot && (
+        <View
+          style={{
+            width: 7, height: 7, borderRadius: 999,
+            backgroundColor: t.dot,
+          }}
+        />
+      )}
+      <Text style={{ color: t.fg, fontFamily: 'DMSans_700Bold', fontSize: 11, fontWeight: '700', letterSpacing: 0.3 }}>
+        {children}
+      </Text>
+    </View>
+  );
+}

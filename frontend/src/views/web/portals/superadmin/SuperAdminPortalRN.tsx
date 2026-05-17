@@ -12,6 +12,7 @@ import { TopBar } from './TopBar';
 import { AnimatedAurora, GridOverlay } from '../student/glass';
 import { LinearGradient } from 'expo-linear-gradient';
 import { DashboardFooter } from '../../components/SponsorStrip';
+import { PromoBanner } from '../../components/PromoBanner';
 import { OverviewView } from './views/OverviewView';
 import { StubView } from './views/StubView';
 import { CollegesView } from './views/CollegesView';
@@ -27,6 +28,7 @@ import { SettingsView } from './views/SettingsView';
 import { WorkflowsView } from './views/WorkflowsView';
 import { ImportsView } from './views/ImportsView';
 import { PartnersView } from './views/PartnersView';
+import { PromotionsView } from './views/PromotionsView';
 import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 
 export function SuperAdminPortalRN() {
@@ -62,6 +64,7 @@ export function SuperAdminPortalRN() {
           contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
           showsVerticalScrollIndicator={false}
         >
+          <PromoBanner portal="super_admin" />
           {active === 'overview'    && <OverviewView />}
           {active === 'colleges'    && <CollegesView />}
           {active === 'students'    && <StudentsView />}
@@ -76,6 +79,7 @@ export function SuperAdminPortalRN() {
           {active === 'workflows'   && <WorkflowsView />}
           {active === 'imports'     && <ImportsView />}
           {active === 'partners'    && <PartnersView />}
+          {active === 'promotions'  && <PromotionsView />}
           <DashboardFooter portal="super_admin" />
         </ScrollView>
       </View>

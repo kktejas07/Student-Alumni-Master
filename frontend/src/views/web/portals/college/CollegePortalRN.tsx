@@ -12,6 +12,7 @@ import { TopBar } from './TopBar';
 import { AnimatedAurora, GridOverlay } from '../student/glass';
 import { LinearGradient } from 'expo-linear-gradient';
 import { DashboardFooter } from '../../components/SponsorStrip';
+import { PromoBanner } from '../../components/PromoBanner';
 import { DashboardView } from './views/DashboardView';
 import { StubView } from './views/StubView';
 import { StudentsView } from './views/StudentsView';
@@ -62,6 +63,7 @@ export function CollegePortalRN() {
           contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
           showsVerticalScrollIndicator={false}
         >
+          <PromoBanner portal="college" />
           {active === 'dashboard'    && <DashboardView />}
           {active === 'students'     && <StudentsView />}
           {active === 'alumni'       && <AlumniView />}

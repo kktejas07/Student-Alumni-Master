@@ -10880,6 +10880,167 @@ backend:
                  Literal for tour).
               ✅ PATCH {tour:"student", status:"garbage"} → 422 (invalid
                  Literal for status).
+
+# ─────────────────────────────────────────────────────────────────────
+# Phase C — Promotional Banners (cross-portal)
+# ─────────────────────────────────────────────────────────────────────
+backend:
+  - task: "Promotional banners CRUD + audience-filtered list"
+    implemented: true
+    working: true
+    file: "/app/backend/routers/promotions.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: |
+            VERIFIED end-to-end via /app/backend_test.py against
+            http://localhost:8001/api. RESULT: 55/55 assertions PASS.
+
+            1) AUTH GATING (5/5)
+              ✅ GET  /api/promotions/active w/o token → 401
+              ✅ GET  /api/admin/promotions    as student → 403
+              ✅ POST /api/admin/promotions    as student → 403
+              ✅ PATCH /api/admin/promotions/<id> as student → 403
+              ✅ DELETE /api/admin/promotions/<id> as student → 403
+
+            2) CREATE (14/14)
+              ✅ POST full payload (title, body, cta_label/url, tone=violet,
+                 audience=[student,alumni], dismissible, is_active,
+                 display_order=10, badge=NEW, placement=dashboard) → 200
+                 and ALL fields echoed verbatim, plus id + created_at +
+                 updated_at populated.
+
+            3) LIST (2/2)
+              ✅ GET /api/admin/promotions returns 200 with items[]; created
+                 promo id present.
+
+            4) AUDIENCE FILTERING on /api/promotions/active (8/8)
+              ✅ Admin login: payload.role normalized to 'super_admin'.
+              ✅ With audience=['student','alumni'] → admin does NOT see it.
+              ✅ PATCH audience=['all'] echoes correctly; admin AND student
+                 both see it.
+              ✅ PATCH audience=['super_admin'] → student stops seeing it;
+                 admin still sees it (legacy role 'admin' mapped to
+                 'super_admin' for audience matching — confirmed by the
+                 `role` field returned in /promotions/active).
+
+            5) TIME BOUNDS (6/6)
+              ✅ starts_at=2099-01-01T00:00:00Z → hidden (not started yet).
+              ✅ starts_at=null, ends_at=2000-01-01T00:00:00Z → hidden
+                 (already ended).
+              ✅ Both reset to null → re-appears.
+
+            6) ACTIVE TOGGLE (5/5)
+              ✅ is_active=false → disappears from /promotions/active but
+                 STILL present in /admin/promotions.
+              ✅ is_active=true → reappears in /promotions/active.
+
+            7) VALIDATION (7/7)
+              ✅ POST tone='garbage'        → 422
+              ✅ POST placement='bogus'     → 422
+              ✅ POST audience=['alien']    → 422
+              ✅ PATCH /admin/promotions/not-an-objectid → 400
+                 ({"detail":"Invalid id"}).
+              ✅ PATCH /admin/promotions/000000000000000000000000 → 404
+                 ({"detail":"Promotion not found"}).
+              ✅ DELETE non-existent ObjectId → 404.
+              ✅ DELETE bad-format id → 400 (Invalid id).
+
+            8) CLEANUP (3/3)
+              ✅ DELETE created promo → 200.
+              ✅ DELETE same id again → 404 (not idempotent — by spec).
+              ✅ Final /admin/promotions list does not contain the test
+                 promo (DB returned to baseline).
+
+            ADMIN-ROLE NOTE: The seeded admin (admin@careerpath.app) has
+            role='admin' (not 'super_admin'). The router's _require_admin()
+            accepts {super_admin, admin, superadmin} so /admin/promotions*
+            works for both. list_active_for_me() additionally normalizes
+            'admin'→'super_admin' for the audience filter, which matches
+            the intended cross-portal semantics.
+
+        -working: "NA"
+        -agent: "main"
+        -comment: |
+            New router /api/admin/promotions with full CRUD, plus a public-ish
+            /api/promotions/active that returns the caller's audience-filtered,
+            time-bounded list.
+
+            Endpoints:
+              GET    /api/promotions/active       (auth, role-filtered)
+              GET    /api/admin/promotions        (admin only — list all)
+              POST   /api/admin/promotions        (admin only — create)
+              PATCH  /api/admin/promotions/{id}   (admin only — partial update)
+              DELETE /api/admin/promotions/{id}   (admin only — delete)
+
+            Schema highlights:
+              tone:      "violet"|"blue"|"indigo"|"teal"|"amber"|"rose"|"emerald"
+              audience:  list of role keys; "all" expands to everyone
+              placement: "dashboard"|"inline"|"modal" (only dashboard used now)
+              starts_at / ends_at: optional ISO datetimes that bound visibility
+              dismissible: bool (client respects this via localStorage list)
+              image_url: optional base64 (capped ~2.7 MB)
+
+frontend:
+  - task: "Phase C — PromoBanner + Super Admin Promotions page"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/views/web/components/PromoBanner.tsx, /app/frontend/src/views/web/portals/superadmin/views/PromotionsView.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: |
+            • <PromoBanner portal=... /> mounted at the top of every portal's
+              content area (Student / Alumni / College / Mentor / Super Admin).
+              It loads /api/promotions/active, picks the highest-priority
+              non-dismissed promotion, and renders it with the configured tone
+              (gradient stripe + icon/image + title + body + CTA + dismiss).
+            • New "Promotions" top-level tab in Super Admin sidebar with NEW badge.
+            • PromotionsView: card list with tone stripes, audience chips, status pills,
+              activate/pause toggle, edit, inline delete confirm. Editor modal includes
+              tone picker, audience multi-select (with "Everyone" exclusivity logic),
+              CTA, badge, optional Base64 image upload, dismissible flag, live preview.
+            • Dismissed promotions persisted in localStorage so each user only sees
+              them once per browser.
+
+test_plan:
+  current_focus:
+    - "Promotional banners CRUD + audience-filtered list"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    -agent: "main"
+    -message: |
+        Phase C backend ready. Please test these endpoints:
+          • Auth as admin (admin@careerpath.app / Admin@12345) — required for /admin routes.
+          • POST   /api/admin/promotions with a typical body, e.g.:
+              { title: "Year-end placement drive", body: "Apply now",
+                cta_label: "Apply", cta_url: "/super-admin/imports",
+                tone: "violet", audience: ["student","alumni"],
+                dismissible: true, is_active: true, display_order: 10,
+                badge: "NEW", placement: "dashboard" }
+          • GET    /api/admin/promotions  (returns created item)
+          • GET    /api/promotions/active as admin — should be empty if audience
+            doesn't include super_admin/"all". Then PATCH audience to ["all"] —
+            promo should now appear in /promotions/active.
+          • Test starts_at / ends_at:
+              - starts_at = +1 hour → not visible in /promotions/active
+              - ends_at   = -1 hour → not visible
+              - both none → always visible
+          • PATCH is_active=false → disappears from /promotions/active.
+          • DELETE existing id → 200; deleting again → 404.
+          • Invalid tone/audience/placement → 422.
+          • Non-admin POST/PATCH/DELETE → 403.
+          • Cleanup: delete all promotions you created.
+
               ✅ PATCH {tour:"student", status:"completed", step:51} → 422
                  (Field constraint ge=0 le=50 enforced).
               ✅ Final GET shows both super_admin + student entries.

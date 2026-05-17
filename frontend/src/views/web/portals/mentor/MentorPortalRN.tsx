@@ -23,6 +23,7 @@ import { TopBar } from './TopBar';
 import { AnimatedAurora, GridOverlay } from '../student/glass';
 import { LinearGradient } from 'expo-linear-gradient';
 import { DashboardFooter } from '../../components/SponsorStrip';
+import { PromoBanner } from '../../components/PromoBanner';
 import { DashboardView } from './views/DashboardView';
 import { ConnectionsView } from './views/ConnectionsView';
 import { SessionsView } from './views/SessionsView';
@@ -99,6 +100,7 @@ export default function MentorPortalRN() {
         <TopBar title={PAGE_TITLES[active]} query={query} setQuery={setQuery} notifCount={4} />
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
+          <PromoBanner portal="mentor" />
           {active === 'dashboard' && <DashboardView onNav={(id) => setActive(id as NavId)} />}
           {active === 'ai-studio' && <MentorAIStudioView />}
           {active === 'students'  && <ConnectionsView />}

@@ -15,6 +15,7 @@ import { TopBar } from './TopBar';
 import { AnimatedAurora, GridOverlay } from '../student/glass';
 import { LinearGradient } from 'expo-linear-gradient';
 import { DashboardFooter } from '../../components/SponsorStrip';
+import { PromoBanner } from '../../components/PromoBanner';
 import { DashboardView } from './views/DashboardView';
 import { StubView } from './views/StubView';
 import { EventsView } from './views/EventsView';
@@ -69,6 +70,7 @@ export function AlumniPortalRN() {
           showsVerticalScrollIndicator={false}
         >
           <EmbeddedShellContext.Provider value={true}>
+            <PromoBanner portal="alumni" />
             {active === 'dashboard'       && <DashboardView />}
             {active === 'career-ai'       && <StubView title="Alumni Tools" note="Mentor matchmaker, alumni-only AMAs and curated content." deepLink="/career-ai" />}
             {active === 'internships'     && <InternshipsView />}
