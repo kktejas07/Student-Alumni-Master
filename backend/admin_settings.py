@@ -1165,13 +1165,16 @@ def _parse_ua(ua: str) -> dict:
 
 
 @router.get("/admin/security/sessions")
-async def get_sessions(authorization: Optional[str] = Header(None)):
+async def get_sessions(authorization: Optional[str] = Header(None), all: bool = False):
+    """Return admin sessions. By default returns last 5; ?all=true returns all."""
     user = await _require_admin(authorization)
     uid = str(user["_id"])
+    total = await _db.admin_sessions.count_documents({"user_id": uid})
     sessions = []
     try:
-        cur = _db.admin_sessions.find({"user_id": uid}).sort("last_active", -1).limit(20)
-        sessions_raw = await cur.to_list(20)
+        limit = 999 if all else 5
+        cur = _db.admin_sessions.find({"user_id": uid}).sort("last_active", -1).limit(limit)
+        sessions_raw = await cur.to_list(limit)
         for s in sessions_raw:
             dt = s.get("last_active")
             sessions.append({
@@ -1199,7 +1202,7 @@ async def get_sessions(authorization: Optional[str] = Header(None)):
             {"id": "sess_demo_2", "device": "iPhone 15", "browser": "Safari", "os": "iOS", "location": "Mumbai, India", "city": "Mumbai", "region": "Maharashtra", "country": "India", "lat": 19.07, "lon": 72.87, "isp": "Jio", "ip": "103.xxx.xx.xx", "last_active": "2h ago", "current": False},
             {"id": "sess_demo_3", "device": "Windows PC", "browser": "Chrome", "os": "Windows", "location": "Delhi, India", "city": "Delhi", "region": "Delhi", "country": "India", "lat": 28.70, "lon": 77.10, "isp": "BSNL", "ip": "117.xxx.xx.xx", "last_active": "3d ago", "current": False},
         ]
-    return {"sessions": sessions}
+    return {"sessions": sessions, "total": total}
 
 
 @router.post("/admin/security/sessions/record")
@@ -1223,6 +1226,14 @@ async def record_session(request: Request, authorization: Optional[str] = Header
             "created_at": datetime.now(timezone.utc),
         }
         await _db.admin_sessions.insert_one(doc)
+        # Auto-revoke: keep only the 5 most recent sessions
+        old_sessions = _db.admin_sessions.find({"user_id": uid}).sort("last_active", -1).skip(5)
+        async for old in old_sessions:
+            await _db.admin_sessions.delete_one({"_id": old["_id"]})
+            await _db.admin_audit_log.insert_one({
+                "user_id": uid, "action": "session.auto_revoked",
+                "target": str(old["_id"]), "created_at": datetime.now(timezone.utc),
+            })
     except Exception:
         pass
     return {"ok": True}

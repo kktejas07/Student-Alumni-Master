@@ -1713,6 +1713,8 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [cur, setCur] = useState(''); const [next, setNext] = useState(''); const [conf, setConf] = useState('');
   const [showCur, setShowCur] = useState(false); const [showNext, setShowNext] = useState(false);
   const [sessions, setSessions] = useState<any[]>([]);
+  const [sessionTotal, setSessionTotal] = useState(0);
+  const [showAllSessions, setShowAllSessions] = useState(false);
   const [trustedDevices, setTrustedDevices] = useState<any[]>([]);
   const [analysis, setAnalysis] = useState<any>(null);
   const [log, setLog] = useState<any[]>([]);
@@ -1730,6 +1732,7 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
         request<any>('/admin/security/trusted-devices').catch(() => null),
       ]);
       setSessions(sessR?.sessions || []);
+      setSessionTotal(sessR?.total || 0);
       setLog(logR?.entries || []);
       setAnalysis(analysisR || null);
       setTrustedDevices(tdR?.trusted_devices || []);
@@ -1972,6 +1975,28 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
               );
             })}
           </View>
+          {sessionTotal > 5 && !showAllSessions && (
+            <Pressable
+              onPress={async () => {
+                const r = await request<any>('/admin/security/sessions?all=true');
+                if (r?.sessions) { setSessions(r.sessions); setShowAllSessions(true); }
+              }}
+              style={[s.linkBtn, { alignSelf: 'center', marginTop: 8 }]}
+            >
+              <Text style={s.linkBtnText}>View all {sessionTotal} sessions →</Text>
+            </Pressable>
+          )}
+          {showAllSessions && (
+            <Pressable
+              onPress={async () => {
+                const r = await request<any>('/admin/security/sessions');
+                if (r?.sessions) { setSessions(r.sessions); setShowAllSessions(false); }
+              }}
+              style={[s.linkBtn, { alignSelf: 'center', marginTop: 8 }]}
+            >
+              <Text style={s.linkBtnText}>Show last 5 only ↑</Text>
+            </Pressable>
+          )}
           <Pressable
             onPress={async () => {
               try {
