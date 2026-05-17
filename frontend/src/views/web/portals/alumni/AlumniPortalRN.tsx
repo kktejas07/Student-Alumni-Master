@@ -11,6 +11,8 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { SC } from './tokens';
 import { Sidebar, StudentNavId } from './Sidebar';
 import { TopBar } from './TopBar';
+import { AnimatedAurora, GridOverlay } from '../student/glass';
+import { LinearGradient } from 'expo-linear-gradient';
 import { DashboardView } from './views/DashboardView';
 import { StubView } from './views/StubView';
 import { EventsView } from './views/EventsView';
@@ -45,11 +47,21 @@ export function AlumniPortalRN() {
 
   return (
     <View style={s.shell}>
+      {/* FinTax360 Jewel-glass canvas */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={['#0a0f1e', '#131938']}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject as any}
+      />
+      <AnimatedAurora intensity="normal" />
+      <GridOverlay />
+
       <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <TopBar />
         <ScrollView
-          style={{ flex: 1, backgroundColor: SC.bg }}
+          style={{ flex: 1 }}
           contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
           showsVerticalScrollIndicator={false}
         >
