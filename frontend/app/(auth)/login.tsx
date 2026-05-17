@@ -200,7 +200,8 @@ export default function LoginScreen() {
         <View style={{ flex: 1 }}>
           <OutlineButton label="Google" icon={<GoogleG size={16} />} onPress={() => {
             if (oauthCfg?.google_client_id && Platform.OS === 'web') {
-              const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${oauthCfg.google_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&response_type=id_token&scope=openid%20email%20profile&nonce=${Math.random().toString(36)}`;
+              const state = `google_${Math.random().toString(36).slice(2)}`;
+              const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${oauthCfg.google_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&response_type=id_token&scope=openid%20email%20profile&state=${state}&nonce=${Math.random().toString(36)}`;
               window.open(url, '_blank', 'width=600,height=700');
             } else {
               setOauthModal({ provider: 'google', name: '', email: '' });
@@ -210,7 +211,8 @@ export default function LoginScreen() {
         <View style={{ flex: 1 }}>
           <OutlineButton label="LinkedIn" icon={<LinkedInIn size={16} />} onPress={() => {
             if (oauthCfg?.linkedin_client_id && Platform.OS === 'web') {
-              const url = `https://www.linkedin.com/oauth/v2/authorization?client_id=${oauthCfg.linkedin_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&response_type=code&scope=openid%20email%20profile`;
+              const state = `linkedin_${Math.random().toString(36).slice(2)}`;
+              const url = `https://www.linkedin.com/oauth/v2/authorization?client_id=${oauthCfg.linkedin_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&response_type=code&scope=openid%20email%20profile&state=${state}`;
               window.open(url, '_blank', 'width=600,height=700');
             } else {
               setOauthModal({ provider: 'linkedin', name: '', email: '' });
