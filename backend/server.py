@@ -2145,7 +2145,7 @@ async def oauth_config():
     return {
         "google_client_id": creds.get("google_oauth_client_id", ""),
         "linkedin_client_id": creds.get("linkedin_oauth_client_id", ""),
-        "redirect_uri": f"{frontend_url}/api/auth/callback",
+        "redirect_uri": f"{frontend_url}/oauth/callback",
         "configured": bool(creds.get("google_oauth_client_id")) or bool(creds.get("linkedin_oauth_client_id")),
     }
 
