@@ -16,30 +16,32 @@ import { Platform } from 'react-native';
 
 // ── Core palette ─────────────────────────────────────────────
 export const NX = {
-  // Deep backgrounds (page → card → elevated)
-  bg:        '#07070A',
-  surface1:  '#0E0E12',
-  surface2:  '#121218',
-  surface3:  '#1A1A22',
-  surface4:  '#22222C',
+  // Deep backgrounds — FinTax360 Jewel-glass navy palette
+  // (Previously near-black #07070A; now matches the Student portal's
+  //  body gradient #0a0f1e → #131938 with elevated surfaces.)
+  bg:        '#0a0f1e',
+  surface1:  '#0E1428',
+  surface2:  'rgba(20, 26, 45, 0.55)',   // glass card fill — frosted
+  surface3:  'rgba(30, 38, 60, 0.72)',   // hover / elevated glass
+  surface4:  'rgba(40, 50, 78, 0.85)',   // deepest elevation
 
-  // Dividers / strokes
-  border:    'rgba(255,255,255,0.06)',
-  borderHi:  'rgba(255,255,255,0.10)',
+  // Dividers / strokes — neutral white (per Jewel spec)
+  border:    'rgba(255,255,255,0.08)',
+  borderHi:  'rgba(255,255,255,0.14)',
   borderLo:  'rgba(255,255,255,0.04)',
 
   // Text scale (primary → secondary → tertiary)
-  textP:     '#F4F4F6',
-  textS:     '#8A8A95',
-  textT:     '#5A5A66',
+  textP:     '#F8FAFC',
+  textS:     'rgba(255,255,255,0.70)',
+  textT:     'rgba(255,255,255,0.50)',
 
   // Brand accents (used across portals)
   blue:      '#3B82F6',
   blueSoft:  'rgba(59,130,246,0.15)',
-  cyan:      '#06B6D4',
-  cyanSoft:  'rgba(6,182,212,0.15)',
-  purple:    '#A855F7',
-  purpleSoft:'rgba(168,85,247,0.15)',
+  cyan:      '#22D3EE',
+  cyanSoft:  'rgba(34,211,238,0.15)',
+  purple:    '#8B5CF6',
+  purpleSoft:'rgba(139,92,246,0.15)',
   amber:     '#F59E0B',
   amberSoft: 'rgba(245,158,11,0.15)',
 
@@ -54,18 +56,21 @@ export const NX = {
   infoBg:    'rgba(59,130,246,0.12)',
 } as const;
 
-// Per-portal accent identity overlays
-// Each portal still uses NX surfaces, but its primary CTA / chip /
-// active-rail colour stays distinct so users can tell which portal
-// they're in at a glance.
+// Per-portal accent identity overlays — FinTax360 Jewel palette
+// Each portal shares the same dark-navy glass canvas; only the
+// primary CTA / chip / active-rail / hover-border colour shifts per
+// portal so users can tell which portal they're in at a glance.
 export const PORTAL_ACCENTS = {
-  student: { primary: '#7B3DBF', primaryD: '#5F259F', primaryL: '#A78BFA', accent: '#7B3DBF', accentSoft: 'rgba(123,61,191,0.18)' },
-  // Alumni — LinkedIn blue identity ("professional network")
-  alumni:  { primary: '#0A66C2', primaryD: '#004182', primaryL: '#378FE9', accent: '#0A66C2', accentSoft: 'rgba(10,102,194,0.18)' },
-  // College — Indigo identity ("academic prestige")
-  college: { primary: '#4F46E5', primaryD: '#3730A3', primaryL: '#818CF8', accent: '#4F46E5', accentSoft: 'rgba(79,70,229,0.18)' },
-  // Super Admin uses the warm amber/orange identity from the Apple HIG settings spec
-  admin:   { primary: '#F59E0B', primaryD: '#D97706', primaryL: '#FB923C', accent: '#FBBF24', accentSoft: NX.amberSoft },
+  // Student — Violet (FinTax360 flagship)
+  student: { primary: '#8B5CF6', primaryD: '#7C3AED', primaryL: '#A78BFA', accent: '#8B5CF6', accentSoft: 'rgba(139,92,246,0.18)' },
+  // Alumni — LinkedIn Blue ("professional network")
+  alumni:  { primary: '#3B82F6', primaryD: '#1D4ED8', primaryL: '#60A5FA', accent: '#3B82F6', accentSoft: 'rgba(59,130,246,0.18)' },
+  // College — Indigo ("academic prestige")
+  college: { primary: '#6366F1', primaryD: '#4338CA', primaryL: '#818CF8', accent: '#6366F1', accentSoft: 'rgba(99,102,241,0.18)' },
+  // Mentor — Teal ("wisdom + calm")
+  mentor:  { primary: '#14B8A6', primaryD: '#0F766E', primaryL: '#5EEAD4', accent: '#14B8A6', accentSoft: 'rgba(20,184,166,0.18)' },
+  // Super Admin — Amber (NexusOS / Apple HIG warmth)
+  admin:   { primary: '#F59E0B', primaryD: '#D97706', primaryL: '#FBBF24', accent: '#F59E0B', accentSoft: 'rgba(245,158,11,0.18)' },
 } as const;
 
 export type PortalKey = keyof typeof PORTAL_ACCENTS;

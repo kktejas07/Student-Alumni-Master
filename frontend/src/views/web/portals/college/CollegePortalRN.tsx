@@ -9,6 +9,8 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { CC } from './tokens';
 import { Sidebar, CollegeNavId, NAV } from './Sidebar';
 import { TopBar } from './TopBar';
+import { AnimatedAurora, GridOverlay } from '../student/glass';
+import { LinearGradient } from 'expo-linear-gradient';
 import { DashboardView } from './views/DashboardView';
 import { StubView } from './views/StubView';
 import { StudentsView } from './views/StudentsView';
@@ -39,11 +41,21 @@ export function CollegePortalRN() {
 
   return (
     <View style={s.shell}>
+      {/* FinTax360 Jewel-glass canvas */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={['#0a0f1e', '#131938']}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject as any}
+      />
+      <AnimatedAurora intensity="normal" />
+      <GridOverlay />
+
       <Sidebar active={active} onNav={setActive} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <TopBar title={titleFor(active)} />
         <ScrollView
-          style={{ flex: 1, backgroundColor: CC.bg }}
+          style={{ flex: 1 }}
           contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
           showsVerticalScrollIndicator={false}
         >

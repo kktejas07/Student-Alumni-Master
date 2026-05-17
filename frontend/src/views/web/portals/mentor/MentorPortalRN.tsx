@@ -20,6 +20,8 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { MC } from './tokens';
 import { Sidebar, NavId } from './Sidebar';
 import { TopBar } from './TopBar';
+import { AnimatedAurora, GridOverlay } from '../student/glass';
+import { LinearGradient } from 'expo-linear-gradient';
 import { DashboardView } from './views/DashboardView';
 import { ConnectionsView } from './views/ConnectionsView';
 import { SessionsView } from './views/SessionsView';
@@ -71,6 +73,16 @@ export default function MentorPortalRN() {
 
   return (
     <View style={s.shell}>
+      {/* FinTax360 Jewel-glass canvas */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={['#0a0f1e', '#131938']}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject as any}
+      />
+      <AnimatedAurora intensity="normal" />
+      <GridOverlay />
+
       <Sidebar
         active={active}
         onNav={(id) => setActive(id)}
@@ -83,7 +95,7 @@ export default function MentorPortalRN() {
       <View style={{ flex: 1, minWidth: 0 }}>
         <TopBar title={PAGE_TITLES[active]} query={query} setQuery={setQuery} notifCount={4} />
 
-        <ScrollView style={{ flex: 1, backgroundColor: MC.bg }} contentContainerStyle={{ padding: 20 }}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
           {active === 'dashboard' && <DashboardView onNav={(id) => setActive(id as NavId)} />}
           {active === 'ai-studio' && <MentorAIStudioView />}
           {active === 'students'  && <ConnectionsView />}
