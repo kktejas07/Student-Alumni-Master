@@ -532,8 +532,7 @@ function FootCol({ heading, links }: { heading: string; links: string[] }) {
 function Social({ Icon, label }: { Icon: React.ComponentType<{ size?: number; color?: string }>; label?: string }) {
   return (
     <View
-      accessibilityLabel={label ? `Visit ${label}` : 'Social link'}
-      accessibilityRole="button"
+      accessibilityLabel={label ? `${label} social icon` : 'Social icon'}
       style={footer.social}
     >
       <Icon size={14} color="rgba(255,255,255,0.80)" />
