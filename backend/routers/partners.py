@@ -138,7 +138,7 @@ async def admin_update_partner(
         oid = ObjectId(partner_id)
     except Exception:
         raise HTTPException(400, "Invalid partner id")
-    updates = {k: v for k, v in body.model_dump(exclude_unset=True).items() if v is not None}
+    updates = body.model_dump(exclude_unset=True)
     if not updates:
         raise HTTPException(400, "No fields to update")
     updates["updated_at"] = datetime.now(timezone.utc)
