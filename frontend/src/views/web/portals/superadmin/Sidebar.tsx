@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   LayoutDashboard, Building2, GraduationCap, UserCheck, Users, Calendar, CreditCard,
   BarChart3, CheckCircle, Sparkles, Settings, Workflow, ExternalLink, LogOut,
-  Upload,
+  Upload, Handshake,
 } from 'lucide-react-native';
 import { SAC, FONTS } from './tokens';
 import { ADMIN } from './data';
@@ -42,7 +42,7 @@ function useAdminProfile() {
 export type SuperAdminNavId =
   | 'overview' | 'colleges' | 'students' | 'mentors' | 'alumni' | 'events'
   | 'payments' | 'analytics' | 'approvals' | 'ai-insights' | 'settings'
-  | 'workflows' | 'imports';
+  | 'workflows' | 'imports' | 'partners';
 
 export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?: number; tag?: 'NEW' }> = [
   { id: 'overview',    label: 'Overview',    Icon: LayoutDashboard },
@@ -52,6 +52,7 @@ export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?:
   { id: 'alumni',      label: 'Alumni',      Icon: Users },
   { id: 'imports',     label: 'Imports',     Icon: Upload,      tag: 'NEW' },
   { id: 'events',      label: 'Events',      Icon: Calendar },
+  { id: 'partners',    label: 'Partners',    Icon: Handshake,   tag: 'NEW' },
   { id: 'payments',    label: 'Payments',    Icon: CreditCard },
   { id: 'analytics',   label: 'Analytics',   Icon: BarChart3 },
   { id: 'approvals',   label: 'Approvals',   Icon: CheckCircle, count: 12 },

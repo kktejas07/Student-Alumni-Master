@@ -10715,3 +10715,145 @@ agent_communication:
             resolved as a side-effect.
           · No backend changes — no backend testing required.
           · No new dependencies.
+
+
+# ─────────────────────────────────────────────────────────────────────
+# Phase A — Cross-portal Collaboration Partners (Super Admin CRUD)
+# ─────────────────────────────────────────────────────────────────────
+backend:
+  - task: "Collaboration Partners CRUD + reorder API"
+    implemented: true
+    working: true
+    file: "/app/backend/routers/partners.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: |
+            New router /api/admin/partners with full CRUD and bulk reorder.
+            Endpoints:
+              GET    /api/landing/partners               (public — active partners ordered)
+              GET    /api/admin/partners                 (admin — list ALL including inactive)
+              POST   /api/admin/partners                 (admin — create with PartnerIn body)
+              PATCH  /api/admin/partners/{id}            (admin — partial update)
+              DELETE /api/admin/partners/{id}            (admin — hard delete)
+              POST   /api/admin/partners/reorder         (admin — { ordered_ids: [..] })
+
+            Acceptance:
+              - Admin role required for write endpoints (403 for non-admin).
+              - Public GET only returns is_active=true items, sorted by display_order ASC.
+              - PATCH supports partial updates; rejects invalid id with 400; missing doc 404.
+              - Reorder sets display_order = (idx+1)*10 in the supplied order.
+              - Logo base64 capped at ~2.7MB per field.
+
+            Test creds:
+              - Super Admin: admin@careerpath.app / Admin@12345
+              - Use that account to obtain a JWT, then exercise all endpoints.
+        -working: true
+        -agent: "testing"
+        -comment: |
+            VERIFIED end-to-end via /app/backend_test_partners.py against
+            https://hiring-mvvm.preview.emergentagent.com/api.
+            RESULT: 47/47 checks PASSED. All 6 endpoints behave per spec.
+
+            ── 1. AUTH GATING (10/10) ─────────────────────────────────
+            No-token requests on every admin route → 401:
+              GET/POST/PATCH/DELETE /admin/partners*, POST /reorder.
+            Non-admin (student01@test.com, role=student) → 403 on the
+            same 5 routes. _require_admin gate is enforced correctly.
+
+            ── 2. CREATE (10/10) ──────────────────────────────────────
+            POST /admin/partners {name:"IIT Bombay", category:"college",
+            logo_url:<tiny PNG data URI>, logo_white_url:<same>,
+            display_order:50, is_active:true} → 200. Response has:
+              · id (24-char hex)
+              · name / category / logo_url / logo_white_url echoed verbatim
+              · display_order=50, is_active=true
+              · created_at + updated_at present (ISO strings)
+
+            ── 3. LIST (4/4) ──────────────────────────────────────────
+            GET /admin/partners (admin) → 200, contains the new partner.
+            GET /landing/partners (public, no auth) → 200, contains it
+            because is_active=true.
+
+            ── 4. UPDATE / TOGGLE (9/9) ───────────────────────────────
+            PATCH is_active=false → 200, returned is_active=false.
+              · /landing/partners no longer includes the partner ✅
+              · /admin/partners STILL includes it ✅
+            PATCH is_active=true → re-appears in /landing ✅.
+            PATCH {name:"IIT Bombay (Updated)", display_order:25} → 200;
+              both fields echoed in response.
+
+            ── 5. REORDER (6/6) ───────────────────────────────────────
+            Created 3 partners (Partner-A, Partner-B, Partner-C) with
+            initial display_order 110/120/130. POST /reorder with
+            ordered_ids=[C_id, A_id, B_id] → 200.
+              · C.display_order = 10 ✅
+              · A.display_order = 20 ✅
+              · B.display_order = 30 ✅
+              · GET /landing/partners returns C, A, B in that exact
+                order (filtered to our 3 test ids) ✅
+
+            ── 6. ERROR PATHS (5/5) ───────────────────────────────────
+            PATCH /admin/partners/not-an-oid     → 400 ✅
+            PATCH /admin/partners/<missing oid>  → 404 ✅
+            DELETE /admin/partners/not-an-oid    → 400 ✅
+            DELETE /admin/partners/<missing oid> → 404 ✅
+            POST with logo_url length > 2.7M chars → 422 ✅
+              (pydantic field_validator rejects "Logo too large")
+
+            ── 7. CLEANUP (1/1) ───────────────────────────────────────
+            All 4 partners created during the test deleted via
+            DELETE /admin/partners/{id} (200 each). DB clean after run.
+
+            NO ISSUES FOUND. Endpoint implementation is production-ready.
+
+frontend:
+  - task: "Super Admin → Partners management page"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/views/web/portals/superadmin/views/PartnersView.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: |
+            New top-level "Partners" tab in Super Admin sidebar (between Events
+            and Payments). Features:
+              · List of partners with logo, name, category badge, status, order #
+              · Up/Down arrow reorder (always works on web)
+              · HTML5 drag-and-drop reorder (parallel feature, web only,
+                disabled when a filter/search is active to avoid drift)
+              · Active/Visibility toggle with optimistic UI
+              · Add/Edit modal with Base64 logo upload (color + optional white variant)
+              · Inline delete confirmation
+              · Search + category tabs
+            Theme matches the warm-amber Super Admin identity.
+
+test_plan:
+  current_focus:
+    - "Collaboration Partners CRUD + reorder API"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    -agent: "main"
+    -message: |
+        Phase A — Step 2: Built Super Admin Partners management page and
+        completed admin CRUD endpoints for collaboration_partners.
+
+        Please test backend endpoints only (frontend testing on hold until
+        user approves):
+          • Auth as super admin (admin@careerpath.app / Admin@12345)
+          • POST /api/admin/partners with a small base64 logo
+          • GET  /api/admin/partners (full list)
+          • GET  /api/landing/partners (only active items)
+          • PATCH /api/admin/partners/{id} flip is_active=false then back true
+          • POST /api/admin/partners/reorder with a 2-3 item ordered_ids list
+          • DELETE /api/admin/partners/{id}
+        Also confirm 403 for non-admin user, 404 for unknown id, 400 for bad id.
