@@ -108,7 +108,7 @@ class PromoPatch(BaseModel):
     starts_at: Optional[datetime] = None
     ends_at: Optional[datetime] = None
     display_order: Optional[int] = None
-    image_url: Optional[str] = None
+    image_url: Optional[str] = Field(None, max_length=2_700_000)
 
 
 def _resolve_id(raw: str) -> ObjectId:
