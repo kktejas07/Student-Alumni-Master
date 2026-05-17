@@ -68,7 +68,7 @@ export function Sidebar({
   return (
     <View style={s.aside}>
       {/* Brand */}
-      <View style={s.brand}>
+      <View style={s.brand} {...({ 'data-tour-id': 'superadmin-brand' } as any)}>
         <View style={s.brandLogo}><Text style={s.brandLogoText}>SA</Text></View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.brandTitle}>Super Admin</Text>
@@ -95,9 +95,10 @@ export function Sidebar({
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 4, paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
         {NAV.map(({ id, label, Icon, count, tag }) => {
           const isActive = id === active;
+          const tourId = `superadmin-nav-${id === 'ai-insights' ? 'ai-insights' : id}`;
           if (isActive) {
             return (
-              <Pressable key={id} onPress={() => onNav(id)}>
+              <Pressable key={id} onPress={() => onNav(id)} {...({ 'data-tour-id': tourId } as any)}>
                 <LinearGradient
                   colors={[GRAD.from, GRAD.to]}
                   start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
@@ -119,6 +120,7 @@ export function Sidebar({
             <Pressable
               key={id}
               onPress={() => onNav(id)}
+              {...({ 'data-tour-id': tourId } as any)}
               style={({ hovered }: any) => [s.navItem, hovered && s.navItemHover]}
             >
               <Icon size={16} color={SAC.muted} />

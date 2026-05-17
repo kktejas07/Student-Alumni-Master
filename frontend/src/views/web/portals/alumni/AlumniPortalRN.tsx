@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 
 import { SC } from './tokens';
 import { Sidebar, StudentNavId } from './Sidebar';
@@ -38,6 +39,7 @@ export function AlumniPortalRN() {
   const router = useRouter();
   const logout = useAuthStore((sx) => sx.logout);
   const [active, setActive] = useState<StudentNavId>('dashboard');
+  useAutoTour('alumni');
 
   const onLogout = async () => {
     try { await logout(); } catch {}

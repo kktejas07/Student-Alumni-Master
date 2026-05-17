@@ -27,11 +27,13 @@ import { SettingsView } from './views/SettingsView';
 import { WorkflowsView } from './views/WorkflowsView';
 import { ImportsView } from './views/ImportsView';
 import { PartnersView } from './views/PartnersView';
+import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 
 export function SuperAdminPortalRN() {
   const router = useRouter();
   const logout = useAuthStore((sx) => sx.logout);
   const [active, setActive] = useState<SuperAdminNavId>('overview');
+  useAutoTour('super_admin');
 
   const onLogout = async () => {
     try { await logout(); } catch {}

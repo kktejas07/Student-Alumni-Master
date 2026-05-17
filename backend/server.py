@@ -5186,6 +5186,12 @@ api_router.include_router(crud_router)
 from routers.partners import router as partners_router
 app.include_router(partners_router)
 
+# Phase B — consent (privacy/cookies) + product tour status
+from routers.consent import router as consent_router
+from routers.tour import router as tour_router
+app.include_router(consent_router)
+app.include_router(tour_router)
+
 app.include_router(api_router)
 
 # ── CORS — origins configurable via env for production deployments ──

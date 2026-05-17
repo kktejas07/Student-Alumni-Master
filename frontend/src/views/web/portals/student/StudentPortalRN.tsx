@@ -16,6 +16,7 @@ import { ThemeProvider, useTheme } from '@/src/theme/ThemeContext';
 import { useBreakpoint } from '@/src/theme/breakpoints';
 import { SP } from '@/src/theme/apple';
 import { ToastProvider } from '@/src/motion/apple/toast';
+import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 
 import { Sidebar, StudentNavId } from './Sidebar';
 import { TopBar } from './TopBar';
@@ -60,6 +61,8 @@ function PortalShell() {
   const logout = useAuthStore((sx) => sx.logout);
   const [active, setActive] = useState<StudentNavId>('dashboard');
   const [scrolled, setScrolled] = useState(false);
+  // Phase B — auto-launch the Student portal tour on first visit
+  useAutoTour('student');
 
   const onLogout = async () => {
     try { await logout(); } catch {}

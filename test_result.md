@@ -10808,6 +10808,155 @@ backend:
             All 4 partners created during the test deleted via
             DELETE /admin/partners/{id} (200 each). DB clean after run.
 
+# ─────────────────────────────────────────────────────────────────────
+# Phase B — Privacy Consent Banner + Per-Portal Product Tours
+# ─────────────────────────────────────────────────────────────────────
+backend:
+  - task: "Privacy consent + Tour status APIs"
+    implemented: true
+    working: true
+    file: "/app/backend/routers/consent.py, /app/backend/routers/tour.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: |
+            Two new routers mounted in server.py:
+              GET  /api/me/consent              read auth user's consent prefs
+              PUT  /api/me/consent              upsert prefs (essential always true)
+              POST /api/anon/consent            anon log via stable anon_id
+              GET  /api/me/tour-status          per-portal tour status map
+              PATCH /api/me/tour-status         set status: completed|skipped|replayed|started
+            Persists to user_consent / anon_consent / user_tour_status collections.
+            CONSENT_VERSION = "2026-05-1" — banner re-shows on version drift or 13mo gap.
+        -working: true
+        -agent: "testing"
+        -comment: |
+            Phase B Consent + Tour APIs FULLY VERIFIED via
+            /app/backend_test_phase_b_consent_tour.py against
+            https://hiring-mvvm.preview.emergentagent.com/api.
+            RESULT: 52/52 assertions PASS.
+
+            1) AUTH GATING (4/4)
+              ✅ GET  /api/me/consent      no token → 401
+              ✅ GET  /api/me/tour-status  no token → 401
+              ✅ PUT  /api/me/consent      no token → 401
+              ✅ PATCH /api/me/tour-status no token → 401
+
+            2) CONSENT — admin@careerpath.app (13/13)
+              ✅ Initial GET returns {exists, version} shape (admin has prior
+                 doc — that's expected for this account).
+              ✅ PUT {analytics:true, functional:false, marketing:false} → 200;
+                 essential=true, analytics=true, functional=false, marketing=
+                 false, accepted_all=false (correctly NOT inferred).
+              ✅ PUT {accepted_all:true} → all three optional flags forced to
+                 true; accepted_all=true. essential always true.
+              ✅ PUT {analytics:true, functional:true, marketing:true} → server
+                 INFERS accepted_all=true (per spec).
+              ✅ PUT {marketing:true} only → accepted_all stays false (not all
+                 three are true).
+              ✅ Final GET reflects last PUT verbatim.
+
+            3) ANONYMOUS CONSENT — no auth (5/5)
+              ✅ POST /api/anon/consent {anon_id, analytics:true, marketing:true}
+                 → 200 {ok:true, version:"2026-05-1"}.
+              ✅ Re-POST with same anon_id + different flags → 200 (upsert
+                 confirmed; no duplicate key error).
+              ✅ Missing anon_id → 422.
+              ✅ anon_id with <8 chars → 422 (Field min_length=8 enforced).
+
+            4) TOUR STATUS — admin (15/15)
+              ✅ GET /api/me/tour-status → 200, shape={tours: {...}}.
+              ✅ PATCH {tour:"super_admin", status:"completed", step:5} → 200;
+                 tours.super_admin.completed_at populated (ISO datetime),
+                 last_step=5, skipped=false, replays=0, version="1.0".
+              ✅ PATCH {tour:"super_admin", status:"replayed", step:0} → 200;
+                 tours.super_admin.replays incremented by exactly 1.
+              ✅ PATCH {tour:"student", status:"skipped", step:2} → 200;
+                 tours.student.skipped=true, completed_at set, last_step=2.
+              ✅ PATCH {tour:"garbage", status:"completed"} → 422 (invalid
+                 Literal for tour).
+              ✅ PATCH {tour:"student", status:"garbage"} → 422 (invalid
+                 Literal for status).
+              ✅ PATCH {tour:"student", status:"completed", step:51} → 422
+                 (Field constraint ge=0 le=50 enforced).
+              ✅ Final GET shows both super_admin + student entries.
+
+            5) CROSS-USER ISOLATION — student01@test.com vs admin (5/5)
+              ✅ student01 starts with consent {exists:false} (separate doc
+                 namespace from admin's consent).
+              ✅ student PATCH {tour:"mentor"} → 200; tours.mentor entry on
+                 STUDENT record. Admin's tours.mentor remains absent (verified
+                 by re-fetching admin tour-status — no leakage between users).
+              ✅ student PUT consent {analytics:true, functional:true} → 200;
+                 admin's consent doc id and marketing flag unchanged after the
+                 student write (verified by re-GET on admin).
+
+            DATA INTEGRITY: All state changes were confined to the calling
+            user's record. user_consent docs are keyed by user_id (ObjectId);
+            user_tour_status uses dot-paths under tours.<key>.* via $set/$inc.
+            CONSENT_VERSION = "2026-05-1" stamped on every write.
+
+            NO BUGS FOUND. Phase B backend is production-ready.
+
+frontend:
+  - task: "Phase B — Consent banner, Tour engine, Help menu"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/views/web/consent/, /app/frontend/src/views/web/tour/, /app/frontend/src/views/web/help/HelpMenu.tsx, app/_layout.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: |
+            • ConsentBanner mounted globally in app/_layout.tsx — sticky bottom
+              with Accept all / Reject optional / Customize (4-category modal:
+              Essential always-on, Analytics, Functional, Marketing). Local-first,
+              syncs to backend when authenticated.
+            • TourProvider + TourOverlay mounted globally — SVG spotlight with
+              cutout, accent-coloured tooltip, Back/Next/Skip/Done flow.
+            • tours.config.ts has 5 tour configs (Student, Alumni, College,
+              Mentor, Super Admin) with 5-7 steps each + portal accent color.
+            • useAutoTour(<portal>) wired into all 5 portal shells — auto-launches
+              once per portal then quiets down via tour status persistence.
+            • HelpMenu (? button + dropdown) added to all 5 TopBars with
+              "Take/Replay tour" + Privacy/Terms/Cookies links.
+            • data-tour-id attributes added on Super Admin Sidebar (brand +
+              all nav items) for spotlight targeting.
+            • Fixed: SponsorStrip was double-prefixing /api (now uses
+              relative /landing/partners).
+
+test_plan:
+  current_focus:
+    - "Privacy consent + Tour status APIs"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    -agent: "main"
+    -message: |
+        Phase B backend is ready. Please test:
+          • POST /api/auth/login as admin@careerpath.app / Admin@12345
+          • GET  /api/me/consent       — exists:false on a fresh user
+          • PUT  /api/me/consent       with { accepted_all: true } — verify it
+            persists and exists:true on next GET
+          • PUT  /api/me/consent       with { analytics: true } — verify
+            functional/marketing remain false
+          • POST /api/anon/consent     with { anon_id: "anon_test_1", accepted_all: false } — no auth needed
+          • GET  /api/me/tour-status   — empty tours dict on a fresh user
+          • PATCH /api/me/tour-status  body { tour: "super_admin", status: "completed", step: 5 }
+            — verify completed_at, last_step persisted
+          • PATCH /api/me/tour-status  body { tour: "super_admin", status: "replayed", step: 0 }
+            — verify replays incremented to 1
+          • Test invalid tour key (e.g. "garbage") → 422
+        Frontend testing is on hold pending user approval.
+
+
             NO ISSUES FOUND. Endpoint implementation is production-ready.
 
 frontend:

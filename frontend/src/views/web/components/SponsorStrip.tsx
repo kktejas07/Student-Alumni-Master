@@ -40,7 +40,7 @@ async function fetchPartners(): Promise<Partner[]> {
   if (_cachePromise) return _cachePromise;
   _cachePromise = (async () => {
     try {
-      const res = await request<{ items: Partner[] }>('/api/landing/partners');
+      const res = await request<{ items: Partner[] }>('/landing/partners');
       _cached = res?.items || [];
       return _cached;
     } catch {

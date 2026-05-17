@@ -27,11 +27,13 @@ import { ProfileView } from './views/ProfileView';
 // Shared role-aware comprehensive profile view (purple theme, identical to student).
 import { ProfileSettingsView as SharedProfileSettingsView } from '../student/views/ProfileSettingsView';
 import { CreateEventView } from './views/CreateEventView';
+import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 
 export function CollegePortalRN() {
   const router = useRouter();
   const logout = useAuthStore((sx) => sx.logout);
   const [active, setActive] = useState<CollegeNavId>('dashboard');
+  useAutoTour('college');
 
   const onLogout = async () => {
     try { await logout(); } catch {}

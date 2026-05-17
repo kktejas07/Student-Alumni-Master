@@ -37,6 +37,9 @@ import { Colors } from '@/src/theme';
 import { ToastProvider } from '@/src/views/components';
 import analytics from '@/src/lib/analytics';
 import { AgentKQuickLauncher } from '@/src/views/web/agent-k/AgentKQuickLauncher';
+import { ConsentBanner } from '@/src/views/web/consent/ConsentBanner';
+import { TourProvider } from '@/src/views/web/tour/TourProvider';
+import { TourOverlay } from '@/src/views/web/tour/TourOverlay';
 
 // Material 3 theme — overrides primary/secondary to brand purple. This means
 // all react-native-paper components (Surface, Card, Button, Ripple) will pick
@@ -121,17 +124,23 @@ export default function RootLayout() {
       <PaperProvider theme={SAPaperTheme}>
         <SafeAreaProvider>
           <ToastProvider>
-            <StatusBar style="light" />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: Colors.background },
-                animation: 'slide_from_right',
-                animationDuration: 280,
-              }}
-            />
-            {/* Agent K — global Cmd/Ctrl+K quick launcher modal */}
-            <AgentKQuickLauncher />
+            <TourProvider>
+              <StatusBar style="light" />
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: Colors.background },
+                  animation: 'slide_from_right',
+                  animationDuration: 280,
+                }}
+              />
+              {/* Agent K — global Cmd/Ctrl+K quick launcher modal */}
+              <AgentKQuickLauncher />
+              {/* Phase B — privacy & cookie consent banner (web only) */}
+              <ConsentBanner />
+              {/* Phase B — product tour spotlight overlay (web only) */}
+              <TourOverlay />
+            </TourProvider>
           </ToastProvider>
         </SafeAreaProvider>
       </PaperProvider>

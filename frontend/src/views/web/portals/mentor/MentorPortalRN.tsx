@@ -38,6 +38,7 @@ import { MentorAIStudioView } from './views/MentorAIStudioView';
 // Shared role-aware comprehensive profile view (purple theme, identical to student).
 import { ProfileSettingsView as SharedProfileSettingsView } from '../student/views/ProfileSettingsView';
 import { STUDENTS, SESSION_REQUESTS } from './data';
+import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 
 const PAGE_TITLES: Record<NavId, string> = {
   dashboard:    'Dashboard',
@@ -60,6 +61,7 @@ export default function MentorPortalRN() {
   const [active, setActive] = useState<NavId>('dashboard');
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState('');
+  useAutoTour('mentor');
 
   const counts = {
     students: STUDENTS.length,

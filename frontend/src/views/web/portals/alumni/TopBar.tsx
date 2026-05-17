@@ -7,6 +7,7 @@ import { Bell, Search } from './iconShims';
 import { SC, FONTS } from './tokens';
 import { STUDENT } from './data';
 import { Av } from './atoms';
+import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -33,6 +34,8 @@ export function TopBar() {
         <Bell size={16} color={SC.accent} />
         <View style={s.bellDot} />
       </Pressable>
+
+      <HelpMenu portal="alumni" />
 
       <Av initials={STUDENT.initials} size={36} color={SC.primary} />
     </View>
