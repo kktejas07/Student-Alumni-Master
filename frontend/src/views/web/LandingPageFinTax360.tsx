@@ -33,6 +33,7 @@ import {
   AnimatedAurora, GridOverlay, GlassCard, AiCopilotFab, StatusChip, Kicker,
 } from '@/src/views/web/portals/student/glass';
 import { PALETTE, TYPO } from '@/src/views/web/portals/student/tokens';
+import { SponsorStrip } from '@/src/views/web/components/SponsorStrip';
 
 // ─────────────────────────────────────────────────────────────────────────
 // CUSTOM BRAND SVG ICONS
@@ -121,6 +122,10 @@ export default function LandingPageFinTax360() {
         <Hero isDesktop={isDesktop} router={router} />
 
         <FeaturePillars isDesktop={isDesktop} isTablet={isTablet} />
+
+        {/* Sponsored Collaboration Partners — manually curated from Super Admin.
+            Hides automatically when no active partners exist. */}
+        <SponsorStrip variant="section" />
 
         <HowItWorks isDesktop={isDesktop} />
 
@@ -213,12 +218,10 @@ function Hero({ isDesktop, router }: { isDesktop: boolean; router: ReturnType<ty
   return (
     <View style={[hero.section, { paddingTop: isDesktop ? 120 : 96, paddingBottom: 80 }]}>
       <Animated.View style={{ opacity, transform: [{ translateY: ty }], alignItems: 'center', maxWidth: 920 }}>
-        {/* Eyebrow pill */}
+        {/* Eyebrow pill — static brand tagline */}
         <View style={hero.pill}>
           <View style={hero.pillDot} />
-          <Text style={hero.pillText}>FinTax360 · Now with Agent K (BYO-AI)</Text>
-          <View style={hero.pillDivider} />
-          <Text style={hero.pillLink}>Read more →</Text>
+          <Text style={hero.pillText}>Student Alumni with AI ATS</Text>
         </View>
 
         {/* Headline */}

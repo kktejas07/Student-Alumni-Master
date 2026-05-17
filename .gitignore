@@ -123,3 +123,4 @@ android-sdk/
 # ── Files that should never have been committed
 # (binary-named cruft, accidental drops)
 frontend/\001*
+

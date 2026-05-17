@@ -6,6 +6,7 @@ import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-na
 import { Search, Bell, Calendar as CalIcon, Plus, Inbox } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CC, FONTS } from './tokens';
+import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 
 export function TopBar({ title = 'Dashboard' }: { title?: string }) {
   return (
@@ -39,6 +40,8 @@ export function TopBar({ title = 'Dashboard' }: { title?: string }) {
           <Text style={s.addCtaText}>Add College</Text>
         </LinearGradient>
       </Pressable>
+
+      <HelpMenu portal="college" />
     </View>
   );
 }

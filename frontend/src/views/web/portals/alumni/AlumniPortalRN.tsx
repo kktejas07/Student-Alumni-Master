@@ -7,12 +7,15 @@ import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 
 import { SC } from './tokens';
 import { Sidebar, StudentNavId } from './Sidebar';
 import { TopBar } from './TopBar';
 import { AnimatedAurora, GridOverlay } from '../student/glass';
 import { LinearGradient } from 'expo-linear-gradient';
+import { DashboardFooter } from '../../components/SponsorStrip';
+import { PromoBanner } from '../../components/PromoBanner';
 import { DashboardView } from './views/DashboardView';
 import { StubView } from './views/StubView';
 import { EventsView } from './views/EventsView';
@@ -37,6 +40,7 @@ export function AlumniPortalRN() {
   const router = useRouter();
   const logout = useAuthStore((sx) => sx.logout);
   const [active, setActive] = useState<StudentNavId>('dashboard');
+  useAutoTour('alumni');
 
   const onLogout = async () => {
     try { await logout(); } catch {}
@@ -66,6 +70,7 @@ export function AlumniPortalRN() {
           showsVerticalScrollIndicator={false}
         >
           <EmbeddedShellContext.Provider value={true}>
+            <PromoBanner portal="alumni" />
             {active === 'dashboard'       && <DashboardView />}
             {active === 'career-ai'       && <StubView title="Alumni Tools" note="Mentor matchmaker, alumni-only AMAs and curated content." deepLink="/career-ai" />}
             {active === 'internships'     && <InternshipsView />}
@@ -82,6 +87,7 @@ export function AlumniPortalRN() {
             {active === 'rentals'         && <RentalsPage />}
             {active === 'profile'         && <ProfileSettingsView />}
           </EmbeddedShellContext.Provider>
+          <DashboardFooter portal="alumni" />
         </ScrollView>
       </View>
     </View>
