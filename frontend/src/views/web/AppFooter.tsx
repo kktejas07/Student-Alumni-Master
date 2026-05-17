@@ -7,6 +7,7 @@ const LINKS = [
   { label: 'Privacy Policy', route: '/policy/privacy' },
   { label: 'Terms of Service', route: '/policy/terms' },
   { label: 'Cookie Policy', route: '/policy/cookies' },
+  { label: 'Refund Policy', route: '/policy/refund' },
   { label: 'FAQ', route: '/faq' },
   { label: 'About', route: '/about' },
   { label: 'Contact', route: '/contact' },
