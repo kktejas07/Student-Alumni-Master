@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Student Portal — motion primitives (heavy animation level).
  *

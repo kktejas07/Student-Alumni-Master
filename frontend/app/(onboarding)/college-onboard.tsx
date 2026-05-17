@@ -31,6 +31,7 @@ import { useToast } from '@/src/views/components';
 import { api } from '@/src/models/services/api';
 import { DarkChip } from '@/src/views/web/OnboardingShell';
 import { InstitutionAutocomplete } from '@/src/views/web/InstitutionAutocomplete';
+import { SuggestionAutocomplete } from '@/src/views/web/SuggestionAutocomplete';
 import { Dropdown } from '@/src/views/web/Dropdown';
 
 const TOTAL = 6;

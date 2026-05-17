@@ -1,206 +1,204 @@
 {
-  "theme": "Light",
-  "archetype": "3 (Pastel & Soft) - Neo-Brutalist Gen-Z Variant",
+  "theme": "Dark",
+  "archetype": "FinTax360 — Jewel & Luxury Glassmorphism",
+  "scope": "Student Portal only. Alumni/College/Mentor/Super-Admin retain their own palettes.",
   "design_philosophy": {
     "core_principles": [
-      "Neo-Brutalist Contrast: Soft pastel card backgrounds grounded by sharp, hard dark borders and solid drop shadows to prevent the UI from feeling childish.",
-      "Vibrant & Optimistic: Use clear, distinct pastel colors for different career paths (Job, Higher Ed, Startup, Business) to create instant visual recognition.",
-      "Tactile Interactions: Cards must feel pressable. When pressed, the solid shadow should disappear and the card translates down to mimic a physical button press.",
-      "Bold Typography: Expressive, tightly tracked headings combined with highly readable geometric body text."
+      "Glassmorphism dark theme with animated multicolor aurora background.",
+      "Premium, trustworthy, high-tech and modern — data-rich but breathable.",
+      "Every card is a frosted-glass surface (22px backdrop blur, 180% saturate).",
+      "Neutral white hairlines (white/8) on glass; violet hairline only on hover/focus.",
+      "Typography is intentional: Outfit (display), Plus Jakarta Sans (body), JetBrains Mono (numerics)."
     ],
-    "emotion": "Approachable, Optimistic, Empowering, Action-oriented",
-    "target_audience": "Gen-Z Students, Mentors, and College Admins"
+    "emotion": "Premium, calm, trustworthy, modern",
+    "target_audience": "Students seeking a polished career-management dashboard"
   },
   "colors": {
-    "light": {
-      "background": "#FDFBF7",
-      "surface": "#FFFFFF",
-      "text_primary": "#121212",
-      "text_secondary": "#52525B",
-      "border": "#121212",
-      "primary": "#121212",
-      "primary_text": "#FFFFFF",
-      "accent_yellow": "#FFD166",
-      "accent_mint": "#06D6A0",
-      "accent_pink": "#EF476F",
-      "accent_blue": "#118AB2",
-      "danger": "#EF476F",
-      "success": "#06D6A0",
-      "shadow": "#121212"
+    "background": {
+      "gradient_from": "#0a0f1e",
+      "gradient_to":   "#131938",
+      "solid_canvas":  "#0a0f1e"
     },
-    "dark": {
-      "background": "#121212",
-      "surface": "#1A1A1A",
-      "text_primary": "#FDFBF7",
-      "text_secondary": "#A1A1AA",
-      "border": "#3F3F46",
-      "primary": "#FDFBF7",
-      "primary_text": "#121212",
-      "accent_yellow": "#FBBF24",
-      "accent_mint": "#34D399",
-      "accent_pink": "#FB7185",
-      "accent_blue": "#38BDF8",
-      "danger": "#FB7185",
-      "success": "#34D399",
-      "shadow": "#000000"
+    "surface": {
+      "glass":         "rgba(20, 26, 45, 0.55)",
+      "glass_strong":  "rgba(20, 26, 45, 0.72)",
+      "glass_soft":    "rgba(255, 255, 255, 0.04)"
+    },
+    "border": {
+      "default":       "rgba(255, 255, 255, 0.08)",
+      "hover":         "rgba(139, 92, 246, 0.40)",
+      "highlight":     "rgba(255, 255, 255, 0.10)"
+    },
+    "brand": {
+      "primary":       "#8B5CF6",
+      "primary_deep":  "#7C3AED",
+      "primary_soft":  "#A78BFA",
+      "primary_glow":  "rgba(139, 92, 246, 0.5)"
+    },
+    "accents": {
+      "blue":          "#3B82F6",
+      "teal":          "#10B981",
+      "amber":         "#F59E0B",
+      "rose":          "#f43f5e"
+    },
+    "text": {
+      "primary":       "#FFFFFF",
+      "secondary":     "rgba(255, 255, 255, 0.70)",
+      "muted":         "rgba(255, 255, 255, 0.50)"
+    },
+    "status": {
+      "success_bg": "rgba(16,185,129,0.10)", "success_fg": "#34D399", "success_bd": "rgba(16,185,129,0.20)",
+      "warning_bg": "rgba(245,158,11,0.10)", "warning_fg": "#FBBF24", "warning_bd": "rgba(245,158,11,0.20)",
+      "danger_bg":  "rgba(239,68,68,0.10)",  "danger_fg":  "#F87171", "danger_bd":  "rgba(239,68,68,0.20)",
+      "neutral_bg": "rgba(255,255,255,0.05)", "neutral_fg": "rgba(255,255,255,0.70)", "neutral_bd": "rgba(255,255,255,0.10)"
     }
   },
   "typography": {
     "font_families": {
-      "heading": "Outfit",
-      "body": "Manrope"
+      "display":  "Outfit",
+      "body":     "Plus Jakarta Sans",
+      "monospace":"JetBrains Mono"
     },
     "expo_packages": [
       "@expo-google-fonts/outfit",
-      "@expo-google-fonts/manrope"
+      "@expo-google-fonts/plus-jakarta-sans",
+      "@expo-google-fonts/jetbrains-mono"
     ],
     "scales": {
-      "h1": { "fontSize": 40, "lineHeight": 44, "fontFamily": "Outfit_700Bold", "letterSpacing": -1 },
-      "h2": { "fontSize": 32, "lineHeight": 36, "fontFamily": "Outfit_700Bold", "letterSpacing": -0.5 },
-      "h3": { "fontSize": 24, "lineHeight": 28, "fontFamily": "Outfit_600SemiBold", "letterSpacing": -0.5 },
-      "h4": { "fontSize": 20, "lineHeight": 24, "fontFamily": "Outfit_600SemiBold" },
-      "body_lg": { "fontSize": 18, "lineHeight": 28, "fontFamily": "Manrope_500Medium" },
-      "body": { "fontSize": 16, "lineHeight": 24, "fontFamily": "Manrope_400Regular" },
-      "body_sm": { "fontSize": 14, "lineHeight": 20, "fontFamily": "Manrope_500Medium" },
-      "caption": { "fontSize": 12, "lineHeight": 16, "fontFamily": "Manrope_600SemiBold", "textTransform": "uppercase", "letterSpacing": 1.2 }
+      "h0":         { "fontSize": 56, "lineHeight": 60, "fontFamily": "Outfit_800ExtraBold", "letterSpacing": -1.5 },
+      "h1":         { "fontSize": 40, "lineHeight": 44, "fontFamily": "Outfit_800ExtraBold", "letterSpacing": -1.0 },
+      "h2":         { "fontSize": 28, "lineHeight": 32, "fontFamily": "Outfit_700Bold",      "letterSpacing": -0.5 },
+      "h3":         { "fontSize": 20, "lineHeight": 24, "fontFamily": "Outfit_700Bold" },
+      "body_lg":    { "fontSize": 16, "lineHeight": 24, "fontFamily": "PlusJakartaSans_500Medium" },
+      "body":       { "fontSize": 14, "lineHeight": 20, "fontFamily": "PlusJakartaSans_500Medium" },
+      "caption":    { "fontSize": 12, "lineHeight": 16, "fontFamily": "PlusJakartaSans_500Medium" },
+      "kpi":        { "fontSize": 32, "lineHeight": 36, "fontFamily": "JetBrainsMono_600SemiBold", "letterSpacing": -1 },
+      "kicker":     { "fontSize": 11, "lineHeight": 14, "fontFamily": "PlusJakartaSans_600SemiBold", "letterSpacing": 2.4, "textTransform": "uppercase" }
     }
   },
   "layout": {
-    "container_padding": 24,
-    "safe_area_handling": "Use react-native-safe-area-context. Add appropriate top padding for headers and bottom padding for the tab bar.",
-    "border_radius": {
-      "sm": 8,
-      "md": 12,
-      "lg": 16,
-      "xl": 24,
-      "pill": 9999
-    },
-    "spacing": {
-      "xs": 4,
-      "sm": 8,
-      "md": 16,
-      "lg": 24,
-      "xl": 32,
-      "xxl": 48
+    "container_padding_clamp": "16 → 32 (responsive by breakpoint)",
+    "safe_area": "react-native-safe-area-context",
+    "border_radius": { "sm": 8, "md": 12, "lg": 14, "xl": 20, "pill": 9999 },
+    "spacing": { "xs": 4, "sm": 8, "md": 16, "lg": 24, "xl": 32, "xxl": 48 },
+    "grid": {
+      "phone":   "1 column",
+      "tablet":  "3 columns",
+      "desktop": "4 columns"
     }
   },
   "components": {
-    "cards": {
-      "style": "Neo-Brutalist",
-      "light_mode": {
-        "borderWidth": 2,
-        "borderColor": "#121212",
-        "borderRadius": 16,
-        "backgroundColor": "#FFFFFF",
-        "shadowColor": "#121212",
-        "shadowOffset": { "width": 4, "height": 4 },
-        "shadowOpacity": 1,
-        "shadowRadius": 0,
-        "elevation": 0
-      },
-      "dark_mode": {
-        "borderWidth": 1.5,
-        "borderColor": "#3F3F46",
-        "borderRadius": 16,
-        "backgroundColor": "#1A1A1A",
-        "shadowColor": "#000000",
-        "shadowOffset": { "width": 0, "height": 8 },
-        "shadowOpacity": 0.3,
-        "shadowRadius": 12,
-        "elevation": 8
-      }
+    "glass_card": {
+      "backgroundColor": "rgba(20, 26, 45, 0.55)",
+      "backdropBlur_px": 22,
+      "backdropSaturate_pct": 180,
+      "borderWidth": 1,
+      "borderColor": "rgba(255, 255, 255, 0.08)",
+      "borderColor_hover": "rgba(139, 92, 246, 0.40)",
+      "borderRadius": 14,
+      "boxShadow": "0 16px 48px rgba(2,6,23,0.45), 0 1px 0 rgba(255,255,255,0.06) inset",
+      "boxShadow_hover": "0 10px 30px rgba(139,92,246,0.35), 0 0 0 1px rgba(139,92,246,0.20)"
     },
-    "buttons": {
-      "primary": {
-        "borderWidth": 2,
-        "borderColor": "#121212",
-        "backgroundColor": "#121212",
-        "borderRadius": 9999,
-        "paddingVertical": 16,
-        "paddingHorizontal": 24,
-        "alignItems": "center"
-      },
-      "secondary": {
-        "borderWidth": 2,
-        "borderColor": "#121212",
-        "backgroundColor": "#FFFFFF",
-        "borderRadius": 9999,
-        "paddingVertical": 16,
-        "paddingHorizontal": 24,
-        "alignItems": "center",
-        "shadowColor": "#121212",
-        "shadowOffset": { "width": 2, "height": 2 },
-        "shadowOpacity": 1,
-        "shadowRadius": 0
-      }
-    },
-    "inputs": {
-      "borderWidth": 2,
-      "borderColor": "#121212",
+    "primary_button": {
+      "backgroundColor": "#8B5CF6",
+      "backgroundColor_hover": "#A78BFA",
       "borderRadius": 12,
-      "padding": 16,
-      "backgroundColor": "#FFFFFF",
-      "fontFamily": "Manrope_400Regular",
-      "fontSize": 16
+      "paddingX": 24,
+      "paddingY": 10,
+      "borderWidth": 1,
+      "borderColor": "rgba(139, 92, 246, 0.20)",
+      "boxShadow": "0 0 20px rgba(139, 92, 246, 0.3)",
+      "boxShadow_hover": "0 0 30px rgba(139, 92, 246, 0.6)"
     },
-    "bottom_tab_bar": {
-      "backgroundColor": "#FFFFFF",
-      "borderTopWidth": 2,
-      "borderColor": "#121212",
-      "paddingTop": 12,
-      "paddingBottom": 24,
-      "height": 80
+    "sidebar": {
+      "width": 256,
+      "borderRight": "1px solid rgba(255,255,255,0.08)",
+      "backgroundColor": "rgba(10,15,30,0.80)",
+      "backdropBlur_px": 24,
+      "backdropSaturate_pct": 180
+    },
+    "topbar": {
+      "height": 64,
+      "position": "sticky",
+      "zIndex": 40,
+      "backgroundColor": "rgba(10,15,30,0.80)",
+      "backdropBlur_px": 20,
+      "backdropSaturate_pct": 180
+    },
+    "status_chip": {
+      "shape": "pill (px-2.5 py-0.5)",
+      "borderWidth": 1,
+      "fontFamily": "PlusJakartaSans_600SemiBold",
+      "fontSize": 11,
+      "variants": ["success", "warning", "danger", "neutral"]
+    },
+    "ai_copilot_fab": {
+      "position": "fixed bottom-right",
+      "offset": { "bottom": 22, "right": 22 },
+      "height": 56,
+      "paddingX": 22,
+      "borderRadius": 9999,
+      "background_gradient": ["#8B5CF6", "#7C3AED"],
+      "boxShadow_idle":  "0 12px 32px rgba(139,92,246,0.40), 0 0 0 1px rgba(139,92,246,0.28)",
+      "boxShadow_hover": "0 18px 44px rgba(139,92,246,0.55), 0 0 0 1px rgba(139,92,246,0.42)",
+      "breathing_glow": { "duration_ms": 3200, "opacity_range": [0.35, 0.75] },
+      "visibility": "Every Student screen INCLUDING /agent-k itself"
     }
   },
-  "motion_and_interactions": {
-    "button_press": "Use react-native-reanimated. On press in: scale down to 0.95, reduce shadow offset to 0px. On press out: restore.",
-    "screen_transitions": "Slide from right for deeper navigation, fade for tab switches.",
-    "staggered_lists": "List items in feeds (jobs, courses) should enter with a slight fade and slide-up animation (staggered by 50ms)."
+  "motion": {
+    "page_transition":      { "opacity": "0 → 1", "translateY": "10 → 0", "duration_ms": 400, "easing": "easeOut" },
+    "card_mount_in":        { "opacity": "0 → 1", "translateY": "8 → 0",  "duration_ms": 350, "easing": "easeOut(cubic)" },
+    "card_stagger_ms":      40,
+    "hover_lift":           { "translateY": "0 → -3", "duration_ms": 220, "easing": "cubic-bezier(0.16, 1, 0.3, 1)" },
+    "press_scale":          { "scale": "1 → 0.99", "duration_ms": 120 },
+    "aurora_orb_loop":      { "duration_s": [22, 28, 32], "translate_range_vw_vh": 15 }
   },
   "icons": {
-    "library": "lucide-react-native",
-    "weight": "regular",
-    "size": {
-      "sm": 16,
-      "md": 24,
-      "lg": 32
-    }
+    "library": "lucide-react-native (via iconShims.tsx adapter)",
+    "stroke_width": 1.5,
+    "default_color": "rgba(255, 255, 255, 0.70)",
+    "sizes": { "sm": 12, "md": 18, "lg": 22, "xl": 28 },
+    "rules": ["Never use emojis as functional icons.", "Use semantic icons with text labels for accessibility."]
   },
-  "media": {
-    "image_urls": {
-      "splash_background": {
-        "url": "https://images.unsplash.com/photo-1620650764255-6797e68c7904?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzV8MHwxfHNlYXJjaHwxfHxjb2xsZWdlJTIwY2FtcHVzJTIwc3R1ZGVudHxlbnwwfHx8fDE3Nzc0NTU4OTJ8MA&ixlib=rb-4.1.0&q=85",
-        "description": "A vibrant university building representing the college experience."
-      },
-      "career_path_startup": {
-        "url": "https://images.unsplash.com/photo-1590097521871-03f076644314?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1ODh8MHwxfHNlYXJjaHw0fHxzdGFydHVwJTIwZW50cmVwcmVuZXVyJTIwb2ZmaWNlfGVufDB8fHx8MTc3NzQ1NTg5Mnww&ixlib=rb-4.1.0&q=85",
-        "description": "Macbook and notebooks on a desk, representing startup and business paths."
-      },
-      "career_path_education": {
-        "url": "https://images.unsplash.com/photo-1758612214917-81d7956c09de?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzV8MHwxfHNlYXJjaHw0fHxzdHVkZW50JTIwc3R1ZHlpbmclMjBsYXB0b3B8ZW58MHx8fHwxNzc3NDU1ODkyfDA&ixlib=rb-4.1.0&q=85",
-        "description": "Student typing on a laptop, representing higher education."
-      },
-      "mentor_placeholder": {
-        "url": "https://images.unsplash.com/photo-1693011142814-aa33d7d1535c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzV8MHwxfHNlYXJjaHwyfHxjb2xsZWdlJTIwY2FtcHVzJTIwc3R1ZGVudHxlbnwwfHx8fDE3Nzc0NTU4OTJ8MA&ixlib=rb-4.1.0&q=85",
-        "description": "Man sitting on a white bench, used as mentor profile placeholder."
-      },
-      "student_deals_hero": {
-        "url": "https://images.pexels.com/photos/7972556/pexels-photo-7972556.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "description": "Two young women walking past a historic university building on a sunny day."
-      }
-    }
+  "primitives_exported_from_glass_tsx": [
+    "AnimatedAurora",
+    "GridOverlay",
+    "GlassCard",
+    "GlassSoft",
+    "KpiTile",
+    "PillChip",
+    "GradientButton",
+    "AiCopilotFab",
+    "RouteTransition",
+    "StatusChip",
+    "Kicker"
+  ],
+  "rules_donts": [
+    "❌ No solid white cards.",
+    "❌ No Shadcn defaults — every component is re-skinned for glass.",
+    "❌ No purple-on-white gradients.",
+    "❌ No emoji icons.",
+    "❌ Do not apply this theme to Alumni, College, Mentor or Super-Admin portals.",
+    "❌ Do not hardcode hex values — always import from PALETTE in tokens.ts.",
+    "❌ Do not use position: absolute for main content layout."
+  ],
+  "rules_dos": [
+    "✅ Wrap every screen with <RouteTransition>.",
+    "✅ Use <GlassCard> for every card-shaped surface.",
+    "✅ Use <Kicker> for uppercase eyebrow labels above titles.",
+    "✅ Use <StatusChip> with one of 4 tones for state indicators.",
+    "✅ Use JetBrains Mono for numerics, KPIs, IDs, hashes.",
+    "✅ All interactive elements MUST have testID + accessibilityLabel."
+  ],
+  "files": {
+    "design_tokens":     "frontend/src/views/web/portals/student/tokens.ts",
+    "primitives":        "frontend/src/views/web/portals/student/glass.tsx",
+    "shell":             "frontend/src/views/web/portals/student/StudentPortalRN.tsx",
+    "topbar":            "frontend/src/views/web/portals/student/TopBar.tsx",
+    "sidebar":           "frontend/src/views/web/portals/student/Sidebar.tsx",
+    "google_fonts_load": "frontend/app/_layout.tsx",
+    "markdown_guide":    "docs/STYLE_GUIDE.md"
   },
-  "testing": {
-    "attributes": "All interactive elements MUST use `testID` attribute in React Native (e.g., `testID=\"login-button\"`)."
-  },
-  "instructions_to_main_agent": [
-    "Use Tailwind CSS via NativeWind for styling, or strict React Native StyleSheet mapping to these exact values.",
-    "Always wrap screens in SafeAreaView from react-native-safe-area-context.",
-    "Implement the custom Neo-Brutalist shadow carefully in React Native using standard shadow props on iOS and elevation on Android, or ideally, a wrapper View with an absolute positioned background View offset by 4px for a true hard shadow.",
-    "Do NOT use transparent navigation headers. Ensure headers have a solid background color matching the theme.",
-    "For the AI Chatbot interface, use the primary Accent Mint or Blue for user bubbles, and Surface color for AI bubbles, both with the 2px black border.",
-    "Never use generic placeholder images like via.placeholder.com. Use the Unsplash/Pexels URLs provided in this file.",
-    "Use react-native-reanimated for the button press scale down effects.",
-    "Ensure input fields have a focus state by changing the border color to Accent Blue or Yellow when focused."
-  ]
+  "version": "0.19.1",
+  "last_updated": "2026-06-15"
 }

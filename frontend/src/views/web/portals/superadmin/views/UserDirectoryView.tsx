@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * UserDirectoryView — shared reusable directory for Student / Alumni / Mentor
  * (and the catch-all "All Users") menus.

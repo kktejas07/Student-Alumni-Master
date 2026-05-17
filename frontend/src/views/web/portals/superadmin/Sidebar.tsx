@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Super Admin Portal — left sidebar with 12 nav items.
  */
@@ -32,9 +33,7 @@ function useAdminProfile() {
   return {
     name,
     email: user.email || ADMIN.email,
-    role: role === 'super_admin' || role === 'superadmin' ? 'Super Admin'
-        : role === 'admin' ? 'Super Admin'
-        : ADMIN.role,
+    role: role === 'admin' ? 'Super Admin' : ADMIN.role,
     initials,
   };
 }

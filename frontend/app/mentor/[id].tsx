@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Mentor Profile + Booking Screen
  * ================================

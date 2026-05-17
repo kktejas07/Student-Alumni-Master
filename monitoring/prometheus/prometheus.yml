@@ -1,0 +1,52 @@
+# ═══════════════════════════════════════════════════════════════════════
+# Prometheus Configuration
+# ═══════════════════════════════════════════════════════════════════════
+# Scrapes metrics from backend, frontend, node, and Docker containers.
+# ═══════════════════════════════════════════════════════════════════════
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+rule_files: []
+
+scrape_configs:
+  # ─── Prometheus itself ──────────────────────────────────────
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # ─── Backend FastAPI metrics ────────────────────────────────
+  - job_name: "student-alumni-backend"
+    metrics_path: "/api/metrics"
+    static_configs:
+      - targets: ["backend:8000"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "backend"
+
+  # ─── Node exporter (VPS system metrics) ─────────────────────
+  - job_name: "node"
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  # ─── cAdvisor (Docker container metrics) ────────────────────
+  - job_name: "cadvisor"
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
+  # ─── Frontend nginx metrics ────────────────────────────────
+  - job_name: "student-alumni-frontend"
+    metrics_path: "/healthz"
+    static_configs:
+      - targets: ["frontend:80"]
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["frontend:80"]

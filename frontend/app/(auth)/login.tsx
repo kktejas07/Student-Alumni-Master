@@ -1,17 +1,5 @@
 /**
- * New Auth Login screen using AuthShell + AuthControls + analytics tracking.
- *
- * Flow:
- *   1. User enters email → on blur we fire `email_check` analytics event.
- *   2. Password field is shown; password_strength tracked client-side
- *      (and server-side via track event without storing the password).
- *   3. Submit hits existing /api/auth/login (unchanged) → 2FA handled like before.
- *
- * Existing test credentials (preserved):
- *   student01@test.com / TestPass@123
- *   mentor01@test.com  / TestPass@123
- *   college01@test.com / TestPass@123
- *   admin@careerpath.app / Admin@12345
+ * Auth Login screen using AuthShell + AuthControls + analytics tracking.
  */
 import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, Alert, Platform } from 'react-native';
@@ -61,6 +49,40 @@ export default function LoginScreen() {
   const [emailError, setEmailError] = useState('');
   const [pwdError, setPwdError] = useState('');
   const [exists, setExists] = useState<boolean | null>(null);
+  const [oauthModal, setOauthModal] = useState<{ provider: 'google' | 'linkedin'; name: string; email: string } | null>(null);
+  const [oauthCfg, setOauthCfg] = useState<{ google_client_id: string; linkedin_client_id: string; redirect_uri: string; configured: boolean } | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${BASE}/api/auth/oauth-config`);
+        if (res.ok) setOauthCfg(await res.json());
+      } catch {}
+    })();
+  }, []);
+
+  // Listen for OAuth popup callback (web only)
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'OAUTH_SUCCESS') {
+        const { access_token, refresh_token, user } = event.data.payload;
+        if (access_token && user) {
+          setUser(user);
+          setTokens(access_token, refresh_token);
+          trackAuth({ event: 'login_success', email: user.email, role: user.role });
+          const r = (user.role || '').toLowerCase();
+          if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
+          else if (r === 'mentor') router.replace('/mentor-portal');
+          else if (r === 'college') router.replace('/college-portal');
+          else if (r === 'alumni') router.replace('/alumni-portal');
+          else router.replace('/student-portal');
+        }
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
   const setUser = useAuthStore((s) => s.setUser);
   const setTokens = useAuthStore((s) => s.setTokens);
@@ -129,7 +151,7 @@ export default function LoginScreen() {
       trackAuth({ event: 'login_success', email, role: data.user.role });
       // Navigate based on role
       const r = (data.user.role || '').toLowerCase();
-      if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
+      if (r === 'admin') router.replace('/super-admin');
       else if (r === 'mentor') router.replace('/mentor-portal');
       else if (r === 'college') router.replace('/college-portal');
       else if (r === 'alumni') router.replace('/alumni-portal');
@@ -142,15 +164,51 @@ export default function LoginScreen() {
     }
   };
 
-  const onOAuth = (provider: 'google' | 'linkedin') => {
+  const onOAuth = async () => {
+    if (!oauthModal) return;
+    const { provider, name, email: oauthEmail } = oauthModal;
+    if (!oauthEmail || !name) return;
+    setLoading(true);
     trackAuth({ event: 'oauth_attempt', extra: { provider } });
-    // Defer to existing OAuth handler in the legacy login screen
-    Alert.alert('OAuth', `${provider === 'google' ? 'Google' : 'LinkedIn'} sign-in available in mobile build`);
+    try {
+      const res = await fetch(`${BASE}/api/auth/${provider}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: oauthEmail, full_name: name, role }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setPwdError(err?.detail || `${provider} sign-in failed`);
+        return;
+      }
+      const data = await res.json();
+      setUser(data.user);
+      setTokens(data.access_token, data.refresh_token);
+      trackAuth({ event: 'login_success', email: oauthEmail, role: data.user.role });
+      const r = (data.user.role || '').toLowerCase();
+      if (r === 'admin') router.replace('/super-admin');
+      else if (r === 'mentor') router.replace('/mentor-portal');
+      else if (r === 'college') router.replace('/college-portal');
+      else if (r === 'alumni') router.replace('/alumni-portal');
+      else router.replace('/student-portal');
+    } catch (e: any) {
+      trackAuth({ event: 'login_failure', email: oauthEmail, reason: e?.message || 'Network error' });
+      setPwdError('Network error — try again');
+    } finally {
+      setLoading(false);
+      setOauthModal(null);
+    }
   };
 
   return (
     <AuthShell role={role}>
-      <Pressable onPress={() => router.back()} style={s.back}>
+      <Pressable onPress={() => {
+        if (Platform.OS === 'web' && window.history.length > 1) {
+          router.back();
+        } else {
+          router.replace('/');
+        }
+      }} style={s.back}>
         <ArrowLeft size={16} color={AC.muted} />
         <Text style={s.backText}>Back</Text>
       </Pressable>
@@ -169,10 +227,26 @@ export default function LoginScreen() {
       {/* OAuth row */}
       <View style={s.oauthRow}>
         <View style={{ flex: 1 }}>
-          <OutlineButton label="Google" icon={<GoogleG size={16} />} onPress={() => onOAuth('google')} />
+          <OutlineButton label="Google" icon={<GoogleG size={16} />} onPress={() => {
+            if (oauthCfg?.google_client_id && Platform.OS === 'web') {
+              const state = `google_${Math.random().toString(36).slice(2)}`;
+              const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${oauthCfg.google_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&response_type=id_token&scope=openid%20email%20profile&state=${state}&nonce=${Math.random().toString(36)}`;
+              window.open(url, '_blank', 'width=600,height=700');
+            } else {
+              setOauthModal({ provider: 'google', name: '', email: '' });
+            }
+          }} />
         </View>
         <View style={{ flex: 1 }}>
-          <OutlineButton label="LinkedIn" icon={<LinkedInIn size={16} />} onPress={() => onOAuth('linkedin')} />
+          <OutlineButton label="LinkedIn" icon={<LinkedInIn size={16} />} onPress={() => {
+            if (oauthCfg?.linkedin_client_id && Platform.OS === 'web') {
+              const state = `linkedin_${Math.random().toString(36).slice(2)}`;
+              const url = `https://www.linkedin.com/oauth/v2/authorization?client_id=${oauthCfg.linkedin_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&response_type=code&scope=openid%20email%20profile&state=${state}`;
+              window.open(url, '_blank', 'width=600,height=700');
+            } else {
+              setOauthModal({ provider: 'linkedin', name: '', email: '' });
+            }
+          }} />
         </View>
       </View>
 
@@ -221,40 +295,46 @@ export default function LoginScreen() {
 
       <PrimaryButton label="Sign in" onPress={onLogin} loading={loading} />
 
-      {/* Quick-Login Persona Chips — for fast E2E testing */}
-      <View style={s.quickLoginBox}>
-        <Text style={s.quickLoginLabel}>QUICK LOGIN AS PERSONA</Text>
-        <View style={s.quickLoginRow}>
-          {[
-            { e: 'booked1@persona.demo',          l: '🎓 Student',  c: '#A78BFA' },
-            { e: 'mentor-active1@persona.demo',   l: '👨‍🏫 Mentor',   c: '#5EEAD4' },
-            { e: 'college-high1@persona.demo',    l: '🏫 College',  c: '#FCD34D' },
-            { e: 'admin-super1@persona.demo',     l: '🛡 Admin',    c: '#F472B6' },
-          ].map((p) => (
-            <Pressable
-              key={p.e}
-              onPress={() => {
-                setEmail(p.e);
-                setPassword('TestPass@123');
-                onLogin(p.e, 'TestPass@123');
-              }}
-              style={({ hovered }: any) => [
-                s.quickChip,
-                { borderColor: p.c + '60' },
-                hovered && { backgroundColor: p.c + '15' },
-              ]}
-            >
-              <Text style={[s.quickChipText, { color: p.c }]}>{p.l}</Text>
-            </Pressable>
-          ))}
-        </View>
-        <Text style={s.quickLoginHint}>Password auto-filled · TestPass@123</Text>
-      </View>
-
       <Text style={s.signup}>
         New to Student Alumni?{' '}
         <Text style={s.signupLink} onPress={() => router.push('/get-started')}>Get started</Text>
       </Text>
+
+      {/* OAuth Modal */}
+      {oauthModal && (
+        <View style={s.overlay}>
+          <View style={s.modal}>
+            <Text style={s.modalTitle}>Continue with {oauthModal.provider === 'google' ? 'Google' : 'LinkedIn'}</Text>
+            <Text style={s.modalSub}>Enter your details to continue</Text>
+            {!oauthCfg?.configured && (
+              <View style={{ marginBottom: 12, padding: 10, borderRadius: 8, backgroundColor: 'rgba(251,191,36,0.12)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.25)' }}>
+                <Text style={{ color: '#fbbf24', fontFamily: FONTS.med, fontSize: 11, textAlign: 'center' }}>
+                  OAuth not configured — enter details directly (development mode)
+                </Text>
+              </View>
+            )}
+            <AuthInput
+              label="Full Name"
+              value={oauthModal.name}
+              onChangeText={(t) => setOauthModal({ ...oauthModal, name: t })}
+              placeholder="John Doe"
+            />
+            <View style={{ height: 12 }} />
+            <AuthInput
+              label="Email"
+              value={oauthModal.email}
+              onChangeText={(t) => setOauthModal({ ...oauthModal, email: t })}
+              placeholder="you@example.com"
+              keyboardType="email-address"
+            />
+            <View style={{ height: 16 }} />
+            <PrimaryButton label="Continue" onPress={onOAuth} loading={loading} />
+            <Pressable onPress={() => setOauthModal(null)} style={{ marginTop: 12, alignItems: 'center' }}>
+              <Text style={{ color: AC.muted, fontFamily: FONTS.med, fontSize: 13 }}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
     </AuthShell>
   );
 }
@@ -281,17 +361,15 @@ const s = StyleSheet.create({
   signup: { textAlign: 'center', color: AC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 18 },
   signupLink: { color: AC.primaryL, fontFamily: FONTS.bold, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
 
-  quickLoginBox: {
-    marginTop: 18, paddingTop: 14,
-    borderTopWidth: 1, borderTopColor: AC.border,
+  overlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center',
+    zIndex: 100,
   },
-  quickLoginLabel: { color: AC.dim, fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1.2, textAlign: 'center', marginBottom: 8 },
-  quickLoginRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
-  quickChip: {
-    paddingHorizontal: 11, paddingVertical: 6, borderRadius: 8,
-    borderWidth: 1, backgroundColor: 'transparent',
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
+  modal: {
+    width: '90%', maxWidth: 400, backgroundColor: '#1a1a2e', borderRadius: 16,
+    padding: 24, borderWidth: 1, borderColor: 'rgba(124,58,237,0.3)',
   },
-  quickChipText: { fontFamily: FONTS.bold, fontSize: 11.5 },
-  quickLoginHint: { color: AC.dim, fontFamily: FONTS.med, fontSize: 10.5, textAlign: 'center', marginTop: 8, fontStyle: 'italic' },
+  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 18, marginBottom: 4 },
+  modalSub: { color: AC.muted, fontFamily: FONTS.med, fontSize: 13, marginBottom: 20 },
 });

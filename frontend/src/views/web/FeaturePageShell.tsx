@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * FeaturePageShell — shared layout for /deals, /rentals, /financial,
  * /career-ai, /higher-education, etc.

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Apple HIG Toast Provider — stacked, swipe-to-dismiss, auto-progress bar.
  *

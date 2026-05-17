@@ -51,7 +51,7 @@ COMMON_PWD = "TestPass@123"
 TEST_USERS: List[Dict[str, Any]] = [
     # ===== ADMINS =====
     {"email": "admin@careerpath.app", "password": "Admin@12345", "full_name": "Platform Admin",
-     "role": "admin", "_unique_prefix": "ADM"},
+     "role": "admin", "is_super_admin": True, "_unique_prefix": "ADM"},
     {"email": "admin2@careerpath.app", "password": COMMON_PWD, "full_name": "Senior Admin",
      "role": "admin", "_unique_prefix": "ADM"},
 
@@ -574,6 +574,7 @@ async def upsert_user(email: str, password: str, full_name: str, role: str,
         "password_hash": hash_password(password),
         "full_name": full_name,
         "role": role,
+        "is_super_admin": extra.get("is_super_admin", False),
         "phone": extra.get("phone"),
         "unique_id": generate_unique_id(role),
         "qr_code_base64": generate_qr_code(f"SA-USER:{email}|{role}"),
@@ -615,6 +616,7 @@ async def seed_admins_and_universities():
             unique_prefix=u["_unique_prefix"],
             phone=u.get("phone"),
             school_info=u.get("school_info"),
+            is_super_admin=u.get("is_super_admin", False),
         )
 
 

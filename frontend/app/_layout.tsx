@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import { usePathname } from 'expo-router';
 import {
   useFonts,
   DMSans_400Regular,
@@ -15,17 +16,11 @@ import {
   Outfit_800ExtraBold,
 } from '@expo-google-fonts/outfit';
 import {
-  PlusJakartaSans_400Regular,
-  PlusJakartaSans_500Medium,
-  PlusJakartaSans_600SemiBold,
-  PlusJakartaSans_700Bold,
-} from '@expo-google-fonts/plus-jakarta-sans';
-import {
-  JetBrainsMono_400Regular,
-  JetBrainsMono_500Medium,
-  JetBrainsMono_600SemiBold,
-  JetBrainsMono_700Bold,
-} from '@expo-google-fonts/jetbrains-mono';
+  Manrope_400Regular,
+  Manrope_500Medium,
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+} from '@expo-google-fonts/manrope';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -82,14 +77,14 @@ export default function RootLayout() {
     Outfit_600SemiBold,
     Outfit_700Bold,
     Outfit_800ExtraBold,
-    PlusJakartaSans_400Regular,
-    PlusJakartaSans_500Medium,
-    PlusJakartaSans_600SemiBold,
-    PlusJakartaSans_700Bold,
-    JetBrainsMono_400Regular,
-    JetBrainsMono_500Medium,
-    JetBrainsMono_600SemiBold,
-    JetBrainsMono_700Bold,
+    PlusJakartaSans_400Regular: Manrope_400Regular,
+    PlusJakartaSans_500Medium: Manrope_500Medium,
+    PlusJakartaSans_600SemiBold: Manrope_600SemiBold,
+    PlusJakartaSans_700Bold: Manrope_700Bold,
+    JetBrainsMono_400Regular: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    JetBrainsMono_500Medium: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    JetBrainsMono_600SemiBold: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    JetBrainsMono_700Bold: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
   const init = useAuthStore((s) => s.init);

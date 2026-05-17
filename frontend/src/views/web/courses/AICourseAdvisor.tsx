@@ -61,8 +61,13 @@ export default function AICourseAdvisor({
     try {
       const r = await request<{ reply: string; courses: Course[]; cmd: string }>(
         '/courses/ai/advisor',
-        { method: 'POST', body: JSON.stringify({ message: text,
-            profile: { weekly_hours: 10, interest: 'AI/ML' } }) });
+        {
+          method: 'POST',
+          body: {
+            message: text,
+            profile: { weekly_hours: 10, interest: 'AI/ML' },
+          },
+        });
       setMessages((prev) => [...prev, {
         role: 'assistant', text: r.reply, cmd: r.cmd, courses: r.courses,
       }]);

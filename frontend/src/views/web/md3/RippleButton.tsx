@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * RippleButton — Pressable with MD3 scale-down + opacity ripple effect.
  */

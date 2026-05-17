@@ -1,0 +1,120 @@
+# ═══════════════════════════════════════════════════════════════════════
+# Release — Semantic versioning + changelog + GitHub Release
+# ═══════════════════════════════════════════════════════════════════════
+# Uses CHANGELOG.md to determine version, auto-generates release notes.
+# Can also be triggered manually with backfill option.
+# ═══════════════════════════════════════════════════════════════════════
+
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "CHANGELOG.md"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semantic version (e.g., 1.2.3) — leave empty to auto-detect"
+        required: false
+        type: string
+      backfill:
+        description: "Create releases for ALL missing versions"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Make extractor executable
+        run: chmod +x scripts/extract-changelog.sh 2>/dev/null || true
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ -n "${{ inputs.version }}" ]]; then
+            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ inputs.backfill }}" == "true" ]]; then
+            echo "backfill=true" >> "$GITHUB_OUTPUT"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          else
+            VERSION=$(scripts/extract-changelog.sh --version 2>/dev/null || echo "")
+            if [[ -z "$VERSION" ]]; then
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+              echo "skip=false" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      - name: Configure git
+        if: steps.version.outputs.skip != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Create tag and release
+        if: steps.version.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ steps.version.outputs.backfill }}" == "true" ]]; then
+            # Backfill mode: release all missing versions
+            VERSIONS=$(scripts/extract-changelog.sh --list-versions 2>/dev/null || echo "")
+          else
+            VERSIONS="${{ steps.version.outputs.version }}"
+          fi
+
+          for VERSION in $VERSIONS; do
+            [[ -z "$VERSION" ]] && continue
+            TAG="v$VERSION"
+
+            if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
+              echo "⏭  Tag $TAG exists — skipping"
+              continue
+            fi
+
+            echo "🏷  Creating tag $TAG"
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin "$TAG"
+
+            BODY_FILE=$(mktemp)
+            scripts/extract-changelog.sh --body-for "$VERSION" > "$BODY_FILE" 2>/dev/null || echo "" > "$BODY_FILE"
+
+            PRERELEASE=""
+            [[ "$VERSION" == *-* || "$VERSION" == 0.* ]] && PRERELEASE="--prerelease"
+
+            echo "📦 Publishing release $TAG"
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              gh release edit "$TAG" --notes-file "$BODY_FILE" --title "$TAG"
+            else
+              gh release create "$TAG" --title "$TAG" --notes-file "$BODY_FILE" $PRERELEASE
+            fi
+          done
+
+      - name: Summary
+        run: |
+          {
+            echo "## Release Summary"
+            echo ""
+            if [[ "${{ steps.version.outputs.skip }}" == "true" ]]; then
+              echo "ℹ️  No new version detected."
+            else
+              echo "✅ Release created for v${{ steps.version.outputs.version }}"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

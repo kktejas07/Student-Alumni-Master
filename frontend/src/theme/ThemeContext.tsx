@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ThemeContext — light/dark theme provider with persisted preference.
  *

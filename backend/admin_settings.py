@@ -24,6 +24,8 @@ from pathlib import Path
 from pydantic import BaseModel
 import jwt as _jwt
 
+from core.roles import Role, Perm, SYSTEM_ROLES, seed_admin_roles
+
 load_dotenv(Path(__file__).parent / ".env")
 
 _mongo = AsyncIOMotorClient(os.environ["MONGO_URL"])
@@ -56,46 +58,51 @@ async def _require_admin(authorization: Optional[str]) -> dict:
     user = await _resolve_user(authorization)
     if not user:
         raise HTTPException(401, "Not authenticated")
-    if user.get("role") not in {"superadmin", "super_admin", "admin"}:
-        raise HTTPException(403, "Super-admin only")
+    if (user.get("role") or "").lower().strip() != Role.ADMIN:
+        raise HTTPException(403, "Admin access required")
     return user
 
 
 # ─── Permission catalog (read-only) ───────────────────────────────
 PERMISSIONS_CATALOG = [
-    {"id": "users.view",       "group": "Users",       "label": "View users"},
-    {"id": "users.edit",       "group": "Users",       "label": "Edit users"},
-    {"id": "users.delete",     "group": "Users",       "label": "Delete users"},
-    {"id": "users.export",     "group": "Users",       "label": "Export users to CSV"},
-    {"id": "colleges.view",    "group": "Colleges",    "label": "View colleges"},
-    {"id": "colleges.manage",  "group": "Colleges",    "label": "Add / edit colleges"},
-    {"id": "mentors.approve",  "group": "Mentors",     "label": "Approve mentor signups"},
-    {"id": "events.create",    "group": "Events",      "label": "Create events"},
-    {"id": "events.delete",    "group": "Events",      "label": "Delete events"},
-    {"id": "payments.view",    "group": "Payments",    "label": "View payments + transactions"},
-    {"id": "payments.refund",  "group": "Payments",    "label": "Issue refunds"},
-    {"id": "analytics.view",   "group": "Analytics",   "label": "View analytics dashboards"},
-    {"id": "settings.manage",  "group": "Settings",    "label": "Edit platform settings"},
-    {"id": "roles.manage",     "group": "Settings",    "label": "Create / edit roles"},
-    {"id": "marketplace.install", "group": "Settings", "label": "Install marketplace tools"},
-    {"id": "ai.run",           "group": "AI",          "label": "Run Agent K + AI tools"},
+    {"id": Perm.USERS_VIEW,       "group": "Users",       "label": "View users"},
+    {"id": Perm.USERS_EDIT,       "group": "Users",       "label": "Edit users"},
+    {"id": Perm.USERS_DELETE,     "group": "Users",       "label": "Delete users"},
+    {"id": Perm.USERS_EXPORT,     "group": "Users",       "label": "Export users to CSV"},
+    {"id": Perm.COLLEGES_VIEW,    "group": "Colleges",    "label": "View colleges"},
+    {"id": Perm.COLLEGES_MANAGE,  "group": "Colleges",    "label": "Add / edit colleges"},
+    {"id": Perm.MENTORS_APPROVE,  "group": "Mentors",     "label": "Approve mentor signups"},
+    {"id": Perm.EVENTS_CREATE,    "group": "Events",      "label": "Create events"},
+    {"id": Perm.EVENTS_DELETE,    "group": "Events",      "label": "Delete events"},
+    {"id": Perm.PAYMENTS_VIEW,    "group": "Payments",    "label": "View payments + transactions"},
+    {"id": Perm.PAYMENTS_REFUND,  "group": "Payments",    "label": "Issue refunds"},
+    {"id": Perm.ANALYTICS_VIEW,   "group": "Analytics",   "label": "View analytics dashboards"},
+    {"id": Perm.SETTINGS_MANAGE,  "group": "Settings",    "label": "Edit platform settings"},
+    {"id": Perm.ROLES_MANAGE,     "group": "Settings",    "label": "Create / edit roles"},
+    {"id": Perm.MARKETPLACE_INSTALL, "group": "Settings", "label": "Install marketplace tools"},
+    {"id": Perm.AI_RUN,           "group": "AI",          "label": "Run Agent K + AI tools"},
 ]
 
-
-# Built-in (system) roles seeded on first read
-SYSTEM_ROLES = [
-    {"key": "super_admin", "name": "Super Admin",   "description": "Full platform access. Cannot be edited.", "is_system": True, "permissions": [p["id"] for p in PERMISSIONS_CATALOG]},
-    {"key": "college_admin","name": "College Admin", "description": "Manages students and events for one college.", "is_system": True, "permissions": ["users.view","users.edit","colleges.view","events.create","events.delete","analytics.view"]},
-    {"key": "mentor",      "name": "Mentor",        "description": "Provides mentorship + workshops.",       "is_system": True, "permissions": ["users.view","events.create","analytics.view"]},
-    {"key": "support",     "name": "Support Agent", "description": "Read-only with limited mutate rights.",  "is_system": True, "permissions": ["users.view","payments.view","analytics.view"]},
-]
+# Note: SYSTEM_ROLES are now imported from core.roles (above).
+# The _ensure_system_roles function is replaced by seed_admin_roles() from core.roles.
 
 
 async def _ensure_system_roles():
+    """Seed system roles into admin_roles collection.
+    Uses the shared SYSTEM_ROLES from core.roles."""
+    from datetime import timezone
     for r in SYSTEM_ROLES:
         await _db.admin_roles.update_one(
             {"key": r["key"]},
-            {"$setOnInsert": {**r, "created_at": datetime.now(timezone.utc), "user_count": 0}},
+            {"$setOnInsert": {
+                "key": r["key"],
+                "name": r["name"],
+                "description": r["description"],
+                "permissions": r["permissions"],
+                "is_system": r["is_system"],
+                "created_at": datetime.now(timezone.utc),
+                "user_count": 0,
+            }},
             upsert=True,
         )
 
@@ -588,23 +595,29 @@ async def get_admin_profile(authorization: Optional[str] = Header(None)):
     # admin_id is generated once per user
     admin_id = user.get("admin_id")
     if not admin_id:
-        seq = await _db.users.count_documents({"role": {"$in": ["superadmin", "super_admin", "admin"]}})
+        seq = await _db.users.count_documents({"role": {"$in": ["admin"]}})
         admin_id = f"SA-2024-{seq:06d}"
         await _db.users.update_one({"_id": user["_id"]}, {"$set": {"admin_id": admin_id}})
     return {
         "id": uid,
-        "name": user.get("full_name") or user.get("name") or "Super Admin",
+        "name": user.get("full_name") or user.get("name") or "Administrator",
         "email": user.get("email"),
         "phone": user.get("phone") or "",
         "title": user.get("title") or "Platform Administrator",
-        "org": user.get("org") or "Student Alumni Pvt. Ltd.",
+        "org": user.get("org") or "Student Alumni",
         "signature": user.get("signature") or (
-            f"{user.get('full_name') or user.get('name') or 'Super Admin'}\n"
-            f"{user.get('title') or 'Platform Administrator'} · {user.get('org') or 'Student Alumni Pvt. Ltd.'}\n"
+            f"{user.get('full_name') or user.get('name') or 'Administrator'}\n"
+            f"{user.get('title') or 'Platform Administrator'} · {user.get('org') or 'Student Alumni'}\n"
             f"{user.get('email')}"
         ),
-        "role_label": "Super Admin",
-        "access_label": "Full Access",
+        "role_label": "Super Admin" if user.get("is_super_admin") else ({
+            "admin": "Admin",
+            "student": "Student",
+            "alumni": "Alumni",
+            "mentor": "Mentor",
+            "college": "College",
+        }.get((user.get("role") or "").lower().strip()) or " ".join(w.capitalize() for w in (user.get("role") or "admin").replace("_", " ").split())),
+        "access_label": user.get("access_label") or "Full Access",
         "admin_id": admin_id,
         "platform_status": "Operational",
         "last_login": (user.get("last_login_at").isoformat() if user.get("last_login_at") else None),
@@ -653,8 +666,7 @@ async def get_role_detail(role_id: str, authorization: Optional[str] = Header(No
         role = await _db.admin_roles.find_one({"key": role_id})
     if not role:
         # synthesise stub for system roles defined only in code
-        from admin_settings import DEFAULT_SYSTEM_ROLES  # type: ignore[attr-defined]
-        for sr in DEFAULT_SYSTEM_ROLES if 'DEFAULT_SYSTEM_ROLES' in dir() else []:
+        for sr in SYSTEM_ROLES:
             if sr.get("key") == role_id:
                 role = sr
                 break
@@ -756,6 +768,10 @@ SYSTEM_SETTING_OPTIONS = {
         {"value": "AUD ($)",   "label": "Australian Dollar — AUD ($)"},
         {"value": "CAD ($)",   "label": "Canadian Dollar — CAD ($)"},
     ],
+    "google_oauth_client_id": [],
+    "google_oauth_client_secret": [],
+    "linkedin_oauth_client_id": [],
+    "linkedin_oauth_client_secret": [],
 }
 
 
@@ -778,6 +794,10 @@ DEFAULT_PLATFORM_CONTROLS = {
         {"key": "default_locale",  "label": "Default Locale",    "value": "en-IN"},
         {"key": "default_tz",      "label": "Default Timezone",  "value": "Asia/Kolkata"},
         {"key": "default_currency","label": "Default Currency",  "value": "INR (₹)"},
+        {"key": "google_oauth_client_id","label": "Google OAuth Client ID","value": "", "type": "text", "help": "From Google Cloud Console → APIs & Services → Credentials"},
+        {"key": "google_oauth_client_secret","label": "Google OAuth Client Secret","value": "", "type": "password"},
+        {"key": "linkedin_oauth_client_id","label": "LinkedIn OAuth Client ID","value": "", "type": "text", "help": "From LinkedIn Developer Portal → Apps → Auth"},
+        {"key": "linkedin_oauth_client_secret","label": "LinkedIn OAuth Client Secret","value": "", "type": "password"},
     ],
 }
 
@@ -789,10 +809,26 @@ async def get_platform_controls(authorization: Optional[str] = Header(None)):
     if not doc:
         await _db.platform_controls.insert_one({"_id": "singleton", **DEFAULT_PLATFORM_CONTROLS, "updated_at": datetime.now(timezone.utc)})
         return DEFAULT_PLATFORM_CONTROLS
+    db_flags = doc.get("feature_flags") or []
+    db_settings = doc.get("system_settings") or []
+    defaults_flags = DEFAULT_PLATFORM_CONTROLS["feature_flags"]
+    defaults_settings = DEFAULT_PLATFORM_CONTROLS["system_settings"]
+    merged_flags = _merge_settings_with_defaults(db_flags, defaults_flags)
+    merged_settings = _merge_settings_with_defaults(db_settings, defaults_settings)
     return {
-        "feature_flags":   doc.get("feature_flags", DEFAULT_PLATFORM_CONTROLS["feature_flags"]),
-        "system_settings": doc.get("system_settings", DEFAULT_PLATFORM_CONTROLS["system_settings"]),
+        "feature_flags":   merged_flags,
+        "system_settings": merged_settings,
     }
+
+
+def _merge_settings_with_defaults(db_list, default_list):
+    """Merge DB settings with defaults, adding any new fields from defaults."""
+    db_keys = {item["key"] for item in db_list}
+    result = list(db_list)
+    for item in default_list:
+        if item["key"] not in db_keys:
+            result.append(item)
+    return result
 
 
 class PlatformControlsPatch(BaseModel):
@@ -808,10 +844,18 @@ async def patch_platform_controls(body: PlatformControlsPatch, authorization: Op
     if not doc:
         doc = {"_id": "singleton", **DEFAULT_PLATFORM_CONTROLS}
     arr = doc.get(body.section) or []
+    defaults = DEFAULT_PLATFORM_CONTROLS.get(body.section) or []
+    found = False
     for it in arr:
         if it.get("key") == body.key:
             it["value"] = body.value
+            found = True
             break
+    if not found:
+        for def_it in defaults:
+            if def_it["key"] == body.key:
+                arr.append({**def_it, "value": body.value})
+                break
     await _db.platform_controls.update_one(
         {"_id": "singleton"},
         {"$set": {body.section: arr, "updated_at": datetime.now(timezone.utc)}},
@@ -828,9 +872,15 @@ async def get_platform_controls_full(authorization: Optional[str] = Header(None)
     if not doc:
         await _db.platform_controls.insert_one({"_id": "singleton", **DEFAULT_PLATFORM_CONTROLS, "updated_at": datetime.now(timezone.utc)})
         doc = DEFAULT_PLATFORM_CONTROLS
+    db_flags = doc.get("feature_flags") or []
+    db_settings = doc.get("system_settings") or []
+    defaults_flags = DEFAULT_PLATFORM_CONTROLS["feature_flags"]
+    defaults_settings = DEFAULT_PLATFORM_CONTROLS["system_settings"]
+    merged_flags = _merge_settings_with_defaults(db_flags, defaults_flags)
+    merged_settings = _merge_settings_with_defaults(db_settings, defaults_settings)
     result = {
-        "feature_flags":   doc.get("feature_flags", DEFAULT_PLATFORM_CONTROLS["feature_flags"]),
-        "system_settings": doc.get("system_settings", DEFAULT_PLATFORM_CONTROLS["system_settings"]),
+        "feature_flags":   merged_flags,
+        "system_settings": merged_settings,
         "system_settings_options": SYSTEM_SETTING_OPTIONS,
     }
     return result
@@ -843,16 +893,24 @@ class SystemSettingPatch(BaseModel):
 
 @router.patch("/admin/platform-controls/system-settings")
 async def patch_system_setting(body: SystemSettingPatch, authorization: Optional[str] = Header(None)):
-    """Update a single system setting value."""
+    """Update a single system setting value. Adds new fields if they don't exist yet."""
     await _require_admin(authorization)
     doc = await _db.platform_controls.find_one({"_id": "singleton"})
     if not doc:
         doc = {"_id": "singleton", **DEFAULT_PLATFORM_CONTROLS}
     settings = doc.get("system_settings") or []
+    found = False
     for it in settings:
         if it.get("key") == body.key:
             it["value"] = body.value
+            found = True
             break
+    if not found:
+        defaults = DEFAULT_PLATFORM_CONTROLS["system_settings"]
+        for def_it in defaults:
+            if def_it["key"] == body.key:
+                settings.append({**def_it, "value": body.value})
+                break
     await _db.platform_controls.update_one(
         {"_id": "singleton"},
         {"$set": {"system_settings": settings, "updated_at": datetime.now(timezone.utc)}},
@@ -1121,13 +1179,16 @@ def _parse_ua(ua: str) -> dict:
 
 
 @router.get("/admin/security/sessions")
-async def get_sessions(authorization: Optional[str] = Header(None)):
+async def get_sessions(authorization: Optional[str] = Header(None), all: bool = False):
+    """Return admin sessions. By default returns last 5; ?all=true returns all."""
     user = await _require_admin(authorization)
     uid = str(user["_id"])
+    total = await _db.admin_sessions.count_documents({"user_id": uid})
     sessions = []
     try:
-        cur = _db.admin_sessions.find({"user_id": uid}).sort("last_active", -1).limit(20)
-        sessions_raw = await cur.to_list(20)
+        limit = 999 if all else 5
+        cur = _db.admin_sessions.find({"user_id": uid}).sort("last_active", -1).limit(limit)
+        sessions_raw = await cur.to_list(limit)
         for s in sessions_raw:
             dt = s.get("last_active")
             sessions.append({
@@ -1155,7 +1216,7 @@ async def get_sessions(authorization: Optional[str] = Header(None)):
             {"id": "sess_demo_2", "device": "iPhone 15", "browser": "Safari", "os": "iOS", "location": "Mumbai, India", "city": "Mumbai", "region": "Maharashtra", "country": "India", "lat": 19.07, "lon": 72.87, "isp": "Jio", "ip": "103.xxx.xx.xx", "last_active": "2h ago", "current": False},
             {"id": "sess_demo_3", "device": "Windows PC", "browser": "Chrome", "os": "Windows", "location": "Delhi, India", "city": "Delhi", "region": "Delhi", "country": "India", "lat": 28.70, "lon": 77.10, "isp": "BSNL", "ip": "117.xxx.xx.xx", "last_active": "3d ago", "current": False},
         ]
-    return {"sessions": sessions}
+    return {"sessions": sessions, "total": total}
 
 
 @router.post("/admin/security/sessions/record")
@@ -1179,6 +1240,14 @@ async def record_session(request: Request, authorization: Optional[str] = Header
             "created_at": datetime.now(timezone.utc),
         }
         await _db.admin_sessions.insert_one(doc)
+        # Auto-revoke: keep only the 5 most recent sessions
+        old_sessions = _db.admin_sessions.find({"user_id": uid}).sort("last_active", -1).skip(5)
+        async for old in old_sessions:
+            await _db.admin_sessions.delete_one({"_id": old["_id"]})
+            await _db.admin_audit_log.insert_one({
+                "user_id": uid, "action": "session.auto_revoked",
+                "target": str(old["_id"]), "created_at": datetime.now(timezone.utc),
+            })
     except Exception:
         pass
     return {"ok": True}
@@ -1392,22 +1461,51 @@ async def get_digital_id(authorization: Optional[str] = Header(None)):
     user = await _require_admin(authorization)
     admin_id = user.get("admin_id")
     if not admin_id:
-        seq = await _db.users.count_documents({"role": {"$in": ["superadmin", "super_admin", "admin"]}})
+        seq = await _db.users.count_documents({"role": {"$in": ["admin"]}})
         admin_id = f"SA-2024-{seq:06d}"
         await _db.users.update_one({"_id": user["_id"]}, {"$set": {"admin_id": admin_id}})
-    qr_data = f"SA-ID:{admin_id}|{user.get('email', '')}|admin"
+    from datetime import datetime, timedelta
+    now = datetime.utcnow()
+    issue_date = user.get("sa_id_issued_at") or now.isoformat()
+    if isinstance(issue_date, datetime):
+        issue_date = issue_date.isoformat()
+    expiry_date = (now + timedelta(days=365)).isoformat()
+    raw_role = (user.get("role") or "").lower().strip()
+    is_super = user.get("is_super_admin", False)
+    ROLE_LABELS = {
+        "admin": "Super Admin" if is_super else "Admin",
+        "student": "Student",
+        "alumni": "Alumni",
+        "mentor": "Mentor",
+        "college": "College",
+        "college_admin": "College Admin",
+    }
+    role_label = ROLE_LABELS.get(raw_role) or " ".join(w.capitalize() for w in raw_role.replace("_", " ").split()) or "Administrator"
+    org = user.get("org") or "Student Alumni"
+    title = user.get("title") or f"Platform {role_label}"
+    access = user.get("access_label") or "Full Access"
+    colleges_count = await _db.colleges.count_documents({}) or 0
+    raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
+    frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
+    verify_url = f"{frontend_url}/verify/{admin_id}"
+    qr_data = verify_url
     qr_base64 = _generate_qr_code(qr_data)
     return {
         "admin_id": admin_id,
-        "name": user.get("full_name") or "Super Admin",
-        "email": user.get("email") or "admin@careerpath.app",
-        "title": "Platform Administrator",
-        "access_label": "Full Access",
-        "org": "Student Alumni",
+        "name": user.get("full_name") or user.get("name") or "Administrator",
+        "email": user.get("email") or "",
+        "photo": user.get("photo") or user.get("avatar_url") or "",
+        "title": title,
+        "role_label": role_label,
+        "access_label": access,
+        "org": org,
         "label": "OFFICIAL ID",
         "verified": True,
-        "colleges_count": await _db.colleges.count_documents({}) or 48,
+        "colleges_count": colleges_count,
+        "issue_date": str(issue_date),
+        "expiry_date": expiry_date,
         "qr_code_base64": qr_base64,
+        "verify_url": verify_url,
     }
 
 
@@ -1452,7 +1550,62 @@ async def get_share_link(authorization: Optional[str] = Header(None)):
     """Return a shareable profile link for the admin."""
     user = await _require_admin(authorization)
     admin_id = user.get("admin_id") or "SA-2024-000001"
+    raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
+    frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
     return {
-        "share_url": f"https://studentalumni.in/admin/profile/{admin_id}",
+        "share_url": f"{frontend_url}/admin/profile/{admin_id}",
         "admin_id": admin_id,
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# PAGE MANAGEMENT — Static policy/service pages
+# ═══════════════════════════════════════════════════════════════════════
+
+PAGE_SCHEMA = {
+    "privacy": {"title": "Privacy Policy", "route": "/policy/privacy"},
+    "terms": {"title": "Terms of Service", "route": "/policy/terms"},
+    "cookies": {"title": "Cookie Policy", "route": "/policy/cookies"},
+    "refund": {"title": "Refund Policy", "route": "/policy/refund"},
+    "about": {"title": "About Us", "route": "/about"},
+    "faq": {"title": "FAQ", "route": "/faq"},
+}
+
+
+@router.get("/admin/pages")
+async def list_pages(authorization: Optional[str] = Header(None)):
+    """Return all static pages with their editable content from DB."""
+    await _require_admin(authorization)
+    pages = await _db.pages.find().to_list(length=100)
+    page_map = {p["key"]: p for p in pages}
+    result = []
+    for key, meta in PAGE_SCHEMA.items():
+        doc = page_map.get(key, {})
+        result.append({
+            "key": key,
+            "title": meta["title"],
+            "route": meta["route"],
+            "content": doc.get("content", ""),
+            "active": doc.get("active", True),
+            "updated_at": str(doc.get("updated_at", "")),
+        })
+    return result
+
+
+class PageUpdate(BaseModel):
+    content: str
+    active: bool = True
+
+
+@router.patch("/admin/pages/{page_key}")
+async def update_page(page_key: str, body: PageUpdate, authorization: Optional[str] = Header(None)):
+    """Update a static page's content and visibility."""
+    await _require_admin(authorization)
+    if page_key not in PAGE_SCHEMA:
+        raise HTTPException(404, "Page not found")
+    await _db.pages.update_one(
+        {"key": page_key},
+        {"$set": {"content": body.content, "active": body.active, "updated_at": datetime.now(timezone.utc)}},
+        upsert=True,
+    )
+    return {"status": "ok", "key": page_key, "updated": True}

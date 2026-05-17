@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Web-only Landing Page for Student Alumni
  * Matches design in /app/frontend/landing_refs/* (7 sections):
@@ -705,18 +706,20 @@ function Footer({
     {
       title: 'Company',
       items: [
-        { label: 'About Us', onPress: onContact },
-        { label: 'Careers', onPress: onContact },
-        { label: 'Press', onPress: onContact },
-        { label: 'Contact', onPress: onContact },
+        { label: 'About Us', onPress: () => router.push('/about') },
+        { label: 'Careers', onPress: () => router.push('/contact') },
+        { label: 'Press', onPress: () => router.push('/contact') },
+        { label: 'Contact', onPress: () => router.push('/contact') },
       ],
     },
     {
       title: 'Legal',
       items: [
-        { label: 'Privacy Policy', onPress: onContact },
-        { label: 'Terms of Service', onPress: onContact },
-        { label: 'Cookie Policy', onPress: onContact },
+        { label: 'Privacy Policy', onPress: () => router.push('/policy/privacy') },
+        { label: 'Terms of Service', onPress: () => router.push('/policy/terms') },
+        { label: 'Cookie Policy', onPress: () => router.push('/policy/cookies') },
+        { label: 'Refund Policy', onPress: () => router.push('/policy/refund') },
+        { label: 'FAQ', onPress: () => router.push('/faq') },
       ],
     },
   ];

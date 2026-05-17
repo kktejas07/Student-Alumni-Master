@@ -27,6 +27,7 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 import os
+import re
 import uuid
 import io
 import base64
@@ -46,6 +47,13 @@ from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr, field_validator
+
+# Rate limiting (imports only, setup after app is created)
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
 
 # Content prioritization engine — implements interest + edu-level + deadline + frequency scoring
 from personalization import (
@@ -96,6 +104,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days for mobile (less re-login fr
 REFRESH_TOKEN_EXPIRE_DAYS = 30
 
 app = FastAPI(title="Student Alumni Platform API")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernetes ingress requirement)
 
 
@@ -373,9 +383,16 @@ class RegisterRequest(BaseModel):
     @field_validator("password")
     @classmethod
     def _password_strength(cls, v):
-        # Enforce minimum 6 chars (frontend should also enforce stronger rules)
-        if len(v) < 6:
-            raise ValueError("Password must be at least 6 characters long")
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one digit")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
+            raise ValueError("Password must contain at least one special character (!@#$%^&*...)")
         return v
 
     @field_validator("dob")
@@ -704,7 +721,8 @@ def validate_student_class(school_info: SchoolInfo, age: Optional[int] = None) -
 # Auth Endpoints
 # ----------------------------------------------------------------------------
 @api_router.post("/auth/register", response_model=AuthResponse)
-async def register(req: RegisterRequest):
+@limiter.limit("10/minute")
+async def register(request: Request, req: RegisterRequest):
     """Register a new user. Role is captured upfront — onboarding collects role-specific fields."""
     email = req.email.lower().strip()
     if await db.users.find_one({"email": email}):
@@ -765,7 +783,8 @@ class CheckEmailRequest(BaseModel):
 
 
 @api_router.post("/auth/check-email")
-async def check_email(req: CheckEmailRequest):
+@limiter.limit("30/minute")
+async def check_email(request: Request, req: CheckEmailRequest):
     """Smart Email Detect (per HTML spec) — checks whether an email already has
     an account so the client can decide whether to route to Login (existing)
     or Register (new). Also returns the user's role if we have one, so Login
@@ -788,7 +807,8 @@ async def check_email(req: CheckEmailRequest):
 
 
 @api_router.post("/auth/login")
-async def login(req: LoginRequest):
+@limiter.limit("20/minute")
+async def login(request: Request, req: LoginRequest):
     """Email + password login. Returns JWT pair, OR a 2FA challenge if user has 2FA enabled."""
     email = req.email.lower().strip()
     user = await db.users.find_one({"email": email})
@@ -1256,7 +1276,7 @@ def _generate_sa_id() -> str:
 
 
 def _student_status_label(user: dict) -> dict:
-    """Compute display status (Final Year / Pre-Final / Junior / Alumni / etc.)."""
+    """Compute display status for any user role. Returns label + color."""
     role = (user.get("role") or "").lower()
     if role == "alumni":
         return {"label": "Alumni", "color": "#A78BFA"}
@@ -1264,6 +1284,8 @@ def _student_status_label(user: dict) -> dict:
         return {"label": "Mentor", "color": "#F59E0B"}
     if role == "college":
         return {"label": "Institution", "color": "#22D3EE"}
+    if role == "admin":
+        return {"label": "Super Admin" if user.get("is_super_admin") else "Admin", "color": "#10B981"}
     si = user.get("school_info") or {}
     cls = (si.get("class_or_year") or si.get("current_course") or "").lower()
     gy = si.get("graduation_year")
@@ -1333,7 +1355,9 @@ async def my_id_card(user: dict = Depends(get_current_user)):
         except Exception:
             batch = str(batch)
 
-    public_verify_url = f"/api/id-cards/{sa_id}"
+    raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
+    frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
+    public_verify_url = f"{frontend_url}/verify/{sa_id}"
 
     return {
         "sa_id": sa_id,
@@ -1351,42 +1375,108 @@ async def my_id_card(user: dict = Depends(get_current_user)):
         "issued_at": (user.get("sa_id_issued_at") or datetime.utcnow()).isoformat()
             if isinstance(user.get("sa_id_issued_at"), datetime) else str(user.get("sa_id_issued_at") or datetime.utcnow().isoformat()),
         "verify_url": public_verify_url,
-        # QR encodes a JSON-friendly compact string for offline verification
-        "qr_payload": f"sa://verify?id={sa_id}",
+        "qr_payload": public_verify_url,
     }
 
 
-@api_router.get("/id-cards/{sa_id}")
-async def verify_id_card(sa_id: str):
+@api_router.get("/id-cards/{identifier}")
+async def verify_id_card(identifier: str):
     """
-    Public ID verification endpoint — returns ONLY non-sensitive fields,
-    used by anyone scanning the QR code.
+    Universal public ID verification — works for ALL user roles.
+    Accepts sa_id (students, alumni, mentors, colleges) or admin_id (admins).
+    Returns role-specific fields dynamically. Nothing is hardcoded — all from DB.
     """
     u = await db.users.find_one(
-        {"sa_id": sa_id},
+        {"$or": [{"sa_id": identifier}, {"admin_id": identifier}]},
         {"password_hash": 0, "phone": 0, "face_image_base64": 0, "two_fa_secret": 0},
     )
     if not u:
-        raise HTTPException(404, "Invalid SA-ID")
-    si = u.get("school_info") or {}
-    institution = si.get("institution_name") or u.get("full_name") or "—"
-    return {
-        "sa_id": sa_id,
+        raise HTTPException(404, "Invalid ID")
+
+    role = (u.get("role") or "").lower().strip()
+    is_super = u.get("is_super_admin", False)
+    ROLE_LABELS = {
+        "admin": "Super Admin" if is_super else "Admin",
+        "student": "Student",
+        "alumni": "Alumni",
+        "mentor": "Mentor",
+        "college": "College",
+        "college_admin": "College Admin",
+    }
+    role_label = ROLE_LABELS.get(role) or " ".join(w.capitalize() for w in role.replace("_", " ").split()) or "Member"
+    base = {
         "valid": True,
-        "full_name": u.get("full_name") or "—",
-        "role": u.get("role"),
-        "institution": institution,
+        "id": u.get("sa_id") or u.get("admin_id") or identifier,
+        "full_name": u.get("full_name") or u.get("name") or "—",
+        "email": u.get("email") or "—",
+        "role": role,
+        "role_label": role_label,
+        "org": u.get("org") or "Student Alumni",
         "status": _student_status_label(u),
+        "photo": u.get("photo") or u.get("avatar_url") or "",
         "issued_at": (u.get("sa_id_issued_at") or u.get("created_at") or "").isoformat()
             if isinstance(u.get("sa_id_issued_at") or u.get("created_at"), datetime) else "",
     }
+
+    # ─── Role-specific fields (all from DB, no hardcoded fallbacks) ───
+    si = u.get("school_info") or {}
+    ai = u.get("alumni_info") or {}
+    mi = u.get("mentor_info") or {}
+    ci = u.get("college_profile") or {}
+    adm = u.get("admin_profile") or {}
+
+    if role == "student":
+        base["institution"] = si.get("institution_name") or ""
+        base["batch"] = si.get("graduation_year") or ""
+        base["branch"] = si.get("branch_or_stream") or si.get("current_course") or ""
+        base["city"] = si.get("city") or ""
+        base["state"] = si.get("state") or ""
+        base["class_or_year"] = si.get("class_or_year") or ""
+
+    elif role == "alumni":
+        base["institution"] = ai.get("institution_name") or si.get("institution_name") or ""
+        base["graduation_year"] = ai.get("graduation_year") or si.get("graduation_year") or ""
+        base["company"] = ai.get("company") or u.get("company") or ""
+        base["position"] = ai.get("position") or u.get("position") or ""
+        base["branch"] = ai.get("branch_or_stream") or si.get("branch_or_stream") or ""
+        base["city"] = ai.get("city") or si.get("city") or ""
+        base["state"] = ai.get("state") or si.get("state") or ""
+
+    elif role == "mentor":
+        base["expertise"] = mi.get("expertise") or u.get("skills") or []
+        base["company"] = mi.get("company") or u.get("company") or ""
+        base["position"] = mi.get("position") or u.get("position") or ""
+        base["company"] = mi.get("company") or u.get("company") or ""
+        base["years_experience"] = mi.get("years_experience") or ""
+        base["institution"] = ai.get("institution_name") or si.get("institution_name") or ""
+
+    elif role == "college":
+        base["institution"] = u.get("full_name") or ci.get("institution_name") or ""
+        base["city"] = ci.get("city") or ""
+        base["state"] = ci.get("state") or ""
+        base["departments"] = ci.get("departments") or []
+        base["students_count"] = ci.get("students_count") or ""
+        base["affiliation"] = ci.get("affiliation") or ""
+
+    elif role == "admin":
+        colleges_count = await db.colleges.count_documents({}) or 0
+        base["title"] = u.get("title") or ""
+        base["access_label"] = u.get("access_label") or "Full Access"
+        base["colleges_count"] = colleges_count
+        base["admin_id"] = u.get("admin_id") or ""
+        base["permissions"] = u.get("permissions") or []
+
+    # Remove empty fields for cleaner response
+    cleaned = {k: v for k, v in base.items() if v is not None and v != "" and v != [] and v != {}}
+    return cleaned
 
 
 
 
 
 @api_router.post("/auth/refresh")
-async def refresh_token(payload: dict):
+@limiter.limit("30/minute")
+async def refresh_token(request: Request, payload: dict):
     """Exchanges a valid refresh token for a fresh access token."""
     token = payload.get("refresh_token")
     if not token:
@@ -1859,7 +1949,8 @@ async def two_fa_enable(req: TwoFAEnableRequest, user: dict = Depends(get_curren
 
 
 @api_router.post("/auth/2fa/verify", response_model=AuthResponse)
-async def two_fa_verify(req: TwoFAVerifyRequest):
+@limiter.limit("10/minute")
+async def two_fa_verify(request: Request, req: TwoFAVerifyRequest):
     """User submits TOTP/backup code with the challenge_id from /auth/login.
     On success → returns full access + refresh JWT pair."""
     challenge = await db.two_fa_challenges.find_one({"_id": req.challenge_id})
@@ -2035,41 +2126,83 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
     return user_doc
 
 
-def _verify_google_token(id_token: Optional[str]) -> Optional[dict]:
-    """STUB — verifies a Google ID token. In production replace with:
+async def _get_oauth_creds() -> dict:
+    """Read OAuth credentials from platform_controls DB collection."""
+    doc = await db.platform_controls.find_one({"_id": "singleton"})
+    if not doc:
+        return {}
+    settings = {s["key"]: s.get("value", "") for s in (doc.get("system_settings") or [])}
+    return settings
+
+
+@api_router.get("/auth/oauth-config")
+async def oauth_config():
+    """Returns OAuth client IDs and redirect URI for frontend login buttons.
+    Only returns client IDs (safe), never secrets. If not configured, returns empty strings."""
+    creds = await _get_oauth_creds()
+    raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
+    frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
+    return {
+        "google_client_id": creds.get("google_oauth_client_id", ""),
+        "linkedin_client_id": creds.get("linkedin_oauth_client_id", ""),
+        "redirect_uri": f"{frontend_url}/oauth.html",
+        "configured": bool(creds.get("google_oauth_client_id")) or bool(creds.get("linkedin_oauth_client_id")),
+    }
+
+
+def _verify_google_token(id_token: Optional[str], client_id: str = "") -> Optional[dict]:
+    """Verify a Google ID token if credentials are configured, else return None (mock fallback)."""
+    if not id_token or not client_id:
+        return None
+    try:
         from google.auth.transport import requests as g_req
         from google.oauth2 import id_token as g_id
-        g_id.verify_oauth2_token(id_token, g_req.Request(), GOOGLE_OAUTH_CLIENT_ID)
-    For dev/Option-C: returns None so the route falls back to the email/full_name
-    sent in the body.
-    """
-    return None
+        info = g_id.verify_oauth2_token(id_token, g_req.Request(), client_id)
+        if info.get("iss") not in ("accounts.google.com", "https://accounts.google.com"):
+            return None
+        return {"email": info.get("email"), "name": info.get("name"), "picture": info.get("picture"),
+                "sub": info.get("sub")}
+    except Exception:
+        return None
 
 
-def _verify_linkedin_token(access_token: Optional[str]) -> Optional[dict]:
-    """STUB — verifies a LinkedIn access token by calling /v2/userinfo.
-    In production replace with:
-        async with httpx.AsyncClient() as c:
-            r = await c.get('https://api.linkedin.com/v2/userinfo',
-                            headers={'Authorization': f'Bearer {access_token}'})
-            return r.json() if r.is_success else None
-    """
-    return None
+async def _verify_linkedin_token(access_token: Optional[str], client_id: str = "", client_secret: str = "") -> Optional[dict]:
+    """Verify a LinkedIn access token if credentials are configured, else return None (mock fallback)."""
+    if not access_token or not client_id:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=10) as c:
+            r = await c.get("https://api.linkedin.com/v2/userinfo",
+                            headers={"Authorization": f"Bearer {access_token}"})
+            if r.is_success:
+                data = r.json()
+                return {"email": data.get("email"), "name": data.get("name"),
+                        "picture": data.get("picture")}
+            return None
+    except Exception:
+        return None
 
 
 @api_router.post("/auth/google", response_model=AuthResponse)
-async def auth_google(req: OAuthCallback):
+@limiter.limit("20/minute")
+async def auth_google(request: Request, req: OAuthCallback):
     """Continue-with-Google flow.
 
     Real flow: client (Expo) opens Google OAuth → receives `id_token` → POSTs here.
-    Mock flow (Option C): client sends {email, full_name} directly for now.
-    Returns our JWT pair so the rest of the app remains agnostic of the provider.
+    The `id_token` must be a real Google JWT that is verified against the configured
+    GOOGLE_OAUTH_CLIENT_ID. Mock mode (passing email/full_name directly) is ONLY
+    allowed when ENV=development and no client_id is configured.
     """
-    profile = _verify_google_token(req.id_token)
+    creds = await _get_oauth_creds()
+    client_id = creds.get("google_oauth_client_id", "")
+    profile = _verify_google_token(req.id_token, client_id) if req.id_token else None
     if profile is None:
-        if not req.email or not req.full_name:
-            raise HTTPException(400, "Missing email/full_name (mock OAuth requires these in dev mode)")
-        profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+        if not client_id and os.getenv("ENV") == "development":
+            if not req.email or not req.full_name:
+                raise HTTPException(400, "Development mock mode requires email/full_name")
+            profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+        else:
+            raise HTTPException(400, "Google OAuth requires a valid id_token. Configure google_oauth_client_id in platform settings or set ENV=development for mock mode.")
 
     user = await _upsert_oauth_user(
         provider="google",
@@ -2086,13 +2219,20 @@ async def auth_google(req: OAuthCallback):
 
 
 @api_router.post("/auth/linkedin", response_model=AuthResponse)
-async def auth_linkedin(req: OAuthCallback):
+@limiter.limit("20/minute")
+async def auth_linkedin(request: Request, req: OAuthCallback):
     """Continue-with-LinkedIn flow. Same structure as /auth/google."""
-    profile = _verify_linkedin_token(req.access_token)
+    creds = await _get_oauth_creds()
+    client_id = creds.get("linkedin_oauth_client_id", "")
+    client_secret = creds.get("linkedin_oauth_client_secret", "")
+    profile = await _verify_linkedin_token(req.access_token, client_id, client_secret) if req.access_token else None
     if profile is None:
-        if not req.email or not req.full_name:
-            raise HTTPException(400, "Missing email/full_name (mock OAuth requires these in dev mode)")
-        profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+        if not client_id and os.getenv("ENV") == "development":
+            if not req.email or not req.full_name:
+                raise HTTPException(400, "Development mock mode requires email/full_name")
+            profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+        else:
+            raise HTTPException(400, "LinkedIn OAuth requires a valid access_token. Configure linkedin_oauth_client_id in platform settings or set ENV=development for mock mode.")
 
     user = await _upsert_oauth_user(
         provider="linkedin",
@@ -2486,20 +2626,6 @@ async def disconnect_integration(
     except Exception:
         pass
     return {"ok": True}
-
-
-@api_router.patch("/users/me/preferences")
-async def patch_preferences(
-    body: Dict[str, Any],
-    user: dict = Depends(get_current_user),
-):
-    """Update user preferences (default_video_platform, default_ai_provider, etc.)."""
-    allowed = {"default_video_platform", "default_ai_provider"}
-    payload = {f"preferences.{k}": v for k, v in (body or {}).items() if k in allowed}
-    if not payload:
-        return {"ok": True, "noop": True}
-    await db.users.update_one({"_id": user["_id"]}, {"$set": payload})
-    return {"ok": True, "updated": list(payload.keys())}
 
 
 @api_router.get("/users/me/resume")
@@ -3467,6 +3593,7 @@ async def get_career_suggestions(req: CareerSuggestionRequest, user: dict = Depe
         "}"
     )
 
+    session_id = req.session_id or f"chat-{uuid.uuid4().hex[:12]}"
     try:
         from emergentintegrations.llm.chat import UserMessage
         chat = await get_claude_chat(session_id, system_msg)
@@ -3809,6 +3936,7 @@ async def ai_chat(req: ChatRequest, user: dict = Depends(get_current_user)):
         f"{base}\n\nYou are speaking with {user.get('full_name')}, a {user.get('role')}. "
         "Keep replies concise (2-4 short paragraphs), friendly, and actionable."
     )
+    session_id = req.session_id or f"chat-{uuid.uuid4().hex[:12]}"
     try:
         from emergentintegrations.llm.chat import UserMessage
         chat = await get_claude_chat(session_id, system_msg)
@@ -5091,9 +5219,14 @@ async def on_startup():
     await db.users.create_index("email", unique=True)
     await db.users.create_index("unique_id")
     await db.users.create_index([("role", 1), ("mentor_status", 1)])
+    await db.users.create_index("sa_id", unique=True, sparse=True)
     await db.career_suggestions.create_index("user_id")
     await db.chat_messages.create_index([("user_id", 1), ("session_id", 1)])
     await db.bookings.create_index([("student_id", 1), ("mentor_id", 1)])
+    await db.audit_logs.create_index("user_id")
+    await db.audit_logs.create_index([("ts", -1)])
+    await db.sessions.create_index("user_id")
+    await db.sessions.create_index([("expires_at", 1)], expireAfterSeconds=0)
     # Agent K scheduled — indexes that the tick query and per-user list rely on
     await db.agent_k_schedules.create_index([("status", 1), ("next_run_at", 1)])
     await db.agent_k_schedules.create_index([("user_id", 1), ("created_at", -1)])
@@ -5170,7 +5303,6 @@ api_router.include_router(agent_k_scheduled_router)
 # Admin settings — Roles & Permissions + Marketplace
 from admin_settings import router as admin_settings_router
 api_router.include_router(admin_settings_router)
-api_router.include_router(ai_briefs_router)
 
 # Admin imports — bulk-upload + categorization (Students / Alumni / Mentors)
 from admin_imports import router as admin_imports_router
@@ -5205,6 +5337,10 @@ app.include_router(api_router)
 _origins_env = (os.getenv("ALLOWED_ORIGINS") or os.getenv("FRONTEND_URL") or "*").strip()
 _origins_list = [o.strip() for o in _origins_env.split(",") if o.strip()]
 _allow_creds = "*" not in _origins_list  # browsers reject credentials+wildcard
+
+# Fail-fast: wildcard CORS is insecure in production
+if os.getenv("ENV") == "production" and "*" in _origins_list:
+    raise ValueError("CORS wildcard (*) is not allowed in production. Set ALLOWED_ORIGINS to specific domains.")
 
 app.add_middleware(
     CORSMiddleware,

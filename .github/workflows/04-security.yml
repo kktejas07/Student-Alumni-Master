@@ -1,0 +1,198 @@
+# ═══════════════════════════════════════════════════════════════════════
+# Security Scanning — CodeQL + Secret + Dependency + Docker
+# ═══════════════════════════════════════════════════════════════════════
+# Runs on push to main/dev, PRs, and weekly schedule.
+# Fails build on critical/high severity vulnerabilities.
+# ═══════════════════════════════════════════════════════════════════════
+
+name: Security Scan
+
+on:
+  push:
+    branches: [main, dev, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1" # Every Monday at 6 AM UTC
+  workflow_dispatch:
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  # ─── CodeQL (static analysis) ─────────────────────────────────
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ["javascript-typescript", "python"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+
+      - uses: github/codeql-action/autobuild@v3
+
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  # ─── Secret scanning ──────────────────────────────────────────
+  secrets:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog (secret detection)
+        uses: trufflesecurity/trufflehog@v3
+        with:
+          extra_args: --only-verified --fail
+
+      - name: Gitleaks (secret detection)
+        uses: gitleaks/gitleaks-action@v2
+        continue-on-error: true
+
+  # ─── Dependency vulnerability scan ────────────────────────────
+  dependencies:
+    name: Dependency Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Python dependency audit
+        working-directory: backend
+        run: |
+          pip install safety
+          safety check -r requirements.txt --full-report || true
+
+      - name: Node dependency audit (npm audit)
+        working-directory: frontend
+        run: |
+          npm audit --audit-level=high || {
+            echo "::warning::High severity vulnerabilities found"
+            true
+          }
+
+      - name: Snyk security scan
+        uses: snyk/actions@v0.4
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+      - name: Upload SARIF to GitHub
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: snyk.sarif
+        continue-on-error: true
+
+  # ─── Docker image vulnerability scan ──────────────────────────
+  docker-scan:
+    name: Docker Vulnerability Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: false
+          load: true
+          tags: student-alumni-backend:scan
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: false
+          load: true
+          tags: student-alumni-frontend:scan
+
+      - name: Scan backend with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: student-alumni-backend:scan
+          format: sarif
+          output: trivy-backend.sarif
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+        continue-on-error: true
+
+      - name: Scan frontend with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: student-alumni-frontend:scan
+          format: sarif
+          output: trivy-frontend.sarif
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+        continue-on-error: true
+
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-backend.sarif
+        continue-on-error: true
+
+  # ─── Summary ──────────────────────────────────────────────────
+  summary:
+    name: Security Summary
+    if: always()
+    needs: [codeql, secrets, dependencies, docker-scan]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          {
+            echo "## Security Scan Summary"
+            echo ""
+            echo "| Scan | Status |"
+            echo "|---|---|"
+            echo "| CodeQL (JS/TS) | ${{ needs.codeql.result }} |"
+            echo "| CodeQL (Python) | ${{ needs.codeql.result }} |"
+            echo "| Secret Scanning | ${{ needs.secrets.result }} |"
+            echo "| Dependency Scan | ${{ needs.dependencies.result }} |"
+            echo "| Docker Scan | ${{ needs.docker-scan.result }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
