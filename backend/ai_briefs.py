@@ -25,6 +25,8 @@ from fastapi import APIRouter, HTTPException
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 
+from tier_logic import compute_student_tier, compute_mentor_tier, compute_college_tier
+
 load_dotenv(Path(__file__).parent / ".env")
 
 # Mongo

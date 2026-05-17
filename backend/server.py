@@ -3809,6 +3809,7 @@ async def ai_chat(req: ChatRequest, user: dict = Depends(get_current_user)):
         f"{base}\n\nYou are speaking with {user.get('full_name')}, a {user.get('role')}. "
         "Keep replies concise (2-4 short paragraphs), friendly, and actionable."
     )
+    session_id = req.session_id or str(uuid.uuid4())
     try:
         from emergentintegrations.llm.chat import UserMessage
         chat = await get_claude_chat(session_id, system_msg)
