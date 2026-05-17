@@ -70,6 +70,11 @@ jobs:
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONUNBUFFERED: "1"
       AGENT_K_SCHEDULER_ENABLED: "0"
+      # server.py reads these at import time — provide stubs so smoke test passes
+      MONGO_URL: mongodb://localhost:27017
+      DB_NAME: student_alumni_ci
+      JWT_SECRET: ci-test-secret
+      FERNET_KEY: ci-test-fernet-key
 
     steps:
       - name: Checkout
