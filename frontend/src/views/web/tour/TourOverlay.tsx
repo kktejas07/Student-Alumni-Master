@@ -34,6 +34,7 @@ function measureTarget(selector: string): Rect | null {
     }
   }
   if (!el) return null;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   const r = el.getBoundingClientRect();
   // Skip if hidden or off-screen with zero size
   if (r.width === 0 && r.height === 0) return null;
@@ -140,6 +141,11 @@ function SpotlightSVG({ rect, viewport, accent }: { rect: Rect | null; viewport:
   // We render the SVG via dangerouslySetInnerHTML on a web View. RN Web's
   // <View> is a div, so we just stuff an <svg> child. This avoids pulling
   // in react-native-svg purely for an overlay.
+  //
+  // SAFETY: The SVG is built exclusively from trusted numeric values (viewport
+  // dimensions, rect coordinates from getBoundingClientRect, accent color hex).
+  // No user-supplied strings are interpolated — the template literals use
+  // only controlled integer and color data, so there is no XSS risk.
   const r = rect || { x: viewport.w / 2 - 60, y: viewport.h / 2 - 30, w: 120, h: 60 };
   const svg = `
     <svg width="${viewport.w}" height="${viewport.h}" viewBox="0 0 ${viewport.w} ${viewport.h}" xmlns="http://www.w3.org/2000/svg">

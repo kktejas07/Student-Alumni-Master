@@ -24,7 +24,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Platform, StyleSheet, Pressable, Text, Animated, Easing } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { PALETTE, SC, TYPO } from './tokens';
+import { PALETTE, SC, TYPO, RADII } from './tokens';
 
 /* ─────────────────────────────────────────────────────────────────
  * AnimatedAurora — four drifting colored orbs (violet · blue · teal · rose)
@@ -275,7 +275,7 @@ const g = StyleSheet.create({
  * GlassSoft — nested soft surface (used inside GlassCard for inputs,
  *             segmented controls, list rows).
  * ───────────────────────────────────────────────────────────────── */
-export function GlassSoft({ children, style, radius = 12 }: {
+export function GlassSoft({ children, style, radius = RADII.soft }: {
   children: React.ReactNode; style?: any; radius?: number;
 }) {
   return (

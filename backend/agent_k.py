@@ -933,7 +933,7 @@ async def list_installed_ai_providers(authorization: Optional[str] = Header(None
         "providers": providers,
         "can_use_agent_k": admin or bool(providers),
         "is_admin": admin,
-        "deeplink_marketplace": "/marketplace?category=AI",
+        "deeplink_marketplace": "/student-portal?tab=integrations",
     }
 
 
@@ -1191,5 +1191,5 @@ async def get_prescriptions(
         "cards":           cards,
         "ai_connected":    bool(providers),
         "is_admin":        _is_admin(user),
-        "deeplink_marketplace": "/marketplace?category=AI",
+        "deeplink_marketplace": "/student-portal?tab=integrations",
     }

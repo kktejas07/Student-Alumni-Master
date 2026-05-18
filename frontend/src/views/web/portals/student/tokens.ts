@@ -98,6 +98,20 @@ export const SC = {
   pink:  PALETTE.rose,
 } as const;
 
+/* ─────────────────────────────────────────────────────────────────
+ * RADII — FinTax360 border-radius scale (all values in px)
+ * Spec: rounded-soft=14, rounded-glass=16, rounded-2xl=1rem,
+ *       rounded-full=9999px, rounded-lg=8px
+ * ───────────────────────────────────────────────────────────────── */
+export const RADII = {
+  /** Soft chips, inner wells */    soft:     14,
+  /** Standard glass card */       glass:    16,
+  /** Large cards / panels */       lg:       16,
+  /** Pills, avatars, badges */     full:     9999,
+  /** Buttons, inputs */           btn:      10,
+  /** Small chips */               sm:       8,
+} as const;
+
 /* ─── Light variant (kept as a careful translation, rarely used) ──── */
 const SC_LIGHT = {
   bg: '#F5F5F7',

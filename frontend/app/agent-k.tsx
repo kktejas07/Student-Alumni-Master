@@ -114,7 +114,7 @@ export default function AgentKPage() {
   // Where to send the user when they tap "Open AI Marketplace" — the
   // Profile → Tools & Integrations sub-tab is the official place to
   // connect / disconnect their AI providers.
-  const integrationsRoute = '/me?tab=integrations';
+  const integrationsRoute = '/student-portal?tab=integrations';
 
   // Pretty-print the connected providers for the "Powered by …" badge.
   const poweredByLabel = useMemo(() => {
@@ -173,7 +173,8 @@ export default function AgentKPage() {
       const msg = e?.message || '';
       if (msg.includes('412') || msg.includes('setup_required')) {
         // BYO-AI gate triggered — push to Marketplace
-        router.push('/marketplace?category=AI');
+        const mp = presc?.deeplink_marketplace || '/student-portal?tab=integrations';
+        router.push(mp);
       } else {
         setError(msg || 'Run failed');
       }

@@ -5,7 +5,7 @@
  * native React Native components, no iframe). Pass `?legacy=1` to fall
  * back to the original HTML iframe wrapper for side-by-side comparison.
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Platform, StyleSheet, Text, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LogOut } from 'lucide-react-native';
@@ -13,9 +13,15 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { StudentPortalRN } from '@/src/views/web/portals/student/StudentPortalRN';
 
 export default function StudentPortalRoute() {
-  const { legacy } = useLocalSearchParams<{ legacy?: string }>();
+  const { legacy, tab } = useLocalSearchParams<{ legacy?: string; tab?: string }>();
   const router = useRouter();
   const logout = useAuthStore((s) => s.logout);
+
+  useEffect(() => {
+    if (tab === 'integrations') {
+      router.push('/me?tab=integrations');
+    }
+  }, [tab, router]);
 
   const onLogout = async () => {
     try { await logout(); } catch {}

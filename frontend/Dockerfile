@@ -67,6 +67,10 @@ RUN printf '%s\n' '{"status":"ok","service":"studentalumni-frontend"}' \
 
 EXPOSE 80
 
+# ── Security: run as non-root user ──────────────────────────────────────────
+RUN addgroup -g 1001 -S nodejs && adduser -S nodeapp -u 1001
+USER nodeapp
+
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -fsS http://localhost/healthz || exit 1
 

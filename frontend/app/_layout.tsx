@@ -1,5 +1,7 @@
 import { Stack } from 'expo-router';
 import { usePathname } from 'expo-router';
+import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import {
   useFonts,
   DMSans_400Regular,
@@ -25,7 +27,6 @@ import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
 import { PaperProvider, MD3LightTheme, configureFonts } from 'react-native-paper';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { Colors } from '@/src/theme';
@@ -35,6 +36,26 @@ import { AgentKQuickLauncher } from '@/src/views/web/agent-k/AgentKQuickLauncher
 import { ConsentBanner } from '@/src/views/web/consent/ConsentBanner';
 import { TourProvider } from '@/src/views/web/tour/TourProvider';
 import { TourOverlay } from '@/src/views/web/tour/TourOverlay';
+
+/* ─── Web-only FinTax360 global styles (scrollbar · selection · focus) ─────── */
+function FinTax360Styles() {
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    // Inject once into <head> via a style tag
+    const style = document.createElement('style');
+    style.textContent = `
+::-webkit-scrollbar          { width: 10px; height: 10px; }
+::-webkit-scrollbar-track    { background: transparent; }
+::-webkit-scrollbar-thumb    { background: rgba(255,255,255,0.08); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }
+::selection { background: rgba(139,92,246,0.35); color: white; }
+*:focus-visible { outline: 2px solid rgba(139,92,246,0.70); outline-offset: 2px; }
+`;
+    document.head.appendChild(style);
+    return () => { document.head.removeChild(style); };
+  }, []);
+  return null;
+}
 
 // Material 3 theme — overrides primary/secondary to brand purple. This means
 // all react-native-paper components (Surface, Card, Button, Ripple) will pick
@@ -121,6 +142,7 @@ export default function RootLayout() {
           <ToastProvider>
             <TourProvider>
               <StatusBar style="light" />
+              <FinTax360Styles />
               <Stack
                 screenOptions={{
                   headerShown: false,
