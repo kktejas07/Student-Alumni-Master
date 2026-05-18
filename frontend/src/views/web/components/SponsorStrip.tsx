@@ -198,13 +198,13 @@ export function DashboardFooter({ portal }: { portal: 'student' | 'alumni' | 'co
         <View style={s.dashFootRow}>
           <Text style={s.dashFootCopy}>© {year} StudentAlumni · All rights reserved</Text>
           <View style={{ flexDirection: 'row', gap: 18, flexWrap: 'wrap' }}>
-            <Pressable onPress={() => router.push('/legal/privacy')}>
+            <Pressable onPress={() => router.push('/policy/privacy')}>
               <Text style={s.dashFootLink}>Privacy Policy</Text>
             </Pressable>
-            <Pressable onPress={() => router.push('/legal/terms')}>
+            <Pressable onPress={() => router.push('/policy/terms')}>
               <Text style={s.dashFootLink}>Terms of Service</Text>
             </Pressable>
-            <Pressable onPress={() => router.push('/legal/cookies')}>
+            <Pressable onPress={() => router.push('/policy/cookies')}>
               <Text style={s.dashFootLink}>Cookies</Text>
             </Pressable>
           </View>

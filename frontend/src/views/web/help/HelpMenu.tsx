@@ -3,7 +3,7 @@
  *
  * Renders a circular "?" button. Clicking it opens a small menu with:
  *   • Take a tour / Replay tour    (→ useTour().replay(portal))
- *   • Privacy Policy / Terms / Cookies    (→ /legal/*)
+ *   • Privacy Policy / Terms / Cookies    (→ /policy/*)
  *
  * Accepts a portal key so it can drive the correct tour. Accent color is
  * picked from the per-portal tour config so the active state matches.
@@ -73,7 +73,7 @@ export function HelpMenu({ portal }: { portal: TourKey }) {
           <Text style={s.menuLbl}>LEGAL</Text>
 
           <Pressable
-            onPress={() => { setOpen(false); router.push('/legal/privacy'); }}
+            onPress={() => { setOpen(false); router.push('/policy/privacy'); }}
             style={({ hovered }: any) => [s.item, hovered && Platform.OS === 'web' && { backgroundColor: 'rgba(255,255,255,0.04)' }]}
           >
             <View style={s.itemIcon}><Shield size={13} color="rgba(255,255,255,0.72)" /></View>
@@ -81,7 +81,7 @@ export function HelpMenu({ portal }: { portal: TourKey }) {
             <ExternalLink size={11} color="rgba(255,255,255,0.40)" />
           </Pressable>
           <Pressable
-            onPress={() => { setOpen(false); router.push('/legal/terms'); }}
+            onPress={() => { setOpen(false); router.push('/policy/terms'); }}
             style={({ hovered }: any) => [s.item, hovered && Platform.OS === 'web' && { backgroundColor: 'rgba(255,255,255,0.04)' }]}
           >
             <View style={s.itemIcon}><FileText size={13} color="rgba(255,255,255,0.72)" /></View>
@@ -89,7 +89,7 @@ export function HelpMenu({ portal }: { portal: TourKey }) {
             <ExternalLink size={11} color="rgba(255,255,255,0.40)" />
           </Pressable>
           <Pressable
-            onPress={() => { setOpen(false); router.push('/legal/cookies'); }}
+            onPress={() => { setOpen(false); router.push('/policy/cookies'); }}
             style={({ hovered }: any) => [s.item, hovered && Platform.OS === 'web' && { backgroundColor: 'rgba(255,255,255,0.04)' }]}
           >
             <View style={s.itemIcon}><Cookie size={13} color="rgba(255,255,255,0.72)" /></View>

@@ -110,9 +110,9 @@ export function ConsentBanner() {
               <Text style={s.bannerCopy} numberOfLines={3}>
                 Essential cookies keep StudentAlumni running. With your consent we also use analytics,
                 functional and marketing cookies to personalise content. Read more in our{' '}
-                <Text style={s.link} onPress={() => router.push('/legal/privacy')}>Privacy Policy</Text>
+                <Text style={s.link} onPress={() => router.push('/policy/privacy')}>Privacy Policy</Text>
                 {' '}and{' '}
-                <Text style={s.link} onPress={() => router.push('/legal/cookies')}>Cookie Policy</Text>.
+                <Text style={s.link} onPress={() => router.push('/policy/cookies')}>Cookie Policy</Text>.
               </Text>
             </View>
             <View style={s.bannerBtns}>
