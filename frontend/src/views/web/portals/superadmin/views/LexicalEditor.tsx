@@ -11,9 +11,8 @@ import { request } from '@/src/models/services/api';
 export default function LexicalEditor({ value, onChange }: { value: string; onChange: (html: string) => void }) {
   const contentRef = useRef(value);
   const editorRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [aiModalVisible, setAiModalVisible] = useState(false);
-  const [canUndo, setCanUndo] = useState(false);
-  const [canRedo, setCanRedo] = useState(false);
 
   useEffect(() => {
     contentRef.current = value;
@@ -27,58 +26,39 @@ export default function LexicalEditor({ value, onChange }: { value: string; onCh
     return () => { el.remove(); };
   }, []);
 
-  const injectHTML = () => {
-    if (editorRef.current && contentRef.current) {
-      editorRef.current.innerHTML = contentRef.current;
-    }
-  };
-
-  const onMount = (el: HTMLDivElement | null) => {
-    if (!el) return;
-    editorRef.current = el;
-    el.innerHTML = contentRef.current || '';
-    el.addEventListener('input', () => {
-      onChange(el.innerHTML);
-      updateUndoRedo();
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !containerRef.current) return;
+    const container = containerRef.current;
+    const div = document.createElement('div');
+    div.className = 'lex-editor-input';
+    div.contentEditable = 'true';
+    div.innerHTML = contentRef.current || '';
+    div.addEventListener('input', () => {
+      onChange(div.innerHTML);
     });
-    el.addEventListener('keydown', (e) => {
+    div.addEventListener('keydown', (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
         e.preventDefault();
-        if (e.shiftKey) {
-          document.execCommand('redo');
-        } else {
-          document.execCommand('undo');
-        }
-        updateUndoRedo();
-        onChange(el.innerHTML);
+        if (e.shiftKey) document.execCommand('redo');
+        else document.execCommand('undo');
+        onChange(div.innerHTML);
       }
     });
-  };
-
-  const updateUndoRedo = () => {
-    try {
-      setCanUndo(document.queryCommandEnabled('undo'));
-      setCanRedo(document.queryCommandEnabled('redo'));
-    } catch {}
-  };
+    container.appendChild(div);
+    editorRef.current = div;
+    return () => { container.removeChild(div); editorRef.current = null; };
+  }, []);
 
   const exec = (cmd: string, val?: string) => {
     document.execCommand(cmd, false, val);
     const el = editorRef.current;
-    if (el) {
-      el.focus();
-      onChange(el.innerHTML);
-      updateUndoRedo();
-    }
+    if (el) { el.focus(); onChange(el.innerHTML); }
   };
 
   const handleHeading = (tag: string) => {
     document.execCommand('formatBlock', false, `<${tag}>`);
     const el = editorRef.current;
-    if (el) {
-      el.focus();
-      onChange(el.innerHTML);
-    }
+    if (el) { el.focus(); onChange(el.innerHTML); }
   };
 
   const handleAiAssist = async (prompt: string) => {
@@ -107,7 +87,6 @@ export default function LexicalEditor({ value, onChange }: { value: string; onCh
 
   return (
     <View>
-      {/* Invisible toolbar placeholder for execCommand */}
       <View style={wrap.toolbar}>
         <View style={wrap.group}>
           <Pressable key="bold" onPress={() => exec('bold')} style={wrap.btn}>
@@ -141,18 +120,10 @@ export default function LexicalEditor({ value, onChange }: { value: string; onCh
           </Pressable>
         </View>
         <View style={wrap.group}>
-          <Pressable key="undo" onPress={() => {
-            document.execCommand('undo');
-            const el = editorRef.current;
-            if (el) { onChange(el.innerHTML); updateUndoRedo(); }
-          }} style={[wrap.btn, !canUndo && { opacity: 0.3 }]} disabled={!canUndo}>
+          <Pressable key="undo" onPress={() => { document.execCommand('undo'); const el = editorRef.current; if (el) onChange(el.innerHTML); }} style={wrap.btn}>
             <Undo size={15} color="#94a3b8" />
           </Pressable>
-          <Pressable key="redo" onPress={() => {
-            document.execCommand('redo');
-            const el = editorRef.current;
-            if (el) { onChange(el.innerHTML); updateUndoRedo(); }
-          }} style={[wrap.btn, !canRedo && { opacity: 0.3 }]} disabled={!canRedo}>
+          <Pressable key="redo" onPress={() => { document.execCommand('redo'); const el = editorRef.current; if (el) onChange(el.innerHTML); }} style={wrap.btn}>
             <Redo size={15} color="#94a3b8" />
           </Pressable>
           <Pressable key="ai" onPress={() => setAiModalVisible(true)} style={wrap.aiBtn}>
@@ -161,14 +132,7 @@ export default function LexicalEditor({ value, onChange }: { value: string; onCh
           </Pressable>
         </View>
       </View>
-      <View
-        ref={onMount}
-        contentEditable
-        suppressContentEditableWarning
-        className="lex-editor-input"
-        style={wrap.editorBox as any}
-        data-placeholder="Start writing..."
-      />
+      <View style={wrap.editorBox} ref={containerRef} />
       <View style={wrap.hintBar}>
         <Text style={wrap.hint}>Supports headings, lists, bold, italic & more</Text>
       </View>
