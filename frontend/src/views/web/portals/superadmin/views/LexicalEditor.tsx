@@ -263,6 +263,26 @@ const aim = StyleSheet.create({
   sendText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
 });
 
+class LexicalErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error: Error) { console.error('LexicalEditor crash:', error); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ padding: 20, gap: 8 }}>
+          <Text style={{ color: '#ef4444', fontFamily: FONTS.bold, fontSize: 13 }}>Editor failed to load</Text>
+          <Text style={{ color: '#94a3b8', fontFamily: FONTS.med, fontSize: 11 }}>Close and try again, or use the mobile editor.</Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function LexicalEditor({ value, onChange }: { value: string; onChange: (html: string) => void }) {
   const [editorRef, setEditorRef] = useState<any>(null);
   const [aiModalVisible, setAiModalVisible] = useState(false);
@@ -318,6 +338,14 @@ export default function LexicalEditor({ value, onChange }: { value: string; onCh
     }
   };
 
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const el = document.createElement('style');
+    el.textContent = editorStyles;
+    document.head.appendChild(el);
+    return () => { el.remove(); };
+  }, []);
+
   if (Platform.OS !== 'web') {
     return (
       <RNTextInput
@@ -332,15 +360,18 @@ export default function LexicalEditor({ value, onChange }: { value: string; onCh
   }
 
   return (
-    <>
-      <style>{editorStyles}</style>
-      <View style={wrap.wrapper}>
-        <LexicalComposer initialConfig={initialConfig}>
-          <Toolbar />
-          <View style={wrap.editorBox}>
+    <View style={wrap.wrapper}>
+      <LexicalComposer initialConfig={initialConfig}>
+        <Toolbar />
+        <View style={wrap.editorBox}>
+          <LexicalErrorBoundary>
             <RichTextPlugin
               contentEditable={<ContentEditable className="lex-editor-input" />}
-              placeholder={<Text className="lex-placeholder">Start writing...</Text>}
+              placeholder={<Text style={{
+                position: 'absolute', top: 16, left: 16,
+                color: '#64748b', fontFamily: FONTS.med, fontSize: 14,
+                pointerEvents: 'none', userSelect: 'none',
+              }}>Start writing...</Text>}
               ErrorBoundary={({ children, onError }) => <>{children}</>}
             />
             <HistoryPlugin />
@@ -348,19 +379,14 @@ export default function LexicalEditor({ value, onChange }: { value: string; onCh
             <LinkPlugin />
             <OnChangePlugin onChange={handleChange} />
             <InitializePlugin onInit={onEditorReady} />
-          </View>
-          <View style={wrap.bottomBar}>
-            <AiAssistButton onAiAssist={() => setAiModalVisible(true)} />
-            <Text style={wrap.hint}>Supports headings, lists, bold, italic & more</Text>
-          </View>
-        </LexicalComposer>
-      </View>
-      <AiPromptModal
-        visible={aiModalVisible}
-        onClose={() => setAiModalVisible(false)}
-        onSend={handleAiAssist}
-      />
-    </>
+          </LexicalErrorBoundary>
+        </View>
+        <View style={wrap.bottomBar}>
+          <AiAssistButton onAiAssist={() => setAiModalVisible(true)} />
+          <Text style={wrap.hint}>Supports headings, lists, bold, italic & more</Text>
+        </View>
+      </LexicalComposer>
+    </View>
   );
 }
 
