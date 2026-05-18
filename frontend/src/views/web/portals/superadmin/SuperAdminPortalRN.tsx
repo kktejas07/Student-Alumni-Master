@@ -9,6 +9,10 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { SAC } from './tokens';
 import { Sidebar, SuperAdminNavId, NAV } from './Sidebar';
 import { TopBar } from './TopBar';
+import { AnimatedAurora, GridOverlay } from '../student/glass';
+import { LinearGradient } from 'expo-linear-gradient';
+import { DashboardFooter } from '../../components/SponsorStrip';
+import { PromoBanner } from '../../components/PromoBanner';
 import { OverviewView } from './views/OverviewView';
 import { StubView } from './views/StubView';
 import { CollegesView } from './views/CollegesView';
@@ -23,11 +27,15 @@ import { AIInsightsView } from './views/AIInsightsView';
 import { SettingsView } from './views/SettingsView';
 import { WorkflowsView } from './views/WorkflowsView';
 import { ImportsView } from './views/ImportsView';
+import { PartnersView } from './views/PartnersView';
+import { PromotionsView } from './views/PromotionsView';
+import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 
 export function SuperAdminPortalRN() {
   const router = useRouter();
   const logout = useAuthStore((sx) => sx.logout);
   const [active, setActive] = useState<SuperAdminNavId>('overview');
+  useAutoTour('super_admin');
 
   const onLogout = async () => {
     try { await logout(); } catch {}
@@ -38,14 +46,25 @@ export function SuperAdminPortalRN() {
 
   return (
     <View style={s.shell}>
+      {/* FinTax360 Jewel-glass canvas */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={['#0a0f1e', '#131938']}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject as any}
+      />
+      <AnimatedAurora intensity="normal" />
+      <GridOverlay />
+
       <Sidebar active={active} onNav={setActive} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <TopBar title={titleFor(active)} />
         <ScrollView
-          style={{ flex: 1, backgroundColor: SAC.bg }}
+          style={{ flex: 1 }}
           contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
           showsVerticalScrollIndicator={false}
         >
+          <PromoBanner portal="super_admin" />
           {active === 'overview'    && <OverviewView />}
           {active === 'colleges'    && <CollegesView />}
           {active === 'students'    && <StudentsView />}
@@ -59,6 +78,9 @@ export function SuperAdminPortalRN() {
           {active === 'settings'    && <SettingsView />}
           {active === 'workflows'   && <WorkflowsView />}
           {active === 'imports'     && <ImportsView />}
+          {active === 'partners'    && <PartnersView />}
+          {active === 'promotions'  && <PromotionsView />}
+          <DashboardFooter portal="super_admin" />
         </ScrollView>
       </View>
     </View>

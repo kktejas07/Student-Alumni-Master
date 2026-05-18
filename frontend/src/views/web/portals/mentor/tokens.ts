@@ -1,35 +1,58 @@
 /**
- * Mentor Portal — design tokens (mirrors the spec's `const C` exactly).
+ * Mentor Portal — design tokens
+ * (FinTax360 Jewel-glass navy palette + Teal accent identity)
+ *
+ * Adopts the same dark-navy glass canvas as every other portal so
+ * cross-portal navigation feels seamless. Only the brand accent
+ * (teal/cyan family) rotates per portal — that's the Mentor identity.
  */
+import { NX, PORTAL_ACCENTS } from '@/src/theme/nexus';
+
+const A = PORTAL_ACCENTS.mentor;
+
 export const MC = {
-  bg: '#071412',
-  bg2: '#0A1A16',
-  card: '#0D2E2A',
-  cardH: '#0F3830',
-  border: 'rgba(20,184,166,0.15)',
-  border2: 'rgba(20,184,166,0.30)',
+  // FinTax360 navy surfaces (shared)
+  bg:        NX.bg,
+  bg2:       NX.surface1,
+  card:      NX.surface2,
+  cardSolid: NX.surface3,
+  cardH:     NX.surface3,
 
-  teal: '#14B8A6',
-  tealD: '#0D9488',
-  tealP: '#5EEAD4',
+  border:    NX.border,
+  border2:   NX.borderHi,
 
-  text: 'rgba(255,255,255,0.92)',
-  muted: 'rgba(255,255,255,0.50)',
-  dim: 'rgba(255,255,255,0.25)',
+  // Mentor accent identity (teal family)
+  teal:      A.primary,        // 500 — CTAs, active rail
+  tealD:     A.primaryD,       // 700 — pressed
+  tealP:     A.primaryL,       // 400 — hover / soft
 
-  green: '#22C55E',
-  amber: '#F59E0B',
-  red: '#EF4444',
-  blue: '#3B82F6',
-  purple: '#7B3DBF',
-  pink: '#EC4899',
+  // Legacy aliases (kept so existing views don't break)
+  primary:   A.primary,
+  primaryD:  A.primaryD,
+  primaryL:  A.primaryL,
+  accent:    A.accent,
+  accentBright: '#5EEAD4',
 
-  surf: 'rgba(20,184,166,0.06)',
+  // Text on dark navy surface
+  text:  NX.textP,
+  muted: 'rgba(255,255,255,0.66)',
+  dim:   'rgba(255,255,255,0.46)',
+
+  // Status / utility
+  green: NX.success,
+  amber: NX.amber,
+  red:   NX.danger,
+  blue:  NX.blue,
+  purple: NX.purple,
+  pink:  '#EC4899',
+
+  // Soft tinted surface for inline highlights
+  surf:  A.accentSoft,
 } as const;
 
 export const FONTS = {
-  bold: 'DMSans_700Bold',
-  semi: 'DMSans_600SemiBold',
-  med: 'DMSans_500Medium',
+  bold:  'DMSans_700Bold',
+  semi:  'DMSans_600SemiBold',
+  med:   'DMSans_500Medium',
   xbold: 'DMSans_800ExtraBold',
 };

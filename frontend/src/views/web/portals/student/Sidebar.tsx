@@ -101,7 +101,7 @@ export function Sidebar({
 
   // Web-only frosted-glass effect for the rail.
   const railGlass = Platform.OS === 'web' ? ({
-    backdropFilter: 'blur(24px) saturate(160%)',
+    backdropFilter: 'blur(24px) saturate(180%)',
     WebkitBackdropFilter: 'blur(24px) saturate(160%)',
     boxShadow: '4px 0 40px rgba(2,6,23,0.40)',
   } as any) : {};
@@ -110,7 +110,7 @@ export function Sidebar({
     <View style={[s.aside, { width: railWidth, backgroundColor: C.bg, borderRightColor: C.border }, railGlass]}>
       {/* Brand */}
       <FadeInView delay={20}>
-        <View style={[s.brand, collapsed && { justifyContent: 'center' }]}>
+        <View style={[s.brand, collapsed && { justifyContent: 'center' }]} nativeID="student-brand">
           <LinearGradient colors={GRADS.brand as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.brandLogo}>
             <Text style={s.brandLogoText}>SA</Text>
           </LinearGradient>
@@ -200,6 +200,7 @@ export function Sidebar({
                 accessibilityLabel={label}
                 accessibilityState={{ selected: isActive }}
                 accessibilityHint={`Opens the ${label} section of the dashboard`}
+                nativeID={`student-nav-${id}`}
               >
                 {isActive ? (
                   <LinearGradient

@@ -7,6 +7,7 @@ import { Search, Bell } from 'lucide-react-native';
 import { MC, FONTS } from './tokens';
 import { Av } from './atoms';
 import { MENTOR } from './data';
+import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 
 export function TopBar({
   title, query, setQuery, notifCount = 4, onBellPress,
@@ -39,7 +40,8 @@ export function TopBar({
           </View>
         )}
       </Pressable>
-      <View style={{ marginLeft: 4 }}>
+      <View style={{ marginLeft: 4, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <HelpMenu portal="mentor" />
         <Av initials={MENTOR.avatar} size={34} color={MC.teal} />
       </View>
     </View>
