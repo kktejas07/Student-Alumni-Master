@@ -816,7 +816,7 @@
     "@babel/parser" "^7.28.6"
     "@babel/types" "^7.28.6"
 
-"@babel/traverse--for-generate-function-map@npm:@babel/traverse@^7.25.3", "@babel/traverse@^7.27.3", "@babel/traverse@^7.28.5", "@babel/traverse@^7.28.6", "@babel/traverse@^7.29.0":
+"@babel/traverse--for-generate-function-map@npm:@babel/traverse@^7.25.3":
   version "7.29.0"
   resolved "https://registry.npmjs.org/@babel/traverse/-/traverse-7.29.0.tgz"
   integrity sha512-4HPiQr0X7+waHfyXPZpWPfWL/J7dcN1mx9gL6WdQVMbPnF3+ZhSMs8tCxN7oHddJE9fhNE7+lxdnlyemKfJRuA==
@@ -840,6 +840,19 @@
     "@babel/parser" "^7.28.0"
     "@babel/template" "^7.27.2"
     "@babel/types" "^7.28.0"
+    debug "^4.3.1"
+
+"@babel/traverse@^7.27.3", "@babel/traverse@^7.28.5", "@babel/traverse@^7.28.6", "@babel/traverse@^7.29.0":
+  version "7.29.0"
+  resolved "https://registry.npmjs.org/@babel/traverse/-/traverse-7.29.0.tgz"
+  integrity sha512-4HPiQr0X7+waHfyXPZpWPfWL/J7dcN1mx9gL6WdQVMbPnF3+ZhSMs8tCxN7oHddJE9fhNE7+lxdnlyemKfJRuA==
+  dependencies:
+    "@babel/code-frame" "^7.29.0"
+    "@babel/generator" "^7.29.0"
+    "@babel/helper-globals" "^7.28.0"
+    "@babel/parser" "^7.29.0"
+    "@babel/template" "^7.28.6"
+    "@babel/types" "^7.29.0"
     debug "^4.3.1"
 
 "@babel/types@^7.0.0", "@babel/types@^7.20.7", "@babel/types@^7.25.2", "@babel/types@^7.26.0", "@babel/types@^7.27.1", "@babel/types@^7.27.3", "@babel/types@^7.28.0", "@babel/types@^7.28.2", "@babel/types@^7.28.5", "@babel/types@^7.28.6", "@babel/types@^7.29.0", "@babel/types@^7.3.3":
@@ -2157,7 +2170,7 @@
     "@jridgewell/gen-mapping" "^0.3.5"
     "@jridgewell/trace-mapping" "^0.3.24"
 
-"@jridgewell/resolve-uri@^3.1.2":
+"@jridgewell/resolve-uri@^3.1.0", "@jridgewell/resolve-uri@^3.1.2":
   version "3.1.2"
   resolved "https://registry.yarnpkg.com/@jridgewell/resolve-uri/-/resolve-uri-3.1.2.tgz#7a0ee601f60f99a20c7c7c5ff0c80388c1189bd6"
   integrity sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw==
@@ -2170,7 +2183,7 @@
     "@jridgewell/gen-mapping" "^0.3.5"
     "@jridgewell/trace-mapping" "^0.3.25"
 
-"@jridgewell/sourcemap-codec@^1.5.0":
+"@jridgewell/sourcemap-codec@^1.4.14", "@jridgewell/sourcemap-codec@^1.5.0":
   version "1.5.5"
   resolved "https://registry.npmjs.org/@jridgewell/sourcemap-codec/-/sourcemap-codec-1.5.5.tgz"
   integrity sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==
@@ -2586,17 +2599,17 @@
   resolved "https://registry.npmjs.org/@opentelemetry/semantic-conventions/-/semantic-conventions-1.41.1.tgz"
   integrity sha512-/UhIkaZgPutTFmQ7RnIJGgDXZmtEJ7Dvi86xNTFWcnRxVRNk/aotsqDJYeEvDP+FSMB2SdW+pQzNMcWP0rwuNA==
 
-"@posthog/core@1.29.1":
-  version "1.29.1"
-  resolved "https://registry.yarnpkg.com/@posthog/core/-/core-1.29.1.tgz#8934ab202d1a6ff4c8e067d2ba631c4ec03de0d7"
-  integrity sha512-q+/t/DZALr50YTE0dFgfGSS9EgwcyAlqsn+JS61wLkwdcDM5yu/YTDM8oMKmJupsyjSZlVkDuHZAMd4ab7AxzQ==
+"@posthog/core@1.29.5":
+  version "1.29.5"
+  resolved "https://registry.yarnpkg.com/@posthog/core/-/core-1.29.5.tgz#7b3d8f8844140e23e29330f02ce791aa852dd06e"
+  integrity sha512-Jm5AE95EwBRqO6J8+skDufyf5rnEcmOvjYArCKCOzD4mWdH1xGpfcRXj5TEyZII3mD04Kr7pw9aP2ZbAHQGu2A==
   dependencies:
-    "@posthog/types" "1.373.4"
+    "@posthog/types" "1.374.2"
 
-"@posthog/types@1.373.4":
-  version "1.373.4"
-  resolved "https://registry.npmjs.org/@posthog/types/-/types-1.373.4.tgz"
-  integrity sha512-n+0AbGRYYsbi+CQXQi2rF1lwTSyASlaogcw4YSkzB5KeMa4Y6nhNb7+TTnu9aVor+BycsQYCa2OsBrMMbaTekw==
+"@posthog/types@1.374.2":
+  version "1.374.2"
+  resolved "https://registry.yarnpkg.com/@posthog/types/-/types-1.374.2.tgz#b6bd0e17122e8cc6fd1e094dfc4e30ebdeffb1ee"
+  integrity sha512-ZghQSFMi+HFJNPvPjBoyY/jWQ+q6mSQVtWQxOHMSbBidUZjsyYbxYxBFbHy2qWLNe4mEpX+Wqir2Q4I/4AVvJQ==
 
 "@preact/signals-core@^1.14.1":
   version "1.14.2"
@@ -3084,17 +3097,17 @@
   dependencies:
     defer-to-connect "^2.0.0"
 
-"@tanstack/query-core@5.100.10":
-  version "5.100.10"
-  resolved "https://registry.yarnpkg.com/@tanstack/query-core/-/query-core-5.100.10.tgz#aeb34d301fd4ff9762e67dfa018adc33b7a18be4"
-  integrity sha512-8UR0yJR+GiQ40m3lPhUr0xbfAupe6GSQiksSBSa9SM2NjezFyxXCIA69/lz8cSoNKZLrw1/PktIyQBJcVeMi3w==
+"@tanstack/query-core@5.100.11":
+  version "5.100.11"
+  resolved "https://registry.yarnpkg.com/@tanstack/query-core/-/query-core-5.100.11.tgz#fdf273bec49277600311a4c552e2c2d95f4df73b"
+  integrity sha512-lmE0994apShXPj8CUxgx4ch5yUJhE9k/+tVwihBvPOyerACWdBocfFg24t8+0RhtlTd7tEgchDkhlCxNssvDxw==
 
-"@tanstack/react-query@^5.100.6":
-  version "5.100.10"
-  resolved "https://registry.npmjs.org/@tanstack/react-query/-/react-query-5.100.10.tgz"
-  integrity sha512-FLaZf2RCrA/Zgp4aiu5tG3TyasTRO7aZ99skxQpr3Hg/zXOhu6yq5FZCYQ/tRaJtM9ylnoK8tFK7PolXQadv6Q==
+"@tanstack/react-query@^5.100.11":
+  version "5.100.11"
+  resolved "https://registry.yarnpkg.com/@tanstack/react-query/-/react-query-5.100.11.tgz#096005bf2868be2f5798c9a48e8f3f7f08c77f20"
+  integrity sha512-J0f9s5x3LE1450nNNfYx+e/n0DMa0uOBdFJUy5r0RvmsXd4nB/n0rbHtHI1vYXhikNFan+wf51p6Tmp4c8ucrg==
   dependencies:
-    "@tanstack/query-core" "5.100.10"
+    "@tanstack/query-core" "5.100.11"
 
 "@testing-library/jest-native@^5.4.3":
   version "5.4.3"
@@ -7998,18 +8011,18 @@ postcss@~8.4.32:
     picocolors "^1.1.1"
     source-map-js "^1.2.1"
 
-posthog-js@^1.372.5:
-  version "1.373.4"
-  resolved "https://registry.npmjs.org/posthog-js/-/posthog-js-1.373.4.tgz"
-  integrity sha512-6DueUS5KOGZlKsQlelLURmtp9PA52rdCxt/IvuoYKAErlkh2LczogMopUIpeqbwfOnGDQEf8gmDh4z/IFeU4CQ==
+posthog-js@^1.374.2:
+  version "1.374.2"
+  resolved "https://registry.yarnpkg.com/posthog-js/-/posthog-js-1.374.2.tgz#cbcbd90339534f77828cdc570484326dd3f0c7fa"
+  integrity sha512-6z1xGlVocd3NmSZlJNFfpedLIHLcejuuQPxvrpHDvtyVI9tN1NPqbM7T7coXw2It6gdZ/nAgDuZkNxfIut+Spw==
   dependencies:
     "@opentelemetry/api" "^1.9.0"
     "@opentelemetry/api-logs" "^0.208.0"
     "@opentelemetry/exporter-logs-otlp-http" "^0.208.0"
     "@opentelemetry/resources" "^2.2.0"
     "@opentelemetry/sdk-logs" "^0.208.0"
-    "@posthog/core" "1.29.1"
-    "@posthog/types" "1.373.4"
+    "@posthog/core" "1.29.5"
+    "@posthog/types" "1.374.2"
     core-js "^3.38.1"
     dompurify "^3.3.2"
     fflate "^0.4.8"
@@ -9602,7 +9615,12 @@ use-callback-ref@^1.3.3:
   dependencies:
     tslib "^2.0.0"
 
-use-latest-callback@0.1.9, use-latest-callback@^0.1.5:
+use-latest-callback@0.3.4:
+  version "0.3.4"
+  resolved "https://registry.yarnpkg.com/use-latest-callback/-/use-latest-callback-0.3.4.tgz#5b70cc91d4cf4ae7b09b5599e37822cc0e604791"
+  integrity sha512-IcR5xK/dJFzUUsAKBqr/mZw4dGPftRdVvx5+cNsLzDlf7V1GPNfnRTjiuTxSsfPtUJGW/KNrScl7xwQoOsvhkg==
+
+use-latest-callback@^0.1.5:
   version "0.1.9"
   resolved "https://registry.npmjs.org/use-latest-callback/-/use-latest-callback-0.1.9.tgz"
   integrity sha512-CL/29uS74AwreI/f2oz2hLTW7ZqVeV5+gxFeGudzQrgkCytrHw33G4KbnQOrRlAEzzAFXi7dDLMC9zhWcVpzmw==
