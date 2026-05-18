@@ -23,6 +23,7 @@ import {
   Image,
   useWindowDimensions,
   Pressable,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -199,41 +200,43 @@ export default function LandingPage() {
         ref={(r) => {
           scrollRef.current = r;
         }}
-        contentContainerStyle={{ paddingTop: 72 }}
+        contentContainerStyle={{ paddingTop: 72, flexGrow: 1 }}
         showsVerticalScrollIndicator
         nativeID="landing-scroll"
       >
-        {/* HERO */}
-        <View onLayout={setPos('hero')}>
-          <Hero
-            isMd={isMd}
-            isSm={isSm}
-            onGetStarted={() => router.push('/(auth)/email-detect')}
-            onExploreEvents={() => scrollTo('events')}
-          />
+        <View style={{ flex: 1 }}>
+          {/* HERO */}
+          <View onLayout={setPos('hero')}>
+            <Hero
+              isMd={isMd}
+              isSm={isSm}
+              onGetStarted={() => router.push('/(auth)/email-detect')}
+              onExploreEvents={() => scrollTo('events')}
+            />
+          </View>
+
+          {/* FEATURE BLOCK 1 — Everything You Need, One Platform */}
+          <FeaturesEverythingNeed isMd={isMd} />
+
+          {/* FEATURE BLOCK 2 — Network & Connect / Launch Startups / Verified */}
+          <FeaturesNetwork isMd={isMd} />
+
+          {/* UPCOMING EVENTS */}
+          <View onLayout={setPos('events')}>
+            <UpcomingEvents
+              isMd={isMd}
+              onViewAll={() => router.push('/events')}
+            />
+          </View>
+
+          {/* SERVICES */}
+          <View onLayout={setPos('services')}>
+            <ServicesSection isMd={isMd} onLearnMore={() => router.push('/(auth)/email-detect')} />
+          </View>
+
+          {/* CTA */}
+          <CtaSection onGetStarted={() => router.push('/(auth)/email-detect')} />
         </View>
-
-        {/* FEATURE BLOCK 1 — Everything You Need, One Platform */}
-        <FeaturesEverythingNeed isMd={isMd} />
-
-        {/* FEATURE BLOCK 2 — Network & Connect / Launch Startups / Verified */}
-        <FeaturesNetwork isMd={isMd} />
-
-        {/* UPCOMING EVENTS */}
-        <View onLayout={setPos('events')}>
-          <UpcomingEvents
-            isMd={isMd}
-            onViewAll={() => router.push('/events')}
-          />
-        </View>
-
-        {/* SERVICES */}
-        <View onLayout={setPos('services')}>
-          <ServicesSection isMd={isMd} onLearnMore={() => router.push('/(auth)/email-detect')} />
-        </View>
-
-        {/* CTA */}
-        <CtaSection onGetStarted={() => router.push('/(auth)/email-detect')} />
 
         {/* FOOTER */}
         <Footer
@@ -885,6 +888,7 @@ function OutlineButton({
 const styles = StyleSheet.create({
   page: {
     flex: 1,
+    ...(Platform.OS === 'web' ? ({ minHeight: '100vh' } as any) : {}),
   },
   bgBlobs: {
     position: 'absolute',
