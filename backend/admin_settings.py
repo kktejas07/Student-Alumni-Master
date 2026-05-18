@@ -16,6 +16,7 @@ from __future__ import annotations
 import os
 from datetime import datetime, timezone
 from typing import Optional, Any, Dict, List
+from uuid import uuid4
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Header, Body, Request
@@ -1572,6 +1573,23 @@ PAGE_SCHEMA = {
 }
 
 
+@router.get("/pages/{page_key}")
+async def get_public_page(page_key: str):
+    """Public endpoint to fetch a single page's content by key."""
+    if page_key not in PAGE_SCHEMA:
+        raise HTTPException(404, "Page not found")
+    doc = await _db.pages.find_one({"key": page_key})
+    if not doc or not doc.get("active", True):
+        raise HTTPException(404, "Page not found or not published")
+    return {
+        "key": page_key,
+        "title": PAGE_SCHEMA[page_key]["title"],
+        "route": PAGE_SCHEMA[page_key]["route"],
+        "content": doc.get("content", ""),
+        "updated_at": str(doc.get("updated_at", "")),
+    }
+
+
 @router.get("/admin/pages")
 async def list_pages(authorization: Optional[str] = Header(None)):
     """Return all static pages with their editable content from DB."""
@@ -1609,3 +1627,58 @@ async def update_page(page_key: str, body: PageUpdate, authorization: Optional[s
         upsert=True,
     )
     return {"status": "ok", "key": page_key, "updated": True}
+
+
+class AiAssistRequest(BaseModel):
+    prompt: str
+    current_content: str = ""
+
+
+@router.post("/admin/pages/ai-assist")
+async def pages_ai_assist(body: AiAssistRequest, authorization: Optional[str] = Header(None)):
+    """AI-powered content generation/rewrite for static pages."""
+    await _require_admin(authorization)
+
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+    except ImportError:
+        raise HTTPException(500, "AI assistant not available in this environment")
+
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        raise HTTPException(500, "AI provider not configured")
+
+    system = (
+        "You are a content editor assistant for an Indian student alumni platform. "
+        "Generate clean, professional HTML content. Use <h1>, <h2>, <h3>, <p>, <ul>, <ol>, <li>, "
+        "<blockquote>, <strong>, <em>, <u> tags only. "
+        "Return ONLY the HTML body content — no <html>, <head>, or <body> wrappers, no markdown fences."
+    )
+
+    if body.current_content:
+        prompt = (
+            f"Current page content:\n{body.current_content}\n\n"
+            f"User request: {body.prompt}\n\n"
+            f"Rewrite or extend the content based on the user request."
+        )
+    else:
+        prompt = body.prompt
+
+    chat = (
+        LlmChat(
+            api_key=api_key,
+            session_id=f"pages-ai-{uuid4().hex[:8]}",
+            system_message=system,
+        )
+        .with_model("anthropic", "claude-sonnet-4-5-20250929")
+    )
+
+    try:
+        reply = await chat.send_message(UserMessage(text=prompt))
+        text = (reply or "").strip()
+        text = text.strip("```html").strip("```").strip()
+        if not text:
+            text = "<p>Generated content placeholder.</p>"
+        return {"content": text}
+    except Exception as e:
+        raise HTTPException(502, f"AI generation failed: {e}")
