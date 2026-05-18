@@ -1,164 +1,187 @@
 // @ts-nocheck
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform, TextInput as RNTextInput, Modal, ActivityIndicator } from 'react-native';
-import { LexicalComposer } from '@lexical/react/LexicalComposer';
-import { ContentEditable } from '@lexical/react/LexicalContentEditable';
-import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
-import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
-import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
-import { ListPlugin } from '@lexical/react/LexicalListPlugin';
-import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from '@lexical/html';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
-  $getRoot, $getSelection, $isRangeSelection,
-  FORMAT_TEXT_COMMAND, FORMAT_ELEMENT_COMMAND,
-  COMMAND_PRIORITY_EDITOR,
-  SELECTION_CHANGE_COMMAND,
-} from 'lexical';
-import { INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND } from '@lexical/list';
-import { $setBlocksType } from '@lexical/selection';
-import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text';
-import {
   Bold, Italic, Underline, Strikethrough, List, ListOrdered,
-  Heading1, Heading2, Quote, Undo, Redo, WrapText, Sparkles,
-  AlignLeft, AlignCenter, AlignRight, X, Send,
+  Heading1, Heading2, Quote, Undo, Redo, Sparkles, X, Send,
 } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import { request } from '@/src/models/services/api';
 
-const EDITOR_THEME = {
-  ltr: 'lex-ltr',
-  rtl: 'lex-rtl',
-  paragraph: 'lex-p',
-  heading: {
-    h1: 'lex-h1',
-    h2: 'lex-h2',
-    h3: 'lex-h3',
-  },
-  quote: 'lex-quote',
-  list: {
-    ul: 'lex-ul',
-    ol: 'lex-ol',
-    listitem: 'lex-li',
-  },
-  text: {
-    bold: 'lex-bold',
-    italic: 'lex-italic',
-    underline: 'lex-underline',
-    strikethrough: 'lex-strikethrough',
-  },
-};
-
-const editorStyles = Platform.OS === 'web' ? `
-  .lex-editor-container { position: relative; border-radius: 10px; overflow: hidden; }
-  .lex-editor-input { min-height: 400px; padding: 16px; font-family: 'DMSans_400Regular', sans-serif; font-size: 14px; line-height: 1.6; color: #e2e8f0; outline: none; resize: vertical; }
-  .lex-editor-input p { margin: 0 0 8px; }
-  .lex-editor-input h1 { font-size: 24px; font-weight: 700; margin: 16px 0 8px; color: #fff; }
-  .lex-editor-input h2 { font-size: 20px; font-weight: 700; margin: 14px 0 6px; color: #fff; }
-  .lex-editor-input h3 { font-size: 17px; font-weight: 600; margin: 12px 0 4px; color: #f1f5f9; }
-  .lex-editor-input ul, .lex-editor-input ol { margin: 4px 0; padding-left: 24px; }
-  .lex-editor-input li { margin: 2px 0; }
-  .lex-editor-input blockquote { border-left: 3px solid #F59E0B; padding-left: 12px; margin: 8px 0; color: #94a3b8; font-style: italic; }
-  .lex-bold { font-weight: 700; }
-  .lex-italic { font-style: italic; }
-  .lex-underline { text-decoration: underline; }
-  .lex-strikethrough { text-decoration: line-through; }
-  .lex-placeholder { position: absolute; top: 16px; left: 16px; color: #64748b; font-family: 'DMSans_400Regular', sans-serif; font-size: 14px; pointer-events: none; user-select: none; }
-` : '';
-
-function Toolbar() {
-  const [editor] = useLexicalComposerContext();
-  const [isBold, setIsBold] = useState(false);
-  const [isItalic, setIsItalic] = useState(false);
-  const [isUnderline, setIsUnderline] = useState(false);
-  const [isStrikethrough, setIsStrikethrough] = useState(false);
+export default function LexicalEditor({ value, onChange }: { value: string; onChange: (html: string) => void }) {
+  const contentRef = useRef(value);
+  const editorRef = useRef<HTMLDivElement | null>(null);
+  const [aiModalVisible, setAiModalVisible] = useState(false);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
 
   useEffect(() => {
-    return editor.registerCommand(
-      SELECTION_CHANGE_COMMAND,
-      () => {
-        const selection = $getSelection();
-        if ($isRangeSelection(selection)) {
-          setIsBold(selection.hasFormat('bold'));
-          setIsItalic(selection.hasFormat('italic'));
-          setIsUnderline(selection.hasFormat('underline'));
-          setIsStrikethrough(selection.hasFormat('strikethrough'));
-        }
-        return false;
-      },
-      COMMAND_PRIORITY_EDITOR,
-    );
-  }, [editor]);
+    contentRef.current = value;
+  }, [value]);
 
-  const buttons = [
-    { icon: Bold, action: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold'), active: isBold },
-    { icon: Italic, action: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic'), active: isItalic },
-    { icon: Underline, action: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline'), active: isUnderline },
-    { icon: Strikethrough, action: () => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough'), active: isStrikethrough },
-    { icon: Heading1, action: () => editor.update(() => { $setBlocksType($getSelection(), () => $createHeadingNode('h1')); }) },
-    { icon: Heading2, action: () => editor.update(() => { $setBlocksType($getSelection(), () => $createHeadingNode('h2')); }) },
-    { icon: Quote, action: () => editor.update(() => { $setBlocksType($getSelection(), () => $createQuoteNode()); }) },
-    { icon: List, action: () => editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined) },
-    { icon: ListOrdered, action: () => editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined) },
-  ];
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const el = document.createElement('style');
+    el.textContent = EDITOR_CSS;
+    document.head.appendChild(el);
+    return () => { el.remove(); };
+  }, []);
+
+  const injectHTML = () => {
+    if (editorRef.current && contentRef.current) {
+      editorRef.current.innerHTML = contentRef.current;
+    }
+  };
+
+  const onMount = (el: HTMLDivElement | null) => {
+    if (!el) return;
+    editorRef.current = el;
+    el.innerHTML = contentRef.current || '';
+    el.addEventListener('input', () => {
+      onChange(el.innerHTML);
+      updateUndoRedo();
+    });
+    el.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          document.execCommand('redo');
+        } else {
+          document.execCommand('undo');
+        }
+        updateUndoRedo();
+        onChange(el.innerHTML);
+      }
+    });
+  };
+
+  const updateUndoRedo = () => {
+    try {
+      setCanUndo(document.queryCommandEnabled('undo'));
+      setCanRedo(document.queryCommandEnabled('redo'));
+    } catch {}
+  };
+
+  const exec = (cmd: string, val?: string) => {
+    document.execCommand(cmd, false, val);
+    const el = editorRef.current;
+    if (el) {
+      el.focus();
+      onChange(el.innerHTML);
+      updateUndoRedo();
+    }
+  };
+
+  const handleHeading = (tag: string) => {
+    document.execCommand('formatBlock', false, `<${tag}>`);
+    const el = editorRef.current;
+    if (el) {
+      el.focus();
+      onChange(el.innerHTML);
+    }
+  };
+
+  const handleAiAssist = async (prompt: string) => {
+    const resp = await request<{ content: string }>('/admin/pages/ai-assist', {
+      method: 'POST',
+      body: { prompt, current_content: contentRef.current },
+    });
+    if (resp?.content && editorRef.current) {
+      editorRef.current.innerHTML = resp.content;
+      onChange(resp.content);
+    }
+  };
+
+  if (Platform.OS !== 'web') {
+    return (
+      <RNTextInput
+        style={fallbackStyle.input}
+        multiline
+        value={value}
+        onChangeText={onChange}
+        placeholder="Enter HTML content..."
+        placeholderTextColor="#64748b"
+      />
+    );
+  }
 
   return (
-    <View style={tb.toolbar}>
-      <View style={tb.group}>
-        {buttons.map((b, i) => (
-          <Pressable key={i} onPress={b.action} style={[tb.btn, b.active && tb.btnActive]}>
-            <b.icon size={15} color={b.active ? '#F59E0B' : '#94a3b8'} />
+    <View>
+      {/* Invisible toolbar placeholder for execCommand */}
+      <View style={wrap.toolbar}>
+        <View style={wrap.group}>
+          <Pressable key="bold" onPress={() => exec('bold')} style={wrap.btn}>
+            <Bold size={15} color="#94a3b8" />
           </Pressable>
-        ))}
+          <Pressable key="italic" onPress={() => exec('italic')} style={wrap.btn}>
+            <Italic size={15} color="#94a3b8" />
+          </Pressable>
+          <Pressable key="underline" onPress={() => exec('underline')} style={wrap.btn}>
+            <Underline size={15} color="#94a3b8" />
+          </Pressable>
+          <Pressable key="strike" onPress={() => exec('strikeThrough')} style={wrap.btn}>
+            <Strikethrough size={15} color="#94a3b8" />
+          </Pressable>
+          <View style={{ width: 1, height: 20, backgroundColor: '#334155', marginHorizontal: 4 }} />
+          <Pressable key="h1" onPress={() => handleHeading('h1')} style={wrap.btn}>
+            <Heading1 size={15} color="#94a3b8" />
+          </Pressable>
+          <Pressable key="h2" onPress={() => handleHeading('h2')} style={wrap.btn}>
+            <Heading2 size={15} color="#94a3b8" />
+          </Pressable>
+          <Pressable key="blockquote" onPress={() => exec('formatBlock', '<blockquote>')} style={wrap.btn}>
+            <Quote size={15} color="#94a3b8" />
+          </Pressable>
+          <View style={{ width: 1, height: 20, backgroundColor: '#334155', marginHorizontal: 4 }} />
+          <Pressable key="ul" onPress={() => exec('insertUnorderedList')} style={wrap.btn}>
+            <List size={15} color="#94a3b8" />
+          </Pressable>
+          <Pressable key="ol" onPress={() => exec('insertOrderedList')} style={wrap.btn}>
+            <ListOrdered size={15} color="#94a3b8" />
+          </Pressable>
+        </View>
+        <View style={wrap.group}>
+          <Pressable key="undo" onPress={() => {
+            document.execCommand('undo');
+            const el = editorRef.current;
+            if (el) { onChange(el.innerHTML); updateUndoRedo(); }
+          }} style={[wrap.btn, !canUndo && { opacity: 0.3 }]} disabled={!canUndo}>
+            <Undo size={15} color="#94a3b8" />
+          </Pressable>
+          <Pressable key="redo" onPress={() => {
+            document.execCommand('redo');
+            const el = editorRef.current;
+            if (el) { onChange(el.innerHTML); updateUndoRedo(); }
+          }} style={[wrap.btn, !canRedo && { opacity: 0.3 }]} disabled={!canRedo}>
+            <Redo size={15} color="#94a3b8" />
+          </Pressable>
+          <Pressable key="ai" onPress={() => setAiModalVisible(true)} style={wrap.aiBtn}>
+            <Sparkles size={14} color="#F59E0B" />
+            <Text style={wrap.aiLabel}>AI Assist</Text>
+          </Pressable>
+        </View>
       </View>
-      <View style={tb.group}>
-        <Pressable onPress={() => editor.undo()} style={tb.btn}>
-          <Undo size={15} color="#94a3b8" />
-        </Pressable>
-        <Pressable onPress={() => editor.redo()} style={tb.btn}>
-          <Redo size={15} color="#94a3b8" />
-        </Pressable>
+      <View
+        ref={onMount}
+        contentEditable
+        suppressContentEditableWarning
+        className="lex-editor-input"
+        style={wrap.editorBox as any}
+        data-placeholder="Start writing..."
+      />
+      <View style={wrap.hintBar}>
+        <Text style={wrap.hint}>Supports headings, lists, bold, italic & more</Text>
       </View>
+      <AiPromptModal
+        visible={aiModalVisible}
+        onClose={() => setAiModalVisible(false)}
+        onSend={handleAiAssist}
+      />
     </View>
   );
 }
-
-const tb = StyleSheet.create({
-  toolbar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 8, paddingVertical: 6,
-    backgroundColor: '#1e293b', borderBottomWidth: 1, borderBottomColor: '#334155',
-    borderTopLeftRadius: 10, borderTopRightRadius: 10,
-    flexWrap: 'wrap', gap: 4,
-  },
-  group: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  btn: {
-    width: 30, height: 30, borderRadius: 6,
-    alignItems: 'center', justifyContent: 'center',
-    ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '120ms' } : {}),
-  },
-  btnActive: { backgroundColor: 'rgba(245,158,11,0.15)' },
-});
-
-function AiAssistButton({ onAiAssist }: { onAiAssist: () => void }) {
-  return (
-    <Pressable onPress={onAiAssist} style={aiBtn.btn}>
-      <Sparkles size={14} color="#F59E0B" />
-      <Text style={aiBtn.label}>AI Assist</Text>
-    </Pressable>
-  );
-}
-
-const aiBtn = StyleSheet.create({
-  btn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, height: 28, borderRadius: 999,
-    backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)',
-    ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '120ms' } : {}),
-  },
-  label: { color: '#F59E0B', fontFamily: FONTS.bold, fontSize: 11 },
-});
 
 function AiPromptModal({ visible, onClose, onSend }: { visible: boolean; onClose: () => void; onSend: (prompt: string) => Promise<void> }) {
   const [prompt, setPrompt] = useState('');
@@ -217,6 +240,83 @@ function AiPromptModal({ visible, onClose, onSend }: { visible: boolean; onClose
   );
 }
 
+const EDITOR_CSS = `
+  .lex-editor-input {
+    min-height: 400px;
+    padding: 16px;
+    font-family: 'DMSans_400Regular', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #e2e8f0;
+    outline: none;
+    background-color: #0f172a;
+    border: 1px solid #334155;
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    resize: vertical;
+    cursor: text;
+  }
+  .lex-editor-input:focus {
+    border-color: #F59E0B;
+  }
+  .lex-editor-input:empty:before {
+    content: attr(data-placeholder);
+    color: #64748b;
+    pointer-events: none;
+  }
+  .lex-editor-input p { margin: 0 0 8px; }
+  .lex-editor-input h1 { font-size: 24px; font-weight: 700; margin: 16px 0 8px; color: #fff; }
+  .lex-editor-input h2 { font-size: 20px; font-weight: 700; margin: 14px 0 6px; color: #fff; }
+  .lex-editor-input ul, .lex-editor-input ol { margin: 4px 0; padding-left: 24px; }
+  .lex-editor-input li { margin: 2px 0; }
+  .lex-editor-input blockquote { border-left: 3px solid #F59E0B; padding-left: 12px; margin: 8px 0; color: #94a3b8; font-style: italic; }
+`;
+
+const wrap = StyleSheet.create({
+  toolbar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 8, paddingVertical: 6,
+    backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155',
+    borderTopLeftRadius: 10, borderTopRightRadius: 10,
+    flexWrap: 'wrap', gap: 4,
+  },
+  group: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  btn: {
+    width: 30, height: 30, borderRadius: 6,
+    alignItems: 'center', justifyContent: 'center',
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}),
+  },
+  editorBox: {
+    minHeight: 400,
+    borderRadius: 0,
+    overflow: 'hidden',
+  },
+  hintBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
+    paddingHorizontal: 10, paddingVertical: 8,
+    backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155', borderTopWidth: 0,
+    borderBottomLeftRadius: 10, borderBottomRightRadius: 10,
+  },
+  hint: { color: '#64748b', fontFamily: FONTS.med, fontSize: 10.5 },
+  aiBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, height: 28, borderRadius: 999,
+    backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)',
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}),
+  },
+  aiLabel: { color: '#F59E0B', fontFamily: FONTS.bold, fontSize: 11 },
+});
+
+const fallbackStyle = StyleSheet.create({
+  input: {
+    minHeight: 400, paddingHorizontal: 12, paddingTop: 10,
+    color: '#e2e8f0', fontFamily: FONTS.med, fontSize: 13,
+    backgroundColor: '#0f172a', borderColor: '#334155', borderWidth: 1, borderRadius: 10,
+    textAlignVertical: 'top',
+    ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
+  },
+});
+
 const aim = StyleSheet.create({
   backdrop: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
@@ -234,7 +334,11 @@ const aim = StyleSheet.create({
     padding: 16, borderBottomWidth: 1, borderBottomColor: '#334155',
   },
   title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
-  closeBtn: { width: 28, height: 28, borderRadius: 7, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}) },
+  closeBtn: {
+    width: 28, height: 28, borderRadius: 7,
+    alignItems: 'center', justifyContent: 'center',
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}),
+  },
   body: { padding: 16, gap: 12 },
   desc: { color: '#94a3b8', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18 },
   input: {
@@ -261,161 +365,4 @@ const aim = StyleSheet.create({
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}),
   },
   sendText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
-});
-
-class LexicalErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-  static getDerivedStateFromError() { return { hasError: true }; }
-  componentDidCatch(error: Error) { console.error('LexicalEditor crash:', error); }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <View style={{ padding: 20, gap: 8 }}>
-          <Text style={{ color: '#ef4444', fontFamily: FONTS.bold, fontSize: 13 }}>Editor failed to load</Text>
-          <Text style={{ color: '#94a3b8', fontFamily: FONTS.med, fontSize: 11 }}>Close and try again, or use the mobile editor.</Text>
-        </View>
-      );
-    }
-    return this.props.children;
-  }
-}
-
-export default function LexicalEditor({ value, onChange }: { value: string; onChange: (html: string) => void }) {
-  const [editorRef, setEditorRef] = useState<any>(null);
-  const [aiModalVisible, setAiModalVisible] = useState(false);
-  const contentRef = useRef(value);
-
-  useEffect(() => {
-    contentRef.current = value;
-  }, [value]);
-
-  const initialConfig = {
-    namespace: 'PagesEditor',
-    theme: EDITOR_THEME,
-    onError: (error: any) => console.error(error),
-  };
-
-  const handleChange = useCallback((editorState: any, editor: any) => {
-    editorState.read(() => {
-      const html = $generateHtmlFromNodes(editor);
-      onChange(html);
-    });
-  }, [onChange]);
-
-  const handleAiAssist = async (prompt: string) => {
-    if (!editorRef) return;
-    const currentHtml = contentRef.current;
-    const resp = await request<{ content: string }>('/admin/pages/ai-assist', {
-      method: 'POST',
-      body: { prompt, current_content: currentHtml },
-    });
-    if (resp?.content) {
-      editorRef.update(() => {
-        const parser = new DOMParser();
-        const dom = parser.parseFromString(resp.content, 'text/html');
-        const nodes = $generateNodesFromDOM(editorRef, dom);
-        $getRoot().clear().append(...nodes);
-      });
-    }
-  };
-
-  const onEditorReady = (editor: any) => {
-    setEditorRef(editor);
-    if (contentRef.current) {
-      try {
-        editor.update(() => {
-          const parser = new DOMParser();
-          const dom = parser.parseFromString(contentRef.current, 'text/html');
-          const nodes = $generateNodesFromDOM(editor, dom);
-          $getRoot().clear().append(...nodes);
-        });
-      } catch (e) {
-        console.error('Failed to load initial content', e);
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    const el = document.createElement('style');
-    el.textContent = editorStyles;
-    document.head.appendChild(el);
-    return () => { el.remove(); };
-  }, []);
-
-  if (Platform.OS !== 'web') {
-    return (
-      <RNTextInput
-        style={fallbackStyle.input}
-        multiline
-        value={value}
-        onChangeText={onChange}
-        placeholder="Enter HTML content..."
-        placeholderTextColor="#64748b"
-      />
-    );
-  }
-
-  return (
-    <View style={wrap.wrapper}>
-      <LexicalComposer initialConfig={initialConfig}>
-        <Toolbar />
-        <View style={wrap.editorBox}>
-          <LexicalErrorBoundary>
-            <RichTextPlugin
-              contentEditable={<ContentEditable className="lex-editor-input" />}
-              placeholder={<Text style={{
-                position: 'absolute', top: 16, left: 16,
-                color: '#64748b', fontFamily: FONTS.med, fontSize: 14,
-                pointerEvents: 'none', userSelect: 'none',
-              }}>Start writing...</Text>}
-              ErrorBoundary={({ children, onError }) => <>{children}</>}
-            />
-            <HistoryPlugin />
-            <ListPlugin />
-            <LinkPlugin />
-            <OnChangePlugin onChange={handleChange} />
-            <InitializePlugin onInit={onEditorReady} />
-          </LexicalErrorBoundary>
-        </View>
-        <View style={wrap.bottomBar}>
-          <AiAssistButton onAiAssist={() => setAiModalVisible(true)} />
-          <Text style={wrap.hint}>Supports headings, lists, bold, italic & more</Text>
-        </View>
-      </LexicalComposer>
-    </View>
-  );
-}
-
-function InitializePlugin({ onInit }: { onInit: (editor: any) => void }) {
-  const [editor] = useLexicalComposerContext();
-  useEffect(() => { onInit(editor); }, [editor, onInit]);
-  return null;
-}
-
-const wrap = StyleSheet.create({
-  wrapper: {
-    borderRadius: 10, borderWidth: 1, borderColor: '#334155',
-    backgroundColor: '#0f172a', overflow: 'hidden',
-  },
-  editorBox: { position: 'relative', minHeight: 400 },
-  bottomBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 10, paddingVertical: 8,
-    backgroundColor: '#1e293b', borderTopWidth: 1, borderTopColor: '#334155',
-  },
-  hint: { color: '#64748b', fontFamily: FONTS.med, fontSize: 10.5 },
-});
-
-const fallbackStyle = StyleSheet.create({
-  input: {
-    minHeight: 400, paddingHorizontal: 12, paddingTop: 10,
-    color: '#e2e8f0', fontFamily: FONTS.med, fontSize: 13,
-    backgroundColor: '#0f172a', borderColor: '#334155', borderWidth: 1, borderRadius: 10,
-    textAlignVertical: 'top',
-    ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
-  },
 });
