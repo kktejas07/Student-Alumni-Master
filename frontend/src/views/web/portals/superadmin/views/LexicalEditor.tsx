@@ -1,8 +1,6 @@
 // @ts-nocheck
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform, TextInput as RNTextInput, Modal, ActivityIndicator } from 'react-native';
-import { $generateHtmlFromNodes, $generateNodesFromDOM } from '@lexical/html';
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
   Bold, Italic, Underline, Strikethrough, List, ListOrdered,
   Heading1, Heading2, Quote, Undo, Redo, Sparkles, X, Send,
