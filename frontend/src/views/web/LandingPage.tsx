@@ -200,6 +200,7 @@ export default function LandingPage() {
         ref={(r) => {
           scrollRef.current = r;
         }}
+        style={{ flex: 1 }}
         contentContainerStyle={{ paddingTop: 72, flexGrow: 1 }}
         showsVerticalScrollIndicator
         nativeID="landing-scroll"
