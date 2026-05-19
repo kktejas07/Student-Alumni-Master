@@ -65,7 +65,7 @@ export function SuperAdminPortalRN() {
           showsVerticalScrollIndicator={false}
         >
           <PromoBanner portal="super_admin" />
-          {active === 'overview'    && <OverviewView />}
+          {active === 'overview'    && <OverviewView onNavigate={setActive} />}
           {active === 'colleges'    && <CollegesView />}
           {active === 'students'    && <StudentsView />}
           {active === 'mentors'     && <MentorsView />}
