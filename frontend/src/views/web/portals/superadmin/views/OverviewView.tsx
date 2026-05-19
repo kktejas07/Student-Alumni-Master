@@ -31,7 +31,7 @@ const SUPER_MOCK = {
   revenueBreakdown: MOCK.REVENUE_BREAKDOWN,
 };
 
-export function OverviewView() {
+export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void }) {
   const { data } = usePortalData<typeof SUPER_MOCK>('/admin/super-overview', SUPER_MOCK);
   const ADMIN = data!.admin;
   const KPIS = data!.kpis;
@@ -55,11 +55,11 @@ export function OverviewView() {
           <Text style={s.heroKicker}>GOOD MORNING, ADMIN 👋</Text>
           <Text style={s.heroTitle}>Platform is healthy. 12 items need your attention.</Text>
         </View>
-        <GradientButton size="md">
+        <GradientButton size="md" onPress={() => onNavigate?.('approvals')}>
           <CheckCircle size={14} color="#fff" />
           <Text style={s.heroPrimaryText}>Review Approvals</Text>
         </GradientButton>
-        <SecondaryButton size="md">
+        <SecondaryButton size="md" onPress={() => onNavigate?.('analytics')}>
           <FileText size={14} color={SAC.muted} />
           <Text style={s.heroSecText}>Full Report</Text>
         </SecondaryButton>
@@ -89,7 +89,7 @@ export function OverviewView() {
         <View style={[s.card, { flex: stack ? undefined : 1.7 }]}>
           <View style={s.cardHead}>
             <Text style={s.cardTitle}>Recent Activity</Text>
-            <Pressable><Text style={s.linkRight}>View all →</Text></Pressable>
+            <Pressable onPress={() => onNavigate?.('analytics')}><Text style={s.linkRight}>View all →</Text></Pressable>
           </View>
           <View style={{ gap: 14, marginTop: 14 }}>
             {RECENT_ACTIVITY.map((a) => {
