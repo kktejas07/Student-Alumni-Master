@@ -7,6 +7,7 @@ import { Search, Bell } from 'lucide-react-native';
 import { SAC, FONTS } from './tokens';
 import { ADMIN } from './data';
 import { Av } from './atoms';
+import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 
 function today(): string {
   return new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -29,6 +30,8 @@ export function TopBar({ title = 'Overview' }: { title?: string }) {
         <Bell size={16} color={SAC.muted} />
         <View style={s.bellDot} />
       </Pressable>
+
+      <HelpMenu portal="super_admin" />
 
       <Av initials={ADMIN.initials} size={36} color={SAC.primaryD} />
     </View>

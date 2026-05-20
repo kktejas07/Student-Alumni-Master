@@ -5314,6 +5314,20 @@ api_router.include_router(admin_colleges_router)
 from crud_endpoints import router as crud_router
 api_router.include_router(crud_router)
 
+# Collaboration partners (Phase A) — public landing strip + admin CRUD
+from routers.partners import router as partners_router
+app.include_router(partners_router)
+
+# Phase B — consent (privacy/cookies) + product tour status
+from routers.consent import router as consent_router
+from routers.tour import router as tour_router
+app.include_router(consent_router)
+app.include_router(tour_router)
+
+# Phase C — promotional banners (cross-portal)
+from routers.promotions import router as promotions_router
+app.include_router(promotions_router)
+
 app.include_router(api_router)
 
 # ── CORS — origins configurable via env for production deployments ──

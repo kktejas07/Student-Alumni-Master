@@ -16,6 +16,7 @@ from __future__ import annotations
 import os
 from datetime import datetime, timezone
 from typing import Optional, Any, Dict, List
+from uuid import uuid4
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Header, Body, Request
@@ -1562,6 +1563,126 @@ async def get_share_link(authorization: Optional[str] = Header(None)):
 # PAGE MANAGEMENT — Static policy/service pages
 # ═══════════════════════════════════════════════════════════════════════
 
+_PAGE_DEFAULTS = {
+    "privacy": """<h1>Privacy Policy</h1>
+<p>Effective: May 16, 2026</p>
+<p>Student Alumni (&quot;we,&quot; &quot;our,&quot; &quot;us&quot;) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our platform at studentalumni.ai.</p>
+<h2>Information We Collect</h2>
+<p><strong>Personal Data.</strong> We may collect personally identifiable information such as your name, email address, phone number, educational background, professional history, and profile photo when you register or update your profile.</p>
+<p><strong>Usage Data.</strong> We automatically collect information about how you interact with our platform, including pages visited, features used, time spent, and click patterns.</p>
+<p><strong>Device Data.</strong> We collect device information such as browser type, operating system, IP address, and device identifiers for analytics and security purposes.</p>
+<h2>How We Use Your Information</h2>
+<p>We use the collected data to: provide and maintain our platform; personalise your experience; connect you with mentors, alumni, and opportunities; send notifications and updates; improve our services; detect and prevent fraud; comply with legal obligations.</p>
+<h2>Data Sharing &amp; Disclosure</h2>
+<p>We do not sell your personal information. We may share data with: other users within the platform (as part of your profile); service providers who assist in platform operations; law enforcement when required by law; third parties with your explicit consent.</p>
+<h2>Data Security</h2>
+<p>We implement industry-standard security measures including encryption at rest and in transit, regular security audits, access controls, and secure data storage. However, no method of transmission over the Internet is 100% secure.</p>
+<h2>Your Rights</h2>
+<p>You have the right to: access your personal data; correct inaccurate data; delete your account and associated data; restrict processing; data portability; withdraw consent at any time. To exercise these rights, contact us at support@studentalumni.ai.</p>
+<h2>Cookies</h2>
+<p>We use essential cookies for authentication and security. Analytics cookies help us improve the platform. You can control cookie preferences through your browser settings. See our Cookie Policy for details.</p>
+<h2>Third-Party Services</h2>
+<p>Our platform integrates with third-party services including Google, LinkedIn, and payment processors. These services have their own privacy policies governing data handling.</p>
+<h2>Children's Privacy</h2>
+<p>Our platform is not intended for users under 16 years of age. We do not knowingly collect data from minors. If you believe a minor has provided us with data, contact us immediately.</p>
+<h2>Changes to This Policy</h2>
+<p>We may update this Privacy Policy periodically. Material changes will be notified via email or platform notification. Continued use after changes constitutes acceptance.</p>
+<h2>Contact</h2>
+<p>For privacy-related inquiries, contact us at: privacy@studentalumni.ai or write to our registered address.</p>""",
+    "terms": """<h1>Terms of Service</h1>
+<p>Effective: May 16, 2026</p>
+<h2>Acceptance of Terms</h2>
+<p>By accessing or using Student Alumni (&quot;the Platform&quot;), you agree to be bound by these Terms of Service. If you do not agree, do not use the Platform.</p>
+<h2>Account Registration</h2>
+<p>You must register for an account using accurate and complete information. You are responsible for maintaining the confidentiality of your credentials. You must be at least 16 years old to use the Platform.</p>
+<h2>User Conduct</h2>
+<p>You agree not to: impersonate any person or entity; provide false information; harass, abuse, or harm other users; upload malicious content; attempt to access restricted areas; use the Platform for illegal activities; violate any applicable laws.</p>
+<h2>Intellectual Property</h2>
+<p>The Platform and its original content, features, and functionality are owned by Student Alumni and are protected by copyright, trademark, and other intellectual property laws.</p>
+<h2>User Content</h2>
+<p>By posting content on the Platform, you grant us a non-exclusive, royalty-free license to display and distribute your content within the Platform. You retain ownership of your content.</p>
+<h2>Mentor &amp; Student Relationships</h2>
+<p>The Platform facilitates connections between students, alumni, and mentors. We are not responsible for the quality of mentorship or outcomes of mentor-mentee relationships. Users engage at their own discretion.</p>
+<h2>Payments &amp; Refunds</h2>
+<p>Certain features may require payment. All payments are processed securely through third-party payment processors. Refund policies are outlined in our Refund Policy. We reserve the right to change pricing with notice.</p>
+<h2>Limitation of Liability</h2>
+<p>Student Alumni shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the Platform. Our total liability is limited to the amount paid by you in the past 12 months.</p>
+<h2>Termination</h2>
+<p>We may suspend or terminate your account for violation of these terms, illegal activity, or at our discretion with notice. You may delete your account at any time from your profile settings.</p>
+<h2>Governing Law</h2>
+<p>These Terms are governed by the laws of India. Any disputes shall be resolved through binding arbitration in accordance with the Arbitration and Conciliation Act, 1996.</p>
+<h2>Changes to Terms</h2>
+<p>We reserve the right to modify these terms. Material changes will be communicated via email or platform notification. Continued use constitutes acceptance of modified terms.</p>
+<h2>Contact</h2>
+<p>For questions about these Terms, contact us at legal@studentalumni.ai.</p>""",
+    "cookies": """<h1>Cookie Policy</h1>
+<p>Effective: May 16, 2026</p>
+<h2>What Are Cookies</h2>
+<p>Cookies are small text files stored on your device by your web browser. They help us remember your preferences, authenticate your session, and improve your experience on our platform.</p>
+<h2>Types of Cookies We Use</h2>
+<p><strong>Essential Cookies.</strong> Required for the platform to function. They enable secure login, session management, and access to protected areas. These cannot be disabled.</p>
+<p><strong>Analytics Cookies.</strong> Help us understand how users interact with the platform, which features are popular, and where improvements are needed. We use PostHog for analytics.</p>
+<p><strong>Preference Cookies.</strong> Remember your settings, theme preferences, and language choices for a personalised experience.</p>
+<h2>Third-Party Cookies</h2>
+<p>We may use third-party services (Google Analytics, PostHog, Sentry) that set their own cookies. These services have their own cookie policies.</p>
+<h2>Managing Cookies</h2>
+<p>Most browsers allow you to control cookies through settings. Blocking essential cookies may impact platform functionality. You can delete existing cookies through your browser preferences.</p>
+<h2>Data Collected via Cookies</h2>
+<p>Cookies collect information such as page views, session duration, click patterns, and referral URLs. This data is anonymised where possible.</p>
+<h2>Updates</h2>
+<p>We may update this Cookie Policy. Changes will be posted here with an updated effective date.</p>
+<h2>Contact</h2>
+<p>For questions about our use of cookies, contact privacy@studentalumni.ai.</p>""",
+    "refund": """<h1>Refund Policy</h1>
+<p>Effective: May 16, 2026</p>
+<h2>Overview</h2>
+<p>This Refund Policy governs all paid services, subscriptions, and transactions on the Student Alumni platform.</p>
+<h2>Subscription Services</h2>
+<p>Monthly and annual subscriptions can be cancelled at any time. You will continue to have access to paid features until the end of the current billing period. No partial refunds are provided for unused portions of a billing period.</p>
+<h2>One-Time Payments</h2>
+<p>One-time payments for events, workshops, or services are non-refundable unless the event is cancelled by the organiser. If an event is cancelled, you will receive a full refund within 14 business days.</p>
+<h2>Mentor Session Credits</h2>
+<p>SA Credits used for mentor sessions are refundable if the session is cancelled at least 24 hours in advance. Late cancellations or no-shows are non-refundable.</p>
+<h2>Refund Processing</h2>
+<p>Approved refunds are processed within 5-14 business days and will be credited to the original payment method. You will receive a confirmation email once the refund is initiated.</p>
+<h2>Exceptions</h2>
+<p>Refund exceptions may be granted on a case-by-case basis for technical issues, duplicate charges, or extenuating circumstances. Contact support@studentalumni.ai for assistance.</p>
+<h2>Dispute Resolution</h2>
+<p>If you disagree with a refund decision, you may appeal by contacting refunds@studentalumni.ai within 30 days of the transaction. We will review your case within 10 business days.</p>""",
+    "about": """<h1>About Student Alumni</h1>
+<h2>Our Mission</h2>
+<p>Student Alumni bridges the gap between academic life and professional success. We empower students, alumni, mentors, and institutions to connect, collaborate, and grow together.</p>
+<h2>Who We Are</h2>
+<p>We are a team of educators, technologists, and industry professionals passionate about transforming how students transition from campus to career. Our platform serves thousands of users across 74+ partner institutions.</p>
+<h2>What We Offer</h2>
+<ul><li>AI-powered career guidance and mentorship matching</li><li>Professional networking with alumni and industry experts</li><li>Course and skill development recommendations</li><li>Internship and job opportunity marketplace</li><li>Event management and workshop hosting</li><li>College administration and placement tracking</li><li>Digital ID cards and credential verification</li></ul>
+<h2>Our Values</h2>
+<p><strong>Community:</strong> We believe in the power of connections. <strong>Innovation:</strong> We leverage AI to personalise career growth. <strong>Integrity:</strong> We prioritise data privacy and security. <strong>Impact:</strong> Every feature is designed to create real outcomes.</p>
+<h2>Contact</h2>
+<p>Email: hello@studentalumni.ai<br/>Platform: studentalumni.ai</p>""",
+    "faq": """<h1>Frequently Asked Questions</h1>
+<h2>What is Student Alumni?</h2>
+<p>Student Alumni is a platform that connects students with alumni, mentors, colleges, and employers. It provides tools for career development, networking, events, mentorship, and professional growth.</p>
+<h2>Who can join Student Alumni?</h2>
+<p>Students, alumni, mentors, and college administrators can join. Students must be enrolled in a partner institution. Alumni must have graduated from a partner institution.</p>
+<h2>Is the platform free?</h2>
+<p>Basic features are free for all users. Premium features such as AI career coaching, advanced analytics, and priority mentorship may require a subscription or one-time payment.</p>
+<h2>How do I reset my password?</h2>
+<p>Go to the login page and click &quot;Forgot Password&quot;. Enter your registered email and we will send you a password reset link. The link expires in 1 hour.</p>
+<h2>How does mentorship work?</h2>
+<p>Students can browse mentors by industry, expertise, or institution. They can request sessions based on mentor availability. Sessions can be online or in-person. Mentors set their own schedules.</p>
+<h2>How do I earn SA Credits?</h2>
+<p>SA Credits are earned through platform activities: completing your profile, attending events, participating in mentorship sessions, referring friends, and engaging with content.</p>
+<h2>Can I delete my account?</h2>
+<p>Yes. Go to Profile Settings &gt; Account &gt; Delete Account. This will permanently remove your data from our platform. Some data may be retained for legal compliance.</p>
+<h2>How is my data protected?</h2>
+<p>We use encryption, access controls, and regular security audits to protect your data. We never sell your personal information. See our Privacy Policy for details.</p>
+<h2>How do I become a mentor?</h2>
+<p>Register as a mentor during sign-up or change your role in settings. Complete your mentor profile with expertise, experience, and availability. Admin approval may be required.</p>
+<h2>How do colleges use the platform?</h2>
+<p>Colleges can manage student rosters, track placements, publish events and announcements, and view analytics about student engagement and outcomes.</p>""",
+}
+
 PAGE_SCHEMA = {
     "privacy": {"title": "Privacy Policy", "route": "/policy/privacy"},
     "terms": {"title": "Terms of Service", "route": "/policy/terms"},
@@ -1570,6 +1691,29 @@ PAGE_SCHEMA = {
     "about": {"title": "About Us", "route": "/about"},
     "faq": {"title": "FAQ", "route": "/faq"},
 }
+
+def _page_content(doc: dict, page_key: str) -> str:
+    """Return DB content if available, otherwise the default HTML."""
+    return doc.get("content") or _PAGE_DEFAULTS.get(page_key, "")
+
+
+@router.get("/pages/{page_key}")
+async def get_public_page(page_key: str):
+    """Public endpoint to fetch a single page's content by key."""
+    if page_key not in PAGE_SCHEMA:
+        raise HTTPException(404, "Page not found")
+    doc = await _db.pages.find_one({"key": page_key})
+    if doc is None:
+        doc = {}
+    if not doc.get("active", True):
+        raise HTTPException(404, "Page not found or not published")
+    return {
+        "key": page_key,
+        "title": PAGE_SCHEMA[page_key]["title"],
+        "route": PAGE_SCHEMA[page_key]["route"],
+        "content": _page_content(doc, page_key),
+        "updated_at": str(doc.get("updated_at", "")),
+    }
 
 
 @router.get("/admin/pages")
@@ -1585,7 +1729,7 @@ async def list_pages(authorization: Optional[str] = Header(None)):
             "key": key,
             "title": meta["title"],
             "route": meta["route"],
-            "content": doc.get("content", ""),
+            "content": _page_content(doc, key),
             "active": doc.get("active", True),
             "updated_at": str(doc.get("updated_at", "")),
         })
@@ -1609,3 +1753,58 @@ async def update_page(page_key: str, body: PageUpdate, authorization: Optional[s
         upsert=True,
     )
     return {"status": "ok", "key": page_key, "updated": True}
+
+
+class AiAssistRequest(BaseModel):
+    prompt: str
+    current_content: str = ""
+
+
+@router.post("/admin/pages/ai-assist")
+async def pages_ai_assist(body: AiAssistRequest, authorization: Optional[str] = Header(None)):
+    """AI-powered content generation/rewrite for static pages."""
+    await _require_admin(authorization)
+
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+    except ImportError:
+        raise HTTPException(500, "AI assistant not available in this environment")
+
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        raise HTTPException(500, "AI provider not configured")
+
+    system = (
+        "You are a content editor assistant for an Indian student alumni platform. "
+        "Generate clean, professional HTML content. Use <h1>, <h2>, <h3>, <p>, <ul>, <ol>, <li>, "
+        "<blockquote>, <strong>, <em>, <u> tags only. "
+        "Return ONLY the HTML body content — no <html>, <head>, or <body> wrappers, no markdown fences."
+    )
+
+    if body.current_content:
+        prompt = (
+            f"Current page content:\n{body.current_content}\n\n"
+            f"User request: {body.prompt}\n\n"
+            f"Rewrite or extend the content based on the user request."
+        )
+    else:
+        prompt = body.prompt
+
+    chat = (
+        LlmChat(
+            api_key=api_key,
+            session_id=f"pages-ai-{uuid4().hex[:8]}",
+            system_message=system,
+        )
+        .with_model("anthropic", "claude-sonnet-4-5-20250929")
+    )
+
+    try:
+        reply = await chat.send_message(UserMessage(text=prompt))
+        text = (reply or "").strip()
+        text = text.strip("```html").strip("```").strip()
+        if not text:
+            text = "<p>Generated content placeholder.</p>"
+        return {"content": text}
+    except Exception as e:
+        raise HTTPException(502, f"AI generation failed: {e}")

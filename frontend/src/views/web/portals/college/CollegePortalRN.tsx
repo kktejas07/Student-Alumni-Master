@@ -11,6 +11,8 @@ import { Sidebar, CollegeNavId, NAV } from './Sidebar';
 import { TopBar } from './TopBar';
 import { AnimatedAurora, GridOverlay } from '../student/glass';
 import { LinearGradient } from 'expo-linear-gradient';
+import { DashboardFooter } from '../../components/SponsorStrip';
+import { PromoBanner } from '../../components/PromoBanner';
 import { DashboardView } from './views/DashboardView';
 import { StubView } from './views/StubView';
 import { StudentsView } from './views/StudentsView';
@@ -26,11 +28,13 @@ import { ProfileView } from './views/ProfileView';
 // Shared role-aware comprehensive profile view (purple theme, identical to student).
 import { ProfileSettingsView as SharedProfileSettingsView } from '../student/views/ProfileSettingsView';
 import { CreateEventView } from './views/CreateEventView';
+import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 
 export function CollegePortalRN() {
   const router = useRouter();
   const logout = useAuthStore((sx) => sx.logout);
   const [active, setActive] = useState<CollegeNavId>('dashboard');
+  useAutoTour('college');
 
   const onLogout = async () => {
     try { await logout(); } catch {}
@@ -59,6 +63,7 @@ export function CollegePortalRN() {
           contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
           showsVerticalScrollIndicator={false}
         >
+          <PromoBanner portal="college" />
           {active === 'dashboard'    && <DashboardView />}
           {active === 'students'     && <StudentsView />}
           {active === 'alumni'       && <AlumniView />}
@@ -71,6 +76,7 @@ export function CollegePortalRN() {
           {active === 'career-intel' && <CareerIntelView />}
           {active === 'placements'   && <PlacementsView />}
           {active === 'profile'      && <SharedProfileSettingsView roleOverride="college" />}
+          <DashboardFooter portal="college" />
         </ScrollView>
       </View>
     </View>

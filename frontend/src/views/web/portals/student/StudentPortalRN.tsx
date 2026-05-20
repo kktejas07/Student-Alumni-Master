@@ -16,12 +16,15 @@ import { ThemeProvider, useTheme } from '@/src/theme/ThemeContext';
 import { useBreakpoint } from '@/src/theme/breakpoints';
 import { SP } from '@/src/theme/apple';
 import { ToastProvider } from '@/src/motion/apple/toast';
+import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 
 import { Sidebar, StudentNavId } from './Sidebar';
 import { TopBar } from './TopBar';
 import { AnimatedAurora, GridOverlay, RouteTransition, AiCopilotFab } from './glass';
 import { PALETTE } from './tokens';
 import { LinearGradient } from 'expo-linear-gradient';
+import { DashboardFooter } from '../../components/SponsorStrip';
+import { PromoBanner } from '../../components/PromoBanner';
 import { DashboardView } from './views/DashboardView';
 import { CareerAIView } from './views/CareerAIView';
 import { EventsView } from './views/EventsView';
@@ -71,6 +74,8 @@ function PortalShell() {
   const logout = useAuthStore((sx) => sx.logout);
   const [active, setActive] = useState<StudentNavId>('dashboard');
   const [scrolled, setScrolled] = useState(false);
+  // Phase B — auto-launch the Student portal tour on first visit
+  useAutoTour('student');
 
   const onLogout = async () => {
     try { await logout(); } catch {}
@@ -110,24 +115,26 @@ function PortalShell() {
         >
           <StudentPortalNavContext.Provider value={{ navigate: handleNav }}>
             <EmbeddedShellContext.Provider value={true}>
-            <RouteTransition deps={[active]}>
-              {active === 'dashboard'       && <DashboardView />}
-              {active === 'career-ai'       && <CareerAIView />}
-              {active === 'internships'     && <InternshipsView />}
-              {active === 'my-applications' && <MyApplicationsView />}
-              {active === 'network'         && <NetworkView />}
-              {active === 'my-bookings'     && <MyBookingsView />}
-              {active === 'events'          && <EventsView />}
-              {active === 'my-workshops'    && <MyWorkshopsView />}
-              {active === 'courses'         && <CoursesPage />}
-              {active === 'financial'       && <FinancialPage />}
-              {active === 'deals'           && <DealsPage />}
-              {active === 'wallet'          && <WalletPage />}
-              {active === 'higher-ed'       && <HigherEducationPage />}
-              {active === 'rentals'         && <RentalsPage />}
-              {active === 'profile'         && <ProfileSettingsView />}
-            </RouteTransition>
-          </EmbeddedShellContext.Provider>
+              <PromoBanner portal="student" />
+              <RouteTransition deps={[active]}>
+                {active === 'dashboard'       && <DashboardView />}
+                {active === 'career-ai'       && <CareerAIView />}
+                {active === 'internships'     && <InternshipsView />}
+                {active === 'my-applications' && <MyApplicationsView />}
+                {active === 'network'         && <NetworkView />}
+                {active === 'my-bookings'     && <MyBookingsView />}
+                {active === 'events'          && <EventsView />}
+                {active === 'my-workshops'    && <MyWorkshopsView />}
+                {active === 'courses'         && <CoursesPage />}
+                {active === 'financial'       && <FinancialPage />}
+                {active === 'deals'           && <DealsPage />}
+                {active === 'wallet'          && <WalletPage />}
+                {active === 'higher-ed'       && <HigherEducationPage />}
+                {active === 'rentals'         && <RentalsPage />}
+                {active === 'profile'         && <ProfileSettingsView />}
+              </RouteTransition>
+            </EmbeddedShellContext.Provider>
+            <DashboardFooter portal="student" />
           </StudentPortalNavContext.Provider>
         </ScrollView>
       </View>

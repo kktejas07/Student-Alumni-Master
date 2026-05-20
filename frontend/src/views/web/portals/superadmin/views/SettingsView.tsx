@@ -44,6 +44,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
 import { SAC, FONTS } from '../tokens';
 import { request } from '@/src/models/services/api';
+import LexicalEditor from './LexicalEditor';
 
 /* ─────────────────────────────────────────────────────────────────
  * Provider docs map — used by the "How to get credentials" link in
@@ -2365,13 +2366,7 @@ function PagesTab({ onSaved }: { onSaved: (s?: string) => void }) {
           <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 }}>{editing.title}</Text>
         </View>
         <Text style={{ color: '#94a3b8', fontFamily: FONTS.med, fontSize: 12 }}>Route: {editing.route}</Text>
-        <TextInput
-          style={[s.input, { minHeight: 400, fontFamily: 'monospace', fontSize: 13 }]}
-          multiline
-          value={editContent}
-          onChangeText={setEditContent}
-          placeholder="Enter HTML/Markdown content..."
-        />
+        <LexicalEditor value={editContent} onChange={setEditContent} />
         <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'flex-end' }}>
           <Pressable onPress={() => setEditing(null)} style={s.secondaryBtn}>
             <Text style={s.secondaryBtnText}>Cancel</Text>
