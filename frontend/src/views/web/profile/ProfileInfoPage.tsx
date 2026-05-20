@@ -4,7 +4,7 @@
  */
 import { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform } from 'react-native';
-import { Mail, Phone, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Sparkles, Check, X } from 'lucide-react-native';
+import { Mail, Phone, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Camera, Sparkles, Check } from 'lucide-react-native';
 import { CompletionRing } from './CompletionRing';
 import { Card, Field, TF, TA, SF, ChipPicker, C } from './primitives';
 
@@ -45,32 +45,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto }: 
 
   const setField = (k: string, v: any) => setDraft((d) => ({ ...d, [k]: v }));
   const interests: string[] = draft.interests || [];
-  const [skillInput, setSkillInput] = useState('');
-
-  const addSkillsFromInput = () => {
-    const raw = skillInput.trim();
-    if (!raw) return;
-    const tokens = raw
-      .split(',')
-      .map((s) => s.trim().replace(/\s+/g, ' '))
-      .filter(Boolean);
-    if (!tokens.length) return;
-
-    const existing: string[] = draft.skills || [];
-    const merged = [...existing];
-    tokens.forEach((token) => {
-      if (!merged.some((v) => v.toLowerCase() === token.toLowerCase())) {
-        merged.push(token);
-      }
-    });
-    setField('skills', merged);
-    setSkillInput('');
-  };
-
-  const removeSkill = (skill: string) => {
-    const existing: string[] = draft.skills || [];
-    setField('skills', existing.filter((s) => s.toLowerCase() !== skill.toLowerCase()));
-  };
+  const skillsText = (draft.skills || []).join(', ');
 
   return (
     <View style={{ gap: 16 }}>
@@ -127,7 +102,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto }: 
             </View>
           </View>
         </View>
-        <View style={[st.row, { zIndex: 20 }]}>
+        <View style={st.row}>
           <Field label="First Name" half><TF value={draft.first_name || (draft.full_name||'').split(' ')[0] || ''} onChangeText={(v) => setField('first_name', v)} placeholder="Aarav" testID="pf-first-name" /></Field>
           <Field label="Last Name" half><TF value={draft.last_name || (draft.full_name||'').split(' ').slice(1).join(' ') || ''} onChangeText={(v) => setField('last_name', v)} placeholder="Sharma" testID="pf-last-name" /></Field>
         </View>
@@ -141,7 +116,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto }: 
 
       {/* Contact Details */}
       <Card title="Contact Details" subtitle="How others can reach you (visible based on privacy settings).">
-        <View style={[st.row, { zIndex: 19 }]}>
+        <View style={st.row}>
           <Field label="Email" half><TF value={draft.email || ''} onChangeText={() => {}} leftIcon={<Mail size={14} color={C.text2} />} testID="pf-email" /></Field>
           <Field label="Phone" half><TF value={draft.phone || ''} onChangeText={(v) => setField('phone', v)} leftIcon={<Phone size={14} color={C.text2} />} placeholder="+91 …" testID="pf-phone" /></Field>
         </View>
@@ -151,11 +126,11 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto }: 
       {/* Academic Details */}
       <Card title="Academic Details" subtitle="Your education info — used for matching with peers.">
         <Field label="College / University"><TF value={draft.institution || ''} onChangeText={(v) => setField('institution', v)} leftIcon={<Building2 size={14} color={C.text2} />} placeholder="e.g. IIT Bombay" testID="pf-college" /></Field>
-        <View style={[st.row, { zIndex: 18 }]}>
+        <View style={st.row}>
           <Field label="Stream" half hint="Class 11/12 stream (PCM, Commerce, etc.)"><SF value={String(draft.stream || '')} onChange={(v) => setField('stream', v)} options={STREAMS} placeholder="Select stream" testID="pf-stream" /></Field>
           <Field label="Branch / Major" half><TF value={draft.branch || ''} onChangeText={(v) => setField('branch', v)} placeholder="Computer Science" testID="pf-branch" /></Field>
         </View>
-        <View style={[st.row, { zIndex: 17 }]}>
+        <View style={st.row}>
           <Field label="Department" half hint="College department / faculty"><SF value={String(draft.department || '')} onChange={(v) => setField('department', v)} options={DEPARTMENTS} placeholder="Select department" testID="pf-department" /></Field>
           <Field label="Graduation Year" half><SF value={String(draft.graduation_year || '')} onChange={(v) => setField('graduation_year', v)} options={GRAD_YEARS} placeholder="Select year" testID="pf-grad-year" /></Field>
         </View>
@@ -177,27 +152,17 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto }: 
       </Card>
 
       {/* Skills */}
-      <Card title="Skills" subtitle="Add one or multiple skills (comma-separated), then click Add Skill.">
-        <View style={st.skillInputRow}>
-          <View style={{ flex: 1 }}>
-            <TF
-              value={skillInput}
-              onChangeText={setSkillInput}
-              onSubmitEditing={addSkillsFromInput}
-              placeholder="e.g. Python, Figma, React, Public Speaking"
-              testID="pf-skills"
-            />
-          </View>
-          <Pressable onPress={addSkillsFromInput} style={st.skillAddBtn}>
-            <Text style={st.skillAddBtnText}>Add Skill</Text>
-          </Pressable>
-        </View>
+      <Card title="Skills" subtitle="Comma-separated. These appear as chips on your network card.">
+        <TA
+          value={skillsText}
+          onChangeText={(v) => setField('skills', v.split(',').map((s: string) => s.trim()).filter(Boolean))}
+          rows={3}
+          placeholder="e.g. Python, Figma, React, Public Speaking"
+          testID="pf-skills"
+        />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 4 }}>
           {(draft.skills || []).map((sk: string, i: number) => (
-            <Pressable key={`${sk}-${i}`} onPress={() => removeSkill(sk)} style={st.skillChip}>
-              <Text style={st.skillChipText}>{sk}</Text>
-              <X size={11} color="#C4B5FD" />
-            </Pressable>
+            <View key={`${sk}-${i}`} style={st.skillChip}><Text style={st.skillChipText}>{sk}</Text></View>
           ))}
         </View>
       </Card>
@@ -272,31 +237,6 @@ const st = StyleSheet.create({
 
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
 
-  skillInputRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  skillAddBtn: {
-    height: 40,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#7C3AED',
-    borderColor: '#8B5CF6',
-    borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 10px 24px rgba(124,58,237,0.30)' } as any) : {}),
-    ...({ cursor: 'pointer' } as any),
-  },
-  skillAddBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  skillChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: 'rgba(167,139,250,0.10)',
-    borderColor: 'rgba(167,139,250,0.30)',
-    borderWidth: 1,
-    ...({ cursor: 'pointer' } as any),
-  },
+  skillChip: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1 },
   skillChipText: { color: '#C4B5FD', fontFamily: 'DMSans_500Medium', fontSize: 11 },
 });

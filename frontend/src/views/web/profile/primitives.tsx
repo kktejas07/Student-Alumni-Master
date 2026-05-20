@@ -2,8 +2,8 @@
  * Profile editor shared primitives — Card, Field, TextField, TextArea, SelectField,
  * Toggle, ToggleRow, ChipPicker, SaveBar.
  */
-import { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, Animated, Platform, ScrollView } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, TextInput, Pressable, Animated, Platform } from 'react-native';
 import { ChevronDown, Check } from 'lucide-react-native';
 
 export const C = {
@@ -93,40 +93,21 @@ export function SF({ value, onChange, options, placeholder, testID }: {
   value: string; onChange: (v: string) => void; options: string[]; placeholder?: string; testID?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const wrapRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    const handleClick = (e: MouseEvent) => {
-      if (wrapRef.current && wrapRef.current.contains && !wrapRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    if (open) {
-      setTimeout(() => document.addEventListener('mousedown', handleClick), 0);
-    }
-    return () => {
-      if (Platform.OS === 'web') document.removeEventListener('mousedown', handleClick);
-    };
-  }, [open]);
-
   return (
-    <View ref={wrapRef} style={[{ position: 'relative' }, Platform.OS === 'web' ? { zIndex: open ? 9999 : 1 } as any : { zIndex: open ? 9999 : 1 }]}>
-      <Pressable style={[s.tfWrap, open && { borderColor: C.purple, backgroundColor: 'rgba(167,139,250,0.08)' }]} onPress={() => setOpen((o) => !o)} testID={testID}>
+    <View style={{ position: 'relative', zIndex: open ? 50 : 1 }}>
+      <Pressable style={s.tfWrap} onPress={() => setOpen((o) => !o)} testID={testID}>
         <Text style={[s.tf, { color: value ? C.text : C.text3, paddingVertical: 0 }]}>
           {value || placeholder || 'Select…'}
         </Text>
-        <ChevronDown size={14} color={open ? C.purple : C.text2} />
+        <ChevronDown size={14} color={C.text2} />
       </Pressable>
       {open && (
         <View style={s.ddMenu}>
-          <ScrollView nestedScrollEnabled={true} keyboardShouldPersistTaps="handled" style={{ maxHeight: 220 }}>
-            {options.map((o) => (
-              <Pressable key={o} onPress={() => { onChange(o); setOpen(false); }} style={s.ddItem}>
-                <Text style={[s.ddText, value === o && { color: C.purple, fontFamily: 'DMSans_700Bold' }]}>{o}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
+          {options.map((o) => (
+            <Pressable key={o} onPress={() => { onChange(o); setOpen(false); }} style={s.ddItem}>
+              <Text style={[s.ddText, value === o && { color: C.purple, fontFamily: 'DMSans_700Bold' }]}>{o}</Text>
+            </Pressable>
+          ))}
         </View>
       )}
     </View>
@@ -240,8 +221,7 @@ const s = StyleSheet.create({
   ddMenu: {
     position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
     backgroundColor: '#1A1426', borderColor: C.border, borderWidth: 1, borderRadius: 10,
-    overflow: 'hidden', zIndex: 9999,
-    ...(Platform.OS === 'web' ? { boxShadow: '0 8px 32px rgba(0,0,0,0.4)' } as any : { elevation: 8 }),
+    overflow: 'hidden', maxHeight: 220,
   },
   ddItem: { paddingHorizontal: 12, paddingVertical: 10, borderBottomColor: 'rgba(255,255,255,0.05)', borderBottomWidth: 1 },
   ddText: { color: C.text, fontFamily: 'DMSans_500Medium', fontSize: 13 },
