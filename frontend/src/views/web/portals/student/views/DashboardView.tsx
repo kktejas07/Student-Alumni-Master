@@ -10,8 +10,10 @@
  *   • Upcoming Events row
  *   • Profile completion CTA
  */
-import React from 'react';
+import React, { useContext } from 'react';
 import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform } from 'react-native';
+import { useRouter } from 'expo-router';
+import { StudentPortalNavContext } from '../StudentPortalRN';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Sparkles, Briefcase, BookOpen, Users, TrendingUp, Calendar, MapPin,
@@ -49,6 +51,8 @@ const STUDENT_MOCK = {
 export function DashboardView() {
   // Theme-reactive colors (Apple HIG light + dark)
   const C = useColors();
+  const router = useRouter();
+  const portalNav = useContext(StudentPortalNavContext);
   // Authenticated user — drives per-user dashboard data.
   const authUser = useAuthStore((u) => u.user);
   const dashPath = authUser?.email
@@ -475,7 +479,7 @@ export function DashboardView() {
             ))}
           </View>
         </View>
-        <Pressable style={({ hovered }: any) => [s.completeCta, hovered && { backgroundColor: '#fff' }]}>
+        <Pressable onPress={() => portalNav?.navigate('profile')} style={({ hovered }: any) => [s.completeCta, hovered && { backgroundColor: '#fff' }]}>
           <Text style={s.completeCtaText}>Complete Profile →</Text>
         </Pressable>
       </LinearGradient>

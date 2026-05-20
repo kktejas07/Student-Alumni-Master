@@ -7,7 +7,7 @@
  * • TopBar receives `scrolled` state for glass blur (kicks in past 8px)
  * • All existing routing, state, props, API calls preserved 1:1
  */
-import React, { useState } from 'react';
+import React, { useState, createContext, useContext } from 'react';
 import { View, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
@@ -36,6 +36,17 @@ import { MyApplicationsView } from './views/MyApplicationsView';
 import { MyWorkshopsView } from './views/MyWorkshopsView';
 
 import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
+
+// Navigation context for internal portal navigation
+export const StudentPortalNavContext = createContext<{
+  navigate: (id: StudentNavId) => void;
+} | null>(null);
+
+export const useStudentPortalNav = () => {
+  const ctx = useContext(StudentPortalNavContext);
+  if (!ctx) throw new Error('useStudentPortalNav must be used inside StudentPortalRN');
+  return ctx;
+};
 
 // Feature pages imported as components for inline rendering
 import CoursesPage from '@/app/courses';
@@ -102,27 +113,29 @@ function PortalShell() {
           onScroll={onScroll}
           scrollEventThrottle={16}
         >
-          <EmbeddedShellContext.Provider value={true}>
-            <PromoBanner portal="student" />
-            <RouteTransition deps={[active]}>
-              {active === 'dashboard'       && <DashboardView />}
-              {active === 'career-ai'       && <CareerAIView />}
-              {active === 'internships'     && <InternshipsView />}
-              {active === 'my-applications' && <MyApplicationsView />}
-              {active === 'network'         && <NetworkView />}
-              {active === 'my-bookings'     && <MyBookingsView />}
-              {active === 'events'          && <EventsView />}
-              {active === 'my-workshops'    && <MyWorkshopsView />}
-              {active === 'courses'         && <CoursesPage />}
-              {active === 'financial'       && <FinancialPage />}
-              {active === 'deals'           && <DealsPage />}
-              {active === 'wallet'          && <WalletPage />}
-              {active === 'higher-ed'       && <HigherEducationPage />}
-              {active === 'rentals'         && <RentalsPage />}
-              {active === 'profile'         && <ProfileSettingsView />}
-            </RouteTransition>
-          </EmbeddedShellContext.Provider>
-          <DashboardFooter portal="student" />
+          <StudentPortalNavContext.Provider value={{ navigate: handleNav }}>
+            <EmbeddedShellContext.Provider value={true}>
+              <PromoBanner portal="student" />
+              <RouteTransition deps={[active]}>
+                {active === 'dashboard'       && <DashboardView />}
+                {active === 'career-ai'       && <CareerAIView />}
+                {active === 'internships'     && <InternshipsView />}
+                {active === 'my-applications' && <MyApplicationsView />}
+                {active === 'network'         && <NetworkView />}
+                {active === 'my-bookings'     && <MyBookingsView />}
+                {active === 'events'          && <EventsView />}
+                {active === 'my-workshops'    && <MyWorkshopsView />}
+                {active === 'courses'         && <CoursesPage />}
+                {active === 'financial'       && <FinancialPage />}
+                {active === 'deals'           && <DealsPage />}
+                {active === 'wallet'          && <WalletPage />}
+                {active === 'higher-ed'       && <HigherEducationPage />}
+                {active === 'rentals'         && <RentalsPage />}
+                {active === 'profile'         && <ProfileSettingsView />}
+              </RouteTransition>
+            </EmbeddedShellContext.Provider>
+            <DashboardFooter portal="student" />
+          </StudentPortalNavContext.Provider>
         </ScrollView>
       </View>
 
