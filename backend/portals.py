@@ -56,7 +56,7 @@ from typing import Any, Dict, List, Optional
 
 from bson import ObjectId
 from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException, Query, Request, Body
+from fastapi import APIRouter, HTTPException, Query, Request, Body, Response
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 from pathlib import Path
@@ -1072,14 +1072,35 @@ async def delete_super_event(event_id: str):
 
 @router.get("/admin/super/payments")
 async def super_payments():
-    """Stripe-style ledger from bookings + KPIs."""
+    """Stripe-style ledger from bookings + wallet. Uses live Stripe data when credentials are installed."""
     bookings_cnt = await _db.bookings.count_documents({})
     gross = bookings_cnt * 999
     payouts = gross * 0.6
     pending = gross * 0.015
     net = gross - payouts - pending
 
-    # Recent ledger entries
+    # Try live Stripe balance if credentials are installed
+    stripe_balance = None
+    stripe_installed = await _db.installed_tools.find_one({"tool_id": "stripe", "status": "connected"})
+    if stripe_installed:
+        sk = (stripe_installed.get("credentials") or {}).get("secret_key", "")
+        if sk:
+            try:
+                import httpx
+                async with httpx.AsyncClient() as client:
+                    r = await client.get(
+                        "https://api.stripe.com/v1/balance",
+                        auth=(sk, ""),
+                        timeout=10,
+                    )
+                    if r.status_code == 200:
+                        bal = r.json()
+                        available = sum(b["amount"] for b in bal.get("available", [])) / 100
+                        stripe_balance = f"₹{available:,.0f}" if available > 0 else None
+            except Exception:
+                pass
+
+    # Recent ledger entries from bookings
     cur = _db.bookings.find().sort("created_at", -1).limit(8)
     ledger = []
     async for b in cur:
@@ -1101,11 +1122,11 @@ async def super_payments():
             "status": "success",
         })
 
-    # Add a few payout entries
+    # Payout entries
     mentors_cur = _db.users.find({"role": "mentor", "mentor_status": "approved"}).limit(3)
     async for m in mentors_cur:
         ledger.append({
-            "id": f"pi_{str(m.get('_id', ''))[-10:]}",
+            "id": f"po_{str(m.get('_id', ''))[-10:]}",
             "date": "May 1",
             "desc": f"Mentor payout — {m.get('full_name', 'Mentor')}",
             "type": "payout",
@@ -1113,6 +1134,30 @@ async def super_payments():
             "by": m.get("full_name", "Mentor"),
             "status": "success",
         })
+
+    # Read payout tiers from DB, fall back to defaults
+    db_tiers = []
+    tcur = _db.payout_tiers.find().sort("cut_percent", -1)
+    async for t in tcur:
+        db_tiers.append(t)
+
+    if db_tiers:
+        mentor_count = await _db.users.count_documents({"role": "mentor", "mentor_status": "approved"})
+        tiers_out = []
+        for t in db_tiers:
+            tiers_out.append({
+                "tier": t.get("name", "Untitled"),
+                "cut": f"{t.get('cut_percent', 50)}%",
+                "count": mentor_count // max(len(db_tiers), 1),
+                "color": t.get("color", "#F59E0B"),
+            })
+    else:
+        tiers_out = [
+            {"tier": "Platinum mentor", "cut": "70%", "count": await _db.users.count_documents({"role": "mentor", "mentor_status": "approved"}) // 3, "color": "#A78BFA"},
+            {"tier": "Gold mentor",     "cut": "60%", "count": await _db.users.count_documents({"role": "mentor", "mentor_status": "approved"}) // 2, "color": "#F5C842"},
+            {"tier": "Silver mentor",   "cut": "50%", "count": await _db.users.count_documents({"role": "mentor", "mentor_status": "approved"}), "color": "#C0C0C0"},
+            {"tier": "College MoU",     "cut": "30%", "count": len(await _db.users.distinct("school_info.institution_name", {"role": "student"})), "color": "#3B82F6"},
+        ]
 
     return {
         "kpi": {
@@ -1122,39 +1167,109 @@ async def super_payments():
             "net":     _money(net),
         },
         "ledger": ledger,
-        "stripe_balance": _money(net * 0.6),
-        "tiers": [
-            {"tier": "Platinum mentor", "cut": "70%", "count": await _db.users.count_documents({"role": "mentor", "mentor_status": "approved"}) // 3},
-            {"tier": "Gold mentor",     "cut": "60%", "count": await _db.users.count_documents({"role": "mentor", "mentor_status": "approved"}) // 2},
-            {"tier": "Silver mentor",   "cut": "50%", "count": await _db.users.count_documents({"role": "mentor", "mentor_status": "approved"})},
-            {"tier": "College MoU",     "cut": "30%", "count": len(await _db.users.distinct("school_info.institution_name", {"role": "student"}))},
-        ],
+        "stripe_balance": stripe_balance or _money(net * 0.6),
+        "has_live_stripe": stripe_balance is not None,
+        "tiers": tiers_out,
     }
 
 
 @router.post("/admin/super/payouts/initiate")
 async def initiate_payout():
-    """Mock payout initiation — logs to audit and returns ok."""
-    try:
-        from datetime import datetime as _dt, timezone as _tz
-        try:
-            await _db.admin_audit_log.insert_one({
-                "action": "payout.initiated",
-                "target": "stripe_payout",
-                "at": _dt.now(_tz),
-                "ip": "127.0.0.1",
-            })
-        except Exception:
-            pass
-    except Exception:
-        pass
-    return {"ok": True, "message": "Payout initiated successfully"}
+    """Initiate a real Stripe payout if credentials are installed, otherwise mock."""
+    stripe_installed = await _db.installed_tools.find_one({"tool_id": "stripe", "status": "connected"})
+    if stripe_installed:
+        sk = (stripe_installed.get("credentials") or {}).get("secret_key", "")
+        if sk:
+            try:
+                import httpx
+                async with httpx.AsyncClient() as client:
+                    r = await client.post(
+                        "https://api.stripe.com/v1/payouts",
+                        auth=(sk, ""),
+                        data={"amount": 10000, "currency": "inr"},
+                        timeout=15,
+                    )
+                    if r.status_code == 200:
+                        p = r.json()
+                        await _db.admin_audit_log.insert_one({
+                            "action": "payout.initiated",
+                            "target": "stripe",
+                            "stripe_payout_id": p.get("id"),
+                            "amount": 10000,
+                            "at": datetime.now(timezone.utc),
+                        })
+                        return {"ok": True, "stripe_payout_id": p.get("id"), "message": f"Stripe payout {p.get('id')} initiated"}
+                    else:
+                        return {"ok": False, "message": f"Stripe API error: {r.status_code}"}
+            except Exception as e:
+                return {"ok": False, "message": f"Stripe call failed: {str(e)[:200]}"}
+
+    # Fallback: mock
+    await _db.admin_audit_log.insert_one({
+        "action": "payout.initiated",
+        "target": "mock",
+        "at": datetime.now(timezone.utc),
+    })
+    return {"ok": True, "message": "Mock payout initiated (no Stripe key — connect Stripe in Integrations)"}
 
 
 @router.get("/admin/export/payments")
 async def export_payments_csv():
-    """Stub CSV export — returns a placeholder download URL."""
-    return {"ok": True, "url": None, "message": "Export not yet wired"}
+    """Generate and return a real CSV of all payment transactions."""
+    import csv, io
+
+    rows = []
+    cur = _db.bookings.find().sort("created_at", -1).limit(1000)
+    async for b in cur:
+        sid = b.get("student_id")
+        sname = "Student"
+        if sid:
+            try:
+                s = await _db.users.find_one({"_id": ObjectId(sid)})
+                if s: sname = s.get("full_name", "Student")
+            except Exception:
+                pass
+        rows.append({
+            "ID": str(b["_id"]),
+            "Date": (b.get("created_at") or datetime.utcnow()).strftime("%Y-%m-%d %H:%M") if isinstance(b.get("created_at"), datetime) else "",
+            "Description": b.get("topic", "Session"),
+            "Type": "income",
+            "Amount": 999,
+            "By": sname,
+            "Status": "success",
+        })
+
+    wcur = _db.wallet_transactions.find().sort("created_at", -1).limit(500)
+    async for w in wcur:
+        rows.append({
+            "ID": str(w["_id"]),
+            "Date": w.get("created_at", "").__str__()[:19] if w.get("created_at") else "",
+            "Description": w.get("desc", "Wallet transaction"),
+            "Type": w.get("kind", "credit"),
+            "Amount": abs(w.get("amount", 0)),
+            "By": w.get("user_email", ""),
+            "Status": "settled",
+        })
+
+    seen = set()
+    unique = []
+    for r in rows:
+        if r["ID"] not in seen:
+            seen.add(r["ID"])
+            unique.append(r)
+
+    f = io.StringIO()
+    w = csv.DictWriter(f, fieldnames=["ID", "Date", "Description", "Type", "Amount", "By", "Status"])
+    w.writeheader()
+    w.writerows(unique)
+    csv_content = f.getvalue()
+    f.close()
+
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=payments_export_{datetime.utcnow().strftime('%Y%m%d')}.csv"},
+    )
 
 
 @router.get("/admin/super/approvals")
@@ -2177,6 +2292,74 @@ async def event_rsvp(event_id: str, student_email: Optional[str] = None):
         "status": "registered",
     })
     return {"ok": True, "registered": True}
+
+
+# ─── Payout Tiers CRUD ──────────────────────────────────────────
+@router.get("/admin/super/payout-tiers")
+async def list_payout_tiers():
+    tiers = []
+    cur = _db.payout_tiers.find().sort("cut_percent", -1)
+    async for t in cur:
+        tiers.append({
+            "id": str(t["_id"]),
+            "name": t.get("name"),
+            "cut_percent": t.get("cut_percent", 0),
+            "color": t.get("color", "#F59E0B"),
+            "sort_order": t.get("sort_order", 0),
+        })
+    return {"ok": True, "tiers": tiers}
+
+
+@router.post("/admin/super/payout-tiers")
+async def create_payout_tier(body: dict):
+    doc = {
+        "name": body.get("name"),
+        "cut_percent": body.get("cut_percent", 50),
+        "color": body.get("color", "#F59E0B"),
+        "sort_order": body.get("sort_order", 0),
+    }
+    res = await _db.payout_tiers.insert_one(doc)
+    doc["id"] = str(res.inserted_id)
+    return {"ok": True, "tier": {**doc, "_id": doc.pop("_id", None)}}
+
+
+@router.put("/admin/super/payout-tiers/{tier_id}")
+async def update_payout_tier(tier_id: str, body: dict):
+    oid = ObjectId(tier_id)
+    existing = await _db.payout_tiers.find_one({"_id": oid})
+    if not existing:
+        raise HTTPException(404)
+    update = {}
+    for k in ("name", "cut_percent", "color", "sort_order"):
+        if k in body:
+            update[k] = body[k]
+    if update:
+        await _db.payout_tiers.update_one({"_id": oid}, {"$set": update})
+    return {"ok": True}
+
+
+@router.delete("/admin/super/payout-tiers/{tier_id}")
+async def delete_payout_tier(tier_id: str):
+    oid = ObjectId(tier_id)
+    res = await _db.payout_tiers.delete_one({"_id": oid})
+    if res.deleted_count == 0:
+        raise HTTPException(404)
+    return {"ok": True}
+
+
+# ─── Stripe webhook ────────────────────────────────────────────
+@router.post("/webhooks/stripe")
+async def stripe_webhook(body: dict):
+    """Receive Stripe webhook events (payout completed, payment confirmed, etc.)."""
+    evt_type = body.get("type", "unknown")
+    evt_data = body.get("data", {}).get("object", {})
+    await _db.admin_audit_log.insert_one({
+        "action": f"stripe.webhook.{evt_type}",
+        "target": evt_data.get("id", "unknown"),
+        "payload": body,
+        "at": datetime.now(timezone.utc),
+    })
+    return {"ok": True}
 
 
 # ─── Unified Tier endpoint (works for any role) ──────────────────

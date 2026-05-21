@@ -1,11 +1,11 @@
 // @ts-nocheck
 /**
  * PaymentsView — Amber Admin theme.
- * KPI tiles + Stripe ledger + balance card, all using applekit primitives.
+ * KPI tiles + Stripe ledger + balance card + payout tiers editor, all using applekit primitives.
  */
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Platform, useWindowDimensions } from 'react-native';
-import { ArrowDown, ArrowUp, CreditCard, Download, IndianRupee, TrendingUp, AlertTriangle, BadgePercent } from 'lucide-react-native';
+import { View, Text, Pressable, StyleSheet, Platform, useWindowDimensions, TextInput, ScrollView, Modal } from 'react-native';
+import { ArrowDown, ArrowUp, CreditCard, Download, IndianRupee, TrendingUp, AlertTriangle, BadgePercent, Edit3, Trash2, X, Check, Zap } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SAC, FONTS } from '../tokens';
 import { GRAD, Card, IconBox, KpiTile, StatusPill, GradientButton, SecondaryButton, SectionLabel } from '../applekit';
@@ -13,18 +13,131 @@ import { usePortalData } from '@/src/lib/portalApi';
 import { request } from '@/src/models/services/api';
 
 type Tx = { id: string; date: string; desc: string; type: string; amount: number; by: string; status: string };
-type Tier = { tier: string; cut: string; count: number };
+type Tier = { id?: string; tier: string; cut: string; count: number; color?: string };
+type FlatTier = { id?: string; name: string; cut_percent: number; color: string; sort_order: number };
 const FALLBACK = {
   kpi: { gross: '₹0', payouts: '₹0', pending: '₹0', net: '₹0' },
   ledger: [] as Tx[],
   stripe_balance: '₹0',
+  has_live_stripe: false,
   tiers: [] as Tier[],
 };
+
+function PayoutTiersEditor({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const [tiers, setTiers] = useState<FlatTier[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [editIdx, setEditIdx] = useState<number | null>(null);
+  const [form, setForm] = useState<FlatTier>({ name: '', cut_percent: 50, color: '#F59E0B', sort_order: 0 });
+
+  const loadTiers = async () => {
+    setLoading(true);
+    try {
+      const r = await request<{ ok: boolean; tiers: FlatTier[] }>('/admin/super/payout-tiers', { method: 'GET' });
+      if (r?.ok) setTiers(r.tiers);
+    } catch {} finally { setLoading(false); }
+  };
+
+  React.useEffect(() => { if (visible) loadTiers(); }, [visible]);
+
+  const save = async () => {
+    if (!form.name) return;
+    setLoading(true);
+    try {
+      if (editIdx !== null && tiers[editIdx]?.id) {
+        await request(`/admin/super/payout-tiers/${tiers[editIdx].id}`, { method: 'PUT', body: JSON.stringify(form), headers: { 'Content-Type': 'application/json' } });
+      } else {
+        await request('/admin/super/payout-tiers', { method: 'POST', body: JSON.stringify(form), headers: { 'Content-Type': 'application/json' } });
+      }
+      setForm({ name: '', cut_percent: 50, color: '#F59E0B', sort_order: 0 });
+      setEditIdx(null);
+      await loadTiers();
+    } catch {} finally { setLoading(false); }
+  };
+
+  const remove = async (idx: number) => {
+    const t = tiers[idx];
+    if (!t?.id) return;
+    setLoading(true);
+    try {
+      await request(`/admin/super/payout-tiers/${t.id}`, { method: 'DELETE' });
+      await loadTiers();
+    } catch {} finally { setLoading(false); }
+  };
+
+  const startEdit = (idx: number) => {
+    const t = tiers[idx];
+    setForm({ name: t.name, cut_percent: t.cut_percent, color: t.color, sort_order: t.sort_order });
+    setEditIdx(idx);
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={edst.overlay}>
+        <View style={edst.modal}>
+          <View style={edst.head}>
+            <Text style={edst.title}>Payout Tiers</Text>
+            <Pressable onPress={onClose} style={edst.xBtn}><X size={16} color={SAC.muted} /></Pressable>
+          </View>
+
+          <ScrollView style={{ maxHeight: 340 }}>
+            {tiers.map((t, i) => (
+              <View key={t.id || i} style={edst.tierRow}>
+                <View style={[edst.dot, { backgroundColor: t.color }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={edst.tn}>{t.name}</Text>
+                  <Text style={edst.ts}>{t.cut_percent}% cut</Text>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 6 }}>
+                  <Pressable onPress={() => startEdit(i)} style={edst.smBtn}><Edit3 size={12} color={SAC.muted} /></Pressable>
+                  <Pressable onPress={() => remove(i)} style={edst.smBtn}><Trash2 size={12} color="#FCA5A5" /></Pressable>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+
+          <View style={edst.form}>
+            <Text style={edst.formTitle}>{editIdx !== null ? 'Edit tier' : 'New tier'}</Text>
+            <TextInput style={edst.input} placeholder="Name" placeholderTextColor={SAC.dim} value={form.name} onChangeText={v => setForm(s => ({ ...s, name: v }))} />
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TextInput style={[edst.input, { flex: 1 }]} placeholder="Cut %" placeholderTextColor={SAC.dim} value={String(form.cut_percent)} onChangeText={v => setForm(s => ({ ...s, cut_percent: Number(v) || 0 }))} keyboardType="numeric" />
+              <TextInput style={[edst.input, { flex: 1 }]} placeholder="Color hex" placeholderTextColor={SAC.dim} value={form.color} onChangeText={v => setForm(s => ({ ...s, color: v }))} />
+            </View>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+              <SecondaryButton onPress={() => { setForm({ name: '', cut_percent: 50, color: '#F59E0B', sort_order: 0 }); setEditIdx(null); }} style={{ flex: 1 }}>
+                <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
+              </SecondaryButton>
+              <GradientButton onPress={save} loading={loading} disabled={!form.name} style={{ flex: 1 }}>
+                <Check size={13} color="#fff" /><Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>{editIdx !== null ? 'Update' : 'Add'}</Text>
+              </GradientButton>
+            </View>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const edst = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 },
+  modal: { backgroundColor: '#1a1a2e', borderRadius: 16, padding: 18, maxWidth: 440, width: '100%', alignSelf: 'center' },
+  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  xBtn: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  tierRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: SAC.border },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  tn: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  ts: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
+  smBtn: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.05)' },
+  form: { marginTop: 14, gap: 8 },
+  formTitle: { color: SAC.muted, fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: 0.5 },
+  input: { height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, paddingHorizontal: 12 },
+});
 
 export function PaymentsView() {
   const [exporting, setExporting] = useState(false);
   const [payoutLoading, setPayoutLoading] = useState(false);
   const [payoutDone, setPayoutDone] = useState(false);
+  const [tiersEditorOpen, setTiersEditorOpen] = useState(false);
   const { data, refresh } = usePortalData<typeof FALLBACK>('/admin/super/payments', FALLBACK);
   const { width } = useWindowDimensions();
   const stack = width < 1100;
@@ -33,9 +146,15 @@ export function PaymentsView() {
   const doExport = async () => {
     setExporting(true);
     try {
-      const r = await request<{ url: string }>('/admin/export/payments', { method: 'GET' });
-      if (r?.url && Platform.OS === 'web') {
-        window.open(r.url, '_blank');
+      const r = await fetch('/admin/export/payments');
+      if (r.ok) {
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'payments_export.csv';
+        a.click();
+        URL.revokeObjectURL(url);
       }
     } catch { /* silent */ } finally { setExporting(false); }
   };
@@ -43,7 +162,7 @@ export function PaymentsView() {
   const doPayout = async () => {
     setPayoutLoading(true);
     try {
-      await request('/admin/super/payouts/initiate', { method: 'POST' });
+      const r = await request<{ ok: boolean; message: string }>('/admin/super/payouts/initiate', { method: 'POST' });
       setPayoutDone(true);
       setTimeout(() => setPayoutDone(false), 3000);
     } catch { /* silent */ } finally { setPayoutLoading(false); }
@@ -51,6 +170,7 @@ export function PaymentsView() {
 
   return (
     <View style={{ gap: 14 }}>
+      <PayoutTiersEditor visible={tiersEditorOpen} onClose={() => { setTiersEditorOpen(false); refresh(); }} />
       <Card>
         <View style={st.headRow}>
           <IconBox size={38}><IndianRupee size={18} color={GRAD.to} /></IconBox>
@@ -108,9 +228,17 @@ export function PaymentsView() {
             <View style={[st.iconBox, { backgroundColor: 'rgba(255,255,255,0.22)', borderColor: 'rgba(255,255,255,0.30)' }]}>
               <CreditCard size={16} color="#fff" />
             </View>
-            <Text style={st.gradKicker}>STRIPE BALANCE</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={st.gradKicker}>STRIPE BALANCE</Text>
+              {data.has_live_stripe && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(34,197,94,0.2)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                  <Zap size={10} color="#86EFAC" />
+                  <Text style={{ color: '#86EFAC', fontFamily: FONTS.bold, fontSize: 9 }}>LIVE</Text>
+                </View>
+              )}
+            </View>
             <Text style={st.gradVal}>{data.stripe_balance}</Text>
-            <Text style={st.gradSub}>Settles on May 5 to HDFC ****8821</Text>
+            <Text style={st.gradSub}>{data.has_live_stripe ? 'Live Stripe balance' : 'Settles on May 5 to HDFC ****8821'}</Text>
             <Pressable style={st.gradCta} onPress={doPayout} disabled={payoutLoading}>
               {payoutLoading ? (
                 <Text style={st.gradCtaText}>Processing…</Text>
@@ -123,11 +251,17 @@ export function PaymentsView() {
           </LinearGradient>
 
           <Card>
-            <SectionLabel>PAYOUT TIERS</SectionLabel>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <SectionLabel>PAYOUT TIERS</SectionLabel>
+              <Pressable onPress={() => setTiersEditorOpen(true)} style={st.editBtn}>
+                <Edit3 size={11} color={GRAD.to} />
+                <Text style={st.editBtnText}>Edit</Text>
+              </Pressable>
+            </View>
             <View style={{ marginTop: 12, gap: 10 }}>
-              {data.tiers.map((t) => (
-                <View key={t.tier} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <View style={[st.tierDot, { backgroundColor: GRAD.to }]} />
+              {data.tiers.map((t, i) => (
+                <View key={t.tier + i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <View style={[st.tierDot, { backgroundColor: t.color || GRAD.to }]} />
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text numberOfLines={1} style={st.tierName}>{t.tier}</Text>
                     <Text numberOfLines={1} style={st.tierSub}>{t.count} active mentor{t.count === 1 ? '' : 's'}</Text>
@@ -190,4 +324,6 @@ const st = StyleSheet.create({
     backgroundColor: 'rgba(245,158,11,0.10)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.30)',
   },
   tierCut: { color: GRAD.to, fontFamily: FONTS.xbold, fontSize: 12 },
+  editBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(245,158,11,0.10)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.30)' },
+  editBtnText: { color: GRAD.to, fontFamily: FONTS.bold, fontSize: 10.5 },
 });
