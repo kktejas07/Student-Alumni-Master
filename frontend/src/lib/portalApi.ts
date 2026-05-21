@@ -23,6 +23,14 @@ export async function postPortal<T = any>(path: string, opts?: { method?: string
   });
 }
 
+export async function patchPortal<T = any>(path: string, opts?: { body?: any }): Promise<T> {
+  return request<T>(path, { method: 'PATCH', body: opts?.body });
+}
+
+export async function deletePortal<T = any>(path: string): Promise<T> {
+  return request<T>(path, { method: 'DELETE' });
+}
+
 export type FetchState<T> = {
   data: T | null;
   loading: boolean;

@@ -41,12 +41,12 @@ COLLEGES_META = [
 
 
 WORKFLOWS = [
-    {"name": "Auto-approve mentor (Top-tier company)",  "trigger": "New mentor signup",   "steps": ["Verify email", "LinkedIn check", "Auto-approve if rank<200"], "runs": 182,  "success": 178,  "on": True,  "color": "#22C55E"},
-    {"name": "At-risk student counselling alert",       "trigger": "Attendance < 70%",    "steps": ["Daily scan", "Notify counsellor", "Schedule call"],            "runs":  96,  "success":  88, "on": True,  "color": "#EF4444"},
-    {"name": "Mentor payout cron (1st of month)",       "trigger": "Cron 1st @ 9am",      "steps": ["Compute payouts", "Stripe transfer", "Email receipt"],         "runs":  42,  "success":  42, "on": True,  "color": "#F97316"},
-    {"name": "Welcome series (new students)",           "trigger": "Onboarding done",     "steps": ["Day 0 welcome", "Day 3 mentor pitch", "Day 7 hackathon"],     "runs": 1240, "success": 1218, "on": True,  "color": "#A78BFA"},
-    {"name": "Refund auto-trigger (no-show > 3hrs)",    "trigger": "Session no-show",     "steps": ["Detect no-show", "Auto-refund", "Notify both parties"],       "runs":  18,  "success":  18, "on": False, "color": "#3B82F6"},
-    {"name": "Alumni donor lapse re-engagement",        "trigger": "90-day inactive",     "steps": ["Find big donors", "Personalize copy", "Send via SendGrid"],   "runs":   6,  "success":   5, "on": True,  "color": "#EC4899"},
+    {"name": "Auto-approve mentor (Top-tier company)",  "trigger": "New mentor signup",   "event_triggers": ["mentor.signup"],                         "steps": ["Verify email", "LinkedIn check", "Auto-approve if rank<200"], "runs": 182,  "success": 178,  "on": True,  "color": "#22C55E"},
+    {"name": "At-risk student counselling alert",       "trigger": "Attendance < 70%",    "event_triggers": ["attendance.low", "cron.daily"],          "steps": ["Daily scan", "Notify counsellor", "Schedule call"],           "runs":  96,  "success":  88, "on": True,  "color": "#EF4444"},
+    {"name": "Mentor payout cron (1st of month)",       "trigger": "Cron 1st @ 9am",      "event_triggers": ["cron.1st_of_month"],                     "steps": ["Compute payouts", "Stripe transfer", "Email receipt"],        "runs":  42,  "success":  42, "on": True,  "color": "#F97316"},
+    {"name": "Welcome series (new students)",           "trigger": "Onboarding done",     "event_triggers": ["user.signup", "onboarding.done"],        "steps": ["Day 0 welcome", "Day 3 mentor pitch", "Day 7 hackathon"],    "runs": 1240, "success": 1218, "on": True,  "color": "#A78BFA"},
+    {"name": "Refund auto-trigger (no-show > 3hrs)",    "trigger": "Session no-show",     "event_triggers": ["session.no_show"],                       "steps": ["Detect no-show", "Auto-refund", "Notify both parties"],     "runs":  18,  "success":  18, "on": False, "color": "#3B82F6"},
+    {"name": "Alumni donor lapse re-engagement",        "trigger": "90-day inactive",     "event_triggers": ["cron.daily"],                             "steps": ["Find big donors", "Personalize copy", "Send via SendGrid"],    "runs":   6,  "success":   5, "on": True,  "color": "#EC4899"},
 ]
 
 
