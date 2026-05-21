@@ -2213,6 +2213,14 @@ async def reject_user(user_id: str):
     if res.matched_count > 0:
         return {"ok": True, "kind": "college"}
 
+    # Try events by title
+    res3 = await _db.events.update_one(
+        {"title": user_id},
+        {"$set": {"status": "cancelled", "rejected_at": datetime.utcnow()}}
+    )
+    if res3.matched_count > 0:
+        return {"ok": True, "kind": "event"}
+
     raise HTTPException(404, "Not found")
 
 
