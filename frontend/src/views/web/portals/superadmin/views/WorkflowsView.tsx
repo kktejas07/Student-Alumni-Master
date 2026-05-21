@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Switch, Platform, Modal, ScrollView, TextInput, FlatList } from 'react-native';
-import { Workflow, Zap, Clock, ChevronRight, Plus, Play, AlertTriangle, X, Check, Trash2, Pencil, Eye, ChevronDown, ChevronUp, Info, RefreshCw } from 'lucide-react-native';
+import { View, Text, Pressable, StyleSheet, Switch, Platform, Modal, ScrollView, TextInput } from 'react-native';
+import { Workflow, Zap, Clock, ChevronRight, Plus, Play, AlertTriangle, X, Check, Trash2, Pencil, Eye } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
 import { GradientButton, SecondaryButton, Toast, useToast, IconBox } from '../applekit';
@@ -15,7 +15,7 @@ type Wf = {
   id: string; name: string; trigger: string; steps: string[];
   runs: number; success: number; on: boolean; color: string;
   last_run_at?: string; last_run_success?: boolean; run_log?: WorkflowRunLog[];
-  created_at?: string; updated_at?: string;
+  created_at?: string; updated_at?: string; event_triggers: string[];
 };
 const FALLBACK = { items: [] as Wf[] };
 
