@@ -37,6 +37,7 @@ import {
   ExternalLink, RotateCcw, Monitor, Smartphone, AlertTriangle, KeyRound,
   ChevronRight, QrCode, Building2, ShieldCheck, Search, Sparkles, CheckCircle2,
   Mail, Users as UsersIcon, ArrowLeft, Clock, MapPin, Globe, Wifi, Activity, FileText,
+  Maximize2, Minimize2,
 } from 'lucide-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
@@ -2332,6 +2333,7 @@ function PagesTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<any>(null);
   const [editContent, setEditContent] = useState('');
+  const [preview, setPreview] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -2348,6 +2350,7 @@ function PagesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       });
       onSaved('Page updated');
       setEditing(null);
+      setPreview(false);
       const updated = await request<any[]>('/admin/pages');
       setPages(updated);
     } catch { onSaved('Failed to update page'); }
@@ -2359,23 +2362,66 @@ function PagesTab({ onSaved }: { onSaved: (s?: string) => void }) {
     return (
       <Animated.View entering={FadeIn.duration(180)} style={{ gap: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Pressable onPress={() => setEditing(null)} style={s.linkBtn}>
+          <Pressable onPress={() => { setEditing(null); setPreview(false); }} style={s.linkBtn}>
             <ArrowLeft size={16} color="#fff" />
             <Text style={s.linkBtnText}>Back</Text>
           </Pressable>
           <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 }}>{editing.title}</Text>
         </View>
-        <Text style={{ color: '#94a3b8', fontFamily: FONTS.med, fontSize: 12 }}>Route: {editing.route}</Text>
-        <LexicalEditor value={editContent} onChange={setEditContent} />
-        <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'flex-end' }}>
-          <Pressable onPress={() => setEditing(null)} style={s.secondaryBtn}>
-            <Text style={s.secondaryBtnText}>Cancel</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Text style={{ color: '#94a3b8', fontFamily: FONTS.med, fontSize: 12 }}>Route: {editing.route}</Text>
+          <View style={{ flex: 1 }} />
+          <Pressable
+            onPress={() => setPreview(!preview)}
+            style={[s.secondaryBtn, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}
+          >
+            {preview ? <Minimize2 size={14} color="#94a3b8" /> : <Maximize2 size={14} color="#94a3b8" />}
+            <Text style={s.secondaryBtnText}>{preview ? 'Edit' : 'Preview'}</Text>
           </Pressable>
-          <Pressable onPress={() => savePage(editing.key)} style={s.primaryBtn}>
-            <Check size={14} color="#fff" />
-            <Text style={s.primaryBtnText}>Save</Text>
-          </Pressable>
+          {!preview && (
+            <Pressable
+              onPress={async () => {
+                await savePage(editing.key);
+              }}
+              style={s.primaryBtn}
+            >
+              <Check size={14} color="#fff" />
+              <Text style={s.primaryBtnText}>Save</Text>
+            </Pressable>
+          )}
         </View>
+        {preview ? (
+          <View style={previewStyles.container}>
+            <View style={previewStyles.chrome}>
+              <Text style={previewStyles.title}>{editing.title}</Text>
+              <View style={previewStyles.divider} />
+              <ScrollView style={previewStyles.scrollArea}>
+                <div
+                  className="page-preview"
+                  dangerouslySetInnerHTML={{ __html: editContent }}
+                  style={{
+                    color: '#e2e8f0',
+                    fontFamily: 'DMSans_400Regular, sans-serif',
+                    fontSize: 14,
+                    lineHeight: 1.7,
+                  }}
+                />
+              </ScrollView>
+            </View>
+            <Text style={previewStyles.hint}>
+              This is a live preview of how the page will look. Any unsaved changes are shown here.
+            </Text>
+          </View>
+        ) : (
+          <>
+            <LexicalEditor value={editContent} onChange={setEditContent} />
+            <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'flex-end' }}>
+              <Pressable onPress={() => { setEditing(null); setPreview(false); }} style={s.secondaryBtn}>
+                <Text style={s.secondaryBtnText}>Cancel</Text>
+              </Pressable>
+            </View>
+          </>
+        )}
       </Animated.View>
     );
   }
@@ -3021,4 +3067,43 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(245,158,11,0.14)', borderColor: 'rgba(245,158,11,0.32)', borderWidth: 1 },
   roleUserName: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12.5 },
   roleUserMeta: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
+});
+
+const previewStyles = StyleSheet.create({
+  container: {
+    gap: 8,
+  },
+  chrome: {
+    backgroundColor: '#0f172a',
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  title: {
+    color: '#fff',
+    fontFamily: 'DMSans_700Bold, DMSansBold, sans-serif',
+    fontSize: 26,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 0,
+  },
+  divider: {
+    height: 2,
+    backgroundColor: '#F59E0B',
+    marginHorizontal: 24,
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  scrollArea: {
+    maxHeight: 500,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+  },
+  hint: {
+    color: '#64748b',
+    fontFamily: FONTS.med,
+    fontSize: 10.5,
+    paddingHorizontal: 4,
+  },
 });

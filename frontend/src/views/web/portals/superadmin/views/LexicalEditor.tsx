@@ -50,15 +50,17 @@ export default function LexicalEditor({ value, onChange }: { value: string; onCh
   }, []);
 
   const exec = (cmd: string, val?: string) => {
-    document.execCommand(cmd, false, val);
     const el = editorRef.current;
-    if (el) { el.focus(); onChange(el.innerHTML); }
+    if (el) { el.focus(); }
+    document.execCommand(cmd, false, val);
+    if (el) { onChange(el.innerHTML); }
   };
 
   const handleHeading = (tag: string) => {
-    document.execCommand('formatBlock', false, `<${tag}>`);
     const el = editorRef.current;
-    if (el) { el.focus(); onChange(el.innerHTML); }
+    if (el) { el.focus(); }
+    document.execCommand('formatBlock', false, `<${tag}>`);
+    if (el) { onChange(el.innerHTML); }
   };
 
   const handleAiAssist = async (prompt: string) => {
@@ -89,41 +91,41 @@ export default function LexicalEditor({ value, onChange }: { value: string; onCh
     <View>
       <View style={wrap.toolbar}>
         <View style={wrap.group}>
-          <Pressable key="bold" onPress={() => exec('bold')} style={wrap.btn}>
+          <Pressable key="bold" onMouseDown={(e) => { e.preventDefault(); exec('bold'); }} style={wrap.btn}>
             <Bold size={15} color="#94a3b8" />
           </Pressable>
-          <Pressable key="italic" onPress={() => exec('italic')} style={wrap.btn}>
+          <Pressable key="italic" onMouseDown={(e) => { e.preventDefault(); exec('italic'); }} style={wrap.btn}>
             <Italic size={15} color="#94a3b8" />
           </Pressable>
-          <Pressable key="underline" onPress={() => exec('underline')} style={wrap.btn}>
+          <Pressable key="underline" onMouseDown={(e) => { e.preventDefault(); exec('underline'); }} style={wrap.btn}>
             <Underline size={15} color="#94a3b8" />
           </Pressable>
-          <Pressable key="strike" onPress={() => exec('strikeThrough')} style={wrap.btn}>
+          <Pressable key="strike" onMouseDown={(e) => { e.preventDefault(); exec('strikeThrough'); }} style={wrap.btn}>
             <Strikethrough size={15} color="#94a3b8" />
           </Pressable>
           <View style={{ width: 1, height: 20, backgroundColor: '#334155', marginHorizontal: 4 }} />
-          <Pressable key="h1" onPress={() => handleHeading('h1')} style={wrap.btn}>
+          <Pressable key="h1" onMouseDown={(e) => { e.preventDefault(); handleHeading('h1'); }} style={wrap.btn}>
             <Heading1 size={15} color="#94a3b8" />
           </Pressable>
-          <Pressable key="h2" onPress={() => handleHeading('h2')} style={wrap.btn}>
+          <Pressable key="h2" onMouseDown={(e) => { e.preventDefault(); handleHeading('h2'); }} style={wrap.btn}>
             <Heading2 size={15} color="#94a3b8" />
           </Pressable>
-          <Pressable key="blockquote" onPress={() => exec('formatBlock', '<blockquote>')} style={wrap.btn}>
+          <Pressable key="blockquote" onMouseDown={(e) => { e.preventDefault(); exec('formatBlock', '<blockquote>'); }} style={wrap.btn}>
             <Quote size={15} color="#94a3b8" />
           </Pressable>
           <View style={{ width: 1, height: 20, backgroundColor: '#334155', marginHorizontal: 4 }} />
-          <Pressable key="ul" onPress={() => exec('insertUnorderedList')} style={wrap.btn}>
+          <Pressable key="ul" onMouseDown={(e) => { e.preventDefault(); exec('insertUnorderedList'); }} style={wrap.btn}>
             <List size={15} color="#94a3b8" />
           </Pressable>
-          <Pressable key="ol" onPress={() => exec('insertOrderedList')} style={wrap.btn}>
+          <Pressable key="ol" onMouseDown={(e) => { e.preventDefault(); exec('insertOrderedList'); }} style={wrap.btn}>
             <ListOrdered size={15} color="#94a3b8" />
           </Pressable>
         </View>
         <View style={wrap.group}>
-          <Pressable key="undo" onPress={() => { document.execCommand('undo'); const el = editorRef.current; if (el) onChange(el.innerHTML); }} style={wrap.btn}>
+          <Pressable key="undo" onMouseDown={(e) => { e.preventDefault(); const el = editorRef.current; if (el) { el.focus(); document.execCommand('undo'); onChange(el.innerHTML); } }} style={wrap.btn}>
             <Undo size={15} color="#94a3b8" />
           </Pressable>
-          <Pressable key="redo" onPress={() => { document.execCommand('redo'); const el = editorRef.current; if (el) onChange(el.innerHTML); }} style={wrap.btn}>
+          <Pressable key="redo" onMouseDown={(e) => { e.preventDefault(); const el = editorRef.current; if (el) { el.focus(); document.execCommand('redo'); onChange(el.innerHTML); } }} style={wrap.btn}>
             <Redo size={15} color="#94a3b8" />
           </Pressable>
           <Pressable key="ai" onPress={() => setAiModalVisible(true)} style={wrap.aiBtn}>
