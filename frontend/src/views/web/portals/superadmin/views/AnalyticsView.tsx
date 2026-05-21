@@ -21,7 +21,7 @@ const FALLBACK = {
 
 export function AnalyticsView() {
   const { data } = usePortalData<typeof FALLBACK>('/admin/super/analytics', FALLBACK);
-  const GROWTH = data.growth.length ? data.growth : [{m:'Nov',v:14}, {m:'Dec',v:18}, {m:'Jan',v:22}, {m:'Feb',v:26}, {m:'Mar',v:31}, {m:'Apr',v:38}, {m:'May',v:42}];
+  const GROWTH = data.growth;
   const RETENTION = data.retention;
   const FUNNEL = data.funnel;
   const AB = data.ab;
