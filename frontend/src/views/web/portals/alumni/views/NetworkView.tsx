@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, TextInput, StyleSheet, useWindowDimensions, Platform } from 'react-native';
+import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-native';
 import { Search, UserPlus, Check, MessageSquare } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
@@ -13,7 +13,6 @@ const FILTERS = ['All', 'Alumni', 'Student'];
 export function NetworkView() {
   const { data } = usePortalData<typeof FALLBACK>('/student/network', FALLBACK);
   const PEOPLE = data?.items || [];
-  const { width } = useWindowDimensions();
   const [filter, setFilter] = useState('All');
   const [q, setQ] = useState('');
   const [conn, setConn] = useState<Set<string>>(new Set());
@@ -25,7 +24,6 @@ export function NetworkView() {
     return true;
   });
 
-  const cardW = width >= 1100 ? '32%' : width >= 720 ? '48%' : '100%';
   const send = (id: string) => setPending((p) => new Set(p).add(id));
 
   return (
@@ -46,7 +44,7 @@ export function NetworkView() {
         {list.map((p) => {
           const c = conn.has(p.id), pn = pending.has(p.id);
           return (
-            <View key={p.id} style={[s.card, { width: cardW as any }]}>
+            <View key={p.id} style={[s.card, { flexGrow: 1, flexBasis: 300, maxWidth: 360 }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <Av initials={p.initials} size={42} color={p.color} />
                 <View style={{ flex: 1, minWidth: 0 }}>

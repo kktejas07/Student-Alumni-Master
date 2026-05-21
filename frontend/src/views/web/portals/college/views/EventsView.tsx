@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Calendar as CalIcon, Plus } from 'lucide-react-native';
 import { CC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
@@ -11,8 +11,6 @@ const FALLBACK = { items: [] as Ev[] };
 export function EventsView() {
   const { data } = usePortalData<typeof FALLBACK>('/college/events', FALLBACK);
   const events = data?.items || [];
-  const { width } = useWindowDimensions();
-  const cardW = width >= 1100 ? '32%' : width >= 720 ? '48%' : '100%';
   return (
     <View>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
@@ -22,7 +20,7 @@ export function EventsView() {
       </View>
       <View style={s.grid}>
         {events.map((e) => (
-          <View key={e.id} style={[s.card, { width: cardW as any }]}>
+          <View key={e.id} style={[s.card, { flexGrow: 1, flexBasis: 300, maxWidth: 360 }]}>
             <View style={[s.icon, { backgroundColor: e.accent + '20', borderColor: e.accent + '40' }]}><CalIcon size={20} color={e.accent} /></View>
             <Text numberOfLines={2} style={s.title}>{e.title}</Text>
             <Text style={s.date}>{e.date} · {e.mode}</Text>

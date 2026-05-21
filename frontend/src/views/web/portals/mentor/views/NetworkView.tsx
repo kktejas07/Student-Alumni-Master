@@ -2,15 +2,13 @@
  * Mentor Portal — Network view: My network (connected mentors) + Discovery feed.
  */
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { UserPlus, Check, MessageSquare } from 'lucide-react-native';
 import { MC, FONTS } from '../tokens';
 import { Av, Badge, StarRow } from '../atoms';
 import { NETWORK_MENTORS, DISCOVERY_STUDENTS } from '../data';
 
 export function NetworkView() {
-  const { width } = useWindowDimensions();
-  const cardW = width >= 1100 ? '32%' : width >= 720 ? '48%' : '100%';
 
   const [pending, setPending] = useState<Set<number>>(new Set([2]));
   const [connected, setConnected] = useState<Set<number>>(new Set([1]));
@@ -28,7 +26,7 @@ export function NetworkView() {
             const isConnected = connected.has(m.id);
             const isPending   = pending.has(m.id);
             return (
-              <View key={m.id} style={[s.card, { width: cardW as any }]}>
+              <View key={m.id} style={[s.card, { flexGrow: 1, flexBasis: 300, maxWidth: 360 }]}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                   <Av initials={m.avatar} size={44} color={m.color} />
                   <View style={{ flex: 1, minWidth: 0 }}>
@@ -66,7 +64,7 @@ export function NetworkView() {
         <Text style={s.sub}>Students looking for mentors in your area of expertise.</Text>
         <View style={s.grid}>
           {DISCOVERY_STUDENTS.map((d) => (
-            <View key={d.id} style={[s.card, { width: cardW as any }]}>
+            <View key={d.id} style={[s.card, { flexGrow: 1, flexBasis: 300, maxWidth: 360 }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                 <Av initials={d.avatar} size={42} color={d.color} />
                 <View style={{ flex: 1, minWidth: 0 }}>

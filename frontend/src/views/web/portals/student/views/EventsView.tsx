@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Calendar as CalIcon, MapPin, Users as UsersIcon, Check } from '../iconShims';
 import { SC, FONTS } from '../tokens';
@@ -16,7 +16,6 @@ const FILTERS = ['All', 'Free', 'Paid', 'Online', 'Onsite'];
 export function EventsView() {
   const { data } = usePortalData<typeof FALLBACK>('/student/events', FALLBACK);
   const EVENTS = data?.items || [];
-  const { width } = useWindowDimensions();
   const [filter, setFilter] = useState('All');
   const [rsvpd, setRsvpd] = useState<Set<string>>(new Set());
 
@@ -32,8 +31,6 @@ export function EventsView() {
     if (filter === 'Onsite') return e.mode !== 'Online';
     return true;
   });
-
-  const cardW = width >= 1100 ? '32%' : width >= 720 ? '48%' : '100%';
 
   return (
     <View>
@@ -54,7 +51,7 @@ export function EventsView() {
               delay={idx * 40}
               radius={14}
               padding={0}
-              style={{ width: cardW as any, overflow: 'hidden' }}
+              style={{ flexGrow: 1, flexBasis: 300, maxWidth: 360, overflow: 'hidden' }}
             >
               <View style={[s.cover, { backgroundColor: e.accent + '22', borderColor: e.accent + '40' }]}>
                 <CalIcon size={28} color={e.accent} />

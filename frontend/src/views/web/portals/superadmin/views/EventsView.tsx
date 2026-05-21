@@ -293,7 +293,6 @@ export function EventsView() {
     { id: 'paid',    label: 'Paid',    count: counts.paid },
   ] as const;
 
-  const cols = width >= 1280 ? 3 : width >= 760 ? 2 : 1;
   const totalRevenue = EVENTS.filter((e) => e.kind === 'paid').reduce((n, e) => n + (e.price || 0) * (e.attending || 0), 0);
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
@@ -417,9 +416,9 @@ const st = StyleSheet.create({
 
   grid: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 14,
-    ...(Platform.OS === 'web' ? ({ display: 'grid' as any, gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' as any, gap: 14 } as any) : {}),
   },
   card: {
+    flexGrow: 1, flexBasis: 300, maxWidth: 360,
     backgroundColor: '#1A0F05', borderColor: 'rgba(251,146,60,0.18)', borderWidth: 1, borderRadius: 16, overflow: 'hidden',
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 6px 24px rgba(0,0,0,0.45)' } as any) : {}),
   },
