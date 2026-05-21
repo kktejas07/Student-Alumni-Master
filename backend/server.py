@@ -35,6 +35,7 @@ import logging
 import secrets
 import random
 import string
+import asyncio
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Literal, Dict, Any
 
@@ -5231,6 +5232,8 @@ async def on_startup():
     await db.agent_k_schedules.create_index([("status", 1), ("next_run_at", 1)])
     await db.agent_k_schedules.create_index([("user_id", 1), ("created_at", -1)])
     await db.agent_runs.create_index([("schedule_id", 1), ("started_at", -1)])
+    await db.workflow_events.create_index("event_type")
+    await db.workflow_events.create_index([("fired_at", -1)])
     await seed_admin()
     await seed_data()
 
@@ -5240,6 +5243,20 @@ async def on_startup():
         _ak_start_scheduler()
     except Exception as _e:
         logger.warning("Could not start Agent K scheduler: %s", _e)
+
+    # Start the Workflow Automation cron tick (60s polling).
+    try:
+        from workflow_automation import run_cron_workflows
+        async def _wf_cron_tick():
+            while True:
+                try:
+                    await run_cron_workflows()
+                except Exception:
+                    pass
+                await asyncio.sleep(60)
+        asyncio.create_task(_wf_cron_tick())
+    except Exception as _e:
+        logger.warning("Could not start Workflow cron: %s", _e)
 
 
 @app.on_event("shutdown")

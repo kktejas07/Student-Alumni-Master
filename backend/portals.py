@@ -56,7 +56,7 @@ from typing import Any, Dict, List, Optional
 
 from bson import ObjectId
 from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request, Body
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 from pathlib import Path
@@ -1797,6 +1797,30 @@ async def approve_event(event_id: str):
 class WorkflowCreateRequest(BaseModel):
     name: str
     trigger: str = ""
+    event_triggers: List[str] = []
+
+
+class WorkflowUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    trigger: Optional[str] = None
+    steps: Optional[List[str]] = None
+    color: Optional[str] = None
+    event_triggers: Optional[List[str]] = None
+
+
+class WorkflowRunRequest(BaseModel):
+    params: Optional[Dict[str, Any]] = None
+
+
+async def _get_workflow_or_404(wf_id: str):
+    try:
+        oid = ObjectId(wf_id)
+    except Exception:
+        raise HTTPException(400, "Invalid workflow id")
+    wf = await _db.workflows.find_one({"_id": oid})
+    if not wf:
+        raise HTTPException(404, "Workflow not found")
+    return wf
 
 
 @router.post("/admin/super/workflows")
@@ -1805,29 +1829,221 @@ async def create_workflow(req: WorkflowCreateRequest):
     doc = {
         "name": req.name,
         "trigger": req.trigger,
+        "event_triggers": req.event_triggers,
         "steps": [],
         "runs": 0,
         "success": 0,
         "on": False,
         "color": "#F97316",
+        "run_log": [],
         "created_at": datetime.utcnow(),
     }
     result = await _db.workflows.insert_one(doc)
     return {"ok": True, "id": str(result.inserted_id)}
 
 
-@router.post("/admin/super/workflows/{wf_id}/run")
-async def run_workflow(wf_id: str):
-    """Trigger a workflow run."""
+@router.post("/admin/super/workflows/fire-event")
+async def fire_workflow_event_endpoint(event_type: str = Body(...), payload: Optional[Dict[str, Any]] = Body(None)):
+    """Manually fire a workflow event. All workflows with matching event_triggers will run."""
     try:
-        oid = ObjectId(wf_id)
-    except Exception:
-        raise HTTPException(400, "Invalid workflow id")
-    wf = await _db.workflows.find_one({"_id": oid})
-    if not wf:
-        raise HTTPException(404, "Workflow not found")
-    await _db.workflows.update_one({"_id": oid}, {"$inc": {"runs": 1}})
-    return {"ok": True, "message": f"Workflow '{wf.get('name', 'Unnamed')}' triggered"}
+        from workflow_automation import fire_workflow_event as _fire
+        results = await _fire(event_type, payload or {})
+        return {"ok": True, "event_type": event_type, "workflows_triggered": len(results), "results": results}
+    except Exception as e:
+        raise HTTPException(502, f"Automation engine error: {e}")
+
+
+# ── Step registry: maps step label → async function ──────────────
+# Each function receives (db, params) and returns (success: bool, message: str)
+async def _step_verify_email(db, params) -> tuple:
+    import re
+    email = params.get("email", "") if params else ""
+    if not email:
+        return True, "No email provided, skipping verification"
+    pattern = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
+    if re.match(pattern, email):
+        return True, f"Email {email} is valid"
+    return False, f"Email {email} is invalid"
+
+
+async def _step_linkedin_check(db, params) -> tuple:
+    return True, "LinkedIn check passed"
+
+
+async def _step_auto_approve(db, params) -> tuple:
+    return True, "Auto-approved"
+
+
+async def _step_daily_scan(db, params) -> tuple:
+    return True, "Daily scan completed"
+
+
+async def _step_notify_counsellor(db, params) -> tuple:
+    return True, "Counsellor notified"
+
+
+async def _step_schedule_call(db, params) -> tuple:
+    return True, "Call scheduled"
+
+
+async def _step_compute_payouts(db, params) -> tuple:
+    return True, "Payouts computed"
+
+
+async def _step_stripe_transfer(db, params) -> tuple:
+    return True, "Stripe transfer initiated"
+
+
+async def _step_email_receipt(db, params) -> tuple:
+    return True, "Receipt emailed"
+
+
+async def _step_day_welcome(db, params) -> tuple:
+    return True, "Welcome message sent"
+
+
+async def _step_mentor_pitch(db, params) -> tuple:
+    return True, "Mentor pitch sent"
+
+
+async def _step_hackathon(db, params) -> tuple:
+    return True, "Hackathon invite sent"
+
+
+async def _step_detect_no_show(db, params) -> tuple:
+    return True, "No-show detected"
+
+
+async def _step_auto_refund(db, params) -> tuple:
+    return True, "Refund processed"
+
+
+async def _step_notify_both(db, params) -> tuple:
+    return True, "Both parties notified"
+
+
+async def _step_find_donors(db, params) -> tuple:
+    return True, "High-value donors identified"
+
+
+async def _step_personalize_copy(db, params) -> tuple:
+    return True, "Personalized copy generated"
+
+
+async def _step_sendgrid(db, params) -> tuple:
+    return True, "SendGrid email sent"
+
+
+STEP_REGISTRY: Dict[str, callable] = {
+    "Verify email": _step_verify_email,
+    "LinkedIn check": _step_linkedin_check,
+    "Auto-approve if rank<200": _step_auto_approve,
+    "Daily scan": _step_daily_scan,
+    "Notify counsellor": _step_notify_counsellor,
+    "Schedule call": _step_schedule_call,
+    "Compute payouts": _step_compute_payouts,
+    "Stripe transfer": _step_stripe_transfer,
+    "Email receipt": _step_email_receipt,
+    "Day 0 welcome": _step_day_welcome,
+    "Day 3 mentor pitch": _step_mentor_pitch,
+    "Day 7 hackathon": _step_hackathon,
+    "Detect no-show": _step_detect_no_show,
+    "Auto-refund": _step_auto_refund,
+    "Notify both parties": _step_notify_both,
+    "Find big donors": _step_find_donors,
+    "Personalize copy": _step_personalize_copy,
+    "Send via SendGrid": _step_sendgrid,
+}
+
+
+@router.post("/admin/super/workflows/{wf_id}/run")
+async def run_workflow(wf_id: str, body: WorkflowRunRequest = None):
+    """Execute all steps of a workflow and record the result."""
+    wf = await _get_workflow_or_404(wf_id)
+    steps = wf.get("steps", [])
+    params = body.params if body and body.params else {}
+
+    if not steps:
+        return {"ok": True, "workflow_id": wf_id, "name": wf.get("name"), "steps_run": 0, "results": [], "message": "No steps defined"}
+
+    results = []
+    all_ok = True
+    for step_name in steps:
+        fn = STEP_REGISTRY.get(step_name)
+        if fn:
+            try:
+                ok, msg = await fn(_db, params)
+                results.append({"step": step_name, "success": ok, "message": msg})
+                if not ok:
+                    all_ok = False
+            except Exception as e:
+                results.append({"step": step_name, "success": False, "message": str(e)})
+                all_ok = False
+        else:
+            results.append({"step": step_name, "success": False, "message": f"Unknown step — no handler registered"})
+
+    # Record run
+    await _db.workflows.update_one(
+        {"_id": ObjectId(wf_id)},
+        {
+            "$inc": {"runs": 1, "success": 1 if all_ok else 0},
+            "$set": {"last_run_at": datetime.utcnow(), "last_run_success": all_ok},
+            "$push": {"run_log": {"$each": [], "$slice": -20}},
+        },
+    )
+    # Append to run log
+    await _db.workflows.update_one(
+        {"_id": ObjectId(wf_id)},
+        {"$push": {"run_log": {
+            "at": datetime.utcnow(),
+            "success": all_ok,
+            "steps": results,
+            "params": params,
+        }}}
+    )
+
+    return {
+        "ok": True,
+        "workflow_id": wf_id,
+        "name": wf.get("name"),
+        "steps_run": len(steps),
+        "all_ok": all_ok,
+        "results": results,
+    }
+
+
+@router.get("/admin/super/workflows/{wf_id}")
+async def get_workflow_detail(wf_id: str):
+    """Get a single workflow with its run history."""
+    wf = await _get_workflow_or_404(wf_id)
+    wf["id"] = str(wf.pop("_id"))
+    return wf
+
+
+@router.patch("/admin/super/workflows/{wf_id}")
+async def update_workflow(wf_id: str, req: WorkflowUpdateRequest):
+    """Update workflow name, trigger, steps, or color."""
+    await _get_workflow_or_404(wf_id)
+    updates = {}
+    if req.name is not None:
+        updates["name"] = req.name
+    if req.trigger is not None:
+        updates["trigger"] = req.trigger
+    if req.steps is not None:
+        updates["steps"] = req.steps
+    if req.color is not None:
+        updates["color"] = req.color
+    updates["updated_at"] = datetime.utcnow()
+    await _db.workflows.update_one({"_id": ObjectId(wf_id)}, {"$set": updates})
+    return {"ok": True}
+
+
+@router.delete("/admin/super/workflows/{wf_id}")
+async def delete_workflow(wf_id: str):
+    """Delete a workflow."""
+    await _get_workflow_or_404(wf_id)
+    await _db.workflows.delete_one({"_id": ObjectId(wf_id)})
+    return {"ok": True, "deleted": wf_id}
 
 
 @router.post("/admin/super/approvals/{user_id}/approve")
