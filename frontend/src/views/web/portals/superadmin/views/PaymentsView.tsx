@@ -146,9 +146,14 @@ export function PaymentsView() {
   const doExport = async () => {
     setExporting(true);
     try {
-      const r = await fetch('/admin/export/payments');
-      if (r.ok) {
-        const blob = await r.blob();
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const tokenStore = (await import('@/src/models/services/api')).tokenStore;
+      const token = await tokenStore.getAccess();
+      const resp = await fetch(base + '/api/admin/export/payments', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (resp.ok) {
+        const blob = await resp.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
