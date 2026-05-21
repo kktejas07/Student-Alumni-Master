@@ -13,7 +13,7 @@ with status='mock_connected' so the UI can show Connected/Disconnect
 states. Wiring real OAuth flows can plug into this same row schema.
 """
 from __future__ import annotations
-import os
+import os, json
 from datetime import datetime, timezone
 from typing import Optional, Any, Dict, List
 from uuid import uuid4
@@ -1762,17 +1762,16 @@ class AiAssistRequest(BaseModel):
 
 @router.post("/admin/pages/ai-assist")
 async def pages_ai_assist(body: AiAssistRequest, authorization: Optional[str] = Header(None)):
-    """AI-powered content generation/rewrite for static pages."""
-    await _require_admin(authorization)
-
-    try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-    except ImportError:
-        raise HTTPException(500, "AI assistant not available in this environment")
-
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
-    if not api_key:
-        raise HTTPException(500, "AI provider not configured")
+    """AI-powered content generation/rewrite for static pages.
+    
+    Priority:
+    1. EMERGENT_LLM_KEY env var → uses emergentintegrations with Claude
+    2. Marketplace installed Grok (xAI) key → uses Grok API directly
+    3. Marketplace installed OpenAI key → uses OpenAI API directly
+    4. Any other installed AI provider → uses OpenAI-compatible fallback
+    """
+    user = await _require_admin(authorization)
+    user_id = str(user["_id"])
 
     system = (
         "You are a content editor assistant for an Indian student alumni platform. "
@@ -1790,21 +1789,160 @@ async def pages_ai_assist(body: AiAssistRequest, authorization: Optional[str] = 
     else:
         prompt = body.prompt
 
-    chat = (
-        LlmChat(
-            api_key=api_key,
-            session_id=f"pages-ai-{uuid4().hex[:8]}",
-            system_message=system,
-        )
-        .with_model("anthropic", "claude-sonnet-4-5-20250929")
-    )
+    # Priority 1: EMERGENT_LLM_KEY + emergentintegrations
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if api_key:
+        try:
+            from emergentintegrations.llm.chat import LlmChat, UserMessage
+            chat = (
+                LlmChat(
+                    api_key=api_key,
+                    session_id=f"pages-ai-{uuid4().hex[:8]}",
+                    system_message=system,
+                )
+                .with_model("anthropic", "claude-sonnet-4-5-20250929")
+            )
+            try:
+                reply = await chat.send_message(UserMessage(text=prompt))
+                text = (reply or "").strip()
+                text = text.strip("```html").strip("```").strip()
+                if not text:
+                    text = "<p>Generated content placeholder.</p>"
+                return {"content": text}
+            except Exception as e:
+                raise HTTPException(502, f"AI generation failed: {e}")
+        except ImportError:
+            pass
 
-    try:
-        reply = await chat.send_message(UserMessage(text=prompt))
-        text = (reply or "").strip()
-        text = text.strip("```html").strip("```").strip()
-        if not text:
-            text = "<p>Generated content placeholder.</p>"
-        return {"content": text}
-    except Exception as e:
-        raise HTTPException(502, f"AI generation failed: {e}")
+
+    async def _call_openai_compatible(
+        base_url: str, api_key: str, model: str, system_msg: str, user_msg: str
+    ) -> str:
+        import aiohttp
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+        body = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": user_msg},
+            ],
+            "temperature": 0.7,
+            "max_tokens": 4000,
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{base_url.rstrip('/')}/v1/chat/completions",
+                headers=headers,
+                json=body,
+                timeout=aiohttp.ClientTimeout(total=60),
+            ) as resp:
+                if resp.status != 200:
+                    err_text = await resp.text()
+                    raise HTTPException(502, f"AI API error {resp.status}: {err_text[:200]}")
+                data = await resp.json()
+                content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                if not content:
+                    content = data.get("choices", [{}])[0].get("text", "")
+                return content
+
+    installed_cur = _db.installed_tools.find({
+        "user_id": user_id,
+        "status": "connected",
+    })
+
+    # Priority order for providers
+    provider_configs = {}
+    async for row in installed_cur:
+        tid = row.get("tool_id", "")
+        creds = row.get("credentials", {})
+        provider_configs[tid] = {
+            "api_key": creds.get("api_key", creds.get("emergent_key", "")),
+            "credentials": creds,
+        }
+
+    # Priority 2: Groq (ultra-fast LPU inference)
+    groq_cfg = provider_configs.get("groq")
+    if groq_cfg and groq_cfg["api_key"]:
+        try:
+            text = await _call_openai_compatible(
+                base_url="https://api.groq.com/openai",
+                api_key=groq_cfg["api_key"],
+                model="llama3-70b-8192",
+                system_msg=system,
+                user_msg=prompt,
+            )
+            text = text.strip()
+            text = text.strip("```html").strip("```").strip()
+            if not text:
+                text = "<p>Generated content placeholder.</p>"
+            return {"content": text, "provider": "groq"}
+        except Exception as e:
+            pass
+
+    # Priority 3: OpenAI
+    openai_cfg = provider_configs.get("openai")
+    if openai_cfg and openai_cfg["api_key"]:
+        try:
+            text = await _call_openai_compatible(
+                base_url="https://api.openai.com",
+                api_key=openai_cfg["api_key"],
+                model="gpt-4o",
+                system_msg=system,
+                user_msg=prompt,
+            )
+            text = text.strip()
+            text = text.strip("```html").strip("```").strip()
+            if not text:
+                text = "<p>Generated content placeholder.</p>"
+            return {"content": text, "provider": "openai"}
+        except Exception as e:
+            pass
+
+    # Priority 4: Claude (Anthropic) from marketplace
+    claude_cfg = provider_configs.get("claude")
+    if claude_cfg and claude_cfg["api_key"]:
+        try:
+            import aiohttp
+            headers = {
+                "x-api-key": claude_cfg["api_key"],
+                "anthropic-version": "2023-06-01",
+                "Content-Type": "application/json",
+            }
+            req_body = {
+                "model": "claude-sonnet-4-5-20250929",
+                "max_tokens": 4000,
+                "system": system,
+                "messages": [{"role": "user", "content": prompt}],
+            }
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers=headers,
+                    json=req_body,
+                    timeout=aiohttp.ClientTimeout(total=60),
+                ) as resp:
+                    if resp.status != 200:
+                        err_text = await resp.text()
+                        raise HTTPException(502, f"Anthropic API error {resp.status}: {err_text[:200]}")
+                    data = await resp.json()
+                    text = ""
+                    for block in data.get("content", []):
+                        if block.get("type") == "text":
+                            text += block.get("text", "")
+                    text = text.strip()
+                    text = text.strip("```html").strip("```").strip()
+                    if not text:
+                        text = "<p>Generated content placeholder.</p>"
+                    return {"content": text, "provider": "claude"}
+        except Exception as e:
+            pass
+
+    # No AI provider configured
+    raise HTTPException(
+        500,
+        "No AI provider configured. Set EMERGENT_LLM_KEY in backend/.env, "
+        "or connect Groq, OpenAI, or Anthropic Claude in Marketplace → AI providers.",
+    )
