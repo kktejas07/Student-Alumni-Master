@@ -7,7 +7,7 @@ import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-n
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   LayoutDashboard, Building2, GraduationCap, UserCheck, Users, Calendar, CreditCard,
-  BarChart3, CheckCircle, Sparkles, Settings, Workflow, ExternalLink, LogOut,
+  BarChart3, CheckCircle, Sparkles, Workflow, ExternalLink, LogOut,
   Upload, Handshake, Megaphone,
 } from 'lucide-react-native';
 import { SAC, FONTS } from './tokens';
@@ -65,12 +65,6 @@ export function Sidebar({
   active, onNav, onLogout,
 }: { active: SuperAdminNavId; onNav: (id: SuperAdminNavId) => void; onLogout: () => void }) {
   const profile = useAdminProfile();
-  const [menuOpen, setMenuOpen] = React.useState(false);
-
-  const menuItems = [
-    { label: 'Settings', icon: Settings, action: () => { setMenuOpen(false); onNav('settings'); } },
-    { label: 'Log out',  icon: LogOut,   action: () => { setMenuOpen(false); onLogout(); } },
-  ];
 
   return (
     <View style={s.aside}>
@@ -83,27 +77,15 @@ export function Sidebar({
         </View>
       </View>
 
-      {/* Profile card with popout menu */}
-      <View style={[s.profileCard, { position: 'relative' }]}>
-        <Pressable onPress={() => setMenuOpen(!menuOpen)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Av initials={profile.initials} size={38} color={SAC.primary} />
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text numberOfLines={1} style={s.profileName}>{profile.name}</Text>
-            <Text numberOfLines={1} style={s.profileRole}>{profile.role}</Text>
-          </View>
-          <ExternalLink size={13} color={SAC.muted} />
-        </Pressable>
-        {menuOpen && (
-          <View style={s.popoutMenu}>
-            {menuItems.map((item) => (
-              <Pressable key={item.label} onPress={item.action} style={({ hovered }: any) => [s.popoutItem, hovered && { backgroundColor: 'rgba(245,158,11,0.10)' }]}>
-                <item.icon size={13} color={SAC.muted} />
-                <Text style={s.popoutLabel}>{item.label}</Text>
-              </Pressable>
-            ))}
-          </View>
-        )}
-      </View>
+      {/* Profile card — opens settings/profile in same tab */}
+      <Pressable onPress={() => onNav('settings')} style={s.profileCard}>
+        <Av initials={profile.initials} size={38} color={SAC.primary} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text numberOfLines={1} style={s.profileName}>{profile.name}</Text>
+          <Text numberOfLines={1} style={s.profileRole}>{profile.role}</Text>
+        </View>
+        <ExternalLink size={13} color={SAC.muted} />
+      </Pressable>
 
       {/* Agent K launcher */}
       <AgentKLauncher />
@@ -181,22 +163,9 @@ const s = StyleSheet.create({
   brandTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14, letterSpacing: -0.2 },
   brandSub: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 9.5, letterSpacing: 1 },
 
-  profileCard: { backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12, padding: 11, marginBottom: 12, position: 'relative' as any },
+  profileCard: { backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1, borderRadius: 12, padding: 11, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
   profileName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
   profileRole: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 2 },
-
-  popoutMenu: {
-    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
-    marginTop: 4, backgroundColor: SAC.bg2, borderColor: SAC.border, borderWidth: 1,
-    borderRadius: 10, padding: 6, gap: 2,
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 12px 32px rgba(0,0,0,0.55)' } as any) : {}),
-  },
-  popoutItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingVertical: 8, paddingHorizontal: 10, borderRadius: 7,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  popoutLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
 
   navItem: {
     flexDirection: 'row', alignItems: 'center', gap: 11,
