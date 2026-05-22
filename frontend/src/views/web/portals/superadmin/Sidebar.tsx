@@ -7,7 +7,7 @@ import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-n
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   LayoutDashboard, Building2, GraduationCap, UserCheck, Users, Calendar, CreditCard,
-  BarChart3, CheckCircle, Sparkles, Workflow, ExternalLink, LogOut,
+  BarChart3, CheckCircle, Sparkles, Settings, Workflow, ExternalLink, LogOut,
   Upload, Handshake, Megaphone,
 } from 'lucide-react-native';
 import { SAC, FONTS } from './tokens';
