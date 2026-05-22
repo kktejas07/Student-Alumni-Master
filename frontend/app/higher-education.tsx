@@ -11,7 +11,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator,
-  TextInput, Modal, Linking, Platform,
+  TextInput, Modal, Linking, Platform, Image
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -242,7 +242,7 @@ export default function HigherEducationScreen() {
             <View style={s.grid}>
               {countries.map((c) => (
                 <Pressable key={c.id} style={[s.card, { borderColor: '#06B6D455' }]} onPress={() => { setTab('programmes'); }}>
-                  <Text style={{ fontSize: 36 }}>{c.flag}</Text>
+                  <Image source={{ uri: `https://flagcdn.com/w80/${c.id.toLowerCase()}.png` }} style={{ width: 44, height: 32, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.1)' }} />
                   <Text style={s.cardTitle}>{c.name}</Text>
                   <View style={{ flexDirection: 'row', gap: 14, marginTop: 4, flexWrap: 'wrap' }}>
                     <Text style={s.cardSub}>📚 {c.programmes} programmes</Text>
@@ -674,12 +674,12 @@ const s = StyleSheet.create({
   tabTextActive: { color: '#fff' },
 
   sectionHead: { gap: 4 },
-  sectionTitle: { color: '#fff', fontSize: 22, fontWeight: '800' },
-  sectionSub: { color: C.text3, fontSize: 12.5 },
+  sectionTitle: { color: '#fff', fontSize: 22, fontWeight: '800', fontFamily: 'Outfit_800ExtraBold' },
+  sectionSub: { color: C.text3, fontSize: 12.5, fontFamily: 'PlusJakartaSans_500Medium' },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   card: {
-    flexGrow: 1, flexBasis: 280, maxWidth: 380,
+    flexGrow: 1, flexBasis: 300, maxWidth: 360,
     padding: 16, borderRadius: 16,
     backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
     gap: 10,
@@ -692,8 +692,8 @@ const s = StyleSheet.create({
   },
   matchText: { fontSize: 11.5, fontWeight: '800' },
 
-  cardTitle: { color: '#fff', fontSize: 15, fontWeight: '800', marginTop: 4 },
-  cardSub: { color: C.text2, fontSize: 12 },
+  cardTitle: { color: '#fff', fontSize: 15, fontWeight: '800', marginTop: 4, fontFamily: 'Outfit_800ExtraBold' },
+  cardSub: { color: C.text2, fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium' },
 
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   stat: {
