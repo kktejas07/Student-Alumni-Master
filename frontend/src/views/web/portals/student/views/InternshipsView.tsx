@@ -16,7 +16,7 @@
  *   - "Locked" hint for filters outside the user's tier
  *   - Pagination via Load more
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useContext } from 'react';
 import {
   View, Text, Pressable, TextInput, StyleSheet, useWindowDimensions,
   Platform, ActivityIndicator, Linking,
@@ -33,6 +33,7 @@ import { EmptyState, SuccessBurst } from '../EmptyState';
 import { SkeletonList } from '../motion';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
+import { StudentPortalNavContext } from '../StudentPortalRN';
 
 type Job = {
   job_id: string;
@@ -75,6 +76,17 @@ export function InternshipsView() {
 
   const [filter, setFilter] = useState<'All' | 'Internship' | 'Full-time' | 'Remote' | 'Saved'>('All');
   const [q, setQ] = useState('');
+
+  const portalNav = useContext(StudentPortalNavContext);
+
+  useEffect(() => {
+    if (portalNav?.searchQuery) {
+      setFilter('All');
+      setQ(portalNav.searchQuery);
+      portalNav.setSearchQuery('');
+    }
+  }, [portalNav?.searchQuery]);
+
   const [page, setPage] = useState(1);
   const [items, setItems] = useState<Job[]>([]);
   const [total, setTotal] = useState(0);

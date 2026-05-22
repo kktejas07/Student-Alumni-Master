@@ -7,12 +7,13 @@
  * Year-tier aware on the backend — Year 1/2 only sees companies hiring
  * interns, final-year + alumni see full-time hirers too.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useContext } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { request } from '@/src/models/services/api';
+import { StudentPortalNavContext } from '../StudentPortalRN';
 
 interface TrendingCompany {
   company: string;
@@ -33,6 +34,7 @@ function pickColor(seed: string): string {
 
 export function TrendingCompaniesWidget() {
   const router = useRouter();
+  const portalNav = useContext(StudentPortalNavContext);
   const [items, setItems] = useState<TrendingCompany[]>([]);
   const [loading, setLoading] = useState(true);
   const [windowDays, setWindowDays] = useState(7);
@@ -88,7 +90,13 @@ export function TrendingCompaniesWidget() {
           {items.map((c, i) => (
             <Pressable
               key={`${c.company}-${i}`}
-              onPress={() => router.push(`/student-portal?tab=internships&q=${encodeURIComponent(c.company)}` as any)}
+              onPress={() => {
+                if (portalNav) {
+                  portalNav.navigate('internships', { q: c.company });
+                } else {
+                  router.push(`/student-portal?tab=internships&q=${encodeURIComponent(c.company)}` as any);
+                }
+              }}
               style={({ hovered }: any) => [s.row, hovered && { backgroundColor: 'rgba(167,139,250,0.06)' }]}
               testID={`trending-${i}`}
             >
@@ -119,7 +127,13 @@ export function TrendingCompaniesWidget() {
       )}
 
       <Pressable
-        onPress={() => router.push('/student-portal?tab=internships' as any)}
+        onPress={() => {
+          if (portalNav) {
+            portalNav.navigate('internships');
+          } else {
+            router.push('/student-portal?tab=internships' as any);
+          }
+        }}
         style={({ hovered }: any) => [s.viewAll, hovered && { backgroundColor: 'rgba(167,139,250,0.10)' }]}
         testID="trending-view-all"
       >
