@@ -39,7 +39,9 @@ import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 
 // Navigation context for internal portal navigation
 export const StudentPortalNavContext = createContext<{
-  navigate: (id: StudentNavId) => void;
+  navigate: (id: StudentNavId, params?: { q?: string }) => void;
+  searchQuery: string;
+  setSearchQuery: (q: string) => void;
 } | null>(null);
 
 export const useStudentPortalNav = () => {
@@ -73,6 +75,7 @@ function PortalShell() {
   const bp = useBreakpoint();
   const logout = useAuthStore((sx) => sx.logout);
   const [active, setActive] = useState<StudentNavId>('dashboard');
+  const [searchQuery, setSearchQuery] = useState('');
   const [scrolled, setScrolled] = useState(false);
   // Phase B — auto-launch the Student portal tour on first visit
   useAutoTour('student');
@@ -81,7 +84,12 @@ function PortalShell() {
     try { await logout(); } catch {}
     router.replace('/welcome');
   };
-  const handleNav = (id: StudentNavId) => setActive(id);
+  const handleNav = (id: StudentNavId, params?: { q?: string }) => {
+    setActive(id);
+    if (params && typeof params.q === 'string') {
+      setSearchQuery(params.q);
+    }
+  };
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     setScrolled(e.nativeEvent.contentOffset.y > 8);
   };
@@ -113,7 +121,7 @@ function PortalShell() {
           onScroll={onScroll}
           scrollEventThrottle={16}
         >
-          <StudentPortalNavContext.Provider value={{ navigate: handleNav }}>
+          <StudentPortalNavContext.Provider value={{ navigate: handleNav, searchQuery, setSearchQuery }}>
             <EmbeddedShellContext.Provider value={true}>
               <PromoBanner portal="student" />
               <RouteTransition deps={[active]}>

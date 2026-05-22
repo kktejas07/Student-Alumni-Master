@@ -301,7 +301,7 @@ export function DashboardView() {
           </Pressable>
           <Pressable
             style={({ hovered }: any) => [s.secCta, hovered && { backgroundColor: SC.cardH }]}
-            onPress={() => alert('Browse internships')}
+            onPress={() => portalNav?.navigate('internships')}
           >
             <Text style={s.secCtaText}>Browse Internships</Text>
           </Pressable>
