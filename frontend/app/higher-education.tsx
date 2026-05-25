@@ -242,7 +242,26 @@ export default function HigherEducationScreen() {
             <View style={s.grid}>
               {countries.map((c) => (
                 <Pressable key={c.id} style={[s.card, { borderColor: '#06B6D455' }]} onPress={() => { setTab('programmes'); }}>
-                  <Image source={{ uri: `https://flagcdn.com/w80/${c.id.toLowerCase()}.png` }} style={{ width: 44, height: 32, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                  <Image
+                    source={{
+                      uri: `https://flagcdn.com/w80/${(({
+                        india: 'in',
+                        usa: 'us',
+                        uk: 'gb',
+                        canada: 'ca',
+                        germany: 'de',
+                        australia: 'au',
+                        singapore: 'sg',
+                        netherlands: 'nl',
+                      } as Record<string, string>)[c.id.toLowerCase()] ?? c.id.toLowerCase())}.png`,
+                    }}
+                    style={{
+                      width: 44,
+                      height: 32,
+                      borderRadius: 4,
+                      backgroundColor: 'rgba(255,255,255,0.1)',
+                    }}
+                  />
                   <Text style={s.cardTitle}>{c.name}</Text>
                   <View style={{ flexDirection: 'row', gap: 14, marginTop: 4, flexWrap: 'wrap' }}>
                     <Text style={s.cardSub}>📚 {c.programmes} programmes</Text>
