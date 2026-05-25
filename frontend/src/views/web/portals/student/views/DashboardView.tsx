@@ -438,7 +438,7 @@ export function DashboardView() {
                       id: m.id,
                       name: m.name,
                       title: m.role,
-                      bio: m.bio || 'Experienced professional ready to share industry insights, career strategies, and guidance.',
+                      bio: (m.bio || 'Experienced professional ready to share industry insights, career strategies, and guidance.').slice(0, 200) + ((m.bio || '').length > 200 ? '...' : ''),
                       avatar: m.avatar || `https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200`,
                       rating: String(m.rating),
                       sessions: String(m.sessions),
@@ -476,8 +476,14 @@ export function DashboardView() {
                 params: {
                   id: e.id,
                   title: e.title,
-                  date: e.date,
-                  mode: e.mode,
+                  start_date: e.start_date || e.date,
+                  venue: e.venue || 'Online',
+                  registration_deadline: e.registration_deadline || e.date,
+                  category: e.category || 'Workshop',
+                  organizer: e.organizer || 'Student Alumni Association',
+                  image: e.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=400',
+                  url: e.url || '',
+                  tags: e.tags?.join(',') || 'Networking,Career',
                   price: e.price || '',
                 }
               })}

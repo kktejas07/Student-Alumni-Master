@@ -138,8 +138,7 @@ wait_for_services() {
   done < "$PID_FILE"
 
   while ((${#pids[@]})); do
-    wait -n "${pids[@]}" || true
-
+    sleep 1
     local -a alive=()
     for pid in "${pids[@]}"; do
       if kill -0 "$pid" 2>/dev/null; then
@@ -163,19 +162,19 @@ case "$MODE" in
     start_frontend
     echo ""
     info "Both services running. Press Ctrl-C to stop."
-    trap stop_all INT
+    trap stop_all INT TERM EXIT
     wait_for_services
     ;;
   backend)
     start_backend
     info "Backend running. Press Ctrl-C to stop."
-    trap stop_all INT
+    trap stop_all INT TERM EXIT
     wait_for_services
     ;;
   frontend)
     start_frontend
     info "Frontend running. Press Ctrl-C to stop."
-    trap stop_all INT
+    trap stop_all INT TERM EXIT
     wait_for_services
     ;;
   docker)

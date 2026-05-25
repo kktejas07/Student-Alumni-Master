@@ -342,6 +342,9 @@ async def student_dashboard(student_email: Optional[str] = None):
     async for ev in upcoming_cur:
         sd = ev.get("start_date")
         date_str = sd.strftime("%b %d") if isinstance(sd, datetime) else "TBD"
+        full_date_str = sd.strftime("%B %d, %Y at %I:%M %p") if isinstance(sd, datetime) else date_str
+        rd = ev.get("registration_deadline")
+        deadline_str = rd.strftime("%b %d, %Y") if isinstance(rd, datetime) else date_str
         is_paid = bool(ev.get("price"))
         upcoming.append({
             "id": _short_id(ev.get("_id")),
@@ -351,6 +354,14 @@ async def student_dashboard(student_email: Optional[str] = None):
             "kind": "paid" if is_paid else "free",
             "price": ev.get("price"),
             "accent": palette[i % len(palette)],
+            "start_date": full_date_str,
+            "venue": ev.get("venue") or ev.get("location") or "Online",
+            "registration_deadline": deadline_str,
+            "category": ev.get("category") or "Workshop",
+            "organizer": ev.get("organizer") or "Student Alumni Association",
+            "image": ev.get("image_url") or ev.get("cover_image") or "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=400",
+            "url": ev.get("external_url") or "",
+            "tags": ev.get("tags") or ["Networking", "Career Development"],
         })
         i += 1
 

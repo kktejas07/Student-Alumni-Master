@@ -86,6 +86,10 @@ def main() -> int:
             spot_checks.append(("recommendedMentors is list", isinstance(data["recommendedMentors"], list)))
             spot_checks.append(("profileCompletion.score is int",
                                 isinstance(data["profileCompletion"].get("score"), int)))
+            if data["recommendedMentors"]:
+                mentor_sample = data["recommendedMentors"][0]
+                spot_checks.append(("recommendedMentors[0].bio is str", isinstance(mentor_sample.get("bio"), str)))
+                spot_checks.append(("recommendedMentors[0].skills is list", isinstance(mentor_sample.get("skills"), list)))
         elif path == "/admin/college-stats":
             spot_checks.append(("college.name", isinstance(data["college"].get("name"), str)))
             spot_checks.append(("kpis is list", isinstance(data["kpis"], list) and len(data["kpis"]) > 0))
