@@ -12,6 +12,28 @@ async def reset():
         print("MONGO_URL not found in env.")
         return
 
+    # Safety checks against production/staging databases
+    url_lower = (mongo_url or "").lower()
+    if "production" in url_lower or "prod" in url_lower or "staging" in url_lower:
+        print("Error: Running this destructive script against production or staging databases is blocked.")
+        return
+
+    # Check for known safe development/test database names
+    safe_dbs = ("studentalumniadmin", "studentalumnitest", "test")
+    if db_name not in safe_dbs:
+        print(f"Warning: database '{db_name}' is not in the safe development/test database list {safe_dbs}.")
+        confirm = input("Are you absolutely sure you want to run this destructive operation? (type 'yes' to proceed): ")
+        if confirm.strip().lower() != "yes":
+            print("Aborted.")
+            return
+
+    # Explicit interactive confirmation prompt
+    print(f"WARNING: This script will wipe applied_jobs for all users, all internship applications, and all job apply audits in '{db_name}'.")
+    confirm = input("Do you want to proceed? (type 'yes' to proceed): ")
+    if confirm.strip().lower() != "yes":
+        print("Aborted.")
+        return
+
     print(f"Connecting to MongoDB: {db_name}...")
     client = AsyncIOMotorClient(mongo_url)
     db = client[db_name]

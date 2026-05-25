@@ -42,7 +42,7 @@ from typing import Any, Dict, Optional, List
 
 from bson import ObjectId
 from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 
@@ -164,8 +164,23 @@ class ApplyRequest(BaseModel):
 
 
 @router.post("/student/internships/{internship_id}/apply")
-async def apply_internship(internship_id: str, req: ApplyRequest):
-    student = await _resolve_user("student", req.student_email)
+async def apply_internship(internship_id: str, req: ApplyRequest, request: Request):
+    student = None
+    # 1. Try to read token from Authorization header if present for secure auth
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        try:
+            import jwt
+            from core.security import JWT_SECRET, JWT_ALGORITHM
+            payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
+            if payload.get("type") == "access":
+                student = await _db.users.find_one({"_id": ObjectId(payload["sub"])})
+        except Exception:
+            pass
+
+    # 2. Fall back to request body if unauthenticated (demo switcher & automated tests compatibility)
+    if not student:
+        student = await _resolve_user("student", req.student_email)
     # Find internship by suffix-id or ObjectId
     internship = None
     try:

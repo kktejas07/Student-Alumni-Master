@@ -11,7 +11,7 @@
  *   - Filter chips (All / Internship / Full-time / Remote / Saved)
  *   - Search across role/company/city
  *   - Save / Unsave with instant DB persistence
- *   - Apply opens source URL in new tab + tracks via /jobs/track-apply
+ *   - Apply opens source URL in new tab + tracks via /student/internships/{id}/apply confirmation modal
  *   - Live refresh button (pulls fresh data from upstream APIs)
  *   - "Locked" hint for filters outside the user's tier
  *   - Pagination via Load more
@@ -180,9 +180,26 @@ export function InternshipsView() {
   const onApply = useCallback(async (job: Job) => {
     const url = (job.source_urls && job.source_urls[0]) || '';
     if (!url) { toast.warning('No apply link', 'This job did not include an apply URL.'); return; }
-    if (Platform.OS === 'web') window.open(url, '_blank');
-    else Linking.openURL(url).catch(() => {});
-    setApplyModalJob(job);
+    if (Platform.OS === 'web') {
+      try {
+        const win = window.open(url, '_blank');
+        if (win) {
+          setApplyModalJob(job);
+        } else {
+          toast.error('Popup Blocked', 'Please allow popups in your browser to proceed.');
+        }
+      } catch (e: any) {
+        toast.error('Could not open page', e?.message || 'Please try again.');
+      }
+    } else {
+      Linking.openURL(url)
+        .then(() => {
+          setApplyModalJob(job);
+        })
+        .catch((err) => {
+          toast.error('Could not open link', err?.message || 'No app available to open this link.');
+        });
+    }
   }, [toast]);
 
   const FILTERS = ['All', 'Internship', 'Full-time', 'Remote', 'Saved'] as const;
