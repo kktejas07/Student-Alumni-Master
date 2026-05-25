@@ -3968,6 +3968,97 @@ async def chat_history(session_id: Optional[str] = None, user: dict = Depends(ge
     return {"messages": msgs}
 
 
+@api_router.post("/ai/generate-bio")
+async def ai_generate_bio(
+    body: Dict[str, Any] = None,
+    user: dict = Depends(get_current_user),
+):
+    """
+    Generate a short personalised bio in the requested writing style using Claude.
+    Accepts profile context (role, name, education, organisation, interests, etc.)
+    and returns a 2–3 sentence bio tailored to that style.
+    """
+    body = body or {}
+    role = (body.get("role") or user.get("role") or "student").lower()
+    full_name = body.get("full_name") or user.get("full_name") or ""
+    writing_style = (body.get("writing_style") or "").strip()
+    existing_bio = (body.get("existing_bio") or "").strip()
+
+    # Build contextual prompt based on role
+    context_lines = [f"Full name: {full_name}", f"Role: {role}"]
+
+    if role == "student":
+        context_lines.append(f"College / Institution: {body.get('institution') or ''}")
+        context_lines.append(f"Education level: {body.get('education_level') or ''}")
+        context_lines.append(f"Career goal: {body.get('career_goal') or ''}")
+        interests = body.get("interests") or []
+        skills = body.get("skills") or []
+        if interests:
+            context_lines.append(f"Interests: {', '.join(interests if isinstance(interests, list) else [interests])}")
+        if skills:
+            context_lines.append(f"Skills: {', '.join(skills if isinstance(skills, list) else [skills])}")
+    elif role == "mentor":
+        context_lines.append(f"Organization: {body.get('organization') or ''}")
+        context_lines.append(f"Job title: {body.get('job_title') or ''}")
+        context_lines.append(f"Mentor category: {body.get('mentor_category') or ''}")
+        expertise = body.get("expertise") or body.get("skills") or []
+        if expertise:
+            context_lines.append(f"Expertise: {', '.join(expertise if isinstance(expertise, list) else [expertise])}")
+    elif role == "alumni":
+        context_lines.append(f"Organization: {body.get('organization') or ''}")
+        context_lines.append(f"Job title: {body.get('job_title') or ''}")
+        context_lines.append(f"College / University: {body.get('institution') or ''}")
+        context_lines.append(f"Graduation year: {body.get('graduation_year') or ''}")
+        context_lines.append(f"Employment status: {body.get('employment_status') or ''}")
+        interests = body.get("interests") or []
+        if interests:
+            context_lines.append(f"Interests: {', '.join(interests if isinstance(interests, list) else [interests])}")
+    elif role == "college" or role == "institution":
+        context_lines.append(f"Institution name: {body.get('institution_name') or body.get('institution') or ''}")
+        context_lines.append(f"Location: {body.get('location') or ''}")
+        context_lines.append(f"Institution type: {body.get('institution_type') or ''}")
+
+    if existing_bio:
+        context_lines.append(f"Existing draft: {existing_bio}")
+
+    style_guidance = {
+        "friendly & warm": "Make it approachable, heartfelt, and conversational.",
+        "professional": "Keep it polished, confident, and career-focused.",
+        "inspiring": "Use aspirational language that motivates the reader.",
+        "concise": "Be brief and direct — 1–2 tight sentences.",
+        "detailed": "Include specific accomplishments, skills, or background details.",
+    }
+    style_instruction = style_guidance.get(writing_style.lower(), "Keep it natural and genuine.")
+
+    system_msg = (
+        "You are a professional bio writer for the Student Alumni platform. "
+        "Write a short 2–3 sentence personalised bio based on the user's profile information. "
+        f"{style_instruction} "
+        "Output only the bio text — no prefixes, no markdown, no quotation marks around the text."
+    )
+    prompt = (
+        f"Generate a {writing_style or 'natural'} bio for this user.\n\n"
+        + "\n".join(context_lines)
+        + "\n\nBio:"
+    )
+
+    try:
+        from emergentintegrations.llm.chat import UserMessage
+        chat = await get_claude_chat(f"bio-{user['_id']}", system_msg)
+        bio_text = await chat.send_message(UserMessage(text=prompt))
+        bio_text = (bio_text or "").strip().strip('"').strip()
+        if not bio_text:
+            raise ValueError("empty response")
+    except Exception as e:
+        logger.error(f"generate-bio AI failed: {e}")
+        bio_text = existing_bio or (
+            f"{full_name.split(' ')[0] if full_name else 'A dedicated professional'} — "
+            f"passionate about making an impact in their field."
+        )
+
+    return {"bio": bio_text}
+
+
 # ----------------------------------------------------------------------------
 # Catalog Endpoints (8 dashboard modules)
 # ----------------------------------------------------------------------------

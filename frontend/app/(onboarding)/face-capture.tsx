@@ -5,9 +5,10 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Image, Platform, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Camera as CameraIcon, ImagePlus, RotateCcw } from 'lucide-react-native';
+import { Camera as CameraIcon, ImagePlus, RotateCcw, Check } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useToast } from '@/src/views/components';
+import { WebcamModal } from '@/src/views/components/WebcamModal';
 import { useOnboardingStore } from '@/src/viewmodels/stores/onboardingStore';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { api } from '@/src/models/services/api';
@@ -23,6 +24,20 @@ export default function FaceCapture() {
   const refreshUser = useAuthStore((s) => s.refreshUser);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [webcamVisible, setWebcamVisible] = useState(false);
+  const [pendingPhoto, setPendingPhoto] = useState<string | null>(null);
+
+  const confirmPhoto = () => {
+    if (!pendingPhoto) return;
+    onboarding.setFaceImage(pendingPhoto);
+    setPendingPhoto(null);
+    toast.success('Photo confirmed', 'Looking great!');
+  };
+
+  const retakePhoto = () => {
+    setPendingPhoto(null);
+    pickFromCamera();
+  };
 
   const ensureCameraPerm = async (): Promise<boolean> => {
     const res = await ImagePicker.requestCameraPermissionsAsync();
@@ -31,13 +46,15 @@ export default function FaceCapture() {
 
   const pickFromCamera = async () => {
     setError(null);
-    if (Platform.OS !== 'web') {
-      const ok = await ensureCameraPerm();
-      if (!ok) {
-        Alert.alert('Permission required', 'Please grant camera access to capture your face photo.');
-        toast.error('Camera blocked', 'Grant camera permission in settings.');
-        return;
-      }
+    if (Platform.OS === 'web') {
+      setWebcamVisible(true);
+      return;
+    }
+    const ok = await ensureCameraPerm();
+    if (!ok) {
+      Alert.alert('Permission required', 'Please grant camera access to capture your face photo.');
+      toast.error('Camera blocked', 'Grant camera permission in settings.');
+      return;
     }
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -48,8 +65,7 @@ export default function FaceCapture() {
       aspect: [1, 1],
     });
     if (!result.canceled && result.assets?.[0]?.base64) {
-      onboarding.setFaceImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
-      toast.success('Photo captured', 'Looking great!');
+      setPendingPhoto(`data:image/jpeg;base64,${result.assets[0].base64}`);
     }
   };
 
@@ -63,8 +79,7 @@ export default function FaceCapture() {
       aspect: [1, 1],
     });
     if (!result.canceled && result.assets?.[0]?.base64) {
-      onboarding.setFaceImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
-      toast.success('Photo selected', 'Picture uploaded.');
+      setPendingPhoto(`data:image/jpeg;base64,${result.assets[0].base64}`);
     }
   };
 
@@ -145,7 +160,9 @@ export default function FaceCapture() {
       {/* Photo area */}
       <View style={styles.photoWrap}>
         <View style={styles.photoFrame}>
-          {onboarding.face_image_base64 ? (
+          {pendingPhoto ? (
+            <Image source={{ uri: pendingPhoto }} style={styles.photo} />
+          ) : onboarding.face_image_base64 ? (
             <Image source={{ uri: onboarding.face_image_base64 }} style={styles.photo} />
           ) : (
             <View style={styles.photoEmpty}>
@@ -156,33 +173,64 @@ export default function FaceCapture() {
         </View>
       </View>
 
-      {/* Picker buttons */}
+      {/* Picker / Confirm buttons */}
       <View style={{ gap: 10, marginBottom: 8 }}>
-        <Pressable
-          onPress={pickFromCamera}
-          testID="face-capture-camera-btn"
-          style={({ hovered, pressed }: any) => [
-            styles.cameraBtn,
-            hovered && { backgroundColor: '#9059D9' },
-            pressed && { transform: [{ scale: 0.99 }] },
-          ]}
-        >
-          {onboarding.face_image_base64
-            ? <RotateCcw size={18} color="#FFFFFF" />
-            : <CameraIcon size={18} color="#FFFFFF" />}
-          <Text style={styles.cameraBtnText}>
-            {onboarding.face_image_base64 ? 'Retake with camera' : 'Capture with camera'}
-          </Text>
-        </Pressable>
-        <WebGhostBtn
-          label="Choose from gallery"
-          onPress={pickFromLibrary}
-          testID="face-capture-gallery-btn"
-          leftIcon={<ImagePlus size={18} color="rgba(255,255,255,0.85)" />}
-        />
+        {pendingPhoto ? (
+          <>
+            <Pressable
+              onPress={confirmPhoto}
+              style={({ pressed }: any) => [
+                styles.confirmBtn,
+                pressed && { transform: [{ scale: 0.99 }] },
+              ]}
+            >
+              <Check size={18} color="#000" />
+              <Text style={styles.confirmBtnText}>Confirm photo</Text>
+            </Pressable>
+            <WebGhostBtn
+              label="Retake"
+              onPress={retakePhoto}
+              leftIcon={<RotateCcw size={18} color="rgba(255,255,255,0.85)" />}
+            />
+          </>
+        ) : (
+          <>
+            <Pressable
+              onPress={pickFromCamera}
+              testID="face-capture-camera-btn"
+              style={({ hovered, pressed }: any) => [
+                styles.cameraBtn,
+                hovered && { backgroundColor: '#9059D9' },
+                pressed && { transform: [{ scale: 0.99 }] },
+              ]}
+            >
+              {onboarding.face_image_base64
+                ? <RotateCcw size={18} color="#FFFFFF" />
+                : <CameraIcon size={18} color="#FFFFFF" />}
+              <Text style={styles.cameraBtnText}>
+                {onboarding.face_image_base64 ? 'Retake with camera' : 'Capture with camera'}
+              </Text>
+            </Pressable>
+            <WebGhostBtn
+              label="Choose from gallery"
+              onPress={pickFromLibrary}
+              testID="face-capture-gallery-btn"
+              leftIcon={<ImagePlus size={18} color="rgba(255,255,255,0.85)" />}
+            />
+          </>
+        )}
       </View>
 
       {error && <Text style={styles.error}>{error}</Text>}
+
+      <WebcamModal
+        visible={webcamVisible}
+        onClose={() => setWebcamVisible(false)}
+        onCapture={(base64) => {
+          setPendingPhoto(base64);
+          setWebcamVisible(false);
+        }}
+      />
     </OnboardingShell>
   );
 }
@@ -213,5 +261,15 @@ const styles = StyleSheet.create({
     ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
   },
   cameraBtnText: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  confirmBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#C4B5FD',
+    paddingVertical: 13, paddingHorizontal: 16,
+    borderRadius: 12,
+    boxShadow: '0px 8px 16px rgba(124,58,237,0.35)',
+    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
+  },
+  confirmBtnText: { color: '#000', fontFamily: 'DMSans_700Bold', fontSize: 14 },
   error: { color: '#FCA5A5', fontFamily: 'DMSans_500Medium', fontSize: 13, backgroundColor: 'rgba(220,38,38,0.15)', borderColor: 'rgba(252,165,165,0.3)', borderWidth: 1, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 8, marginTop: 4 },
 });

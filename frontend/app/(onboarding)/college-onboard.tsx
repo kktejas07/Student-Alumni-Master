@@ -143,6 +143,27 @@ export default function CollegeOnboard() {
   // Step 5
   const [bio,   setBio]   = useState('');
   const [style, setStyle] = useState('');
+  const [generatingBio, setGeneratingBio] = useState(false);
+
+  const handleStylePress = async (s: string) => {
+    setStyle(s);
+    setGeneratingBio(true);
+    try {
+      const res = await api.generateBio({
+        role: 'college',
+        full_name: name,
+        writing_style: s,
+        existing_bio: bio || undefined,
+        institution_name: name,
+        location: `${city}, ${stateName}`,
+        institution_type: type,
+      });
+      if (res?.bio) setBio(res.bio.slice(0, 300));
+    } catch {
+    } finally {
+      setGeneratingBio(false);
+    }
+  };
 
   // Step 6: badge
   const badge = useMemo(() => {
@@ -489,8 +510,9 @@ export default function CollegeOnboard() {
               </Text>
               <Text style={[s.section, { marginTop: 10 }]}>Write Style</Text>
               <View style={s.chipRow}>
-                {STYLES.map((x) => (<DarkChip key={x} label={x} active={style === x} onPress={() => setStyle(x)} />))}
+                {STYLES.map((x) => (<DarkChip key={x} label={x} active={style === x} onPress={() => handleStylePress(x)} />))}
               </View>
+              {generatingBio && <Text style={s.generatingText}>✨ Generating your bio…</Text>}
             </>
           )}
 
@@ -604,4 +626,5 @@ const s = StyleSheet.create({
 
   navRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
   backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  generatingText: { color: '#A78BFA', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 6 },
 });
