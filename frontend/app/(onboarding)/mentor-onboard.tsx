@@ -33,7 +33,7 @@ import { SuggestionAutocomplete } from '@/src/views/web/SuggestionAutocomplete';
 import { Dropdown } from '@/src/views/web/Dropdown';
 
 const TOTAL = 8;
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 const CURRENT_YEAR = new Date().getFullYear();
 // For mentors, batch year is in the past — they've already graduated.
 const BATCH_YEARS = Array.from({ length: 30 }, (_, i) => String(CURRENT_YEAR - i));
@@ -469,7 +469,7 @@ export default function MentorOnboard() {
           {/* === STEP 6: Photo === */}
           {step === 5 && (
             <View style={{ alignItems: 'center', gap: 16 }}>
-              <Pressable onPress={pickPhoto} style={s.photoFrame}>
+              <Pressable onPress={takeSelfie} style={s.photoFrame}>
                 {photo ? (
                   <Image source={{ uri: photo }} style={s.photoImg} />
                 ) : (

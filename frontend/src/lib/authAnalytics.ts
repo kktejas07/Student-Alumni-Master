@@ -31,7 +31,7 @@
  */
 import analytics from './analytics';
 
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 export type AuthEvent =
   | 'role_selected'
