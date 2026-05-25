@@ -9,14 +9,14 @@ import {
   useWindowDimensions, Platform, Image, Alert, Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import {
   ArrowLeft, User, Settings as SettingsIcon, SlidersHorizontal,
   LogOut, Check, X as CloseX, IdCard, Bell, ShieldCheck, PencilLine,
   CalendarDays, UsersRound, Eye, Target, Send, ShieldCheck as ShieldIcon,
   Download, Share2, RotateCw, Copy as CopyIcon,
-  CalendarCheck, Zap, Building2,
+  CalendarCheck, Zap, Building2, Plug,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import QRCode from 'react-native-qrcode-svg';
@@ -28,8 +28,9 @@ import { ManageProfilePage } from '@/src/views/web/profile/ManageProfilePage';
 import { SettingsPage } from '@/src/views/web/profile/SettingsPage';
 import { SaveBar, C } from '@/src/views/web/profile/primitives';
 import { MemberIdCard } from '@/src/views/components/MemberIdCard';
+import { IntegrationsView } from '@/src/views/web/profile/IntegrationsView';
 
-type PageKey = 'info' | 'digitalid' | 'manage' | 'notifications' | 'privacy' | 'settings';
+type PageKey = 'info' | 'digitalid' | 'manage' | 'notifications' | 'privacy' | 'settings' | 'integrations';
 
 interface CompletionData {
   percentage: number;
@@ -42,7 +43,15 @@ export default function ProfileScreen() {
   const { width: winW } = useWindowDimensions();
   const isMobile = winW < 900;
 
-  const [page, setPage] = useState<PageKey>('info');
+  const params = useLocalSearchParams<{ tab?: string }>();
+
+  const [page, setPage] = useState<PageKey>((params.tab as PageKey) || 'info');
+
+  useEffect(() => {
+    if (params.tab && (params.tab as PageKey) !== page) {
+      setPage(params.tab as PageKey);
+    }
+  }, [params.tab]);
   const [draft, setDraft] = useState<any>({});
   const [original, setOriginal] = useState<any>({});
   const [loading, setLoading] = useState(true);
@@ -136,6 +145,7 @@ export default function ProfileScreen() {
   ];
   const NAV_ACCOUNT: { key: PageKey; label: string; icon: any; sub: string }[] = [
     { key: 'settings', label: 'Settings', icon: SettingsIcon, sub: 'AI coach, language, theme, account' },
+    { key: 'integrations', label: 'Tools & Integrations', icon: Plug, sub: 'AI providers, email, calendar, video' },
     { key: 'notifications', label: 'Notifications', icon: Bell, sub: 'Choose what we ping you about' },
     { key: 'privacy', label: 'Security', icon: ShieldCheck, sub: 'Privacy, 2FA, password, data' },
   ];
@@ -338,6 +348,9 @@ export default function ProfileScreen() {
               )}
               {page === 'settings' && (
                 <SettingsPage draft={draft} setDraft={setDraft} showToast={showToast} section="general" />
+              )}
+              {page === 'integrations' && (
+                <IntegrationsView />
               )}
               <View style={{ height: 12 }} />
               {page !== 'digitalid' && (
