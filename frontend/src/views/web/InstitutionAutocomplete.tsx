@@ -13,7 +13,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, ActivityIndicator, TextInput, Image, Platform,
+  View, Text, StyleSheet, Pressable, ActivityIndicator, TextInput, Image, Platform, ScrollView,
 } from 'react-native';
 import { GraduationCap, Building2, Search, Plus } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
@@ -149,6 +149,11 @@ export function InstitutionAutocomplete({
           {results.length === 0 && !loading && (
             <Pressable
               onPress={useAsIs}
+              onMouseDown={(e: any) => {
+                if (Platform.OS === 'web') {
+                  e.preventDefault();
+                }
+              }}
               testID="institution-add-manual-empty"
               style={({ hovered }: any) => [
                 styles.row,
@@ -166,31 +171,43 @@ export function InstitutionAutocomplete({
               </View>
             </Pressable>
           )}
-          {results.map((r) => (
-            <Pressable
-              key={r.id}
-              onPress={() => pick(r)}
-              testID={`institution-result-${r.id}`}
-              style={({ hovered, pressed }: any) => [
-                styles.row,
-                hovered && { backgroundColor: 'rgba(124,58,237,0.16)' },
-                pressed && { backgroundColor: 'rgba(124,58,237,0.24)' },
-              ]}
-            >
-              <View style={styles.rowIcon}>
-                <Building2 size={14} color="#A78BFA" />
-              </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={styles.rowName} numberOfLines={1}>{r.name}</Text>
-                <Text style={styles.rowMeta} numberOfLines={1}>
-                  {[r.city, r.state, r.country].filter(Boolean).join(' · ')}
-                </Text>
-              </View>
-            </Pressable>
-          ))}
+          <ScrollView style={styles.scroll} nestedScrollEnabled={true} showsVerticalScrollIndicator={true}>
+            {results.map((r) => (
+              <Pressable
+                key={r.id}
+                onPress={() => pick(r)}
+                onMouseDown={(e: any) => {
+                  if (Platform.OS === 'web') {
+                    e.preventDefault();
+                  }
+                }}
+                testID={`institution-result-${r.id}`}
+                style={({ hovered, pressed }: any) => [
+                  styles.row,
+                  hovered && { backgroundColor: 'rgba(124,58,237,0.16)' },
+                  pressed && { backgroundColor: 'rgba(124,58,237,0.24)' },
+                ]}
+              >
+                <View style={styles.rowIcon}>
+                  <Building2 size={14} color="#A78BFA" />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.rowName} numberOfLines={1}>{r.name}</Text>
+                  <Text style={styles.rowMeta} numberOfLines={1}>
+                    {[r.city, r.state, r.country].filter(Boolean).join(' · ')}
+                  </Text>
+                </View>
+              </Pressable>
+            ))}
+          </ScrollView>
           {results.length > 0 && (
             <Pressable
               onPress={useAsIs}
+              onMouseDown={(e: any) => {
+                if (Platform.OS === 'web') {
+                  e.preventDefault();
+                }
+              }}
               testID="institution-add-manual"
               style={({ hovered, pressed }: any) => [
                 styles.row, styles.rowAdd,
@@ -303,5 +320,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(196,181,253,0.45)', borderWidth: 1.5,
     alignItems: 'center', justifyContent: 'center',
     boxShadow: '0px 4px 14px rgba(124,58,237,0.30)',
+  },
+  scroll: {
+    maxHeight: 220,
   },
 });

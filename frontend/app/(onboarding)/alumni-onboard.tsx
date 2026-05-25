@@ -33,7 +33,7 @@ import { SuggestionAutocomplete } from '@/src/views/web/SuggestionAutocomplete';
 import { Dropdown } from '@/src/views/web/Dropdown';
 
 const TOTAL = 6;
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 const CURRENT_YEAR = new Date().getFullYear();
 const GRAD_YEARS = Array.from({ length: 50 }, (_, i) => String(CURRENT_YEAR - i));
 
@@ -393,7 +393,7 @@ export default function AlumniOnboard() {
           {/* === STEP 4: Photo === */}
           {step === 3 && (
             <View style={{ alignItems: 'center', gap: 16 }}>
-              <Pressable onPress={pickPhoto} style={s.photoFrame}>
+              <Pressable onPress={takeSelfie} style={s.photoFrame}>
                 {photo
                   ? <Image source={{ uri: photo }} style={s.photoImg} />
                   : <View style={{ alignItems: 'center', gap: 8 }}>

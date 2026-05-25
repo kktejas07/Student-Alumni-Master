@@ -25,7 +25,7 @@ import { PhoneInput } from '@/src/views/web/PhoneInput';
 import { api } from '@/src/models/services/api';
 import { DarkChip } from '@/src/views/web/OnboardingShell';
 
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 const SESSION_PRICES = [499, 799, 999, 1499];
 

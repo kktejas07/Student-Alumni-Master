@@ -9,14 +9,21 @@ import asyncio
 import os
 import sys
 from typing import Any, Dict, List
-
 from motor.motor_asyncio import AsyncIOMotorClient
+from dotenv import load_dotenv
+from pathlib import Path
 
-LOCAL_URI = "mongodb://localhost:27017"
-LOCAL_DB  = "career_platform"
+# Load env variables from backend/.env or root .env
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR.parent / ".env")
 
-ATLAS_URI = "mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin"
-ATLAS_DB  = "studentalumniadmin"
+LOCAL_URI = os.environ.get("LOCAL_MONGO_URL", "mongodb://localhost:27017")
+LOCAL_DB  = os.environ.get("LOCAL_DB_NAME", "career_platform")
+
+# Retrieve from environment, falling back to the default credentials
+ATLAS_URI = os.environ.get("MONGO_URL", "mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/studentalumniadmin?appName=studentalumniadmin")
+ATLAS_DB  = os.environ.get("DB_NAME", "studentalumniadmin")
 
 BATCH = 500
 DROP_TARGET = True   # wipe target collections before insert (clean 1:1 mirror)

@@ -14,7 +14,7 @@ import { Dropdown } from '@/src/views/web/Dropdown';
 import { SuggestionAutocomplete } from '@/src/views/web/SuggestionAutocomplete';
 import type { MentorCategory } from '@/src/models/entities';
 
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 // Static fallback — used if /api/mentors/suggestions is unreachable.
 const FALLBACK_ORGS = [

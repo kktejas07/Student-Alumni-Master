@@ -16,7 +16,7 @@
  * orange for alumni, blue for college.
  */
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform, ScrollView } from 'react-native';
 import { Check, Edit3 } from 'lucide-react-native';
 import { useRoleTheme } from '@/src/views/auth/RoleTheme';
 
@@ -57,31 +57,43 @@ export function OptionListCard({
         <View style={styles.empty}><Text style={styles.emptyText}>{emptyLabel}</Text></View>
       ) : (
         <>
-          {options.map((opt) => {
-            const isSelected = opt.value === selectedValue;
-            return (
-              <Pressable
-                key={opt.value}
-                onPress={() => onSelect(opt)}
-                style={({ hovered, pressed }: any) => [
-                  styles.row,
-                  hovered && !isSelected && { backgroundColor: `${primary}33` },
-                  pressed && !isSelected && { backgroundColor: `${primary}55` },
-                  isSelected && { backgroundColor: primary },
-                ]}
-              >
-                <Text style={[styles.rowText, isSelected && styles.rowTextActive]} numberOfLines={1}>
-                  {opt.label}
-                </Text>
-                {isSelected ? <Check size={16} color="#FFFFFF" /> : null}
-              </Pressable>
-            );
-          })}
+          <ScrollView style={styles.scroll} nestedScrollEnabled={true} showsVerticalScrollIndicator={true}>
+            {options.map((opt) => {
+              const isSelected = opt.value === selectedValue;
+              return (
+                <Pressable
+                  key={opt.value}
+                  onPress={() => onSelect(opt)}
+                  onMouseDown={(e: any) => {
+                    if (Platform.OS === 'web') {
+                      e.preventDefault();
+                    }
+                  }}
+                  style={({ hovered, pressed }: any) => [
+                    styles.row,
+                    hovered && !isSelected && { backgroundColor: `${primary}33` },
+                    pressed && !isSelected && { backgroundColor: `${primary}55` },
+                    isSelected && { backgroundColor: primary },
+                  ]}
+                >
+                  <Text style={[styles.rowText, isSelected && styles.rowTextActive]} numberOfLines={1}>
+                    {opt.label}
+                  </Text>
+                  {isSelected ? <Check size={16} color="#FFFFFF" /> : null}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
           {showOther && (
             <>
               <View style={styles.divider} />
               <Pressable
                 onPress={onSelectOther}
+                onMouseDown={(e: any) => {
+                  if (Platform.OS === 'web') {
+                    e.preventDefault();
+                  }
+                }}
                 style={({ hovered, pressed }: any) => [
                   styles.row,
                   styles.otherRow,
@@ -164,5 +176,8 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.45)',
     fontFamily: 'DMSans_500Medium',
     fontSize: 13,
+  },
+  scroll: {
+    maxHeight: 220,
   },
 });
