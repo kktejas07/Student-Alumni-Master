@@ -328,6 +328,8 @@ async def student_dashboard(student_email: Optional[str] = None):
             "sessions": msess,
             "price": m.get("expected_rate_inr") or 999,
             "color": _color_for(mname),
+            "bio": mi.get("bio") or "Experienced professional ready to share industry insights, career strategies, and guidance.",
+            "skills": m.get("skills") or ["System Design", "Career Strategy"],
         })
 
     # Upcoming events

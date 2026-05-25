@@ -48,10 +48,9 @@ start_backend() {
 
   # Prefer python3.11 / python3.12 (requirements need >=3.10); fall back to python3
   PYTHON=""
-  for candidate in python3.12 python3.11 python3.10 python3; do
+  for candidate in python3.12 python3.11 python3.10 python3 python; do
     if command -v "$candidate" &>/dev/null; then
-      ver=$("$candidate" -c 'import sys; print(sys.version_info[:2])')
-      if "$candidate" -c 'import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)' 2>/dev/null; then
+      if "$candidate" -c 'import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)' >/dev/null 2>&1; then
         PYTHON="$candidate"
         break
       fi
@@ -60,19 +59,27 @@ start_backend() {
   [[ -n "$PYTHON" ]] || error "Python 3.10+ is required. Install it and re-run."
   success "Using $PYTHON ($($PYTHON --version))"
 
+  VENV_BIN="$BACKEND_DIR/venv/bin"
+  if [[ -d "$BACKEND_DIR/venv/Scripts" ]]; then
+    VENV_BIN="$BACKEND_DIR/venv/Scripts"
+  fi
+
   if [[ ! -d "$BACKEND_DIR/venv" ]]; then
     warn "No venv found — creating one and installing dependencies…"
     "$PYTHON" -m venv "$BACKEND_DIR/venv"
-    "$BACKEND_DIR/venv/bin/pip" install -q --upgrade pip
-    "$BACKEND_DIR/venv/bin/pip" install -q -r "$BACKEND_DIR/requirements.txt"
-    "$BACKEND_DIR/venv/bin/pip" install -q "uvicorn[standard]"
+    if [[ -d "$BACKEND_DIR/venv/Scripts" ]]; then
+      VENV_BIN="$BACKEND_DIR/venv/Scripts"
+    fi
+    "$VENV_BIN/pip" install -q --upgrade pip
+    "$VENV_BIN/pip" install -q -r "$BACKEND_DIR/requirements.txt"
+    "$VENV_BIN/pip" install -q "uvicorn[standard]"
     success "Dependencies installed."
   fi
 
   load_env
 
   cd "$BACKEND_DIR"
-  "$BACKEND_DIR/venv/bin/uvicorn" server:app \
+  "$VENV_BIN/uvicorn" server:app \
     --host 0.0.0.0 --port 8000 --reload \
     --log-level info &
   echo $! >> "$PID_FILE"
@@ -122,6 +129,27 @@ stop_all() {
   rm -f "$PID_FILE"
 }
 
+wait_for_services() {
+  local -a pids=()
+  local pid
+
+  while read -r pid; do
+    [[ -n "$pid" ]] && pids+=("$pid")
+  done < "$PID_FILE"
+
+  while ((${#pids[@]})); do
+    wait -n "${pids[@]}" || true
+
+    local -a alive=()
+    for pid in "${pids[@]}"; do
+      if kill -0 "$pid" 2>/dev/null; then
+        alive+=("$pid")
+      fi
+    done
+    pids=("${alive[@]}")
+  done
+}
+
 # ── main ──────────────────────────────────────────────────────────────────────
 MODE="${1:-dev}"
 
@@ -135,20 +163,20 @@ case "$MODE" in
     start_frontend
     echo ""
     info "Both services running. Press Ctrl-C to stop."
-    trap stop_all INT TERM
-    wait
+    trap stop_all INT
+    wait_for_services
     ;;
   backend)
     start_backend
     info "Backend running. Press Ctrl-C to stop."
-    trap stop_all INT TERM
-    wait
+    trap stop_all INT
+    wait_for_services
     ;;
   frontend)
     start_frontend
     info "Frontend running. Press Ctrl-C to stop."
-    trap stop_all INT TERM
-    wait
+    trap stop_all INT
+    wait_for_services
     ;;
   docker)
     shift || true
