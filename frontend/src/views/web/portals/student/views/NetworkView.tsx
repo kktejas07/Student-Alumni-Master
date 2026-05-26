@@ -11,10 +11,10 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useToast } from '@/src/views/components';
 import { request } from '@/src/models/services/api';
 
-type Person = { id: string; name: string; initials: string; kind: 'alumni' | 'student'; role: string; subline: string; college: string; batch: number; tags: string[]; color: string; connection_state?: 'connected' | 'pending' | 'none' };
+type Person = { id: string; name: string; initials: string; kind: 'alumni' | 'student' | 'mentor'; role: string; subline: string; college: string; batch: number; tags: string[]; color: string; connection_state?: 'connected' | 'pending' | 'none' };
 const FALLBACK = { items: [] as Person[] };
 
-const FILTERS = ['All', 'Alumni', 'Student'];
+const FILTERS = ['All', 'Alumni', 'Student', 'Mentor'];
 
 export function NetworkView() {
   const toast = useToast();
@@ -63,7 +63,7 @@ export function NetworkView() {
         <View style={{ flex: 1 }} />
         <View style={s.searchBox}><Search size={14} color={SC.dim} /><TextInput value={q} onChangeText={setQ} placeholder="Search" placeholderTextColor={SC.dim} style={s.searchInput} /></View>
       </View>
-
+ 
       <View style={s.grid}>
         {list.map((p, idx) => {
           const c = conn.has(p.id) || p.connection_state === 'connected';
@@ -82,7 +82,10 @@ export function NetworkView() {
                   <Text numberOfLines={1} style={s.name}>{p.name}</Text>
                   <Text numberOfLines={1} style={s.meta}>{p.subline}</Text>
                 </View>
-                <Badge label={p.kind === 'alumni' ? 'Alumni' : 'Student'} color={p.kind === 'alumni' ? 'green' : 'purple'} />
+                <Badge
+                  label={p.kind === 'alumni' ? 'Alumni' : p.kind === 'mentor' ? 'Mentor' : 'Student'}
+                  color={p.kind === 'alumni' ? 'green' : p.kind === 'mentor' ? 'teal' : 'purple'}
+                />
               </View>
               <Text style={s.collegeMeta}>{p.college} · Batch {p.batch}</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>

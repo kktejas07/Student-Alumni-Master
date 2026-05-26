@@ -4,14 +4,22 @@ import { Search, UserPlus, Check, MessageSquare } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
 import { usePortalData } from '@/src/lib/portalApi';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useToast } from '@/src/views/components';
+import { request } from '@/src/models/services/api';
 
-type Person = { id: string; name: string; initials: string; kind: 'alumni' | 'student'; role: string; subline: string; college: string; batch: number; tags: string[]; color: string };
+type Person = { id: string; name: string; initials: string; kind: 'alumni' | 'student' | 'mentor'; role: string; subline: string; college: string; batch: number; tags: string[]; color: string; connection_state?: 'connected' | 'pending' | 'none' };
 const FALLBACK = { items: [] as Person[] };
 
-const FILTERS = ['All', 'Alumni', 'Student'];
+const FILTERS = ['All', 'Alumni', 'Student', 'Mentor'];
 
 export function NetworkView() {
-  const { data } = usePortalData<typeof FALLBACK>('/student/network', FALLBACK);
+  const toast = useToast();
+  const authUser = useAuthStore((sx) => sx.user);
+  const path = authUser?.email
+    ? `/student/network?student_email=${encodeURIComponent(authUser.email)}`
+    : '/student/network';
+  const { data } = usePortalData<typeof FALLBACK>(path, FALLBACK);
   const PEOPLE = data?.items || [];
   const [filter, setFilter] = useState('All');
   const [q, setQ] = useState('');
@@ -24,7 +32,20 @@ export function NetworkView() {
     return true;
   });
 
-  const send = (id: string) => setPending((p) => new Set(p).add(id));
+  const send = async (id: string) => {
+    setPending((p) => new Set(p).add(id));
+    try {
+      await request(`/network/connect/${id}`, { method: 'POST' });
+      toast.success('Connection Sent! ✉️', 'Your connection invite is permanently registered.');
+    } catch (err: any) {
+      setPending((p) => {
+        const next = new Set(p);
+        next.delete(id);
+        return next;
+      });
+      toast.error('Could not connect', err?.message || 'Please try again.');
+    }
+  };
 
   return (
     <View>
@@ -42,7 +63,8 @@ export function NetworkView() {
 
       <View style={s.grid}>
         {list.map((p) => {
-          const c = conn.has(p.id), pn = pending.has(p.id);
+          const c = conn.has(p.id) || p.connection_state === 'connected';
+          const pn = pending.has(p.id) || p.connection_state === 'pending';
           return (
             <View key={p.id} style={[s.card, { flexGrow: 1, flexBasis: 300, maxWidth: 360 }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -51,7 +73,10 @@ export function NetworkView() {
                   <Text numberOfLines={1} style={s.name}>{p.name}</Text>
                   <Text numberOfLines={1} style={s.meta}>{p.subline}</Text>
                 </View>
-                <Badge label={p.kind === 'alumni' ? 'Alumni' : 'Student'} color={p.kind === 'alumni' ? 'green' : 'purple'} />
+                <Badge
+                  label={p.kind === 'alumni' ? 'Alumni' : p.kind === 'mentor' ? 'Mentor' : 'Student'}
+                  color={p.kind === 'alumni' ? 'green' : p.kind === 'mentor' ? 'teal' : 'purple'}
+                />
               </View>
               <Text style={s.collegeMeta}>{p.college} · Batch {p.batch}</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
