@@ -1861,15 +1861,40 @@ async def student_wallet(student_email: Optional[str] = None):
 
 
 @router.get("/student/network")
-async def student_network(limit: int = 18):
+async def student_network(student_email: Optional[str] = None, limit: int = 18):
     """Mixed alumni + student network for the Network tab."""
+    student = None
+    if student_email:
+        student = await _db.users.find_one({"role": "student", "email": student_email})
+    if not student:
+        student = await _db.users.find_one({"role": "student"})
+
+    rel_map = {}
+    if student:
+        me_id = str(student["_id"])
+        rels = await _db.connections.find({
+            "$or": [{"a": me_id}, {"b": me_id}]
+        }).to_list(1000)
+        for r in rels:
+            other = r["b"] if r["a"] == me_id else r["a"]
+            status = r.get("status")
+            if status == "accepted":
+                rel_map[other] = "connected"
+            elif status == "pending":
+                rel_map[other] = "pending"
+
     out = []
+    me_id_str = str(student["_id"]) if student else ""
+
     al_cur = _db.users.find({"role": "alumni"}).limit(limit // 2)
     async for a in al_cur:
+        other_id = str(a["_id"])
+        if other_id == me_id_str:
+            continue
         ai = a.get("alumni_info") or {}
         si = a.get("school_info") or {}
         out.append({
-            "id": _short_id(a.get("_id")),
+            "id": other_id,
             "name": a.get("full_name") or "—",
             "initials": _initials(a.get("full_name") or ""),
             "role": "Alumni",
@@ -1879,12 +1904,20 @@ async def student_network(limit: int = 18):
             "tags": ["Alumni"] + (ai.get("interests", []) or [])[:2],
             "color": _color_for(a.get("full_name", "")),
             "kind": "alumni",
+            "connection_state": rel_map.get(other_id, "none"),
         })
-    st_cur = _db.users.find({"role": "student"}).limit(limit // 2)
+
+    # Fetch slightly more students in case we filter out the logged-in student themselves
+    st_cur = _db.users.find({"role": "student"}).limit(limit // 2 + 2)
     async for s in st_cur:
+        other_id = str(s["_id"])
+        if other_id == me_id_str:
+            continue
+        if len(out) >= limit:
+            break
         si = s.get("school_info") or {}
         out.append({
-            "id": _short_id(s.get("_id")),
+            "id": other_id,
             "name": s.get("full_name") or "—",
             "initials": _initials(s.get("full_name") or ""),
             "role": "Student",
@@ -1894,8 +1927,9 @@ async def student_network(limit: int = 18):
             "tags": ["Student"] + (s.get("skills", []) or [])[:2],
             "color": _color_for(s.get("full_name", "")),
             "kind": "student",
+            "connection_state": rel_map.get(other_id, "none"),
         })
-    return {"items": out}
+    return {"items": out[:limit]}
 
 
 # ════════════════════════════════════════════════════════════════
