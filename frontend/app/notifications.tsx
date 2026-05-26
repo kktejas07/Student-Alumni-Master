@@ -109,7 +109,9 @@ export default function NotificationsScreen() {
                 notif={n}
                 onPress={() => {
                   // Route depending on type
-                  if (n.booking_id) {
+                  if (n.type === 'connection_request' || n.type === 'connection_accepted') {
+                    router.push('/network');
+                  } else if (n.booking_id) {
                     router.push('/(tabs)/profile');
                   } else if (n.type === 'event' && n.data?.event_id) {
                     router.push(`/event/${n.data.event_id}` as any);
