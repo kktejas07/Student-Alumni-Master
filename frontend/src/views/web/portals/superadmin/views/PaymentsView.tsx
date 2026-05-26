@@ -33,11 +33,27 @@ function PayoutTiersEditor({ visible, onClose }: { visible: boolean; onClose: ()
     setLoading(true);
     try {
       const r = await request<{ ok: boolean; tiers: FlatTier[] }>('/admin/super/payout-tiers', { method: 'GET' });
-      if (r?.ok) setTiers(r.tiers);
+      if (r?.ok) {
+        setTiers(r.tiers);
+      }
     } catch {} finally { setLoading(false); }
   };
 
-  React.useEffect(() => { if (visible) loadTiers(); }, [visible]);
+  React.useEffect(() => {
+    if (visible) {
+      setForm({ name: '', cut_percent: 50, color: '#F59E0B', sort_order: 0 });
+      setEditIdx(null);
+      loadTiers();
+    }
+  }, [visible]);
+
+  React.useEffect(() => {
+    if (tiers.length > 0 && editIdx === null) {
+      const t = tiers[0];
+      setForm({ name: t.name, cut_percent: t.cut_percent, color: t.color, sort_order: t.sort_order });
+      setEditIdx(0);
+    }
+  }, [tiers]);
 
   const save = async () => {
     if (!form.name) return;
@@ -103,7 +119,7 @@ function PayoutTiersEditor({ visible, onClose }: { visible: boolean; onClose: ()
               <TextInput style={[edst.input, { flex: 1 }]} placeholder="Color hex" placeholderTextColor={SAC.dim} value={form.color} onChangeText={v => setForm(s => ({ ...s, color: v }))} />
             </View>
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-              <SecondaryButton onPress={() => { setForm({ name: '', cut_percent: 50, color: '#F59E0B', sort_order: 0 }); setEditIdx(null); }} style={{ flex: 1 }}>
+              <SecondaryButton onPress={() => { setForm({ name: '', cut_percent: 50, color: '#F59E0B', sort_order: 0 }); setEditIdx(null); onClose(); }} style={{ flex: 1 }}>
                 <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
               </SecondaryButton>
               <GradientButton onPress={save} loading={loading} disabled={!form.name} style={{ flex: 1 }}>
