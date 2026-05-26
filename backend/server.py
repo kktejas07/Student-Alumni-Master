@@ -4051,10 +4051,158 @@ async def ai_generate_bio(
             raise ValueError("empty response")
     except Exception as e:
         logger.error(f"generate-bio AI failed: {e}")
-        bio_text = existing_bio or (
+        
+        name_first = full_name.split(' ')[0] if full_name else ""
+        name_display = name_first or ("An enthusiastic platform member" if role == "student" else "A dedicated professional")
+        
+        # Extracted variables with defaults
+        inst = body.get('institution') or body.get('institution_name') or "our premier institution"
+        edu = body.get('education_level') or "studies"
+        goal = body.get('career_goal') or "achieving high impact"
+        org = body.get('organization') or "our organization"
+        title = body.get('job_title') or "Expert"
+        
+        # Format list to readable string
+        def format_list(lst):
+            if not lst:
+                return ""
+            if isinstance(lst, str):
+                return lst
+            if len(lst) == 1:
+                return lst[0]
+            if len(lst) == 2:
+                return f"{lst[0]} and {lst[1]}"
+            return f"{', '.join(lst[:-1])}, and {lst[-1]}"
+            
+        skills_str = format_list(body.get('skills') or body.get('expertise') or [])
+        ints_str = format_list(body.get('interests') or [])
+        
+        bio_templates = {}
+        
+        if role == "student":
+            bio_templates = {
+                "friendly & warm": (
+                    f"Hi! I'm {name_display}, currently pursuing my {edu} at {inst}. "
+                    f"I'm super passionate about {skills_str or 'learning new things'} and love exploring {ints_str or 'new technologies'}. "
+                    f"I'd love to connect with mentors and peers to help me with my goal of {goal.lower()}!"
+                ),
+                "professional": (
+                    f"{full_name or 'A dedicated student'} is a driven {edu} candidate at {inst}. "
+                    f"Equipped with strong skills in {skills_str or 'problem solving'}, they are committed to {goal.lower()}. "
+                    f"They seek to collaborate with industry professionals to drive innovation and professional growth."
+                ),
+                "inspiring": (
+                    f"Believer in the power of education and technology to change the world. "
+                    f"I'm {name_display}, studying at {inst} and honing my skills in {skills_str or 'collaboration'}. "
+                    f"My ultimate mission is {goal.lower()} and making a lasting difference in the industry!"
+                ),
+                "concise": (
+                    f"{full_name or 'Dedicated student'} — pursuing {edu} at {inst}. "
+                    f"Skilled in {skills_str or 'innovation'} and focused on {goal.lower()}."
+                ),
+                "detailed": (
+                    f"As a {edu} student at {inst}, I am actively building my expertise in {skills_str or 'key technologies'}. "
+                    f"With interests spanning {ints_str or 'various domains'}, my academic journey is geared towards {goal.lower()}. "
+                    f"I look forward to networking with alumni and industry leaders to create meaningful professional opportunities."
+                )
+            }
+        elif role == "mentor":
+            category = body.get('mentor_category') or "mentorship"
+            bio_templates = {
+                "friendly & warm": (
+                    f"Hello! I'm {name_display}, working as a {title} at {org}. "
+                    f"I specialize in {skills_str or category} and love helping the next generation. "
+                    f"Always open for a friendly chat, virtual coffee, and sharing guidance to help you grow!"
+                ),
+                "professional": (
+                    f"{full_name or 'An experienced mentor'} is an accomplished {title} at {org}. "
+                    f"With deep expertise in {skills_str or 'industry practices'}, they focus on {category}. "
+                    f"Dedicated to fostering professional growth and guiding students toward career readiness."
+                ),
+                "inspiring": (
+                    f"Passionate about unlocking potential and fostering the leaders of tomorrow. "
+                    f"I'm {name_display}, leveraging my experience as a {title} at {org} to guide aspiring talent. "
+                    f"Let's work together to turn career aspirations into impactful realities!"
+                ),
+                "concise": (
+                    f"{full_name or 'Expert mentor'} — {title} at {org}. "
+                    f"Specializing in {skills_str or category} and dedicated to professional mentorship."
+                ),
+                "detailed": (
+                    f"Serving as a {title} at {org}, I bring specialized knowledge in {skills_str or 'domain expertise'}. "
+                    f"My professional background in {category} enables me to offer structured guidance to students. "
+                    f"I am eager to share insights, review career paths, and support the academic community through active mentorship."
+                )
+            }
+        elif role == "alumni":
+            bio_templates = {
+                "friendly & warm": (
+                    f"Hey there! I'm {name_display}, proud graduate of {inst} class of {body.get('graduation_year') or 'recent years'}. "
+                    f"Currently, I'm working as a {title} at {org} while keeping active in {skills_str or 'development'}. "
+                    f"I'm always excited to give back to my alma mater and connect with current students!"
+                ),
+                "professional": (
+                    f"{full_name or 'An alumni member'} is an alumnus of {inst} and currently serves as a {title} at {org}. "
+                    f"Their background includes strong capabilities in {skills_str or 'industry skills'}. "
+                    f"They are keen to connect with fellow alumni and assist students with transition from campus to corporate life."
+                ),
+                "inspiring": (
+                    f"Proud {inst} alumnus, currently pushing boundaries as a {title} at {org}. "
+                    f"My journey taught me that mentorship and lifelong learning are keys to success. "
+                    f"I am eager to share my experiences and inspire the next wave of students to achieve greatness!"
+                ),
+                "concise": (
+                    f"{full_name or 'Alumni graduate'} — {title} at {org} and alumnus of {inst}. "
+                    f"Skilled in {skills_str or 'technology'} and passionate about networking."
+                ),
+                "detailed": (
+                    f"Graduated from {inst}, I now apply my skills as a {title} at {org}. "
+                    f"Specializing in {skills_str or 'various domains'}, I maintain a strong interest in {ints_str or 'professional networking'}. "
+                    f"I look forward to sharing placements insights and supporting campus career initiatives on this platform."
+                )
+            }
+        elif role in ["college", "institution"]:
+            loc = body.get('location') or "India"
+            itype = body.get('institution_type') or "institution"
+            bio_templates = {
+                "friendly & warm": (
+                    f"Welcome to {full_name or 'our institution'} located in {loc}! "
+                    f"We are a leading {itype} dedicated to providing a vibrant, supportive learning environment. "
+                    f"Our community brings students and alumni together to collaborate and build successful futures."
+                ),
+                "professional": (
+                    f"{full_name or 'Our premier college'} is a distinguished {itype} situated in {loc}. "
+                    f"We focus on academic excellence, state-of-the-art facilities, and strong industry collaboration. "
+                    f"We are committed to nurturing talent and empowering our students for global career readiness."
+                ),
+                "inspiring": (
+                    f"Shaping minds and building futures at {full_name or 'our campus'} in {loc}. "
+                    f"As a premier {itype}, we believe in holistic education, innovation, and strong community roots. "
+                    f"Join us in our mission to inspire learning and foster the leaders of tomorrow!"
+                ),
+                "concise": (
+                    f"{full_name or 'Premier institution'} — leading {itype} in {loc}. "
+                    f"Committed to academic excellence and comprehensive career outcomes."
+                ),
+                "detailed": (
+                    f"Established as a premier {itype} in {loc}, {full_name or 'our institution'} is dedicated to high-quality education. "
+                    f"We offer comprehensive placement programs, strong alumni networks, and deep industry integration. "
+                    f"Our goal is to prepare students to meet global challenges through robust academics and active mentorship."
+                )
+            }
+        else:
+            bio_templates = {
+                "friendly & warm": f"Hi! I'm {name_display}. I'm friendly, warm, and passionate about making connections and building community.",
+                "professional": f"{full_name or 'A dedicated professional'} is focused on delivering excellence and bringing professional values to their work.",
+                "inspiring": f"Driven by purpose and passion, I believe in inspiring others and making a positive difference every single day.",
+                "concise": f"{full_name or 'Dedicated professional'} — passionate about impact, growth, and excellence.",
+                "detailed": f"I am a committed professional with a diverse background. I actively leverage my skills to solve complex problems, collaborate effectively, and drive growth."
+            }
+
+        bio_text = bio_templates.get(writing_style.lower(), bio_templates.get("professional", existing_bio or (
             f"{full_name.split(' ')[0] if full_name else 'A dedicated professional'} — "
             f"passionate about making an impact in their field."
-        )
+        )))
 
     return {"bio": bio_text}
 
