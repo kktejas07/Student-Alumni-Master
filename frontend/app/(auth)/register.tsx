@@ -15,7 +15,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { PhoneInput } from '@/src/views/web/PhoneInput';
 import { DateOfBirthPicker, isDobValid } from '@/src/views/web/DateOfBirthPicker';
 
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 export default function RegisterScreen() {
   const router = useRouter();

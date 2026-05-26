@@ -5,7 +5,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8001';
+const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 const TOKEN_KEY = 'scd_access_token';
 const REFRESH_KEY = 'scd_refresh_token';
@@ -197,6 +197,27 @@ export const api = {
 
   chatHistory: (session_id?: string) =>
     request<any>(`/ai/chat/history${session_id ? `?session_id=${session_id}` : ''}`),
+
+  generateBio: (data: {
+    role: string;
+    full_name?: string;
+    writing_style: string;
+    existing_bio?: string;
+    institution?: string;
+    education_level?: string;
+    career_goal?: string;
+    interests?: string[];
+    skills?: string[];
+    organization?: string;
+    job_title?: string;
+    mentor_category?: string;
+    expertise?: string[];
+    graduation_year?: string;
+    employment_status?: string;
+    institution_name?: string;
+    location?: string;
+    institution_type?: string;
+  }) => request<{ bio: string }>('/ai/generate-bio', { method: 'POST', body: data }),
 
   // Catalog
   listCourses: (career_path?: string) =>

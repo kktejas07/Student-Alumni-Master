@@ -9,12 +9,15 @@ import { MC, FONTS } from '../tokens';
 import { Av, Badge, Countdown } from '../atoms';
 import { SESSION_REQUESTS } from '../data';
 
-type Decision = 'pending' | 'accepted' | 'declined';
+export type Decision = 'pending' | 'accepted' | 'declined';
 
-export function RequestsView() {
-  const [decisions, setDecisions] = useState<Record<number, Decision>>({});
+export interface RequestsViewProps {
+  decisions: Record<number, Decision>;
+  onSetDecision: (id: number, d: Decision) => void;
+}
 
-  const set = (id: number, d: Decision) => setDecisions((p) => ({ ...p, [id]: d }));
+export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
+  const set = onSetDecision;
 
   const aiScore = (topic: string) => {
     // mock — "score" some keywords
