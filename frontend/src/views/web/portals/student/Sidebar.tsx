@@ -26,6 +26,7 @@ import {
   CalendarCheck, FileText, BookOpen,
 } from './iconShims';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useTheme } from '@/src/theme/ThemeContext';
 import { useBreakpoint } from '@/src/theme/breakpoints';
 import { SP, RADII, FONT_FAMILY } from '@/src/theme/apple';
@@ -62,6 +63,7 @@ export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: bo
 export function Sidebar({
   active, onNav, onLogout,
 }: { active: StudentNavId; onNav: (id: StudentNavId) => void; onLogout: () => void }) {
+  const router = useRouter();
   const { theme, isDark } = useTheme();
   const bp = useBreakpoint();
   const user = useAuthStore((u) => u.user) as any;
@@ -167,7 +169,7 @@ export function Sidebar({
       {/* Student card pill */}
       {!collapsed && (
         <FadeInView delay={120}>
-          <PressScale style={[s.idCardPill, { backgroundColor: C.cardBg, borderColor: C.border }]} onPress={() => {}}>
+          <PressScale style={[s.idCardPill, { backgroundColor: C.cardBg, borderColor: C.border }]} onPress={() => router.push('/me?tab=integrations')}>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={[s.idCardLabel, { color: C.textSec }]}>My Student Card</Text>
               <Text style={[s.idCardNumber, { color: C.accent }]}>{saId}</Text>
