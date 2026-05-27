@@ -97,11 +97,24 @@ export default function MentorPortalRN() {
       />
 
       <View style={{ flex: 1, minWidth: 0 }}>
-        <TopBar title={PAGE_TITLES[active]} query={query} setQuery={setQuery} notifCount={4} onBellPress={() => router.push('/notifications')} />
+        <TopBar
+          title={PAGE_TITLES[active]}
+          query={query}
+          setQuery={setQuery}
+          notifCount={4}
+          onBellPress={() => router.push('/notifications')}
+          onAvatarPress={() => setActive('profile')}
+        />
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
           <PromoBanner portal="mentor" />
-          {active === 'dashboard' && <DashboardView onNav={(id) => setActive(id as NavId)} />}
+          {active === 'dashboard' && (
+            <DashboardView
+              onNav={(id) => setActive(id as NavId)}
+              onOpenNotifications={() => router.push('/notifications')}
+              onOpenProfile={() => setActive('profile')}
+            />
+          )}
           {active === 'ai-studio' && <MentorAIStudioView />}
           {active === 'students'  && <ConnectionsView />}
           {active === 'sessions'  && <SessionsView />}

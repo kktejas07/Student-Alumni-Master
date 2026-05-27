@@ -17,7 +17,7 @@ function greeting(): string {
   return 'Good evening';
 }
 
-export function TopBar() {
+export function TopBar({ onAvatarPress }: { onAvatarPress?: () => void } = {}) {
   const router = useRouter();
   const firstName = STUDENT.name.split(' ')[0];
   return (
@@ -42,7 +42,12 @@ export function TopBar() {
 
       <HelpMenu portal="alumni" />
 
-      <Av initials={STUDENT.initials} size={36} color={SC.primary} />
+      <Pressable
+        onPress={onAvatarPress || (() => router.push('/(tabs)/profile'))}
+        style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}
+      >
+        <Av initials={STUDENT.initials} size={36} color={SC.primary} />
+      </Pressable>
     </View>
   );
 }

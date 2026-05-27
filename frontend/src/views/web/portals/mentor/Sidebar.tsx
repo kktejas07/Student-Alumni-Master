@@ -68,15 +68,15 @@ export function Sidebar({
       {/* Mentor mini-profile + Mentor Card widget */}
       <View style={s.profileRow}>
         {collapsed ? (
-          <View style={{ alignItems: 'center', paddingVertical: 4 }}>
+          <Pressable onPress={() => onNav('profile')} style={({ pressed }: any) => [{ alignItems: 'center', paddingVertical: 4 }, pressed && { opacity: 0.8 }]}>
             <View style={s.avatarMini}>
               <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 }}>{MENTOR.avatar}</Text>
               <View style={s.onlineDot} />
             </View>
-          </View>
+          </Pressable>
         ) : (
           <View style={s.profileCard}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 9 }}>
+            <Pressable onPress={() => onNav('profile')} style={({ pressed }: any) => [{ flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 9 }, pressed && { opacity: 0.8 }]}>
               <View style={s.avatarLg}>
                 <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 }}>{MENTOR.avatar}</Text>
                 <View style={s.onlineDot} />
@@ -85,7 +85,7 @@ export function Sidebar({
                 <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 }}>{MENTOR.name}</Text>
                 <Text numberOfLines={1} style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 9 }}>{MENTOR.role} · {MENTOR.company}</Text>
               </View>
-            </View>
+            </Pressable>
             <Pressable style={({ hovered }: any) => [s.idCard, hovered && { backgroundColor: 'rgba(20,184,166,0.15)' }]}>
               <QrCode size={13} color={MC.tealP} />
               <View style={{ flex: 1, minWidth: 0 }}>

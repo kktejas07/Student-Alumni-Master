@@ -147,7 +147,7 @@ export function Sidebar({
       {/* Profile card */}
       {!collapsed && (
         <FadeInView delay={70}>
-          <View style={s.profileCard}>
+          <PressScale onPress={() => onNav('profile')} style={s.profileCard}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: SP.md }}>
               <View style={{ position: 'relative' }}>
                 <Av initials={initials} size={40} color={C.accent} />
@@ -160,7 +160,7 @@ export function Sidebar({
                 <Text style={[s.profileYear, { color: C.textSec }]}>{yearLabel}</Text>
               </View>
             </View>
-          </View>
+          </PressScale>
         </FadeInView>
       )}
 

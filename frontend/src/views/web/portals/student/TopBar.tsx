@@ -29,6 +29,7 @@ import { SP, RADII, FONT_FAMILY } from '@/src/theme/apple';
 import { GlassTopbar } from '@/src/motion/apple/components';
 import { FadeInView, PressScale, PulseDot } from './motion';
 import { PALETTE, TYPO } from './tokens';
+import { useStudentPortalNav } from './StudentPortalRN';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -48,6 +49,21 @@ export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
   const firstName: string = fullName.split(' ')[0] || STUDENT.name.split(' ')[0];
   const initials: string = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
   const photo: string | undefined = user?.photo_data || user?.face_image_base64;
+
+  let nav = null;
+  try {
+    nav = useStudentPortalNav();
+  } catch (e) {
+    // swallow
+  }
+
+  const onAvatarPress = () => {
+    if (nav) {
+      nav.navigate('profile');
+    } else {
+      router.push('/(tabs)/profile');
+    }
+  };
 
   const cycleTheme = () => {
     setMode(mode === 'light' ? 'dark' : mode === 'dark' ? 'system' : 'light');
@@ -122,11 +138,17 @@ export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
         </FadeInView>
 
         <FadeInView delay={220}>
-          {photo ? (
-            <Image source={{ uri: photo }} style={{ width: 36, height: 36, borderRadius: 18 }} />
-          ) : (
-            <Av initials={initials} size={36} color={theme.primary} />
-          )}
+          <PressScale
+            onPress={onAvatarPress}
+            style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}
+            accessibilityLabel="View Profile Settings"
+          >
+            {photo ? (
+              <Image source={{ uri: photo }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+            ) : (
+              <Av initials={initials} size={36} color={theme.primary} />
+            )}
+          </PressScale>
         </FadeInView>
 
         <HelpMenu portal="student" />
