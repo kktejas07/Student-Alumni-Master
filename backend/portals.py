@@ -401,6 +401,34 @@ async def student_dashboard(student_email: Optional[str] = None):
 # dashboard: 4 KPI sparklines, a Career-Momentum area chart, and a
 # Recent-Activity feed. Uses real DB counters where available + a
 # deterministic, lightly-randomised series for sparkline shape.
+def format_time_ago(dt: datetime) -> str:
+    if not isinstance(dt, datetime):
+        return "Recently"
+    now = datetime.utcnow()
+    diff = now - dt
+    seconds = diff.total_seconds()
+    if seconds < 0:
+        return "Just now"
+    if seconds < 60:
+        return "Just now"
+    minutes = seconds / 60
+    if minutes < 60:
+        return f"{int(minutes)}m ago"
+    hours = minutes / 60
+    if hours < 24:
+        return f"{int(hours)}h ago"
+    days = hours / 24
+    if days < 7:
+        if int(days) == 1:
+            return "Yesterday"
+        return f"{int(days)}d ago"
+    return dt.strftime("%b %d")
+
+
+# Powers the NexusOS-style "Intelligence Center" widget on the student
+# dashboard: 4 KPI sparklines, a Career-Momentum area chart, and a
+# Recent-Activity feed. Uses real DB counters where available + a
+# deterministic, lightly-randomised series for sparkline shape.
 @router.get("/student/intelligence")
 async def student_intelligence(student_email: Optional[str] = None):
     """NexusOS Intelligence Center payload for the student dashboard.
@@ -444,63 +472,173 @@ async def student_intelligence(student_email: Optional[str] = None):
     spark_match = [min(95, v) for v in spark_match]
     avg_match = spark_match[-1]
 
-    # ── Area chart: Career Momentum (last 9 months of profile views) ──
-    months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]
-    momentum = []
-    cur = max(20, profile_views // 5)
-    for m in months:
-        cur += int(rng.uniform(4, 18))
-        momentum.append({"m": m, "v": cur})
+    # ── Area chart: Career Momentum partitioned datasets ──
+    # 1M dataset (Weekly granularity)
+    momentum_1m = []
+    cur_1m = max(10, profile_views // 12)
+    for w in ["Week 1", "Week 2", "Week 3", "Week 4"]:
+        cur_1m += int(rng.uniform(3, 10))
+        momentum_1m.append({"m": w, "v": cur_1m})
 
-    # ── Activity feed: stitch from real bookings, events, then padded ──
-    activity: list[dict] = []
-    # Recent application/booking
-    bk_cur = _db.bookings.find({"student_id": sid}).sort("created_at", -1).limit(2) if sid else _db.bookings.find().sort("created_at", -1).limit(2)
-    async for b in bk_cur:
-        when = b.get("created_at")
-        when_s = when.strftime("%b %d") if isinstance(when, datetime) else "Recently"
-        activity.append({
-            "title": "Mentor Session Booked",
-            "sub": f"{b.get('topic', 'Career session')} • {b.get('mentor_name', 'Mentor')}",
-            "amount": None, "amountTone": None,
-            "time": when_s,
-            "icon": "account-tie-voice-outline",
-            "tint": "#A855F7",
-            "bgTint": "rgba(168,85,247,0.15)",
-        })
-    # Internship submissions (synthesised — no DB record yet for these)
-    if internships_total > 0:
-        activity.append({
-            "title": "Application Submitted",
-            "sub": f"{internships_total} live internships in your tier",
-            "amount": "+1", "amountTone": "positive",
-            "time": "Today",
-            "icon": "briefcase-check-outline",
-            "tint": "#3B82F6",
-            "bgTint": "rgba(59,130,246,0.15)",
-        })
-    # Course milestone
-    activity.append({
-        "title": "Course Milestone Reached",
-        "sub": "System Design • Module 4 of 6",
-        "amount": None, "amountTone": None,
-        "time": f"{rng.randint(2,8)}h ago",
-        "icon": "trophy-outline",
-        "tint": "#F59E0B",
-        "bgTint": "rgba(245,158,11,0.15)",
-    })
-    # Profile-score nudge
-    activity.append({
-        "title": "Profile Score Updated",
-        "sub": "Skills + Projects re-scored",
-        "amount": f"+{rng.randint(2,6)} pts", "amountTone": "positive",
-        "time": "Yesterday",
-        "icon": "chart-line-variant",
-        "tint": "#06B6D4",
-        "bgTint": "rgba(6,182,212,0.15)",
-    })
-    # Trim to 4 newest
-    activity = activity[:4]
+    # 3M dataset (Bi-weekly/semi-monthly granularity)
+    momentum_3m = []
+    cur_3m = max(15, profile_views // 8)
+    for p in ["Mar A", "Mar B", "Apr A", "Apr B", "May A", "May B"]:
+        cur_3m += int(rng.uniform(5, 12))
+        momentum_3m.append({"m": p, "v": cur_3m})
+
+    # 1Y dataset (Monthly granularity)
+    months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]
+    momentum_1y = []
+    cur_1y = max(20, profile_views // 5)
+    for m in months:
+        cur_1y += int(rng.uniform(4, 18))
+        momentum_1y.append({"m": m, "v": cur_1y})
+
+    # ── Live Activity Feed from MongoDB collections ──
+    activity_events = []
+
+    if sid:
+        # 1. Mentor Bookings
+        try:
+            bk_cursor = _db.bookings.find({"student_id": sid}).sort("created_at", -1).limit(4)
+            async for b in bk_cursor:
+                ts = b.get("created_at")
+                activity_events.append({
+                    "title": "Mentor Session Booked",
+                    "sub": f"{b.get('topic', 'Career guidance')} • {b.get('mentor_name', 'Mentor')}",
+                    "amount": None,
+                    "amountTone": None,
+                    "icon": "account-tie-voice-outline",
+                    "tint": "#A855F7",
+                    "bgTint": "rgba(168,85,247,0.15)",
+                    "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
+                })
+        except Exception:
+            pass
+
+        # 2. Internship Applications
+        try:
+            app_cursor = _db.internship_applications.find({"student_id": sid}).sort("applied_at", -1).limit(4)
+            async for a in app_cursor:
+                ts = a.get("applied_at")
+                activity_events.append({
+                    "title": "Application Submitted",
+                    "sub": f"{a.get('company', 'Company')} • {a.get('internship_title', 'Intern')}",
+                    "amount": "+1",
+                    "amountTone": "positive",
+                    "icon": "briefcase-check-outline",
+                    "tint": "#3B82F6",
+                    "bgTint": "rgba(59,130,246,0.15)",
+                    "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
+                })
+        except Exception:
+            pass
+
+        # 3. Event RSVPs
+        try:
+            reg_cursor = _db.event_registrations.find({"student_id": sid}).sort("registered_at", -1).limit(4)
+            async for r in reg_cursor:
+                ts = r.get("registered_at")
+                activity_events.append({
+                    "title": "Event Registered",
+                    "sub": f"{r.get('event_title', 'Workshop')}",
+                    "amount": None,
+                    "amountTone": None,
+                    "icon": "calendar-check",
+                    "tint": "#10B981",
+                    "bgTint": "rgba(16,185,129,0.15)",
+                    "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
+                })
+        except Exception:
+            pass
+
+        # 4. Connections
+        try:
+            conn_cursor = _db.connections.find({
+                "$or": [{"a": sid}, {"b": sid}]
+            }).sort("created_at", -1).limit(4)
+            async for c in conn_cursor:
+                status = c.get("status")
+                other_id = c["b"] if c["a"] == sid else c["a"]
+                other_u = await _db.users.find_one({"_id": ObjectId(other_id)}) if len(other_id) == 24 else None
+                other_name = other_u.get("full_name") if other_u else "Someone"
+
+                ts = c.get("accepted_at") if status == "accepted" else c.get("created_at")
+                title = "Connection Connected" if status == "accepted" else "Connection Requested"
+                sub = f"Connected with {other_name}" if status == "accepted" else f"Request from {other_name}"
+                icon = "account-multiple-check" if status == "accepted" else "account-plus-outline"
+
+                activity_events.append({
+                    "title": title,
+                    "sub": sub,
+                    "amount": None,
+                    "amountTone": None,
+                    "icon": icon,
+                    "tint": "#06B6D4",
+                    "bgTint": "rgba(6,182,212,0.15)",
+                    "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
+                })
+        except Exception:
+            pass
+
+    # Sort all events in reverse-chronological order
+    activity_events.sort(key=lambda x: x["ts"], reverse=True)
+
+    # Format the time tags using our helper
+    activity = []
+    for item in activity_events[:4]:
+        ts = item.pop("ts")
+        item["time"] = format_time_ago(ts)
+        activity.append(item)
+
+    # Pad with premium deterministic seeds if DB activity is sparse
+    if len(activity) < 4:
+        paddings = [
+            {
+                "title": "Application Submitted",
+                "sub": f"{internships_total} live internships in your tier",
+                "amount": "+1", "amountTone": "positive",
+                "time": "Today",
+                "icon": "briefcase-check-outline",
+                "tint": "#3B82F6",
+                "bgTint": "rgba(59,130,246,0.15)",
+            },
+            {
+                "title": "Mentor Session Booked",
+                "sub": "System Design Guidance • Aarav Sharma",
+                "amount": None, "amountTone": None,
+                "time": "1h ago",
+                "icon": "account-tie-voice-outline",
+                "tint": "#A855F7",
+                "bgTint": "rgba(168,85,247,0.15)",
+            },
+            {
+                "title": "Course Milestone Reached",
+                "sub": "System Design • Module 4 of 6",
+                "amount": None, "amountTone": None,
+                "time": f"{rng.randint(2,8)}h ago",
+                "icon": "trophy-outline",
+                "tint": "#F59E0B",
+                "bgTint": "rgba(245,158,11,0.15)",
+            },
+            {
+                "title": "Profile Score Updated",
+                "sub": "Skills + Projects re-scored",
+                "amount": f"+{rng.randint(2,6)} pts", "amountTone": "positive",
+                "time": "Yesterday",
+                "icon": "chart-line-variant",
+                "tint": "#06B6D4",
+                "bgTint": "rgba(6,182,212,0.15)",
+            }
+        ]
+        for p in paddings:
+            if len(activity) >= 4:
+                break
+            if p["title"] not in [a["title"] for a in activity]:
+                activity.append(p)
+        while len(activity) < 4:
+            activity.append(paddings[len(activity) % len(paddings)])
 
     # ── Trend deltas (% change between last & prev sparkline point) ──
     def _delta(arr: list[int]) -> dict:
@@ -542,7 +680,22 @@ async def student_intelligence(student_email: Optional[str] = None):
         "momentum": {
             "title": "Career Momentum",
             "subtitle": "Profile views per month — last 9 months",
-            "data": momentum,
+            "data": momentum_1y,
+            "1M": {
+                "title": "Weekly Momentum",
+                "subtitle": "Profile views per week — last 30 days",
+                "data": momentum_1m,
+            },
+            "3M": {
+                "title": "Medium-Term Growth",
+                "subtitle": "Profile views semi-monthly — last 3 months",
+                "data": momentum_3m,
+            },
+            "1Y": {
+                "title": "Annual Momentum",
+                "subtitle": "Profile views per month — last 9 months",
+                "data": momentum_1y,
+            }
         },
         "activity": activity,
     }

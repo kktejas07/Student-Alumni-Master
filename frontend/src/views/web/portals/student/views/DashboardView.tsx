@@ -347,7 +347,7 @@ export function DashboardView() {
             delay={400}
             title={momentumTitle}
             subtitle={momentumSubtitle}
-            data={NX_AUDIENCE}
+            data={intel?.momentum || FALLBACK_AUDIENCE}
             color="#7B3DBF"
           />
           <ActivityCard
@@ -355,6 +355,7 @@ export function DashboardView() {
             title="Recent Activity"
             items={NX_ACTIVITY}
             ctaLabel="View All Activity"
+            onCta={() => router.push('/notifications')}
           />
         </View>
       </View>
