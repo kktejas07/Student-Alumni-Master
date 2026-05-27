@@ -113,15 +113,15 @@ function PortalShell() {
 
       <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0 }}>
-        <TopBar scrolled={scrolled} />
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingHorizontal: padH, paddingTop: SP.lg, paddingBottom: SP.giga }}
-          showsVerticalScrollIndicator={false}
-          onScroll={onScroll}
-          scrollEventThrottle={16}
-        >
-          <StudentPortalNavContext.Provider value={{ navigate: handleNav, searchQuery, setSearchQuery }}>
+        <StudentPortalNavContext.Provider value={{ navigate: handleNav, searchQuery, setSearchQuery }}>
+          <TopBar scrolled={scrolled} onAvatarPress={() => handleNav('profile')} />
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ paddingHorizontal: padH, paddingTop: SP.lg, paddingBottom: SP.giga }}
+            showsVerticalScrollIndicator={false}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+          >
             <EmbeddedShellContext.Provider value={true}>
               <PromoBanner portal="student" />
               <RouteTransition deps={[active]}>
@@ -141,14 +141,14 @@ function PortalShell() {
                 {active === 'rentals'         && <RentalsPage />}
                 {active === 'profile'         && <ProfileSettingsView />}
               </RouteTransition>
+              <DashboardFooter portal="student" />
             </EmbeddedShellContext.Provider>
-            <DashboardFooter portal="student" />
-          </StudentPortalNavContext.Provider>
-        </ScrollView>
-      </View>
+          </ScrollView>
+        </StudentPortalNavContext.Provider>
 
-      {/* Global AI Copilot FAB — visible on every Student screen */}
-      <AiCopilotFab onPress={() => router.push('/agent-k')} />
+        {/* Global AI Copilot FAB — visible on every Student screen */}
+        <AiCopilotFab onPress={() => router.push('/agent-k')} />
+      </View>
     </View>
   );
 }
