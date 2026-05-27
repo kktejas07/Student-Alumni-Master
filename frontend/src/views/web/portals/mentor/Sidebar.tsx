@@ -69,13 +69,13 @@ export function Sidebar({
       <View style={s.profileRow}>
         {collapsed ? (
           <View style={{ alignItems: 'center', paddingVertical: 4 }}>
-            <View style={s.avatarMini}>
+            <Pressable onPress={() => onNav('profile')} style={s.avatarMini}>
               <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 }}>{MENTOR.avatar}</Text>
               <View style={s.onlineDot} />
-            </View>
+            </Pressable>
           </View>
         ) : (
-          <View style={s.profileCard}>
+          <Pressable onPress={() => onNav('profile')} style={s.profileCard}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 9 }}>
               <View style={s.avatarLg}>
                 <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 }}>{MENTOR.avatar}</Text>
@@ -94,7 +94,7 @@ export function Sidebar({
               </View>
               <ExternalLink size={11} color={MC.dim} />
             </Pressable>
-          </View>
+          </Pressable>
         )}
       </View>
 
@@ -175,13 +175,17 @@ const s = StyleSheet.create({
   brandSub: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 0.5 },
 
   profileRow: { padding: 10, borderBottomWidth: 1, borderBottomColor: MC.border },
-  profileCard: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 12, padding: 10 },
+  profileCard: {
+    backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 12, padding: 10,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
   avatarMini: {
     position: 'relative',
     width: 34, height: 34, borderRadius: 17,
     backgroundColor: 'rgba(20,184,166,0.20)',
     borderColor: MC.teal, borderWidth: 2,
     alignItems: 'center', justifyContent: 'center',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   avatarLg: {
     position: 'relative',

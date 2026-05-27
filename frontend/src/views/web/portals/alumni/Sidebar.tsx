@@ -74,7 +74,7 @@ export function Sidebar({
 
       {/* Alumni profile card */}
       <FadeInView delay={70}>
-        <View style={s.profileCard}>
+        <PressScale onPress={() => onNav('profile')} style={s.profileCard}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <View style={{ position: 'relative' }}>
               <Av initials={initials} size={40} color={SC.primaryL} />
@@ -87,7 +87,7 @@ export function Sidebar({
               <Text numberOfLines={1} style={s.profileYear}>{subTitle}</Text>
             </View>
           </View>
-        </View>
+        </PressScale>
       </FadeInView>
 
       {/* Alumni card pill */}
@@ -173,7 +173,10 @@ const s = StyleSheet.create({
   brandTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13, letterSpacing: -0.2 },
   brandSub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
 
-  profileCard: { paddingHorizontal: 4, paddingVertical: 8, marginBottom: 10 },
+  profileCard: {
+    paddingHorizontal: 4, paddingVertical: 8, marginBottom: 10,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
   statusDotWrap: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: SC.bg2, alignItems: 'center', justifyContent: 'center' },
   profileName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
   profileYear: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11 },

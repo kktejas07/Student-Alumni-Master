@@ -15,6 +15,12 @@ BACKEND_DIR="$ROOT/backend"
 FRONTEND_DIR="$ROOT/frontend"
 PID_FILE="$ROOT/.run.pids"
 
+# Prepend local Node.js if it exists (useful for Windows environments)
+if [[ -d "$ROOT/node-local" ]]; then
+  export PATH="$ROOT/node-local:$PATH"
+fi
+
+
 # ── colours ──────────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 CYAN='\033[0;36m'; BOLD='\033[1m'; RESET='\033[0m'
@@ -47,17 +53,28 @@ start_backend() {
   info "Starting backend (FastAPI on :8000)…"
 
   # Prefer python3.11 / python3.12 (requirements need >=3.10); fall back to python3
-  PYTHON=""
-  for candidate in python3.12 python3.11 python3.10 python3 python; do
-    if command -v "$candidate" &>/dev/null; then
-      if "$candidate" -c 'import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)' >/dev/null 2>&1; then
-        PYTHON="$candidate"
-        break
-      fi
+  PYTHON_CMD=""
+  if [[ -n "${PYTHON:-}" ]]; then
+    PYTHON_CMD="$PYTHON"
+    if [[ ! -x "$PYTHON_CMD" ]] && ! command -v "$PYTHON_CMD" >/dev/null 2>&1; then
+      error "PYTHON is set to '$PYTHON_CMD' but it is not found or executable."
     fi
-  done
-  [[ -n "$PYTHON" ]] || error "Python 3.10+ is required. Install it and re-run."
-  success "Using $PYTHON ($($PYTHON --version))"
+    if ! "$PYTHON_CMD" -c 'import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)' >/dev/null 2>&1; then
+      error "PYTHON is set to '$PYTHON_CMD', but it is not Python 3.10+."
+    fi
+    success "Using PYTHON override: $PYTHON_CMD ($($PYTHON_CMD --version))"
+  else
+    for candidate in python3.14 python3.12 python3.11 python3.10 python3 python py; do
+      if command -v "$candidate" &>/dev/null; then
+        if "$candidate" -c 'import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)' >/dev/null 2>&1; then
+          PYTHON_CMD="$candidate"
+          break
+        fi
+      fi
+    done
+    [[ -n "$PYTHON_CMD" ]] || error "Python 3.10+ is required. Install it and re-run."
+    success "Using $PYTHON_CMD ($($PYTHON_CMD --version))"
+  fi
 
   VENV_BIN="$BACKEND_DIR/venv/bin"
   if [[ -d "$BACKEND_DIR/venv/Scripts" ]]; then
@@ -66,7 +83,7 @@ start_backend() {
 
   if [[ ! -d "$BACKEND_DIR/venv" ]]; then
     warn "No venv found — creating one and installing dependencies…"
-    "$PYTHON" -m venv "$BACKEND_DIR/venv"
+    "$PYTHON_CMD" -m venv "$BACKEND_DIR/venv"
     if [[ -d "$BACKEND_DIR/venv/Scripts" ]]; then
       VENV_BIN="$BACKEND_DIR/venv/Scripts"
     fi
@@ -99,7 +116,7 @@ start_frontend() {
   fi
 
   cd "$FRONTEND_DIR"
-  node_modules/.bin/expo start --web --port 8081 &
+  EXPO_PUBLIC_BACKEND_URL="http://localhost:8000" node_modules/.bin/expo start --web --port 8081 &
   echo $! >> "$PID_FILE"
   success "Frontend started (PID $!) → http://localhost:8081"
 }

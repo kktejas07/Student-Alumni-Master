@@ -113,7 +113,7 @@ function PortalShell() {
 
       <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0 }}>
-        <TopBar scrolled={scrolled} />
+        <TopBar scrolled={scrolled} onNav={handleNav} />
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingHorizontal: padH, paddingTop: SP.lg, paddingBottom: SP.giga }}

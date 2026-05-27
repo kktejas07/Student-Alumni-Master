@@ -149,7 +149,7 @@ export function Sidebar({
       {/* Profile card */}
       {!collapsed && (
         <FadeInView delay={70}>
-          <View style={s.profileCard}>
+          <PressScale onPress={() => onNav('profile')} style={s.profileCard}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: SP.md }}>
               <View style={{ position: 'relative' }}>
                 <Av initials={initials} size={40} color={C.accent} />
@@ -162,7 +162,7 @@ export function Sidebar({
                 <Text style={[s.profileYear, { color: C.textSec }]}>{yearLabel}</Text>
               </View>
             </View>
-          </View>
+          </PressScale>
         </FadeInView>
       )}
 
@@ -257,7 +257,10 @@ const s = StyleSheet.create({
   brandTitle: { fontFamily: TYPO.display700, fontSize: 14, letterSpacing: -0.3 },
   brandSub: { fontFamily: TYPO.body500, fontSize: 10.5 },
 
-  profileCard: { paddingHorizontal: SP.xs, paddingVertical: SP.sm, marginBottom: SP.md },
+  profileCard: {
+    paddingHorizontal: SP.xs, paddingVertical: SP.sm, marginBottom: SP.md,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
   statusDotWrap: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
   profileName: { fontFamily: FONT_FAMILY, fontWeight: '600', fontSize: 13 },
   profileYear: { fontFamily: FONT_FAMILY, fontWeight: '500', fontSize: 11 },

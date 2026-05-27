@@ -36,7 +36,9 @@ function greeting(): string {
   return 'Good evening';
 }
 
-export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
+import { Sidebar, StudentNavId } from './Sidebar';
+
+export function TopBar({ scrolled = false, onNav }: { scrolled?: boolean; onNav?: (id: StudentNavId) => void } = {}) {
   const { theme, isDark, mode, setMode } = useTheme();
   const bp = useBreakpoint();
   const user = useAuthStore((u) => u.user) as any;
@@ -120,11 +122,13 @@ export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
         </FadeInView>
 
         <FadeInView delay={220}>
-          {photo ? (
-            <Image source={{ uri: photo }} style={{ width: 36, height: 36, borderRadius: 18 }} />
-          ) : (
-            <Av initials={initials} size={36} color={theme.primary} />
-          )}
+          <PressScale onPress={() => onNav?.('profile')}>
+            {photo ? (
+              <Image source={{ uri: photo }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+            ) : (
+              <Av initials={initials} size={36} color={theme.primary} />
+            )}
+          </PressScale>
         </FadeInView>
 
         <HelpMenu portal="student" />
