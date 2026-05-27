@@ -108,13 +108,7 @@ export default function MentorPortalRN() {
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
           <PromoBanner portal="mentor" />
-          {active === 'dashboard' && (
-            <DashboardView
-              onNav={(id) => setActive(id as NavId)}
-              onOpenNotifications={() => router.push('/notifications')}
-              onOpenProfile={() => setActive('profile')}
-            />
-          )}
+          {active === 'dashboard' && <DashboardView onNav={(id) => setActive(id as NavId)} />}
           {active === 'ai-studio' && <MentorAIStudioView />}
           {active === 'students'  && <ConnectionsView />}
           {active === 'sessions'  && <SessionsView />}

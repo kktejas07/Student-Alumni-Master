@@ -29,7 +29,6 @@ import { SP, RADII, FONT_FAMILY } from '@/src/theme/apple';
 import { GlassTopbar } from '@/src/motion/apple/components';
 import { FadeInView, PressScale, PulseDot } from './motion';
 import { PALETTE, TYPO } from './tokens';
-import { useStudentPortalNav } from './StudentPortalRN';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -38,7 +37,13 @@ function greeting(): string {
   return 'Good evening';
 }
 
-export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
+export function TopBar({
+  scrolled = false,
+  onAvatarPress,
+}: {
+  scrolled?: boolean;
+  onAvatarPress?: () => void;
+} = {}) {
   const router = useRouter();
   const { theme, isDark, mode, setMode } = useTheme();
   const bp = useBreakpoint();
@@ -50,16 +55,9 @@ export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
   const initials: string = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
   const photo: string | undefined = user?.photo_data || user?.face_image_base64;
 
-  let nav = null;
-  try {
-    nav = useStudentPortalNav();
-  } catch (e) {
-    // swallow
-  }
-
-  const onAvatarPress = () => {
-    if (nav) {
-      nav.navigate('profile');
+  const onAvatarPressHandler = () => {
+    if (onAvatarPress) {
+      onAvatarPress();
     } else {
       router.push('/(tabs)/profile');
     }
@@ -137,10 +135,9 @@ export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
           </PressScale>
         </FadeInView>
 
-        <FadeInView delay={220}>
+        <FadeInView delay={200}>
           <PressScale
-            onPress={onAvatarPress}
-            style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}
+            onPress={onAvatarPressHandler}
             accessibilityLabel="View Profile Settings"
           >
             {photo ? (

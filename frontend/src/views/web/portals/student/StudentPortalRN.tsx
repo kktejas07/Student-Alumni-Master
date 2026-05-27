@@ -114,7 +114,7 @@ function PortalShell() {
       <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <StudentPortalNavContext.Provider value={{ navigate: handleNav, searchQuery, setSearchQuery }}>
-          <TopBar scrolled={scrolled} />
+          <TopBar scrolled={scrolled} onAvatarPress={() => handleNav('profile')} />
           <ScrollView
             style={{ flex: 1 }}
             contentContainerStyle={{ paddingHorizontal: padH, paddingTop: SP.lg, paddingBottom: SP.giga }}
@@ -125,7 +125,7 @@ function PortalShell() {
             <EmbeddedShellContext.Provider value={true}>
               <PromoBanner portal="student" />
               <RouteTransition deps={[active]}>
-                {active === 'dashboard'       && <DashboardView onOpenNotifications={() => router.push('/notifications')} onOpenProfile={() => handleNav('profile')} />}
+                {active === 'dashboard'       && <DashboardView />}
                 {active === 'career-ai'       && <CareerAIView />}
                 {active === 'internships'     && <InternshipsView />}
                 {active === 'my-applications' && <MyApplicationsView />}
@@ -141,6 +141,7 @@ function PortalShell() {
                 {active === 'rentals'         && <RentalsPage />}
                 {active === 'profile'         && <ProfileSettingsView />}
               </RouteTransition>
+              <DashboardFooter portal="student" />
             </EmbeddedShellContext.Provider>
           </ScrollView>
         </StudentPortalNavContext.Provider>
