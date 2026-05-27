@@ -42,7 +42,7 @@ from typing import Any, Dict, Optional, List
 
 from bson import ObjectId
 from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 
@@ -164,8 +164,23 @@ class ApplyRequest(BaseModel):
 
 
 @router.post("/student/internships/{internship_id}/apply")
-async def apply_internship(internship_id: str, req: ApplyRequest):
-    student = await _resolve_user("student", req.student_email)
+async def apply_internship(internship_id: str, req: ApplyRequest, request: Request):
+    student = None
+    # 1. Try to read token from Authorization header if present for secure auth
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        try:
+            import jwt
+            from core.security import JWT_SECRET, JWT_ALGORITHM
+            payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
+            if payload.get("type") == "access":
+                student = await _db.users.find_one({"_id": ObjectId(payload["sub"])})
+        except Exception:
+            pass
+
+    # 2. Fall back to request body if unauthenticated (demo switcher & automated tests compatibility)
+    if not student:
+        student = await _resolve_user("student", req.student_email)
     # Find internship by suffix-id or ObjectId
     internship = None
     try:
@@ -177,18 +192,33 @@ async def apply_internship(internship_id: str, req: ApplyRequest):
             if str(i["_id"]).endswith(internship_id):
                 internship = i; break
     if not internship:
+        # Support external feed jobs stored in jobs_cache
+        try:
+            internship = await _db.jobs_cache.find_one({"dedup_hash": internship_id})
+        except Exception:
+            pass
+    if not internship:
+        try:
+            internship = await _db.jobs_cache.find_one({"_id": ObjectId(internship_id)})
+        except Exception:
+            pass
+    if not internship:
         raise HTTPException(404, "Internship not found")
 
     # Idempotent — don't double-apply
+    internship_id_str = internship.get("dedup_hash") or str(internship["_id"])
     existing = await _db.internship_applications.find_one({
-        "internship_id": str(internship["_id"]),
+        "$or": [
+            {"internship_id": str(internship["_id"])},
+            {"internship_id": internship_id_str}
+        ],
         "student_id": str(student["_id"]),
     })
     if existing:
         return {"ok": True, "already": True, "application_id": _short_id(existing["_id"])}
 
     doc = {
-        "internship_id": str(internship["_id"]),
+        "internship_id": internship_id_str,
         "internship_title": internship.get("title"),
         "company": internship.get("company"),
         "student_id": str(student["_id"]),
@@ -199,6 +229,25 @@ async def apply_internship(internship_id: str, req: ApplyRequest):
         "applied_at": _now(),
     }
     res = await _db.internship_applications.insert_one(doc)
+
+    # Sync with users.applied_jobs so the feed button is marked as applied
+    await _db.users.update_one(
+        {"_id": student["_id"]},
+        {"$addToSet": {"applied_jobs": internship_id_str}}
+    )
+
+    # Write to job_apply_audit for unified tracking metrics
+    try:
+        url = internship.get("url") or (internship.get("source_urls") or [""])[0]
+        await _db.job_apply_audit.insert_one({
+            "user_id": str(student["_id"]),
+            "job_id": internship_id_str,
+            "source_url": url,
+            "ts": _now(),
+        })
+    except Exception:
+        pass
+
     return {"ok": True, "application_id": _short_id(res.inserted_id), "applied_at": doc["applied_at"].isoformat()}
 
 

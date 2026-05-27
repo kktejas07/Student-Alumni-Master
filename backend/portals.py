@@ -1861,30 +1861,63 @@ async def student_wallet(student_email: Optional[str] = None):
 
 
 @router.get("/student/network")
-async def student_network(limit: int = 18):
-    """Mixed alumni + student network for the Network tab."""
+async def student_network(student_email: Optional[str] = None, email: Optional[str] = None, limit: int = 60):
+    """Mixed alumni + student + mentor network for the Network tab."""
+    user = None
+    u_email = email or student_email
+    if u_email:
+        user = await _db.users.find_one({"email": u_email})
+    if not user:
+        user = await _db.users.find_one({"role": "student"})
+
+    rel_map = {}
+    if user:
+        me_id = str(user["_id"])
+        rels = await _db.connections.find({
+            "$or": [{"a": me_id}, {"b": me_id}]
+        }).to_list(1000)
+        for r in rels:
+            other = r["b"] if r["a"] == me_id else r["a"]
+            status = r.get("status")
+            if status == "accepted":
+                rel_map[other] = "connected"
+            elif status == "pending":
+                rel_map[other] = "pending"
+
     out = []
-    al_cur = _db.users.find({"role": "alumni"}).limit(limit // 2)
+    me_id_str = str(user["_id"]) if user else ""
+
+    # Fetch Alumni (newest first)
+    al_cur = _db.users.find({"role": "alumni"}).sort("_id", -1).limit(limit)
     async for a in al_cur:
+        other_id = str(a["_id"])
+        if other_id == me_id_str:
+            continue
         ai = a.get("alumni_info") or {}
         si = a.get("school_info") or {}
         out.append({
-            "id": _short_id(a.get("_id")),
+            "id": other_id,
             "name": a.get("full_name") or "—",
             "initials": _initials(a.get("full_name") or ""),
             "role": "Alumni",
-            "subline": f"{ai.get('current_role', '—')} at {ai.get('current_employer', '—')}".strip(", "),
+            "subline": f"{ai.get('current_role', '—')} at {ai.get('current_employer', '—')}".strip(", ") or "Alumni",
             "college": si.get("institution_name") or "—",
             "batch": ai.get("graduation_year") or 2018,
             "tags": ["Alumni"] + (ai.get("interests", []) or [])[:2],
             "color": _color_for(a.get("full_name", "")),
             "kind": "alumni",
+            "connection_state": rel_map.get(other_id, "none"),
         })
-    st_cur = _db.users.find({"role": "student"}).limit(limit // 2)
+
+    # Fetch Students (newest first)
+    st_cur = _db.users.find({"role": "student"}).sort("_id", -1).limit(limit)
     async for s in st_cur:
+        other_id = str(s["_id"])
+        if other_id == me_id_str:
+            continue
         si = s.get("school_info") or {}
         out.append({
-            "id": _short_id(s.get("_id")),
+            "id": other_id,
             "name": s.get("full_name") or "—",
             "initials": _initials(s.get("full_name") or ""),
             "role": "Student",
@@ -1894,8 +1927,39 @@ async def student_network(limit: int = 18):
             "tags": ["Student"] + (s.get("skills", []) or [])[:2],
             "color": _color_for(s.get("full_name", "")),
             "kind": "student",
+            "connection_state": rel_map.get(other_id, "none"),
+            "branch": si.get("branch_or_stream") or "CSE",
+            "year": si.get("class_or_year") or "Y3",
+            "looking": s.get("bio") or "Looking for career guidance.",
         })
-    return {"items": out}
+
+    # Fetch Mentors (newest first)
+    me_cur = _db.users.find({"role": "mentor"}).sort("_id", -1).limit(limit)
+    async for m in me_cur:
+        other_id = str(m["_id"])
+        if other_id == me_id_str:
+            continue
+        mi = m.get("mentor_profile") or m.get("mentor_info") or {}
+        si = m.get("school_info") or {}
+        out.append({
+            "id": other_id,
+            "name": m.get("full_name") or "—",
+            "initials": _initials(m.get("full_name") or ""),
+            "role": "Mentor",
+            "subline": f"{mi.get('job_title', '—')} at {mi.get('organization', '—')}".strip(", ") or "Expert Mentor",
+            "college": si.get("institution_name") or "—",
+            "batch": mi.get("graduation_year") or 2015,
+            "tags": ["Mentor"] + (m.get("skills", []) or [])[:2],
+            "color": _color_for(m.get("full_name", "")),
+            "kind": "mentor",
+            "connection_state": rel_map.get(other_id, "none"),
+            "company": mi.get("organization") or "—",
+            "job_title": mi.get("job_title") or "Mentor",
+            "rating": mi.get("rating") or 5.0,
+            "sessions": mi.get("sessions") or 0,
+        })
+
+    return {"items": out[:limit]}
 
 
 # ════════════════════════════════════════════════════════════════

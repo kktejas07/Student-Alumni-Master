@@ -11,7 +11,7 @@
  *   - Filter chips (All / Internship / Full-time / Remote / Saved)
  *   - Search across role/company/city
  *   - Save / Unsave with instant DB persistence
- *   - Apply opens source URL in new tab + tracks via /jobs/track-apply
+ *   - Apply opens source URL in new tab + tracks via /student/internships/{id}/apply confirmation modal
  *   - Live refresh button (pulls fresh data from upstream APIs)
  *   - "Locked" hint for filters outside the user's tier
  *   - Pagination via Load more
@@ -19,7 +19,7 @@
 import React, { useCallback, useEffect, useMemo, useState, useContext } from 'react';
 import {
   View, Text, Pressable, TextInput, StyleSheet, useWindowDimensions,
-  Platform, ActivityIndicator, Linking,
+  Platform, ActivityIndicator, Linking, Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -34,6 +34,7 @@ import { SkeletonList } from '../motion';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
 import { StudentPortalNavContext } from '../StudentPortalRN';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 type Job = {
   job_id: string;
@@ -93,6 +94,8 @@ export function InternshipsView() {
   const [allowedTypes, setAllowedTypes] = useState<string[]>(['Internship']);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [applyModalJob, setApplyModalJob] = useState<Job | null>(null);
+  const authUser = useAuthStore((sx) => sx.user);
 
   const loadFeed = useCallback(async (opts?: { append?: boolean; refresh?: boolean; pageOverride?: number }) => {
     const append = opts?.append || false;
@@ -177,12 +180,26 @@ export function InternshipsView() {
   const onApply = useCallback(async (job: Job) => {
     const url = (job.source_urls && job.source_urls[0]) || '';
     if (!url) { toast.warning('No apply link', 'This job did not include an apply URL.'); return; }
-    try {
-      await request('/jobs/track-apply', { method: 'POST', body: { job_id: job.job_id, source_url: url } } as any);
-    } catch {}
-    if (Platform.OS === 'web') window.open(url, '_blank');
-    else Linking.openURL(url).catch(() => {});
-    setItems((arr) => arr.map((j) => j.job_id === job.job_id ? { ...j, applied: true } : j));
+    if (Platform.OS === 'web') {
+      try {
+        const win = window.open(url, '_blank');
+        if (win) {
+          setApplyModalJob(job);
+        } else {
+          toast.error('Popup Blocked', 'Please allow popups in your browser to proceed.');
+        }
+      } catch (e: any) {
+        toast.error('Could not open page', e?.message || 'Please try again.');
+      }
+    } else {
+      Linking.openURL(url)
+        .then(() => {
+          setApplyModalJob(job);
+        })
+        .catch((err) => {
+          toast.error('Could not open link', err?.message || 'No app available to open this link.');
+        });
+    }
   }, [toast]);
 
   const FILTERS = ['All', 'Internship', 'Full-time', 'Remote', 'Saved'] as const;
@@ -283,6 +300,86 @@ export function InternshipsView() {
           </Pressable>
         )}
       </View>
+
+      {/* Did you apply modal? */}
+      <Modal
+        visible={applyModalJob !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setApplyModalJob(null)}
+      >
+        <View style={s.modalBg}>
+          <GlassCard radius={16} padding={22} style={s.modalCard}>
+            <View style={s.modalHeader}>
+              <View style={s.modalIconDisc}>
+                <Briefcase size={18} color="#FCD34D" />
+              </View>
+              <Text style={s.modalTitle}>Applying to External Job?</Text>
+            </View>
+            <Text style={s.modalText}>
+              We redirected you to the recruiter's page for{" "}
+              <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>
+                {applyModalJob?.title}
+              </Text>{" "}
+              at{" "}
+              <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>
+                {applyModalJob?.company}
+              </Text>.
+            </Text>
+            <Text style={s.modalSubtext}>
+              Once you finish submitting your details on their platform, confirm it here to track its progress in your dashboard!
+            </Text>
+
+            <View style={s.modalBtnRow}>
+              <Pressable
+                onPress={() => setApplyModalJob(null)}
+                style={({ hovered }: any) => [
+                  s.modalCancelBtn,
+                  hovered && { backgroundColor: 'rgba(255,255,255,0.06)' }
+                ]}
+              >
+                <Text style={s.modalCancelTxt}>Cancel</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={async () => {
+                  if (!applyModalJob) return;
+                  const job = applyModalJob;
+                  setApplyModalJob(null);
+                  try {
+                    await request(`/student/internships/${job.job_id}/apply`, {
+                      method: 'POST',
+                      body: {
+                        student_email: authUser?.email || undefined,
+                        cover_note: 'Applied via external redirection link.'
+                      }
+                    });
+                    toast.success(
+                      'Application Tracked! 🎉',
+                      `Successfully added ${job.title} at ${job.company} to your My Applications dashboard.`
+                    );
+                    setItems((arr) =>
+                      arr.map((j) =>
+                        j.job_id === job.job_id ? { ...j, applied: true } : j
+                      )
+                    );
+                  } catch (err: any) {
+                    toast.error('Could not track application', err.message);
+                  }
+                }}
+              >
+                <LinearGradient
+                  colors={[GRAD.from, GRAD.to]}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                  style={s.modalConfirmBtn}
+                >
+                  <Text style={s.modalConfirmTxt}>Yes, I've Applied</Text>
+                </LinearGradient>
+              </Pressable>
+            </View>
+          </GlassCard>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -440,4 +537,17 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   loadMoreTxt: { color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 12 },
+
+  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center', padding: 20 },
+  modalCard: { width: '100%', maxWidth: 460, backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 16, padding: 22 },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+  modalIconDisc: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(245,158,11,0.16)', borderColor: 'rgba(245,158,11,0.40)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.3 },
+  modalText: { color: SC.muted, fontFamily: FONTS.med, fontSize: 13, lineHeight: 18, marginBottom: 12 },
+  modalSubtext: { color: SC.dim, fontFamily: FONTS.med, fontSize: 12, lineHeight: 16, marginBottom: 20 },
+  modalBtnRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
+  modalCancelBtn: { paddingHorizontal: 16, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' },
+  modalCancelTxt: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 12.5 },
+  modalConfirmBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 18, height: 36, borderRadius: 10 },
+  modalConfirmTxt: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
 });

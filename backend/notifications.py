@@ -114,6 +114,8 @@ async def list_inbox(db, user_id: str, limit: int = 30) -> List[Dict[str, Any]]:
     for it in items:
         if isinstance(it.get("created_at"), datetime):
             it["created_at"] = it["created_at"].isoformat()
+        if "body" in it and "message" not in it:
+            it["message"] = it["body"]
     return items
 
 

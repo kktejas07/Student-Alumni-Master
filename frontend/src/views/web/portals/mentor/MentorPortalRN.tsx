@@ -64,10 +64,16 @@ export default function MentorPortalRN() {
   const [query, setQuery] = useState('');
   useAutoTour('mentor');
 
+  const [decisions, setDecisions] = useState<Record<number, 'pending' | 'accepted' | 'declined'>>({});
+
+  const acceptedCount = Object.values(decisions).filter((d) => d === 'accepted').length;
+  const declinedCount = Object.values(decisions).filter((d) => d === 'declined').length;
+  const pendingRequestsCount = SESSION_REQUESTS.length - acceptedCount - declinedCount;
+
   const counts = {
     students: STUDENTS.length,
     sessions: STUDENTS.filter((s) => s.nextSession).length,
-    requests: SESSION_REQUESTS.length,
+    requests: pendingRequestsCount,
   };
 
   const onLogout = async () => {
@@ -97,7 +103,7 @@ export default function MentorPortalRN() {
       />
 
       <View style={{ flex: 1, minWidth: 0 }}>
-        <TopBar title={PAGE_TITLES[active]} query={query} setQuery={setQuery} notifCount={4} />
+        <TopBar title={PAGE_TITLES[active]} query={query} setQuery={setQuery} notifCount={4} onBellPress={() => router.push('/notifications')} />
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
           <PromoBanner portal="mentor" />
@@ -106,7 +112,7 @@ export default function MentorPortalRN() {
           {active === 'students'  && <ConnectionsView />}
           {active === 'sessions'  && <SessionsView />}
           {active === 'availability' && <AvailabilityView />}
-          {active === 'requests'  && <RequestsView />}
+          {active === 'requests'  && <RequestsView decisions={decisions} onSetDecision={(id, d) => setDecisions(prev => ({ ...prev, [id]: d }))} />}
           {active === 'network'   && <NetworkView />}
           {active === 'earnings'  && <EarningsView />}
           {active === 'feedback'  && <FeedbackView />}
