@@ -3,6 +3,7 @@
  */
 import React from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Bell, Search } from './iconShims';
 import { SC, FONTS } from './tokens';
 import { STUDENT } from './data';
@@ -17,6 +18,7 @@ function greeting(): string {
 }
 
 export function TopBar() {
+  const router = useRouter();
   const firstName = STUDENT.name.split(' ')[0];
   return (
     <View style={s.bar}>
@@ -30,7 +32,10 @@ export function TopBar() {
         <TextInput placeholder="Search anything…" placeholderTextColor={SC.dim} style={s.searchInput} />
       </View>
 
-      <Pressable style={({ hovered }: any) => [s.bell, hovered && { backgroundColor: SC.cardH }]}>
+      <Pressable
+        onPress={() => router.push('/notifications')}
+        style={({ hovered }: any) => [s.bell, hovered && { backgroundColor: SC.cardH }]}
+      >
         <Bell size={16} color={SC.accent} />
         <View style={s.bellDot} />
       </Pressable>

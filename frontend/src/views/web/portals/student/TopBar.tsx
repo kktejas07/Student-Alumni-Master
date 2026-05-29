@@ -16,6 +16,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, Platform, Image } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { useRouter } from 'expo-router';
 import { Bell, Search } from './iconShims';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { STUDENT } from './data';
@@ -37,6 +38,7 @@ function greeting(): string {
 }
 
 export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
+  const router = useRouter();
   const { theme, isDark, mode, setMode } = useTheme();
   const bp = useBreakpoint();
   const user = useAuthStore((u) => u.user) as any;
@@ -108,7 +110,7 @@ export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
         <FadeInView delay={180}>
           <PressScale
             style={[s.iconBtn, { backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder }]}
-            onPress={() => {}}
+            onPress={() => router.push('/notifications')}
             accessibilityLabel="Notifications"
             accessibilityHint="Opens the notifications panel"
           >
