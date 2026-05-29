@@ -355,6 +355,7 @@ export function DashboardView() {
             title="Recent Activity"
             items={NX_ACTIVITY}
             ctaLabel="View All Activity"
+            onCta={() => router.push('/notifications')}
           />
         </View>
       </View>

@@ -418,12 +418,14 @@ export function ActivityCard({
 }) {
   return (
     <FadeUp delay={delay} style={{ flex: 1, minWidth: 320 }}>
-      <NxCard style={{ padding: 22 }}>
-        <Text style={{ color: NX.textP, fontFamily: FONT, fontSize: 18, fontWeight: '600', letterSpacing: -0.2, marginBottom: 14 }}>
-          {title}
-        </Text>
-        <View style={{ gap: 14 }}>
-          {items.map((a, i) => <ActivityRow key={i} item={a} />)}
+      <NxCard style={{ padding: 22, flex: 1, justifyContent: 'space-between' }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: NX.textP, fontFamily: FONT, fontSize: 18, fontWeight: '600', letterSpacing: -0.2, marginBottom: 14 }}>
+            {title}
+          </Text>
+          <View style={{ gap: 14 }}>
+            {items.map((a, i) => <ActivityRow key={i} item={a} />)}
+          </View>
         </View>
         <Pressable
           onPress={onCta}
@@ -444,7 +446,7 @@ export function ActivityCard({
 
 function ActivityRow({ item }: { item: ActivityItem }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
       <View style={{
         width: 36, height: 36, borderRadius: 10,
         backgroundColor: item.bgTint, alignItems: 'center', justifyContent: 'center',
