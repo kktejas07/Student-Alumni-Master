@@ -4,7 +4,7 @@
  */
 import { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform } from 'react-native';
-import { Mail, Phone, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Sparkles, Check, X } from 'lucide-react-native';
+import { Mail, Phone, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Sparkles, Check, X, Upload, Camera } from 'lucide-react-native';
 import { CompletionRing } from './CompletionRing';
 import { Card, Field, TF, TA, SF, ChipPicker, C } from './primitives';
 
@@ -37,9 +37,10 @@ interface Props {
   setDraft: (updater: (d: any) => any) => void;
   completion: { percentage: number; items: { key: string; label: string; done: boolean }[] };
   onUploadPhoto: () => void;
+  onTakeSelfie?: () => void;
 }
 
-export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto }: Props) {
+export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, onTakeSelfie }: Props) {
   const photo = draft.photo_data || draft.face_image_base64;
   const initials = ((draft.full_name || '?').split(' ').slice(0,2).map((s: string) => s[0] || '').join('') || '?').toUpperCase();
 
@@ -113,9 +114,16 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto }: 
             <Text style={st.photoTitle}>Profile Photo</Text>
             <Text style={st.photoHint}>JPG, PNG up to 5MB. Recommended 400×400px.</Text>
             <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
-              <Pressable onPress={onUploadPhoto} style={st.btnPrimary} testID="pf-upload-photo">
+              <Pressable onPress={onUploadPhoto} style={[st.btnPrimary, { flexDirection: 'row', alignItems: 'center', gap: 6 }]} testID="pf-upload-photo">
+                <Upload size={14} color="#fff" />
                 <Text style={st.btnPrimaryText}>Upload Photo</Text>
               </Pressable>
+              {onTakeSelfie && (
+                <Pressable onPress={onTakeSelfie} style={[st.btnPrimary, { flexDirection: 'row', alignItems: 'center', gap: 6 }]} testID="pf-take-selfie">
+                  <Camera size={14} color="#fff" />
+                  <Text style={st.btnPrimaryText}>Take Selfie</Text>
+                </Pressable>
+              )}
               {photo && (
                 <Pressable onPress={() => {
                   setField('photo_data', '');
