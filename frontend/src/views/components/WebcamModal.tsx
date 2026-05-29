@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Pressable, Modal, Platform, ActivityIndicator
+  View, Text, StyleSheet, Pressable, Modal, Platform, ActivityIndicator, Image
 } from 'react-native';
 import { Camera, X } from 'lucide-react-native';
 
@@ -14,7 +14,15 @@ export function WebcamModal({ visible, onClose, onCapture }: Props) {
   const [stream, setStream] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [restartCount, setRestartCount] = useState(0);
   const videoRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!visible) {
+      setCapturedImage(null);
+    }
+  }, [visible]);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || !visible) return;
@@ -25,12 +33,21 @@ export function WebcamModal({ visible, onClose, onCapture }: Props) {
 
     async function startCamera() {
       try {
-        const mediaStream = await navigator.mediaDevices.getUserMedia({
+        const getUserMedia =
+          navigator.mediaDevices?.getUserMedia?.bind(navigator.mediaDevices) ||
+          (navigator as any).webkitGetUserMedia?.bind(navigator) ||
+          (navigator as any).mozGetUserMedia?.bind(navigator) ||
+          (navigator as any).msGetUserMedia?.bind(navigator);
+
+        if (!getUserMedia) {
+          setError('Camera is not supported or blocked on this browser context (requires HTTPS or localhost).');
+          setLoading(false);
+          return;
+        }
+
+        const mediaStream = await getUserMedia({
           video: {
-            facingMode: 'user',
-            width: { ideal: 480 },
-            height: { ideal: 480 },
-            aspectRatio: 1
+            facingMode: 'user'
           },
           audio: false
         });
@@ -44,7 +61,7 @@ export function WebcamModal({ visible, onClose, onCapture }: Props) {
         }
       } catch (err: any) {
         console.error('Failed to get camera stream:', err);
-        setError('Camera permission denied or camera not found.');
+        setError('Camera permission denied or webcam not found.');
         setLoading(false);
       }
     }
@@ -56,7 +73,7 @@ export function WebcamModal({ visible, onClose, onCapture }: Props) {
         activeStream.getTracks().forEach((track: any) => track.stop());
       }
     };
-  }, [visible]);
+  }, [visible, restartCount]);
 
   // Bind srcObject if stream changes or ref becomes available
   useEffect(() => {
@@ -94,11 +111,22 @@ export function WebcamModal({ visible, onClose, onCapture }: Props) {
         stream.getTracks().forEach((track: any) => track.stop());
         setStream(null);
         
-        onCapture(base64);
+        setCapturedImage(base64);
       }
     } catch (err) {
       console.error('Error capturing image:', err);
       setError('Failed to capture photo.');
+    }
+  };
+
+  const handleRetake = () => {
+    setCapturedImage(null);
+    setRestartCount((c) => c + 1);
+  };
+
+  const handleConfirm = () => {
+    if (capturedImage) {
+      onCapture(capturedImage);
     }
   };
 
@@ -107,6 +135,7 @@ export function WebcamModal({ visible, onClose, onCapture }: Props) {
       stream.getTracks().forEach((track: any) => track.stop());
     }
     setStream(null);
+    setCapturedImage(null);
     onClose();
   };
 
@@ -123,7 +152,7 @@ export function WebcamModal({ visible, onClose, onCapture }: Props) {
         <View style={s.card}>
           {/* Header */}
           <View style={s.header}>
-            <Text style={s.title}>Take a Selfie</Text>
+            <Text style={s.title}>{capturedImage ? 'Confirm Selfie' : 'Take a Selfie'}</Text>
             <Pressable onPress={handleClose} style={s.closeBtn}>
               <X size={18} color="rgba(255,255,255,0.7)" />
             </Pressable>
@@ -131,51 +160,83 @@ export function WebcamModal({ visible, onClose, onCapture }: Props) {
 
           {/* Camera Frame */}
           <View style={s.cameraFrame}>
-            {loading && (
-              <View style={s.overlay}>
-                <ActivityIndicator size="large" color="#A78BFA" />
-                <Text style={s.loadingText}>Accessing Camera…</Text>
-              </View>
-            )}
-            
-            {error && (
-              <View style={s.overlay}>
-                <Text style={s.errorText}>{error}</Text>
-              </View>
-            )}
-
-            {/* Native Video Element */}
-            {visible && !error && (
-              <video
-                ref={videoRef}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  transform: 'scaleX(-1)', // Horizontal mirror
-                  display: loading ? 'none' : 'block'
-                }}
-                autoPlay
-                playsInline
-                muted
+            {capturedImage ? (
+              <Image 
+                source={{ uri: capturedImage }} 
+                style={{ width: '100%', height: '100%' }} 
               />
+            ) : (
+              <>
+                {loading && (
+                  <View style={s.overlay}>
+                    <ActivityIndicator size="large" color="#A78BFA" />
+                    <Text style={s.loadingText}>Accessing Camera…</Text>
+                  </View>
+                )}
+                
+                {error && (
+                  <View style={s.overlay}>
+                    <Text style={s.errorText}>{error}</Text>
+                  </View>
+                )}
+
+                {/* Native Video Element */}
+                {visible && !error && (
+                  <video
+                    ref={videoRef}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      transform: 'scaleX(-1)', // Horizontal mirror
+                      display: loading ? 'none' : 'block'
+                    }}
+                    autoPlay
+                    playsInline
+                    muted
+                  />
+                )}
+              </>
             )}
           </View>
 
           {/* Action Footer */}
           <View style={s.footer}>
-            <Pressable
-              onPress={capturePhoto}
-              disabled={loading || !!error}
-              style={({ pressed }) => [
-                s.captureBtn,
-                (loading || !!error) && s.disabledBtn,
-                pressed && { opacity: 0.8 }
-              ]}
-            >
-              <Camera size={18} color="#000" />
-              <Text style={s.captureBtnText}>Capture Photo</Text>
-            </Pressable>
+            {capturedImage ? (
+              <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+                <Pressable
+                  onPress={handleRetake}
+                  style={({ pressed }) => [
+                    s.retakeBtn,
+                    pressed && { opacity: 0.8 }
+                  ]}
+                >
+                  <Text style={s.retakeBtnText}>Retake</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleConfirm}
+                  style={({ pressed }) => [
+                    s.confirmBtn,
+                    pressed && { opacity: 0.8 }
+                  ]}
+                >
+                  <Text style={s.confirmBtnText}>Confirm</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                onPress={capturePhoto}
+                disabled={loading || !!error}
+                style={({ pressed }) => [
+                  s.captureBtn,
+                  (loading || !!error) && s.disabledBtn,
+                  pressed && { opacity: 0.8 }
+                ]}
+              >
+                <Camera size={18} color="#000" />
+                <Text style={s.captureBtnText}>Capture Photo</Text>
+              </Pressable>
+            )}
           </View>
         </View>
       </View>
@@ -186,7 +247,7 @@ export function WebcamModal({ visible, onClose, onCapture }: Props) {
 const s = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.75)',
+    backgroundColor: 'rgba(0,0,0,0.80)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
@@ -279,6 +340,36 @@ const s = StyleSheet.create({
     ...({ cursor: 'default' } as any),
   },
   captureBtnText: {
+    color: '#000',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 14,
+  },
+  retakeBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any),
+  },
+  retakeBtnText: {
+    color: '#EF4444',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 14,
+  },
+  confirmBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#C4B5FD',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any),
+  },
+  confirmBtnText: {
     color: '#000',
     fontFamily: 'DMSans_700Bold',
     fontSize: 14,
