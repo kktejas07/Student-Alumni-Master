@@ -18,7 +18,7 @@ function greeting(): string {
   return 'Good evening';
 }
 
-export function TopBar() {
+export function TopBar({ onAvatarPress }: { onAvatarPress?: () => void } = {}) {
   const router = useRouter();
   const user = useAuthStore((u) => u.user) as any;
   const fullName = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || STUDENT.name;
@@ -48,7 +48,12 @@ export function TopBar() {
 
       <HelpMenu portal="alumni" />
 
-      <Av initials={initials} size={36} color={SC.primary} photo={photo} />
+      <Pressable
+        onPress={onAvatarPress || (() => router.push('/(tabs)/profile'))}
+        style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}
+      >
+        <Av initials={initials} size={36} color={SC.primary} photo={photo} />
+      </Pressable>
     </View>
   );
 }

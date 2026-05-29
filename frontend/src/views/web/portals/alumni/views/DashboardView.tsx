@@ -36,7 +36,15 @@ const STUDENT_MOCK = {
   profileCompletion: MOCK.PROFILE_COMPLETION,
 };
 
-export function DashboardView() {
+export function DashboardView({
+  onOpenProfile, onOpenInternships, onOpenNetwork, onOpenEvents, onOpenCareerAi,
+}: {
+  onOpenProfile?: () => void;
+  onOpenInternships?: () => void;
+  onOpenNetwork?: () => void;
+  onOpenEvents?: () => void;
+  onOpenCareerAi?: () => void;
+} = {}) {
   const { data } = usePortalData<typeof STUDENT_MOCK>('/student/dashboard', STUDENT_MOCK);
   // Live counters polled every 15s so users can SEE auto-refresh working
   const { data: live } = usePortalData<any>('/live/counters', null as any, 15_000);
@@ -146,13 +154,13 @@ export function DashboardView() {
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
           <Pressable
             style={({ hovered }: any) => [s.primaryCta, hovered && { backgroundColor: SC.primaryL }]}
-            onPress={() => alert('Open full roadmap')}
+            onPress={onOpenCareerAi || (() => alert('Open full roadmap'))}
           >
             <Text style={s.primaryCtaText}>View Full Roadmap →</Text>
           </Pressable>
           <Pressable
             style={({ hovered }: any) => [s.secCta, hovered && { backgroundColor: SC.cardH }]}
-            onPress={() => alert('Browse internships')}
+            onPress={onOpenInternships || (() => alert('Browse internships'))}
           >
             <Text style={s.secCtaText}>Browse Internships</Text>
           </Pressable>
@@ -173,7 +181,7 @@ export function DashboardView() {
         <View style={[s.col, { width: matchW as any, flex: stack ? undefined : 1.9 }]}>
           <View style={s.colHead}>
             <Text style={s.colTitle}>Top Matches for You</Text>
-            <Pressable><Text style={s.seeAll}>See all →</Text></Pressable>
+            <Pressable onPress={onOpenInternships}><Text style={s.seeAll}>See all →</Text></Pressable>
           </View>
           <View style={{ gap: 10 }}>
             {TOP_MATCHES.slice(0, 3).map((m) => (
@@ -201,7 +209,7 @@ export function DashboardView() {
         <View style={[s.col, { width: mentorW as any, flex: stack ? undefined : 1 }]}>
           <View style={s.colHead}>
             <Text style={s.colTitle}>Recommended Mentors</Text>
-            <Pressable><Text style={s.seeAll}>See all →</Text></Pressable>
+            <Pressable onPress={onOpenNetwork}><Text style={s.seeAll}>See all →</Text></Pressable>
           </View>
           <View style={{ gap: 10 }}>
             {RECOMMENDED_MENTORS.slice(0, 2).map((m) => (
@@ -236,7 +244,7 @@ export function DashboardView() {
       <View>
         <View style={s.colHead}>
           <Text style={s.colTitle}>Upcoming Events</Text>
-          <Pressable><Text style={s.seeAll}>See all →</Text></Pressable>
+          <Pressable onPress={onOpenEvents}><Text style={s.seeAll}>See all →</Text></Pressable>
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           {UPCOMING_EVENTS.map((e) => (
@@ -272,7 +280,7 @@ export function DashboardView() {
             ))}
           </View>
         </View>
-        <Pressable style={({ hovered }: any) => [s.completeCta, hovered && { backgroundColor: '#fff' }]}>
+        <Pressable onPress={onOpenProfile} style={({ hovered }: any) => [s.completeCta, hovered && { backgroundColor: '#fff' }]}>
           <Text style={s.completeCtaText}>Complete Profile →</Text>
         </Pressable>
       </LinearGradient>

@@ -39,7 +39,15 @@ function greeting(): string {
 
 import { Sidebar, StudentNavId } from './Sidebar';
 
-export function TopBar({ scrolled = false, onNav }: { scrolled?: boolean; onNav?: (id: StudentNavId) => void } = {}) {
+export function TopBar({
+  scrolled = false,
+  onNav,
+  onAvatarPress,
+}: {
+  scrolled?: boolean;
+  onNav?: (id: StudentNavId) => void;
+  onAvatarPress?: () => void;
+} = {}) {
   const router = useRouter();
   const { theme, isDark, mode, setMode } = useTheme();
   const bp = useBreakpoint();
@@ -50,6 +58,16 @@ export function TopBar({ scrolled = false, onNav }: { scrolled?: boolean; onNav?
   const firstName: string = fullName.split(' ')[0] || STUDENT.name.split(' ')[0];
   const initials: string = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
   const photo: string | undefined = user?.photo_data || user?.face_image_base64;
+
+  const onAvatarPressHandler = () => {
+    if (onAvatarPress) {
+      onAvatarPress();
+    } else if (onNav) {
+      onNav('profile');
+    } else {
+      router.push('/(tabs)/profile');
+    }
+  };
 
   const cycleTheme = () => {
     setMode(mode === 'light' ? 'dark' : mode === 'dark' ? 'system' : 'light');
@@ -123,8 +141,11 @@ export function TopBar({ scrolled = false, onNav }: { scrolled?: boolean; onNav?
           </PressScale>
         </FadeInView>
 
-        <FadeInView delay={220}>
-          <PressScale onPress={() => onNav?.('profile')}>
+        <FadeInView delay={200}>
+          <PressScale
+            onPress={onAvatarPressHandler}
+            accessibilityLabel="View Profile Settings"
+          >
             <Av initials={initials} size={36} color={theme.primary} photo={photo} />
           </PressScale>
         </FadeInView>

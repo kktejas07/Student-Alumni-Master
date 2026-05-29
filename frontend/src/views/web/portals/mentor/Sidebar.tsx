@@ -76,19 +76,31 @@ export function Sidebar({
       {/* Mentor mini-profile + Mentor Card widget */}
       <View style={s.profileRow}>
         {collapsed ? (
-          <View style={{ alignItems: 'center', paddingVertical: 4 }}>
-            <Pressable onPress={() => onNav('profile')} style={[s.avatarMini, { overflow: 'hidden' }]}>
+          <Pressable
+            onPress={() => onNav('profile')}
+            style={({ pressed }: any) => [
+              { alignItems: 'center', paddingVertical: 4 },
+              pressed && { opacity: 0.8 }
+            ]}
+          >
+            <View style={[s.avatarMini, { overflow: 'hidden' }]}>
               {photo ? (
                 <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
               ) : (
                 <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 }}>{initials}</Text>
               )}
               <View style={s.onlineDot} />
-            </Pressable>
-          </View>
+            </View>
+          </Pressable>
         ) : (
-          <Pressable onPress={() => onNav('profile')} style={s.profileCard}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 9 }}>
+          <View style={s.profileCard}>
+            <Pressable
+              onPress={() => onNav('profile')}
+              style={({ pressed }: any) => [
+                { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 9 },
+                pressed && { opacity: 0.8 }
+              ]}
+            >
               <View style={[s.avatarLg, { overflow: 'hidden' }]}>
                 {photo ? (
                   <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
@@ -101,7 +113,7 @@ export function Sidebar({
                 <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 }}>{fullName}</Text>
                 <Text numberOfLines={1} style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 9 }}>{role} · {company}</Text>
               </View>
-            </View>
+            </Pressable>
             <Pressable style={({ hovered }: any) => [s.idCard, hovered && { backgroundColor: 'rgba(20,184,166,0.15)' }]}>
               <QrCode size={13} color={MC.tealP} />
               <View style={{ flex: 1, minWidth: 0 }}>

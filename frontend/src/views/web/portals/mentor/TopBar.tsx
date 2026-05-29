@@ -8,13 +8,14 @@ import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 export function TopBar({
-  title, query, setQuery, notifCount = 4, onBellPress,
+  title, query, setQuery, notifCount = 4, onBellPress, onAvatarPress,
 }: {
   title: string;
   query: string;
   setQuery: (q: string) => void;
   notifCount?: number;
   onBellPress?: () => void;
+  onAvatarPress?: () => void;
 }) {
   const user = useAuthStore((u) => u.user) as any;
   const fullName = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || MENTOR.name;
@@ -45,7 +46,9 @@ export function TopBar({
       </Pressable>
       <View style={{ marginLeft: 4, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <HelpMenu portal="mentor" />
-        <Av initials={initials} size={34} color={MC.teal} photo={photo} />
+        <Pressable onPress={onAvatarPress} style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}>
+          <Av initials={initials} size={34} color={MC.teal} photo={photo} />
+        </Pressable>
       </View>
     </View>
   );
