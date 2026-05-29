@@ -11,6 +11,8 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useToast } from '@/src/views/components';
 import { request } from '@/src/models/services/api';
 
+import { StudentPortalNavContext } from '../StudentPortalRN';
+
 type Person = { id: string; name: string; initials: string; kind: 'alumni' | 'student' | 'mentor'; role: string; subline: string; college: string; batch: number; tags: string[]; color: string; connection_state?: 'connected' | 'pending' | 'none' };
 const FALLBACK = { items: [] as Person[] };
 
@@ -28,6 +30,14 @@ export function NetworkView() {
   const [q, setQ] = useState('');
   const [conn, setConn] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState<Set<string>>(new Set());
+
+  const portalNav = React.useContext(StudentPortalNavContext);
+  React.useEffect(() => {
+    if (portalNav?.searchQuery) {
+      setQ(portalNav.searchQuery);
+      portalNav.setSearchQuery('');
+    }
+  }, [portalNav?.searchQuery]);
 
   const list = PEOPLE.filter((p) => {
     if (filter !== 'All' && p.kind !== filter.toLowerCase()) return false;
