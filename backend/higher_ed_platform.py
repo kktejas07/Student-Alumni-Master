@@ -311,7 +311,7 @@ def secondary_score(p: Dict[str, Any], profile: Dict[str, Any]) -> float:
 
 # ─── Auth ────────────────────────────────────────────────────────────────
 def _auth():
-    from server import get_current_user
+    from core.deps import get_current_user
     return get_current_user
 
 

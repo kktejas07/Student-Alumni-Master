@@ -26,6 +26,7 @@ import { usePortalData } from '@/src/lib/portalApi';
 import { TierBadge } from '@/src/views/web/TierBadge';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
 import { request } from '@/src/models/services/api';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 interface Props { onNav: (id: string) => void; }
 
@@ -249,6 +250,8 @@ export function DashboardView({ onNav }: Props) {
 
 /** AI Daily Briefing card — prominent purple-tinted glass with CTA */
 function AIDailyBriefing({ onNav }: { onNav: (id: string) => void }) {
+  const user = useAuthStore((s) => s.user);
+  const firstName = user?.first_name || (user?.full_name || '').split(' ')[0] || 'Mentor';
   const [briefText, setBriefText] = React.useState<string>('');
   const [briefLoading, setBriefLoading] = React.useState<boolean>(false);
 
@@ -277,7 +280,7 @@ function AIDailyBriefing({ onNav }: { onNav: (id: string) => void }) {
         </View>
       </View>
       <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 16, lineHeight: 22, marginBottom: 8 }}>
-        {briefText ? 'Today\'s briefing' : 'Good morning, Mentor ✨'}
+        {briefText ? 'Today\'s briefing' : `Good morning, ${firstName} ✨`}
       </Text>
       <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18, marginBottom: 12 }}>
         {briefText || (

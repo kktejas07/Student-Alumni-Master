@@ -398,16 +398,20 @@ function RangeToggle({ value, onChange }: { value: '1M' | '3M' | '1Y'; onChange:
 
 // ── Activity Card ───────────────────────────────────────────
 function ActivityCard({ delay }: { delay: number }) {
+  const router = useRouter();
   return (
     <FadeUp delay={delay} style={{ flex: 1, minWidth: 320 }}>
-      <Card style={{ padding: 22 }}>
-        <Text style={{ color: T.textP, fontFamily: FONT, fontSize: 18, fontWeight: '600', letterSpacing: -0.2, marginBottom: 14 }}>
-          Recent Activity
-        </Text>
-        <View style={{ gap: 14 }}>
-          {ACTIVITY.map((a, i) => <ActivityRow key={i} item={a} />)}
+      <Card style={{ padding: 22, flex: 1, justifyContent: 'space-between' }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: T.textP, fontFamily: FONT, fontSize: 18, fontWeight: '600', letterSpacing: -0.2, marginBottom: 14 }}>
+            Recent Activity
+          </Text>
+          <View style={{ gap: 14 }}>
+            {ACTIVITY.map((a, i) => <ActivityRow key={i} item={a} />)}
+          </View>
         </View>
         <Pressable
+          onPress={() => router.push('/notifications')}
           accessibilityRole="button"
           accessibilityLabel="View All Activity"
           style={({ hovered }: any) => ({
@@ -425,7 +429,7 @@ function ActivityCard({ delay }: { delay: number }) {
 
 function ActivityRow({ item }: { item: typeof ACTIVITY[number] }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
       <View style={{
         width: 36, height: 36, borderRadius: 10,
         backgroundColor: item.bgTint, alignItems: 'center', justifyContent: 'center',

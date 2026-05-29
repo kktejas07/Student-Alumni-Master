@@ -42,6 +42,8 @@ import { IntegrationsView } from '@/src/views/web/profile/IntegrationsView';
 import { CompletionRing } from '@/src/views/web/profile/CompletionRing';
 import { SaveBar, C } from '@/src/views/web/profile/primitives';
 import { useToast } from '@/src/views/components';
+import * as ImagePicker from 'expo-image-picker';
+import { WebcamModal } from '@/src/views/components/WebcamModal';
 
 type TabKey = 'profile-info' | 'manage' | 'integrations' | 'settings' | 'notifications' | 'security' | 'digital-id';
 
@@ -145,6 +147,25 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [webcamVisible, setWebcamVisible] = useState(false);
+
+  const onTakeSelfie = useCallback(async () => {
+    if (Platform.OS === 'web') {
+      setWebcamVisible(true);
+      return;
+    }
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) { toast.error('Camera', 'Permission denied.'); return; }
+      const res = await ImagePicker.launchCameraAsync({ cameraType: ImagePicker.CameraType.front, quality: 0.5, base64: true, allowsEditing: true, aspect: [1, 1] });
+      if (!res.canceled && res.assets[0]?.base64) {
+        const base64Photo = `data:image/jpeg;base64,${res.assets[0].base64}`;
+        setDraft((d: any) => ({ ...d, photo_data: base64Photo, face_image_base64: base64Photo }));
+      }
+    } catch {
+      toast.error('Camera', 'Could not open camera.');
+    }
+  }, [toast]);
 
   // Hydrate
   const reload = useCallback(async () => {
@@ -251,12 +272,14 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
       {/* Header card */}
       <View style={[st.headerCard, stack && { flexDirection: 'column' }]}>
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 16, minWidth: 0 }}>
-          <View style={st.avatar}>
-            {photo ? (
-              <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
-            ) : (
-              <Text style={st.avatarText}>{initials}</Text>
-            )}
+          <View style={{ position: 'relative' }}>
+            <View style={st.avatar}>
+              {photo ? (
+                <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
+              ) : (
+                <Text style={st.avatarText}>{initials}</Text>
+              )}
+            </View>
             {draft.is_verified && (
               <View style={st.avatarCheck}><CheckCircle2 size={11} color="#fff" /></View>
             )}
@@ -317,6 +340,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
               setDraft={(updater: any) => setDraft(typeof updater === 'function' ? updater(draft) : updater)}
               completion={completion}
               onUploadPhoto={onUploadPhoto}
+              onTakeSelfie={onTakeSelfie}
             />
           )}
 
@@ -413,6 +437,15 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
           </View>
         </View>
       </View>
+      <WebcamModal
+        visible={webcamVisible}
+        onClose={() => setWebcamVisible(false)}
+        onCapture={(base64) => {
+          setDraft((d: any) => ({ ...d, photo_data: base64, face_image_base64: base64 }));
+          setWebcamVisible(false);
+          toast.success('Selfie captured!', 'Save profile to update.');
+        }}
+      />
     </View>
   );
 }

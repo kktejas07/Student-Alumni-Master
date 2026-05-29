@@ -38,6 +38,8 @@ function greeting(): string {
   return 'Good evening';
 }
 
+import { Sidebar, StudentNavId } from './Sidebar';
+
 export function TopBar({
   scrolled = false,
   activeView = 'dashboard',
@@ -77,6 +79,8 @@ export function TopBar({
   const onAvatarPressHandler = () => {
     if (onAvatarPress) {
       onAvatarPress();
+    } else if (onNav) {
+      onNav('profile');
     } else {
       router.push('/(tabs)/profile');
     }
@@ -168,11 +172,7 @@ export function TopBar({
             onPress={onAvatarPressHandler}
             accessibilityLabel="View Profile Settings"
           >
-            {photo ? (
-              <Image source={{ uri: photo }} style={{ width: 36, height: 36, borderRadius: 18 }} />
-            ) : (
-              <Av initials={initials} size={36} color={theme.primary} />
-            )}
+            <Av initials={initials} size={36} color={theme.primary} photo={photo} />
           </PressScale>
         </FadeInView>
 

@@ -79,7 +79,7 @@ export function TopBar({
         onPress={onAvatarPress || (() => router.push('/(tabs)/profile'))}
         style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}
       >
-        <Av initials={STUDENT.initials} size={36} color={SC.primary} />
+        <Av initials={initials} size={36} color={SC.primary} photo={photo} />
       </Pressable>
     </View>
   );
