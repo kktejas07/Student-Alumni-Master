@@ -53,9 +53,6 @@ export function Sidebar({
   const items = NAV_MAIN(counts);
   const w = collapsed ? 56 : 220;
 
-  const role = user?.mentor_info?.current_role || user?.current_role || MENTOR.role;
-  const company = user?.mentor_info?.current_company || user?.current_company || MENTOR.company;
-
   return (
     <View style={[s.sidebar, { width: w }]}>
       {/* Hamburger + brand */}
