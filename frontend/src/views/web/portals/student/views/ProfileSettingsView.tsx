@@ -251,12 +251,14 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
       {/* Header card */}
       <View style={[st.headerCard, stack && { flexDirection: 'column' }]}>
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 16, minWidth: 0 }}>
-          <View style={st.avatar}>
-            {photo ? (
-              <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
-            ) : (
-              <Text style={st.avatarText}>{initials}</Text>
-            )}
+          <View style={{ position: 'relative' }}>
+            <View style={st.avatar}>
+              {photo ? (
+                <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
+              ) : (
+                <Text style={st.avatarText}>{initials}</Text>
+              )}
+            </View>
             {draft.is_verified && (
               <View style={st.avatarCheck}><CheckCircle2 size={11} color="#fff" /></View>
             )}

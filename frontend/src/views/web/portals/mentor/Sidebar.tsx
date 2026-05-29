@@ -3,8 +3,9 @@
  * Hamburger collapse, mentor mini-profile, nav with counts, sign-out.
  */
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, Platform, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform, ScrollView, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import {
   Menu, LayoutDashboard, Users, Calendar, UserPlus, Network, Coins,
   Star as StarIcon, Plus, User as UserIcon, QrCode, ExternalLink, LogOut,
@@ -45,6 +46,13 @@ export function Sidebar({
   const items = NAV_MAIN(counts);
   const w = collapsed ? 56 : 220;
 
+  const user = useAuthStore((u) => u.user) as any;
+  const fullName = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || MENTOR.name;
+  const initials = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || MENTOR.avatar).toUpperCase();
+  const photo = user?.photo_data || user?.face_image_base64;
+  const role = user?.mentor_info?.current_role || user?.current_role || MENTOR.role;
+  const company = user?.mentor_info?.current_company || user?.current_company || MENTOR.company;
+
   return (
     <View style={[s.sidebar, { width: w }]}>
       {/* Hamburger + brand */}
@@ -69,21 +77,29 @@ export function Sidebar({
       <View style={s.profileRow}>
         {collapsed ? (
           <View style={{ alignItems: 'center', paddingVertical: 4 }}>
-            <Pressable onPress={() => onNav('profile')} style={s.avatarMini}>
-              <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 }}>{MENTOR.avatar}</Text>
+            <Pressable onPress={() => onNav('profile')} style={[s.avatarMini, { overflow: 'hidden' }]}>
+              {photo ? (
+                <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
+              ) : (
+                <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 }}>{initials}</Text>
+              )}
               <View style={s.onlineDot} />
             </Pressable>
           </View>
         ) : (
           <Pressable onPress={() => onNav('profile')} style={s.profileCard}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 9 }}>
-              <View style={s.avatarLg}>
-                <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 }}>{MENTOR.avatar}</Text>
+              <View style={[s.avatarLg, { overflow: 'hidden' }]}>
+                {photo ? (
+                  <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
+                ) : (
+                  <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 }}>{initials}</Text>
+                )}
                 <View style={s.onlineDot} />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 }}>{MENTOR.name}</Text>
-                <Text numberOfLines={1} style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 9 }}>{MENTOR.role} · {MENTOR.company}</Text>
+                <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 }}>{fullName}</Text>
+                <Text numberOfLines={1} style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 9 }}>{role} · {company}</Text>
               </View>
             </View>
             <Pressable style={({ hovered }: any) => [s.idCard, hovered && { backgroundColor: 'rgba(20,184,166,0.15)' }]}>

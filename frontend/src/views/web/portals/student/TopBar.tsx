@@ -125,11 +125,7 @@ export function TopBar({ scrolled = false, onNav }: { scrolled?: boolean; onNav?
 
         <FadeInView delay={220}>
           <PressScale onPress={() => onNav?.('profile')}>
-            {photo ? (
-              <Image source={{ uri: photo }} style={{ width: 36, height: 36, borderRadius: 18 }} />
-            ) : (
-              <Av initials={initials} size={36} color={theme.primary} />
-            )}
+            <Av initials={initials} size={36} color={theme.primary} photo={photo} />
           </PressScale>
         </FadeInView>
 

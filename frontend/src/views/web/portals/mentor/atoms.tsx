@@ -2,11 +2,11 @@
  * Atoms — small reusable building blocks for the Mentor Portal RN port.
  */
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { Star } from 'lucide-react-native';
 import { MC, FONTS } from './tokens';
 
-export function Av({ initials, size = 42, color }: { initials: string; size?: number; color?: string }) {
+export function Av({ initials, size = 42, color, photo }: { initials: string; size?: number; color?: string; photo?: string }) {
   const bg = (color || MC.teal) + '28';
   const bd = (color || MC.teal) + '50';
   return (
@@ -14,10 +14,14 @@ export function Av({ initials, size = 42, color }: { initials: string; size?: nu
       style={{
         width: size, height: size, borderRadius: size / 2,
         backgroundColor: bg, borderWidth: 2, borderColor: bd,
-        alignItems: 'center', justifyContent: 'center',
+        alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}
     >
-      <Text style={{ fontFamily: FONTS.xbold, fontSize: size * 0.33, color: '#fff' }}>{initials}</Text>
+      {photo ? (
+        <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
+      ) : (
+        <Text style={{ fontFamily: FONTS.xbold, fontSize: size * 0.33, color: '#fff' }}>{initials}</Text>
+      )}
     </View>
   );
 }
