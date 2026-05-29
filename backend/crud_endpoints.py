@@ -61,6 +61,10 @@ def _short_id(oid) -> str:
 
 
 async def _resolve_user(role: str, email: Optional[str]) -> Dict[str, Any]:
+    if email:
+        user = await _db.users.find_one({"email": email})
+        if user:
+            return user
     q: Dict[str, Any] = {"role": role}
     if email:
         q["email"] = email
@@ -116,42 +120,183 @@ async def create_booking(req: BookingCreate):
 
 @router.delete("/student/bookings/{booking_id}")
 async def cancel_booking(booking_id: str):
-    # Try by short-id suffix or full ObjectId
-    q: Dict[str, Any]
+    # Try by short-id suffix or full ObjectId against both bookings and sessions
+    q: Dict[str, Any] = {}
+    matched_in_bookings = False
+    matched_in_sessions = False
+
+    # Check if it is a valid 24-character ObjectId first to do O(1) direct lookup
+    is_oid = False
     try:
-        q = {"_id": ObjectId(booking_id)}
+        if len(booking_id) == 24:
+            booking_oid = ObjectId(booking_id)
+            is_oid = True
+            if await _db.bookings.find_one({"_id": booking_oid}):
+                q = {"_id": booking_oid}
+                matched_in_bookings = True
+            elif await _db.sessions.find_one({"_id": booking_oid}):
+                q = {"_id": booking_oid}
+                matched_in_sessions = True
     except Exception:
-        # match by suffix
-        all_ids = [b async for b in _db.bookings.find({}, {"_id": 1})]
-        match = next((b["_id"] for b in all_ids if str(b["_id"]).endswith(booking_id)), None)
-        if not match:
+        pass
+
+    if not is_oid or (not matched_in_bookings and not matched_in_sessions):
+        # Match by suffix - perform server-side regex matching to avoid full collection memory scans
+        import re
+        booking_rx = f"{re.escape(booking_id)}$"
+
+        bookings_matches = []
+        async for b in _db.bookings.find({
+            "$expr": {
+                "$regexMatch": {
+                    "input": {"$toString": "$_id"},
+                    "regex": booking_rx,
+                    "options": "i"
+                }
+            }
+        }, {"_id": 1}):
+            bookings_matches.append(b)
+
+        sessions_matches = []
+        async for s in _db.sessions.find({
+            "$expr": {
+                "$regexMatch": {
+                    "input": {"$toString": "$_id"},
+                    "regex": booking_rx,
+                    "options": "i"
+                }
+            }
+        }, {"_id": 1}):
+            sessions_matches.append(s)
+
+        total_matches = len(bookings_matches) + len(sessions_matches)
+        if total_matches > 1:
+            raise HTTPException(400, "Ambiguous booking ID: multiple sessions or bookings match this suffix")
+        elif len(bookings_matches) == 1:
+            q = {"_id": bookings_matches[0]["_id"]}
+            matched_in_bookings = True
+        elif len(sessions_matches) == 1:
+            q = {"_id": sessions_matches[0]["_id"]}
+            matched_in_sessions = True
+
+    if matched_in_bookings:
+        res = await _db.bookings.update_one(q, {"$set": {"status": "cancelled", "cancelled_at": _now()}})
+        if res.modified_count == 0:
             raise HTTPException(404, "Booking not found")
-        q = {"_id": match}
-    res = await _db.bookings.update_one(q, {"$set": {"status": "cancelled", "cancelled_at": _now()}})
-    if res.modified_count == 0:
+        return {"ok": True, "cancelled": True}
+    elif matched_in_sessions:
+        res = await _db.sessions.update_one(q, {"$set": {"status": "cancelled", "cancelled_at": _now()}})
+        if res.modified_count == 0:
+            raise HTTPException(404, "Session not found")
+        return {"ok": True, "cancelled": True}
+    else:
         raise HTTPException(404, "Booking not found")
-    return {"ok": True, "cancelled": True}
 
 
 @router.get("/student/my-bookings")
 async def my_bookings(email: Optional[str] = None, status: Optional[str] = None):
     student = await _resolve_user("student", email)
-    q: Dict[str, Any] = {"student_id": str(student["_id"])}
+    sid = str(student["_id"])
+
+    # 1. Fetch legacy custom bookings
+    bq: Dict[str, Any] = {"student_id": sid}
     if status:
-        q["status"] = status
+        if status == "confirmed":
+            bq["status"] = "confirmed"
+        elif status == "cancelled":
+            bq["status"] = "cancelled"
+        elif status == "completed":
+            bq["status"] = "completed"
+        else:
+            bq["status"] = status
+
+    # 2. Fetch slot-based sessions
+    sq: Dict[str, Any] = {"user_id": sid}
+    if status:
+        if status == "confirmed":
+            sq["status"] = {"$in": ["booked", "scheduled", "confirmed"]}
+        elif status == "cancelled":
+            sq["status"] = "cancelled"
+        elif status == "completed":
+            sq["status"] = {"$in": ["completed", "attended"]}
+        else:
+            sq["status"] = status
+
+    # Gather all unique mentor_ids to fetch in batch (resolves N+1 query overhead)
+    mentor_ids = set()
+    raw_bookings = []
+    async for b in _db.bookings.find(bq).sort("scheduled_at", 1).limit(50):
+        raw_bookings.append(b)
+        mid = b.get("mentor_id")
+        if mid and isinstance(mid, str) and ObjectId.is_valid(mid):
+            mentor_ids.add(ObjectId(mid))
+
+    raw_sessions = []
+    async for s in _db.sessions.find(sq).limit(50):
+        raw_sessions.append(s)
+        mid = s.get("mentor_id")
+        if mid and isinstance(mid, str) and ObjectId.is_valid(mid):
+            mentor_ids.add(ObjectId(mid))
+
+    # Single batch fetch for all mentors
+    mentors_map = {}
+    if mentor_ids:
+        async for m in _db.users.find({"_id": {"$in": list(mentor_ids)}}):
+            mentors_map[str(m["_id"])] = m
+
     out = []
-    async for b in _db.bookings.find(q).sort("scheduled_at", 1).limit(50):
-        mentor = await _db.users.find_one({"_id": ObjectId(b["mentor_id"])}) if b.get("mentor_id") else None
+
+    # Map legacy bookings
+    for b in raw_bookings:
+        mid_str = b.get("mentor_id")
+        mentor = mentors_map.get(mid_str) if mid_str else None
         out.append({
             "id": _short_id(b["_id"]),
-            "topic": b.get("topic"),
-            "mentor_name": (mentor or {}).get("full_name", "Mentor"),
-            "mentor_email": b.get("mentor_email"),
+            "topic": b.get("topic") or "1:1 Mentorship Session",
+            "mentor_name": (mentor or {}).get("full_name") or (mentor or {}).get("name") or "Mentor",
+            "mentor_email": b.get("mentor_email") or (mentor or {}).get("email"),
             "scheduled_at": b.get("scheduled_at"),
-            "duration_minutes": b.get("duration_minutes"),
-            "amount_paid": b.get("amount_paid"),
+            "duration_minutes": b.get("duration_minutes", 45),
+            "amount_paid": b.get("amount_paid") or (mentor or {}).get("expected_rate_inr") or 0,
             "status": b.get("status"),
         })
+
+    # Map slot-based sessions
+    for s in raw_sessions:
+        mid_str = s.get("mentor_id")
+        mentor = mentors_map.get(mid_str) if mid_str else None
+        s_status = s.get("status")
+        # Map all session statuses cleanly
+        mapped_status = (
+            "confirmed" if s_status in ["booked", "scheduled", "confirmed"]
+            else "cancelled" if s_status == "cancelled"
+            else "completed" if s_status in ["completed", "attended"]
+            else s_status
+        )
+        out.append({
+            "id": _short_id(s["_id"]),
+            "topic": s.get("topic") or "1:1 Mentorship Session",
+            "mentor_name": (mentor or {}).get("full_name") or (mentor or {}).get("name") or "Mentor",
+            "mentor_email": (mentor or {}).get("email") or s.get("mentor_email"),
+            "scheduled_at": s.get("scheduled_at"),
+            "duration_minutes": s.get("duration_minutes", 30),
+            "amount_paid": (mentor or {}).get("expected_rate_inr") or 0,
+            "status": mapped_status,
+        })
+
+    # Sort unified list chronologically by scheduled_at
+    def get_sched(x):
+        val = x.get("scheduled_at")
+        if isinstance(val, datetime):
+            return val
+        if isinstance(val, str):
+            try:
+                return datetime.fromisoformat(val.replace("Z", "+00:00"))
+            except Exception:
+                pass
+        return datetime.min
+
+    out.sort(key=get_sched)
     return {"items": out, "count": len(out), "student_email": student["email"]}
 
 
