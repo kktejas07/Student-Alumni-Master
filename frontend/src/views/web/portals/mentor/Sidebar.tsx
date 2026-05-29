@@ -125,7 +125,7 @@ export function Sidebar({
               </View>
               <ExternalLink size={11} color={MC.dim} />
             </Pressable>
-          </Pressable>
+          </View>
         )}
       </View>
 
