@@ -439,7 +439,7 @@ async def student_intelligence(student_email: Optional[str] = None):
     import hashlib, random
     student = None
     if student_email:
-        student = await _db.users.find_one({"email": student_email, "role": "student"})
+        student = await _db.users.find_one({"email": student_email})
     if not student:
         student = await _db.users.find_one({"role": "student", "onboarding_completed": True})
     if not student:
@@ -507,6 +507,25 @@ async def student_intelligence(student_email: Optional[str] = None):
                 activity_events.append({
                     "title": "Mentor Session Booked",
                     "sub": f"{b.get('topic', 'Career guidance')} • {b.get('mentor_name', 'Mentor')}",
+                    "amount": None,
+                    "amountTone": None,
+                    "icon": "account-tie-voice-outline",
+                    "tint": "#A855F7",
+                    "bgTint": "rgba(168,85,247,0.15)",
+                    "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
+                })
+        except Exception:
+            pass
+
+        try:
+            sess_cursor = _db.sessions.find({"user_id": sid}).sort("created_at", -1).limit(4)
+            async for s in sess_cursor:
+                ts = s.get("created_at") or s.get("scheduled_at")
+                mentor = await _db.users.find_one({"_id": ObjectId(s["mentor_id"])}) if s.get("mentor_id") and len(s["mentor_id"]) == 24 else None
+                mentor_name = (mentor or {}).get("full_name") or (mentor or {}).get("name") or "Mentor"
+                activity_events.append({
+                    "title": "Mentor Session Booked",
+                    "sub": f"{s.get('topic', '1:1 Mentorship Session')} • {mentor_name}",
                     "amount": None,
                     "amountTone": None,
                     "icon": "account-tie-voice-outline",
