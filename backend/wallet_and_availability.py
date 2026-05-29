@@ -37,7 +37,7 @@ NEW_USER_BONUS = 320  # everyone starts with ₹320 SA Credits
 
 
 def _get_current_user_dependency():
-    from server import get_current_user  # noqa
+    from core.deps import get_current_user  # noqa
     return get_current_user
 
 

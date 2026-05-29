@@ -3,8 +3,10 @@
  * Sections: Profile Completion banner, Basic Info, Contact, Academic, Interests, Social, Skills.
  */
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, Modal } from 'react-native';
-import { Mail, Phone, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Sparkles, Check, X, Upload, Camera, Trash2 } from 'lucide-react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, Alert } from 'react-native';
+import { Mail, Phone, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Sparkles, Check, X, Upload, Camera } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { WebcamModal } from '@/src/views/components/WebcamModal';
 import { CompletionRing } from './CompletionRing';
 import { Card, Field, TF, TA, SF, ChipPicker, C } from './primitives';
 
@@ -40,8 +42,9 @@ interface Props {
   onTakeSelfie?: () => void;
 }
 
-export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, onTakeSelfie }: Props) {
-  const photo = draft.photo_data || draft.face_image_base64;
+export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto }: Props) {
+  const [pendingPhoto, setPendingPhoto] = useState<string | null>(null);
+  const photo = pendingPhoto || draft.photo_data || draft.face_image_base64;
   const initials = ((draft.full_name || '?').split(' ').slice(0,2).map((s: string) => s[0] || '').join('') || '?').toUpperCase();
 
   const isMentor = !!onTakeSelfie;
@@ -57,6 +60,43 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
   const setField = (k: string, v: any) => setDraft((d) => ({ ...d, [k]: v }));
   const interests: string[] = draft.interests || [];
   const [skillInput, setSkillInput] = useState('');
+  const [webcamVisible, setWebcamVisible] = useState(false);
+
+  const takeSelfie = async () => {
+    if (Platform.OS === 'web') {
+      setWebcamVisible(true);
+      return;
+    }
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Permission Denied', 'Camera permission is required to take a selfie.');
+        return;
+      }
+      const res = await ImagePicker.launchCameraAsync({
+        cameraType: ImagePicker.CameraType.front,
+        quality: 0.5,
+        base64: true,
+        allowsEditing: true,
+        aspect: [1, 1],
+      });
+      if (!res.canceled && res.assets[0]?.base64) {
+        const base64Photo = `data:image/jpeg;base64,${res.assets[0].base64}`;
+        setPendingPhoto(base64Photo);
+      }
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'Could not open camera.');
+    }
+  };
+
+  const confirmPhoto = () => {
+    if (pendingPhoto) {
+      setField('photo_data', pendingPhoto);
+      setField('face_image_base64', pendingPhoto);
+      setPendingPhoto(null);
+    }
+  };
 
   const addSkillsFromInput = () => {
     const raw = skillInput.trim();
@@ -108,78 +148,54 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
       {/* Basic Information */}
       <Card title="Basic Information" subtitle="Your name, photo, and a short tagline.">
         <View style={st.photoRow}>
-          {/* Circular Current Photo Preview (Clean, non-interactive visual representation) */}
-          <View 
-            style={[
-              st.avatarLg, 
-              { 
-                backgroundColor: themeBg, 
-                borderColor: themeColor,
-                borderStyle: 'dashed',
-                borderWidth: 2,
-              }
-            ]}
-          >
-            {photo ? (
-              <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
-            ) : (
-              <View style={{ alignItems: 'center', gap: 4 }}>
-                <Camera size={24} color={themeColor} />
-                <Text style={{ color: themeColor, fontFamily: 'DMSans_700Bold', fontSize: 10 }}>No Photo</Text>
+          <View style={{ position: 'relative' }}>
+            <Pressable onPress={onUploadPhoto} style={st.avatarLg} testID="profile-avatar-upload">
+              {photo ? (
+                <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
+              ) : (
+                <Text style={st.avatarLgText}>{initials}</Text>
+              )}
+            </Pressable>
+            {photo && (
+              <View style={st.avatarCheck}>
+                <Check size={11} color="#fff" />
               </View>
             )}
           </View>
-
-          {/* Action Click Boxes Beside the Circle */}
           <View style={{ flex: 1, minWidth: 0, gap: 8 }}>
             <Text style={st.photoTitle}>Profile Photo</Text>
-            
-            <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
-              {/* Upload Photo Button */}
-              <Pressable 
-                onPress={handleOpenMenu} 
-                style={[
-                  st.btnPrimary, 
-                  { 
-                    flexDirection: 'row', 
-                    alignItems: 'center', 
-                    gap: 8, 
-                    height: 38,
-                    paddingHorizontal: 16,
-                    borderRadius: 8,
-                    backgroundColor: themeColor,
-                  }
-                ]} 
-                testID="profile-avatar-upload"
-              >
-                <Upload size={14} color="#fff" />
-                <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 }}>Upload Photo</Text>
-              </Pressable>
-
-              {/* Remove Photo Button */}
-              {photo && (
-                <Pressable 
-                  onPress={() => {
-                    setDraft((d: any) => ({ ...d, photo_data: '', face_image_base64: '' }));
-                  }} 
-                  style={[
-                    st.btnGhost, 
-                    { 
-                      flexDirection: 'row', 
-                      alignItems: 'center', 
-                      gap: 8, 
-                      height: 38,
-                      paddingHorizontal: 16,
-                      borderRadius: 8,
-                      borderColor: 'rgba(239, 68, 68, 0.40)',
-                      backgroundColor: 'rgba(239, 68, 68, 0.08)',
-                    }
-                  ]} 
-                  testID="profile-avatar-remove"
-                >
-                  <Trash2 size={14} color="#EF4444" />
-                  <Text style={{ color: '#EF4444', fontFamily: 'DMSans_700Bold', fontSize: 13 }}>Remove Photo</Text>
-                </Pressable>
+            <Text style={st.photoHint}>JPG, PNG up to 5MB. Recommended 400×400px.</Text>
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
+              {pendingPhoto ? (
+                <>
+                  <Pressable onPress={confirmPhoto} style={st.btnConfirm} testID="pf-confirm-photo">
+                    <Check size={14} color="#FFF" />
+                    <Text style={st.btnPrimaryText}>Confirm</Text>
+                  </Pressable>
+                  <Pressable onPress={() => { setPendingPhoto(null); takeSelfie(); }} style={st.btnGhost} testID="pf-retake-photo">
+                    <Camera size={14} color="#A78BFA" />
+                    <Text style={st.btnGhostText}>Retake</Text>
+                  </Pressable>
+                </>
+              ) : (
+                <>
+                  <Pressable onPress={onUploadPhoto} style={st.btnPrimary} testID="pf-upload-photo">
+                    <Upload size={14} color="#FFF" />
+                    <Text style={st.btnPrimaryText}>Upload Photo</Text>
+                  </Pressable>
+                  <Pressable onPress={takeSelfie} style={st.btnPrimary} testID="pf-take-selfie">
+                    <Camera size={14} color="#FFF" />
+                    <Text style={st.btnPrimaryText}>Take Selfie</Text>
+                  </Pressable>
+                  {photo && (
+                    <Pressable onPress={() => {
+                      setField('photo_data', '');
+                      setField('face_image_base64', '');
+                    }} style={st.btnGhost}>
+                      <Text style={st.btnGhostText}>Remove</Text>
+                    </Pressable>
+                  )}
+                </>
               )}
             </View>
 
@@ -303,6 +319,14 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
           ))}
         </View>
       </Card>
+      <WebcamModal
+        visible={webcamVisible}
+        onClose={() => setWebcamVisible(false)}
+        onCapture={(base64) => {
+          setPendingPhoto(base64);
+          setWebcamVisible(false);
+        }}
+      />
     </View>
   );
 }
@@ -438,7 +462,8 @@ const st = StyleSheet.create({
   photoTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 14 },
   photoHint: { color: 'rgba(255,255,255,0.60)', fontFamily: 'DMSans_400Regular', fontSize: 12 },
 
-  btnPrimary: { paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: '#A78BFA', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 55%, #6D28D9 100%)', boxShadow: '0 6px 18px rgba(124,58,237,0.35)' } as any) : {}), ...({ cursor: 'pointer' } as any) },
+  btnPrimary: { flexDirection: 'row', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: '#A78BFA', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 55%, #6D28D9 100%)', boxShadow: '0 6px 18px rgba(124,58,237,0.35)' } as any) : {}), ...({ cursor: 'pointer' } as any) },
+  btnConfirm: { flexDirection: 'row', gap: 6, paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: '#10B981', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #34D399 0%, #10B981 55%, #059669 100%)', boxShadow: '0 6px 18px rgba(16,185,129,0.35)' } as any) : {}), ...({ cursor: 'pointer' } as any) },
   btnPrimaryText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
   btnGhost: { paddingHorizontal: 14, height: 34, borderRadius: 8, backgroundColor: 'rgba(167,139,250,0.10)', borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ boxShadow: '0 4px 14px rgba(124,58,237,0.20)' } as any) : {}), ...({ cursor: 'pointer' } as any) },
   btnGhostText: { color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_700Bold', fontSize: 12 },

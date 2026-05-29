@@ -28,7 +28,7 @@ router = APIRouter()
 
 # ─── Auth ────────────────────────────────────────────────────────────────
 def _auth():
-    from server import get_current_user
+    from core.deps import get_current_user
     return get_current_user
 
 

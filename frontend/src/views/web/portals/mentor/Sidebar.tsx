@@ -5,6 +5,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, Platform, ScrollView, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import {
   Menu, LayoutDashboard, Users, Calendar, UserPlus, Network, Coins,
   Star as StarIcon, Plus, User as UserIcon, QrCode, ExternalLink, LogOut,
@@ -53,6 +54,13 @@ export function Sidebar({
   const items = NAV_MAIN(counts);
   const w = collapsed ? 56 : 220;
 
+  const user = useAuthStore((u) => u.user) as any;
+  const fullName = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || MENTOR.name;
+  const initials = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || MENTOR.avatar).toUpperCase();
+  const photo = user?.photo_data || user?.face_image_base64;
+  const role = user?.mentor_info?.current_role || user?.current_role || MENTOR.role;
+  const company = user?.mentor_info?.current_company || user?.current_company || MENTOR.company;
+
   return (
     <View style={[s.sidebar, { width: w }]}>
       {/* Hamburger + brand */}
@@ -76,10 +84,16 @@ export function Sidebar({
       {/* Mentor mini-profile + Mentor Card widget */}
       <View style={s.profileRow}>
         {collapsed ? (
-          <Pressable onPress={() => onNav('profile')} style={({ pressed }: any) => [{ alignItems: 'center', paddingVertical: 4 }, pressed && { opacity: 0.8 }]}>
-            <View style={s.avatarMini}>
+          <Pressable
+            onPress={() => onNav('profile')}
+            style={({ pressed }: any) => [
+              { alignItems: 'center', paddingVertical: 4 },
+              pressed && { opacity: 0.8 }
+            ]}
+          >
+            <View style={[s.avatarMini, { overflow: 'hidden' }]}>
               {photo ? (
-                <Image source={{ uri: photo }} style={{ width: '100%', height: '100%', borderRadius: 15 }} />
+                <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
               ) : (
                 <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 }}>{initials}</Text>
               )}
@@ -88,10 +102,16 @@ export function Sidebar({
           </Pressable>
         ) : (
           <View style={s.profileCard}>
-            <Pressable onPress={() => onNav('profile')} style={({ pressed }: any) => [{ flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 9 }, pressed && { opacity: 0.8 }]}>
-              <View style={s.avatarLg}>
+            <Pressable
+              onPress={() => onNav('profile')}
+              style={({ pressed }: any) => [
+                { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 9 },
+                pressed && { opacity: 0.8 }
+              ]}
+            >
+              <View style={[s.avatarLg, { overflow: 'hidden' }]}>
                 {photo ? (
-                  <Image source={{ uri: photo }} style={{ width: '100%', height: '100%', borderRadius: 16 }} />
+                  <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
                 ) : (
                   <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 }}>{initials}</Text>
                 )}
@@ -99,7 +119,7 @@ export function Sidebar({
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 }}>{fullName}</Text>
-                <Text numberOfLines={1} style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 9 }}>{jobTitle} · {company}</Text>
+                <Text numberOfLines={1} style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 9 }}>{role} · {company}</Text>
               </View>
             </Pressable>
             <Pressable style={({ hovered }: any) => [s.idCard, hovered && { backgroundColor: 'rgba(20,184,166,0.15)' }]}>
@@ -110,7 +130,7 @@ export function Sidebar({
               </View>
               <ExternalLink size={11} color={MC.dim} />
             </Pressable>
-          </View>
+          </Pressable>
         )}
       </View>
 
@@ -191,13 +211,17 @@ const s = StyleSheet.create({
   brandSub: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 0.5 },
 
   profileRow: { padding: 10, borderBottomWidth: 1, borderBottomColor: MC.border },
-  profileCard: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 12, padding: 10 },
+  profileCard: {
+    backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 12, padding: 10,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
   avatarMini: {
     position: 'relative',
     width: 34, height: 34, borderRadius: 17,
     backgroundColor: 'rgba(20,184,166,0.20)',
     borderColor: MC.teal, borderWidth: 2,
     alignItems: 'center', justifyContent: 'center',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   avatarLg: {
     position: 'relative',

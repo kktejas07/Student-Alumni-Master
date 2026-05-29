@@ -114,7 +114,7 @@ function PortalShell() {
       <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <StudentPortalNavContext.Provider value={{ navigate: handleNav, searchQuery, setSearchQuery }}>
-          <TopBar scrolled={scrolled} onAvatarPress={() => handleNav('profile')} />
+          <TopBar scrolled={scrolled} onNav={handleNav} onAvatarPress={() => handleNav('profile')} />
           <ScrollView
             style={{ flex: 1 }}
             contentContainerStyle={{ paddingHorizontal: padH, paddingTop: SP.lg, paddingBottom: SP.giga }}

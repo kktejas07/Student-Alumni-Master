@@ -9,6 +9,7 @@ import { SC, FONTS } from './tokens';
 import { STUDENT } from './data';
 import { Av } from './atoms';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -19,7 +20,12 @@ function greeting(): string {
 
 export function TopBar({ onAvatarPress }: { onAvatarPress?: () => void } = {}) {
   const router = useRouter();
-  const firstName = STUDENT.name.split(' ')[0];
+  const user = useAuthStore((u) => u.user) as any;
+  const fullName = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || STUDENT.name;
+  const firstName = fullName.split(' ')[0];
+  const initials = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
+  const photo = user?.photo_data || user?.face_image_base64;
+
   return (
     <View style={s.bar}>
       <View style={{ flex: 1, minWidth: 0 }}>
@@ -46,7 +52,7 @@ export function TopBar({ onAvatarPress }: { onAvatarPress?: () => void } = {}) {
         onPress={onAvatarPress || (() => router.push('/(tabs)/profile'))}
         style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}
       >
-        <Av initials={STUDENT.initials} size={36} color={SC.primary} />
+        <Av initials={initials} size={36} color={SC.primary} photo={photo} />
       </Pressable>
     </View>
   );
