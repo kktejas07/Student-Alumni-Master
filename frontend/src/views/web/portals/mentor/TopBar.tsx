@@ -10,13 +10,14 @@ import { MENTOR } from './data';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 
 export function TopBar({
-  title, query, setQuery, notifCount = 4, onBellPress,
+  title, query, setQuery, notifCount = 4, onBellPress, onAvatarPress,
 }: {
   title: string;
   query: string;
   setQuery: (q: string) => void;
   notifCount?: number;
   onBellPress?: () => void;
+  onAvatarPress?: () => void;
 }) {
   return (
     <View style={s.bar}>
@@ -42,7 +43,9 @@ export function TopBar({
       </Pressable>
       <View style={{ marginLeft: 4, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <HelpMenu portal="mentor" />
-        <Av initials={MENTOR.avatar} size={34} color={MC.teal} />
+        <Pressable onPress={onAvatarPress} style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}>
+          <Av initials={MENTOR.avatar} size={34} color={MC.teal} />
+        </Pressable>
       </View>
     </View>
   );

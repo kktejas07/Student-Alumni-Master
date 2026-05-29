@@ -37,7 +37,13 @@ function greeting(): string {
   return 'Good evening';
 }
 
-export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
+export function TopBar({
+  scrolled = false,
+  onAvatarPress,
+}: {
+  scrolled?: boolean;
+  onAvatarPress?: () => void;
+} = {}) {
   const router = useRouter();
   const { theme, isDark, mode, setMode } = useTheme();
   const bp = useBreakpoint();
@@ -48,6 +54,14 @@ export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
   const firstName: string = fullName.split(' ')[0] || STUDENT.name.split(' ')[0];
   const initials: string = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
   const photo: string | undefined = user?.photo_data || user?.face_image_base64;
+
+  const onAvatarPressHandler = () => {
+    if (onAvatarPress) {
+      onAvatarPress();
+    } else {
+      router.push('/(tabs)/profile');
+    }
+  };
 
   const cycleTheme = () => {
     setMode(mode === 'light' ? 'dark' : mode === 'dark' ? 'system' : 'light');
@@ -121,12 +135,17 @@ export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
           </PressScale>
         </FadeInView>
 
-        <FadeInView delay={220}>
-          {photo ? (
-            <Image source={{ uri: photo }} style={{ width: 36, height: 36, borderRadius: 18 }} />
-          ) : (
-            <Av initials={initials} size={36} color={theme.primary} />
-          )}
+        <FadeInView delay={200}>
+          <PressScale
+            onPress={onAvatarPressHandler}
+            accessibilityLabel="View Profile Settings"
+          >
+            {photo ? (
+              <Image source={{ uri: photo }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+            ) : (
+              <Av initials={initials} size={36} color={theme.primary} />
+            )}
+          </PressScale>
         </FadeInView>
 
         <HelpMenu portal="student" />

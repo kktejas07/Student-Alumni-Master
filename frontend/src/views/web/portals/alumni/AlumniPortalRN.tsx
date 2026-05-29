@@ -63,7 +63,7 @@ export function AlumniPortalRN() {
 
       <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0 }}>
-        <TopBar />
+        <TopBar onAvatarPress={() => setActive('profile')} />
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
@@ -71,7 +71,15 @@ export function AlumniPortalRN() {
         >
           <EmbeddedShellContext.Provider value={true}>
             <PromoBanner portal="alumni" />
-            {active === 'dashboard'       && <DashboardView />}
+            {active === 'dashboard'       && (
+              <DashboardView
+                onOpenProfile={() => setActive('profile')}
+                onOpenInternships={() => setActive('internships')}
+                onOpenNetwork={() => setActive('network')}
+                onOpenEvents={() => setActive('events')}
+                onOpenCareerAi={() => setActive('career-ai')}
+              />
+            )}
             {active === 'career-ai'       && <StubView title="Alumni Tools" note="Mentor matchmaker, alumni-only AMAs and curated content." deepLink="/career-ai" />}
             {active === 'internships'     && <InternshipsView />}
             {active === 'my-applications' && <MyApplicationsView />}
