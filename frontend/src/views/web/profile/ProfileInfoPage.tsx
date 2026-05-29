@@ -3,8 +3,8 @@
  * Sections: Profile Completion banner, Basic Info, Contact, Academic, Interests, Social, Skills.
  */
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform } from 'react-native';
-import { Mail, Phone, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Sparkles, Check, X } from 'lucide-react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, Modal } from 'react-native';
+import { Mail, Phone, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Sparkles, Check, X, Upload, Camera, Trash2 } from 'lucide-react-native';
 import { CompletionRing } from './CompletionRing';
 import { Card, Field, TF, TA, SF, ChipPicker, C } from './primitives';
 
@@ -37,11 +37,22 @@ interface Props {
   setDraft: (updater: (d: any) => any) => void;
   completion: { percentage: number; items: { key: string; label: string; done: boolean }[] };
   onUploadPhoto: () => void;
+  onTakeSelfie?: () => void;
 }
 
-export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto }: Props) {
+export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, onTakeSelfie }: Props) {
   const photo = draft.photo_data || draft.face_image_base64;
   const initials = ((draft.full_name || '?').split(' ').slice(0,2).map((s: string) => s[0] || '').join('') || '?').toUpperCase();
+
+  const isMentor = !!onTakeSelfie;
+  const themeColor = isMentor ? '#14B8A6' : '#A78BFA';
+  const themeBg = isMentor ? 'rgba(20,184,166,0.15)' : 'rgba(167,139,250,0.15)';
+  const themeBadgeBg = isMentor ? '#14B8A6' : '#7C3AED';
+
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const handleOpenMenu = () => setModalVisible(true);
+  const handleCloseMenu = () => setModalVisible(false);
 
   const setField = (k: string, v: any) => setDraft((d) => ({ ...d, [k]: v }));
   const interests: string[] = draft.interests || [];
@@ -97,36 +108,127 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto }: 
       {/* Basic Information */}
       <Card title="Basic Information" subtitle="Your name, photo, and a short tagline.">
         <View style={st.photoRow}>
-          <Pressable onPress={onUploadPhoto} style={st.avatarLg} testID="profile-avatar-upload">
+          {/* Circular Current Photo Preview (Clean, non-interactive visual representation) */}
+          <View 
+            style={[
+              st.avatarLg, 
+              { 
+                backgroundColor: themeBg, 
+                borderColor: themeColor,
+                borderStyle: 'dashed',
+                borderWidth: 2,
+              }
+            ]}
+          >
             {photo ? (
               <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
             ) : (
-              <Text style={st.avatarLgText}>{initials}</Text>
-            )}
-            {photo && (
-              <View style={st.avatarCheck}>
-                <Check size={11} color="#fff" />
+              <View style={{ alignItems: 'center', gap: 4 }}>
+                <Camera size={24} color={themeColor} />
+                <Text style={{ color: themeColor, fontFamily: 'DMSans_700Bold', fontSize: 10 }}>No Photo</Text>
               </View>
             )}
-          </Pressable>
+          </View>
+
+          {/* Action Click Boxes Beside the Circle */}
           <View style={{ flex: 1, minWidth: 0, gap: 8 }}>
             <Text style={st.photoTitle}>Profile Photo</Text>
-            <Text style={st.photoHint}>JPG, PNG up to 5MB. Recommended 400×400px.</Text>
-            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
-              <Pressable onPress={onUploadPhoto} style={st.btnPrimary} testID="pf-upload-photo">
-                <Text style={st.btnPrimaryText}>Upload Photo</Text>
+            
+            <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
+              {/* Upload Photo Button */}
+              <Pressable 
+                onPress={handleOpenMenu} 
+                style={[
+                  st.btnPrimary, 
+                  { 
+                    flexDirection: 'row', 
+                    alignItems: 'center', 
+                    gap: 8, 
+                    height: 38,
+                    paddingHorizontal: 16,
+                    borderRadius: 8,
+                    backgroundColor: themeColor,
+                  }
+                ]} 
+                testID="profile-avatar-upload"
+              >
+                <Upload size={14} color="#fff" />
+                <Text style={{ color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 }}>Upload Photo</Text>
               </Pressable>
+
+              {/* Remove Photo Button */}
               {photo && (
-                <Pressable onPress={() => {
-                  setField('photo_data', '');
-                  setField('face_image_base64', '');
-                }} style={st.btnGhost}>
-                  <Text style={st.btnGhostText}>Remove</Text>
+                <Pressable 
+                  onPress={() => {
+                    setDraft((d: any) => ({ ...d, photo_data: '', face_image_base64: '' }));
+                  }} 
+                  style={[
+                    st.btnGhost, 
+                    { 
+                      flexDirection: 'row', 
+                      alignItems: 'center', 
+                      gap: 8, 
+                      height: 38,
+                      paddingHorizontal: 16,
+                      borderRadius: 8,
+                      borderColor: 'rgba(239, 68, 68, 0.40)',
+                      backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                    }
+                  ]} 
+                  testID="profile-avatar-remove"
+                >
+                  <Trash2 size={14} color="#EF4444" />
+                  <Text style={{ color: '#EF4444', fontFamily: 'DMSans_700Bold', fontSize: 13 }}>Remove Photo</Text>
                 </Pressable>
               )}
             </View>
+
+            <Text style={st.photoHint}>JPG, PNG up to 5MB. Click Upload Photo to select a file from your system or capture a webcam selfie.</Text>
           </View>
         </View>
+
+        {/* Inline Action Selection Modal (Replaces native Modal to bypass web overlay issues) */}
+        {modalVisible && (
+          <View style={st.modalBackdrop}>
+            <View style={st.modalCard}>
+              {/* Header */}
+              <View style={st.modalHeader}>
+                <Text style={st.modalTitle}>Update Profile Photo</Text>
+                <Pressable onPress={handleCloseMenu} style={st.modalCloseBtn}>
+                  <X size={18} color="rgba(255,255,255,0.7)" />
+                </Pressable>
+              </View>
+
+              {/* Selection Items */}
+              <View style={{ width: '100%', gap: 10 }}>
+                {onTakeSelfie && (
+                  <Pressable
+                    onPress={() => {
+                      handleCloseMenu();
+                      onTakeSelfie();
+                    }}
+                    style={st.menuItem}
+                  >
+                    <Camera size={18} color={themeColor} />
+                    <Text style={st.menuItemText}>Take Selfie</Text>
+                  </Pressable>
+                )}
+
+                <Pressable
+                  onPress={() => {
+                    handleCloseMenu();
+                    onUploadPhoto();
+                  }}
+                  style={st.menuItem}
+                >
+                  <Upload size={18} color={themeColor} />
+                  <Text style={st.menuItemText}>Upload Photo</Text>
+                </Pressable>
+
+              </View>
+            </View>
+          </View>
+        )}
         <View style={[st.row, { zIndex: 20 }]}>
           <Field label="First Name" half><TF value={draft.first_name || (draft.full_name||'').split(' ')[0] || ''} onChangeText={(v) => setField('first_name', v)} placeholder="Aarav" testID="pf-first-name" /></Field>
           <Field label="Last Name" half><TF value={draft.last_name || (draft.full_name||'').split(' ').slice(1).join(' ') || ''} onChangeText={(v) => setField('last_name', v)} placeholder="Sharma" testID="pf-last-name" /></Field>
@@ -244,6 +346,94 @@ const st = StyleSheet.create({
     backgroundColor: '#10B981',
     alignItems: 'center', justifyContent: 'center',
     borderColor: '#0B0717', borderWidth: 2,
+  },
+  avatarBadge: {
+    position: 'absolute', bottom: 2, right: 2,
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: '#7C3AED',
+    alignItems: 'center', justifyContent: 'center',
+    borderColor: '#0B0717', borderWidth: 2,
+  },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0, bottom: 0, left: 0, right: 0,
+    backgroundColor: 'rgba(0,0,0,0.80)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    zIndex: 9999,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(167,139,250,0.25)',
+    backgroundColor: '#13091F',
+    padding: 20,
+    alignItems: 'center',
+    ...({
+      backgroundImage: 'linear-gradient(180deg, #1A0E2E 0%, #0A0512 100%)' as any,
+      boxShadow: '0px 16px 60px rgba(91,33,182,0.45)' as any,
+    } as any),
+  },
+  modalHeader: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    color: '#FFF',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 16,
+  },
+  modalCloseBtn: {
+    padding: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  menuItemText: {
+    color: 'rgba(255,255,255,0.90)',
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 14,
+  },
+  avatarOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionClickBox: {
+    flex: 1,
+    height: 80,
+    borderRadius: 12,
+    backgroundColor: 'rgba(167,139,250,0.06)',
+    borderColor: 'rgba(167,139,250,0.20)',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transition: 'all 0.2s ease' } as any) : {}),
+  },
+  actionClickBoxText: {
+    color: 'rgba(255,255,255,0.90)',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 12,
+    textAlign: 'center',
   },
   photoTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 14 },
   photoHint: { color: 'rgba(255,255,255,0.60)', fontFamily: 'DMSans_400Regular', fontSize: 12 },

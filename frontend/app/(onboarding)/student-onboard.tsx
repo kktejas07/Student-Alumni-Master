@@ -208,7 +208,7 @@ export default function StudentOnboard() {
         interests: [...ints],
         skills: [...tech, ...biz, ...soft],
         bio: bio || `${name} — ${edu || 'Student'} aspiring ${goal || 'career'}`,
-        face_image_base64: photo || undefined,
+        face_image_base64: photo || pendingPhoto || undefined,
         phone,
       };
       await api.completeOnboarding(payload);

@@ -28,12 +28,14 @@ import {
   CheckCircle2, Award, Sparkles, CalendarCheck, UsersRound, Eye,
   Star, IndianRupee,
 } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { ProfileInfoPage } from '@/src/views/web/profile/ProfileInfoPage';
 import { ManageProfilePage } from '@/src/views/web/profile/ManageProfilePage';
 import { SettingsPage } from '@/src/views/web/profile/SettingsPage';
 import { CompletionRing } from '@/src/views/web/profile/CompletionRing';
+import { WebcamModal } from '@/src/views/components/WebcamModal';
 import { useToast } from '@/src/views/components';
 import { MC, FONTS } from '../tokens';
 
@@ -63,6 +65,25 @@ export function MentorProfileSettingsView() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [webcamVisible, setWebcamVisible] = useState(false);
+
+  const onTakeSelfie = useCallback(async () => {
+    if (Platform.OS === 'web') {
+      setWebcamVisible(true);
+      return;
+    }
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) { toast.error('Camera', 'Permission denied.'); return; }
+      const res = await ImagePicker.launchCameraAsync({ cameraType: ImagePicker.CameraType.front, quality: 0.5, base64: true, allowsEditing: true, aspect: [1, 1] });
+      if (!res.canceled && res.assets[0]?.base64) {
+        const base64Photo = `data:image/jpeg;base64,${res.assets[0].base64}`;
+        setDraft((d: any) => ({ ...d, photo_data: base64Photo, face_image_base64: base64Photo }));
+      }
+    } catch {
+      toast.error('Camera', 'Could not open camera.');
+    }
+  }, [toast]);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -229,6 +250,7 @@ export function MentorProfileSettingsView() {
               setDraft={(updater: any) => setDraft(typeof updater === 'function' ? updater(draft) : updater)}
               completion={completion}
               onUploadPhoto={onUploadPhoto}
+              onTakeSelfie={onTakeSelfie}
             />
           )}
           {tab === 'manage' && (
@@ -304,6 +326,15 @@ export function MentorProfileSettingsView() {
           </View>
         </View>
       </View>
+      <WebcamModal
+        visible={webcamVisible}
+        onClose={() => setWebcamVisible(false)}
+        onCapture={(base64) => {
+          setDraft((d: any) => ({ ...d, photo_data: base64, face_image_base64: base64 }));
+          setWebcamVisible(false);
+          toast.success('Selfie captured!', 'Save profile to update.');
+        }}
+      />
     </View>
   );
 }

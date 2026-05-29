@@ -29,6 +29,7 @@ import { SettingsPage } from '@/src/views/web/profile/SettingsPage';
 import { SaveBar, C } from '@/src/views/web/profile/primitives';
 import { MemberIdCard } from '@/src/views/components/MemberIdCard';
 import { IntegrationsView } from '@/src/views/web/profile/IntegrationsView';
+import { WebcamModal } from '@/src/views/components/WebcamModal';
 
 type PageKey = 'info' | 'digitalid' | 'manage' | 'notifications' | 'privacy' | 'settings' | 'integrations';
 
@@ -60,6 +61,25 @@ export default function ProfileScreen() {
   const [badges, setBadges] = useState<any[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [webcamVisible, setWebcamVisible] = useState(false);
+
+  const handleTakeSelfie = useCallback(async () => {
+    if (Platform.OS === 'web') {
+      setWebcamVisible(true);
+      return;
+    }
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) { showToast('Camera permission denied.'); return; }
+      const res = await ImagePicker.launchCameraAsync({ cameraType: ImagePicker.CameraType.front, quality: 0.5, base64: true, allowsEditing: true, aspect: [1, 1] });
+      if (!res.canceled && res.assets[0]?.base64) {
+        const base64Photo = `data:image/jpeg;base64,${res.assets[0].base64}`;
+        setDraft((d: any) => ({ ...d, photo_data: base64Photo, face_image_base64: base64Photo }));
+      }
+    } catch {
+      showToast('Could not open camera.');
+    }
+  }, [showToast]);
 
   const showToast = useCallback((m: string) => {
     setToast(m); setTimeout(() => setToast(null), 2400);
@@ -332,7 +352,13 @@ export default function ProfileScreen() {
               )}
 
               {page === 'info' && (
-                <ProfileInfoPage draft={draft} setDraft={setDraft} completion={completion} onUploadPhoto={handleUploadPhoto} />
+                <ProfileInfoPage 
+                  draft={draft} 
+                  setDraft={setDraft} 
+                  completion={completion} 
+                  onUploadPhoto={handleUploadPhoto} 
+                  onTakeSelfie={handleTakeSelfie} 
+                />
               )}
               {page === 'digitalid' && (
                 <DigitalIdCardInline userId={user?.id} isMobile={isMobile} draft={draft} completion={completion} showToast={showToast} />
@@ -397,6 +423,15 @@ export default function ProfileScreen() {
           <Text style={styles.toastText}>{toast}</Text>
         </View>
       )}
+      <WebcamModal
+        visible={webcamVisible}
+        onClose={() => setWebcamVisible(false)}
+        onCapture={(base64) => {
+          setDraft((d: any) => ({ ...d, photo_data: base64, face_image_base64: base64 }));
+          setWebcamVisible(false);
+          showToast('Selfie captured! Save to update.');
+        }}
+      />
     </SafeAreaView>
   );
 }

@@ -3,7 +3,7 @@
  * Hamburger collapse, mentor mini-profile, nav with counts, sign-out.
  */
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, Platform, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform, ScrollView, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Menu, LayoutDashboard, Users, Calendar, UserPlus, Network, Coins,
@@ -13,6 +13,7 @@ import {
 import { MC, FONTS } from './tokens';
 import { MENTOR } from './data';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 export type NavId = 'dashboard'|'students'|'sessions'|'requests'|'network'|'earnings'|'feedback'|'event'|'availability'|'profile'|'ai-studio';
 
@@ -42,6 +43,13 @@ export function Sidebar({
   onLogout: () => void;
   counts: { students: number; sessions: number; requests: number };
 }) {
+  const user = useAuthStore((u) => u.user) as any;
+  const fullName: string = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || MENTOR.name;
+  const initials: string = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || MENTOR.avatar).toUpperCase();
+  const jobTitle = user?.mentor_info?.job_title || user?.headline || MENTOR.role;
+  const company = user?.mentor_info?.organization || MENTOR.company;
+  const photo = user?.photo_data || user?.face_image_base64;
+
   const items = NAV_MAIN(counts);
   const w = collapsed ? 56 : 220;
 
@@ -70,7 +78,11 @@ export function Sidebar({
         {collapsed ? (
           <Pressable onPress={() => onNav('profile')} style={({ pressed }: any) => [{ alignItems: 'center', paddingVertical: 4 }, pressed && { opacity: 0.8 }]}>
             <View style={s.avatarMini}>
-              <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 }}>{MENTOR.avatar}</Text>
+              {photo ? (
+                <Image source={{ uri: photo }} style={{ width: '100%', height: '100%', borderRadius: 15 }} />
+              ) : (
+                <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 }}>{initials}</Text>
+              )}
               <View style={s.onlineDot} />
             </View>
           </Pressable>
@@ -78,12 +90,16 @@ export function Sidebar({
           <View style={s.profileCard}>
             <Pressable onPress={() => onNav('profile')} style={({ pressed }: any) => [{ flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 9 }, pressed && { opacity: 0.8 }]}>
               <View style={s.avatarLg}>
-                <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 }}>{MENTOR.avatar}</Text>
+                {photo ? (
+                  <Image source={{ uri: photo }} style={{ width: '100%', height: '100%', borderRadius: 16 }} />
+                ) : (
+                  <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 }}>{initials}</Text>
+                )}
                 <View style={s.onlineDot} />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 }}>{MENTOR.name}</Text>
-                <Text numberOfLines={1} style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 9 }}>{MENTOR.role} · {MENTOR.company}</Text>
+                <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 }}>{fullName}</Text>
+                <Text numberOfLines={1} style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 9 }}>{jobTitle} · {company}</Text>
               </View>
             </Pressable>
             <Pressable style={({ hovered }: any) => [s.idCard, hovered && { backgroundColor: 'rgba(20,184,166,0.15)' }]}>

@@ -279,7 +279,7 @@ export default function MentorOnboard() {
           education_level:    edu || undefined,
           expertise:          expertise,
           availability:       availability,
-          profile_photo:      photo || undefined,
+          profile_photo:      photo || pendingPhoto || undefined,
           college:            college,
           college_batch:      batch ? parseInt(batch, 10) : undefined,
           bio:                bio || undefined,
@@ -288,7 +288,7 @@ export default function MentorOnboard() {
         interests:   [],
         skills:      expertise,
         bio:         bio || `${jobTitle || 'Mentor'} at ${company || ''} — open to mentor students`,
-        face_image_base64: photo || undefined,
+        face_image_base64: photo || pendingPhoto || undefined,
       };
       await api.completeOnboarding(payload);
       await refreshUser();
