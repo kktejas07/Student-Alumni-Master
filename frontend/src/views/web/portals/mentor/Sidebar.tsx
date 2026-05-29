@@ -14,6 +14,7 @@ import {
 import { MC, FONTS } from './tokens';
 import { MENTOR } from './data';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 export type NavId = 'dashboard'|'students'|'sessions'|'requests'|'network'|'earnings'|'feedback'|'event'|'availability'|'profile'|'ai-studio';
 
@@ -43,6 +44,13 @@ export function Sidebar({
   onLogout: () => void;
   counts: { students: number; sessions: number; requests: number };
 }) {
+  const user = useAuthStore((u) => u.user) as any;
+  const fullName: string = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || MENTOR.name;
+  const initials: string = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || MENTOR.avatar).toUpperCase();
+  const jobTitle = user?.mentor_info?.job_title || user?.headline || MENTOR.role;
+  const company = user?.mentor_info?.organization || MENTOR.company;
+  const photo = user?.photo_data || user?.face_image_base64;
+
   const items = NAV_MAIN(counts);
   const w = collapsed ? 56 : 220;
 

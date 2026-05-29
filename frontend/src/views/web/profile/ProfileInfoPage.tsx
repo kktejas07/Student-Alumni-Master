@@ -39,12 +39,23 @@ interface Props {
   setDraft: (updater: (d: any) => any) => void;
   completion: { percentage: number; items: { key: string; label: string; done: boolean }[] };
   onUploadPhoto: () => void;
+  onTakeSelfie?: () => void;
 }
 
 export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto }: Props) {
   const [pendingPhoto, setPendingPhoto] = useState<string | null>(null);
   const photo = pendingPhoto || draft.photo_data || draft.face_image_base64;
   const initials = ((draft.full_name || '?').split(' ').slice(0,2).map((s: string) => s[0] || '').join('') || '?').toUpperCase();
+
+  const isMentor = !!onTakeSelfie;
+  const themeColor = isMentor ? '#14B8A6' : '#A78BFA';
+  const themeBg = isMentor ? 'rgba(20,184,166,0.15)' : 'rgba(167,139,250,0.15)';
+  const themeBadgeBg = isMentor ? '#14B8A6' : '#7C3AED';
+
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const handleOpenMenu = () => setModalVisible(true);
+  const handleCloseMenu = () => setModalVisible(false);
 
   const setField = (k: string, v: any) => setDraft((d) => ({ ...d, [k]: v }));
   const interests: string[] = draft.interests || [];
@@ -187,8 +198,53 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto }: 
                 </>
               )}
             </View>
+
+            <Text style={st.photoHint}>JPG, PNG up to 5MB. Click Upload Photo to select a file from your system or capture a webcam selfie.</Text>
           </View>
         </View>
+
+        {/* Inline Action Selection Modal (Replaces native Modal to bypass web overlay issues) */}
+        {modalVisible && (
+          <View style={st.modalBackdrop}>
+            <View style={st.modalCard}>
+              {/* Header */}
+              <View style={st.modalHeader}>
+                <Text style={st.modalTitle}>Update Profile Photo</Text>
+                <Pressable onPress={handleCloseMenu} style={st.modalCloseBtn}>
+                  <X size={18} color="rgba(255,255,255,0.7)" />
+                </Pressable>
+              </View>
+
+              {/* Selection Items */}
+              <View style={{ width: '100%', gap: 10 }}>
+                {onTakeSelfie && (
+                  <Pressable
+                    onPress={() => {
+                      handleCloseMenu();
+                      onTakeSelfie();
+                    }}
+                    style={st.menuItem}
+                  >
+                    <Camera size={18} color={themeColor} />
+                    <Text style={st.menuItemText}>Take Selfie</Text>
+                  </Pressable>
+                )}
+
+                <Pressable
+                  onPress={() => {
+                    handleCloseMenu();
+                    onUploadPhoto();
+                  }}
+                  style={st.menuItem}
+                >
+                  <Upload size={18} color={themeColor} />
+                  <Text style={st.menuItemText}>Upload Photo</Text>
+                </Pressable>
+
+              </View>
+            </View>
+          </View>
+        )}
         <View style={[st.row, { zIndex: 20 }]}>
           <Field label="First Name" half><TF value={draft.first_name || (draft.full_name||'').split(' ')[0] || ''} onChangeText={(v) => setField('first_name', v)} placeholder="Aarav" testID="pf-first-name" /></Field>
           <Field label="Last Name" half><TF value={draft.last_name || (draft.full_name||'').split(' ').slice(1).join(' ') || ''} onChangeText={(v) => setField('last_name', v)} placeholder="Sharma" testID="pf-last-name" /></Field>
@@ -314,6 +370,94 @@ const st = StyleSheet.create({
     backgroundColor: '#10B981',
     alignItems: 'center', justifyContent: 'center',
     borderColor: '#0B0717', borderWidth: 2,
+  },
+  avatarBadge: {
+    position: 'absolute', bottom: 2, right: 2,
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: '#7C3AED',
+    alignItems: 'center', justifyContent: 'center',
+    borderColor: '#0B0717', borderWidth: 2,
+  },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0, bottom: 0, left: 0, right: 0,
+    backgroundColor: 'rgba(0,0,0,0.80)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    zIndex: 9999,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(167,139,250,0.25)',
+    backgroundColor: '#13091F',
+    padding: 20,
+    alignItems: 'center',
+    ...({
+      backgroundImage: 'linear-gradient(180deg, #1A0E2E 0%, #0A0512 100%)' as any,
+      boxShadow: '0px 16px 60px rgba(91,33,182,0.45)' as any,
+    } as any),
+  },
+  modalHeader: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    color: '#FFF',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 16,
+  },
+  modalCloseBtn: {
+    padding: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  menuItemText: {
+    color: 'rgba(255,255,255,0.90)',
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 14,
+  },
+  avatarOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionClickBox: {
+    flex: 1,
+    height: 80,
+    borderRadius: 12,
+    backgroundColor: 'rgba(167,139,250,0.06)',
+    borderColor: 'rgba(167,139,250,0.20)',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transition: 'all 0.2s ease' } as any) : {}),
+  },
+  actionClickBoxText: {
+    color: 'rgba(255,255,255,0.90)',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 12,
+    textAlign: 'center',
   },
   photoTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 14 },
   photoHint: { color: 'rgba(255,255,255,0.60)', fontFamily: 'DMSans_400Regular', fontSize: 12 },
