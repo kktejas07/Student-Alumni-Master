@@ -484,6 +484,7 @@ export default function QuickSetup() {
 
       <View style={{ marginTop: 10, gap: 10 }}>
         <PrimaryButton label="Continue →" onPress={onSubmit} loading={loading} />
+        <OutlineButton label="← Go Back" onPress={() => router.replace('/welcome')} testID="quick-setup-back" />
         <Pressable onPress={onCompleteDeeper}>
           <Text style={s.deepLink}>Want to share more? Complete your full profile →</Text>
         </Pressable>

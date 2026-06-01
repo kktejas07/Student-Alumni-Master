@@ -17,6 +17,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useTour } from '@/src/views/web/tour/TourProvider';
 import { TOURS, TourKey } from '@/src/views/web/tour/tours.config';
+import { NX } from '@/src/theme/nexus';
 
 export function HelpMenu({ portal }: { portal: TourKey }) {
   const router = useRouter();
@@ -46,14 +47,14 @@ export function HelpMenu({ portal }: { portal: TourKey }) {
         style={({ hovered }: any) => [
           s.btn,
           open && { borderColor: accent + '88', backgroundColor: accent + '15' },
-          hovered && Platform.OS === 'web' && { backgroundColor: 'rgba(255,255,255,0.06)' },
+          hovered && Platform.OS === 'web' && { backgroundColor: 'rgba(255,255,255,0.20)', borderColor: 'rgba(255,255,255,0.35)' },
         ]}
       >
-        <HelpCircle size={16} color={open ? accent : 'rgba(255,255,255,0.66)'} />
+        <HelpCircle size={16} color={open ? accent : 'rgba(255,255,255,0.90)'} />
       </Pressable>
 
       {open && (
-        <Animated.View entering={FadeIn.duration(140)} exiting={FadeOut.duration(120)} style={s.menu}>
+        <View style={s.menu}>
           <Text style={s.menuLbl}>HELP</Text>
 
           <Pressable
@@ -96,7 +97,7 @@ export function HelpMenu({ portal }: { portal: TourKey }) {
             <Text style={s.itemTitle}>Cookie Policy</Text>
             <ExternalLink size={11} color="rgba(255,255,255,0.40)" />
           </Pressable>
-        </Animated.View>
+        </View>
       )}
     </View>
   );
@@ -106,8 +107,8 @@ const s = StyleSheet.create({
   wrap: { position: 'relative', zIndex: 50 },
   btn: {
     width: 34, height: 34, borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1,
+    backgroundColor: NX.surface2,
+    borderColor: NX.border, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
   },
@@ -116,7 +117,7 @@ const s = StyleSheet.create({
     right: 0,
     top: 42,
     width: 260,
-    backgroundColor: '#0F1426',
+    backgroundColor: '#111827',
     borderColor: 'rgba(255,255,255,0.12)', borderWidth: 1,
     borderRadius: 12,
     paddingVertical: 8,

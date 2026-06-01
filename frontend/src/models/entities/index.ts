@@ -106,6 +106,7 @@ export interface User {
   alumni_info?: AlumniInfo;
   mentor_info?: MentorInfo;
   mentor_status?: MentorStatus;
+  college_info?: any;
   interests: string[];
   skills: string[];
   bio?: string;

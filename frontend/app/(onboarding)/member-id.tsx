@@ -16,7 +16,7 @@ import { AuthShell } from '@/src/views/auth/AuthShell';
 import { PrimaryButton } from '@/src/views/auth/AuthControls';
 import { FONTS } from '@/src/views/auth/tokens';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { Copy, ShieldCheck, Save, Share2, CheckCircle2, Info } from 'lucide-react-native';
+import { Copy, ShieldCheck, Save, Share2, CheckCircle2, Info, ArrowLeft } from 'lucide-react-native';
 import { useToast } from '@/src/views/components';
 import { MemberIdCard, MemberRole, MemberTier } from '@/src/views/components/MemberIdCard';
 
@@ -84,6 +84,15 @@ export default function MemberId() {
 
   return (
     <AuthShell role={role}>
+      <Pressable
+        onPress={() => router.back()}
+        style={({ hovered }: any) => [s.back, hovered && { opacity: 1 }]}
+        testID="member-id-back"
+      >
+        <ArrowLeft size={16} color="rgba(255,255,255,0.75)" />
+        <Text style={s.backText}>Back</Text>
+      </Pressable>
+
       <View style={s.center}>
         {/* Identity Verified pill */}
         <View style={s.verifiedPill}>
@@ -179,4 +188,15 @@ const s = StyleSheet.create({
 
   footNote: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
   footText: { color: 'rgba(255,255,255,0.45)', fontFamily: FONTS.med, fontSize: 11 },
+  back: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    marginBottom: 10,
+    opacity: 0.75,
+    alignSelf: 'flex-start',
+    ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
+  },
+  backText: { color: 'rgba(255,255,255,0.75)', fontFamily: FONTS.med, fontSize: 13 },
 });

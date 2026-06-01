@@ -21,6 +21,7 @@ import * as MOCK from '../data';
 import { usePortalData } from '@/src/lib/portalApi';
 import { TierBadge } from '@/src/views/web/TierBadge';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
 
 const KPI_ICONS = { students: GraduationCap, alumni: Users, placement: Trophy, events: CalendarDays } as const;
@@ -38,8 +39,16 @@ const COLLEGE_MOCK = {
   topRecruiters: MOCK.TOP_RECRUITERS,
 };
 
-export function DashboardView() {
-  const { data } = usePortalData<typeof COLLEGE_MOCK>('/admin/college-stats', COLLEGE_MOCK);
+export function DashboardView({ onOpenProfile }: { onOpenProfile?: () => void }) {
+  const user = useAuthStore((state) => state.user);
+  const collegeName = user?.college_info?.institution_name || user?.school_info?.institution_name || '';
+
+  const { data } = usePortalData<typeof COLLEGE_MOCK>(
+    collegeName
+      ? `/admin/college-stats?college_name=${encodeURIComponent(collegeName)}`
+      : '/admin/college-stats',
+    COLLEGE_MOCK
+  );
   const COLLEGE = data!.college;
   const KPIS = data!.kpis;
   const DEPT_PLACEMENT = data!.deptPlacement;
@@ -229,6 +238,35 @@ export function DashboardView() {
           </Pressable>
         </View>
       </View>
+
+      {/* Profile completion CTA */}
+      {COLLEGE.tier && (
+        <LinearGradient
+          colors={[CC.primary, CC.primaryD] as any}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={s.completionCard}
+        >
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <Text style={s.completionLabel}>Profile Score</Text>
+              <View style={s.completionScorePill}>
+                <Text style={s.completionScoreText}>{COLLEGE.tier.score}%</Text>
+              </View>
+            </View>
+            <Text style={s.completionTitle}>Complete your profile to unlock Platinum status</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+              {(!user?.college_info?.logo) && <View style={s.missingChip}><Text style={s.missingText}>Logo</Text></View>}
+              {(!user?.college_info?.cover_photo) && <View style={s.missingChip}><Text style={s.missingText}>Cover Photo</Text></View>}
+              {(!user?.college_info?.bio) && <View style={s.missingChip}><Text style={s.missingText}>Description / Bio</Text></View>}
+              {(user?.college_info?.accreditations?.length || 0) === 0 && <View style={s.missingChip}><Text style={s.missingText}>Accreditations</Text></View>}
+              {(!user?.college_info?.official_website) && <View style={s.missingChip}><Text style={s.missingText}>Official Website</Text></View>}
+            </View>
+          </View>
+          <Pressable onPress={onOpenProfile} style={({ hovered }: any) => [s.completeCta, hovered && { backgroundColor: '#fff' }]}>
+            <Text style={s.completeCtaText}>Complete Profile →</Text>
+          </Pressable>
+        </LinearGradient>
+      )}
     </View>
   );
 }
@@ -297,6 +335,19 @@ const s = StyleSheet.create({
   recruiterName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
   recruiterMeta: { color: CC.muted, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 1 },
 
-  alumniCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14, height: 36, borderRadius: 10, backgroundColor: CC.card, borderWidth: 1, borderColor: CC.border2, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  alumniCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14, height: 36, borderRadius: 10, backgroundColor: CC.card, borderWidth: 1, borderColor: CC.border2, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}), },
   alumniCtaText: { color: CC.accentBright, fontFamily: FONTS.bold, fontSize: 12 },
+
+  completionCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 16,
+    borderRadius: 16, padding: 18, marginTop: 16,
+  },
+  completionLabel: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.xbold, fontSize: 11.5, letterSpacing: 0.5 },
+  completionScorePill: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
+  completionScoreText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 },
+  completionTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14, marginTop: 4 },
+  missingChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+  missingText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 10.5 },
+  completeCta: { paddingHorizontal: 18, height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  completeCtaText: { color: CC.primaryD, fontFamily: FONTS.xbold, fontSize: 12.5 },
 });
