@@ -305,7 +305,7 @@ const s = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modal: {
-    backgroundColor: MC.cardSolid || '#131935',
+    backgroundColor: '#0c0f1e',
     borderColor: MC.border2,
     borderLeftWidth: 1,
     borderTopWidth: 0,
