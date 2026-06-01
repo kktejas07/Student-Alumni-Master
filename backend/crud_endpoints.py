@@ -465,32 +465,43 @@ async def my_workshops(email: Optional[str] = None):
 
 
 class WorkshopProgressReq(BaseModel):
+    student_email: str
     registration_id: str
     action: str  # "start", "advance", "complete"
 
 
 @router.post("/student/workshops/progress")
 async def progress_workshop(req: WorkshopProgressReq):
-    # Find the registration
+    if req.action not in ["start", "advance", "complete"]:
+        raise HTTPException(400, f"Invalid action: {req.action}. Must be 'start', 'advance', or 'complete'.")
+
+    # Resolve student to ensure strict authorization and scoping
+    student = await _resolve_user("student", req.student_email)
+    student_id_str = str(student["_id"])
+
+    # Find the registration scoped strictly to the student
     reg = None
     # 1. Try by ObjectId if 24 chars
     if len(req.registration_id) == 24:
         try:
-            reg = await _db.workshop_registrations.find_one({"_id": ObjectId(req.registration_id)})
+            reg = await _db.workshop_registrations.find_one({
+                "_id": ObjectId(req.registration_id),
+                "student_id": student_id_str
+            })
         except Exception:
             pass
 
-    # 2. Try by short-id (last 8 chars) suffix
+    # 2. Try by short-id (last 8 chars) suffix, scoped strictly to the student
     if not reg:
-        async for w in _db.workshop_registrations.find({}):
+        async for w in _db.workshop_registrations.find({"student_id": student_id_str}):
             if str(w["_id"])[-8:] == req.registration_id:
                 reg = w
                 break
 
     if not reg:
-        raise HTTPException(404, "Workshop registration not found")
+        raise HTTPException(404, "Workshop registration not found for the calling student")
 
-    weeks = reg.get("weeks", 4)
+    weeks = max(1, reg.get("weeks", 4))
     current_week = reg.get("current_week", 1)
     status = reg.get("status", "registered")
 
@@ -498,10 +509,14 @@ async def progress_workshop(req: WorkshopProgressReq):
         status = "in_progress"
         current_week = 1
     elif req.action == "advance":
-        status = "in_progress"
-        current_week += 1
-        if current_week >= weeks:
+        if status == "completed" or current_week >= weeks:
             status = "completed"
+            current_week = weeks
+        else:
+            status = "in_progress"
+            current_week += 1
+            if current_week >= weeks:
+                status = "completed"
     elif req.action == "complete":
         status = "completed"
         current_week = weeks
@@ -512,8 +527,8 @@ async def progress_workshop(req: WorkshopProgressReq):
     }
 
     if status == "completed":
-        update_doc["completed_at"] = _now()
-        update_doc["certificate_url"] = f"https://certificates.example.com/{reg.get('student_email')}-{str(reg['_id'])[-8:]}"
+        update_doc["completed_at"] = reg.get("completed_at") or _now()
+        update_doc["certificate_url"] = reg.get("certificate_url") or f"https://certificates.example.com/{_short_id(reg['_id'])}"
 
     await _db.workshop_registrations.update_one(
         {"_id": reg["_id"]},

@@ -35,7 +35,7 @@ export function MyWorkshopsView() {
     try {
       setUpdatingId(id);
       await postPortal('/student/workshops/progress', {
-        body: { registration_id: id, action },
+        body: { student_email: email, registration_id: id, action },
       });
       refresh();
     } catch (e) {
@@ -73,7 +73,7 @@ export function MyWorkshopsView() {
       <Section title={`Ongoing (${ongoing.length})`}>
         {ongoing.map((w, idx) => {
           const currentWeek = w.current_week || 1;
-          const pct = w.status === 'registered' ? 0 : Math.round((currentWeek / w.weeks) * 100);
+          const pct = w.status === 'registered' ? 0 : Math.max(0, Math.min(100, Math.round((currentWeek / Math.max(1, w.weeks)) * 100)));
 
           return (
             <GlassCard key={w.id} delay={idx * 30} radius={12} padding={16} style={{ gap: 12 }}>
@@ -249,7 +249,7 @@ const s = StyleSheet.create({
   timeline: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
   timelineStep: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.2)' },
-  dotDone: { backgroundColor: '#10B981', boxShadow: '0 0 6px #10B981' } as any,
+  dotDone: { backgroundColor: '#10B981', ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 6px #10B981' } as any) : {}) } as any,
   stepText: { color: SC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
   stepTextDone: { color: '#fff', fontFamily: FONTS.bold },
 
