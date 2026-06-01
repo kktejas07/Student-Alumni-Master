@@ -501,22 +501,19 @@ async def progress_workshop(req: WorkshopProgressReq):
     if not reg:
         raise HTTPException(404, "Workshop registration not found for the calling student")
 
-    weeks = max(1, reg.get("weeks", 4))
-    current_week = reg.get("current_week", 1)
-    status = reg.get("status", "registered")
+    weeks = max(1, int(reg.get("weeks") or 4))
+    current_week = int(reg.get("current_week") or 1)
+    current_week = max(1, min(current_week, weeks))
+    status = reg.get("status") or "registered"
 
     if req.action == "start":
         status = "in_progress"
         current_week = 1
     elif req.action == "advance":
-        if status == "completed" or current_week >= weeks:
+        status = "in_progress"
+        current_week = min(current_week + 1, weeks)
+        if current_week >= weeks:
             status = "completed"
-            current_week = weeks
-        else:
-            status = "in_progress"
-            current_week += 1
-            if current_week >= weeks:
-                status = "completed"
     elif req.action == "complete":
         status = "completed"
         current_week = weeks
