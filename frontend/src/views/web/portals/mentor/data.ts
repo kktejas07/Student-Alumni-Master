@@ -17,7 +17,7 @@ export const MENTOR = {
   expertise: ['System Design', 'Career Guidance', 'Startup Advice'],
 };
 
-export const STUDENTS = [
+const RAW_STUDENTS = [
   { id:1, name:'Arjun Sharma',   avatar:'AS', color:'#5EEAD4', college:'IIT Bombay',  branch:'B.Tech CSE', year:2026, saId:'SA-26-834291', status:'active',
     interests:['Software Engineering','Data Science'], skills:['Python','React','SQL','ML'],
     goals:['Crack FAANG SDE role','Improve system design'], sessionsTotal:4, sessionsCompleted:3,
@@ -59,6 +59,44 @@ export const STUDENTS = [
     progress:45, cgpa:8.7, linkedin:'linkedin.com/in/meerapillai', github:null,
     joinedOn:'Mar 5, 2026', tags:['APM Prep','Product'], messages:0 },
 ];
+
+export const STUDENTS = RAW_STUDENTS.map((s) => {
+  if (!s.nextSession) return s;
+
+  try {
+    const now = new Date();
+    const sessionDate = new Date(`${s.nextSession.date} ${s.nextSession.time}`);
+    const diffMs = sessionDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMs <= 0) {
+      const updatedSessionsCompleted = Math.min(s.sessionsTotal, s.sessionsCompleted + 1);
+      const updatedProgress = Math.round((updatedSessionsCompleted / s.sessionsTotal) * 100);
+      return {
+        ...s,
+        sessionsCompleted: updatedSessionsCompleted,
+        progress: updatedProgress,
+        status: updatedSessionsCompleted === s.sessionsTotal ? 'completed' : s.status,
+        lastSession: {
+          date: s.nextSession.date,
+          notes: `Completed: ${s.nextSession.topic}`,
+        },
+        nextSession: null,
+      };
+    } else {
+      return {
+        ...s,
+        nextSession: {
+          ...s.nextSession,
+          daysAway: diffDays,
+        },
+      };
+    }
+  } catch (e) {
+    console.error('Error parsing session date:', e);
+    return s;
+  }
+});
 
 export const TODAY_SESSIONS = [
   { student:'Arjun Sharma', avatar:'AS', color:'#5EEAD4', topic:'System Design Mock Interview', time:'10:00 AM', duration:30 },
