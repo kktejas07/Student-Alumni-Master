@@ -14,7 +14,6 @@ import {
 import { MC, FONTS } from './tokens';
 import { MENTOR } from './data';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
-import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 export type NavId = 'dashboard'|'students'|'sessions'|'requests'|'network'|'earnings'|'feedback'|'event'|'availability'|'profile'|'ai-studio';
 
@@ -53,13 +52,6 @@ export function Sidebar({
 
   const items = NAV_MAIN(counts);
   const w = collapsed ? 56 : 220;
-
-  const user = useAuthStore((u) => u.user) as any;
-  const fullName = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || MENTOR.name;
-  const initials = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || MENTOR.avatar).toUpperCase();
-  const photo = user?.photo_data || user?.face_image_base64;
-  const role = user?.mentor_info?.current_role || user?.current_role || MENTOR.role;
-  const company = user?.mentor_info?.current_company || user?.current_company || MENTOR.company;
 
   return (
     <View style={[s.sidebar, { width: w }]}>
@@ -130,7 +122,7 @@ export function Sidebar({
               </View>
               <ExternalLink size={11} color={MC.dim} />
             </Pressable>
-          </Pressable>
+          </View>
         )}
       </View>
 
