@@ -4833,7 +4833,7 @@ async def create_booking(req: BookingRequest, user: dict = Depends(get_current_u
         "slot_end_iso": req.slot_end_iso,
         "topic": req.topic,
         "notes": req.notes,
-        "status": "confirmed",
+        "status": "pending",
         "created_at": datetime.now(timezone.utc),
     }
     result = await db.bookings.insert_one(booking)
