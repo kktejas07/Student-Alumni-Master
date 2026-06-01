@@ -438,6 +438,7 @@ async def enroll_workshop(req: WorkshopEnroll):
         "fee_inr": req.fee_inr,
         "weeks": req.weeks,
         "status": "registered",
+        "current_week": 1,
         "registered_at": _now(),
     }
     res = await _db.workshop_registrations.insert_one(doc)
@@ -455,11 +456,77 @@ async def my_workshops(email: Optional[str] = None):
             "fee_inr": w.get("fee_inr"),
             "weeks": w.get("weeks"),
             "status": w.get("status"),
+            "current_week": w.get("current_week", 1),
             "completed_at": w.get("completed_at"),
             "certificate_url": w.get("certificate_url"),
             "registered_at": w.get("registered_at"),
         })
     return {"items": out, "count": len(out)}
+
+
+class WorkshopProgressReq(BaseModel):
+    registration_id: str
+    action: str  # "start", "advance", "complete"
+
+
+@router.post("/student/workshops/progress")
+async def progress_workshop(req: WorkshopProgressReq):
+    # Find the registration
+    reg = None
+    # 1. Try by ObjectId if 24 chars
+    if len(req.registration_id) == 24:
+        try:
+            reg = await _db.workshop_registrations.find_one({"_id": ObjectId(req.registration_id)})
+        except Exception:
+            pass
+
+    # 2. Try by short-id (last 8 chars) suffix
+    if not reg:
+        async for w in _db.workshop_registrations.find({}):
+            if str(w["_id"])[-8:] == req.registration_id:
+                reg = w
+                break
+
+    if not reg:
+        raise HTTPException(404, "Workshop registration not found")
+
+    weeks = reg.get("weeks", 4)
+    current_week = reg.get("current_week", 1)
+    status = reg.get("status", "registered")
+
+    if req.action == "start":
+        status = "in_progress"
+        current_week = 1
+    elif req.action == "advance":
+        status = "in_progress"
+        current_week += 1
+        if current_week >= weeks:
+            status = "completed"
+    elif req.action == "complete":
+        status = "completed"
+        current_week = weeks
+
+    update_doc: Dict[str, Any] = {
+        "status": status,
+        "current_week": current_week
+    }
+
+    if status == "completed":
+        update_doc["completed_at"] = _now()
+        update_doc["certificate_url"] = f"https://certificates.example.com/{reg.get('student_email')}-{str(reg['_id'])[-8:]}"
+
+    await _db.workshop_registrations.update_one(
+        {"_id": reg["_id"]},
+        {"$set": update_doc}
+    )
+
+    return {
+        "ok": True,
+        "status": status,
+        "current_week": current_week,
+        "completed_at": update_doc.get("completed_at"),
+        "certificate_url": update_doc.get("certificate_url"),
+    }
 
 
 # ════════════════════════════════════════════════════════════════
