@@ -110,11 +110,26 @@ async def create_booking(req: BookingCreate):
         "scheduled_at": sched,
         "duration_minutes": req.duration_minutes,
         "amount_paid": mentor.get("expected_rate_inr", 999),
-        "status": "confirmed",
+        "status": "pending",
         "created_at": _now(),
         "_user_created": True,
     }
     res = await _db.bookings.insert_one(doc)
+    
+    # Write to notifications
+    try:
+        await _db.notifications.insert_one({
+            "user_id": str(mentor["_id"]),
+            "title": "New booking request",
+            "body": f"{student.get('full_name') or 'A student'} has requested a session on '{req.topic}' for {sched.isoformat()}.",
+            "type": "booking_request",
+            "read": False,
+            "created_at": _now(),
+            "booking_id": str(res.inserted_id),
+        })
+    except Exception:
+        pass
+        
     return {"ok": True, "booking_id": _short_id(res.inserted_id), "scheduled_at": sched.isoformat(), "amount_paid": doc["amount_paid"]}
 
 
@@ -438,6 +453,7 @@ async def enroll_workshop(req: WorkshopEnroll):
         "fee_inr": req.fee_inr,
         "weeks": req.weeks,
         "status": "registered",
+        "current_week": 1,
         "registered_at": _now(),
     }
     res = await _db.workshop_registrations.insert_one(doc)
@@ -455,11 +471,89 @@ async def my_workshops(email: Optional[str] = None):
             "fee_inr": w.get("fee_inr"),
             "weeks": w.get("weeks"),
             "status": w.get("status"),
+            "current_week": w.get("current_week", 1),
             "completed_at": w.get("completed_at"),
             "certificate_url": w.get("certificate_url"),
             "registered_at": w.get("registered_at"),
         })
     return {"items": out, "count": len(out)}
+
+
+class WorkshopProgressReq(BaseModel):
+    student_email: str
+    registration_id: str
+    action: str  # "start", "advance", "complete"
+
+
+@router.post("/student/workshops/progress")
+async def progress_workshop(req: WorkshopProgressReq):
+    if req.action not in ["start", "advance", "complete"]:
+        raise HTTPException(400, f"Invalid action: {req.action}. Must be 'start', 'advance', or 'complete'.")
+
+    # Resolve student to ensure strict authorization and scoping
+    student = await _resolve_user("student", req.student_email)
+    student_id_str = str(student["_id"])
+
+    # Find the registration scoped strictly to the student
+    reg = None
+    # 1. Try by ObjectId if 24 chars
+    if len(req.registration_id) == 24:
+        try:
+            reg = await _db.workshop_registrations.find_one({
+                "_id": ObjectId(req.registration_id),
+                "student_id": student_id_str
+            })
+        except Exception:
+            pass
+
+    # 2. Try by short-id (last 8 chars) suffix, scoped strictly to the student
+    if not reg:
+        async for w in _db.workshop_registrations.find({"student_id": student_id_str}):
+            if str(w["_id"])[-8:] == req.registration_id:
+                reg = w
+                break
+
+    if not reg:
+        raise HTTPException(404, "Workshop registration not found for the calling student")
+
+    weeks = max(1, int(reg.get("weeks") or 4))
+    current_week = int(reg.get("current_week") or 1)
+    current_week = max(1, min(current_week, weeks))
+    status = reg.get("status") or "registered"
+
+    if req.action == "start":
+        status = "in_progress"
+        current_week = 1
+    elif req.action == "advance":
+        status = "in_progress"
+        current_week = min(current_week + 1, weeks)
+        if current_week >= weeks:
+            status = "completed"
+    elif req.action == "complete":
+        status = "completed"
+        current_week = weeks
+
+    update_doc: Dict[str, Any] = {
+        "status": status,
+        "current_week": current_week
+    }
+
+    if status == "completed":
+        update_doc["completed_at"] = reg.get("completed_at") or _now()
+        update_doc["certificate_url"] = reg.get("certificate_url") or f"https://certificates.example.com/{_short_id(reg['_id'])}"
+
+    await _db.workshop_registrations.update_one(
+        {"_id": reg["_id"]},
+        {"$set": update_doc}
+    )
+
+    return {
+        "ok": True,
+        "status": status,
+        "current_week": current_week,
+        "completed_at": update_doc.get("completed_at"),
+        "certificate_url": update_doc.get("certificate_url"),
+    }
 
 
 # ════════════════════════════════════════════════════════════════

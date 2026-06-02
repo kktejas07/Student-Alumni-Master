@@ -99,6 +99,7 @@ async def _log_inbox(db, user_id: str, title: str, body: str, data: Optional[Dic
         "title": title,
         "body": body,
         "data": data or {},
+        "type": (data or {}).get("type"),
         "read": False,
         "created_at": datetime.now(timezone.utc),
     })
@@ -116,6 +117,8 @@ async def list_inbox(db, user_id: str, limit: int = 30) -> List[Dict[str, Any]]:
             it["created_at"] = it["created_at"].isoformat()
         if "body" in it and "message" not in it:
             it["message"] = it["body"]
+        if "data" in it and isinstance(it["data"], dict) and "type" in it["data"] and "type" not in it:
+            it["type"] = it["data"]["type"]
     return items
 
 

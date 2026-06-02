@@ -82,17 +82,30 @@ export default function HigherEducationScreen() {
   const [compareOpen, setCompareOpen] = useState(false);
   const [aiTool, setAiTool] = useState<null | { type: 'sop' | 'cv' | 'cover' | 'lor' | 'elig' | 'profile'; programmeId?: string }>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmAfterRedirectProg, setConfirmAfterRedirectProg] = useState<Programme | null>(null);
+  const [appliedAppMap, setAppliedAppMap] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     try {
-      const [p, s, c] = await Promise.all([
+      const [p, s, c, a] = await Promise.all([
         request<{ programmes: Programme[] }>('/he/programmes'),
         request<{ scholarships: Scholarship[] }>('/he/scholarships'),
         request<{ countries: Country[] }>('/he/countries'),
+        request<{ applications: any[] }>('/he/applications').catch(() => ({ applications: [] })),
       ]);
       setProgrammes(p.programmes || []);
       setScholarships(s.scholarships || []);
       setCountries(c.countries || []);
+
+      const appMap: Record<string, string> = {};
+      if (a?.applications) {
+        a.applications.forEach((app: any) => {
+          if (app.programme_id) {
+            appMap[app.programme_id] = app.app_id;
+          }
+        });
+      }
+      setAppliedAppMap(appMap);
     } catch (e: any) {
       setError(e?.message || 'Could not load data');
     } finally { setLoading(false); }
@@ -106,16 +119,31 @@ export default function HigherEducationScreen() {
     setSelectedIds(next);
   };
 
-  const onApply = async (p: Programme) => {
+  const onApplyClick = async (p: Programme) => {
+    try {
+      const url = p.apply_url || 'https://google.com';
+      if (Platform.OS === 'web') {
+        (window as any).open(url, '_blank', 'noopener,noreferrer');
+      } else {
+        await Linking.openURL(url);
+      }
+    } catch (e: any) {
+      console.warn("Could not open apply URL:", e);
+    }
+    setConfirmAfterRedirectProg(p);
+  };
+
+  const executeApply = async (p: Programme) => {
     try {
       const r = await request<any>('/he/apply', { method: 'POST', body: { programme_id: p.id } });
-      if (r?.apply_url) {
-        if (Platform.OS === 'web') (window as any).open(r.apply_url, '_blank', 'noopener,noreferrer');
-        else await Linking.openURL(r.apply_url);
-      }
       const aid = r?.application?.app_id;
-      if (aid) router.push(`/applications/${aid}` as any);
-    } catch (e: any) { setError(e?.message || 'Apply failed'); }
+      if (aid) {
+        setAppliedAppMap((prev) => ({ ...prev, [p.id]: aid }));
+        router.push(`/applications/${aid}` as any);
+      }
+    } catch (e: any) {
+      setError(e?.message || 'Apply failed');
+    }
   };
 
   const filterScholarshipsByCountry = (countryId: string) => {
@@ -185,10 +213,11 @@ export default function HigherEducationScreen() {
                     key={p.id} p={p}
                     selected={selectedIds.has(p.id)}
                     onCompareToggle={() => toggleCompare(p.id)}
-                    onApply={() => onApply(p)}
+                    onApply={() => onApplyClick(p)}
                     onDraftSOP={() => setAiTool({ type: 'sop', programmeId: p.id })}
                     onDetails={() => setAiTool({ type: 'elig', programmeId: p.id })}
                     onCoverLetter={() => setAiTool({ type: 'cover', programmeId: p.id })}
+                    appId={appliedAppMap[p.id]}
                   />
                 ))}
               </View>
@@ -297,8 +326,59 @@ export default function HigherEducationScreen() {
         visible={compareOpen}
         ids={Array.from(selectedIds)}
         onClose={() => setCompareOpen(false)}
-        onApply={onApply}
+        onApply={(p) => {
+          setCompareOpen(false);
+          onApplyClick(p);
+        }}
+        appliedAppMap={appliedAppMap}
       />
+
+      {/* Confirmation Modal */}
+      <Modal
+        visible={!!confirmAfterRedirectProg}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConfirmAfterRedirectProg(null)}
+      >
+        <View style={s.modalBackdrop}>
+          <View style={s.confirmModal}>
+            <View style={s.confirmHead}>
+              <MaterialCommunityIcons name="check-decagram" size={20} color="#34D399" />
+              <Text style={s.confirmTitle}>Application Status</Text>
+            </View>
+
+            <View style={s.confirmBody}>
+              <Text style={s.confirmText}>
+                Did you complete your application for <Text style={s.boldText}>{confirmAfterRedirectProg?.name}</Text> at <Text style={s.boldText}>{confirmAfterRedirectProg?.institution}</Text>?
+              </Text>
+              <Text style={s.confirmSubtext}>
+                We opened the official university portal in a new tab. If you successfully completed and submitted the application, click "Yes, I Applied" to begin tracking.
+              </Text>
+            </View>
+
+            <View style={s.confirmActions}>
+              <Pressable
+                style={s.cancelBtn}
+                onPress={() => setConfirmAfterRedirectProg(null)}
+              >
+                <Text style={s.cancelBtnText}>No, Cancelled</Text>
+              </Pressable>
+              <Pressable
+                style={s.confirmBtn}
+                onPress={() => {
+                  if (confirmAfterRedirectProg) {
+                    const p = confirmAfterRedirectProg;
+                    setConfirmAfterRedirectProg(null);
+                    executeApply(p);
+                  }
+                }}
+              >
+                <Text style={s.confirmBtnText}>Yes, I Applied</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* AI Tools modal */}
       <AIToolsModal
@@ -312,11 +392,13 @@ export default function HigherEducationScreen() {
 
 // ─── Programme Card ──────────────────────────────────────────────────────
 function ProgrammeCard({
-  p, selected, onCompareToggle, onApply, onDraftSOP, onDetails, onCoverLetter,
+  p, selected, onCompareToggle, onApply, onDraftSOP, onDetails, onCoverLetter, appId,
 }: {
   p: Programme; selected: boolean; onCompareToggle: () => void;
   onApply: () => void; onDraftSOP: () => void; onDetails: () => void; onCoverLetter: () => void;
+  appId?: string;
 }) {
+  const router = useRouter();
   const tier = matchTier(p.match);
   const tags = (p.tags || []).slice(0, 3);
   const overflow = (p.tags || []).length - tags.length;
@@ -336,17 +418,17 @@ function ProgrammeCard({
           <Text style={[s.matchText, { color: tier.fg }]}>{p.match}% match</Text>
         </View>
       </View>
-
+ 
       <Text style={s.cardTitle} numberOfLines={2}>{p.name}</Text>
       <Text style={s.cardSub}>{p.institution}</Text>
-
+ 
       <View style={s.statsGrid}>
         <Stat label="Duration" value={p.duration} />
         <Stat label="Fee" value={p.fee} good={p.fee.toLowerCase().includes('funded') || p.fee_amount === 0} />
         <Stat label="Mode" value={p.mode} />
         <Stat label="Intake" value={p.intake} />
       </View>
-
+ 
       {tags.length > 0 && (
         <View style={s.tagRow}>
           {tags.map((t) => {
@@ -365,11 +447,20 @@ function ProgrammeCard({
           )}
         </View>
       )}
-
+ 
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-        <Pressable style={[s.applyBtn, { flex: 1 }]} onPress={onApply}>
-          <Text style={s.applyBtnText}>Apply →</Text>
-        </Pressable>
+        {appId ? (
+          <Pressable
+            style={[s.applyBtn, { flex: 1, backgroundColor: 'rgba(52,211,153,0.15)', borderColor: '#34D399', borderWidth: 1 }]}
+            onPress={() => router.push(`/applications/${appId}` as any)}
+          >
+            <Text style={[s.applyBtnText, { color: '#34D399' }]}>Applied ✓</Text>
+          </Pressable>
+        ) : (
+          <Pressable style={[s.applyBtn, { flex: 1 }]} onPress={onApply}>
+            <Text style={s.applyBtnText}>Apply →</Text>
+          </Pressable>
+        )}
         <Pressable style={s.detailsBtn} onPress={onDetails}>
           <Text style={s.detailsBtnText}>Eligibility</Text>
         </Pressable>
@@ -402,10 +493,11 @@ function Stat({ label, value, good }: { label: string; value: string; good?: boo
   );
 }
 
-// ─── Compare Modal ───────────────────────────────────────────────────────
-function CompareModal({ visible, ids, onClose, onApply }: {
+function CompareModal({ visible, ids, onClose, onApply, appliedAppMap }: {
   visible: boolean; ids: string[]; onClose: () => void; onApply: (p: Programme) => void;
+  appliedAppMap: Record<string, string>;
 }) {
+  const router = useRouter();
   const [data, setData] = useState<{ programmes: Programme[]; rows: any[]; tied: boolean; tie_breaker_note?: string } | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -481,13 +573,28 @@ function CompareModal({ visible, ids, onClose, onApply }: {
                   {/* Apply row */}
                   <View style={s.compareRow}>
                     <View style={s.compareLabelCell} />
-                    {data.programmes.map((p) => (
-                      <View key={p.id} style={s.compareCell}>
-                        <Pressable style={s.applyBtn} onPress={() => onApply(p)}>
-                          <Text style={s.applyBtnText}>Apply →</Text>
-                        </Pressable>
-                      </View>
-                    ))}
+                    {data.programmes.map((p) => {
+                      const appId = appliedAppMap[p.id];
+                      return (
+                        <View key={p.id} style={s.compareCell}>
+                          {appId ? (
+                            <Pressable
+                              style={[s.applyBtn, { backgroundColor: 'rgba(52,211,153,0.15)', borderColor: '#34D399', borderWidth: 1 }]}
+                              onPress={() => {
+                                onClose();
+                                router.push(`/applications/${appId}` as any);
+                              }}
+                            >
+                              <Text style={[s.applyBtnText, { color: '#34D399' }]}>Applied ✓</Text>
+                            </Pressable>
+                          ) : (
+                            <Pressable style={s.applyBtn} onPress={() => onApply(p)}>
+                              <Text style={s.applyBtnText}>Apply →</Text>
+                            </Pressable>
+                          )}
+                        </View>
+                      );
+                    })}
                   </View>
                 </View>
               </ScrollView>
@@ -847,4 +954,32 @@ const s = StyleSheet.create({
   aiResultTitle: { color: '#A78BFA', fontSize: 13, fontWeight: '800', marginBottom: 8 },
   aiResultBody: { color: '#fff', fontSize: 13, lineHeight: 20 },
   aiNote: { color: '#34D399', fontSize: 11, fontStyle: 'italic' },
+
+  // Confirm modal
+  confirmModal: {
+    width: '90%', maxWidth: 440,
+    backgroundColor: '#1A1626', borderRadius: 16, padding: 20,
+    borderColor: 'rgba(124,58,237,0.30)', borderWidth: 1,
+    gap: 16,
+  },
+  confirmHead: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: C.border,
+  },
+  confirmTitle: { color: '#fff', fontSize: 16, fontWeight: '800', fontFamily: 'Outfit_800ExtraBold' },
+  confirmBody: { gap: 8 },
+  confirmText: { color: '#fff', fontSize: 13.5, lineHeight: 20, fontFamily: 'PlusJakartaSans_500Medium' },
+  boldText: { fontWeight: '700', color: '#A78BFA' },
+  confirmSubtext: { color: C.text2, fontSize: 12, lineHeight: 18, fontFamily: 'PlusJakartaSans_500Medium' },
+  confirmActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
+  cancelBtn: {
+    paddingVertical: 9, paddingHorizontal: 14, borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.06)', borderColor: C.border, borderWidth: 1,
+  },
+  cancelBtnText: { color: C.text2, fontSize: 12, fontWeight: '700' },
+  confirmBtn: {
+    paddingVertical: 9, paddingHorizontal: 14, borderRadius: 8,
+    backgroundColor: '#7C3AED',
+  },
+  confirmBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' },
 });

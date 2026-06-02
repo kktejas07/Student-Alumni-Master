@@ -33,6 +33,7 @@ import {
 import { Colors as C, Spacing, Typography, Radius } from '@/src/theme';
 import { Card } from '@/src/views/components';
 import { api } from '@/src/models/services/api';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 type Notif = {
   id: string;
@@ -47,6 +48,7 @@ type Notif = {
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const user = useAuthStore((s) => s.user);
   const [items, setItems] = useState<Notif[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -108,15 +110,42 @@ export default function NotificationsScreen() {
                 key={n.id}
                 notif={n}
                 onPress={() => {
-                  // Route depending on type
-                  if (n.type === 'connection_request' || n.type === 'connection_accepted') {
-                    router.push('/network');
+                  const role = user?.role || 'student';
+                  const lowerType = (n.type || '').toLowerCase();
+                  
+                  if (lowerType === 'booking_request' || lowerType === 'booking_pending') {
+                    if (role === 'mentor') {
+                      router.push('/mentor-portal?tab=requests');
+                    } else {
+                      router.push('/(tabs)/profile');
+                    }
+                  } else if (lowerType === 'connection_request' || lowerType === 'connection_accepted') {
+                    if (role === 'mentor') {
+                      router.push('/mentor-portal?tab=students');
+                    } else {
+                      router.push('/network');
+                    }
                   } else if (n.booking_id) {
-                    router.push('/(tabs)/profile');
-                  } else if (n.type === 'event' && n.data?.event_id) {
+                    if (role === 'mentor') {
+                      router.push('/mentor-portal?tab=sessions');
+                    } else {
+                      router.push('/(tabs)/profile');
+                    }
+                  } else if (lowerType === 'event' && n.data?.event_id) {
                     router.push(`/event/${n.data.event_id}` as any);
-                  } else if (n.type === 'review') {
-                    router.push('/(tabs)/profile');
+                  } else if (lowerType === 'review') {
+                    if (role === 'mentor') {
+                      router.push('/mentor-portal?tab=feedback');
+                    } else {
+                      router.push('/(tabs)/profile');
+                    }
+                  } else {
+                    // Fallback
+                    if (role === 'mentor') {
+                      router.push('/mentor-portal');
+                    } else {
+                      router.push('/(tabs)/profile');
+                    }
                   }
                 }}
               />

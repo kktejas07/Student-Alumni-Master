@@ -258,6 +258,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.08)',
     borderColor: C.border, borderWidth: 1,
+    ...({ cursor: 'pointer' } as any),
   },
   backBtnText: { color: '#fff', fontSize: 11, fontWeight: '700' },
 

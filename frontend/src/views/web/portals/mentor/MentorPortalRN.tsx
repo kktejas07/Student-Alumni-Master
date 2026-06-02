@@ -12,9 +12,9 @@
  *   • My Connections, Sessions, Session Requests, Network, Earnings,
  *     Feedback, Create Event, Profile
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 import { MC } from './tokens';
@@ -59,10 +59,17 @@ export default function MentorPortalRN() {
   const router = useRouter();
   const logout = useAuthStore((st) => st.logout);
 
+  const params = useLocalSearchParams();
   const [active, setActive] = useState<NavId>('dashboard');
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState('');
   useAutoTour('mentor');
+
+  useEffect(() => {
+    if (params.tab && PAGE_TITLES[params.tab as NavId]) {
+      setActive(params.tab as NavId);
+    }
+  }, [params.tab]);
 
   const [decisions, setDecisions] = useState<Record<number, 'pending' | 'accepted' | 'declined'>>({});
 

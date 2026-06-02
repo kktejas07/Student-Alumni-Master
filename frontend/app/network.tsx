@@ -77,7 +77,7 @@ interface Person {
 interface Section { key: string; title: string; subtitle: string; icon?: string; tint?: string; items: Person[]; }
 
 const SECTION_ICONS: Record<string, any> = {
-  Heart, Briefcase, GraduationCap, UserCheck, Compass, Code2,
+  Heart, Briefcase, GraduationCap, UserCheck, Compass, Code2, Users,
 };
 
 type TabKey = 'discover' | 'connections' | 'requests';

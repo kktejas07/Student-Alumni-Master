@@ -48,6 +48,7 @@ export function Sidebar({
   const initials = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || MENTOR.avatar).toUpperCase();
   const photo = user?.photo_data || user?.face_image_base64;
   const role = user?.mentor_info?.current_role || user?.mentor_info?.job_title || user?.current_role || user?.headline || MENTOR.role;
+  const jobTitle = role;
   const company = user?.mentor_info?.current_company || user?.mentor_info?.organization || user?.current_company || MENTOR.company;
 
   const items = NAV_MAIN(counts);

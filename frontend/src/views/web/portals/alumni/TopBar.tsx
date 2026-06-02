@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { Bell, Search } from './iconShims';
 import { SC, FONTS } from './tokens';
 import { STUDENT } from './data';
