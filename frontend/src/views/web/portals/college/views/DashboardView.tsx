@@ -23,6 +23,7 @@ import { TierBadge } from '@/src/views/web/TierBadge';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
+import type { CollegeNavId } from '../Sidebar';
 
 const KPI_ICONS = { students: GraduationCap, alumni: Users, placement: Trophy, events: CalendarDays } as const;
 
@@ -39,7 +40,13 @@ const COLLEGE_MOCK = {
   topRecruiters: MOCK.TOP_RECRUITERS,
 };
 
-export function DashboardView({ onOpenProfile }: { onOpenProfile?: () => void }) {
+export function DashboardView({
+  onOpenProfile,
+  onNavigate,
+}: {
+  onOpenProfile?: () => void;
+  onNavigate?: (id: CollegeNavId) => void;
+}) {
   const user = useAuthStore((state) => state.user);
   const collegeName = user?.college_info?.institution_name || user?.school_info?.institution_name || '';
 
@@ -139,7 +146,7 @@ export function DashboardView({ onOpenProfile }: { onOpenProfile?: () => void })
         <View style={[s.card, { flex: stack ? undefined : 1.7 }]}>
           <View style={s.cardHead}>
             <Text style={s.kicker}>DEPT. PLACEMENT RATES 2025–26</Text>
-            <Pressable><Text style={s.linkRight}>Full report →</Text></Pressable>
+            <Pressable onPress={() => onNavigate?.('analytics')}><Text style={s.linkRight}>Full report →</Text></Pressable>
           </View>
           <View style={{ gap: 14, marginTop: 14 }}>
             {DEPT_PLACEMENT.map((d) => (
@@ -164,7 +171,7 @@ export function DashboardView({ onOpenProfile }: { onOpenProfile?: () => void })
         <View style={[s.card, { flex: stack ? undefined : 1 }]}>
           <View style={s.cardHead}>
             <Text style={s.kicker}>UPCOMING EVENTS</Text>
-            <Pressable><Text style={s.linkRight}>See all →</Text></Pressable>
+            <Pressable onPress={() => onNavigate?.('events')}><Text style={s.linkRight}>See all →</Text></Pressable>
           </View>
           <View style={{ gap: 10, marginTop: 12 }}>
             {UPCOMING_EVENTS.map((e) => (
@@ -179,7 +186,7 @@ export function DashboardView({ onOpenProfile }: { onOpenProfile?: () => void })
               </View>
             ))}
           </View>
-          <Pressable style={({ hovered }: any) => [s.createBtn, hovered && { backgroundColor: CC.primaryD }]}>
+          <Pressable onPress={() => onNavigate?.('create-event')} style={({ hovered }: any) => [s.createBtn, hovered && { backgroundColor: CC.primaryD }]}>
             <Plus size={14} color="#fff" />
             <Text style={s.createBtnText}>Create New Event</Text>
           </Pressable>
@@ -192,7 +199,7 @@ export function DashboardView({ onOpenProfile }: { onOpenProfile?: () => void })
         <View style={[s.card, { flex: stack ? undefined : 1.7 }]}>
           <View style={s.cardHead}>
             <Text style={s.kicker}>RECENT ACTIVITY</Text>
-            <Pressable><Text style={s.linkRight}>View all →</Text></Pressable>
+            <Pressable onPress={() => onNavigate?.('analytics')}><Text style={s.linkRight}>View all →</Text></Pressable>
           </View>
           <View style={{ gap: 12, marginTop: 12 }}>
             {RECENT_ACTIVITY.map((a) => {
@@ -216,7 +223,7 @@ export function DashboardView({ onOpenProfile }: { onOpenProfile?: () => void })
         <View style={[s.card, { flex: stack ? undefined : 1 }]}>
           <View style={s.cardHead}>
             <Text style={s.kicker}>TOP RECRUITERS</Text>
-            <Pressable><Text style={s.linkRight}>All →</Text></Pressable>
+            <Pressable onPress={() => onNavigate?.('placements')}><Text style={s.linkRight}>All →</Text></Pressable>
           </View>
           <View style={{ gap: 10, marginTop: 12 }}>
             {TOP_RECRUITERS.map((r) => (
@@ -231,7 +238,7 @@ export function DashboardView({ onOpenProfile }: { onOpenProfile?: () => void })
               </View>
             ))}
           </View>
-          <Pressable style={({ hovered }: any) => [s.alumniCta, hovered && { backgroundColor: CC.cardH }]}>
+          <Pressable onPress={() => onNavigate?.('alumni')} style={({ hovered }: any) => [s.alumniCta, hovered && { backgroundColor: CC.cardH }]}>
             <Building2 size={13} color={CC.accentBright} />
             <Text style={s.alumniCtaText}>View Alumni Network</Text>
             <ArrowRight size={13} color={CC.accentBright} />

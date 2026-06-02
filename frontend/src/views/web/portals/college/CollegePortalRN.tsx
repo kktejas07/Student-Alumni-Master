@@ -69,7 +69,12 @@ export function CollegePortalRN() {
           showsVerticalScrollIndicator={false}
         >
           <PromoBanner portal="college" />
-          {active === 'dashboard'    && <DashboardView onOpenProfile={() => setActive('profile')} />}
+          {active === 'dashboard'    && (
+            <DashboardView
+              onOpenProfile={() => setActive('profile')}
+              onNavigate={setActive}
+            />
+          )}
           {active === 'students'     && <StudentsView />}
           {active === 'alumni'       && <AlumniView />}
           {active === 'mentors'      && <MentorsView />}
