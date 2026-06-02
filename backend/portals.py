@@ -2168,7 +2168,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "sessions": mi.get("sessions") or 0,
         })
 
-    return {"items": out[:limit]}
+    return {"items": out}
 
 
 # ════════════════════════════════════════════════════════════════

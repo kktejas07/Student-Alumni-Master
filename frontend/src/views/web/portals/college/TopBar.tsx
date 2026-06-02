@@ -86,6 +86,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 22, paddingVertical: 12,
     borderBottomWidth: 1, borderBottomColor: CC.border,
     backgroundColor: CC.bg2,
+    zIndex: 50,
   },
   title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.4 },
   searchBox: {
