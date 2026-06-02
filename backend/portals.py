@@ -439,7 +439,7 @@ async def student_intelligence(student_email: Optional[str] = None):
     import hashlib, random
     student = None
     if student_email:
-        student = await _db.users.find_one({"email": student_email, "role": "student"})
+        student = await _db.users.find_one({"email": student_email})
     if not student:
         student = await _db.users.find_one({"role": "student", "onboarding_completed": True})
     if not student:
@@ -517,6 +517,44 @@ async def student_intelligence(student_email: Optional[str] = None):
         except Exception:
             pass
 
+        try:
+            sess_cursor = _db.sessions.find({"user_id": sid}).sort("created_at", -1).limit(4)
+            sessions_list = [s async for s in sess_cursor]
+
+            # Gather unique mentor IDs
+            mentor_ids = set()
+            for s in sessions_list:
+                mid = s.get("mentor_id")
+                if mid and isinstance(mid, str) and ObjectId.is_valid(mid):
+                    mentor_ids.add(ObjectId(mid))
+
+            # Batch fetch mentors
+            mentors_map = {}
+            if mentor_ids:
+                async for m in _db.users.find({"_id": {"$in": list(mentor_ids)}}):
+                    mentors_map[str(m["_id"])] = m
+
+            for s in sessions_list:
+                try:
+                    ts = s.get("created_at") or s.get("scheduled_at")
+                    mid_str = s.get("mentor_id")
+                    mentor = mentors_map.get(mid_str) if mid_str else None
+                    mentor_name = (mentor or {}).get("full_name") or (mentor or {}).get("name") or "Mentor"
+                    activity_events.append({
+                        "title": "Mentor Session Booked",
+                        "sub": f"{s.get('topic', '1:1 Mentorship Session')} • {mentor_name}",
+                        "amount": None,
+                        "amountTone": None,
+                        "icon": "account-tie-voice-outline",
+                        "tint": "#A855F7",
+                        "bgTint": "rgba(168,85,247,0.15)",
+                        "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
+                    })
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
         # 2. Internship Applications
         try:
             app_cursor = _db.internship_applications.find({"student_id": sid}).sort("applied_at", -1).limit(4)
@@ -558,27 +596,45 @@ async def student_intelligence(student_email: Optional[str] = None):
             conn_cursor = _db.connections.find({
                 "$or": [{"a": sid}, {"b": sid}]
             }).sort("created_at", -1).limit(4)
-            async for c in conn_cursor:
-                status = c.get("status")
+            conns_list = [c async for c in conn_cursor]
+
+            # Gather unique other IDs
+            other_ids = set()
+            for c in conns_list:
                 other_id = c["b"] if c["a"] == sid else c["a"]
-                other_u = await _db.users.find_one({"_id": ObjectId(other_id)}) if len(other_id) == 24 else None
-                other_name = other_u.get("full_name") if other_u else "Someone"
+                if other_id and isinstance(other_id, str) and ObjectId.is_valid(other_id):
+                    other_ids.add(ObjectId(other_id))
 
-                ts = c.get("accepted_at") if status == "accepted" else c.get("created_at")
-                title = "Connection Connected" if status == "accepted" else "Connection Requested"
-                sub = f"Connected with {other_name}" if status == "accepted" else f"Request from {other_name}"
-                icon = "account-multiple-check" if status == "accepted" else "account-plus-outline"
+            # Batch fetch other users
+            users_map = {}
+            if other_ids:
+                async for u in _db.users.find({"_id": {"$in": list(other_ids)}}):
+                    users_map[str(u["_id"])] = u
 
-                activity_events.append({
-                    "title": title,
-                    "sub": sub,
-                    "amount": None,
-                    "amountTone": None,
-                    "icon": icon,
-                    "tint": "#06B6D4",
-                    "bgTint": "rgba(6,182,212,0.15)",
-                    "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
-                })
+            for c in conns_list:
+                try:
+                    status = c.get("status")
+                    other_id = c["b"] if c["a"] == sid else c["a"]
+                    other_u = users_map.get(other_id) if other_id else None
+                    other_name = other_u.get("full_name") if other_u else "Someone"
+
+                    ts = c.get("accepted_at") if status == "accepted" else c.get("created_at")
+                    title = "Connection Connected" if status == "accepted" else "Connection Requested"
+                    sub = f"Connected with {other_name}" if status == "accepted" else f"Request from {other_name}"
+                    icon = "account-multiple-check" if status == "accepted" else "account-plus-outline"
+
+                    activity_events.append({
+                        "title": title,
+                        "sub": sub,
+                        "amount": None,
+                        "amountTone": None,
+                        "icon": icon,
+                        "tint": "#06B6D4",
+                        "bgTint": "rgba(6,182,212,0.15)",
+                        "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
+                    })
+                except Exception:
+                    pass
         except Exception:
             pass
 

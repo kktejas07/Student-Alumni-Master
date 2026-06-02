@@ -14,7 +14,7 @@
  * blur can react to scroll without re-rendering the whole tree.
  */
 import React, { useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, Platform, Image } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, Platform, Image } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Bell, Search } from './iconShims';
@@ -29,6 +29,7 @@ import { SP, RADII, FONT_FAMILY } from '@/src/theme/apple';
 import { GlassTopbar } from '@/src/motion/apple/components';
 import { FadeInView, PressScale, PulseDot } from './motion';
 import { PALETTE, TYPO } from './tokens';
+import { StudentPortalNavContext } from './StudentPortalRN';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -41,17 +42,33 @@ import { Sidebar, StudentNavId } from './Sidebar';
 
 export function TopBar({
   scrolled = false,
-  onNav,
+  activeView = 'dashboard',
   onAvatarPress,
 }: {
   scrolled?: boolean;
-  onNav?: (id: StudentNavId) => void;
+  activeView?: string;
   onAvatarPress?: () => void;
 } = {}) {
   const router = useRouter();
   const { theme, isDark, mode, setMode } = useTheme();
   const bp = useBreakpoint();
   const user = useAuthStore((u) => u.user) as any;
+  const portalNav = React.useContext(StudentPortalNavContext);
+  const [q, setQ] = React.useState(portalNav?.searchQuery || '');
+
+  useEffect(() => {
+    setQ(portalNav?.searchQuery || '');
+  }, [portalNav?.searchQuery]);
+
+  const handleSearch = () => {
+    if (q.trim() && portalNav) {
+      portalNav.setSearchQuery(q.trim());
+      if (activeView !== 'network' && activeView !== 'internships') {
+        portalNav.navigate('internships');
+      }
+    }
+  };
+
   const fullName: string = (user?.full_name
     || `${user?.first_name || ''} ${user?.last_name || ''}`).trim()
     || STUDENT.name;
@@ -101,8 +118,17 @@ export function TopBar({
         {showSearch && (
           <FadeInView delay={120}>
             <View style={[s.searchBox, { backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder }]}>
-              <Search size={14} color={PALETTE.dim} />
+              <Pressable
+                onPress={handleSearch}
+                style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}
+                accessibilityLabel="Execute search"
+              >
+                <Search size={14} color={q.trim() ? PALETTE.text : PALETTE.dim} />
+              </Pressable>
               <TextInput
+                value={q}
+                onChangeText={setQ}
+                onSubmitEditing={handleSearch}
                 placeholder="Search anything…"
                 placeholderTextColor={PALETTE.dim}
                 style={[s.searchInput, { color: PALETTE.text, fontFamily: TYPO.body500 }]}

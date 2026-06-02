@@ -36,10 +36,17 @@ import HigherEducationPage from '@/app/higher-education';
 import DealsPage from '@/app/deals';
 import WalletPage from '@/app/wallet';
 
+export const AlumniPortalNavContext = React.createContext<{
+  navigate: (id: StudentNavId, params?: { q?: string }) => void;
+  searchQuery: string;
+  setSearchQuery: (q: string) => void;
+} | null>(null);
+
 export function AlumniPortalRN() {
   const router = useRouter();
   const logout = useAuthStore((sx) => sx.logout);
   const [active, setActive] = useState<StudentNavId>('dashboard');
+  const [searchQuery, setSearchQuery] = useState('');
   useAutoTour('alumni');
 
   const onLogout = async () => {
@@ -47,7 +54,12 @@ export function AlumniPortalRN() {
     router.replace('/welcome');
   };
 
-  const handleNav = (id: StudentNavId) => setActive(id);
+  const handleNav = (id: StudentNavId, params?: { q?: string }) => {
+    setActive(id);
+    if (params && typeof params.q === 'string') {
+      setSearchQuery(params.q);
+    }
+  };
 
   return (
     <View style={s.shell}>
@@ -63,14 +75,15 @@ export function AlumniPortalRN() {
 
       <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0 }}>
-        <TopBar onAvatarPress={() => setActive('profile')} />
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
-          showsVerticalScrollIndicator={false}
-        >
-          <EmbeddedShellContext.Provider value={true}>
-            <PromoBanner portal="alumni" />
+        <AlumniPortalNavContext.Provider value={{ navigate: handleNav, searchQuery, setSearchQuery }}>
+          <TopBar activeView={active} onAvatarPress={() => setActive('profile')} />
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
+            showsVerticalScrollIndicator={false}
+          >
+            <EmbeddedShellContext.Provider value={true}>
+              <PromoBanner portal="alumni" />
             {active === 'dashboard'       && (
               <DashboardView
                 onOpenProfile={() => setActive('profile')}
@@ -97,6 +110,7 @@ export function AlumniPortalRN() {
           </EmbeddedShellContext.Provider>
           <DashboardFooter portal="alumni" />
         </ScrollView>
+        </AlumniPortalNavContext.Provider>
       </View>
     </View>
   );

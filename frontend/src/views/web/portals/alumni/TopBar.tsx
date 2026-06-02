@@ -1,7 +1,4 @@
-/**
- * Student Portal — top bar with greeting + bell + search + avatar.
- */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Bell, Search } from './iconShims';
@@ -9,7 +6,7 @@ import { SC, FONTS } from './tokens';
 import { STUDENT } from './data';
 import { Av } from './atoms';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
-import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { AlumniPortalNavContext } from './AlumniPortalRN';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -18,13 +15,30 @@ function greeting(): string {
   return 'Good evening';
 }
 
-export function TopBar({ onAvatarPress }: { onAvatarPress?: () => void } = {}) {
+export function TopBar({
+  activeView = 'dashboard',
+  onAvatarPress,
+}: {
+  activeView?: string;
+  onAvatarPress?: () => void;
+} = {}) {
   const router = useRouter();
-  const user = useAuthStore((u) => u.user) as any;
-  const fullName = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || STUDENT.name;
-  const firstName = fullName.split(' ')[0];
-  const initials = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
-  const photo = user?.photo_data || user?.face_image_base64;
+  const firstName = STUDENT.name.split(' ')[0];
+  const portalNav = React.useContext(AlumniPortalNavContext);
+  const [q, setQ] = React.useState(portalNav?.searchQuery || '');
+
+  useEffect(() => {
+    setQ(portalNav?.searchQuery || '');
+  }, [portalNav?.searchQuery]);
+
+  const handleSearch = () => {
+    if (q.trim() && portalNav) {
+      portalNav.setSearchQuery(q.trim());
+      if (activeView !== 'network' && activeView !== 'internships') {
+        portalNav.navigate('internships');
+      }
+    }
+  };
 
   return (
     <View style={s.bar}>
@@ -34,8 +48,21 @@ export function TopBar({ onAvatarPress }: { onAvatarPress?: () => void } = {}) {
       </View>
 
       <View style={s.searchBox}>
-        <Search size={14} color={SC.dim} />
-        <TextInput placeholder="Search anything…" placeholderTextColor={SC.dim} style={s.searchInput} />
+        <Pressable
+          onPress={handleSearch}
+          style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}
+          accessibilityLabel="Execute search"
+        >
+          <Search size={14} color={q.trim() ? '#fff' : SC.dim} />
+        </Pressable>
+        <TextInput
+          value={q}
+          onChangeText={setQ}
+          onSubmitEditing={handleSearch}
+          placeholder="Search anything…"
+          placeholderTextColor={SC.dim}
+          style={s.searchInput}
+        />
       </View>
 
       <Pressable
