@@ -110,11 +110,26 @@ async def create_booking(req: BookingCreate):
         "scheduled_at": sched,
         "duration_minutes": req.duration_minutes,
         "amount_paid": mentor.get("expected_rate_inr", 999),
-        "status": "confirmed",
+        "status": "pending",
         "created_at": _now(),
         "_user_created": True,
     }
     res = await _db.bookings.insert_one(doc)
+    
+    # Write to notifications
+    try:
+        await _db.notifications.insert_one({
+            "user_id": str(mentor["_id"]),
+            "title": "New booking request",
+            "body": f"{student.get('full_name') or 'A student'} has requested a session on '{req.topic}' for {sched.isoformat()}.",
+            "type": "booking_request",
+            "read": False,
+            "created_at": _now(),
+            "booking_id": str(res.inserted_id),
+        })
+    except Exception:
+        pass
+        
     return {"ok": True, "booking_id": _short_id(res.inserted_id), "scheduled_at": sched.isoformat(), "amount_paid": doc["amount_paid"]}
 
 

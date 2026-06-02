@@ -56,12 +56,15 @@ export function SessionsView() {
   const confirmReschedule = () => {
     if (!reschedulingSession || !pendingDate) return;
     
-    // Parse day to update daysAway mock representation relative to May 1, 2026
+    // Parse scheduled date and time dynamically relative to the current local date
     let daysAway = 7;
-    const dayMatch = pendingDate.match(/May (\d+)/i);
-    if (dayMatch) {
-      const dayNum = parseInt(dayMatch[1], 10);
-      daysAway = Math.max(1, dayNum - 1);
+    try {
+      const now = new Date();
+      const sessionDate = new Date(`${pendingDate} ${selectedTime}`);
+      const diffMs = sessionDate.getTime() - now.getTime();
+      daysAway = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+    } catch (e) {
+      console.error('Error calculating daysAway for rescheduled session:', e);
     }
 
     setStudents((prev) =>
