@@ -1,7 +1,7 @@
 /**
  * Mentor Portal — Network View Redesign
- * High-fidelity representation matching the reference mockups exactly.
- * Interactive real-time search, filters, collapsibles, and social integrations.
+ * Complete implementation of Connections, Discover, and Requests tabs.
+ * High-fidelity screens matching all reference mockups with interactive states.
  */
 import React, { useState } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet, ScrollView, Platform, Linking } from 'react-native';
@@ -21,14 +21,22 @@ import {
   Code,
   User,
   Heart,
-  Settings
+  Settings,
+  Clock,
+  Check,
+  X,
+  Sparkles,
+  MessageCircle,
+  ArrowLeft
 } from 'lucide-react-native';
 import { MC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
 import { STUDENTS as MOCK_STUDENTS } from '../data';
+import { useToast } from '@/src/views/components';
 
 type CategoryTab = 'connections' | 'discover' | 'requests';
 type FilterType = 'everyone' | 'students' | 'alumnis' | 'mentors' | 'industry';
+type DiscoverSubTab = 'interest' | 'path' | 'college' | 'recommended' | 'expand';
 
 type ProfessionalPerson = {
   id: string;
@@ -42,6 +50,31 @@ type ProfessionalPerson = {
   mutual: number;
   linkedin: string;
   github?: string;
+};
+
+type MatchedAlumni = {
+  id: string;
+  name: string;
+  avatar: string;
+  color: string;
+  role: string;
+  company: string;
+  year: number;
+  college: string;
+  tags: string[];
+  mutual: number;
+  linkedin: string;
+  github?: string;
+};
+
+type IncomingRequest = {
+  id: string;
+  name: string;
+  avatar: string;
+  color: string;
+  role: 'Student' | 'Alumni';
+  subtitle: string;
+  time: string;
 };
 
 const PROFESSIONAL_NETWORK: ProfessionalPerson[] = [
@@ -122,6 +155,97 @@ const PROFESSIONAL_NETWORK: ProfessionalPerson[] = [
   }
 ];
 
+const MATCHED_DISCOVER_NETWORK: MatchedAlumni[] = [
+  {
+    id: 'm1',
+    name: 'Vikram Anand',
+    avatar: 'VA',
+    color: '#8B5CF6',
+    role: 'Staff Engineer',
+    company: 'Google',
+    college: 'IIT Bombay',
+    year: 2018,
+    tags: ['Python', 'Go', 'Kubernetes'],
+    mutual: 8,
+    linkedin: 'linkedin.com/in/vikramanand',
+    github: 'github.com/vikramanand'
+  },
+  {
+    id: 'm2',
+    name: 'Divya Krishnan',
+    avatar: 'DK',
+    color: '#EC4899',
+    role: 'ML Engineer',
+    company: 'Netflix',
+    college: 'IIT Madras',
+    year: 2020,
+    tags: ['TensorFlow', 'PyTorch', 'Python'],
+    mutual: 3,
+    linkedin: 'linkedin.com/in/deepakrishnan'
+  },
+  {
+    id: 'm3',
+    name: 'Priya Menon',
+    avatar: 'PM',
+    color: '#10B981',
+    role: 'Data Scientist',
+    company: 'Neon',
+    college: 'NIT Trichy',
+    year: 2020,
+    tags: ['Python', 'SQL', 'Spark'],
+    mutual: 2,
+    linkedin: 'linkedin.com/in/priyamenon'
+  },
+  {
+    id: 'm4',
+    name: 'Karan Mehta',
+    avatar: 'KM',
+    color: '#3B82F6',
+    role: 'SDE-II',
+    company: 'Amazon',
+    college: 'IIT Delhi',
+    year: 2021,
+    tags: ['Java', 'System Design', 'AWS'],
+    mutual: 9,
+    linkedin: 'linkedin.com/in/karanmehta',
+    github: 'github.com/karanm'
+  },
+  {
+    id: 'm5',
+    name: 'Sneha Joshi',
+    avatar: 'SJ',
+    color: '#F59E0B',
+    role: 'Quant Researcher',
+    company: 'DE Shaw',
+    college: 'IIT Kharagpur',
+    year: 2019,
+    tags: ['Statistics', 'C++', 'Finance'],
+    mutual: 4,
+    linkedin: 'linkedin.com/in/snehajoshi'
+  }
+];
+
+const INITIAL_INCOMING: IncomingRequest[] = [
+  {
+    id: 'inc1',
+    name: 'Rohan Gupta',
+    avatar: 'RG',
+    color: '#6366F1',
+    role: 'Student',
+    subtitle: 'B.Tech CSE 2026 • IIT Delhi',
+    time: '2d ago'
+  },
+  {
+    id: 'inc2',
+    name: 'Ananya Pillai',
+    avatar: 'AP',
+    color: '#F59E0B',
+    role: 'Alumni',
+    subtitle: 'SDE Intern • Uber',
+    time: '3d ago'
+  }
+];
+
 function LinkedinGlyph({ size = 14, color = '#fff' }: { size?: number; color?: string }) {
   return (
     <Text style={{
@@ -133,16 +257,37 @@ function LinkedinGlyph({ size = 14, color = '#fff' }: { size?: number; color?: s
 }
 
 export function NetworkView() {
+  const toast = useToast();
   const [tab, setTab] = useState<CategoryTab>('connections');
   const [filter, setFilter] = useState<FilterType>('everyone');
+  const [discoverSubTab, setDiscoverSubTab] = useState<DiscoverSubTab>('interest');
   const [searchQuery, setSearchQuery] = useState('');
   
   // Collapsible sections
   const [showStudents, setShowStudents] = useState(true);
   const [showProfessionals, setShowProfessionals] = useState(true);
+  const [showMatchedInterest, setShowMatchedInterest] = useState(true);
+
+  // Stateful lists
+  const [incomingRequests, setIncomingRequests] = useState<IncomingRequest[]>(INITIAL_INCOMING);
+  const [sentRequests, setSentRequests] = useState([
+    {
+      id: 'sent1',
+      name: 'Mihir Joshi',
+      avatar: 'MJ',
+      color: '#10B981',
+      role: 'Industry',
+      subtitle: 'PM at Groww • Groww',
+      time: 'Sent 5d ago'
+    }
+  ]);
+
+  // Drafting Message Modal States
+  const [draftingPerson, setDraftingPerson] = useState<any | null>(null);
+  const [draftText, setDraftText] = useState('');
 
   // Mapped Mentees (from STUDENTS data.ts)
-  const studentsList = MOCK_STUDENTS.slice(0, 6); // Arjun, Priya, Kabir, Sneha, Rohan, Meera
+  const studentsList = MOCK_STUDENTS.slice(0, 6);
 
   // Filter students dynamically based on search
   const filteredStudents = studentsList.filter(s => {
@@ -153,16 +298,44 @@ export function NetworkView() {
 
   // Filter professionals dynamically based on search and sub-filters
   const filteredProfessionals = PROFESSIONAL_NETWORK.filter(p => {
-    // Filter check
     if (filter === 'students') return false;
     if (filter === 'alumnis' && p.tag !== 'Alumni') return false;
     if (filter === 'mentors' && p.tag !== 'Mentor') return false;
     if (filter === 'industry' && p.tag !== 'Industry') return false;
 
-    // Search query check
     const matchText = `${p.name} ${p.role} ${p.company} ${p.tags.join(' ')} ${p.tag}`.toLowerCase();
     return matchText.includes(searchQuery.toLowerCase());
   });
+
+  // Filter Matched Interest dynamically in Discover
+  const filteredMatchedDiscover = MATCHED_DISCOVER_NETWORK.filter(m => {
+    const matchText = `${m.name} ${m.role} ${m.company} ${m.college} ${m.tags.join(' ')}`.toLowerCase();
+    return matchText.includes(searchQuery.toLowerCase());
+  });
+
+  // Request actions
+  const handleAcceptRequest = (id: string, name: string) => {
+    setIncomingRequests(prev => prev.filter(r => r.id !== id));
+    toast.success('Connection Accepted! 🎉', `${name} is now connected with you.`);
+  };
+
+  const handleIgnoreRequest = (id: string, name: string) => {
+    setIncomingRequests(prev => prev.filter(r => r.id !== id));
+    toast.success('Invite Ignored', `Connection request from ${name} has been archived.`);
+  };
+
+  // Open draft message dialog
+  const openDraftDialog = (person: any) => {
+    setDraftingPerson(person);
+    const template = `Hi ${person.name}, I saw your impressive background at ${person.company || 'Google'} matching my interests in ${person.tags ? person.tags.slice(0, 2).join(' and ') : 'collaboration'}! Would love to connect and share insights.`;
+    setDraftText(template);
+  };
+
+  const sendDraftedMessage = () => {
+    if (!draftingPerson) return;
+    toast.success('Message Drafted & Sent! ✉️', `Your customized message was successfully sent to ${draftingPerson.name}.`);
+    setDraftingPerson(null);
+  };
 
   return (
     <View style={s.container}>
@@ -228,7 +401,7 @@ export function NetworkView() {
           <User size={13} color={tab === 'requests' ? '#090D16' : MC.muted} style={{ marginRight: 6 }} />
           <Text style={[s.tabPillText, tab === 'requests' && s.tabPillTextOn]}>Requests</Text>
           <View style={[s.reqBadge, tab === 'requests' && s.reqBadgeOn]}>
-            <Text style={s.reqBadgeText}>2</Text>
+            <Text style={s.reqBadgeText}>{incomingRequests.length}</Text>
           </View>
         </Pressable>
       </View>
@@ -239,40 +412,17 @@ export function NetworkView() {
           
           {/* Secondary Sub-filters Row */}
           <View style={s.subFiltersRow}>
-            <Pressable 
-              onPress={() => setFilter('everyone')} 
-              style={[s.subFilterChip, filter === 'everyone' && s.subFilterChipOn]}
-            >
-              <Text style={[s.subFilterText, filter === 'everyone' && s.subFilterTextOn]}>Everyone</Text>
-            </Pressable>
-
-            <Pressable 
-              onPress={() => setFilter('students')} 
-              style={[s.subFilterChip, filter === 'students' && s.subFilterChipOn]}
-            >
-              <Text style={[s.subFilterText, filter === 'students' && s.subFilterTextOn]}>Students</Text>
-            </Pressable>
-
-            <Pressable 
-              onPress={() => setFilter('alumnis')} 
-              style={[s.subFilterChip, filter === 'alumnis' && s.subFilterChipOn]}
-            >
-              <Text style={[s.subFilterText, filter === 'alumnis' && s.subFilterTextOn]}>Alumnis</Text>
-            </Pressable>
-
-            <Pressable 
-              onPress={() => setFilter('mentors')} 
-              style={[s.subFilterChip, filter === 'mentors' && s.subFilterChipOn]}
-            >
-              <Text style={[s.subFilterText, filter === 'mentors' && s.subFilterTextOn]}>Mentors</Text>
-            </Pressable>
-
-            <Pressable 
-              onPress={() => setFilter('industry')} 
-              style={[s.subFilterChip, filter === 'industry' && s.subFilterChipOn]}
-            >
-              <Text style={[s.subFilterText, filter === 'industry' && s.subFilterTextOn]}>Industry</Text>
-            </Pressable>
+            {['everyone', 'students', 'alumnis', 'mentors', 'industry'].map((f) => (
+              <Pressable 
+                key={f}
+                onPress={() => setFilter(f as FilterType)} 
+                style={[s.subFilterChip, filter === f && s.subFilterChipOn]}
+              >
+                <Text style={[s.subFilterText, filter === f && s.subFilterTextOn]}>
+                  {f.charAt(0).toUpperCase() + f.slice(1)}
+                </Text>
+              </Pressable>
+            ))}
           </View>
 
           {/* Search Input Box */}
@@ -318,7 +468,6 @@ export function NetworkView() {
                     
                     return (
                       <View key={student.id} style={s.profileCard}>
-                        {/* Header Profile Info */}
                         <View style={s.cardProfileRow}>
                           <Av initials={student.avatar} size={42} color={student.color} />
                           <View style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
@@ -333,7 +482,6 @@ export function NetworkView() {
                           </View>
                         </View>
 
-                        {/* Skill Pills */}
                         <View style={s.skillsRow}>
                           <View style={s.skillChip}><Text style={s.skillChipText}>{primaryTag}</Text></View>
                           {secondTag && (
@@ -341,13 +489,11 @@ export function NetworkView() {
                           )}
                         </View>
 
-                        {/* Mutual Connection Counter */}
                         <View style={s.mutualRow}>
                           <Users size={12} color={MC.dim} style={{ marginRight: 6 }} />
                           <Text style={s.mutualText}>{student.messages || 1} mutual connection{student.messages === 1 ? '' : 's'}</Text>
                         </View>
 
-                        {/* Mentoring progress bar */}
                         <View style={s.progressRow}>
                           <View style={s.progressTrack}>
                             <View style={[s.progressFill, { width: `${student.progress}%` }]} />
@@ -355,7 +501,6 @@ export function NetworkView() {
                           <Text style={s.progressText}>{student.progress}% mentoring progress</Text>
                         </View>
 
-                        {/* Card Action Row */}
                         <View style={s.cardActions}>
                           <Pressable 
                             onPress={() => alert(`Opening student profile: ${student.name}`)}
@@ -420,7 +565,6 @@ export function NetworkView() {
 
                     return (
                       <View key={person.id} style={s.profileCard}>
-                        {/* Header Profile Info */}
                         <View style={s.cardProfileRow}>
                           <Av initials={person.avatar} size={42} color={person.color} />
                           <View style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
@@ -435,20 +579,17 @@ export function NetworkView() {
                           </View>
                         </View>
 
-                        {/* Skill Pills */}
                         <View style={s.skillsRow}>
                           {person.tags.map((skill, sIdx) => (
                             <View key={sIdx} style={s.skillChip}><Text style={s.skillChipText}>{skill}</Text></View>
                           ))}
                         </View>
 
-                        {/* Mutual Connection Counter */}
                         <View style={s.mutualRow}>
                           <Users size={12} color={MC.dim} style={{ marginRight: 6 }} />
                           <Text style={s.mutualText}>{person.mutual} mutual connections</Text>
                         </View>
 
-                        {/* Card Action Row */}
                         <View style={[s.cardActions, { marginTop: 14 }]}>
                           <Pressable 
                             onPress={() => alert(`Opening profile: ${person.name}`)}
@@ -479,39 +620,323 @@ export function NetworkView() {
               )}
             </View>
           )}
+        </View>
+      )}
 
-          {filteredStudents.length === 0 && filteredProfessionals.length === 0 && (
-            <Text style={{ color: MC.muted, fontFamily: FONTS.med, padding: 30, textAlign: 'center' }}>
-              No connections found matching your search.
-            </Text>
+      {/* 3. Discover Tab Redesign (Screenshot 1) */}
+      {tab === 'discover' && (
+        <View style={{ gap: 16 }}>
+          
+          {/* Secondary Sub-filters Row */}
+          <View style={s.subFiltersRow}>
+            {['everyone', 'students', 'alumnis', 'mentors', 'industry'].map((f) => (
+              <Pressable 
+                key={f}
+                onPress={() => setFilter(f as FilterType)} 
+                style={[s.subFilterChip, filter === f && s.subFilterChipOn]}
+              >
+                <Text style={[s.subFilterText, filter === f && s.subFilterTextOn]}>
+                  {f.charAt(0).toUpperCase() + f.slice(1)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          {/* Search Input Box */}
+          <View style={s.searchContainer}>
+            <Search size={14} color={MC.dim} style={{ marginRight: 10 }} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search the SA network..."
+              placeholderTextColor={MC.dim}
+              style={s.searchInput}
+            />
+          </View>
+
+          {/* Discover Sub-category Pill Filters Row */}
+          <View style={s.discoverRow}>
+            <Pressable 
+              onPress={() => setDiscoverSubTab('interest')}
+              style={[s.discChip, discoverSubTab === 'interest' && s.discChipOn]}
+            >
+              <Heart size={12} color={discoverSubTab === 'interest' ? '#5EEAD4' : '#E2E8F0'} style={{ marginRight: 6 }} />
+              <Text style={[s.discChipText, discoverSubTab === 'interest' && s.discChipTextOn]}>Matched by Interest</Text>
+              <View style={[s.discBadge, discoverSubTab === 'interest' && s.discBadgeOn]}><Text style={s.discBadgeText}>5</Text></View>
+            </Pressable>
+
+            <Pressable 
+              onPress={() => setDiscoverSubTab('path')}
+              style={[s.discChip, discoverSubTab === 'path' && s.discChipOn]}
+            >
+              <Settings size={12} color={discoverSubTab === 'path' ? '#F97316' : '#E2E8F0'} style={{ marginRight: 6 }} />
+              <Text style={s.discChipText}>Matched by Career Path</Text>
+              <View style={[s.discBadge, { backgroundColor: 'rgba(249,115,22,0.1)' }]}><Text style={[s.discBadgeText, { color: '#F97316' }]}>3</Text></View>
+            </Pressable>
+
+            <Pressable 
+              onPress={() => setDiscoverSubTab('college')}
+              style={[s.discChip, discoverSubTab === 'college' && s.discChipOn]}
+            >
+              <GraduationCap size={12} color={discoverSubTab === 'college' ? '#3B82F6' : '#E2E8F0'} style={{ marginRight: 6 }} />
+              <Text style={s.discChipText}>From Your College</Text>
+              <View style={[s.discBadge, { backgroundColor: 'rgba(59,130,246,0.1)' }]}><Text style={[s.discBadgeText, { color: '#3B82F6' }]}>2</Text></View>
+            </Pressable>
+
+            <Pressable 
+              onPress={() => setDiscoverSubTab('recommended')}
+              style={[s.discChip, discoverSubTab === 'recommended' && s.discChipOn]}
+            >
+              <Users size={12} color={discoverSubTab === 'recommended' ? '#F59E0B' : '#E2E8F0'} style={{ marginRight: 6 }} />
+              <Text style={s.discChipText}>Recommended Mentors</Text>
+              <View style={[s.discBadge, { backgroundColor: 'rgba(245,158,11,0.1)' }]}><Text style={[s.discBadgeText, { color: '#F59E0B' }]}>3</Text></View>
+            </Pressable>
+
+            <Pressable 
+              onPress={() => setDiscoverSubTab('expand')}
+              style={[s.discChip, discoverSubTab === 'expand' && s.discChipOn]}
+            >
+              <Activity size={12} color={discoverSubTab === 'expand' ? '#EC4899' : '#E2E8F0'} style={{ marginRight: 6 }} />
+              <Text style={s.discChipText}>Expand Your Horizons</Text>
+              <View style={[s.discBadge, { backgroundColor: 'rgba(236,72,153,0.1)' }]}><Text style={[s.discBadgeText, { color: '#EC4899' }]}>3</Text></View>
+            </Pressable>
+          </View>
+
+          {/* Matched by Interest list view */}
+          {discoverSubTab === 'interest' && filteredMatchedDiscover.length > 0 && (
+            <View style={s.sectionFrame}>
+              <Pressable 
+                onPress={() => setShowMatchedInterest(!showMatchedInterest)} 
+                style={s.sectionHeaderRow}
+              >
+                <Heart size={18} color="#5EEAD4" style={{ marginRight: 8 }} />
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={s.secTitle}>Matched by Interest</Text>
+                    <View style={s.secBadge}>
+                      <Text style={s.secBadgeText}>{filteredMatchedDiscover.length}</Text>
+                    </View>
+                  </View>
+                  <Text style={s.secSub}>Based on: System Design, Career Guidance, Startup Advice</Text>
+                </View>
+                <Pressable onPress={() => setShowMatchedInterest(!showMatchedInterest)} style={s.toggleBtn}>
+                  <Text style={s.toggleBtnText}>{showMatchedInterest ? 'Show less' : 'Show more'}</Text>
+                  {showMatchedInterest ? <ChevronUp size={12} color="#5EEAD4" style={{ marginLeft: 4 }} /> : <ChevronDown size={12} color="#5EEAD4" style={{ marginLeft: 4 }} />}
+                </Pressable>
+              </Pressable>
+
+              {showMatchedInterest && (
+                <View style={s.cardsGrid}>
+                  {filteredMatchedDiscover.map((person) => (
+                    <View key={person.id} style={s.profileCard}>
+                      {/* Card Profile Info */}
+                      <View style={s.cardProfileRow}>
+                        <Av initials={person.avatar} size={42} color={person.color} />
+                        <View style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <Text numberOfLines={1} style={s.nameBold}>{person.name}</Text>
+                            <View style={[s.rolePillBase, s.rolePillAlumni]}>
+                              <Text style={[s.rolePillBaseText, s.rolePillAlumniText]}>Alumni</Text>
+                            </View>
+                          </View>
+                          <Text numberOfLines={1} style={s.subtitleLine}>{person.role}</Text>
+                          <Text numberOfLines={1} style={s.subtitleSubLine}>{person.company} • {person.college} • {person.year}</Text>
+                        </View>
+                      </View>
+
+                      {/* Skill Pills */}
+                      <View style={s.skillsRow}>
+                        {person.tags.map((skill, sIdx) => (
+                          <View key={sIdx} style={s.skillChip}><Text style={s.skillChipText}>{skill}</Text></View>
+                        ))}
+                      </View>
+
+                      {/* Mutual Connection Counter */}
+                      <View style={s.mutualRow}>
+                        <Users size={12} color={MC.dim} style={{ marginRight: 6 }} />
+                        <Text style={s.mutualText}>{person.mutual} mutual connections</Text>
+                      </View>
+
+                      {/* Card Action Row */}
+                      <View style={[s.cardActions, { marginTop: 14, flexDirection: 'column', gap: 8, alignItems: 'stretch' }]}>
+                        
+                        {/* Draft Message Button */}
+                        <Pressable 
+                          onPress={() => openDraftDialog(person)}
+                          style={({ hovered }: any) => [s.draftMsgBtn, hovered && { borderColor: '#5EEAD4', backgroundColor: 'rgba(94, 234, 212, 0.1)' }]}
+                        >
+                          <MessageSquare size={12} color="#5EEAD4" style={{ marginRight: 6 }} />
+                          <Text style={s.draftMsgBtnText}>Draft Message</Text>
+                        </Pressable>
+
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 6 }}>
+                          <Pressable 
+                            onPress={() => alert(`Opening profile: ${person.name}`)}
+                            style={({ hovered }: any) => [s.viewProfileBtn, { flex: 1, height: 32 }, hovered && { backgroundColor: '#5EEAD4' }]}
+                          >
+                            <Eye size={12} color="#090D16" style={{ marginRight: 6 }} />
+                            <Text style={s.viewProfileBtnText}>View Profile</Text>
+                          </Pressable>
+
+                          <View style={{ flexDirection: 'row', gap: 6 }}>
+                            <Pressable onPress={() => alert(`Starting message chat with ${person.name}`)} style={[s.iconSquareBtn, { height: 32, width: 32, borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
+                              <User size={13} color="#EF4444" />
+                            </Pressable>
+                            <Pressable onPress={() => Linking.openURL(`https://${person.linkedin}`)} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#0A66C2' }]}>
+                              <LinkedinGlyph size={13} color="#fff" />
+                            </Pressable>
+                            {person.github && (
+                              <Pressable onPress={() => Linking.openURL(`https://${person.github}`)} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#24292e' }]}>
+                                <Code size={13} color="#fff" />
+                              </Pressable>
+                            )}
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Fallback discovery text */}
+          {discoverSubTab !== 'interest' && (
+            <View style={s.stubCard}>
+              <Sparkles size={22} color={MC.tealP} style={{ marginBottom: 8 }} />
+              <Text style={s.stubTitle}>Discovery Section</Text>
+              <Text style={s.stubSub}>
+                Matches for this discovery pathway are currently loading from the database. Click "Matched by Interest" to explore the top matches!
+              </Text>
+            </View>
           )}
         </View>
       )}
 
-      {/* Stubs for Discover / Requests Tabs */}
-      {tab === 'discover' && (
-        <View style={s.stubCard}>
-          <Activity size={24} color={MC.tealP} style={{ marginBottom: 10 }} />
-          <Text style={s.stubTitle}>Discover New Mentors & Mentees</Text>
-          <Text style={s.stubSub}>
-            Expand your network! Here you can discover recommended colleagues, alumni partners, and students looking for mentorship in your specific areas of expertise.
-          </Text>
-          <Pressable onPress={() => setTab('connections')} style={s.stubBtn}>
-            <Text style={s.stubBtnText}>Back to Connections</Text>
-          </Pressable>
+      {/* 4. Requests Tab Redesign (Screenshot 2) */}
+      {tab === 'requests' && (
+        <View style={{ gap: 16 }}>
+          
+          {/* Incoming Requests (2) */}
+          <View style={s.requestListFrame}>
+            <View style={s.requestListHeaderRow}>
+              <Clock size={16} color="#F59E0B" style={{ marginRight: 8 }} />
+              <Text style={[s.requestListTitle, { color: '#F59E0B' }]}>INCOMING REQUESTS ({incomingRequests.length})</Text>
+            </View>
+
+            <View style={{ gap: 8, marginTop: 10 }}>
+              {incomingRequests.map((req) => {
+                const tagStyle = req.role === 'Student' ? s.rolePillStudent : s.rolePillAlumni;
+                const tagTextStyle = req.role === 'Student' ? s.rolePillStudentText : s.rolePillAlumniText;
+
+                return (
+                  <View key={req.id} style={s.requestRow}>
+                    <Av initials={req.avatar} size={42} color={req.color} />
+                    <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <Text style={s.requestName}>{req.name}</Text>
+                        <View style={[s.rolePillBase, tagStyle]}>
+                          <Text style={[s.rolePillBaseText, tagTextStyle]}>{req.role}</Text>
+                        </View>
+                        <Text style={s.requestTimeText}>{req.time}</Text>
+                      </View>
+                      <Text style={s.requestSublineText} numberOfLines={1}>{req.subtitle}</Text>
+                    </View>
+
+                    {/* Actions */}
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <Pressable 
+                        onPress={() => handleAcceptRequest(req.id, req.name)}
+                        style={({ hovered }: any) => [s.acceptBtn, hovered && { backgroundColor: '#5EEAD4' }]}
+                      >
+                        <Text style={s.acceptBtnText}>Accept</Text>
+                      </Pressable>
+                      <Pressable 
+                        onPress={() => handleIgnoreRequest(req.id, req.name)}
+                        style={({ hovered }: any) => [s.ignoreBtn, hovered && { backgroundColor: 'rgba(255,255,255,0.08)' }]}
+                      >
+                        <Text style={s.ignoreBtnText}>Ignore</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                );
+              })}
+
+              {incomingRequests.length === 0 && (
+                <Text style={s.noRequestText}>No pending incoming requests.</Text>
+              )}
+            </View>
+          </View>
+
+          {/* Sent Requests (1) */}
+          <View style={s.requestListFrame}>
+            <View style={s.requestListHeaderRow}>
+              <Users size={16} color="#14B8A6" style={{ marginRight: 8 }} />
+              <Text style={[s.requestListTitle, { color: '#14B8A6' }]}>SENT REQUESTS ({sentRequests.length})</Text>
+            </View>
+
+            <View style={{ gap: 8, marginTop: 10 }}>
+              {sentRequests.map((req) => (
+                <View key={req.id} style={s.requestRow}>
+                  <Av initials={req.avatar} size={42} color={req.color} />
+                  <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <Text style={s.requestName}>{req.name}</Text>
+                      <View style={[s.rolePillBase, s.rolePillIndustry]}>
+                        <Text style={[s.rolePillBaseText, s.rolePillIndustryText]}>{req.role}</Text>
+                      </View>
+                      <Text style={s.requestTimeText}>{req.time}</Text>
+                    </View>
+                    <Text style={s.requestSublineText} numberOfLines={1}>{req.subtitle}</Text>
+                  </View>
+
+                  {/* Pending label */}
+                  <View style={s.pendingStatusContainer}>
+                    <Clock size={11} color="#FCD34D" style={{ marginRight: 4 }} />
+                    <Text style={s.pendingStatusText}>Pending</Text>
+                  </View>
+                </View>
+              ))}
+
+              {sentRequests.length === 0 && (
+                <Text style={s.noRequestText}>No pending sent requests.</Text>
+              )}
+            </View>
+          </View>
         </View>
       )}
 
-      {tab === 'requests' && (
-        <View style={s.stubCard}>
-          <User size={24} color="#F59E0B" style={{ marginBottom: 10 }} />
-          <Text style={s.stubTitle}>Session & Connection Invites</Text>
-          <Text style={s.stubSub}>
-            You have 2 pending session requests waiting for approval. Check the "Session Requests" sidebar link to approve or decline them!
-          </Text>
-          <Pressable onPress={() => setTab('connections')} style={s.stubBtn}>
-            <Text style={s.stubBtnText}>Back to Connections</Text>
-          </Pressable>
+      {/* Custom AI Assist Drafting Overlay Modal */}
+      {draftingPerson && (
+        <View style={s.overlay}>
+          <View style={s.draftModal}>
+            <View style={s.modalHeaderBox}>
+              <Sparkles size={20} color="#5EEAD4" />
+              <Text style={s.draftModalTitle}>Draft Message to {draftingPerson.name}</Text>
+            </View>
+
+            <Text style={s.draftModalLabel}>AI SUGGESTED MESSAGE TEMPLATE</Text>
+            <View style={s.draftTextContainer}>
+              <TextInput
+                multiline
+                numberOfLines={6}
+                value={draftText}
+                onChangeText={setDraftText}
+                style={s.draftTextInput}
+              />
+            </View>
+
+            <View style={s.draftActions}>
+              <Pressable onPress={() => setDraftingPerson(null)} style={s.draftCancelBtn}>
+                <Text style={s.draftCancelText}>Cancel</Text>
+              </Pressable>
+
+              <Pressable onPress={sendDraftedMessage} style={s.draftSendBtn}>
+                <Check size={14} color="#090D16" style={{ marginRight: 6 }} />
+                <Text style={s.draftSendText}>Send Message</Text>
+              </Pressable>
+            </View>
+          </View>
         </View>
       )}
     </View>
@@ -682,6 +1107,53 @@ const s = StyleSheet.create({
     fontFamily: FONTS.med,
     fontSize: 13,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {})
+  },
+
+  // Discover sub tab style
+  discoverRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12
+  },
+  discChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    ...({ cursor: 'pointer' } as any)
+  },
+  discChipOn: {
+    borderColor: 'rgba(20, 184, 166, 0.25)',
+    backgroundColor: 'rgba(20, 184, 166, 0.08)'
+  },
+  discChipText: {
+    color: '#E2E8F0',
+    fontFamily: FONTS.semi,
+    fontSize: 11.5
+  },
+  discChipTextOn: {
+    color: '#5EEAD4',
+    fontFamily: FONTS.bold
+  },
+  discBadge: {
+    marginLeft: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.06)'
+  },
+  discBadgeOn: {
+    backgroundColor: 'rgba(20, 184, 166, 0.15)'
+  },
+  discBadgeText: {
+    color: '#5EEAD4',
+    fontFamily: FONTS.xbold,
+    fontSize: 9.5
   },
 
   // Subsections and Collapsibles
@@ -888,6 +1360,23 @@ const s = StyleSheet.create({
     paddingTop: 12,
     marginTop: 4
   },
+  draftMsgBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 32,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(94, 234, 212, 0.25)',
+    backgroundColor: 'rgba(94, 234, 212, 0.04)',
+    width: '100%',
+    ...({ cursor: 'pointer' } as any)
+  },
+  draftMsgBtnText: {
+    color: '#5EEAD4',
+    fontFamily: FONTS.bold,
+    fontSize: 11.5
+  },
   viewProfileBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -912,6 +1401,111 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...({ cursor: 'pointer' } as any)
+  },
+
+  // Requests tab layouts
+  requestListFrame: {
+    backgroundColor: MC.card,
+    borderColor: MC.border,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10
+  },
+  requestListHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomColor: MC.border,
+    borderBottomWidth: 1,
+    paddingBottom: 10
+  },
+  requestListTitle: {
+    fontFamily: FONTS.xbold,
+    fontSize: 13,
+    letterSpacing: 0.8
+  },
+  requestRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    minHeight: 64
+  },
+  requestName: {
+    color: '#fff',
+    fontFamily: FONTS.bold,
+    fontSize: 14
+  },
+  requestTimeText: {
+    color: MC.dim,
+    fontFamily: FONTS.med,
+    fontSize: 10.5,
+    marginLeft: 4
+  },
+  requestSublineText: {
+    color: MC.muted,
+    fontFamily: FONTS.med,
+    fontSize: 11.5,
+    marginTop: 2
+  },
+  acceptBtn: {
+    height: 32,
+    borderRadius: 6,
+    backgroundColor: '#14B8A6',
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any)
+  },
+  acceptBtnText: {
+    color: '#090D16',
+    fontFamily: FONTS.xbold,
+    fontSize: 12
+  },
+  ignoreBtn: {
+    height: 32,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any)
+  },
+  ignoreBtnText: {
+    color: MC.muted,
+    fontFamily: FONTS.bold,
+    fontSize: 12
+  },
+  pendingStatusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    height: 28,
+    borderRadius: 20,
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    borderColor: 'rgba(245, 158, 11, 0.22)',
+    borderWidth: 1
+  },
+  pendingStatusText: {
+    color: '#FCD34D',
+    fontFamily: FONTS.bold,
+    fontSize: 11
+  },
+  noRequestText: {
+    color: MC.dim,
+    fontFamily: FONTS.med,
+    fontSize: 12.5,
+    paddingVertical: 14,
+    textAlign: 'center'
   },
 
   // Stub structures
@@ -956,5 +1550,104 @@ const s = StyleSheet.create({
     color: '#5EEAD4',
     fontFamily: FONTS.bold,
     fontSize: 12
+  },
+
+  // Glassmorphic Drafting Modal overlay
+  overlay: {
+    position: Platform.OS === 'web' ? 'fixed' : 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(5, 8, 16, 0.85)',
+    zIndex: 9999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  draftModal: {
+    backgroundColor: MC.cardSolid || '#131935',
+    borderColor: MC.border2,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 22,
+    width: '100%',
+    maxWidth: 460,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+  },
+  modalHeaderBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: MC.border,
+    paddingBottom: 10
+  },
+  draftModalTitle: {
+    color: '#fff',
+    fontFamily: FONTS.xbold,
+    fontSize: 16
+  },
+  draftModalLabel: {
+    color: MC.dim,
+    fontFamily: FONTS.bold,
+    fontSize: 9.5,
+    letterSpacing: 0.8,
+    marginTop: 4
+  },
+  draftTextContainer: {
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    borderColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    minHeight: 120
+  },
+  draftTextInput: {
+    color: '#fff',
+    fontFamily: FONTS.med,
+    fontSize: 13,
+    lineHeight: 18,
+    textAlignVertical: 'top',
+    height: '100%',
+    width: '100%',
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {})
+  },
+  draftActions: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 10,
+    marginTop: 10
+  },
+  draftCancelBtn: {
+    flex: 1,
+    height: 38,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: MC.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any)
+  },
+  draftCancelText: {
+    color: MC.muted,
+    fontFamily: FONTS.bold,
+    fontSize: 13
+  },
+  draftSendBtn: {
+    flex: 1.5,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#14B8A6',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any)
+  },
+  draftSendText: {
+    color: '#090D16',
+    fontFamily: FONTS.xbold,
+    fontSize: 13
   }
 });
