@@ -76,7 +76,7 @@ export default function MentorPlatform() {
       <View style={{ flex: 1 }}>
         {screen === 'home' && (
           <MentorDashboardView
-            userName={user?.full_name || 'Mentor'}
+            userName={(user?.full_name || 'Mentor').split(' ')[0]}
             notifCount={2}
             onOpenNotifications={() => router.push('/notifications')}
             onOpenProfile={() => setScreen('profile')}
