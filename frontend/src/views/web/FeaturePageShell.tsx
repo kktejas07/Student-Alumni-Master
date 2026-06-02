@@ -182,7 +182,12 @@ export default function FeaturePageShell({
         {/* Top bar — bell only (back button removed; sidebar is the nav) */}
         <View style={styles.topBar}>
           <View style={{ flex: 1 }} />
-          <View style={styles.bellBtn}><Bell size={16} color="#fff" /></View>
+          <Pressable
+            style={({ pressed }) => [styles.bellBtn, pressed && { opacity: 0.7 }]}
+            onPress={() => router.push('/notifications')}
+          >
+            <Bell size={16} color="#fff" />
+          </Pressable>
         </View>
 
         {/* Hero — glass card */}
@@ -228,7 +233,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.10)',
     borderColor: 'rgba(255,255,255,0.16)', borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
-    ...({ backdropFilter: 'blur(12px)' } as any),
+    ...({ backdropFilter: 'blur(12px)', cursor: 'pointer' } as any),
   },
 
   heroShell: {
