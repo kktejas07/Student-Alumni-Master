@@ -83,17 +83,29 @@ export default function HigherEducationScreen() {
   const [aiTool, setAiTool] = useState<null | { type: 'sop' | 'cv' | 'cover' | 'lor' | 'elig' | 'profile'; programmeId?: string }>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmAfterRedirectProg, setConfirmAfterRedirectProg] = useState<Programme | null>(null);
+  const [appliedAppMap, setAppliedAppMap] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     try {
-      const [p, s, c] = await Promise.all([
+      const [p, s, c, a] = await Promise.all([
         request<{ programmes: Programme[] }>('/he/programmes'),
         request<{ scholarships: Scholarship[] }>('/he/scholarships'),
         request<{ countries: Country[] }>('/he/countries'),
+        request<{ applications: any[] }>('/he/applications').catch(() => ({ applications: [] })),
       ]);
       setProgrammes(p.programmes || []);
       setScholarships(s.scholarships || []);
       setCountries(c.countries || []);
+
+      const appMap: Record<string, string> = {};
+      if (a?.applications) {
+        a.applications.forEach((app: any) => {
+          if (app.programme_id) {
+            appMap[app.programme_id] = app.app_id;
+          }
+        });
+      }
+      setAppliedAppMap(appMap);
     } catch (e: any) {
       setError(e?.message || 'Could not load data');
     } finally { setLoading(false); }
@@ -125,7 +137,10 @@ export default function HigherEducationScreen() {
     try {
       const r = await request<any>('/he/apply', { method: 'POST', body: { programme_id: p.id } });
       const aid = r?.application?.app_id;
-      if (aid) router.push(`/applications/${aid}` as any);
+      if (aid) {
+        setAppliedAppMap((prev) => ({ ...prev, [p.id]: aid }));
+        router.push(`/applications/${aid}` as any);
+      }
     } catch (e: any) {
       setError(e?.message || 'Apply failed');
     }
@@ -202,6 +217,7 @@ export default function HigherEducationScreen() {
                     onDraftSOP={() => setAiTool({ type: 'sop', programmeId: p.id })}
                     onDetails={() => setAiTool({ type: 'elig', programmeId: p.id })}
                     onCoverLetter={() => setAiTool({ type: 'cover', programmeId: p.id })}
+                    appId={appliedAppMap[p.id]}
                   />
                 ))}
               </View>
@@ -314,6 +330,7 @@ export default function HigherEducationScreen() {
           setCompareOpen(false);
           onApplyClick(p);
         }}
+        appliedAppMap={appliedAppMap}
       />
 
       {/* Confirmation Modal */}
@@ -375,11 +392,13 @@ export default function HigherEducationScreen() {
 
 // ─── Programme Card ──────────────────────────────────────────────────────
 function ProgrammeCard({
-  p, selected, onCompareToggle, onApply, onDraftSOP, onDetails, onCoverLetter,
+  p, selected, onCompareToggle, onApply, onDraftSOP, onDetails, onCoverLetter, appId,
 }: {
   p: Programme; selected: boolean; onCompareToggle: () => void;
   onApply: () => void; onDraftSOP: () => void; onDetails: () => void; onCoverLetter: () => void;
+  appId?: string;
 }) {
+  const router = useRouter();
   const tier = matchTier(p.match);
   const tags = (p.tags || []).slice(0, 3);
   const overflow = (p.tags || []).length - tags.length;
@@ -399,17 +418,17 @@ function ProgrammeCard({
           <Text style={[s.matchText, { color: tier.fg }]}>{p.match}% match</Text>
         </View>
       </View>
-
+ 
       <Text style={s.cardTitle} numberOfLines={2}>{p.name}</Text>
       <Text style={s.cardSub}>{p.institution}</Text>
-
+ 
       <View style={s.statsGrid}>
         <Stat label="Duration" value={p.duration} />
         <Stat label="Fee" value={p.fee} good={p.fee.toLowerCase().includes('funded') || p.fee_amount === 0} />
         <Stat label="Mode" value={p.mode} />
         <Stat label="Intake" value={p.intake} />
       </View>
-
+ 
       {tags.length > 0 && (
         <View style={s.tagRow}>
           {tags.map((t) => {
@@ -428,11 +447,20 @@ function ProgrammeCard({
           )}
         </View>
       )}
-
+ 
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-        <Pressable style={[s.applyBtn, { flex: 1 }]} onPress={onApply}>
-          <Text style={s.applyBtnText}>Apply →</Text>
-        </Pressable>
+        {appId ? (
+          <Pressable
+            style={[s.applyBtn, { flex: 1, backgroundColor: 'rgba(52,211,153,0.15)', borderColor: '#34D399', borderWidth: 1 }]}
+            onPress={() => router.push(`/applications/${appId}` as any)}
+          >
+            <Text style={[s.applyBtnText, { color: '#34D399' }]}>Applied ✓</Text>
+          </Pressable>
+        ) : (
+          <Pressable style={[s.applyBtn, { flex: 1 }]} onPress={onApply}>
+            <Text style={s.applyBtnText}>Apply →</Text>
+          </Pressable>
+        )}
         <Pressable style={s.detailsBtn} onPress={onDetails}>
           <Text style={s.detailsBtnText}>Eligibility</Text>
         </Pressable>
@@ -465,10 +493,11 @@ function Stat({ label, value, good }: { label: string; value: string; good?: boo
   );
 }
 
-// ─── Compare Modal ───────────────────────────────────────────────────────
-function CompareModal({ visible, ids, onClose, onApply }: {
+function CompareModal({ visible, ids, onClose, onApply, appliedAppMap }: {
   visible: boolean; ids: string[]; onClose: () => void; onApply: (p: Programme) => void;
+  appliedAppMap: Record<string, string>;
 }) {
+  const router = useRouter();
   const [data, setData] = useState<{ programmes: Programme[]; rows: any[]; tied: boolean; tie_breaker_note?: string } | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -544,13 +573,28 @@ function CompareModal({ visible, ids, onClose, onApply }: {
                   {/* Apply row */}
                   <View style={s.compareRow}>
                     <View style={s.compareLabelCell} />
-                    {data.programmes.map((p) => (
-                      <View key={p.id} style={s.compareCell}>
-                        <Pressable style={s.applyBtn} onPress={() => onApply(p)}>
-                          <Text style={s.applyBtnText}>Apply →</Text>
-                        </Pressable>
-                      </View>
-                    ))}
+                    {data.programmes.map((p) => {
+                      const appId = appliedAppMap[p.id];
+                      return (
+                        <View key={p.id} style={s.compareCell}>
+                          {appId ? (
+                            <Pressable
+                              style={[s.applyBtn, { backgroundColor: 'rgba(52,211,153,0.15)', borderColor: '#34D399', borderWidth: 1 }]}
+                              onPress={() => {
+                                onClose();
+                                router.push(`/applications/${appId}` as any);
+                              }}
+                            >
+                              <Text style={[s.applyBtnText, { color: '#34D399' }]}>Applied ✓</Text>
+                            </Pressable>
+                          ) : (
+                            <Pressable style={s.applyBtn} onPress={() => onApply(p)}>
+                              <Text style={s.applyBtnText}>Apply →</Text>
+                            </Pressable>
+                          )}
+                        </View>
+                      );
+                    })}
                   </View>
                 </View>
               </ScrollView>
