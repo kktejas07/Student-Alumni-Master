@@ -72,7 +72,7 @@ function activeIdForPath(path: string): string {
   if (path.startsWith('/career-ai')) return 'career';
   if (path.startsWith('/internships')) return 'internships';
   if (path.startsWith('/explore-courses') || path.startsWith('/courses')) return 'courses';
-  if (path.startsWith('/higher-education')) return 'higher-education';
+  if (path.startsWith('/higher-education') || path.startsWith('/applications')) return 'higher-education';
   if (path.startsWith('/network')) return 'network';
   if (path.startsWith('/events')) return 'events';
   if (path.startsWith('/financial')) return 'financial';

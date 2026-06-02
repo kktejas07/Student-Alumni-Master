@@ -82,6 +82,7 @@ export default function HigherEducationScreen() {
   const [compareOpen, setCompareOpen] = useState(false);
   const [aiTool, setAiTool] = useState<null | { type: 'sop' | 'cv' | 'cover' | 'lor' | 'elig' | 'profile'; programmeId?: string }>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmAfterRedirectProg, setConfirmAfterRedirectProg] = useState<Programme | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -106,16 +107,28 @@ export default function HigherEducationScreen() {
     setSelectedIds(next);
   };
 
-  const onApply = async (p: Programme) => {
+  const onApplyClick = async (p: Programme) => {
+    try {
+      const url = p.apply_url || 'https://google.com';
+      if (Platform.OS === 'web') {
+        (window as any).open(url, '_blank', 'noopener,noreferrer');
+      } else {
+        await Linking.openURL(url);
+      }
+    } catch (e: any) {
+      console.warn("Could not open apply URL:", e);
+    }
+    setConfirmAfterRedirectProg(p);
+  };
+
+  const executeApply = async (p: Programme) => {
     try {
       const r = await request<any>('/he/apply', { method: 'POST', body: { programme_id: p.id } });
-      if (r?.apply_url) {
-        if (Platform.OS === 'web') (window as any).open(r.apply_url, '_blank', 'noopener,noreferrer');
-        else await Linking.openURL(r.apply_url);
-      }
       const aid = r?.application?.app_id;
       if (aid) router.push(`/applications/${aid}` as any);
-    } catch (e: any) { setError(e?.message || 'Apply failed'); }
+    } catch (e: any) {
+      setError(e?.message || 'Apply failed');
+    }
   };
 
   const filterScholarshipsByCountry = (countryId: string) => {
@@ -185,7 +198,7 @@ export default function HigherEducationScreen() {
                     key={p.id} p={p}
                     selected={selectedIds.has(p.id)}
                     onCompareToggle={() => toggleCompare(p.id)}
-                    onApply={() => onApply(p)}
+                    onApply={() => onApplyClick(p)}
                     onDraftSOP={() => setAiTool({ type: 'sop', programmeId: p.id })}
                     onDetails={() => setAiTool({ type: 'elig', programmeId: p.id })}
                     onCoverLetter={() => setAiTool({ type: 'cover', programmeId: p.id })}
@@ -297,8 +310,58 @@ export default function HigherEducationScreen() {
         visible={compareOpen}
         ids={Array.from(selectedIds)}
         onClose={() => setCompareOpen(false)}
-        onApply={onApply}
+        onApply={(p) => {
+          setCompareOpen(false);
+          onApplyClick(p);
+        }}
       />
+
+      {/* Confirmation Modal */}
+      <Modal
+        visible={!!confirmAfterRedirectProg}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConfirmAfterRedirectProg(null)}
+      >
+        <View style={s.modalBackdrop}>
+          <View style={s.confirmModal}>
+            <View style={s.confirmHead}>
+              <MaterialCommunityIcons name="check-decagram" size={20} color="#34D399" />
+              <Text style={s.confirmTitle}>Application Status</Text>
+            </View>
+
+            <View style={s.confirmBody}>
+              <Text style={s.confirmText}>
+                Did you complete your application for <Text style={s.boldText}>{confirmAfterRedirectProg?.name}</Text> at <Text style={s.boldText}>{confirmAfterRedirectProg?.institution}</Text>?
+              </Text>
+              <Text style={s.confirmSubtext}>
+                We opened the official university portal in a new tab. If you successfully completed and submitted the application, click "Yes, I Applied" to begin tracking.
+              </Text>
+            </View>
+
+            <View style={s.confirmActions}>
+              <Pressable
+                style={s.cancelBtn}
+                onPress={() => setConfirmAfterRedirectProg(null)}
+              >
+                <Text style={s.cancelBtnText}>No, Cancelled</Text>
+              </Pressable>
+              <Pressable
+                style={s.confirmBtn}
+                onPress={() => {
+                  if (confirmAfterRedirectProg) {
+                    const p = confirmAfterRedirectProg;
+                    setConfirmAfterRedirectProg(null);
+                    executeApply(p);
+                  }
+                }}
+              >
+                <Text style={s.confirmBtnText}>Yes, I Applied</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* AI Tools modal */}
       <AIToolsModal
@@ -847,4 +910,32 @@ const s = StyleSheet.create({
   aiResultTitle: { color: '#A78BFA', fontSize: 13, fontWeight: '800', marginBottom: 8 },
   aiResultBody: { color: '#fff', fontSize: 13, lineHeight: 20 },
   aiNote: { color: '#34D399', fontSize: 11, fontStyle: 'italic' },
+
+  // Confirm modal
+  confirmModal: {
+    width: '90%', maxWidth: 440,
+    backgroundColor: '#1A1626', borderRadius: 16, padding: 20,
+    borderColor: 'rgba(124,58,237,0.30)', borderWidth: 1,
+    gap: 16,
+  },
+  confirmHead: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: C.border,
+  },
+  confirmTitle: { color: '#fff', fontSize: 16, fontWeight: '800', fontFamily: 'Outfit_800ExtraBold' },
+  confirmBody: { gap: 8 },
+  confirmText: { color: '#fff', fontSize: 13.5, lineHeight: 20, fontFamily: 'PlusJakartaSans_500Medium' },
+  boldText: { fontWeight: '700', color: '#A78BFA' },
+  confirmSubtext: { color: C.text2, fontSize: 12, lineHeight: 18, fontFamily: 'PlusJakartaSans_500Medium' },
+  confirmActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
+  cancelBtn: {
+    paddingVertical: 9, paddingHorizontal: 14, borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.06)', borderColor: C.border, borderWidth: 1,
+  },
+  cancelBtnText: { color: C.text2, fontSize: 12, fontWeight: '700' },
+  confirmBtn: {
+    paddingVertical: 9, paddingHorizontal: 14, borderRadius: 8,
+    backgroundColor: '#7C3AED',
+  },
+  confirmBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' },
 });
