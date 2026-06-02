@@ -2,7 +2,7 @@
  * Mentor Portal — Network view: My network (connected mentors) + Discovery feed.
  */
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Platform, Modal } from 'react-native';
 import { UserPlus, Check, MessageSquare, X, Briefcase, GraduationCap, Star, BookOpen, Layers } from 'lucide-react-native';
 import { MC, FONTS } from '../tokens';
 import { Av, Badge, StarRow } from '../atoms';
@@ -167,11 +167,17 @@ export function NetworkView() {
       </View>
 
       {/* Complete Profile Modal Overlay */}
-      {selectedPerson && (
-        <View style={s.overlay}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={() => setSelectedPerson(null)} />
-          
-          <View style={s.modal}>
+      <Modal
+        visible={!!selectedPerson}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedPerson(null)}
+      >
+        {selectedPerson && (
+          <View style={s.overlay}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => setSelectedPerson(null)} />
+            
+            <View style={s.modal}>
             <Pressable onPress={() => setSelectedPerson(null)} style={s.closeBtn}>
               <X size={16} color="#fff" />
             </Pressable>
@@ -281,7 +287,8 @@ export function NetworkView() {
             </ScrollView>
           </View>
         </View>
-      )}
+        )}
+      </Modal>
     </View>
   );
 }
@@ -297,15 +304,13 @@ const s = StyleSheet.create({
   msgBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 14, height: 32, borderRadius: 8, borderWidth: 1, borderColor: MC.border2, backgroundColor: 'rgba(20,184,166,0.07)' },
 
   overlay: {
-    position: Platform.OS === 'web' ? 'fixed' : 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(5, 8, 16, 0.65)',
-    zIndex: 9999,
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     flexDirection: 'row',
     justifyContent: 'flex-end',
   },
   modal: {
-    backgroundColor: '#0c0f1e',
+    backgroundColor: '#000000',
     borderColor: MC.border2,
     borderLeftWidth: 1,
     borderTopWidth: 0,
