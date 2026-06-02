@@ -111,6 +111,7 @@ export interface User {
   skills: string[];
   bio?: string;
   face_image_base64?: string;
+  photo_data?: string;
   onboarding_completed: boolean;
   created_at: string;
 }

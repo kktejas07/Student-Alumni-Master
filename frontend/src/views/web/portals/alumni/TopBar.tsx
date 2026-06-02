@@ -8,6 +8,7 @@ import { STUDENT } from './data';
 import { Av } from './atoms';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 import { AlumniPortalNavContext } from './AlumniPortalRN';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -24,13 +25,11 @@ export function TopBar({
   onAvatarPress?: () => void;
 } = {}) {
   const router = useRouter();
-  const user = useAuthStore((u) => u.user) as any;
-  const fullName: string = (user?.full_name
-    || `${user?.first_name || ''} ${user?.last_name || ''}`).trim()
-    || STUDENT.name;
-  const firstName: string = fullName.split(' ')[0] || STUDENT.name.split(' ')[0];
-  const initials: string = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
-  const photo: string | undefined = user?.photo_data || user?.face_image_base64;
+  const user = useAuthStore((u) => u.user);
+  const fullName = user?.full_name || STUDENT.name;
+  const firstName = fullName.split(' ')[0] || STUDENT.name.split(' ')[0];
+  const initials = fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('').toUpperCase() || STUDENT.initials;
+  const photo = user?.photo_data || user?.face_image_base64;
   const portalNav = React.useContext(AlumniPortalNavContext);
   const [q, setQ] = React.useState(portalNav?.searchQuery || '');
 
@@ -98,7 +97,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 22, paddingVertical: 14,
     borderBottomWidth: 1, borderBottomColor: SC.border,
     backgroundColor: SC.bg2,
-    zIndex: 50,
+    position: 'relative', zIndex: 10,
   },
   greet: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.4 },
   sub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },

@@ -314,7 +314,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
           {tab === 'profile-info' && (
             <ProfileInfoPage
               draft={draft}
-              setDraft={(updater: any) => setDraft(typeof updater === 'function' ? updater(draft) : updater)}
+              setDraft={setDraft}
               completion={completion}
               onUploadPhoto={onUploadPhoto}
             />
@@ -323,7 +323,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
           {tab === 'manage' && (
             <ManageProfilePage
               draft={draft}
-              setDraft={(updater: any) => setDraft(typeof updater === 'function' ? updater(draft) : updater)}
+              setDraft={setDraft}
               badges={draft.badges || []}
               onCertChange={() => reload()}
               showToast={(m: string) => toast.info(m)}
@@ -333,7 +333,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
           {tab === 'settings' && (
             <SettingsPage
               draft={draft}
-              setDraft={(updater: any) => setDraft(typeof updater === 'function' ? updater(draft) : updater)}
+              setDraft={setDraft}
               showToast={(m: string) => toast.info(m)}
             />
           )}
