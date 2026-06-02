@@ -7,6 +7,7 @@ import { View, Text, StyleSheet, Pressable, useWindowDimensions } from 'react-na
 import { LinearGradient } from 'expo-linear-gradient';
 import { GlassCard, Avatar, SearchBar, PageHeader, SectionLabel, ProgressStrip, KpiTile } from '../components';
 import { SA, SAGradients } from '../tokens';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 function TagChip({ label, active, onPress }: { label: string; active?: boolean; onPress?: () => void }) {
   return (
@@ -230,13 +231,26 @@ export function CollegeAnalyticsScreen() {
 export function CollegeSettings() {
   const { width } = useWindowDimensions();
   const isWide = width >= 1100;
+  const user = useAuthStore((s) => s.user);
+
+  const collegeName = user?.college_info?.institution_name || user?.school_info?.institution_name || 'IIT Bombay';
+  const type = user?.college_info?.institution_type || user?.school_info?.institution_type || 'Technical University';
+  const location = (user?.college_info?.city && user?.college_info?.state)
+    ? `${user.college_info.city}, ${user.college_info.state}`
+    : (user?.school_info?.city && user?.school_info?.state)
+      ? `${user.school_info.city}, ${user.school_info.state}`
+      : 'Mumbai, Maharashtra';
+  const grade = user?.college_info?.accreditation || user?.college_info?.accreditations?.[0] || 'A++';
+  const nirf = user?.college_info?.ranking_tier === 'top_50' ? '#3 (Engineering)' : 'Top 100';
+  const email = user?.email || 'admin@iitb.ac.in';
+
   const fields = [
-    { label: 'Institution Name', val: 'IIT Bombay' },
-    { label: 'Type', val: 'Technical University' },
-    { label: 'Location', val: 'Mumbai, Maharashtra' },
-    { label: 'NAAC Grade', val: 'A++' },
-    { label: 'NIRF Rank', val: '#3 (Engineering)' },
-    { label: 'Admin Email', val: 'admin@iitb.ac.in' },
+    { label: 'Institution Name', val: collegeName },
+    { label: 'Type', val: type },
+    { label: 'Location', val: location },
+    { label: 'NAAC Grade', val: grade },
+    { label: 'NIRF Rank', val: nirf },
+    { label: 'Admin Email', val: email },
   ];
   const [notifs, setNotifs] = useState([
     { label: 'Weekly placement reports', on: true },

@@ -5,18 +5,21 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Platform } from 'react-native';
 import { Calendar, CheckCircle, Sparkles } from 'lucide-react-native';
 import { CC, FONTS } from '../tokens';
-import { useCurrentUser } from '@/src/lib/useCurrentUser';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
 
 const MODES = ['Online', 'In-person', 'Hybrid'];
 const CATEGORIES = ['Workshop', 'Hackathon', 'Career Fair', 'Talk', 'Networking'];
 
 export function CreateEventView() {
-  const { email } = useCurrentUser('college-high1@persona.demo');
+  const user = useAuthStore((s) => s.user);
+  const email = user?.email || 'college-high1@persona.demo';
+  const initialCollegeName = user?.college_info?.institution_name || user?.school_info?.institution_name || 'IIT Bombay';
+
   const [title, setTitle] = useState('AI/ML Workshop 2026');
   const [category, setCategory] = useState('Workshop');
   const [mode, setMode] = useState('Hybrid');
-  const [collegeName, setCollegeName] = useState('IIT Bombay');
+  const [collegeName, setCollegeName] = useState(initialCollegeName);
   const [startDate, setStartDate] = useState('');
   const [capacity, setCapacity] = useState('200');
   const [price, setPrice] = useState('0');

@@ -251,7 +251,7 @@ export function DashboardView({ onNav }: Props) {
 /** AI Daily Briefing card — prominent purple-tinted glass with CTA */
 function AIDailyBriefing({ onNav }: { onNav: (id: string) => void }) {
   const user = useAuthStore((s) => s.user);
-  const firstName = user?.first_name || (user?.full_name || '').split(' ')[0] || 'Mentor';
+  const firstName = (user as any)?.first_name || (user?.full_name || '').split(' ')[0] || 'Mentor';
   const [briefText, setBriefText] = React.useState<string>('');
   const [briefLoading, setBriefLoading] = React.useState<boolean>(false);
 

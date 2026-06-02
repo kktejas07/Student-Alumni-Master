@@ -42,7 +42,7 @@ interface Props {
   onTakeSelfie?: () => void;
 }
 
-export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto }: Props) {
+export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, onTakeSelfie }: Props) {
   const [pendingPhoto, setPendingPhoto] = useState<string | null>(null);
   const photo = pendingPhoto || draft.photo_data || draft.face_image_base64;
   const initials = ((draft.full_name || '?').split(' ').slice(0,2).map((s: string) => s[0] || '').join('') || '?').toUpperCase();

@@ -96,7 +96,7 @@ export default function StudentPlatform() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.main, screen === 'home' && { padding: 0 }, !isWide && screen !== 'home' && { padding: 18 }]}>
         {screen === 'home' && (
           <StudentDashboardView
-            userName={user?.full_name || 'there'}
+            userName={(user?.full_name || 'there').split(' ')[0]}
             onOpenNotifications={() => router.push('/notifications')}
             onSeeAllInternships={() => setScreen('internships')}
           />

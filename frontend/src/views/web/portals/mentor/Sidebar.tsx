@@ -44,11 +44,11 @@ export function Sidebar({
   counts: { students: number; sessions: number; requests: number };
 }) {
   const user = useAuthStore((u) => u.user) as any;
-  const fullName: string = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || MENTOR.name;
-  const initials: string = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || MENTOR.avatar).toUpperCase();
-  const jobTitle = user?.mentor_info?.job_title || user?.headline || MENTOR.role;
-  const company = user?.mentor_info?.organization || MENTOR.company;
+  const fullName = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || MENTOR.name;
+  const initials = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || MENTOR.avatar).toUpperCase();
   const photo = user?.photo_data || user?.face_image_base64;
+  const role = user?.mentor_info?.current_role || user?.mentor_info?.job_title || user?.current_role || user?.headline || MENTOR.role;
+  const company = user?.mentor_info?.current_company || user?.mentor_info?.organization || user?.current_company || MENTOR.company;
 
   const items = NAV_MAIN(counts);
   const w = collapsed ? 56 : 220;
