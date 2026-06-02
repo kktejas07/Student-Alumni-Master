@@ -4546,7 +4546,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     if q:
         rx = {"$regex": q, "$options": "i"}
         base_query["$or"] = [{"full_name": rx}, {"email": rx}]
-    candidates = await db.users.find(base_query, {"password_hash": 0, "face_image_base64": 0}).to_list(500)
+    candidates = await db.users.find(base_query, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).to_list(500)
 
     cards = [_user_card(c) for c in candidates]
     # attach connection_state (none|pending|connected|incoming)
@@ -4572,7 +4572,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     approved_mentors = await db.users.find(
         {"_id": {"$ne": user["_id"]}, "role": "mentor", "mentor_status": "approved"},
         {"password_hash": 0, "face_image_base64": 0},
-    ).limit(50).to_list(50)
+    ).sort("_id", -1).limit(100).to_list(100)
     mentor_cards = [_user_card(m) for m in approved_mentors]
     for m in mentor_cards:
         m["connection_state"] = state_by_user.get(m["id"], "none")
