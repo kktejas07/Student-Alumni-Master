@@ -4453,7 +4453,7 @@ def _user_card(u: dict) -> dict:
     ]
     # Primary skill = first interest (highlighted in green) — rest stay grey
     interests = list(u.get("interests") or si.get("interests") or [])[:6]
-    skills = list((mp.get("skills") or []))[:6]
+    skills = list(u.get("skills") or mp.get("skills") or ai.get("skills") or [])[:6]
     primary_skill = (interests[0] if interests else (skills[0] if skills else None))
     # Online: based on last_login within 5 minutes (or random for seed users)
     last = u.get("last_active") or u.get("last_login")
@@ -4580,9 +4580,15 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     if my_cp:
         mentor_cards.sort(key=lambda m: (m.get("category") or "").lower().find(my_cp.lower()) == -1)
 
+    # Section: peer_students (NEW)
+    peer_students = [c for c in cards if c["role"] == "student"]
+
+    # Section: explore_alumni (NEW)
+    explore_alumni = [c for c in cards if c["role"] == "alumni"]
+
     # Section: expand — diverse roles user hasn't matched on yet
-    seen_ids = {c["id"] for c in (by_interest + by_career + by_skills + by_college)} | {m["id"] for m in mentor_cards}
-    expand = [c for c in cards if c["id"] not in seen_ids and c["role"] in {"alumni", "college"}]
+    seen_ids = {c["id"] for c in (by_interest + by_career + by_skills + by_college + peer_students[:limit] + explore_alumni[:limit])} | {m["id"] for m in mentor_cards}
+    expand = [c for c in cards if c["id"] not in seen_ids and c["role"] in {"student", "alumni", "college"}]
 
     interest_label = ", ".join(my_interests[:2]) if my_interests else "Your declared interests"
     skill_label    = ", ".join(my_skills[:3])     if my_skills    else "your declared skills"
@@ -4610,6 +4616,14 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
              "subtitle": "Book a session \u00b7 First 2 free",
              "icon": "UserCheck", "tint": "#10B981",
              "items": mentor_cards[:limit]},
+            {"key": "peer_students", "title": "Peer Students",
+             "subtitle": "Connect with peers and classmates",
+             "icon": "Users", "tint": "#22D3EE",
+             "items": peer_students[:limit]},
+            {"key": "explore_alumni", "title": "Explore Alumni",
+             "subtitle": "Learn from graduates in the industry",
+             "icon": "Users", "tint": "#F59E0B",
+             "items": explore_alumni[:limit]},
             {"key": "expand", "title": "Expand Your Horizons",
              "subtitle": "People outside your current interests",
              "icon": "Compass", "tint": "#EC4899",
