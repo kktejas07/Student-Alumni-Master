@@ -92,8 +92,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
 
   const confirmPhoto = () => {
     if (pendingPhoto) {
-      setField('photo_data', pendingPhoto);
-      setField('face_image_base64', pendingPhoto);
+      setDraft((d: any) => ({ ...d, photo_data: pendingPhoto, face_image_base64: pendingPhoto }));
       setPendingPhoto(null);
     }
   };
@@ -189,8 +188,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
                   </Pressable>
                   {photo && (
                     <Pressable onPress={() => {
-                      setField('photo_data', '');
-                      setField('face_image_base64', '');
+                      setDraft((d: any) => ({ ...d, photo_data: '', face_image_base64: '' }));
                     }} style={st.btnGhost}>
                       <Text style={st.btnGhostText}>Remove</Text>
                     </Pressable>

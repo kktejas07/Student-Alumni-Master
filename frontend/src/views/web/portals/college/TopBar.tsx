@@ -26,7 +26,7 @@ export function TopBar({
   const user = useAuthStore((u) => u.user);
   const fullName = user?.full_name || '';
   const initials = fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('').toUpperCase() || 'CO';
-  const photo = user?.face_image_base64 || user?.college_info?.logo;
+  const photo = user?.photo_data || user?.face_image_base64 || user?.college_info?.logo;
   return (
     <View style={s.bar}>
       <Text style={s.title}>{title}</Text>
@@ -70,9 +70,9 @@ export function TopBar({
 
       <Pressable
         onPress={onProfilePress}
-        style={({ hovered }: any) => [s.iconBtn, hovered && { backgroundColor: CC.cardH }]}
+        style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}
       >
-        <Av initials={initials} size={26} color="#6366F1" photo={photo} />
+        <Av initials={initials} size={34} color="#6366F1" photo={photo} />
       </Pressable>
 
       <HelpMenu portal="college" />
@@ -86,6 +86,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 22, paddingVertical: 12,
     borderBottomWidth: 1, borderBottomColor: CC.border,
     backgroundColor: CC.bg2,
+    position: 'relative', zIndex: 10,
   },
   title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.4 },
   searchBox: {
