@@ -8,7 +8,6 @@ import { STUDENT } from './data';
 import { Av } from './atoms';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 import { AlumniPortalNavContext } from './AlumniPortalRN';
-import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 function greeting(): string {
   const h = new Date().getHours();

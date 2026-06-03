@@ -160,7 +160,87 @@ export const TRANSACTIONS = [
 ];
 
 // ── Events created by this mentor
-export const MY_EVENTS = [
-  { id:1, title:'System Design Bootcamp',         date:'May 18, 2026', time:'18:00', seats:24, registered:18, type:'paid' as const, price:499 },
-  { id:2, title:'AMA: Career in Big Tech',         date:'May 24, 2026', time:'19:30', seats:100,registered:71, type:'free' as const },
+export interface MentorEvent {
+  id: number;
+  title: string;
+  date: string;
+  time: string;
+  seats: number;
+  registered: number;
+  type: 'webinar' | 'spotlight' | 'tech_talk' | 'panel' | 'qa' | 'interview';
+  platform: 'Google Meet' | 'Zoom' | 'In Person';
+  duration: number; // in minutes
+  pricing: 'free' | 'paid';
+  price?: number;
+  coverColor: string;
+  status: 'upcoming' | 'completed';
+  desc?: string;
+  visibility?: string;
+}
+
+export const MY_EVENTS: MentorEvent[] = [
+  {
+    id: 1,
+    title: 'System Design at Scale',
+    date: 'May 12, 2026',
+    time: '18:00',
+    seats: 200,
+    registered: 84,
+    type: 'webinar',
+    platform: 'Google Meet',
+    duration: 60,
+    pricing: 'free',
+    coverColor: '#6366F1',
+    status: 'upcoming',
+    desc: 'A live presentation sharing our experiences building high throughput fan-out notification systems. Designed for engineers aiming to scale their systems.',
+    visibility: 'All Connections'
+  },
+  {
+    id: 2,
+    title: 'FAANG Mock Interview Live',
+    date: 'May 15, 2026',
+    time: '19:00',
+    seats: 20,
+    registered: 12,
+    type: 'interview',
+    platform: 'Zoom',
+    duration: 45,
+    pricing: 'free',
+    coverColor: '#10B981',
+    status: 'upcoming',
+    desc: 'Interactive live mock interview practice. Get real-time feedback and structured system design/coding tips.',
+    visibility: 'All Connections'
+  },
+  {
+    id: 3,
+    title: 'Building for Scale with Go',
+    date: 'Apr 20, 2026',
+    time: '17:00',
+    seats: 150,
+    registered: 112,
+    type: 'tech_talk',
+    platform: 'Google Meet',
+    duration: 60,
+    pricing: 'free',
+    coverColor: '#3B82F6',
+    status: 'completed',
+    desc: 'Deep dive into concurrent patterns in Golang, profiling memory issues, and setting up production-ready web servers.',
+    visibility: 'All Connections'
+  },
+  {
+    id: 4,
+    title: 'Breaking into Product Management',
+    date: 'Apr 10, 2026',
+    time: '16:00',
+    seats: 300,
+    registered: 230,
+    type: 'panel',
+    platform: 'Zoom',
+    duration: 90,
+    pricing: 'free',
+    coverColor: '#8B5CF6',
+    status: 'completed',
+    desc: 'A moderated panel discussion with industry experts talking about shifting into PM roles, building product mindset, and resume tips.',
+    visibility: 'All Connections'
+  }
 ];
