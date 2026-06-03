@@ -170,7 +170,7 @@ export function Sidebar({
       {/* Student card pill */}
       {!collapsed && (
         <FadeInView delay={120}>
-          <PressScale style={[s.idCardPill, { backgroundColor: C.cardBg, borderColor: C.border }]} onPress={() => router.push('/me?tab=integrations')}>
+          <PressScale style={[s.idCardPill, { backgroundColor: C.cardBg, borderColor: C.border }]} onPress={() => router.push('/id-card')}>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={[s.idCardLabel, { color: C.textSec }]}>My Student Card</Text>
               <Text style={[s.idCardNumber, { color: C.accent }]}>{saId}</Text>
