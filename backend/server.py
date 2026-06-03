@@ -5483,6 +5483,13 @@ async def on_startup():
     except Exception as _e:
         logger.warning("Could not start Agent K scheduler: %s", _e)
 
+    # Start the Hourly Content Sync scheduler (jobs, events, courses).
+    try:
+        from background_sync import start_sync_scheduler
+        start_sync_scheduler()
+    except Exception as _e:
+        logger.warning("Could not start background sync scheduler: %s", _e)
+
     # Start the Workflow Automation cron tick (60s polling).
     try:
         from workflow_automation import run_cron_workflows
@@ -5505,6 +5512,11 @@ async def on_shutdown():
         _ak_stop_scheduler()
     except Exception:
         pass
+    try:
+        from background_sync import stop_sync_scheduler
+        stop_sync_scheduler()
+    except Exception:
+        pass
     client.close()
 
 
@@ -5514,10 +5526,9 @@ async def on_shutdown():
 from portals import router as portals_router
 api_router.include_router(portals_router)
 
-# Career Intel adapters (LinkedIn / Internshala / Buddy4Study) — MOCKED fallback
 from career_intel import router as career_intel_router
 api_router.include_router(career_intel_router)
-from jobs_feed import router as jobs_feed_router  # live job aggregator (5 free APIs + tier filter)
+from jobs_feed import router as jobs_feed_router  # live job aggregator (7 free APIs + tier filter)
 api_router.include_router(jobs_feed_router)
 from mentor_ai import router as mentor_ai_router  # mentor AI studio (mentee pulse, skill gaps, impact, session prep)
 api_router.include_router(mentor_ai_router)

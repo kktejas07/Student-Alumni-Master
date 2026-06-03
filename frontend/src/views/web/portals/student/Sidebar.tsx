@@ -72,7 +72,7 @@ export function Sidebar({
   const gy = user?.graduation_year || (user?.school_info || {}).graduation_year;
   const yearLabel: string = (gy && Number(gy) === new Date().getFullYear()) ? 'Final Year'
     : (gy && Number(gy) === new Date().getFullYear() + 1) ? 'Pre-Final Year'
-    : (gy ? `Class of ${gy}` : STUDENT.year);
+    : (gy ? `Class of ${gy}` : user?.school_info?.class_or_year || user?.year || 'Student');
   const saId: string = user?.unique_id || STUDENT.saId;
 
   // Adaptive width: collapsed icon-rail on md, OR forced-collapsed via store toggle.

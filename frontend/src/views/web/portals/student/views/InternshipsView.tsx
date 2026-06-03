@@ -1,8 +1,8 @@
 /**
  * Live job feed view — replaces the old mock-driven InternshipsView.
  *
- * Pulls from /api/jobs/feed which aggregates 5 free job APIs (RemoteOK,
- * ArbeitNow, The Muse, Remotive, Jobicy) with year-tier filter applied:
+ * Pulls from /api/jobs/feed which aggregates 11 free job APIs (RemoteOK,
+ * ArbeitNow, The Muse, Remotive, Jobicy, Himalayas, HackerNews) with year-tier filter applied:
  *   • Year 1, 2 → internships only
  *   • Year 3, 4 → internships + full-time
  *   • Alumni    → full-time + senior
@@ -140,7 +140,7 @@ export function InternshipsView() {
         const r: any = await request('/jobs/new-since-last-visit');
         if (!cancelled && r?.new_count > 0) {
           toast.success(`🎉 ${r.new_count} new job${r.new_count === 1 ? '' : 's'} since your last visit`,
-            'Pulled fresh from RemoteOK · ArbeitNow · The Muse · Remotive · Jobicy');
+            'Pulled fresh from RemoteOK · ArbeitNow · The Muse · Remotive · Jobicy · Himalayas · HackerNews · WeWorkRemotely · etc.');
         }
       } catch {}
     })();
@@ -156,7 +156,7 @@ export function InternshipsView() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadFeed({ refresh: true, pageOverride: 1 });
-    toast.success('Feed refreshed', 'Fetched the latest jobs from all 5 sources.');
+    toast.success('Feed refreshed', 'Fetched the latest jobs from all 11 sources.');
   }, [loadFeed, toast]);
 
   const onLoadMore = useCallback(() => {
@@ -228,7 +228,7 @@ export function InternshipsView() {
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.tierTxt}>
-            Live jobs from <Text style={{ color: '#FCD34D', fontFamily: FONTS.xbold }}>5 sources</Text> · personalised to your tier
+            Live jobs from <Text style={{ color: '#FCD34D', fontFamily: FONTS.xbold }}>11 sources</Text> · personalised to your tier
           </Text>
           <Text style={s.tierSub}>Allowed for you: {allowedTypes.join(' · ')}</Text>
         </View>
@@ -285,7 +285,7 @@ export function InternshipsView() {
             <EmptyState
               variant="generic"
               title="No matches yet"
-              body="Try a different filter, broaden your search, or hit refresh to pull the latest jobs from all 5 sources."
+              body="Try a different filter, broaden your search, or hit refresh to pull the latest jobs from all 11 sources."
               cta={{ label: 'Refresh feed', onPress: onRefresh }}
             />
           )
