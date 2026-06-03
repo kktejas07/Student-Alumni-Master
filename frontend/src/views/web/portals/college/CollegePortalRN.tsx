@@ -78,7 +78,7 @@ export function CollegePortalRN() {
           {active === 'students'     && <StudentsView />}
           {active === 'alumni'       && <AlumniView />}
           {active === 'mentors'      && <MentorsView />}
-          {active === 'events'       && <EventsView />}
+          {active === 'events'       && <EventsView onNavigate={setActive} />}
           {active === 'create-event' && <CreateEventView />}
           {active === 'announcements'&& <AnnouncementsView />}
           {active === 'analytics'    && <AnalyticsView />}

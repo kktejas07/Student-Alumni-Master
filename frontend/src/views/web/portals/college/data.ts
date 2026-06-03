@@ -9,6 +9,12 @@ export const COLLEGE = {
   emoji: '🌅',
   placementRate: 94,
   upcomingHighlight: 'Google drive confirmed for May 10',
+  tier: {
+    tier: 'Platinum',
+    score: 92,
+    naac: 'A++',
+    visuals: { bg: 'rgba(34,211,238,0.15)', text: '#22D3EE', border: 'rgba(34,211,238,0.30)', icon: 'award' },
+  },
 };
 
 export const KPIS = [

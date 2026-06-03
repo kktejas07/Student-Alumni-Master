@@ -4,11 +4,24 @@ import { Calendar as CalIcon, Plus } from 'lucide-react-native';
 import { CC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
 import { usePortalData } from '@/src/lib/portalApi';
+import { useRouter } from 'expo-router';
 
-type Ev = { id: string; title: string; date: string; mode: string; city: string; cat: string; attending: number; capacity: number; accent: string };
+type Ev = {
+  id: string;
+  title: string;
+  date: string;
+  mode: string;
+  city: string;
+  cat: string;
+  attending: number;
+  capacity: number;
+  accent: string;
+  price?: number | null;
+};
 const FALLBACK = { items: [] as Ev[] };
 
-export function EventsView() {
+export function EventsView({ onNavigate }: { onNavigate?: (id: any) => void }) {
+  const router = useRouter();
   const { data } = usePortalData<typeof FALLBACK>('/college/events', FALLBACK);
   const events = data?.items || [];
   return (
@@ -16,7 +29,10 @@ export function EventsView() {
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
         <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 }}>All Events ({events.length})</Text>
         <View style={{ flex: 1 }} />
-        <Pressable style={s.cta}><Plus size={14} color="#fff" /><Text style={s.ctaText}>Create Event</Text></Pressable>
+        <Pressable style={s.cta} onPress={() => onNavigate?.('create-event')}>
+          <Plus size={14} color="#fff" />
+          <Text style={s.ctaText}>Create Event</Text>
+        </Pressable>
       </View>
       <View style={s.grid}>
         {events.map((e) => (
@@ -25,7 +41,27 @@ export function EventsView() {
             <Text numberOfLines={2} style={s.title}>{e.title}</Text>
             <Text style={s.date}>{e.date} · {e.mode}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}><Badge label={`${e.attending} attending`} color="cyan" /></View>
-            <Pressable style={s.manage}><Text style={s.manageText}>Manage →</Text></Pressable>
+            <Pressable
+              style={s.manage}
+              onPress={() => router.push({
+                pathname: `/event/${e.id}` as any,
+                params: {
+                  id: e.id,
+                  title: e.title,
+                  start_date: e.date,
+                  venue: e.city || 'Online',
+                  registration_deadline: e.date,
+                  category: e.cat || 'Workshop',
+                  organizer: 'Institution Partner',
+                  image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=400',
+                  url: '',
+                  tags: 'Networking,Career,Academic',
+                  price: e.price !== undefined && e.price !== null ? String(e.price) : '',
+                }
+              })}
+            >
+              <Text style={s.manageText}>Manage →</Text>
+            </Pressable>
           </View>
         ))}
       </View>
