@@ -15,7 +15,8 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import FeaturePageShell from '@/src/views/web/FeaturePageShell';
+import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
 import { request } from '@/src/models/services/api';
 
@@ -71,8 +72,47 @@ const matchTier = (n: number) => {
   return { bg: 'rgba(110,105,130,0.15)', fg: '#B7B3C6' };
 };
 
+function useRoleTheme() {
+  const user = useAuthStore((st) => st.user);
+  const role = user?.role || 'student';
+
+  const themeColor =
+    role === 'alumni' ? '#60A5FA' :
+    role === 'mentor' ? '#5EEAD4' :
+    role === 'college' || role === 'admin' ? '#818CF8' :
+    '#A78BFA';
+
+  const activeTabColor =
+    role === 'alumni' ? '#3B82F6' :
+    role === 'mentor' ? '#14B8A6' :
+    role === 'college' || role === 'admin' ? '#6366F1' :
+    '#7C3AED';
+
+  const activeTabBorder =
+    role === 'alumni' ? '#60A5FA' :
+    role === 'mentor' ? '#5EEAD4' :
+    role === 'college' || role === 'admin' ? '#818CF8' :
+    '#A78BFA';
+
+  return { role, themeColor, activeTabColor, activeTabBorder };
+}
+
 export default function HigherEducationScreen() {
   const router = useRouter();
+  const user = useAuthStore((st) => st.user);
+  const initialized = useAuthStore((st) => st.initialized);
+  const { role, themeColor, activeTabColor, activeTabBorder } = useRoleTheme();
+  const isEmbedded = React.useContext(EmbeddedShellContext);
+
+  useEffect(() => {
+    if (!isEmbedded && initialized && user) {
+      if (user.role === 'alumni') {
+        router.replace('/alumni-portal?tab=higher-ed' as any);
+      } else if (user.role === 'student') {
+        router.replace('/student-portal?tab=higher-ed' as any);
+      }
+    }
+  }, [isEmbedded, initialized, user, router]);
   const [tab, setTab] = useState<'programmes' | 'scholarships' | 'countries'>('programmes');
   const [programmes, setProgrammes] = useState<Programme[]>([]);
   const [scholarships, setScholarships] = useState<Scholarship[]>([]);
@@ -155,10 +195,10 @@ export default function HigherEducationScreen() {
       title="Higher Education"
       subtitle="AI-powered programme discovery + Application Tracker"
       heroEmoji="🎓"
-      accent="#7C3AED"
+      accent={themeColor}
       rightSlot={
         <Pressable
-          style={s.toolsBtn}
+          style={[s.toolsBtn, { backgroundColor: activeTabColor + '4d', borderColor: activeTabBorder + '8c' }]}
           onPress={() => setAiTool({ type: 'profile' })}
         >
           <MaterialCommunityIcons name="auto-fix" size={14} color="#fff" />
@@ -184,7 +224,7 @@ export default function HigherEducationScreen() {
           return (
             <Pressable
               key={t.id}
-              style={[s.tab, active && s.tabActive]}
+              style={[s.tab, active && { backgroundColor: activeTabColor, borderColor: activeTabBorder }]}
               onPress={() => setTab(t.id)}
             >
               <MaterialCommunityIcons name={t.icon} size={14} color={active ? '#fff' : C.text2} />
@@ -196,7 +236,7 @@ export default function HigherEducationScreen() {
 
       {loading ? (
         <View style={{ paddingVertical: 60, alignItems: 'center' }}>
-          <ActivityIndicator color="#A78BFA" size="large" />
+          <ActivityIndicator color={themeColor} size="large" />
           <Text style={{ color: C.text2, marginTop: 10 }}>Loading…</Text>
         </View>
       ) : (
@@ -309,13 +349,13 @@ export default function HigherEducationScreen() {
 
       {/* Sticky compare bar */}
       {selectedIds.size >= 2 && (
-        <View style={s.compareBar}>
+        <View style={[s.compareBar, { borderColor: themeColor + '8c' }]}>
           <MaterialCommunityIcons name="compare-horizontal" size={16} color="#fff" />
           <Text style={s.compareText}>Compare {selectedIds.size} programmes</Text>
           <Pressable onPress={() => setSelectedIds(new Set())}>
             <Text style={s.compareClear}>Clear</Text>
           </Pressable>
-          <Pressable style={s.compareCTA} onPress={() => setCompareOpen(true)}>
+          <Pressable style={[s.compareCTA, { backgroundColor: activeTabColor }]} onPress={() => setCompareOpen(true)}>
             <Text style={s.compareCTAText}>Compare →</Text>
           </Pressable>
         </View>
@@ -341,7 +381,7 @@ export default function HigherEducationScreen() {
         onRequestClose={() => setConfirmAfterRedirectProg(null)}
       >
         <View style={s.modalBackdrop}>
-          <View style={s.confirmModal}>
+          <View style={[s.confirmModal, { borderColor: activeTabColor + '4d' }]}>
             <View style={s.confirmHead}>
               <MaterialCommunityIcons name="check-decagram" size={20} color="#34D399" />
               <Text style={s.confirmTitle}>Application Status</Text>
@@ -349,7 +389,7 @@ export default function HigherEducationScreen() {
 
             <View style={s.confirmBody}>
               <Text style={s.confirmText}>
-                Did you complete your application for <Text style={s.boldText}>{confirmAfterRedirectProg?.name}</Text> at <Text style={s.boldText}>{confirmAfterRedirectProg?.institution}</Text>?
+                Did you complete your application for <Text style={[s.boldText, { color: themeColor }]}>{confirmAfterRedirectProg?.name}</Text> at <Text style={[s.boldText, { color: themeColor }]}>{confirmAfterRedirectProg?.institution}</Text>?
               </Text>
               <Text style={s.confirmSubtext}>
                 We opened the official university portal in a new tab. If you successfully completed and submitted the application, click "Yes, I Applied" to begin tracking.
@@ -364,7 +404,7 @@ export default function HigherEducationScreen() {
                 <Text style={s.cancelBtnText}>No, Cancelled</Text>
               </Pressable>
               <Pressable
-                style={s.confirmBtn}
+                style={[s.confirmBtn, { backgroundColor: activeTabColor }]}
                 onPress={() => {
                   if (confirmAfterRedirectProg) {
                     const p = confirmAfterRedirectProg;
@@ -399,11 +439,12 @@ function ProgrammeCard({
   appId?: string;
 }) {
   const router = useRouter();
+  const { themeColor, activeTabColor } = useRoleTheme();
   const tier = matchTier(p.match);
   const tags = (p.tags || []).slice(0, 3);
   const overflow = (p.tags || []).length - tags.length;
   return (
-    <View style={[s.card, selected && { borderColor: '#A78BFA', borderWidth: 2 }]}>
+    <View style={[s.card, selected && { borderColor: themeColor, borderWidth: 2 }]}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <View style={{ flexDirection: 'row', gap: 6 }}>
           <View style={[s.pill, { backgroundColor: 'rgba(59,130,246,0.20)' }]}>
@@ -457,7 +498,7 @@ function ProgrammeCard({
             <Text style={[s.applyBtnText, { color: '#34D399' }]}>Applied ✓</Text>
           </Pressable>
         ) : (
-          <Pressable style={[s.applyBtn, { flex: 1 }]} onPress={onApply}>
+          <Pressable style={[s.applyBtn, { flex: 1, backgroundColor: activeTabColor }]} onPress={onApply}>
             <Text style={s.applyBtnText}>Apply →</Text>
           </Pressable>
         )}
@@ -467,17 +508,17 @@ function ProgrammeCard({
       </View>
 
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
-        <Pressable style={s.draftBtn} onPress={onDraftSOP}>
-          <MaterialCommunityIcons name="file-document-edit" size={12} color="#A78BFA" />
-          <Text style={s.draftBtnText}>Draft SOP</Text>
+        <Pressable style={[s.draftBtn, { backgroundColor: themeColor + '1a', borderColor: themeColor + '66' }]} onPress={onDraftSOP}>
+          <MaterialCommunityIcons name="file-document-edit" size={12} color={themeColor} />
+          <Text style={[s.draftBtnText, { color: themeColor }]}>Draft SOP</Text>
         </Pressable>
-        <Pressable style={s.draftBtn} onPress={onCoverLetter}>
-          <MaterialCommunityIcons name="email-edit" size={12} color="#A78BFA" />
-          <Text style={s.draftBtnText}>Cover letter</Text>
+        <Pressable style={[s.draftBtn, { backgroundColor: themeColor + '1a', borderColor: themeColor + '66' }]} onPress={onCoverLetter}>
+          <MaterialCommunityIcons name="email-edit" size={12} color={themeColor} />
+          <Text style={[s.draftBtnText, { color: themeColor }]}>Cover letter</Text>
         </Pressable>
-        <Pressable style={[s.compareChk, selected && s.compareChkActive]} onPress={onCompareToggle}>
-          <MaterialCommunityIcons name={selected ? 'checkbox-marked' : 'checkbox-blank-outline'} size={14} color={selected ? '#A78BFA' : C.text3} />
-          <Text style={[s.compareChkText, selected && { color: '#A78BFA' }]}>Compare</Text>
+        <Pressable style={[s.compareChk, selected && { borderColor: themeColor + '8c' }]} onPress={onCompareToggle}>
+          <MaterialCommunityIcons name={selected ? 'checkbox-marked' : 'checkbox-blank-outline'} size={14} color={selected ? themeColor : C.text3} />
+          <Text style={[s.compareChkText, selected && { color: themeColor }]}>Compare</Text>
         </Pressable>
       </View>
     </View>
@@ -498,6 +539,7 @@ function CompareModal({ visible, ids, onClose, onApply, appliedAppMap }: {
   appliedAppMap: Record<string, string>;
 }) {
   const router = useRouter();
+  const { activeTabColor } = useRoleTheme();
   const [data, setData] = useState<{ programmes: Programme[]; rows: any[]; tied: boolean; tie_breaker_note?: string } | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -588,7 +630,7 @@ function CompareModal({ visible, ids, onClose, onApply, appliedAppMap }: {
                               <Text style={[s.applyBtnText, { color: '#34D399' }]}>Applied ✓</Text>
                             </Pressable>
                           ) : (
-                            <Pressable style={s.applyBtn} onPress={() => onApply(p)}>
+                            <Pressable style={[s.applyBtn, { backgroundColor: activeTabColor }]} onPress={() => onApply(p)}>
                               <Text style={s.applyBtnText}>Apply →</Text>
                             </Pressable>
                           )}
@@ -612,6 +654,7 @@ type ToolType = 'sop' | 'cv' | 'cover' | 'lor' | 'elig' | 'profile';
 function AIToolsModal({
   tool, onClose, onSwitch,
 }: { tool: { type: ToolType; programmeId?: string } | null; onClose: () => void; onSwitch: (t: any) => void }) {
+  const { themeColor, activeTabColor, activeTabBorder } = useRoleTheme();
   const [stage, setStage] = useState<'pick' | 'questions' | 'draft'>('pick');
   const [questions, setQuestions] = useState<any[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -695,7 +738,7 @@ function AIToolsModal({
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingBottom: 8 }}>
             {(['sop','cv','cover','lor','elig','profile'] as ToolType[]).map((t) => (
               <Pressable key={t}
-                style={[s.toolChip, tool.type === t && s.toolChipActive]}
+                style={[s.toolChip, tool.type === t && { backgroundColor: activeTabColor, borderColor: activeTabBorder }]}
                 onPress={() => onSwitch({ type: t, programmeId: tool.programmeId })}
               >
                 <Text style={[s.toolChipText, tool.type === t && { color: '#fff' }]}>
@@ -706,7 +749,7 @@ function AIToolsModal({
           </ScrollView>
 
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }}>
-            {busy && <ActivityIndicator color="#A78BFA" size="large" style={{ marginVertical: 30 }} />}
+            {busy && <ActivityIndicator color={themeColor} size="large" style={{ marginVertical: 30 }} />}
 
             {tool.type === 'profile' && stage === 'questions' && !busy && (
               <View style={{ gap: 8 }}>
@@ -718,7 +761,7 @@ function AIToolsModal({
                   placeholderTextColor={C.text3}
                   style={[s.aiInput, { minHeight: 140, textAlignVertical: 'top' }]}
                 />
-                <Pressable style={s.aiSubmit} onPress={submit} disabled={!bio.trim()}>
+                <Pressable style={[s.aiSubmit, { backgroundColor: activeTabColor }]} onPress={submit} disabled={!bio.trim()}>
                   <Text style={s.aiSubmitText}>Parse Profile →</Text>
                 </Pressable>
               </View>
@@ -740,7 +783,7 @@ function AIToolsModal({
                   </View>
                 ))}
                 <Pressable
-                  style={[s.aiSubmit, { opacity: questions.every((q) => (answers[q.id] || '').trim()) ? 1 : 0.5 }]}
+                  style={[s.aiSubmit, { backgroundColor: activeTabColor, opacity: questions.every((q) => (answers[q.id] || '').trim()) ? 1 : 0.5 }]}
                   onPress={submit}
                   disabled={!questions.every((q) => (answers[q.id] || '').trim())}
                 >
@@ -753,7 +796,7 @@ function AIToolsModal({
               <View style={{ gap: 12 }}>
                 {profileData ? (
                   <View style={s.aiResult}>
-                    <Text style={s.aiResultTitle}>Parsed Profile</Text>
+                    <Text style={[s.aiResultTitle, { color: themeColor }]}>Parsed Profile</Text>
                     <Text style={s.aiResultBody}>{JSON.stringify(profileData, null, 2)}</Text>
                   </View>
                 ) : (

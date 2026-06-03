@@ -10,10 +10,12 @@ import {
   ActivityIndicator, TextInput, Modal, Platform,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import FeaturePageShell from '@/src/views/web/FeaturePageShell';
+import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 import { FAB } from '@/src/views/web/md3';
 import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
 import { request } from '@/src/models/services/api';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useRouter } from 'expo-router';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -59,6 +61,21 @@ const fmtDate = (iso?: string) => {
 };
 
 export default function RentalsPage() {
+  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const initialized = useAuthStore((s) => s.initialized);
+  const isEmbedded = React.useContext(EmbeddedShellContext);
+
+  useEffect(() => {
+    if (!isEmbedded && initialized && user) {
+      if (user.role === 'alumni') {
+        router.replace('/alumni-portal?tab=rentals' as any);
+      } else if (user.role === 'student') {
+        router.replace('/student-portal?tab=rentals' as any);
+      }
+    }
+  }, [isEmbedded, initialized, user, router]);
+
   const [cat, setCat] = useState<string>('all');
   const [query, setQuery] = useState<string>('');
   const [city, setCity] = useState<string>('all');

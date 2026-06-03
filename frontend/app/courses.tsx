@@ -9,8 +9,10 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import FeaturePageShell from '@/src/views/web/FeaturePageShell';
+import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useRouter } from 'expo-router';
 import { AnimatedCard, FAB } from '@/src/views/web/md3';
 import CareerTrackInline from '@/src/views/web/courses/CareerTrackInline';
 import CourseDetailDrawer from '@/src/views/web/courses/CourseDetailDrawer';
@@ -87,6 +89,21 @@ const fmtCount = (n: number) => {
 };
 
 export default function CoursesPage() {
+  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const initialized = useAuthStore((s) => s.initialized);
+  const isEmbedded = React.useContext(EmbeddedShellContext);
+
+  useEffect(() => {
+    if (!isEmbedded && initialized && user) {
+      if (user.role === 'alumni') {
+        router.replace('/alumni-portal?tab=courses' as any);
+      } else if (user.role === 'student') {
+        router.replace('/student-portal?tab=courses' as any);
+      }
+    }
+  }, [isEmbedded, initialized, user, router]);
+
   const [sections, setSections] = useState<Section[]>([]);
   const [hero, setHero] = useState<Hero[]>([]);
   const [stats, setStats] = useState({ total_courses: 0, free_courses: 0,
