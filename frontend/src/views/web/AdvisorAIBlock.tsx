@@ -22,6 +22,8 @@ export default function AdvisorAIBlock({
   aiIcon = 'robot-excited',
   advisorTel = '+919876543210',
   advisorEmail = 'advisor@studentalumni.in',
+  aiOpen: externalAiOpen,
+  setAiOpen: externalSetAiOpen,
 }: {
   context?: string;
   advisorTitle?: string;
@@ -34,8 +36,13 @@ export default function AdvisorAIBlock({
   aiIcon?: IconName;
   advisorTel?: string;
   advisorEmail?: string;
+  aiOpen?: boolean;
+  setAiOpen?: (open: boolean) => void;
 }) {
-  const [aiOpen, setAiOpen] = useState(false);
+  const [internalAiOpen, setInternalAiOpen] = useState(false);
+  const aiOpen = externalAiOpen !== undefined ? externalAiOpen : internalAiOpen;
+  const setAiOpen = externalSetAiOpen !== undefined ? externalSetAiOpen : setInternalAiOpen;
+
   const [advisorOpen, setAdvisorOpen] = useState(false);
   const [aiQuestion, setAiQuestion] = useState('');
   const [aiBusy, setAiBusy] = useState(false);
@@ -139,7 +146,7 @@ export default function AdvisorAIBlock({
 }
 
 const s = StyleSheet.create({
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'flex-start' },
   card: {
     flex: 1, minWidth: 260,
     padding: 18, borderRadius: 16,
