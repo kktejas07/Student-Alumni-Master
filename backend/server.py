@@ -1124,6 +1124,7 @@ async def get_public_profile(user_id: str):
         "bio": target.get("bio"),
         "photo_data": target.get("photo_data") or target.get("face_image_base64"),
         "is_online": target.get("is_online", True),
+        "is_verified": target.get("is_verified", False),
         # Identity meta
         "institution": target.get("institution") or si.get("institution_name"),
         "branch": target.get("branch"),

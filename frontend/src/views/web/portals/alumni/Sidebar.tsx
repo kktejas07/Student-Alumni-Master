@@ -8,6 +8,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useRouter } from 'expo-router';
 import {
   LayoutDashboard, Sparkles, Briefcase, Users, Calendar, Wallet,
   Tag, CreditCard, GraduationCap, Home, User, ExternalLink, LogOut,
@@ -47,6 +48,7 @@ export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: bo
 export function Sidebar({
   active, onNav, onLogout,
 }: { active: StudentNavId; onNav: (id: StudentNavId) => void; onLogout: () => void }) {
+  const router = useRouter();
   const user = useAuthStore((u) => u.user) as any;
   const fullName = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim();
   const name = fullName || STUDENT.name;
@@ -93,7 +95,7 @@ export function Sidebar({
       </FadeInView>
 
       {/* Alumni card pill */}
-      <FadeInView delay={120}>
+      <FadeInView delay={95}>
         <PressScale style={s.idCardPill} onPress={() => router.push('/id-card')}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={s.idCardLabel}>My Alumni Card</Text>

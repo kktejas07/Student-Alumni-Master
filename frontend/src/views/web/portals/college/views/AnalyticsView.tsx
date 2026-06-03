@@ -11,6 +11,7 @@ import { KpiCard } from '../atoms';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { TrendingUp, Users, Trophy, BarChart3 } from 'lucide-react-native';
 import { usePortalData } from '@/src/lib/portalApi';
+import Svg, { Path, Circle, Line, Defs, LinearGradient as SvgLG, Stop, Text as SvgText, G } from 'react-native-svg';
 
 type Trend     = { year: number; rate: number; median_lpa: number };
 type Sector    = { name: string; count: number; pct: number; color: string };
@@ -44,7 +45,36 @@ export function AnalyticsView() {
   const { width } = useWindowDimensions();
   const isWide = width > 900;
   const TREND = data?.placement_trend || [];
-  const max = Math.max(...TREND.map((t) => t.rate), 1);
+  
+  const [chartWidth, setChartWidth] = React.useState(width - 316);
+
+  const W = chartWidth;
+  const H = 180;
+  const padX = 50;
+  const padYTop = 35;
+  const padYBot = 45;
+
+  const stepX = (W - padX * 2) / Math.max(TREND.length - 1, 1);
+  const points = TREND.map((t, i) => {
+    const x = padX + i * stepX;
+    // Scale rate from 0% to 100%
+    const y = H - padYBot - (t.rate / 100) * (H - padYTop - padYBot);
+    return { x, y, ...t };
+  });
+
+  // Smooth curve via cubic Bezier
+  const path = points.reduce((acc, p, i) => {
+    if (i === 0) return `M${p.x},${p.y}`;
+    const prev = points[i - 1];
+    const cx = (prev.x + p.x) / 2;
+    return `${acc} C${cx},${prev.y} ${cx},${p.y} ${p.x},${p.y}`;
+  }, '');
+
+  const fillPath = points.length > 0
+    ? `${path} L${points[points.length - 1].x},${H - padYBot} L${points[0].x},${H - padYBot} Z`
+    : '';
+
+  const gridLines = [0.25, 0.50, 0.75].map((pct) => H - padYBot - pct * (H - padYTop - padYBot));
 
   return (
     <View style={{ gap: 16 }}>
@@ -67,21 +97,116 @@ export function AnalyticsView() {
       {/* Placement trend */}
       <View style={s.card}>
         <Text style={s.cardLabel}>📈 PLACEMENT TREND (5Y)</Text>
-        <View style={s.barRow}>
-          {TREND.map((t) => (
-            <View key={t.year} style={{ flex: 1, alignItems: 'center', gap: 6 }}>
-              <View style={s.barCol}>
-                <View style={[s.bar, {
-                  height: `${(t.rate / max) * 100}%`,
-                  backgroundColor: t.year === 2026 ? '#A78BFA' : '#3B82F6',
-                }]} />
-              </View>
-              <Text style={s.barVal}>{t.rate}%</Text>
-              <Text style={s.barLabel}>{t.year}</Text>
-              <Text style={s.barSub}>₹{t.median_lpa}L</Text>
-            </View>
-          ))}
-        </View>
+        {TREND.length === 0 ? (
+          <View style={{ height: H, justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={{ color: CC.dim, fontFamily: FONTS.med, fontSize: 13 }}>
+              No placement data available
+            </Text>
+          </View>
+        ) : (
+          <View
+            style={{ width: '100%', height: H, position: 'relative' }}
+            onLayout={(e) => {
+              const w = e.nativeEvent.layout.width;
+              if (w && w !== chartWidth) setChartWidth(w);
+            }}
+          >
+            <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ position: 'absolute', top: 0, left: 0 }}>
+              <Defs>
+                <SvgLG id="trendGrad" x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0" stopColor="#3B82F6" stopOpacity="0.25" />
+                  <Stop offset="1" stopColor="#3B82F6" stopOpacity="0.0" />
+                </SvgLG>
+              </Defs>
+
+              {/* Horizontal gridlines at 25%, 50%, 75% */}
+              {gridLines.map((y, idx) => (
+                <Line
+                  key={idx}
+                  x1={padX}
+                  y1={y}
+                  x2={W - padX}
+                  y2={y}
+                  stroke="rgba(255, 255, 255, 0.08)"
+                  strokeWidth="1"
+                  strokeDasharray="4 4"
+                />
+              ))}
+
+              {/* Baseline */}
+              <Line x1={padX} y1={H - padYBot} x2={W - padX} y2={H - padYBot}
+                    stroke="rgba(255, 255, 255, 0.15)" strokeWidth="1.5" />
+
+              {/* Filled area */}
+              <Path d={fillPath} fill="url(#trendGrad)" />
+
+              {/* Line */}
+              <Path d={path} stroke="#3B82F6" strokeWidth="3" fill="none" strokeLinecap="round" />
+
+              {/* Data points */}
+              {points.map((p) => (
+                <G key={p.year}>
+                  {/* Outer glow ring for latest year */}
+                  {p.year === 2026 && (
+                    <Circle
+                      cx={p.x}
+                      cy={p.y}
+                      r="9"
+                      fill="#A78BFA"
+                      opacity="0.3"
+                    />
+                  )}
+                  <Circle
+                    cx={p.x}
+                    cy={p.y}
+                    r={p.year === 2026 ? 5.5 : 4}
+                    fill={p.year === 2026 ? "#A78BFA" : "#3B82F6"}
+                    stroke={CC.card}
+                    strokeWidth={2}
+                  />
+
+                  {/* Rate text above dot */}
+                  <SvgText
+                    x={p.x}
+                    y={p.y - 12}
+                    fontSize="11.5"
+                    fill="#FFFFFF"
+                    textAnchor="middle"
+                    fontWeight="bold"
+                    fontFamily={FONTS.bold}
+                  >
+                    {p.rate}%
+                  </SvgText>
+
+                  {/* Year text below baseline */}
+                  <SvgText
+                    x={p.x}
+                    y={H - 24}
+                    fontSize="11.5"
+                    fill={CC.muted}
+                    textAnchor="middle"
+                    fontWeight="bold"
+                    fontFamily={FONTS.bold}
+                  >
+                    {p.year}
+                  </SvgText>
+
+                  {/* Median LPA below Year */}
+                  <SvgText
+                    x={p.x}
+                    y={H - 8}
+                    fontSize="10"
+                    fill={CC.dim}
+                    textAnchor="middle"
+                    fontFamily={FONTS.med}
+                  >
+                    ₹{p.median_lpa}L
+                  </SvgText>
+                </G>
+              ))}
+            </Svg>
+          </View>
+        )}
       </View>
 
       {/* Hiring funnel + Salary distribution */}
