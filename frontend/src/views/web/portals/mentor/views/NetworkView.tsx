@@ -468,37 +468,39 @@ export function NetworkView() {
                     
                     return (
                       <View key={student.id} style={s.profileCard}>
-                        <View style={s.cardProfileRow}>
-                          <Av initials={student.avatar} size={42} color={student.color} />
-                          <View style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                              <Text numberOfLines={1} style={s.nameBold}>{student.name}</Text>
-                              <View style={s.rolePillStudent}>
-                                <Text style={s.rolePillStudentText}>Student</Text>
+                        <View>
+                          <View style={s.cardProfileRow}>
+                            <Av initials={student.avatar} size={42} color={student.color} />
+                            <View style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                <Text numberOfLines={1} style={s.nameBold}>{student.name}</Text>
+                                <View style={s.rolePillStudent}>
+                                  <Text style={s.rolePillStudentText}>Student</Text>
+                                </View>
                               </View>
+                              <Text numberOfLines={1} style={s.subtitleLine}>{student.branch}</Text>
+                              <Text numberOfLines={1} style={s.subtitleSubLine}>{student.college}</Text>
                             </View>
-                            <Text numberOfLines={1} style={s.subtitleLine}>{student.branch}</Text>
-                            <Text numberOfLines={1} style={s.subtitleSubLine}>{student.college}</Text>
                           </View>
-                        </View>
 
-                        <View style={s.skillsRow}>
-                          <View style={s.skillChip}><Text style={s.skillChipText}>{primaryTag}</Text></View>
-                          {secondTag && (
-                            <View style={s.skillChip}><Text style={s.skillChipText}>{secondTag}</Text></View>
-                          )}
-                        </View>
-
-                        <View style={s.mutualRow}>
-                          <Users size={12} color={MC.dim} style={{ marginRight: 6 }} />
-                          <Text style={s.mutualText}>{student.messages || 1} mutual connection{student.messages === 1 ? '' : 's'}</Text>
-                        </View>
-
-                        <View style={s.progressRow}>
-                          <View style={s.progressTrack}>
-                            <View style={[s.progressFill, { width: `${student.progress}%` }]} />
+                          <View style={s.skillsRow}>
+                            <View style={s.skillChip}><Text style={s.skillChipText}>{primaryTag}</Text></View>
+                            {secondTag && (
+                              <View style={s.skillChip}><Text style={s.skillChipText}>{secondTag}</Text></View>
+                            )}
                           </View>
-                          <Text style={s.progressText}>{student.progress}% mentoring progress</Text>
+
+                          <View style={s.mutualRow}>
+                            <Users size={12} color={MC.dim} style={{ marginRight: 6 }} />
+                            <Text style={s.mutualText}>{student.messages || 1} mutual connection{student.messages === 1 ? '' : 's'}</Text>
+                          </View>
+
+                          <View style={s.progressRow}>
+                            <View style={s.progressTrack}>
+                              <View style={[s.progressFill, { width: `${student.progress}%` }]} />
+                            </View>
+                            <Text style={s.progressText}>{student.progress}% mentoring progress</Text>
+                          </View>
                         </View>
 
                         <View style={s.cardActions}>
@@ -565,29 +567,31 @@ export function NetworkView() {
 
                     return (
                       <View key={person.id} style={s.profileCard}>
-                        <View style={s.cardProfileRow}>
-                          <Av initials={person.avatar} size={42} color={person.color} />
-                          <View style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                              <Text numberOfLines={1} style={s.nameBold}>{person.name}</Text>
-                              <View style={[s.rolePillBase, badgeColor]}>
-                                <Text style={[s.rolePillBaseText, badgeText]}>{person.tag}</Text>
+                        <View>
+                          <View style={s.cardProfileRow}>
+                            <Av initials={person.avatar} size={42} color={person.color} />
+                            <View style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                <Text numberOfLines={1} style={s.nameBold}>{person.name}</Text>
+                                <View style={[s.rolePillBase, badgeColor]}>
+                                  <Text style={[s.rolePillBaseText, badgeText]}>{person.tag}</Text>
+                                </View>
                               </View>
+                              <Text numberOfLines={1} style={s.subtitleLine}>{person.role}</Text>
+                              <Text numberOfLines={1} style={s.subtitleSubLine}>{person.company}</Text>
                             </View>
-                            <Text numberOfLines={1} style={s.subtitleLine}>{person.role}</Text>
-                            <Text numberOfLines={1} style={s.subtitleSubLine}>{person.company}</Text>
                           </View>
-                        </View>
 
-                        <View style={s.skillsRow}>
-                          {person.tags.map((skill, sIdx) => (
-                            <View key={sIdx} style={s.skillChip}><Text style={s.skillChipText}>{skill}</Text></View>
-                          ))}
-                        </View>
+                          <View style={s.skillsRow}>
+                            {person.tags.map((skill, sIdx) => (
+                              <View key={sIdx} style={s.skillChip}><Text style={s.skillChipText}>{skill}</Text></View>
+                            ))}
+                          </View>
 
-                        <View style={s.mutualRow}>
-                          <Users size={12} color={MC.dim} style={{ marginRight: 6 }} />
-                          <Text style={s.mutualText}>{person.mutual} mutual connections</Text>
+                          <View style={s.mutualRow}>
+                            <Users size={12} color={MC.dim} style={{ marginRight: 6 }} />
+                            <Text style={s.mutualText}>{person.mutual} mutual connections</Text>
+                          </View>
                         </View>
 
                         <View style={[s.cardActions, { marginTop: 14 }]}>
@@ -729,32 +733,34 @@ export function NetworkView() {
                 <View style={s.cardsGrid}>
                   {filteredMatchedDiscover.map((person) => (
                     <View key={person.id} style={s.profileCard}>
-                      {/* Card Profile Info */}
-                      <View style={s.cardProfileRow}>
-                        <Av initials={person.avatar} size={42} color={person.color} />
-                        <View style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                            <Text numberOfLines={1} style={s.nameBold}>{person.name}</Text>
-                            <View style={[s.rolePillBase, s.rolePillAlumni]}>
-                              <Text style={[s.rolePillBaseText, s.rolePillAlumniText]}>Alumni</Text>
+                      <View>
+                        {/* Card Profile Info */}
+                        <View style={s.cardProfileRow}>
+                          <Av initials={person.avatar} size={42} color={person.color} />
+                          <View style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              <Text numberOfLines={1} style={s.nameBold}>{person.name}</Text>
+                              <View style={[s.rolePillBase, s.rolePillAlumni]}>
+                                <Text style={[s.rolePillBaseText, s.rolePillAlumniText]}>Alumni</Text>
+                              </View>
                             </View>
+                            <Text numberOfLines={1} style={s.subtitleLine}>{person.role}</Text>
+                            <Text numberOfLines={1} style={s.subtitleSubLine}>{person.company} • {person.college} • {person.year}</Text>
                           </View>
-                          <Text numberOfLines={1} style={s.subtitleLine}>{person.role}</Text>
-                          <Text numberOfLines={1} style={s.subtitleSubLine}>{person.company} • {person.college} • {person.year}</Text>
                         </View>
-                      </View>
 
-                      {/* Skill Pills */}
-                      <View style={s.skillsRow}>
-                        {person.tags.map((skill, sIdx) => (
-                          <View key={sIdx} style={s.skillChip}><Text style={s.skillChipText}>{skill}</Text></View>
-                        ))}
-                      </View>
+                        {/* Skill Pills */}
+                        <View style={s.skillsRow}>
+                          {person.tags.map((skill, sIdx) => (
+                            <View key={sIdx} style={s.skillChip}><Text style={s.skillChipText}>{skill}</Text></View>
+                          ))}
+                        </View>
 
-                      {/* Mutual Connection Counter */}
-                      <View style={s.mutualRow}>
-                        <Users size={12} color={MC.dim} style={{ marginRight: 6 }} />
-                        <Text style={s.mutualText}>{person.mutual} mutual connections</Text>
+                        {/* Mutual Connection Counter */}
+                        <View style={s.mutualRow}>
+                          <Users size={12} color={MC.dim} style={{ marginRight: 6 }} />
+                          <Text style={s.mutualText}>{person.mutual} mutual connections</Text>
+                        </View>
                       </View>
 
                       {/* Card Action Row */}
@@ -1219,12 +1225,13 @@ const s = StyleSheet.create({
     flexGrow: 1,
     flexBasis: 280,
     maxWidth: 350,
+    height: 280,
+    justifyContent: 'space-between',
     backgroundColor: MC.card,
     borderColor: MC.border,
     borderWidth: 1,
     borderRadius: 16,
     padding: 16,
-    gap: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,

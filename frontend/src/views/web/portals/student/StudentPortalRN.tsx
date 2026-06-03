@@ -9,7 +9,7 @@
  */
 import React, { useState, createContext, useContext } from 'react';
 import { View, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 import { ThemeProvider, useTheme } from '@/src/theme/ThemeContext';
@@ -71,14 +71,21 @@ export function StudentPortalRN() {
 
 function PortalShell() {
   const router = useRouter();
+  const { tab } = useLocalSearchParams<{ tab?: string }>();
   const { theme } = useTheme();
   const bp = useBreakpoint();
   const logout = useAuthStore((sx) => sx.logout);
-  const [active, setActive] = useState<StudentNavId>('dashboard');
+  const [active, setActive] = useState<StudentNavId>((tab as StudentNavId) || 'dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [scrolled, setScrolled] = useState(false);
   // Phase B — auto-launch the Student portal tour on first visit
   useAutoTour('student');
+
+  React.useEffect(() => {
+    if (tab) {
+      setActive(tab as StudentNavId);
+    }
+  }, [tab]);
 
   const onLogout = async () => {
     try { await logout(); } catch {}

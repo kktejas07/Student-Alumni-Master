@@ -130,6 +130,28 @@ export function GridOverlay() {
 /* ─────────────────────────────────────────────────────────────────
  * GlassCard — primary card surface, animated on mount + hover.
  * ───────────────────────────────────────────────────────────────── */
+const splitStyles = (style: any) => {
+  if (!style) return { layout: {}, inner: {} };
+  const flattened = StyleSheet.flatten(style);
+  const layoutKeys = [
+    'position', 'top', 'bottom', 'left', 'right',
+    'flex', 'flexGrow', 'flexShrink', 'flexBasis',
+    'width', 'height', 'minWidth', 'maxWidth', 'minHeight', 'maxHeight',
+    'margin', 'marginHorizontal', 'marginVertical', 'marginTop', 'marginBottom', 'marginLeft', 'marginRight',
+    'alignSelf', 'zIndex'
+  ];
+  const layout: any = {};
+  const inner: any = {};
+  Object.keys(flattened).forEach(key => {
+    if (layoutKeys.includes(key)) {
+      layout[key] = flattened[key];
+    } else {
+      inner[key] = flattened[key];
+    }
+  });
+  return { layout, inner };
+};
+
 export function GlassCard({
   children, style, strong, radius = 16, padding,
   blurAmount = 22, glow = false, delay = 0,
@@ -161,6 +183,8 @@ export function GlassCard({
     ]).start();
   }, [delay, opacity, ty]);
 
+  const { layout, inner: innerStyle } = splitStyles(style);
+
   const base: any = {
     backgroundColor: strong ? PALETTE.glassStrong : PALETTE.glass,
     borderWidth: 1,
@@ -188,7 +212,8 @@ export function GlassCard({
       style={[
         { opacity, transform: [{ translateY: ty }] },
         base,
-        style,
+        innerStyle,
+        { width: '100%', height: '100%' },
       ]}
     >
       {/* 1px top highlight (the glass-edge sparkle) */}
@@ -208,6 +233,7 @@ export function GlassCard({
           onHoverIn={() => setHover(true)}
           onHoverOut={() => setHover(false)}
           accessibilityLabel={accessibilityLabel}
+          style={layout}
         >
           {inner}
         </Pressable>
@@ -219,6 +245,7 @@ export function GlassCard({
         // @ts-expect-error web-only
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
+        style={layout}
       >
         {inner}
       </View>
@@ -230,7 +257,7 @@ export function GlassCard({
     <BlurView
       intensity={strong ? 50 : 32}
       tint="dark"
-      style={[{ borderRadius: radius, overflow: 'hidden' }, base]}
+      style={[{ borderRadius: radius, overflow: 'hidden', width: '100%', height: '100%' }, base, innerStyle]}
     >
       <View pointerEvents="none"
             style={[g.highlight, { borderTopLeftRadius: radius, borderTopRightRadius: radius }]} />
@@ -240,13 +267,16 @@ export function GlassCard({
 
   if (onPress) {
     return (
-      <Animated.View style={{ opacity, transform: [{ translateY: ty }] }}>
+      <Animated.View style={[{ opacity, transform: [{ translateY: ty }] }, layout]}>
         <Pressable
           onPress={onPress}
           onPressIn={() => setPressed(true)}
           onPressOut={() => setPressed(false)}
           accessibilityLabel={accessibilityLabel}
-          style={({ pressed: p }) => ({ transform: [{ scale: p ? 0.985 : 1 }] })}
+          style={({ pressed: p }) => [
+            { transform: [{ scale: p ? 0.985 : 1 }] },
+            { width: '100%', height: '100%' }
+          ]}
         >
           {content}
         </Pressable>
@@ -255,7 +285,7 @@ export function GlassCard({
   }
 
   return (
-    <Animated.View style={{ opacity, transform: [{ translateY: ty }] }}>
+    <Animated.View style={[{ opacity, transform: [{ translateY: ty }] }, layout]}>
       {content}
     </Animated.View>
   );

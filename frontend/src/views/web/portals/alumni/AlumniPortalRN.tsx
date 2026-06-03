@@ -5,7 +5,7 @@
  */
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 
@@ -44,10 +44,17 @@ export const AlumniPortalNavContext = React.createContext<{
 
 export function AlumniPortalRN() {
   const router = useRouter();
+  const { tab } = useLocalSearchParams<{ tab?: string }>();
   const logout = useAuthStore((sx) => sx.logout);
-  const [active, setActive] = useState<StudentNavId>('dashboard');
+  const [active, setActive] = useState<StudentNavId>((tab as StudentNavId) || 'dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   useAutoTour('alumni');
+
+  React.useEffect(() => {
+    if (tab) {
+      setActive(tab as StudentNavId);
+    }
+  }, [tab]);
 
   const onLogout = async () => {
     try { await logout(); } catch {}
