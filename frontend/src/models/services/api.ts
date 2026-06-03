@@ -314,6 +314,7 @@ export const api = {
     max_attendees: number;
   }) => request<any>('/mentor/sessions', { method: 'POST', body: payload }),
   myMentorSessions: () => request<any>('/mentor/sessions/me'),
+  mentorConnections: (email?: string) => request<any>(`/mentor/connections${email ? `?email=${encodeURIComponent(email)}` : ''}`),
 };
 
 export { BASE_URL };

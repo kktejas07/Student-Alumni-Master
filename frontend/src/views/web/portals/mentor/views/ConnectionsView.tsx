@@ -4,11 +4,13 @@
  * a grid of rich student cards, next sessions, and a profile detail/message drawer.
  */
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, Pressable, TextInput, StyleSheet, Modal, ScrollView, useWindowDimensions, Platform } from 'react-native';
+import { View, Text, Pressable, TextInput, StyleSheet, Modal, ScrollView, useWindowDimensions, Platform, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { MC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
 import { STUDENTS, statusMeta } from '../data';
+import { api } from '@/src/models/services/api';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 type Student = typeof STUDENTS[number];
 const FILTERS = [
@@ -26,20 +28,34 @@ const MONTH_NAMES = [
 export function ConnectionsView() {
   const { width } = useWindowDimensions();
   const isLarge = width >= 1024;
+  const user = useAuthStore((s) => s.user);
 
   const [filter, setFilter] = useState('all');
   const [q, setQ]           = useState('');
-  const [picked, setPicked] = useState<Student | null>(null);
-  const [studentsList, setStudentsList] = useState(STUDENTS);
+  const [picked, setPicked] = useState<any | null>(null);
+  const [studentsList, setStudentsList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleUpdateStudent = (updatedStudent: Student) => {
+  const loadConnections = async () => {
+    try {
+      const email = user?.email;
+      const res = await api.mentorConnections(email);
+      setStudentsList(res?.items || []);
+    } catch (e) {
+      console.warn('Failed to load mentor connections:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadConnections();
+  }, [user]);
+
+  const handleUpdateStudent = (updatedStudent: any) => {
     setStudentsList(prev => prev.map(s => s.id === updatedStudent.id ? updatedStudent : s));
     if (picked && picked.id === updatedStudent.id) {
       setPicked(updatedStudent);
-    }
-    const idx = STUDENTS.findIndex(s => s.id === updatedStudent.id);
-    if (idx !== -1) {
-      STUDENTS[idx] = updatedStudent as any;
     }
   };
 
@@ -61,6 +77,14 @@ export function ConnectionsView() {
 
   // Responsive card sizing
   const cardW = width >= 1440 ? '31.5%' : width >= 768 ? '48%' : '100%';
+
+  if (loading) {
+    return (
+      <View style={{ padding: 60, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={MC.tealP} size="large" />
+      </View>
+    );
+  }
 
   return (
     <View style={{ gap: 20 }}>
@@ -799,7 +823,7 @@ const d = StyleSheet.create({
   fourStatLabel: { color: MC.dim, fontFamily: FONTS.med, fontSize: 9.5 },
 
   // Tabs style
-  tabsContainer: { flexDirection: 'row', gap: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', pb: 1, marginBottom: 18 },
+  tabsContainer: { flexDirection: 'row', gap: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', paddingBottom: 1, marginBottom: 18 },
   tabBtn: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8, cursor: 'pointer', backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
   tabBtnActive: { backgroundColor: MC.tealP, borderColor: MC.tealP },
   tabText: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 12.5 },
