@@ -139,6 +139,31 @@ export function MentorProfileSettingsView() {
     { id: '3', event: 'Failed login attempt', details: 'Unknown device · Unknown · Dec 3, 2025', type: 'failed' },
   ]);
 
+  // --- Notifications tab state variables ---
+  const [notifyNewBooking, setNotifyNewBooking] = useState(true);
+  const [notifyReminders, setNotifyReminders] = useState(true);
+  const [notifyEventRSVPs, setNotifyEventRSVPs] = useState(true);
+  const [notifyStudentMessages, setNotifyStudentMessages] = useState(true);
+  const [notifyConnectionRequests, setNotifyConnectionRequests] = useState(true);
+  const [notifyNetworkUpdates, setNotifyNetworkUpdates] = useState(false);
+  const [notifyWeeklyReport, setNotifyWeeklyReport] = useState(true);
+  const [notifyPaymentAlerts, setNotifyPaymentAlerts] = useState(true);
+  const [notifyStudentReviews, setNotifyStudentReviews] = useState(true);
+  const [notifyPlatformNews, setNotifyPlatformNews] = useState(false);
+
+  const [savedNotifications, setSavedNotifications] = useState({
+    notifyNewBooking: true,
+    notifyReminders: true,
+    notifyEventRSVPs: true,
+    notifyStudentMessages: true,
+    notifyConnectionRequests: true,
+    notifyNetworkUpdates: false,
+    notifyWeeklyReport: true,
+    notifyPaymentAlerts: true,
+    notifyStudentReviews: true,
+    notifyPlatformNews: false
+  });
+
   // Load from initial user context if available
   useEffect(() => {
     if (user) {
@@ -177,6 +202,20 @@ export function MentorProfileSettingsView() {
         language !== savedSettings.language ||
         timezone !== savedSettings.timezone ||
         theme !== savedSettings.theme
+      );
+    }
+    if (activeTab === 'notifications') {
+      return (
+        notifyNewBooking !== savedNotifications.notifyNewBooking ||
+        notifyReminders !== savedNotifications.notifyReminders ||
+        notifyEventRSVPs !== savedNotifications.notifyEventRSVPs ||
+        notifyStudentMessages !== savedNotifications.notifyStudentMessages ||
+        notifyConnectionRequests !== savedNotifications.notifyConnectionRequests ||
+        notifyNetworkUpdates !== savedNotifications.notifyNetworkUpdates ||
+        notifyWeeklyReport !== savedNotifications.notifyWeeklyReport ||
+        notifyPaymentAlerts !== savedNotifications.notifyPaymentAlerts ||
+        notifyStudentReviews !== savedNotifications.notifyStudentReviews ||
+        notifyPlatformNews !== savedNotifications.notifyPlatformNews
       );
     }
     return false;
@@ -234,6 +273,20 @@ export function MentorProfileSettingsView() {
           theme
         });
         toast.success('Saved', 'Settings saved successfully.');
+      } else if (activeTab === 'notifications') {
+        setSavedNotifications({
+          notifyNewBooking,
+          notifyReminders,
+          notifyEventRSVPs,
+          notifyStudentMessages,
+          notifyConnectionRequests,
+          notifyNetworkUpdates,
+          notifyWeeklyReport,
+          notifyPaymentAlerts,
+          notifyStudentReviews,
+          notifyPlatformNews
+        });
+        toast.success('Saved', 'Notification preferences saved successfully.');
       } else {
         toast.success('Saved', 'Profile updated successfully.');
       }
@@ -277,6 +330,17 @@ export function MentorProfileSettingsView() {
       setLanguage(savedSettings.language);
       setTimezone(savedSettings.timezone);
       setTheme(savedSettings.theme);
+    } else if (activeTab === 'notifications') {
+      setNotifyNewBooking(savedNotifications.notifyNewBooking);
+      setNotifyReminders(savedNotifications.notifyReminders);
+      setNotifyEventRSVPs(savedNotifications.notifyEventRSVPs);
+      setNotifyStudentMessages(savedNotifications.notifyStudentMessages);
+      setNotifyConnectionRequests(savedNotifications.notifyConnectionRequests);
+      setNotifyNetworkUpdates(savedNotifications.notifyNetworkUpdates);
+      setNotifyWeeklyReport(savedNotifications.notifyWeeklyReport);
+      setNotifyPaymentAlerts(savedNotifications.notifyPaymentAlerts);
+      setNotifyStudentReviews(savedNotifications.notifyStudentReviews);
+      setNotifyPlatformNews(savedNotifications.notifyPlatformNews);
     }
     toast.info('Reverted', 'Changes discarded.');
   };
@@ -1137,15 +1201,105 @@ export function MentorProfileSettingsView() {
           )}
 
           {activeTab === 'notifications' && (
-            <View style={st.comingSoonCard}>
-              <MaterialCommunityIcons name="bell-outline" size={32} color={MC.tealP} />
-              <Text style={st.comingSoonTitle}>Notification Preferences</Text>
-              <Text style={st.comingSoonDesc}>Fine-tune your email, SMS and push notification alerts inside the dashboard in Phase 2.</Text>
+            <View style={{ gap: 16 }}>
+              
+              {/* SESSION & BOOKING ALERTS */}
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>SESSION & BOOKING ALERTS</Text>
+                <View style={{ gap: 4 }}>
+                  <ToggleRow
+                    label="New Session Booking"
+                    subtext="When a student books a session with you"
+                    value={notifyNewBooking}
+                    onValueChange={setNotifyNewBooking}
+                  />
+                  <ToggleRow
+                    label="Session Reminders"
+                    subtext="Reminders 24h and 1h before each session"
+                    value={notifyReminders}
+                    onValueChange={setNotifyReminders}
+                  />
+                  <ToggleRow
+                    label="Event RSVPs"
+                    subtext="When students register for your events"
+                    value={notifyEventRSVPs}
+                    onValueChange={setNotifyEventRSVPs}
+                    isLast
+                  />
+                </View>
+              </View>
+
+              {/* MESSAGES & CONNECTIONS */}
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>MESSAGES & CONNECTIONS</Text>
+                <View style={{ gap: 4 }}>
+                  <ToggleRow
+                    label="Student Messages"
+                    subtext="When a student sends you a message"
+                    value={notifyStudentMessages}
+                    onValueChange={setNotifyStudentMessages}
+                  />
+                  <ToggleRow
+                    label="Connection Requests"
+                    subtext="When someone wants to connect with you"
+                    value={notifyConnectionRequests}
+                    onValueChange={setNotifyConnectionRequests}
+                  />
+                  <ToggleRow
+                    label="Mentor Network Updates"
+                    subtext="Activity from mentors you follow"
+                    value={notifyNetworkUpdates}
+                    onValueChange={setNotifyNetworkUpdates}
+                    isLast
+                  />
+                </View>
+              </View>
+
+              {/* REPORTS & EARNINGS */}
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>REPORTS & EARNINGS</Text>
+                <View style={{ gap: 4 }}>
+                  <ToggleRow
+                    label="Weekly Performance Report"
+                    subtext="Summary of sessions, earnings and ratings every Monday"
+                    value={notifyWeeklyReport}
+                    onValueChange={setNotifyWeeklyReport}
+                  />
+                  <ToggleRow
+                    label="Payment Received Alerts"
+                    subtext="When a student payment is confirmed or settled"
+                    value={notifyPaymentAlerts}
+                    onValueChange={setNotifyPaymentAlerts}
+                  />
+                  <ToggleRow
+                    label="New Student Reviews"
+                    subtext="When a student leaves a review after a session"
+                    value={notifyStudentReviews}
+                    onValueChange={setNotifyStudentReviews}
+                    isLast
+                  />
+                </View>
+              </View>
+
+              {/* PLATFORM & MARKETING */}
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>PLATFORM & MARKETING</Text>
+                <View style={{ gap: 4 }}>
+                  <ToggleRow
+                    label="Platform News & Updates"
+                    subtext="Product updates and new features from Student Alumni"
+                    value={notifyPlatformNews}
+                    onValueChange={setNotifyPlatformNews}
+                    isLast
+                  />
+                </View>
+              </View>
+
             </View>
           )}
 
-          {/* Action buttons (Manage Profile, Integrations & Settings) */}
-          {(activeTab === 'manage' || activeTab === 'tools-integrations' || activeTab === 'settings') && (
+          {/* Action buttons (Manage Profile, Integrations, Settings & Notifications) */}
+          {(activeTab === 'manage' || activeTab === 'tools-integrations' || activeTab === 'settings' || activeTab === 'notifications') && (
             <View style={st.saveBar}>
               <Text style={st.saveBarStatusText}>
                 {lastSavedAt ? `Last saved at ${lastSavedAt}` : (isDirty() ? 'You have unsaved changes' : 'All changes saved')}
