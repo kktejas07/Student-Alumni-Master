@@ -22,6 +22,8 @@ import {
   Calendar, Wallet, Shield, Building2, Gift, User as UserIcon, GraduationCap,
 } from 'lucide-react-native';
 import { Sidebar, NavItem } from '@/src/views/web/platform/components';
+import { Sidebar as StudentSidebar } from '@/src/views/web/portals/student/Sidebar';
+import { Sidebar as AlumniSidebar } from '@/src/views/web/portals/alumni/Sidebar';
 import { SA } from '@/src/views/web/platform/tokens';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
@@ -162,6 +164,25 @@ export default function FeaturePageShell({
   const initials = (user?.full_name || 'SA').split(' ').slice(0, 2).map((p) => p[0] || '').join('').toUpperCase();
   const activeId = activeIdForPath(pathname || '');
 
+  const portalActiveId = (() => {
+    const tabMap: Record<string, string> = {
+      home: 'dashboard',
+      career: 'career-ai',
+      internships: 'internships',
+      courses: 'courses',
+      'higher-education': 'higher-ed',
+      network: 'network',
+      events: 'events',
+      financial: 'financial',
+      wallet: 'wallet',
+      insurance: 'financial',
+      rentals: 'rentals',
+      deals: 'deals',
+      profile: 'profile',
+    };
+    return tabMap[activeId] || activeId;
+  })();
+
   const onNav = (id: string) => {
     if (role === 'student' || role === 'alumni') {
       const portalPath = role === 'alumni' ? '/alumni-portal' : '/student-portal';
@@ -180,7 +201,7 @@ export default function FeaturePageShell({
         deals: 'deals',
         profile: 'profile',
       };
-      const tab = tabMap[id] || 'dashboard';
+      const tab = tabMap[id] || id;
       router.replace(`${portalPath}?tab=${tab}` as any);
       return;
     }
@@ -239,21 +260,35 @@ export default function FeaturePageShell({
 
       {/* Persistent sidebar */}
       {isWide && (
-        <Sidebar
-          navItems={NAV}
-          activeId={activeId}
-          onNav={onNav}
-          brandSubtitle={brandSubtitle}
-          bgColor={sidebarBg}
-          railColor={railColor}
-          user={user ? {
-            initials,
-            primary: user.full_name || 'Student',
-            secondary: user.role === 'alumni' ? 'Alumni' : `${user.role === 'mentor' ? 'Mentor' : 'Batch 2022'} · ${user.career_path || 'job'}`,
-            gradient: avatarGradient,
-          } : undefined}
-          onLogout={onLogout}
-        />
+        role === 'student' ? (
+          <StudentSidebar
+            active={portalActiveId as any}
+            onNav={onNav}
+            onLogout={onLogout}
+          />
+        ) : role === 'alumni' ? (
+          <AlumniSidebar
+            active={portalActiveId as any}
+            onNav={onNav}
+            onLogout={onLogout}
+          />
+        ) : (
+          <Sidebar
+            navItems={NAV}
+            activeId={activeId}
+            onNav={onNav}
+            brandSubtitle={brandSubtitle}
+            bgColor={sidebarBg}
+            railColor={railColor}
+            user={user ? {
+              initials,
+              primary: user.full_name || 'Student',
+              secondary: user.role === 'alumni' ? 'Alumni' : `${user.role === 'mentor' ? 'Mentor' : 'Batch 2022'} · ${user.career_path || 'job'}`,
+              gradient: avatarGradient,
+            } : undefined}
+            onLogout={onLogout}
+          />
+        )
       )}
 
       <ScrollView
