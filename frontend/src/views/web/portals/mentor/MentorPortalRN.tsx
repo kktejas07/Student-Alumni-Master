@@ -131,7 +131,7 @@ export default function MentorPortalRN() {
           {active === 'earnings'  && <EarningsView />}
           {active === 'feedback'  && <FeedbackView />}
           {active === 'event'     && <CreateEventView />}
-          {active === 'profile'   && <SharedProfileSettingsView roleOverride="mentor" />}
+          {active === 'profile'   && <MentorProfileSettingsView />}
           <DashboardFooter portal="mentor" />
         </ScrollView>
       </View>
