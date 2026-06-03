@@ -138,7 +138,7 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 14 }}>{req.studentName}</Text>
-                    <Badge label={req.type === 'paid' ? `Paid ₹${req.amount}` : 'Free'} color={req.type === 'paid' ? 'green' : 'teal'} />
+                    <Badge label={req.type === 'paid' ? `Paid ₹${(req as any).amount}` : 'Free'} color={req.type === 'paid' ? 'green' : 'teal'} />
                   </View>
                   <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 }}>{req.college} · {req.branch} · {req.year}</Text>
                   <Text style={{ color: '#fff', fontFamily: FONTS.med, fontSize: 13, marginTop: 6 }}>“{req.topic}”</Text>
