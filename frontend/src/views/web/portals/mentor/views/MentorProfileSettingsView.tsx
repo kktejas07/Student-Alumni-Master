@@ -123,6 +123,22 @@ export function MentorProfileSettingsView() {
     theme: 'Dark' as 'Dark' | 'Light' | 'System'
   });
 
+  // --- Security tab state variables ---
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [sessions, setSessions] = useState([
+    { id: '1', device: 'Chrome · MacBook Pro', location: 'Mumbai, India · Now', type: 'desktop', isCurrent: true },
+    { id: '2', device: 'Safari · iPhone 15', location: 'Mumbai, India · 2h ago', type: 'mobile', isCurrent: false },
+    { id: '3', device: 'Chrome · Windows PC', location: 'Bengaluru, India · 3d ago', type: 'desktop', isCurrent: false },
+  ]);
+  const [loginActivity] = useState([
+    { id: '1', event: 'Signed in', details: 'Chrome · MacBook Pro · Mumbai · Today, 9:42 AM', type: 'success' },
+    { id: '2', event: 'Password changed', details: 'Chrome · MacBook Pro · Mumbai · Jan 15, 2026', type: 'success' },
+    { id: '3', event: 'Failed login attempt', details: 'Unknown device · Unknown · Dec 3, 2025', type: 'failed' },
+  ]);
+
   // Load from initial user context if available
   useEffect(() => {
     if (user) {
@@ -164,6 +180,34 @@ export function MentorProfileSettingsView() {
       );
     }
     return false;
+  };
+
+  const handleUpdatePassword = () => {
+    if (!currentPassword) {
+      toast.error('Validation Error', 'Please enter your current password.');
+      return;
+    }
+    if (!newPassword) {
+      toast.error('Validation Error', 'Please enter your new password.');
+      return;
+    }
+    if (!confirmPassword) {
+      toast.error('Validation Error', 'Please confirm your new password.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('Validation Error', 'New passwords do not match.');
+      return;
+    }
+    toast.success('Password Updated', 'Your account password has been updated.');
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+  };
+
+  const handleRevokeSession = (id: string) => {
+    setSessions(sessions.filter((s) => s.id !== id));
+    toast.success('Session Revoked', 'The device session has been terminated.');
   };
 
   const handleSave = async () => {
@@ -935,10 +979,160 @@ export function MentorProfileSettingsView() {
           )}
 
           {activeTab === 'security' && (
-            <View style={st.comingSoonCard}>
-              <MaterialCommunityIcons name="shield-check-outline" size={32} color={MC.tealP} />
-              <Text style={st.comingSoonTitle}>Security Centre</Text>
-              <Text style={st.comingSoonDesc}>Two-factor authentication setup, session history tracking and password settings land in Phase 2.</Text>
+            <View style={{ gap: 16 }}>
+              
+              {/* PASSWORD */}
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>PASSWORD</Text>
+                
+                <View style={st.inputGridRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={st.inputLabel}>Current Password</Text>
+                    <View style={st.inputBoxIcon}>
+                      <MaterialCommunityIcons name="lock-outline" size={14} color={MC.dim} style={{ marginRight: 8 }} />
+                      <TextInput
+                        value={currentPassword}
+                        onChangeText={setCurrentPassword}
+                        placeholder="Enter current password"
+                        secureTextEntry
+                        style={st.input}
+                        placeholderTextColor={MC.dim}
+                      />
+                    </View>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={st.inputLabel}>New Password</Text>
+                    <View style={st.inputBoxIcon}>
+                      <MaterialCommunityIcons name="lock-outline" size={14} color={MC.dim} style={{ marginRight: 8 }} />
+                      <TextInput
+                        value={newPassword}
+                        onChangeText={setNewPassword}
+                        placeholder="Enter new password"
+                        secureTextEntry
+                        style={st.input}
+                        placeholderTextColor={MC.dim}
+                      />
+                    </View>
+                  </View>
+                </View>
+
+                <View style={[st.inputGridRow, { marginTop: 12, alignItems: 'flex-end' }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={st.inputLabel}>Confirm New Password</Text>
+                    <View style={st.inputBoxIcon}>
+                      <MaterialCommunityIcons name="lock-outline" size={14} color={MC.dim} style={{ marginRight: 8 }} />
+                      <TextInput
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                        placeholder="Re-enter new password"
+                        secureTextEntry
+                        style={st.input}
+                        placeholderTextColor={MC.dim}
+                      />
+                    </View>
+                  </View>
+                  <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                    <Pressable onPress={handleUpdatePassword} style={st.updatePasswordBtn}>
+                      <Text style={st.updatePasswordBtnText}>Update Password</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+
+              {/* TWO-FACTOR AUTHENTICATION */}
+              <View style={st.formSectionCard}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={st.sectionTitle}>TWO-FACTOR AUTHENTICATION</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <View style={[
+                      st.tfaBadge,
+                      twoFactorEnabled ? st.tfaBadgeEnabled : st.tfaBadgeDisabled
+                    ]}>
+                      <Text style={twoFactorEnabled ? st.tfaBadgeTextEnabled : st.tfaBadgeTextDisabled}>
+                        {twoFactorEnabled ? 'Enabled' : 'Disabled'}
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => {
+                        const newState = !twoFactorEnabled;
+                        setTwoFactorEnabled(newState);
+                        if (newState) {
+                          toast.success('2FA Enabled', 'Two-factor authentication has been enabled.');
+                        } else {
+                          toast.info('2FA Disabled', 'Two-factor authentication has been disabled.');
+                        }
+                      }}
+                      style={[
+                        st.switchTrack,
+                        twoFactorEnabled ? { backgroundColor: MC.tealP, borderColor: MC.tealP } : { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: MC.border }
+                      ]}
+                    >
+                      <View style={[st.switchThumb, { transform: [{ translateX: twoFactorEnabled ? 16 : 0 }] }]} />
+                    </Pressable>
+                  </View>
+                </View>
+                <Text style={[st.sectionHelpText, { marginBottom: 0, marginTop: 4 }]}>Add an extra layer of security to your account.</Text>
+              </View>
+
+              {/* ACTIVE SESSIONS */}
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>ACTIVE SESSIONS</Text>
+                <Text style={st.sectionHelpText}>Devices currently signed into your account.</Text>
+                <View style={{ gap: 12, marginTop: 4 }}>
+                  {sessions.map((s, idx) => (
+                    <View key={s.id} style={[st.sessionRow, idx < sessions.length - 1 && st.settingRowDivider]}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                        <View style={st.sessionIconBox}>
+                          <MaterialCommunityIcons
+                            name={s.type === 'desktop' ? 'monitor' : 'cellphone'}
+                            size={18}
+                            color={s.isCurrent ? MC.tealP : MC.dim}
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={st.sessionDevice}>{s.device}</Text>
+                          <Text style={st.sessionMeta}>{s.location}</Text>
+                        </View>
+                      </View>
+                      {s.isCurrent ? (
+                        <View style={st.currentDeviceBadge}>
+                          <Text style={st.currentDeviceText}>This device</Text>
+                        </View>
+                      ) : (
+                        <Pressable onPress={() => handleRevokeSession(s.id)} style={st.revokeBtnStyle}>
+                          <Text style={st.revokeBtnText}>Revoke</Text>
+                        </Pressable>
+                      )}
+                    </View>
+                  ))}
+                </View>
+              </View>
+
+              {/* LOGIN ACTIVITY */}
+              <View style={st.formSectionCard}>
+                <Text style={st.sectionTitle}>LOGIN ACTIVITY</Text>
+                <View style={{ gap: 14, marginTop: 4 }}>
+                  {loginActivity.map((act) => (
+                    <View key={act.id} style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
+                      <View style={[
+                        st.activityIconCircle,
+                        act.type === 'success' ? st.activitySuccessCircle : st.activityFailedCircle
+                      ]}>
+                        <MaterialCommunityIcons
+                          name={act.type === 'success' ? 'check' : 'alert-circle-outline'}
+                          size={13}
+                          color={act.type === 'success' ? '#4ADE80' : MC.red}
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={st.activityEventTitle}>{act.event}</Text>
+                        <Text style={st.activityMeta}>{act.details}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+
             </View>
           )}
 
@@ -1350,7 +1544,29 @@ const st = StyleSheet.create({
   accountBtn: { paddingHorizontal: 16, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center', minWidth: 80, ...({ cursor: 'pointer' } as any) },
   accountBtnNormal: { backgroundColor: 'rgba(255,255,255,0.04)', borderColor: MC.border, borderWidth: 1 },
   accountBtnDelete: { backgroundColor: 'rgba(239,68,68,0.05)', borderColor: 'rgba(239,68,68,0.2)', borderWidth: 1 },
-  accountBtnText: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 11.5 }
+  accountBtnText: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
+
+  // Security custom styles
+  updatePasswordBtn: { backgroundColor: MC.tealP, paddingHorizontal: 16, height: 38, borderRadius: 8, alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
+  updatePasswordBtnText: { color: MC.bg, fontFamily: FONTS.bold, fontSize: 12.5 },
+  tfaBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4, borderWidth: 1 },
+  tfaBadgeDisabled: { backgroundColor: 'rgba(245,158,11,0.06)', borderColor: 'rgba(245,158,11,0.2)' },
+  tfaBadgeEnabled: { backgroundColor: 'rgba(34,197,94,0.06)', borderColor: 'rgba(34,197,94,0.2)' },
+  tfaBadgeTextDisabled: { color: '#F59E0B', fontFamily: FONTS.bold, fontSize: 10.5 },
+  tfaBadgeTextEnabled: { color: '#4ADE80', fontFamily: FONTS.bold, fontSize: 10.5 },
+  sessionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
+  sessionIconBox: { width: 36, height: 36, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.03)', alignItems: 'center', justifyContent: 'center' },
+  sessionDevice: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
+  sessionMeta: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
+  currentDeviceBadge: { backgroundColor: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.25)', borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 },
+  currentDeviceText: { color: '#4ADE80', fontFamily: FONTS.bold, fontSize: 11 },
+  revokeBtnStyle: { backgroundColor: 'rgba(239,68,68,0.05)', borderColor: 'rgba(239,68,68,0.2)', borderWidth: 1, paddingHorizontal: 12, height: 28, borderRadius: 6, alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
+  revokeBtnText: { color: MC.red, fontFamily: FONTS.bold, fontSize: 11 },
+  activityIconCircle: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  activitySuccessCircle: { backgroundColor: 'rgba(34,197,94,0.12)' },
+  activityFailedCircle: { backgroundColor: 'rgba(239,68,68,0.12)' },
+  activityEventTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  activityMeta: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 }
 });
 
 export default MentorProfileSettingsView;
