@@ -129,6 +129,7 @@ export default function CoursesPage() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [enrollFor, setEnrollFor] = useState<Course | null>(null);
   const [detailCourse, setDetailCourse] = useState<Course | null>(null);
+  const [advisorOpen, setAdvisorOpen] = useState(false);
   const [activeTrackSlug, setActiveTrackSlug] = useState<string | null>(null);
   const [featured, setFeatured] = useState<Course[]>([]);
   const [trendingFree, setTrendingFree] = useState<Course[]>([]);
@@ -802,7 +803,7 @@ export default function CoursesPage() {
                           onClose={() => setDetailCourse(null)} />
 
       {/* AI Course Advisor floating widget */}
-      <AICourseAdvisor onCourseClick={(c) => setDetailCourse(c)} />
+      <AICourseAdvisor open={advisorOpen} setOpen={setAdvisorOpen} onCourseClick={(c) => setDetailCourse(c)} />
 
       {/* Enroll modal */}
       <EnrollModal course={enrollFor}
@@ -830,13 +831,7 @@ export default function CoursesPage() {
         icon="brain"
         label="Course AI"
         color="#7C3AED"
-        onPress={() => {
-          if (Platform.OS === 'web') {
-            try {
-              window.scrollTo({ top: 9999, behavior: 'smooth' });
-            } catch {}
-          }
-        }}
+        onPress={() => setAdvisorOpen(true)}
       />
     </FeaturePageShell>
   );

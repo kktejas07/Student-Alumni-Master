@@ -4,6 +4,7 @@ import { Search } from 'lucide-react-native';
 import { CC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
 import { usePortalData } from '@/src/lib/portalApi';
+import { useRouter } from 'expo-router';
 
 type Alumnus = { id: string; name: string; initials: string; batch: number; role: string; company: string; city: string; color: string };
 const FALLBACK = { items: [] as Alumnus[] };
@@ -13,9 +14,20 @@ export function AlumniView() {
   const { data } = usePortalData<typeof FALLBACK>('/college/alumni', FALLBACK);
   const ALUMNI = data?.items || [];
   const { width } = useWindowDimensions();
+  const router = useRouter();
   const [filter, setFilter] = useState('All');
   const [q, setQ] = useState('');
-  const list = ALUMNI.filter((a) => !q || (a.name + a.role + a.company).toLowerCase().includes(q.toLowerCase()));
+  const list = ALUMNI.filter((a) => {
+    const matchesQ = !q || (a.name + a.role + a.company).toLowerCase().includes(q.toLowerCase());
+    if (!matchesQ) return false;
+
+    if (filter === 'All') return true;
+    if (filter === '2008-2014') return a.batch >= 2008 && a.batch <= 2014;
+    if (filter === '2015-2019') return a.batch >= 2015 && a.batch <= 2019;
+    if (filter === '2020-2024') return a.batch >= 2020 && a.batch <= 2024;
+    if (filter === '2025+') return a.batch >= 2025;
+    return true;
+  });
   const cardW = width >= 1100 ? '32%' : width >= 720 ? '48%' : '100%';
   return (
     <View>
@@ -36,7 +48,9 @@ export function AlumniView() {
               <Badge label={`Batch ${a.batch}`} color="purple" />
             </View>
             <Text style={s.loc}>· {a.city}</Text>
-            <Pressable style={s.cta}><Text style={s.ctaText}>View profile</Text></Pressable>
+            <Pressable onPress={() => router.push(`/profile/${a.id}`)} style={s.cta}>
+              <Text style={s.ctaText}>View profile</Text>
+            </Pressable>
           </View>
         ))}
       </View>

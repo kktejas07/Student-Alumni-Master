@@ -106,7 +106,7 @@ export function HelpMenu({ portal }: { portal: TourKey }) {
 const s = StyleSheet.create({
   wrap: { position: 'relative', zIndex: 50 },
   btn: {
-    width: 34, height: 34, borderRadius: 10,
+    width: 34, height: 34, borderRadius: 99,
     backgroundColor: NX.surface2,
     borderColor: NX.border, borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',

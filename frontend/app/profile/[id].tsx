@@ -94,17 +94,25 @@ export default function ProfileSocialView() {
           <LinearGradient
             colors={[`${roleColor}30`, `${roleColor}08`, 'transparent']}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            pointerEvents="none"
             style={styles.heroGradient}
           />
 
           <View style={[styles.heroBody, isMobile && { flexDirection: 'column', gap: 16, alignItems: 'flex-start' }]}>
-            <View style={[styles.avatar, { borderColor: roleColor + '60' }]}>
-              {profile.photo_data ? (
-                <Image source={{ uri: profile.photo_data }} style={{ width: '100%', height: '100%' }} />
-              ) : (
-                <Text style={[styles.avatarText, { color: roleColor }]}>{initials}</Text>
-              )}
+            <View style={{ position: 'relative' }}>
+              <View style={[styles.avatar, { borderColor: roleColor + '60' }]}>
+                {profile.photo_data ? (
+                  <Image source={{ uri: profile.photo_data }} style={{ width: '100%', height: '100%' }} />
+                ) : (
+                  <Text style={[styles.avatarText, { color: roleColor }]}>{initials}</Text>
+                )}
+              </View>
               {profile.is_online && <View style={styles.onlineDot} />}
+              {profile.is_verified && (
+                <View style={styles.avatarCheck}>
+                  <Check size={11} color="#fff" />
+                </View>
+              )}
             </View>
 
             <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
@@ -574,13 +582,14 @@ const styles = StyleSheet.create({
 
   hero: { paddingHorizontal: 16, paddingBottom: 18, position: 'relative' },
   heroGradient: { position: 'absolute', top: 0, left: 0, right: 0, height: 240 },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border, borderWidth: 1, marginVertical: 12, ...({ cursor: 'pointer' } as any) },
-  backText: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5 },
+  backBtn: { zIndex: 10, flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.04)', borderColor: C.border, borderWidth: 1, marginVertical: 12, ...({ cursor: 'pointer' } as any) },
+  backText: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, lineHeight: 16 },
 
   heroBody: { flexDirection: 'row', alignItems: 'flex-start', gap: 18, paddingTop: 16 },
-  avatar: { width: 88, height: 88, borderRadius: 44, overflow: 'hidden', backgroundColor: 'rgba(167,139,250,0.20)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, position: 'relative' },
+  avatar: { width: 88, height: 88, borderRadius: 44, overflow: 'hidden', backgroundColor: 'rgba(167,139,250,0.20)', alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
   avatarText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 30 },
-  onlineDot: { position: 'absolute', right: 4, bottom: 4, width: 14, height: 14, borderRadius: 7, backgroundColor: C.green, borderColor: C.bg, borderWidth: 2 },
+  avatarCheck: { position: 'absolute', right: 3, bottom: 3, width: 20, height: 20, borderRadius: 10, backgroundColor: C.green, alignItems: 'center', justifyContent: 'center', borderColor: C.bg, borderWidth: 2, zIndex: 3 },
+  onlineDot: { position: 'absolute', right: 6, bottom: 6, width: 14, height: 14, borderRadius: 7, backgroundColor: C.green, borderColor: C.bg, borderWidth: 2, zIndex: 3 },
 
   name: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 22, letterSpacing: -0.3 },
   roleChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
@@ -594,12 +603,12 @@ const styles = StyleSheet.create({
 
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 6 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  metaText: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5 },
+  metaText: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 11.5, lineHeight: 14 },
   mono: { color: '#fff', fontFamily: Platform.OS === 'web' ? 'monospace' : 'DMSans_700Bold', fontSize: 10.5 },
 
   actions: { flexDirection: 'row', gap: 8 },
   btn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, height: 36, borderRadius: 9, ...({ cursor: 'pointer' } as any) },
-  btnIcon: { paddingHorizontal: 0, width: 36 },
+  btnIcon: { paddingHorizontal: 0, width: 36, justifyContent: 'center' },
   btnPrimary: { backgroundColor: C.purple, borderColor: C.purple, borderWidth: 1 },
   btnGreen: { backgroundColor: C.green, borderColor: C.green, borderWidth: 1 },
   btnGhost: { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: C.border, borderWidth: 1 },
@@ -609,7 +618,7 @@ const styles = StyleSheet.create({
   tabBar: { borderTopColor: C.border, borderTopWidth: 1, borderBottomColor: C.border, borderBottomWidth: 1, paddingVertical: 8 },
   tab: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: 'transparent', ...({ cursor: 'pointer' } as any) },
   tabActive: { backgroundColor: 'rgba(167,139,250,0.16)' },
-  tabText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12 },
+  tabText: { color: C.text2, fontFamily: 'DMSans_700Bold', fontSize: 12, lineHeight: 16 },
 
   body: { paddingTop: 18, paddingBottom: 24, gap: 14 },
 
