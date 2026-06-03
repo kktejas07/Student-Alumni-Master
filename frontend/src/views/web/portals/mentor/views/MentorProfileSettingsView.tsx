@@ -36,7 +36,7 @@ const TABS: { key: TabKey; label: string; Icon: any }[] = [
   { key: 'digital-id',         label: 'Digital ID Card',      Icon: IdCard },
 ];
 
-export function MentorProfileSettingsView() {
+export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey } = {}) {
   const router = useRouter();
   const toast = useToast();
   const user = useAuthStore((u) => u.user);
@@ -44,7 +44,13 @@ export function MentorProfileSettingsView() {
   const { width: winW } = useWindowDimensions();
   const stack = winW < 1100;
 
-  const [activeTab, setActiveTab] = useState<TabKey>('manage');
+  const [activeTab, setActiveTab] = useState<TabKey>(initialTab || 'manage');
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   const [saving, setSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
 

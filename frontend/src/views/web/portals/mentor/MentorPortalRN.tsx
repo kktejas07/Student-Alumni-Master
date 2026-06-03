@@ -36,6 +36,7 @@ import { AvailabilityView } from './views/AvailabilityView';
 import { ProfileView } from './views/ProfileView';
 import { MentorProfileSettingsView } from './views/MentorProfileSettingsView';
 import { MentorAIStudioView } from './views/MentorAIStudioView';
+import { NotificationsPanel } from './views/NotificationsPanel';
 // Shared role-aware comprehensive profile view (purple theme, identical to student).
 import { ProfileSettingsView as SharedProfileSettingsView } from '../student/views/ProfileSettingsView';
 import { STUDENTS, SESSION_REQUESTS } from './data';
@@ -63,6 +64,8 @@ export default function MentorPortalRN() {
   const [active, setActive] = useState<NavId>('dashboard');
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState('');
+  const [showNotifs, setShowNotifs] = useState(false);
+  const [profileTab, setProfileTab] = useState<'manage' | 'digital-id' | 'notifications'>('manage');
   useAutoTour('mentor');
 
   useEffect(() => {
@@ -109,31 +112,43 @@ export default function MentorPortalRN() {
         counts={counts}
       />
 
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <TopBar
-          title={PAGE_TITLES[active]}
-          query={query}
-          setQuery={setQuery}
-          notifCount={4}
-          onBellPress={() => router.push('/notifications')}
-          onAvatarPress={() => setActive('profile')}
-        />
+      <View style={{ flex: 1, minWidth: 0, flexDirection: 'row' }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <TopBar
+            title={PAGE_TITLES[active]}
+            query={query}
+            setQuery={setQuery}
+            notifCount={4}
+            onBellPress={() => setShowNotifs(!showNotifs)}
+            onAvatarPress={() => { setProfileTab('manage'); setActive('profile'); }}
+          />
 
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
-          <PromoBanner portal="mentor" />
-          {active === 'dashboard' && <DashboardView onNav={(id) => setActive(id as NavId)} />}
-          {active === 'ai-studio' && <MentorAIStudioView />}
-          {active === 'students'  && <ConnectionsView />}
-          {active === 'sessions'  && <SessionsView />}
-          {active === 'availability' && <AvailabilityView />}
-          {active === 'requests'  && <RequestsView decisions={decisions} onSetDecision={(id, d) => setDecisions(prev => ({ ...prev, [id]: d }))} />}
-          {active === 'network'   && <NetworkView />}
-          {active === 'earnings'  && <EarningsView />}
-          {active === 'feedback'  && <FeedbackView />}
-          {active === 'event'     && <CreateEventView />}
-          {active === 'profile'   && <MentorProfileSettingsView />}
-          <DashboardFooter portal="mentor" />
-        </ScrollView>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
+            <PromoBanner portal="mentor" />
+            {active === 'dashboard' && <DashboardView onNav={(id) => setActive(id as NavId)} />}
+            {active === 'ai-studio' && <MentorAIStudioView />}
+            {active === 'students'  && <ConnectionsView />}
+            {active === 'sessions'  && <SessionsView />}
+            {active === 'availability' && <AvailabilityView />}
+            {active === 'requests'  && <RequestsView decisions={decisions} onSetDecision={(id, d) => setDecisions(prev => ({ ...prev, [id]: d }))} />}
+            {active === 'network'   && <NetworkView />}
+            {active === 'earnings'  && <EarningsView />}
+            {active === 'feedback'  && <FeedbackView />}
+            {active === 'event'     && <CreateEventView />}
+            {active === 'profile'   && <MentorProfileSettingsView initialTab={profileTab} />}
+            <DashboardFooter portal="mentor" />
+          </ScrollView>
+        </View>
+        {showNotifs && (
+          <NotificationsPanel
+            onClose={() => setShowNotifs(false)}
+            onOpenSettings={() => {
+              setProfileTab('notifications');
+              setActive('profile');
+              setShowNotifs(false);
+            }}
+          />
+        )}
       </View>
     </View>
   );
