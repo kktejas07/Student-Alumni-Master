@@ -76,23 +76,25 @@ export function NetworkView() {
           const c = conn.has(p.id) || p.connection_state === 'connected';
           const pn = pending.has(p.id) || p.connection_state === 'pending';
           return (
-            <View key={p.id} style={[s.card, { flexGrow: 1, flexBasis: 300, maxWidth: 360 }]}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <Av initials={p.initials} size={42} color={p.color} />
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text numberOfLines={1} style={s.name}>{p.name}</Text>
-                  <Text numberOfLines={1} style={s.meta}>{p.subline}</Text>
+            <View key={p.id} style={[s.card, { flexGrow: 1, flexBasis: 300, maxWidth: 360, height: 195, justifyContent: 'space-between' }]}>
+              <View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Av initials={p.initials} size={42} color={p.color} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text numberOfLines={1} style={s.name}>{p.name}</Text>
+                    <Text numberOfLines={1} style={s.meta}>{p.subline}</Text>
+                  </View>
+                  <Badge
+                    label={p.kind === 'alumni' ? 'Alumni' : p.kind === 'mentor' ? 'Mentor' : 'Student'}
+                    color={p.kind === 'alumni' ? 'green' : p.kind === 'mentor' ? 'teal' : 'purple'}
+                  />
                 </View>
-                <Badge
-                  label={p.kind === 'alumni' ? 'Alumni' : p.kind === 'mentor' ? 'Mentor' : 'Student'}
-                  color={p.kind === 'alumni' ? 'green' : p.kind === 'mentor' ? 'teal' : 'purple'}
-                />
+                <Text numberOfLines={2} style={s.collegeMeta}>{p.college} · Batch {p.batch}</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
+                  {(p.tags || []).slice(0, 3).map((t) => <View key={t} style={s.tag}><Text style={{ color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 10 }}>{t}</Text></View>)}
+                </View>
               </View>
-              <Text style={s.collegeMeta}>{p.college} · Batch {p.batch}</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
-                {(p.tags || []).slice(0, 3).map((t) => <View key={t} style={s.tag}><Text style={{ color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 10 }}>{t}</Text></View>)}
-              </View>
-              <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
                 {c ? (
                   <Pressable style={s.msgBtn}><MessageSquare size={13} color={SC.accentBright} /><Text style={s.msgText}>Message</Text></Pressable>
                 ) : pn ? (

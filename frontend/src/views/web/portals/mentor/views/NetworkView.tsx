@@ -82,32 +82,34 @@ export function NetworkView() {
                 onPress={() => setSelectedPerson(m)}
                 style={({ hovered }: any) => [
                   s.card,
-                  { flexGrow: 1, flexBasis: 300, maxWidth: 360, cursor: 'pointer' },
+                  { flexGrow: 1, flexBasis: 300, maxWidth: 360, height: 195, justifyContent: 'space-between', cursor: 'pointer' },
                   hovered && s.cardHovered
                 ]}
               >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                  <Av initials={m.initials} size={44} color={m.color} />
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 }}>{m.name}</Text>
-                    <Text numberOfLines={1} style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 11.5 }}>
-                      {m.job_title || m.role} · {m.company || m.college || 'Platform Member'}
+                <View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                    <Av initials={m.initials} size={44} color={m.color} />
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 }}>{m.name}</Text>
+                      <Text numberOfLines={1} style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 11.5 }}>
+                        {m.job_title || m.role} · {m.company || m.college || 'Platform Member'}
+                      </Text>
+                    </View>
+                    <Badge label={m.kind === 'alumni' ? 'Alumni' : 'Mentor'} color={m.kind === 'alumni' ? 'blue' : 'teal'} />
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <StarRow rating={Math.round(m.rating || 5.0)} size={11} />
+                    <Text style={{ color: MC.muted, fontFamily: FONTS.bold, fontSize: 11 }}>
+                      {m.rating || 5.0} · {m.sessions || 0} sessions
                     </Text>
                   </View>
-                  <Badge label={m.kind === 'alumni' ? 'Alumni' : 'Mentor'} color={m.kind === 'alumni' ? 'blue' : 'teal'} />
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 10 }}>
+                    {(m.tags || []).slice(0, 3).map((e) => (
+                      <View key={e} style={s.tag}><Text style={{ color: MC.tealP, fontSize: 10, fontFamily: FONTS.bold }}>{e}</Text></View>
+                    ))}
+                  </View>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <StarRow rating={Math.round(m.rating || 5.0)} size={11} />
-                  <Text style={{ color: MC.muted, fontFamily: FONTS.bold, fontSize: 11 }}>
-                    {m.rating || 5.0} · {m.sessions || 0} sessions
-                  </Text>
-                </View>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 10 }}>
-                  {(m.tags || []).slice(0, 3).map((e) => (
-                    <View key={e} style={s.tag}><Text style={{ color: MC.tealP, fontSize: 10, fontFamily: FONTS.bold }}>{e}</Text></View>
-                  ))}
-                </View>
-                <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
                   {isConnected ? (
                     <Pressable onPress={(e) => { e.stopPropagation(); alert('Messaging coming soon!'); }} style={s.msgBtn}><MessageSquare size={13} color={MC.tealP} /><Text style={{ color: MC.tealP, fontFamily: FONTS.bold, fontSize: 12 }}>Message</Text></Pressable>
                   ) : isPending ? (
@@ -136,21 +138,23 @@ export function NetworkView() {
                 onPress={() => setSelectedPerson(d)}
                 style={({ hovered }: any) => [
                   s.card,
-                  { flexGrow: 1, flexBasis: 300, maxWidth: 360, cursor: 'pointer' },
+                  { flexGrow: 1, flexBasis: 300, maxWidth: 360, height: 175, justifyContent: 'space-between', cursor: 'pointer' },
                   hovered && s.cardHovered
                 ]}
               >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                  <Av initials={d.initials} size={42} color={d.color} />
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>{d.name}</Text>
-                    <Text numberOfLines={1} style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 11 }}>
-                      {d.college} · {d.branch} · {d.year}
-                    </Text>
+                <View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                    <Av initials={d.initials} size={42} color={d.color} />
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>{d.name}</Text>
+                      <Text numberOfLines={1} style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 11 }}>
+                        {d.college} · {d.branch} · {d.year}
+                      </Text>
+                    </View>
                   </View>
+                  <Text numberOfLines={2} style={{ color: '#fff', fontFamily: FONTS.med, fontSize: 12.5 }}>“{d.looking}”</Text>
                 </View>
-                <Text style={{ color: '#fff', fontFamily: FONTS.med, fontSize: 12.5 }}>“{d.looking}”</Text>
-                <View style={{ flexDirection: 'row', gap: 6, marginTop: 10, alignItems: 'center' }}>
+                <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
                   <Badge label="Student Profile" color="purple" />
                   {isConnected ? (
                     <Pressable onPress={(e) => { e.stopPropagation(); alert('Messaging coming soon!'); }} style={[s.msgBtn, { marginLeft: 'auto', height: 32 }]}><MessageSquare size={13} color={MC.tealP} /><Text style={{ color: MC.tealP, fontFamily: FONTS.bold, fontSize: 12 }}>Message</Text></Pressable>
