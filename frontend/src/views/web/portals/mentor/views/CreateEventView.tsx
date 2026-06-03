@@ -540,7 +540,7 @@ export function CreateEventView() {
                                       }}
                                       style={[s.dropdownItem, y === calYear && { backgroundColor: coverColor + '20' }]}
                                     >
-                                      <Text style={[s.dropdownItemText, y === calYear && { color: coverColor, fontFamily: FONTS.bold }]}>{y}</Text>
+                                      <Text style={[s.yearDropdownItemText, y === calYear && { color: coverColor, fontFamily: FONTS.bold }]}>{y}</Text>
                                     </Pressable>
                                   ))}
                                 </ScrollView>
@@ -1100,7 +1100,7 @@ const s = StyleSheet.create({
     backgroundColor: '#1E293B', borderColor: MC.border, borderWidth: 1, borderRadius: 6,
     zIndex: 100000, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 4
   },
-  dropdownItemText: { color: '#fff', fontFamily: FONTS.med, fontSize: 11 },
+  yearDropdownItemText: { color: '#fff', fontFamily: FONTS.med, fontSize: 11 },
   calWeekdays: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 4 },
   calWeekdayText: { color: MC.dim, fontFamily: FONTS.bold, fontSize: 9, width: 28, textAlign: 'center' },
   calDaysGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' },

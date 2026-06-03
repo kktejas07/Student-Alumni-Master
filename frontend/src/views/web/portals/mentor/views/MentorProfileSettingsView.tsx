@@ -3,7 +3,7 @@
  * Matches the high-fidelity mockups with Manage Profile and Tools & Integrations tabs.
  * Built on top of unified project icon shims and MaterialCommunityIcons.
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Image, Platform, ActivityIndicator, useWindowDimensions, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -12,6 +12,10 @@ import { CompletionRing } from '@/src/views/web/profile/CompletionRing';
 import { useToast } from '@/src/views/components';
 import { MC, FONTS } from '../tokens';
 import { Av } from '../atoms';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
+import Svg, { Rect } from 'react-native-svg';
+import QRCode from 'react-native-qrcode-svg';
 
 // Import icons from student iconShims to prevent lucide-react-native undefined errors
 import {
@@ -43,6 +47,29 @@ export function MentorProfileSettingsView() {
   const [activeTab, setActiveTab] = useState<TabKey>('manage');
   const [saving, setSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+
+  // --- Digital ID Card state & animation ---
+  const cardRotation = useSharedValue(0);
+  const cardFlipped = useSharedValue(0); // 0 = front, 1 = back
+
+  const handleFlipCard = () => {
+    const next = cardFlipped.value === 0 ? 180 : 0;
+    cardFlipped.value = cardFlipped.value === 0 ? 1 : 0;
+    cardRotation.value = withTiming(next, {
+      duration: 700,
+      easing: Easing.bezier(0.4, 0.0, 0.2, 1),
+    });
+  };
+
+  const frontAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ perspective: 1200 }, { rotateY: `${cardRotation.value}deg` }] as any,
+    backfaceVisibility: 'hidden' as any,
+  }));
+
+  const backAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ perspective: 1200 }, { rotateY: `${cardRotation.value + 180}deg` }] as any,
+    backfaceVisibility: 'hidden' as any,
+  }));
 
   // --- Profile state variables (Manage Profile Tab) ---
   const [fullName, setFullName] = useState('Dr. Suresh Rao');
@@ -367,6 +394,40 @@ export function MentorProfileSettingsView() {
     }, 700);
   };
 
+  // --- Digital ID Card handlers ---
+  const handleCopyId = async () => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText('SM-8-687562');
+        toast.success('Copied', 'Mentor ID copied to clipboard.');
+      } else {
+        toast.success('Mentor ID', 'SM-8-687562');
+      }
+    } catch {
+      toast.error('Copy failed', 'Please try again.');
+    }
+  };
+
+  const handleDownloadCard = () => {
+    toast.success('Downloading', 'Preparing your Digital ID card...');
+  };
+
+  const handleShareProfile = async () => {
+    const text = `Connect with me on Student Alumni! 🎓\nProfile: studentalumni.in/mentor/SM-8-687562`;
+    try {
+      if (Platform.OS === 'web' && (navigator as any).share) {
+        await (navigator as any).share({ title: 'My SA Mentor Profile', text });
+        return;
+      }
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        toast.success('Link Copied', 'Share link copied to clipboard.');
+      }
+    } catch {
+      toast.error('Share failed', 'Please try again.');
+    }
+  };
+
   // Profile Score calculation based on filled elements
   const getProfileCompletionScore = () => {
     let score = 50; // base score
@@ -423,7 +484,6 @@ export function MentorProfileSettingsView() {
               <Pressable
                 key={t.key}
                 onPress={() => {
-                  if (t.key === 'digital-id') { router.push('/member-id'); return; }
                   setActiveTab(t.key);
                 }}
                 style={[st.tab, active && st.tabActive]}
@@ -1298,6 +1358,207 @@ export function MentorProfileSettingsView() {
             </View>
           )}
 
+          {activeTab === 'digital-id' && (
+            <View style={{ gap: 16 }}>
+              {/* Interactive Flip Card */}
+              <View style={st.cardSection}>
+                <Pressable onPress={handleFlipCard} style={st.flipCardContainer}>
+                  <View style={st.flipCardInner}>
+                    
+                    {/* FRONT OF CARD */}
+                    <Animated.View style={[st.idCardFace, frontAnimatedStyle as any]}>
+                      <LinearGradient
+                        colors={['#062E25', '#0B4D3F']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={StyleSheet.absoluteFillObject}
+                      />
+                      
+                      <View style={st.cardHeaderRow}>
+                        <View style={st.cardLogoContainer}>
+                          <View style={st.cardLogoBadge}>
+                            <Text style={st.cardLogoText}>SA</Text>
+                          </View>
+                          <View style={{ gap: 1 }}>
+                            <Text style={st.cardLogoTitle}>Student Alumni</Text>
+                            <Text style={st.cardLogoSubtitle}>MENTOR ID · 2028</Text>
+                          </View>
+                        </View>
+                        <View style={st.cardVerifiedBadge}>
+                          <View style={st.cardVerifiedDot} />
+                          <Text style={st.cardVerifiedText}>VERIFIED</Text>
+                        </View>
+                      </View>
+
+                      <View style={st.cardBodyRow}>
+                        <View style={st.cardAvatar}>
+                          <Text style={st.cardAvatarText}>SR</Text>
+                        </View>
+                        <View style={st.cardDetailsContainer}>
+                          <Text style={st.cardName}>{fullName}</Text>
+                          <Text style={st.cardSubtext}>{role} · {company}</Text>
+                          <Text style={st.cardSubtext}>{college} · Batch of 2008</Text>
+                        </View>
+                      </View>
+
+                      <View style={st.cardFooterRow}>
+                        <View>
+                          <Text style={st.cardFooterLabel}>MENTOR ID</Text>
+                          <Text style={st.cardFooterId}>SM-8-687562</Text>
+                        </View>
+                        <View style={st.cardChipContainer}>
+                          <Svg width={28} height={20} viewBox="0 0 28 20">
+                            <Rect x={0} y={0} width={28} height={20} rx={4} fill="#e5c158" opacity={0.8} />
+                            <Rect x={4} y={3} width={8} height={14} rx={1} fill="none" stroke="#2c2c2c" strokeWidth={1} />
+                            <Rect x={16} y={3} width={8} height={14} rx={1} fill="none" stroke="#2c2c2c" strokeWidth={1} />
+                            <Rect x={10} y={6} width={8} height={8} rx={1} fill="none" stroke="#2c2c2c" strokeWidth={1} />
+                          </Svg>
+                        </View>
+                      </View>
+                    </Animated.View>
+
+                    {/* BACK OF CARD */}
+                    <Animated.View style={[st.idCardFace, backAnimatedStyle as any]}>
+                      <LinearGradient
+                        colors={['#062E25', '#0B4D3F']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={StyleSheet.absoluteFillObject}
+                      />
+                      
+                      <View style={st.cardHeaderRow}>
+                        <View style={st.cardLogoContainer}>
+                          <View style={st.cardLogoBadge}>
+                            <Text style={st.cardLogoText}>SA</Text>
+                          </View>
+                          <View style={{ gap: 1 }}>
+                            <Text style={st.cardLogoTitle}>Student Alumni</Text>
+                            <Text style={st.cardLogoSubtitle}>MENTOR ID · 2028</Text>
+                          </View>
+                        </View>
+                        <View style={st.cardVerifiedBadge}>
+                          <View style={st.cardVerifiedDot} />
+                          <Text style={st.cardVerifiedText}>VERIFIED</Text>
+                        </View>
+                      </View>
+
+                      <View style={st.cardBackBody}>
+                        <Text style={st.cardBackLabel}>MEMBER ID</Text>
+                        <Text style={st.cardBackId}>SM-8-687562</Text>
+                        <View style={st.barcodeWrapper}>
+                          <Barcode value="SM-8-687562" color={MC.tealP} height={50} />
+                        </View>
+                      </View>
+
+                      <View style={st.cardBackFooter}>
+                        <Text style={st.cardBackFooterText}>Valid from 2008 · Lifetime membership</Text>
+                        <Text style={st.cardFlipHint}>Tap to flip</Text>
+                      </View>
+                    </Animated.View>
+
+                  </View>
+                </Pressable>
+                
+                <Text style={st.cardTapHint}>Tap card to flip · Front & back</Text>
+              </View>
+
+              {/* YOUR MENTOR ID Display */}
+              <View style={st.idDetailsBox}>
+                <View>
+                  <Text style={st.idDetailsLabel}>YOUR MENTOR ID</Text>
+                  <Text style={st.idDetailsValue}>SM-8-687562</Text>
+                </View>
+                <Pressable onPress={handleCopyId} style={st.idCopyBtn}>
+                  <MaterialCommunityIcons name="content-copy" size={14} color="#ffffff" />
+                  <Text style={st.idCopyBtnText}>Copy ID</Text>
+                </Pressable>
+              </View>
+
+              {/* Action Buttons Row */}
+              <View style={st.actionRow}>
+                <Pressable onPress={handleDownloadCard} style={st.actionTealBtn}>
+                  <MaterialCommunityIcons name="download" size={15} color="#0F2922" />
+                  <Text style={st.actionTealBtnText}>Download ID Card</Text>
+                </Pressable>
+                
+                <Pressable onPress={handleShareProfile} style={st.actionOutlineBtn}>
+                  <MaterialCommunityIcons name="share-variant-outline" size={14} color="#ffffff" />
+                  <Text style={st.actionOutlineBtnText}>Share Profile</Text>
+                </Pressable>
+
+                <Pressable onPress={handleFlipCard} style={st.actionOutlineBtn}>
+                  <MaterialCommunityIcons name="refresh" size={14} color="#ffffff" />
+                  <Text style={st.actionOutlineBtnText}>Flip Card</Text>
+                </Pressable>
+              </View>
+
+              {/* Scan to Connect Block */}
+              <View style={st.qrSectionCard}>
+                <View style={st.qrCodeWrapper}>
+                  <QRCode
+                    value="https://studentalumni.in/mentor/SM-8-687562"
+                    size={80}
+                    backgroundColor="#ffffff"
+                    color="#000000"
+                  />
+                </View>
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={st.qrSectionTitle}>Scan to Connect</Text>
+                  <Text style={st.qrSectionDesc}>
+                    Students scan this QR to view your mentor profile, book a session, or register for your events.
+                  </Text>
+                  <Text style={st.qrSectionLink}>studentalumni.in/mentor/SM-8-687562</Text>
+                </View>
+              </View>
+
+              {/* Grid Header & Grid */}
+              <Text style={st.gridMainHeader}>THIS ID WORKS ACROSS THE PLATFORM</Text>
+              
+              <View style={st.featuresGrid}>
+                <View style={[st.gridItem, stack && { width: '100%' }]}>
+                  <View style={st.gridIconBox}>
+                    <MaterialCommunityIcons name="calendar-clock" size={16} color={MC.tealP} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={st.gridItemTitle}>Session Booking</Text>
+                    <Text style={st.gridItemDesc}>Students book you via your verified mentor link</Text>
+                  </View>
+                </View>
+                
+                <View style={[st.gridItem, stack && { width: '100%' }]}>
+                  <View style={st.gridIconBox}>
+                    <MaterialCommunityIcons name="shield-check-outline" size={16} color="#F59E0B" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={st.gridItemTitle}>Institution Badge</Text>
+                    <Text style={st.gridItemDesc}>Verified by SA as a trusted industry mentor</Text>
+                  </View>
+                </View>
+
+                <View style={[st.gridItem, stack && { width: '100%' }]}>
+                  <View style={st.gridIconBox}>
+                    <MaterialCommunityIcons name="qrcode-scan" size={16} color="#3B82F6" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={st.gridItemTitle}>Instant Share</Text>
+                    <Text style={st.gridItemDesc}>Share QR at talks, panels, or networking events</Text>
+                  </View>
+                </View>
+
+                <View style={[st.gridItem, stack && { width: '100%' }]}>
+                  <View style={st.gridIconBox}>
+                    <MaterialCommunityIcons name="check-decagram-outline" size={16} color="#10B981" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={st.gridItemTitle}>Trusted Identity</Text>
+                    <Text style={st.gridItemDesc}>Students trust your profile is verified & authentic</Text>
+                  </View>
+                </View>
+              </View>
+
+            </View>
+          )}
+
           {/* Action buttons (Manage Profile, Integrations, Settings & Notifications) */}
           {(activeTab === 'manage' || activeTab === 'tools-integrations' || activeTab === 'settings' || activeTab === 'notifications') && (
             <View style={st.saveBar}>
@@ -1534,6 +1795,34 @@ function SidebarStatRow({ Icon, label, value, color, isLast }: { Icon: any; labe
   );
 }
 
+function Barcode({ value, color = '#14B8A6', height = 64 }: { value: string; color?: string; height?: number }) {
+  const bars = useMemo(() => {
+    const pattern: Array<{ w: number; gap: number }> = [];
+    const chars = (value || 'SA').split('');
+    let i = 0;
+    while (pattern.length < 56) {
+      const c = chars[i % chars.length].charCodeAt(0);
+      pattern.push({ w: (c % 4) + 1, gap: ((c >> 2) % 3) + 1 });
+      i += 1;
+    }
+    return pattern;
+  }, [value]);
+
+  const totalUnits = bars.reduce((acc, b) => acc + b.w + b.gap, 0);
+  const viewW = totalUnits;
+
+  let x = 0;
+  return (
+    <Svg width="100%" height={height} viewBox={`0 0 ${viewW} ${height}`} preserveAspectRatio="none">
+      {bars.map((b, idx) => {
+        const rect = <Rect key={idx} x={x} y={0} width={b.w} height={height} fill={color} />;
+        x += b.w + b.gap;
+        return rect;
+      })}
+    </Svg>
+  );
+}
+
 const st = StyleSheet.create({
   headerCard: {
     backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1,
@@ -1720,7 +2009,387 @@ const st = StyleSheet.create({
   activitySuccessCircle: { backgroundColor: 'rgba(34,197,94,0.12)' },
   activityFailedCircle: { backgroundColor: 'rgba(239,68,68,0.12)' },
   activityEventTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
-  activityMeta: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 }
+  activityMeta: { color: MC.dim, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
+
+  // Digital ID Card Styles
+  cardSection: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  flipCardContainer: {
+    width: '100%',
+    maxWidth: 440,
+    height: 240,
+    cursor: 'pointer',
+  },
+  flipCardInner: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+  },
+  idCardFace: {
+    width: '100%',
+    height: 240,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: 'rgba(20, 184, 166, 0.25)',
+    padding: 18,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    overflow: 'hidden',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowRadius: 15,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 2,
+  },
+  cardLogoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  cardLogoBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#14B8A6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardLogoText: {
+    color: '#0F2922',
+    fontFamily: FONTS.xbold,
+    fontSize: 14,
+  },
+  cardLogoTitle: {
+    color: '#ffffff',
+    fontFamily: FONTS.bold,
+    fontSize: 12.5,
+  },
+  cardLogoSubtitle: {
+    color: 'rgba(20, 184, 166, 0.75)',
+    fontFamily: FONTS.bold,
+    fontSize: 9,
+    letterSpacing: 0.5,
+    marginTop: 1,
+  },
+  cardVerifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+    borderWidth: 1,
+  },
+  cardVerifiedDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  cardVerifiedText: {
+    color: '#10B981',
+    fontFamily: FONTS.bold,
+    fontSize: 9.5,
+    letterSpacing: 0.5,
+  },
+  cardBodyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    zIndex: 2,
+    marginTop: -10,
+  },
+  cardAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(20, 184, 166, 0.1)',
+    borderColor: '#14B8A6',
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardAvatarText: {
+    color: '#ffffff',
+    fontFamily: FONTS.xbold,
+    fontSize: 20,
+  },
+  cardDetailsContainer: {
+    flex: 1,
+    gap: 2,
+  },
+  cardName: {
+    color: '#ffffff',
+    fontFamily: FONTS.bold,
+    fontSize: 17,
+  },
+  cardSubtext: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontFamily: FONTS.med,
+    fontSize: 12,
+  },
+  cardFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    zIndex: 2,
+  },
+  cardFooterLabel: {
+    color: 'rgba(255, 255, 255, 0.45)',
+    fontFamily: FONTS.bold,
+    fontSize: 8.5,
+    letterSpacing: 0.8,
+  },
+  cardFooterId: {
+    color: '#ffffff',
+    fontFamily: FONTS.xbold,
+    fontSize: 16,
+    letterSpacing: 0.5,
+    marginTop: 2,
+  },
+  cardChipContainer: {
+    opacity: 0.9,
+  },
+  cardTapHint: {
+    color: 'rgba(255, 255, 255, 0.4)',
+    fontFamily: FONTS.med,
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  
+  // Back Body & footer
+  cardBackBody: {
+    zIndex: 2,
+    marginTop: 10,
+    gap: 4,
+  },
+  cardBackLabel: {
+    color: 'rgba(255, 255, 255, 0.45)',
+    fontFamily: FONTS.bold,
+    fontSize: 9,
+    letterSpacing: 0.8,
+  },
+  cardBackId: {
+    color: '#ffffff',
+    fontFamily: FONTS.xbold,
+    fontSize: 20,
+    letterSpacing: 0.8,
+  },
+  barcodeWrapper: {
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    borderRadius: 8,
+    padding: 8,
+    marginTop: 6,
+  },
+  cardBackFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  cardBackFooterText: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontFamily: FONTS.med,
+    fontSize: 10.5,
+  },
+  cardFlipHint: {
+    color: 'rgba(255, 255, 255, 0.4)',
+    fontFamily: FONTS.med,
+    fontSize: 10.5,
+  },
+
+  // Mentor ID details box
+  idDetailsBox: {
+    backgroundColor: MC.card,
+    borderColor: MC.border,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
+  },
+  idDetailsLabel: {
+    color: MC.dim,
+    fontFamily: FONTS.bold,
+    fontSize: 10.5,
+    letterSpacing: 0.5,
+  },
+  idDetailsValue: {
+    color: '#ffffff',
+    fontFamily: FONTS.xbold,
+    fontSize: 16,
+    letterSpacing: 0.5,
+    marginTop: 2,
+  },
+  idCopyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: MC.border,
+    borderWidth: 1,
+    cursor: 'pointer',
+  },
+  idCopyBtnText: {
+    color: '#ffffff',
+    fontFamily: FONTS.bold,
+    fontSize: 12,
+  },
+
+  // Buttons row
+  actionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
+  },
+  actionTealBtn: {
+    flex: 1.3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: 38,
+    borderRadius: 8,
+    backgroundColor: MC.tealP,
+    cursor: 'pointer',
+  },
+  actionTealBtnText: {
+    color: '#0F2922',
+    fontFamily: FONTS.bold,
+    fontSize: 12,
+  },
+  actionOutlineBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: 38,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: MC.border,
+    backgroundColor: 'transparent',
+    cursor: 'pointer',
+  },
+  actionOutlineBtnText: {
+    color: '#ffffff',
+    fontFamily: FONTS.bold,
+    fontSize: 12,
+  },
+
+  // QR section card
+  qrSectionCard: {
+    backgroundColor: MC.card,
+    borderColor: MC.border,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
+  },
+  qrCodeWrapper: {
+    padding: 8,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qrSectionTitle: {
+    color: '#ffffff',
+    fontFamily: FONTS.bold,
+    fontSize: 14,
+  },
+  qrSectionDesc: {
+    color: MC.dim,
+    fontFamily: FONTS.med,
+    fontSize: 11,
+    lineHeight: 15.5,
+  },
+  qrSectionLink: {
+    color: MC.tealP,
+    fontFamily: FONTS.bold,
+    fontSize: 11.5,
+    marginTop: 2,
+  },
+
+  // Grid
+  gridMainHeader: {
+    color: MC.dim,
+    fontFamily: FONTS.xbold,
+    fontSize: 10,
+    letterSpacing: 0.8,
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  featuresGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
+  },
+  gridItem: {
+    width: '48.5%',
+    backgroundColor: MC.card,
+    borderColor: MC.border,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  gridIconBox: {
+    width: 30,
+    height: 30,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gridItemTitle: {
+    color: '#ffffff',
+    fontFamily: FONTS.bold,
+    fontSize: 12,
+  },
+  gridItemDesc: {
+    color: MC.dim,
+    fontFamily: FONTS.med,
+    fontSize: 10,
+    lineHeight: 13.5,
+    marginTop: 3,
+  }
 });
 
 export default MentorProfileSettingsView;
