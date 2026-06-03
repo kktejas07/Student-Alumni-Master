@@ -19,6 +19,7 @@ import { STUDENT } from './data';
 import { Av } from './atoms';
 import { FadeInView, PressScale, SparkIcon, PulseDot } from './motion';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
+import { router } from 'expo-router';
 
 export type StudentNavId =
   | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'events'
@@ -93,7 +94,7 @@ export function Sidebar({
 
       {/* Alumni card pill */}
       <FadeInView delay={120}>
-        <PressScale style={s.idCardPill} onPress={() => {}}>
+        <PressScale style={s.idCardPill} onPress={() => router.push('/id-card')}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={s.idCardLabel}>My Alumni Card</Text>
             <Text style={s.idCardNumber}>{saId}</Text>

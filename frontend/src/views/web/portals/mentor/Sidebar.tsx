@@ -14,6 +14,7 @@ import {
 import { MC, FONTS } from './tokens';
 import { MENTOR } from './data';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
+import { router } from 'expo-router';
 
 export type NavId = 'dashboard'|'students'|'sessions'|'requests'|'network'|'earnings'|'feedback'|'event'|'availability'|'profile'|'ai-studio';
 
@@ -115,7 +116,10 @@ export function Sidebar({
                 <Text numberOfLines={1} style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 9 }}>{role} · {company}</Text>
               </View>
             </Pressable>
-            <Pressable style={({ hovered }: any) => [s.idCard, hovered && { backgroundColor: 'rgba(20,184,166,0.15)' }]}>
+            <Pressable 
+              onPress={() => router.push('/id-card')}
+              style={({ hovered }: any) => [s.idCard, hovered && { backgroundColor: 'rgba(20,184,166,0.15)' }]}
+            >
               <QrCode size={13} color={MC.tealP} />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={{ color: MC.tealP, fontFamily: FONTS.bold, fontSize: 11 }}>My Mentor Card</Text>
