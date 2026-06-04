@@ -17,9 +17,10 @@ import {
   Image, Linking, Modal, Platform,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import FeaturePageShell from '@/src/views/web/FeaturePageShell';
+import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 import { request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useRouter } from 'expo-router';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -138,7 +139,21 @@ function relTime(iso?: string | null): string {
 
 // ─── Component ───────────────────────────────────────────────────────────
 export default function DealsScreen() {
+  const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const initialized = useAuthStore((s) => s.initialized);
+  const isEmbedded = React.useContext(EmbeddedShellContext);
+
+  useEffect(() => {
+    if (!isEmbedded && initialized && user) {
+      if (user.role === 'alumni') {
+        router.replace('/alumni-portal?tab=deals' as any);
+      } else if (user.role === 'student') {
+        router.replace('/student-portal?tab=deals' as any);
+      }
+    }
+  }, [isEmbedded, initialized, user, router]);
+
   const [deals, setDeals] = useState<Deal[] | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);

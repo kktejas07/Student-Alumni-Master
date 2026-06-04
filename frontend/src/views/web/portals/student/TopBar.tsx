@@ -44,10 +44,12 @@ export function TopBar({
   scrolled = false,
   activeView = 'dashboard',
   onAvatarPress,
+  onBellPress,
 }: {
   scrolled?: boolean;
   activeView?: string;
   onAvatarPress?: () => void;
+  onBellPress?: () => void;
 } = {}) {
   const router = useRouter();
   const { theme, isDark, mode, setMode } = useTheme();
@@ -156,7 +158,7 @@ export function TopBar({
         <FadeInView delay={180}>
           <PressScale
             style={[s.iconBtn, { backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder }]}
-            onPress={() => router.push('/notifications')}
+            onPress={onBellPress || (() => router.push('/notifications'))}
             accessibilityLabel="Notifications"
             accessibilityHint="Opens the notifications panel"
           >

@@ -5,11 +5,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, TextInput, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import FeaturePageShell from '@/src/views/web/FeaturePageShell';
+import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { FAB } from '@/src/views/web/md3';
 import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
 import { request } from '@/src/models/services/api';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useRouter } from 'expo-router';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 const Icon = (props: { name: IconName; size?: number; color?: string;
@@ -99,6 +101,21 @@ function EmiSlider({ label, value, setValue, min, max, step, fmt }: any) {
 }
 
 export default function FinancialPage() {
+  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const initialized = useAuthStore((s) => s.initialized);
+  const isEmbedded = React.useContext(EmbeddedShellContext);
+
+  useEffect(() => {
+    if (!isEmbedded && initialized && user) {
+      if (user.role === 'alumni') {
+        router.replace('/alumni-portal?tab=financial' as any);
+      } else if (user.role === 'student') {
+        router.replace('/student-portal?tab=financial' as any);
+      }
+    }
+  }, [isEmbedded, initialized, user, router]);
+
   const [tab, setTab] = useState('scholarships');
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);

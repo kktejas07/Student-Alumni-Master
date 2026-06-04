@@ -85,7 +85,7 @@ export default function NotificationsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} testID="notif-back">
-          <ArrowLeft size={22} color={C.textPrimary} />
+          <ArrowLeft size={22} color="#F4F4F8" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>Notifications</Text>
@@ -95,12 +95,12 @@ export default function NotificationsScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={C.brandPurple} />
+          <ActivityIndicator color="#8B5CF6" />
         </View>
       ) : (
         <ScrollView
           contentContainerStyle={styles.container}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.brandPurple} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
         >
           {items.length === 0 ? (
             <EmptyState />
@@ -162,10 +162,10 @@ function EmptyState() {
   return (
     <View style={styles.empty}>
       <View style={styles.emptyIconWrap}>
-        <Bell size={36} color={C.lightPurple} />
+        <Bell size={36} color="#A78BFA" />
       </View>
-      <Text style={[Typography.h3, { color: C.textPrimary, marginTop: 12 }]}>You're all caught up</Text>
-      <Text style={[Typography.body, { color: C.textSecondary, marginTop: 6, textAlign: 'center' }]}>
+      <Text style={[Typography.h3, { color: '#F4F4F8', marginTop: 12 }]}>You're all caught up</Text>
+      <Text style={[Typography.body, { color: '#A1A6B7', marginTop: 6, textAlign: 'center' }]}>
         New booking requests, reviews and event reminders will appear here.
       </Text>
     </View>
@@ -176,7 +176,7 @@ function NotificationRow({ notif, onPress }: { notif: Notif; onPress: () => void
   const { Icon, tint } = iconForType(notif.type);
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-      <Card style={[styles.rowCard, !notif.read && styles.rowCardUnread]}>
+      <View style={[styles.rowCard, !notif.read && styles.rowCardUnread]}>
         <View style={[styles.rowIcon, { backgroundColor: tint.bg }]}>
           <Icon size={18} color={tint.fg} />
         </View>
@@ -185,7 +185,7 @@ function NotificationRow({ notif, onPress }: { notif: Notif; onPress: () => void
             <Text
               style={[
                 Typography.bodyBold,
-                { color: C.textPrimary, flex: 1 },
+                { color: '#F4F4F8', flex: 1 },
               ]}
               numberOfLines={1}
             >
@@ -193,17 +193,17 @@ function NotificationRow({ notif, onPress }: { notif: Notif; onPress: () => void
             </Text>
             {!notif.read && <View style={styles.unreadDot} />}
           </View>
-          <Text style={[Typography.bodySm, { color: C.textSecondary, marginTop: 2 }]} numberOfLines={3}>
+          <Text style={[Typography.bodySm, { color: '#A1A6B7', marginTop: 2 }]} numberOfLines={3}>
             {notif.message}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
-            <Clock size={11} color={C.textMuted} />
-            <Text style={[Typography.bodySm, { color: C.textMuted, fontSize: 11 }]}>
+            <Clock size={11} color="#6E7388" />
+            <Text style={[Typography.bodySm, { color: '#6E7388', fontSize: 11 }]}>
               {formatRelative(notif.created_at)}
             </Text>
           </View>
         </View>
-      </Card>
+      </View>
     </TouchableOpacity>
   );
 }
@@ -221,9 +221,9 @@ function iconForType(type?: string) {
     case 'review':
       return { Icon: Star, tint: { bg: 'rgba(232,163,23,0.18)', fg: '#E8A317' } };
     case 'event':
-      return { Icon: Trophy, tint: { bg: 'rgba(95,37,159,0.18)', fg: C.brandPurple } };
+      return { Icon: Trophy, tint: { bg: 'rgba(139, 92, 246, 0.18)', fg: '#8B5CF6' } };
     default:
-      return { Icon: Bell, tint: { bg: C.palePurple, fg: C.deepPurple } };
+      return { Icon: Bell, tint: { bg: 'rgba(139, 92, 246, 0.18)', fg: '#A78BFA' } };
   }
 }
 
@@ -244,7 +244,7 @@ function formatRelative(iso?: string): string {
 
 // ----- styles ------------------------------------------------------------
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.background },
+  safe: { flex: 1, backgroundColor: '#0a0f1e' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -252,8 +252,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.sm,
     paddingBottom: Spacing.md,
-    backgroundColor: C.surface,
-    borderBottomColor: C.border,
+    backgroundColor: '#0d1326',
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
     borderBottomWidth: 1,
   },
   backBtn: {
@@ -262,8 +262,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { ...Typography.h3, color: C.textPrimary },
-  subtitle: { ...Typography.bodySm, color: C.textSecondary, marginTop: 2 },
+  title: { ...Typography.h3, color: '#F4F4F8' },
+  subtitle: { ...Typography.bodySm, color: '#A1A6B7', marginTop: 2 },
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   container: { padding: Spacing.md, gap: 10 },
 
@@ -272,10 +272,16 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 12,
     padding: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.01)',
+    borderColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderRadius: 12,
   },
   rowCardUnread: {
+    backgroundColor: 'rgba(139, 92, 246, 0.03)',
+    borderColor: 'rgba(139, 92, 246, 0.15)',
     borderLeftWidth: 3,
-    borderLeftColor: C.brandPurple,
+    borderLeftColor: '#8B5CF6',
   },
   rowIcon: {
     width: 38,
@@ -288,7 +294,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: C.brandPurple,
+    backgroundColor: '#8B5CF6',
   },
   empty: {
     paddingVertical: 80,
@@ -300,7 +306,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 999,
-    backgroundColor: C.palePurple,
+    backgroundColor: 'rgba(139, 92, 246, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },

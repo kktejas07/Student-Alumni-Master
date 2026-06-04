@@ -3,8 +3,10 @@
  * Multi-tab system: Upcoming | Past Sessions | Availability
  * Full high-fidelity mock implementations matching the reference screens.
  */
-import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Linking, Platform, ScrollView, TextInput } from 'react-native';
+import React, { useState, useMemo, useEffect } from 'react';
+import { View, Text, Pressable, StyleSheet, Linking, Platform, ScrollView, TextInput, ActivityIndicator } from 'react-native';
+import { api } from '@/src/models/services/api';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { 
   Calendar as CalIcon, 
   Clock, 
@@ -113,8 +115,38 @@ const DEFAULT_AVAILABILITY: AvailabilitySlot[] = [
 
 export function SessionsView() {
   const [tab, setTab] = useState<TabId>('upcoming');
+  const user = useAuthStore((s) => s.user);
   const [students, setStudents] = useState(INITIAL_STUDENTS);
-  
+  const [bookingsList, setBookingsList] = useState<any[]>([]);
+  const [studentsMap, setStudentsMap] = useState<Record<string, any>>({});
+  const [loading, setLoading] = useState(true);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const email = user?.email;
+      const connRes = await api.mentorConnections(email);
+      const conns = connRes?.items || [];
+      const sMap: Record<string, any> = {};
+      conns.forEach((c: any) => {
+        sMap[c.id] = c;
+      });
+      setStudentsMap(sMap);
+      setStudents(conns.length > 0 ? conns : INITIAL_STUDENTS);
+
+      const bookRes = await api.myBookings().catch(() => ({ bookings: [] }));
+      setBookingsList(bookRes.bookings || []);
+    } catch (e) {
+      console.warn('Failed to load sessions data from backend:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [user]);
+
   // Availability specific states
   const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>(DEFAULT_AVAILABILITY);
   const [layoutMode, setLayoutMode] = useState<'grid' | 'columns'>('grid');
@@ -131,33 +163,103 @@ export function SessionsView() {
   // AI summary simulation states
   const [aiSummaryStates, setAiSummaryStates] = useState<Record<number, { text: string; loading: boolean }>>({});
 
-  const upcoming = students.filter((s) => s.nextSession).map((s) => ({ ...s.nextSession!, student: s }));
-  const past = [
-    {
-      student: students[2], // Kabir Das
-      date: 'Apr 29, 2026',
-      notes: 'Reviewed investor deck v3. Strong traction slide. Needs sharper problem framing on slide 2.',
-      sessionsCount: 6,
-      score: '7/10',
-      feedback: 'Good session. Consider adding specific next-step action items.'
-    },
-    {
-      student: students[1], // Priya Nair
-      date: 'Apr 28, 2026',
-      notes: 'Discussed research statement. Very well-articulated motivation. Target top ML conferences.',
-      sessionsCount: 2,
-      score: '6/10',
-      feedback: 'Add more detail to session notes to track student progress better.'
-    },
-    {
-      student: students[0], // Arjun Sharma
-      date: 'Apr 22, 2026',
-      notes: 'Covered LLD patterns. Good progress on OOP. Needs more concurrency practice.',
-      sessionsCount: 3,
-      score: '8/10',
-      feedback: 'Great progress. Encourage student to write multi-threaded code tests.'
+  const now = useMemo(() => new Date(), [tab, bookingsList]);
+
+  const upcoming = useMemo(() => {
+    if (bookingsList.length === 0) {
+      return students.filter((s) => s.nextSession).map((s) => ({ ...s.nextSession!, student: s }));
     }
-  ];
+    return bookingsList
+      .filter((b) => {
+        const schedDate = new Date(b.scheduled_at || b.slot_start_iso);
+        return schedDate > now && b.status !== 'cancelled' && b.status !== 'completed';
+      })
+      .map((b) => {
+        const studentProfile = studentsMap[b.student_id] || {
+          id: b.student_id,
+          name: b.student_name || 'Student',
+          avatar: (b.student_name || 'S').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
+          color: '#14B8A6',
+          branch: 'Student',
+          college: 'University',
+          tags: ['1:1 Session'],
+        };
+        const schedDate = new Date(b.scheduled_at || b.slot_start_iso);
+        const diffMs = schedDate.getTime() - now.getTime();
+        const daysAway = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+        
+        const timeFormatted = schedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const dateFormatted = schedDate.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+        
+        return {
+          id: b.id,
+          date: dateFormatted,
+          time: timeFormatted,
+          topic: b.topic || 'Mentorship Session',
+          daysAway,
+          student: studentProfile,
+        };
+      });
+  }, [bookingsList, students, studentsMap, now]);
+
+  const past = useMemo(() => {
+    if (bookingsList.length === 0) {
+      return [
+        {
+          student: students[2] || INITIAL_STUDENTS[2],
+          date: 'Apr 29, 2026',
+          notes: 'Reviewed investor deck v3. Strong traction slide. Needs sharper problem framing on slide 2.',
+          sessionsCount: 6,
+          score: '7/10',
+          feedback: 'Good session. Consider adding specific next-step action items.'
+        },
+        {
+          student: students[1] || INITIAL_STUDENTS[1],
+          date: 'Apr 28, 2026',
+          notes: 'Discussed research statement. Very well-articulated motivation. Target top ML conferences.',
+          sessionsCount: 2,
+          score: '6/10',
+          feedback: 'Add more detail to session notes to track student progress better.'
+        },
+        {
+          student: students[0] || INITIAL_STUDENTS[0],
+          date: 'Apr 22, 2026',
+          notes: 'Covered LLD patterns. Good progress on OOP. Needs more concurrency practice.',
+          sessionsCount: 3,
+          score: '8/10',
+          feedback: 'Great progress. Encourage student to write multi-threaded code tests.'
+        }
+      ];
+    }
+    return bookingsList
+      .filter((b) => {
+        const schedDate = new Date(b.scheduled_at || b.slot_start_iso);
+        return schedDate <= now || b.status === 'completed';
+      })
+      .map((b) => {
+        const studentProfile = studentsMap[b.student_id] || {
+          id: b.student_id,
+          name: b.student_name || 'Student',
+          avatar: (b.student_name || 'S').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
+          color: '#14B8A6',
+          branch: 'Student',
+          college: 'University',
+          tags: ['1:1 Session'],
+        };
+        const schedDate = new Date(b.scheduled_at || b.slot_start_iso);
+        const dateFormatted = schedDate.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+        
+        return {
+          id: b.id,
+          student: studentProfile,
+          date: dateFormatted,
+          notes: b.notes || b.topic || 'Mentorship session completed.',
+          sessionsCount: studentProfile.sessionsCompleted || 1,
+          score: b.evaluation_score || '8/10',
+          feedback: b.evaluation_feedback || 'Great session. Keep up the good work.'
+        };
+      });
+  }, [bookingsList, students, studentsMap, now]);
 
   const handlePrevMonth = () => {
     if (calMonth === 0) {
@@ -183,35 +285,40 @@ export function SessionsView() {
     setPendingDate(formatted);
   };
 
-  const confirmReschedule = () => {
+  const confirmReschedule = async () => {
     if (!reschedulingSession || !pendingDate) return;
     
-    let daysAway = 7;
+    setLoading(true);
     try {
-      const now = new Date();
-      const sessionDate = new Date(`${pendingDate} ${selectedTime}`);
-      const diffMs = sessionDate.getTime() - now.getTime();
-      daysAway = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
-    } catch (e) {
-      console.error(e);
-    }
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      const parts = pendingDate.replace(',', '').split(' ');
+      const monthName = parts[0];
+      const day = parseInt(parts[1], 10);
+      const year = parseInt(parts[2], 10);
+      
+      const monthIdx = monthNames.indexOf(monthName);
+      const month = monthIdx !== -1 ? monthIdx : 4;
+      
+      const timeParts = selectedTime.split(' ');
+      const hm = timeParts[0].split(':');
+      let hours = parseInt(hm[0], 10);
+      const minutes = parseInt(hm[1], 10);
+      const ampm = timeParts[1];
+      
+      if (ampm === 'PM' && hours < 12) hours += 12;
+      if (ampm === 'AM' && hours === 12) hours = 0;
+      
+      const d = new Date(year, month, day, hours, minutes, 0);
+      const slot_start_iso = d.toISOString();
 
-    setStudents((prev) =>
-      prev.map((s) => {
-        if (s.id === reschedulingSession.student.id) {
-          return {
-            ...s,
-            nextSession: {
-              ...s.nextSession!,
-              date: pendingDate,
-              time: selectedTime,
-              daysAway,
-            },
-          };
-        }
-        return s;
-      })
-    );
+      await api.rescheduleBooking(reschedulingSession.id, slot_start_iso);
+      await loadData();
+    } catch (e: any) {
+      console.error(e);
+      alert('Could not reschedule: ' + (e.message || 'Error occurred'));
+    } finally {
+      setLoading(false);
+    }
 
     setPendingDate(null);
     setReschedulingSession(null);
@@ -273,6 +380,14 @@ export function SessionsView() {
   // Availability counters
   const openSlotsCount = availabilitySlots.filter((s) => s.status === 'available').length;
   const bookedSlotsCount = availabilitySlots.filter((s) => s.status === 'booked').length;
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, padding: 60, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={MC.tealP} size="large" />
+      </View>
+    );
+  }
 
   // Custom rendering for rescheduling view
   if (reschedulingSession) {

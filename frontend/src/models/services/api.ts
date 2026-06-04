@@ -314,6 +314,17 @@ export const api = {
     max_attendees: number;
   }) => request<any>('/mentor/sessions', { method: 'POST', body: payload }),
   myMentorSessions: () => request<any>('/mentor/sessions/me'),
+  mentorConnections: (email?: string) => request<any>(`/mentor/connections${email ? `?email=${encodeURIComponent(email)}` : ''}`),
+  acceptConnection: (otherId: string) => request<any>(`/network/accept/${otherId}`, { method: 'POST', body: {} }),
+  rejectConnection: (otherId: string) => request<any>(`/network/reject/${otherId}`, { method: 'POST', body: {} }),
+  createMentorBooking: (payload: {
+    student_id: string;
+    slot_start_iso: string;
+    topic: string;
+    notes?: string;
+  }) => request<any>('/mentor/bookings', { method: 'POST', body: payload }),
+  rescheduleBooking: (id: string, slotStartIso: string) =>
+    request<any>(`/bookings/${id}/reschedule`, { method: 'POST', body: { slot_start_iso: slotStartIso } }),
 };
 
 export { BASE_URL };
