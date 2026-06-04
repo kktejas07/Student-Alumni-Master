@@ -2899,6 +2899,7 @@ async def mentor_connections(email: Optional[str] = None):
         out.append({
             "id": uid,
             "name": u.get("full_name") or u.get("email", "—").split("@")[0],
+            "role": role,
             "avatar": _initials(u.get("full_name") or ""),
             "color": _color_for(u.get("full_name") or ""),
             "college": college,

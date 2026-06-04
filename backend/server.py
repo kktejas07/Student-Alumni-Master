@@ -4688,32 +4688,58 @@ async def my_connections(user: dict = Depends(get_current_user)):
 
 @api_router.get("/network/requests")
 async def my_connection_requests(user: dict = Depends(get_current_user)):
-    """Incoming pending requests (people who want to connect with me)."""
+    """Incoming and sent pending requests."""
     me_id = str(user.get("_id") or user.get("id"))
+    
+    # 1. Incoming pending requests
     rels = await db.connections.find(
         {"status": "pending", "b": me_id}, {"_id": 0},
     ).to_list(200)
-    if not rels:
-        return {"items": []}
-    requester_ids = [r["a"] for r in rels]
-    objs = []
-    for rid in requester_ids:
-        try:
-            objs.append(ObjectId(rid))
-        except Exception:
-            pass
-    users = await db.users.find({"_id": {"$in": objs}}, {"password_hash": 0, "face_image_base64": 0}).to_list(len(objs))
-    by_id = {str(u["_id"]): u for u in users}
-    out = []
-    for r in rels:
-        u = by_id.get(r["a"])
-        if not u:
-            continue
-        c = _user_card(u)
-        c["connection_state"] = "incoming"
-        c["requested_at"] = r.get("created_at")
-        out.append(c)
-    return {"items": out}
+    out_incoming = []
+    if rels:
+        requester_ids = [r["a"] for r in rels]
+        objs = []
+        for rid in requester_ids:
+            try:
+                objs.append(ObjectId(rid))
+            except Exception:
+                pass
+        users = await db.users.find({"_id": {"$in": objs}}, {"password_hash": 0, "face_image_base64": 0}).to_list(len(objs))
+        by_id = {str(u["_id"]): u for u in users}
+        for r in rels:
+            u = by_id.get(r["a"])
+            if not u:
+                continue
+            c = _user_card(u)
+            c["connection_state"] = "incoming"
+            c["requested_at"] = r.get("created_at")
+            out_incoming.append(c)
+
+    # 2. Sent pending requests
+    sent_rels = await db.connections.find(
+        {"status": "pending", "a": me_id}, {"_id": 0},
+    ).to_list(200)
+    out_sent = []
+    if sent_rels:
+        sent_ids = [r["b"] for r in sent_rels]
+        objs_sent = []
+        for rid in sent_ids:
+            try:
+                objs_sent.append(ObjectId(rid))
+            except Exception:
+                pass
+        users_sent = await db.users.find({"_id": {"$in": objs_sent}}, {"password_hash": 0, "face_image_base64": 0}).to_list(len(objs_sent))
+        by_id_sent = {str(u["_id"]): u for u in users_sent}
+        for r in sent_rels:
+            u = by_id_sent.get(r["b"])
+            if not u:
+                continue
+            c = _user_card(u)
+            c["connection_state"] = "pending"
+            c["requested_at"] = r.get("created_at")
+            out_sent.append(c)
+
+    return {"items": out_incoming, "sent": out_sent}
 
 
 @api_router.post("/network/connect/{other_id}")
