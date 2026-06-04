@@ -21,6 +21,7 @@ import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 import { Sidebar, StudentNavId } from './Sidebar';
 import { TopBar } from './TopBar';
 import { AnimatedAurora, GridOverlay, RouteTransition, AiCopilotFab } from './glass';
+import { StudentNotificationsPanel } from './views/NotificationsPanel';
 import { PALETTE } from './tokens';
 import { LinearGradient } from 'expo-linear-gradient';
 import { DashboardFooter } from '../../components/SponsorStrip';
@@ -78,6 +79,7 @@ function PortalShell() {
   const [active, setActive] = useState<StudentNavId>((tab as StudentNavId) || 'dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [scrolled, setScrolled] = useState(false);
+  const [showNotifs, setShowNotifs] = useState(false);
   // Phase B — auto-launch the Student portal tour on first visit
   useAutoTour('student');
 
@@ -119,42 +121,53 @@ function PortalShell() {
       <GridOverlay />
 
       <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <StudentPortalNavContext.Provider value={{ navigate: handleNav, searchQuery, setSearchQuery }}>
-          <TopBar scrolled={scrolled} activeView={active} onAvatarPress={() => handleNav('profile')} />
-          <ScrollView
-            style={{ flex: 1 }}
-            contentContainerStyle={{ paddingHorizontal: padH, paddingTop: SP.lg, paddingBottom: SP.giga }}
-            showsVerticalScrollIndicator={false}
-            onScroll={onScroll}
-            scrollEventThrottle={16}
-          >
-            <EmbeddedShellContext.Provider value={true}>
-              <PromoBanner portal="student" />
-              <RouteTransition deps={[active]}>
-                {active === 'dashboard'       && <DashboardView />}
-                {active === 'career-ai'       && <CareerAIView />}
-                {active === 'internships'     && <InternshipsView />}
-                {active === 'my-applications' && <MyApplicationsView />}
-                {active === 'network'         && <NetworkView />}
-                {active === 'my-bookings'     && <MyBookingsView />}
-                {active === 'events'          && <EventsView />}
-                {active === 'my-workshops'    && <MyWorkshopsView />}
-                {active === 'courses'         && <CoursesPage />}
-                {active === 'financial'       && <FinancialPage />}
-                {active === 'deals'           && <DealsPage />}
-                {active === 'wallet'          && <WalletPage />}
-                {active === 'higher-ed'       && <HigherEducationPage />}
-                {active === 'rentals'         && <RentalsPage />}
-                {active === 'profile'         && <ProfileSettingsView />}
-              </RouteTransition>
-              <DashboardFooter portal="student" />
-            </EmbeddedShellContext.Provider>
-          </ScrollView>
-        </StudentPortalNavContext.Provider>
+      <View style={{ flex: 1, minWidth: 0, flexDirection: 'row' }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <StudentPortalNavContext.Provider value={{ navigate: handleNav, searchQuery, setSearchQuery }}>
+            <TopBar scrolled={scrolled} activeView={active} onAvatarPress={() => handleNav('profile')} onBellPress={() => setShowNotifs(!showNotifs)} />
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{ paddingHorizontal: padH, paddingTop: SP.lg, paddingBottom: SP.giga }}
+              showsVerticalScrollIndicator={false}
+              onScroll={onScroll}
+              scrollEventThrottle={16}
+            >
+              <EmbeddedShellContext.Provider value={true}>
+                <PromoBanner portal="student" />
+                <RouteTransition deps={[active]}>
+                  {active === 'dashboard'       && <DashboardView />}
+                  {active === 'career-ai'       && <CareerAIView />}
+                  {active === 'internships'     && <InternshipsView />}
+                  {active === 'my-applications' && <MyApplicationsView />}
+                  {active === 'network'         && <NetworkView />}
+                  {active === 'my-bookings'     && <MyBookingsView />}
+                  {active === 'events'          && <EventsView />}
+                  {active === 'my-workshops'    && <MyWorkshopsView />}
+                  {active === 'courses'         && <CoursesPage />}
+                  {active === 'financial'       && <FinancialPage />}
+                  {active === 'deals'           && <DealsPage />}
+                  {active === 'wallet'          && <WalletPage />}
+                  {active === 'higher-ed'       && <HigherEducationPage />}
+                  {active === 'rentals'         && <RentalsPage />}
+                  {active === 'profile'         && <ProfileSettingsView />}
+                </RouteTransition>
+                <DashboardFooter portal="student" />
+              </EmbeddedShellContext.Provider>
+            </ScrollView>
+          </StudentPortalNavContext.Provider>
 
-        {/* Global AI Copilot FAB — visible on every Student screen */}
-        <AiCopilotFab onPress={() => router.push('/agent-k')} />
+          {/* Global AI Copilot FAB — visible on every Student screen */}
+          <AiCopilotFab onPress={() => router.push('/agent-k')} />
+        </View>
+        {showNotifs && (
+          <StudentNotificationsPanel
+            onClose={() => setShowNotifs(false)}
+            onOpenSettings={() => {
+              handleNav('profile');
+              setShowNotifs(false);
+            }}
+          />
+        )}
       </View>
     </View>
   );

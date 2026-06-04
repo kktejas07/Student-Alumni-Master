@@ -1359,6 +1359,7 @@ async def my_id_card(user: dict = Depends(get_current_user)):
     si = user.get("school_info") or {}
     ai = user.get("alumni_info") or {}
     cp = user.get("college_profile") or {}
+    mi = user.get("mentor_info") or user.get("mentor_profile") or {}
     role = (user.get("role") or "").lower()
     status = _student_status_label(user)
 
@@ -1375,6 +1376,15 @@ async def my_id_card(user: dict = Depends(get_current_user)):
             batch = f"Class of {int(batch)}"
         except Exception:
             batch = str(batch)
+
+    company = mi.get("company") or mi.get("organization") or user.get("company") or ""
+    position = mi.get("position") or mi.get("job_title") or user.get("position") or ""
+    years_exp = mi.get("years_experience") or mi.get("years_of_experience") or user.get("years_experience") or ""
+    if years_exp:
+        try:
+            years_exp = f"{int(years_exp)} Years"
+        except Exception:
+            years_exp = str(years_exp)
 
     raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
     frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
@@ -1397,6 +1407,9 @@ async def my_id_card(user: dict = Depends(get_current_user)):
             if isinstance(user.get("sa_id_issued_at"), datetime) else str(user.get("sa_id_issued_at") or datetime.utcnow().isoformat()),
         "verify_url": public_verify_url,
         "qr_payload": public_verify_url,
+        "company": company,
+        "position": position,
+        "years_experience": years_exp,
     }
 
 
@@ -1442,7 +1455,7 @@ async def verify_id_card(identifier: str):
     # ─── Role-specific fields (all from DB, no hardcoded fallbacks) ───
     si = u.get("school_info") or {}
     ai = u.get("alumni_info") or {}
-    mi = u.get("mentor_info") or {}
+    mi = u.get("mentor_info") or u.get("mentor_profile") or {}
     ci = u.get("college_profile") or {}
     adm = u.get("admin_profile") or {}
 
@@ -1465,10 +1478,9 @@ async def verify_id_card(identifier: str):
 
     elif role == "mentor":
         base["expertise"] = mi.get("expertise") or u.get("skills") or []
-        base["company"] = mi.get("company") or u.get("company") or ""
-        base["position"] = mi.get("position") or u.get("position") or ""
-        base["company"] = mi.get("company") or u.get("company") or ""
-        base["years_experience"] = mi.get("years_experience") or ""
+        base["company"] = mi.get("company") or mi.get("organization") or u.get("company") or ""
+        base["position"] = mi.get("position") or mi.get("job_title") or u.get("position") or ""
+        base["years_experience"] = mi.get("years_experience") or mi.get("years_of_experience") or ""
         base["institution"] = ai.get("institution_name") or si.get("institution_name") or ""
 
     elif role == "college":

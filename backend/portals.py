@@ -162,6 +162,33 @@ def _short_id(oid) -> str:
     return str(oid) if oid else ""
 
 
+def _parse_datetime(val: Any) -> datetime | None:
+    if not val:
+        return None
+    if isinstance(val, datetime):
+        if val.tzinfo is None:
+            return val.replace(tzinfo=timezone.utc)
+        return val
+    if isinstance(val, str):
+        val = val.strip()
+        if not val:
+            return None
+        try:
+            dt = datetime.fromisoformat(val.replace("Z", "+00:00"))
+            if dt.tzinfo is None:
+                return dt.replace(tzinfo=timezone.utc)
+            return dt
+        except ValueError:
+            pass
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d %H:%M:%S.%f"):
+            try:
+                dt = datetime.strptime(val, fmt)
+                return dt.replace(tzinfo=timezone.utc)
+            except ValueError:
+                continue
+    return None
+
+
 # ─── 1. MENTOR DASHBOARD ─────────────────────────────────────────
 @router.get("/mentor/dashboard")
 async def mentor_dashboard(mentor_email: Optional[str] = None):
@@ -2740,6 +2767,7 @@ async def mentor_connections(email: Optional[str] = None):
     bookings = await _db.bookings.find({"mentor_id": mid}).to_list(1000)
     student_bookings = {}
     for b in bookings:
+        b["scheduled_at"] = _parse_datetime(b.get("scheduled_at"))
         sid = b.get("student_id")
         if sid:
             student_bookings.setdefault(sid, []).append(b)

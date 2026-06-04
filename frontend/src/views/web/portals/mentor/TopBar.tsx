@@ -60,11 +60,7 @@ const s = StyleSheet.create({
     height: 56, paddingHorizontal: 20,
     borderBottomWidth: 1, borderBottomColor: MC.border,
     backgroundColor: MC.bg,
-<<<<<<< Updated upstream
-    zIndex: 50,
-=======
     position: 'relative', zIndex: 10,
->>>>>>> Stashed changes
   },
   title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 18, letterSpacing: -0.4 },
   searchBox: {
