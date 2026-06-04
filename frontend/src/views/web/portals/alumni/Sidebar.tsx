@@ -53,7 +53,7 @@ export function Sidebar({
   const fullName = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim();
   const name = fullName || STUDENT.name;
   const initials = (name.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
-  const photo = user?.photo_data || user?.face_image_base64;
+  const photo = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64;
   const ai: any = user?.alumni_info || {};
   const subTitle =
     [ai.current_role, ai.current_company].filter(Boolean).join(' @ ') ||

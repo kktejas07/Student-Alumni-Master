@@ -69,7 +69,7 @@ export function Sidebar({
   const user = useAuthStore((u) => u.user) as any;
   const fullName: string = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || STUDENT.name;
   const initials: string = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
-  const photo = user?.photo_data || user?.face_image_base64;
+  const photo = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64;
   const gy = user?.graduation_year || (user?.school_info || {}).graduation_year;
   const yearLabel: string = (gy && Number(gy) === new Date().getFullYear()) ? 'Final Year'
     : (gy && Number(gy) === new Date().getFullYear() + 1) ? 'Pre-Final Year'
