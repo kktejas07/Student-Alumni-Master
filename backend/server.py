@@ -579,6 +579,20 @@ class BookingRequest(BaseModel):
     notes: Optional[str] = None
 
 
+class MentorBookingCreateRequest(BaseModel):
+    """Mentor schedules a booking with a student."""
+    student_id: str
+    slot_start_iso: str  # ISO datetime string
+    topic: str
+    notes: Optional[str] = None
+
+
+class RescheduleRequest(BaseModel):
+    """Request payload to reschedule a session."""
+    slot_start_iso: str  # ISO datetime string
+
+
+
 # ----------------------------------------------------------------------------
 # Helpers — Auth, hashing, ID generation
 # ----------------------------------------------------------------------------
@@ -4885,6 +4899,110 @@ async def my_bookings(user: dict = Depends(get_current_user)):
         else {"mentor_id": str(user["_id"])}
     items = await db.bookings.find(query, {"_id": 0}).sort("slot_start_iso", 1).to_list(100)
     return {"bookings": items}
+
+
+@api_router.post("/mentor/bookings")
+async def create_mentor_booking(req: MentorBookingCreateRequest, user: dict = Depends(get_current_user)):
+    """Mentor schedules a booking with a student."""
+    if user["role"] != "mentor":
+        raise HTTPException(403, "Only mentors can schedule sessions")
+
+    # Resolve student
+    student = await db.users.find_one({"_id": ObjectId(req.student_id), "role": "student"})
+    if not student:
+        raise HTTPException(404, "Student not found")
+
+    # Parse slot_start_iso to datetime object
+    try:
+        dt_str = req.slot_start_iso.replace("Z", "+00:00")
+        scheduled_at = datetime.fromisoformat(dt_str)
+    except Exception as e:
+        raise HTTPException(400, f"Invalid date format for slot_start_iso: {e}")
+
+    booking = {
+        "student_id": req.student_id,
+        "student_name": student.get("full_name", "Student"),
+        "student_email": student["email"],
+        "mentor_id": str(user["_id"]),
+        "mentor_name": user.get("full_name", "Mentor"),
+        "mentor_email": user["email"],
+        "topic": req.topic,
+        "notes": req.notes,
+        "scheduled_at": scheduled_at,
+        "slot_start_iso": req.slot_start_iso,
+        "slot_end_iso": (scheduled_at + timedelta(minutes=45)).isoformat(),
+        "duration_minutes": 45,
+        "status": "confirmed",
+        "created_at": datetime.now(timezone.utc),
+    }
+
+    result = await db.bookings.insert_one(booking)
+    booking["id"] = str(result.inserted_id)
+    booking.pop("_id", None)
+
+    # Send notification/push to student
+    try:
+        await notify_booking_confirmed(
+            db, student_id=req.student_id,
+            mentor_name=user.get("full_name", "Mentor"),
+            when=req.slot_start_iso
+        )
+    except Exception:
+        pass
+
+    return {"ok": True, "booking": booking}
+
+
+@api_router.post("/bookings/{booking_id}/reschedule")
+async def reschedule_booking(booking_id: str, req: RescheduleRequest, user: dict = Depends(get_current_user)):
+    """Mentor or student reschedules a booking."""
+    try:
+        oid = ObjectId(booking_id)
+    except Exception:
+        oid = None
+    query = {"$or": [{"id": booking_id}]}
+    if oid:
+        query["$or"].append({"_id": oid})
+
+    booking = await db.bookings.find_one(query)
+    if not booking:
+        raise HTTPException(404, "Booking not found")
+
+    # Check permissions: must be student or mentor of the booking
+    if str(booking.get("student_id")) != str(user["_id"]) and str(booking.get("mentor_id")) != str(user["_id"]):
+        raise HTTPException(403, "You do not have permission to reschedule this booking")
+
+    try:
+        dt_str = req.slot_start_iso.replace("Z", "+00:00")
+        scheduled_at = datetime.fromisoformat(dt_str)
+    except Exception as e:
+        raise HTTPException(400, f"Invalid date format: {e}")
+
+    update_filter = {"_id": booking["_id"]} if booking.get("_id") else {"id": booking_id}
+    await db.bookings.update_one(update_filter, {"$set": {
+        "slot_start_iso": req.slot_start_iso,
+        "slot_end_iso": (scheduled_at + timedelta(minutes=45)).isoformat(),
+        "scheduled_at": scheduled_at,
+        "rescheduled_at": datetime.now(timezone.utc),
+    }})
+
+    # Notify the other party
+    other_party_id = booking.get("student_id") if user["role"] == "mentor" else booking.get("mentor_id")
+    try:
+        await db.notifications.insert_one({
+            "user_id": other_party_id,
+            "title": "Session rescheduled",
+            "message": f"{user.get('full_name')} rescheduled the session on '{booking.get('topic')}' to {req.slot_start_iso}.",
+            "type": "booking_rescheduled",
+            "booking_id": booking_id,
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception:
+        pass
+
+    return {"ok": True}
+
 
 
 # ----------------------------------------------------------------------------
