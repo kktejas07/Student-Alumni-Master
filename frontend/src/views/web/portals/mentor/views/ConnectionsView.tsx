@@ -41,7 +41,14 @@ export function ConnectionsView() {
     try {
       const email = user?.email;
       const res = await api.mentorConnections(email);
-      setStudentsList(res?.items || []);
+      const items = res?.items || [];
+      setStudentsList(items);
+      if (picked) {
+        const fresh = items.find((item: any) => item.id === picked.id);
+        if (fresh) {
+          setPicked(fresh);
+        }
+      }
     } catch (e) {
       console.warn('Failed to load mentor connections:', e);
     } finally {
@@ -387,6 +394,7 @@ export function ConnectionsView() {
                 st={picked} 
                 onClose={() => setPicked(null)} 
                 onUpdateStudent={handleUpdateStudent}
+                onRefresh={loadConnections}
               />
             )}
           </View>
@@ -396,12 +404,35 @@ export function ConnectionsView() {
   );
 }
 
-function DrawerInner({ st, onClose, onUpdateStudent }: { st: Student; onClose: () => void; onUpdateStudent: (updated: Student) => void }) {
+const parseToISO = (dateStr: string, timeStr: string) => {
+  const parts = dateStr.replace(',', '').split(' ');
+  const monthName = parts[0];
+  const day = parseInt(parts[1], 10);
+  const year = parseInt(parts[2], 10);
+  
+  const monthIdx = MONTH_NAMES.indexOf(monthName);
+  const month = monthIdx !== -1 ? monthIdx : 4; // default May
+  
+  const timeParts = timeStr.split(' ');
+  const hm = timeParts[0].split(':');
+  let hours = parseInt(hm[0], 10);
+  const minutes = parseInt(hm[1], 10);
+  const ampm = timeParts[1];
+  
+  if (ampm === 'PM' && hours < 12) hours += 12;
+  if (ampm === 'AM' && hours === 12) hours = 0;
+  
+  const d = new Date(year, month, day, hours, minutes, 0);
+  return d.toISOString();
+};
+
+function DrawerInner({ st, onClose, onUpdateStudent, onRefresh }: { st: Student; onClose: () => void; onUpdateStudent: (updated: Student) => void; onRefresh: () => Promise<void> }) {
   const [activeTab, setActiveTab] = useState<'overview' | 'sessions' | 'notes'>('overview');
   const [notesText, setNotesText] = useState(st.lastSession?.notes || '');
   const [isSaved, setIsSaved] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const [isScheduling, setIsScheduling] = useState(false);
 
   // Sessions Tab: Local Mock Scheduling States
   const [calYear, setCalYear] = useState(2026);
@@ -444,25 +475,24 @@ function DrawerInner({ st, onClose, onUpdateStudent }: { st: Student; onClose: (
     calendarCells.push(d);
   }
 
-  const handleConfirmSchedule = () => {
+  const handleConfirmSchedule = async () => {
     if (!pendingDate) return;
-    let daysAway = 7;
-    const dayMatch = pendingDate.match(/May (\d+)/i);
-    if (dayMatch) {
-      const dayNum = parseInt(dayMatch[1], 10);
-      daysAway = Math.max(1, dayNum - 1);
-    }
-    const updated = {
-      ...st,
-      nextSession: {
-        date: pendingDate,
-        time: selectedTime,
+    setIsScheduling(true);
+    try {
+      const slot_start_iso = parseToISO(pendingDate, selectedTime);
+      await api.createMentorBooking({
+        student_id: String(st.id),
+        slot_start_iso,
         topic: sessionTopic,
-        daysAway,
-      }
-    };
-    onUpdateStudent(updated);
-    setActiveTab('overview');
+      });
+      await onRefresh();
+      setActiveTab('overview');
+    } catch (e: any) {
+      console.error('Failed to schedule session:', e);
+      alert(e.message || 'Failed to schedule session. Please try again.');
+    } finally {
+      setIsScheduling(false);
+    }
   };
 
   const handleSaveNotes = () => {
@@ -775,10 +805,18 @@ function DrawerInner({ st, onClose, onUpdateStudent }: { st: Student; onClose: (
                 </View>
 
                 {pendingDate && (
-                  <Pressable onPress={handleConfirmSchedule} style={d.confirmBtn}>
-                    <Text style={{ color: MC.bg, fontFamily: FONTS.xbold, fontSize: 12 }}>
-                      Confirm Session for {pendingDate} at {selectedTime}
-                    </Text>
+                  <Pressable 
+                    disabled={isScheduling} 
+                    onPress={handleConfirmSchedule} 
+                    style={[d.confirmBtn, isScheduling && { opacity: 0.7 }]}
+                  >
+                    {isScheduling ? (
+                      <ActivityIndicator size="small" color={MC.bg} />
+                    ) : (
+                      <Text style={{ color: MC.bg, fontFamily: FONTS.xbold, fontSize: 12 }}>
+                        Confirm Session for {pendingDate} at {selectedTime}
+                      </Text>
+                    )}
                   </Pressable>
                 )}
               </View>

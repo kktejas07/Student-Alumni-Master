@@ -2785,9 +2785,9 @@ async def mentor_connections(email: Optional[str] = None):
     resolved_users = await _db.users.find({"_id": {"$in": resolved_objs}}).to_list(len(resolved_objs))
 
     # 5. Backfill with real database users (students + alumni + other mentors) so there are always real accounts to connect
-    students = await _db.users.find({"role": "student"}).limit(15).to_list(15)
-    alumni = await _db.users.find({"role": "alumni"}).limit(10).to_list(10)
-    other_mentors = await _db.users.find({"role": "mentor", "_id": {"$ne": mentor["_id"]}}).limit(10).to_list(10)
+    students = await _db.users.find({"role": "student"}).sort("_id", -1).limit(15).to_list(15)
+    alumni = await _db.users.find({"role": "alumni"}).sort("_id", -1).limit(10).to_list(10)
+    other_mentors = await _db.users.find({"role": "mentor", "_id": {"$ne": mentor["_id"]}}).sort("_id", -1).limit(10).to_list(10)
 
     all_candidates = resolved_users + students + alumni + other_mentors
     seen_ids = set()
