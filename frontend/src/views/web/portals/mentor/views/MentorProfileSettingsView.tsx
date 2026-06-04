@@ -880,18 +880,29 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
                   <View style={st.integrationRow}>
                     <View style={st.integrationLeft}>
                       <View style={st.integrationIconSquare}>
-                        <MaterialCommunityIcons name="video-outline" size={18} color={MC.tealP} />
+                        <MaterialCommunityIcons name="video-outline" size={18} color={googleMeetConnected ? MC.tealP : MC.dim} />
                       </View>
-                      <View style={{ flex: 1 }}>
+                      <View style={{ flex: 1, gap: 4 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                           <Text style={st.integrationName}>Google Meet</Text>
-                          <View style={st.connectedBadge}><Text style={st.connectedBadgeText}>Connected</Text></View>
+                          {googleMeetConnected && <View style={st.connectedBadge}><Text style={st.connectedBadgeText}>Connected</Text></View>}
                         </View>
-                        <Text style={st.integrationEmail}>{googleMeetEmail}</Text>
+                        {!googleMeetConnected && (
+                          <View style={st.inputBox}>
+                            <TextInput value={googleMeetEmail} onChangeText={setGoogleMeetEmail} placeholder="your@email.com" placeholderTextColor={MC.dim} style={st.input} />
+                          </View>
+                        )}
+                        {googleMeetConnected && <Text style={st.integrationEmail}>{googleMeetEmail}</Text>}
                       </View>
                     </View>
-                    <Pressable onPress={() => { setGoogleMeetConnected(false); setGoogleMeetEmail(''); }} style={st.disconnectBtn}>
-                      <Text style={st.disconnectBtnText}>Disconnect</Text>
+                    <Pressable
+                      onPress={() => {
+                        if (googleMeetConnected) { setGoogleMeetConnected(false); setGoogleMeetEmail(''); }
+                        else { if (!googleMeetEmail) { alert('Please enter Google Meet email'); return; } setGoogleMeetConnected(true); }
+                      }}
+                      style={[st.connectBtnStyle, googleMeetConnected && st.disconnectBtnStyle]}
+                    >
+                      <Text style={[st.connectBtnStyleText, googleMeetConnected && { color: MC.red }]}>{googleMeetConnected ? 'Disconnect' : 'Connect'}</Text>
                     </Pressable>
                   </View>
 
@@ -964,18 +975,29 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
                   <View style={st.integrationRow}>
                     <View style={st.integrationLeft}>
                       <View style={st.integrationIconSquare}>
-                        <MaterialCommunityIcons name="calendar-outline" size={18} color={MC.tealP} />
+                        <MaterialCommunityIcons name="calendar-outline" size={18} color={googleCalendarConnected ? MC.tealP : MC.dim} />
                       </View>
-                      <View style={{ flex: 1 }}>
+                      <View style={{ flex: 1, gap: 4 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                           <Text style={st.integrationName}>Google Calendar</Text>
-                          <View style={st.connectedBadge}><Text style={st.connectedBadgeText}>Connected</Text></View>
+                          {googleCalendarConnected && <View style={st.connectedBadge}><Text style={st.connectedBadgeText}>Connected</Text></View>}
                         </View>
-                        <Text style={st.integrationEmail}>{googleCalendarEmail}</Text>
+                        {!googleCalendarConnected && (
+                          <View style={st.inputBox}>
+                            <TextInput value={googleCalendarEmail} onChangeText={setGoogleCalendarEmail} placeholder="your@email.com" placeholderTextColor={MC.dim} style={st.input} />
+                          </View>
+                        )}
+                        {googleCalendarConnected && <Text style={st.integrationEmail}>{googleCalendarEmail}</Text>}
                       </View>
                     </View>
-                    <Pressable onPress={() => { setGoogleCalendarConnected(false); setGoogleCalendarEmail(''); }} style={st.disconnectBtn}>
-                      <Text style={st.disconnectBtnText}>Disconnect</Text>
+                    <Pressable
+                      onPress={() => {
+                        if (googleCalendarConnected) { setGoogleCalendarConnected(false); setGoogleCalendarEmail(''); }
+                        else { if (!googleCalendarEmail) { alert('Please enter Google Calendar email'); return; } setGoogleCalendarConnected(true); }
+                      }}
+                      style={[st.connectBtnStyle, googleCalendarConnected && st.disconnectBtnStyle]}
+                    >
+                      <Text style={[st.connectBtnStyleText, googleCalendarConnected && { color: MC.red }]}>{googleCalendarConnected ? 'Disconnect' : 'Connect'}</Text>
                     </Pressable>
                   </View>
 
