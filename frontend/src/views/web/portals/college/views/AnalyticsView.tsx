@@ -4,7 +4,7 @@
  * · dept placement · hiring funnel · attrition.
  */
 import React from 'react';
-import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, useWindowDimensions, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CC, FONTS } from '../tokens';
 import { KpiCard } from '../atoms';
@@ -111,100 +111,197 @@ export function AnalyticsView() {
               if (w && w !== chartWidth) setChartWidth(w);
             }}
           >
-            <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ position: 'absolute', top: 0, left: 0 }}>
-              <Defs>
-                <SvgLG id="trendGrad" x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0" stopColor="#3B82F6" stopOpacity="0.25" />
-                  <Stop offset="1" stopColor="#3B82F6" stopOpacity="0.0" />
-                </SvgLG>
-              </Defs>
+            {Platform.OS === 'web' ? (
+              <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
+                <defs>
+                  <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="#3B82F6" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
 
-              {/* Horizontal gridlines at 25%, 50%, 75% */}
-              {gridLines.map((y, idx) => (
-                <Line
-                  key={idx}
-                  x1={padX}
-                  y1={y}
-                  x2={W - padX}
-                  y2={y}
-                  stroke="rgba(255, 255, 255, 0.08)"
-                  strokeWidth="1"
-                  strokeDasharray="4 4"
-                />
-              ))}
+                {/* Horizontal gridlines at 25%, 50%, 75% */}
+                {gridLines.map((y, idx) => (
+                  <line
+                    key={idx}
+                    x1={padX}
+                    y1={y}
+                    x2={W - padX}
+                    y2={y}
+                    stroke="rgba(255, 255, 255, 0.08)"
+                    strokeWidth={1}
+                    strokeDasharray="4 4"
+                  />
+                ))}
 
-              {/* Baseline */}
-              <Line x1={padX} y1={H - padYBot} x2={W - padX} y2={H - padYBot}
-                    stroke="rgba(255, 255, 255, 0.15)" strokeWidth="1.5" />
+                {/* Baseline */}
+                <line x1={padX} y1={H - padYBot} x2={W - padX} y2={H - padYBot}
+                      stroke="rgba(255, 255, 255, 0.15)" strokeWidth={1.5} />
 
-              {/* Filled area */}
-              <Path d={fillPath} fill="url(#trendGrad)" />
+                {/* Filled area */}
+                {fillPath ? <path d={fillPath} fill="url(#trendGrad)" /> : null}
 
-              {/* Line */}
-              <Path d={path} stroke="#3B82F6" strokeWidth="3" fill="none" strokeLinecap="round" />
+                {/* Line */}
+                {path ? <path d={path} stroke="#3B82F6" strokeWidth={3} fill="none" strokeLinecap="round" /> : null}
 
-              {/* Data points */}
-              {points.map((p) => (
-                <G key={p.year}>
-                  {/* Outer glow ring for latest year */}
-                  {p.year === 2026 && (
+                {/* Data points */}
+                {points.map((p) => (
+                  <g key={p.year}>
+                    {/* Outer glow ring for latest year */}
+                    {p.year === 2026 && (
+                      <circle
+                        cx={p.x}
+                        cy={p.y}
+                        r={9}
+                        fill="#A78BFA"
+                        opacity={0.3}
+                      />
+                    )}
+                    <circle
+                      cx={p.x}
+                      cy={p.y}
+                      r={p.year === 2026 ? 5.5 : 4}
+                      fill={p.year === 2026 ? "#A78BFA" : "#3B82F6"}
+                      stroke={CC.card}
+                      strokeWidth={2}
+                    />
+
+                    {/* Rate text above dot */}
+                    <text
+                      x={p.x}
+                      y={p.y - 12}
+                      fontSize="11.5"
+                      fill="#FFFFFF"
+                      textAnchor="middle"
+                      fontWeight="bold"
+                      fontFamily={FONTS.bold}
+                    >
+                      {p.rate}%
+                    </text>
+
+                    {/* Year text below baseline */}
+                    <text
+                      x={p.x}
+                      y={H - 24}
+                      fontSize="11.5"
+                      fill={CC.muted}
+                      textAnchor="middle"
+                      fontWeight="bold"
+                      fontFamily={FONTS.bold}
+                    >
+                      {p.year}
+                    </text>
+
+                    {/* Median LPA below Year */}
+                    <text
+                      x={p.x}
+                      y={H - 8}
+                      fontSize="10"
+                      fill={CC.dim}
+                      textAnchor="middle"
+                      fontFamily={FONTS.med}
+                    >
+                      ₹{p.median_lpa}L
+                    </text>
+                  </g>
+                ))}
+              </svg>
+            ) : (
+              <Svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ position: 'absolute', top: 0, left: 0 }}>
+                <Defs>
+                  <SvgLG id="trendGrad" x1="0" y1="0" x2="0" y2="1">
+                    <Stop offset="0" stopColor="#3B82F6" stopOpacity="0.25" />
+                    <Stop offset="1" stopColor="#3B82F6" stopOpacity="0.0" />
+                  </SvgLG>
+                </Defs>
+
+                {/* Horizontal gridlines at 25%, 50%, 75% */}
+                {gridLines.map((y, idx) => (
+                  <Line
+                    key={idx}
+                    x1={padX}
+                    y1={y}
+                    x2={W - padX}
+                    y2={y}
+                    stroke="rgba(255, 255, 255, 0.08)"
+                    strokeWidth="1"
+                    strokeDasharray="4 4"
+                  />
+                ))}
+
+                {/* Baseline */}
+                <Line x1={padX} y1={H - padYBot} x2={W - padX} y2={H - padYBot}
+                      stroke="rgba(255, 255, 255, 0.15)" strokeWidth="1.5" />
+
+                {/* Filled area */}
+                <Path d={fillPath} fill="url(#trendGrad)" />
+
+                {/* Line */}
+                <Path d={path} stroke="#3B82F6" strokeWidth="3" fill="none" strokeLinecap="round" />
+
+                {/* Data points */}
+                {points.map((p) => (
+                  <G key={p.year}>
+                    {/* Outer glow ring for latest year */}
+                    {p.year === 2026 && (
+                      <Circle
+                        cx={p.x}
+                        cy={p.y}
+                        r="9"
+                        fill="#A78BFA"
+                        opacity="0.3"
+                      />
+                    )}
                     <Circle
                       cx={p.x}
                       cy={p.y}
-                      r="9"
-                      fill="#A78BFA"
-                      opacity="0.3"
+                      r={p.year === 2026 ? 5.5 : 4}
+                      fill={p.year === 2026 ? "#A78BFA" : "#3B82F6"}
+                      stroke={CC.card}
+                      strokeWidth={2}
                     />
-                  )}
-                  <Circle
-                    cx={p.x}
-                    cy={p.y}
-                    r={p.year === 2026 ? 5.5 : 4}
-                    fill={p.year === 2026 ? "#A78BFA" : "#3B82F6"}
-                    stroke={CC.card}
-                    strokeWidth={2}
-                  />
 
-                  {/* Rate text above dot */}
-                  <SvgText
-                    x={p.x}
-                    y={p.y - 12}
-                    fontSize="11.5"
-                    fill="#FFFFFF"
-                    textAnchor="middle"
-                    fontWeight="bold"
-                    fontFamily={FONTS.bold}
-                  >
-                    {p.rate}%
-                  </SvgText>
+                    {/* Rate text above dot */}
+                    <SvgText
+                      x={p.x}
+                      y={p.y - 12}
+                      fontSize="11.5"
+                      fill="#FFFFFF"
+                      textAnchor="middle"
+                      fontWeight="bold"
+                      fontFamily={FONTS.bold}
+                    >
+                      {p.rate}%
+                    </SvgText>
 
-                  {/* Year text below baseline */}
-                  <SvgText
-                    x={p.x}
-                    y={H - 24}
-                    fontSize="11.5"
-                    fill={CC.muted}
-                    textAnchor="middle"
-                    fontWeight="bold"
-                    fontFamily={FONTS.bold}
-                  >
-                    {p.year}
-                  </SvgText>
+                    {/* Year text below baseline */}
+                    <SvgText
+                      x={p.x}
+                      y={H - 24}
+                      fontSize="11.5"
+                      fill={CC.muted}
+                      textAnchor="middle"
+                      fontWeight="bold"
+                      fontFamily={FONTS.bold}
+                    >
+                      {p.year}
+                    </SvgText>
 
-                  {/* Median LPA below Year */}
-                  <SvgText
-                    x={p.x}
-                    y={H - 8}
-                    fontSize="10"
-                    fill={CC.dim}
-                    textAnchor="middle"
-                    fontFamily={FONTS.med}
-                  >
-                    ₹{p.median_lpa}L
-                  </SvgText>
-                </G>
-              ))}
-            </Svg>
+                    {/* Median LPA below Year */}
+                    <SvgText
+                      x={p.x}
+                      y={H - 8}
+                      fontSize="10"
+                      fill={CC.dim}
+                      textAnchor="middle"
+                      fontFamily={FONTS.med}
+                    >
+                      ₹{p.median_lpa}L
+                    </SvgText>
+                  </G>
+                ))}
+              </Svg>
+            )}
           </View>
         )}
       </View>
