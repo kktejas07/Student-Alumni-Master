@@ -74,7 +74,7 @@ export function TopBar({
     || STUDENT.name;
   const firstName: string = fullName.split(' ')[0] || STUDENT.name.split(' ')[0];
   const initials: string = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
-  const photo: string | undefined = user?.photo_data || user?.face_image_base64;
+  const photo: string | undefined = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64;
 
   const onAvatarPressHandler = () => {
     if (onAvatarPress) {

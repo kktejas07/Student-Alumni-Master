@@ -16,6 +16,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
 import Svg, { Rect } from 'react-native-svg';
 import QRCode from 'react-native-qrcode-svg';
+import * as ImagePicker from 'expo-image-picker';
+import { WebcamModal } from '@/src/views/components/WebcamModal';
+import { request } from '@/src/models/services/api';
 
 // Import icons from student iconShims to prevent lucide-react-native undefined errors
 import {
@@ -40,6 +43,7 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
   const router = useRouter();
   const toast = useToast();
   const user = useAuthStore((u) => u.user);
+  const refreshUser = useAuthStore((u) => u.refreshUser);
   
   const { width: winW } = useWindowDimensions();
   const stack = winW < 1100;
@@ -92,6 +96,9 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
   const [newExpertiseInput, setNewExpertiseInput] = useState('');
   
   const [profileVisibility, setProfileVisibility] = useState<'public' | 'network' | 'private'>('public');
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+  const [webcamVisible, setWebcamVisible] = useState(false);
   
   const [sectionToggles, setSectionToggles] = useState({
     expertise: true,
@@ -206,8 +213,24 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
       if (u.linkedin_url) setLinkedinUrl(u.linkedin_url);
       if (u.github_url) setGithubUrl(u.github_url);
       if (u.skills && u.skills.length > 0) setExpertise(u.skills);
+      if (u.photo_data || u.face_image_base64) setPhoto(u.photo_data || u.face_image_base64);
     }
   }, [user]);
+
+  useEffect(() => {
+    const userPhoto = user?.photo_data || user?.face_image_base64 || null;
+    if (photo !== userPhoto) {
+      useAuthStore.getState().setPhotoOverride(photo);
+    } else {
+      useAuthStore.getState().setPhotoOverride(null);
+    }
+  }, [photo, user]);
+
+  useEffect(() => {
+    return () => {
+      useAuthStore.getState().setPhotoOverride(null);
+    };
+  }, []);
 
   // Check if anything is dirty
   const isDirty = () => {
@@ -217,7 +240,8 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
         fullName !== (u.full_name || 'Dr. Suresh Rao') ||
         bio !== (u.bio || '') ||
         linkedinUrl !== (u.linkedin_url || '') ||
-        githubUrl !== (u.github_url || '')
+        githubUrl !== (u.github_url || '') ||
+        photo !== (u.photo_data || u.face_image_base64 || null)
       ) : true;
       return isUserChanged || role !== 'CTO' || company !== 'Zepto' || college !== 'IIT Bombay' || sessionPrice !== '999' || profileVisibility !== 'public';
     }
@@ -285,11 +309,6 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      const now = new Date();
-      setLastSavedAt(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-      
       if (activeTab === 'settings') {
         setSavedSettings({
           showEmail,
@@ -321,10 +340,25 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
         });
         toast.success('Saved', 'Notification preferences saved successfully.');
       } else {
+        const payload: any = {
+          full_name: fullName,
+          bio: bio,
+          linkedin_url: linkedinUrl,
+          github_url: githubUrl,
+          photo_data: photo,
+          face_image_base64: photo,
+          skills: expertise,
+        };
+        await request('/users/me', { method: 'PUT', body: payload } as any);
+        if (refreshUser) {
+          await refreshUser();
+        }
         toast.success('Saved', 'Profile updated successfully.');
       }
-    } catch {
-      toast.error('Save failed', 'Failed to save changes.');
+      const now = new Date();
+      setLastSavedAt(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    } catch (e: any) {
+      toast.error('Save failed', e?.message || 'Failed to save changes.');
     } finally {
       setSaving(false);
     }
@@ -349,7 +383,8 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
         awards: true,
         calendar: true
       });
-      setExpertise(['System Design', 'Career Guidance', 'Startup Advice']);
+      setExpertise(u?.skills || ['System Design', 'Career Guidance', 'Startup Advice']);
+      setPhoto(u?.photo_data || u?.face_image_base64 || null);
     } else if (activeTab === 'settings') {
       setShowEmail(savedSettings.showEmail);
       setShowPhone(savedSettings.showPhone);
@@ -376,6 +411,75 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
       setNotifyPlatformNews(savedNotifications.notifyPlatformNews);
     }
     toast.info('Reverted', 'Changes discarded.');
+  };
+
+  // Photo helpers
+  const handleUploadPhoto = async () => {
+    if (Platform.OS === 'web') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/png,image/jpeg,image/webp';
+      input.onchange = (e: any) => {
+        const f = e.target.files?.[0];
+        if (!f) return;
+        if (f.size > 5 * 1024 * 1024) {
+          toast.error('Too large', 'Max 5 MB');
+          return;
+        }
+        const r = new FileReader();
+        r.onload = () => {
+          setPhoto(r.result as string);
+        };
+        r.readAsDataURL(f);
+      };
+      input.click();
+    } else {
+      try {
+        const res = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          quality: 0.7,
+          base64: true,
+        });
+        if (!res.canceled && res.assets[0]?.base64) {
+          const base64Photo = `data:image/jpeg;base64,${res.assets[0].base64}`;
+          setPhoto(base64Photo);
+        }
+      } catch {
+        toast.error('Error', 'Failed to pick image');
+      }
+    }
+  };
+
+  const handleTakeSelfie = async () => {
+    if (Platform.OS === 'web') {
+      setWebcamVisible(true);
+    } else {
+      try {
+        const perm = await ImagePicker.requestCameraPermissionsAsync();
+        if (!perm.granted) {
+          toast.error('Camera', 'Permission denied.');
+          return;
+        }
+        const res = await ImagePicker.launchCameraAsync({
+          cameraType: ImagePicker.CameraType.front,
+          quality: 0.5,
+          base64: true,
+          allowsEditing: true,
+          aspect: [1, 1],
+        });
+        if (!res.canceled && res.assets[0]?.base64) {
+          const base64Photo = `data:image/jpeg;base64,${res.assets[0].base64}`;
+          setPhoto(base64Photo);
+        }
+      } catch {
+        toast.error('Camera', 'Could not open camera.');
+      }
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setPhoto(null);
   };
 
   // Expertise helpers
@@ -446,6 +550,7 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
   };
 
   const completionPct = getProfileCompletionScore();
+  const initials = ((fullName || '?').split(' ').slice(0, 2).map((s: string) => s[0] || '').join('') || '?').toUpperCase();
 
   return (
     <View style={{ gap: 16 }}>
@@ -455,7 +560,11 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 16, minWidth: 0 }}>
           <View style={{ position: 'relative' }}>
             <View style={st.avatar}>
-              <Text style={st.avatarText}>SR</Text>
+              {photo ? (
+                <Image source={{ uri: photo }} style={{ width: '100%', height: '100%', borderRadius: 36 }} />
+              ) : (
+                <Text style={st.avatarText}>{initials}</Text>
+              )}
             </View>
             <View style={st.avatarCheck}><CheckCircle2 size={11} color="#fff" /></View>
           </View>
@@ -518,15 +627,21 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
                 
                 {/* Photo editor */}
                 <View style={st.photoEditBox}>
-                  <View style={st.photoPill}>
-                    <Text style={st.photoPillText}>SR</Text>
-                  </View>
+                  <Pressable style={st.photoPill} onPress={() => setOptionsModalVisible(true)}>
+                    {photo ? (
+                      <Image source={{ uri: photo }} style={{ width: '100%', height: '100%', borderRadius: 32 }} />
+                    ) : (
+                      <Text style={st.photoPillText}>{initials}</Text>
+                    )}
+                  </Pressable>
                   <View style={{ gap: 6 }}>
                     <Text style={st.photoTitle}>Profile Photo</Text>
                     <Text style={st.photoMeta}>JPG, PNG up to 5MB · Recommended 400×400px</Text>
                     <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
-                      <Pressable style={st.uploadBtn} onPress={() => alert('Mock: Uploading Profile Photo')}><Text style={st.uploadBtnText}>Upload Photo</Text></Pressable>
-                      <Pressable style={st.removeBtn} onPress={() => alert('Mock: Removed Photo')}><Text style={st.removeBtnText}>Remove</Text></Pressable>
+                      <Pressable style={st.uploadBtn} onPress={() => setOptionsModalVisible(true)}><Text style={st.uploadBtnText}>Upload Photo</Text></Pressable>
+                      {photo ? (
+                        <Pressable style={st.removeBtn} onPress={handleRemovePhoto}><Text style={st.removeBtnText}>Remove</Text></Pressable>
+                      ) : null}
                     </View>
                   </View>
                 </View>
@@ -1398,7 +1513,11 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
 
                       <View style={st.cardBodyRow}>
                         <View style={st.cardAvatar}>
-                          <Text style={st.cardAvatarText}>SR</Text>
+                          {photo ? (
+                            <Image source={{ uri: photo }} style={{ width: '100%', height: '100%', borderRadius: 30 }} />
+                          ) : (
+                            <Text style={st.cardAvatarText}>{initials}</Text>
+                          )}
                         </View>
                         <View style={st.cardDetailsContainer}>
                           <Text style={st.cardName}>{fullName}</Text>
@@ -1636,6 +1755,58 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
         </View>
 
       </View>
+
+      {/* Inline Action Selection Modal */}
+      {optionsModalVisible && (
+        <View style={st.modalBackdrop}>
+          <View style={st.modalCard}>
+            {/* Header */}
+            <View style={st.modalHeader}>
+              <Text style={st.modalTitle}>Update Profile Photo</Text>
+              <Pressable onPress={() => setOptionsModalVisible(false)} style={st.modalCloseBtn}>
+                <MaterialCommunityIcons name="close" size={18} color="rgba(255,255,255,0.7)" />
+              </Pressable>
+            </View>
+
+            {/* Selection Items */}
+            <View style={{ width: '100%', gap: 10 }}>
+              <Pressable
+                onPress={() => {
+                  setOptionsModalVisible(false);
+                  handleTakeSelfie();
+                }}
+                style={st.menuItem}
+                testID="pf-select-take-selfie"
+              >
+                <MaterialCommunityIcons name="camera" size={18} color={MC.tealP} />
+                <Text style={st.menuItemText}>Take Selfie</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  setOptionsModalVisible(false);
+                  handleUploadPhoto();
+                }}
+                style={st.menuItem}
+                testID="pf-select-upload-photo"
+              >
+                <MaterialCommunityIcons name="upload" size={18} color={MC.tealP} />
+                <Text style={st.menuItemText}>Upload Photo</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      )}
+
+      <WebcamModal
+        visible={webcamVisible}
+        onClose={() => setWebcamVisible(false)}
+        onCapture={(base64) => {
+          setPhoto(base64);
+          setWebcamVisible(false);
+          toast.success('Selfie captured!', 'Save profile to update.');
+        }}
+      />
     </View>
   );
 }
@@ -1830,6 +2001,62 @@ function Barcode({ value, color = '#14B8A6', height = 64 }: { value: string; col
 }
 
 const st = StyleSheet.create({
+  modalBackdrop: {
+    position: Platform.OS === 'web' ? 'fixed' : 'absolute' as any,
+    top: 0, bottom: 0, left: 0, right: 0,
+    backgroundColor: 'rgba(0,0,0,0.80)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    zIndex: 9999,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(20,184,166,0.30)',
+    backgroundColor: '#0F1E1A',
+    padding: 20,
+    alignItems: 'center',
+    ...(Platform.OS === 'web' ? ({
+      backgroundImage: 'linear-gradient(180deg, #0C2822 0%, #061411 100%)',
+      boxShadow: '0px 16px 60px rgba(6,77,63,0.45)',
+    } as any) : {}),
+  },
+  modalHeader: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    color: '#FFF',
+    fontFamily: FONTS.bold,
+    fontSize: 16,
+  },
+  modalCloseBtn: {
+    padding: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  menuItemText: {
+    color: 'rgba(255,255,255,0.90)',
+    fontFamily: FONTS.bold,
+    fontSize: 14,
+  },
   headerCard: {
     backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1,
     borderRadius: 16, padding: 18,

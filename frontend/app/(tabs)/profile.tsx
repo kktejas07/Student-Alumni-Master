@@ -23,6 +23,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { request } from '@/src/models/services/api';
 import { tokenStore } from '@/src/models/services/api';
 import { useAuth } from '@/src/viewmodels/hooks';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { ProfileInfoPage } from '@/src/views/web/profile/ProfileInfoPage';
 import { ManageProfilePage } from '@/src/views/web/profile/ManageProfilePage';
 import { SettingsPage } from '@/src/views/web/profile/SettingsPage';
@@ -63,6 +64,10 @@ export default function ProfileScreen() {
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [webcamVisible, setWebcamVisible] = useState(false);
 
+  const showToast = useCallback((m: string) => {
+    setToast(m); setTimeout(() => setToast(null), 2400);
+  }, []);
+
   const handleTakeSelfie = useCallback(async () => {
     if (Platform.OS === 'web') {
       setWebcamVisible(true);
@@ -80,10 +85,6 @@ export default function ProfileScreen() {
       showToast('Could not open camera.');
     }
   }, [showToast]);
-
-  const showToast = useCallback((m: string) => {
-    setToast(m); setTimeout(() => setToast(null), 2400);
-  }, []);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -104,6 +105,22 @@ export default function ProfileScreen() {
   }, []);
 
   useEffect(() => { loadAll(); }, [loadAll]);
+
+  const draftPhoto = draft.photo_data || draft.face_image_base64;
+  useEffect(() => {
+    const userPhoto = user?.photo_data || user?.face_image_base64;
+    if (draftPhoto !== userPhoto) {
+      useAuthStore.getState().setPhotoOverride(draftPhoto || '');
+    } else {
+      useAuthStore.getState().setPhotoOverride(null);
+    }
+  }, [draftPhoto, user]);
+
+  useEffect(() => {
+    return () => {
+      useAuthStore.getState().setPhotoOverride(null);
+    };
+  }, []);
 
   const dirty = useMemo(() => {
     return JSON.stringify(draft) !== JSON.stringify(original);

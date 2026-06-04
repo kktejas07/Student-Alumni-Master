@@ -28,6 +28,8 @@ interface AuthState {
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
   setTokens: (access: string, refresh?: string) => Promise<void>;
+  photoOverride: string | null;
+  setPhotoOverride: (photo: string | null) => void;
   // 2FA
   verifyTwoFA: (challenge_id: string, code: string) => Promise<User>;
 }
@@ -37,6 +39,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loading: false,
   initialized: false,
   error: null,
+  photoOverride: null,
+  setPhotoOverride: (photoOverride) => set({ photoOverride }),
 
   init: async () => {
     if (get().initialized) return;

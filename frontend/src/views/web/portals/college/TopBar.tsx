@@ -26,7 +26,7 @@ export function TopBar({
   const user = useAuthStore((u) => u.user);
   const fullName = user?.full_name || '';
   const initials = fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('').toUpperCase() || 'CO';
-  const photo = user?.photo_data || user?.face_image_base64 || user?.college_info?.logo;
+  const photo = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64 || user?.college_info?.logo;
   return (
     <View style={s.bar}>
       <Text style={s.title}>{title}</Text>
