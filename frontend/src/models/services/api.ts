@@ -325,6 +325,9 @@ export const api = {
   }) => request<any>('/mentor/bookings', { method: 'POST', body: payload }),
   rescheduleBooking: (id: string, slotStartIso: string) =>
     request<any>(`/bookings/${id}/reschedule`, { method: 'POST', body: { slot_start_iso: slotStartIso } }),
+  networkDiscover: (q?: string) => request<any>(`/network/discover${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  networkRequests: () => request<any>('/network/requests'),
+  sendConnectionRequest: (otherId: string) => request<any>(`/network/connect/${otherId}`, { method: 'POST', body: {} }),
 };
 
 export { BASE_URL };

@@ -84,17 +84,8 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
       };
     });
 
-    const mappedStatic = SESSION_REQUESTS.map((r) => {
-      const d = decisions[r.id] || 'pending';
-      return {
-        ...r,
-        isLive: false,
-        status: d === 'accepted' ? 'confirmed' : d === 'declined' ? 'cancelled' : 'pending',
-      };
-    });
-
-    return [...mappedLive, ...mappedStatic];
-  }, [liveRequests, decisions]);
+    return mappedLive;
+  }, [liveRequests]);
 
   const stats = useMemo(() => {
     const pending = allRequests.filter((r) => r.status === 'pending').length;
