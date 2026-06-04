@@ -4,7 +4,7 @@
  * Built on top of unified project icon shims and MaterialCommunityIcons.
  */
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, Image, Platform, ActivityIndicator, useWindowDimensions, TextInput } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Image, Platform, ActivityIndicator, useWindowDimensions, TextInput, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
@@ -38,6 +38,9 @@ const TABS: { key: TabKey; label: string; Icon: any }[] = [
   { key: 'notifications',      label: 'Notifications',        Icon: Bell },
   { key: 'digital-id',         label: 'Digital ID Card',      Icon: IdCard },
 ];
+
+const LANGUAGES = ['English', 'हिन्दी', 'Tamil', 'Telugu', 'Kannada', 'Marathi'];
+const TIMEZONES = ['Asia/Kolkata (IST)', 'Asia/Dubai (GST)', 'America/New_York (EST)', 'Europe/London (BST)', 'America/Los_Angeles (PST)', 'Asia/Singapore (SGT)'];
 
 export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey } = {}) {
   const router = useRouter();
@@ -147,6 +150,7 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
   const [language, setLanguage] = useState('English');
   const [timezone, setTimezone] = useState('Asia/Kolkata (IST)');
   const [theme, setTheme] = useState<'Dark' | 'Light' | 'System'>('Dark');
+  const [mentoringPaused, setMentoringPaused] = useState(false);
 
   const [savedSettings, setSavedSettings] = useState({
     showEmail: false,
@@ -214,6 +218,98 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
       if (u.github_url) setGithubUrl(u.github_url);
       if (u.skills && u.skills.length > 0) setExpertise(u.skills);
       if (u.photo_data || u.face_image_base64) setPhoto(u.photo_data || u.face_image_base64);
+
+      // Load settings and notifications from user preferences
+      const p = u.preferences || {};
+      const priv = p.privacy || {};
+      const ai = p.ai || {};
+      const app = p.app || {};
+      const notif = p.notifications || {};
+
+      // Privacy Controls
+      const sEmail = priv.show_email ?? false;
+      const sPhone = priv.show_phone ?? false;
+      const sRecent = priv.show_online ?? true;
+      const sConn = priv.show_connections ?? true;
+      const sSearch = priv.appear_in_search ?? true;
+      const sDMs = priv.allow_dm ?? true;
+      setShowEmail(sEmail);
+      setShowPhone(sPhone);
+      setShowRecentActivity(sRecent);
+      setShowConnections(sConn);
+      setAppearInSearch(sSearch);
+      setAcceptDMs(sDMs);
+
+      // AI & Suggestions
+      const aSum = ai.ai_summaries ?? true;
+      const aMatch = ai.student_match ?? true;
+      const aWeekly = ai.weekly_reports ?? false;
+      setAiSummaries(aSum);
+      setStudentMatch(aMatch);
+      setWeeklyReports(aWeekly);
+
+      // App Preferences
+      const appLang = app.language || 'English';
+      const appTz = app.timezone || 'Asia/Kolkata (IST)';
+      const appTheme = (app.theme || 'Dark') as 'Dark' | 'Light' | 'System';
+      setLanguage(appLang);
+      setTimezone(appTz);
+      setTheme(appTheme);
+
+      // Mentoring status
+      setMentoringPaused(p.mentoring?.paused ?? false);
+
+      // Update savedSettings so dirty checking works correctly
+      setSavedSettings({
+        showEmail: sEmail,
+        showPhone: sPhone,
+        showRecentActivity: sRecent,
+        showConnections: sConn,
+        appearInSearch: sSearch,
+        acceptDMs: sDMs,
+        aiSummaries: aSum,
+        studentMatch: aMatch,
+        weeklyReports: aWeekly,
+        language: appLang,
+        timezone: appTz,
+        theme: appTheme,
+      });
+
+      // Notification Preferences
+      const nBooking = notif.new_booking ?? true;
+      const nReminders = notif.reminders ?? true;
+      const nRSVPs = notif.event_rsvps ?? true;
+      const nMessages = notif.student_messages ?? true;
+      const nRequests = notif.connection_requests ?? true;
+      const nNetwork = notif.network_updates ?? false;
+      const nWeekly = notif.weekly_report ?? true;
+      const nPayment = notif.payment_alerts ?? true;
+      const nReviews = notif.student_reviews ?? true;
+      const nNews = notif.platform_news ?? false;
+
+      setNotifyNewBooking(nBooking);
+      setNotifyReminders(nReminders);
+      setNotifyEventRSVPs(nRSVPs);
+      setNotifyStudentMessages(nMessages);
+      setNotifyConnectionRequests(nRequests);
+      setNotifyNetworkUpdates(nNetwork);
+      setNotifyWeeklyReport(nWeekly);
+      setNotifyPaymentAlerts(nPayment);
+      setNotifyStudentReviews(nReviews);
+      setNotifyPlatformNews(nNews);
+
+      setSavedNotifications({
+        notifyNewBooking: nBooking,
+        notifyReminders: nReminders,
+        notifyEventRSVPs: nRSVPs,
+        notifyStudentMessages: nMessages,
+        notifyConnectionRequests: nRequests,
+        notifyNetworkUpdates: nNetwork,
+        notifyWeeklyReport: nWeekly,
+        notifyPaymentAlerts: nPayment,
+        notifyStudentReviews: nReviews,
+        notifyPlatformNews: nNews,
+      });
     }
   }, [user]);
 
@@ -278,13 +374,17 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
     return false;
   };
 
-  const handleUpdatePassword = () => {
+  const handleUpdatePassword = async () => {
     if (!currentPassword) {
       toast.error('Validation Error', 'Please enter your current password.');
       return;
     }
     if (!newPassword) {
       toast.error('Validation Error', 'Please enter your new password.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast.error('Validation Error', 'New password must be at least 8 characters.');
       return;
     }
     if (!confirmPassword) {
@@ -295,10 +395,18 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
       toast.error('Validation Error', 'New passwords do not match.');
       return;
     }
-    toast.success('Password Updated', 'Your account password has been updated.');
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+    try {
+      await request('/users/me/password', {
+        method: 'POST',
+        body: { current_password: currentPassword, new_password: newPassword }
+      } as any);
+      toast.success('Password Updated', 'Your account password has been updated.');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (e: any) {
+      toast.error('Update Failed', e?.message || 'Failed to update password.');
+    }
   };
 
   const handleRevokeSession = (id: string) => {
@@ -310,6 +418,27 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
     setSaving(true);
     try {
       if (activeTab === 'settings') {
+        const payload = {
+          privacy: {
+            show_email: showEmail,
+            show_phone: showPhone,
+            show_online: showRecentActivity,
+            show_connections: showConnections,
+            appear_in_search: appearInSearch,
+            allow_dm: acceptDMs,
+          },
+          ai: {
+            ai_summaries: aiSummaries,
+            student_match: studentMatch,
+            weekly_reports: weeklyReports,
+          },
+          app: {
+            language: language,
+            timezone: timezone,
+            theme: theme,
+          }
+        };
+        await request('/users/me/preferences', { method: 'PATCH', body: payload } as any);
         setSavedSettings({
           showEmail,
           showPhone,
@@ -324,8 +453,26 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
           timezone,
           theme
         });
+        if (refreshUser) {
+          await refreshUser();
+        }
         toast.success('Saved', 'Settings saved successfully.');
       } else if (activeTab === 'notifications') {
+        const payload = {
+          notifications: {
+            new_booking: notifyNewBooking,
+            reminders: notifyReminders,
+            event_rsvps: notifyEventRSVPs,
+            student_messages: notifyStudentMessages,
+            connection_requests: notifyConnectionRequests,
+            network_updates: notifyNetworkUpdates,
+            weekly_report: notifyWeeklyReport,
+            payment_alerts: notifyPaymentAlerts,
+            student_reviews: notifyStudentReviews,
+            platform_news: notifyPlatformNews,
+          }
+        };
+        await request('/users/me/preferences', { method: 'PATCH', body: payload } as any);
         setSavedNotifications({
           notifyNewBooking,
           notifyReminders,
@@ -338,6 +485,9 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
           notifyStudentReviews,
           notifyPlatformNews
         });
+        if (refreshUser) {
+          await refreshUser();
+        }
         toast.success('Saved', 'Notification preferences saved successfully.');
       } else {
         const payload: any = {
@@ -1174,13 +1324,13 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
                   <CustomDropdown
                     label="Language"
                     value={language}
-                    options={['English']}
+                    options={LANGUAGES}
                     onSelect={setLanguage}
                   />
                   <CustomDropdown
                     label="Timezone"
                     value={timezone}
-                    options={['Asia/Kolkata (IST)']}
+                    options={TIMEZONES}
                     onSelect={setTimezone}
                   />
                 </View>
@@ -1217,19 +1367,47 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
                     title="Change Password"
                     subtext="Last changed 3 months ago"
                     btnText="Update"
-                    onPress={() => toast.info('Update Password', 'Check your email for the password reset link.')}
+                    onPress={() => setActiveTab('security')}
                   />
                   <AccountActionRow
                     title="Download My Data"
                     subtext="Export all your data as a JSON file"
                     btnText="Export"
-                    onPress={() => toast.success('Export Triggered', 'Exporting your personal data package...')}
+                    onPress={() => {
+                      try {
+                        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(user || {}, null, 2));
+                        const downloadAnchor = document.createElement('a');
+                        downloadAnchor.setAttribute("href", dataStr);
+                        downloadAnchor.setAttribute("download", `sa-data-export-${user?.unique_id || 'profile'}.json`);
+                        document.body.appendChild(downloadAnchor);
+                        downloadAnchor.click();
+                        downloadAnchor.remove();
+                        toast.success('Export Completed', 'Your personal data package has been downloaded.');
+                      } catch (e) {
+                        toast.error('Export Failed', 'Unable to generate export package.');
+                      }
+                    }}
                   />
                   <AccountActionRow
                     title="Pause Mentoring"
-                    subtext="Temporarily stop accepting new bookings"
-                    btnText="Pause"
-                    onPress={() => toast.info('Mentoring status updated', 'Your bookings have been temporarily paused.')}
+                    subtext={mentoringPaused ? "Mentoring is currently paused. Resume to accept bookings" : "Temporarily stop accepting new bookings"}
+                    btnText={mentoringPaused ? "Resume" : "Pause"}
+                    onPress={async () => {
+                      const nextState = !mentoringPaused;
+                      try {
+                        await request('/users/me/preferences', { method: 'PATCH', body: { mentoring: { paused: nextState } } } as any);
+                        setMentoringPaused(nextState);
+                        if (refreshUser) {
+                          await refreshUser();
+                        }
+                        toast.success(
+                          nextState ? 'Mentoring Paused' : 'Mentoring Resumed',
+                          nextState ? 'Your bookings have been temporarily paused.' : 'Your bookings have been resumed.'
+                        );
+                      } catch (e: any) {
+                        toast.error('Error', e?.message || 'Failed to update mentoring status.');
+                      }
+                    }}
                   />
                   <AccountActionRow
                     title="Delete Account"
@@ -1237,7 +1415,23 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
                     btnText="Delete"
                     isDelete
                     isLast
-                    onPress={() => toast.error('Account Action', 'Account deletion request submitted. Please check email to confirm.')}
+                    onPress={() => {
+                      if (Platform.OS === 'web') {
+                        const confirmDelete = window.confirm("Are you sure you want to permanently delete your account and all data? This action is irreversible.");
+                        if (confirmDelete) {
+                          toast.error('Account Action', 'Account deletion request submitted. Please check email to confirm.');
+                        }
+                      } else {
+                        Alert.alert(
+                          "Delete Account",
+                          "Are you sure you want to permanently delete your account and all data? This action is irreversible.",
+                          [
+                            { text: "Cancel", style: "cancel" },
+                            { text: "Delete", style: "destructive", onPress: () => toast.error('Account Action', 'Account deletion request submitted. Please check email to confirm.') }
+                          ]
+                        );
+                      }
+                    }}
                   />
                 </View>
               </View>
@@ -1710,7 +1904,7 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
           {(activeTab === 'manage' || activeTab === 'tools-integrations' || activeTab === 'settings' || activeTab === 'notifications') && (
             <View style={st.saveBar}>
               <Text style={st.saveBarStatusText}>
-                {lastSavedAt ? `Last saved at ${lastSavedAt}` : (isDirty() ? 'You have unsaved changes' : 'All changes saved')}
+                {isDirty() ? 'You have unsaved changes' : (lastSavedAt ? `Last saved at ${lastSavedAt}` : 'All changes saved')}
               </Text>
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <Pressable onPress={handleDiscard} disabled={!isDirty()} style={[st.discardBtn, !isDirty() && { opacity: 0.5 }]}>
