@@ -20,15 +20,15 @@ export interface RequestsViewProps {
 export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
   const [liveRequests, setLiveRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [actioningId, setActioningId] = useState<string | null>(null);
+  const [actioningIds, setActioningIds] = useState<Set<string>>(new Set());
 
   const loadLiveRequests = async () => {
     try {
       const res = await api.myBookings();
-      const pendingBookings = (res?.bookings || []).filter((b: any) => b.status === 'pending');
-      setLiveRequests(pendingBookings);
+      const bookings = res?.bookings || [];
+      setLiveRequests(bookings);
     } catch (e) {
-      console.warn('Failed to load live requests', e);
+      console.warn('Failed to load live requests.', e);
     } finally {
       setLoading(false);
     }
@@ -47,7 +47,12 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
   };
 
   const handleLiveDecision = async (bookingId: string, type: 'accept' | 'decline') => {
-    setActioningId(bookingId);
+    const actionKey = `${type}-${bookingId}`;
+    setActioningIds((prev) => {
+      const next = new Set(prev);
+      next.add(actionKey);
+      return next;
+    });
     try {
       if (type === 'accept') {
         await api.confirmBooking(bookingId);
@@ -56,16 +61,21 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
       }
       await loadLiveRequests();
     } catch (e) {
-      console.error('Failed to update booking status', e);
+      console.error('Failed to update booking status.', e);
     } finally {
-      setActioningId(null);
+      setActioningIds((prev) => {
+        const next = new Set(prev);
+        next.delete(actionKey);
+        return next;
+      });
     }
   };
 
-  // Combine static and live requests
+  // Combine static and live requests.
   const allRequests = useMemo(() => {
     const mappedLive = liveRequests.map((b) => {
-      const dateObj = new Date(b.slot_start_iso);
+      const dateVal = b.slot_start_iso || b.scheduled_at;
+      const dateObj = dateVal ? new Date(dateVal) : new Date();
       const daysAway = Math.max(0, Math.ceil((dateObj.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
       return {
         id: b.id,
@@ -82,7 +92,17 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
         daysAway,
         type: 'free',
         status: b.status,
+        dateObj,
       };
+    });
+
+    // Sort requests chronologically by date ascending (earliest first).
+    mappedLive.sort((a, b) => {
+      const t1 = a.dateObj.getTime();
+      const t2 = b.dateObj.getTime();
+      if (isNaN(t1)) return 1;
+      if (isNaN(t2)) return -1;
+      return t1 - t2;
     });
 
     return mappedLive;
@@ -150,11 +170,11 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
                 </View>
               </View>
 
-              {/* Actions */}
+              {/* Actions. */}
               {isPending ? (
                 <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
                   <Pressable
-                    disabled={actioningId === String(req.id)}
+                    disabled={actioningIds.has(`accept-${req.id}`) || actioningIds.has(`decline-${req.id}`)}
                     onPress={() => {
                       if (req.isLive) {
                         handleLiveDecision(String(req.id), 'accept');
@@ -162,15 +182,15 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
                         onSetDecision(Number(req.id), 'accepted');
                       }
                     }}
-                    style={[s.acceptBtn, actioningId === String(req.id) && { opacity: 0.6 }]}
+                    style={[s.acceptBtn, (actioningIds.has(`accept-${req.id}`) || actioningIds.has(`decline-${req.id}`)) && { opacity: 0.6 }]}
                   >
                     <Check size={14} color={MC.bg} />
                     <Text style={{ color: MC.bg, fontFamily: FONTS.xbold, fontSize: 12 }}>
-                      {actioningId === String(req.id) ? 'Processing...' : 'Accept'}
+                      {actioningIds.has(`accept-${req.id}`) ? 'Processing...' : 'Accept'}
                     </Text>
                   </Pressable>
                   <Pressable
-                    disabled={actioningId === String(req.id)}
+                    disabled={actioningIds.has(`accept-${req.id}`) || actioningIds.has(`decline-${req.id}`)}
                     onPress={() => {
                       if (req.isLive) {
                         handleLiveDecision(String(req.id), 'decline');
@@ -178,10 +198,12 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
                         onSetDecision(Number(req.id), 'declined');
                       }
                     }}
-                    style={[s.declineBtn, actioningId === String(req.id) && { opacity: 0.6 }]}
+                    style={[s.declineBtn, (actioningIds.has(`accept-${req.id}`) || actioningIds.has(`decline-${req.id}`)) && { opacity: 0.6 }]}
                   >
                     <X size={14} color={MC.red} />
-                    <Text style={{ color: MC.red, fontFamily: FONTS.bold, fontSize: 12 }}>Decline</Text>
+                    <Text style={{ color: MC.red, fontFamily: FONTS.bold, fontSize: 12 }}>
+                      {actioningIds.has(`decline-${req.id}`) ? 'Processing...' : 'Decline'}
+                    </Text>
                   </Pressable>
                 </View>
               ) : (
