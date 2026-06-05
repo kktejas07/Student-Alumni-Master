@@ -48,6 +48,11 @@ export function NetworkView() {
   // Modal profile viewer state
   const [pickedPerson, setPickedPerson] = useState<any | null>(null);
 
+  // Limits for Discover tab lists
+  const [mentorLimit, setMentorLimit] = useState(3);
+  const [alumniLimit, setAlumniLimit] = useState(3);
+  const [studentLimit, setStudentLimit] = useState(3);
+
   // Fetch student network dataset
   const path = authUser?.email
     ? `/student/network?student_email=${encodeURIComponent(authUser.email)}`
@@ -131,6 +136,10 @@ export function NetworkView() {
   const mentorsList = useMemo(() => filteredList.filter(p => p.kind === 'mentor'), [filteredList]);
   const alumniList = useMemo(() => filteredList.filter(p => p.kind === 'alumni'), [filteredList]);
   const studentsList = useMemo(() => filteredList.filter(p => p.kind === 'student'), [filteredList]);
+
+  const visibleMentors = useMemo(() => mentorsList.slice(0, mentorLimit), [mentorsList, mentorLimit]);
+  const visibleAlumni = useMemo(() => alumniList.slice(0, alumniLimit), [alumniList, alumniLimit]);
+  const visibleStudents = useMemo(() => studentsList.slice(0, studentLimit), [studentsList, studentLimit]);
 
   // Connections Tab: Accepted relationships
   const connectionsList = useMemo(() => {
@@ -249,7 +258,7 @@ export function NetworkView() {
               </View>
 
               <View style={s.grid}>
-                {mentorsList.map((m) => (
+                {visibleMentors.map((m) => (
                   <GlassCard key={m.id} radius={14} padding={16} style={s.card}>
                     <View>
                       <View style={s.cardHead}>
@@ -313,6 +322,25 @@ export function NetworkView() {
                   </GlassCard>
                 ))}
               </View>
+              {mentorsList.length > 3 && (
+                <View style={s.viewMoreContainer}>
+                  {mentorLimit < mentorsList.length ? (
+                    <Pressable 
+                      onPress={() => setMentorLimit(prev => Math.min(prev + 3, mentorsList.length))} 
+                      style={s.viewMoreBtn}
+                    >
+                      <Text style={s.viewMoreBtnText}>Load More</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable 
+                      onPress={() => setMentorLimit(3)} 
+                      style={s.viewMoreBtn}
+                    >
+                      <Text style={s.viewMoreBtnText}>Show Less</Text>
+                    </Pressable>
+                  )}
+                </View>
+              )}
             </View>
           )}
 
@@ -333,7 +361,7 @@ export function NetworkView() {
               </View>
 
               <View style={s.grid}>
-                {alumniList.map((al) => {
+                {visibleAlumni.map((al) => {
                   const isPending = pending.has(al.id) || al.connectionState === 'pending';
                   const isConnected = conn.has(al.id) || al.connectionState === 'connected';
 
@@ -397,6 +425,25 @@ export function NetworkView() {
                   );
                 })}
               </View>
+              {alumniList.length > 3 && (
+                <View style={s.viewMoreContainer}>
+                  {alumniLimit < alumniList.length ? (
+                    <Pressable 
+                      onPress={() => setAlumniLimit(prev => Math.min(prev + 3, alumniList.length))} 
+                      style={s.viewMoreBtn}
+                    >
+                      <Text style={s.viewMoreBtnText}>Load More</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable 
+                      onPress={() => setAlumniLimit(3)} 
+                      style={s.viewMoreBtn}
+                    >
+                      <Text style={s.viewMoreBtnText}>Show Less</Text>
+                    </Pressable>
+                  )}
+                </View>
+              )}
             </View>
           )}
 
@@ -417,7 +464,7 @@ export function NetworkView() {
               </View>
 
               <View style={s.grid}>
-                {studentsList.map((student) => {
+                {visibleStudents.map((student) => {
                   const isPending = pending.has(student.id) || student.connectionState === 'pending';
                   const isConnected = conn.has(student.id) || student.connectionState === 'connected';
 
@@ -481,6 +528,25 @@ export function NetworkView() {
                   );
                 })}
               </View>
+              {studentsList.length > 3 && (
+                <View style={s.viewMoreContainer}>
+                  {studentLimit < studentsList.length ? (
+                    <Pressable 
+                      onPress={() => setStudentLimit(prev => Math.min(prev + 3, studentsList.length))} 
+                      style={s.viewMoreBtn}
+                    >
+                      <Text style={s.viewMoreBtnText}>Load More</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable 
+                      onPress={() => setStudentLimit(3)} 
+                      style={s.viewMoreBtn}
+                    >
+                      <Text style={s.viewMoreBtnText}>Show Less</Text>
+                    </Pressable>
+                  )}
+                </View>
+              )}
             </View>
           )}
 
@@ -1164,5 +1230,26 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...({ cursor: 'pointer' } as any)
+  },
+  viewMoreContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 16
+  },
+  viewMoreBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(167,139,250,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any)
+  },
+  viewMoreBtnText: {
+    color: SC.accentBright,
+    fontFamily: FONTS.bold,
+    fontSize: 12
   }
 });
