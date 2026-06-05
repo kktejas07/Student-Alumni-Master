@@ -4923,8 +4923,47 @@ async def my_bookings(user: dict = Depends(get_current_user)):
     """Returns bookings for the current user (as student or as mentor)."""
     query = {"student_id": str(user["_id"])} if user["role"] == "student" \
         else {"mentor_id": str(user["_id"])}
-    items = await db.bookings.find(query, {"_id": 0}).sort("slot_start_iso", 1).to_list(100)
-    return {"bookings": items}
+    items = await db.bookings.find(query).sort("slot_start_iso", 1).to_list(100)
+    
+    out = []
+    for item in items:
+        other_id = item.get("student_id") if user["role"] == "mentor" else item.get("mentor_id")
+        other_name = item.get("student_name") if user["role"] == "mentor" else item.get("mentor_name")
+        other_photo = None
+        
+        if other_id:
+            try:
+                other_user = await db.users.find_one({"_id": ObjectId(other_id)})
+                if other_user:
+                    other_name = other_user.get("full_name") or other_name
+                    other_photo = other_user.get("photo_data") or other_user.get("face_image_base64") or other_user.get("photo")
+            except Exception:
+                pass
+                
+        sched = item.get("scheduled_at")
+        sched_iso = sched.isoformat() if isinstance(sched, datetime) else sched
+        start_iso = item.get("slot_start_iso") or sched_iso
+        
+        doc = {
+            "id": str(item["_id"]),
+            "student_id": item.get("student_id"),
+            "student_name": item.get("student_name") or (other_name if user["role"] == "mentor" else None),
+            "student_photo": other_photo if user["role"] == "mentor" else None,
+            "mentor_id": item.get("mentor_id"),
+            "mentor_name": item.get("mentor_name") or (other_name if user["role"] == "student" else None),
+            "mentor_photo": other_photo if user["role"] == "student" else None,
+            "mentor_email": item.get("mentor_email"),
+            "student_email": item.get("student_email"),
+            "topic": item.get("topic"),
+            "scheduled_at": sched_iso,
+            "slot_start_iso": start_iso,
+            "slot_end_iso": item.get("slot_end_iso") or start_iso,
+            "duration_minutes": item.get("duration_minutes", 45),
+            "amount_paid": item.get("amount_paid"),
+            "status": item.get("status"),
+        }
+        out.append(doc)
+    return {"bookings": out}
 
 
 @api_router.post("/mentor/bookings")

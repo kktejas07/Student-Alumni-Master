@@ -103,11 +103,15 @@ async def create_booking(req: BookingCreate):
 
     doc = {
         "student_id": str(student["_id"]),
+        "student_name": student.get("full_name") or "Student",
         "student_email": student["email"],
         "mentor_id": str(mentor["_id"]),
+        "mentor_name": mentor.get("full_name") or "Mentor",
         "mentor_email": mentor["email"],
         "topic": req.topic,
         "scheduled_at": sched,
+        "slot_start_iso": sched.isoformat(),
+        "slot_end_iso": (sched + timedelta(minutes=req.duration_minutes)).isoformat(),
         "duration_minutes": req.duration_minutes,
         "amount_paid": mentor.get("expected_rate_inr", 999),
         "status": "pending",

@@ -72,6 +72,7 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
         isLive: true,
         studentName: b.student_name || 'Student',
         avatar: (b.student_name || 'ST').split(' ').slice(0, 2).map((p: string) => p[0] || '').join('').toUpperCase(),
+        photo: b.student_photo ? (b.student_photo.startsWith('data:') ? b.student_photo : `data:image/jpeg;base64,${b.student_photo}`) : '',
         color: MC.teal,
         college: 'Student-Alumni Platform',
         branch: 'Mentee',
@@ -125,7 +126,7 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
           return (
             <View key={req.id} style={s.card}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Av initials={req.avatar} size={48} color={req.color} />
+                <Av initials={req.avatar} size={48} color={req.color} photo={req.photo} />
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 14 }}>{req.studentName}</Text>
