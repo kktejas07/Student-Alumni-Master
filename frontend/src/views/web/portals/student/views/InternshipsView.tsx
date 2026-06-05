@@ -228,7 +228,7 @@ export function InternshipsView() {
       const sList = savedRes.items || [];
       setSavedJobs(sList);
 
-      const appliedRes: any = await request('/student/my-applications');
+      const appliedRes: any = await request(`/student/my-applications?email=${encodeURIComponent(authUser?.email || '')}`);
       const aList = appliedRes.items || [];
       setAppliedRaw(aList);
 
@@ -594,7 +594,7 @@ ${email}`;
                     );
                     
                     // Update lists
-                    const appliedRes: any = await request('/student/my-applications');
+                    const appliedRes: any = await request(`/student/my-applications?email=${encodeURIComponent(authUser?.email || '')}`);
                     setAppliedRaw(appliedRes.items || []);
                     
                     setItems((arr) =>

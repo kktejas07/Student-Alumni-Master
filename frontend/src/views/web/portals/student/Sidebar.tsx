@@ -40,13 +40,12 @@ import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
 export type StudentNavId =
   | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'events'
   | 'financial' | 'deals' | 'wallet' | 'higher-ed' | 'rentals' | 'courses' | 'profile'
-  | 'my-bookings' | 'my-applications' | 'my-workshops';
+  | 'my-bookings' | 'my-workshops';
 
 export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: boolean }> = [
   { id: 'dashboard',       label: 'Dashboard',          Icon: LayoutDashboard },
   { id: 'career-ai',       label: 'Career AI',          Icon: Sparkles, spark: true },
   { id: 'internships',     label: 'Internships & Jobs', Icon: Briefcase },
-  { id: 'my-applications', label: 'My Applications',    Icon: FileText },
   { id: 'network',         label: 'Network',            Icon: Users },
   { id: 'my-bookings',     label: 'My Bookings',        Icon: CalendarCheck },
   { id: 'events',          label: 'Events',             Icon: Calendar },
