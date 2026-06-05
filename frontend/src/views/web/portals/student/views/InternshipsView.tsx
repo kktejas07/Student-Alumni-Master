@@ -421,7 +421,7 @@ ${email}`;
         <View style={s.tabsContainer}>
           {(['Recommended', 'Saved', 'Applied'] as const).map((t) => {
             const active = tab === t;
-            let label = t;
+            let label: string = t;
             if (t === 'Saved') label = `Saved (${savedJobs.length})`;
             if (t === 'Applied') label = `Applied (${appliedRaw.length})`;
             return (
