@@ -298,7 +298,7 @@ export function NetworkView() {
                     </View>
 
                     <View style={s.cardActions}>
-                      <Pressable onPress={() => viewMentor(m)} style={s.actionBtnOutline}>
+                      <Pressable onPress={() => setPickedPerson(m)} style={s.actionBtnOutline}>
                         <Eye size={12} color={SC.accentBright} style={{ marginRight: 5 }} />
                         <Text style={s.actionBtnOutlineText}>View Profile</Text>
                       </Pressable>
@@ -608,7 +608,7 @@ export function NetworkView() {
                 <View style={s.cardActions}>
                   {person.kind === 'mentor' ? (
                     <>
-                      <Pressable onPress={() => viewMentor(person)} style={s.actionBtnOutline}>
+                      <Pressable onPress={() => setPickedPerson(person)} style={s.actionBtnOutline}>
                         <Eye size={12} color={SC.accentBright} style={{ marginRight: 5 }} />
                         <Text style={s.actionBtnOutlineText}>View Profile</Text>
                       </Pressable>
@@ -706,7 +706,7 @@ export function NetworkView() {
                 </View>
 
                 <View style={s.cardActions}>
-                  <Pressable onPress={() => viewMentor(m)} style={s.actionBtnOutline}>
+                  <Pressable onPress={() => setPickedPerson(m)} style={s.actionBtnOutline}>
                     <Eye size={12} color={SC.accentBright} style={{ marginRight: 5 }} />
                     <Text style={s.actionBtnOutlineText}>View Profile</Text>
                   </Pressable>
@@ -736,82 +736,109 @@ export function NetworkView() {
       )}
 
       {/* Profile detail Modal */}
-      <Modal visible={!!pickedPerson} animationType="fade" transparent onRequestClose={() => setPickedPerson(null)}>
+      <Modal visible={!!pickedPerson} animationType="slide" transparent onRequestClose={() => setPickedPerson(null)}>
         <View style={s.backdrop}>
           <Pressable onPress={() => setPickedPerson(null)} style={{ flex: 1 }} />
           <View style={s.modal}>
             <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>User Profile</Text>
+              <Text style={s.modalTitle}>
+                {pickedPerson?.kind === 'mentor' ? 'Mentor Profile' : pickedPerson?.kind === 'alumni' ? 'Alumni Profile' : 'Student Profile'}
+              </Text>
               <Pressable onPress={() => setPickedPerson(null)} style={s.closeBtn}>
                 <X size={16} color={SC.text} />
               </Pressable>
             </View>
-            {pickedPerson && (
-              <ScrollView style={{ padding: 20 }}>
-                <View style={{ alignItems: 'center', marginBottom: 16 }}>
-                  <Av initials={pickedPerson.initials} size={64} color={pickedPerson.color} photo={pickedPerson.photo} />
-                  <Text style={s.mName}>{pickedPerson.name}</Text>
-                  <View style={[s.mBadge, pickedPerson.kind === 'alumni' ? s.badgeAlumni : s.badgeStudent]}>
-                    <Text style={pickedPerson.kind === 'alumni' ? s.badgeAlumniText : s.badgeStudentText}>{pickedPerson.tag}</Text>
-                  </View>
-                </View>
-
-                <View style={{ gap: 12 }}>
-                  <View>
-                    <Text style={s.mLabel}>ROLE / BRANCH</Text>
-                    <Text style={s.mVal}>{pickedPerson.role || '—'}</Text>
-                  </View>
-
-                  <View>
-                    <Text style={s.mLabel}>COLLEGE / INSTITUTION</Text>
-                    <Text style={s.mVal}>{pickedPerson.college || '—'}</Text>
-                  </View>
-
-                  {pickedPerson.kind === 'alumni' ? (
-                    <View>
-                      <Text style={s.mLabel}>CURRENT EMPLOYER</Text>
-                      <Text style={s.mVal}>{pickedPerson.company || '—'}</Text>
+            {pickedPerson && (() => {
+              const isConnected = conn.has(pickedPerson.id) || pickedPerson.connectionState === 'connected';
+              const isPending = pending.has(pickedPerson.id) || pickedPerson.connectionState === 'pending';
+              const nameInitials = pickedPerson.initials;
+              const titleLine = pickedPerson.role || pickedPerson.subline || 'Member';
+              const collegeLine = pickedPerson.company || pickedPerson.college || '';
+              const bioText = pickedPerson.bio || pickedPerson.looking || 'No bio provided.';
+              
+              return (
+                <ScrollView style={{ padding: 20 }} contentContainerStyle={{ gap: 16 }}>
+                  {/* Basic Info Card */}
+                  <GlassCard radius={12} padding={16} style={s.profileHeaderCard}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <Av initials={nameInitials} size={64} color={pickedPerson.color} photo={pickedPerson.photo} />
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 }}>{pickedPerson.name}</Text>
+                        <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 }}>
+                          {titleLine}
+                        </Text>
+                        <Text style={{ color: SC.dim, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 }}>
+                          {collegeLine}
+                        </Text>
+                      </View>
+                      
+                      {/* Social Icons */}
+                      <View style={{ flexDirection: 'row', gap: 6, alignSelf: 'flex-start' }}>
+                        {pickedPerson.linkedin && (
+                          <Pressable 
+                            onPress={() => Linking.openURL(`https://${pickedPerson.linkedin}`)} 
+                            style={s.socialIconBtn}
+                          >
+                            <Linkedin size={14} color="#fff" />
+                          </Pressable>
+                        )}
+                        {pickedPerson.github && (
+                          <Pressable 
+                            onPress={() => Linking.openURL(`https://${pickedPerson.github}`)} 
+                            style={s.socialIconBtn}
+                          >
+                            <Github size={14} color="#fff" />
+                          </Pressable>
+                        )}
+                      </View>
                     </View>
-                  ) : null}
+                  </GlassCard>
 
-                  <View>
-                    <Text style={s.mLabel}>MUTUAL CONNECTIONS</Text>
-                    <Text style={s.mVal}>{pickedPerson.mutual} connections</Text>
-                  </View>
+                  {/* Bio Card */}
+                  <GlassCard radius={12} padding={16} style={s.profileBioCard}>
+                    <Text style={{ color: 'rgba(255,255,255,0.75)', fontFamily: FONTS.med, fontSize: 13, lineHeight: 18 }}>
+                      {bioText}
+                    </Text>
+                  </GlassCard>
 
-                  <View>
-                    <Text style={s.mLabel}>SKILLS & INTERESTS</Text>
+                  {/* Skills Section */}
+                  <View style={{ gap: 8 }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.50)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>SKILLS</Text>
                     <View style={s.tagsRow}>
-                      {pickedPerson.tags.map((tag: string, idx: number) => (
+                      {pickedPerson.tags && pickedPerson.tags.map((tag: string, idx: number) => (
                         <View key={idx} style={s.tagChip}><Text style={s.tagChipText}>{tag}</Text></View>
                       ))}
-                      {pickedPerson.tags.length === 0 && (
-                        <Text style={s.mVal}>No specified skills.</Text>
+                      {(!pickedPerson.tags || pickedPerson.tags.length === 0) && (
+                        <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12 }}>No specified skills.</Text>
                       )}
                     </View>
                   </View>
 
-                  <View style={{ marginTop: 16, flexDirection: 'row', gap: 10 }}>
-                    <Pressable 
-                      onPress={() => {
-                        Linking.openURL(`https://${pickedPerson.linkedin}`);
-                      }}
-                      style={s.mSocialBtn}
-                    >
-                      <Linkedin size={14} color="#fff" style={{ marginRight: 6 }} />
-                      <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>LinkedIn</Text>
-                    </Pressable>
-
-                    <Pressable 
-                      onPress={() => setPickedPerson(null)}
-                      style={[s.mSocialBtn, { backgroundColor: 'transparent', borderColor: SC.border, borderWidth: 1 }]}
-                    >
-                      <Text style={{ color: SC.muted, fontFamily: FONTS.bold, fontSize: 13 }}>Close</Text>
-                    </Pressable>
+                  {/* Connection Action Button */}
+                  <View style={{ marginTop: 8 }}>
+                    {isConnected ? (
+                      <View style={s.connectedPillLarge}>
+                        <Check size={16} color={SC.green} style={{ marginRight: 6 }} />
+                        <Text style={{ color: SC.green, fontFamily: FONTS.bold, fontSize: 14 }}>Connected</Text>
+                      </View>
+                    ) : isPending ? (
+                      <View style={s.pendingPillLarge}>
+                        <Clock size={16} color={SC.amber} style={{ marginRight: 6 }} />
+                        <Text style={{ color: SC.amber, fontFamily: FONTS.bold, fontSize: 14 }}>Request Pending</Text>
+                      </View>
+                    ) : (
+                      <Pressable 
+                        onPress={() => handleConnect(pickedPerson.id, pickedPerson.name)} 
+                        style={s.connectBtnLarge}
+                      >
+                        <UserPlus size={16} color="#fff" style={{ marginRight: 6 }} />
+                        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 }}>+ Connect</Text>
+                      </Pressable>
+                    )}
                   </View>
-                </View>
-              </ScrollView>
-            )}
+                </ScrollView>
+              );
+            })()}
           </View>
         </View>
       </Modal>
@@ -1161,22 +1188,23 @@ const s = StyleSheet.create({
   // Modal Backdrop
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(5, 8, 16, 0.82)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20
+    backgroundColor: 'rgba(5, 8, 16, 0.75)',
+    justifyContent: 'flex-end',
+    alignItems: Platform.OS === 'web' ? 'flex-end' : 'stretch',
   },
   modal: {
-    backgroundColor: '#0F1326',
-    borderColor: SC.border2,
-    borderWidth: 1,
-    borderRadius: 16,
-    width: '100%',
-    maxWidth: 440,
-    maxHeight: '80%',
+    backgroundColor: '#0C0818',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderLeftWidth: Platform.OS === 'web' ? 1 : 0,
+    borderWidth: Platform.OS === 'web' ? 0 : 1,
+    borderTopLeftRadius: Platform.OS === 'web' ? 0 : 20,
+    borderTopRightRadius: Platform.OS === 'web' ? 0 : 20,
+    width: Platform.OS === 'web' ? 440 : '100%',
+    height: Platform.OS === 'web' ? '100%' : '85%',
+    maxHeight: '100%',
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: { width: -10, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 20
   },
@@ -1198,38 +1226,57 @@ const s = StyleSheet.create({
     ...({ cursor: 'pointer' } as any)
   },
 
-  mName: {
-    color: '#fff',
-    fontFamily: FONTS.xbold,
-    fontSize: 18,
-    marginTop: 10,
-    marginBottom: 4
+  profileHeaderCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderRadius: 12,
   },
-  mBadge: {
-    marginTop: 4
+  profileBioCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderRadius: 12,
   },
-  mLabel: {
-    color: SC.dim,
-    fontFamily: FONTS.bold,
-    fontSize: 9.5,
-    letterSpacing: 0.8,
-    marginBottom: 3
+  socialIconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.09)',
+    borderWidth: 1,
+    ...({ cursor: 'pointer' } as any)
   },
-  mVal: {
-    color: '#fff',
-    fontFamily: FONTS.med,
-    fontSize: 13,
-    marginBottom: 12
-  },
-  mSocialBtn: {
-    flex: 1,
-    height: 38,
+  connectBtnLarge: {
+    height: 44,
     borderRadius: 10,
     backgroundColor: SC.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     ...({ cursor: 'pointer' } as any)
+  },
+  connectedPillLarge: {
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: 'rgba(16,185,129,0.1)',
+    borderColor: 'rgba(16,185,129,0.2)',
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pendingPillLarge: {
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: 'rgba(245,158,11,0.1)',
+    borderColor: 'rgba(245,158,11,0.2)',
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   viewMoreContainer: {
     width: '100%',
