@@ -183,6 +183,9 @@ export const api = {
   updateProfile: (payload: any) =>
     request<any>('/users/me', { method: 'PUT', body: payload }),
 
+  getPublicProfile: (userId: string) =>
+    request<any>(`/users/${userId}/public-profile`),
+
   // AI
   getCareerSuggestions: (additional_context?: string) =>
     request<any>('/ai/career-suggestions', {

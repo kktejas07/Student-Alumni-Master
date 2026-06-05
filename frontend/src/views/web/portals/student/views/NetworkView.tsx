@@ -48,6 +48,11 @@ export function NetworkView() {
   // Modal profile viewer state
   const [pickedPerson, setPickedPerson] = useState<any | null>(null);
 
+  // Limits for Discover tab lists
+  const [mentorLimit, setMentorLimit] = useState(3);
+  const [alumniLimit, setAlumniLimit] = useState(3);
+  const [studentLimit, setStudentLimit] = useState(3);
+
   // Fetch student network dataset
   const path = authUser?.email
     ? `/student/network?student_email=${encodeURIComponent(authUser.email)}`
@@ -80,6 +85,11 @@ export function NetworkView() {
       // deterministic mock session pricing (free / paid)
       const price = (sumChars(p.id || '') % 3) === 0 ? 'Free' : `₹${500 + (sumChars(p.id || '') % 5) * 250}`;
 
+      let photo = p.photo_data || p.face_image_base64 || p.photo || '';
+      if (photo && !photo.startsWith('data:') && !photo.startsWith('http')) {
+        photo = `data:image/jpeg;base64,${photo}`;
+      }
+
       return {
         id: p.id,
         name,
@@ -98,7 +108,8 @@ export function NetworkView() {
         kind,
         rating,
         sessions,
-        price
+        price,
+        photo
       };
     });
   }, [rawPeople]);
@@ -125,6 +136,10 @@ export function NetworkView() {
   const mentorsList = useMemo(() => filteredList.filter(p => p.kind === 'mentor'), [filteredList]);
   const alumniList = useMemo(() => filteredList.filter(p => p.kind === 'alumni'), [filteredList]);
   const studentsList = useMemo(() => filteredList.filter(p => p.kind === 'student'), [filteredList]);
+
+  const visibleMentors = useMemo(() => mentorsList.slice(0, mentorLimit), [mentorsList, mentorLimit]);
+  const visibleAlumni = useMemo(() => alumniList.slice(0, alumniLimit), [alumniList, alumniLimit]);
+  const visibleStudents = useMemo(() => studentsList.slice(0, studentLimit), [studentsList, studentLimit]);
 
   // Connections Tab: Accepted relationships
   const connectionsList = useMemo(() => {
@@ -162,7 +177,7 @@ export function NetworkView() {
         name: m.name,
         title: m.role,
         bio: 'Experienced professional ready to share industry insights, career strategies, and guidance.',
-        avatar: `https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200`,
+        avatar: m.photo || `https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200`,
         rating: String(m.rating),
         sessions: String(m.sessions),
         tags: m.tags?.join(','),
@@ -243,11 +258,11 @@ export function NetworkView() {
               </View>
 
               <View style={s.grid}>
-                {mentorsList.map((m) => (
+                {visibleMentors.map((m) => (
                   <GlassCard key={m.id} radius={14} padding={16} style={s.card}>
                     <View>
                       <View style={s.cardHead}>
-                        <Av initials={m.initials} size={46} color={m.color} />
+                        <Av initials={m.initials} size={46} color={m.color} photo={m.photo} />
                         <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                             <Text numberOfLines={1} style={s.cardName}>{m.name}</Text>
@@ -307,6 +322,25 @@ export function NetworkView() {
                   </GlassCard>
                 ))}
               </View>
+              {mentorsList.length > 3 && (
+                <View style={s.viewMoreContainer}>
+                  {mentorLimit < mentorsList.length ? (
+                    <Pressable 
+                      onPress={() => setMentorLimit(prev => Math.min(prev + 3, mentorsList.length))} 
+                      style={s.viewMoreBtn}
+                    >
+                      <Text style={s.viewMoreBtnText}>Load More</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable 
+                      onPress={() => setMentorLimit(3)} 
+                      style={s.viewMoreBtn}
+                    >
+                      <Text style={s.viewMoreBtnText}>Show Less</Text>
+                    </Pressable>
+                  )}
+                </View>
+              )}
             </View>
           )}
 
@@ -327,7 +361,7 @@ export function NetworkView() {
               </View>
 
               <View style={s.grid}>
-                {alumniList.map((al) => {
+                {visibleAlumni.map((al) => {
                   const isPending = pending.has(al.id) || al.connectionState === 'pending';
                   const isConnected = conn.has(al.id) || al.connectionState === 'connected';
 
@@ -335,7 +369,7 @@ export function NetworkView() {
                     <GlassCard key={al.id} radius={14} padding={16} style={s.card}>
                       <View>
                         <View style={s.cardHead}>
-                          <Av initials={al.initials} size={46} color={al.color} />
+                          <Av initials={al.initials} size={46} color={al.color} photo={al.photo} />
                           <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                               <Text numberOfLines={1} style={s.cardName}>{al.name}</Text>
@@ -391,6 +425,25 @@ export function NetworkView() {
                   );
                 })}
               </View>
+              {alumniList.length > 3 && (
+                <View style={s.viewMoreContainer}>
+                  {alumniLimit < alumniList.length ? (
+                    <Pressable 
+                      onPress={() => setAlumniLimit(prev => Math.min(prev + 3, alumniList.length))} 
+                      style={s.viewMoreBtn}
+                    >
+                      <Text style={s.viewMoreBtnText}>Load More</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable 
+                      onPress={() => setAlumniLimit(3)} 
+                      style={s.viewMoreBtn}
+                    >
+                      <Text style={s.viewMoreBtnText}>Show Less</Text>
+                    </Pressable>
+                  )}
+                </View>
+              )}
             </View>
           )}
 
@@ -411,7 +464,7 @@ export function NetworkView() {
               </View>
 
               <View style={s.grid}>
-                {studentsList.map((student) => {
+                {visibleStudents.map((student) => {
                   const isPending = pending.has(student.id) || student.connectionState === 'pending';
                   const isConnected = conn.has(student.id) || student.connectionState === 'connected';
 
@@ -419,7 +472,7 @@ export function NetworkView() {
                     <GlassCard key={student.id} radius={14} padding={16} style={s.card}>
                       <View>
                         <View style={s.cardHead}>
-                          <Av initials={student.initials} size={46} color={student.color} />
+                          <Av initials={student.initials} size={46} color={student.color} photo={student.photo} />
                           <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                               <Text numberOfLines={1} style={s.cardName}>{student.name}</Text>
@@ -475,6 +528,25 @@ export function NetworkView() {
                   );
                 })}
               </View>
+              {studentsList.length > 3 && (
+                <View style={s.viewMoreContainer}>
+                  {studentLimit < studentsList.length ? (
+                    <Pressable 
+                      onPress={() => setStudentLimit(prev => Math.min(prev + 3, studentsList.length))} 
+                      style={s.viewMoreBtn}
+                    >
+                      <Text style={s.viewMoreBtnText}>Load More</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable 
+                      onPress={() => setStudentLimit(3)} 
+                      style={s.viewMoreBtn}
+                    >
+                      <Text style={s.viewMoreBtnText}>Show Less</Text>
+                    </Pressable>
+                  )}
+                </View>
+              )}
             </View>
           )}
 
@@ -508,7 +580,7 @@ export function NetworkView() {
               <GlassCard key={person.id} radius={14} padding={16} style={s.card}>
                 <View>
                   <View style={s.cardHead}>
-                    <Av initials={person.initials} size={46} color={person.color} />
+                    <Av initials={person.initials} size={46} color={person.color} photo={person.photo} />
                     <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                         <Text numberOfLines={1} style={s.cardName}>{person.name}</Text>
@@ -598,7 +670,7 @@ export function NetworkView() {
               <GlassCard key={m.id} radius={14} padding={16} style={s.card}>
                 <View>
                   <View style={s.cardHead}>
-                    <Av initials={m.initials} size={46} color={m.color} />
+                    <Av initials={m.initials} size={46} color={m.color} photo={m.photo} />
                     <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                         <Text numberOfLines={1} style={s.cardName}>{m.name}</Text>
@@ -677,7 +749,7 @@ export function NetworkView() {
             {pickedPerson && (
               <ScrollView style={{ padding: 20 }}>
                 <View style={{ alignItems: 'center', marginBottom: 16 }}>
-                  <Av initials={pickedPerson.initials} size={64} color={pickedPerson.color} />
+                  <Av initials={pickedPerson.initials} size={64} color={pickedPerson.color} photo={pickedPerson.photo} />
                   <Text style={s.mName}>{pickedPerson.name}</Text>
                   <View style={[s.mBadge, pickedPerson.kind === 'alumni' ? s.badgeAlumni : s.badgeStudent]}>
                     <Text style={pickedPerson.kind === 'alumni' ? s.badgeAlumniText : s.badgeStudentText}>{pickedPerson.tag}</Text>
@@ -1158,5 +1230,26 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...({ cursor: 'pointer' } as any)
+  },
+  viewMoreContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 16
+  },
+  viewMoreBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(167,139,250,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any)
+  },
+  viewMoreBtnText: {
+    color: SC.accentBright,
+    fontFamily: FONTS.bold,
+    fontSize: 12
   }
 });

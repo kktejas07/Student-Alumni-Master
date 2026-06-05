@@ -2143,8 +2143,9 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "color": _color_for(a.get("full_name", "")),
             "kind": "alumni",
             "connection_state": rel_map.get(other_id, "none"),
+            "photo_data": a.get("photo_data") or a.get("face_image_base64"),
         })
-
+    
     # Fetch Students (newest first)
     st_cur = _db.users.find({"role": "student"}).sort("_id", -1).limit(limit)
     async for s in st_cur:
@@ -2167,6 +2168,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "branch": si.get("branch_or_stream") or "CSE",
             "year": si.get("class_or_year") or "Y3",
             "looking": s.get("bio") or "Looking for career guidance.",
+            "photo_data": s.get("photo_data") or s.get("face_image_base64"),
         })
 
     # Fetch Mentors (newest first)
@@ -2193,6 +2195,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "job_title": mi.get("job_title") or "Mentor",
             "rating": mi.get("rating") or 5.0,
             "sessions": mi.get("sessions") or 0,
+            "photo_data": m.get("photo_data") or m.get("face_image_base64"),
         })
 
     return {"items": out}
