@@ -80,6 +80,11 @@ export function NetworkView() {
       // deterministic mock session pricing (free / paid)
       const price = (sumChars(p.id || '') % 3) === 0 ? 'Free' : `₹${500 + (sumChars(p.id || '') % 5) * 250}`;
 
+      let photo = p.photo_data || p.face_image_base64 || p.photo || '';
+      if (photo && !photo.startsWith('data:') && !photo.startsWith('http')) {
+        photo = `data:image/jpeg;base64,${photo}`;
+      }
+
       return {
         id: p.id,
         name,
@@ -98,7 +103,8 @@ export function NetworkView() {
         kind,
         rating,
         sessions,
-        price
+        price,
+        photo
       };
     });
   }, [rawPeople]);
@@ -162,7 +168,7 @@ export function NetworkView() {
         name: m.name,
         title: m.role,
         bio: 'Experienced professional ready to share industry insights, career strategies, and guidance.',
-        avatar: `https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200`,
+        avatar: m.photo || `https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200`,
         rating: String(m.rating),
         sessions: String(m.sessions),
         tags: m.tags?.join(','),
@@ -247,7 +253,7 @@ export function NetworkView() {
                   <GlassCard key={m.id} radius={14} padding={16} style={s.card}>
                     <View>
                       <View style={s.cardHead}>
-                        <Av initials={m.initials} size={46} color={m.color} />
+                        <Av initials={m.initials} size={46} color={m.color} photo={m.photo} />
                         <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                             <Text numberOfLines={1} style={s.cardName}>{m.name}</Text>
@@ -335,7 +341,7 @@ export function NetworkView() {
                     <GlassCard key={al.id} radius={14} padding={16} style={s.card}>
                       <View>
                         <View style={s.cardHead}>
-                          <Av initials={al.initials} size={46} color={al.color} />
+                          <Av initials={al.initials} size={46} color={al.color} photo={al.photo} />
                           <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                               <Text numberOfLines={1} style={s.cardName}>{al.name}</Text>
@@ -419,7 +425,7 @@ export function NetworkView() {
                     <GlassCard key={student.id} radius={14} padding={16} style={s.card}>
                       <View>
                         <View style={s.cardHead}>
-                          <Av initials={student.initials} size={46} color={student.color} />
+                          <Av initials={student.initials} size={46} color={student.color} photo={student.photo} />
                           <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                               <Text numberOfLines={1} style={s.cardName}>{student.name}</Text>
@@ -508,7 +514,7 @@ export function NetworkView() {
               <GlassCard key={person.id} radius={14} padding={16} style={s.card}>
                 <View>
                   <View style={s.cardHead}>
-                    <Av initials={person.initials} size={46} color={person.color} />
+                    <Av initials={person.initials} size={46} color={person.color} photo={person.photo} />
                     <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                         <Text numberOfLines={1} style={s.cardName}>{person.name}</Text>
@@ -598,7 +604,7 @@ export function NetworkView() {
               <GlassCard key={m.id} radius={14} padding={16} style={s.card}>
                 <View>
                   <View style={s.cardHead}>
-                    <Av initials={m.initials} size={46} color={m.color} />
+                    <Av initials={m.initials} size={46} color={m.color} photo={m.photo} />
                     <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                         <Text numberOfLines={1} style={s.cardName}>{m.name}</Text>
@@ -677,7 +683,7 @@ export function NetworkView() {
             {pickedPerson && (
               <ScrollView style={{ padding: 20 }}>
                 <View style={{ alignItems: 'center', marginBottom: 16 }}>
-                  <Av initials={pickedPerson.initials} size={64} color={pickedPerson.color} />
+                  <Av initials={pickedPerson.initials} size={64} color={pickedPerson.color} photo={pickedPerson.photo} />
                   <Text style={s.mName}>{pickedPerson.name}</Text>
                   <View style={[s.mBadge, pickedPerson.kind === 'alumni' ? s.badgeAlumni : s.badgeStudent]}>
                     <Text style={pickedPerson.kind === 'alumni' ? s.badgeAlumniText : s.badgeStudentText}>{pickedPerson.tag}</Text>
