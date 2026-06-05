@@ -2123,9 +2123,27 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     out = []
     me_id_str = str(user["_id"]) if user else ""
 
-    # Fetch Alumni (newest first)
-    al_cur = _db.users.find({"role": "alumni"}).sort("_id", -1).limit(limit)
-    async for a in al_cur:
+    # Fetch all connected/pending users from rel_map first so they are never omitted due to limit
+    connected_users = []
+    if rel_map:
+        connected_ids = []
+        for oid in rel_map.keys():
+            try:
+                connected_ids.append(ObjectId(oid))
+            except Exception:
+                pass
+        if connected_ids:
+            connected_users = await _db.users.find({"_id": {"$in": connected_ids}}).to_list(len(connected_ids))
+
+    # Fetch Alumni (ensuring connected ones are included first)
+    connected_alumni = [u for u in connected_users if u.get("role") == "alumni"]
+    seen_alumni = {str(u["_id"]) for u in connected_alumni}
+    al_cur = _db.users.find({
+        "role": "alumni",
+        "_id": {"$nin": [ObjectId(i) for i in seen_alumni]}
+    }).sort("_id", -1).limit(max(0, limit - len(connected_alumni)))
+    alumni_users = connected_alumni + [a async for a in al_cur]
+    for a in alumni_users:
         other_id = str(a["_id"])
         if other_id == me_id_str:
             continue
@@ -2133,6 +2151,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
         si = a.get("school_info") or {}
         out.append({
             "id": other_id,
+            "email": a.get("email") or "",
             "name": a.get("full_name") or "—",
             "initials": _initials(a.get("full_name") or ""),
             "role": "Alumni",
@@ -2146,15 +2165,22 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "photo_data": a.get("photo_data") or a.get("face_image_base64"),
         })
     
-    # Fetch Students (newest first)
-    st_cur = _db.users.find({"role": "student"}).sort("_id", -1).limit(limit)
-    async for s in st_cur:
+    # Fetch Students (ensuring connected ones are included first)
+    connected_students = [u for u in connected_users if u.get("role") == "student"]
+    seen_students = {str(u["_id"]) for u in connected_students}
+    st_cur = _db.users.find({
+        "role": "student",
+        "_id": {"$nin": [ObjectId(i) for i in seen_students]}
+    }).sort("_id", -1).limit(max(0, limit - len(connected_students)))
+    student_users = connected_students + [s async for s in st_cur]
+    for s in student_users:
         other_id = str(s["_id"])
         if other_id == me_id_str:
             continue
         si = s.get("school_info") or {}
         out.append({
             "id": other_id,
+            "email": s.get("email") or "",
             "name": s.get("full_name") or "—",
             "initials": _initials(s.get("full_name") or ""),
             "role": "Student",
@@ -2171,9 +2197,15 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "photo_data": s.get("photo_data") or s.get("face_image_base64"),
         })
 
-    # Fetch Mentors (newest first)
-    me_cur = _db.users.find({"role": "mentor"}).sort("_id", -1).limit(limit)
-    async for m in me_cur:
+    # Fetch Mentors (ensuring connected ones are included first)
+    connected_mentors = [u for u in connected_users if u.get("role") == "mentor"]
+    seen_mentors = {str(u["_id"]) for u in connected_mentors}
+    me_cur = _db.users.find({
+        "role": "mentor",
+        "_id": {"$nin": [ObjectId(i) for i in seen_mentors]}
+    }).sort("_id", -1).limit(max(0, limit - len(connected_mentors)))
+    mentor_users = connected_mentors + [m async for m in me_cur]
+    for m in mentor_users:
         other_id = str(m["_id"])
         if other_id == me_id_str:
             continue
@@ -2181,6 +2213,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
         si = m.get("school_info") or {}
         out.append({
             "id": other_id,
+            "email": m.get("email") or "",
             "name": m.get("full_name") or "—",
             "initials": _initials(m.get("full_name") or ""),
             "role": "Mentor",

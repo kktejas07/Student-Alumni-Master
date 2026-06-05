@@ -48,6 +48,70 @@ export function NetworkView() {
   // Modal profile viewer state
   const [pickedPerson, setPickedPerson] = useState<any | null>(null);
 
+  // Booking Modal State
+  const [bookingMentor, setBookingMentor] = useState<any | null>(null);
+  const [bookingSlot, setBookingSlot] = useState<any | null>(null);
+  const [bookingTopic, setBookingTopic] = useState('');
+  const [bookingSubmitting, setBookingSubmitting] = useState(false);
+
+  const handleOpenBooking = (m: any) => {
+    setPickedPerson(null);
+    setBookingMentor(m);
+  };
+
+  const bookingSlots = useMemo(() => {
+    const slots = [];
+    const today = new Date();
+    const times = [
+      { h: 10, label: '10:00 AM' },
+      { h: 14, label: '2:00 PM' },
+      { h: 18, label: '6:00 PM' },
+    ];
+    for (let d = 1; d <= 3; d++) {
+      const day = new Date(today);
+      day.setDate(today.getDate() + d);
+      times.forEach((t) => {
+        const slot = new Date(day);
+        slot.setHours(t.h, 0, 0, 0);
+        slots.push({
+          label: `${slot.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · ${t.label}`,
+          iso: slot.toISOString(),
+        });
+      });
+    }
+    return slots;
+  }, []);
+
+  const handleConfirmBooking = async () => {
+    if (!bookingMentor || !bookingSlot) return;
+    if (!bookingTopic.trim()) {
+      toast.error('Topic required', 'Please describe what you would like to discuss.');
+      return;
+    }
+    setBookingSubmitting(true);
+    try {
+      await request('/student/bookings', {
+        method: 'POST',
+        body: {
+          student_email: authUser?.email,
+          mentor_email: bookingMentor.email || 'mentor@test.com',
+          topic: bookingTopic.trim(),
+          scheduled_at: bookingSlot.iso,
+          duration_minutes: 45
+        }
+      });
+      toast.success('Session Booked! 🎉', `Your session with ${bookingMentor.name} is confirmed.`);
+      setBookingMentor(null);
+      setBookingSlot(null);
+      setBookingTopic('');
+      if (refresh) refresh();
+    } catch (err: any) {
+      toast.error('Booking failed', err?.message || 'Please try again.');
+    } finally {
+      setBookingSubmitting(false);
+    }
+  };
+
   // Limits for Discover tab lists
   const [mentorLimit, setMentorLimit] = useState(3);
   const [alumniLimit, setAlumniLimit] = useState(3);
@@ -92,6 +156,7 @@ export function NetworkView() {
 
       return {
         id: p.id,
+        email: p.email || '',
         name,
         initials,
         color,
@@ -298,12 +363,12 @@ export function NetworkView() {
                     </View>
 
                     <View style={s.cardActions}>
-                      <Pressable onPress={() => viewMentor(m)} style={s.actionBtnOutline}>
+                      <Pressable onPress={() => setPickedPerson(m)} style={s.actionBtnOutline}>
                         <Eye size={12} color={SC.accentBright} style={{ marginRight: 5 }} />
                         <Text style={s.actionBtnOutlineText}>View Profile</Text>
                       </Pressable>
 
-                      <Pressable onPress={() => viewMentor(m)} style={s.actionBtnFill}>
+                      <Pressable onPress={() => setBookingMentor(m)} style={s.actionBtnFill}>
                         <Calendar size={12} color="#fff" style={{ marginRight: 5 }} />
                         <Text style={s.actionBtnFillText}>Book</Text>
                       </Pressable>
@@ -608,11 +673,11 @@ export function NetworkView() {
                 <View style={s.cardActions}>
                   {person.kind === 'mentor' ? (
                     <>
-                      <Pressable onPress={() => viewMentor(person)} style={s.actionBtnOutline}>
+                      <Pressable onPress={() => setPickedPerson(person)} style={s.actionBtnOutline}>
                         <Eye size={12} color={SC.accentBright} style={{ marginRight: 5 }} />
                         <Text style={s.actionBtnOutlineText}>View Profile</Text>
                       </Pressable>
-                      <Pressable onPress={() => viewMentor(person)} style={s.actionBtnFill}>
+                      <Pressable onPress={() => setBookingMentor(person)} style={s.actionBtnFill}>
                         <Calendar size={12} color="#fff" style={{ marginRight: 5 }} />
                         <Text style={s.actionBtnFillText}>Book</Text>
                       </Pressable>
@@ -706,12 +771,12 @@ export function NetworkView() {
                 </View>
 
                 <View style={s.cardActions}>
-                  <Pressable onPress={() => viewMentor(m)} style={s.actionBtnOutline}>
+                  <Pressable onPress={() => setPickedPerson(m)} style={s.actionBtnOutline}>
                     <Eye size={12} color={SC.accentBright} style={{ marginRight: 5 }} />
                     <Text style={s.actionBtnOutlineText}>View Profile</Text>
                   </Pressable>
 
-                  <Pressable onPress={() => viewMentor(m)} style={s.actionBtnFill}>
+                  <Pressable onPress={() => setBookingMentor(m)} style={s.actionBtnFill}>
                     <Calendar size={12} color="#fff" style={{ marginRight: 5 }} />
                     <Text style={s.actionBtnFillText}>Book</Text>
                   </Pressable>
@@ -736,83 +801,276 @@ export function NetworkView() {
       )}
 
       {/* Profile detail Modal */}
-      <Modal visible={!!pickedPerson} animationType="fade" transparent onRequestClose={() => setPickedPerson(null)}>
+      <Modal visible={!!pickedPerson} animationType="slide" transparent onRequestClose={() => setPickedPerson(null)}>
         <View style={s.backdrop}>
           <Pressable onPress={() => setPickedPerson(null)} style={{ flex: 1 }} />
           <View style={s.modal}>
             <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>User Profile</Text>
+              <Text style={s.modalTitle}>
+                {pickedPerson?.kind === 'mentor' ? 'Mentor Profile' : pickedPerson?.kind === 'alumni' ? 'Alumni Profile' : 'Student Profile'}
+              </Text>
               <Pressable onPress={() => setPickedPerson(null)} style={s.closeBtn}>
                 <X size={16} color={SC.text} />
               </Pressable>
             </View>
-            {pickedPerson && (
-              <ScrollView style={{ padding: 20 }}>
-                <View style={{ alignItems: 'center', marginBottom: 16 }}>
-                  <Av initials={pickedPerson.initials} size={64} color={pickedPerson.color} photo={pickedPerson.photo} />
-                  <Text style={s.mName}>{pickedPerson.name}</Text>
-                  <View style={[s.mBadge, pickedPerson.kind === 'alumni' ? s.badgeAlumni : s.badgeStudent]}>
-                    <Text style={pickedPerson.kind === 'alumni' ? s.badgeAlumniText : s.badgeStudentText}>{pickedPerson.tag}</Text>
-                  </View>
-                </View>
-
-                <View style={{ gap: 12 }}>
-                  <View>
-                    <Text style={s.mLabel}>ROLE / BRANCH</Text>
-                    <Text style={s.mVal}>{pickedPerson.role || '—'}</Text>
-                  </View>
-
-                  <View>
-                    <Text style={s.mLabel}>COLLEGE / INSTITUTION</Text>
-                    <Text style={s.mVal}>{pickedPerson.college || '—'}</Text>
-                  </View>
-
-                  {pickedPerson.kind === 'alumni' ? (
-                    <View>
-                      <Text style={s.mLabel}>CURRENT EMPLOYER</Text>
-                      <Text style={s.mVal}>{pickedPerson.company || '—'}</Text>
+            {pickedPerson && (() => {
+              const isConnected = conn.has(pickedPerson.id) || pickedPerson.connectionState === 'connected';
+              const isPending = pending.has(pickedPerson.id) || pickedPerson.connectionState === 'pending';
+              const nameInitials = pickedPerson.initials;
+              const titleLine = pickedPerson.role || pickedPerson.subline || 'Member';
+              const collegeLine = pickedPerson.company || pickedPerson.college || '';
+              const bioText = pickedPerson.bio || pickedPerson.looking || 'No bio provided.';
+              
+              return (
+                <ScrollView style={{ padding: 20 }} contentContainerStyle={{ gap: 16 }}>
+                  {/* Basic Info Card */}
+                  <GlassCard radius={12} padding={16} style={s.profileHeaderCard}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <Av initials={nameInitials} size={64} color={pickedPerson.color} photo={pickedPerson.photo} />
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 }}>{pickedPerson.name}</Text>
+                        <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 }}>
+                          {titleLine}
+                        </Text>
+                        <Text style={{ color: SC.dim, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 }}>
+                          {collegeLine}
+                        </Text>
+                      </View>
+                      
+                      {/* Social Icons */}
+                      <View style={{ flexDirection: 'row', gap: 6, alignSelf: 'flex-start' }}>
+                        {pickedPerson.linkedin && (
+                          <Pressable 
+                            onPress={() => Linking.openURL(`https://${pickedPerson.linkedin}`)} 
+                            style={s.socialIconBtn}
+                          >
+                            <Linkedin size={14} color="#fff" />
+                          </Pressable>
+                        )}
+                        {pickedPerson.github && (
+                          <Pressable 
+                            onPress={() => Linking.openURL(`https://${pickedPerson.github}`)} 
+                            style={s.socialIconBtn}
+                          >
+                            <Github size={14} color="#fff" />
+                          </Pressable>
+                        )}
+                      </View>
                     </View>
-                  ) : null}
+                  </GlassCard>
 
-                  <View>
-                    <Text style={s.mLabel}>MUTUAL CONNECTIONS</Text>
-                    <Text style={s.mVal}>{pickedPerson.mutual} connections</Text>
-                  </View>
+                  {/* Bio Card */}
+                  <GlassCard radius={12} padding={16} style={s.profileBioCard}>
+                    <Text style={{ color: 'rgba(255,255,255,0.75)', fontFamily: FONTS.med, fontSize: 13, lineHeight: 18 }}>
+                      {bioText}
+                    </Text>
+                  </GlassCard>
 
-                  <View>
-                    <Text style={s.mLabel}>SKILLS & INTERESTS</Text>
+                  {/* Mentor Stats Section */}
+                  {pickedPerson.kind === 'mentor' && (
+                    <View style={{ gap: 8 }}>
+                      <Text style={{ color: '#F97316', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>MENTOR STATS</Text>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <GlassCard radius={10} padding={12} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1 }}>
+                          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.rating}★</Text>
+                          <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Rating</Text>
+                        </GlassCard>
+                        <GlassCard radius={10} padding={12} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1 }}>
+                          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.sessions}</Text>
+                          <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Sessions</Text>
+                        </GlassCard>
+                        <GlassCard radius={10} padding={12} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1 }}>
+                          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 }} numberOfLines={1}>{pickedPerson.price}</Text>
+                          <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Price</Text>
+                        </GlassCard>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Skills Section */}
+                  <View style={{ gap: 8 }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.50)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>SKILLS</Text>
                     <View style={s.tagsRow}>
-                      {pickedPerson.tags.map((tag: string, idx: number) => (
+                      {pickedPerson.tags && pickedPerson.tags.map((tag: string, idx: number) => (
                         <View key={idx} style={s.tagChip}><Text style={s.tagChipText}>{tag}</Text></View>
                       ))}
-                      {pickedPerson.tags.length === 0 && (
-                        <Text style={s.mVal}>No specified skills.</Text>
+                      {(!pickedPerson.tags || pickedPerson.tags.length === 0) && (
+                        <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12 }}>No specified skills.</Text>
                       )}
                     </View>
                   </View>
 
-                  <View style={{ marginTop: 16, flexDirection: 'row', gap: 10 }}>
-                    <Pressable 
-                      onPress={() => {
-                        Linking.openURL(`https://${pickedPerson.linkedin}`);
-                      }}
-                      style={s.mSocialBtn}
-                    >
-                      <Linkedin size={14} color="#fff" style={{ marginRight: 6 }} />
-                      <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>LinkedIn</Text>
-                    </Pressable>
+                  {/* Connection / Booking Action Button */}
+                  <View style={{ marginTop: 8 }}>
+                    {pickedPerson.kind === 'mentor' ? (
+                      <Pressable 
+                        onPress={() => handleOpenBooking(pickedPerson)} 
+                        style={s.bookBtnLarge}
+                      >
+                        <Calendar size={16} color="#fff" style={{ marginRight: 8 }} />
+                        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 }}>Book a Session</Text>
+                      </Pressable>
+                    ) : isConnected ? (
+                      <View style={s.connectedPillLarge}>
+                        <Check size={16} color={SC.green} style={{ marginRight: 6 }} />
+                        <Text style={{ color: SC.green, fontFamily: FONTS.bold, fontSize: 14 }}>Connected</Text>
+                      </View>
+                    ) : isPending ? (
+                      <View style={s.pendingPillLarge}>
+                        <Clock size={16} color={SC.amber} style={{ marginRight: 6 }} />
+                        <Text style={{ color: SC.amber, fontFamily: FONTS.bold, fontSize: 14 }}>Request Pending</Text>
+                      </View>
+                    ) : (
+                      <Pressable 
+                        onPress={() => handleConnect(pickedPerson.id, pickedPerson.name)} 
+                        style={s.connectBtnLarge}
+                      >
+                        <UserPlus size={16} color="#fff" style={{ marginRight: 6 }} />
+                        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 }}>+ Connect</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                </ScrollView>
+              );
+            })()}
+          </View>
+        </View>
+      </Modal>
 
-                    <Pressable 
-                      onPress={() => setPickedPerson(null)}
-                      style={[s.mSocialBtn, { backgroundColor: 'transparent', borderColor: SC.border, borderWidth: 1 }]}
-                    >
-                      <Text style={{ color: SC.muted, fontFamily: FONTS.bold, fontSize: 13 }}>Close</Text>
-                    </Pressable>
+      {/* Booking Modal */}
+      <Modal visible={!!bookingMentor} animationType="fade" transparent onRequestClose={() => setBookingMentor(null)}>
+        <View style={s.bookingBackdrop}>
+          <Pressable onPress={() => setBookingMentor(null)} style={StyleSheet.absoluteFill} />
+          {bookingMentor && (
+            <View style={s.bookingModal}>
+              <View style={s.bookingModalHeader}>
+                <Text style={s.bookingModalTitle}>Book Session</Text>
+                <Pressable onPress={() => setBookingMentor(null)} style={s.bookingCloseBtn}>
+                  <X size={16} color={SC.text} />
+                </Pressable>
+              </View>
+
+              <ScrollView style={{ padding: 20 }} contentContainerStyle={{ gap: 16 }}>
+                {/* Mentor Header Section */}
+                <View style={{ alignItems: 'center', gap: 8, paddingVertical: 12 }}>
+                  <Av initials={bookingMentor.initials} size={64} color={bookingMentor.color} photo={bookingMentor.photo} />
+                  <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18, textAlign: 'center' }}>
+                    {bookingMentor.name}
+                  </Text>
+                  <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 13, textAlign: 'center' }}>
+                    {bookingMentor.role || 'Mentor'}
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Star size={14} color={SC.amber} fill={SC.amber} />
+                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 }}>
+                      {bookingMentor.rating}
+                    </Text>
+                    <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12.5 }}>
+                      · {bookingMentor.sessions} sessions
+                    </Text>
+                  </View>
+                  
+                  {/* Tags */}
+                  {bookingMentor.tags && bookingMentor.tags.length > 0 && (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginTop: 4 }}>
+                      {bookingMentor.tags.map((t: string) => (
+                        <View key={t} style={{ backgroundColor: 'rgba(139,92,246,0.12)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 }}>
+                          <Text style={{ color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 9.5, textTransform: 'uppercase' }}>{t}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+
+                {/* ABOUT */}
+                <View style={{ gap: 6 }}>
+                  <Text style={{ color: 'rgba(255,255,255,0.50)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>ABOUT</Text>
+                  <GlassCard radius={12} padding={14} style={{ backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1 }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.75)', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18 }}>
+                      {bookingMentor.bio || 'Experienced professional ready to share industry insights, career strategies, and guidance.'}
+                    </Text>
+                  </GlassCard>
+                </View>
+
+                {/* Available Slots */}
+                <View style={{ gap: 6 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Calendar size={14} color={SC.accentBright} />
+                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13.5 }}>Available Slots</Text>
+                  </View>
+                  <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5 }}>
+                    30-minute 1:1 sessions. Pick a slot that works for you.
+                  </Text>
+                  
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+                    {bookingSlots.map((slot, idx) => {
+                      const isSelected = bookingSlot?.iso === slot.iso;
+                      return (
+                        <Pressable 
+                          key={idx} 
+                          onPress={() => setBookingSlot(slot)}
+                          style={[s.slotChip, { flexDirection: 'row', alignItems: 'center' }, isSelected && s.slotChipActive]}
+                        >
+                          <Clock size={12} color={isSelected ? '#fff' : SC.accentBright} style={{ marginRight: 6 }} />
+                          <Text style={[s.slotText, isSelected && s.slotTextActive]}>{slot.label}</Text>
+                        </Pressable>
+                      );
+                    })}
                   </View>
                 </View>
+
+                {/* Topic Input */}
+                <View style={{ gap: 6 }}>
+                  <Text style={{ color: 'rgba(255,255,255,0.50)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>WHAT WOULD YOU LIKE TO DISCUSS?</Text>
+                  <TextInput
+                    value={bookingTopic}
+                    onChangeText={setBookingTopic}
+                    placeholder="e.g., How do I prepare for FAANG interviews?"
+                    placeholderTextColor={SC.dim}
+                    multiline
+                    numberOfLines={3}
+                    style={{
+                      backgroundColor: 'rgba(0,0,0,0.25)',
+                      borderColor: SC.border,
+                      borderWidth: 1,
+                      borderRadius: 10,
+                      padding: 12,
+                      color: '#fff',
+                      fontFamily: FONTS.med,
+                      fontSize: 13,
+                      height: 80,
+                      textAlignVertical: 'top',
+                      ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {})
+                    }}
+                  />
+                </View>
+
+                {/* Submit button */}
+                <Pressable 
+                  disabled={!bookingSlot || !bookingTopic.trim() || bookingSubmitting}
+                  onPress={handleConfirmBooking}
+                  style={[
+                    s.bookingSubmitBtn, 
+                    (!bookingSlot || !bookingTopic.trim()) && s.bookingSubmitBtnDisabled
+                  ]}
+                >
+                  {bookingSubmitting ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <MessageSquare size={16} color="#fff" style={{ marginRight: 4 }} />
+                      <Text style={[
+                        s.bookingSubmitBtnText,
+                        (!bookingSlot || !bookingTopic.trim()) && s.bookingSubmitBtnTextDisabled
+                      ]}>
+                        Confirm session
+                      </Text>
+                    </View>
+                  )}
+                </Pressable>
               </ScrollView>
-            )}
-          </View>
+            </View>
+          )}
         </View>
       </Modal>
 
@@ -1161,22 +1419,23 @@ const s = StyleSheet.create({
   // Modal Backdrop
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(5, 8, 16, 0.82)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20
+    backgroundColor: 'rgba(5, 8, 16, 0.75)',
+    justifyContent: 'flex-end',
+    alignItems: Platform.OS === 'web' ? 'flex-end' : 'stretch',
   },
   modal: {
-    backgroundColor: '#0F1326',
-    borderColor: SC.border2,
-    borderWidth: 1,
-    borderRadius: 16,
-    width: '100%',
-    maxWidth: 440,
-    maxHeight: '80%',
+    backgroundColor: '#0C0818',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderLeftWidth: Platform.OS === 'web' ? 1 : 0,
+    borderWidth: Platform.OS === 'web' ? 0 : 1,
+    borderTopLeftRadius: Platform.OS === 'web' ? 0 : 20,
+    borderTopRightRadius: Platform.OS === 'web' ? 0 : 20,
+    width: Platform.OS === 'web' ? 440 : '100%',
+    height: Platform.OS === 'web' ? '100%' : '85%',
+    maxHeight: '100%',
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: { width: -10, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 20
   },
@@ -1198,38 +1457,57 @@ const s = StyleSheet.create({
     ...({ cursor: 'pointer' } as any)
   },
 
-  mName: {
-    color: '#fff',
-    fontFamily: FONTS.xbold,
-    fontSize: 18,
-    marginTop: 10,
-    marginBottom: 4
+  profileHeaderCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderRadius: 12,
   },
-  mBadge: {
-    marginTop: 4
+  profileBioCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderRadius: 12,
   },
-  mLabel: {
-    color: SC.dim,
-    fontFamily: FONTS.bold,
-    fontSize: 9.5,
-    letterSpacing: 0.8,
-    marginBottom: 3
+  socialIconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.09)',
+    borderWidth: 1,
+    ...({ cursor: 'pointer' } as any)
   },
-  mVal: {
-    color: '#fff',
-    fontFamily: FONTS.med,
-    fontSize: 13,
-    marginBottom: 12
-  },
-  mSocialBtn: {
-    flex: 1,
-    height: 38,
+  connectBtnLarge: {
+    height: 44,
     borderRadius: 10,
     backgroundColor: SC.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     ...({ cursor: 'pointer' } as any)
+  },
+  connectedPillLarge: {
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: 'rgba(16,185,129,0.1)',
+    borderColor: 'rgba(16,185,129,0.2)',
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pendingPillLarge: {
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: 'rgba(245,158,11,0.1)',
+    borderColor: 'rgba(245,158,11,0.2)',
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   viewMoreContainer: {
     width: '100%',
@@ -1251,5 +1529,151 @@ const s = StyleSheet.create({
     color: SC.accentBright,
     fontFamily: FONTS.bold,
     fontSize: 12
+  },
+
+  bookBtnLarge: {
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: SC.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any)
+  },
+
+  // Centered booking modal styles
+  bookingBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(5, 8, 16, 0.82)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20
+  },
+  bookingModal: {
+    backgroundColor: '#0C0818',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderRadius: 20,
+    width: Platform.OS === 'web' ? 480 : '100%',
+    maxWidth: 480,
+    maxHeight: '90%',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20
+  },
+  bookingModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomColor: SC.border,
+    borderBottomWidth: 1
+  },
+  bookingModalTitle: {
+    color: '#fff',
+    fontFamily: FONTS.xbold,
+    fontSize: 16
+  },
+  bookingCloseBtn: {
+    padding: 4,
+    ...({ cursor: 'pointer' } as any)
+  },
+  bookingLabel: {
+    color: 'rgba(255,255,255,0.50)',
+    fontFamily: FONTS.bold,
+    fontSize: 11,
+    letterSpacing: 0.6,
+    marginTop: 8
+  },
+  dayScroll: {
+    marginVertical: 4
+  },
+  dayCard: {
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    width: 76,
+    height: 58,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    ...({ cursor: 'pointer' } as any)
+  },
+  dayCardActive: {
+    backgroundColor: 'rgba(139,92,246,0.15)',
+    borderColor: SC.primary,
+    borderWidth: 1.5
+  },
+  dayText: {
+    color: SC.muted,
+    fontFamily: FONTS.bold,
+    fontSize: 12
+  },
+  dayTextActive: {
+    color: '#fff',
+  },
+  dateText: {
+    color: SC.dim,
+    fontFamily: FONTS.med,
+    fontSize: 10,
+    marginTop: 2
+  },
+  dateTextActive: {
+    color: SC.accentBright
+  },
+  slotsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginVertical: 4
+  },
+  slotChip: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any)
+  },
+  slotChipActive: {
+    backgroundColor: 'rgba(139,92,246,0.20)',
+    borderColor: SC.primary,
+    borderWidth: 1
+  },
+  slotText: {
+    color: SC.muted,
+    fontFamily: FONTS.bold,
+    fontSize: 12
+  },
+  slotTextActive: {
+    color: '#fff'
+  },
+  bookingSubmitBtn: {
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: SC.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    ...({ cursor: 'pointer' } as any)
+  },
+  bookingSubmitBtnDisabled: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1
+  },
+  bookingSubmitBtnText: {
+    color: '#fff',
+    fontFamily: FONTS.xbold,
+    fontSize: 14
+  },
+  bookingSubmitBtnTextDisabled: {
+    color: SC.dim
   }
 });
