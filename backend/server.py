@@ -4596,8 +4596,11 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     by_college = [c for c in cards if my_inst and c.get("institution") == my_inst]
 
     # Section: mentors (approved)
+    mentor_q = {"_id": {"$ne": user["_id"]}, "role": "mentor", "mentor_status": "approved"}
+    if q:
+        mentor_q["$or"] = [{"full_name": rx}, {"email": rx}]
     approved_mentors = await db.users.find(
-        {"_id": {"$ne": user["_id"]}, "role": "mentor", "mentor_status": "approved"},
+        mentor_q,
         {"password_hash": 0, "face_image_base64": 0},
     ).sort("_id", -1).limit(100).to_list(100)
     mentor_cards = [_user_card(m) for m in approved_mentors]
@@ -4615,7 +4618,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
 
     # Section: expand — diverse roles user hasn't matched on yet
     seen_ids = {c["id"] for c in (by_interest + by_career + by_skills + by_college + peer_students[:limit] + explore_alumni[:limit])} | {m["id"] for m in mentor_cards}
-    expand = [c for c in cards if c["id"] not in seen_ids and c["role"] in {"student", "alumni", "college"}]
+    expand = [c for c in cards if c["id"] not in seen_ids and c["role"] in {"student", "alumni", "college", "mentor"}]
 
     interest_label = ", ".join(my_interests[:2]) if my_interests else "Your declared interests"
     skill_label    = ", ".join(my_skills[:3])     if my_skills    else "your declared skills"
@@ -4972,8 +4975,8 @@ async def create_mentor_booking(req: MentorBookingCreateRequest, user: dict = De
     if user["role"] != "mentor":
         raise HTTPException(403, "Only mentors can schedule sessions")
 
-    # Resolve student
-    student = await db.users.find_one({"_id": ObjectId(req.student_id), "role": "student"})
+    # Resolve student (can be student, alumni, or mentor)
+    student = await db.users.find_one({"_id": ObjectId(req.student_id)})
     if not student:
         raise HTTPException(404, "Student not found")
 
