@@ -2123,9 +2123,27 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     out = []
     me_id_str = str(user["_id"]) if user else ""
 
-    # Fetch Alumni (newest first)
-    al_cur = _db.users.find({"role": "alumni"}).sort("_id", -1).limit(limit)
-    async for a in al_cur:
+    # Fetch all connected/pending users from rel_map first so they are never omitted due to limit
+    connected_users = []
+    if rel_map:
+        connected_ids = []
+        for oid in rel_map.keys():
+            try:
+                connected_ids.append(ObjectId(oid))
+            except Exception:
+                pass
+        if connected_ids:
+            connected_users = await _db.users.find({"_id": {"$in": connected_ids}}).to_list(len(connected_ids))
+
+    # Fetch Alumni (ensuring connected ones are included first)
+    connected_alumni = [u for u in connected_users if u.get("role") == "alumni"]
+    seen_alumni = {str(u["_id"]) for u in connected_alumni}
+    al_cur = _db.users.find({
+        "role": "alumni",
+        "_id": {"$nin": [ObjectId(i) for i in seen_alumni]}
+    }).sort("_id", -1).limit(max(0, limit - len(connected_alumni)))
+    alumni_users = connected_alumni + [a async for a in al_cur]
+    for a in alumni_users:
         other_id = str(a["_id"])
         if other_id == me_id_str:
             continue
@@ -2133,6 +2151,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
         si = a.get("school_info") or {}
         out.append({
             "id": other_id,
+            "email": a.get("email") or "",
             "name": a.get("full_name") or "—",
             "initials": _initials(a.get("full_name") or ""),
             "role": "Alumni",
@@ -2143,17 +2162,25 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "color": _color_for(a.get("full_name", "")),
             "kind": "alumni",
             "connection_state": rel_map.get(other_id, "none"),
+            "photo_data": a.get("photo_data") or a.get("face_image_base64"),
         })
-
-    # Fetch Students (newest first)
-    st_cur = _db.users.find({"role": "student"}).sort("_id", -1).limit(limit)
-    async for s in st_cur:
+    
+    # Fetch Students (ensuring connected ones are included first)
+    connected_students = [u for u in connected_users if u.get("role") == "student"]
+    seen_students = {str(u["_id"]) for u in connected_students}
+    st_cur = _db.users.find({
+        "role": "student",
+        "_id": {"$nin": [ObjectId(i) for i in seen_students]}
+    }).sort("_id", -1).limit(max(0, limit - len(connected_students)))
+    student_users = connected_students + [s async for s in st_cur]
+    for s in student_users:
         other_id = str(s["_id"])
         if other_id == me_id_str:
             continue
         si = s.get("school_info") or {}
         out.append({
             "id": other_id,
+            "email": s.get("email") or "",
             "name": s.get("full_name") or "—",
             "initials": _initials(s.get("full_name") or ""),
             "role": "Student",
@@ -2167,11 +2194,18 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "branch": si.get("branch_or_stream") or "CSE",
             "year": si.get("class_or_year") or "Y3",
             "looking": s.get("bio") or "Looking for career guidance.",
+            "photo_data": s.get("photo_data") or s.get("face_image_base64"),
         })
 
-    # Fetch Mentors (newest first)
-    me_cur = _db.users.find({"role": "mentor"}).sort("_id", -1).limit(limit)
-    async for m in me_cur:
+    # Fetch Mentors (ensuring connected ones are included first)
+    connected_mentors = [u for u in connected_users if u.get("role") == "mentor"]
+    seen_mentors = {str(u["_id"]) for u in connected_mentors}
+    me_cur = _db.users.find({
+        "role": "mentor",
+        "_id": {"$nin": [ObjectId(i) for i in seen_mentors]}
+    }).sort("_id", -1).limit(max(0, limit - len(connected_mentors)))
+    mentor_users = connected_mentors + [m async for m in me_cur]
+    for m in mentor_users:
         other_id = str(m["_id"])
         if other_id == me_id_str:
             continue
@@ -2179,6 +2213,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
         si = m.get("school_info") or {}
         out.append({
             "id": other_id,
+            "email": m.get("email") or "",
             "name": m.get("full_name") or "—",
             "initials": _initials(m.get("full_name") or ""),
             "role": "Mentor",
@@ -2193,6 +2228,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "job_title": mi.get("job_title") or "Mentor",
             "rating": mi.get("rating") or 5.0,
             "sessions": mi.get("sessions") or 0,
+            "photo_data": m.get("photo_data") or m.get("face_image_base64"),
         })
 
     return {"items": out}
@@ -2784,12 +2820,8 @@ async def mentor_connections(email: Optional[str] = None):
             pass
     resolved_users = await _db.users.find({"_id": {"$in": resolved_objs}}).to_list(len(resolved_objs))
 
-    # 5. Backfill with real database users (students + alumni + other mentors) so there are always real accounts to connect
-    students = await _db.users.find({"role": "student"}).sort("_id", -1).limit(15).to_list(15)
-    alumni = await _db.users.find({"role": "alumni"}).sort("_id", -1).limit(10).to_list(10)
-    other_mentors = await _db.users.find({"role": "mentor", "_id": {"$ne": mentor["_id"]}}).sort("_id", -1).limit(10).to_list(10)
-
-    all_candidates = resolved_users + students + alumni + other_mentors
+    # 5. Get unique resolved users.
+    all_candidates = resolved_users
     seen_ids = set()
     unique_users = []
     for u in all_candidates:
@@ -2801,37 +2833,18 @@ async def mentor_connections(email: Optional[str] = None):
     now = datetime.now(timezone.utc)
     out = []
     
-    # Map unique users to the frontend card representation
+    # Map unique users to the frontend card representation.
     for idx, u in enumerate(unique_users):
         uid = str(u["_id"])
         role = u.get("role", "student")
         
-        # Calculate sessions stats
+        # Calculate sessions stats.
         s_list = student_bookings.get(uid, [])
         total_sessions = len(s_list)
         completed_sessions = len([b for b in s_list if b.get("status") == "completed"])
-        
-        # Assign deterministic mock sessions if they are backfilled users to make them look complete
-        if total_sessions == 0:
-            if idx % 3 == 0:
-                total_sessions = 4
-                completed_sessions = 3
-            elif idx % 3 == 1:
-                total_sessions = 3
-                completed_sessions = 2
-            else:
-                total_sessions = 5
-                completed_sessions = 5
 
-        # Determine status
-        status = connection_status.get(uid)
-        if not status:
-            if idx % 4 == 0 or idx % 4 == 1:
-                status = "active"
-            elif idx % 4 == 2:
-                status = "pending"
-            else:
-                status = "completed"
+        # Determine status.
+        status = connection_status.get(uid, "active")
 
         # Force completed connections to have 100% progress
         if status == "completed":
