@@ -71,7 +71,36 @@ function rangeFmt(it: Item): string {
 }
 
 // Web-friendly slider (uses native range input on web; falls back to numeric input)
-function EmiSlider({ label, value, setValue, min, max, step, fmt }: any) {
+function EmiSlider({ label, value, setValue, min, max, step, fmt, prefix = '', suffix = '' }: any) {
+  const [typedValue, setTypedValue] = useState(String(value));
+
+  useEffect(() => {
+    setTypedValue(String(value));
+  }, [value]);
+
+  const handleTextChange = (text: string) => {
+    const cleaned = text.replace(/[^0-9.]/g, '');
+    setTypedValue(cleaned);
+    
+    const num = Number(cleaned);
+    if (!isNaN(num) && num >= 0) {
+      if (num >= min && num <= max) {
+        setValue(num);
+      }
+    }
+  };
+
+  const handleBlur = () => {
+    let num = Number(typedValue);
+    if (isNaN(num) || num < min) {
+      num = min;
+    } else if (num > max) {
+      num = max;
+    }
+    setValue(num);
+    setTypedValue(String(num));
+  };
+
   if (Platform.OS === 'web') {
     return (
       <View style={s.emiSliderWrap}>
@@ -79,20 +108,37 @@ function EmiSlider({ label, value, setValue, min, max, step, fmt }: any) {
           <Text style={s.emiSliderLabel}>{label}</Text>
           <Text style={s.emiSliderValue}>{fmt(value)}</Text>
         </View>
-        {React.createElement('input' as any, {
-          type: 'range', min, max, step, value,
-          onChange: (e: any) => setValue(Number(e.target.value)),
-          style: { width: '100%', accentColor: '#7C3AED' },
-        })}
+        <View style={{ flex: 1 }}>
+          {React.createElement('input' as any, {
+            type: 'range', min, max, step, value,
+            onChange: (e: any) => setValue(Number(e.target.value)),
+            style: { width: '100%', accentColor: '#7C3AED', cursor: 'pointer' },
+          })}
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', paddingHorizontal: 8, height: 28, marginTop: 6 }}>
+          {prefix ? <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginRight: 2 }}>{prefix}</Text> : null}
+          <TextInput
+            value={typedValue}
+            onChangeText={handleTextChange}
+            onBlur={handleBlur}
+            keyboardType="numeric"
+            placeholder={`Enter ${label.toLowerCase()}...`}
+            placeholderTextColor="rgba(255,255,255,0.3)"
+            style={{ color: '#fff', fontSize: 11.5, flex: 1, paddingVertical: 0, paddingHorizontal: 0, height: '100%', backgroundColor: 'transparent', outlineStyle: 'none', borderWidth: 0 } as any}
+          />
+          {suffix ? <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginLeft: 2 }}>{suffix}</Text> : null}
+        </View>
       </View>
     );
   }
+
   return (
     <View style={s.emiSliderWrap}>
       <Text style={s.emiSliderLabel}>{label} {fmt(value)}</Text>
       <TextInput
-        value={String(value)}
-        onChangeText={(v) => setValue(Number(v.replace(/[^0-9.]/g, '')) || min)}
+        value={typedValue}
+        onChangeText={handleTextChange}
+        onBlur={handleBlur}
         keyboardType="numeric"
         style={{ color: '#fff', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', borderRadius: 8, padding: 8, marginTop: 4 }}
       />
@@ -306,9 +352,9 @@ export default function FinancialPage() {
             <Text style={s.emiTitle}>EMI Calculator</Text>
           </View>
           <View style={s.emiGrid}>
-            <EmiSlider label="Loan Amount" value={emiAmt} setValue={setEmiAmt} min={50000} max={10000000} step={50000} fmt={(v) => `₹${(v/100000).toFixed(1)} L`} />
-            <EmiSlider label="Interest Rate" value={emiRate} setValue={setEmiRate} min={5} max={20} step={0.1} fmt={(v) => `${v.toFixed(2)}% p.a.`} />
-            <EmiSlider label="Tenure" value={emiTen} setValue={setEmiTen} min={12} max={240} step={6} fmt={(v) => `${v} mo (${(v/12).toFixed(1)} yrs)`} />
+            <EmiSlider label="Loan Amount" value={emiAmt} setValue={setEmiAmt} min={50000} max={10000000} step={50000} fmt={(v) => `₹${(v/100000).toFixed(1)} L`} prefix="₹" suffix="INR" />
+            <EmiSlider label="Interest Rate" value={emiRate} setValue={setEmiRate} min={5} max={20} step={0.1} fmt={(v) => `${v.toFixed(2)}% p.a.`} suffix="% p.a." />
+            <EmiSlider label="Tenure" value={emiTen} setValue={setEmiTen} min={12} max={240} step={6} fmt={(v) => `${v} mo (${(v/12).toFixed(1)} yrs)`} suffix="months" />
           </View>
           {emi && (
             <View style={s.emiSummary}>
@@ -412,43 +458,7 @@ export default function FinancialPage() {
       </View>
       )}
 
-      {/* EMI Calculator Widget */}
-      <View style={s.widgetCard}>
-        <View style={{ flex: 1, gap: 8, minWidth: 240 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <View style={s.widgetIcon}><Icon name="calculator-variant" size={20} color="#93C5FD" /></View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.widgetTitle}>AI EMI Calculator</Text>
-              <Text style={s.widgetSub}>Plan your monthly repayment and total interest instantly.</Text>
-            </View>
-          </View>
-          <View style={{ gap: 6, marginTop: 4 }}>
-            <Slider label="Loan Amount" value="₹10,00,000" color="#3B82F6" />
-            <Slider label="Interest Rate" value="9.25% p.a." color="#14B8A6" />
-            <Slider label="Tenure" value="10 years" color="#8B5CF6" />
-          </View>
-          <View style={s.emiResult}>
-            <View>
-              <Text style={s.emiLabel}>MONTHLY EMI</Text>
-              <Text style={s.emiValue}>₹12,858</Text>
-            </View>
-            <View>
-              <Text style={s.emiLabel}>TOTAL INTEREST</Text>
-              <Text style={[s.emiValue, { color: '#F59E0B' }]}>₹5,42,960</Text>
-            </View>
-            <Pressable style={s.optimizeBtn}>
-              <LinearGradient
-                colors={['#7B3DBF', '#5F259F']}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                style={s.optimizeBtnGrad}
-              >
-                <Icon name="auto-fix" size={12} color="#fff" />
-                <Text style={s.optimizeText}>AI Loan Optimiser</Text>
-              </LinearGradient>
-            </Pressable>
-          </View>
-        </View>
-      </View>
+
 
       {/* Advisor + AI Chat CTAs */}
       <View style={{ marginTop: 18 }}>
@@ -497,20 +507,7 @@ export default function FinancialPage() {
   );
 }
 
-function Slider({ label, value, color }: { label: string; value: string; color: string }) {
-  return (
-    <View style={{ gap: 4 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Text style={s.sliderLabel}>{label}</Text>
-        <Text style={[s.sliderValue, { color }]}>{value}</Text>
-      </View>
-      <View style={s.sliderTrack}>
-        <View style={[s.sliderFill, { backgroundColor: color, width: '62%' }]} />
-        <View style={[s.sliderKnob, { backgroundColor: color, left: '60%' }]} />
-      </View>
-    </View>
-  );
-}
+
 
 function Stat({ label, value, sub, color, iconName }: any) {
   return (
