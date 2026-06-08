@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Calendar as CalIcon, MapPin, Users as UsersIcon, Check } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { GRAD } from '../portalkit';
 import { GlassCard } from '../glass';
 import { Badge } from '../atoms';
-import { usePortalData, postPortal } from '@/src/lib/portalApi';
+import { usePortalData, postPortal, fetchPortal } from '@/src/lib/portalApi';
 
 type Ev = { id: string; title: string; date: string; mode: string; city: string; cat: string; attending: number; capacity: number; kind: string; price?: number; accent: string; registered: boolean };
 const FALLBACK = { items: [] as Ev[] };
@@ -18,6 +18,32 @@ export function EventsView() {
   const EVENTS = data?.items || [];
   const [filter, setFilter] = useState('All');
   const [rsvpd, setRsvpd] = useState<Set<string>>(new Set());
+  const [recs, setRecs] = useState<any[]>([]);
+  const [myEvents, setMyEvents] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchPortal<any>('/events/me/recommendations')
+      .then(res => setRecs(res.items || []))
+      .catch(() => {});
+    fetchPortal<any>('/events/me/registered')
+      .then(res => setMyEvents(res.items || []))
+      .catch(() => {});
+  }, []);
+
+  const mapNewToOld = (e: any): Ev => ({
+    id: e.event_id,
+    title: e.title,
+    date: e.event_date_start ? new Date(e.event_date_start).toLocaleDateString() : 'TBD',
+    mode: e.event_mode || 'Onsite',
+    city: e.location_city || 'TBD',
+    cat: e.event_type || 'meetup',
+    attending: e.attendee_count || 0,
+    capacity: e.capacity || 0,
+    kind: e.price_type === 'free' ? 'free' : 'paid',
+    price: e.price_amount,
+    accent: e.tint || SC.primary,
+    registered: e.rsvp_status === 'registered' || e.rsvp_status === 'waitlisted'
+  });
 
   const onRSVP = async (id: string) => {
     setRsvpd((p) => new Set(p).add(id));
@@ -32,67 +58,90 @@ export function EventsView() {
     return true;
   });
 
-  return (
-    <View>
-      <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-        {FILTERS.map((f) => (
-          <Pressable key={f} onPress={() => setFilter(f)} style={[s.chip, filter === f && s.chipOn]}>
-            <Text style={{ color: filter === f ? '#fff' : SC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>{f}</Text>
-          </Pressable>
-        ))}
-      </View>
+  const renderCard = (e: Ev, idx: number) => {
+    const isReg = e.registered || rsvpd.has(e.id);
+    return (
+      <GlassCard
+        key={e.id}
+        delay={idx * 40}
+        radius={14}
+        padding={0}
+        style={{ flexGrow: 1, flexBasis: 300, maxWidth: 360, overflow: 'hidden' }}
+      >
+        <View style={[s.cover, { backgroundColor: e.accent + '22', borderColor: e.accent + '40' }]}>
+          <CalIcon size={28} color={e.accent} />
+        </View>
+        <View style={{ padding: 14 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+            <Badge label={e.cat} color="purple" />
+            <Badge label={e.kind === 'free' ? 'FREE' : `₹${e.price}`} color={e.kind === 'free' ? 'green' : 'amber'} />
+          </View>
+          <Text numberOfLines={2} style={s.title}>{e.title}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
+            <CalIcon size={11} color={SC.muted} />
+            <Text style={s.meta}>{e.date}</Text>
+            <Text style={s.dot}>·</Text>
+            <MapPin size={11} color={SC.muted} />
+            <Text style={s.meta}>{e.city}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+            <UsersIcon size={11} color={SC.muted} />
+            <Text style={s.meta}>{e.attending} attending</Text>
+          </View>
+          {isReg ? (
+            <View style={[s.cta, { backgroundColor: SC.green, flexDirection: 'row', gap: 6 }]}>
+              <Check size={14} color="#fff" />
+              <Text style={s.ctaText}>Registered</Text>
+            </View>
+          ) : (
+            <Pressable onPress={() => onRSVP(e.id)}>
+              <LinearGradient
+                colors={[GRAD.from, GRAD.to]}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                style={s.cta}
+              >
+                <Text style={s.ctaText}>{e.kind === 'free' ? 'RSVP' : 'Book seat'}</Text>
+              </LinearGradient>
+            </Pressable>
+          )}
+        </View>
+      </GlassCard>
+    );
+  };
 
-      <View style={s.grid}>
-        {list.map((e, idx) => {
-          const isReg = e.registered || rsvpd.has(e.id);
-          return (
-            <GlassCard
-              key={e.id}
-              delay={idx * 40}
-              radius={14}
-              padding={0}
-              style={{ flexGrow: 1, flexBasis: 300, maxWidth: 360, overflow: 'hidden' }}
-            >
-              <View style={[s.cover, { backgroundColor: e.accent + '22', borderColor: e.accent + '40' }]}>
-                <CalIcon size={28} color={e.accent} />
-              </View>
-              <View style={{ padding: 14 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <Badge label={e.cat} color="purple" />
-                  <Badge label={e.kind === 'free' ? 'FREE' : `₹${e.price}`} color={e.kind === 'free' ? 'green' : 'amber'} />
-                </View>
-                <Text numberOfLines={2} style={s.title}>{e.title}</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
-                  <CalIcon size={11} color={SC.muted} />
-                  <Text style={s.meta}>{e.date}</Text>
-                  <Text style={s.dot}>·</Text>
-                  <MapPin size={11} color={SC.muted} />
-                  <Text style={s.meta}>{e.city}</Text>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                  <UsersIcon size={11} color={SC.muted} />
-                  <Text style={s.meta}>{e.attending} attending</Text>
-                </View>
-                {isReg ? (
-                  <View style={[s.cta, { backgroundColor: SC.green, flexDirection: 'row', gap: 6 }]}>
-                    <Check size={14} color="#fff" />
-                    <Text style={s.ctaText}>Registered</Text>
-                  </View>
-                ) : (
-                  <Pressable onPress={() => onRSVP(e.id)}>
-                    <LinearGradient
-                      colors={[GRAD.from, GRAD.to]}
-                      start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                      style={s.cta}
-                    >
-                      <Text style={s.ctaText}>{e.kind === 'free' ? 'RSVP' : 'Book seat'}</Text>
-                    </LinearGradient>
-                  </Pressable>
-                )}
-              </View>
-            </GlassCard>
-          );
-        })}
+  return (
+    <View style={{ gap: 24 }}>
+      {myEvents.length > 0 && (
+        <View>
+          <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 18, marginBottom: 12 }}>My Registered Events</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+            {myEvents.map((e, i) => renderCard(mapNewToOld(e), i))}
+          </ScrollView>
+        </View>
+      )}
+
+      {recs.length > 0 && (
+        <View>
+          <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 18, marginBottom: 12 }}>Recommended For You</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+            {recs.map((e, i) => renderCard(mapNewToOld(e), i))}
+          </ScrollView>
+        </View>
+      )}
+
+      <View>
+        <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 18, marginBottom: 12 }}>Explore All</Text>
+        <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+          {FILTERS.map((f) => (
+            <Pressable key={f} onPress={() => setFilter(f)} style={[s.chip, filter === f && s.chipOn]}>
+              <Text style={{ color: filter === f ? '#fff' : SC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>{f}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={s.grid}>
+          {list.map((e, idx) => renderCard(e, idx))}
+        </View>
       </View>
     </View>
   );
