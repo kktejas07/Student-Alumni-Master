@@ -2,14 +2,72 @@
  * StudentsView — College Phase 3 Roster.
  * Live filters (dept, year, status, search) + pagination + status pills.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  View, Text, Pressable, TextInput, StyleSheet, Platform, ScrollView,
+  View, Text, Pressable, TextInput, StyleSheet, Platform, ScrollView, Modal, DeviceEventEmitter,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
-import { usePortalData } from '@/src/lib/portalApi';
+import { usePortalData, postPortal } from '@/src/lib/portalApi';
+
+const DEPTS = ['CSE', 'ECE', 'ME', 'EEE', 'Civil', 'Chem', 'MBA'];
+const YEARS = ['1st', '2nd', '3rd', '4th', 'Final'];
+
+/** Lightweight inline select — avoids nested Modal z-index issues on web */
+function SimpleSelect({ label, value, options, onChange }: {
+  label: string; value: string; options: string[]; onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={{ position: 'relative', zIndex: open ? 100 : 1 }}>
+      <Text style={mst.label}>{label}</Text>
+      <Pressable
+        onPress={() => setOpen((o) => !o)}
+        style={[mst.input, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
+      >
+        <Text style={{ color: '#fff', fontFamily: FONTS.med, fontSize: 12.5 }}>{value}</Text>
+        <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={14} color="#aaa" />
+      </Pressable>
+      {open && (
+        <View style={ss.menu}>
+          {options.map((opt) => (
+            <Pressable
+              key={opt}
+              onPress={() => { onChange(opt); setOpen(false); }}
+              style={[ss.menuItem, value === opt && ss.menuItemActive]}
+            >
+              <Text style={[ss.menuText, value === opt && { color: '#fff' }]}>{opt}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+const ss = StyleSheet.create({
+  menu: {
+    position: 'absolute',
+    top: '100%' as any,
+    left: 0, right: 0,
+    backgroundColor: '#0d1320',
+    borderColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1,
+    borderRadius: 8,
+    zIndex: 999,
+    overflow: 'hidden',
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 8px 24px rgba(0,0,0,0.6)' } as any) : { elevation: 10 }),
+  },
+  menuItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  menuItemActive: { backgroundColor: 'rgba(167,139,250,0.18)' },
+  menuText: { color: '#aaa', fontFamily: FONTS.med, fontSize: 12.5 },
+});
+
 
 type Student = {
   id: string; name: string; initials: string; email: string;
@@ -41,13 +99,83 @@ export function StudentsView() {
   const [status, setStatus] = useState('all');
   const [page, setPage] = useState(1);
 
+  // Modal State
+  const [modalVisible, setModalVisible] = useState(false);
+  const [nameVal, setNameVal] = useState('');
+  const [emailVal, setEmailVal] = useState('');
+  const [deptVal, setDeptVal] = useState('CSE');
+  const [yearVal, setYearVal] = useState('1st');
+  const [cgpaVal, setCgpaVal] = useState('8.0');
+  const [attendanceVal, setAttendanceVal] = useState('85');
+  const [submitting, setSubmitting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
   const params = new URLSearchParams({
     q, dept, year, status, page: String(page), page_size: '20',
   }).toString();
-  const { data } = usePortalData<Resp>(`/college/students?${params}`,
+  const { data, refresh } = usePortalData<Resp>(`/college/students?${params}`,
                                          FALLBACK, 60_000);
   const list = (data?.items) || [];
   const filters = data?.filters || FALLBACK.filters;
+
+  useEffect(() => {
+    DeviceEventEmitter.emit('scrollCollegePortalToTop');
+  }, [page, dept, year, status]);
+
+  const handleAddStudent = async () => {
+    if (!nameVal.trim() || !emailVal.trim()) return;
+    setSubmitting(true);
+    try {
+      await postPortal('/college/students', {
+        body: {
+          name: nameVal,
+          email: emailVal,
+          dept: deptVal,
+          year: yearVal,
+          cgpa: parseFloat(cgpaVal) || 0.0,
+          attendance: parseInt(attendanceVal, 10) || 0,
+        }
+      });
+      // request() throws on error, so reaching here means success
+      setModalVisible(false);
+      setNameVal('');
+      setEmailVal('');
+      setDeptVal('CSE');
+      setYearVal('1st');
+      setCgpaVal('8.0');
+      setAttendanceVal('85');
+      refresh();
+    } catch {
+      // silent — keep modal open so user can retry
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const doExport = async () => {
+    setExporting(true);
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || 'http://localhost:8000';
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      const exportParams = new URLSearchParams({ q, dept, year, status }).toString();
+      const resp = await fetch(`${base}/api/college/students/export?${exportParams}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (resp.ok) {
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'students_export.csv';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    } catch { /* silent */ } finally { setExporting(false); }
+  };
 
   return (
     <View style={{ gap: 14 }}>
@@ -60,13 +188,13 @@ export function StudentsView() {
             placeholderTextColor={CC.dim} style={s.searchInput} />
         </View>
         <View style={{ flex: 1 }} />
-        <Pressable style={s.cta}>
+        <Pressable style={s.cta} onPress={() => setModalVisible(true)}>
           <MaterialCommunityIcons name="plus" size={14} color="#fff" />
           <Text style={s.ctaText}>Add Student</Text>
         </Pressable>
-        <Pressable style={s.exportBtn}>
-          <MaterialCommunityIcons name="download" size={14} color={CC.muted} />
-          <Text style={s.exportBtnText}>Export CSV</Text>
+        <Pressable style={s.exportBtn} onPress={doExport} disabled={exporting}>
+          <MaterialCommunityIcons name={exporting ? "loading" : "download"} size={14} color={CC.muted} />
+          <Text style={s.exportBtnText}>{exporting ? 'Exporting…' : 'Export CSV'}</Text>
         </Pressable>
       </View>
 
@@ -168,6 +296,99 @@ export function StudentsView() {
           </Pressable>
         </View>
       )}
+
+      {/* Modal for adding a student */}
+      <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
+        <View style={mst.overlay}>
+          <View style={mst.modal}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <Text style={mst.title}>Add New Student</Text>
+              <Pressable onPress={() => setModalVisible(false)} style={{ padding: 4 }}>
+                <MaterialCommunityIcons name="close" size={16} color="#fff" />
+              </Pressable>
+            </View>
+
+            <View style={mst.field}>
+              <Text style={mst.label}>Full Name</Text>
+              <TextInput
+                style={mst.input}
+                placeholder="e.g. Rahul Sharma"
+                placeholderTextColor={CC.dim}
+                value={nameVal}
+                onChangeText={setNameVal}
+              />
+            </View>
+
+            <View style={mst.field}>
+              <Text style={mst.label}>Email Address</Text>
+              <TextInput
+                style={mst.input}
+                placeholder="e.g. rahul@college.edu"
+                placeholderTextColor={CC.dim}
+                value={emailVal}
+                onChangeText={setEmailVal}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+
+            <View style={[mst.row, { zIndex: 10 }]}>
+              <View style={[mst.field, { zIndex: 10 }]}>
+                <SimpleSelect
+                  label="Department"
+                  value={deptVal}
+                  options={DEPTS}
+                  onChange={setDeptVal}
+                />
+              </View>
+              <View style={[mst.field, { zIndex: 9 }]}>
+                <SimpleSelect
+                  label="Year"
+                  value={yearVal}
+                  options={YEARS}
+                  onChange={setYearVal}
+                />
+              </View>
+            </View>
+
+            <View style={mst.row}>
+              <View style={mst.field}>
+                <Text style={mst.label}>CGPA</Text>
+                <TextInput
+                  style={mst.input}
+                  placeholder="e.g. 8.5"
+                  placeholderTextColor={CC.dim}
+                  value={cgpaVal}
+                  onChangeText={setCgpaVal}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={mst.field}>
+                <Text style={mst.label}>Attendance %</Text>
+                <TextInput
+                  style={mst.input}
+                  placeholder="e.g. 85"
+                  placeholderTextColor={CC.dim}
+                  value={attendanceVal}
+                  onChangeText={setAttendanceVal}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+
+            <View style={mst.actions}>
+              <Pressable style={mst.cancelBtn} onPress={() => setModalVisible(false)}>
+                <Text style={{ color: CC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
+              </Pressable>
+              <Pressable style={mst.submitBtn} onPress={handleAddStudent} disabled={submitting}>
+                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
+                  {submitting ? 'Adding…' : 'Add Student'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -258,4 +479,89 @@ const s = StyleSheet.create({
     borderColor: CC.border, borderWidth: 1 },
   pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11.5 },
   pageInfo: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 12 },
+});
+
+const mst = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(5, 7, 16, 0.50)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    ...(Platform.OS === 'web' ? ({
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
+    } as any) : {}),
+  },
+  modal: {
+    backgroundColor: 'rgba(9, 13, 22, 0.80)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    maxWidth: 460,
+    gap: 14,
+    ...(Platform.OS === 'web' ? ({
+      boxShadow: '0 18px 40px rgba(0, 0, 0, 0.85)',
+      backdropFilter: 'blur(20px) saturate(180%)',
+      WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+    } as any) : {}),
+  },
+  title: {
+    color: '#fff',
+    fontFamily: FONTS.bold,
+    fontSize: 16,
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  field: {
+    flex: 1,
+    gap: 5,
+  },
+  label: {
+    color: CC.muted,
+    fontFamily: FONTS.bold,
+    fontSize: 10.5,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  input: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderColor: CC.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 38,
+    color: '#fff',
+    fontFamily: FONTS.med,
+    fontSize: 12.5,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 8,
+  },
+  cancelBtn: {
+    paddingHorizontal: 16,
+    height: 38,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: CC.border,
+  },
+  submitBtn: {
+    paddingHorizontal: 16,
+    height: 38,
+    borderRadius: 8,
+    backgroundColor: CC.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });

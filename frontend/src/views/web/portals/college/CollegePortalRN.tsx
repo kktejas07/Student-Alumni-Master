@@ -1,8 +1,8 @@
 /**
  * College Admin Portal — outer shell.
  */
-import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, ScrollView, StyleSheet, DeviceEventEmitter, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
@@ -34,7 +34,19 @@ export function CollegePortalRN() {
   const router = useRouter();
   const logout = useAuthStore((sx) => sx.logout);
   const [active, setActive] = useState<CollegeNavId>('dashboard');
+  const scrollRef = useRef<ScrollView>(null);
   useAutoTour('college');
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  }, [active]);
+
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('scrollCollegePortalToTop', () => {
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+    });
+    return () => sub.remove();
+  }, []);
 
   const onLogout = async () => {
     try { await logout(); } catch {}
@@ -64,7 +76,8 @@ export function CollegePortalRN() {
           onProfilePress={() => setActive('profile')}
         />
         <ScrollView
-          style={{ flex: 1 }}
+          ref={scrollRef}
+          style={[{ flex: 1 }, Platform.OS === 'web' && ({ scrollBehavior: 'smooth' } as any)]}
           contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
           showsVerticalScrollIndicator={false}
         >

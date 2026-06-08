@@ -274,13 +274,15 @@ export default function CollegeOnboard() {
     } catch { toast.error('Cover', 'Could not open gallery.'); }
   };
 
+  const userFirstName = (user?.full_name || contactName || 'there').split(' ')[0];
+
   const HEADS = [
     { title: 'Your Institution',       sub: 'Register your college or university on SA' },
     { title: 'Contact Person',         sub: 'Primary admin for your institution account' },
     { title: 'Features Needed',        sub: 'Select features you want to activate' },
     { title: 'Logo & Cover Photo',     sub: 'Upload your institution logo and cover photo' },
     { title: 'About Your Institution', sub: 'Write a brief description of your institution' },
-    { title: 'Welcome, there!',        sub: 'Based on your institution profile' },
+    { title: `Welcome, ${userFirstName}!`, sub: 'Based on your institution profile' },
   ];
   const head = HEADS[step];
   const ctaLabel =
@@ -520,7 +522,7 @@ export default function CollegeOnboard() {
                 <Award size={38} color="#FFF" />
                 <Text style={s.badgeTier}>{badge.tier} Status</Text>
               </View>
-              <Text style={s.greeting}>Welcome, there!</Text>
+              <Text style={s.greeting}>Welcome, {userFirstName}!</Text>
               <Text style={s.helper}>You've earned {badge.tier} status on Student Alumni.</Text>
               <View style={s.verifiedPill}>
                 <CheckCircle2 size={14} color="#60A5FA" />
@@ -552,7 +554,13 @@ export default function CollegeOnboard() {
 
       <View style={s.navRow}>
         <Pressable
-          onPress={step > 0 ? prev : () => router.back()}
+          onPress={step > 0 ? prev : () => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(auth)/referral-code');
+            }
+          }}
           style={s.backBtn}
           testID="college-onboard-back"
         >
