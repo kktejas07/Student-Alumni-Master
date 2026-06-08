@@ -526,6 +526,9 @@ function TopupTab(props: {
   const [selectedBank, setSelectedBank] = useState('Axis Bank');
   const [bankDropdownOpen, setBankDropdownOpen] = useState(false);
   const banks = ['HDFC Bank', 'SBI', 'ICICI Bank', 'Axis Bank', 'Kotak Bank'];
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
 
   const presets = [200, 500, 1000, 2000];
 
@@ -695,6 +698,93 @@ function TopupTab(props: {
                     })}
                   </View>
                 )}
+              </View>
+            </View>
+          )}
+
+          {/* Card Section */}
+          {method === 'card' && (
+            <View style={{ gap: 8, marginTop: 12 }}>
+              <Text style={s.fieldLabel}>Card Number</Text>
+              <TextInput
+                value={cardNumber}
+                onChangeText={(v) => {
+                  const clean = v.replace(/[^0-9]/g, '').slice(0, 16);
+                  const formatted = clean.match(/.{1,4}/g)?.join('  ') || clean;
+                  setCardNumber(formatted);
+                }}
+                placeholder="••••  ••••  ••••  ••••"
+                placeholderTextColor="rgba(255,255,255,0.25)"
+                keyboardType="numeric"
+                style={{
+                  backgroundColor: 'rgba(0,0,0,0.20)',
+                  borderColor: 'rgba(255,255,255,0.10)',
+                  borderWidth: 1,
+                  borderRadius: 10,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  height: 44,
+                  color: '#fff',
+                  fontSize: 13.5,
+                  fontFamily: 'DMSans_600SemiBold',
+                  ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+                }}
+              />
+
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <TextInput
+                    value={cardExpiry}
+                    onChangeText={(v) => {
+                      const clean = v.replace(/[^0-9]/g, '').slice(0, 4);
+                      if (clean.length > 2) {
+                        setCardExpiry(`${clean.slice(0, 2)} / ${clean.slice(2)}`);
+                      } else {
+                        setCardExpiry(clean);
+                      }
+                    }}
+                    placeholder="MM / YY"
+                    placeholderTextColor="rgba(255,255,255,0.25)"
+                    keyboardType="numeric"
+                    style={{
+                      backgroundColor: 'rgba(0,0,0,0.20)',
+                      borderColor: 'rgba(255,255,255,0.10)',
+                      borderWidth: 1,
+                      borderRadius: 10,
+                      paddingHorizontal: 12,
+                      paddingVertical: 10,
+                      height: 44,
+                      color: '#fff',
+                      fontSize: 13.5,
+                      fontFamily: 'DMSans_600SemiBold',
+                      ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+                    }}
+                  />
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <TextInput
+                    value={cardCvv}
+                    onChangeText={(v) => setCardCvv(v.replace(/[^0-9]/g, '').slice(0, 4))}
+                    placeholder="CVV"
+                    placeholderTextColor="rgba(255,255,255,0.25)"
+                    keyboardType="numeric"
+                    secureTextEntry
+                    style={{
+                      backgroundColor: 'rgba(0,0,0,0.20)',
+                      borderColor: 'rgba(255,255,255,0.10)',
+                      borderWidth: 1,
+                      borderRadius: 10,
+                      paddingHorizontal: 12,
+                      paddingVertical: 10,
+                      height: 44,
+                      color: '#fff',
+                      fontSize: 13.5,
+                      fontFamily: 'DMSans_600SemiBold',
+                      ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+                    }}
+                  />
+                </View>
               </View>
             </View>
           )}
