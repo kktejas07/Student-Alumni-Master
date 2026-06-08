@@ -40,8 +40,9 @@ export function MyBookingsView() {
   };
 
   const items = data?.items || [];
-  const upcoming = items.filter((b) => b.status === 'confirmed');
-  const cancelled = items.filter((b) => b.status === 'cancelled');
+  const upcoming = items.filter((b) => b.status === 'confirmed' || b.status === 'accepted');
+  const pending = items.filter((b) => b.status === 'pending');
+  const cancelled = items.filter((b) => b.status === 'cancelled' || b.status === 'declined');
 
   return (
     <View style={{ gap: 16 }}>
@@ -49,6 +50,37 @@ export function MyBookingsView() {
         <Text style={s.h1}>My Bookings</Text>
         <Text style={s.sub}>Mentor sessions for {email} · auto-refreshes every 30s</Text>
       </View>
+
+      {pending.length > 0 && (
+        <Section title={`Pending Requests (${pending.length})`}>
+          {pending.map((b, idx) => {
+            return (
+              <GlassCard key={b.id} delay={idx * 30} radius={12} padding={14} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, borderColor: 'rgba(245,158,11,0.3)', backgroundColor: 'rgba(245,158,11,0.05)' }}>
+                <View style={[s.iconBox, { backgroundColor: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.2)' }]}><Clock size={18} color="#F59E0B" /></View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={s.topic}>{b.topic || 'Session Request'}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3, flexWrap: 'wrap' }}>
+                    <User size={11} color={SC.muted} />
+                    <Text style={s.meta}>{b.mentor_name || 'Mentor'}</Text>
+                    <Text style={s.dot}>·</Text>
+                    <Clock size={11} color={SC.muted} />
+                    <Text style={s.meta}>{fmtDate(b.scheduled_at)} · {b.duration_minutes || 45}min</Text>
+                  </View>
+                  <Text style={[s.amount, { color: '#F59E0B' }]}>Waiting for approval</Text>
+                </View>
+                <Pressable
+                  onPress={() => cancel(b.id)}
+                  disabled={cancellingId === b.id}
+                  style={({ hovered }: any) => [s.cancelBtn, hovered && { backgroundColor: '#EF444422' }, cancellingId === b.id && { opacity: 0.5 }]}
+                >
+                  <X size={12} color="#EF4444" />
+                  <Text style={s.cancelText}>{cancellingId === b.id ? 'Cancelling…' : 'Cancel'}</Text>
+                </Pressable>
+              </GlassCard>
+            );
+          })}
+        </Section>
+      )}
 
       <Section title={`Upcoming (${upcoming.length})`}>
         {upcoming.map((b, idx) => {
@@ -80,7 +112,7 @@ export function MyBookingsView() {
           </GlassCard>
           );
         })}
-        {upcoming.length === 0 && (
+        {upcoming.length === 0 && pending.length === 0 && (
           <EmptyState
             variant="bookings"
             title="No upcoming bookings"
