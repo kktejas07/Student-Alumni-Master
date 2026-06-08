@@ -2820,12 +2820,8 @@ async def mentor_connections(email: Optional[str] = None):
             pass
     resolved_users = await _db.users.find({"_id": {"$in": resolved_objs}}).to_list(len(resolved_objs))
 
-    # 5. Backfill with real database users (students + alumni + other mentors) so there are always real accounts to connect
-    students = await _db.users.find({"role": "student"}).sort("_id", -1).limit(15).to_list(15)
-    alumni = await _db.users.find({"role": "alumni"}).sort("_id", -1).limit(10).to_list(10)
-    other_mentors = await _db.users.find({"role": "mentor", "_id": {"$ne": mentor["_id"]}}).sort("_id", -1).limit(10).to_list(10)
-
-    all_candidates = resolved_users + students + alumni + other_mentors
+    # 5. Get unique resolved users.
+    all_candidates = resolved_users
     seen_ids = set()
     unique_users = []
     for u in all_candidates:
@@ -2837,37 +2833,18 @@ async def mentor_connections(email: Optional[str] = None):
     now = datetime.now(timezone.utc)
     out = []
     
-    # Map unique users to the frontend card representation
+    # Map unique users to the frontend card representation.
     for idx, u in enumerate(unique_users):
         uid = str(u["_id"])
         role = u.get("role", "student")
         
-        # Calculate sessions stats
+        # Calculate sessions stats.
         s_list = student_bookings.get(uid, [])
         total_sessions = len(s_list)
         completed_sessions = len([b for b in s_list if b.get("status") == "completed"])
-        
-        # Assign deterministic mock sessions if they are backfilled users to make them look complete
-        if total_sessions == 0:
-            if idx % 3 == 0:
-                total_sessions = 4
-                completed_sessions = 3
-            elif idx % 3 == 1:
-                total_sessions = 3
-                completed_sessions = 2
-            else:
-                total_sessions = 5
-                completed_sessions = 5
 
-        # Determine status
-        status = connection_status.get(uid)
-        if not status:
-            if idx % 4 == 0 or idx % 4 == 1:
-                status = "active"
-            elif idx % 4 == 2:
-                status = "pending"
-            else:
-                status = "completed"
+        # Determine status.
+        status = connection_status.get(uid, "active")
 
         # Force completed connections to have 100% progress
         if status == "completed":
