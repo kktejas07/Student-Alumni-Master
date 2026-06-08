@@ -90,6 +90,7 @@ export default function FeaturePageShell({
   heroEmoji = '✨',
   children,
   rightSlot,
+  hideHero = false,
 }: {
   title: string;
   subtitle?: string;
@@ -97,6 +98,7 @@ export default function FeaturePageShell({
   heroEmoji?: string;
   children: React.ReactNode;
   rightSlot?: React.ReactNode;
+  hideHero?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -222,22 +224,24 @@ export default function FeaturePageShell({
   if (isEmbedded) {
     return (
       <View style={{ gap: 22 }}>
-        <View style={[
-          styles.heroShell,
-          { borderColor: heroBorder, backgroundColor: heroBg },
-          Platform.OS === 'web' ? ({ boxShadow: heroBoxShadow } as any) : {}
-        ]}>
-          <View pointerEvents="none" style={[styles.heroOrb, { width: 280, height: 280, top: -80, right: -40, backgroundColor: heroOrbColor1 }]} />
-          <View pointerEvents="none" style={[styles.heroOrb, { width: 180, height: 180, bottom: -50, left: 20, backgroundColor: heroOrbColor2 }]} />
-          <View style={[styles.heroBody, !isWide && { flexDirection: 'column', alignItems: 'flex-start', gap: 16 }]}>
-            <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-              <View style={styles.heroBadge}><Text style={styles.heroBadgeText}>{heroEmoji}</Text></View>
-              <Text style={styles.heroTitle}>{title}</Text>
-              {!!subtitle && <Text style={styles.heroSub}>{subtitle}</Text>}
+        {!hideHero && (
+          <View style={[
+            styles.heroShell,
+            { borderColor: heroBorder, backgroundColor: heroBg },
+            Platform.OS === 'web' ? ({ boxShadow: heroBoxShadow } as any) : {}
+          ]}>
+            <View pointerEvents="none" style={[styles.heroOrb, { width: 280, height: 280, top: -80, right: -40, backgroundColor: heroOrbColor1 }]} />
+            <View pointerEvents="none" style={[styles.heroOrb, { width: 180, height: 180, bottom: -50, left: 20, backgroundColor: heroOrbColor2 }]} />
+            <View style={[styles.heroBody, !isWide && { flexDirection: 'column', alignItems: 'flex-start', gap: 16 }]}>
+              <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+                <View style={styles.heroBadge}><Text style={styles.heroBadgeText}>{heroEmoji}</Text></View>
+                <Text style={styles.heroTitle}>{title}</Text>
+                {!!subtitle && <Text style={styles.heroSub}>{subtitle}</Text>}
+              </View>
+              {!!rightSlot && <View>{rightSlot}</View>}
             </View>
-            {!!rightSlot && <View>{rightSlot}</View>}
           </View>
-        </View>
+        )}
         {children}
       </View>
     );
@@ -307,23 +311,25 @@ export default function FeaturePageShell({
         </View>
 
         {/* Hero — glass card */}
-        <View style={[
-          styles.heroShell,
-          { borderColor: heroBorder, backgroundColor: heroBg },
-          Platform.OS === 'web' ? ({ boxShadow: heroBoxShadow } as any) : {}
-        ]}>
-          <View pointerEvents="none" style={[styles.heroOrb, { width: 280, height: 280, top: -80, right: -40, backgroundColor: heroOrbColor1 }]} />
-          <View pointerEvents="none" style={[styles.heroOrb, { width: 180, height: 180, bottom: -50, left: 20, backgroundColor: heroOrbColor2 }]} />
+        {!hideHero && (
+          <View style={[
+            styles.heroShell,
+            { borderColor: heroBorder, backgroundColor: heroBg },
+            Platform.OS === 'web' ? ({ boxShadow: heroBoxShadow } as any) : {}
+          ]}>
+            <View pointerEvents="none" style={[styles.heroOrb, { width: 280, height: 280, top: -80, right: -40, backgroundColor: heroOrbColor1 }]} />
+            <View pointerEvents="none" style={[styles.heroOrb, { width: 180, height: 180, bottom: -50, left: 20, backgroundColor: heroOrbColor2 }]} />
 
-          <View style={[styles.heroBody, !isWide && { flexDirection: 'column', alignItems: 'flex-start', gap: 16 }]}>
-            <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-              <Text style={styles.heroEmoji}>{heroEmoji}</Text>
-              <Text style={[styles.heroTitle, !isWide && { fontSize: 22, lineHeight: 28 }]}>{title}</Text>
-              {subtitle ? <Text style={styles.heroSub}>{subtitle}</Text> : null}
+            <View style={[styles.heroBody, !isWide && { flexDirection: 'column', alignItems: 'flex-start', gap: 16 }]}>
+              <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+                <Text style={styles.heroEmoji}>{heroEmoji}</Text>
+                <Text style={[styles.heroTitle, !isWide && { fontSize: 22, lineHeight: 28 }]}>{title}</Text>
+                {subtitle ? <Text style={styles.heroSub}>{subtitle}</Text> : null}
+              </View>
+              {rightSlot}
             </View>
-            {rightSlot}
           </View>
-        </View>
+        )}
 
         {/* Page body */}
         <View style={{ gap: 18 }}>{children}</View>

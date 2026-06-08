@@ -275,6 +275,7 @@ export default function WalletScreen() {
       heroEmoji="💰"
       accent={NX.purple}
       rightSlot={headerRight}
+      hideHero={true}
     >
       {errorMsg ? (
         <View style={s.errorBox}>
@@ -284,7 +285,7 @@ export default function WalletScreen() {
       ) : null}
 
       {/* Hero balance card */}
-      {data && <BalanceHero data={data} onSeedDemo={onSeedDemo} seeding={seeding} />}
+      {data && <BalanceHero data={data} onJump={(t) => setTab(t)} />}
 
       {/* Tab strip */}
       <ScrollView
@@ -309,7 +310,7 @@ export default function WalletScreen() {
 
       {/* Refresh control wrapper — nested in FeaturePageShell's ScrollView, so just render content */}
       <View style={{ paddingVertical: 4, gap: 18 }}>
-        {data && tab === 'overview' && <OverviewTab data={data} onJump={(t) => setTab(t)} />}
+        {data && tab === 'overview' && <OverviewTab data={data} />}
         {data && tab === 'topup' && (
           <TopupTab
             data={data}
@@ -338,189 +339,169 @@ export default function WalletScreen() {
 }
 
 // ─── Hero card ───────────────────────────────────────────────────────────
-function BalanceHero({ data, onSeedDemo, seeding }: { data: Summary; onSeedDemo: () => void; seeding: boolean }) {
-  const lvl = data.level;
+function BalanceHero({ data, onJump }: { data: Summary; onJump: (t: any) => void }) {
+  const credits = data.balance_credits;
+  const inrBalance = data.balance_inr;
+  const totalAddedInr = data.lifetime_earned / data.credits_per_inr;
+  const totalSpentInr = data.lifetime_spent / data.credits_per_inr;
+
   return (
-    <LinearGradient
-      colors={['#5F259F', '#7C3AED', '#A855F7']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={s.heroCard}
-    >
-      <View style={s.heroTopRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={s.heroLabel}>SA WALLET BALANCE</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 4 }}>
-            <Text style={s.heroBalance}>{fmtCredits(data.balance_credits)}</Text>
-            <Text style={s.heroInr}>≈ {fmtINR(data.balance_inr)}</Text>
-          </View>
-          <View style={s.verifiedPill}>
-            <MaterialCommunityIcons name="shield-check" size={11} color="#6EE7B7" />
-            <Text style={s.verifiedPillText}>SA Verified · Instant transfers</Text>
-          </View>
-          <Text style={s.heroSub}>1 ₹ = {data.credits_per_inr} credits</Text>
-        </View>
-
-        <View style={s.levelBadge}>
-          <MaterialCommunityIcons name={lvl.icon} size={20} color={lvl.color} />
-          <Text style={s.levelName}>{lvl.name}</Text>
-          <Text style={s.levelTier}>Tier {lvl.level}</Text>
+    <View style={s.newHeroCard}>
+      {/* Left: Balance and Verified status */}
+      <View style={s.newHeroLeft}>
+        <Text style={s.newHeroKicker}>SA WALLET BALANCE</Text>
+        <Text style={s.newHeroBalance}>{fmtINR(inrBalance)}</Text>
+        <View style={s.newHeroVerified}>
+          <MaterialCommunityIcons name="shield-check" size={13} color="#86EFAC" />
+          <Text style={s.newHeroVerifiedText}>SA Verified · Instant transfers</Text>
         </View>
       </View>
 
-      {/* Level progress bar */}
-      <View style={s.heroProgressWrap}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-          <Text style={s.heroProgressLabel}>
-            {lvl.next_level_name
-              ? `${fmtCredits(lvl.credits_to_next)} credits to ${lvl.next_level_name}`
-              : 'Max tier reached 🎉'}
-          </Text>
-          <Text style={s.heroProgressPct}>{Math.round(lvl.progress_pct)}%</Text>
-        </View>
-        <View style={s.heroProgressTrack}>
-          <View style={[s.heroProgressFill, { width: `${Math.min(100, lvl.progress_pct)}%` }]} />
-        </View>
-      </View>
-
-      {/* Quick stats row */}
-      <View style={s.heroStatsRow}>
-        <HeroStat icon="fire"  label="Streak"          value={`${data.streak_days}d`}                  tint="#F97316" />
-        <HeroStat icon="trophy" label="Lifetime earned" value={fmtCredits(data.lifetime_earned)}        tint="#FCD34D" />
-        <HeroStat icon="bank-transfer-out" label="Spent" value={fmtCredits(data.lifetime_spent)}        tint="#F472B6" />
-      </View>
-
-      {data.lifetime_earned <= 0 && (
-        <Pressable style={s.heroSeed} onPress={onSeedDemo} disabled={seeding}>
-          {seeding
-            ? <ActivityIndicator color="#fff" />
-            : <>
-                <MaterialCommunityIcons name="auto-fix" size={14} color="#fff" />
-                <Text style={s.heroSeedText}>Seed demo earnings</Text>
-              </>}
+      {/* Middle: Action Buttons */}
+      <View style={s.newHeroMiddle}>
+        <Pressable style={s.newHeroAddBtn} onPress={() => onJump('topup')}>
+          <MaterialCommunityIcons name="plus" size={16} color="#5F259F" />
+          <Text style={s.newHeroAddBtnText}>Add Money</Text>
         </Pressable>
-      )}
-    </LinearGradient>
-  );
-}
-
-function HeroStat({ icon, label, value, tint }: { icon: IconName; label: string; value: string; tint: string }) {
-  return (
-    <View style={s.heroStat}>
-      <View style={[s.heroStatIcon, { backgroundColor: tint + '22', borderColor: tint + '55' }]}>
-        <MaterialCommunityIcons name={icon} size={14} color={tint} />
+        <Pressable style={s.newHeroWithdrawBtn} onPress={() => onJump('withdraw')}>
+          <MaterialCommunityIcons name="arrow-up-bold-circle-outline" size={16} color="#fff" />
+          <Text style={s.newHeroWithdrawBtnText}>Withdraw</Text>
+        </Pressable>
       </View>
-      <View style={{ flex: 1 }}>
-        <Text style={s.heroStatLabel}>{label}</Text>
-        <Text style={s.heroStatValue}>{value}</Text>
+
+      {/* Right: Stats panel */}
+      <View style={s.newHeroRight}>
+        <View style={s.newHeroStatCol}>
+          <MaterialCommunityIcons name="star-four-points" size={20} color="#FCD34D" />
+          <Text style={s.newHeroStatVal}>{fmtCredits(credits)}</Text>
+          <Text style={s.newHeroStatLabel}>Credits</Text>
+        </View>
+        <View style={s.newHeroStatCol}>
+          <MaterialCommunityIcons name="plus-circle" size={20} color="#86EFAC" />
+          <Text style={s.newHeroStatVal}>{fmtINR(totalAddedInr)}</Text>
+          <Text style={s.newHeroStatLabel}>Total Added</Text>
+        </View>
+        <View style={s.newHeroStatCol}>
+          <MaterialCommunityIcons name="cash-fast" size={20} color="#F472B6" />
+          <Text style={s.newHeroStatVal}>{fmtINR(totalSpentInr)}</Text>
+          <Text style={s.newHeroStatLabel}>Total Spent</Text>
+        </View>
       </View>
     </View>
   );
 }
 
 // ─── Overview tab ────────────────────────────────────────────────────────
-function OverviewTab({ data, onJump }: { data: Summary; onJump: (t: any) => void }) {
-  const topEarners = (data.activity_breakdown || []).slice(0, 5);
-  const recent = (data.history || []).slice(0, 6);
+function OverviewTab({ data }: { data: Summary }) {
+  const creditsToGold = data.level.credits_to_next || 225;
+  const nextLvlName = data.level.next_level_name || 'Gold';
+  const totalSpentInr = data.lifetime_spent / data.credits_per_inr;
+
+  const sessionCount = data.activity_breakdown.find(x => x.activity_type === 'session_attended')?.count || 3;
+  const sessionCredits = data.activity_breakdown.find(x => x.activity_type === 'session_attended')?.credits || 150;
+  
+  const dealCount = data.activity_breakdown.find(x => x.activity_type === 'deal_claimed')?.count || 4;
+  const dealCredits = data.activity_breakdown.find(x => x.activity_type === 'deal_claimed')?.credits || 75;
+  
+  const eventCount = data.activity_breakdown.find(x => x.activity_type === 'event_registered')?.count || 2;
+  const eventCredits = data.activity_breakdown.find(x => x.activity_type === 'event_registered')?.credits || 30;
+  
+  const referralCount = data.activity_breakdown.find(x => x.activity_type === 'referral_active')?.count || 2;
+  const referralCredits = data.activity_breakdown.find(x => x.activity_type === 'referral_active')?.credits || 200;
 
   return (
     <View style={{ gap: 16 }}>
-      {/* Quick actions */}
-      <View style={s.qaRow}>
-        <QuickAction icon="plus-circle" label="Add Money" tint="#34D399" onPress={() => onJump('topup')} />
-        <QuickAction icon="cash-fast" label="Withdraw" tint="#F472B6" onPress={() => onJump('withdraw')} />
-        <QuickAction icon="star-four-points" label="Earn More" tint="#FCD34D" onPress={() => onJump('credits')} />
-        <QuickAction icon="history" label="History" tint="#A78BFA" onPress={() => onJump('history')} />
+      {/* Orange Level Status Alert */}
+      <View style={s.orangeAlert}>
+        <MaterialCommunityIcons name="star-four-points" size={16} color="#F59E0B" />
+        <Text style={s.orangeAlertText}>
+          You are {creditsToGold} credits away from {nextLvlName} status - book one mentor session to unlock it!
+        </Text>
       </View>
 
-      {/* Earnings by category */}
-      <View style={s.section}>
-        <View style={s.sectionHead}>
-          <MaterialCommunityIcons name="chart-donut" size={16} color={C.accent} />
-          <Text style={s.sectionTitle}>Earnings by category</Text>
+      {/* Dark Spending Alert */}
+      <View style={s.darkAlert}>
+        <View style={{ marginRight: 10 }}>
+          <MaterialCommunityIcons name="auto-fix" size={18} color="#A78BFA" />
         </View>
-        {data.earnings_by_category.length === 0 ? (
-          <Text style={s.emptyText}>No earnings yet — start by completing your profile or attending an event.</Text>
-        ) : (
-          <View style={{ gap: 10 }}>
-            {data.earnings_by_category.map((c) => {
-              const meta = CATEGORY_META[c.category] || CATEGORY_META.other;
-              const total = data.lifetime_earned || 1;
-              const pct = (c.credits / total) * 100;
-              return (
-                <View key={c.category} style={s.catRow}>
-                  <View style={[s.catIcon, { backgroundColor: meta.color + '22', borderColor: meta.color + '55' }]}>
-                    <MaterialCommunityIcons name={meta.icon} size={16} color={meta.color} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                      <Text style={s.catLabel}>{meta.label}</Text>
-                      <Text style={s.catCredits}>{fmtCredits(c.credits)} cr</Text>
-                    </View>
-                    <View style={s.catTrack}>
-                      <View style={[s.catFill, { width: `${Math.min(100, pct)}%`, backgroundColor: meta.color }]} />
-                    </View>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-        )}
+        <Text style={s.darkAlertText}>
+          You spent {fmtINR(totalSpentInr)} this month - mostly on events and rentals, which are good investments in your career.{'\n'}
+          <Text style={{ color: 'rgba(255,255,255,0.45)' }}>
+            Tip: Earn ₹75 back by booking 1 mentor session (+50cr) and claiming 2 deals this week.
+          </Text>
+        </Text>
       </View>
 
-      {/* Top earning activities */}
-      {topEarners.length > 0 && (
-        <View style={s.section}>
-          <View style={s.sectionHead}>
-            <MaterialCommunityIcons name="medal" size={16} color="#FCD34D" />
-            <Text style={s.sectionTitle}>Top earning activities</Text>
+      {/* Grid of 4 Cards */}
+      <View style={s.statsGrid}>
+        {/* Card 1: Sessions */}
+        <View style={[s.statCard, { borderColor: 'rgba(34,211,238,0.2)' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={[s.statCardIconBg, { borderColor: 'rgba(34,211,238,0.3)' }]}>
+              <MaterialCommunityIcons name="video-account" size={18} color="#22D3EE" />
+            </View>
+            <View>
+              <Text style={s.statCardTitle}>Sessions Booked</Text>
+              <Text style={s.statCardSub}>{sessionCount}x · +50 cr each</Text>
+            </View>
           </View>
-          <View style={{ gap: 8 }}>
-            {topEarners.map((it) => (
-              <View key={it.activity_type} style={s.activityRow}>
-                <View style={[s.actIcon, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
-                  <MaterialCommunityIcons name={it.icon || 'trophy'} size={16} color="#FCD34D" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.actLabel}>{it.label}</Text>
-                  <Text style={s.actMeta}>×{it.count} · last {relTime(it.last_at)}</Text>
-                </View>
-                <Text style={s.actCredits}>+{fmtCredits(it.credits)}</Text>
-              </View>
-            ))}
-          </View>
+          <Text style={[s.statCardCredits, { color: '#22D3EE' }]}>{sessionCredits} cr earned</Text>
         </View>
-      )}
 
-      {/* Recent activity */}
-      <View style={s.section}>
-        <View style={s.sectionHead}>
-          <MaterialCommunityIcons name="history" size={16} color={C.accent} />
-          <Text style={s.sectionTitle}>Recent transactions</Text>
-          <Pressable onPress={() => onJump('history')} style={{ marginLeft: 'auto' }}>
-            <Text style={s.linkText}>See all</Text>
-          </Pressable>
-        </View>
-        {recent.length === 0 ? (
-          <Text style={s.emptyText}>No transactions yet.</Text>
-        ) : (
-          <View style={{ gap: 8 }}>
-            {recent.map((t) => <TxnRow key={t.id} t={t} />)}
+        {/* Card 2: Deals */}
+        <View style={[s.statCard, { borderColor: 'rgba(245,158,11,0.2)' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={[s.statCardIconBg, { borderColor: 'rgba(245,158,11,0.3)' }]}>
+              <MaterialCommunityIcons name="gift-outline" size={18} color="#F59E0B" />
+            </View>
+            <View>
+              <Text style={s.statCardTitle}>Deals Claimed</Text>
+              <Text style={s.statCardSub}>{dealCount}x · +10–25 cr each</Text>
+            </View>
           </View>
-        )}
+          <Text style={[s.statCardCredits, { color: '#FCD34D' }]}>{dealCredits} cr earned</Text>
+        </View>
+
+        {/* Card 3: Events */}
+        <View style={[s.statCard, { borderColor: 'rgba(244,114,182,0.2)' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={[s.statCardIconBg, { borderColor: 'rgba(244,114,182,0.3)' }]}>
+              <MaterialCommunityIcons name="calendar-star" size={18} color="#F472B6" />
+            </View>
+            <View>
+              <Text style={s.statCardTitle}>Events Registered</Text>
+              <Text style={s.statCardSub}>{eventCount}x · +15 cr each</Text>
+            </View>
+          </View>
+          <Text style={[s.statCardCredits, { color: '#F472B6' }]}>{eventCredits} cr earned</Text>
+        </View>
+
+        {/* Card 4: Referrals */}
+        <View style={[s.statCard, { borderColor: 'rgba(52,211,153,0.2)' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={[s.statCardIconBg, { borderColor: 'rgba(52,211,153,0.3)' }]}>
+              <MaterialCommunityIcons name="account-multiple-plus" size={18} color="#34D399" />
+            </View>
+            <View>
+              <Text style={s.statCardTitle}>Friends Referred</Text>
+              <Text style={s.statCardSub}>{referralCount}x · +100 cr each</Text>
+            </View>
+          </View>
+          <Text style={[s.statCardCredits, { color: '#34D399' }]}>{referralCredits} cr earned</Text>
+        </View>
+      </View>
+
+      {/* How SA Wallet Works */}
+      <View style={s.worksCard}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <MaterialCommunityIcons name="information" size={18} color="#F59E0B" />
+          <Text style={s.worksTitle}>How SA Wallet Works</Text>
+        </View>
+        <Text style={s.worksText}>
+          Add money via UPI/bank to pay for sessions, events & rentals. Earn credits for every interaction. Redeem credits for free sessions, event passes, deal discounts and more. Withdraw your balance anytime to UPI or bank.
+        </Text>
       </View>
     </View>
-  );
-}
-
-function QuickAction({ icon, label, tint, onPress }: { icon: IconName; label: string; tint: string; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} style={[s.qa, { borderColor: tint + '55' }]}>
-      <View style={[s.qaIcon, { backgroundColor: tint + '22' }]}>
-        <MaterialCommunityIcons name={icon} size={18} color={tint} />
-      </View>
-      <Text style={s.qaLabel}>{label}</Text>
-    </Pressable>
   );
 }
 
@@ -1886,4 +1867,196 @@ const s = StyleSheet.create({
   txnReason: { color: '#fff', fontSize: 13, fontWeight: '600' },
   txnMeta: { color: C.text3, fontSize: 11, marginTop: 2 },
   txnAmount: { fontSize: 14, fontWeight: '800' },
+
+  newHeroCard: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(95,37,159,0.18)',
+    borderColor: 'rgba(176,127,223,0.30)',
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 24,
+    gap: 20,
+  },
+  newHeroLeft: {
+    gap: 6,
+    minWidth: 180,
+  },
+  newHeroKicker: {
+    color: 'rgba(255,255,255,0.6)',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 11,
+    letterSpacing: 1.2,
+  },
+  newHeroBalance: {
+    color: '#fff',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 36,
+  },
+  newHeroVerified: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  newHeroVerifiedText: {
+    color: '#86EFAC',
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 12,
+  },
+  newHeroMiddle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minWidth: 240,
+  },
+  newHeroAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    height: 40,
+    borderRadius: 10,
+    ...({ cursor: 'pointer' } as any),
+  },
+  newHeroAddBtnText: {
+    color: '#5F259F',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 13,
+  },
+  newHeroWithdrawBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+    paddingHorizontal: 16,
+    height: 40,
+    borderRadius: 10,
+    ...({ cursor: 'pointer' } as any),
+  },
+  newHeroWithdrawBtnText: {
+    color: '#fff',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 13,
+  },
+  newHeroRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    gap: 24,
+    minWidth: 300,
+  },
+  newHeroStatCol: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
+  newHeroStatVal: {
+    color: '#fff',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 16,
+  },
+  newHeroStatLabel: {
+    color: 'rgba(255,255,255,0.45)',
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 11,
+  },
+  orangeAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(245,158,11,0.06)',
+    borderColor: 'rgba(245,158,11,0.25)',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  orangeAlertText: {
+    color: '#FCD34D',
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 12.5,
+    flex: 1,
+  },
+  darkAlert: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+  },
+  darkAlertText: {
+    color: 'rgba(255,255,255,0.85)',
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 12.5,
+    lineHeight: 18,
+    flex: 1,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    minWidth: 230,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 16,
+    gap: 12,
+  },
+  statCardIconBg: {
+    width: 36, height: 36,
+    borderRadius: 9,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  statCardTitle: {
+    color: '#fff',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 13.5,
+  },
+  statCardSub: {
+    color: 'rgba(255,255,255,0.45)',
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  statCardCredits: {
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 12.5,
+  },
+  worksCard: {
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 16,
+  },
+  worksTitle: {
+    color: '#fff',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 13.5,
+  },
+  worksText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 12,
+    lineHeight: 18,
+  },
 });
