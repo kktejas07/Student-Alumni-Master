@@ -9,7 +9,7 @@
  *
  * On successful booking, the booking is persisted and student is shown success.
  */
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -71,8 +71,42 @@ export default function MentorProfileScreen() {
   const [selectedSlot, setSelectedSlot] = useState<{ iso: string; label: string } | null>(null);
   const [topic, setTopic] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [mentor, setMentor] = useState<any>(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [booked, setBooked] = useState(false);
 
   const tags = params.tags ? String(params.tags).split(',') : [];
+
+  useEffect(() => {
+    if (params.id) {
+      setLoadingProfile(true);
+      api.getPublicProfile(params.id)
+        .then((data) => {
+          if (data) {
+            setMentor(data);
+          }
+        })
+        .catch((err) => {
+          console.warn('Failed to fetch mentor profile:', err);
+        })
+        .finally(() => {
+          setLoadingProfile(false);
+        });
+    }
+  }, [params.id]);
+
+  const displayName = mentor?.full_name || params.name || 'Anonymous';
+  const displayTitle = mentor?.job_title && mentor?.organization
+    ? `${mentor.job_title} at ${mentor.organization}`
+    : (mentor?.headline || params.title || 'Expert Mentor');
+  const displayBio = mentor?.bio || params.bio || 'Experienced professional ready to share industry insights, career strategies, and guidance.';
+  const displayRating = mentor?.rating ?? params.rating ?? '5.0';
+  const displaySessions = mentor?.sessions ?? params.sessions ?? '0';
+  const displayTags = mentor?.skills?.length ? mentor.skills : (mentor?.interests?.length ? mentor.interests : tags);
+  const displayLinkedin = mentor?.linkedin_url || params.linkedin;
+  const displayAvatar = mentor?.photo_data 
+    ? (mentor.photo_data.startsWith('data:') ? mentor.photo_data : `data:image/jpeg;base64,${mentor.photo_data}`)
+    : (params.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200');
 
   /** Confirm the booking by POST /api/bookings. */
   const confirm = async () => {
@@ -94,7 +128,8 @@ export default function MentorProfileScreen() {
         slot_end_iso: slotEnd.toISOString(),
         topic: topic.trim(),
       });
-      Alert.alert('Booked!', `Your session with ${params.name} is confirmed.`, [
+      setBooked(true);
+      Alert.alert('Booked!', `Your session with ${displayName} is confirmed.`, [
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (e: any) {
@@ -114,30 +149,30 @@ export default function MentorProfileScreen() {
         {/* ===== Mentor profile header ===== */}
         <Card style={styles.profileCard}>
           <View style={{ alignItems: 'center', gap: 8 }}>
-            <Image source={{ uri: params.avatar }} style={styles.avatar} />
+            <Image source={{ uri: displayAvatar }} style={styles.avatar} />
             <Text style={[Typography.h3, { color: C.textPrimary }]} testID="mentor-name">
-              {params.name}
+              {displayName}
             </Text>
             <Text style={[Typography.body, { color: C.textSecondary, textAlign: 'center' }]}>
-              {params.title}
+              {displayTitle}
             </Text>
             <View style={styles.ratingRow}>
               <Star size={14} color={C.warning} fill={C.warning} />
-              <Text style={[Typography.bodyBold, { color: C.textPrimary }]}>{params.rating}</Text>
-              <Text style={[Typography.bodySm, { color: C.textSecondary }]}>· {params.sessions} sessions</Text>
+              <Text style={[Typography.bodyBold, { color: C.textPrimary }]}>{displayRating}</Text>
+              <Text style={[Typography.bodySm, { color: C.textSecondary }]}>· {displaySessions} sessions</Text>
             </View>
-            {tags.length > 0 && (
+            {displayTags.length > 0 && (
               <View style={styles.tagsRow}>
-                {tags.map((t) => (
+                {displayTags.map((t) => (
                   <View key={t} style={styles.tag}>
                     <Text style={[Typography.label, { color: C.deepPurple, fontSize: 10 }]}>{t}</Text>
                   </View>
                 ))}
               </View>
             )}
-            {params.linkedin && (
+            {displayLinkedin && (
               <TouchableOpacity
-                onPress={() => Linking.openURL(params.linkedin!)}
+                onPress={() => Linking.openURL(displayLinkedin)}
                 style={styles.linkedinBtn}
                 testID="mentor-linkedin-btn"
               >
@@ -149,10 +184,10 @@ export default function MentorProfileScreen() {
         </Card>
 
         {/* ===== Bio ===== */}
-        {params.bio && (
+        {displayBio && (
           <Card style={{ marginTop: 12 }}>
             <Text style={[Typography.label, { color: C.textSecondary }]}>ABOUT</Text>
-            <Text style={[Typography.body, { color: C.textPrimary, marginTop: 8 }]}>{params.bio}</Text>
+            <Text style={[Typography.body, { color: C.textPrimary, marginTop: 8 }]}>{displayBio}</Text>
           </Card>
         )}
 
@@ -169,7 +204,12 @@ export default function MentorProfileScreen() {
             return (
               <TouchableOpacity
                 key={s.iso}
-                onPress={() => setSelectedSlot(s)}
+                onPress={() => {
+                  if (!booked) {
+                    setSelectedSlot(s);
+                  }
+                }}
+                disabled={booked}
                 style={[styles.slotChip, active && styles.slotChipActive]}
                 testID={`slot-${s.iso}`}
                 activeOpacity={0.7}
@@ -197,16 +237,17 @@ export default function MentorProfileScreen() {
             onChangeText={setTopic}
             multiline
             numberOfLines={3}
+            editable={!booked && !submitting}
             testID="booking-topic-input"
           />
         </View>
 
         {/* ===== Confirm ===== */}
         <Button
-          title={submitting ? 'Booking...' : 'Confirm session'}
+          title={booked ? 'Session Booked' : submitting ? 'Booking...' : 'Confirm session'}
           loading={submitting}
           onPress={confirm}
-          disabled={!selectedSlot}
+          disabled={!selectedSlot || booked || submitting}
           testID="booking-confirm-btn"
           style={{ marginTop: Spacing.lg }}
           icon={<MessageCircle size={18} color={C.white} />}

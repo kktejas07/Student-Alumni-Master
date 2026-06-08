@@ -148,7 +148,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
       <Card title="Basic Information" subtitle="Your name, photo, and a short tagline.">
         <View style={st.photoRow}>
           <View style={{ position: 'relative' }}>
-            <Pressable onPress={onUploadPhoto} style={st.avatarLg} testID="profile-avatar-upload">
+            <Pressable onPress={handleOpenMenu} style={st.avatarLg} testID="profile-avatar-upload">
               {photo ? (
                 <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
               ) : (
@@ -178,13 +178,9 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
                 </>
               ) : (
                 <>
-                  <Pressable onPress={onUploadPhoto} style={st.btnPrimary} testID="pf-upload-photo">
+                  <Pressable onPress={handleOpenMenu} style={st.btnPrimary} testID="pf-upload-photo">
                     <Upload size={14} color="#FFF" />
                     <Text style={st.btnPrimaryText}>Upload Photo</Text>
-                  </Pressable>
-                  <Pressable onPress={takeSelfie} style={st.btnPrimary} testID="pf-take-selfie">
-                    <Camera size={14} color="#FFF" />
-                    <Text style={st.btnPrimaryText}>Take Selfie</Text>
                   </Pressable>
                   {photo && (
                     <Pressable onPress={() => {
@@ -215,18 +211,21 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
 
               {/* Selection Items */}
               <View style={{ width: '100%', gap: 10 }}>
-                {onTakeSelfie && (
-                  <Pressable
-                    onPress={() => {
-                      handleCloseMenu();
+                <Pressable
+                  onPress={() => {
+                    handleCloseMenu();
+                    if (onTakeSelfie) {
                       onTakeSelfie();
-                    }}
-                    style={st.menuItem}
-                  >
-                    <Camera size={18} color={themeColor} />
-                    <Text style={st.menuItemText}>Take Selfie</Text>
-                  </Pressable>
-                )}
+                    } else {
+                      takeSelfie();
+                    }
+                  }}
+                  style={st.menuItem}
+                  testID="pf-select-take-selfie"
+                >
+                  <Camera size={18} color={themeColor} />
+                  <Text style={st.menuItemText}>Take Selfie</Text>
+                </Pressable>
 
                 <Pressable
                   onPress={() => {
@@ -234,11 +233,11 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
                     onUploadPhoto();
                   }}
                   style={st.menuItem}
+                  testID="pf-select-upload-photo"
                 >
                   <Upload size={18} color={themeColor} />
                   <Text style={st.menuItemText}>Upload Photo</Text>
                 </Pressable>
-
               </View>
             </View>
           </View>
@@ -377,7 +376,7 @@ const st = StyleSheet.create({
     borderColor: '#0B0717', borderWidth: 2,
   },
   modalBackdrop: {
-    position: 'absolute',
+    position: Platform.OS === 'web' ? 'fixed' : 'absolute' as any,
     top: 0, bottom: 0, left: 0, right: 0,
     backgroundColor: 'rgba(0,0,0,0.80)',
     alignItems: 'center',
