@@ -317,20 +317,34 @@ export function AreaChartCard({
   delay?: number;
   title?: string;
   subtitle?: string;
-  data: AreaPoint[];
+  data: AreaPoint[] | Record<string, { title?: string; subtitle?: string; data: AreaPoint[] } | AreaPoint[]>;
   color?: string;
   yMax?: number;
   ranges?: string[];
   initialRange?: string;
 }) {
   const [range, setRange] = useState<string>(initialRange);
+
+  // Safely extract active range data
+  const isRecord = data && !Array.isArray(data);
+  const activeRangeData = isRecord ? (data as any)[range] : null;
+
+  const chartData = activeRangeData
+    ? (Array.isArray(activeRangeData) ? activeRangeData : activeRangeData.data)
+    : (Array.isArray(data) ? data : []);
+
+  const safeData = chartData && chartData.length > 0 ? chartData : [{ m: 'No Data', v: 0 }];
+
+  const displayTitle = (activeRangeData && !Array.isArray(activeRangeData) && activeRangeData.title) || title;
+  const displaySubtitle = (activeRangeData && !Array.isArray(activeRangeData) && activeRangeData.subtitle) || subtitle;
+
   const W = 720, H = 320;
   const padL = 36, padR = 16, padT = 12, padB = 28;
   const innerW = W - padL - padR;
   const innerH = H - padT - padB;
-  const max = yMax ?? Math.max(...data.map((d) => d.v)) * 1.15;
-  const xs = data.map((_, i) => padL + (i / Math.max(1, data.length - 1)) * innerW);
-  const ys = data.map((d) => padT + innerH - (d.v / max) * innerH);
+  const max = yMax ?? Math.max(10, ...safeData.map((d) => d.v)) * 1.15;
+  const xs = safeData.map((_, i) => padL + (i / Math.max(1, safeData.length - 1)) * innerW);
+  const ys = safeData.map((d) => padT + innerH - (d.v / max) * innerH);
 
   let stroke = `M ${xs[0]},${ys[0]}`;
   for (let i = 0; i < xs.length - 1; i++) {
@@ -353,8 +367,8 @@ export function AreaChartCard({
       <NxCard style={{ padding: 22 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
           <View>
-            <Text style={{ color: NX.textP, fontFamily: FONT, fontSize: 18, fontWeight: '600', letterSpacing: -0.2 }}>{title}</Text>
-            <Text style={{ color: NX.textS, fontFamily: FONT, fontSize: 12, marginTop: 2 }}>{subtitle}</Text>
+            <Text style={{ color: NX.textP, fontFamily: FONT, fontSize: 18, fontWeight: '600', letterSpacing: -0.2 }}>{displayTitle}</Text>
+            <Text style={{ color: NX.textS, fontFamily: FONT, fontSize: 12, marginTop: 2 }}>{displaySubtitle}</Text>
           </View>
           <RangeToggle value={range} onChange={setRange} options={ranges} />
         </View>
@@ -368,17 +382,17 @@ export function AreaChartCard({
               </SvgLG>
             </Defs>
             {gridValues.map((v) => {
-              const y = padT + innerH - (v / max) * innerH;
-              return (
-                <G key={v}>
-                  <Line x1={padL} y1={y} x2={W - padR} y2={y} stroke="rgba(255,255,255,0.04)" strokeDasharray="3 4" />
-                  <SvgText x={padL - 8} y={y + 3} fill={NX.textT} fontSize="11" textAnchor="end" fontFamily="Inter">{v.toLocaleString()}</SvgText>
-                </G>
-              );
+               const y = padT + innerH - (v / max) * innerH;
+               return (
+                 <G key={v}>
+                   <Line x1={padL} y1={y} x2={W - padR} y2={y} stroke="rgba(255,255,255,0.04)" strokeDasharray="3 4" />
+                   <SvgText x={padL - 8} y={y + 3} fill={NX.textT} fontSize="11" textAnchor="end" fontFamily="Inter">{v.toLocaleString()}</SvgText>
+                 </G>
+               );
             })}
             <Path d={fill} fill={`url(#${gradId})`} />
             <Path d={stroke} stroke={color} strokeWidth="2" fill="none" strokeLinejoin="round" strokeLinecap="round" />
-            {data.map((d, i) => (
+            {safeData.map((d, i) => (
               <G key={d.m}>
                 <Circle cx={xs[i]} cy={ys[i]} r={3.5} fill={NX.surface2} stroke={color} strokeWidth="2" />
                 <SvgText x={xs[i]} y={H - 8} fill={NX.textT} fontSize="11" textAnchor="middle" fontFamily="Inter">{d.m}</SvgText>
@@ -418,12 +432,14 @@ export function ActivityCard({
 }) {
   return (
     <FadeUp delay={delay} style={{ flex: 1, minWidth: 320 }}>
-      <NxCard style={{ padding: 22 }}>
-        <Text style={{ color: NX.textP, fontFamily: FONT, fontSize: 18, fontWeight: '600', letterSpacing: -0.2, marginBottom: 14 }}>
-          {title}
-        </Text>
-        <View style={{ gap: 14 }}>
-          {items.map((a, i) => <ActivityRow key={i} item={a} />)}
+      <NxCard style={{ padding: 22, flex: 1, justifyContent: 'space-between' }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: NX.textP, fontFamily: FONT, fontSize: 18, fontWeight: '600', letterSpacing: -0.2, marginBottom: 14 }}>
+            {title}
+          </Text>
+          <View style={{ gap: 14 }}>
+            {items.map((a, i) => <ActivityRow key={i} item={a} />)}
+          </View>
         </View>
         <Pressable
           onPress={onCta}
@@ -444,7 +460,7 @@ export function ActivityCard({
 
 function ActivityRow({ item }: { item: ActivityItem }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
       <View style={{
         width: 36, height: 36, borderRadius: 10,
         backgroundColor: item.bgTint, alignItems: 'center', justifyContent: 'center',

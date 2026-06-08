@@ -14,6 +14,7 @@ import { GRAD, GradientButton, SecondaryButton, KpiTile, IconBox } from '../appl
 import * as MOCK from '../data';
 import { usePortalData } from '@/src/lib/portalApi';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 const KPI_ICONS: Record<string, any> = {
   Building2, GraduationCap, UserCheck, Users, CreditCard, Calendar, CheckCircle, BarChart3,
@@ -32,6 +33,9 @@ const SUPER_MOCK = {
 };
 
 export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void }) {
+  const user = useAuthStore((s) => s.user);
+  const firstName = (user?.full_name || 'ADMIN').split(' ')[0];
+
   const { data } = usePortalData<typeof SUPER_MOCK>('/admin/super-overview', SUPER_MOCK);
   const ADMIN = data!.admin;
   const KPIS = data!.kpis;
@@ -52,7 +56,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
       {/* Hero */}
       <View style={s.hero}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.heroKicker}>GOOD MORNING, ADMIN 👋</Text>
+          <Text style={s.heroKicker}>GOOD MORNING, {firstName.toUpperCase()} 👋</Text>
           <Text style={s.heroTitle}>Platform is healthy. 12 items need your attention.</Text>
         </View>
         <GradientButton size="md" onPress={() => onNavigate?.('approvals')}>

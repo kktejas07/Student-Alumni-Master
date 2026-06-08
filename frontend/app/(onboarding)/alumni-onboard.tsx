@@ -523,9 +523,13 @@ export default function AlumniOnboard() {
       </ScrollView>
 
       <View style={s.navRow}>
-        {step > 0 ? (
-          <Pressable onPress={prev} style={s.backBtn}><ArrowLeft size={18} color="#FFF" /></Pressable>
-        ) : <View style={{ width: 42 }} />}
+        <Pressable
+          onPress={step > 0 ? prev : () => router.replace('/welcome')}
+          style={s.backBtn}
+          testID="alumni-onboard-back"
+        >
+          <ArrowLeft size={18} color="#FFF" />
+        </Pressable>
         <View style={{ flex: 1 }}>
           <PrimaryButton label={ctaLabel} onPress={onContinue} />
         </View>

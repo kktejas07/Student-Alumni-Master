@@ -52,9 +52,10 @@ export function Field({ label, hint, children, half }: {
   );
 }
 
-export function TF({ value, onChangeText, placeholder, secure, leftIcon, testID }: {
+export function TF({ value, onChangeText, placeholder, secure, leftIcon, testID, onSubmitEditing }: {
   value: string; onChangeText: (v: string) => void; placeholder?: string;
   secure?: boolean; leftIcon?: React.ReactNode; testID?: string;
+  onSubmitEditing?: () => void;
 }) {
   return (
     <View style={s.tfWrap}>
@@ -67,6 +68,7 @@ export function TF({ value, onChangeText, placeholder, secure, leftIcon, testID 
         secureTextEntry={secure}
         style={s.tf}
         testID={testID}
+        onSubmitEditing={onSubmitEditing}
       />
     </View>
   );

@@ -337,21 +337,32 @@ const STEPS = [
 ];
 
 function HowItWorks({ isDesktop }: { isDesktop: boolean }) {
-  const dir = isDesktop ? 'row' : 'column';
   return (
     <Section
       kicker="How it works"
       title="Three steps. Lifetime value."
       sub="The flow is intentionally simple — we let the depth come from the data, not the UI."
     >
-      <View style={{ flexDirection: dir as any, gap: 20, marginTop: 32 }}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{
+          flexDirection: 'row',
+          flexGrow: 1,
+          gap: 20,
+          paddingTop: 12,
+          paddingBottom: 12,
+          paddingHorizontal: Platform.OS === 'web' ? 0 : 20,
+        }}
+        style={{ marginTop: 20, marginBottom: -12 }}
+      >
         {STEPS.map((s, idx) => (
           <GlassCard
             key={s.n}
             delay={idx * 100}
             radius={16}
             padding={24}
-            style={{ flex: 1, gap: 12, position: 'relative' }}
+            style={{ flex: 1, minWidth: isDesktop ? 300 : 280, gap: 12, position: 'relative' }}
           >
             <Text style={how.bigNum}>{s.n}</Text>
             <Text style={how.title}>{s.title}</Text>
@@ -359,7 +370,7 @@ function HowItWorks({ isDesktop }: { isDesktop: boolean }) {
             <View style={how.line} />
           </GlassCard>
         ))}
-      </View>
+      </ScrollView>
     </Section>
   );
 }
@@ -409,9 +420,21 @@ function Testimonials({ isDesktop }: { isDesktop: boolean }) {
       title="Built on real outcomes"
       sub="Verified reviews from students who shipped something — internships, fellowships, hackathon wins."
     >
-      <View style={{ flexDirection: isDesktop ? 'row' : 'column', gap: 20, marginTop: 32 }}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{
+          flexDirection: 'row',
+          flexGrow: 1,
+          gap: 20,
+          paddingTop: 12,
+          paddingBottom: 12,
+          paddingHorizontal: Platform.OS === 'web' ? 0 : 20,
+        }}
+        style={{ marginTop: 20, marginBottom: -12 }}
+      >
         {TESTIMONIALS.map((t, idx) => (
-          <GlassCard key={t.name} delay={idx * 80} radius={16} padding={22} style={{ flex: 1, gap: 14 }}>
+          <GlassCard key={t.name} delay={idx * 80} radius={16} padding={22} style={{ flex: 1, minWidth: isDesktop ? 300 : 280, gap: 14 }}>
             <View style={{ flexDirection: 'row', gap: 3 }}>
               {[0, 1, 2, 3, 4].map((i) => <Star key={i} size={14} color="#FBBF24" fill="#FBBF24" />)}
             </View>
@@ -427,7 +450,7 @@ function Testimonials({ isDesktop }: { isDesktop: boolean }) {
             </View>
           </GlassCard>
         ))}
-      </View>
+      </ScrollView>
     </Section>
   );
 }

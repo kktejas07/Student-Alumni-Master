@@ -106,10 +106,12 @@ export interface User {
   alumni_info?: AlumniInfo;
   mentor_info?: MentorInfo;
   mentor_status?: MentorStatus;
+  college_info?: any;
   interests: string[];
   skills: string[];
   bio?: string;
   face_image_base64?: string;
+  photo_data?: string;
   onboarding_completed: boolean;
   created_at: string;
 }

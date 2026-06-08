@@ -3,6 +3,7 @@
  */
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-native';
+import { useRouter } from 'expo-router';
 import {
   LayoutDashboard, GraduationCap, Users, UserCheck, Calendar, Megaphone,
   BarChart3, Sparkles, Briefcase, Trophy, User, ExternalLink, LogOut, Plus,
@@ -10,6 +11,7 @@ import {
 import { CC, FONTS } from './tokens';
 import { COLLEGE } from './data';
 import { Av, Badge } from './atoms';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
 
 export type CollegeNavId =
@@ -32,9 +34,23 @@ export const NAV: Array<{ id: CollegeNavId; label: string; Icon: any; count?: nu
   { id: 'profile',       label: 'Profile',       Icon: User },
 ];
 
+const getInitials = (name: string) => {
+  if (!name) return 'CO';
+  const parts = name.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+
 export function Sidebar({
   active, onNav, onLogout,
 }: { active: CollegeNavId; onNav: (id: CollegeNavId) => void; onLogout: () => void }) {
+  const router = useRouter();
+  const user = useAuthStore((state) => state.user);
+
+  const collegeName = user?.college_info?.institution_name || user?.school_info?.institution_name || COLLEGE.name;
+  const collegeInitials = user?.college_info?.institution_name || user?.school_info?.institution_name ? getInitials(collegeName) : COLLEGE.initials;
+  const collegeRank = user?.college_info?.accreditation || user?.college_info?.accreditations?.[0] || COLLEGE.rank;
+
   return (
     <View style={s.aside}>
       {/* Brand */}
@@ -49,19 +65,22 @@ export function Sidebar({
       {/* College card */}
       <View style={s.collegeCard}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Av initials={COLLEGE.initials} size={40} color="#6366F1" />
+          <Av initials={collegeInitials} size={40} color="#6366F1" />
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text numberOfLines={1} style={s.collegeName}>{COLLEGE.name}</Text>
+            <Text numberOfLines={1} style={s.collegeName}>{collegeName}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
               <Text style={s.collegeRole}>Admin ·</Text>
-              <Badge label={COLLEGE.rank} color="cyan" />
+              <Badge label={collegeRank} color="cyan" />
             </View>
           </View>
         </View>
       </View>
 
       {/* Admin card pill */}
-      <Pressable style={({ hovered }: any) => [s.idCardPill, hovered && { backgroundColor: CC.cardH }]}>
+      <Pressable
+        onPress={() => router.push('/id-card')}
+        style={({ hovered }: any) => [s.idCardPill, hovered && { backgroundColor: CC.cardH }]}
+      >
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.idCardLabel}>My Admin Card</Text>
           <Text style={s.idCardSub}>Share your profile</Text>

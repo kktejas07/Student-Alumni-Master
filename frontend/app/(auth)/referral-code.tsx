@@ -65,6 +65,8 @@ export default function ReferralCode() {
     const dest =
       role === 'student' ? '/(onboarding)/student-onboard' :
       role === 'mentor'  ? '/(onboarding)/mentor-onboard'  :
+      role === 'alumni'  ? '/(onboarding)/alumni-onboard'  :
+      role === 'college' ? '/(onboarding)/college-onboard' :
       '/(onboarding)/quick-setup';
     router.replace(dest as any);
   };

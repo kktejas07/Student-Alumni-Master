@@ -2,15 +2,19 @@
  * College Admin Portal — reusable atoms.
  */
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { CC, FONTS } from './tokens';
 
-export function Av({ initials, size = 40, color }: { initials: string; size?: number; color?: string }) {
+export function Av({ initials, size = 40, color, photo }: { initials: string; size?: number; color?: string; photo?: string | null }) {
   const bg = (color || CC.primary);
   return (
-    <View style={{ width: size, height: size, borderRadius: 10, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: size * 0.36, letterSpacing: 0.3 }}>{initials}</Text>
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+      {photo ? (
+        <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
+      ) : (
+        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: size * 0.36, letterSpacing: 0.3 }}>{initials}</Text>
+      )}
     </View>
   );
 }

@@ -1,6 +1,3 @@
-/**
- * Top Bar for the Mentor Portal RN — page title, search, notifications.
- */
 import React from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Platform } from 'react-native';
 import { Search, Bell } from 'lucide-react-native';
@@ -8,16 +5,23 @@ import { MC, FONTS } from './tokens';
 import { Av } from './atoms';
 import { MENTOR } from './data';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 export function TopBar({
-  title, query, setQuery, notifCount = 4, onBellPress,
+  title, query, setQuery, notifCount = 4, onBellPress, onAvatarPress,
 }: {
   title: string;
   query: string;
   setQuery: (q: string) => void;
   notifCount?: number;
   onBellPress?: () => void;
+  onAvatarPress?: () => void;
 }) {
+  const user = useAuthStore((u) => u.user) as any;
+  const fullName = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || MENTOR.name;
+  const initials = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || MENTOR.avatar).toUpperCase();
+  const photo = user?.photo_data || user?.face_image_base64;
+
   return (
     <View style={s.bar}>
       <Text style={s.title}>{title}</Text>
@@ -42,7 +46,9 @@ export function TopBar({
       </Pressable>
       <View style={{ marginLeft: 4, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <HelpMenu portal="mentor" />
-        <Av initials={MENTOR.avatar} size={34} color={MC.teal} />
+        <Pressable onPress={onAvatarPress} style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}>
+          <Av initials={initials} size={34} color={MC.teal} photo={photo} />
+        </Pressable>
       </View>
     </View>
   );
@@ -54,6 +60,7 @@ const s = StyleSheet.create({
     height: 56, paddingHorizontal: 20,
     borderBottomWidth: 1, borderBottomColor: MC.border,
     backgroundColor: MC.bg,
+    position: 'relative', zIndex: 10,
   },
   title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 18, letterSpacing: -0.4 },
   searchBox: {

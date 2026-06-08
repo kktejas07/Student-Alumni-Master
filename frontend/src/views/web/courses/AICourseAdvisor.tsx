@@ -34,9 +34,10 @@ const C = { bg: '#1A0F2E', surface: 'rgba(67,41,109,0.40)',
             text3: '#7B6B95' };
 
 export default function AICourseAdvisor({
+  open,
+  setOpen,
   onCourseClick,
-}: { onCourseClick: (c: Course) => void }) {
-  const [open, setOpen] = useState(false);
+}: { open: boolean; setOpen: (o: boolean) => void; onCourseClick: (c: Course) => void }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
@@ -84,10 +85,7 @@ export default function AICourseAdvisor({
 
   return (
     <>
-      {/* Floating bubble */}
-      <Pressable onPress={() => setOpen(true)} style={s.bubble}>
-        <MaterialCommunityIcons name="brain" size={22} color="#fff" />
-      </Pressable>
+
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
         <Pressable onPress={() => setOpen(false)} style={s.backdrop}>

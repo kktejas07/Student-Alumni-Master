@@ -1,0 +1,1 @@
+Starting pip install with requirements: C:\Users\phane\OneDrive\Desktop\Master\Student-Alumni-Master-1\backend\requirements.txt

@@ -57,18 +57,28 @@ export function CollegePortalRN() {
 
       <Sidebar active={active} onNav={setActive} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0 }}>
-        <TopBar title={titleFor(active)} />
+        <TopBar
+          title={titleFor(active)}
+          onCalendarPress={() => setActive('events')}
+          onNotificationsPress={() => router.push('/notifications')}
+          onProfilePress={() => setActive('profile')}
+        />
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
           showsVerticalScrollIndicator={false}
         >
           <PromoBanner portal="college" />
-          {active === 'dashboard'    && <DashboardView />}
+          {active === 'dashboard'    && (
+            <DashboardView
+              onOpenProfile={() => setActive('profile')}
+              onNavigate={setActive}
+            />
+          )}
           {active === 'students'     && <StudentsView />}
           {active === 'alumni'       && <AlumniView />}
           {active === 'mentors'      && <MentorsView />}
-          {active === 'events'       && <EventsView />}
+          {active === 'events'       && <EventsView onNavigate={setActive} />}
           {active === 'create-event' && <CreateEventView />}
           {active === 'announcements'&& <AnnouncementsView />}
           {active === 'analytics'    && <AnalyticsView />}

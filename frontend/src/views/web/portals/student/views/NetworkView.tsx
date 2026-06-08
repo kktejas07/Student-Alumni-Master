@@ -11,6 +11,8 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useToast } from '@/src/views/components';
 import { request } from '@/src/models/services/api';
 
+import { StudentPortalNavContext } from '../StudentPortalRN';
+
 type Person = { id: string; name: string; initials: string; kind: 'alumni' | 'student' | 'mentor'; role: string; subline: string; college: string; batch: number; tags: string[]; color: string; connection_state?: 'connected' | 'pending' | 'none' };
 const FALLBACK = { items: [] as Person[] };
 
@@ -28,6 +30,14 @@ export function NetworkView() {
   const [q, setQ] = useState('');
   const [conn, setConn] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState<Set<string>>(new Set());
+
+  const portalNav = React.useContext(StudentPortalNavContext);
+  React.useEffect(() => {
+    if (portalNav?.searchQuery) {
+      setQ(portalNav.searchQuery);
+      portalNav.setSearchQuery('');
+    }
+  }, [portalNav?.searchQuery]);
 
   const list = PEOPLE.filter((p) => {
     if (filter !== 'All' && p.kind !== filter.toLowerCase()) return false;
@@ -74,24 +84,26 @@ export function NetworkView() {
               delay={idx * 30}
               radius={14}
               padding={14}
-              style={{ flexGrow: 1, flexBasis: 300, maxWidth: 360 }}
+              style={{ flexGrow: 1, flexBasis: 300, maxWidth: 360, height: 195, justifyContent: 'space-between' }}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <Av initials={p.initials} size={42} color={p.color} />
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text numberOfLines={1} style={s.name}>{p.name}</Text>
-                  <Text numberOfLines={1} style={s.meta}>{p.subline}</Text>
+              <View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Av initials={p.initials} size={42} color={p.color} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text numberOfLines={1} style={s.name}>{p.name}</Text>
+                    <Text numberOfLines={1} style={s.meta}>{p.subline}</Text>
+                  </View>
+                  <Badge
+                    label={p.kind === 'alumni' ? 'Alumni' : p.kind === 'mentor' ? 'Mentor' : 'Student'}
+                    color={p.kind === 'alumni' ? 'green' : p.kind === 'mentor' ? 'teal' : 'purple'}
+                  />
                 </View>
-                <Badge
-                  label={p.kind === 'alumni' ? 'Alumni' : p.kind === 'mentor' ? 'Mentor' : 'Student'}
-                  color={p.kind === 'alumni' ? 'green' : p.kind === 'mentor' ? 'teal' : 'purple'}
-                />
+                <Text numberOfLines={2} style={s.collegeMeta}>{p.college} · Batch {p.batch}</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
+                  {(p.tags || []).slice(0, 3).map((t) => <View key={t} style={s.tag}><Text style={{ color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 10 }}>{t}</Text></View>)}
+                </View>
               </View>
-              <Text style={s.collegeMeta}>{p.college} · Batch {p.batch}</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
-                {(p.tags || []).slice(0, 3).map((t) => <View key={t} style={s.tag}><Text style={{ color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 10 }}>{t}</Text></View>)}
-              </View>
-              <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
                 {c ? (
                   <Pressable style={s.msgBtn}><MessageSquare size={13} color={SC.accentBright} /><Text style={s.msgText}>Message</Text></Pressable>
                 ) : pn ? (

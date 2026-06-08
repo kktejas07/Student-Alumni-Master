@@ -21,7 +21,9 @@ import * as MOCK from '../data';
 import { usePortalData } from '@/src/lib/portalApi';
 import { TierBadge } from '@/src/views/web/TierBadge';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
+import type { CollegeNavId } from '../Sidebar';
 
 const KPI_ICONS = { students: GraduationCap, alumni: Users, placement: Trophy, events: CalendarDays } as const;
 
@@ -38,8 +40,22 @@ const COLLEGE_MOCK = {
   topRecruiters: MOCK.TOP_RECRUITERS,
 };
 
-export function DashboardView() {
-  const { data } = usePortalData<typeof COLLEGE_MOCK>('/admin/college-stats', COLLEGE_MOCK);
+export function DashboardView({
+  onOpenProfile,
+  onNavigate,
+}: {
+  onOpenProfile?: () => void;
+  onNavigate?: (id: CollegeNavId) => void;
+}) {
+  const user = useAuthStore((state) => state.user);
+  const collegeName = user?.college_info?.institution_name || user?.school_info?.institution_name || '';
+
+  const { data } = usePortalData<typeof COLLEGE_MOCK>(
+    collegeName
+      ? `/admin/college-stats?college_name=${encodeURIComponent(collegeName)}`
+      : '/admin/college-stats',
+    COLLEGE_MOCK
+  );
   const COLLEGE = data!.college;
   const KPIS = data!.kpis;
   const DEPT_PLACEMENT = data!.deptPlacement;
@@ -61,7 +77,7 @@ export function DashboardView() {
       {/* Hero */}
       <View style={{ flexDirection: stack ? 'column' : 'row', alignItems: stack ? 'flex-start' : 'center', gap: 16 }}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.heroTitle}>Good morning, {COLLEGE.shortName} {COLLEGE.emoji}</Text>
+          <Text style={s.heroTitle}>Good morning, {(user?.full_name || 'Admin').split(' ')[0]} 👋</Text>
           <Text style={s.heroSub}>{COLLEGE.placementRate}% placement rate · {COLLEGE.upcomingHighlight}</Text>
         </View>
         {/* TIER BANNER */}
@@ -130,7 +146,7 @@ export function DashboardView() {
         <View style={[s.card, { flex: stack ? undefined : 1.7 }]}>
           <View style={s.cardHead}>
             <Text style={s.kicker}>DEPT. PLACEMENT RATES 2025–26</Text>
-            <Pressable><Text style={s.linkRight}>Full report →</Text></Pressable>
+            <Pressable onPress={() => onNavigate?.('analytics')}><Text style={s.linkRight}>Full report →</Text></Pressable>
           </View>
           <View style={{ gap: 14, marginTop: 14 }}>
             {DEPT_PLACEMENT.map((d) => (
@@ -155,7 +171,7 @@ export function DashboardView() {
         <View style={[s.card, { flex: stack ? undefined : 1 }]}>
           <View style={s.cardHead}>
             <Text style={s.kicker}>UPCOMING EVENTS</Text>
-            <Pressable><Text style={s.linkRight}>See all →</Text></Pressable>
+            <Pressable onPress={() => onNavigate?.('events')}><Text style={s.linkRight}>See all →</Text></Pressable>
           </View>
           <View style={{ gap: 10, marginTop: 12 }}>
             {UPCOMING_EVENTS.map((e) => (
@@ -170,7 +186,7 @@ export function DashboardView() {
               </View>
             ))}
           </View>
-          <Pressable style={({ hovered }: any) => [s.createBtn, hovered && { backgroundColor: CC.primaryD }]}>
+          <Pressable onPress={() => onNavigate?.('create-event')} style={({ hovered }: any) => [s.createBtn, hovered && { backgroundColor: CC.primaryD }]}>
             <Plus size={14} color="#fff" />
             <Text style={s.createBtnText}>Create New Event</Text>
           </Pressable>
@@ -183,7 +199,7 @@ export function DashboardView() {
         <View style={[s.card, { flex: stack ? undefined : 1.7 }]}>
           <View style={s.cardHead}>
             <Text style={s.kicker}>RECENT ACTIVITY</Text>
-            <Pressable><Text style={s.linkRight}>View all →</Text></Pressable>
+            <Pressable onPress={() => onNavigate?.('analytics')}><Text style={s.linkRight}>View all →</Text></Pressable>
           </View>
           <View style={{ gap: 12, marginTop: 12 }}>
             {RECENT_ACTIVITY.map((a) => {
@@ -207,7 +223,7 @@ export function DashboardView() {
         <View style={[s.card, { flex: stack ? undefined : 1 }]}>
           <View style={s.cardHead}>
             <Text style={s.kicker}>TOP RECRUITERS</Text>
-            <Pressable><Text style={s.linkRight}>All →</Text></Pressable>
+            <Pressable onPress={() => onNavigate?.('placements')}><Text style={s.linkRight}>All →</Text></Pressable>
           </View>
           <View style={{ gap: 10, marginTop: 12 }}>
             {TOP_RECRUITERS.map((r) => (
@@ -222,13 +238,42 @@ export function DashboardView() {
               </View>
             ))}
           </View>
-          <Pressable style={({ hovered }: any) => [s.alumniCta, hovered && { backgroundColor: CC.cardH }]}>
+          <Pressable onPress={() => onNavigate?.('alumni')} style={({ hovered }: any) => [s.alumniCta, hovered && { backgroundColor: CC.cardH }]}>
             <Building2 size={13} color={CC.accentBright} />
             <Text style={s.alumniCtaText}>View Alumni Network</Text>
             <ArrowRight size={13} color={CC.accentBright} />
           </Pressable>
         </View>
       </View>
+
+      {/* Profile completion CTA */}
+      {COLLEGE.tier && (
+        <LinearGradient
+          colors={[CC.primary, CC.primaryD] as any}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={s.completionCard}
+        >
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <Text style={s.completionLabel}>Profile Score</Text>
+              <View style={s.completionScorePill}>
+                <Text style={s.completionScoreText}>{COLLEGE.tier.score}%</Text>
+              </View>
+            </View>
+            <Text style={s.completionTitle}>Complete your profile to unlock Platinum status</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+              {(!user?.college_info?.logo) && <View style={s.missingChip}><Text style={s.missingText}>Logo</Text></View>}
+              {(!user?.college_info?.cover_photo) && <View style={s.missingChip}><Text style={s.missingText}>Cover Photo</Text></View>}
+              {(!user?.college_info?.bio) && <View style={s.missingChip}><Text style={s.missingText}>Description / Bio</Text></View>}
+              {(user?.college_info?.accreditations?.length || 0) === 0 && <View style={s.missingChip}><Text style={s.missingText}>Accreditations</Text></View>}
+              {(!user?.college_info?.official_website) && <View style={s.missingChip}><Text style={s.missingText}>Official Website</Text></View>}
+            </View>
+          </View>
+          <Pressable onPress={onOpenProfile} style={({ hovered }: any) => [s.completeCta, hovered && { backgroundColor: '#fff' }]}>
+            <Text style={s.completeCtaText}>Complete Profile →</Text>
+          </Pressable>
+        </LinearGradient>
+      )}
     </View>
   );
 }
@@ -297,6 +342,19 @@ const s = StyleSheet.create({
   recruiterName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
   recruiterMeta: { color: CC.muted, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 1 },
 
-  alumniCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14, height: 36, borderRadius: 10, backgroundColor: CC.card, borderWidth: 1, borderColor: CC.border2, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  alumniCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14, height: 36, borderRadius: 10, backgroundColor: CC.card, borderWidth: 1, borderColor: CC.border2, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}), },
   alumniCtaText: { color: CC.accentBright, fontFamily: FONTS.bold, fontSize: 12 },
+
+  completionCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 16,
+    borderRadius: 16, padding: 18, marginTop: 16,
+  },
+  completionLabel: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.xbold, fontSize: 11.5, letterSpacing: 0.5 },
+  completionScorePill: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
+  completionScoreText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 },
+  completionTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14, marginTop: 4 },
+  missingChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+  missingText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 10.5 },
+  completeCta: { paddingHorizontal: 18, height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
+  completeCtaText: { color: CC.primaryD, fontFamily: FONTS.xbold, fontSize: 12.5 },
 });

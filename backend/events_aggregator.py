@@ -146,7 +146,7 @@ def _classify_event_mode(city: str, country: str, description: str = "") -> str:
 
 # ─── Auth dependency lazy import ────────────────────────────────────────
 def _get_current_user_dependency():
-    from server import get_current_user  # noqa
+    from core.deps import get_current_user  # noqa
     return get_current_user
 
 

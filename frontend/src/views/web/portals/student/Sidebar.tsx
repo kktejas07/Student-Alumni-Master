@@ -69,6 +69,7 @@ export function Sidebar({
   const user = useAuthStore((u) => u.user) as any;
   const fullName: string = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || STUDENT.name;
   const initials: string = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
+  const photo = user?.photo_data || user?.face_image_base64;
   const gy = user?.graduation_year || (user?.school_info || {}).graduation_year;
   const yearLabel: string = (gy && Number(gy) === new Date().getFullYear()) ? 'Final Year'
     : (gy && Number(gy) === new Date().getFullYear() + 1) ? 'Pre-Final Year'
@@ -149,10 +150,10 @@ export function Sidebar({
       {/* Profile card */}
       {!collapsed && (
         <FadeInView delay={70}>
-          <View style={s.profileCard}>
+          <PressScale onPress={() => onNav('profile')} style={s.profileCard}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: SP.md }}>
               <View style={{ position: 'relative' }}>
-                <Av initials={initials} size={40} color={C.accent} />
+                <Av initials={initials} size={40} color={C.accent} photo={photo} />
                 <View style={[s.statusDotWrap, { backgroundColor: C.bg }]}>
                   <PulseDot size={10} color={theme.green} />
                 </View>
@@ -162,14 +163,14 @@ export function Sidebar({
                 <Text style={[s.profileYear, { color: C.textSec }]}>{yearLabel}</Text>
               </View>
             </View>
-          </View>
+          </PressScale>
         </FadeInView>
       )}
 
       {/* Student card pill */}
       {!collapsed && (
         <FadeInView delay={120}>
-          <PressScale style={[s.idCardPill, { backgroundColor: C.cardBg, borderColor: C.border }]} onPress={() => router.push('/me?tab=integrations')}>
+          <PressScale style={[s.idCardPill, { backgroundColor: C.cardBg, borderColor: C.border }]} onPress={() => router.push('/id-card')}>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={[s.idCardLabel, { color: C.textSec }]}>My Student Card</Text>
               <Text style={[s.idCardNumber, { color: C.accent }]}>{saId}</Text>
@@ -257,7 +258,10 @@ const s = StyleSheet.create({
   brandTitle: { fontFamily: TYPO.display700, fontSize: 14, letterSpacing: -0.3 },
   brandSub: { fontFamily: TYPO.body500, fontSize: 10.5 },
 
-  profileCard: { paddingHorizontal: SP.xs, paddingVertical: SP.sm, marginBottom: SP.md },
+  profileCard: {
+    paddingHorizontal: SP.xs, paddingVertical: SP.sm, marginBottom: SP.md,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
   statusDotWrap: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
   profileName: { fontFamily: FONT_FAMILY, fontWeight: '600', fontSize: 13 },
   profileYear: { fontFamily: FONT_FAMILY, fontWeight: '500', fontSize: 11 },

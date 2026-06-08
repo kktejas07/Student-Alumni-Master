@@ -93,7 +93,7 @@ export default function FaceCapture() {
         interests: onboarding.interests,
         skills: onboarding.skills,
         bio: onboarding.bio,
-        face_image_base64: onboarding.face_image_base64,
+        face_image_base64: onboarding.face_image_base64 || pendingPhoto || undefined,
         // Collected during role-details for ALL roles per HTML spec
         phone: onboarding.phone,
       };

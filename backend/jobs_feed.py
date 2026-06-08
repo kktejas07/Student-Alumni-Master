@@ -805,7 +805,7 @@ def _serialize(doc: Dict[str, Any]) -> Dict[str, Any]:
 
 def _get_current_user_dependency():
     """Lazy import to avoid circular import at module init."""
-    from server import get_current_user  # noqa
+    from core.deps import get_current_user  # noqa
     return get_current_user
 
 

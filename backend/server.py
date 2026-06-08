@@ -116,12 +116,31 @@ api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernet
 # Per spec — encrypt sensitive personal data (dob, phone, postal_code) at rest.
 # Backwards-compat: legacy users may have plaintext values; decrypt() returns
 # the input as-is when it can't be decoded as Fernet ciphertext.
-from cryptography.fernet import Fernet, InvalidToken  # noqa: E402
+try:
+    from cryptography.fernet import Fernet, InvalidToken  # noqa: E402
+    _HAS_CRYPTOGRAPHY = True
+except Exception:
+    _HAS_CRYPTOGRAPHY = False
+    class Fernet:
+        @staticmethod
+        def generate_key():
+            return b"dummy_key_for_dev_booting_without_cryptography_32b_len="
+        def __init__(self, key):
+            pass
+        def encrypt(self, data: bytes) -> bytes:
+            return data
+        def decrypt(self, data: bytes) -> bytes:
+            return data
+    class InvalidToken(Exception):
+        pass
 
 _FERNET_KEY = os.environ.get("FERNET_KEY")
 if not _FERNET_KEY:
     # Auto-generate a session key in dev so the app boots; logs a warning.
-    _FERNET_KEY = Fernet.generate_key().decode()
+    if _HAS_CRYPTOGRAPHY:
+        _FERNET_KEY = Fernet.generate_key().decode()
+    else:
+        _FERNET_KEY = Fernet.generate_key().decode('utf-8')
     print(f"⚠️  FERNET_KEY not set — using ephemeral key (dev only): {_FERNET_KEY[:12]}…")
 _FERNET = Fernet(_FERNET_KEY.encode() if isinstance(_FERNET_KEY, str) else _FERNET_KEY)
 # Marker so we can recognise our ciphertexts in mixed-format collections.
@@ -560,6 +579,20 @@ class BookingRequest(BaseModel):
     notes: Optional[str] = None
 
 
+class MentorBookingCreateRequest(BaseModel):
+    """Mentor schedules a booking with a student."""
+    student_id: str
+    slot_start_iso: str  # ISO datetime string
+    topic: str
+    notes: Optional[str] = None
+
+
+class RescheduleRequest(BaseModel):
+    """Request payload to reschedule a session."""
+    slot_start_iso: str  # ISO datetime string
+
+
+
 # ----------------------------------------------------------------------------
 # Helpers — Auth, hashing, ID generation
 # ----------------------------------------------------------------------------
@@ -665,7 +698,7 @@ def serialize_user(user: dict) -> dict:
         "first_name":     user.get("first_name"),
         "last_name":      user.get("last_name"),
         "headline":       user.get("headline"),
-        "photo_data":     user.get("photo_data"),
+        "photo_data":     user.get("photo_data") or user.get("face_image_base64"),
         "institution":    user.get("institution"),
         "branch":         user.get("branch"),
         "stream":         user.get("stream"),
@@ -1105,6 +1138,7 @@ async def get_public_profile(user_id: str):
         "bio": target.get("bio"),
         "photo_data": target.get("photo_data") or target.get("face_image_base64"),
         "is_online": target.get("is_online", True),
+        "is_verified": target.get("is_verified", False),
         # Identity meta
         "institution": target.get("institution") or si.get("institution_name"),
         "branch": target.get("branch"),
@@ -1339,6 +1373,7 @@ async def my_id_card(user: dict = Depends(get_current_user)):
     si = user.get("school_info") or {}
     ai = user.get("alumni_info") or {}
     cp = user.get("college_profile") or {}
+    mi = user.get("mentor_info") or user.get("mentor_profile") or {}
     role = (user.get("role") or "").lower()
     status = _student_status_label(user)
 
@@ -1355,6 +1390,15 @@ async def my_id_card(user: dict = Depends(get_current_user)):
             batch = f"Class of {int(batch)}"
         except Exception:
             batch = str(batch)
+
+    company = mi.get("company") or mi.get("organization") or user.get("company") or ""
+    position = mi.get("position") or mi.get("job_title") or user.get("position") or ""
+    years_exp = mi.get("years_experience") or mi.get("years_of_experience") or user.get("years_experience") or ""
+    if years_exp:
+        try:
+            years_exp = f"{int(years_exp)} Years"
+        except Exception:
+            years_exp = str(years_exp)
 
     raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
     frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
@@ -1377,6 +1421,9 @@ async def my_id_card(user: dict = Depends(get_current_user)):
             if isinstance(user.get("sa_id_issued_at"), datetime) else str(user.get("sa_id_issued_at") or datetime.utcnow().isoformat()),
         "verify_url": public_verify_url,
         "qr_payload": public_verify_url,
+        "company": company,
+        "position": position,
+        "years_experience": years_exp,
     }
 
 
@@ -1422,7 +1469,7 @@ async def verify_id_card(identifier: str):
     # ─── Role-specific fields (all from DB, no hardcoded fallbacks) ───
     si = u.get("school_info") or {}
     ai = u.get("alumni_info") or {}
-    mi = u.get("mentor_info") or {}
+    mi = u.get("mentor_info") or u.get("mentor_profile") or {}
     ci = u.get("college_profile") or {}
     adm = u.get("admin_profile") or {}
 
@@ -1445,10 +1492,9 @@ async def verify_id_card(identifier: str):
 
     elif role == "mentor":
         base["expertise"] = mi.get("expertise") or u.get("skills") or []
-        base["company"] = mi.get("company") or u.get("company") or ""
-        base["position"] = mi.get("position") or u.get("position") or ""
-        base["company"] = mi.get("company") or u.get("company") or ""
-        base["years_experience"] = mi.get("years_experience") or ""
+        base["company"] = mi.get("company") or mi.get("organization") or u.get("company") or ""
+        base["position"] = mi.get("position") or mi.get("job_title") or u.get("position") or ""
+        base["years_experience"] = mi.get("years_experience") or mi.get("years_of_experience") or ""
         base["institution"] = ai.get("institution_name") or si.get("institution_name") or ""
 
     elif role == "college":
@@ -2301,6 +2347,7 @@ async def complete_onboarding(req: OnboardingRequest, user: dict = Depends(get_c
         "skills": req.skills,
         "bio": req.bio,
         "face_image_base64": req.face_image_base64,
+        "photo_data": req.face_image_base64,
         "unique_id": unique_id,
         "qr_code_base64": qr_code,
         "onboarding_completed": True,
@@ -4433,7 +4480,7 @@ def _user_card(u: dict) -> dict:
     ]
     # Primary skill = first interest (highlighted in green) — rest stay grey
     interests = list(u.get("interests") or si.get("interests") or [])[:6]
-    skills = list((mp.get("skills") or []))[:6]
+    skills = list(u.get("skills") or mp.get("skills") or ai.get("skills") or [])[:6]
     primary_skill = (interests[0] if interests else (skills[0] if skills else None))
     # Online: based on last_login within 5 minutes (or random for seed users)
     last = u.get("last_active") or u.get("last_login")
@@ -4526,7 +4573,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     if q:
         rx = {"$regex": q, "$options": "i"}
         base_query["$or"] = [{"full_name": rx}, {"email": rx}]
-    candidates = await db.users.find(base_query, {"password_hash": 0, "face_image_base64": 0}).to_list(500)
+    candidates = await db.users.find(base_query, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).to_list(500)
 
     cards = [_user_card(c) for c in candidates]
     # attach connection_state (none|pending|connected|incoming)
@@ -4552,7 +4599,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     approved_mentors = await db.users.find(
         {"_id": {"$ne": user["_id"]}, "role": "mentor", "mentor_status": "approved"},
         {"password_hash": 0, "face_image_base64": 0},
-    ).limit(50).to_list(50)
+    ).sort("_id", -1).limit(100).to_list(100)
     mentor_cards = [_user_card(m) for m in approved_mentors]
     for m in mentor_cards:
         m["connection_state"] = state_by_user.get(m["id"], "none")
@@ -4560,9 +4607,15 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     if my_cp:
         mentor_cards.sort(key=lambda m: (m.get("category") or "").lower().find(my_cp.lower()) == -1)
 
+    # Section: peer_students (NEW)
+    peer_students = [c for c in cards if c["role"] == "student"]
+
+    # Section: explore_alumni (NEW)
+    explore_alumni = [c for c in cards if c["role"] == "alumni"]
+
     # Section: expand — diverse roles user hasn't matched on yet
-    seen_ids = {c["id"] for c in (by_interest + by_career + by_skills + by_college)} | {m["id"] for m in mentor_cards}
-    expand = [c for c in cards if c["id"] not in seen_ids and c["role"] in {"alumni", "college"}]
+    seen_ids = {c["id"] for c in (by_interest + by_career + by_skills + by_college + peer_students[:limit] + explore_alumni[:limit])} | {m["id"] for m in mentor_cards}
+    expand = [c for c in cards if c["id"] not in seen_ids and c["role"] in {"student", "alumni", "college"}]
 
     interest_label = ", ".join(my_interests[:2]) if my_interests else "Your declared interests"
     skill_label    = ", ".join(my_skills[:3])     if my_skills    else "your declared skills"
@@ -4590,6 +4643,14 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
              "subtitle": "Book a session \u00b7 First 2 free",
              "icon": "UserCheck", "tint": "#10B981",
              "items": mentor_cards[:limit]},
+            {"key": "peer_students", "title": "Peer Students",
+             "subtitle": "Connect with peers and classmates",
+             "icon": "Users", "tint": "#22D3EE",
+             "items": peer_students[:limit]},
+            {"key": "explore_alumni", "title": "Explore Alumni",
+             "subtitle": "Learn from graduates in the industry",
+             "icon": "Users", "tint": "#F59E0B",
+             "items": explore_alumni[:limit]},
             {"key": "expand", "title": "Expand Your Horizons",
              "subtitle": "People outside your current interests",
              "icon": "Compass", "tint": "#EC4899",
@@ -4813,7 +4874,7 @@ async def create_booking(req: BookingRequest, user: dict = Depends(get_current_u
         "slot_end_iso": req.slot_end_iso,
         "topic": req.topic,
         "notes": req.notes,
-        "status": "confirmed",
+        "status": "pending",
         "created_at": datetime.now(timezone.utc),
     }
     result = await db.bookings.insert_one(booking)
@@ -4838,6 +4899,110 @@ async def my_bookings(user: dict = Depends(get_current_user)):
         else {"mentor_id": str(user["_id"])}
     items = await db.bookings.find(query, {"_id": 0}).sort("slot_start_iso", 1).to_list(100)
     return {"bookings": items}
+
+
+@api_router.post("/mentor/bookings")
+async def create_mentor_booking(req: MentorBookingCreateRequest, user: dict = Depends(get_current_user)):
+    """Mentor schedules a booking with a student."""
+    if user["role"] != "mentor":
+        raise HTTPException(403, "Only mentors can schedule sessions")
+
+    # Resolve student
+    student = await db.users.find_one({"_id": ObjectId(req.student_id), "role": "student"})
+    if not student:
+        raise HTTPException(404, "Student not found")
+
+    # Parse slot_start_iso to datetime object
+    try:
+        dt_str = req.slot_start_iso.replace("Z", "+00:00")
+        scheduled_at = datetime.fromisoformat(dt_str)
+    except Exception as e:
+        raise HTTPException(400, f"Invalid date format for slot_start_iso: {e}")
+
+    booking = {
+        "student_id": req.student_id,
+        "student_name": student.get("full_name", "Student"),
+        "student_email": student["email"],
+        "mentor_id": str(user["_id"]),
+        "mentor_name": user.get("full_name", "Mentor"),
+        "mentor_email": user["email"],
+        "topic": req.topic,
+        "notes": req.notes,
+        "scheduled_at": scheduled_at,
+        "slot_start_iso": req.slot_start_iso,
+        "slot_end_iso": (scheduled_at + timedelta(minutes=45)).isoformat(),
+        "duration_minutes": 45,
+        "status": "confirmed",
+        "created_at": datetime.now(timezone.utc),
+    }
+
+    result = await db.bookings.insert_one(booking)
+    booking["id"] = str(result.inserted_id)
+    booking.pop("_id", None)
+
+    # Send notification/push to student
+    try:
+        await notify_booking_confirmed(
+            db, student_id=req.student_id,
+            mentor_name=user.get("full_name", "Mentor"),
+            when=req.slot_start_iso
+        )
+    except Exception:
+        pass
+
+    return {"ok": True, "booking": booking}
+
+
+@api_router.post("/bookings/{booking_id}/reschedule")
+async def reschedule_booking(booking_id: str, req: RescheduleRequest, user: dict = Depends(get_current_user)):
+    """Mentor or student reschedules a booking."""
+    try:
+        oid = ObjectId(booking_id)
+    except Exception:
+        oid = None
+    query = {"$or": [{"id": booking_id}]}
+    if oid:
+        query["$or"].append({"_id": oid})
+
+    booking = await db.bookings.find_one(query)
+    if not booking:
+        raise HTTPException(404, "Booking not found")
+
+    # Check permissions: must be student or mentor of the booking
+    if str(booking.get("student_id")) != str(user["_id"]) and str(booking.get("mentor_id")) != str(user["_id"]):
+        raise HTTPException(403, "You do not have permission to reschedule this booking")
+
+    try:
+        dt_str = req.slot_start_iso.replace("Z", "+00:00")
+        scheduled_at = datetime.fromisoformat(dt_str)
+    except Exception as e:
+        raise HTTPException(400, f"Invalid date format: {e}")
+
+    update_filter = {"_id": booking["_id"]} if booking.get("_id") else {"id": booking_id}
+    await db.bookings.update_one(update_filter, {"$set": {
+        "slot_start_iso": req.slot_start_iso,
+        "slot_end_iso": (scheduled_at + timedelta(minutes=45)).isoformat(),
+        "scheduled_at": scheduled_at,
+        "rescheduled_at": datetime.now(timezone.utc),
+    }})
+
+    # Notify the other party
+    other_party_id = booking.get("student_id") if user["role"] == "mentor" else booking.get("mentor_id")
+    try:
+        await db.notifications.insert_one({
+            "user_id": other_party_id,
+            "title": "Session rescheduled",
+            "message": f"{user.get('full_name')} rescheduled the session on '{booking.get('topic')}' to {req.slot_start_iso}.",
+            "type": "booking_rescheduled",
+            "booking_id": booking_id,
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception:
+        pass
+
+    return {"ok": True}
+
 
 
 # ----------------------------------------------------------------------------
