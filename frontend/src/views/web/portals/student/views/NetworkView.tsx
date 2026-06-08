@@ -336,6 +336,18 @@ export function NetworkView() {
                           <Text numberOfLines={1} style={s.cardRole}>{m.role}</Text>
                           <Text numberOfLines={1} style={s.cardCompany}>{m.company}</Text>
                         </View>
+                        
+                        {/* Top-Right Social Links. */}
+                        <View style={{ flexDirection: 'row', gap: 4, alignSelf: 'flex-start' }}>
+                          <Pressable onPress={() => Linking.openURL(`https://${m.linkedin}`)} style={s.iconBtn}>
+                            <Linkedin size={12} color={SC.muted} />
+                          </Pressable>
+                          {m.github && (
+                            <Pressable onPress={() => Linking.openURL(`https://${m.github}`)} style={s.iconBtn}>
+                              <Github size={12} color={SC.muted} />
+                            </Pressable>
+                          )}
+                        </View>
                       </View>
 
                       <View style={s.tagsRow}>
@@ -363,26 +375,32 @@ export function NetworkView() {
                     </View>
 
                     <View style={s.cardActions}>
-                      <Pressable onPress={() => setPickedPerson(m)} style={s.actionBtnOutline}>
+                      <Pressable onPress={() => setPickedPerson(m)} style={[s.actionBtnOutline, { flex: 1, marginRight: 4 }]}>
                         <Eye size={12} color={SC.accentBright} style={{ marginRight: 5 }} />
                         <Text style={s.actionBtnOutlineText}>View Profile</Text>
                       </Pressable>
 
-                      <Pressable onPress={() => setBookingMentor(m)} style={s.actionBtnFill}>
+                      {conn.has(m.id) || m.connectionState === 'connected' ? (
+                        <View style={[s.connectedBadge, { flex: 1, marginRight: 4 }]}>
+                          <Check size={11} color={SC.green} style={{ marginRight: 4 }} />
+                          <Text style={s.connectedText}>Connected</Text>
+                        </View>
+                      ) : pending.has(m.id) || m.connectionState === 'pending' ? (
+                        <View style={[s.pendingBadge, { flex: 1, marginRight: 4 }]}>
+                          <Clock size={11} color={SC.amber} style={{ marginRight: 4 }} />
+                          <Text style={s.pendingText}>Pending</Text>
+                        </View>
+                      ) : (
+                        <Pressable onPress={() => handleConnect(m.id, m.name)} style={[s.actionBtnOutline, { flex: 1, marginRight: 4 }]}>
+                          <UserPlus size={12} color={SC.accentBright} style={{ marginRight: 5 }} />
+                          <Text style={s.actionBtnOutlineText}>Connect</Text>
+                        </Pressable>
+                      )}
+
+                      <Pressable onPress={() => setBookingMentor(m)} style={[s.actionBtnFill, { flex: 1.1 }]}>
                         <Calendar size={12} color="#fff" style={{ marginRight: 5 }} />
                         <Text style={s.actionBtnFillText}>Book</Text>
                       </Pressable>
-
-                      <View style={{ flexDirection: 'row', gap: 4 }}>
-                        <Pressable onPress={() => Linking.openURL(`https://${m.linkedin}`)} style={s.iconBtn}>
-                          <Linkedin size={12} color={SC.muted} />
-                        </Pressable>
-                        {m.github && (
-                          <Pressable onPress={() => Linking.openURL(`https://${m.github}`)} style={s.iconBtn}>
-                            <Github size={12} color={SC.muted} />
-                          </Pressable>
-                        )}
-                      </View>
                     </View>
                   </GlassCard>
                 ))}
@@ -744,6 +762,18 @@ export function NetworkView() {
                       <Text numberOfLines={1} style={s.cardRole}>{m.role}</Text>
                       <Text numberOfLines={1} style={s.cardCompany}>{m.company}</Text>
                     </View>
+                    
+                    {/* Top-Right Social Links. */}
+                    <View style={{ flexDirection: 'row', gap: 4, alignSelf: 'flex-start' }}>
+                      <Pressable onPress={() => Linking.openURL(`https://${m.linkedin}`)} style={s.iconBtn}>
+                        <Linkedin size={12} color={SC.muted} />
+                      </Pressable>
+                      {m.github && (
+                        <Pressable onPress={() => Linking.openURL(`https://${m.github}`)} style={s.iconBtn}>
+                          <Github size={12} color={SC.muted} />
+                        </Pressable>
+                      )}
+                    </View>
                   </View>
 
                   <View style={s.tagsRow}>
@@ -771,21 +801,32 @@ export function NetworkView() {
                 </View>
 
                 <View style={s.cardActions}>
-                  <Pressable onPress={() => setPickedPerson(m)} style={s.actionBtnOutline}>
+                  <Pressable onPress={() => setPickedPerson(m)} style={[s.actionBtnOutline, { flex: 1, marginRight: 4 }]}>
                     <Eye size={12} color={SC.accentBright} style={{ marginRight: 5 }} />
                     <Text style={s.actionBtnOutlineText}>View Profile</Text>
                   </Pressable>
 
-                  <Pressable onPress={() => setBookingMentor(m)} style={s.actionBtnFill}>
+                  {conn.has(m.id) || m.connectionState === 'connected' ? (
+                    <View style={[s.connectedBadge, { flex: 1, marginRight: 4 }]}>
+                      <Check size={11} color={SC.green} style={{ marginRight: 4 }} />
+                      <Text style={s.connectedText}>Connected</Text>
+                    </View>
+                  ) : pending.has(m.id) || m.connectionState === 'pending' ? (
+                    <View style={[s.pendingBadge, { flex: 1, marginRight: 4 }]}>
+                      <Clock size={11} color={SC.amber} style={{ marginRight: 4 }} />
+                      <Text style={s.pendingText}>Pending</Text>
+                    </View>
+                  ) : (
+                    <Pressable onPress={() => handleConnect(m.id, m.name)} style={[s.actionBtnOutline, { flex: 1, marginRight: 4 }]}>
+                      <UserPlus size={12} color={SC.accentBright} style={{ marginRight: 5 }} />
+                      <Text style={s.actionBtnOutlineText}>Connect</Text>
+                    </Pressable>
+                  )}
+
+                  <Pressable onPress={() => setBookingMentor(m)} style={[s.actionBtnFill, { flex: 1.1 }]}>
                     <Calendar size={12} color="#fff" style={{ marginRight: 5 }} />
                     <Text style={s.actionBtnFillText}>Book</Text>
                   </Pressable>
-
-                  <View style={{ flexDirection: 'row', gap: 4 }}>
-                    <Pressable onPress={() => Linking.openURL(`https://${m.linkedin}`)} style={s.iconBtn}>
-                      <Linkedin size={12} color={SC.muted} />
-                    </Pressable>
-                  </View>
                 </View>
               </GlassCard>
             ))}
@@ -900,16 +941,38 @@ export function NetworkView() {
                     </View>
                   </View>
 
-                  {/* Connection / Booking Action Button */}
+                  {/* Connection / Booking Action Button. */}
                   <View style={{ marginTop: 8 }}>
                     {pickedPerson.kind === 'mentor' ? (
-                      <Pressable 
-                        onPress={() => handleOpenBooking(pickedPerson)} 
-                        style={s.bookBtnLarge}
-                      >
-                        <Calendar size={16} color="#fff" style={{ marginRight: 8 }} />
-                        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 }}>Book a Session</Text>
-                      </Pressable>
+                      <View style={{ flexDirection: 'row', gap: 10 }}>
+                        {isConnected ? (
+                          <View style={[s.connectedPillLarge, { flex: 1 }]}>
+                            <Check size={16} color={SC.green} style={{ marginRight: 6 }} />
+                            <Text style={{ color: SC.green, fontFamily: FONTS.bold, fontSize: 14 }}>Connected</Text>
+                          </View>
+                        ) : isPending ? (
+                          <View style={[s.pendingPillLarge, { flex: 1 }]}>
+                            <Clock size={16} color={SC.amber} style={{ marginRight: 6 }} />
+                            <Text style={{ color: SC.amber, fontFamily: FONTS.bold, fontSize: 14 }}>Pending</Text>
+                          </View>
+                        ) : (
+                          <Pressable 
+                            onPress={() => handleConnect(pickedPerson.id, pickedPerson.name)} 
+                            style={[s.connectBtnLarge, { flex: 1, backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)' }]}
+                          >
+                            <UserPlus size={16} color={SC.accentBright} style={{ marginRight: 6 }} />
+                            <Text style={{ color: SC.accentBright, fontFamily: FONTS.xbold, fontSize: 14 }}>Connect</Text>
+                          </Pressable>
+                        )}
+                        
+                        <Pressable 
+                          onPress={() => handleOpenBooking(pickedPerson)} 
+                          style={[s.bookBtnLarge, { flex: 1.2 }]}
+                        >
+                          <Calendar size={16} color="#fff" style={{ marginRight: 8 }} />
+                          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 }}>Book Session</Text>
+                        </Pressable>
+                      </View>
                     ) : isConnected ? (
                       <View style={s.connectedPillLarge}>
                         <Check size={16} color={SC.green} style={{ marginRight: 6 }} />
