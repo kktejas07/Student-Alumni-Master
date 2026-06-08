@@ -14,7 +14,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator,
-  TextInput, Platform,
+  TextInput, Platform, useWindowDimensions,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -505,7 +505,6 @@ function OverviewTab({ data }: { data: Summary }) {
   );
 }
 
-// ─── Top-up tab ──────────────────────────────────────────────────────────
 function TopupTab(props: {
   data: Summary;
   amount: string; setAmount: (v: string) => void;
@@ -513,114 +512,196 @@ function TopupTab(props: {
   submitting: boolean; onSubmit: () => void; result: any;
 }) {
   const { data, amount, setAmount, method, setMethod, submitting, onSubmit, result } = props;
+  const { width } = useWindowDimensions();
+  const stack = width < 980;
+
   const inr = Number(amount) || 0;
   const baseCredits = inr * data.credits_per_inr;
   const bonusCredits = Math.round(baseCredits * (data.topup_bonus_pct / 100));
   const totalCredits = baseCredits + bonusCredits;
 
+  const firstName = data.full_name?.split(' ')[0]?.toLowerCase() || 'student';
+  const defaultUpi = `${firstName}@okhdfc`;
+  const [upiId, setUpiId] = useState(defaultUpi);
+
+  const presets = [200, 500, 1000, 2000];
+
   return (
-    <View style={{ gap: 16 }}>
-      <View style={s.section}>
-        <View style={s.sectionHead}>
-          <MaterialCommunityIcons name="plus-circle" size={16} color={C.good} />
-          <Text style={s.sectionTitle}>Add money to your wallet</Text>
-        </View>
+    <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
+      {/* Left Column: Form */}
+      <View style={{ flex: stack ? undefined : 1.6, gap: 16 }}>
+        <View style={s.section}>
+          <Text style={s.topupCardTitle}>Add Money to Wallet</Text>
 
-        {/* Preset chips */}
-        <View style={s.presetRow}>
-          {TOPUP_PRESETS.map((v) => (
+          {/* Payment Method Selector */}
+          <Text style={s.fieldLabel}>Payment Method</Text>
+          <View style={s.topupMethodsRow}>
             <Pressable
-              key={v}
-              onPress={() => setAmount(String(v))}
-              style={[s.preset, Number(amount) === v && s.presetActive]}
+              onPress={() => setMethod('upi')}
+              style={[s.topupMethodBox, method === 'upi' && s.topupMethodBoxActive]}
             >
-              <Text style={[s.presetText, Number(amount) === v && s.presetTextActive]}>{fmtINR(v)}</Text>
+              <MaterialCommunityIcons name="qrcode" size={20} color={method === 'upi' ? '#fff' : 'rgba(255,255,255,0.45)'} />
+              <Text style={[s.topupMethodText, method === 'upi' && { color: '#fff' }]}>UPI</Text>
             </Pressable>
-          ))}
-        </View>
 
-        {/* Custom amount */}
-        <Text style={s.fieldLabel}>Amount (₹)</Text>
-        <View style={s.inputWrap}>
-          <Text style={s.inputPrefix}>₹</Text>
-          <TextInput
-            value={amount}
-            onChangeText={(v) => setAmount(v.replace(/[^0-9]/g, ''))}
-            keyboardType="numeric"
-            placeholder="500"
-            placeholderTextColor={C.text3}
-            style={s.input}
-          />
-        </View>
+            <Pressable
+              onPress={() => setMethod('netbanking')}
+              style={[s.topupMethodBox, method === 'netbanking' && s.topupMethodBoxActive]}
+            >
+              <MaterialCommunityIcons name="bank" size={20} color={method === 'netbanking' ? '#fff' : 'rgba(255,255,255,0.45)'} />
+              <Text style={[s.topupMethodText, method === 'netbanking' && { color: '#fff' }]}>Net Banking</Text>
+            </Pressable>
 
-        {/* Conversion preview */}
-        <View style={s.previewBox}>
-          <View style={s.previewRow}>
-            <Text style={s.previewLabel}>You pay</Text>
-            <Text style={s.previewValue}>{fmtINR(inr)}</Text>
+            <Pressable
+              onPress={() => setMethod('card')}
+              style={[s.topupMethodBox, method === 'card' && s.topupMethodBoxActive]}
+            >
+              <MaterialCommunityIcons name="credit-card" size={20} color={method === 'card' ? '#fff' : 'rgba(255,255,255,0.45)'} />
+              <Text style={[s.topupMethodText, method === 'card' && { color: '#fff' }]}>Card</Text>
+            </Pressable>
           </View>
-          <View style={s.previewRow}>
-            <Text style={s.previewLabel}>Base credits ({data.credits_per_inr}/₹)</Text>
-            <Text style={s.previewValue}>{fmtCredits(baseCredits)} cr</Text>
-          </View>
-          <View style={s.previewRow}>
-            <Text style={[s.previewLabel, { color: '#86EFAC' }]}>+ Bonus ({data.topup_bonus_pct}%)</Text>
-            <Text style={[s.previewValue, { color: '#86EFAC' }]}>+{fmtCredits(bonusCredits)} cr</Text>
-          </View>
-          <View style={[s.previewRow, s.previewTotalRow]}>
-            <Text style={s.previewTotalLabel}>You get</Text>
-            <Text style={s.previewTotalValue}>{fmtCredits(totalCredits)} credits</Text>
-          </View>
-        </View>
 
-        {/* Payment method */}
-        <Text style={s.fieldLabel}>Payment method</Text>
-        <View style={s.methodRow}>
-          {(['upi', 'card', 'netbanking'] as const).map((m) => {
-            const active = method === m;
-            const icon: IconName = m === 'upi' ? 'qrcode' : m === 'card' ? 'credit-card' : 'bank';
-            const label = m === 'upi' ? 'UPI' : m === 'card' ? 'Card' : 'NetBanking';
-            return (
-              <Pressable key={m} onPress={() => setMethod(m)} style={[s.methodChip, active && s.methodChipActive]}>
-                <MaterialCommunityIcons name={icon} size={16} color={active ? '#fff' : C.text2} />
-                <Text style={[s.methodText, active && { color: '#fff' }]}>{label}</Text>
+          {/* Amount Slider */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+            <Text style={s.fieldLabel}>Amount</Text>
+            <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 15 }}>₹{inr.toLocaleString()}</Text>
+          </View>
+          {Platform.OS === 'web' ? (
+            React.createElement('input' as any, {
+              type: 'range', min: 100, max: 10000, step: 100, value: inr,
+              onChange: (e: any) => setAmount(e.target.value),
+              style: { width: '100%', accentColor: '#A855F7', cursor: 'pointer', marginVertical: 8 },
+            })
+          ) : (
+            <TextInput
+              value={amount}
+              onChangeText={(v) => setAmount(v.replace(/[^0-9]/g, ''))}
+              keyboardType="numeric"
+              style={{ color: '#fff', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', borderRadius: 8, padding: 8, marginTop: 4 }}
+            />
+          )}
+
+          {/* Preset Chips */}
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+            {presets.map((p) => (
+              <Pressable
+                key={p}
+                onPress={() => setAmount(String(p))}
+                style={[s.topupPresetChip, inr === p && s.topupPresetChipActive]}
+              >
+                <Text style={[s.topupPresetText, inr === p && { color: '#fff' }]}>₹{p}</Text>
               </Pressable>
-            );
-          })}
+            ))}
+          </View>
+
+          {/* UPI ID Section */}
+          {method === 'upi' && (
+            <View style={{ gap: 8, marginTop: 12 }}>
+              <Text style={s.fieldLabel}>UPI ID</Text>
+              <TextInput
+                value={upiId}
+                onChangeText={setUpiId}
+                placeholder="yourname@okhdfc"
+                placeholderTextColor="rgba(255,255,255,0.3)"
+                style={s.topupUpiInput}
+              />
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                {[ `${firstName}@okhdfc`, `${firstName}@paytm`, `7506123456@ybl` ].map((u) => {
+                  const active = upiId === u;
+                  return (
+                    <Pressable
+                      key={u}
+                      onPress={() => setUpiId(u)}
+                      style={[s.topupUpiChip, active && s.topupUpiChipActive]}
+                    >
+                      <Text style={[s.topupUpiChipText, active && { color: '#fff' }]}>{u}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {/* No preview panel per mockup */}
+
+          {/* Submit Button */}
+          <Pressable
+            style={[s.newSubmitBtn, { opacity: submitting || inr <= 0 ? 0.6 : 1 }]}
+            onPress={onSubmit}
+            disabled={submitting || inr <= 0}
+          >
+            {submitting ? <ActivityIndicator color="#fff" /> : (
+              <>
+                <MaterialCommunityIcons name="wallet-plus" size={16} color="#fff" />
+                <Text style={s.newSubmitBtnText}>Add ₹{inr.toLocaleString()} to Wallet</Text>
+              </>
+            )}
+          </Pressable>
+
+          {/* Result Messages */}
+          {result?.ok && (
+            <View style={[s.resultBox, { borderColor: '#34D39966', backgroundColor: 'rgba(52,211,153,0.08)' }]}>
+              <MaterialCommunityIcons name="check-decagram" size={18} color="#34D399" />
+              <View style={{ flex: 1 }}>
+                <Text style={s.resultTitle}>Top-up successful</Text>
+                <Text style={s.resultSub}>+{fmtCredits(result.total_credits)} credits added · New balance {fmtCredits(result.balance_credits)} cr</Text>
+              </View>
+            </View>
+          )}
+          {result && !result.ok && (
+            <View style={[s.resultBox, { borderColor: '#F8717166', backgroundColor: 'rgba(248,113,113,0.08)' }]}>
+              <MaterialCommunityIcons name="alert-circle" size={18} color="#F87171" />
+              <Text style={[s.resultSub, { color: '#FCA5A5', flex: 1 }]}>{result.error || 'Failed'}</Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      {/* Right Column: Sidebar */}
+      <View style={{ width: stack ? '100%' : 320, gap: 12 }}>
+        {/* Current Balance Card */}
+        <View style={s.section}>
+          <Text style={s.topupCardTitle}>Current Balance</Text>
+          <Text style={s.sidebarBalance}>{fmtINR(data.balance_inr)}</Text>
+          <View style={{ height: 2, backgroundColor: '#7C3AED', width: 60, marginTop: 6, marginBottom: 12 }} />
+          <Text style={s.sidebarSub}>Use for sessions, events, rentals & deals</Text>
         </View>
 
-        {/* Submit */}
-        <Pressable
-          style={[s.primaryBtn, { backgroundColor: C.good, opacity: submitting || inr <= 0 ? 0.6 : 1 }]}
-          onPress={onSubmit}
-          disabled={submitting || inr <= 0}
-        >
-          {submitting ? <ActivityIndicator color="#0A2E1A" /> : <>
-            <MaterialCommunityIcons name="check-circle" size={16} color="#0A2E1A" />
-            <Text style={[s.primaryBtnText, { color: '#0A2E1A' }]}>Pay {fmtINR(inr)} & get {fmtCredits(totalCredits)} credits</Text>
-          </>}
-        </Pressable>
+        {/* Supported Methods Card */}
+        <View style={s.section}>
+          <Text style={s.sidebarKicker}>SUPPORTED METHODS</Text>
+          <View style={{ gap: 12, marginTop: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={[s.methodIconCircle, { backgroundColor: 'rgba(52,211,153,0.15)', borderColor: 'rgba(52,211,153,0.3)' }]}>
+                <MaterialCommunityIcons name="cellphone" size={14} color="#34D399" />
+              </View>
+              <View>
+                <Text style={s.methodTitle}>UPI</Text>
+                <Text style={s.methodDesc}>PhonePe, GPay, Paytm, BHIM</Text>
+              </View>
+            </View>
 
-        {/* Result */}
-        {result?.ok && (
-          <View style={[s.resultBox, { borderColor: '#34D39966', backgroundColor: 'rgba(52,211,153,0.08)' }]}>
-            <MaterialCommunityIcons name="check-decagram" size={18} color="#34D399" />
-            <View style={{ flex: 1 }}>
-              <Text style={s.resultTitle}>Top-up successful</Text>
-              <Text style={s.resultSub}>+{fmtCredits(result.total_credits)} credits added · New balance {fmtCredits(result.balance_credits)} cr (≈ {fmtINR(result.balance_inr)})</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={[s.methodIconCircle, { backgroundColor: 'rgba(59,130,246,0.15)', borderColor: 'rgba(59,130,246,0.3)' }]}>
+                <MaterialCommunityIcons name="bank" size={14} color="#60A5FA" />
+              </View>
+              <View>
+                <Text style={s.methodTitle}>Net Banking</Text>
+                <Text style={s.methodDesc}>All major Indian banks</Text>
+              </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={[s.methodIconCircle, { backgroundColor: 'rgba(249,115,22,0.15)', borderColor: 'rgba(249,115,22,0.3)' }]}>
+                <MaterialCommunityIcons name="credit-card" size={14} color="#FB923C" />
+              </View>
+              <View>
+                <Text style={s.methodTitle}>Debit / Credit Card</Text>
+                <Text style={s.methodDesc}>Visa, Mastercard, RuPay</Text>
+              </View>
             </View>
           </View>
-        )}
-        {result && !result.ok && (
-          <View style={[s.resultBox, { borderColor: '#F8717166', backgroundColor: 'rgba(248,113,113,0.08)' }]}>
-            <MaterialCommunityIcons name="alert-circle" size={18} color="#F87171" />
-            <Text style={[s.resultSub, { color: '#FCA5A5', flex: 1 }]}>{result.error || 'Failed'}</Text>
-          </View>
-        )}
-
-        <Text style={s.smallNote}>
-          Mock gateway — wires to a real payment provider in production. Bonus credits are added instantly.
-        </Text>
+        </View>
       </View>
     </View>
   );
@@ -2058,5 +2139,163 @@ const s = StyleSheet.create({
     fontFamily: 'DMSans_500Medium',
     fontSize: 12,
     lineHeight: 18,
+  },
+
+  topupCardTitle: {
+    color: '#fff',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  topupMethodsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginVertical: 8,
+  },
+  topupMethodBox: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 12,
+    ...({ cursor: 'pointer' } as any),
+  },
+  topupMethodBoxActive: {
+    borderColor: '#7C3AED',
+    backgroundColor: 'rgba(124,58,237,0.15)',
+  },
+  topupMethodText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 12,
+  },
+  topupPresetChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    ...({ cursor: 'pointer' } as any),
+  },
+  topupPresetChipActive: {
+    borderColor: '#A855F7',
+    backgroundColor: 'rgba(168,85,247,0.15)',
+  },
+  topupPresetText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 12,
+  },
+  topupUpiInput: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(0,0,0,0.20)',
+    borderColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderRadius: 10,
+    color: '#fff',
+    fontSize: 13.5,
+    fontFamily: 'DMSans_600SemiBold',
+    outlineStyle: 'none',
+  } as any,
+  topupUpiChip: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    ...({ cursor: 'pointer' } as any),
+  },
+  topupUpiChipActive: {
+    backgroundColor: '#7C3AED',
+    borderColor: '#7C3AED',
+  },
+  topupUpiChipText: {
+    color: 'rgba(255,255,255,0.45)',
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 11,
+  },
+  newPreviewBox: {
+    backgroundColor: 'rgba(255,255,255,0.01)',
+    borderColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
+    marginTop: 14,
+  },
+  newPreviewRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  newPreviewLabel: {
+    color: 'rgba(255,255,255,0.5)',
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 12,
+  },
+  newPreviewVal: {
+    color: '#fff',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 12.5,
+  },
+  newSubmitBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#7C3AED',
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginTop: 14,
+    ...({ cursor: 'pointer' } as any),
+  },
+  newSubmitBtnText: {
+    color: '#fff',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 13,
+  },
+  sidebarKicker: {
+    color: 'rgba(255,255,255,0.45)',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 10.5,
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+  sidebarBalance: {
+    color: '#fff',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 28,
+  },
+  sidebarSub: {
+    color: 'rgba(255,255,255,0.45)',
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 11.5,
+    marginTop: 4,
+  },
+  methodIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  methodTitle: {
+    color: '#fff',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 12.5,
+  },
+  methodDesc: {
+    color: 'rgba(255,255,255,0.45)',
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 11,
+    marginTop: 1,
   },
 });
