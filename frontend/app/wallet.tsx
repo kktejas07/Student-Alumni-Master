@@ -523,6 +523,9 @@ function TopupTab(props: {
   const firstName = data.full_name?.split(' ')[0]?.toLowerCase() || 'student';
   const defaultUpi = `${firstName}@okhdfc`;
   const [upiId, setUpiId] = useState(defaultUpi);
+  const [selectedBank, setSelectedBank] = useState('Axis Bank');
+  const [bankDropdownOpen, setBankDropdownOpen] = useState(false);
+  const banks = ['HDFC Bank', 'SBI', 'ICICI Bank', 'Axis Bank', 'Kotak Bank'];
 
   const presets = [200, 500, 1000, 2000];
 
@@ -618,6 +621,80 @@ function TopupTab(props: {
                     </Pressable>
                   );
                 })}
+              </View>
+            </View>
+          )}
+
+          {/* Net Banking Section */}
+          {method === 'netbanking' && (
+            <View style={{ gap: 8, marginTop: 12, zIndex: 10 }}>
+              <Text style={s.fieldLabel}>Select Bank</Text>
+              <View style={{ position: 'relative' }}>
+                <Pressable
+                  onPress={() => setBankDropdownOpen(!bankDropdownOpen)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    backgroundColor: 'rgba(0,0,0,0.20)',
+                    borderColor: 'rgba(255,255,255,0.10)',
+                    borderWidth: 1,
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    height: 44,
+                    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+                  }}
+                >
+                  <Text style={{ color: '#fff', fontFamily: 'DMSans_600SemiBold', fontSize: 13.5 }}>
+                    {selectedBank}
+                  </Text>
+                  <MaterialCommunityIcons
+                    name={bankDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                    size={18}
+                    color="rgba(255,255,255,0.45)"
+                  />
+                </Pressable>
+
+                {bankDropdownOpen && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: 48,
+                      left: 0,
+                      right: 0,
+                      backgroundColor: '#14121C',
+                      borderColor: 'rgba(255,255,255,0.15)',
+                      borderWidth: 1,
+                      borderRadius: 10,
+                      overflow: 'hidden',
+                      zIndex: 1000,
+                    }}
+                  >
+                    {banks.map((b) => {
+                      const active = selectedBank === b;
+                      return (
+                        <Pressable
+                          key={b}
+                          onPress={() => {
+                            setSelectedBank(b);
+                            setBankDropdownOpen(false);
+                          }}
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 10,
+                            backgroundColor: active ? 'rgba(255,255,255,0.15)' : 'transparent',
+                            ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+                          }}
+                        >
+                          <Text style={{ color: '#fff', fontFamily: 'DMSans_600SemiBold', fontSize: 13.5 }}>
+                            {b}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
               </View>
             </View>
           )}
