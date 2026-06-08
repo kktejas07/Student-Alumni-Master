@@ -135,7 +135,7 @@ export function Sidebar({
       <AgentKLauncher collapsed={collapsed} />
 
       {/* Main nav */}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: collapsed ? 4 : 6, paddingVertical: 4 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: collapsed ? 4 : 6, paddingVertical: 4 }} showsVerticalScrollIndicator={false}>
         {!collapsed && <Text style={s.kicker}>MAIN MENU</Text>}
         {items.map((n) => {
           const isActive = n.id === active;

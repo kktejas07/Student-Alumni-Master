@@ -3,9 +3,11 @@ import { View, Text, Pressable, ScrollView, StyleSheet, Platform } from 'react-n
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { MC, FONTS } from '../tokens';
 import { useToast } from '@/src/views/components';
+import { request } from '@/src/models/services/api';
+import { NavId } from '../Sidebar';
 
 interface NotificationItem {
-  id: number;
+  id: string;
   category: 'booking' | 'review' | 'payment' | 'message' | 'connection' | 'report' | 'milestone';
   title: string;
   description: string;
@@ -16,149 +18,174 @@ interface NotificationItem {
   actionText: string;
 }
 
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: 1,
-    category: 'booking',
-    title: 'New Session Booked',
-    description: 'Tanvi Rao booked a session for May 10, 2026 at 09:00 AM',
-    time: '2 min ago',
-    unread: true,
-    iconGlyph: 'calendar-check-outline',
-    iconColor: '#10B981',
-    actionText: 'View Request \u2192',
-  },
-  {
-    id: 2,
-    category: 'review',
-    title: 'New 5\u2605 Review',
-    description: 'Kabir Das left a 5-star review for your session on Apr 29',
-    time: '18 min ago',
-    unread: true,
-    iconGlyph: 'star-outline',
-    iconColor: '#F59E0B',
-    actionText: 'Read Review \u2192',
-  },
-  {
-    id: 3,
-    category: 'payment',
-    title: 'Payment Received',
-    description: '\u20b9999 credited for your session with Arjun Sharma',
-    time: '1 hr ago',
-    unread: true,
-    iconGlyph: 'currency-inr',
-    iconColor: '#0D9488',
-    actionText: 'View Earnings \u2192',
-  },
-  {
-    id: 4,
-    category: 'message',
-    title: 'New Message from Arjun',
-    description: 'Hey Dr. Rao, quick question about system design resources...',
-    time: '2 hr ago',
-    unread: true,
-    iconGlyph: 'message-outline',
-    iconColor: '#8B5CF6',
-    actionText: 'Reply \u2192',
-  },
-  {
-    id: 5,
-    category: 'booking',
-    title: 'Session Reminder',
-    description: 'You have a session with Meera Pillai tomorrow at 11:00 AM',
-    time: '3 hr ago',
-    unread: false,
-    iconGlyph: 'calendar-clock',
-    iconColor: '#3B82F6',
-    actionText: 'Prepare \u2192',
-  },
-  {
-    id: 6,
-    category: 'connection',
-    title: 'New Connection Request',
-    description: 'Dev Anand from IIT Delhi wants to connect with you',
-    time: '5 hr ago',
-    unread: false,
-    iconGlyph: 'account-plus-outline',
-    iconColor: '#EC4899',
-    actionText: 'Accept \u2192',
-  },
-  {
-    id: 7,
-    category: 'report',
-    title: 'Weekly Performance Report',
-    description: 'Sessions this week: 4 \u00b7 Avg rating: 4.9 \u00b7 Earned: \u20b93,996',
-    time: '1 day ago',
-    unread: false,
-    iconGlyph: 'chart-bar',
-    iconColor: '#06B6D4',
-    actionText: 'View Report \u2192',
-  },
-  {
-    id: 8,
-    category: 'payment',
-    title: 'Withdrawal Completed',
-    description: '\u20b924,000 credited to your HDFC account ****4821',
-    time: '1 day ago',
-    unread: false,
-    iconGlyph: 'credit-card-outline',
-    iconColor: '#10B981',
-    actionText: 'View \u2192',
-  },
-  {
-    id: 9,
-    category: 'review',
-    title: 'Reply Reminder',
-    description: "Kabir Das's review from Apr 29 is awaiting your reply",
-    time: '2 days ago',
-    unread: false,
-    iconGlyph: 'message-text-outline',
-    iconColor: '#D97706',
-    actionText: 'Reply \u2192',
-  },
-  {
-    id: 10,
-    category: 'milestone',
-    title: 'Milestone: 140 Sessions!',
-    description: 'You completed 140 sessions. +100 credits awarded!',
-    time: '3 days ago',
-    unread: false,
-    iconGlyph: 'trophy-outline',
-    iconColor: '#EAB308',
-    actionText: 'View Wallet \u2192',
-  },
-];
-
 interface NotificationsPanelProps {
   onClose: () => void;
   onOpenSettings: () => void;
+  onNav: (tabId: NavId) => void;
+  notifications: any[];
+  onRefresh: () => void;
 }
 
-export function NotificationsPanel({ onClose, onOpenSettings }: NotificationsPanelProps) {
+export function NotificationsPanel({
+  onClose,
+  onOpenSettings,
+  onNav,
+  notifications,
+  onRefresh,
+}: NotificationsPanelProps) {
   const toast = useToast();
-  const [list, setList] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
   const [activeFilter, setActiveFilter] = useState<'all' | 'unread' | 'booking' | 'review' | 'payment'>('all');
+  const [dismissedIds, setDismissedIds] = useState<string[]>([]);
+
+  // Map backend notifications to NotificationItem.
+  const list = useMemo(() => {
+    if (!Array.isArray(notifications)) return [];
+    return notifications
+      .filter((n) => n && n.id && !dismissedIds.includes(String(n.id)))
+      .map((item) => {
+        const type = item.type || item.data?.type || '';
+        let category: NotificationItem['category'] = 'booking';
+        let iconGlyph = 'bell-outline';
+        let iconColor = '#3B82F6';
+        let actionText = 'View →';
+
+        const typeLower = type.toLowerCase();
+        if (typeLower.includes('booking') || typeLower.includes('session')) {
+          category = 'booking';
+          iconGlyph = 'calendar-check-outline';
+          iconColor = '#10B981';
+          actionText = item.title?.toLowerCase().includes('request') ? 'View Request →' : 'View Sessions →';
+        } else if (typeLower.includes('review')) {
+          category = 'review';
+          iconGlyph = 'star-outline';
+          iconColor = '#F59E0B';
+          actionText = 'Read Review →';
+        } else if (typeLower.includes('payment') || typeLower.includes('withdrawal') || typeLower.includes('earn')) {
+          category = 'payment';
+          iconGlyph = 'currency-inr';
+          iconColor = '#0D9488';
+          actionText = 'View Earnings →';
+        } else if (typeLower.includes('message')) {
+          category = 'message';
+          iconGlyph = 'message-outline';
+          iconColor = '#8B5CF6';
+          actionText = 'Reply →';
+        } else if (typeLower.includes('connection')) {
+          category = 'connection';
+          iconGlyph = 'account-plus-outline';
+          iconColor = '#EC4899';
+          actionText = 'Accept →';
+        } else if (typeLower.includes('milestone') || typeLower.includes('approve') || typeLower.includes('register')) {
+          category = 'milestone';
+          iconGlyph = 'trophy-outline';
+          iconColor = '#EAB308';
+          actionText = 'View →';
+        } else if (typeLower.includes('report')) {
+          category = 'report';
+          iconGlyph = 'chart-bar';
+          iconColor = '#06B6D4';
+          actionText = 'View Report →';
+        }
+
+        let relativeTime = 'Just now';
+        if (item.created_at) {
+          try {
+            const date = new Date(item.created_at);
+            const diffMs = Date.now() - date.getTime();
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+
+            if (diffMins < 1) {
+              relativeTime = 'Just now';
+            } else if (diffMins < 60) {
+              relativeTime = `${diffMins}m ago`;
+            } else if (diffHours < 24) {
+              relativeTime = `${diffHours}h ago`;
+            } else {
+              relativeTime = `${diffDays}d ago`;
+            }
+          } catch {
+            relativeTime = item.created_at;
+          }
+        }
+
+        return {
+          id: String(item.id),
+          category,
+          title: item.title || 'Notification',
+          description: item.body || item.message || '',
+          time: relativeTime,
+          unread: !item.read,
+          iconGlyph,
+          iconColor,
+          actionText,
+        };
+      });
+  }, [notifications, dismissedIds]);
 
   const unreadCount = useMemo(() => list.filter((n) => n.unread).length, [list]);
 
-  const handleDismiss = (id: number) => {
-    setList((prev) => prev.filter((item) => item.id !== id));
-    toast.info('Notification dismissed', 'Item removed from notifications.');
-  };
-
-  const handleMarkAllRead = () => {
-    setList((prev) => prev.map((item) => ({ ...item, unread: false })));
-    toast.success('Success', 'All notifications marked as read.');
-  };
-
-  const handleAction = (item: NotificationItem) => {
-    if (item.category === 'connection') {
-      toast.success('Connection Accepted', 'You are now connected with Dev Anand.');
-      setList((prev) => prev.filter((i) => i.id !== item.id));
-      return;
+  // Mark a single notification read and dismiss locally.
+  const handleDismiss = async (id: string) => {
+    setDismissedIds((prev) => [...prev, id]);
+    try {
+      await request('/notifications/mark-read', {
+        method: 'POST',
+        body: { ids: [id] },
+      });
+      onRefresh();
+      toast.info('Notification dismissed', 'Item removed from notifications.');
+    } catch (e: any) {
+      toast.error('Error', e.message || 'Failed to dismiss notification.');
     }
-    setList((prev) => prev.map((i) => (i.id === item.id ? { ...i, unread: false } : i)));
-    toast.info('Action Triggered', `Opening details for: ${item.title}`);
+  };
+
+  // Mark all notifications read.
+  const handleMarkAllRead = async () => {
+    try {
+      await request('/notifications/mark-read', {
+        method: 'POST',
+        body: {},
+      });
+      onRefresh();
+      toast.success('Success', 'All notifications marked as read.');
+    } catch (e: any) {
+      toast.error('Error', e.message || 'Failed to mark notifications read.');
+    }
+  };
+
+  // Mark single notification read, close panel, and navigate.
+  const handleAction = async (item: NotificationItem) => {
+    try {
+      if (item.unread) {
+        await request('/notifications/mark-read', {
+          method: 'POST',
+          body: { ids: [item.id] },
+        });
+        onRefresh();
+      }
+      onClose();
+      if (item.category === 'booking') {
+        if (item.title.toLowerCase().includes('request')) {
+          onNav('requests');
+        } else {
+          onNav('sessions');
+        }
+      } else if (item.category === 'review') {
+        onNav('feedback');
+      } else if (item.category === 'payment') {
+        onNav('earnings');
+      } else if (item.category === 'connection') {
+        onNav('requests');
+      } else if (item.category === 'milestone') {
+        onNav('dashboard');
+      } else {
+        toast.info('Action Triggered', `Opening details for: ${item.title}`);
+      }
+    } catch (e: any) {
+      toast.error('Error', e.message || 'Failed to perform action.');
+    }
   };
 
   const filteredList = useMemo(() => {
