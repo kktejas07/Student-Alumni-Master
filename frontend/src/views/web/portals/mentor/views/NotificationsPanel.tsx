@@ -186,6 +186,7 @@ export function NotificationsPanel({
     } catch (e: any) {
       toast.error('Error', e.message || 'Failed to perform action.');
     }
+
   };
 
   const filteredList = useMemo(() => {
