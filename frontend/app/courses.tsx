@@ -135,14 +135,23 @@ export default function CoursesPage() {
   const [trendingFree, setTrendingFree] = useState<Course[]>([]);
   const [topUni, setTopUni] = useState<Course[]>([]);
   const [allCourses, setAllCourses] = useState<Course[]>([]);
+  const [myEnrollments, setMyEnrollments] = useState<any[]>([]);
+  const [myTracks, setMyTracks] = useState<any[]>([]);
+  const [myCertificates, setMyCertificates] = useState<any[]>([]);
 
   const loadCatalog = useCallback(async () => {
     setLoading(true);
     try {
-      const [r, allList] = await Promise.all([
+      const [r, allList, enrolls, tracksRes, certs] = await Promise.all([
         request<any>('/courses/catalog'),
         request<any>('/courses/list?sort=popular'),
+        request<any>('/courses/my-enrollments').catch(() => ({ enrollments: [] })),
+        request<any>('/courses/my-tracks').catch(() => ({ enrollments: [] })),
+        request<any>('/courses/my-certificates').catch(() => ({ certificates: [] })),
       ]);
+      setMyEnrollments(enrolls?.enrollments || []);
+      setMyTracks(tracksRes?.enrollments || []);
+      setMyCertificates(certs?.certificates || []);
       setSections(r.sections || []);
       setHero(r.hero || []);
       setStats(r.stats || stats);
@@ -655,6 +664,16 @@ export default function CoursesPage() {
             {search.trim() ? ` · "${search.trim()}"` : ''}
           </Text>
         </View>
+      )}
+
+      {/* Personal Learning Carousels */}
+      {!filtersActive && myEnrollments.length > 0 && (
+        <Carousel title="📚 My Active Courses" subtitle="Pick up right where you left off"
+                   accent="#06B6D4" courses={myEnrollments.map((e: any) => e.course_snapshot || allCourses.find((c: any) => c.id === e.course_id)).filter(Boolean)} onEnroll={setEnrollFor} />
+      )}
+      {!filtersActive && myCertificates.length > 0 && (
+        <Carousel title="🏆 My Certificates" subtitle="Your earned credentials"
+                   accent="#F59E0B" courses={myCertificates.map((c: any) => c.course_snapshot || allCourses.find((ac: any) => ac.id === c.course_id)).filter(Boolean)} onEnroll={() => {}} />
       )}
 
       {/* Carousels — Featured / Trending Free / Top Universities (filtered in-place) */}
