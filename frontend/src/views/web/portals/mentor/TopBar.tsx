@@ -20,7 +20,7 @@ export function TopBar({
   const user = useAuthStore((u) => u.user) as any;
   const fullName = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || MENTOR.name;
   const initials = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || MENTOR.avatar).toUpperCase();
-  const photo = user?.photo_data || user?.face_image_base64;
+  const photo = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64;
 
   return (
     <View style={s.bar}>
@@ -60,7 +60,7 @@ const s = StyleSheet.create({
     height: 56, paddingHorizontal: 20,
     borderBottomWidth: 1, borderBottomColor: MC.border,
     backgroundColor: MC.bg,
-    position: 'relative', zIndex: 10,
+    position: 'relative', zIndex: 50,
   },
   title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 18, letterSpacing: -0.4 },
   searchBox: {

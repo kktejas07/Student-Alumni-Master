@@ -4596,8 +4596,11 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     by_college = [c for c in cards if my_inst and c.get("institution") == my_inst]
 
     # Section: mentors (approved)
+    mentor_q = {"_id": {"$ne": user["_id"]}, "role": "mentor", "mentor_status": "approved"}
+    if q:
+        mentor_q["$or"] = [{"full_name": rx}, {"email": rx}]
     approved_mentors = await db.users.find(
-        {"_id": {"$ne": user["_id"]}, "role": "mentor", "mentor_status": "approved"},
+        mentor_q,
         {"password_hash": 0, "face_image_base64": 0},
     ).sort("_id", -1).limit(100).to_list(100)
     mentor_cards = [_user_card(m) for m in approved_mentors]
@@ -4615,7 +4618,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
 
     # Section: expand — diverse roles user hasn't matched on yet
     seen_ids = {c["id"] for c in (by_interest + by_career + by_skills + by_college + peer_students[:limit] + explore_alumni[:limit])} | {m["id"] for m in mentor_cards}
-    expand = [c for c in cards if c["id"] not in seen_ids and c["role"] in {"student", "alumni", "college"}]
+    expand = [c for c in cards if c["id"] not in seen_ids and c["role"] in {"student", "alumni", "college", "mentor"}]
 
     interest_label = ", ".join(my_interests[:2]) if my_interests else "Your declared interests"
     skill_label    = ", ".join(my_skills[:3])     if my_skills    else "your declared skills"
@@ -4688,32 +4691,58 @@ async def my_connections(user: dict = Depends(get_current_user)):
 
 @api_router.get("/network/requests")
 async def my_connection_requests(user: dict = Depends(get_current_user)):
-    """Incoming pending requests (people who want to connect with me)."""
+    """Incoming and sent pending requests."""
     me_id = str(user.get("_id") or user.get("id"))
+    
+    # 1. Incoming pending requests
     rels = await db.connections.find(
         {"status": "pending", "b": me_id}, {"_id": 0},
     ).to_list(200)
-    if not rels:
-        return {"items": []}
-    requester_ids = [r["a"] for r in rels]
-    objs = []
-    for rid in requester_ids:
-        try:
-            objs.append(ObjectId(rid))
-        except Exception:
-            pass
-    users = await db.users.find({"_id": {"$in": objs}}, {"password_hash": 0, "face_image_base64": 0}).to_list(len(objs))
-    by_id = {str(u["_id"]): u for u in users}
-    out = []
-    for r in rels:
-        u = by_id.get(r["a"])
-        if not u:
-            continue
-        c = _user_card(u)
-        c["connection_state"] = "incoming"
-        c["requested_at"] = r.get("created_at")
-        out.append(c)
-    return {"items": out}
+    out_incoming = []
+    if rels:
+        requester_ids = [r["a"] for r in rels]
+        objs = []
+        for rid in requester_ids:
+            try:
+                objs.append(ObjectId(rid))
+            except Exception:
+                pass
+        users = await db.users.find({"_id": {"$in": objs}}, {"password_hash": 0, "face_image_base64": 0}).to_list(len(objs))
+        by_id = {str(u["_id"]): u for u in users}
+        for r in rels:
+            u = by_id.get(r["a"])
+            if not u:
+                continue
+            c = _user_card(u)
+            c["connection_state"] = "incoming"
+            c["requested_at"] = r.get("created_at")
+            out_incoming.append(c)
+
+    # 2. Sent pending requests
+    sent_rels = await db.connections.find(
+        {"status": "pending", "a": me_id}, {"_id": 0},
+    ).to_list(200)
+    out_sent = []
+    if sent_rels:
+        sent_ids = [r["b"] for r in sent_rels]
+        objs_sent = []
+        for rid in sent_ids:
+            try:
+                objs_sent.append(ObjectId(rid))
+            except Exception:
+                pass
+        users_sent = await db.users.find({"_id": {"$in": objs_sent}}, {"password_hash": 0, "face_image_base64": 0}).to_list(len(objs_sent))
+        by_id_sent = {str(u["_id"]): u for u in users_sent}
+        for r in sent_rels:
+            u = by_id_sent.get(r["b"])
+            if not u:
+                continue
+            c = _user_card(u)
+            c["connection_state"] = "pending"
+            c["requested_at"] = r.get("created_at")
+            out_sent.append(c)
+
+    return {"items": out_incoming, "sent": out_sent}
 
 
 @api_router.post("/network/connect/{other_id}")
@@ -4897,8 +4926,47 @@ async def my_bookings(user: dict = Depends(get_current_user)):
     """Returns bookings for the current user (as student or as mentor)."""
     query = {"student_id": str(user["_id"])} if user["role"] == "student" \
         else {"mentor_id": str(user["_id"])}
-    items = await db.bookings.find(query, {"_id": 0}).sort("slot_start_iso", 1).to_list(100)
-    return {"bookings": items}
+    items = await db.bookings.find(query).sort("slot_start_iso", 1).to_list(100)
+    
+    out = []
+    for item in items:
+        other_id = item.get("student_id") if user["role"] == "mentor" else item.get("mentor_id")
+        other_name = item.get("student_name") if user["role"] == "mentor" else item.get("mentor_name")
+        other_photo = None
+        
+        if other_id:
+            try:
+                other_user = await db.users.find_one({"_id": ObjectId(other_id)})
+                if other_user:
+                    other_name = other_user.get("full_name") or other_name
+                    other_photo = other_user.get("photo_data") or other_user.get("face_image_base64") or other_user.get("photo")
+            except Exception:
+                pass
+                
+        sched = item.get("scheduled_at")
+        sched_iso = sched.isoformat() if isinstance(sched, datetime) else sched
+        start_iso = item.get("slot_start_iso") or sched_iso
+        
+        doc = {
+            "id": str(item["_id"]),
+            "student_id": item.get("student_id"),
+            "student_name": item.get("student_name") or (other_name if user["role"] == "mentor" else None),
+            "student_photo": other_photo if user["role"] == "mentor" else None,
+            "mentor_id": item.get("mentor_id"),
+            "mentor_name": item.get("mentor_name") or (other_name if user["role"] == "student" else None),
+            "mentor_photo": other_photo if user["role"] == "student" else None,
+            "mentor_email": item.get("mentor_email"),
+            "student_email": item.get("student_email"),
+            "topic": item.get("topic"),
+            "scheduled_at": sched_iso,
+            "slot_start_iso": start_iso,
+            "slot_end_iso": item.get("slot_end_iso") or start_iso,
+            "duration_minutes": item.get("duration_minutes", 45),
+            "amount_paid": item.get("amount_paid"),
+            "status": item.get("status"),
+        }
+        out.append(doc)
+    return {"bookings": out}
 
 
 @api_router.post("/mentor/bookings")
@@ -4907,8 +4975,8 @@ async def create_mentor_booking(req: MentorBookingCreateRequest, user: dict = De
     if user["role"] != "mentor":
         raise HTTPException(403, "Only mentors can schedule sessions")
 
-    # Resolve student
-    student = await db.users.find_one({"_id": ObjectId(req.student_id), "role": "student"})
+    # Resolve student (can be student, alumni, or mentor)
+    student = await db.users.find_one({"_id": ObjectId(req.student_id)})
     if not student:
         raise HTTPException(404, "Student not found")
 
@@ -5648,6 +5716,13 @@ async def on_startup():
     except Exception as _e:
         logger.warning("Could not start Agent K scheduler: %s", _e)
 
+    # Start the Hourly Content Sync scheduler (jobs, events, courses).
+    try:
+        from background_sync import start_sync_scheduler
+        start_sync_scheduler()
+    except Exception as _e:
+        logger.warning("Could not start background sync scheduler: %s", _e)
+
     # Start the Workflow Automation cron tick (60s polling).
     try:
         from workflow_automation import run_cron_workflows
@@ -5670,6 +5745,11 @@ async def on_shutdown():
         _ak_stop_scheduler()
     except Exception:
         pass
+    try:
+        from background_sync import stop_sync_scheduler
+        stop_sync_scheduler()
+    except Exception:
+        pass
     client.close()
 
 
@@ -5679,10 +5759,9 @@ async def on_shutdown():
 from portals import router as portals_router
 api_router.include_router(portals_router)
 
-# Career Intel adapters (LinkedIn / Internshala / Buddy4Study) — MOCKED fallback
 from career_intel import router as career_intel_router
 api_router.include_router(career_intel_router)
-from jobs_feed import router as jobs_feed_router  # live job aggregator (5 free APIs + tier filter)
+from jobs_feed import router as jobs_feed_router  # live job aggregator (7 free APIs + tier filter)
 api_router.include_router(jobs_feed_router)
 from mentor_ai import router as mentor_ai_router  # mentor AI studio (mentee pulse, skill gaps, impact, session prep)
 api_router.include_router(mentor_ai_router)

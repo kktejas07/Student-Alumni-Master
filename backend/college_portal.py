@@ -16,7 +16,8 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List
 from pathlib import Path
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorClient
 
 load_dotenv(Path(__file__).parent / ".env")
@@ -148,6 +149,106 @@ async def college_students(
                                 {"id": "at_risk", "label": "At-risk"}],
             },
             "fetched_at": datetime.now(timezone.utc).isoformat()}
+
+
+class AddStudentPayload(BaseModel):
+    name: str
+    email: str
+    dept: str
+    year: str
+    cgpa: float
+    attendance: int
+
+
+@router.post("/college/students")
+async def add_college_student(payload: AddStudentPayload, user: dict = Depends(_auth())):
+    roster_list = _roster()
+    
+    # Generate next ID
+    next_num = 1001 + len(roster_list)
+    student_id = f"STU-{next_num}"
+    
+    # Calculate status
+    if payload.cgpa >= 9.0:
+        status = "top"
+    elif payload.cgpa < 7.0 or payload.attendance < 75:
+        status = "at_risk"
+    else:
+        status = "good"
+        
+    initials = "".join([p[0] for p in payload.name.split() if p]).upper()[:2]
+    if not initials:
+        initials = "ST"
+        
+    new_student = {
+        "id": student_id,
+        "name": payload.name,
+        "initials": initials,
+        "email": payload.email,
+        "dept": payload.dept,
+        "year": payload.year,
+        "cgpa": payload.cgpa,
+        "attendance": payload.attendance,
+        "status": status,
+        "color": COLORS.get(payload.dept, "#3B82F6"),
+        "placed": False,
+        "company": None,
+        "package_lpa": None,
+        "sector": None
+    }
+    
+    roster_list.append(new_student)
+    return {"ok": True, "student": new_student}
+
+
+@router.get("/college/students/export")
+async def export_college_students_csv(
+    q: str = Query(""),
+    dept: str = Query("all"),
+    year: str = Query("all"),
+    status: str = Query("all"),
+    user: dict = Depends(_auth()),
+):
+    import csv, io
+
+    items = list(_roster())
+    if dept and dept != "all":
+        items = [s for s in items if s["dept"] == dept]
+    if year and year != "all":
+        items = [s for s in items if s["year"] == year]
+    if status and status != "all":
+        items = [s for s in items if s["status"] == status]
+    if q:
+        ql = q.lower()
+        items = [s for s in items if ql in s["name"].lower()
+                 or ql in s["email"].lower() or ql in s["dept"].lower()
+                 or ql in s["id"].lower()]
+
+    f = io.StringIO()
+    w = csv.DictWriter(f, fieldnames=["ID", "Name", "Email", "Department", "Year", "CGPA", "Attendance %", "Status", "Placed", "Company", "Package (LPA)"])
+    w.writeheader()
+    for s in items:
+        w.writerow({
+            "ID": s["id"],
+            "Name": s["name"],
+            "Email": s["email"],
+            "Department": s["dept"],
+            "Year": s["year"],
+            "CGPA": s["cgpa"],
+            "Attendance %": s["attendance"],
+            "Status": s["status"],
+            "Placed": "Yes" if s["placed"] else "No",
+            "Company": s["company"] or "",
+            "Package (LPA)": s["package_lpa"] or "",
+        })
+    csv_content = f.getvalue()
+    f.close()
+
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=students_export_{datetime.now(timezone.utc).strftime('%Y%m%d')}.csv"},
+    )
 
 
 @router.get("/college/students/{student_id}")

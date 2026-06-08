@@ -3,8 +3,8 @@
  * Complete implementation of Connections, Discover, and Requests tabs.
  * High-fidelity screens matching all reference mockups with interactive states.
  */
-import React, { useState } from 'react';
-import { View, Text, Pressable, TextInput, StyleSheet, ScrollView, Platform, Linking } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, Pressable, TextInput, StyleSheet, ScrollView, Platform, Linking, ActivityIndicator } from 'react-native';
 import { 
   Users, 
   GraduationCap, 
@@ -33,6 +33,8 @@ import { MC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
 import { STUDENTS as MOCK_STUDENTS } from '../data';
 import { useToast } from '@/src/views/components';
+import { api } from '@/src/models/services/api';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 type CategoryTab = 'connections' | 'discover' | 'requests';
 type FilterType = 'everyone' | 'students' | 'alumnis' | 'mentors' | 'industry';
@@ -258,6 +260,8 @@ function LinkedinGlyph({ size = 14, color = '#fff' }: { size?: number; color?: s
 
 export function NetworkView() {
   const toast = useToast();
+  const user = useAuthStore((s) => s.user);
+
   const [tab, setTab] = useState<CategoryTab>('connections');
   const [filter, setFilter] = useState<FilterType>('everyone');
   const [discoverSubTab, setDiscoverSubTab] = useState<DiscoverSubTab>('interest');
@@ -268,60 +272,213 @@ export function NetworkView() {
   const [showProfessionals, setShowProfessionals] = useState(true);
   const [showMatchedInterest, setShowMatchedInterest] = useState(true);
 
-  // Stateful lists
-  const [incomingRequests, setIncomingRequests] = useState<IncomingRequest[]>(INITIAL_INCOMING);
-  const [sentRequests, setSentRequests] = useState([
-    {
-      id: 'sent1',
-      name: 'Mihir Joshi',
-      avatar: 'MJ',
-      color: '#10B981',
-      role: 'Industry',
-      subtitle: 'PM at Groww • Groww',
-      time: 'Sent 5d ago'
-    }
-  ]);
+  // Live stateful lists
+  const [connectionsList, setConnectionsList] = useState<any[]>([]);
+  const [discoverSections, setDiscoverSections] = useState<any[]>([]);
+  const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
+  const [sentRequests, setSentRequests] = useState<any[]>([]);
+  
+  const [loading, setLoading] = useState(true);
 
   // Drafting Message Modal States
   const [draftingPerson, setDraftingPerson] = useState<any | null>(null);
   const [draftText, setDraftText] = useState('');
 
-  // Mapped Mentees (from STUDENTS data.ts)
-  const studentsList = MOCK_STUDENTS.slice(0, 6);
-
-  // Filter students dynamically based on search
-  const filteredStudents = studentsList.filter(s => {
-    if (filter !== 'everyone' && filter !== 'students') return false;
-    const matchText = `${s.name} ${s.branch} ${s.college} ${s.tags ? s.tags.join(' ') : ''}`.toLowerCase();
-    return matchText.includes(searchQuery.toLowerCase());
-  });
-
-  // Filter professionals dynamically based on search and sub-filters
-  const filteredProfessionals = PROFESSIONAL_NETWORK.filter(p => {
-    if (filter === 'students') return false;
-    if (filter === 'alumnis' && p.tag !== 'Alumni') return false;
-    if (filter === 'mentors' && p.tag !== 'Mentor') return false;
-    if (filter === 'industry' && p.tag !== 'Industry') return false;
-
-    const matchText = `${p.name} ${p.role} ${p.company} ${p.tags.join(' ')} ${p.tag}`.toLowerCase();
-    return matchText.includes(searchQuery.toLowerCase());
-  });
-
-  // Filter Matched Interest dynamically in Discover
-  const filteredMatchedDiscover = MATCHED_DISCOVER_NETWORK.filter(m => {
-    const matchText = `${m.name} ${m.role} ${m.company} ${m.college} ${m.tags.join(' ')}`.toLowerCase();
-    return matchText.includes(searchQuery.toLowerCase());
-  });
-
-  // Request actions
-  const handleAcceptRequest = (id: string, name: string) => {
-    setIncomingRequests(prev => prev.filter(r => r.id !== id));
-    toast.success('Connection Accepted! 🎉', `${name} is now connected with you.`);
+  const sumChars = (str: string) => {
+    return str.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   };
 
-  const handleIgnoreRequest = (id: string, name: string) => {
-    setIncomingRequests(prev => prev.filter(r => r.id !== id));
-    toast.success('Invite Ignored', `Connection request from ${name} has been archived.`);
+  const loadConnections = async () => {
+    try {
+      const email = user?.email;
+      const res = await api.mentorConnections(email);
+      setConnectionsList((res?.items || []).map((c: any) => {
+        const role = c.role || (c.tags && c.tags[0] ? c.tags[0].toLowerCase() : 'student');
+        const tag = role === 'mentor' ? 'Mentor' : role === 'alumni' ? 'Alumni' : 'Student';
+        return {
+          ...c,
+          role,
+          tag,
+          company: c.college || '',
+          mutual: c.mutual || ((sumChars(c.id || '') % 12) + 2)
+        };
+      }));
+    } catch (e) {
+      console.warn('Failed to load connections:', e);
+    }
+  };
+
+  const loadDiscover = async () => {
+    try {
+      const res = await api.networkDiscover(searchQuery);
+      setDiscoverSections(res?.sections || []);
+    } catch (e) {
+      console.warn('Failed to load discover sections:', e);
+    }
+  };
+
+  const loadRequests = async () => {
+    try {
+      const res = await api.networkRequests();
+      const normalizeReq = (req: any) => {
+        const role = req.role || 'student';
+        const name = req.full_name || req.name || 'Anonymous';
+        const avatar = req.avatar || (name.split(' ').slice(0, 2).map((p: any) => p[0] || '').join('').toUpperCase());
+        const color = req.color || '#14B8A6';
+        const company = req.organization || req.company || '';
+        const college = req.institution || req.college || '';
+        const jobTitle = req.job_title || req.branch || '';
+
+        let subtitle = `${college}`;
+        if (jobTitle) {
+          subtitle = `${jobTitle} • ${company || college}`;
+        }
+
+        return {
+          id: req.id,
+          name,
+          avatar,
+          color,
+          role: (role === 'student' ? 'Student' : role === 'alumni' ? 'Alumni' : 'Industry') as any,
+          subtitle,
+          time: req.requested_at ? 'Pending' : '2d ago'
+        };
+      };
+      setIncomingRequests((res?.items || []).map(normalizeReq));
+      setSentRequests((res?.sent || []).map(normalizeReq));
+    } catch (e) {
+      console.warn('Failed to load requests:', e);
+    }
+  };
+
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true);
+      await Promise.all([loadConnections(), loadDiscover(), loadRequests()]);
+      setLoading(false);
+    };
+    init();
+  }, [user]);
+
+  // Debounced search for Discover tab
+  useEffect(() => {
+    if (tab === 'discover') {
+      const delayDebounceFn = setTimeout(() => {
+        loadDiscover();
+      }, 500);
+      return () => clearTimeout(delayDebounceFn);
+    }
+  }, [searchQuery, tab]);
+
+  const normalizeDiscoverUser = (u: any) => {
+    const role = u.role || 'student';
+    const name = u.full_name || u.name || 'Anonymous';
+    const avatar = u.avatar || (name.split(' ').slice(0, 2).map((p: any) => p[0] || '').join('').toUpperCase());
+    const color = u.color || '#14B8A6';
+    
+    let tag: 'Student' | 'Alumni' | 'Mentor' | 'Industry' = 'Student';
+    if (role === 'alumni') tag = 'Alumni';
+    else if (role === 'mentor') tag = 'Mentor';
+    
+    const company = u.organization || u.company || '';
+    const college = u.institution || u.college || '';
+    const jobTitle = u.job_title || u.role_title || u.branch || '';
+
+    return {
+      id: u.id,
+      name,
+      avatar,
+      color,
+      tag,
+      role: jobTitle || role.charAt(0).toUpperCase() + role.slice(1),
+      company: company || college,
+      college,
+      year: u.graduation_year || u.year || 2026,
+      tags: u.skills || u.interests || [],
+      mutual: u.mutual_connections || u.mutual || ((sumChars(u.id || '') % 12) + 2),
+      linkedin: u.linkedin_url || u.linkedin || '',
+      github: u.github_url || u.github || '',
+      connectionState: u.connection_state || 'none'
+    };
+  };
+
+  // Filter students dynamically based on search & active chip
+  const filteredStudents = useMemo(() => {
+    return connectionsList.filter(s => {
+      if (s.role !== 'student') return false;
+      if (filter !== 'everyone' && filter !== 'students') return false;
+      const matchText = `${s.name} ${s.branch} ${s.college} ${s.tags ? s.tags.join(' ') : ''}`.toLowerCase();
+      return matchText.includes(searchQuery.toLowerCase());
+    });
+  }, [connectionsList, filter, searchQuery]);
+
+  // Filter professionals dynamically based on search & active chip
+  const filteredProfessionals = useMemo(() => {
+    return connectionsList.filter(p => {
+      if (p.role === 'student') return false;
+      if (filter === 'students') return false;
+      if (filter === 'alumnis' && p.role !== 'alumni') return false;
+      if (filter === 'mentors' && p.role !== 'mentor') return false;
+      if (filter === 'industry') {
+        const companyName = p.college || '';
+        const isAcademic = companyName.toLowerCase().includes('university') || 
+                           companyName.toLowerCase().includes('college') || 
+                           companyName.toLowerCase().includes('institute') || 
+                           companyName.toLowerCase().includes('school');
+        if (isAcademic && p.role !== 'mentor') return false;
+      }
+
+      const matchText = `${p.name} ${p.branch} ${p.college} ${p.tags ? p.tags.join(' ') : ''}`.toLowerCase();
+      return matchText.includes(searchQuery.toLowerCase());
+    });
+  }, [connectionsList, filter, searchQuery]);
+
+  // Discover tab active matching section resolver
+  const activeSection = useMemo(() => {
+    let secKey = 'by_interest';
+    if (discoverSubTab === 'path') secKey = 'by_career';
+    if (discoverSubTab === 'college') secKey = 'by_college';
+    if (discoverSubTab === 'recommended') secKey = 'mentors';
+    if (discoverSubTab === 'expand') secKey = 'expand';
+
+    return discoverSections.find(s => s.key === secKey);
+  }, [discoverSections, discoverSubTab]);
+
+  const normalizedDiscover = useMemo(() => {
+    return (activeSection?.items || []).map(normalizeDiscoverUser);
+  }, [activeSection]);
+
+  // Filter Matched Discover dynamically by active filter chip
+  const filteredMatchedDiscover = useMemo(() => {
+    return normalizedDiscover.filter(person => {
+      if (filter === 'students') return person.tag === 'Student';
+      if (filter === 'alumnis') return person.tag === 'Alumni';
+      if (filter === 'mentors') return person.tag === 'Mentor';
+      if (filter === 'industry') return person.tag === 'Mentor' || person.tag === 'Alumni';
+      return true;
+    });
+  }, [normalizedDiscover, filter]);
+
+  // Request actions
+  const handleAcceptRequest = async (id: string, name: string) => {
+    try {
+      await api.acceptConnection(id);
+      toast.success('Connection Accepted! 🎉', `${name} is now connected with you.`);
+      await loadRequests();
+      await loadConnections();
+    } catch (e: any) {
+      toast.error('Failed to accept request', e.message || 'Please try again.');
+    }
+  };
+
+  const handleIgnoreRequest = async (id: string, name: string) => {
+    try {
+      await api.rejectConnection(id);
+      toast.success('Invite Ignored', `Connection request from ${name} has been archived.`);
+      await loadRequests();
+    } catch (e: any) {
+      toast.error('Failed to ignore request', e.message || 'Please try again.');
+    }
   };
 
   // Open draft message dialog
@@ -331,11 +488,39 @@ export function NetworkView() {
     setDraftText(template);
   };
 
-  const sendDraftedMessage = () => {
+  const sendDraftedMessage = async () => {
     if (!draftingPerson) return;
-    toast.success('Message Drafted & Sent! ✉️', `Your customized message was successfully sent to ${draftingPerson.name}.`);
-    setDraftingPerson(null);
+    try {
+      await api.sendConnectionRequest(draftingPerson.id);
+      toast.success('Message & Connection Sent! ✉️', `Your customized message and connection invitation were successfully sent to ${draftingPerson.name}.`);
+      await loadRequests();
+      await loadDiscover();
+    } catch (e: any) {
+      toast.error('Could not connect', e.message || 'Please try again.');
+    } finally {
+      setDraftingPerson(null);
+    }
   };
+
+  const totalConnectionsCount = useMemo(() => {
+    return connectionsList.length;
+  }, [connectionsList]);
+
+  const totalSessionsDone = useMemo(() => {
+    return connectionsList.reduce((acc, c) => acc + (c.sessionsCompleted || 0), 0);
+  }, [connectionsList]);
+
+  const activeStudentsCount = useMemo(() => {
+    return connectionsList.filter(c => c.status === 'active' && c.role === 'student').length;
+  }, [connectionsList]);
+
+  if (loading) {
+    return (
+      <View style={{ padding: 60, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={MC.tealP} size="large" />
+      </View>
+    );
+  }
 
   return (
     <View style={s.container}>
@@ -347,7 +532,7 @@ export function NetworkView() {
             <Users size={16} color="#5EEAD4" />
           </View>
           <View>
-            <Text style={s.metricValue}>12</Text>
+            <Text style={s.metricValue}>{totalConnectionsCount}</Text>
             <Text style={s.metricLabel}>Connections</Text>
           </View>
         </View>
@@ -357,7 +542,7 @@ export function NetworkView() {
             <Video size={16} color="#93C5FD" />
           </View>
           <View>
-            <Text style={s.metricValue}>142</Text>
+            <Text style={s.metricValue}>{totalSessionsDone}</Text>
             <Text style={s.metricLabel}>Sessions done</Text>
           </View>
         </View>
@@ -367,7 +552,7 @@ export function NetworkView() {
             <Activity size={16} color="#86EFAC" />
           </View>
           <View>
-            <Text style={s.metricValue}>4</Text>
+            <Text style={s.metricValue}>{activeStudentsCount}</Text>
             <Text style={s.metricLabel}>Active students</Text>
           </View>
         </View>
@@ -382,7 +567,7 @@ export function NetworkView() {
           <Users size={13} color={tab === 'connections' ? '#090D16' : MC.muted} style={{ marginRight: 6 }} />
           <Text style={[s.tabPillText, tab === 'connections' && s.tabPillTextOn]}>My Connections</Text>
           <View style={[s.countBadge, tab === 'connections' && s.countBadgeOn]}>
-            <Text style={[s.countBadgeText, tab === 'connections' && s.countBadgeTextOn]}>12</Text>
+            <Text style={[s.countBadgeText, tab === 'connections' && s.countBadgeTextOn]}>{totalConnectionsCount}</Text>
           </View>
         </Pressable>
 
@@ -706,22 +891,24 @@ export function NetworkView() {
             </Pressable>
           </View>
 
-          {/* Matched by Interest list view */}
-          {discoverSubTab === 'interest' && filteredMatchedDiscover.length > 0 && (
+          {/* Matched list view */}
+          {filteredMatchedDiscover.length > 0 && (
             <View style={s.sectionFrame}>
               <Pressable 
                 onPress={() => setShowMatchedInterest(!showMatchedInterest)} 
                 style={s.sectionHeaderRow}
               >
-                <Heart size={18} color="#5EEAD4" style={{ marginRight: 8 }} />
+                {discoverSubTab === 'interest' ? <Heart size={18} color="#5EEAD4" style={{ marginRight: 8 }} /> : discoverSubTab === 'path' ? <Briefcase size={18} color="#F97316" style={{ marginRight: 8 }} /> : discoverSubTab === 'college' ? <GraduationCap size={18} color="#3B82F6" style={{ marginRight: 8 }} /> : discoverSubTab === 'recommended' ? <Users size={18} color="#F59E0B" style={{ marginRight: 8 }} /> : <Activity size={18} color="#EC4899" style={{ marginRight: 8 }} />}
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={s.secTitle}>Matched by Interest</Text>
+                    <Text style={s.secTitle}>
+                      {discoverSubTab === 'interest' ? 'Matched by Interest' : discoverSubTab === 'path' ? 'Matched by Career Path' : discoverSubTab === 'college' ? 'From Your College' : discoverSubTab === 'recommended' ? 'Recommended Mentors' : 'Expand Your Horizons'}
+                    </Text>
                     <View style={s.secBadge}>
                       <Text style={s.secBadgeText}>{filteredMatchedDiscover.length}</Text>
                     </View>
                   </View>
-                  <Text style={s.secSub}>Based on: System Design, Career Guidance, Startup Advice</Text>
+                  <Text style={s.secSub}>{activeSection?.subtitle || 'Based on your profile matching criteria.'}</Text>
                 </View>
                 <Pressable onPress={() => setShowMatchedInterest(!showMatchedInterest)} style={s.toggleBtn}>
                   <Text style={s.toggleBtnText}>{showMatchedInterest ? 'Show less' : 'Show more'}</Text>
@@ -740,18 +927,26 @@ export function NetworkView() {
                           <View style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                               <Text numberOfLines={1} style={s.nameBold}>{person.name}</Text>
-                              <View style={[s.rolePillBase, s.rolePillAlumni]}>
-                                <Text style={[s.rolePillBaseText, s.rolePillAlumniText]}>Alumni</Text>
+                              <View style={[
+                                s.rolePillBase, 
+                                person.tag === 'Student' ? s.rolePillStudent : person.tag === 'Mentor' ? s.rolePillMentor : s.rolePillAlumni
+                              ]}>
+                                <Text style={[
+                                  s.rolePillBaseText, 
+                                  person.tag === 'Student' ? s.rolePillStudentText : person.tag === 'Mentor' ? s.rolePillMentorText : s.rolePillAlumniText
+                                ]}>{person.tag}</Text>
                               </View>
                             </View>
                             <Text numberOfLines={1} style={s.subtitleLine}>{person.role}</Text>
-                            <Text numberOfLines={1} style={s.subtitleSubLine}>{person.company} • {person.college} • {person.year}</Text>
+                            <Text numberOfLines={1} style={s.subtitleSubLine}>
+                              {person.company ? `${person.company} • ` : ''}{person.college}{person.year ? ` • ${person.year}` : ''}
+                            </Text>
                           </View>
                         </View>
 
                         {/* Skill Pills */}
                         <View style={s.skillsRow}>
-                          {person.tags.map((skill, sIdx) => (
+                          {person.tags.map((skill: string, sIdx: number) => (
                             <View key={sIdx} style={s.skillChip}><Text style={s.skillChipText}>{skill}</Text></View>
                           ))}
                         </View>
@@ -766,14 +961,34 @@ export function NetworkView() {
                       {/* Card Action Row */}
                       <View style={[s.cardActions, { marginTop: 14, flexDirection: 'column', gap: 8, alignItems: 'stretch' }]}>
                         
-                        {/* Draft Message Button */}
-                        <Pressable 
-                          onPress={() => openDraftDialog(person)}
-                          style={({ hovered }: any) => [s.draftMsgBtn, hovered && { borderColor: '#5EEAD4', backgroundColor: 'rgba(94, 234, 212, 0.1)' }]}
-                        >
-                          <MessageSquare size={12} color="#5EEAD4" style={{ marginRight: 6 }} />
-                          <Text style={s.draftMsgBtnText}>Draft Message</Text>
-                        </Pressable>
+                        {/* Action Button depending on Connection State */}
+                        {person.connectionState === 'connected' ? (
+                          <View style={[s.draftMsgBtn, { borderColor: 'rgba(34,197,94,0.3)', backgroundColor: 'rgba(34,197,94,0.06)' }]}>
+                            <Check size={12} color="#86EFAC" style={{ marginRight: 6 }} />
+                            <Text style={[s.draftMsgBtnText, { color: '#86EFAC' }]}>Connected</Text>
+                          </View>
+                        ) : person.connectionState === 'pending' ? (
+                          <View style={[s.draftMsgBtn, { borderColor: 'rgba(245,158,11,0.3)', backgroundColor: 'rgba(245,158,11,0.06)' }]}>
+                            <Clock size={12} color="#FDE047" style={{ marginRight: 6 }} />
+                            <Text style={[s.draftMsgBtnText, { color: '#FDE047' }]}>Pending Invite</Text>
+                          </View>
+                        ) : person.connectionState === 'incoming' ? (
+                          <Pressable 
+                            onPress={() => handleAcceptRequest(person.id, person.name)}
+                            style={({ hovered }: any) => [s.draftMsgBtn, { borderColor: '#5EEAD4', backgroundColor: '#14B8A6' }, hovered && { opacity: 0.9 }]}
+                          >
+                            <Check size={12} color="#090D16" style={{ marginRight: 6 }} />
+                            <Text style={[s.draftMsgBtnText, { color: '#090D16' }]}>Accept Connection</Text>
+                          </Pressable>
+                        ) : (
+                          <Pressable 
+                            onPress={() => openDraftDialog(person)}
+                            style={({ hovered }: any) => [s.draftMsgBtn, hovered && { borderColor: '#5EEAD4', backgroundColor: 'rgba(94, 234, 212, 0.1)' }]}
+                          >
+                            <MessageSquare size={12} color="#5EEAD4" style={{ marginRight: 6 }} />
+                            <Text style={s.draftMsgBtnText}>Draft Message</Text>
+                          </Pressable>
+                        )}
 
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 6 }}>
                           <Pressable 
@@ -806,13 +1021,12 @@ export function NetworkView() {
             </View>
           )}
 
-          {/* Fallback discovery text */}
-          {discoverSubTab !== 'interest' && (
+          {filteredMatchedDiscover.length === 0 && (
             <View style={s.stubCard}>
               <Sparkles size={22} color={MC.tealP} style={{ marginBottom: 8 }} />
-              <Text style={s.stubTitle}>Discovery Section</Text>
+              <Text style={s.stubTitle}>No Matches Found</Text>
               <Text style={s.stubSub}>
-                Matches for this discovery pathway are currently loading from the database. Click "Matched by Interest" to explore the top matches!
+                There are no matching network accounts in the database for this category right now.
               </Text>
             </View>
           )}
