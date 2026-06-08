@@ -84,7 +84,13 @@ export function ConnectionsView() {
   };
 
   const list = useMemo(() => studentsList.filter((st) => {
-    if (filter !== 'all' && st.status !== filter) return false;
+    if (filter !== 'all') {
+      if (filter === 'completed') {
+        if (st.status !== 'completed' && st.status !== 'active') return false;
+      } else {
+        if (st.status !== filter) return false;
+      }
+    }
     if (q && !(st.name + ' ' + st.college + ' ' + st.branch).toLowerCase().includes(q.toLowerCase())) return false;
     return true;
   }), [studentsList, filter, q]);
