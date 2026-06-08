@@ -44,6 +44,7 @@ export function NetworkView() {
   // Dynamic action collections
   const [conn, setConn] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState<Set<string>>(new Set());
+  const [localSent, setLocalSent] = useState<Set<string>>(new Set());
 
   // Modal profile viewer state
   const [pickedPerson, setPickedPerson] = useState<any | null>(null);
@@ -208,8 +209,8 @@ export function NetworkView() {
 
   // Connections Tab: Accepted relationships
   const connectionsList = useMemo(() => {
-    return filteredList.filter(p => p.connectionState === 'connected' || conn.has(p.id));
-  }, [filteredList, conn]);
+    return filteredList.filter(p => p.connectionState === 'connected');
+  }, [filteredList]);
 
   // Connection invitations sender
   const handleConnect = async (id: string, name: string) => {
@@ -223,7 +224,7 @@ export function NetworkView() {
         return next;
       });
       // update state locally
-      setConn((c) => new Set(c).add(id));
+      setLocalSent((s) => new Set(s).add(id));
     } catch (err: any) {
       setPending((p) => {
         const next = new Set(p);
@@ -385,7 +386,7 @@ export function NetworkView() {
                           <Check size={11} color={SC.green} style={{ marginRight: 4 }} />
                           <Text style={s.connectedText}>Connected</Text>
                         </View>
-                      ) : pending.has(m.id) || m.connectionState === 'pending' ? (
+                      ) : localSent.has(m.id) || pending.has(m.id) || m.connectionState === 'pending' ? (
                         <View style={[s.pendingBadge, { flex: 1, marginRight: 4 }]}>
                           <Clock size={11} color={SC.amber} style={{ marginRight: 4 }} />
                           <Text style={s.pendingText}>Pending</Text>
@@ -445,7 +446,7 @@ export function NetworkView() {
 
               <View style={s.grid}>
                 {visibleAlumni.map((al) => {
-                  const isPending = pending.has(al.id) || al.connectionState === 'pending';
+                  const isPending = localSent.has(al.id) || pending.has(al.id) || al.connectionState === 'pending';
                   const isConnected = conn.has(al.id) || al.connectionState === 'connected';
 
                   return (
@@ -548,7 +549,7 @@ export function NetworkView() {
 
               <View style={s.grid}>
                 {visibleStudents.map((student) => {
-                  const isPending = pending.has(student.id) || student.connectionState === 'pending';
+                  const isPending = localSent.has(student.id) || pending.has(student.id) || student.connectionState === 'pending';
                   const isConnected = conn.has(student.id) || student.connectionState === 'connected';
 
                   return (
