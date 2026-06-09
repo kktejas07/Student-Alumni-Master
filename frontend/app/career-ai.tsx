@@ -25,7 +25,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
-  Target, User as UserIcon, Sparkles, Flame, RefreshCcw, ArrowLeft,
+  Target, User as UserIcon, Sparkles, Flame, ArrowLeft,
   MessageSquare, Briefcase, Star, Award, Folder, Link2, Code,
   CircleCheck as CheckCircle2, GitBranch, FileText, Mic, Search, ChevronRight, Calendar,
 } from 'lucide-react-native';
@@ -94,7 +94,6 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   const cols = winW >= 1280 ? 4 : winW >= 900 ? 2 : 1;
 
   const [loading, setLoading] = useState(true);
-  const [regen, setRegen] = useState(false);
   const [roadmap, setRoadmap] = useState<RoadmapResp>({});
   const [profileStrength, setProfileStrength] = useState(0);
   const [aiSessions, setAiSessions] = useState(0);
@@ -120,7 +119,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
       } else if (!wasDone) {
         const nm = resp.next_milestone;
         if (nm) toast.info('Milestone complete', `Next up — Week ${nm.weeks}: ${nm.title}`);
-        else if (resp.next_phase_unlocked) toast.success('🎯 Roadmap complete!', 'Tap Regenerate to unlock the next 12-week phase.');
+        else if (resp.next_phase_unlocked) toast.success('🎯 Roadmap complete!', 'All 12 weeks completed — great work!');
       }
     } catch (e: any) {
       toast.error('Could not update', e?.message || 'Please try again.');
@@ -129,11 +128,11 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
     }
   }, [completed, completing, toast]);
 
-  const reload = useCallback(async (force = false) => {
-    if (force) setRegen(true); else setLoading(true);
+  const reload = useCallback(async () => {
+    setLoading(true);
     try {
       const [rm, comp, stats] = await Promise.all([
-        request<RoadmapResp>('/ai/career-roadmap', { method: 'POST', body: { force } } as any).catch(() => ({})),
+        request<RoadmapResp>('/ai/career-roadmap', { method: 'POST' } as any).catch(() => ({})),
         request<any>('/users/me/completion').catch(() => ({})),
         request<any>('/users/me/stats').catch(() => ({})),
       ]);
@@ -145,11 +144,11 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
     } catch (e: any) {
       toast.error('Could not load', e?.message || 'Please try again.');
     } finally {
-      setLoading(false); setRegen(false);
+      setLoading(false);
     }
   }, [toast]);
 
-  useEffect(() => { reload(false); }, [reload]);
+  useEffect(() => { reload(); }, [reload]);
 
   const overallSkillScore = useMemo(() => {
     const ss = roadmap.skill_scores || {};
@@ -225,15 +224,6 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
             <Text style={s.suggest}>“{roadmap.suggestion}”</Text>
           )}
         </View>
-        <Pressable
-          onPress={() => reload(true)}
-          disabled={regen}
-          style={[s.regenBtn, regen && { opacity: 0.6 }]}
-          testID="career-regen"
-        >
-          <RefreshCcw size={14} color="#fff" />
-          <Text style={s.regenBtnText}>{regen ? 'Regenerating…' : 'Regenerate'}</Text>
-        </Pressable>
       </View>
 
       {/* Overview metrics */}
@@ -300,7 +290,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 
       {/* 12-week roadmap timeline */}
       <SectionTitle text="12-WEEK AI CAREER ROADMAP" />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingVertical: 4 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ height: 300 }} contentContainerStyle={{ gap: 12, paddingRight: 24, paddingVertical: 4, alignItems: 'stretch' }}>
         {(roadmap.weekly_plan || []).map((wk, idx) => {
           const isDone = completed.includes(idx);
           const isNext = !isDone && idx === ((roadmap.weekly_plan || []).findIndex((_w, i) => !completed.includes(i)));
@@ -330,7 +320,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
                 )}
               </View>
               <Text style={s.weekTitle}>{wk.title}</Text>
-              <View style={{ gap: 6, marginTop: 8 }}>
+              <View style={{ gap: 6, marginTop: 8, flex: 1 }}>
                 {wk.tasks.slice(0, 4).map((t, i) => (
                   <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
                     <View style={[s.weekDot, { backgroundColor: isDone ? C.green : (isNext ? C.purpleL : C.dim) }]} />
@@ -366,17 +356,6 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           );
         })}
       </ScrollView>
-
-      {(roadmap.weekly_plan || []).length > 0 && completed.length >= (roadmap.weekly_plan || []).length && (
-        <Pressable onPress={() => reload(true)} style={s.nextPhaseBanner} testID="generate-next-phase">
-          <Sparkles size={16} color="#fff" />
-          <View style={{ flex: 1 }}>
-            <Text style={s.nextPhaseTitle}>🎯 Roadmap complete!</Text>
-            <Text style={s.nextPhaseSub}>Tap to generate your next 12-week phase based on updated skills.</Text>
-          </View>
-          <RefreshCcw size={14} color="#fff" />
-        </Pressable>
-      )}
 
       {/* Build your profile grid */}
       <SectionTitle text="BUILD YOUR PROFILE" />
@@ -446,14 +425,6 @@ const s = StyleSheet.create({
   onlinePillText: { color: C.green, fontFamily: FT.bold, fontSize: 10 },
   suggest: { color: C.text2, fontFamily: FT.med, fontSize: 12, marginTop: 4, fontStyle: 'italic' },
 
-  regenBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, height: 36, borderRadius: 10,
-    backgroundColor: C.purple,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', boxShadow: '0 6px 18px rgba(124,58,237,0.35)' } as any) : {}),
-  },
-  regenBtnText: { color: '#fff', fontFamily: FT.bold, fontSize: 12 },
-
   grid: { display: 'grid' as any, gap: 12, marginBottom: 14 },
   metricCard: {
     backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
@@ -499,8 +470,11 @@ const s = StyleSheet.create({
 
   weekCard: {
     width: 240,
+    alignSelf: 'stretch',
     backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
     borderRadius: 14, padding: 14,
+    display: 'flex',
+    flexDirection: 'column',
   },
   weekRange: { color: C.purpleL, fontFamily: FT.bold, fontSize: 10, letterSpacing: 0.6 },
   weekTitle: { color: C.text, fontFamily: FT.xbold, fontSize: 14, marginTop: 4 },
@@ -522,15 +496,6 @@ const s = StyleSheet.create({
   milestoneBtnNext: { backgroundColor: C.purple },
   milestoneBtnDone: { backgroundColor: C.green },
   milestoneBtnText: { color: '#fff', fontFamily: FT.bold, fontSize: 11.5 },
-  nextPhaseBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 14, marginTop: 14, borderRadius: 14,
-    backgroundColor: 'rgba(167,139,250,0.14)', borderColor: 'rgba(167,139,250,0.50)', borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  nextPhaseTitle: { color: '#fff', fontFamily: FT.xbold, fontSize: 13 },
-  nextPhaseSub: { color: C.text2, fontFamily: FT.med, fontSize: 11.5, marginTop: 2 },
-
   buildCard: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
