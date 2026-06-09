@@ -68,8 +68,8 @@ export async function request<T>(
   let token: string | null = null;
   if (auth) {
     token = await tokenStore.getAccess();
-    if (!token) {
-      // Short backoff, up to ~900 ms total
+    if (!token && Platform.OS !== 'web') {
+      // Short backoff, up to ~900 ms total (only on native)
       for (const ms of [120, 220, 280, 280]) {
         await new Promise((r) => setTimeout(r, ms));
         token = await tokenStore.getAccess();
@@ -100,24 +100,29 @@ export async function request<T>(
   // On 401, do a one-shot retry — gives AsyncStorage one more chance to
   // surface a token that was just persisted in the background.
   if (res.status === 401 && auth) {
-    await new Promise((r) => setTimeout(r, 350));
     const t2 = await tokenStore.getAccess();
     if (t2 && t2 !== token) {
-      const r2 = await fetch(`${BASE_URL}/api${path}`, {
-        method,
-        headers: { ...headers, Authorization: `Bearer ${t2}` },
-        body: body ? JSON.stringify(body) : undefined,
-      });
-      const t = await r2.text();
-      let d: any;
-      try { d = t ? JSON.parse(t) : {}; } catch { d = { raw: t }; }
-      if (r2.ok) return d as T;
-      // fall through to throw using r2's status
-      const detail2 = d?.detail;
-      const msg2 = typeof detail2 === 'string'
-        ? detail2
-        : detail2?.msg || `Request failed (${r2.status})`;
-      throw new Error(msg2);
+      if (Platform.OS !== 'web') {
+        await new Promise((r) => setTimeout(r, 350));
+      }
+      // Re-fetch token in case it changed during sleep
+      const t3 = await tokenStore.getAccess();
+      if (t3) {
+        const r2 = await fetch(`${BASE_URL}/api${path}`, {
+          method,
+          headers: { ...headers, Authorization: `Bearer ${t3}` },
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        const t = await r2.text();
+        let d: any;
+        try { d = t ? JSON.parse(t) : {}; } catch { d = { raw: t }; }
+        if (r2.ok) return d as T;
+        const detail2 = d?.detail;
+        const msg2 = typeof detail2 === 'string'
+          ? detail2
+          : detail2?.msg || `Request failed (${r2.status})`;
+        throw new Error(msg2);
+      }
     }
   }
 

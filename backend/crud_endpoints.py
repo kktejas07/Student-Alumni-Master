@@ -649,6 +649,13 @@ class AvailabilitySet(BaseModel):
     slots: List[AvailabilityItem]
 
 
+@router.get("/mentor/availability")
+async def get_availability(email: Optional[str] = None):
+    mentor = await _resolve_user("mentor", email)
+    docs = await _db.mentor_availability.find({"mentor_id": str(mentor["_id"])}, {"_id": 0}).to_list(100)
+    return {"slots": docs}
+
+
 @router.post("/mentor/availability")
 async def set_availability(req: AvailabilitySet):
     mentor = await _resolve_user("mentor", req.mentor_email)
