@@ -8,6 +8,7 @@ import { Sparkles, Plus, Calendar, Users, ChevronDown, ChevronLeft, ChevronRight
 import { MC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
 import { MY_EVENTS as INITIAL_EVENTS, MentorEvent } from '../data';
+import { usePortalData, postPortal } from '@/src/lib/portalApi';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -18,7 +19,9 @@ export function CreateEventView() {
   const { width } = useWindowDimensions();
   const stack = width < 1024;
 
-  const [events, setEvents] = useState<MentorEvent[]>(INITIAL_EVENTS);
+  const { data, refresh } = usePortalData<{ items: MentorEvent[] }>('/mentor/events/me', { items: [] });
+  const events = data?.items || [];
+  
   const [subView, setSubView] = useState<'list' | 'create' | 'edit'>('list');
   const [editingEventId, setEditingEventId] = useState<number | null>(null);
 
@@ -137,7 +140,7 @@ export function CreateEventView() {
     }, 600);
   };
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     if (!title.trim()) { alert('Please enter an event title'); return; }
     if (!date) { alert('Please select a date'); return; }
     if (!time) { alert('Please select a time'); return; }
@@ -146,59 +149,40 @@ export function CreateEventView() {
     const ticketPrice = pricing === 'paid' ? (parseFloat(price) || 0) : undefined;
 
     if (subView === 'edit' && editingEventId !== null) {
-      // Edit mode
-      setEvents((prev) =>
-        prev.map((e) =>
-          e.id === editingEventId
-            ? {
-                ...e,
-                title,
-                desc,
-                date,
-                time,
-                duration,
-                platform,
-                seats: numSeats,
-                visibility,
-                pricing,
-                price: ticketPrice,
-                coverColor,
-              }
-            : e
-        )
-      );
-      alert('Event updated successfully!');
+      alert('Edit functionality not fully integrated yet.');
+      setSubView('list');
+      setEditingEventId(null);
     } else {
       // Create mode
-      const newEvent: MentorEvent = {
-        id: Date.now(),
-        title,
-        desc,
-        date,
-        time,
-        seats: numSeats,
-        registered: 0, // Freshly created event starts with 0
-        type: eventType,
-        platform,
-        duration,
-        pricing,
-        price: ticketPrice,
-        coverColor,
-        status: 'upcoming',
-        visibility,
-      };
-      setEvents((prev) => [newEvent, ...prev]);
-      alert('Event published successfully!');
+      try {
+        await postPortal('/mentor/events', {
+          body: {
+            title,
+            desc,
+            date,
+            time,
+            platform,
+            duration,
+            seats: numSeats,
+            visibility,
+            pricing,
+            price: ticketPrice,
+            coverColor,
+            type: eventType,
+          }
+        });
+        alert('Event created and published successfully!');
+        refresh();
+        setSubView('list');
+        resetForm();
+      } catch (err) {
+        alert('Failed to publish event. Please try again.');
+      }
     }
-
-    resetForm();
-    setSubView('list');
   };
 
   const handleDelete = (id: number) => {
-    if (confirm('Are you sure you want to delete this event?')) {
-      setEvents((prev) => prev.filter((e) => e.id !== id));
-    }
+    alert('Delete functionality requires backend support.');
   };
 
   const handleEditClick = (event: MentorEvent) => {
