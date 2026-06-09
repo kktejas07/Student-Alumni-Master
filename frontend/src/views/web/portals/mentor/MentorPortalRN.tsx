@@ -49,7 +49,6 @@ const PAGE_TITLES: Record<NavId, string> = {
   students:     'My Connections',
   sessions:     'Sessions',
   requests:     'Session Requests',
-  availability: 'Set Availability',
   network:      'Network',
   earnings:     'Earnings',
   feedback:     'Feedback',
@@ -155,7 +154,6 @@ export default function MentorPortalRN() {
             {active === 'ai-studio' && <MentorAIStudioView />}
             {active === 'students'  && <ConnectionsView />}
             {active === 'sessions'  && <SessionsView />}
-            {active === 'availability' && <AvailabilityView />}
             {active === 'requests'  && <RequestsView decisions={decisions} onSetDecision={(id, d) => setDecisions(prev => ({ ...prev, [id]: d }))} />}
             {active === 'network'   && <NetworkView />}
             {active === 'earnings'  && <EarningsView />}

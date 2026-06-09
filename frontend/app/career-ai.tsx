@@ -25,7 +25,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
-  Target, User as UserIcon, Sparkles, Flame, RefreshCcw, ArrowLeft,
+  Target, User as UserIcon, Sparkles, Flame, ArrowLeft,
   MessageSquare, Briefcase, Star, Award, Folder, Link2, Code,
   CircleCheck as CheckCircle2, GitBranch, FileText, Mic, Search, ChevronRight, Calendar,
 } from 'lucide-react-native';
@@ -94,7 +94,6 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   const cols = winW >= 1280 ? 4 : winW >= 900 ? 2 : 1;
 
   const [loading, setLoading] = useState(true);
-  const [regen, setRegen] = useState(false);
   const [roadmap, setRoadmap] = useState<RoadmapResp>({});
   const [profileStrength, setProfileStrength] = useState(0);
   const [aiSessions, setAiSessions] = useState(0);
@@ -120,7 +119,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
       } else if (!wasDone) {
         const nm = resp.next_milestone;
         if (nm) toast.info('Milestone complete', `Next up — Week ${nm.weeks}: ${nm.title}`);
-        else if (resp.next_phase_unlocked) toast.success('🎯 Roadmap complete!', 'Tap Regenerate to unlock the next 12-week phase.');
+        else if (resp.next_phase_unlocked) toast.success('🎯 Roadmap complete!', 'All 12 weeks completed — great work!');
       }
     } catch (e: any) {
       toast.error('Could not update', e?.message || 'Please try again.');
@@ -129,11 +128,11 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
     }
   }, [completed, completing, toast]);
 
-  const reload = useCallback(async (force = false) => {
-    if (force) setRegen(true); else setLoading(true);
+  const reload = useCallback(async () => {
+    setLoading(true);
     try {
       const [rm, comp, stats] = await Promise.all([
-        request<RoadmapResp>('/ai/career-roadmap', { method: 'POST', body: { force } } as any).catch(() => ({})),
+        request<RoadmapResp>('/ai/career-roadmap', { method: 'POST' } as any).catch(() => ({})),
         request<any>('/users/me/completion').catch(() => ({})),
         request<any>('/users/me/stats').catch(() => ({})),
       ]);
@@ -145,11 +144,11 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
     } catch (e: any) {
       toast.error('Could not load', e?.message || 'Please try again.');
     } finally {
-      setLoading(false); setRegen(false);
+      setLoading(false);
     }
   }, [toast]);
 
-  useEffect(() => { reload(false); }, [reload]);
+  useEffect(() => { reload(); }, [reload]);
 
   const overallSkillScore = useMemo(() => {
     const ss = roadmap.skill_scores || {};
@@ -225,15 +224,6 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
             <Text style={s.suggest}>“{roadmap.suggestion}”</Text>
           )}
         </View>
-        <Pressable
-          onPress={() => reload(true)}
-          disabled={regen}
-          style={[s.regenBtn, regen && { opacity: 0.6 }]}
-          testID="career-regen"
-        >
-          <RefreshCcw size={14} color="#fff" />
-          <Text style={s.regenBtnText}>{regen ? 'Regenerating…' : 'Regenerate'}</Text>
-        </Pressable>
       </View>
 
       {/* Overview metrics */}
@@ -300,7 +290,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 
       {/* 12-week roadmap timeline */}
       <SectionTitle text="12-WEEK AI CAREER ROADMAP" />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingVertical: 4 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 24, paddingVertical: 4 }}>
         {(roadmap.weekly_plan || []).map((wk, idx) => {
           const isDone = completed.includes(idx);
           const isNext = !isDone && idx === ((roadmap.weekly_plan || []).findIndex((_w, i) => !completed.includes(i)));
@@ -314,30 +304,34 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
               ]}
               testID={`week-card-${idx}`}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Calendar size={12} color={isDone ? C.green : C.purpleL} />
-                <Text style={[s.weekRange, isDone && { color: C.green }]}>Week {wk.weeks}</Text>
-                {isNext && (
-                  <View style={s.nextPill}>
-                    <Text style={s.nextPillText}>NEXT</Text>
-                  </View>
-                )}
-                {isDone && (
-                  <View style={[s.nextPill, { backgroundColor: 'rgba(16,185,129,0.18)', borderColor: 'rgba(16,185,129,0.45)' }]}>
-                    <CheckCircle2 size={10} color={C.green} />
-                    <Text style={[s.nextPillText, { color: C.green }]}>DONE</Text>
-                  </View>
-                )}
+              {/* Top section grows to fill space, pushing button to bottom */}
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Calendar size={12} color={isDone ? C.green : C.purpleL} />
+                  <Text style={[s.weekRange, isDone && { color: C.green }]}>Week {wk.weeks}</Text>
+                  {isNext && (
+                    <View style={s.nextPill}>
+                      <Text style={s.nextPillText}>NEXT</Text>
+                    </View>
+                  )}
+                  {isDone && (
+                    <View style={[s.nextPill, { backgroundColor: 'rgba(16,185,129,0.18)', borderColor: 'rgba(16,185,129,0.45)' }]}>
+                      <CheckCircle2 size={10} color={C.green} />
+                      <Text style={[s.nextPillText, { color: C.green }]}>DONE</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={s.weekTitle}>{wk.title}</Text>
+                <View style={{ gap: 6, marginTop: 8 }}>
+                  {wk.tasks.slice(0, 4).map((t, i) => (
+                    <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
+                      <View style={[s.weekDot, { backgroundColor: isDone ? C.green : (isNext ? C.purpleL : C.dim) }]} />
+                      <Text style={[s.weekTask, isDone && { textDecorationLine: 'line-through', color: C.dim }]}>{t}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
-              <Text style={s.weekTitle}>{wk.title}</Text>
-              <View style={{ gap: 6, marginTop: 8 }}>
-                {wk.tasks.slice(0, 4).map((t, i) => (
-                  <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
-                    <View style={[s.weekDot, { backgroundColor: isDone ? C.green : (isNext ? C.purpleL : C.dim) }]} />
-                    <Text style={[s.weekTask, isDone && { textDecorationLine: 'line-through', color: C.dim }]}>{t}</Text>
-                  </View>
-                ))}
-              </View>
+              {/* Button always pinned at bottom */}
               <Pressable
                 onPress={() => toggleMilestone(idx)}
                 disabled={completing !== null}
@@ -366,17 +360,6 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           );
         })}
       </ScrollView>
-
-      {(roadmap.weekly_plan || []).length > 0 && completed.length >= (roadmap.weekly_plan || []).length && (
-        <Pressable onPress={() => reload(true)} style={s.nextPhaseBanner} testID="generate-next-phase">
-          <Sparkles size={16} color="#fff" />
-          <View style={{ flex: 1 }}>
-            <Text style={s.nextPhaseTitle}>🎯 Roadmap complete!</Text>
-            <Text style={s.nextPhaseSub}>Tap to generate your next 12-week phase based on updated skills.</Text>
-          </View>
-          <RefreshCcw size={14} color="#fff" />
-        </Pressable>
-      )}
 
       {/* Build your profile grid */}
       <SectionTitle text="BUILD YOUR PROFILE" />
@@ -446,14 +429,6 @@ const s = StyleSheet.create({
   onlinePillText: { color: C.green, fontFamily: FT.bold, fontSize: 10 },
   suggest: { color: C.text2, fontFamily: FT.med, fontSize: 12, marginTop: 4, fontStyle: 'italic' },
 
-  regenBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, height: 36, borderRadius: 10,
-    backgroundColor: C.purple,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', boxShadow: '0 6px 18px rgba(124,58,237,0.35)' } as any) : {}),
-  },
-  regenBtnText: { color: '#fff', fontFamily: FT.bold, fontSize: 12 },
-
   grid: { display: 'grid' as any, gap: 12, marginBottom: 14 },
   metricCard: {
     backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
@@ -499,8 +474,10 @@ const s = StyleSheet.create({
 
   weekCard: {
     width: 240,
+    height: 280,
     backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
     borderRadius: 14, padding: 14,
+    flexDirection: 'column',
   },
   weekRange: { color: C.purpleL, fontFamily: FT.bold, fontSize: 10, letterSpacing: 0.6 },
   weekTitle: { color: C.text, fontFamily: FT.xbold, fontSize: 14, marginTop: 4 },
@@ -515,22 +492,13 @@ const s = StyleSheet.create({
   nextPillText: { color: C.purpleL, fontFamily: FT.xbold, fontSize: 9, letterSpacing: 0.5 },
   milestoneBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, marginTop: 12, height: 34, borderRadius: 8,
+    gap: 6, marginTop: 8, height: 34, borderRadius: 8,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   milestoneBtnDefault: { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1 },
   milestoneBtnNext: { backgroundColor: C.purple },
   milestoneBtnDone: { backgroundColor: C.green },
   milestoneBtnText: { color: '#fff', fontFamily: FT.bold, fontSize: 11.5 },
-  nextPhaseBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 14, marginTop: 14, borderRadius: 14,
-    backgroundColor: 'rgba(167,139,250,0.14)', borderColor: 'rgba(167,139,250,0.50)', borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  nextPhaseTitle: { color: '#fff', fontFamily: FT.xbold, fontSize: 13 },
-  nextPhaseSub: { color: C.text2, fontFamily: FT.med, fontSize: 11.5, marginTop: 2 },
-
   buildCard: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: C.card, borderColor: C.border, borderWidth: 1,

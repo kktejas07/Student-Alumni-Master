@@ -4,7 +4,7 @@
  * High-fidelity screens matching all reference mockups with interactive states.
  */
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, Pressable, TextInput, StyleSheet, ScrollView, Platform, Linking, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, TextInput, StyleSheet, ScrollView, Platform, Linking, ActivityIndicator, Modal } from 'react-native';
 import { 
   Users, 
   GraduationCap, 
@@ -27,7 +27,9 @@ import {
   X,
   Sparkles,
   MessageCircle,
-  ArrowLeft
+  ArrowLeft,
+  Calendar,
+  UserPlus
 } from 'lucide-react-native';
 import { MC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
@@ -280,6 +282,9 @@ export function NetworkView() {
   
   const [loading, setLoading] = useState(true);
 
+  // Profile detail view state
+  const [pickedPerson, setPickedPerson] = useState<any | null>(null);
+
   // Drafting Message Modal States
   const [draftingPerson, setDraftingPerson] = useState<any | null>(null);
   const [draftText, setDraftText] = useState('');
@@ -299,6 +304,7 @@ export function NetworkView() {
           ...c,
           role,
           tag,
+          kind: role,
           company: c.college || '',
           mutual: c.mutual || ((sumChars(c.id || '') % 12) + 2)
         };
@@ -398,7 +404,8 @@ export function NetworkView() {
       mutual: u.mutual_connections || u.mutual || ((sumChars(u.id || '') % 12) + 2),
       linkedin: u.linkedin_url || u.linkedin || '',
       github: u.github_url || u.github || '',
-      connectionState: u.connection_state || 'none'
+      connectionState: u.connection_state || 'none',
+      kind: role
     };
   };
 
@@ -690,7 +697,7 @@ export function NetworkView() {
 
                         <View style={s.cardActions}>
                           <Pressable 
-                            onPress={() => alert(`Opening student profile: ${student.name}`)}
+                            onPress={() => setPickedPerson(student)}
                             style={({ hovered }: any) => [s.viewProfileBtn, hovered && { backgroundColor: '#5EEAD4' }]}
                           >
                             <Eye size={12} color="#090D16" style={{ marginRight: 6 }} />
@@ -781,7 +788,7 @@ export function NetworkView() {
 
                         <View style={[s.cardActions, { marginTop: 14 }]}>
                           <Pressable 
-                            onPress={() => alert(`Opening profile: ${person.name}`)}
+                            onPress={() => setPickedPerson(person)}
                             style={({ hovered }: any) => [s.viewProfileBtn, hovered && { backgroundColor: '#5EEAD4' }]}
                           >
                             <Eye size={12} color="#090D16" style={{ marginRight: 6 }} />
@@ -992,7 +999,7 @@ export function NetworkView() {
 
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 6 }}>
                           <Pressable 
-                            onPress={() => alert(`Opening profile: ${person.name}`)}
+                            onPress={() => setPickedPerson(person)}
                             style={({ hovered }: any) => [s.viewProfileBtn, { flex: 1, height: 32 }, hovered && { backgroundColor: '#5EEAD4' }]}
                           >
                             <Eye size={12} color="#090D16" style={{ marginRight: 6 }} />
@@ -1159,6 +1166,156 @@ export function NetworkView() {
           </View>
         </View>
       )}
+
+      {/* Profile Detail Modal */}
+      <Modal visible={!!pickedPerson} animationType="slide" transparent onRequestClose={() => setPickedPerson(null)}>
+        <View style={s.backdrop}>
+          <Pressable onPress={() => setPickedPerson(null)} style={{ flex: 1 }} />
+          <View style={s.modal}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>
+                {pickedPerson?.kind === 'mentor' ? 'Mentor Profile' : pickedPerson?.kind === 'alumni' ? 'Alumni Profile' : 'Student Profile'}
+              </Text>
+              <Pressable onPress={() => setPickedPerson(null)} style={s.closeBtn}>
+                <X size={16} color="#fff" />
+              </Pressable>
+            </View>
+            {pickedPerson && (() => {
+              const isConnected = pickedPerson.status === 'active' || 
+                                  pickedPerson.status === 'accepted' || 
+                                  pickedPerson.status === 'completed' || 
+                                  pickedPerson.connectionState === 'connected';
+              const isPending = pickedPerson.status === 'pending' || 
+                                pickedPerson.connectionState === 'pending';
+              const nameInitials = pickedPerson.avatar || (pickedPerson.name.split(' ').slice(0, 2).map((p: any) => p[0] || '').join('').toUpperCase());
+              const titleLine = pickedPerson.role || pickedPerson.subline || 'Member';
+              const collegeLine = pickedPerson.company || pickedPerson.college || '';
+              const bioText = pickedPerson.bio || pickedPerson.looking || (pickedPerson.goals && pickedPerson.goals[0]) || 'No bio provided.';
+              const skillsList = pickedPerson.skills || pickedPerson.tags || pickedPerson.interests || [];
+
+              return (
+                <ScrollView style={{ padding: 20 }} contentContainerStyle={{ gap: 16 }}>
+                  {/* Basic Info Card */}
+                  <View style={s.profileHeaderCard}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 }}>
+                      <Av initials={nameInitials} size={64} color={pickedPerson.color} />
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 }}>{pickedPerson.name}</Text>
+                        <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 }}>
+                          {titleLine}
+                        </Text>
+                        <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 }}>
+                          {collegeLine}
+                        </Text>
+                      </View>
+                      
+                      {/* Social Icons */}
+                      <View style={{ flexDirection: 'row', gap: 6, alignSelf: 'flex-start' }}>
+                        {pickedPerson.linkedin && (
+                          <Pressable 
+                            onPress={() => Linking.openURL(`https://${pickedPerson.linkedin}`)} 
+                            style={s.socialIconBtn}
+                          >
+                            <LinkedinGlyph size={14} color="#fff" />
+                          </Pressable>
+                        )}
+                        {pickedPerson.github && (
+                          <Pressable 
+                            onPress={() => Linking.openURL(`https://${pickedPerson.github}`)} 
+                            style={s.socialIconBtn}
+                          >
+                            <Code size={14} color="#fff" />
+                          </Pressable>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Bio Card */}
+                  <View style={s.profileBioCard}>
+                    <View style={{ padding: 16 }}>
+                      <Text style={{ color: 'rgba(255,255,255,0.75)', fontFamily: FONTS.med, fontSize: 13, lineHeight: 18 }}>
+                        {bioText}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Mentor Stats Section */}
+                  {pickedPerson.kind === 'mentor' && (
+                    <View style={{ gap: 8 }}>
+                      <Text style={{ color: '#F97316', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>MENTOR STATS</Text>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderRadius: 10, padding: 12 }}>
+                          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.rating || 5.0}★</Text>
+                          <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Rating</Text>
+                        </View>
+                        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderRadius: 10, padding: 12 }}>
+                          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.sessions || 0}</Text>
+                          <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Sessions</Text>
+                        </View>
+                        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderRadius: 10, padding: 12 }}>
+                          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 }} numberOfLines={1}>{pickedPerson.price || 'Free'}</Text>
+                          <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Price</Text>
+                        </View>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Skills Section */}
+                  <View style={{ gap: 8 }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.50)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>SKILLS</Text>
+                    <View style={s.skillsRow}>
+                      {skillsList && skillsList.map((tag: string, idx: number) => (
+                        <View key={idx} style={s.skillChip}><Text style={s.skillChipText}>{tag}</Text></View>
+                      ))}
+                      {(!skillsList || skillsList.length === 0) && (
+                        <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12 }}>No specified skills.</Text>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* Connection / Messaging Actions */}
+                  <View style={{ marginTop: 8 }}>
+                    {isConnected ? (
+                      <View style={s.connectedPillLarge}>
+                        <Check size={16} color={MC.tealP} style={{ marginRight: 6 }} />
+                        <Text style={{ color: MC.tealP, fontFamily: FONTS.bold, fontSize: 14 }}>Connected</Text>
+                      </View>
+                    ) : isPending ? (
+                      <View style={s.pendingPillLarge}>
+                        <Clock size={16} color={MC.amber} style={{ marginRight: 6 }} />
+                        <Text style={{ color: MC.amber, fontFamily: FONTS.bold, fontSize: 14 }}>Request Pending</Text>
+                      </View>
+                    ) : pickedPerson.connectionState === 'incoming' ? (
+                      <Pressable 
+                        onPress={() => {
+                          setPickedPerson(null);
+                          handleAcceptRequest(pickedPerson.id, pickedPerson.name);
+                        }}
+                        style={s.connectBtnLarge}
+                      >
+                        <Check size={16} color="#090D16" style={{ marginRight: 6 }} />
+                        <Text style={{ color: '#090D16', fontFamily: FONTS.xbold, fontSize: 14 }}>Accept Connection</Text>
+                      </Pressable>
+                    ) : (
+                      <Pressable 
+                        onPress={() => {
+                          setPickedPerson(null);
+                          openDraftDialog(pickedPerson);
+                        }}
+                        style={s.connectBtnLarge}
+                      >
+                        <MessageSquare size={16} color="#090D16" style={{ marginRight: 6 }} />
+                        <Text style={{ color: '#090D16', fontFamily: FONTS.xbold, fontSize: 14 }}>Draft Message</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                </ScrollView>
+              );
+            })()}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1870,5 +2027,96 @@ const s = StyleSheet.create({
     color: '#090D16',
     fontFamily: FONTS.xbold,
     fontSize: 13
+  },
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(5, 8, 16, 0.75)',
+    justifyContent: 'flex-end',
+    alignItems: Platform.OS === 'web' ? 'flex-end' : 'stretch',
+  },
+  modal: {
+    backgroundColor: MC.bg2 || '#090D16',
+    borderColor: MC.border,
+    borderLeftWidth: Platform.OS === 'web' ? 1 : 0,
+    borderWidth: Platform.OS === 'web' ? 0 : 1,
+    borderTopLeftRadius: Platform.OS === 'web' ? 0 : 20,
+    borderTopRightRadius: Platform.OS === 'web' ? 0 : 20,
+    width: Platform.OS === 'web' ? 440 : '100%',
+    height: Platform.OS === 'web' ? '100%' : '85%',
+    maxHeight: '100%',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: -10, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomColor: MC.border,
+    borderBottomWidth: 1
+  },
+  modalTitle: {
+    color: '#fff',
+    fontFamily: FONTS.xbold,
+    fontSize: 15
+  },
+  closeBtn: {
+    padding: 4,
+    ...({ cursor: 'pointer' } as any)
+  },
+  profileHeaderCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  profileBioCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  socialIconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.09)',
+    borderWidth: 1,
+    ...({ cursor: 'pointer' } as any)
+  },
+  connectBtnLarge: {
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#14B8A6',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any)
+  },
+  connectedPillLarge: {
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: 'rgba(20,184,166,0.1)',
+    borderColor: 'rgba(20,184,166,0.2)',
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pendingPillLarge: {
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: 'rgba(245,158,11,0.1)',
+    borderColor: 'rgba(245,158,11,0.2)',
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   }
 });

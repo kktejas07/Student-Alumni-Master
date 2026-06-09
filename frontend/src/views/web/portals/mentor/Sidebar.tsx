@@ -25,7 +25,6 @@ export const NAV_MAIN: (counts: { students: number; sessions: number; requests: 
   { id: 'ai-studio',    label: 'AI Studio',        Icon: Sparkles },
   { id: 'students',     label: 'My Connections',   Icon: Users,    count: students },
   { id: 'sessions',     label: 'Sessions',         Icon: Calendar, count: sessions },
-  { id: 'availability', label: 'Set Availability', Icon: Clock },
   { id: 'requests',     label: 'Session Requests', Icon: UserPlus, count: requests, alert: true },
   { id: 'network',      label: 'Network',          Icon: Network },
   { id: 'earnings',     label: 'Earnings',         Icon: Coins },
