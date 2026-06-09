@@ -8,7 +8,7 @@
  *
  * Props match the legacy Dropdown surface so existing call sites work.
  */
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Modal, Platform, TextInput,
 } from 'react-native';
@@ -47,10 +47,80 @@ export function Dropdown({
   const [open, setOpen] = useState(false);
   const [manualMode, setManualMode] = useState(false);
   const [manualText, setManualText] = useState('');
+  const [filterText, setFilterText] = useState('');
+  const typeBufferRef = useRef('');
+
+  // Clear filter when dropdown opens or closes
+  useEffect(() => {
+    typeBufferRef.current = '';
+    setFilterText('');
+  }, [open]);
+
+  // Keyboard capture via document-level listener (web only)
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !open) return;
+
+    const handler = (e: KeyboardEvent) => {
+      // Ignore if a text input inside the card is focused (manual mode)
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      const key = e.key;
+
+      if (key === 'Escape') {
+        e.stopPropagation();
+        setOpen(false);
+        return;
+      }
+
+      const buf = typeBufferRef.current;
+
+      if (key === 'Enter') {
+        if (buf) {
+          const lower = buf.toLowerCase();
+          const exact = options.find((o) => o.label.toLowerCase() === lower);
+          if (exact) {
+            onChange(exact.value);
+            setManualMode(false);
+            setOpen(false);
+          }
+        }
+        return;
+      }
+
+      if (key === 'Backspace') {
+        const next = buf.slice(0, -1);
+        typeBufferRef.current = next;
+        setFilterText(next);
+        return;
+      }
+
+      if (key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const next = buf + key;
+        typeBufferRef.current = next;
+        setFilterText(next);
+
+        const lower = next.toLowerCase();
+        const matching = options.filter((o) => o.label.toLowerCase().startsWith(lower));
+        if (matching.length === 1) {
+          onChange(matching[0].value);
+          setManualMode(false);
+          setOpen(false);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open, options, onChange]);
 
   const sel = options.find((o) => o.value === value);
   // If the current value isn't in options, we're in "manual" mode.
   const showingManual = manualMode || (!!value && !sel);
+
+  // Filter options based on keyboard type-ahead text
+  const filteredOptions = filterText
+    ? options.filter((o) => o.label.toLowerCase().startsWith(filterText.toLowerCase()))
+    : options;
 
   const triggerLabel = showingManual
     ? (manualText || value || placeholder)
@@ -100,24 +170,30 @@ export function Dropdown({
       )}
 
       {/* Modal overlay — backdrop click closes; positioned-centred card */}
-      <Modal transparent visible={open} animationType="fade" onRequestClose={() => setOpen(false)}>
-        <Pressable style={s.backdrop} onPress={() => setOpen(false)}>
-          <Pressable
-            // Stop propagation: tapping inside the card should not close it
-            onPress={(e: any) => e?.stopPropagation?.()}
-            style={s.cardWrap}
-          >
-            <OptionListCard
-              headerLabel={overlayHeader || label.toUpperCase()}
-              options={options}
-              selectedValue={value}
-              onSelect={(opt) => { onChange(opt.value); setManualMode(false); setOpen(false); }}
-              showOther={allowOther}
-              onSelectOther={() => { setOpen(false); setManualMode(true); setManualText(''); onChange(''); }}
-            />
+      {open && (
+        <Modal transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+          <Pressable style={s.backdrop} onPress={() => setOpen(false)}>
+            <Pressable
+              onPress={(e: any) => e?.stopPropagation?.()}
+              style={s.cardWrap}
+              onKeyDown={(e: any) => {
+                if (Platform.OS === 'web' && e?.key === 'Escape') {
+                  setOpen(false);
+                }
+              }}
+            >
+              <OptionListCard
+                headerLabel={overlayHeader || label.toUpperCase()}
+                options={filteredOptions}
+                selectedValue={value}
+                onSelect={(opt) => { onChange(opt.value); setManualMode(false); setOpen(false); }}
+                showOther={allowOther}
+                onSelectOther={() => { setOpen(false); setManualMode(true); setManualText(''); onChange(''); }}
+              />
+            </Pressable>
           </Pressable>
-        </Pressable>
-      </Modal>
+        </Modal>
+      )}
     </View>
   );
 }
