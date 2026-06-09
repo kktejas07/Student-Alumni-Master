@@ -290,7 +290,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 
       {/* 12-week roadmap timeline */}
       <SectionTitle text="12-WEEK AI CAREER ROADMAP" />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ height: 300 }} contentContainerStyle={{ gap: 12, paddingRight: 24, paddingVertical: 4, alignItems: 'stretch' }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 24, paddingVertical: 4 }}>
         {(roadmap.weekly_plan || []).map((wk, idx) => {
           const isDone = completed.includes(idx);
           const isNext = !isDone && idx === ((roadmap.weekly_plan || []).findIndex((_w, i) => !completed.includes(i)));
@@ -320,7 +320,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
                 )}
               </View>
               <Text style={s.weekTitle}>{wk.title}</Text>
-              <View style={{ gap: 6, marginTop: 8, flex: 1 }}>
+              <View style={{ gap: 6, marginTop: 8 }}>
                 {wk.tasks.slice(0, 4).map((t, i) => (
                   <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
                     <View style={[s.weekDot, { backgroundColor: isDone ? C.green : (isNext ? C.purpleL : C.dim) }]} />
@@ -470,11 +470,12 @@ const s = StyleSheet.create({
 
   weekCard: {
     width: 240,
-    alignSelf: 'stretch',
+    height: 280,
     backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
     borderRadius: 14, padding: 14,
     display: 'flex',
     flexDirection: 'column',
+    justifyContent: 'space-between',
   },
   weekRange: { color: C.purpleL, fontFamily: FT.bold, fontSize: 10, letterSpacing: 0.6 },
   weekTitle: { color: C.text, fontFamily: FT.xbold, fontSize: 14, marginTop: 4 },
