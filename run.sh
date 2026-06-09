@@ -15,8 +15,8 @@ BACKEND_DIR="$ROOT/backend"
 FRONTEND_DIR="$ROOT/frontend"
 PID_FILE="$ROOT/.run.pids"
 
-# Prepend local Node.js if it exists (useful for Windows environments)
-if [[ -d "$ROOT/node-local" ]]; then
+# Prepend local Node.js if it exists and is complete (useful for Windows environments)
+if [[ -d "$ROOT/node-local" && -d "$ROOT/node-local/node_modules/npm" ]]; then
   export PATH="$ROOT/node-local:$PATH"
 fi
 
