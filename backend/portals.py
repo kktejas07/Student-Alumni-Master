@@ -1956,8 +1956,9 @@ async def student_events_list(student_email: Optional[str] = None, limit: int = 
             "capacity": ev.get("capacity") or 500,
             "kind": "paid" if ev.get("price") else "free",
             "price": ev.get("price"),
-            "accent": palette[i % len(palette)],
+            "accent": ev.get("coverColor") or palette[i % len(palette)],
             "registered": registered,
+            "description": ev.get("description", ""),
         })
         i += 1
     return {"items": out}
@@ -2936,4 +2937,81 @@ async def mentor_connections(email: Optional[str] = None):
             "messages": 0 if status != "pending" else (idx % 3),
         })
 
+    return {"items": out}
+
+class MentorEventCreate(BaseModel):
+    title: str
+    desc: str
+    date: str
+    time: str
+    platform: str
+    duration: int
+    seats: int
+    visibility: str
+    pricing: str
+    price: Optional[float] = None
+    coverColor: str
+    type: str
+
+@router.post("/mentor/events")
+async def create_mentor_event(ev: MentorEventCreate, email: Optional[str] = None):
+    mentor = None
+    if email:
+        mentor = await _db.users.find_one({"email": email, "role": "mentor"})
+    if not mentor:
+        mentor = await _db.users.find_one({"role": "mentor"})
+    
+    sid = str((mentor or {}).get("_id", ""))
+
+    doc = {
+        "mentor_id": sid,
+        "title": ev.title,
+        "description": ev.desc,
+        "date_str": ev.date,
+        "time_str": ev.time,
+        "mode": ev.platform,
+        "duration": ev.duration,
+        "capacity": ev.seats,
+        "visibility": ev.visibility,
+        "price": ev.price,
+        "category": ev.type,
+        "coverColor": ev.coverColor,
+        "status": "upcoming",
+        "start_date": datetime.utcnow() + timedelta(days=5),
+        "created_at": datetime.utcnow()
+    }
+    res = await _db.events.insert_one(doc)
+    return {"ok": True, "id": str(res.inserted_id)}
+
+@router.get("/mentor/events/me")
+async def my_mentor_events(email: Optional[str] = None):
+    mentor = None
+    if email:
+        mentor = await _db.users.find_one({"email": email, "role": "mentor"})
+    if not mentor:
+        mentor = await _db.users.find_one({"role": "mentor"})
+    
+    sid = str((mentor or {}).get("_id", ""))
+    cur = _db.events.find({"mentor_id": sid}).sort("created_at", -1)
+    
+    out = []
+    async for e in cur:
+        regs = await _db.event_registrations.count_documents({"event_id": str(e.get("_id"))})
+        out.append({
+            "id": str(e["_id"]),
+            "title": e.get("title"),
+            "desc": e.get("description"),
+            "date": e.get("date_str"),
+            "time": e.get("time_str"),
+            "platform": e.get("mode"),
+            "duration": e.get("duration"),
+            "seats": e.get("capacity"),
+            "visibility": e.get("visibility"),
+            "price": e.get("price"),
+            "pricing": "paid" if e.get("price") else "free",
+            "type": e.get("category"),
+            "coverColor": e.get("coverColor", "#6366F1"),
+            "status": e.get("status", "upcoming"),
+            "registered": regs,
+        })
     return {"items": out}

@@ -9,7 +9,7 @@ import { Badge } from '../atoms';
 import { usePortalData, postPortal, fetchPortal } from '@/src/lib/portalApi';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-type Ev = { id: string; title: string; date: string; mode: string; city: string; cat: string; attending: number; capacity: number; kind: string; price?: number; accent: string; registered: boolean };
+type Ev = { id: string; title: string; date: string; mode: string; city: string; cat: string; attending: number; capacity: number; kind: string; price?: number; accent: string; registered: boolean; description?: string; tags?: string[]; spotsLeft?: number; };
 const FALLBACK = { items: [] as Ev[] };
 
 const FILTERS = ['All', 'Hackathon', 'Codethon', 'Workshop', 'Tech Talk', 'Training', 'Founder Talk', 'Meetup', 'Fest'];
@@ -51,12 +51,15 @@ const catAccentMap: Record<string, string> = {
 
 const enrichEvent = (e: Ev) => {
   const hash = Math.abs(e.title.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0));
-  let description = "Collaborate and build next-gen AI applications with global sponsors.";
+  let description = e.description || "Collaborate and build next-gen AI applications with global sponsors.";
   let prizePool = "";
-  let tags = ['AI/ML', 'Web3', 'Tech'];
-  let spotsLeft = Math.max(2, (e.capacity || 100) - (e.attending || 0));
+  let tags = e.tags || ['AI/ML', 'Web3', 'Tech'];
+  let spotsLeft = e.spotsLeft ?? Math.max(2, (e.capacity || 100) - (e.attending || 0));
 
   const catLower = e.cat?.toLowerCase() || 'workshop';
+  
+  // Only apply mock data heuristics if the event came from the mock seed data (i.e. lacks a real description)
+  if (!e.description) {
 
   if (catLower === 'hackathon') {
     description = "48-hour hackathon. Build products that solve real India problems.";
@@ -115,14 +118,11 @@ const enrichEvent = (e: Ev) => {
     description = "Interactive session on Trees, Graphs and advanced algorithms.";
     spotsLeft = 15;
     tags = ['DSA', 'Algorithms', 'Java/C++'];
-  } else if (e.title.includes('System Design Masterclass')) {
-    description = "4-hour deep-dive with Google Staff Engineer. Live problem solving.";
-    spotsLeft = 2;
-    tags = ['System Design', 'Backend'];
   } else if (e.title.includes('Zepto Story') || e.title.includes('0 to $10M ARR')) {
     description = "Real story of building India's fastest grocery delivery.";
     spotsLeft = 33;
     tags = ['Startup', 'Growth'];
+  }
   }
 
   // Resolve visual properties
