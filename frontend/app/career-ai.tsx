@@ -304,30 +304,34 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
               ]}
               testID={`week-card-${idx}`}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Calendar size={12} color={isDone ? C.green : C.purpleL} />
-                <Text style={[s.weekRange, isDone && { color: C.green }]}>Week {wk.weeks}</Text>
-                {isNext && (
-                  <View style={s.nextPill}>
-                    <Text style={s.nextPillText}>NEXT</Text>
-                  </View>
-                )}
-                {isDone && (
-                  <View style={[s.nextPill, { backgroundColor: 'rgba(16,185,129,0.18)', borderColor: 'rgba(16,185,129,0.45)' }]}>
-                    <CheckCircle2 size={10} color={C.green} />
-                    <Text style={[s.nextPillText, { color: C.green }]}>DONE</Text>
-                  </View>
-                )}
+              {/* Top section grows to fill space, pushing button to bottom */}
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Calendar size={12} color={isDone ? C.green : C.purpleL} />
+                  <Text style={[s.weekRange, isDone && { color: C.green }]}>Week {wk.weeks}</Text>
+                  {isNext && (
+                    <View style={s.nextPill}>
+                      <Text style={s.nextPillText}>NEXT</Text>
+                    </View>
+                  )}
+                  {isDone && (
+                    <View style={[s.nextPill, { backgroundColor: 'rgba(16,185,129,0.18)', borderColor: 'rgba(16,185,129,0.45)' }]}>
+                      <CheckCircle2 size={10} color={C.green} />
+                      <Text style={[s.nextPillText, { color: C.green }]}>DONE</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={s.weekTitle}>{wk.title}</Text>
+                <View style={{ gap: 6, marginTop: 8 }}>
+                  {wk.tasks.slice(0, 4).map((t, i) => (
+                    <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
+                      <View style={[s.weekDot, { backgroundColor: isDone ? C.green : (isNext ? C.purpleL : C.dim) }]} />
+                      <Text style={[s.weekTask, isDone && { textDecorationLine: 'line-through', color: C.dim }]}>{t}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
-              <Text style={s.weekTitle}>{wk.title}</Text>
-              <View style={{ gap: 6, marginTop: 8 }}>
-                {wk.tasks.slice(0, 4).map((t, i) => (
-                  <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
-                    <View style={[s.weekDot, { backgroundColor: isDone ? C.green : (isNext ? C.purpleL : C.dim) }]} />
-                    <Text style={[s.weekTask, isDone && { textDecorationLine: 'line-through', color: C.dim }]}>{t}</Text>
-                  </View>
-                ))}
-              </View>
+              {/* Button always pinned at bottom */}
               <Pressable
                 onPress={() => toggleMilestone(idx)}
                 disabled={completing !== null}
@@ -473,9 +477,7 @@ const s = StyleSheet.create({
     height: 280,
     backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
     borderRadius: 14, padding: 14,
-    display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'space-between',
   },
   weekRange: { color: C.purpleL, fontFamily: FT.bold, fontSize: 10, letterSpacing: 0.6 },
   weekTitle: { color: C.text, fontFamily: FT.xbold, fontSize: 14, marginTop: 4 },
@@ -490,7 +492,7 @@ const s = StyleSheet.create({
   nextPillText: { color: C.purpleL, fontFamily: FT.xbold, fontSize: 9, letterSpacing: 0.5 },
   milestoneBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, marginTop: 12, height: 34, borderRadius: 8,
+    gap: 6, marginTop: 8, height: 34, borderRadius: 8,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   milestoneBtnDefault: { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1 },
