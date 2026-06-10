@@ -16,11 +16,13 @@ export function TopBar({
   onCalendarPress,
   onNotificationsPress,
   onProfilePress,
+  onAddPress,
 }: {
   title?: string;
   onCalendarPress?: () => void;
   onNotificationsPress?: () => void;
   onProfilePress?: () => void;
+  onAddPress?: () => void;
 }) {
   const router = useRouter();
   const user = useAuthStore((u) => u.user);
@@ -61,7 +63,10 @@ export function TopBar({
         <View style={[s.numPill, { backgroundColor: '#EF4444' }]}><Text style={s.numText}>3</Text></View>
       </Pressable>
 
-      <Pressable style={({ hovered }: any) => [s.addCta, hovered && { transform: [{ translateY: -1 }] }]}>
+      <Pressable
+        onPress={onAddPress}
+        style={({ hovered }: any) => [s.addCta, hovered && { transform: [{ translateY: -1 }] }]}
+      >
         <LinearGradient colors={['#6366F1', '#22D3EE'] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.addCtaInner}>
           <Plus size={14} color="#fff" />
           <Text style={s.addCtaText}>Add College</Text>

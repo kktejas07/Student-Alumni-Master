@@ -255,7 +255,7 @@ export default function CollegeOnboard() {
       await api.completeOnboarding(payload);
       await refreshUser();
       toast.success(`${badge.tier} institution status earned! 🎉`, 'Generating your Member ID…');
-      router.replace('/(onboarding)/member-id' as any);
+      router.push('/(onboarding)/member-id' as any);
     } catch (e: any) {
       toast.error('Setup failed', e?.message || 'Please try again.');
     }

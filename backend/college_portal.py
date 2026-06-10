@@ -7,6 +7,7 @@ Endpoints (all under /api):
   GET  /college/analytics               full analytics payload
   GET  /college/departments             dept distribution
   GET  /college/recruiters              top recruiting companies
+  POST /college/announcements           create a new announcement
 """
 from __future__ import annotations
 import os
@@ -425,3 +426,48 @@ async def college_recruiters(user: dict = Depends(_auth())):
         })
     out.sort(key=lambda x: -x["hires"])
     return {"recruiters": out}
+
+
+# ─── Announcements ───────────────────────────────────────────────────────────
+class AnnouncementPayload(BaseModel):
+    title: str
+    body: str
+    audience: str = "all"
+    tag: str = "general"
+    pinned: bool = False
+
+
+@router.post("/college/announcements")
+async def create_college_announcement(
+    payload: AnnouncementPayload,
+    user: dict = Depends(_auth()),
+):
+    """Create a new announcement for the college and persist it in MongoDB."""
+    if not payload.title.strip() or not payload.body.strip():
+        raise HTTPException(status_code=422, detail="Title and body are required.")
+
+    college_name = (
+        (user.get("college_info") or {}).get("institution_name")
+        or (user.get("school_info") or {}).get("institution_name")
+        or user.get("college_name")
+        or ""
+    )
+    author = user.get("full_name") or college_name or "Admin"
+
+    doc = {
+        "title": payload.title.strip(),
+        "body": payload.body.strip(),
+        "audience": payload.audience,
+        "tag": payload.tag,
+        "pinned": payload.pinned,
+        "author": author,
+        "college_name": college_name,
+        "posted_at": datetime.now(timezone.utc),
+    }
+    result = await _db.announcements.insert_one(doc)
+    return {
+        "ok": True,
+        "id": str(result.inserted_id),
+        "title": doc["title"],
+        "posted_at": doc["posted_at"].isoformat(),
+    }
