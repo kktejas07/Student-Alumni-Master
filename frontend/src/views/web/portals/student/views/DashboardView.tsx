@@ -79,6 +79,20 @@ export function DashboardView() {
   const [briefLoading, setBriefLoading] = React.useState<boolean>(false);
   const [briefProvider, setBriefProvider] = React.useState<string>('');
 
+  React.useEffect(() => {
+    // Auto-generate AI brief on mount
+    const fetchBrief = async () => {
+      try {
+        setBriefLoading(true);
+        const j = await request<any>('/ai/daily-brief', { method: 'POST', body: { force: false } });
+        setBriefText(j?.brief || j?.detail || 'Could not generate brief.');
+        setBriefProvider(j?.provider_label || '');
+      } catch (e: any) { setBriefText('Error: ' + (e?.message || 'unknown')); }
+      finally { setBriefLoading(false); }
+    };
+    fetchBrief();
+  }, []);
+
   const { width } = useWindowDimensions();
   const stack = width < 1100;
   const matchW = stack ? '100%' : '64%';
@@ -112,7 +126,7 @@ export function DashboardView() {
 
   const k = intel?.kpis;
   const NX_AUDIENCE: AreaPoint[] = (intel?.momentum?.data as AreaPoint[]) || FALLBACK_AUDIENCE;
-  const NX_ACTIVITY: ActivityItem[] = (intel?.activity as ActivityItem[]) || FALLBACK_ACTIVITY;
+  const NX_ACTIVITY: ActivityItem[] = (intel?.activityFeed as ActivityItem[]) || FALLBACK_ACTIVITY;
   const momentumTitle: string = intel?.momentum?.title || 'Career Momentum';
   const momentumSubtitle: string = intel?.momentum?.subtitle || 'Profile views per month — last 9 months';
 
@@ -208,31 +222,32 @@ export function DashboardView() {
             </View>
           )}
         </View>
-        <PressScale
-          style={[s.briefCta, briefLoading && { opacity: 0.6 }]}
-          disabled={briefLoading}
-          onPress={async () => {
-            try {
-              setBriefLoading(true);
-              const j = await request<any>('/ai/daily-brief', {
-                method: 'POST',
-                body: { force: false },
-              });
-              setBriefText(j?.brief || j?.detail || 'Could not generate brief.');
-              setBriefProvider(j?.provider_label || '');
-            } catch (e: any) { setBriefText('Error: ' + (e?.message || 'unknown')); }
-            finally { setBriefLoading(false); }
-          }}
-        >
-          <LinearGradient
-            colors={[GRAD.from, GRAD.to]}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={s.gradCta}
+        {!briefText && !briefLoading && (
+          <PressScale
+            style={[s.briefCta, briefLoading && { opacity: 0.6 }]}
+            disabled={briefLoading}
+            onPress={async () => {
+              try {
+                setBriefLoading(true);
+                const j = await request<any>('/ai/daily-brief', {
+                  method: 'POST',
+                  body: { force: false },
+                });
+                setBriefText(j?.brief || j?.detail || 'Could not generate brief.');
+                setBriefProvider(j?.provider_label || '');
+              } catch (e: any) { setBriefText('Error: ' + (e?.message || 'unknown')); }
+              finally { setBriefLoading(false); }
+            }}
           >
-            <Sparkles size={13} color="#fff" />
-            <Text style={s.briefCtaText}>{briefLoading ? 'Generating…' : 'Generate Brief'}</Text>
-          </LinearGradient>
-        </PressScale>
+            <LinearGradient
+              colors={[GRAD.from, GRAD.to]}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={s.gradCta}
+            >
+              <Text style={s.ctaText}>{briefLoading ? 'Generating...' : 'Generate'}</Text>
+            </LinearGradient>
+          </PressScale>
+        )}
       </View>
       </FadeInView>
 
@@ -355,7 +370,7 @@ export function DashboardView() {
             title="Recent Activity"
             items={NX_ACTIVITY}
             ctaLabel="View All Activity"
-            onCta={() => router.push('/notifications')}
+            onCta={() => toast.success("Activity Stream", "Opening full activity history...")}
           />
         </View>
       </View>
