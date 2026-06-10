@@ -324,13 +324,21 @@ async def student_dashboard(student_email: Optional[str] = None):
     })
     student_skills_set = set(s.lower() for s in (student.get("skills", []) if student else []) if isinstance(s, str))
     
-    top_match_cur = _db.internships.find().limit(3)
-    top_matches = []
-    async for it in top_match_cur:
+    all_internships_cur = _db.internships.find()
+    scored_internships = []
+    async for it in all_internships_cur:
         req_skills = set(s.lower() for s in it.get("skills_required", []) if isinstance(s, str))
         match_pct = 65
         if req_skills:
-            match_pct = int(len(student_skills_set.intersection(req_skills)) / len(req_skills) * 100)
+            match_pct = int(len(student_skills_set.intersection(req_skills)) / max(1, len(req_skills)) * 100)
+        scored_internships.append({"match_pct": match_pct, "it": it})
+        
+    scored_internships.sort(key=lambda x: x["match_pct"], reverse=True)
+    
+    top_matches = []
+    for score_obj in scored_internships[:3]:
+        it = score_obj["it"]
+        match_pct = score_obj["match_pct"]
         top_matches.append({
             "id": _short_id(it.get("_id")),
             "role": it.get("title", "Intern"),
@@ -413,6 +421,45 @@ async def student_dashboard(student_email: Optional[str] = None):
             "tags": ev.get("tags") or ["Networking", "Career Development"],
         })
         i += 1
+
+    if not upcoming:
+        now_dt = datetime.now(timezone.utc)
+        upcoming = [
+            {
+                "id": "mock-event-1",
+                "title": "Resume Review Workshop",
+                "date": (now_dt + timedelta(days=2)).strftime("%b %d"),
+                "mode": "Online",
+                "kind": "free",
+                "price": None,
+                "accent": "#A78BFA",
+                "start_date": (now_dt + timedelta(days=2)).strftime("%B %d, %Y at %I:%M %p"),
+                "venue": "Online",
+                "registration_deadline": (now_dt + timedelta(days=1)).strftime("%b %d, %Y"),
+                "category": "Workshop",
+                "organizer": "Career Services",
+                "image": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=400",
+                "url": "",
+                "tags": ["Career", "Resume"],
+            },
+            {
+                "id": "mock-event-2",
+                "title": "Alumni Networking Mixer",
+                "date": (now_dt + timedelta(days=5)).strftime("%b %d"),
+                "mode": "In-Person",
+                "kind": "paid",
+                "price": 15,
+                "accent": "#34D399",
+                "start_date": (now_dt + timedelta(days=5)).strftime("%B %d, %Y at %I:%M %p"),
+                "venue": "Main Campus Tech Hub",
+                "registration_deadline": (now_dt + timedelta(days=4)).strftime("%b %d, %Y"),
+                "category": "Networking",
+                "organizer": "Student Alumni Association",
+                "image": "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?q=80&w=400",
+                "url": "",
+                "tags": ["Networking", "Alumni"],
+            }
+        ]
 
     # Career Score (rough computation)
     skills = student.get("skills", []) if student else []
