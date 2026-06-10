@@ -599,7 +599,7 @@ async def student_intelligence(student_email: Optional[str] = None):
     # ── Area chart: Career Momentum partitioned datasets ──
     # Ensure there is a nice visual baseline even if the user is new
     if sum(apps_by_month) + sum(views_by_month) < 10:
-        base_activity_by_month = [max(0, i*3 + rng.randint(-2, 3)) for i in range(9)]
+        base_activity_by_month = [max(0, i*3 + random.randint(-2, 3)) for i in range(9)]
         activity_by_month = [apps_by_month[i] + views_by_month[i] + base_activity_by_month[i] for i in range(9)]
     else:
         activity_by_month = [apps_by_month[i] + views_by_month[i] for i in range(9)]
@@ -615,12 +615,18 @@ async def student_intelligence(student_email: Optional[str] = None):
             activity_3m[i-6] = apps_by_week[i] + views_by_week[i]
             
     base_3m = sum(apps_by_week[:6]) + sum(views_by_week[:6])
+    if sum(activity_3m) + base_3m < 10:
+        base_3m += 10
+        activity_3m = [activity_3m[i] + random.randint(0, 2) for i in range(6)]
     cum_3m = cumulative_sum(activity_3m, start_val=base_3m)
     labels_3m = [(now - timedelta(days=14*i)).strftime("%b ") + ("B" if (now - timedelta(days=14*i)).day > 15 else "A") for i in range(5, -1, -1)]
     momentum_3m = [{"m": labels_3m[i], "v": cum_3m[i]} for i in range(6)]
 
     activity_1m = [apps_by_week[i] + views_by_week[i] for i in range(8, 12)]
     base_1m = sum(apps_by_week[:8]) + sum(views_by_week[:8])
+    if sum(activity_1m) + base_1m < 10:
+        base_1m += 20
+        activity_1m = [activity_1m[i] + random.randint(0, 3) for i in range(4)]
     cum_1m = cumulative_sum(activity_1m, start_val=base_1m)
     labels_1m = ["Week 1", "Week 2", "Week 3", "Week 4"]
     momentum_1m = [{"m": labels_1m[i], "v": cum_1m[i]} for i in range(4)]
@@ -803,7 +809,7 @@ async def student_intelligence(student_email: Optional[str] = None):
                 "title": "Course Milestone Reached",
                 "sub": "System Design • Module 4 of 6",
                 "amount": None, "amountTone": None,
-                "time": f"{rng.randint(2,8)}h ago",
+                "time": f"{random.randint(2,8)}h ago",
                 "icon": "trophy-outline",
                 "tint": "#F59E0B",
                 "bgTint": "rgba(245,158,11,0.15)",
@@ -811,7 +817,7 @@ async def student_intelligence(student_email: Optional[str] = None):
             {
                 "title": "Profile Score Updated",
                 "sub": "Skills + Projects re-scored",
-                "amount": f"+{rng.randint(2,6)} pts", "amountTone": "positive",
+                "amount": f"+{random.randint(2,6)} pts", "amountTone": "positive",
                 "time": "Yesterday",
                 "icon": "chart-line-variant",
                 "tint": "#06B6D4",
