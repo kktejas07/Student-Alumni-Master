@@ -307,10 +307,10 @@ async def student_dashboard(student_email: Optional[str] = None):
     student = None
     if student_email:
         student = await _db.users.find_one({"email": student_email, "role": "student"})
-    if not student:
+    if not student and not student_email:
         student = await _db.users.find_one({"role": "student", "onboarding_completed": True})
-    if not student:
-        student = await _db.users.find_one({"role": "student"})
+        if not student:
+            student = await _db.users.find_one({"role": "student"})
 
     sid = str((student or {}).get("_id", ""))
     name = (student or {}).get("full_name") or "Student"
@@ -501,10 +501,10 @@ async def student_intelligence(student_email: Optional[str] = None):
     student = None
     if student_email:
         student = await _db.users.find_one({"email": student_email})
-    if not student:
+    if not student and not student_email:
         student = await _db.users.find_one({"role": "student", "onboarding_completed": True})
-    if not student:
-        student = await _db.users.find_one({"role": "student"})
+        if not student:
+            student = await _db.users.find_one({"role": "student"})
     sid = str((student or {}).get("_id", ""))
 
     now = _now()
