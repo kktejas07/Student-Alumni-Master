@@ -322,15 +322,21 @@ async def student_dashboard(student_email: Optional[str] = None):
     new_today = await _db.internships.count_documents({
         "deadline": {"$gte": datetime.now(timezone.utc)},
     })
+    student_skills_set = set(s.lower() for s in (student.get("skills", []) if student else []) if isinstance(s, str))
+    
     top_match_cur = _db.internships.find().limit(3)
     top_matches = []
     async for it in top_match_cur:
+        req_skills = set(s.lower() for s in it.get("skills_required", []) if isinstance(s, str))
+        match_pct = 65
+        if req_skills:
+            match_pct = int(len(student_skills_set.intersection(req_skills)) / len(req_skills) * 100)
         top_matches.append({
             "id": _short_id(it.get("_id")),
             "role": it.get("title", "Intern"),
             "company": it.get("company", "—"),
             "location": it.get("location", "Remote"),
-            "match": 87,
+            "match": match_pct,
             "type": "Internship",
             "logo": (it.get("company") or "?")[0],
             "logoBg": _color_for(it.get("company", "")),
@@ -422,6 +428,11 @@ async def student_dashboard(student_email: Optional[str] = None):
     # Compute tier (Bronze/Silver/Gold/Platinum)
     tier = await _student_tier_payload(student or {})
 
+    missing_profile = []
+    if not (student and student.get("skills")): missing_profile.append("Skills")
+    if not (student and student.get("projects")): missing_profile.append("Projects")
+    if not (student and student.get("resume_url")): missing_profile.append("Resume")
+
     return {
         "student": {
             "id": sid,
@@ -442,7 +453,7 @@ async def student_dashboard(student_email: Optional[str] = None):
         "topMatches": top_matches,
         "recommendedMentors": rec_mentors,
         "upcomingEvents": upcoming,
-        "profileCompletion": {"score": career_score, "missing": ["Skills", "Projects", "Resume"]},
+        "profileCompletion": {"score": career_score, "missing": missing_profile},
     }
 
 
@@ -825,7 +836,7 @@ async def student_intelligence(student_email: Optional[str] = None):
                 "spark": spark_apps,
             },
             "views": {
-                "label": "Profile Views",
+                "label": "Mentor Interactions",
                 "value": profile_views,
                 "trend": _delta(spark_views),
                 "spark": spark_views,
