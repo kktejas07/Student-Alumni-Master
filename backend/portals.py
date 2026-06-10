@@ -507,7 +507,7 @@ async def student_intelligence(student_email: Optional[str] = None):
             student = await _db.users.find_one({"role": "student"})
     sid = str((student or {}).get("_id", ""))
 
-    now = _now()
+    now = datetime.now(timezone.utc)
     if now.tzinfo is None:
         now = now.replace(tzinfo=timezone.utc)
 
