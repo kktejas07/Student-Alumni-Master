@@ -361,7 +361,7 @@ async def student_dashboard(student_email: Optional[str] = None):
     
     avg_course_completion = total_progress // max(1, workshops_total) if workshops_total > 0 else 0
     rec_mentors = []
-    mentor_cur = _db.users.find({"role": "mentor", "mentor_status": "approved"}).limit(2)
+    mentor_cur = _db.users.find({"role": "mentor"}).sort("_id", -1).limit(4)
     async for m in mentor_cur:
         mname = m.get("full_name") or "Mentor"
         mi = m.get("mentor_info") or {}
