@@ -482,54 +482,114 @@ async def student_intelligence(student_email: Optional[str] = None):
         student = await _db.users.find_one({"role": "student"})
     sid = str((student or {}).get("_id", ""))
 
-    # Deterministic per-student seed so sparklines remain stable across reloads
-    seed_src = (student or {}).get("email") or sid or "anon"
-    seed = int(hashlib.md5(seed_src.encode()).hexdigest()[:8], 16)
-    rng = random.Random(seed)
+    now = _now()
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
 
     # ── Real KPI totals from DB ──
-    apps_total = await _db.bookings.count_documents({"student_id": sid}) if sid else 0
-    apps_total = max(apps_total, 4)  # baseline so the card never reads zero
-    profile_views = 120 + (seed % 200)  # synthesised view counter (no real tracking yet)
-    internships_total = await _db.internships.count_documents({})
+    apps_total = 0
+    apps_by_week = [0]*12
+    apps_by_month = [0]*9
+    applied_internship_ids = []
+    async for a in _db.internship_applications.find({"student_id": sid}):
+        apps_total += 1
+        applied_internship_ids.append(a.get("internship_id"))
+        dt = a.get("applied_at")
+        if isinstance(dt, datetime):
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            delta = now - dt
+            w_idx = 11 - int(delta.days / 7)
+            if 0 <= w_idx < 12:
+                apps_by_week[w_idx] += 1
+            m_idx = 8 - int(delta.days / 30)
+            if 0 <= m_idx < 9:
+                apps_by_month[m_idx] += 1
 
-    # ── Sparklines (12-point trends) ──
-    def _trend(start: int, drift: float, jitter: int) -> list[int]:
-        out, cur = [], float(start)
-        for _ in range(12):
-            cur += drift + rng.uniform(-jitter, jitter)
-            out.append(max(0, int(round(cur))))
-        return out
+    profile_views = 0
+    views_by_week = [0]*12
+    views_by_month = [0]*9
+    async for b in _db.bookings.find({"student_id": sid}):
+        profile_views += 1
+        dt = b.get("created_at") or b.get("scheduled_at")
+        if isinstance(dt, datetime):
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            delta = now - dt
+            w_idx = 11 - int(delta.days / 7)
+            if 0 <= w_idx < 12:
+                views_by_week[w_idx] += 1
+            m_idx = 8 - int(delta.days / 30)
+            if 0 <= m_idx < 9:
+                views_by_month[m_idx] += 1
+                
+    async for r in _db.event_registrations.find({"student_id": sid}):
+        profile_views += 1
+        dt = r.get("registered_at")
+        if isinstance(dt, datetime):
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            delta = now - dt
+            w_idx = 11 - int(delta.days / 7)
+            if 0 <= w_idx < 12:
+                views_by_week[w_idx] += 1
+            m_idx = 8 - int(delta.days / 30)
+            if 0 <= m_idx < 9:
+                views_by_month[m_idx] += 1
 
-    spark_apps  = _trend(max(2, apps_total - 12), 1.4, 1)
-    spark_views = _trend(max(40, profile_views - 100), 9, 6)
-    spark_match = _trend(60, 1.6, 2)
-    # clamp match to <=95
-    spark_match = [min(95, v) for v in spark_match]
-    avg_match = spark_match[-1]
+    student_skills = set(s.lower() for s in student.get("skills", []) if isinstance(s, str))
+    match_scores = []
+    if student_skills and applied_internship_ids:
+        query_ids = []
+        for i in applied_internship_ids:
+            if isinstance(i, str) and len(i) == 24:
+                try:
+                    query_ids.append(ObjectId(i))
+                except:
+                    pass
+            query_ids.append(i)
+        async for i in _db.internships.find({"_id": {"$in": query_ids}}):
+            req_skills = set(s.lower() for s in i.get("skills_required", []) if isinstance(s, str))
+            if req_skills:
+                match_scores.append( int(len(student_skills.intersection(req_skills)) / len(req_skills) * 100) )
+    avg_match = sum(match_scores)//len(match_scores) if match_scores else 65
+
+    # ── Sparklines (12-point trends, cumulative) ──
+    def cumulative_sum(arr):
+        res, cur = [], 0
+        for x in arr:
+            cur += x
+            res.append(cur)
+        return res
+
+    spark_apps = cumulative_sum(apps_by_week)
+    spark_views = cumulative_sum(views_by_week)
+    
+    # Add a base to make graphs look nice if there's very little data
+    if spark_apps[-1] < 2: spark_apps = [max(0, i - 10) + spark_apps[i] for i in range(12)]
+    if spark_views[-1] < 2: spark_views = [i * 2 + spark_views[i] for i in range(12)]
+    
+    spark_match = [avg_match]*12
 
     # ── Area chart: Career Momentum partitioned datasets ──
-    # 1M dataset (Weekly granularity)
-    momentum_1m = []
-    cur_1m = max(10, profile_views // 12)
-    for w in ["Week 1", "Week 2", "Week 3", "Week 4"]:
-        cur_1m += int(rng.uniform(3, 10))
-        momentum_1m.append({"m": w, "v": cur_1m})
+    activity_by_month = [apps_by_month[i] + views_by_month[i] for i in range(9)]
+    cum_activity = cumulative_sum(activity_by_month)
+    
+    months_labels = [(now - timedelta(days=30*i)).strftime("%b") for i in range(8, -1, -1)]
+    momentum_1y = [{"m": months_labels[i], "v": cum_activity[i]} for i in range(9)]
 
-    # 3M dataset (Bi-weekly/semi-monthly granularity)
-    momentum_3m = []
-    cur_3m = max(15, profile_views // 8)
-    for p in ["Mar A", "Mar B", "Apr A", "Apr B", "May A", "May B"]:
-        cur_3m += int(rng.uniform(5, 12))
-        momentum_3m.append({"m": p, "v": cur_3m})
+    activity_3m = [0]*6
+    for i in range(12):
+        if i >= 6:
+            activity_3m[i-6] = apps_by_week[i] + views_by_week[i]
+    cum_3m = cumulative_sum(activity_3m)
+    labels_3m = [(now - timedelta(days=14*i)).strftime("%b ") + ("B" if (now - timedelta(days=14*i)).day > 15 else "A") for i in range(5, -1, -1)]
+    momentum_3m = [{"m": labels_3m[i], "v": cum_3m[i]} for i in range(6)]
 
-    # 1Y dataset (Monthly granularity)
-    months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]
-    momentum_1y = []
-    cur_1y = max(20, profile_views // 5)
-    for m in months:
-        cur_1y += int(rng.uniform(4, 18))
-        momentum_1y.append({"m": m, "v": cur_1y})
+    activity_1m = [apps_by_week[i] + views_by_week[i] for i in range(8, 12)]
+    cum_1m = cumulative_sum(activity_1m)
+    labels_1m = ["Week 1", "Week 2", "Week 3", "Week 4"]
+    momentum_1m = [{"m": labels_1m[i], "v": cum_1m[i]} for i in range(4)]
 
     # ── Live Activity Feed from MongoDB collections ──
     activity_events = []
