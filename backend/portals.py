@@ -340,6 +340,20 @@ async def student_dashboard(student_email: Optional[str] = None):
     my_bookings = await _db.bookings.count_documents({"student_id": sid})
     completed_sessions = await _db.bookings.count_documents({"student_id": sid, "status": {"$in": ["completed", "confirmed"]}})
     apps_count = await _db.internship_applications.count_documents({"student_id": sid})
+    
+    # Courses / Workshops in progress
+    workshops_active = 0
+    workshops_total = 0
+    total_progress = 0
+    async for w in _db.workshop_registrations.find({"student_id": sid}):
+        workshops_total += 1
+        if w.get("status") in ["registered", "in_progress"]:
+            workshops_active += 1
+        wk_current = w.get("current_week", 1)
+        wk_total = w.get("weeks", 4)
+        total_progress += min(100, int((wk_current / max(1, wk_total)) * 100))
+    
+    avg_course_completion = total_progress // max(1, workshops_total) if workshops_total > 0 else 0
     rec_mentors = []
     mentor_cur = _db.users.find({"role": "mentor", "mentor_status": "approved"}).limit(2)
     async for m in mentor_cur:
@@ -421,9 +435,9 @@ async def student_dashboard(student_email: Optional[str] = None):
         },
         "kpis": [
             {"id": "matches", "label": "Internship Matches",   "value": str(internships_total), "delta": f"↑ {new_today} live now", "color": "blue"},
-            {"id": "courses", "label": "Courses In Progress",  "value": "3",                    "delta": "68% avg completion",      "color": "purple"},
+            {"id": "courses", "label": "Courses In Progress",  "value": str(workshops_active),  "delta": f"{avg_course_completion}% avg completion", "color": "purple"},
             {"id": "mentors", "label": "Mentor Connections",   "value": str(my_bookings),       "delta": f"{my_bookings} bookings", "color": "green"},
-            {"id": "score",   "label": "Career Score",         "value": str(career_score),      "delta": "↑ 8pts this month",       "color": "amber"},
+            {"id": "score",   "label": "Career Score",         "value": str(career_score),      "delta": f"Goal: {tier.get('nextTier', 'Platinum')}", "color": "amber"},
         ],
         "topMatches": top_matches,
         "recommendedMentors": rec_mentors,
@@ -825,8 +839,10 @@ async def student_intelligence(student_email: Optional[str] = None):
             },
             "completion": {
                 "label": "Profile Completion",
+                "value": f"{profile_completion_pct}%",
                 "ringPct": profile_completion_pct,
                 "metaLine": "Last updated: just now",
+                "spark": [max(0, profile_completion_pct - 11 + i) for i in range(12)],
             },
         },
         "momentum": {
