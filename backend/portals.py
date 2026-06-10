@@ -338,6 +338,8 @@ async def student_dashboard(student_email: Optional[str] = None):
 
     # Mentor connections via bookings
     my_bookings = await _db.bookings.count_documents({"student_id": sid})
+    completed_sessions = await _db.bookings.count_documents({"student_id": sid, "status": {"$in": ["completed", "confirmed"]}})
+    apps_count = await _db.internship_applications.count_documents({"student_id": sid})
     rec_mentors = []
     mentor_cur = _db.users.find({"role": "mentor", "mentor_status": "approved"}).limit(2)
     async for m in mentor_cur:
@@ -396,6 +398,13 @@ async def student_dashboard(student_email: Optional[str] = None):
     skills = student.get("skills", []) if student else []
     career_score = min(100, 40 + len(skills) * 5 + (10 if student and student.get("face_image_base64") else 0))
 
+    # Compute progressPct based on real metrics
+    # Profile (30%), Mentor Sessions up to 3 (30%), Internship Applications up to 5 (40%)
+    prog_profile = (career_score / 100.0) * 30
+    prog_mentors = (min(3, completed_sessions) / 3.0) * 30
+    prog_interns = (min(5, apps_count) / 5.0) * 40
+    progress_pct = int(prog_profile + prog_mentors + prog_interns)
+
     # Compute tier (Bronze/Silver/Gold/Platinum)
     tier = await _student_tier_payload(student or {})
 
@@ -406,7 +415,7 @@ async def student_dashboard(student_email: Optional[str] = None):
             "initials": _initials(name),
             "year": "Final Year" if (si.get("graduation_year") or 2027) <= datetime.now().year + 1 else "Junior Year",
             "saId": student.get("sa_id") if student else None,
-            "career": {"goal": sti.get("career_goal") or "Software Engineer at a Top Tech Company", "progressPct": 42},
+            "career": {"goal": sti.get("career_goal") or "Software Engineer at a Top Tech Company", "progressPct": progress_pct},
             "career_score": career_score,
             "tier": tier,
         },
