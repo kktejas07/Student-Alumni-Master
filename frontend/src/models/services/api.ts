@@ -5,7 +5,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8002';
 
 const TOKEN_KEY = 'scd_access_token';
 const REFRESH_KEY = 'scd_refresh_token';
@@ -335,7 +335,11 @@ export const api = {
     request<any>(`/bookings/${id}/reschedule`, { method: 'POST', body: { slot_start_iso: slotStartIso } }),
   networkDiscover: (q?: string) => request<any>(`/network/discover${q ? `?q=${encodeURIComponent(q)}` : ''}`),
   networkRequests: () => request<any>('/network/requests'),
-  sendConnectionRequest: (otherId: string) => request<any>(`/network/connect/${otherId}`, { method: 'POST', body: {} }),
+  sendConnectionRequest: (otherId: string, message?: string) =>
+    request<any>(`/network/connect/${otherId}`, {
+      method: 'POST',
+      body: message ? { message } : {},
+    }),
 };
 
 export { BASE_URL };
