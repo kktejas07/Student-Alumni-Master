@@ -128,7 +128,7 @@ export function DashboardView() {
     },
     {
       kind: 'spark',
-      label: k?.views?.label || 'Profile Views',
+      label: k?.views?.label || 'Mentor Interactions',
       value: String(k?.views?.value ?? 234),
       numeric: Number(k?.views?.value ?? 234),
       icon: 'eye-outline', accent: '#A78BFA',
