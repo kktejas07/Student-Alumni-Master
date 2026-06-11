@@ -80,12 +80,26 @@ export default function MemberId() {
   };
 
   const onContinue = () =>
-    router.replace({ pathname: '/(auth)/email-verify', params: { email: user?.email || '', next: 'onboard' } } as any);
+    router.push({ pathname: '/(auth)/email-verify', params: { email: user?.email || '', next: 'onboard' } } as any);
 
   return (
     <AuthShell role={role}>
       <Pressable
-        onPress={() => router.back()}
+        onPress={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            if (role === 'college') {
+              router.replace('/(onboarding)/college-onboard');
+            } else if (role === 'student') {
+              router.replace('/(onboarding)/student-onboard');
+            } else if (role === 'alumni') {
+              router.replace('/(onboarding)/alumni-onboard');
+            } else {
+              router.replace('/welcome');
+            }
+          }
+        }}
         style={({ hovered }: any) => [s.back, hovered && { opacity: 1 }]}
         testID="member-id-back"
       >

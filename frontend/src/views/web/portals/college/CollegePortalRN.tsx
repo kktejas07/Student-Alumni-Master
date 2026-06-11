@@ -74,6 +74,7 @@ export function CollegePortalRN() {
           onCalendarPress={() => setActive('events')}
           onNotificationsPress={() => router.push('/notifications')}
           onProfilePress={() => setActive('profile')}
+          onAddPress={() => router.push('/(onboarding)/college-onboard' as any)}
         />
         <ScrollView
           ref={scrollRef}
@@ -92,7 +93,7 @@ export function CollegePortalRN() {
           {active === 'alumni'       && <AlumniView />}
           {active === 'mentors'      && <MentorsView />}
           {active === 'events'       && <EventsView onNavigate={setActive} />}
-          {active === 'create-event' && <CreateEventView />}
+          {active === 'create-event' && <CreateEventView onNavigate={setActive} />}
           {active === 'announcements'&& <AnnouncementsView />}
           {active === 'analytics'    && <AnalyticsView />}
           {active === 'ai-insights'  && <AIInsightsView />}

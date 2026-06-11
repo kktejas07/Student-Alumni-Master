@@ -262,7 +262,7 @@ export default function AlumniOnboard() {
       await api.completeOnboarding(payload);
       await refreshUser();
       toast.success(`${badge.tier} status earned! 🎉`, 'Generating your Member ID…');
-      router.replace('/(onboarding)/member-id' as any);
+      router.push('/(onboarding)/member-id' as any);
     } catch (e: any) {
       toast.error('Setup failed', e?.message || 'Please try again.');
     }
