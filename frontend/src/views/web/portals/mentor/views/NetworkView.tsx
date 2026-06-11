@@ -285,9 +285,11 @@ export function NetworkView() {
   // Profile detail view state
   const [pickedPerson, setPickedPerson] = useState<any | null>(null);
 
-  // Drafting Message Modal States
-  const [draftingPerson, setDraftingPerson] = useState<any | null>(null);
-  const [draftText, setDraftText] = useState('');
+  // Connection Request Modal States
+  const [connectPerson, setConnectPerson] = useState<any | null>(null);
+  const [showNoteInput, setShowNoteInput] = useState(false);
+  const [connectNoteText, setConnectNoteText] = useState('');
+  const [successPopup, setSuccessPopup] = useState<string | null>(null);
 
   const sumChars = (str: string) => {
     return str.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -347,7 +349,8 @@ export function NetworkView() {
           color,
           role: (role === 'student' ? 'Student' : role === 'alumni' ? 'Alumni' : 'Industry') as any,
           subtitle,
-          time: req.requested_at ? 'Pending' : '2d ago'
+          time: req.requested_at ? 'Pending' : '2d ago',
+          message: req.message || ''
         };
       };
       setIncomingRequests((res?.items || []).map(normalizeReq));
@@ -488,25 +491,56 @@ export function NetworkView() {
     }
   };
 
-  // Open draft message dialog
-  const openDraftDialog = (person: any) => {
-    setDraftingPerson(person);
+  // Open connection dialog
+  const openConnectDialog = (person: any) => {
+    setConnectPerson(person);
+    setShowNoteInput(false);
     const template = `Hi ${person.name}, I saw your impressive background at ${person.company || 'Google'} matching my interests in ${person.tags ? person.tags.slice(0, 2).join(' and ') : 'collaboration'}! Would love to connect and share insights.`;
-    setDraftText(template);
+    setConnectNoteText(template);
   };
 
-  const sendDraftedMessage = async () => {
-    if (!draftingPerson) return;
+  const sendConnectionRequestFlow = async (sendWithNote: boolean) => {
+    if (!connectPerson) return;
     try {
-      await api.sendConnectionRequest(draftingPerson.id);
-      toast.success('Message & Connection Sent! ✉️', `Your customized message and connection invitation were successfully sent to ${draftingPerson.name}.`);
+      const messageToSend = sendWithNote ? connectNoteText : undefined;
+      await api.sendConnectionRequest(connectPerson.id, messageToSend);
+
+      setSuccessPopup(`Connection request sent to ${connectPerson.name}!`);
+
+      setDiscoverSections(prev => prev.map(section => ({
+        ...section,
+        items: section.items.map((item: any) =>
+          item.id === connectPerson.id
+            ? { ...item, connection_state: 'pending', connectionState: 'pending' }
+            : item
+        )
+      })));
+
+      setConnectionsList(prev => prev.map((item: any) => 
+        item.id === connectPerson.id 
+          ? { ...item, connection_state: 'pending', connectionState: 'pending' }
+          : item
+      ));
+
+      if (pickedPerson?.id === connectPerson.id) {
+        setPickedPerson(prev => prev ? { ...prev, connectionState: 'pending', connection_state: 'pending' } : null);
+      }
+
       await loadRequests();
       await loadDiscover();
     } catch (e: any) {
       toast.error('Could not connect', e.message || 'Please try again.');
-    } finally {
-      setDraftingPerson(null);
+      setConnectPerson(null);
+      setShowNoteInput(false);
+      setConnectNoteText('');
     }
+  };
+
+  const handleCloseSuccessPopup = () => {
+    setSuccessPopup(null);
+    setConnectPerson(null);
+    setShowNoteInput(false);
+    setConnectNoteText('');
   };
 
   const totalConnectionsCount = useMemo(() => {
@@ -989,11 +1023,11 @@ export function NetworkView() {
                           </Pressable>
                         ) : (
                           <Pressable 
-                            onPress={() => openDraftDialog(person)}
+                            onPress={() => openConnectDialog(person)}
                             style={({ hovered }: any) => [s.draftMsgBtn, hovered && { borderColor: '#5EEAD4', backgroundColor: 'rgba(94, 234, 212, 0.1)' }]}
                           >
-                            <MessageSquare size={12} color="#5EEAD4" style={{ marginRight: 6 }} />
-                            <Text style={s.draftMsgBtnText}>Draft Message</Text>
+                            <UserPlus size={12} color="#5EEAD4" style={{ marginRight: 6 }} />
+                            <Text style={s.draftMsgBtnText}>Connect</Text>
                           </Pressable>
                         )}
 
@@ -1068,6 +1102,11 @@ export function NetworkView() {
                         <Text style={s.requestTimeText}>{req.time}</Text>
                       </View>
                       <Text style={s.requestSublineText} numberOfLines={1}>{req.subtitle}</Text>
+                      {req.message ? (
+                        <Text style={{ color: '#5EEAD4', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 4, fontStyle: 'italic' }}>
+                          Note: "{req.message}"
+                        </Text>
+                      ) : null}
                     </View>
 
                     {/* Actions */}
@@ -1133,39 +1172,77 @@ export function NetworkView() {
         </View>
       )}
 
-      {/* Custom AI Assist Drafting Overlay Modal */}
-      {draftingPerson && (
+      {/* Connection Request Modal */}
+      <Modal visible={!!connectPerson} transparent animationType="fade" onRequestClose={() => setConnectPerson(null)}>
         <View style={s.overlay}>
-          <View style={s.draftModal}>
-            <View style={s.modalHeaderBox}>
-              <Sparkles size={20} color="#5EEAD4" />
-              <Text style={s.draftModalTitle}>Draft Message to {draftingPerson.name}</Text>
-            </View>
+          {connectPerson && (
+            <View style={s.draftModal}>
+              <View style={s.modalHeaderBox}>
+                <UserPlus size={20} color="#5EEAD4" />
+                <Text style={s.draftModalTitle}>Connect with {connectPerson.name}</Text>
+              </View>
 
-            <Text style={s.draftModalLabel}>AI SUGGESTED MESSAGE TEMPLATE</Text>
-            <View style={s.draftTextContainer}>
-              <TextInput
-                multiline
-                numberOfLines={6}
-                value={draftText}
-                onChangeText={setDraftText}
-                style={s.draftTextInput}
-              />
-            </View>
+              {!showNoteInput ? (
+                <View style={{ gap: 12, marginTop: 16 }}>
+                  <Pressable
+                    onPress={() => setShowNoteInput(true)}
+                    style={({ hovered }: any) => [
+                      s.draftSendBtn,
+                      { backgroundColor: 'transparent', borderColor: '#5EEAD4', borderWidth: 1, height: 42, justifyContent: 'center' },
+                      hovered && { backgroundColor: 'rgba(94, 234, 212, 0.1)' }
+                    ]}
+                  >
+                    <MessageSquare size={14} color="#5EEAD4" style={{ marginRight: 6 }} />
+                    <Text style={[s.draftSendText, { color: '#5EEAD4' }]}>Send with a note</Text>
+                  </Pressable>
 
-            <View style={s.draftActions}>
-              <Pressable onPress={() => setDraftingPerson(null)} style={s.draftCancelBtn}>
-                <Text style={s.draftCancelText}>Cancel</Text>
-              </Pressable>
+                  <Pressable
+                    onPress={() => sendConnectionRequestFlow(false)}
+                    style={({ hovered }: any) => [
+                      s.draftSendBtn,
+                      { height: 42, justifyContent: 'center' },
+                      hovered && { opacity: 0.9 }
+                    ]}
+                  >
+                    <UserPlus size={14} color="#090D16" style={{ marginRight: 6 }} />
+                    <Text style={s.draftSendText}>Send without a note</Text>
+                  </Pressable>
 
-              <Pressable onPress={sendDraftedMessage} style={s.draftSendBtn}>
-                <Check size={14} color="#090D16" style={{ marginRight: 6 }} />
-                <Text style={s.draftSendText}>Send Message</Text>
-              </Pressable>
+                  <Pressable onPress={() => setConnectPerson(null)} style={[s.draftCancelBtn, { marginTop: 6 }]}>
+                    <Text style={s.draftCancelText}>Cancel</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <View style={{ marginTop: 12 }}>
+                  <Text style={s.draftModalLabel}>PERSONALIZE YOUR INVITATION NOTE</Text>
+                  <View style={s.draftTextContainer}>
+                    <TextInput
+                      multiline
+                      numberOfLines={4}
+                      value={connectNoteText}
+                      onChangeText={setConnectNoteText}
+                      style={s.draftTextInput}
+                      placeholder="Write a message..."
+                      placeholderTextColor={MC.dim}
+                    />
+                  </View>
+
+                  <View style={s.draftActions}>
+                    <Pressable onPress={() => setShowNoteInput(false)} style={s.draftCancelBtn}>
+                      <Text style={s.draftCancelText}>Back</Text>
+                    </Pressable>
+
+                    <Pressable onPress={() => sendConnectionRequestFlow(true)} style={s.draftSendBtn}>
+                      <Check size={14} color="#090D16" style={{ marginRight: 6 }} />
+                      <Text style={s.draftSendText}>Send Request</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              )}
             </View>
-          </View>
+          )}
         </View>
-      )}
+      </Modal>
 
       {/* Profile Detail Modal */}
       <Modal visible={!!pickedPerson} animationType="slide" transparent onRequestClose={() => setPickedPerson(null)}>
@@ -1301,12 +1378,12 @@ export function NetworkView() {
                       <Pressable 
                         onPress={() => {
                           setPickedPerson(null);
-                          openDraftDialog(pickedPerson);
+                          openConnectDialog(pickedPerson);
                         }}
                         style={s.connectBtnLarge}
                       >
-                        <MessageSquare size={16} color="#090D16" style={{ marginRight: 6 }} />
-                        <Text style={{ color: '#090D16', fontFamily: FONTS.xbold, fontSize: 14 }}>Draft Message</Text>
+                        <UserPlus size={16} color="#090D16" style={{ marginRight: 6 }} />
+                        <Text style={{ color: '#090D16', fontFamily: FONTS.xbold, fontSize: 14 }}>Connect</Text>
                       </Pressable>
                     )}
                   </View>
@@ -1315,6 +1392,20 @@ export function NetworkView() {
             })()}
           </View>
         </View>
+      </Modal>
+      {/* Custom Success Popup */}
+      <Modal visible={!!successPopup} transparent animationType="fade" onRequestClose={handleCloseSuccessPopup}>
+        {successPopup && (
+          <View style={s.successPopupContainer}>
+            <View style={s.successPopupContent}>
+              <Check size={20} color="#5EEAD4" style={{ marginRight: 12 }} />
+              <Text style={s.successPopupText}>{successPopup}</Text>
+            </View>
+            <Pressable onPress={handleCloseSuccessPopup} style={s.successPopupBtn}>
+              <Text style={s.successPopupBtnText}>OK</Text>
+            </Pressable>
+          </View>
+        )}
       </Modal>
     </View>
   );
@@ -1659,13 +1750,15 @@ const s = StyleSheet.create({
     color: '#FCD34D'
   },
   rolePillMentor: {
-    backgroundColor: 'rgba(20,184,166,0.12)'
+    backgroundColor: 'rgba(20,184,1, 0.15)',
+    borderColor: 'rgba(20,184,166,0.3)'
   },
   rolePillMentorText: {
-    color: '#5EEAD4'
+    color: '#34D399'
   },
   rolePillAlumni: {
-    backgroundColor: 'rgba(59,130,246,0.12)'
+    backgroundColor: 'rgba(59,130,246,0.15)',
+    borderColor: 'rgba(59,130,246,0.3)'
   },
   rolePillAlumniText: {
     color: '#93C5FD'
@@ -1932,10 +2025,8 @@ const s = StyleSheet.create({
 
   // Glassmorphic Drafting Modal overlay
   overlay: {
-    position: Platform.OS === 'web' ? 'fixed' : 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(5, 8, 16, 0.85)',
-    zIndex: 9999,
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
@@ -2030,7 +2121,7 @@ const s = StyleSheet.create({
   },
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(5, 8, 16, 0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
     justifyContent: 'flex-end',
     alignItems: Platform.OS === 'web' ? 'flex-end' : 'stretch',
   },
@@ -2118,5 +2209,45 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  successPopupContainer: {
+    position: 'absolute',
+    top: 24,
+    right: 24,
+    backgroundColor: '#090D16',
+    borderColor: '#5EEAD4',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    width: 320,
+    zIndex: 10000,
+    shadowColor: '#5EEAD4',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  successPopupContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  successPopupText: {
+    color: '#E2E8F0',
+    fontFamily: FONTS.med,
+    fontSize: 14,
+    flex: 1,
+  },
+  successPopupBtn: {
+    backgroundColor: '#14B8A6',
+    borderRadius: 6,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successPopupBtnText: {
+    color: '#090D16',
+    fontFamily: FONTS.bold,
+    fontSize: 13,
   }
 });

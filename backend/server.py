@@ -579,6 +579,10 @@ class BookingRequest(BaseModel):
     notes: Optional[str] = None
 
 
+class ConnectRequestIn(BaseModel):
+    message: Optional[str] = None
+
+
 class MentorBookingCreateRequest(BaseModel):
     """Mentor schedules a booking with a student."""
     student_id: str
@@ -4716,6 +4720,7 @@ async def my_connection_requests(user: dict = Depends(get_current_user)):
             c = _user_card(u)
             c["connection_state"] = "incoming"
             c["requested_at"] = r.get("created_at")
+            c["message"] = r.get("message")
             out_incoming.append(c)
 
     # 2. Sent pending requests
@@ -4740,13 +4745,14 @@ async def my_connection_requests(user: dict = Depends(get_current_user)):
             c = _user_card(u)
             c["connection_state"] = "pending"
             c["requested_at"] = r.get("created_at")
+            c["message"] = r.get("message")
             out_sent.append(c)
 
     return {"items": out_incoming, "sent": out_sent}
 
 
 @api_router.post("/network/connect/{other_id}")
-async def send_connection_request(other_id: str, user: dict = Depends(get_current_user)):
+async def send_connection_request(other_id: str, req: Optional[ConnectRequestIn] = None, user: dict = Depends(get_current_user)):
     me_id = str(user.get("_id") or user.get("id"))
     if other_id == me_id:
         raise HTTPException(400, "Cannot connect to yourself")
@@ -4768,18 +4774,29 @@ async def send_connection_request(other_id: str, user: dict = Depends(get_curren
             )
             return {"action": "auto_accepted"}
         return {"action": "already_pending"}
-    await db.connections.insert_one({
-        "a": me_id, "b": other_id, "status": "pending",
+    
+    connection_doc = {
+        "a": me_id,
+        "b": other_id,
+        "status": "pending",
         "created_at": datetime.utcnow(),
-    })
+    }
+    if req and req.message:
+        connection_doc["message"] = req.message
+        
+    await db.connections.insert_one(connection_doc)
+    
     # Notify recipient
     try:
+        notif_body = f"{user.get('full_name') or 'A user'} wants to connect with you."
+        if req and req.message:
+            notif_body += f" Note: \"{req.message}\""
         await db.notifications.insert_one({
             "id": str(ObjectId()),
             "user_id": other_id,
             "type": "connection_request",
             "title": "New connection request",
-            "body": f"{user.get('full_name') or 'A user'} wants to connect with you.",
+            "body": notif_body,
             "read": False,
             "created_at": datetime.utcnow(),
         })
