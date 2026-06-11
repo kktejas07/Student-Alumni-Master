@@ -7570,6 +7570,7 @@ async def notifications_send_manual(req: ManualPushIn, user: dict = Depends(get_
     return await send_push(db, user_id=req.user_id, title=req.title, body=req.body, data=req.data)
 
 
+
 # ----------------------------------------------------------------------------
 # Health
 # ----------------------------------------------------------------------------
