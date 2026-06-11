@@ -6158,7 +6158,6 @@ async def my_bookings(user: dict = Depends(get_current_user)):
                     users_map[str(ou["_id"])] = ou
         except Exception:
             pass
-
     out = []
     now = datetime.now(timezone.utc)
     for item in items:

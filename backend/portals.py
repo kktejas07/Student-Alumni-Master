@@ -3205,8 +3205,8 @@ async def mentor_connections(email: Optional[str] = None, page: int = 1, per_pag
         # Determine status.
         status = connection_status.get(uid, "active")
 
-        # Skip if they are not connected (i.e. pending, withdrawn, declined, none, rejected)
-        if status in ("none", "withdrawn", "declined", "rejected", "pending", "pending_sent"):
+        # Skip if they are not connected/pending (i.e. withdrawn, declined, none)
+        if status in ("none", "withdrawn", "declined", "rejected"):
             continue
 
         # Force completed connections to have 100% progress
