@@ -1,8 +1,9 @@
 /**
  * Live job feed view — replaces the old mock-driven InternshipsView.
  *
- * Pulls from /api/jobs/feed which aggregates 5 free job APIs (RemoteOK,
- * ArbeitNow, The Muse, Remotive, Jobicy) with year-tier filter applied:
+ * Pulls from /api/jobs/feed which aggregates 8 free job APIs (RemoteOK,
+ * ArbeitNow, The Muse, Remotive, Jobicy, GraphQL Jobs, DevITjobs UK,
+ * Greenhouse) with year-tier filter applied:
  *   • Year 1, 2 → internships only
  *   • Year 3, 4 → internships + full-time
  *   • Alumni    → full-time + senior
@@ -12,7 +13,7 @@
  *   - Search across role/company/city
  *   - Save / Unsave with instant DB persistence
  *   - Apply opens source URL in new tab + tracks via /student/internships/{id}/apply confirmation modal
- *   - Live refresh button (pulls fresh data from upstream APIs)
+ *   - NEW: GraphQL Jobs, DevITjobs UK, Greenhouse board APIs (v2 expansion)
  *   - "Locked" hint for filters outside the user's tier
  *   - Pagination via Load more
  */
@@ -24,7 +25,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Search, MapPin, Bookmark, BookmarkCheck, ExternalLink, RefreshCcw,
-  Lock, Sparkles, Briefcase, Globe2,
+  Lock, Sparkles, Briefcase, Globe2, Zap, X,
 } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { GRAD } from '../portalkit';
@@ -140,7 +141,7 @@ export function InternshipsView() {
         const r: any = await request('/jobs/new-since-last-visit');
         if (!cancelled && r?.new_count > 0) {
           toast.success(`🎉 ${r.new_count} new job${r.new_count === 1 ? '' : 's'} since your last visit`,
-            'Pulled fresh from RemoteOK · ArbeitNow · The Muse · Remotive · Jobicy');
+            'Pulled fresh from RemoteOK · ArbeitNow · The Muse · Remotive · Jobicy · GraphQL Jobs · DevITjobs UK · Greenhouse');
         }
       } catch {}
     })();
@@ -156,7 +157,7 @@ export function InternshipsView() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadFeed({ refresh: true, pageOverride: 1 });
-    toast.success('Feed refreshed', 'Fetched the latest jobs from all 5 sources.');
+    toast.success('Feed refreshed', 'Fetched the latest jobs from all 8 sources.');
   }, [loadFeed, toast]);
 
   const onLoadMore = useCallback(() => {
@@ -218,9 +219,49 @@ export function InternshipsView() {
     if (!wasSaved) setBurst({ show: true, label: 'Job saved!' });
   }, [onToggleSave]);
 
+  // New-sources announcement banner — dismissible, shown once per session
+  const [newSrcBanner, setNewSrcBanner] = useState(true);
+
   return (
     <View accessibilityLabel="Internships and jobs feed">
       <SuccessBurst visible={burst.show} onHide={() => setBurst({ show: false, label: '' })} label={burst.label} />
+
+      {/* ✨ New sources banner */}
+      {newSrcBanner && (
+        <LinearGradient
+          colors={['rgba(124,58,237,0.18)', 'rgba(16,185,129,0.13)']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={s.newSrcBanner}
+        >
+          <View style={s.newSrcLeft}>
+            <View style={s.newSrcIcon}>
+              <Zap size={13} color="#A78BFA" />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={s.newSrcTitle}>3 New Job Sources Added ✨</Text>
+              <View style={s.newSrcPills}>
+                <View style={[s.srcPill, { backgroundColor: 'rgba(124,58,237,0.22)', borderColor: 'rgba(167,139,250,0.45)' }]}>
+                  <Text style={[s.srcPillTxt, { color: '#C4B5FD' }]}>GraphQL Jobs</Text>
+                </View>
+                <View style={[s.srcPill, { backgroundColor: 'rgba(59,130,246,0.18)', borderColor: 'rgba(96,165,250,0.45)' }]}>
+                  <Text style={[s.srcPillTxt, { color: '#93C5FD' }]}>DevITjobs UK</Text>
+                </View>
+                <View style={[s.srcPill, { backgroundColor: 'rgba(16,185,129,0.18)', borderColor: 'rgba(52,211,153,0.45)' }]}>
+                  <Text style={[s.srcPillTxt, { color: '#6EE7B7' }]}>Greenhouse</Text>
+                </View>
+              </View>
+              <Text style={s.newSrcSub}>Stripe, Figma, Notion, Vercel + 350 + global tech roles now live</Text>
+            </View>
+          </View>
+          <Pressable
+            onPress={() => setNewSrcBanner(false)}
+            style={s.newSrcDismiss}
+            accessibilityLabel="Dismiss new sources banner"
+          >
+            <X size={12} color="rgba(255,255,255,0.45)" />
+          </Pressable>
+        </LinearGradient>
+      )}
       {/* Tier hint banner */}
       <View style={s.tierBanner}>
         <View style={s.tierBadge}>
@@ -228,7 +269,7 @@ export function InternshipsView() {
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.tierTxt}>
-            Live jobs from <Text style={{ color: '#FCD34D', fontFamily: FONTS.xbold }}>5 sources</Text> · personalised to your tier
+            Live jobs from <Text style={{ color: '#FCD34D', fontFamily: FONTS.xbold }}>8 sources</Text> · personalised to your tier
           </Text>
           <Text style={s.tierSub}>Allowed for you: {allowedTypes.join(' · ')}</Text>
         </View>
@@ -285,7 +326,7 @@ export function InternshipsView() {
             <EmptyState
               variant="generic"
               title="No matches yet"
-              body="Try a different filter, broaden your search, or hit refresh to pull the latest jobs from all 5 sources."
+              body="Try a different filter, broaden your search, or hit refresh to pull the latest jobs from all 8 sources."
               cta={{ label: 'Refresh feed', onPress: onRefresh }}
             />
           )
@@ -550,4 +591,36 @@ const s = StyleSheet.create({
   modalCancelTxt: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 12.5 },
   modalConfirmBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 18, height: 36, borderRadius: 10 },
   modalConfirmTxt: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
+
+  // ── New sources announcement banner ──────────────────────────────────
+  newSrcBanner: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+    borderRadius: 14, borderWidth: 1,
+    borderColor: 'rgba(167,139,250,0.30)',
+    padding: 12, marginBottom: 10,
+    overflow: 'hidden',
+  },
+  newSrcLeft: { flex: 1, flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  newSrcIcon: {
+    width: 30, height: 30, borderRadius: 9,
+    backgroundColor: 'rgba(124,58,237,0.22)',
+    borderColor: 'rgba(167,139,250,0.45)', borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
+    marginTop: 1,
+  },
+  newSrcTitle: { color: '#E9D5FF', fontFamily: FONTS.bold, fontSize: 12.5, marginBottom: 6 },
+  newSrcPills: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginBottom: 6 },
+  srcPill: {
+    paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: 6, borderWidth: 1,
+  },
+  srcPillTxt: { fontFamily: FONTS.bold, fontSize: 10.5 },
+  newSrcSub: { color: 'rgba(255,255,255,0.38)', fontFamily: FONTS.med, fontSize: 10.5, lineHeight: 14 },
+  newSrcDismiss: {
+    width: 22, height: 22, borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    alignItems: 'center', justifyContent: 'center',
+    marginTop: 2,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
 });

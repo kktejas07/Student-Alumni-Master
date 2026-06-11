@@ -1,12 +1,15 @@
 """
 jobs_feed.py — Multi-source live job/internship aggregator.
 
-Fetches real job listings in parallel from 5 free, no-key APIs:
+Fetches real job listings in parallel from 8 free, no-key APIs:
    1. RemoteOK         (https://remoteok.com/api)
    2. ArbeitNow        (https://www.arbeitnow.com/api/job-board-api)
    3. The Muse         (https://www.themuse.com/api/public/jobs)
    4. Remotive         (https://remotive.com/api/remote-jobs)
    5. Jobicy           (https://jobicy.com/api/v2/remote-jobs)
+   6. GraphQL Jobs     (https://api.graphql.jobs)  — GraphQL tech roles
+   7. DevITjobs UK     (https://www.devitjobs.uk/api/jobfeed)  — UK/EU dev roles
+   8. Greenhouse       (https://boards-api.greenhouse.io) — curated top-company boards
 
 Pipeline:
    - Async parallel fetch via asyncio.gather (with per-API timeout)
@@ -304,6 +307,172 @@ async def _fetch_jobicy(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
         logger.warning(f"[jobs_feed] Jobicy fetch failed: {e}")
         return []
 
+
+async def _fetch_graphql_jobs(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
+    """GraphQL Jobs — free public GraphQL API, no auth, tech/dev roles worldwide."""
+    query = """
+    {
+      jobs(input: { first: 50 }) {
+        nodes {
+          title
+          slug
+          applyUrl
+          description
+          publishedAt
+          userTags { name }
+          locationNames
+          contractType
+          company {
+            name
+            websiteUrl
+            logoUrl
+          }
+        }
+      }
+    }
+    """
+    try:
+        r = await client.post(
+            "https://api.graphql.jobs",
+            json={"query": query},
+            headers={"Content-Type": "application/json", "User-Agent": USER_AGENT},
+            timeout=PER_API_TIMEOUT_S,
+        )
+        r.raise_for_status()
+        payload = r.json()
+        nodes = (payload.get("data") or {}).get("jobs", {}).get("nodes") or []
+        out = []
+        for it in nodes:
+            title   = it.get("title") or ""
+            co      = it.get("company") or {}
+            company = co.get("name") or ""
+            locs    = it.get("locationNames") or []
+            loc     = ", ".join(locs) if locs else "Remote"
+            tags    = [t["name"] for t in (it.get("userTags") or []) if t.get("name")][:6]
+            ctype   = it.get("contractType") or ""
+            apply   = it.get("applyUrl") or f"https://graphql.jobs/{it.get('slug', '')}"
+            out.append({
+                "title":       title,
+                "company":     company,
+                "location":    loc,
+                "work_mode":   _classify_work_mode(loc),
+                "job_type":    _classify_type(title, ctype),
+                "salary_min":  None,
+                "salary_max":  None,
+                "currency":    "USD",
+                "description": _short(it.get("description") or ""),
+                "tags":        tags,
+                "posted_date": it.get("publishedAt"),
+                "source":      "GraphQL Jobs",
+                "source_url":  apply,
+                "logo_url":    co.get("logoUrl") or _company_logo(company),
+            })
+        return out
+    except Exception as e:
+        logger.warning(f"[jobs_feed] GraphQL Jobs fetch failed: {e}")
+        return []
+
+
+async def _fetch_devitjobs(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
+    """DevITjobs UK — free public RSS/XML job feed, UK and EU dev roles."""
+    import xml.etree.ElementTree as ET
+    try:
+        r = await client.get(
+            "https://www.devitjobs.uk/api/jobfeed",
+            headers={"User-Agent": USER_AGENT, "Accept": "application/xml, text/xml, */*"},
+            timeout=PER_API_TIMEOUT_S,
+        )
+        r.raise_for_status()
+        root = ET.fromstring(r.text)
+        channel = root.find("channel")
+        items_el = list(channel.findall("item"))[:60] if channel is not None else root.findall(".//job")[:60]
+        out = []
+        for el in items_el:
+            title   = (el.findtext("title") or el.findtext("jobTitle") or "").strip()
+            company = (el.findtext("company") or el.findtext("companyName") or "").strip()
+            loc     = (el.findtext("location") or el.findtext("city") or "United Kingdom").strip()
+            url     = (el.findtext("link") or el.findtext("url") or el.findtext("guid") or "").strip()
+            desc    = (el.findtext("description") or "").strip()
+            posted  = (el.findtext("pubDate") or el.findtext("datePosted") or "").strip()
+            if not title or not company:
+                continue
+            out.append({
+                "title":       title,
+                "company":     company,
+                "location":    loc,
+                "work_mode":   _classify_work_mode(loc, desc),
+                "job_type":    _classify_type(title, desc),
+                "salary_min":  None,
+                "salary_max":  None,
+                "currency":    "GBP",
+                "description": _short(desc),
+                "tags":        [],
+                "posted_date": posted or None,
+                "source":      "DevITjobs UK",
+                "source_url":  url,
+                "logo_url":    _company_logo(company),
+            })
+        return out
+    except Exception as e:
+        logger.warning(f"[jobs_feed] DevITjobs UK fetch failed: {e}")
+        return []
+
+
+# Curated Greenhouse board tokens — public, no auth required.
+_GREENHOUSE_BOARDS = [
+    "stripe", "figma", "notion", "vercel", "cloudflare",
+    "airbnb", "databricks", "hashicorp", "linear", "postman",
+    "airtable", "brex",
+]
+
+async def _fetch_greenhouse_boards(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
+    """Greenhouse public job board API — no auth, company-specific boards.
+
+    Fans out to each curated board_token concurrently and normalises the
+    unified Greenhouse JSON schema.
+    """
+    async def _one_board(token: str) -> List[Dict[str, Any]]:
+        try:
+            url = f"https://boards-api.greenhouse.io/v1/boards/{token}/jobs?content=true"
+            r = await client.get(url, headers={"User-Agent": USER_AGENT}, timeout=PER_API_TIMEOUT_S)
+            r.raise_for_status()
+            jobs_list = (r.json() or {}).get("jobs") or []
+            out_inner = []
+            for it in jobs_list[:20]:
+                title   = it.get("title") or ""
+                company = token.capitalize()
+                offices = it.get("offices") or []
+                loc     = offices[0].get("name", "—") if offices else "—"
+                dept    = it.get("departments") or [{}]
+                tags    = [d.get("name", "") for d in dept if d.get("name")][:4]
+                apply   = it.get("absolute_url") or ""
+                content = _short(it.get("content") or "", 240)
+                updated = it.get("updated_at") or it.get("created_at") or ""
+                out_inner.append({
+                    "title":       title,
+                    "company":     company,
+                    "location":    loc,
+                    "work_mode":   _classify_work_mode(loc, content),
+                    "job_type":    _classify_type(title, content),
+                    "salary_min":  None,
+                    "salary_max":  None,
+                    "currency":    "USD",
+                    "description": content,
+                    "tags":        tags,
+                    "posted_date": updated or None,
+                    "source":      "Greenhouse",
+                    "source_url":  apply,
+                    "logo_url":    _company_logo(company),
+                })
+            return out_inner
+        except Exception as e:
+            logger.warning(f"[jobs_feed] Greenhouse board '{token}' failed: {e}")
+            return []
+
+    batches = await asyncio.gather(*[_one_board(t) for t in _GREENHOUSE_BOARDS])
+    return [job for batch in batches for job in batch]
+
+
 # ─── Aggregator with cache + dedup ───────────────────────────────────────
 async def _ensure_cache_indexes():
     try:
@@ -317,7 +486,7 @@ async def _ensure_cache_indexes():
 _indexes_ready = False
 
 async def fetch_and_cache_all() -> Dict[str, Any]:
-    """Calls all 5 APIs in parallel, dedupes, persists with TTL.
+    """Calls all 8 APIs in parallel, dedupes, persists with TTL.
 
     Returns a stats dict for observability.
     """
@@ -336,15 +505,21 @@ async def fetch_and_cache_all() -> Dict[str, Any]:
             _fetch_the_muse(client),
             _fetch_remotive(client),
             _fetch_jobicy(client),
+            _fetch_graphql_jobs(client),
+            _fetch_devitjobs(client),
+            _fetch_greenhouse_boards(client),
             return_exceptions=False,
         )
 
     sources_count = {
-        "RemoteOK": len(results[0]) + len(results[1]),
-        "ArbeitNow": len(results[2]),
-        "The Muse": len(results[3]),
-        "Remotive": len(results[4]),
-        "Jobicy": len(results[5]),
+        "RemoteOK":     len(results[0]) + len(results[1]),
+        "ArbeitNow":    len(results[2]),
+        "The Muse":     len(results[3]),
+        "Remotive":     len(results[4]),
+        "Jobicy":       len(results[5]),
+        "GraphQL Jobs": len(results[6]),
+        "DevITjobs UK": len(results[7]),
+        "Greenhouse":   len(results[8]),
     }
 
     # Flatten + dedupe
@@ -549,7 +724,10 @@ async def jobs_feed(
         "per_page": per_page,
         "allowed_types": allowed,
         "user_tier_locked": False,
-        "available_sources": ["RemoteOK", "ArbeitNow", "The Muse", "Remotive", "Jobicy"],
+        "available_sources": [
+            "RemoteOK", "ArbeitNow", "The Muse", "Remotive", "Jobicy",
+            "GraphQL Jobs", "DevITjobs UK", "Greenhouse",
+        ],
         "refresh_stats": refresh_stats,
         "fetched_at": datetime.now(timezone.utc).isoformat(),
     }
