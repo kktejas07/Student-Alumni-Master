@@ -130,9 +130,12 @@ export const REVIEWS = [
 ];
 
 export const statusMeta = (s: string) => ({
-  active:    { label:'Active',    color:'green' as const, },
-  pending:   { label:'Pending',   color:'amber' as const, },
-  completed: { label:'Completed', color:'blue'  as const, },
+  active:       { label:'Active',         color:'green' as const, },
+  pending:      { label:'Pending',        color:'amber' as const, },
+  pending_sent: { label:'Pending Invite', color:'amber' as const, },
+  completed:    { label:'Completed',      color:'blue'  as const, },
+  none:         { label:'Not Connected',  color:'gray'  as const, },
+  withdrawn:    { label:'Withdrawn',      color:'gray'  as const, },
 }[s] || { label: s, color: 'gray' as const });
 
 // ── Network — other mentors to connect with + discovery

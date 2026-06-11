@@ -3027,7 +3027,10 @@ async def mentor_connections(email: Optional[str] = None):
             if status == "accepted" or status == "active":
                 connection_status[other] = "active"
             elif status == "pending":
-                connection_status[other] = "pending"
+                if r.get("a") == mid:
+                    connection_status[other] = "pending_sent"
+                else:
+                    connection_status[other] = "pending"
             else:
                 connection_status[other] = status
 
@@ -3041,7 +3044,7 @@ async def mentor_connections(email: Optional[str] = None):
             student_bookings.setdefault(sid, []).append(b)
             other_ids.add(sid)
             if sid not in connection_status:
-                connection_status[sid] = "active"
+                connection_status[sid] = "none"
 
     # 4. Fetch all resolved users
     resolved_objs = []
@@ -3077,6 +3080,10 @@ async def mentor_connections(email: Optional[str] = None):
 
         # Determine status.
         status = connection_status.get(uid, "active")
+
+        # Skip if they are not connected/pending (i.e. withdrawn, declined, none)
+        if status in ("none", "withdrawn", "declined", "rejected"):
+            continue
 
         # Force completed connections to have 100% progress
         if status == "completed":

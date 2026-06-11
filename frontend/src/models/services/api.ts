@@ -325,6 +325,7 @@ export const api = {
   mentorConnections: (email?: string) => request<any>(`/mentor/connections${email ? `?email=${encodeURIComponent(email)}` : ''}`),
   acceptConnection: (otherId: string) => request<any>(`/network/accept/${otherId}`, { method: 'POST', body: {} }),
   rejectConnection: (otherId: string) => request<any>(`/network/reject/${otherId}`, { method: 'POST', body: {} }),
+  withdrawConnection: (otherId: string) => request<any>(`/network/withdraw/${otherId}`, { method: 'POST', body: {} }),
   createMentorBooking: (payload: {
     student_id: string;
     slot_start_iso: string;
