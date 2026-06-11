@@ -20,12 +20,12 @@
 import React, { useCallback, useEffect, useMemo, useState, useContext } from 'react';
 import {
   View, Text, Pressable, TextInput, StyleSheet, useWindowDimensions,
-  Platform, ActivityIndicator, Linking, Modal,
+  Platform, Linking, Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-  Search, MapPin, Bookmark, BookmarkCheck, ExternalLink, RefreshCcw,
-  Lock, Sparkles, Briefcase, Globe2, Zap, X,
+  Search, MapPin, Bookmark, BookmarkCheck, ExternalLink,
+  Lock, Sparkles, Briefcase, Globe2,
 } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { GRAD } from '../portalkit';
@@ -219,65 +219,9 @@ export function InternshipsView() {
     if (!wasSaved) setBurst({ show: true, label: 'Job saved!' });
   }, [onToggleSave]);
 
-  // New-sources announcement banner — dismissible, shown once per session
-  const [newSrcBanner, setNewSrcBanner] = useState(true);
-
   return (
     <View accessibilityLabel="Internships and jobs feed">
       <SuccessBurst visible={burst.show} onHide={() => setBurst({ show: false, label: '' })} label={burst.label} />
-
-      {/* ✨ New sources banner */}
-      {newSrcBanner && (
-        <LinearGradient
-          colors={['rgba(124,58,237,0.18)', 'rgba(16,185,129,0.13)']}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={s.newSrcBanner}
-        >
-          <View style={s.newSrcLeft}>
-            <View style={s.newSrcIcon}>
-              <Zap size={13} color="#A78BFA" />
-            </View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={s.newSrcTitle}>3 New Job Sources Added ✨</Text>
-              <View style={s.newSrcPills}>
-                <View style={[s.srcPill, { backgroundColor: 'rgba(124,58,237,0.22)', borderColor: 'rgba(167,139,250,0.45)' }]}>
-                  <Text style={[s.srcPillTxt, { color: '#C4B5FD' }]}>GraphQL Jobs</Text>
-                </View>
-                <View style={[s.srcPill, { backgroundColor: 'rgba(59,130,246,0.18)', borderColor: 'rgba(96,165,250,0.45)' }]}>
-                  <Text style={[s.srcPillTxt, { color: '#93C5FD' }]}>DevITjobs UK</Text>
-                </View>
-                <View style={[s.srcPill, { backgroundColor: 'rgba(16,185,129,0.18)', borderColor: 'rgba(52,211,153,0.45)' }]}>
-                  <Text style={[s.srcPillTxt, { color: '#6EE7B7' }]}>Greenhouse</Text>
-                </View>
-              </View>
-              <Text style={s.newSrcSub}>Stripe, Figma, Notion, Vercel + 350 + global tech roles now live</Text>
-            </View>
-          </View>
-          <Pressable
-            onPress={() => setNewSrcBanner(false)}
-            style={s.newSrcDismiss}
-            accessibilityLabel="Dismiss new sources banner"
-          >
-            <X size={12} color="rgba(255,255,255,0.45)" />
-          </Pressable>
-        </LinearGradient>
-      )}
-      {/* Tier hint banner */}
-      <View style={s.tierBanner}>
-        <View style={s.tierBadge}>
-          <Briefcase size={14} color="#FCD34D" />
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.tierTxt}>
-            Live jobs from <Text style={{ color: '#FCD34D', fontFamily: FONTS.xbold }}>8 sources</Text> · personalised to your tier
-          </Text>
-          <Text style={s.tierSub}>Allowed for you: {allowedTypes.join(' · ')}</Text>
-        </View>
-        <Pressable onPress={onRefresh} disabled={refreshing} style={[s.tierCta, refreshing && { opacity: 0.6 }]}>
-          {refreshing ? <ActivityIndicator size="small" color={SC.accentBright} /> : <RefreshCcw size={11} color={SC.accentBright} />}
-          <Text style={s.tierCtaText}>{refreshing ? 'Refreshing…' : 'Refresh'}</Text>
-        </Pressable>
-      </View>
 
       {/* Filter row */}
       <View style={s.toolRow}>
@@ -520,26 +464,6 @@ function pickColor(seed: string): string {
 
 /* ── Styles ────────────────────────────────────────────────────────── */
 const s = StyleSheet.create({
-  tierBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1, borderRadius: 12,
-    padding: 12, marginBottom: 14,
-  },
-  tierBadge: {
-    width: 36, height: 36, borderRadius: 10,
-    backgroundColor: 'rgba(245,158,11,0.18)', borderColor: 'rgba(245,158,11,0.45)', borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  tierTxt: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
-  tierSub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
-  tierCta: {
-    flexDirection: 'row', gap: 5, alignItems: 'center',
-    paddingHorizontal: 12, height: 30, borderRadius: 8,
-    backgroundColor: SC.card, borderColor: SC.border, borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  tierCtaText: { color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 11 },
-
   toolRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 14, height: 32, borderRadius: 8, backgroundColor: SC.card, borderWidth: 1, borderColor: SC.border, justifyContent: 'center' },
   chipOn: { backgroundColor: SC.primary, borderColor: SC.primary },
@@ -591,36 +515,5 @@ const s = StyleSheet.create({
   modalCancelTxt: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 12.5 },
   modalConfirmBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 18, height: 36, borderRadius: 10 },
   modalConfirmTxt: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
-
-  // ── New sources announcement banner ──────────────────────────────────
-  newSrcBanner: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-    borderRadius: 14, borderWidth: 1,
-    borderColor: 'rgba(167,139,250,0.30)',
-    padding: 12, marginBottom: 10,
-    overflow: 'hidden',
-  },
-  newSrcLeft: { flex: 1, flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
-  newSrcIcon: {
-    width: 30, height: 30, borderRadius: 9,
-    backgroundColor: 'rgba(124,58,237,0.22)',
-    borderColor: 'rgba(167,139,250,0.45)', borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center',
-    marginTop: 1,
-  },
-  newSrcTitle: { color: '#E9D5FF', fontFamily: FONTS.bold, fontSize: 12.5, marginBottom: 6 },
-  newSrcPills: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginBottom: 6 },
-  srcPill: {
-    paddingHorizontal: 8, paddingVertical: 3,
-    borderRadius: 6, borderWidth: 1,
-  },
-  srcPillTxt: { fontFamily: FONTS.bold, fontSize: 10.5 },
-  newSrcSub: { color: 'rgba(255,255,255,0.38)', fontFamily: FONTS.med, fontSize: 10.5, lineHeight: 14 },
-  newSrcDismiss: {
-    width: 22, height: 22, borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    alignItems: 'center', justifyContent: 'center',
-    marginTop: 2,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
 });
+
