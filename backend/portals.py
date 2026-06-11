@@ -59,7 +59,14 @@ from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Query, Request, Body, Response
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
+import random
+from cachetools import TTLCache, cached
 from pathlib import Path
+
+# Instantiate TTL Caches for high-traffic endpoints
+dashboard_cache = TTLCache(maxsize=100, ttl=60)
+network_cache = TTLCache(maxsize=100, ttl=60)
+intel_cache = TTLCache(maxsize=100, ttl=60)
 
 from tier_logic import (
     compute_student_tier,
@@ -313,6 +320,10 @@ async def student_dashboard(student_email: Optional[str] = None):
             student = await _db.users.find_one({"role": "student"})
 
     sid = str((student or {}).get("_id", ""))
+    cache_key = f"dashboard_student_{sid}"
+    if cache_key in dashboard_cache:
+        return dashboard_cache[cache_key]
+
     name = (student or {}).get("full_name") or "Student"
     si = (student or {}).get("school_info") or {}
     sti = (student or {}).get("student_info") or {}
@@ -324,7 +335,7 @@ async def student_dashboard(student_email: Optional[str] = None):
     })
     student_skills_set = set(s.lower() for s in (student.get("skills", []) if student else []) if isinstance(s, str))
     
-    all_internships_cur = _db.internships.find()
+    all_internships_cur = _db.internships.find({"deadline": {"$gte": datetime.now(timezone.utc)}}).sort("_id", -1).limit(50)
     scored_internships = []
     async for it in all_internships_cur:
         req_skills = set(s.lower() for s in it.get("skills_required", []) if isinstance(s, str))
@@ -480,7 +491,7 @@ async def student_dashboard(student_email: Optional[str] = None):
     if not (student and student.get("projects")): missing_profile.append("Projects")
     if not (student and student.get("resume_url")): missing_profile.append("Resume")
 
-    return {
+    payload = {
         "student": {
             "id": sid,
             "name": name,
@@ -502,6 +513,8 @@ async def student_dashboard(student_email: Optional[str] = None):
         "upcomingEvents": upcoming,
         "profileCompletion": {"score": career_score, "missing": missing_profile},
     }
+    dashboard_cache[cache_key] = payload
+    return payload
 
 
 # ─── 2b. STUDENT INTELLIGENCE CENTER ─────────────────────────────
@@ -553,6 +566,9 @@ async def student_intelligence(student_email: Optional[str] = None):
         if not student:
             student = await _db.users.find_one({"role": "student"})
     sid = str((student or {}).get("_id", ""))
+    cache_key = f"intel_student_{sid}"
+    if cache_key in intel_cache:
+        return intel_cache[cache_key]
 
     now = datetime.now(timezone.utc)
     if now.tzinfo is None:
@@ -563,7 +579,7 @@ async def student_intelligence(student_email: Optional[str] = None):
     apps_by_week = [0]*12
     apps_by_month = [0]*9
     applied_internship_ids = []
-    async for a in _db.internship_applications.find({"student_id": sid}):
+    async for a in _db.internship_applications.find({"student_id": sid}, {"applied_at": 1, "internship_id": 1}):
         apps_total += 1
         applied_internship_ids.append(a.get("internship_id"))
         dt = a.get("applied_at")
@@ -581,7 +597,7 @@ async def student_intelligence(student_email: Optional[str] = None):
     profile_views = 0
     views_by_week = [0]*12
     views_by_month = [0]*9
-    async for b in _db.bookings.find({"student_id": sid}):
+    async for b in _db.bookings.find({"student_id": sid}, {"created_at": 1, "scheduled_at": 1}):
         profile_views += 1
         dt = b.get("created_at") or b.get("scheduled_at")
         if isinstance(dt, datetime):
@@ -595,7 +611,7 @@ async def student_intelligence(student_email: Optional[str] = None):
             if 0 <= m_idx < 9:
                 views_by_month[m_idx] += 1
                 
-    async for r in _db.event_registrations.find({"student_id": sid}):
+    async for r in _db.event_registrations.find({"student_id": sid}, {"registered_at": 1}):
         profile_views += 1
         dt = r.get("registered_at")
         if isinstance(dt, datetime):
@@ -889,7 +905,7 @@ async def student_intelligence(student_email: Optional[str] = None):
     skills = student.get("skills", []) if student else []
     profile_completion_pct = min(100, 40 + len(skills) * 5 + (10 if student and student.get("face_image_base64") else 0))
 
-    return {
+    payload = {
         "kpis": {
             "applications": {
                 "label": "Applications Sent",
@@ -938,8 +954,11 @@ async def student_intelligence(student_email: Optional[str] = None):
                 "data": momentum_1y,
             }
         },
+        },
         "activity": activity,
     }
+    intel_cache[cache_key] = payload
+    return payload
 
 
 # ─── 3. COLLEGE ADMIN DASHBOARD ──────────────────────────────────
@@ -2274,6 +2293,10 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     rel_map = {}
     if user:
         me_id = str(user["_id"])
+        cache_key = f"network_student_{me_id}"
+        if cache_key in network_cache:
+            return network_cache[cache_key]
+        
         rels = await _db.connections.find({
             "$or": [{"a": me_id}, {"b": me_id}]
         }).to_list(1000)
@@ -2396,7 +2419,10 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "photo_data": m.get("photo_data") or m.get("face_image_base64"),
         })
 
-    return {"items": out}
+    payload = {"items": out}
+    if user:
+        network_cache[cache_key] = payload
+    return payload
 
 
 # ════════════════════════════════════════════════════════════════
