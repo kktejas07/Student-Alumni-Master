@@ -2898,7 +2898,6 @@ async def mentor_connections(email: Optional[str] = None):
             else:
                 total_sessions = 5
                 completed_sessions = 5
-
         # Determine status
         status = connection_status.get(uid)
         if not status:
@@ -2908,6 +2907,10 @@ async def mentor_connections(email: Optional[str] = None):
                 status = "pending"
             else:
                 status = "completed"
+
+        # Skip if they are not connected/pending (i.e. withdrawn, declined, none)
+        if status in ("none", "withdrawn", "declined", "rejected"):
+            continue
 
         # Force completed connections to have 100% progress
         if status == "completed":
