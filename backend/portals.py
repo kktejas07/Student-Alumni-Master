@@ -954,7 +954,6 @@ async def student_intelligence(student_email: Optional[str] = None):
                 "data": momentum_1y,
             }
         },
-        },
         "activity": activity,
     }
     intel_cache[cache_key] = payload
