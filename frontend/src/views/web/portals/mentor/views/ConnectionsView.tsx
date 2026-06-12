@@ -93,7 +93,7 @@ export function ConnectionsView() {
   const list = useMemo(() => studentsList.filter((st) => {
     if (filter !== 'all') {
       if (filter === 'completed') {
-        if (st.status !== 'completed' && st.status !== 'active') return false;
+        if (st.status !== 'completed' && st.progress !== 100) return false;
       } else if (filter === 'pending') {
         if (st.status !== 'pending' && st.status !== 'pending_sent') return false;
       } else {
