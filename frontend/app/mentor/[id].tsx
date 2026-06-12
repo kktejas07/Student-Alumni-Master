@@ -22,7 +22,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Star, MessageCircle, Linkedin, Calendar, Clock } from 'lucide-react-native';
+import { ArrowLeft, Star, MessageCircle, ExternalLink, Calendar, Clock } from 'lucide-react-native';
 import { Colors as C, Spacing, Typography, Shadows } from '@/src/theme';
 import { Card, Button, Input } from '@/src/views/components';
 import { api } from '@/src/models/services/api';
@@ -176,7 +176,7 @@ export default function MentorProfileScreen() {
                 style={styles.linkedinBtn}
                 testID="mentor-linkedin-btn"
               >
-                <Linkedin size={16} color={C.info} />
+                <ExternalLink size={16} color={C.info} />
                 <Text style={[Typography.bodyBold, { color: C.info }]}>View LinkedIn</Text>
               </TouchableOpacity>
             )}
