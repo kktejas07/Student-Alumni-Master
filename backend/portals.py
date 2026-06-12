@@ -59,7 +59,15 @@ from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Query, Request, Body, Response
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
+import random
+from cachetools import TTLCache, cached
 from pathlib import Path
+
+# Instantiate TTL Caches for high-traffic endpoints
+dashboard_cache = TTLCache(maxsize=100, ttl=60)
+network_cache = TTLCache(maxsize=100, ttl=60)
+intel_cache = TTLCache(maxsize=100, ttl=60)
+events_cache = TTLCache(maxsize=100, ttl=60)
 
 from tier_logic import (
     compute_student_tier,
@@ -223,13 +231,23 @@ async def mentor_dashboard(mentor_email: Optional[str] = None):
         "mentor_id": mentor_id,
         "status": {"$ne": "cancelled"},
     }).sort("scheduled_at", 1).limit(5)
+    today_bookings = [b async for b in today_cur]
+    
+    student_ids = []
+    for b in today_bookings:
+        sid = b.get("student_id")
+        if sid and ObjectId.is_valid(sid):
+            student_ids.append(ObjectId(sid))
+            
+    students_map = {}
+    if student_ids:
+        async for s in _db.users.find({"_id": {"$in": student_ids}}, {"full_name": 1}):
+            students_map[str(s["_id"])] = s
+
     today_sessions = []
-    async for b in today_cur:
-        student_doc = None
-        try:
-            student_doc = await _db.users.find_one({"_id": ObjectId(b.get("student_id"))})
-        except Exception:
-            student_doc = None
+    for b in today_bookings:
+        sid_str = str(b.get("student_id"))
+        student_doc = students_map.get(sid_str)
         sname = (student_doc or {}).get("full_name") or "Student"
         sched = b.get("scheduled_at")
         time_str = ""
@@ -313,6 +331,10 @@ async def student_dashboard(student_email: Optional[str] = None):
             student = await _db.users.find_one({"role": "student"})
 
     sid = str((student or {}).get("_id", ""))
+    cache_key = f"dashboard_student_{sid}"
+    if cache_key in dashboard_cache:
+        return dashboard_cache[cache_key]
+
     name = (student or {}).get("full_name") or "Student"
     si = (student or {}).get("school_info") or {}
     sti = (student or {}).get("student_info") or {}
@@ -324,7 +346,7 @@ async def student_dashboard(student_email: Optional[str] = None):
     })
     student_skills_set = set(s.lower() for s in (student.get("skills", []) if student else []) if isinstance(s, str))
     
-    all_internships_cur = _db.internships.find()
+    all_internships_cur = _db.internships.find({"deadline": {"$gte": datetime.now(timezone.utc)}}).sort("_id", -1).limit(50)
     scored_internships = []
     async for it in all_internships_cur:
         req_skills = set(s.lower() for s in it.get("skills_required", []) if isinstance(s, str))
@@ -480,7 +502,7 @@ async def student_dashboard(student_email: Optional[str] = None):
     if not (student and student.get("projects")): missing_profile.append("Projects")
     if not (student and student.get("resume_url")): missing_profile.append("Resume")
 
-    return {
+    payload = {
         "student": {
             "id": sid,
             "name": name,
@@ -502,6 +524,8 @@ async def student_dashboard(student_email: Optional[str] = None):
         "upcomingEvents": upcoming,
         "profileCompletion": {"score": career_score, "missing": missing_profile},
     }
+    dashboard_cache[cache_key] = payload
+    return payload
 
 
 # ─── 2b. STUDENT INTELLIGENCE CENTER ─────────────────────────────
@@ -553,6 +577,9 @@ async def student_intelligence(student_email: Optional[str] = None):
         if not student:
             student = await _db.users.find_one({"role": "student"})
     sid = str((student or {}).get("_id", ""))
+    cache_key = f"intel_student_{sid}"
+    if cache_key in intel_cache:
+        return intel_cache[cache_key]
 
     now = datetime.now(timezone.utc)
     if now.tzinfo is None:
@@ -563,7 +590,7 @@ async def student_intelligence(student_email: Optional[str] = None):
     apps_by_week = [0]*12
     apps_by_month = [0]*9
     applied_internship_ids = []
-    async for a in _db.internship_applications.find({"student_id": sid}):
+    async for a in _db.internship_applications.find({"student_id": sid}, {"applied_at": 1, "internship_id": 1}):
         apps_total += 1
         applied_internship_ids.append(a.get("internship_id"))
         dt = a.get("applied_at")
@@ -581,7 +608,7 @@ async def student_intelligence(student_email: Optional[str] = None):
     profile_views = 0
     views_by_week = [0]*12
     views_by_month = [0]*9
-    async for b in _db.bookings.find({"student_id": sid}):
+    async for b in _db.bookings.find({"student_id": sid}, {"created_at": 1, "scheduled_at": 1}):
         profile_views += 1
         dt = b.get("created_at") or b.get("scheduled_at")
         if isinstance(dt, datetime):
@@ -595,7 +622,7 @@ async def student_intelligence(student_email: Optional[str] = None):
             if 0 <= m_idx < 9:
                 views_by_month[m_idx] += 1
                 
-    async for r in _db.event_registrations.find({"student_id": sid}):
+    async for r in _db.event_registrations.find({"student_id": sid}, {"registered_at": 1}):
         profile_views += 1
         dt = r.get("registered_at")
         if isinstance(dt, datetime):
@@ -889,7 +916,7 @@ async def student_intelligence(student_email: Optional[str] = None):
     skills = student.get("skills", []) if student else []
     profile_completion_pct = min(100, 40 + len(skills) * 5 + (10 if student and student.get("face_image_base64") else 0))
 
-    return {
+    payload = {
         "kpis": {
             "applications": {
                 "label": "Applications Sent",
@@ -940,6 +967,8 @@ async def student_intelligence(student_email: Optional[str] = None):
         },
         "activity": activity,
     }
+    intel_cache[cache_key] = payload
+    return payload
 
 
 # ─── 3. COLLEGE ADMIN DASHBOARD ──────────────────────────────────
@@ -2100,15 +2129,41 @@ async def student_events_list(student_email: Optional[str] = None, limit: int = 
         student = await _db.users.find_one({"role": "student"})
     sid = str((student or {}).get("_id", ""))
 
+    cache_key = f"events_student_{sid}"
+    if cache_key in events_cache:
+        return events_cache[cache_key]
+
     cur = _db.events.find().sort("start_date", 1).limit(limit)
+    events = [ev async for ev in cur]
+    
+    event_ids = [str(ev.get("_id")) for ev in events]
+    
+    # 1. Batch counts
+    pipeline = [
+        {"$match": {"event_id": {"$in": event_ids}}},
+        {"$group": {"_id": "$event_id", "count": {"$sum": 1}}}
+    ]
+    counts_map = {}
+    async for doc in _db.event_registrations.aggregate(pipeline):
+        counts_map[doc["_id"]] = doc["count"]
+        
+    # 2. Batch user registrations
+    user_regs = set()
+    if sid:
+        user_reg_docs = await _db.event_registrations.find({"student_id": sid, "event_id": {"$in": event_ids}}).to_list(len(event_ids))
+        user_regs = {doc["event_id"] for doc in user_reg_docs}
+
     palette = ["#A78BFA", "#22C55E", "#FCD34D", "#3B82F6", "#22D3EE", "#EC4899", "#F59E0B", "#FB923C"]
     out = []
     i = 0
-    async for ev in cur:
+    for ev in events:
         sd = ev.get("start_date")
         date_str = sd.strftime("%b %d") if isinstance(sd, datetime) else "TBD"
-        regs = await _db.event_registrations.count_documents({"event_id": str(ev.get("_id"))})
-        registered = await _db.event_registrations.find_one({"event_id": str(ev.get("_id")), "student_id": sid}) is not None
+        ev_id_str = str(ev.get("_id"))
+        
+        regs = counts_map.get(ev_id_str, 0)
+        registered = ev_id_str in user_regs
+        
         out.append({
             "id": _short_id(ev.get("_id")),
             "title": ev.get("title", "Event"),
@@ -2125,7 +2180,11 @@ async def student_events_list(student_email: Optional[str] = None, limit: int = 
             "description": ev.get("description", ""),
         })
         i += 1
-    return {"items": out}
+        
+    payload = {"items": out}
+    if sid:
+        events_cache[cache_key] = payload
+    return payload
 
 
 @router.get("/college/ai-insights")
@@ -2274,6 +2333,10 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     rel_map = {}
     if user:
         me_id = str(user["_id"])
+        cache_key = f"network_student_{me_id}"
+        if cache_key in network_cache:
+            return network_cache[cache_key]
+        
         rels = await _db.connections.find({
             "$or": [{"a": me_id}, {"b": me_id}]
         }).to_list(1000)
@@ -2298,7 +2361,8 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             except Exception:
                 pass
         if connected_ids:
-            connected_users = await _db.users.find({"_id": {"$in": connected_ids}}).to_list(len(connected_ids))
+            proj = {"email": 1, "full_name": 1, "role": 1, "school_info": 1, "alumni_info": 1, "bio": 1, "photo_data": 1, "face_image_base64": 1, "skills": 1}
+            connected_users = await _db.users.find({"_id": {"$in": connected_ids}}, proj).to_list(len(connected_ids))
 
     # Fetch Alumni (ensuring connected ones are included first)
     connected_alumni = [u for u in connected_users if u.get("role") == "alumni"]
@@ -2306,7 +2370,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     al_cur = _db.users.find({
         "role": "alumni",
         "_id": {"$nin": [ObjectId(i) for i in seen_alumni]}
-    }).sort("_id", -1).limit(max(0, limit - len(connected_alumni)))
+    }, proj).sort("_id", -1).limit(max(0, limit - len(connected_alumni)))
     alumni_users = connected_alumni + [a async for a in al_cur]
     for a in alumni_users:
         other_id = str(a["_id"])
@@ -2336,7 +2400,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     st_cur = _db.users.find({
         "role": "student",
         "_id": {"$nin": [ObjectId(i) for i in seen_students]}
-    }).sort("_id", -1).limit(max(0, limit - len(connected_students)))
+    }, proj).sort("_id", -1).limit(max(0, limit - len(connected_students)))
     student_users = connected_students + [s async for s in st_cur]
     for s in student_users:
         other_id = str(s["_id"])
@@ -2368,7 +2432,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     me_cur = _db.users.find({
         "role": "mentor",
         "_id": {"$nin": [ObjectId(i) for i in seen_mentors]}
-    }).sort("_id", -1).limit(max(0, limit - len(connected_mentors)))
+    }, proj).sort("_id", -1).limit(max(0, limit - len(connected_mentors)))
     mentor_users = connected_mentors + [m async for m in me_cur]
     for m in mentor_users:
         other_id = str(m["_id"])
@@ -2396,7 +2460,10 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "photo_data": m.get("photo_data") or m.get("face_image_base64"),
         })
 
-    return {"items": out}
+    payload = {"items": out}
+    if user:
+        network_cache[cache_key] = payload
+    return payload
 
 
 # ════════════════════════════════════════════════════════════════

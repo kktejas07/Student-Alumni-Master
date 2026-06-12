@@ -4945,20 +4945,33 @@ async def my_bookings(user: dict = Depends(get_current_user)):
         else {"mentor_id": str(user["_id"])}
     items = await db.bookings.find(query).sort("slot_start_iso", 1).to_list(100)
     
+    other_ids = set()
+    for item in items:
+        other_id = item.get("student_id") if user["role"] == "mentor" else item.get("mentor_id")
+        if other_id:
+            other_ids.add(other_id)
+            
+    users_map = {}
+    if other_ids:
+        try:
+            oids = [ObjectId(x) for x in other_ids if ObjectId.is_valid(x)]
+            if oids:
+                other_users = await db.users.find({"_id": {"$in": oids}}, {"full_name": 1, "photo_data": 1, "face_image_base64": 1, "photo": 1}).to_list(len(oids))
+                for ou in other_users:
+                    users_map[str(ou["_id"])] = ou
+        except Exception:
+            pass
+
     out = []
     for item in items:
         other_id = item.get("student_id") if user["role"] == "mentor" else item.get("mentor_id")
         other_name = item.get("student_name") if user["role"] == "mentor" else item.get("mentor_name")
         other_photo = None
         
-        if other_id:
-            try:
-                other_user = await db.users.find_one({"_id": ObjectId(other_id)})
-                if other_user:
-                    other_name = other_user.get("full_name") or other_name
-                    other_photo = other_user.get("photo_data") or other_user.get("face_image_base64") or other_user.get("photo")
-            except Exception:
-                pass
+        if other_id and other_id in users_map:
+            ou = users_map[other_id]
+            other_name = ou.get("full_name") or other_name
+            other_photo = ou.get("photo_data") or ou.get("face_image_base64") or ou.get("photo")
                 
         sched = item.get("scheduled_at")
         sched_iso = sched.isoformat() if isinstance(sched, datetime) else sched

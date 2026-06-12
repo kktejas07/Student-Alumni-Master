@@ -9,6 +9,7 @@ import { MC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
 import { MY_EVENTS as INITIAL_EVENTS, MentorEvent } from '../data';
 import { usePortalData, postPortal } from '@/src/lib/portalApi';
+import { useToast } from '@/src/views/components';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -18,6 +19,7 @@ const MONTH_NAMES = [
 export function CreateEventView() {
   const { width } = useWindowDimensions();
   const stack = width < 1024;
+  const toast = useToast();
 
   const { data, refresh } = usePortalData<{ items: MentorEvent[] }>('/mentor/events/me', { items: [] });
   const events = data?.items || [];
@@ -53,6 +55,17 @@ export function CreateEventView() {
 
   // Time Picker States
   const [showTimePicker, setShowTimePicker] = useState(false);
+
+  const isAnyDropdownOpen = showDurationDropdown || showPlatformDropdown || showVisibilityDropdown || showCalendar || showTimePicker || showYearDropdown;
+
+  const closeAllDropdowns = () => {
+    setShowDurationDropdown(false);
+    setShowPlatformDropdown(false);
+    setShowVisibilityDropdown(false);
+    setShowCalendar(false);
+    setShowTimePicker(false);
+    setShowYearDropdown(false);
+  };
 
   const timePresets = [
     '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
@@ -141,15 +154,15 @@ export function CreateEventView() {
   };
 
   const handlePublish = async () => {
-    if (!title.trim()) { alert('Please enter an event title'); return; }
-    if (!date) { alert('Please select a date'); return; }
-    if (!time) { alert('Please select a time'); return; }
+    if (!title.trim()) { toast.error('Missing Title', 'Please enter an event title'); return; }
+    if (!date) { toast.error('Missing Date', 'Please select a date'); return; }
+    if (!time) { toast.error('Missing Time', 'Please select a time'); return; }
 
     const numSeats = parseInt(seats) || 100;
     const ticketPrice = pricing === 'paid' ? (parseFloat(price) || 0) : undefined;
 
     if (subView === 'edit' && editingEventId !== null) {
-      alert('Edit functionality not fully integrated yet.');
+      toast.info('Coming Soon', 'Edit functionality not fully integrated yet.');
       setSubView('list');
       setEditingEventId(null);
     } else {
@@ -171,18 +184,18 @@ export function CreateEventView() {
             type: eventType,
           }
         });
-        alert('Event created and published successfully!');
+        toast.success('Event Created', 'Event created and published successfully!');
         refresh();
         setSubView('list');
         resetForm();
       } catch (err) {
-        alert('Failed to publish event. Please try again.');
+        toast.error('Creation Failed', 'Failed to publish event. Please try again.');
       }
     }
   };
 
   const handleDelete = (id: number) => {
-    alert('Delete functionality requires backend support.');
+    toast.info('Coming Soon', 'Delete functionality requires backend support.');
   };
 
   const handleEditClick = (event: MentorEvent) => {
@@ -434,7 +447,7 @@ export function CreateEventView() {
               </View>
 
               {/* Event Details */}
-              <View style={[s.formCard, { zIndex: 10, position: 'relative' }]}>
+              <View style={[s.formCard, { zIndex: (showCalendar || showTimePicker || showYearDropdown) ? 100 : 10, position: 'relative' }]}>
                 <View style={s.detailsHeader}>
                   <Text style={s.sectionHeader}>Event Details</Text>
                   <Pressable onPress={aiGenerate} style={s.aiBtn}>
@@ -495,7 +508,9 @@ export function CreateEventView() {
                     </View>
 
                     {showCalendar && (
-                      <View style={s.calPopover}>
+                      <>
+                        <Pressable style={s.fixedOverlay} onPress={closeAllDropdowns} />
+                        <View style={s.calPopover}>
                         <View style={s.calPopHeader}>
                           <Pressable onPress={handlePrevMonth} style={s.calNavBtn}>
                             <ChevronLeft size={15} color="#fff" />
@@ -514,7 +529,9 @@ export function CreateEventView() {
                               </Pressable>
 
                               {showYearDropdown && (
-                                <View style={s.yearDropdown}>
+                                <>
+                                  <Pressable style={s.fixedOverlay} onPress={() => setShowYearDropdown(false)} />
+                                  <View style={s.yearDropdown}>
                                   <ScrollView style={{ maxHeight: 120 }} nestedScrollEnabled={true}>
                                     {years.map((y) => (
                                       <Pressable
@@ -533,6 +550,7 @@ export function CreateEventView() {
                                     ))}
                                   </ScrollView>
                                 </View>
+                                </>
                               )}
                             </View>
                           </View>
@@ -573,6 +591,7 @@ export function CreateEventView() {
                           })}
                         </View>
                       </View>
+                      </>
                     )}
                   </View>
 
@@ -596,7 +615,9 @@ export function CreateEventView() {
                     </View>
 
                     {showTimePicker && (
-                      <View style={[s.calPopover, { right: 0, left: undefined, width: 180 }]}>
+                      <>
+                        <Pressable style={s.fixedOverlay} onPress={closeAllDropdowns} />
+                        <View style={[s.calPopover, { right: 0, left: undefined, width: 180 }]}>
                         <Text style={s.pickerTitle}>Select Time</Text>
                         <ScrollView style={{ maxHeight: 150 }} nestedScrollEnabled={true}>
                           {timePresets.map((t) => (
@@ -616,6 +637,7 @@ export function CreateEventView() {
                           ))}
                         </ScrollView>
                       </View>
+                      </>
                     )}
                   </View>
 
@@ -624,7 +646,7 @@ export function CreateEventView() {
               </View>
 
               {/* Settings Section */}
-              <View style={[s.formCard, { zIndex: 9, position: 'relative' }]}>
+              <View style={[s.formCard, { zIndex: (showDurationDropdown || showPlatformDropdown || showVisibilityDropdown) ? 100 : 9, position: 'relative' }]}>
                 <Text style={s.sectionHeader}>Settings</Text>
 
                 {/* Duration & Platform Row */}
@@ -643,7 +665,9 @@ export function CreateEventView() {
                       <ChevronDown size={14} color={coverColor} />
                     </Pressable>
                     {showDurationDropdown && (
-                      <View style={s.selectDropdown}>
+                      <>
+                        <Pressable style={s.fixedOverlay} onPress={closeAllDropdowns} />
+                        <View style={s.selectDropdown}>
                         {durationOptions.map((opt) => (
                           <Pressable
                             key={opt}
@@ -657,6 +681,7 @@ export function CreateEventView() {
                           </Pressable>
                         ))}
                       </View>
+                      </>
                     )}
                   </View>
 
@@ -674,7 +699,9 @@ export function CreateEventView() {
                       <ChevronDown size={14} color={coverColor} />
                     </Pressable>
                     {showPlatformDropdown && (
-                      <View style={s.selectDropdown}>
+                      <>
+                        <Pressable style={s.fixedOverlay} onPress={closeAllDropdowns} />
+                        <View style={s.selectDropdown}>
                         {platformOptions.map((opt) => (
                           <Pressable
                             key={opt}
@@ -688,6 +715,7 @@ export function CreateEventView() {
                           </Pressable>
                         ))}
                       </View>
+                      </>
                     )}
                   </View>
                 </View>
@@ -723,7 +751,9 @@ export function CreateEventView() {
                       <ChevronDown size={14} color={coverColor} />
                     </Pressable>
                     {showVisibilityDropdown && (
-                      <View style={s.selectDropdown}>
+                      <>
+                        <Pressable style={s.fixedOverlay} onPress={closeAllDropdowns} />
+                        <View style={s.selectDropdown}>
                         {visibilityOptions.map((opt) => (
                           <Pressable
                             key={opt}
@@ -737,6 +767,7 @@ export function CreateEventView() {
                           </Pressable>
                         ))}
                       </View>
+                      </>
                     )}
                   </View>
                 </View>
@@ -1041,7 +1072,7 @@ const s = StyleSheet.create({
   dropdownValueText: { color: '#fff', fontFamily: FONTS.med, fontSize: 13 },
   selectDropdown: {
     position: 'absolute', top: 56, left: 0, right: 0,
-    backgroundColor: MC.card, borderColor: MC.border2, borderWidth: 1, borderRadius: 10,
+    backgroundColor: '#0F172A', borderColor: MC.border2, borderWidth: 1, borderRadius: 10,
     zIndex: 99999, overflow: 'hidden',
     shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 10
   },
@@ -1079,7 +1110,7 @@ const s = StyleSheet.create({
   // Custom Popover Calendar Picker.
   calPopover: {
     position: 'absolute', top: 62, left: 0, width: 250,
-    backgroundColor: MC.card, borderColor: MC.border2, borderWidth: 1, borderRadius: 12,
+    backgroundColor: '#0F172A', borderColor: MC.border2, borderWidth: 1, borderRadius: 12,
     padding: 12, zIndex: 99999,
     shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 10
   },
@@ -1092,8 +1123,8 @@ const s = StyleSheet.create({
   yearTrigger: { flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: 'rgba(255,255,255,0.04)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   yearTriggerText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11 },
   yearDropdown: {
-    position: 'absolute', top: 24, left: 0, width: 80, maxHeight: 150,
-    backgroundColor: MC.card, borderColor: MC.border2, borderWidth: 1, borderRadius: 8,
+    position: 'absolute', top: 24, left: -20, width: 80, maxHeight: 150,
+    backgroundColor: '#0F172A', borderColor: MC.border2, borderWidth: 1, borderRadius: 8,
     zIndex: 100000, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 11
   },
   yearDropdownItemText: { color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, textAlign: 'center' },
@@ -1146,5 +1177,10 @@ const s = StyleSheet.create({
   tipsList: { gap: 8 },
   tipsItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   tipsDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#F59E0B' },
-  tipsText: { color: MC.muted, fontFamily: FONTS.med, fontSize: 11.5 }
+  tipsText: { color: MC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
+  fixedOverlay: {
+    position: Platform.OS === 'web' ? ('fixed' as any) : 'absolute',
+    top: -3000, bottom: -3000, left: -3000, right: -3000,
+    zIndex: 99990, cursor: 'default'
+  }
 });
