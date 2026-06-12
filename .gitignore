@@ -149,6 +149,7 @@ dump.rdb
 *.sqlite
 *.sqlite3
 *.db-journal
+.run.pids
 
 # ── Seed / export data (regenerable, often huge)
 backend/seed_data_export/
