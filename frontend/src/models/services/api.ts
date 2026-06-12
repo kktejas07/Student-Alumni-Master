@@ -307,8 +307,15 @@ export const api = {
     request<any>('/notifications/register', { method: 'POST', body: { token, platform } }),
   notifications: () => request<any>('/notifications'),
   markNotificationsRead: (ids?: string[]) =>
-    request<any>('/notifications/mark-read', { method: 'POST', body: { ids } }),
-
+    request<any>('/notifications/mark-read', {
+      method: 'POST',
+      body: ids ? { ids } : {},
+    }),
+  dismissNotifications: (ids?: string[]) =>
+    request<any>('/notifications/dismiss', {
+      method: 'POST',
+      body: ids ? { ids } : {},
+    }),
   // Mentor portal: booking actions + session posting
   confirmBooking: (id: string) =>
     request<any>(`/bookings/${id}/confirm`, { method: 'POST', body: {} }),

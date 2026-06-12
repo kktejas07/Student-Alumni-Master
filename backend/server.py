@@ -5604,6 +5604,15 @@ async def notifications_mark_read(payload: Optional[dict] = None,
     return {"updated": n}
 
 
+@api_router.post("/notifications/dismiss")
+async def notifications_dismiss(payload: Optional[dict] = None,
+                                user: dict = Depends(get_current_user)):
+    from notifications import dismiss_inbox
+    ids = (payload or {}).get("ids") if payload else None
+    n = await dismiss_inbox(db, str(user["_id"]), ids)
+    return {"deleted": n}
+
+
 # Admin-only: send a manual broadcast (for announcements)
 class ManualPushIn(BaseModel):
     user_id: str

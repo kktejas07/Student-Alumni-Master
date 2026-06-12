@@ -54,7 +54,7 @@ export function StudentNotificationsPanel({ onClose, onOpenSettings }: Notificat
 
   const handleDismiss = async (id: string) => {
     try {
-      await api.markNotificationsRead([id]);
+      await api.dismissNotifications([id]);
       setList((prev) => prev.filter((item) => item.id !== id));
       toast.info('Notification dismissed', 'Item removed from notifications.');
     } catch (e) {
@@ -76,12 +76,12 @@ export function StudentNotificationsPanel({ onClose, onOpenSettings }: Notificat
   };
 
   const handleAction = async (item: Notif) => {
-    if (!item.read) {
-      try {
-        await api.markNotificationsRead([item.id]);
-        setList((prev) => prev.map((i) => i.id === item.id ? { ...i, read: true } : i));
-      } catch (e) {}
-    }
+    try {
+      await api.dismissNotifications([item.id]);
+    } catch (e) {}
+    
+    // Make notification disappear from the list
+    setList((prev) => prev.filter((i) => i.id !== item.id));
 
     const role = user?.role || 'student';
     const lowerType = (item.type || '').toLowerCase();
@@ -196,7 +196,7 @@ export function StudentNotificationsPanel({ onClose, onOpenSettings }: Notificat
               const { glyph, color } = iconForType(item.type);
               const actionText = getActionText(item.type);
               return (
-                <View key={item.id} style={[s.card, !item.read && s.cardUnread]}>
+                <Pressable key={item.id} style={[s.card, !item.read && s.cardUnread]} onPress={() => handleAction(item)}>
                   <View style={{ flexDirection: 'row', gap: 12 }}>
                     {/* Icon Outline Box */}
                     <View style={[s.iconBox, { borderColor: color + '30', backgroundColor: color + '10' }]}>
@@ -225,7 +225,7 @@ export function StudentNotificationsPanel({ onClose, onOpenSettings }: Notificat
                       </View>
                     </View>
                   </View>
-                </View>
+                </Pressable>
               );
             })
           )}

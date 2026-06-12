@@ -143,6 +143,23 @@ async def mark_inbox_read(db, user_id: str, ids: Optional[List[str]] = None) -> 
     return res.modified_count
 
 
+async def dismiss_inbox(db, user_id: str, ids: Optional[List[str]] = None) -> int:
+    q: Dict[str, Any] = {"user_id": str(user_id)}
+    if ids:
+        objs = []
+        for i in ids:
+            try:
+                objs.append(ObjectId(i))
+            except Exception:
+                pass
+        q["$or"] = [
+            {"id": {"$in": ids}},
+            {"_id": {"$in": objs}}
+        ]
+    res = await db.notifications.delete_many(q)
+    return res.deleted_count
+
+
 async def unread_count(db, user_id: str) -> int:
     return await db.notifications.count_documents({"user_id": str(user_id), "read": False})
 

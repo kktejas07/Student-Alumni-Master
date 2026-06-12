@@ -130,7 +130,7 @@ export function NotificationsPanel({
   const handleDismiss = async (id: string) => {
     setDismissedIds((prev) => [...prev, id]);
     try {
-      await request('/notifications/mark-read', {
+      await request('/notifications/dismiss', {
         method: 'POST',
         body: { ids: [id] },
       });
@@ -155,16 +155,15 @@ export function NotificationsPanel({
     }
   };
 
-  // Mark single notification read, close panel, and navigate.
+  // Dismiss single notification, close panel, and navigate.
   const handleAction = async (item: NotificationItem) => {
     try {
-      if (item.unread) {
-        await request('/notifications/mark-read', {
-          method: 'POST',
-          body: { ids: [item.id] },
-        });
-        onRefresh();
-      }
+      await request('/notifications/dismiss', {
+        method: 'POST',
+        body: { ids: [item.id] },
+      });
+      onRefresh();
+      setDismissedIds((prev) => [...prev, item.id]);
       onClose();
       if (item.category === 'booking') {
         if (item.title.toLowerCase().includes('request')) {
@@ -254,7 +253,7 @@ export function NotificationsPanel({
           </View>
         ) : (
           filteredList.map((item) => (
-            <View key={item.id} style={[s.card, item.unread && s.cardUnread]}>
+            <Pressable key={item.id} style={[s.card, item.unread && s.cardUnread]} onPress={() => handleAction(item)}>
               <View style={{ flexDirection: 'row', gap: 12 }}>
                 {/* Icon Outline Box */}
                 <View style={[s.iconBox, { borderColor: item.iconColor + '30', backgroundColor: item.iconColor + '10' }]}>
@@ -283,7 +282,7 @@ export function NotificationsPanel({
                   </View>
                 </View>
               </View>
-            </View>
+            </Pressable>
           ))
         )}
       </ScrollView>
