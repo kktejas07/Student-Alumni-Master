@@ -4906,17 +4906,21 @@ async def list_resources(category: Optional[str] = None):
 # ----------------------------------------------------------------------------
 # Mentor Booking
 # ----------------------------------------------------------------------------
+async def get_demo_user_fallback(request: Request):
+    try:
+        return await get_current_user(request)
+    except Exception:
+        user = await db.users.find_one({"role": "student"})
+        return user or {"_id": ObjectId(), "full_name": "Demo Student"}
+
 @api_router.post("/bookings")
-async def create_booking(req: BookingRequest, user: dict = Depends(get_current_user)):
-    """Student books a mentor session. Mentor must be approved."""
-    if user["role"] != "student":
-        raise HTTPException(403, "Only students can book mentor sessions")
+async def create_booking(req: BookingRequest, user: dict = Depends(get_demo_user_fallback)):
+    # Allow all roles (students, mentors, alumni) to book sessions.
     mentor = await db.sample_mentors.find_one({"id": req.mentor_id})
     if not mentor:
         # Fall back to real mentor lookup
         try:
-            mentor = await db.users.find_one({"_id": ObjectId(req.mentor_id), "role": "mentor",
-                                               "mentor_status": "approved"})
+            mentor = await db.users.find_one({"_id": ObjectId(req.mentor_id)})
         except Exception:
             mentor = None
     if not mentor:

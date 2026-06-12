@@ -19,6 +19,7 @@ import {
   TouchableOpacity,
   Linking,
   Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -129,9 +130,14 @@ export default function MentorProfileScreen() {
         topic: topic.trim(),
       });
       setBooked(true);
-      Alert.alert('Booked!', `Your session with ${displayName} is confirmed.`, [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      if (Platform.OS === 'web') {
+        window.alert(`Your session with ${displayName} is confirmed.`);
+        router.back();
+      } else {
+        Alert.alert('Booked!', `Your session with ${displayName} is confirmed.`, [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      }
     } catch (e: any) {
       Alert.alert('Booking failed', e.message);
     } finally {
@@ -247,7 +253,7 @@ export default function MentorProfileScreen() {
           title={booked ? 'Session Booked' : submitting ? 'Booking...' : 'Confirm session'}
           loading={submitting}
           onPress={confirm}
-          disabled={!selectedSlot || booked || submitting}
+          disabled={!selectedSlot || !topic.trim() || booked || submitting}
           testID="booking-confirm-btn"
           style={{ marginTop: Spacing.lg }}
           icon={<MessageCircle size={18} color={C.white} />}
