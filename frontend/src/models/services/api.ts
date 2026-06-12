@@ -301,6 +301,12 @@ export const api = {
   postReview: (payload: { mentor_id: string; rating: number; comment?: string; booking_id?: string }) =>
     request<any>('/reviews', { method: 'POST', body: payload }),
   mentorReviews: (mentor_id: string) => request<any>(`/mentors/${mentor_id}/reviews`),
+  replyToReview: (review_id: string, reply: string) =>
+    request<any>(`/reviews/${review_id}/reply`, { method: 'POST', body: { reply } }),
+
+  // Bookings / Dev actions
+  markBookingCompleted: (booking_id: string) =>
+    request<any>(`/student/bookings/${booking_id}/complete`, { method: 'POST', body: {} }),
 
   // Notifications
   registerPushToken: (token: string, platform = 'unknown') =>

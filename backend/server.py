@@ -5495,6 +5495,30 @@ async def post_review(req: ReviewIn, user: dict = Depends(get_current_user)):
     return review
 
 
+class ReviewReplyIn(BaseModel):
+    reply: str
+
+
+@api_router.post("/reviews/{review_id}/reply")
+async def reply_to_review(review_id: str, req: ReviewReplyIn, user: dict = Depends(get_current_user)):
+    """Mentor replies to a review."""
+    if user["role"] != "mentor":
+        raise HTTPException(403, "Only mentors can reply to reviews")
+    
+    review = await db.reviews.find_one({"id": review_id})
+    if not review:
+        raise HTTPException(404, "Review not found")
+        
+    if str(review["mentor_id"]) != str(user["_id"]):
+        raise HTTPException(403, "You can only reply to your own reviews")
+        
+    await db.reviews.update_one(
+        {"id": review_id},
+        {"$set": {"mentor_reply": req.reply, "mentor_reply_at": datetime.now(timezone.utc)}}
+    )
+    return {"ok": True}
+
+
 @api_router.get("/mentors/{mentor_id}/reviews")
 async def get_reviews(mentor_id: str, limit: int = 20):
     """Public — returns review list + aggregate stats for a mentor."""
