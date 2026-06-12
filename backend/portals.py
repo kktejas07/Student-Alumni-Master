@@ -2995,7 +2995,7 @@ async def mentor_connections(email: Optional[str] = None):
     # 1. Resolve mentor
     mentor = None
     if email:
-        mentor = await _db.users.find_one({"email": email, "role": "mentor"})
+        mentor = await _db.users.find_one({"email": email})
     if not mentor:
         mentor = await _db.users.find_one({"role": "mentor", "mentor_status": "approved"})
     if not mentor:

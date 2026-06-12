@@ -65,14 +65,17 @@ export function ConnectionsView() {
     try {
       if (decision === 'accept') {
         await api.acceptConnection(otherId);
+        await loadConnections();
       } else if (decision === 'decline') {
         await api.rejectConnection(otherId);
+        setStudentsList(prev => prev.map(s => String(s.id) === String(otherId) ? { ...s, status: 'declined' } : s));
       } else if (decision === 'withdraw') {
         await api.withdrawConnection(otherId);
+        setStudentsList(prev => prev.map(s => String(s.id) === String(otherId) ? { ...s, status: 'none' } : s));
       } else if (decision === 'connect') {
         await api.sendConnectionRequest(otherId);
+        setStudentsList(prev => prev.map(s => String(s.id) === String(otherId) ? { ...s, status: 'pending_sent' } : s));
       }
-      await loadConnections();
     } catch (e) {
       console.error(`Failed to ${decision} connection request:`, e);
     } finally {
