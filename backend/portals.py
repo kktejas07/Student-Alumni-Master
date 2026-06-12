@@ -67,6 +67,7 @@ from pathlib import Path
 dashboard_cache = TTLCache(maxsize=100, ttl=60)
 network_cache = TTLCache(maxsize=100, ttl=60)
 intel_cache = TTLCache(maxsize=100, ttl=60)
+events_cache = TTLCache(maxsize=100, ttl=60)
 
 from tier_logic import (
     compute_student_tier,
@@ -230,13 +231,23 @@ async def mentor_dashboard(mentor_email: Optional[str] = None):
         "mentor_id": mentor_id,
         "status": {"$ne": "cancelled"},
     }).sort("scheduled_at", 1).limit(5)
+    today_bookings = [b async for b in today_cur]
+    
+    student_ids = []
+    for b in today_bookings:
+        sid = b.get("student_id")
+        if sid and ObjectId.is_valid(sid):
+            student_ids.append(ObjectId(sid))
+            
+    students_map = {}
+    if student_ids:
+        async for s in _db.users.find({"_id": {"$in": student_ids}}, {"full_name": 1}):
+            students_map[str(s["_id"])] = s
+
     today_sessions = []
-    async for b in today_cur:
-        student_doc = None
-        try:
-            student_doc = await _db.users.find_one({"_id": ObjectId(b.get("student_id"))})
-        except Exception:
-            student_doc = None
+    for b in today_bookings:
+        sid_str = str(b.get("student_id"))
+        student_doc = students_map.get(sid_str)
         sname = (student_doc or {}).get("full_name") or "Student"
         sched = b.get("scheduled_at")
         time_str = ""
@@ -2118,15 +2129,41 @@ async def student_events_list(student_email: Optional[str] = None, limit: int = 
         student = await _db.users.find_one({"role": "student"})
     sid = str((student or {}).get("_id", ""))
 
+    cache_key = f"events_student_{sid}"
+    if cache_key in events_cache:
+        return events_cache[cache_key]
+
     cur = _db.events.find().sort("start_date", 1).limit(limit)
+    events = [ev async for ev in cur]
+    
+    event_ids = [str(ev.get("_id")) for ev in events]
+    
+    # 1. Batch counts
+    pipeline = [
+        {"$match": {"event_id": {"$in": event_ids}}},
+        {"$group": {"_id": "$event_id", "count": {"$sum": 1}}}
+    ]
+    counts_map = {}
+    async for doc in _db.event_registrations.aggregate(pipeline):
+        counts_map[doc["_id"]] = doc["count"]
+        
+    # 2. Batch user registrations
+    user_regs = set()
+    if sid:
+        user_reg_docs = await _db.event_registrations.find({"student_id": sid, "event_id": {"$in": event_ids}}).to_list(len(event_ids))
+        user_regs = {doc["event_id"] for doc in user_reg_docs}
+
     palette = ["#A78BFA", "#22C55E", "#FCD34D", "#3B82F6", "#22D3EE", "#EC4899", "#F59E0B", "#FB923C"]
     out = []
     i = 0
-    async for ev in cur:
+    for ev in events:
         sd = ev.get("start_date")
         date_str = sd.strftime("%b %d") if isinstance(sd, datetime) else "TBD"
-        regs = await _db.event_registrations.count_documents({"event_id": str(ev.get("_id"))})
-        registered = await _db.event_registrations.find_one({"event_id": str(ev.get("_id")), "student_id": sid}) is not None
+        ev_id_str = str(ev.get("_id"))
+        
+        regs = counts_map.get(ev_id_str, 0)
+        registered = ev_id_str in user_regs
+        
         out.append({
             "id": _short_id(ev.get("_id")),
             "title": ev.get("title", "Event"),
@@ -2143,7 +2180,11 @@ async def student_events_list(student_email: Optional[str] = None, limit: int = 
             "description": ev.get("description", ""),
         })
         i += 1
-    return {"items": out}
+        
+    payload = {"items": out}
+    if sid:
+        events_cache[cache_key] = payload
+    return payload
 
 
 @router.get("/college/ai-insights")
@@ -2320,7 +2361,8 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             except Exception:
                 pass
         if connected_ids:
-            connected_users = await _db.users.find({"_id": {"$in": connected_ids}}).to_list(len(connected_ids))
+            proj = {"email": 1, "full_name": 1, "role": 1, "school_info": 1, "alumni_info": 1, "bio": 1, "photo_data": 1, "face_image_base64": 1, "skills": 1}
+            connected_users = await _db.users.find({"_id": {"$in": connected_ids}}, proj).to_list(len(connected_ids))
 
     # Fetch Alumni (ensuring connected ones are included first)
     connected_alumni = [u for u in connected_users if u.get("role") == "alumni"]
@@ -2328,7 +2370,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     al_cur = _db.users.find({
         "role": "alumni",
         "_id": {"$nin": [ObjectId(i) for i in seen_alumni]}
-    }).sort("_id", -1).limit(max(0, limit - len(connected_alumni)))
+    }, proj).sort("_id", -1).limit(max(0, limit - len(connected_alumni)))
     alumni_users = connected_alumni + [a async for a in al_cur]
     for a in alumni_users:
         other_id = str(a["_id"])
@@ -2358,7 +2400,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     st_cur = _db.users.find({
         "role": "student",
         "_id": {"$nin": [ObjectId(i) for i in seen_students]}
-    }).sort("_id", -1).limit(max(0, limit - len(connected_students)))
+    }, proj).sort("_id", -1).limit(max(0, limit - len(connected_students)))
     student_users = connected_students + [s async for s in st_cur]
     for s in student_users:
         other_id = str(s["_id"])
@@ -2390,7 +2432,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     me_cur = _db.users.find({
         "role": "mentor",
         "_id": {"$nin": [ObjectId(i) for i in seen_mentors]}
-    }).sort("_id", -1).limit(max(0, limit - len(connected_mentors)))
+    }, proj).sort("_id", -1).limit(max(0, limit - len(connected_mentors)))
     mentor_users = connected_mentors + [m async for m in me_cur]
     for m in mentor_users:
         other_id = str(m["_id"])
