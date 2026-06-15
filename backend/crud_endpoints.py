@@ -38,6 +38,7 @@ from __future__ import annotations
 import os
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+import asyncio
 from typing import Any, Dict, Optional, List
 
 from bson import ObjectId
@@ -319,18 +320,28 @@ async def my_bookings(email: Optional[str] = None, status: Optional[str] = None)
     out = []
 
     # Map legacy bookings
+    now = _now()
     for b in raw_bookings:
         mid_str = b.get("mentor_id")
         mentor = mentors_map.get(mid_str) if mid_str else None
+        
+        status = b.get("status")
+        sched = b.get("scheduled_at")
+        if sched and isinstance(sched, datetime):
+            if status == "confirmed" and sched < now:
+                status = "completed"
+                # Best-effort DB update
+                asyncio.create_task(_db.bookings.update_one({"_id": b["_id"]}, {"$set": {"status": "completed"}}))
+        
         out.append({
             "id": _short_id(b["_id"]),
             "topic": b.get("topic") or "1:1 Mentorship Session",
             "mentor_name": (mentor or {}).get("full_name") or (mentor or {}).get("name") or "Mentor",
             "mentor_email": b.get("mentor_email") or (mentor or {}).get("email"),
-            "scheduled_at": b.get("scheduled_at"),
+            "scheduled_at": sched,
             "duration_minutes": b.get("duration_minutes", 45),
             "amount_paid": b.get("amount_paid") or (mentor or {}).get("expected_rate_inr") or 0,
-            "status": b.get("status"),
+            "status": status,
         })
 
     # Map slot-based sessions
@@ -338,6 +349,14 @@ async def my_bookings(email: Optional[str] = None, status: Optional[str] = None)
         mid_str = s.get("mentor_id")
         mentor = mentors_map.get(mid_str) if mid_str else None
         s_status = s.get("status")
+        
+        sched = s.get("scheduled_at")
+        if sched and isinstance(sched, datetime):
+            if s_status in ["booked", "scheduled", "confirmed"] and sched < now:
+                s_status = "completed"
+                # Best-effort DB update
+                asyncio.create_task(_db.sessions.update_one({"_id": s["_id"]}, {"$set": {"status": "completed"}}))
+
         # Map all session statuses cleanly
         mapped_status = (
             "confirmed" if s_status in ["booked", "scheduled", "confirmed"]
@@ -350,13 +369,13 @@ async def my_bookings(email: Optional[str] = None, status: Optional[str] = None)
             "topic": s.get("topic") or "1:1 Mentorship Session",
             "mentor_name": (mentor or {}).get("full_name") or (mentor or {}).get("name") or "Mentor",
             "mentor_email": (mentor or {}).get("email") or s.get("mentor_email"),
-            "scheduled_at": s.get("scheduled_at"),
+            "scheduled_at": sched,
             "duration_minutes": s.get("duration_minutes", 30),
             "amount_paid": (mentor or {}).get("expected_rate_inr") or 0,
             "status": mapped_status,
         })
 
-    # Sort unified list chronologically by scheduled_at
+    # Sort unified list chronologically by scheduled_at in descending order
     def get_sched(x):
         val = x.get("scheduled_at")
         if isinstance(val, datetime):
@@ -368,7 +387,7 @@ async def my_bookings(email: Optional[str] = None, status: Optional[str] = None)
                 pass
         return datetime.min
 
-    out.sort(key=get_sched)
+    out.sort(key=get_sched, reverse=True)
     return {"items": out, "count": len(out), "student_email": student["email"]}
 
 

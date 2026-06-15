@@ -4943,7 +4943,7 @@ async def my_bookings(user: dict = Depends(get_current_user)):
     """Returns bookings for the current user (as student or as mentor)."""
     query = {"student_id": str(user["_id"])} if user["role"] == "student" \
         else {"mentor_id": str(user["_id"])}
-    items = await db.bookings.find(query).sort("slot_start_iso", 1).to_list(100)
+    items = await db.bookings.find(query).sort("slot_start_iso", -1).to_list(100)
     
     other_ids = set()
     for item in items:
@@ -4963,6 +4963,7 @@ async def my_bookings(user: dict = Depends(get_current_user)):
             pass
 
     out = []
+    now = datetime.now(timezone.utc)
     for item in items:
         other_id = item.get("student_id") if user["role"] == "mentor" else item.get("mentor_id")
         other_name = item.get("student_name") if user["role"] == "mentor" else item.get("mentor_name")
@@ -4976,6 +4977,13 @@ async def my_bookings(user: dict = Depends(get_current_user)):
         sched = item.get("scheduled_at")
         sched_iso = sched.isoformat() if isinstance(sched, datetime) else sched
         start_iso = item.get("slot_start_iso") or sched_iso
+        
+        status = item.get("status", "pending")
+        if status in ["confirmed", "booked", "scheduled"] and sched and isinstance(sched, datetime) and sched < now:
+            status = "completed"
+            # Best-effort DB update
+            import asyncio
+            asyncio.create_task(db.bookings.update_one({"_id": item["_id"]}, {"$set": {"status": "completed"}}))
         
         doc = {
             "id": str(item["_id"]),
@@ -4993,7 +5001,7 @@ async def my_bookings(user: dict = Depends(get_current_user)):
             "slot_end_iso": item.get("slot_end_iso") or start_iso,
             "duration_minutes": item.get("duration_minutes", 45),
             "amount_paid": item.get("amount_paid"),
-            "status": item.get("status"),
+            "status": status,
         }
         out.append(doc)
     return {"bookings": out}
