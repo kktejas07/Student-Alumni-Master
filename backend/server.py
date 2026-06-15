@@ -4941,8 +4941,9 @@ async def create_booking(req: BookingRequest, user: dict = Depends(get_current_u
 @api_router.get("/bookings/me")
 async def my_bookings(user: dict = Depends(get_current_user)):
     """Returns bookings for the current user (as student or as mentor)."""
-    query = {"student_id": str(user["_id"])} if user["role"] == "student" \
-        else {"mentor_id": str(user["_id"])}
+    user_id_str = str(user.get("_id") or user.get("id"))
+    query = {"student_id": user_id_str} if user.get("role") == "student" \
+        else {"mentor_id": user_id_str}
     items = await db.bookings.find(query).sort("slot_start_iso", -1).to_list(100)
     
     other_ids = set()
