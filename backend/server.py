@@ -2241,8 +2241,9 @@ async def oauth_config():
     return {
         "google_client_id": creds.get("google_oauth_client_id", ""),
         "linkedin_client_id": creds.get("linkedin_oauth_client_id", ""),
+        "github_client_id": creds.get("github_oauth_client_id", ""),
         "redirect_uri": f"{frontend_url}/oauth.html",
-        "configured": bool(creds.get("google_oauth_client_id")) or bool(creds.get("linkedin_oauth_client_id")),
+        "configured": bool(creds.get("google_oauth_client_id")) or bool(creds.get("linkedin_oauth_client_id")) or bool(creds.get("github_oauth_client_id")),
     }
 
 
@@ -2275,6 +2276,58 @@ async def _verify_linkedin_token(access_token: Optional[str], client_id: str = "
                 return {"email": data.get("email"), "name": data.get("name"),
                         "picture": data.get("picture")}
             return None
+    except Exception:
+        return None
+
+
+async def _verify_github_token(code: Optional[str], client_id: str = "", client_secret: str = "") -> Optional[dict]:
+    """Verify GitHub OAuth code, exchange for access token, and fetch user profile."""
+    if not code or not client_id or not client_secret:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            # Exchange code for access token
+            token_res = await c.post(
+                "https://github.com/login/oauth/access_token",
+                json={"client_id": client_id, "client_secret": client_secret, "code": code},
+                headers={"Accept": "application/json"},
+            )
+            if not token_res.is_success:
+                return None
+            token_data = token_res.json()
+            access_token = token_data.get("access_token")
+            if not access_token:
+                return None
+
+            # Fetch user profile
+            user_res = await c.get(
+                "https://api.github.com/user",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            if not user_res.is_success:
+                return None
+            user_data = user_res.json()
+
+            # Fetch user emails (primary may be set or need to find it)
+            emails_res = await c.get(
+                "https://api.github.com/user/emails",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            email = None
+            if emails_res.is_success:
+                emails = emails_res.json()
+                primary = next((e for e in emails if e.get("primary")), None)
+                verified = next((e for e in emails if e.get("verified")), None)
+                email = (primary or verified or {}).get("email") or (emails[0].get("email") if emails else None)
+            if not email:
+                email = user_data.get("email")
+
+            return {
+                "email": email,
+                "name": user_data.get("name") or user_data.get("login", ""),
+                "picture": user_data.get("avatar_url"),
+                "sub": str(user_data.get("id")),
+            }
     except Exception:
         return None
 
@@ -2332,6 +2385,36 @@ async def auth_linkedin(request: Request, req: OAuthCallback):
 
     user = await _upsert_oauth_user(
         provider="linkedin",
+        email=profile["email"],
+        full_name=profile.get("name") or profile.get("full_name") or "",
+        picture=profile.get("picture"),
+        role=req.role or "student",
+    )
+    return AuthResponse(
+        access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
+        refresh_token=create_refresh_token(str(user["_id"])),
+        user=UserResponse(**serialize_user(user)),
+    )
+
+
+@api_router.post("/auth/github", response_model=AuthResponse)
+@limiter.limit("20/minute")
+async def auth_github(request: Request, req: OAuthCallback):
+    """Continue-with-GitHub flow. Uses OAuth code exchange (not id_token)."""
+    creds = await _get_oauth_creds()
+    client_id = creds.get("github_oauth_client_id", "")
+    client_secret = creds.get("github_oauth_client_secret", "")
+    profile = await _verify_github_token(req.access_token, client_id, client_secret) if req.access_token else None
+    if profile is None:
+        if not client_id and os.getenv("ENV") == "development":
+            if not req.email or not req.full_name:
+                raise HTTPException(400, "Development mock mode requires email/full_name")
+            profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+        else:
+            raise HTTPException(400, "GitHub OAuth requires a valid authorization code. Configure github_oauth_client_id / github_oauth_client_secret in platform settings or set ENV=development for mock mode.")
+
+    user = await _upsert_oauth_user(
+        provider="github",
         email=profile["email"],
         full_name=profile.get("name") or profile.get("full_name") or "",
         picture=profile.get("picture"),

@@ -799,6 +799,8 @@ DEFAULT_PLATFORM_CONTROLS = {
         {"key": "google_oauth_client_secret","label": "Google OAuth Client Secret","value": "", "type": "password"},
         {"key": "linkedin_oauth_client_id","label": "LinkedIn OAuth Client ID","value": "", "type": "text", "help": "From LinkedIn Developer Portal → Apps → Auth"},
         {"key": "linkedin_oauth_client_secret","label": "LinkedIn OAuth Client Secret","value": "", "type": "password"},
+        {"key": "github_oauth_client_id","label": "GitHub OAuth Client ID","value": "", "type": "text", "help": "From GitHub Settings → Developer settings → OAuth Apps"},
+        {"key": "github_oauth_client_secret","label": "GitHub OAuth Client Secret","value": "", "type": "password"},
     ],
 }
 

@@ -73,6 +73,15 @@
         });
         if (!res.ok) throw new Error('Google verification failed');
         data = await res.json();
+      } else if (code && state.startsWith('github_')) {
+        status.textContent = 'Verifying GitHub account...';
+        const res = await fetch(API_BASE + '/auth/github', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: code }),
+        });
+        if (!res.ok) throw new Error('GitHub verification failed');
+        data = await res.json();
       } else if (code) {
         status.textContent = 'Verifying LinkedIn account...';
         const res = await fetch(API_BASE + '/auth/linkedin', {
