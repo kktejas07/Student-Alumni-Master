@@ -41,6 +41,7 @@ import { NotificationsPanel } from './views/NotificationsPanel';
 import { ProfileSettingsView as SharedProfileSettingsView } from '../student/views/ProfileSettingsView';
 import { STUDENTS, SESSION_REQUESTS } from './data';
 import { useAutoTour } from '@/src/views/web/tour/TourProvider';
+import { request } from '@/src/models/services/api';
 
 const PAGE_TITLES: Record<NavId, string> = {
   dashboard:    'Dashboard',
@@ -66,7 +67,32 @@ export default function MentorPortalRN() {
   const [query, setQuery] = useState('');
   const [showNotifs, setShowNotifs] = useState(false);
   const [profileTab, setProfileTab] = useState<'manage' | 'digital-id' | 'notifications'>('manage');
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   useAutoTour('mentor');
+
+  // Fetch real-time notifications from the backend.
+  const fetchNotifications = async () => {
+    try {
+      const res = await request<{ items?: any[]; unread?: number }>('/notifications');
+      if (res) {
+        if (Array.isArray(res.items)) {
+          setNotifications(res.items);
+        }
+        if (typeof res.unread === 'number') {
+          setUnreadCount(res.unread);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch notifications:', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (params.tab && PAGE_TITLES[params.tab as NavId]) {
@@ -93,7 +119,7 @@ export default function MentorPortalRN() {
 
   return (
     <View style={s.shell}>
-      {/* FinTax360 Jewel-glass canvas */}
+      {/* FinTax360 Jewel-glass canvas. */}
       <LinearGradient
         pointerEvents="none"
         colors={['#0a0f1e', '#131938']}
@@ -118,7 +144,7 @@ export default function MentorPortalRN() {
             title={PAGE_TITLES[active]}
             query={query}
             setQuery={setQuery}
-            notifCount={4}
+            notifCount={unreadCount}
             onBellPress={() => setShowNotifs(!showNotifs)}
             onAvatarPress={() => { setProfileTab('manage'); setActive('profile'); }}
           />
@@ -147,6 +173,9 @@ export default function MentorPortalRN() {
               setActive('profile');
               setShowNotifs(false);
             }}
+            onNav={(id) => setActive(id)}
+            notifications={notifications}
+            onRefresh={fetchNotifications}
           />
         )}
       </View>

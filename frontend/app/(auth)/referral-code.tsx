@@ -73,7 +73,16 @@ export default function ReferralCode() {
 
   return (
     <AuthShell role={role as any}>
-      <Pressable onPress={() => router.back()} style={s.back}>
+      <Pressable
+        onPress={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/(auth)/login');
+          }
+        }}
+        style={s.back}
+      >
         <ArrowLeft size={16} color={AC.muted} />
         <Text style={s.backText}>Back</Text>
       </Pressable>

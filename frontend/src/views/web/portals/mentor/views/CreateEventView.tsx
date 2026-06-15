@@ -450,7 +450,7 @@ export function CreateEventView() {
               </View>
 
               {/* Event Details */}
-              <View style={s.formCard}>
+              <View style={[s.formCard, { zIndex: 10, position: 'relative' }]}>
                 <View style={s.detailsHeader}>
                   <Text style={s.sectionHeader}>Event Details</Text>
                   <Pressable onPress={aiGenerate} style={s.aiBtn}>
@@ -520,32 +520,37 @@ export function CreateEventView() {
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                             <Text style={s.calMonthLabel}>{MONTH_NAMES[calMonth]}</Text>
                             
-                            <Pressable
-                              onPress={() => setShowYearDropdown(!showYearDropdown)}
-                              style={s.yearTrigger}
-                            >
-                              <Text style={s.yearTriggerText}>{calYear}</Text>
-                              <ChevronDown size={11} color={coverColor} />
-                            </Pressable>
+                            <View style={{ position: 'relative', zIndex: 100 }}>
+                              <Pressable
+                                onPress={() => setShowYearDropdown(!showYearDropdown)}
+                                style={s.yearTrigger}
+                              >
+                                <Text style={s.yearTriggerText}>{calYear}</Text>
+                                <ChevronDown size={11} color={coverColor} />
+                              </Pressable>
 
-                            {showYearDropdown && (
-                              <View style={s.yearDropdown}>
-                                <ScrollView style={{ maxHeight: 120 }} nestedScrollEnabled={true}>
-                                  {years.map((y) => (
-                                    <Pressable
-                                      key={y}
-                                      onPress={() => {
-                                        setCalYear(y);
-                                        setShowYearDropdown(false);
-                                      }}
-                                      style={[s.dropdownItem, y === calYear && { backgroundColor: coverColor + '20' }]}
-                                    >
-                                      <Text style={[s.yearDropdownItemText, y === calYear && { color: coverColor, fontFamily: FONTS.bold }]}>{y}</Text>
-                                    </Pressable>
-                                  ))}
-                                </ScrollView>
-                              </View>
-                            )}
+                              {showYearDropdown && (
+                                <View style={s.yearDropdown}>
+                                  <ScrollView style={{ maxHeight: 120 }} nestedScrollEnabled={true}>
+                                    {years.map((y) => (
+                                      <Pressable
+                                        key={y}
+                                        onPress={() => {
+                                          setCalYear(y);
+                                          setShowYearDropdown(false);
+                                        }}
+                                        style={({ hovered }: any) => [
+                                          s.dropdownItem,
+                                          y === calYear ? { backgroundColor: coverColor + '20' } : (hovered && { backgroundColor: 'rgba(255,255,255,0.05)' })
+                                        ]}
+                                      >
+                                        <Text style={[s.yearDropdownItemText, y === calYear && { color: coverColor, fontFamily: FONTS.bold }]}>{y}</Text>
+                                      </Pressable>
+                                    ))}
+                                  </ScrollView>
+                                </View>
+                              )}
+                            </View>
                           </View>
 
                           <Pressable onPress={handleNextMonth} style={s.calNavBtn}>
@@ -571,9 +576,9 @@ export function CreateEventView() {
                               <Pressable
                                 key={`day-${day}`}
                                 onPress={() => handleDaySelect(day)}
-                                style={[
+                                style={({ hovered }: any) => [
                                   s.calDayCell,
-                                  isSelected && { backgroundColor: coverColor }
+                                  isSelected ? { backgroundColor: coverColor } : (hovered && { backgroundColor: 'rgba(255,255,255,0.05)' })
                                 ]}
                               >
                                 <Text style={[s.calDayText, isSelected && { color: MC.bg, fontFamily: FONTS.bold }]}>
@@ -617,7 +622,10 @@ export function CreateEventView() {
                                 setTime(t);
                                 setShowTimePicker(false);
                               }}
-                              style={[s.dropdownItem, time === t && { backgroundColor: coverColor + '20' }]}
+                              style={({ hovered }: any) => [
+                                s.dropdownItem,
+                                time === t ? { backgroundColor: coverColor + '20' } : (hovered && { backgroundColor: 'rgba(255,255,255,0.05)' })
+                              ]}
                             >
                               <Text style={[s.dropdownItemText, time === t && { color: coverColor, fontFamily: FONTS.bold }]}>{t}</Text>
                             </Pressable>
@@ -632,7 +640,7 @@ export function CreateEventView() {
               </View>
 
               {/* Settings Section */}
-              <View style={s.formCard}>
+              <View style={[s.formCard, { zIndex: 9, position: 'relative' }]}>
                 <Text style={s.sectionHeader}>Settings</Text>
 
                 {/* Duration & Platform Row */}
@@ -788,7 +796,7 @@ export function CreateEventView() {
               </View>
 
               {/* Cover Color Selector */}
-              <View style={s.formCard}>
+              <View style={[s.formCard, { zIndex: 8, position: 'relative' }]}>
                 <Text style={s.sectionHeader}>Cover Colour</Text>
                 <View style={s.colorsListRow}>
                   {colorsList.map((c) => {
@@ -1083,30 +1091,33 @@ const s = StyleSheet.create({
   cancelBtn: { flex: 1, height: 40, borderRadius: 10, borderWidth: 1, borderColor: MC.border2, backgroundColor: 'rgba(255,255,255,0.02)', alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
   cancelBtnText: { color: MC.tealP, fontFamily: FONTS.bold, fontSize: 13 },
 
-  // Custom Popover Calendar Picker
+  // Custom Popover Calendar Picker.
   calPopover: {
     position: 'absolute', top: 62, left: 0, width: 250,
     backgroundColor: '#0F172A', borderColor: MC.border2, borderWidth: 1, borderRadius: 12,
-    padding: 10, zIndex: 99999,
+    padding: 12, zIndex: 99999,
     shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 8
   },
-  calPopHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  calPopHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
+    zIndex: 10, position: 'relative'
+  },
   calNavBtn: { width: 22, height: 22, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
   calMonthLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
   yearTrigger: { flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: 'rgba(255,255,255,0.04)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   yearTriggerText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11 },
   yearDropdown: {
-    position: 'absolute', top: 22, left: 20, width: 80, maxHeight: 120,
-    backgroundColor: '#1E293B', borderColor: MC.border, borderWidth: 1, borderRadius: 6,
-    zIndex: 100000, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 4
+    position: 'absolute', top: 24, left: 0, width: 80, maxHeight: 150,
+    backgroundColor: '#0F172A', borderColor: MC.border2, borderWidth: 1, borderRadius: 8,
+    zIndex: 100000, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 6
   },
-  yearDropdownItemText: { color: '#fff', fontFamily: FONTS.med, fontSize: 11 },
+  yearDropdownItemText: { color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, textAlign: 'center' },
   calWeekdays: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 4 },
-  calWeekdayText: { color: MC.dim, fontFamily: FONTS.bold, fontSize: 9, width: 28, textAlign: 'center' },
+  calWeekdayText: { color: '#94A3B8', fontFamily: FONTS.bold, fontSize: 10.5, width: 28, textAlign: 'center' },
   calDaysGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' },
   calDayCell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 4, marginVertical: 1, ...({ cursor: 'pointer' } as any) },
   calDayEmpty: { width: `${100 / 7}%`, aspectRatio: 1 },
-  calDayText: { color: '#fff', fontFamily: FONTS.med, fontSize: 10 },
+  calDayText: { color: '#F8FAFC', fontFamily: FONTS.med, fontSize: 12 },
   pickerTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12, marginBottom: 6, textAlign: 'center' },
 
   // Live Preview layout

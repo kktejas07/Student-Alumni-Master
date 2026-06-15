@@ -33,7 +33,6 @@ import { InternshipsView } from './views/InternshipsView';
 import { NetworkView } from './views/NetworkView';
 import { ProfileSettingsView } from './views/ProfileSettingsView';
 import { MyBookingsView } from './views/MyBookingsView';
-import { MyApplicationsView } from './views/MyApplicationsView';
 import { MyWorkshopsView } from './views/MyWorkshopsView';
 
 import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
@@ -138,7 +137,6 @@ function PortalShell() {
                   {active === 'dashboard'       && <DashboardView />}
                   {active === 'career-ai'       && <CareerAIView />}
                   {active === 'internships'     && <InternshipsView />}
-                  {active === 'my-applications' && <MyApplicationsView />}
                   {active === 'network'         && <NetworkView />}
                   {active === 'my-bookings'     && <MyBookingsView />}
                   {active === 'events'          && <EventsView />}

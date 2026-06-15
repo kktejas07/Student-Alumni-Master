@@ -140,6 +140,7 @@ const s = StyleSheet.create({
   triggerPlaceholder: { color: 'rgba(255,255,255,0.4)' },
   manualInput: {
     flex: 1,
+    minWidth: 0,
     color: '#FFF',
     fontSize: 14,
     fontFamily: 'DMSans_500Medium',
@@ -150,6 +151,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(124,58,237,0.4)',
     borderRadius: 999,
     paddingHorizontal: 10, paddingVertical: 4,
+    flexShrink: 0,
   },
   editPillText: { color: '#FFF', fontFamily: 'DMSans_700Bold', fontSize: 11 },
   backdrop: {

@@ -13,6 +13,7 @@ import {
   Gift, Star, Check, Clock, ChevronRight,
 } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 const C = {
   bg: '#0C0818', bg2: '#130A28',
@@ -38,6 +39,7 @@ export function NetworkSidebar({
   freeSessionsRemaining: number;
 }) {
   const initials = ((me?.full_name || '?').split(' ').slice(0, 2).map((s: string) => s[0] || '').join('') || '?').toUpperCase();
+  const photo = useAuthStore((s) => s.photoOverride) || me?.photo_data || me?.face_image_base64;
   const NAV: { key: 'discover' | 'connections' | 'requests'; label: string; icon: any; badge?: number }[] = [
     { key: 'discover', label: 'Discover', icon: Compass },
     { key: 'connections', label: 'My Connections', icon: Users, badge: connectionsCount },
@@ -64,8 +66,8 @@ export function NetworkSidebar({
       {/* Mini profile */}
       <View style={s.miniProf}>
         <View style={s.miniAvatar}>
-          {me?.photo_data ? (
-            <Image source={{ uri: me.photo_data }} style={{ width: '100%', height: '100%' }} />
+          {photo ? (
+            <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
           ) : (
             <Text style={s.miniInitials}>{initials}</Text>
           )}

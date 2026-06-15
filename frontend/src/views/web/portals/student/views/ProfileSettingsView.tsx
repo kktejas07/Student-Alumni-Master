@@ -186,6 +186,22 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
 
   useEffect(() => { reload(); }, [reload]);
 
+  const draftPhoto = draft.photo_data || draft.face_image_base64;
+  useEffect(() => {
+    const userPhoto = user?.photo_data || user?.face_image_base64;
+    if (draftPhoto !== userPhoto) {
+      useAuthStore.getState().setPhotoOverride(draftPhoto || '');
+    } else {
+      useAuthStore.getState().setPhotoOverride(null);
+    }
+  }, [draftPhoto, user]);
+
+  useEffect(() => {
+    return () => {
+      useAuthStore.getState().setPhotoOverride(null);
+    };
+  }, []);
+
   // Track if draft changed vs last server snapshot
   const dirty = useMemo(() => {
     if (!user) return false;

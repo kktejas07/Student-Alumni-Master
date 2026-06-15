@@ -38,7 +38,7 @@ function greeting(): string {
   return 'Good evening';
 }
 
-import { Sidebar, StudentNavId } from './Sidebar';
+import { Sidebar, StudentNavId, NAV } from './Sidebar';
 
 export function TopBar({
   scrolled = false,
@@ -76,7 +76,7 @@ export function TopBar({
     || STUDENT.name;
   const firstName: string = fullName.split(' ')[0] || STUDENT.name.split(' ')[0];
   const initials: string = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
-  const photo: string | undefined = user?.photo_data || user?.face_image_base64;
+  const photo: string | undefined = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64;
 
   const onAvatarPressHandler = () => {
     if (onAvatarPress) {
@@ -108,9 +108,11 @@ export function TopBar({
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: SP.md, flex: 1 }}>
         <FadeInView delay={20} style={{ flex: 1, minWidth: 0 }}>
           <Text style={{ fontFamily: TYPO.display700, fontSize: bp.isPhone ? 16 : 18, color: PALETTE.text, letterSpacing: -0.5 }}>
-            {greeting()}, {firstName} 👋
+            {activeView === 'dashboard'
+              ? `${greeting()}, ${firstName} 👋`
+              : (NAV.find((n) => n.id === activeView)?.label || activeView)}
           </Text>
-          {!bp.isPhone && (
+          {!bp.isPhone && activeView === 'dashboard' && (
             <Text style={{ fontFamily: TYPO.body500, fontSize: 12, color: PALETTE.muted, marginTop: 2 }}>
               Here's your personalised dashboard for today
             </Text>

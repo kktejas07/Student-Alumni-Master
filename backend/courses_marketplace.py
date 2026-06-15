@@ -862,6 +862,218 @@ def _seed_courses() -> List[Dict[str, Any]]:
          "thumbnail": "🧡",
          "enroll_url": "https://academy.hubspot.com/courses/inbound-sales",
          "tags": ["FREE", "FREE_CERT", "QUICK_WIN", "JOB_READY"]},
+
+        # ── NEW: Harvard CS50 Family ──
+        {"id": "harvard-cs50", "source": "harvard",
+         "title": "CS50: Introduction to Computer Science",
+         "short_desc": "Harvard's legendary intro to CS — C, Python, SQL, Web, AI tracks",
+         "provider": {"name": "Harvard · edX", "type": "university", "logo": "🎓"},
+         "instructors": ["Prof. David J. Malan"],
+         "category": "tech", "subcategory": "web-dev",
+         "level": "Beginner", "language": "English",
+         "duration_hours": 120, "duration_label": "12 weeks",
+         "enrolled_count": 4200000, "rating": 4.9, "review_count": 95000,
+         "pricing": {"type": "free", "original_inr": 0, "sa_inr": 0},
+         "certification": {"available": True, "free": False, "type": "verified",
+                           "accreditor": "industry", "recognised": True, "cost_inr": 16500},
+         "thumbnail": "🎓", "featured": True,
+         "enroll_url": "https://cs50.harvard.edu/x/",
+         "tags": ["FREE", "IVY_LEAGUE", "TOP_RATED", "BEGINNER_FRIENDLY"]},
+
+        {"id": "harvard-cs50-python", "source": "harvard",
+         "title": "CS50's Introduction to Programming with Python",
+         "short_desc": "Harvard's Python-focused CS50 track — functions, OOP, libraries",
+         "provider": {"name": "Harvard · edX", "type": "university", "logo": "🎓"},
+         "instructors": ["Prof. David J. Malan"],
+         "category": "tech", "subcategory": "web-dev",
+         "level": "Beginner", "language": "English",
+         "duration_hours": 60, "duration_label": "9 weeks",
+         "enrolled_count": 980000, "rating": 4.9, "review_count": 22000,
+         "pricing": {"type": "free", "original_inr": 0, "sa_inr": 0},
+         "certification": {"available": True, "free": False, "type": "verified",
+                           "accreditor": "industry", "recognised": True, "cost_inr": 16500},
+         "thumbnail": "🐍", "featured": True,
+         "enroll_url": "https://cs50.harvard.edu/python/",
+         "tags": ["FREE", "IVY_LEAGUE", "TOP_RATED"]},
+
+        {"id": "harvard-cs50-ai", "source": "harvard",
+         "title": "CS50's Introduction to AI with Python",
+         "short_desc": "Harvard AI course — search, ML, neural nets, NLP",
+         "provider": {"name": "Harvard · edX", "type": "university", "logo": "🎓"},
+         "instructors": ["Prof. Brian Yu"],
+         "category": "tech", "subcategory": "ai-ml",
+         "level": "Intermediate", "language": "English",
+         "duration_hours": 80, "duration_label": "7 weeks",
+         "enrolled_count": 650000, "rating": 4.8, "review_count": 18000,
+         "pricing": {"type": "free", "original_inr": 0, "sa_inr": 0},
+         "certification": {"available": True, "free": False, "type": "verified",
+                           "accreditor": "industry", "recognised": True, "cost_inr": 16500},
+         "thumbnail": "🤖",
+         "enroll_url": "https://cs50.harvard.edu/ai/",
+         "tags": ["FREE", "IVY_LEAGUE", "TOP_RATED", "TRENDING"]},
+
+        {"id": "harvard-cs50-sql", "source": "harvard",
+         "title": "CS50's Introduction to Databases with SQL",
+         "short_desc": "Harvard's SQL course — querying, schemas, optimisation",
+         "provider": {"name": "Harvard · edX", "type": "university", "logo": "🎓"},
+         "instructors": ["Prof. Carter Zenke"],
+         "category": "tech", "subcategory": "data-science",
+         "level": "Beginner", "language": "English",
+         "duration_hours": 50, "duration_label": "6 weeks",
+         "enrolled_count": 280000, "rating": 4.8, "review_count": 8000,
+         "pricing": {"type": "free", "original_inr": 0, "sa_inr": 0},
+         "certification": {"available": True, "free": False, "type": "verified",
+                           "accreditor": "industry", "recognised": True, "cost_inr": 16500},
+         "thumbnail": "🗄️",
+         "enroll_url": "https://cs50.harvard.edu/sql/",
+         "tags": ["FREE", "IVY_LEAGUE"]},
+
+        # ── NEW: Khan Academy ──
+        {"id": "khan-computing", "source": "khanacademy",
+         "title": "Computing (Computer Science) — Khan Academy",
+         "short_desc": "Free interactive course: algorithms, internet, HTML/CSS, JS, SQL",
+         "provider": {"name": "Khan Academy", "type": "platform", "logo": "🟢"},
+         "instructors": ["Khan Academy Team"],
+         "category": "tech", "subcategory": "web-dev",
+         "level": "Beginner", "language": "English",
+         "duration_hours": 40, "duration_label": "Self-paced",
+         "enrolled_count": 8000000, "rating": 4.7, "review_count": 120000,
+         "pricing": {"type": "free", "original_inr": 0, "sa_inr": 0},
+         "certification": {"available": False, "free": True, "type": "completion",
+                           "recognised": False, "cost_inr": 0},
+         "thumbnail": "💻", "featured": True,
+         "enroll_url": "https://www.khanacademy.org/computing",
+         "tags": ["FREE", "BEGINNER_FRIENDLY", "TOP_RATED"]},
+
+        {"id": "khan-statistics", "source": "khanacademy",
+         "title": "Statistics & Probability — Khan Academy",
+         "short_desc": "Distributions, hypothesis testing, regression — 100% free",
+         "provider": {"name": "Khan Academy", "type": "platform", "logo": "🟢"},
+         "instructors": ["Khan Academy Team"],
+         "category": "tech", "subcategory": "data-science",
+         "level": "Beginner", "language": "English",
+         "duration_hours": 30, "duration_label": "Self-paced",
+         "enrolled_count": 5000000, "rating": 4.7, "review_count": 85000,
+         "pricing": {"type": "free", "original_inr": 0, "sa_inr": 0},
+         "certification": {"available": False, "free": True, "type": "completion",
+                           "recognised": False, "cost_inr": 0},
+         "thumbnail": "📊",
+         "enroll_url": "https://www.khanacademy.org/math/statistics-probability",
+         "tags": ["FREE", "BEGINNER_FRIENDLY"]},
+
+        {"id": "khan-linear-algebra", "source": "khanacademy",
+         "title": "Linear Algebra — Khan Academy",
+         "short_desc": "Vectors, matrices, transformations — essential for AI/ML",
+         "provider": {"name": "Khan Academy", "type": "platform", "logo": "🟢"},
+         "instructors": ["Khan Academy Team"],
+         "category": "tech", "subcategory": "ai-ml",
+         "level": "Intermediate", "language": "English",
+         "duration_hours": 20, "duration_label": "Self-paced",
+         "enrolled_count": 3200000, "rating": 4.8, "review_count": 62000,
+         "pricing": {"type": "free", "original_inr": 0, "sa_inr": 0},
+         "certification": {"available": False, "free": True, "type": "completion",
+                           "recognised": False, "cost_inr": 0},
+         "thumbnail": "🧮",
+         "enroll_url": "https://www.khanacademy.org/math/linear-algebra",
+         "tags": ["FREE", "BEGINNER_FRIENDLY"]},
+
+        {"id": "khan-financial-literacy", "source": "khanacademy",
+         "title": "Personal Finance — Khan Academy",
+         "short_desc": "Budgeting, investing, taxes, insurance — for Indian students",
+         "provider": {"name": "Khan Academy", "type": "platform", "logo": "🟢"},
+         "instructors": ["Khan Academy Team"],
+         "category": "business", "subcategory": "finance",
+         "level": "Beginner", "language": "English",
+         "duration_hours": 10, "duration_label": "Self-paced",
+         "enrolled_count": 2100000, "rating": 4.6, "review_count": 41000,
+         "pricing": {"type": "free", "original_inr": 0, "sa_inr": 0},
+         "certification": {"available": False, "free": True, "type": "completion",
+                           "recognised": False, "cost_inr": 0},
+         "thumbnail": "💰",
+         "enroll_url": "https://www.khanacademy.org/college-careers-more/personal-finance",
+         "tags": ["FREE", "BEGINNER_FRIENDLY", "QUICK_WIN"]},
+
+        # ── NEW: freeCodeCamp specializations ──
+        {"id": "fcc-data-analysis", "source": "freecodecamp",
+         "title": "Data Analysis with Python Certification",
+         "short_desc": "NumPy, Pandas, Matplotlib, Seaborn — 5 projects included",
+         "provider": {"name": "freeCodeCamp", "type": "platform", "logo": "🟢"},
+         "instructors": ["freeCodeCamp Team"],
+         "category": "tech", "subcategory": "data-science",
+         "level": "Intermediate", "language": "English",
+         "duration_hours": 300, "duration_label": "Self-paced",
+         "enrolled_count": 1800000, "rating": 4.7, "review_count": 22000,
+         "pricing": {"type": "free", "original_inr": 0, "sa_inr": 0},
+         "certification": {"available": True, "free": True, "type": "completion",
+                           "accreditor": "industry", "recognised": True, "cost_inr": 0},
+         "thumbnail": "📊",
+         "enroll_url": "https://www.freecodecamp.org/learn/data-analysis-with-python/",
+         "tags": ["FREE", "FREE_CERT", "JOB_READY"]},
+
+        {"id": "fcc-machine-learning", "source": "freecodecamp",
+         "title": "Machine Learning with Python Certification",
+         "short_desc": "TensorFlow, neural networks, NLP, reinforcement learning",
+         "provider": {"name": "freeCodeCamp", "type": "platform", "logo": "🟢"},
+         "instructors": ["freeCodeCamp Team"],
+         "category": "tech", "subcategory": "ai-ml",
+         "level": "Intermediate", "language": "English",
+         "duration_hours": 300, "duration_label": "Self-paced",
+         "enrolled_count": 2400000, "rating": 4.8, "review_count": 31000,
+         "pricing": {"type": "free", "original_inr": 0, "sa_inr": 0},
+         "certification": {"available": True, "free": True, "type": "completion",
+                           "accreditor": "industry", "recognised": True, "cost_inr": 0},
+         "thumbnail": "🤖", "featured": True,
+         "enroll_url": "https://www.freecodecamp.org/learn/machine-learning-with-python/",
+         "tags": ["FREE", "FREE_CERT", "JOB_READY", "TOP_RATED"]},
+
+        {"id": "fcc-js-algorithms", "source": "freecodecamp",
+         "title": "JavaScript Algorithms & Data Structures Certification",
+         "short_desc": "ES6+, OOP, functional programming, interview prep",
+         "provider": {"name": "freeCodeCamp", "type": "platform", "logo": "🟢"},
+         "instructors": ["freeCodeCamp Team"],
+         "category": "tech", "subcategory": "system-design",
+         "level": "Intermediate", "language": "English",
+         "duration_hours": 300, "duration_label": "Self-paced",
+         "enrolled_count": 3100000, "rating": 4.7, "review_count": 42000,
+         "pricing": {"type": "free", "original_inr": 0, "sa_inr": 0},
+         "certification": {"available": True, "free": True, "type": "completion",
+                           "accreditor": "industry", "recognised": True, "cost_inr": 0},
+         "thumbnail": "⚡",
+         "enroll_url": "https://www.freecodecamp.org/learn/javascript-algorithms-and-data-structures/",
+         "tags": ["FREE", "FREE_CERT", "JOB_READY", "BEGINNER_FRIENDLY"]},
+
+        # ── NEW: SWAYAM additional ──
+        {"id": "swayam-entrepreneurship", "source": "swayam",
+         "title": "Entrepreneurship & Management (SWAYAM)",
+         "short_desc": "IIMB course on business models, lean startup, funding",
+         "provider": {"name": "IIM Bangalore · SWAYAM", "type": "university", "logo": "🇮🇳"},
+         "instructors": ["Prof. Suresh Bhagavatula"],
+         "category": "business", "subcategory": "startup",
+         "level": "Beginner", "language": "English",
+         "duration_hours": 40, "duration_label": "8 weeks",
+         "enrolled_count": 48000, "rating": 4.6, "review_count": 1400,
+         "pricing": {"type": "free", "original_inr": 0, "sa_inr": 0},
+         "certification": {"available": True, "free": False, "type": "university",
+                           "accreditor": "UGC", "recognised": True, "cost_inr": 1000},
+         "thumbnail": "🚀",
+         "enroll_url": "https://swayam.gov.in/explorer",
+         "tags": ["FREE", "GOVT_CERTIFIED"]},
+
+        {"id": "swayam-digital-marketing", "source": "swayam",
+         "title": "Digital Marketing (SWAYAM)",
+         "short_desc": "SEO, SEM, social media, content strategy — UGC approved",
+         "provider": {"name": "IGNOU · SWAYAM", "type": "university", "logo": "🇮🇳"},
+         "instructors": ["IGNOU Faculty"],
+         "category": "business", "subcategory": "marketing",
+         "level": "Beginner", "language": "English",
+         "duration_hours": 32, "duration_label": "8 weeks",
+         "enrolled_count": 38000, "rating": 4.4, "review_count": 820,
+         "pricing": {"type": "free", "original_inr": 0, "sa_inr": 0},
+         "certification": {"available": True, "free": False, "type": "university",
+                           "accreditor": "UGC", "recognised": True, "cost_inr": 1000},
+         "thumbnail": "📱",
+         "enroll_url": "https://swayam.gov.in/explorer",
+         "tags": ["FREE", "GOVT_CERTIFIED", "JOB_READY"]},
     ]
 
 
@@ -1567,6 +1779,85 @@ async def _fetch_freecodecamp() -> List[Dict[str, Any]]:
     return []
 
 
+async def _fetch_nptelprep() -> List[Dict[str, Any]]:
+    """NPTELPrep community API — live NPTEL course catalog, no auth required."""
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=6) as cx:
+            r = await cx.get("https://api.nptelprep.in/courses",
+                             headers={"Accept": "application/json"})
+            if r.status_code != 200:
+                return []
+            j = r.json()
+            raw = j if isinstance(j, list) else (j.get("courses") or j.get("data") or [])
+            out: List[Dict[str, Any]] = []
+            CAT_MAP = {
+                "programming": ("tech", "web-dev"),
+                "python": ("tech", "web-dev"),
+                "java": ("tech", "web-dev"),
+                "machine learning": ("tech", "ai-ml"),
+                "deep learning": ("tech", "ai-ml"),
+                "artificial intelligence": ("tech", "ai-ml"),
+                "data science": ("tech", "data-science"),
+                "database": ("tech", "data-science"),
+                "cloud": ("tech", "cloud"),
+                "devops": ("tech", "devops"),
+                "cybersecurity": ("tech", "cybersecurity"),
+                "security": ("tech", "cybersecurity"),
+                "system design": ("tech", "system-design"),
+                "algorithms": ("tech", "system-design"),
+                "management": ("business", "product-mgmt"),
+                "finance": ("business", "finance"),
+                "marketing": ("business", "marketing"),
+            }
+            for idx, c in enumerate(raw[:30]):
+                title = (c.get("title") or c.get("name") or c.get("course_name") or "").strip()
+                if not title:
+                    continue
+                cid = c.get("course_id") or c.get("code") or f"nptelprep-{idx}"
+                instructor = c.get("instructor") or c.get("professor") or "NPTEL Faculty"
+                institute = c.get("institute") or c.get("university") or "NPTEL"
+                weeks = int(c.get("duration") or c.get("weeks") or 12)
+                # Category detection from title
+                tl = title.lower()
+                cat, subcat = "tech", "system-design"  # default
+                for kw, (c_cat, c_sub) in CAT_MAP.items():
+                    if kw in tl:
+                        cat, subcat = c_cat, c_sub
+                        break
+                out.append({
+                    "id": f"nptelprep-{cid}",
+                    "source": "nptel",
+                    "external_id": str(cid),
+                    "title": title,
+                    "short_desc": f"NPTEL live course by {instructor} ({institute}). {weeks}-week program.",
+                    "thumbnail": "🇮🇳",
+                    "provider": {"name": f"NPTEL / {institute}", "type": "university", "logo_url": ""},
+                    "instructors": [instructor],
+                    "category": cat,
+                    "subcategory": subcat,
+                    "level": "Intermediate",
+                    "language": "English",
+                    "duration_hours": weeks * 5,
+                    "duration_label": f"{weeks} weeks",
+                    "enrolled_count": int(c.get("enrolled") or c.get("enrollment_count") or 20000),
+                    "rating": 4.6,
+                    "review_count": int(c.get("enrolled") or 1000) // 20,
+                    "pricing": {"type": "free", "original_inr": 0, "sa_inr": 0},
+                    "certification": {
+                        "available": True, "free": False, "type": "university",
+                        "accreditor": "AICTE", "recognised": True, "cost_inr": 1000,
+                    },
+                    "self_paced": False,
+                    "enroll_url": f"https://nptel.ac.in/courses/{cid}",
+                    "tags": ["FREE", "GOVT_CERTIFIED", "IVY_LEAGUE"],
+                })
+            return out
+    except Exception as e:
+        logger.warning(f"[courses] NPTELPrep live fetch failed: {e}")
+    return []
+
+
 @router.get("/courses/live-catalog")
 async def live_catalog(user: dict = Depends(_auth()), force: bool = False):
     import asyncio
@@ -1577,20 +1868,22 @@ async def live_catalog(user: dict = Depends(_auth()), force: bool = False):
         _LIVE_CACHE.get("courses")):
         return {"courses": _LIVE_CACHE["courses"], "cached": True,
                 "fetched_at": cached_at.isoformat(),
-                "sources": ["mit_ocw", "freecodecamp", "curated"]}
+                "sources": ["mit_ocw", "freecodecamp", "nptelprep", "curated"]}
     results = await asyncio.gather(
-        _fetch_mit_ocw(), _fetch_freecodecamp(),
+        _fetch_mit_ocw(), _fetch_freecodecamp(), _fetch_nptelprep(),
         return_exceptions=True)
     live: List[Dict[str, Any]] = []
     sources_used = ["curated"]
-    for src_id, res in zip(["mit_ocw", "freecodecamp"], results):
+    for src_id, res in zip(["mit_ocw", "freecodecamp", "nptelprep"], results):
         if isinstance(res, list) and res:
             live.extend(res)
             sources_used.append(src_id)
+        elif isinstance(res, Exception):
+            logger.warning(f"[courses] live-catalog source {src_id} failed: {res}")
     seed = _seed_courses()
     by_id: Dict[str, Dict[str, Any]] = {}
     for c in seed:   by_id[c["id"]] = c
-    for c in live:   by_id[c["id"]] = c
+    for c in live:   by_id[c["id"]] = c  # live overrides same IDs
     merged = list(by_id.values())
     _LIVE_CACHE["courses"] = merged
     _LIVE_CACHE["fetched_at"] = now

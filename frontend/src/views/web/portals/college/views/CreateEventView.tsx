@@ -37,7 +37,10 @@ export function CreateEventView() {
           start_date: sd, capacity: parseInt(capacity, 10) || 100, price: parseInt(price, 10) || 0,
         },
       });
-      if (j.ok) setCreatedEvent({ ...j, title, category, mode });
+      // request() throws on HTTP errors — reaching here means the POST succeeded.
+      setCreatedEvent({ ...j, title, category, mode });
+    } catch {
+      // silent — keep form open so user can retry
     } finally { setCreating(false); }
   };
 

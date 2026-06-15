@@ -4,7 +4,7 @@
  * Built on top of unified project icon shims and MaterialCommunityIcons.
  */
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, Image, Platform, ActivityIndicator, useWindowDimensions, TextInput } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Image, Platform, ActivityIndicator, useWindowDimensions, TextInput, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
@@ -16,6 +16,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
 import Svg, { Rect } from 'react-native-svg';
 import QRCode from 'react-native-qrcode-svg';
+import * as ImagePicker from 'expo-image-picker';
+import { WebcamModal } from '@/src/views/components/WebcamModal';
+import { request } from '@/src/models/services/api';
 
 // Import icons from student iconShims to prevent lucide-react-native undefined errors
 import {
@@ -36,10 +39,14 @@ const TABS: { key: TabKey; label: string; Icon: any }[] = [
   { key: 'digital-id',         label: 'Digital ID Card',      Icon: IdCard },
 ];
 
+const LANGUAGES = ['English', 'हिन्दी', 'Tamil', 'Telugu', 'Kannada', 'Marathi'];
+const TIMEZONES = ['Asia/Kolkata (IST)', 'Asia/Dubai (GST)', 'America/New_York (EST)', 'Europe/London (BST)', 'America/Los_Angeles (PST)', 'Asia/Singapore (SGT)'];
+
 export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey } = {}) {
   const router = useRouter();
   const toast = useToast();
   const user = useAuthStore((u) => u.user);
+  const refreshUser = useAuthStore((u) => u.refreshUser);
   
   const { width: winW } = useWindowDimensions();
   const stack = winW < 1100;
@@ -92,6 +99,9 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
   const [newExpertiseInput, setNewExpertiseInput] = useState('');
   
   const [profileVisibility, setProfileVisibility] = useState<'public' | 'network' | 'private'>('public');
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+  const [webcamVisible, setWebcamVisible] = useState(false);
   
   const [sectionToggles, setSectionToggles] = useState({
     expertise: true,
@@ -140,6 +150,7 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
   const [language, setLanguage] = useState('English');
   const [timezone, setTimezone] = useState('Asia/Kolkata (IST)');
   const [theme, setTheme] = useState<'Dark' | 'Light' | 'System'>('Dark');
+  const [mentoringPaused, setMentoringPaused] = useState(false);
 
   const [savedSettings, setSavedSettings] = useState({
     showEmail: false,
@@ -206,8 +217,116 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
       if (u.linkedin_url) setLinkedinUrl(u.linkedin_url);
       if (u.github_url) setGithubUrl(u.github_url);
       if (u.skills && u.skills.length > 0) setExpertise(u.skills);
+      if (u.photo_data || u.face_image_base64) setPhoto(u.photo_data || u.face_image_base64);
+
+      // Load settings and notifications from user preferences
+      const p = u.preferences || {};
+      const priv = p.privacy || {};
+      const ai = p.ai || {};
+      const app = p.app || {};
+      const notif = p.notifications || {};
+
+      // Privacy Controls
+      const sEmail = priv.show_email ?? false;
+      const sPhone = priv.show_phone ?? false;
+      const sRecent = priv.show_online ?? true;
+      const sConn = priv.show_connections ?? true;
+      const sSearch = priv.appear_in_search ?? true;
+      const sDMs = priv.allow_dm ?? true;
+      setShowEmail(sEmail);
+      setShowPhone(sPhone);
+      setShowRecentActivity(sRecent);
+      setShowConnections(sConn);
+      setAppearInSearch(sSearch);
+      setAcceptDMs(sDMs);
+
+      // AI & Suggestions
+      const aSum = ai.ai_summaries ?? true;
+      const aMatch = ai.student_match ?? true;
+      const aWeekly = ai.weekly_reports ?? false;
+      setAiSummaries(aSum);
+      setStudentMatch(aMatch);
+      setWeeklyReports(aWeekly);
+
+      // App Preferences
+      const appLang = app.language || 'English';
+      const appTz = app.timezone || 'Asia/Kolkata (IST)';
+      const appTheme = (app.theme || 'Dark') as 'Dark' | 'Light' | 'System';
+      setLanguage(appLang);
+      setTimezone(appTz);
+      setTheme(appTheme);
+
+      // Mentoring status
+      setMentoringPaused(p.mentoring?.paused ?? false);
+
+      // Update savedSettings so dirty checking works correctly
+      setSavedSettings({
+        showEmail: sEmail,
+        showPhone: sPhone,
+        showRecentActivity: sRecent,
+        showConnections: sConn,
+        appearInSearch: sSearch,
+        acceptDMs: sDMs,
+        aiSummaries: aSum,
+        studentMatch: aMatch,
+        weeklyReports: aWeekly,
+        language: appLang,
+        timezone: appTz,
+        theme: appTheme,
+      });
+
+      // Notification Preferences
+      const nBooking = notif.new_booking ?? true;
+      const nReminders = notif.reminders ?? true;
+      const nRSVPs = notif.event_rsvps ?? true;
+      const nMessages = notif.student_messages ?? true;
+      const nRequests = notif.connection_requests ?? true;
+      const nNetwork = notif.network_updates ?? false;
+      const nWeekly = notif.weekly_report ?? true;
+      const nPayment = notif.payment_alerts ?? true;
+      const nReviews = notif.student_reviews ?? true;
+      const nNews = notif.platform_news ?? false;
+
+      setNotifyNewBooking(nBooking);
+      setNotifyReminders(nReminders);
+      setNotifyEventRSVPs(nRSVPs);
+      setNotifyStudentMessages(nMessages);
+      setNotifyConnectionRequests(nRequests);
+      setNotifyNetworkUpdates(nNetwork);
+      setNotifyWeeklyReport(nWeekly);
+      setNotifyPaymentAlerts(nPayment);
+      setNotifyStudentReviews(nReviews);
+      setNotifyPlatformNews(nNews);
+
+      setSavedNotifications({
+        notifyNewBooking: nBooking,
+        notifyReminders: nReminders,
+        notifyEventRSVPs: nRSVPs,
+        notifyStudentMessages: nMessages,
+        notifyConnectionRequests: nRequests,
+        notifyNetworkUpdates: nNetwork,
+        notifyWeeklyReport: nWeekly,
+        notifyPaymentAlerts: nPayment,
+        notifyStudentReviews: nReviews,
+        notifyPlatformNews: nNews,
+      });
     }
   }, [user]);
+
+  useEffect(() => {
+    const userPhoto = user?.photo_data || user?.face_image_base64 || null;
+    if (photo !== userPhoto) {
+      useAuthStore.getState().setPhotoOverride(photo);
+    } else {
+      useAuthStore.getState().setPhotoOverride(null);
+    }
+  }, [photo, user]);
+
+  useEffect(() => {
+    return () => {
+      useAuthStore.getState().setPhotoOverride(null);
+    };
+  }, []);
 
   // Check if anything is dirty
   const isDirty = () => {
@@ -217,7 +336,8 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
         fullName !== (u.full_name || 'Dr. Suresh Rao') ||
         bio !== (u.bio || '') ||
         linkedinUrl !== (u.linkedin_url || '') ||
-        githubUrl !== (u.github_url || '')
+        githubUrl !== (u.github_url || '') ||
+        photo !== (u.photo_data || u.face_image_base64 || null)
       ) : true;
       return isUserChanged || role !== 'CTO' || company !== 'Zepto' || college !== 'IIT Bombay' || sessionPrice !== '999' || profileVisibility !== 'public';
     }
@@ -254,13 +374,17 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
     return false;
   };
 
-  const handleUpdatePassword = () => {
+  const handleUpdatePassword = async () => {
     if (!currentPassword) {
       toast.error('Validation Error', 'Please enter your current password.');
       return;
     }
     if (!newPassword) {
       toast.error('Validation Error', 'Please enter your new password.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast.error('Validation Error', 'New password must be at least 8 characters.');
       return;
     }
     if (!confirmPassword) {
@@ -271,10 +395,18 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
       toast.error('Validation Error', 'New passwords do not match.');
       return;
     }
-    toast.success('Password Updated', 'Your account password has been updated.');
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+    try {
+      await request('/users/me/password', {
+        method: 'POST',
+        body: { current_password: currentPassword, new_password: newPassword }
+      } as any);
+      toast.success('Password Updated', 'Your account password has been updated.');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (e: any) {
+      toast.error('Update Failed', e?.message || 'Failed to update password.');
+    }
   };
 
   const handleRevokeSession = (id: string) => {
@@ -285,12 +417,28 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      const now = new Date();
-      setLastSavedAt(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-      
       if (activeTab === 'settings') {
+        const payload = {
+          privacy: {
+            show_email: showEmail,
+            show_phone: showPhone,
+            show_online: showRecentActivity,
+            show_connections: showConnections,
+            appear_in_search: appearInSearch,
+            allow_dm: acceptDMs,
+          },
+          ai: {
+            ai_summaries: aiSummaries,
+            student_match: studentMatch,
+            weekly_reports: weeklyReports,
+          },
+          app: {
+            language: language,
+            timezone: timezone,
+            theme: theme,
+          }
+        };
+        await request('/users/me/preferences', { method: 'PATCH', body: payload } as any);
         setSavedSettings({
           showEmail,
           showPhone,
@@ -305,8 +453,26 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
           timezone,
           theme
         });
+        if (refreshUser) {
+          await refreshUser();
+        }
         toast.success('Saved', 'Settings saved successfully.');
       } else if (activeTab === 'notifications') {
+        const payload = {
+          notifications: {
+            new_booking: notifyNewBooking,
+            reminders: notifyReminders,
+            event_rsvps: notifyEventRSVPs,
+            student_messages: notifyStudentMessages,
+            connection_requests: notifyConnectionRequests,
+            network_updates: notifyNetworkUpdates,
+            weekly_report: notifyWeeklyReport,
+            payment_alerts: notifyPaymentAlerts,
+            student_reviews: notifyStudentReviews,
+            platform_news: notifyPlatformNews,
+          }
+        };
+        await request('/users/me/preferences', { method: 'PATCH', body: payload } as any);
         setSavedNotifications({
           notifyNewBooking,
           notifyReminders,
@@ -319,12 +485,30 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
           notifyStudentReviews,
           notifyPlatformNews
         });
+        if (refreshUser) {
+          await refreshUser();
+        }
         toast.success('Saved', 'Notification preferences saved successfully.');
       } else {
+        const payload: any = {
+          full_name: fullName,
+          bio: bio,
+          linkedin_url: linkedinUrl,
+          github_url: githubUrl,
+          photo_data: photo,
+          face_image_base64: photo,
+          skills: expertise,
+        };
+        await request('/users/me', { method: 'PUT', body: payload } as any);
+        if (refreshUser) {
+          await refreshUser();
+        }
         toast.success('Saved', 'Profile updated successfully.');
       }
-    } catch {
-      toast.error('Save failed', 'Failed to save changes.');
+      const now = new Date();
+      setLastSavedAt(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    } catch (e: any) {
+      toast.error('Save failed', e?.message || 'Failed to save changes.');
     } finally {
       setSaving(false);
     }
@@ -349,7 +533,8 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
         awards: true,
         calendar: true
       });
-      setExpertise(['System Design', 'Career Guidance', 'Startup Advice']);
+      setExpertise(u?.skills || ['System Design', 'Career Guidance', 'Startup Advice']);
+      setPhoto(u?.photo_data || u?.face_image_base64 || null);
     } else if (activeTab === 'settings') {
       setShowEmail(savedSettings.showEmail);
       setShowPhone(savedSettings.showPhone);
@@ -376,6 +561,75 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
       setNotifyPlatformNews(savedNotifications.notifyPlatformNews);
     }
     toast.info('Reverted', 'Changes discarded.');
+  };
+
+  // Photo helpers
+  const handleUploadPhoto = async () => {
+    if (Platform.OS === 'web') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/png,image/jpeg,image/webp';
+      input.onchange = (e: any) => {
+        const f = e.target.files?.[0];
+        if (!f) return;
+        if (f.size > 5 * 1024 * 1024) {
+          toast.error('Too large', 'Max 5 MB');
+          return;
+        }
+        const r = new FileReader();
+        r.onload = () => {
+          setPhoto(r.result as string);
+        };
+        r.readAsDataURL(f);
+      };
+      input.click();
+    } else {
+      try {
+        const res = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          quality: 0.7,
+          base64: true,
+        });
+        if (!res.canceled && res.assets[0]?.base64) {
+          const base64Photo = `data:image/jpeg;base64,${res.assets[0].base64}`;
+          setPhoto(base64Photo);
+        }
+      } catch {
+        toast.error('Error', 'Failed to pick image');
+      }
+    }
+  };
+
+  const handleTakeSelfie = async () => {
+    if (Platform.OS === 'web') {
+      setWebcamVisible(true);
+    } else {
+      try {
+        const perm = await ImagePicker.requestCameraPermissionsAsync();
+        if (!perm.granted) {
+          toast.error('Camera', 'Permission denied.');
+          return;
+        }
+        const res = await ImagePicker.launchCameraAsync({
+          cameraType: ImagePicker.CameraType.front,
+          quality: 0.5,
+          base64: true,
+          allowsEditing: true,
+          aspect: [1, 1],
+        });
+        if (!res.canceled && res.assets[0]?.base64) {
+          const base64Photo = `data:image/jpeg;base64,${res.assets[0].base64}`;
+          setPhoto(base64Photo);
+        }
+      } catch {
+        toast.error('Camera', 'Could not open camera.');
+      }
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setPhoto(null);
   };
 
   // Expertise helpers
@@ -446,6 +700,7 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
   };
 
   const completionPct = getProfileCompletionScore();
+  const initials = ((fullName || '?').split(' ').slice(0, 2).map((s: string) => s[0] || '').join('') || '?').toUpperCase();
 
   return (
     <View style={{ gap: 16 }}>
@@ -455,7 +710,11 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 16, minWidth: 0 }}>
           <View style={{ position: 'relative' }}>
             <View style={st.avatar}>
-              <Text style={st.avatarText}>SR</Text>
+              {photo ? (
+                <Image source={{ uri: photo }} style={{ width: '100%', height: '100%', borderRadius: 36 }} />
+              ) : (
+                <Text style={st.avatarText}>{initials}</Text>
+              )}
             </View>
             <View style={st.avatarCheck}><CheckCircle2 size={11} color="#fff" /></View>
           </View>
@@ -518,15 +777,21 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
                 
                 {/* Photo editor */}
                 <View style={st.photoEditBox}>
-                  <View style={st.photoPill}>
-                    <Text style={st.photoPillText}>SR</Text>
-                  </View>
+                  <Pressable style={st.photoPill} onPress={() => setOptionsModalVisible(true)}>
+                    {photo ? (
+                      <Image source={{ uri: photo }} style={{ width: '100%', height: '100%', borderRadius: 32 }} />
+                    ) : (
+                      <Text style={st.photoPillText}>{initials}</Text>
+                    )}
+                  </Pressable>
                   <View style={{ gap: 6 }}>
                     <Text style={st.photoTitle}>Profile Photo</Text>
                     <Text style={st.photoMeta}>JPG, PNG up to 5MB · Recommended 400×400px</Text>
                     <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
-                      <Pressable style={st.uploadBtn} onPress={() => alert('Mock: Uploading Profile Photo')}><Text style={st.uploadBtnText}>Upload Photo</Text></Pressable>
-                      <Pressable style={st.removeBtn} onPress={() => alert('Mock: Removed Photo')}><Text style={st.removeBtnText}>Remove</Text></Pressable>
+                      <Pressable style={st.uploadBtn} onPress={() => setOptionsModalVisible(true)}><Text style={st.uploadBtnText}>Upload Photo</Text></Pressable>
+                      {photo ? (
+                        <Pressable style={st.removeBtn} onPress={handleRemovePhoto}><Text style={st.removeBtnText}>Remove</Text></Pressable>
+                      ) : null}
                     </View>
                   </View>
                 </View>
@@ -765,18 +1030,29 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
                   <View style={st.integrationRow}>
                     <View style={st.integrationLeft}>
                       <View style={st.integrationIconSquare}>
-                        <MaterialCommunityIcons name="video-outline" size={18} color={MC.tealP} />
+                        <MaterialCommunityIcons name="video-outline" size={18} color={googleMeetConnected ? MC.tealP : MC.dim} />
                       </View>
-                      <View style={{ flex: 1 }}>
+                      <View style={{ flex: 1, gap: 4 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                           <Text style={st.integrationName}>Google Meet</Text>
-                          <View style={st.connectedBadge}><Text style={st.connectedBadgeText}>Connected</Text></View>
+                          {googleMeetConnected && <View style={st.connectedBadge}><Text style={st.connectedBadgeText}>Connected</Text></View>}
                         </View>
-                        <Text style={st.integrationEmail}>{googleMeetEmail}</Text>
+                        {!googleMeetConnected && (
+                          <View style={st.inputBox}>
+                            <TextInput value={googleMeetEmail} onChangeText={setGoogleMeetEmail} placeholder="your@email.com" placeholderTextColor={MC.dim} style={st.input} />
+                          </View>
+                        )}
+                        {googleMeetConnected && <Text style={st.integrationEmail}>{googleMeetEmail}</Text>}
                       </View>
                     </View>
-                    <Pressable onPress={() => { setGoogleMeetConnected(false); setGoogleMeetEmail(''); }} style={st.disconnectBtn}>
-                      <Text style={st.disconnectBtnText}>Disconnect</Text>
+                    <Pressable
+                      onPress={() => {
+                        if (googleMeetConnected) { setGoogleMeetConnected(false); setGoogleMeetEmail(''); }
+                        else { if (!googleMeetEmail) { alert('Please enter Google Meet email'); return; } setGoogleMeetConnected(true); }
+                      }}
+                      style={[st.connectBtnStyle, googleMeetConnected && st.disconnectBtnStyle]}
+                    >
+                      <Text style={[st.connectBtnStyleText, googleMeetConnected && { color: MC.red }]}>{googleMeetConnected ? 'Disconnect' : 'Connect'}</Text>
                     </Pressable>
                   </View>
 
@@ -849,18 +1125,29 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
                   <View style={st.integrationRow}>
                     <View style={st.integrationLeft}>
                       <View style={st.integrationIconSquare}>
-                        <MaterialCommunityIcons name="calendar-outline" size={18} color={MC.tealP} />
+                        <MaterialCommunityIcons name="calendar-outline" size={18} color={googleCalendarConnected ? MC.tealP : MC.dim} />
                       </View>
-                      <View style={{ flex: 1 }}>
+                      <View style={{ flex: 1, gap: 4 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                           <Text style={st.integrationName}>Google Calendar</Text>
-                          <View style={st.connectedBadge}><Text style={st.connectedBadgeText}>Connected</Text></View>
+                          {googleCalendarConnected && <View style={st.connectedBadge}><Text style={st.connectedBadgeText}>Connected</Text></View>}
                         </View>
-                        <Text style={st.integrationEmail}>{googleCalendarEmail}</Text>
+                        {!googleCalendarConnected && (
+                          <View style={st.inputBox}>
+                            <TextInput value={googleCalendarEmail} onChangeText={setGoogleCalendarEmail} placeholder="your@email.com" placeholderTextColor={MC.dim} style={st.input} />
+                          </View>
+                        )}
+                        {googleCalendarConnected && <Text style={st.integrationEmail}>{googleCalendarEmail}</Text>}
                       </View>
                     </View>
-                    <Pressable onPress={() => { setGoogleCalendarConnected(false); setGoogleCalendarEmail(''); }} style={st.disconnectBtn}>
-                      <Text style={st.disconnectBtnText}>Disconnect</Text>
+                    <Pressable
+                      onPress={() => {
+                        if (googleCalendarConnected) { setGoogleCalendarConnected(false); setGoogleCalendarEmail(''); }
+                        else { if (!googleCalendarEmail) { alert('Please enter Google Calendar email'); return; } setGoogleCalendarConnected(true); }
+                      }}
+                      style={[st.connectBtnStyle, googleCalendarConnected && st.disconnectBtnStyle]}
+                    >
+                      <Text style={[st.connectBtnStyleText, googleCalendarConnected && { color: MC.red }]}>{googleCalendarConnected ? 'Disconnect' : 'Connect'}</Text>
                     </Pressable>
                   </View>
 
@@ -1037,13 +1324,13 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
                   <CustomDropdown
                     label="Language"
                     value={language}
-                    options={['English']}
+                    options={LANGUAGES}
                     onSelect={setLanguage}
                   />
                   <CustomDropdown
                     label="Timezone"
                     value={timezone}
-                    options={['Asia/Kolkata (IST)']}
+                    options={TIMEZONES}
                     onSelect={setTimezone}
                   />
                 </View>
@@ -1080,19 +1367,47 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
                     title="Change Password"
                     subtext="Last changed 3 months ago"
                     btnText="Update"
-                    onPress={() => toast.info('Update Password', 'Check your email for the password reset link.')}
+                    onPress={() => setActiveTab('security')}
                   />
                   <AccountActionRow
                     title="Download My Data"
                     subtext="Export all your data as a JSON file"
                     btnText="Export"
-                    onPress={() => toast.success('Export Triggered', 'Exporting your personal data package...')}
+                    onPress={() => {
+                      try {
+                        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(user || {}, null, 2));
+                        const downloadAnchor = document.createElement('a');
+                        downloadAnchor.setAttribute("href", dataStr);
+                        downloadAnchor.setAttribute("download", `sa-data-export-${user?.unique_id || 'profile'}.json`);
+                        document.body.appendChild(downloadAnchor);
+                        downloadAnchor.click();
+                        downloadAnchor.remove();
+                        toast.success('Export Completed', 'Your personal data package has been downloaded.');
+                      } catch (e) {
+                        toast.error('Export Failed', 'Unable to generate export package.');
+                      }
+                    }}
                   />
                   <AccountActionRow
                     title="Pause Mentoring"
-                    subtext="Temporarily stop accepting new bookings"
-                    btnText="Pause"
-                    onPress={() => toast.info('Mentoring status updated', 'Your bookings have been temporarily paused.')}
+                    subtext={mentoringPaused ? "Mentoring is currently paused. Resume to accept bookings" : "Temporarily stop accepting new bookings"}
+                    btnText={mentoringPaused ? "Resume" : "Pause"}
+                    onPress={async () => {
+                      const nextState = !mentoringPaused;
+                      try {
+                        await request('/users/me/preferences', { method: 'PATCH', body: { mentoring: { paused: nextState } } } as any);
+                        setMentoringPaused(nextState);
+                        if (refreshUser) {
+                          await refreshUser();
+                        }
+                        toast.success(
+                          nextState ? 'Mentoring Paused' : 'Mentoring Resumed',
+                          nextState ? 'Your bookings have been temporarily paused.' : 'Your bookings have been resumed.'
+                        );
+                      } catch (e: any) {
+                        toast.error('Error', e?.message || 'Failed to update mentoring status.');
+                      }
+                    }}
                   />
                   <AccountActionRow
                     title="Delete Account"
@@ -1100,7 +1415,23 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
                     btnText="Delete"
                     isDelete
                     isLast
-                    onPress={() => toast.error('Account Action', 'Account deletion request submitted. Please check email to confirm.')}
+                    onPress={() => {
+                      if (Platform.OS === 'web') {
+                        const confirmDelete = window.confirm("Are you sure you want to permanently delete your account and all data? This action is irreversible.");
+                        if (confirmDelete) {
+                          toast.error('Account Action', 'Account deletion request submitted. Please check email to confirm.');
+                        }
+                      } else {
+                        Alert.alert(
+                          "Delete Account",
+                          "Are you sure you want to permanently delete your account and all data? This action is irreversible.",
+                          [
+                            { text: "Cancel", style: "cancel" },
+                            { text: "Delete", style: "destructive", onPress: () => toast.error('Account Action', 'Account deletion request submitted. Please check email to confirm.') }
+                          ]
+                        );
+                      }
+                    }}
                   />
                 </View>
               </View>
@@ -1398,7 +1729,11 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
 
                       <View style={st.cardBodyRow}>
                         <View style={st.cardAvatar}>
-                          <Text style={st.cardAvatarText}>SR</Text>
+                          {photo ? (
+                            <Image source={{ uri: photo }} style={{ width: '100%', height: '100%', borderRadius: 30 }} />
+                          ) : (
+                            <Text style={st.cardAvatarText}>{initials}</Text>
+                          )}
                         </View>
                         <View style={st.cardDetailsContainer}>
                           <Text style={st.cardName}>{fullName}</Text>
@@ -1569,7 +1904,7 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
           {(activeTab === 'manage' || activeTab === 'tools-integrations' || activeTab === 'settings' || activeTab === 'notifications') && (
             <View style={st.saveBar}>
               <Text style={st.saveBarStatusText}>
-                {lastSavedAt ? `Last saved at ${lastSavedAt}` : (isDirty() ? 'You have unsaved changes' : 'All changes saved')}
+                {isDirty() ? 'You have unsaved changes' : (lastSavedAt ? `Last saved at ${lastSavedAt}` : 'All changes saved')}
               </Text>
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <Pressable onPress={handleDiscard} disabled={!isDirty()} style={[st.discardBtn, !isDirty() && { opacity: 0.5 }]}>
@@ -1636,6 +1971,58 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
         </View>
 
       </View>
+
+      {/* Inline Action Selection Modal */}
+      {optionsModalVisible && (
+        <View style={st.modalBackdrop}>
+          <View style={st.modalCard}>
+            {/* Header */}
+            <View style={st.modalHeader}>
+              <Text style={st.modalTitle}>Update Profile Photo</Text>
+              <Pressable onPress={() => setOptionsModalVisible(false)} style={st.modalCloseBtn}>
+                <MaterialCommunityIcons name="close" size={18} color="rgba(255,255,255,0.7)" />
+              </Pressable>
+            </View>
+
+            {/* Selection Items */}
+            <View style={{ width: '100%', gap: 10 }}>
+              <Pressable
+                onPress={() => {
+                  setOptionsModalVisible(false);
+                  handleTakeSelfie();
+                }}
+                style={st.menuItem}
+                testID="pf-select-take-selfie"
+              >
+                <MaterialCommunityIcons name="camera" size={18} color={MC.tealP} />
+                <Text style={st.menuItemText}>Take Selfie</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  setOptionsModalVisible(false);
+                  handleUploadPhoto();
+                }}
+                style={st.menuItem}
+                testID="pf-select-upload-photo"
+              >
+                <MaterialCommunityIcons name="upload" size={18} color={MC.tealP} />
+                <Text style={st.menuItemText}>Upload Photo</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      )}
+
+      <WebcamModal
+        visible={webcamVisible}
+        onClose={() => setWebcamVisible(false)}
+        onCapture={(base64) => {
+          setPhoto(base64);
+          setWebcamVisible(false);
+          toast.success('Selfie captured!', 'Save profile to update.');
+        }}
+      />
     </View>
   );
 }
@@ -1830,6 +2217,62 @@ function Barcode({ value, color = '#14B8A6', height = 64 }: { value: string; col
 }
 
 const st = StyleSheet.create({
+  modalBackdrop: {
+    position: Platform.OS === 'web' ? 'fixed' : 'absolute' as any,
+    top: 0, bottom: 0, left: 0, right: 0,
+    backgroundColor: 'rgba(0,0,0,0.80)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    zIndex: 9999,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(20,184,166,0.30)',
+    backgroundColor: '#0F1E1A',
+    padding: 20,
+    alignItems: 'center',
+    ...(Platform.OS === 'web' ? ({
+      backgroundImage: 'linear-gradient(180deg, #0C2822 0%, #061411 100%)',
+      boxShadow: '0px 16px 60px rgba(6,77,63,0.45)',
+    } as any) : {}),
+  },
+  modalHeader: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    color: '#FFF',
+    fontFamily: FONTS.bold,
+    fontSize: 16,
+  },
+  modalCloseBtn: {
+    padding: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  menuItemText: {
+    color: 'rgba(255,255,255,0.90)',
+    fontFamily: FONTS.bold,
+    fontSize: 14,
+  },
   headerCard: {
     backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1,
     borderRadius: 16, padding: 18,
