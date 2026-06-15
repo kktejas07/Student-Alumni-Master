@@ -35,6 +35,23 @@ import { AgentKQuickLauncher } from '@/src/views/web/agent-k/AgentKQuickLauncher
 import { ConsentBanner } from '@/src/views/web/consent/ConsentBanner';
 import { TourProvider } from '@/src/views/web/tour/TourProvider';
 import { TourOverlay } from '@/src/views/web/tour/TourOverlay';
+import { LogBox } from 'react-native';
+
+LogBox.ignoreLogs(['6000ms timeout exceeded', 'fontfaceobserver']);
+
+if (typeof window !== 'undefined') {
+  // Suppress 6000ms fontfaceobserver timeout error on slow network / dev
+  window.addEventListener('error', (e) => {
+    if (e.message?.includes('6000ms timeout exceeded')) {
+      e.preventDefault();
+    }
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    if (e.reason?.message?.includes('6000ms timeout exceeded')) {
+      e.preventDefault();
+    }
+  });
+}
 
 // Material 3 theme — overrides primary/secondary to brand purple. This means
 // all react-native-paper components (Surface, Card, Button, Ripple) will pick

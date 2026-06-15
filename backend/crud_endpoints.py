@@ -328,7 +328,7 @@ async def my_bookings(email: Optional[str] = None, status: Optional[str] = None)
         status = b.get("status")
         sched = b.get("scheduled_at")
         if sched and isinstance(sched, datetime):
-            if status == "confirmed" and sched < now:
+            if status == "confirmed" and sched.replace(tzinfo=timezone.utc) < now:
                 status = "completed"
                 # Best-effort DB update
                 asyncio.create_task(_db.bookings.update_one({"_id": b["_id"]}, {"$set": {"status": "completed"}}))
@@ -352,7 +352,7 @@ async def my_bookings(email: Optional[str] = None, status: Optional[str] = None)
         
         sched = s.get("scheduled_at")
         if sched and isinstance(sched, datetime):
-            if s_status in ["booked", "scheduled", "confirmed"] and sched < now:
+            if s_status in ["booked", "scheduled", "confirmed"] and sched.replace(tzinfo=timezone.utc) < now:
                 s_status = "completed"
                 # Best-effort DB update
                 asyncio.create_task(_db.sessions.update_one({"_id": s["_id"]}, {"$set": {"status": "completed"}}))

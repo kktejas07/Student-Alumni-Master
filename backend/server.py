@@ -4979,7 +4979,7 @@ async def my_bookings(user: dict = Depends(get_current_user)):
         start_iso = item.get("slot_start_iso") or sched_iso
         
         status = item.get("status", "pending")
-        if status in ["confirmed", "booked", "scheduled"] and sched and isinstance(sched, datetime) and sched < now:
+        if status in ["confirmed", "booked", "scheduled"] and sched and isinstance(sched, datetime) and sched.replace(tzinfo=timezone.utc) < now:
             status = "completed"
             # Best-effort DB update
             import asyncio
