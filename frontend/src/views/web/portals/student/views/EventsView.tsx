@@ -7,7 +7,6 @@ import { GRAD } from '../portalkit';
 import { GlassCard } from '../glass';
 import { Badge } from '../atoms';
 import { usePortalData, postPortal, fetchPortal } from '@/src/lib/portalApi';
-import { usePortalData, postPortal } from '@/src/lib/portalApi';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 type Ev = { id: string; title: string; date: string; mode: string; city: string; cat: string; attending: number; capacity: number; kind: string; price?: number; accent: string; registered: boolean };

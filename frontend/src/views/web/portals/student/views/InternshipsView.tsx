@@ -91,6 +91,20 @@ function CustomDropdown({
   const [open, setOpen] = useState(false);
   return (
     <View style={{ zIndex: open ? 1000 : 1, position: 'relative' }}>
+      {/* Transparent full-screen backdrop — closes menu on outside click */}
+      {open && (
+        <Pressable
+          onPress={() => setOpen(false)}
+          style={{
+            position: 'fixed' as any,
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 999,
+          }}
+        />
+      )}
       <Pressable
         onPress={() => setOpen(!open)}
         style={{
@@ -98,13 +112,14 @@ function CustomDropdown({
           alignItems: 'center',
           gap: 6,
           backgroundColor: '#1E1B4B',
-          borderColor: 'rgba(255,255,255,0.08)',
+          borderColor: open ? 'rgba(124,58,237,0.5)' : 'rgba(255,255,255,0.08)',
           borderWidth: 1,
           borderRadius: 8,
           paddingHorizontal: 12,
           height: 36,
           minWidth: 120,
           justifyContent: 'space-between',
+          zIndex: 1001,
         }}
       >
         <Text style={{ color: '#E5E7EB', fontSize: 12.5, fontFamily: FONTS.med }}>{value}</Text>
@@ -127,7 +142,7 @@ function CustomDropdown({
             shadowOpacity: 0.3,
             shadowRadius: 6,
             elevation: 8,
-            zIndex: 9999,
+            zIndex: 1002,
           }}
         >
           {options.map((opt) => {
@@ -250,31 +265,34 @@ export function InternshipsView() {
 
       if (tab === 'Applied') {
         const mapped = aList.map((app: any) => {
-          const existing = sList.find((it: any) => it.job_id === app.id) || items.find((it: any) => it.job_id === app.id);
+          // Handle both app.job_id and app.id field names from the API
+          const appJobId = app.job_id || app.id;
+          const existing = sList.find((it: any) => it.job_id === appJobId) ||
+                           items.find((it: any) => it.job_id === appJobId);
           if (existing) {
             return { ...existing, applied: true };
           }
           return {
-            job_id: app.id,
-            title: app.internship_title,
-            company: app.company,
-            location: 'Remote',
-            work_mode: 'Remote',
-            job_type: 'Internship',
-            description: `Status: ${app.status} • Applied on ${new Date(app.applied_at).toLocaleDateString()}`,
+            job_id: appJobId,
+            title: app.internship_title || app.title || app.job_title || 'Applied Job',
+            company: app.company || app.company_name || '—',
+            location: app.location || 'Remote',
+            work_mode: app.work_mode || 'Remote',
+            job_type: app.job_type || 'Internship',
+            description: `Status: ${app.status || 'Submitted'} • Applied on ${app.applied_at ? new Date(app.applied_at).toLocaleDateString() : 'N/A'}`,
             posted_date: app.applied_at,
             applied: true,
             saved: false,
           };
         });
 
+        // On the Applied tab only apply type/mode filters; ignore search query
+        // to avoid accidentally hiding applied jobs because user had typed something
+        // in the search box on a different tab.
         const filtered = mapped.filter((j: any) => {
           const typeMatch = selectedType === 'All Types' || j.job_type === selectedType;
           const modeMatch = selectedMode === 'All Modes' || j.work_mode === selectedMode;
-          const qMatch = !q.trim() || 
-            (j.title || '').toLowerCase().includes(q.toLowerCase()) || 
-            (j.company || '').toLowerCase().includes(q.toLowerCase());
-          return typeMatch && modeMatch && qMatch;
+          return typeMatch && modeMatch;
         });
         setItems(filtered);
         setTotal(filtered.length);
@@ -426,7 +444,12 @@ ${email}`;
             return (
              <Pressable
                 key={t}
-                onPress={() => setTab(t)}
+                onPress={() => {
+                  // Clear search query when switching tabs so it doesn't
+                  // accidentally filter out results on the new tab
+                  if (t !== tab) setQ('');
+                  setTab(t);
+                }}
                 style={[s.tabButton, active && s.tabButtonActive]}
               >
                 <Text style={[s.tabButtonText, active && s.tabButtonTextActive]}>
@@ -1163,6 +1186,8 @@ const s = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 12,
     marginBottom: 16,
+    zIndex: 100,
+    ...(Platform.OS === 'web' ? ({ overflow: 'visible' } as any) : {}),
   },
   tabsContainer: {
     flexDirection: 'row',
@@ -1193,6 +1218,8 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     flexWrap: 'wrap',
+    zIndex: 100,
+    ...(Platform.OS === 'web' ? ({ overflow: 'visible' } as any) : {}),
   },
   searchBox: { 
     flexDirection: 'row', 
