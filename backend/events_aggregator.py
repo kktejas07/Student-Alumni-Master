@@ -180,6 +180,16 @@ def _to_dt(s: Any) -> Optional[datetime]:
     except Exception:
         return None
 
+def _safe_int(val: Any, default: int = 0) -> int:
+    if isinstance(val, list):
+        if len(val) > 0:
+            return _safe_int(val[0], default)
+        return default
+    try:
+        return int(float(val))
+    except (ValueError, TypeError):
+        return default
+
 
 def _normalize(record: Dict[str, Any], source: str) -> Optional[Dict[str, Any]]:
     """Map upstream payload → unified schema. Returns None if missing required fields."""
@@ -211,8 +221,8 @@ def _normalize(record: Dict[str, Any], source: str) -> Optional[Dict[str, Any]]:
         "currency": record.get("currency") or "INR",
         "registration_url": record.get("registration_url") or record.get("url") or "",
         "organizer_name": organizer,
-        "attendee_count": int(record.get("attendee_count") or 0),
-        "capacity": int(record.get("capacity") or 0),
+        "attendee_count": _safe_int(record.get("attendee_count"), 0),
+        "capacity": _safe_int(record.get("capacity"), 0),
         "image_url": record.get("image_url") or record.get("image") or "",
         "source_url_array": record.get("source_url_array") or [record.get("url")] if record.get("url") else [],
         "posted_date": _safe_iso(record.get("posted_date")) or datetime.now(timezone.utc).isoformat(),
@@ -264,7 +274,7 @@ async def _fetch_devpost(session: aiohttp.ClientSession) -> List[Dict[str, Any]]
                     "registration_url": h.get("url"),
                     "organizer_name": (h.get("organization_name") or "Devpost"),
                     "image_url": h.get("thumbnail_url") or "",
-                    "attendee_count": int(h.get("registrations_count") or 0),
+                    "attendee_count": _safe_int(h.get("registrations_count"), 0),
                     "url": h.get("url"),
                 })
     except Exception as e:
@@ -301,7 +311,7 @@ async def _fetch_hackclub(session: aiohttp.ClientSession) -> List[Dict[str, Any]
                     "registration_url": h.get("website"),
                     "organizer_name": h.get("organizer") or "Hack Club",
                     "image_url": h.get("logo", {}).get("url") if isinstance(h.get("logo"), dict) else (h.get("logo") or ""),
-                    "attendee_count": int(h.get("attendees") or 0),
+                    "attendee_count": _safe_int(h.get("attendees"), 0),
                     "url": h.get("website"),
                 })
     except Exception as e:
@@ -420,7 +430,7 @@ async def _fetch_mlh(session: aiohttp.ClientSession) -> List[Dict[str, Any]]:
                         "registration_url": h.get("url") or "https://mlh.io",
                         "organizer_name": h.get("organization") or "MLH",
                         "image_url": h.get("image") or h.get("logo_url") or "",
-                        "attendee_count": int(h.get("attendees") or 0),
+                        "attendee_count": _safe_int(h.get("attendees"), 0),
                         "url": h.get("url") or "https://mlh.io",
                     })
                 if out:
@@ -506,8 +516,8 @@ async def _fetch_nptel_workshops(session: aiohttp.ClientSession) -> List[Dict[st
                                   or "NPTEL Faculty")
                     institute  = (c.get("institute") or c.get("university")
                                   or "NPTEL")
-                    duration_weeks = int(c.get("duration") or
-                                         c.get("weeks") or 12)
+                    duration_weeks = _safe_int(c.get("duration") or
+                                         c.get("weeks"), 12)
                     start_dt = (datetime.now(timezone.utc) +
                                 timedelta(weeks=idx % 8 + 1))
                     end_dt   = start_dt + timedelta(weeks=duration_weeks)
@@ -543,9 +553,9 @@ async def _fetch_nptel_workshops(session: aiohttp.ClientSession) -> List[Dict[st
                         "image_url": (
                             "https://images.unsplash.com/photo-"
                             "1524178232363-1fb2b075b655?w=800"),
-                        "attendee_count": int(
+                        "attendee_count": _safe_int(
                             c.get("enrolled") or
-                            c.get("enrollment_count") or 10000),
+                            c.get("enrollment_count"), 10000),
                         "capacity": 50000,
                         "url": f"https://nptel.ac.in/courses/{course_code}",
                     })
