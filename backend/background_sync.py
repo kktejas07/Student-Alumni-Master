@@ -14,6 +14,57 @@ logger = logging.getLogger("background_sync")
 
 _sync_scheduler = None
 
+
+# ────────────────────────────────────────────────────────────────────────────
+# Startup Dependency Check
+# ────────────────────────────────────────────────────────────────────────────
+REQUIRED_PACKAGES = [
+    ("cachetools",  "cachetools"),
+    ("aiohttp",     "aiohttp"),
+    ("apscheduler", "apscheduler"),
+    ("bcrypt",      "bcrypt"),
+    ("bson",        "bson"),          # ships with pymongo
+    ("dotenv",      "python-dotenv"), # pip name differs
+    ("fastapi",     "fastapi"),
+    ("httpx",       "httpx"),
+    ("jwt",         "PyJWT"),         # pip name differs
+    ("litellm",     "litellm"),
+    ("motor",       "motor"),
+    ("pyotp",       "pyotp"),
+    ("pytz",        "pytz"),
+    ("qrcode",      "qrcode"),
+    ("slowapi",     "slowapi"),
+    ("starlette",   "starlette"),
+    ("pydantic",    "pydantic"),
+    ("cryptography","cryptography"),
+    ("stripe",      "stripe"),
+    ("httpx",       "httpx"),
+]
+
+
+def check_dependencies() -> None:
+    """Log a [DEPENDENCY CHECK] summary on startup, warning on any missing package."""
+    missing = []
+    print("\n[DEPENDENCY CHECK] Verifying required packages...", flush=True)
+    for import_name, pip_name in REQUIRED_PACKAGES:
+        try:
+            __import__(import_name)
+            print(f"[DEPENDENCY CHECK] [OK] {pip_name}", flush=True)
+        except ImportError:
+            print(f"[DEPENDENCY CHECK] [MISSING] {pip_name}  ← MISSING (run: pip install {pip_name})", flush=True)
+            missing.append(pip_name)
+    if missing:
+        logger.error(
+            f"[DEPENDENCY CHECK] [WARNING] {len(missing)} missing package(s): {', '.join(missing)}. "
+            "Run: pip install -r requirements.txt"
+        )
+    else:
+        print("[DEPENDENCY CHECK] [SUCCESS] All required packages are installed.\n", flush=True)
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Background Sync
+# ────────────────────────────────────────────────────────────────────────────
 async def run_unified_sync_task():
     logger.info("Starting unified background sync task for Jobs, Events, and Courses...")
     try:
@@ -28,19 +79,23 @@ async def run_unified_sync_task():
     except Exception as e:
         logger.error(f"Error fetching events: {e}")
 
+    # Pass the db instance from server module
     try:
-        await sync_courses_to_db()
+        from server import db as _db
+        await sync_courses_to_db(_db)
         logger.info("Sync completed: Courses.")
     except Exception as e:
         logger.error(f"Error fetching courses: {e}")
-        
+
     try:
-        await sync_internships_to_db()
+        from server import db as _db
+        await sync_internships_to_db(_db)
         logger.info("Sync completed: Adzuna Internships.")
     except Exception as e:
         logger.error(f"Error fetching adzuna internships: {e}")
 
     logger.info("Completed unified background sync task.")
+
 
 def start_sync_scheduler():
     enabled = (os.environ.get("SYNC_SCHEDULER_ENABLED") or "1").strip().lower()
@@ -64,6 +119,7 @@ def start_sync_scheduler():
         logger.info("Unified sync scheduler started (interval=10m)")
     except Exception as e:
         logger.error(f"Failed to start sync scheduler: {e}")
+
 
 def stop_sync_scheduler():
     global _sync_scheduler

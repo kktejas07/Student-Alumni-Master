@@ -60,7 +60,8 @@ export const ALL_ROUTES = [
   { path: "/platform", name: "Platform", auth: true },
 
   // Auth routes
-  { path: "/login", name: "Auth Login", auth: false },
+  { path: "/about", name: "About Us", auth: false },
+  { path: "/faq", name: "FAQ", auth: false },
   { path: "/register", name: "Auth Register", auth: false },
   { path: "/forgot-password", name: "Forgot Password", auth: false },
   { path: "/email-verify", name: "Email Verify", auth: false },
@@ -246,6 +247,9 @@ describe("API Service Layer - All Methods", () => {
     { name: "declineBooking", method: "POST", path: "/api/bookings/{id}/decline", auth: true },
     { name: "createMentorSession", method: "POST", path: "/api/mentor/sessions", auth: true },
     { name: "myMentorSessions", method: "GET", path: "/api/mentor/sessions/me", auth: true },
+    { name: "skillIntelligence", method: "GET", path: "/api/users/me/skill-intelligence", auth: true },
+    { name: "getCompletion", method: "GET", path: "/api/users/me/completion", auth: true },
+    { name: "getStats", method: "GET", path: "/api/users/me/stats", auth: true },
   ];
 
   test("all API methods are documented", () => {
