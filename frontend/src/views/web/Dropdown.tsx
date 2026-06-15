@@ -35,6 +35,14 @@ interface Props {
   allowOther?: boolean;
   /** Extra label for the dropdown overlay header (e.g. "INSTITUTION TYPE"). */
   overlayHeader?: string;
+
+  // Editable text entry options
+  editable?: boolean;
+  keyboardType?: 'default' | 'numeric' | 'number-pad';
+  maxLength?: number;
+  inputRef?: React.RefObject<any>;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 const OTHER_VALUE = '__other__';
@@ -42,6 +50,7 @@ const OTHER_VALUE = '__other__';
 export function Dropdown({
   label, required, optional, value, options, onChange,
   placeholder = 'Select…', testID, allowOther = true, overlayHeader,
+  editable, keyboardType = 'default', maxLength, inputRef, onFocus, onBlur,
 }: Props) {
   const { primary } = useRoleTheme();
   const [open, setOpen] = useState(false);
@@ -113,6 +122,15 @@ export function Dropdown({
     return () => document.removeEventListener('keydown', handler);
   }, [open, options, onChange]);
 
+  const [isFocused, setIsFocused] = useState(false);
+  const [localText, setLocalText] = useState('');
+
+  React.useEffect(() => {
+    if (isFocused) {
+      setLocalText(value || '');
+    }
+  }, [value, isFocused]);
+
   const sel = options.find((o) => o.value === value);
   // If the current value isn't in options, we're in "manual" mode.
   const showingManual = manualMode || (!!value && !sel);
@@ -134,7 +152,43 @@ export function Dropdown({
       </Text>
 
       {/* Trigger / Manual input */}
-      {showingManual ? (
+      {editable ? (
+        <View
+          style={[
+            s.triggerRow,
+            isFocused && { borderColor: primary },
+            open && { borderColor: primary, backgroundColor: `${primary}10` },
+          ]}
+        >
+          <TextInput
+            ref={inputRef}
+            value={isFocused ? localText : (sel?.label || value || '')}
+            onChangeText={(t) => {
+              setLocalText(t);
+              onChange(t);
+            }}
+            placeholder={placeholder}
+            placeholderTextColor="rgba(255,255,255,0.4)"
+            style={s.editableInput}
+            keyboardType={Platform.OS === 'web' ? 'default' : keyboardType}
+            maxLength={maxLength}
+            onFocus={() => {
+              setIsFocused(true);
+              setLocalText(value || '');
+              onFocus?.();
+            }}
+            onBlur={() => {
+              setIsFocused(false);
+              setLocalText('');
+              onBlur?.();
+            }}
+            testID={testID}
+          />
+          <Pressable onPress={() => setOpen(true)} style={s.chevronPressable}>
+            <ChevronDown size={18} color="rgba(255,255,255,0.6)" />
+          </Pressable>
+        </View>
+      ) : showingManual ? (
         <View style={[s.triggerRow, { borderColor: primary }]}>
           <TextInput
             value={manualText || value || ''}
@@ -221,6 +275,22 @@ const s = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'DMSans_500Medium',
     ...(Platform.OS === 'web' ? ({ outlineWidth: 0 } as any) : {}),
+  },
+  editableInput: {
+    flex: 1,
+    minWidth: 0,
+    color: '#FFF',
+    fontSize: 14,
+    fontFamily: 'DMSans_500Medium',
+    padding: 0,
+    height: '100%',
+    ...(Platform.OS === 'web' ? ({ outlineWidth: 0 } as any) : {}),
+  },
+  chevronPressable: {
+    padding: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   editPill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,

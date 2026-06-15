@@ -179,6 +179,7 @@ export default function RegisterScreen() {
               onChange={(iso) => { setDob(iso); setErrors((p) => ({ ...p, dob: '' })); }}
               minAge={minAge}
               required
+              editable={role === 'college'}
               helper={`You must be at least ${minAge} years old to register as a ${ROLE_META[role].label.toLowerCase()}.`}
             />
             {errors.dob ? <Text style={s.fieldErr}>{errors.dob}</Text> : null}
