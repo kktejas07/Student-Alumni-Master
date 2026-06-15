@@ -132,7 +132,7 @@ function PortalShell() {
               scrollEventThrottle={16}
             >
               <EmbeddedShellContext.Provider value={true}>
-                <PromoBanner portal="student" />
+                {active !== 'internships' && <PromoBanner portal="student" />}
                 <RouteTransition deps={[active]}>
                   {active === 'dashboard'       && <DashboardView />}
                   {active === 'career-ai'       && <CareerAIView />}
