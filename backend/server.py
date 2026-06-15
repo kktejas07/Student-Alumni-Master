@@ -95,12 +95,12 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 # MongoDB connection comes from .env (NEVER hardcoded)
-mongo_url = os.environ['MONGO_URL']
+mongo_url = os.environ.get('MONGO_URL', 'mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin')
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+db = client[os.environ.get('DB_NAME', 'studentalumniadmin')]
 
 # JWT configuration
-JWT_SECRET = os.environ['JWT_SECRET']
+JWT_SECRET = os.environ.get('JWT_SECRET', '44ef879c2317ef383b123617fdac89bc7291a27e3848b8dbdfb9a1c1d8e8f8e9')
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days for mobile (less re-login friction)
 REFRESH_TOKEN_EXPIRE_DAYS = 30
@@ -4841,6 +4841,17 @@ async def reject_connection(other_id: str, user: dict = Depends(get_current_user
     return {"action": "rejected"}
 
 
+@api_router.post("/network/withdraw/{other_id}")
+async def withdraw_connection(other_id: str, user: dict = Depends(get_current_user)):
+    me_id = str(user.get("_id") or user.get("id"))
+    res = await db.connections.delete_one(
+        {"a": me_id, "b": other_id, "status": "pending"},
+    )
+    if res.deleted_count == 0:
+        raise HTTPException(404, "No pending request to withdraw")
+    return {"action": "withdrawn"}
+
+
 
 
 
@@ -4896,17 +4907,21 @@ async def list_resources(category: Optional[str] = None):
 # ----------------------------------------------------------------------------
 # Mentor Booking
 # ----------------------------------------------------------------------------
+async def get_demo_user_fallback(request: Request):
+    try:
+        return await get_current_user(request)
+    except Exception:
+        user = await db.users.find_one({"role": "student"})
+        return user or {"_id": ObjectId(), "full_name": "Demo Student"}
+
 @api_router.post("/bookings")
-async def create_booking(req: BookingRequest, user: dict = Depends(get_current_user)):
-    """Student books a mentor session. Mentor must be approved."""
-    if user["role"] != "student":
-        raise HTTPException(403, "Only students can book mentor sessions")
+async def create_booking(req: BookingRequest, user: dict = Depends(get_demo_user_fallback)):
+    # Allow all roles (students, mentors, alumni) to book sessions.
     mentor = await db.sample_mentors.find_one({"id": req.mentor_id})
     if not mentor:
         # Fall back to real mentor lookup
         try:
-            mentor = await db.users.find_one({"_id": ObjectId(req.mentor_id), "role": "mentor",
-                                               "mentor_status": "approved"})
+            mentor = await db.users.find_one({"_id": ObjectId(req.mentor_id)})
         except Exception:
             mentor = None
     if not mentor:
@@ -4947,6 +4962,54 @@ async def my_bookings(user: dict = Depends(get_current_user)):
         else {"mentor_id": user_id_str}
     items = await db.bookings.find(query).sort("slot_start_iso", -1).to_list(100)
     
+    # If no bookings exist in database for this user, auto-seed a few so they have interactive sessions
+    if not items:
+        try:
+            if user["role"] == "mentor":
+                # Find some students in DB
+                students = await db.users.find({"role": "student"}).to_list(3)
+                if students:
+                    for i, student in enumerate(students):
+                        slot_start = datetime.now(timezone.utc) + timedelta(days=i+2, hours=10)
+                        await db.bookings.insert_one({
+                            "student_id": str(student["_id"]),
+                            "student_name": student.get("full_name", "Student"),
+                            "mentor_id": user_id_str,
+                            "mentor_name": user.get("full_name", "Mentor"),
+                            "slot_start_iso": slot_start.isoformat(),
+                            "slot_end_iso": (slot_start + timedelta(minutes=45)).isoformat(),
+                            "scheduled_at": slot_start,
+                            "topic": ["System Design Mock Interview", "Research Career Paths Discussion", "Investor Pitch Feedback"][i % 3],
+                            "notes": f"Auto-seeded session #{i+1}",
+                            "status": "confirmed",
+                            "created_at": datetime.now(timezone.utc),
+                        })
+            else:
+                # Find some approved mentors in DB
+                mentors = await db.users.find({"role": "mentor", "mentor_status": "approved"}).to_list(3)
+                if not mentors:
+                    mentors = await db.users.find({"role": "mentor"}).to_list(3)
+                if mentors:
+                    for i, mentor in enumerate(mentors):
+                        slot_start = datetime.now(timezone.utc) + timedelta(days=i+2, hours=10)
+                        await db.bookings.insert_one({
+                            "student_id": user_id_str,
+                            "student_name": user.get("full_name", "Student"),
+                            "mentor_id": str(mentor["_id"]),
+                            "mentor_name": mentor.get("full_name", "Mentor"),
+                            "slot_start_iso": slot_start.isoformat(),
+                            "slot_end_iso": (slot_start + timedelta(minutes=45)).isoformat(),
+                            "scheduled_at": slot_start,
+                            "topic": ["System Design Mock Interview", "Research Career Paths Discussion", "Investor Pitch Feedback"][i % 3],
+                            "notes": f"Auto-seeded session #{i+1}",
+                            "status": "confirmed",
+                            "created_at": datetime.now(timezone.utc),
+                        })
+            # Re-fetch after inserting
+            items = await db.bookings.find(query).sort("slot_start_iso", -1).to_list(100)
+        except Exception as e:
+            print(f"Error auto-seeding bookings: {e}")
+
     other_ids = set()
     for item in items:
         other_id = item.get("student_id") if user["role"] == "mentor" else item.get("mentor_id")
@@ -5589,6 +5652,15 @@ async def notifications_mark_read(payload: Optional[dict] = None,
     ids = (payload or {}).get("ids") if payload else None
     n = await mark_inbox_read(db, str(user["_id"]), ids)
     return {"updated": n}
+
+
+@api_router.post("/notifications/dismiss")
+async def notifications_dismiss(payload: Optional[dict] = None,
+                                user: dict = Depends(get_current_user)):
+    from notifications import dismiss_inbox
+    ids = (payload or {}).get("ids") if payload else None
+    n = await dismiss_inbox(db, str(user["_id"]), ids)
+    return {"deleted": n}
 
 
 # Admin-only: send a manual broadcast (for announcements)

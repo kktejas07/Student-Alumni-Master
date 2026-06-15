@@ -60,15 +60,22 @@ export function ConnectionsView() {
     loadConnections();
   }, [user]);
 
-  const handleConnectionDecision = async (otherId: string, decision: 'accept' | 'decline') => {
+  const handleConnectionDecision = async (otherId: string, decision: 'accept' | 'decline' | 'withdraw' | 'connect') => {
     setActioningId(otherId);
     try {
       if (decision === 'accept') {
         await api.acceptConnection(otherId);
-      } else {
+        await loadConnections();
+      } else if (decision === 'decline') {
         await api.rejectConnection(otherId);
+        setStudentsList(prev => prev.map(s => String(s.id) === String(otherId) ? { ...s, status: 'declined' } : s));
+      } else if (decision === 'withdraw') {
+        await api.withdrawConnection(otherId);
+        setStudentsList(prev => prev.map(s => String(s.id) === String(otherId) ? { ...s, status: 'none' } : s));
+      } else if (decision === 'connect') {
+        await api.sendConnectionRequest(otherId);
+        setStudentsList(prev => prev.map(s => String(s.id) === String(otherId) ? { ...s, status: 'pending_sent' } : s));
       }
-      await loadConnections();
     } catch (e) {
       console.error(`Failed to ${decision} connection request:`, e);
     } finally {
@@ -86,7 +93,9 @@ export function ConnectionsView() {
   const list = useMemo(() => studentsList.filter((st) => {
     if (filter !== 'all') {
       if (filter === 'completed') {
-        if (st.status !== 'completed' && st.status !== 'active') return false;
+        if (st.status !== 'completed' && st.progress !== 100) return false;
+      } else if (filter === 'pending') {
+        if (st.status !== 'pending' && st.status !== 'pending_sent') return false;
       } else {
         if (st.status !== filter) return false;
       }
@@ -313,11 +322,83 @@ export function ConnectionsView() {
                   )}
 
                   {/* Footer Action Buttons */}
-                  {st.status === 'pending' ? (
+                  {st.status === 'pending' || st.status === 'pending_sent' ? (
+                    st.status === 'pending' ? (
+                      <View style={{ flexDirection: 'row', gap: 8, width: '100%', marginTop: 8 }}>
+                        <Pressable
+                          disabled={actioningId === String(st.id)}
+                          onPress={() => handleConnectionDecision(st.id, 'accept')}
+                          style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            gap: 6,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            paddingVertical: 8,
+                            borderRadius: 8,
+                            backgroundColor: MC.tealP,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <MaterialCommunityIcons name="check" size={14} color={MC.bg} />
+                          <Text style={{ color: MC.bg, fontFamily: FONTS.xbold, fontSize: 12 }}>
+                            {actioningId === String(st.id) ? 'Processing...' : 'Accept'}
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          disabled={actioningId === String(st.id)}
+                          onPress={() => handleConnectionDecision(st.id, 'decline')}
+                          style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            gap: 6,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            paddingVertical: 8,
+                            borderRadius: 8,
+                            borderWidth: 1,
+                            borderColor: 'rgba(239,68,68,0.40)',
+                            backgroundColor: 'rgba(239,68,68,0.10)',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <MaterialCommunityIcons name="close" size={14} color={MC.red} />
+                          <Text style={{ color: MC.red, fontFamily: FONTS.bold, fontSize: 12 }}>
+                            Decline
+                          </Text>
+                        </Pressable>
+                      </View>
+                    ) : (
+                      <View style={{ flexDirection: 'row', gap: 8, width: '100%', marginTop: 8 }}>
+                        <Pressable
+                          disabled={actioningId === String(st.id)}
+                          onPress={() => handleConnectionDecision(st.id, 'withdraw')}
+                          style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            gap: 6,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            paddingVertical: 8,
+                            borderRadius: 8,
+                            borderWidth: 1,
+                            borderColor: 'rgba(239,68,68,0.40)',
+                            backgroundColor: 'rgba(239,68,68,0.10)',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <MaterialCommunityIcons name="close" size={14} color={MC.red} />
+                          <Text style={{ color: MC.red, fontFamily: FONTS.bold, fontSize: 12 }}>
+                            {actioningId === String(st.id) ? 'Processing...' : 'Withdraw'}
+                          </Text>
+                        </Pressable>
+                      </View>
+                    )
+                  ) : st.status === 'none' || st.status === 'withdrawn' || st.status === 'declined' || st.status === 'rejected' ? (
                     <View style={{ flexDirection: 'row', gap: 8, width: '100%', marginTop: 8 }}>
                       <Pressable
                         disabled={actioningId === String(st.id)}
-                        onPress={() => handleConnectionDecision(st.id, 'accept')}
+                        onPress={() => handleConnectionDecision(st.id, 'connect')}
                         style={{
                           flex: 1,
                           flexDirection: 'row',
@@ -330,31 +411,9 @@ export function ConnectionsView() {
                           cursor: 'pointer',
                         }}
                       >
-                        <MaterialCommunityIcons name="check" size={14} color={MC.bg} />
+                        <MaterialCommunityIcons name="plus" size={14} color={MC.bg} />
                         <Text style={{ color: MC.bg, fontFamily: FONTS.xbold, fontSize: 12 }}>
-                          {actioningId === String(st.id) ? 'Processing...' : 'Accept'}
-                        </Text>
-                      </Pressable>
-                      <Pressable
-                        disabled={actioningId === String(st.id)}
-                        onPress={() => handleConnectionDecision(st.id, 'decline')}
-                        style={{
-                          flex: 1,
-                          flexDirection: 'row',
-                          gap: 6,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          paddingVertical: 8,
-                          borderRadius: 8,
-                          borderWidth: 1,
-                          borderColor: 'rgba(239,68,68,0.40)',
-                          backgroundColor: 'rgba(239,68,68,0.10)',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <MaterialCommunityIcons name="close" size={14} color={MC.red} />
-                        <Text style={{ color: MC.red, fontFamily: FONTS.bold, fontSize: 12 }}>
-                          Decline
+                          {actioningId === String(st.id) ? 'Processing...' : 'Connect'}
                         </Text>
                       </Pressable>
                     </View>
@@ -547,7 +606,7 @@ function DrawerInner({ st, onClose, onUpdateStudent, onRefresh }: { st: Student;
             <Text numberOfLines={1} style={d.stName}>{st.name}</Text>
             <Text numberOfLines={1} style={d.stSub}>{st.branch} · {st.college} · {st.year}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 }}>
-              <Badge label="Active" color="green" />
+              <Badge label={statusMeta(st.status).label} color={statusMeta(st.status).color as any} />
               <View style={d.stZapBadge}>
                 <MaterialCommunityIcons name="flash" size={10} color={MC.tealP} />
                 <Text style={d.stZapText}>{zapScore}</Text>

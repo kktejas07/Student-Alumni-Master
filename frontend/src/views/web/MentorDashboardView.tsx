@@ -183,11 +183,11 @@ export function MentorDashboardView({
           {/* Today's sessions */}
           <View style={{ flex: 1, gap: 10 }}>
             <View style={styles.sectionRow}>
-              <Text style={styles.section}>TODAY'S SESSIONS</Text>
+              <Text style={styles.section}>TODAY SESSIONS</Text>
               <Pressable><Text style={styles.linkText}>View all →</Text></Pressable>
             </View>
             <View style={styles.sessionList}>
-              {SESSIONS.map((s) => (
+              {SESSIONS.length > 0 ? SESSIONS.map((s) => (
                 <Pressable key={s.id} testID={`mentor-session-${s.id}`}
                   style={({ pressed, hovered }: any) => [
                     styles.sessionRow,
@@ -206,7 +206,11 @@ export function MentorDashboardView({
                     <Text style={styles.sessionDuration}>{s.duration}</Text>
                   </View>
                 </Pressable>
-              ))}
+              )) : (
+                <View style={[styles.sessionRow, { justifyContent: 'center', paddingVertical: 20 }]}>
+                  <Text style={{ color: T.text2, fontFamily: 'DMSans_500Medium', fontSize: 13 }}>there were no sessions</Text>
+                </View>
+              )}
             </View>
           </View>
 

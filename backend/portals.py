@@ -225,11 +225,15 @@ async def mentor_dashboard(mentor_email: Optional[str] = None):
     ratings = [r.get("rating", 0) async for r in review_cur]
     avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else 4.8
 
-    # Today's sessions (next 24h)
+    # Today's sessions (exactly today)
     now = datetime.now(timezone.utc)
+    start_of_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_of_today = start_of_today + timedelta(days=1)
+    
     today_cur = _db.bookings.find({
         "mentor_id": mentor_id,
         "status": {"$ne": "cancelled"},
+        "scheduled_at": {"$gte": start_of_today, "$lt": end_of_today}
     }).sort("scheduled_at", 1).limit(5)
     today_bookings = [b async for b in today_cur]
     
@@ -2995,7 +2999,7 @@ async def mentor_connections(email: Optional[str] = None):
     # 1. Resolve mentor
     mentor = None
     if email:
-        mentor = await _db.users.find_one({"email": email, "role": "mentor"})
+        mentor = await _db.users.find_one({"email": email})
     if not mentor:
         mentor = await _db.users.find_one({"role": "mentor", "mentor_status": "approved"})
     if not mentor:
@@ -3027,7 +3031,10 @@ async def mentor_connections(email: Optional[str] = None):
             if status == "accepted" or status == "active":
                 connection_status[other] = "active"
             elif status == "pending":
-                connection_status[other] = "pending"
+                if r.get("a") == mid:
+                    connection_status[other] = "pending_sent"
+                else:
+                    connection_status[other] = "pending"
             else:
                 connection_status[other] = status
 
@@ -3041,7 +3048,7 @@ async def mentor_connections(email: Optional[str] = None):
             student_bookings.setdefault(sid, []).append(b)
             other_ids.add(sid)
             if sid not in connection_status:
-                connection_status[sid] = "active"
+                connection_status[sid] = "none"
 
     # 4. Fetch all resolved users
     resolved_objs = []
@@ -3077,6 +3084,10 @@ async def mentor_connections(email: Optional[str] = None):
 
         # Determine status.
         status = connection_status.get(uid, "active")
+
+        # Skip if they are not connected (i.e. pending, withdrawn, declined, none, rejected)
+        if status in ("none", "withdrawn", "declined", "rejected", "pending", "pending_sent"):
+            continue
 
         # Force completed connections to have 100% progress
         if status == "completed":

@@ -414,22 +414,6 @@ ${email}`;
   return (
     <View accessibilityLabel="Internships and jobs feed">
       <SuccessBurst visible={burst.show} onHide={() => setBurst({ show: false, label: '' })} label={burst.label} />
-      {/* Tier hint banner */}
-      <View style={s.tierBanner}>
-        <View style={s.tierBadge}>
-          <Briefcase size={14} color="#FCD34D" />
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.tierTxt}>
-            Live jobs from <Text style={{ color: '#FCD34D', fontFamily: FONTS.xbold }}>11 sources</Text> · personalised to your tier
-          </Text>
-          <Text style={s.tierSub}>Allowed for you: {allowedTypes.join(' · ')}</Text>
-        </View>
-        <Pressable onPress={onRefresh} disabled={refreshing} style={[s.tierCta, refreshing && { opacity: 0.6 }]}>
-          {refreshing ? <ActivityIndicator size="small" color={SC.accentBright} /> : <RefreshCcw size={11} color={SC.accentBright} />}
-          <Text style={s.tierCtaText}>{refreshing ? 'Refreshing…' : 'Refresh'}</Text>
-        </Pressable>
-      </View>
        {/* Premium Tab Bar and Dropdown Filters */}
       <View style={s.headerRow}>
         {/* Left side: Tabs */}

@@ -19,10 +19,11 @@ import {
   TouchableOpacity,
   Linking,
   Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Star, MessageCircle, Linkedin, Calendar, Clock } from 'lucide-react-native';
+import { ArrowLeft, Star, MessageCircle, ExternalLink, Calendar, Clock } from 'lucide-react-native';
 import { Colors as C, Spacing, Typography, Shadows } from '@/src/theme';
 import { Card, Button, Input } from '@/src/views/components';
 import { api } from '@/src/models/services/api';
@@ -129,9 +130,14 @@ export default function MentorProfileScreen() {
         topic: topic.trim(),
       });
       setBooked(true);
-      Alert.alert('Booked!', `Your session with ${displayName} is confirmed.`, [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      if (Platform.OS === 'web') {
+        window.alert(`Your session with ${displayName} is confirmed.`);
+        router.back();
+      } else {
+        Alert.alert('Booked!', `Your session with ${displayName} is confirmed.`, [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      }
     } catch (e: any) {
       Alert.alert('Booking failed', e.message);
     } finally {
@@ -176,7 +182,7 @@ export default function MentorProfileScreen() {
                 style={styles.linkedinBtn}
                 testID="mentor-linkedin-btn"
               >
-                <Linkedin size={16} color={C.info} />
+                <ExternalLink size={16} color={C.info} />
                 <Text style={[Typography.bodyBold, { color: C.info }]}>View LinkedIn</Text>
               </TouchableOpacity>
             )}
@@ -247,7 +253,7 @@ export default function MentorProfileScreen() {
           title={booked ? 'Session Booked' : submitting ? 'Booking...' : 'Confirm session'}
           loading={submitting}
           onPress={confirm}
-          disabled={!selectedSlot || booked || submitting}
+          disabled={!selectedSlot || !topic.trim() || booked || submitting}
           testID="booking-confirm-btn"
           style={{ marginTop: Spacing.lg }}
           icon={<MessageCircle size={18} color={C.white} />}
