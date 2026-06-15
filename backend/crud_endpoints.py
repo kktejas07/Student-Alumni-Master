@@ -56,6 +56,17 @@ router = APIRouter()
 def _now() -> datetime:
     return datetime.now(timezone.utc)
 
+import logging
+logger = logging.getLogger("crud_endpoints")
+
+def _fire_and_forget(coro):
+    async def _task():
+        try:
+            await coro
+        except Exception as e:
+            logger.error(f"Background task failed: {e}")
+    asyncio.create_task(_task())
+
 
 def _short_id(oid) -> str:
     return str(oid)[-8:] if oid else ""
@@ -331,7 +342,7 @@ async def my_bookings(email: Optional[str] = None, status: Optional[str] = None)
             if status == "confirmed" and sched.replace(tzinfo=timezone.utc) < now:
                 status = "completed"
                 # Best-effort DB update
-                asyncio.create_task(_db.bookings.update_one({"_id": b["_id"]}, {"$set": {"status": "completed"}}))
+                _fire_and_forget(_db.bookings.update_one({"_id": b["_id"]}, {"$set": {"status": "completed"}}))
         
         out.append({
             "id": _short_id(b["_id"]),
@@ -355,7 +366,7 @@ async def my_bookings(email: Optional[str] = None, status: Optional[str] = None)
             if s_status in ["booked", "scheduled", "confirmed"] and sched.replace(tzinfo=timezone.utc) < now:
                 s_status = "completed"
                 # Best-effort DB update
-                asyncio.create_task(_db.sessions.update_one({"_id": s["_id"]}, {"$set": {"status": "completed"}}))
+                _fire_and_forget(_db.sessions.update_one({"_id": s["_id"]}, {"$set": {"status": "completed"}}))
 
         # Map all session statuses cleanly
         mapped_status = (

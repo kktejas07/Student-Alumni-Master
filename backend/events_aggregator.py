@@ -187,7 +187,7 @@ def _safe_int(val: Any, default: int = 0) -> int:
         return default
     try:
         return int(float(val))
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, OverflowError):
         return default
 
 
@@ -554,8 +554,8 @@ async def _fetch_nptel_workshops(session: aiohttp.ClientSession) -> List[Dict[st
                             "https://images.unsplash.com/photo-"
                             "1524178232363-1fb2b075b655?w=800"),
                         "attendee_count": _safe_int(
-                            c.get("enrolled") or
-                            c.get("enrollment_count"), 10000),
+                            c.get("enrolled") if c.get("enrolled") is not None else c.get("enrollment_count"), 
+                            10000),
                         "capacity": 50000,
                         "url": f"https://nptel.ac.in/courses/{course_code}",
                     })

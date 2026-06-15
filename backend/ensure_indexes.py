@@ -33,6 +33,8 @@ async def main():
     logger.info("Creating indexes for bookings collection...")
     await safe_create(db.bookings, "student_id")
     await safe_create(db.bookings, "mentor_id")
+    await safe_create(db.bookings, [("student_id", 1), ("slot_start_iso", -1)])
+    await safe_create(db.bookings, [("mentor_id", 1), ("slot_start_iso", -1)])
     
     # Internships
     logger.info("Creating indexes for internships collection...")

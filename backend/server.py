@@ -46,6 +46,7 @@ import qrcode
 from bson import ObjectId
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
 from starlette.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr, field_validator
 
@@ -5775,7 +5776,8 @@ async def on_startup():
     await db.users.create_index("sa_id", unique=True, sparse=True)
     await db.career_suggestions.create_index("user_id")
     await db.chat_messages.create_index([("user_id", 1), ("session_id", 1)])
-    await db.bookings.create_index([("student_id", 1), ("mentor_id", 1)])
+    await db.bookings.create_index([("student_id", 1), ("slot_start_iso", -1)])
+    await db.bookings.create_index([("mentor_id", 1), ("slot_start_iso", -1)])
     await db.audit_logs.create_index("user_id")
     await db.audit_logs.create_index([("ts", -1)])
     await db.sessions.create_index("user_id")
@@ -5922,7 +5924,6 @@ _allow_creds = "*" not in _origins_list  # browsers reject credentials+wildcard
 if os.getenv("ENV") == "production" and "*" in _origins_list:
     raise ValueError("CORS wildcard (*) is not allowed in production. Set ALLOWED_ORIGINS to specific domains.")
 
-from fastapi.middleware.gzip import GZipMiddleware
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 app.add_middleware(
