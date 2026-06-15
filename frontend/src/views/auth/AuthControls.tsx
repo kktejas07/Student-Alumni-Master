@@ -59,9 +59,9 @@ const btn = StyleSheet.create({
 });
 
 // ─── Outline button ─────────────────────────────────────────────
-export function OutlineButton({ label, onPress, icon, disabled }: { label: string; onPress?: () => void; icon?: React.ReactNode; disabled?: boolean }) {
+export function OutlineButton({ label, onPress, icon, disabled, testID }: { label: string; onPress?: () => void; icon?: React.ReactNode; disabled?: boolean; testID?: string }) {
   return (
-    <Pressable onPress={disabled ? undefined : onPress} style={[ob.wrap, disabled && { opacity: 0.5 }]}>
+    <Pressable onPress={disabled ? undefined : onPress} style={[ob.wrap, disabled && { opacity: 0.5 }]} testID={testID}>
       {icon}
       <Text style={ob.text}>{label}</Text>
     </Pressable>

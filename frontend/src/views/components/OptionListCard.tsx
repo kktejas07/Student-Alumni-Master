@@ -64,6 +64,9 @@ export function OptionListCard({
                 <Pressable
                   key={opt.value}
                   onPress={() => onSelect(opt)}
+                  {...({
+                    onMouseDown: Platform.OS === 'web' ? (e: any) => e.preventDefault() : undefined,
+                  } as any)}
                   style={({ hovered, pressed }: any) => [
                     styles.row,
                     hovered && !isSelected && { backgroundColor: `${primary}33` },
@@ -84,6 +87,9 @@ export function OptionListCard({
               <View style={styles.divider} />
               <Pressable
                 onPress={onSelectOther}
+                {...({
+                  onMouseDown: Platform.OS === 'web' ? (e: any) => e.preventDefault() : undefined,
+                } as any)}
                 style={({ hovered, pressed }: any) => [
                   styles.row,
                   styles.otherRow,
