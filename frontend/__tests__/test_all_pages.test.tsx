@@ -17,7 +17,7 @@ export const ALL_ROUTES = [
   { path: "/intro", name: "Introduction", auth: false },
   { path: "/get-started", name: "Get Started", auth: false },
   { path: "/login", name: "Login", auth: false },
-  { path: "/me", name: "My Profile", auth: true },
+  { path: "/student-portal?tab=profile", name: "My Profile", auth: true },
   { path: "/profile/[id]", name: "User Profile", auth: true },
   { path: "/preferences", name: "Preferences", auth: true },
   { path: "/dash-preview", name: "Dashboard Preview", auth: false },

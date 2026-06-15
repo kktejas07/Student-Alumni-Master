@@ -67,7 +67,7 @@ export default function StudentPlatform() {
           onNav={(id) => {
             // Route these to standalone pages
             const routeMap: Record<string, string> = {
-              profile: '/me',
+              profile: '/student-portal?tab=profile',
               events: '/events',
               network: '/network',
               internships: '/internships',

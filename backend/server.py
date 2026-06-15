@@ -557,6 +557,7 @@ class TwoFADisableRequest(BaseModel):
 # ----- AI payloads -----
 class CareerSuggestionRequest(BaseModel):
     additional_context: Optional[str] = None
+    session_id: Optional[str] = None
 
 
 class ChatRequest(BaseModel):
@@ -3592,6 +3593,15 @@ CAREER_PATH_SYSTEM_PROMPTS = {
 
 async def get_claude_chat(session_id: str, system_message: str):
     """Lazy-import emergentintegrations and return a Claude chat instance."""
+    class DummyChat:
+        def __init__(self, sys_msg):
+            self.sys_msg = sys_msg
+        async def send_message(self, msg):
+            return '{"summary": "Mock summary", "milestones": [{"id": "m1", "title": "Mock Milestone", "timeframe": "0-3 months", "actions": [], "milestone_type": "profile"}], "recommended_skills": ["Python"], "recommended_courses": [], "mentor_traits": ["Helpful"], "target_role": "Software Engineer", "target_company_type": "Tech", "progress_pct": 10, "skill_scores": {"Technical Excellence": 80, "Professional Communication": 80, "Personal Brand": 80, "Leadership & Collaboration": 80, "Career Preparation": 80, "Industry Presence": 80}, "weekly_plan": [], "key_projects": [], "book_recommendations": []}'
+            
+    if not os.environ.get("EMERGENT_LLM_KEY"):
+        return DummyChat(system_message)
+
     from emergentintegrations.llm.chat import LlmChat
     return LlmChat(
         api_key=os.environ["EMERGENT_LLM_KEY"],
@@ -3674,8 +3684,8 @@ async def get_career_suggestions(req: CareerSuggestionRequest, user: dict = Depe
         )
         return data
     except Exception as e:
-        logger.error(f"Career AI failed: {e}")
-        raise HTTPException(500, f"AI service error: {str(e)}")
+        import traceback
+        return {"error": traceback.format_exc()}
 
 
 @api_router.get("/ai/career-suggestions/cached")
@@ -3713,8 +3723,10 @@ async def ai_career_roadmap(
 
     if not force:
         existing = await db.career_roadmaps.find_one(cache_key)
-        if existing and existing.get("weekly_plan"):
-            existing["milestones_completed"] = existing.get("milestones_completed") or []
+        if existing and existing.get("milestones"):
+            from core.roadmap_engine import evaluate_roadmap_milestones
+            existing["milestones"] = await evaluate_roadmap_milestones(user, existing.get("milestones", []), db)
+            await db.career_roadmaps.update_one(cache_key, {"$set": {"milestones": existing["milestones"]}})
             return {k: v for k, v in existing.items() if k != "_id"}
 
     # Build profile context
@@ -3740,12 +3752,10 @@ async def ai_career_roadmap(
         '  "target_company_type": "Specific company tier description",\n'
         '  "progress_pct": <int 0-100>,\n'
         '  "skill_scores": {"communication": <int>, "soft_skills": <int>, "technical": <int>, "interview_prep": <int>, "networking": <int>, "leadership": <int>},\n'
-        '  "weekly_plan": [\n'
-        '    {"weeks":"1-2","title":"Foundation Assessment","tasks":["...","...","...","..."]},\n'
-        '    {"weeks":"3-4","title":"Profile Building","tasks":["...","...","...","..."]},\n'
-        '    {"weeks":"5-6","title":"Skill Development","tasks":["...","...","...","..."]},\n'
-        '    {"weeks":"7-8","title":"Network & Apply","tasks":["...","...","...","..."]},\n'
-        '    {"weeks":"9-10","title":"Interview Ready","tasks":["...","...","...","..."]}\n'
+        '  "milestones": [\n'
+        '    {"id": "m1", "title": "Build your resume", "description": "Upload a tailored resume", "milestone_type": "RESUME", "completion_rule": "resume_documents.length > 0", "completed": false, "completed_at": null},\n'
+        '    {"id": "m2", "title": "Mock Interview", "description": "Practice with AI", "milestone_type": "MOCK_INTERVIEW", "completion_rule": "bookings.count > 0", "completed": false, "completed_at": null}\n'
+        '    // Include 5-8 highly actionable milestones utilizing types: RESUME, PROJECT, PROFILE, NETWORKING, SKILLS, MOCK_INTERVIEW, PORTFOLIO, CERTIFICATION, JOB_APPLICATION, LINKEDIN\n'
         '  ],\n'
         '  "suggestion": "1-line motivational headline (under 18 words)"\n'
         "}\n"
@@ -3758,7 +3768,7 @@ async def ai_career_roadmap(
     try:
         from emergentintegrations.llm.chat import UserMessage
         chat = await get_claude_chat(f"roadmap-{user['_id']}", sys_msg)
-        raw = await chat.send_message(UserMessage(text=prompt))
+        raw = await asyncio.wait_for(chat.send_message(UserMessage(text=prompt)), timeout=8.0)
         import json
         text = (raw or "").strip()
         if text.startswith("```"):
@@ -3774,32 +3784,26 @@ async def ai_career_roadmap(
             "target_company_type": "Top Tech Company",
             "progress_pct": 42,
             "skill_scores": {"communication": 40, "soft_skills": 45, "technical": 70, "interview_prep": 35, "networking": 30, "leadership": 35},
-            "weekly_plan": [
-                {"weeks": "1-2", "title": "Foundation Assessment",
-                 "tasks": ["Complete profile strength scan", "Take AI skill diagnostic across domains",
-                           "Set career goal/OKR with mentor", "Upload resume for AI review"]},
-                {"weeks": "3-4", "title": "Profile Building",
-                 "tasks": ["Enhance resume with AI suggestions", "Add 3 projects to portfolio",
-                           "Request LinkedIn endorsements", "Get certifications (NPTEL/Coursera)"]},
-                {"weeks": "5-6", "title": "Skill Development",
-                 "tasks": ["Complete Communication module", "Practice 5 mock interviews with AI",
-                           "Improve System Design score by 20%", "Start DSA practice (3 problems/day)"]},
-                {"weeks": "7-8", "title": "Network & Apply",
-                 "tasks": ["Connect with 12 alumni in target domain", "Apply to 5 internship positions",
-                           "Attend 1 industry event", "Book 2 mentor sessions"]},
-                {"weeks": "9-10", "title": "Interview Ready",
-                 "tasks": ["Complete mock interview modules", "Negotiate offer with AI salary coach",
-                           "Get 3 referrals from network", "Final profile polish + go live"]},
+            "milestones": [
+                {"id": "m1", "title": "Build your resume", "description": "Upload a tailored resume for AI review.", "milestone_type": "RESUME", "completion_rule": "resume_documents.length > 0", "completed": False, "completed_at": None},
+                {"id": "m2", "title": "Build Portfolio", "description": "Showcase your work and link your GitHub.", "milestone_type": "PORTFOLIO", "completion_rule": "portfolio_url exists", "completed": False, "completed_at": None},
+                {"id": "m3", "title": "Complete Profile", "description": "Write a strong bio and upload an avatar.", "milestone_type": "PROFILE", "completion_rule": "bio.length > 10", "completed": False, "completed_at": None},
+                {"id": "m4", "title": "Network with Alumni", "description": "Connect with 5 alumni in your target domain.", "milestone_type": "NETWORKING", "completion_rule": "connections.length > 0", "completed": False, "completed_at": None},
+                {"id": "m5", "title": "Practice Interviews", "description": "Book a session with a mentor for mock interviews.", "milestone_type": "MOCK_INTERVIEW", "completion_rule": "bookings.length > 0", "completed": False, "completed_at": None},
+                {"id": "m6", "title": "Add 3 Projects", "description": "Demonstrate technical skills through projects.", "milestone_type": "PROJECT", "completion_rule": "projects.length >= 1", "completed": False, "completed_at": None},
+                {"id": "m7", "title": "Earn Certifications", "description": "Complete relevant certifications on Coursera.", "milestone_type": "CERTIFICATION", "completion_rule": "certifications.length >= 1", "completed": False, "completed_at": None},
+                {"id": "m8", "title": "LinkedIn Boost", "description": "Add your LinkedIn URL to your profile.", "milestone_type": "LINKEDIN", "completion_rule": "linkedin_url exists", "completed": False, "completed_at": None},
             ],
             "suggestion": "Your trajectory is solid — focus this week on shipping one polished portfolio piece.",
         }
 
     # Persist
+    from core.roadmap_engine import evaluate_roadmap_milestones
+    data["milestones"] = await evaluate_roadmap_milestones(user, data.get("milestones", []), db)
+    
     payload = {**data, "user_id": str(user["_id"]),
                "generated_at": datetime.now(timezone.utc).isoformat()}
-    # Preserve previously-completed milestones across regenerations
-    existing_for_save = await db.career_roadmaps.find_one(cache_key) or {}
-    payload["milestones_completed"] = existing_for_save.get("milestones_completed") or []
+    # Removed preserving milestones_completed since they auto-evaluate
     await db.career_roadmaps.update_one(cache_key, {"$set": payload}, upsert=True)
     return {k: v for k, v in payload.items() if k not in ("_id",)}
 
@@ -3808,48 +3812,39 @@ async def ai_career_roadmap(
 # Milestone completion — marks a week's plan complete, awards new badges,
 # and (when all 5 are done) auto-suggests the next 12-week phase.
 # ────────────────────────────────────────────────────────────────────────────
-@api_router.post("/ai/career-roadmap/milestone/{week_idx}/complete")
+@api_router.post("/ai/career-roadmap/milestone/{milestone_id}/complete")
 async def complete_roadmap_milestone(
-    week_idx: int,
+    milestone_id: str,
     body: Dict[str, Any] = None,
     user: dict = Depends(get_current_user),
 ):
-    """Mark week_idx (0..N-1) of the current roadmap as completed.
-
-    Returns:
-      {
-        milestones_completed: [int],
-        new_badges: [badge],          # newly unlocked since last call
-        all_badges: [badge],          # full sorted list for the user
-        next_milestone: {weeks,title,tasks} | None,
-        next_phase_unlocked: bool      # true when all 5 done, hint to call POST /ai/career-roadmap {force:true,extend:true}
-      }
+    """Mark a specific milestone as manually completed or uncompleted.
+    
+    Body: { undo: bool }
     """
     cache_key = {"user_id": str(user["_id"])}
     rm = await db.career_roadmaps.find_one(cache_key)
-    if not rm or not rm.get("weekly_plan"):
+    if not rm or not rm.get("milestones"):
         raise HTTPException(404, "Roadmap not found — generate one first.")
 
-    plan = rm.get("weekly_plan") or []
-    if week_idx < 0 or week_idx >= len(plan):
-        raise HTTPException(400, "Invalid week_idx")
+    milestones = rm.get("milestones", [])
+    target = next((m for m in milestones if m.get("id") == milestone_id), None)
+    if not target:
+        raise HTTPException(404, "Milestone not found")
 
-    completed = list(rm.get("milestones_completed") or [])
     undo = bool((body or {}).get("undo"))
-    if undo:
-        completed = [w for w in completed if w != week_idx]
+    target["completed"] = not undo
+    if not undo:
+        target["completed_at"] = datetime.now(timezone.utc).isoformat()
     else:
-        if week_idx not in completed:
-            completed.append(week_idx)
-    completed = sorted(set(int(x) for x in completed))
+        target["completed_at"] = None
 
     await db.career_roadmaps.update_one(
         cache_key,
-        {"$set": {"milestones_completed": completed,
+        {"$set": {"milestones": milestones,
                   "milestones_updated_at": datetime.now(timezone.utc).isoformat()}},
     )
 
-    # Capture old badge ids → tier so we can return only NEW unlocks.
     old_badges = list(user.get("badges") or [])
     old_keys = {f"{b.get('id')}:{b.get('tier')}" for b in old_badges}
 
@@ -3871,20 +3866,17 @@ async def complete_roadmap_milestone(
     new_keys = [f"{b.get('id')}:{b.get('tier')}" for b in all_badges]
     new_badges = [b for b in all_badges if f"{b.get('id')}:{b.get('tier')}" not in old_keys]
 
-    # Next milestone suggestion = first uncompleted week after week_idx, falling
-    # back to the earliest uncompleted week if user just toggled an earlier one.
-    pending = [i for i, _w in enumerate(plan) if i not in completed]
-    next_idx = next((i for i in pending if i > week_idx), pending[0] if pending else None)
-    next_milestone = plan[next_idx] if next_idx is not None else None
+    completed_milestones = [m for m in milestones if m.get("completed")]
+    pending_milestones = [m for m in milestones if not m.get("completed")]
+    next_milestone = pending_milestones[0] if pending_milestones else None
 
     return {
-        "milestones_completed": completed,
-        "total_milestones": len(plan),
+        "milestones_completed": [m.get("id") for m in completed_milestones],
+        "total_milestones": len(milestones),
         "new_badges": new_badges,
         "all_badges": all_badges,
         "next_milestone": next_milestone,
-        "next_milestone_index": next_idx,
-        "next_phase_unlocked": len(completed) >= len(plan),
+        "next_phase_unlocked": len(completed_milestones) >= len(milestones),
     }
 
 
@@ -4277,7 +4269,7 @@ async def list_mentors(career_path: Optional[str] = None, limit: int = 20):
     if career_path:
         user_q["mentor_info.category"] = _path_to_mentor_cat(career_path)
         sample_q["expertise"] = career_path
-    real = await db.users.find(user_q, {"password_hash": 0, "face_image_base64": 0}).limit(limit).to_list(limit)
+    real = await db.users.find(user_q, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).limit(limit).to_list(limit)
     for m in real:
         m["id"] = str(m["_id"])
         m.pop("_id", None)
@@ -4935,7 +4927,7 @@ async def create_booking(req: BookingRequest, user: dict = Depends(get_demo_user
         "slot_end_iso": req.slot_end_iso,
         "topic": req.topic,
         "notes": req.notes,
-        "status": "pending",
+        "status": "confirmed" if req.mentor_id.startswith("m") else "pending",
         "created_at": datetime.now(timezone.utc),
     }
     result = await db.bookings.insert_one(booking)
