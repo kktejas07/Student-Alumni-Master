@@ -5538,9 +5538,26 @@ async def post_review(req: ReviewIn, user: dict = Depends(get_current_user)):
     """Submit a review — only students can review mentors. One review per booking_id."""
     if user["role"] not in ("student", "alumni"):
         raise HTTPException(403, "Only students/alumni can review mentors")
+    mentor_id = req.mentor_id
+    if mentor_id == "auto-resolved" and req.booking_id:
+        b_id = req.booking_id
+        booking = None
+        try:
+            if ObjectId.is_valid(b_id):
+                booking = await db.bookings.find_one({"_id": ObjectId(b_id)})
+        except Exception:
+            pass
+        if not booking:
+            try:
+                booking = await db.bookings.find_one({"id": b_id})
+            except Exception:
+                pass
+        if booking and "mentor_id" in booking:
+            mentor_id = str(booking["mentor_id"])
+
     review = await create_review(
         db,
-        mentor_id=req.mentor_id,
+        mentor_id=mentor_id,
         student_id=str(user["_id"]),
         student_name=user.get("full_name", "Student"),
         rating=req.rating,
@@ -5557,6 +5574,30 @@ async def post_review(req: ReviewIn, user: dict = Depends(get_current_user)):
     if isinstance(review.get("created_at"), datetime):
         review["created_at"] = review["created_at"].isoformat()
     return review
+
+
+class ReviewReplyIn(BaseModel):
+    reply: str
+
+
+@api_router.post("/reviews/{review_id}/reply")
+async def reply_to_review(review_id: str, req: ReviewReplyIn, user: dict = Depends(get_current_user)):
+    """Mentor replies to a review."""
+    if user["role"] != "mentor":
+        raise HTTPException(403, "Only mentors can reply to reviews")
+    
+    review = await db.reviews.find_one({"id": review_id})
+    if not review:
+        raise HTTPException(404, "Review not found")
+        
+    if str(review["mentor_id"]) != str(user["_id"]):
+        raise HTTPException(403, "You can only reply to your own reviews")
+        
+    await db.reviews.update_one(
+        {"id": review_id},
+        {"$set": {"mentor_reply": req.reply, "mentor_reply_at": datetime.now(timezone.utc)}}
+    )
+    return {"ok": True}
 
 
 @api_router.get("/mentors/{mentor_id}/reviews")

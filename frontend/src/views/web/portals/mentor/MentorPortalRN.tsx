@@ -41,7 +41,7 @@ import { NotificationsPanel } from './views/NotificationsPanel';
 import { ProfileSettingsView as SharedProfileSettingsView } from '../student/views/ProfileSettingsView';
 import { STUDENTS, SESSION_REQUESTS } from './data';
 import { useAutoTour } from '@/src/views/web/tour/TourProvider';
-import { request } from '@/src/models/services/api';
+import { request, api } from '@/src/models/services/api';
 
 const PAGE_TITLES: Record<NavId, string> = {
   dashboard:    'Dashboard',
@@ -59,6 +59,7 @@ const PAGE_TITLES: Record<NavId, string> = {
 export default function MentorPortalRN() {
   const router = useRouter();
   const logout = useAuthStore((st) => st.logout);
+  const user = useAuthStore((st) => st.user) as any;
 
   const params = useLocalSearchParams();
   const [active, setActive] = useState<NavId>('dashboard');
@@ -70,28 +71,43 @@ export default function MentorPortalRN() {
   const [unreadCount, setUnreadCount] = useState(0);
   useAutoTour('mentor');
 
-  // Fetch real-time notifications from the backend.
-  const fetchNotifications = async () => {
+  const [liveCounts, setLiveCounts] = useState({ students: 0, sessions: 0, requests: 0 });
+
+  // Fetch real-time notifications, connections, and requests for the sidebar
+  const fetchDashboardData = async () => {
     try {
-      const res = await request<{ items?: any[]; unread?: number }>('/notifications');
-      if (res) {
-        if (Array.isArray(res.items)) {
-          setNotifications(res.items);
-        }
-        if (typeof res.unread === 'number') {
-          setUnreadCount(res.unread);
-        }
+      const [notifRes, connectionsRes, bookingsRes] = await Promise.all([
+        request<{ items?: any[]; unread?: number }>('/notifications'),
+        user?.email ? api.mentorConnections(user.email) : Promise.resolve({ items: [] }),
+        api.myBookings()
+      ]);
+
+      if (notifRes) {
+        if (Array.isArray(notifRes.items)) setNotifications(notifRes.items);
+        if (typeof notifRes.unread === 'number') setUnreadCount(notifRes.unread);
       }
+
+      const connections = connectionsRes?.items || [];
+      const bookings = bookingsRes?.bookings || [];
+      
+      const pendingRequests = bookings.filter((b: any) => b.status === 'pending').length;
+      const upcomingSessions = bookings.filter((b: any) => b.status === 'confirmed' || b.status === 'accepted').length;
+
+      setLiveCounts({
+        students: connections.length,
+        sessions: upcomingSessions,
+        requests: pendingRequests,
+      });
     } catch (e) {
-      console.warn('Failed to fetch notifications:', e);
+      console.warn('Failed to fetch dashboard data:', e);
     }
   };
 
   useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 5000);
+    fetchDashboardData();
+    const interval = setInterval(fetchDashboardData, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user?.email]);
 
   useEffect(() => {
     if (params.tab && PAGE_TITLES[params.tab as NavId]) {
@@ -100,16 +116,6 @@ export default function MentorPortalRN() {
   }, [params.tab]);
 
   const [decisions, setDecisions] = useState<Record<number, 'pending' | 'accepted' | 'declined'>>({});
-
-  const acceptedCount = Object.values(decisions).filter((d) => d === 'accepted').length;
-  const declinedCount = Object.values(decisions).filter((d) => d === 'declined').length;
-  const pendingRequestsCount = SESSION_REQUESTS.length - acceptedCount - declinedCount;
-
-  const counts = {
-    students: STUDENTS.length,
-    sessions: STUDENTS.filter((s) => s.nextSession).length,
-    requests: pendingRequestsCount,
-  };
 
   const onLogout = async () => {
     try { await logout(); } catch {}
@@ -134,7 +140,7 @@ export default function MentorPortalRN() {
         collapsed={collapsed}
         onToggle={() => setCollapsed((c) => !c)}
         onLogout={onLogout}
-        counts={counts}
+        counts={liveCounts}
       />
 
       <View style={{ flex: 1, minWidth: 0, flexDirection: 'row' }}>
@@ -173,7 +179,7 @@ export default function MentorPortalRN() {
             }}
             onNav={(id) => setActive(id)}
             notifications={notifications}
-            onRefresh={fetchNotifications}
+            onRefresh={fetchDashboardData}
           />
         )}
       </View>
