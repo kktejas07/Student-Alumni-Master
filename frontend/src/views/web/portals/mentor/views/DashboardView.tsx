@@ -125,29 +125,35 @@ export function DashboardView({ onNav }: Props) {
         {/* Today's Sessions */}
         <View style={s.cardBox}>
           <View style={s.cardHead}>
-            <Text style={s.cardKicker}>TODAY'S SESSIONS</Text>
+            <Text style={s.cardKicker}>TODAY SESSIONS</Text>
             <Pressable onPress={() => onNav('sessions')}><Text style={s.linkText}>View all →</Text></Pressable>
           </View>
           <View style={{ gap: 8 }}>
-            {TODAY_SESSIONS.map((sess, i) => (
-              <View key={i} style={s.sessionRow}>
-                <Av initials={sess.avatar} size={40} color={sess.color} />
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>{sess.student}</Text>
-                  <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 11 }}>{sess.topic}</Text>
+            {TODAY_SESSIONS.length > 0 ? (
+              TODAY_SESSIONS.map((sess, i) => (
+                <View key={i} style={s.sessionRow}>
+                  <Av initials={sess.avatar} size={40} color={sess.color} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>{sess.student}</Text>
+                    <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 11 }}>{sess.topic}</Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end', marginRight: 10 }}>
+                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>{sess.time}</Text>
+                    <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 11 }}>{sess.duration} min</Text>
+                  </View>
+                  <Pressable
+                    onPress={() => Linking.openURL('https://meet.google.com/new')}
+                    style={({ hovered }: any) => [s.joinBtn, hovered && { backgroundColor: MC.tealD }]}
+                  >
+                    <Text style={{ color: MC.bg, fontFamily: FONTS.xbold, fontSize: 11 }}>Join →</Text>
+                  </Pressable>
                 </View>
-                <View style={{ alignItems: 'flex-end', marginRight: 10 }}>
-                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>{sess.time}</Text>
-                  <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 11 }}>{sess.duration} min</Text>
-                </View>
-                <Pressable
-                  onPress={() => Linking.openURL('https://meet.google.com/new')}
-                  style={({ hovered }: any) => [s.joinBtn, hovered && { backgroundColor: MC.tealD }]}
-                >
-                  <Text style={{ color: MC.bg, fontFamily: FONTS.xbold, fontSize: 11 }}>Join →</Text>
-                </Pressable>
+              ))
+            ) : (
+              <View style={[s.sessionRow, { justifyContent: 'center', paddingVertical: 20 }]}>
+                <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 13 }}>there were no sessions</Text>
               </View>
-            ))}
+            )}
           </View>
         </View>
 

@@ -225,11 +225,15 @@ async def mentor_dashboard(mentor_email: Optional[str] = None):
     ratings = [r.get("rating", 0) async for r in review_cur]
     avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else 4.8
 
-    # Today's sessions (next 24h)
+    # Today's sessions (exactly today)
     now = datetime.now(timezone.utc)
+    start_of_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_of_today = start_of_today + timedelta(days=1)
+    
     today_cur = _db.bookings.find({
         "mentor_id": mentor_id,
         "status": {"$ne": "cancelled"},
+        "scheduled_at": {"$gte": start_of_today, "$lt": end_of_today}
     }).sort("scheduled_at", 1).limit(5)
     today_bookings = [b async for b in today_cur]
     
@@ -3081,8 +3085,8 @@ async def mentor_connections(email: Optional[str] = None):
         # Determine status.
         status = connection_status.get(uid, "active")
 
-        # Skip if they are not connected/pending (i.e. withdrawn, declined, none)
-        if status in ("none", "withdrawn", "declined", "rejected"):
+        # Skip if they are not connected (i.e. pending, withdrawn, declined, none, rejected)
+        if status in ("none", "withdrawn", "declined", "rejected", "pending", "pending_sent"):
             continue
 
         # Force completed connections to have 100% progress
