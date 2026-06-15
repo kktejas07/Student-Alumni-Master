@@ -307,8 +307,15 @@ export const api = {
     request<any>('/notifications/register', { method: 'POST', body: { token, platform } }),
   notifications: () => request<any>('/notifications'),
   markNotificationsRead: (ids?: string[]) =>
-    request<any>('/notifications/mark-read', { method: 'POST', body: { ids } }),
-
+    request<any>('/notifications/mark-read', {
+      method: 'POST',
+      body: ids ? { ids } : {},
+    }),
+  dismissNotifications: (ids?: string[]) =>
+    request<any>('/notifications/dismiss', {
+      method: 'POST',
+      body: ids ? { ids } : {},
+    }),
   // Mentor portal: booking actions + session posting
   confirmBooking: (id: string) =>
     request<any>(`/bookings/${id}/confirm`, { method: 'POST', body: {} }),
@@ -325,6 +332,7 @@ export const api = {
   mentorConnections: (email?: string) => request<any>(`/mentor/connections${email ? `?email=${encodeURIComponent(email)}` : ''}`),
   acceptConnection: (otherId: string) => request<any>(`/network/accept/${otherId}`, { method: 'POST', body: {} }),
   rejectConnection: (otherId: string) => request<any>(`/network/reject/${otherId}`, { method: 'POST', body: {} }),
+  withdrawConnection: (otherId: string) => request<any>(`/network/withdraw/${otherId}`, { method: 'POST', body: {} }),
   createMentorBooking: (payload: {
     student_id: string;
     slot_start_iso: string;
