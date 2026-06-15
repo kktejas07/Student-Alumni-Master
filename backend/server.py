@@ -5921,6 +5921,9 @@ _allow_creds = "*" not in _origins_list  # browsers reject credentials+wildcard
 if os.getenv("ENV") == "production" and "*" in _origins_list:
     raise ValueError("CORS wildcard (*) is not allowed in production. Set ALLOWED_ORIGINS to specific domains.")
 
+from fastapi.middleware.gzip import GZipMiddleware
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=_allow_creds,
