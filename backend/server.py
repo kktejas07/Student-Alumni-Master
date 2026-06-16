@@ -4380,21 +4380,27 @@ async def ai_daily_brief(
 ):
     """
     Generate (or return cached) a personalized AI daily brief for the user.
-
-    Caches per (user_id + UTC-date) so it's computed at most once a day.
-    Pass `{"force": true}` in the body to regenerate.
-
-    Output: { brief: str, generated_at: iso, cached: bool }
+    Instrumented with per-step timing.
     """
+    import time as _time_mod
+    _t0 = _time_mod.perf_counter()
+    def _ms(since=None):
+        return f"{(_time_mod.perf_counter() - (since or _t0)) * 1000:.1f}ms"
+    print(f"[DAILY-BRIEF] REQUEST_RECEIVED | t=0", flush=True)
+
     body = body or {}
     force = bool(body.get("force"))
 
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     cache_key = {"user_id": str(user["_id"]), "date": today}
 
+    # ── STEP 1: DB cache lookup ──
+    _s1 = _time_mod.perf_counter()
     if not force:
         existing = await db.daily_briefs.find_one(cache_key)
+        print(f"[DAILY-BRIEF] STEP 1 db_cache_lookup   {_ms(_s1)}", flush=True)
         if existing and existing.get("brief"):
+            print(f"[DAILY-BRIEF] CACHE HIT | TOTAL {_ms()}", flush=True)
             return {
                 "brief": existing["brief"],
                 "generated_at": existing.get("generated_at"),
@@ -4431,11 +4437,16 @@ async def ai_daily_brief(
         "Write today's morning brief now."
     )
 
+    # ── STEP 2: Build context and call AI ──
+    _s2 = _time_mod.perf_counter()
     try:
         from emergentintegrations.llm.chat import UserMessage
         chat = await get_claude_chat(f"daily-{user['_id']}-{today}", system_msg)
+        print(f"[DAILY-BRIEF] STEP 2a get_claude_chat  {_ms(_s2)}", flush=True)
+        _s2b = _time_mod.perf_counter()
         brief_text = await chat.send_message(UserMessage(text=prompt))
         brief_text = (brief_text or "").strip().strip('"').strip()
+        print(f"[DAILY-BRIEF] STEP 2b ai_generation    {_ms(_s2b)} ← this is where AI latency lives", flush=True)
         if not brief_text:
             raise ValueError("empty response")
     except Exception as e:
@@ -4455,11 +4466,22 @@ async def ai_daily_brief(
     # Internal default when user hasn't picked one
     used_provider = pref_ai if pref_ai in PROVIDER_LABELS else "anthropic_claude"
     provider_label = PROVIDER_LABELS.get(used_provider, "Claude")
+    # ── STEP 3: DB write ──
+    _s3 = _time_mod.perf_counter()
     await db.daily_briefs.update_one(
         cache_key,
         {"$set": {**cache_key, "brief": brief_text, "generated_at": now_iso,
                   "provider": used_provider, "provider_label": provider_label}},
         upsert=True,
+    )
+    print(f"[DAILY-BRIEF] STEP 3 db_write          {_ms(_s3)}", flush=True)
+    print(
+        f"[DAILY-BRIEF] BREAKDOWN:\n"
+        f"  db_cache_lookup  {_ms(_s1)}\n"
+        f"  ai_generation    {_ms(_s2)}\n"
+        f"  db_write         {_ms(_s3)}\n"
+        f"  TOTAL            {_ms()}",
+        flush=True,
     )
     return {"brief": brief_text, "generated_at": now_iso, "cached": False,
             "provider": used_provider, "provider_label": provider_label}

@@ -76,9 +76,8 @@ from tier_logic import (
 
 load_dotenv(Path(__file__).parent / '.env')
 
-# Mongo connection (reuse main client config)
-from db import client as _mongo
-_db = _mongo[os.environ['DB_NAME']]
+# Mongo connection (reuse singleton from db.py)
+from db import db as _db
 
 router = APIRouter()
 
@@ -322,13 +321,16 @@ async def mentor_dashboard(mentor_email: Optional[str] = None):
 @router.get("/student/dashboard")
 async def student_dashboard(student_email: Optional[str] = None):
     import time
+async def student_dashboard(student_email: Optional[str] = None):
+    """Real student dashboard with per-step timing. Uses `student_email` query param if provided."""
+    import time
     _t0 = time.perf_counter()
-    print(f'[DASHBOARD TRACE] REQUEST_RECEIVED | t=0.0s')
-    print(f'[DASHBOARD TRACE] DB_QUERY_START | t={(time.perf_counter()-_t0)*1000:.1f}ms')
+    def _ms(since=None):
+        return f"{(time.perf_counter() - (since or _t0)) * 1000:.1f}ms"
+    print(f"[DASHBOARD] REQUEST_RECEIVED | t=0", flush=True)
 
-    """Real student dashboard. Uses `student_email` query param if provided
-    (frontend passes the logged-in user's email); otherwise falls back to
-    any onboarded student in the DB for unauthenticated public preview."""
+    # ── STEP 1: User profile lookup ──
+    _s1 = time.perf_counter()
     student = None
     if student_email:
         student = await _db.users.find_one({"email": student_email, "role": "student"})
@@ -336,23 +338,26 @@ async def student_dashboard(student_email: Optional[str] = None):
         student = await _db.users.find_one({"role": "student", "onboarding_completed": True})
         if not student:
             student = await _db.users.find_one({"role": "student"})
+    print(f"[DASHBOARD] STEP 1 profile_query       {_ms(_s1)} (total: {_ms()})", flush=True)
 
     sid = str((student or {}).get("_id", ""))
     cache_key = f"dashboard_student_{sid}"
     if cache_key in dashboard_cache:
+        print(f"[DASHBOARD] CACHE HIT | TOTAL {_ms()}", flush=True)
         return dashboard_cache[cache_key]
 
     name = (student or {}).get("full_name") or "Student"
     si = (student or {}).get("school_info") or {}
     sti = (student or {}).get("student_info") or {}
 
-    # Internship matches
+    # ── STEP 2: Internship queries ──
+    _s2 = time.perf_counter()
     internships_total = await _db.internships.count_documents({})
     new_today = await _db.internships.count_documents({
         "deadline": {"$gte": datetime.now(timezone.utc)},
     })
     student_skills_set = set(s.lower() for s in (student.get("skills", []) if student else []) if isinstance(s, str))
-    
+
     all_internships_cur = _db.internships.find({"deadline": {"$gte": datetime.now(timezone.utc)}}).sort("_id", -1).limit(50)
     scored_internships = []
     async for it in all_internships_cur:
@@ -361,9 +366,9 @@ async def student_dashboard(student_email: Optional[str] = None):
         if req_skills:
             match_pct = int(len(student_skills_set.intersection(req_skills)) / max(1, len(req_skills)) * 100)
         scored_internships.append({"match_pct": match_pct, "it": it})
-        
+
     scored_internships.sort(key=lambda x: x["match_pct"], reverse=True)
-    
+
     top_matches = []
     for score_obj in scored_internships[:3]:
         it = score_obj["it"]
@@ -378,8 +383,10 @@ async def student_dashboard(student_email: Optional[str] = None):
             "logo": (it.get("company") or "?")[0],
             "logoBg": _color_for(it.get("company", "")),
         })
+    print(f"[DASHBOARD] STEP 2 internship_queries  {_ms(_s2)} (total: {_ms()})", flush=True)
 
-    # Mentor connections via bookings
+    # ── STEP 3: Booking & workshop counts ──
+    _s3 = time.perf_counter()
     my_bookings = await _db.bookings.count_documents({"student_id": sid})
     completed_sessions = await _db.bookings.count_documents({"student_id": sid, "status": {"$in": ["completed", "confirmed"]}})
     apps_count = await _db.internship_applications.count_documents({"student_id": sid})
@@ -397,6 +404,10 @@ async def student_dashboard(student_email: Optional[str] = None):
         total_progress += min(100, int((wk_current / max(1, wk_total)) * 100))
     
     avg_course_completion = total_progress // max(1, workshops_total) if workshops_total > 0 else 0
+    print(f"[DASHBOARD] STEP 3 bookings_workshops   {_ms(_s3)} (total: {_ms()})", flush=True)
+
+    # ── STEP 4: Mentor recommendations (N queries in a loop — potential bottleneck) ──
+    _s4 = time.perf_counter()
     rec_mentors = []
     mentor_cur = _db.users.find({"role": "mentor"}).sort("_id", -1).limit(4)
     async for m in mentor_cur:
@@ -417,8 +428,10 @@ async def student_dashboard(student_email: Optional[str] = None):
             "bio": mi.get("bio") or "Experienced professional ready to share industry insights, career strategies, and guidance.",
             "skills": m.get("skills") or ["System Design", "Career Strategy"],
         })
+    print(f"[DASHBOARD] STEP 4 mentor_recs_loop     {_ms(_s4)} (total: {_ms()}) [{len(rec_mentors)} mentors × N booking queries]", flush=True)
 
-    # Upcoming events
+    # ── STEP 5: Upcoming events ──
+    _s5 = time.perf_counter()
     upcoming_cur = _db.events.find({
         "start_date": {"$gte": datetime.now(timezone.utc)},
     }).sort("start_date", 1).limit(3)
@@ -502,7 +515,9 @@ async def student_dashboard(student_email: Optional[str] = None):
     progress_pct = int(prog_profile + prog_mentors + prog_interns)
 
     # Compute tier (Bronze/Silver/Gold/Platinum)
+    _s6 = time.perf_counter()
     tier = await _student_tier_payload(student or {})
+    print(f"[DASHBOARD] STEP 6 tier_computation     {_ms(_s6)} (total: {_ms()})", flush=True)
 
     missing_profile = []
     if not (student and student.get("skills")): missing_profile.append("Skills")
@@ -533,8 +548,18 @@ async def student_dashboard(student_email: Optional[str] = None):
     }
     dashboard_cache[cache_key] = payload
     _t1 = time.perf_counter()
-    print(f'[DASHBOARD TRACE] DB_QUERY_END | duration={(_t1-_t0)*1000:.1f}ms')
-    print(f'[DASHBOARD TRACE] RESPONSE_SENT | TOTAL dashboard duration={(_t1-_t0)*1000:.1f}ms')
+    total_ms = (_t1 - _t0) * 1000
+    print(
+        f"[DASHBOARD] BREAKDOWN:\n"
+        f"  profile_query      {_ms(_s1)}\n"
+        f"  internship_queries {_ms(_s2)}\n"
+        f"  bookings_workshops {_ms(_s3)}\n"
+        f"  mentor_recs_loop   {_ms(_s4)}\n"
+        f"  events_query       {_ms(_s5)}\n"
+        f"  tier_computation   {_ms(_s6)}\n"
+        f"  TOTAL              {total_ms:.1f}ms",
+        flush=True,
+    )
     return payload
 
 
@@ -574,16 +599,13 @@ def format_time_ago(dt: datetime) -> str:
 # deterministic, lightly-randomised series for sparkline shape.
 @router.get("/student/intelligence")
 async def student_intelligence(student_email: Optional[str] = None):
+    """NexusOS Intelligence Center payload with per-step timing."""
     import time
     _t0 = time.perf_counter()
-    print(f'[INTEL TRACE] REQUEST_RECEIVED | t=0.0s')
-    print(f'[INTEL TRACE] DB_QUERY_START | t={(time.perf_counter()-_t0)*1000:.1f}ms')
+    def _ms(since=None):
+        return f"{(time.perf_counter() - (since or _t0)) * 1000:.1f}ms"
+    print(f"[INTEL] REQUEST_RECEIVED | t=0", flush=True)
 
-    """NexusOS Intelligence Center payload for the student dashboard.
-    Returns sparkline arrays, an area-chart series, KPI totals, an
-    activity feed, and an overall profile-completion percentage.
-    All values are derived from real collections (bookings, internships,
-    events) where possible; sparkline shapes are synthesised."""
     import hashlib, random
     student = None
     if student_email:
@@ -595,7 +617,11 @@ async def student_intelligence(student_email: Optional[str] = None):
     sid = str((student or {}).get("_id", ""))
     cache_key = f"intel_student_{sid}"
     if cache_key in intel_cache:
+        print(f"[INTEL] CACHE HIT | TOTAL {_ms()}", flush=True)
         return intel_cache[cache_key]
+    print(f"[INTEL] STEP 1 user_lookup             {_ms()} (after profile fetch)", flush=True)
+
+    _s2 = time.perf_counter()
 
     now = datetime.now(timezone.utc)
     if now.tzinfo is None:
@@ -668,6 +694,9 @@ async def student_intelligence(student_email: Optional[str] = None):
             if req_skills:
                 match_scores.append( int(len(student_skills.intersection(req_skills)) / len(req_skills) * 100) )
     avg_match = sum(match_scores)//len(match_scores) if match_scores else 65
+    print(f"[INTEL] STEP 2 applications_internships {_ms(_s2)} (internship apps + matching)", flush=True)
+
+    _s3 = time.perf_counter()
 
     # ── Sparklines (12-point trends, cumulative) ──
     def cumulative_sum(arr, start_val=0):
@@ -866,6 +895,9 @@ async def student_intelligence(student_email: Optional[str] = None):
 
     # Sort all events in reverse-chronological order
     activity_events.sort(key=lambda x: x["ts"], reverse=True)
+    print(f"[INTEL] STEP 3 activity_feed_queries    {_ms(_s3)} (bookings+apps+events+connections)", flush=True)
+
+    _s4 = time.perf_counter()
 
     # Format the time tags using our helper
     activity = []
@@ -984,6 +1016,19 @@ async def student_intelligence(student_email: Optional[str] = None):
         "activity": activity,
     }
     intel_cache[cache_key] = payload
+    print(
+        f"[INTEL] STEP 4 sparkline_serialize      {_ms(_s4)} (sparklines + momentum + serialize)",
+        flush=True,
+    )
+    print(
+        f"[INTEL] BREAKDOWN:\n"
+        f"  user_lookup               {_ms()[:5]}ms  (STEP 1)\n"
+        f"  applications_internships  {_ms(_s2)[:5]}ms  (STEP 2)\n"
+        f"  activity_feed_queries     {_ms(_s3)[:5]}ms  (STEP 3)\n"
+        f"  sparkline_serialize       {_ms(_s4)[:5]}ms  (STEP 4)\n"
+        f"  TOTAL                     {(time.perf_counter()-_t0)*1000:.1f}ms",
+        flush=True,
+    )
     return payload
 
 
