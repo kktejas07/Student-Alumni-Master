@@ -50,7 +50,7 @@ load_env() {
 
 # ── backend ───────────────────────────────────────────────────────────────────
 start_backend() {
-  info "Starting backend (FastAPI on :8000)…"
+  info "Starting backend (FastAPI on :8002)…"
 
   # Prefer python3.11 / python3.12 (requirements need >=3.10); fall back to python3
   PYTHON_CMD=""
@@ -97,11 +97,11 @@ start_backend() {
 
   cd "$BACKEND_DIR"
   "$VENV_BIN/python" -m uvicorn server:app \
-    --host 0.0.0.0 --port 8000 --reload \
+    --host 0.0.0.0 --port 8002 --reload \
     --log-level info &
   echo $! >> "$PID_FILE"
-  success "Backend started (PID $!) → http://localhost:8000"
-  success "API docs → http://localhost:8000/docs"
+  success "Backend started (PID $!) → http://localhost:8002"
+  success "API docs → http://localhost:8002/docs"
 }
 
 # ── frontend ──────────────────────────────────────────────────────────────────

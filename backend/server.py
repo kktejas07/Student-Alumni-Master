@@ -6097,6 +6097,10 @@ async def post_review(req: ReviewIn, user: dict = Depends(get_current_user)):
         pass
     if isinstance(review.get("created_at"), datetime):
         review["created_at"] = review["created_at"].isoformat()
+    if "_id" in review:
+        if isinstance(review["_id"], ObjectId):
+            review["_id"] = str(review["_id"])
+        review["id"] = review["_id"]
     return review
 
 
