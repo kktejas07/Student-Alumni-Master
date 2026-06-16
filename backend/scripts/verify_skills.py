@@ -22,15 +22,13 @@ sys.path.insert(0, os.path.abspath('.'))
 from dotenv import load_dotenv
 load_dotenv()
 
-from motor.motor_asyncio import AsyncIOMotorClient
-from core.career_intelligence import calculate_career_readiness, detect_career_path, snapshot_career_readiness
 from core.skill_score_engine import calculate_skill_scores
 from core.skill_analytics import generate_skill_analytics
 from core.skill_categorization import categorize_skill, SKILL_WEIGHTS, DEFAULT_WEIGHT
 
 MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
 DB_NAME = os.environ.get('DB_NAME', 'student_alumni_db')
-client = AsyncIOMotorClient(MONGO_URL)
+from db import client as client
 db = client[DB_NAME]
 
 

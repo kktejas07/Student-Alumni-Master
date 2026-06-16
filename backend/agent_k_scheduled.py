@@ -60,8 +60,6 @@ from typing import Any, Dict, List, Literal, Optional
 from bson import ObjectId
 from croniter import croniter
 from fastapi import APIRouter, Body, Header, HTTPException
-from motor.motor_asyncio import AsyncIOMotorClient
-from pathlib import Path
 from pydantic import BaseModel, Field, field_validator
 import pytz
 from dotenv import load_dotenv
@@ -82,7 +80,7 @@ from agent_k import (  # noqa: E402
 log = logging.getLogger("agent-k.scheduled")
 log.setLevel(logging.INFO)
 
-_mongo = AsyncIOMotorClient(os.environ["MONGO_URL"])
+from db import client as _mongo
 _db = _mongo[os.environ["DB_NAME"]]
 
 router = APIRouter(tags=["agent-k-scheduled"])

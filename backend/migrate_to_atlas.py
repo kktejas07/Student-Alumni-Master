@@ -9,8 +9,6 @@ import asyncio
 import os
 import sys
 from typing import Any, Dict, List
-from motor.motor_asyncio import AsyncIOMotorClient
-from dotenv import load_dotenv
 from pathlib import Path
 
 # Load env variables from backend/.env or root .env
@@ -96,8 +94,8 @@ async def main():
     print(f"  dst: …mongodb.net  /  {ATLAS_DB}")
     print("─" * 70)
 
-    src_client = AsyncIOMotorClient(LOCAL_URI, serverSelectionTimeoutMS=5000)
-    dst_client = AsyncIOMotorClient(ATLAS_URI, serverSelectionTimeoutMS=15000)
+    from db import client as src_client
+    from db import client as dst_client
 
     await src_client.admin.command("ping")
     await dst_client.admin.command("ping")

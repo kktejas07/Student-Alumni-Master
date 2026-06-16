@@ -20,8 +20,6 @@ import uuid
 from typing import Any, Dict, Tuple
 
 import requests
-from motor.motor_asyncio import AsyncIOMotorClient
-from bson import ObjectId
 
 # ---------------------------------------------------------------------
 # Config — read from /app/frontend/.env (EXPO_PUBLIC_BACKEND_URL)
@@ -159,7 +157,7 @@ async def section_A() -> dict:
     print(f"   Created mentor email={email} id={user_id}")
 
     # A1 — raw Mongo inspection
-    client = AsyncIOMotorClient(MONGO_URL)
+    from db import client as client
     db = client[DB_NAME]
     raw = await db.users.find_one({"_id": ObjectId(user_id)})
 
@@ -262,7 +260,7 @@ async def section_B() -> dict:
     report.add("B", "POST /users/onboarding 200", True)
 
     # Inspect db.audit_logs
-    client = AsyncIOMotorClient(MONGO_URL)
+    from db import client as client
     db = client[DB_NAME]
     cursor = db.audit_logs.find({"user_id": user_id, "source": "onboarding"})
     entries = await cursor.to_list(length=100)
@@ -410,7 +408,7 @@ async def section_D() -> None:
     )
     print(f"   Created legacy alumni email={email} id={user_id}")
 
-    client = AsyncIOMotorClient(MONGO_URL)
+    from db import client as client
     db = client[DB_NAME]
     await db.users.update_one(
         {"_id": ObjectId(user_id)},
@@ -497,7 +495,7 @@ async def section_E() -> None:
         report.add("E", "register w/ empty phone string 200", True)
         token = body["access_token"]
         uid = body["user"]["id"]
-        client = AsyncIOMotorClient(MONGO_URL)
+        from db import client as client
         db = client[DB_NAME]
         raw = await db.users.find_one({"_id": ObjectId(uid)})
         report.add("E", "raw phone is empty/null after empty submit",

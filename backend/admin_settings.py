@@ -20,8 +20,6 @@ from uuid import uuid4
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Header, Body, Request
-from motor.motor_asyncio import AsyncIOMotorClient
-from pathlib import Path
 from pydantic import BaseModel
 import jwt as _jwt
 
@@ -29,7 +27,7 @@ from core.roles import Role, Perm, SYSTEM_ROLES, seed_admin_roles
 
 load_dotenv(Path(__file__).parent / ".env")
 
-_mongo = AsyncIOMotorClient(os.environ["MONGO_URL"])
+from db import client as _mongo
 _db = _mongo[os.environ["DB_NAME"]]
 
 router = APIRouter(tags=["admin-settings"])

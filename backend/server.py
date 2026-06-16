@@ -47,8 +47,6 @@ from bson import ObjectId
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
 from starlette.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel, Field, EmailStr, field_validator
 
 # Rate limiting (imports only, setup after app is created)
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -98,7 +96,7 @@ import time
 _t0_mongo = time.perf_counter()
 print("[DB TRACE] Mongo client created")
 mongo_url = os.environ.get('MONGO_URL', 'mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin')
-client = AsyncIOMotorClient(mongo_url)
+from db import client as client
 db = client[os.environ.get('DB_NAME', 'studentalumniadmin')]
 
 @app.on_event("startup")
@@ -107,6 +105,7 @@ async def verify_mongo_connection():
         await client.admin.command('ping')
         _t1_mongo = time.perf_counter()
         print(f"[DB TRACE] Mongo connection established | Duration: {(_t1_mongo - _t0_mongo) * 1000:.1f}ms")
+        print(f"[DB TRACE] Mongo Topology: {client.topology_description}")
     except Exception as e:
         print(f"[DB TRACE] Mongo connection failed: {e}")
 
@@ -741,6 +740,8 @@ def serialize_user(user: dict) -> dict:
 
 async def get_current_user(request: Request) -> dict:
     """JWT auth dependency. Reads `Authorization: Bearer <token>` header."""
+    import time
+    _t0 = time.perf_counter()
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
         raise HTTPException(401, "Not authenticated")
@@ -748,7 +749,9 @@ async def get_current_user(request: Request) -> dict:
         payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
         if payload.get("type") != "access":
             raise HTTPException(401, "Invalid token type")
+        print(f'[AUTH TRACE] DB_QUERY_START | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
         user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
+        print(f'[AUTH TRACE] DB_QUERY_END | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
         if not user:
             raise HTTPException(401, "User not found")
         return user
@@ -937,7 +940,12 @@ async def login(request: Request, req: LoginRequest):
 @api_router.get("/auth/me", response_model=UserResponse)
 async def get_me(user: dict = Depends(get_current_user)):
     """Returns the currently authenticated user."""
-    return UserResponse(**serialize_user(user))
+    import time
+    _t0 = time.perf_counter()
+    print(f'[ME TRACE] REQUEST_RECEIVED | t=0.0s')
+    resp = UserResponse(**serialize_user(user))
+    print(f'[ME TRACE] RESPONSE_SENT | TOTAL me duration={(time.perf_counter()-_t0)*1000:.1f}ms')
+    return resp
 
 
 # ----------------------------------------------------------------------------

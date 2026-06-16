@@ -4,9 +4,6 @@ from dotenv import load_dotenv
 import logging
 
 load_dotenv()
-from motor.motor_asyncio import AsyncIOMotorClient
-
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("EnsureIndexes")
 
 async def main():
@@ -14,7 +11,7 @@ async def main():
     db_name = os.environ.get('DB_NAME', 'student_alumni')
     logger.info(f"Connecting to MongoDB: {mongo_url} | DB: {db_name}")
     
-    client = AsyncIOMotorClient(mongo_url)
+    from db import client as client
     db = client[db_name]
     
     async def safe_create(collection, *args, **kwargs):

@@ -5,12 +5,10 @@ import sys
 # Add parent directory to path to import core
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from motor.motor_asyncio import AsyncIOMotorClient
-from core.skill_categorization import Subcategory, DisplayCategory, SUBCATEGORY_TO_DISPLAY
 
 MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
 DB_NAME = os.environ.get("DB_NAME", "student_alumni_db")
-_mongo = AsyncIOMotorClient(MONGO_URL)
+from db import client as _mongo
 db = _mongo[DB_NAME]
 
 async def run_migration():

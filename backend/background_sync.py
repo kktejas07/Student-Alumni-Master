@@ -10,10 +10,6 @@ from jobs_feed import fetch_and_cache_all
 from events_aggregator import _aggregate_and_store
 from integrations import sync_courses_to_db, sync_internships_to_db
 
-from motor.motor_asyncio import AsyncIOMotorClient
-
-logger = logging.getLogger("background_sync")
-
 _sync_scheduler = None
 _db_client = None
 _db_handle = None
@@ -21,7 +17,7 @@ _db_handle = None
 def _get_db():
     global _db_client, _db_handle
     if _db_client is None:
-        _db_client = AsyncIOMotorClient(os.environ["MONGO_URL"])
+        from db import client as _db_client
         _db_handle = _db_client[os.environ["DB_NAME"]]
     return _db_handle
 

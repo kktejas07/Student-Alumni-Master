@@ -6,10 +6,6 @@ from pathlib import Path
 
 # Add backend dir to sys.path so we can import core modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from motor.motor_asyncio import AsyncIOMotorClient
-
-# Setup minimal logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -18,7 +14,7 @@ DB_NAME = os.environ.get("DB_NAME", "student_alumni_db")
 
 async def main():
     logger.info("Starting skill backfill migration...")
-    client = AsyncIOMotorClient(MONGO_URL)
+    from db import client as client
     db = client[DB_NAME]
     
     # We must import sync_user_skills here after path is setup

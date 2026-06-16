@@ -1,6 +1,4 @@
 import asyncio
-from motor.motor_asyncio import AsyncIOMotorClient
-import json
 from bson import ObjectId
 
 class JSONEncoder(json.JSONEncoder):
@@ -10,7 +8,7 @@ class JSONEncoder(json.JSONEncoder):
         return super().default(o)
 
 async def main():
-    client = AsyncIOMotorClient("mongodb://localhost:27017")
+    from db import client as client
     db = client["student_alumni_db"]
     
     mentor = await db.users.find_one({"email": "mentor1@mail.com"})

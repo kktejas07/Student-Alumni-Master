@@ -57,8 +57,6 @@ from typing import Any, Dict, List, Optional
 from bson import ObjectId
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Query, Request, Body, Response
-from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel
 import random
 from cachetools import TTLCache, cached
 from pathlib import Path
@@ -79,7 +77,7 @@ from tier_logic import (
 load_dotenv(Path(__file__).parent / '.env')
 
 # Mongo connection (reuse main client config)
-_mongo = AsyncIOMotorClient(os.environ['MONGO_URL'])
+from db import client as _mongo
 _db = _mongo[os.environ['DB_NAME']]
 
 router = APIRouter()

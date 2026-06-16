@@ -29,8 +29,6 @@ import httpx
 from bson import ObjectId
 from dotenv import load_dotenv
 from fastapi import APIRouter, Header, HTTPException
-from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel
 
 load_dotenv()
 
@@ -39,7 +37,7 @@ router = APIRouter()
 # ─── Mongo ─────────────────────────────────────────────────────────
 _MONGO_URL = os.getenv("MONGO_URL") or "mongodb://localhost:27017"
 _DB_NAME   = os.getenv("DB_NAME") or "career_platform"
-_client    = AsyncIOMotorClient(_MONGO_URL)
+from db import client as _client
 _db        = _client[_DB_NAME]
 
 # ─── Auth helpers ──────────────────────────────────────────────────
