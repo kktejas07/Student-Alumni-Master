@@ -14,7 +14,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, TextInput as RNTextInput } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   ArrowLeft, Camera, Upload, GraduationCap, BriefcaseBusiness, BookOpen, Award, Sparkles, Code, CheckCircle2, Check,
   Compass, Code as CodeIcon, Rocket, MessageSquare, Brain, UsersRound, TrendingUp, FileText, Palette, HandHeart,
@@ -123,10 +123,20 @@ function Stepper({ step }: { step: number }) {
 
 export default function MentorOnboard() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ step?: string }>();
   const toast = useToast();
   const user = useAuthStore((u) => u.user);
   const refreshUser = useAuthStore((u) => u.refreshUser);
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(params.step ? parseInt(params.step, 10) : 0);
+
+  useEffect(() => {
+    if (params.step) {
+      const parsed = parseInt(params.step, 10);
+      if (!isNaN(parsed) && parsed >= 0 && parsed < TOTAL) {
+        setStep(parsed);
+      }
+    }
+  }, [params.step]);
 
   // ---- Step 1: Profile ----
   const [jobTitle,  setJobTitle]    = useState('');

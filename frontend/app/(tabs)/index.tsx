@@ -39,9 +39,9 @@ export default function HomeTab() {
             onOpenNotifications={() => router.push('/notifications')}
             onOpenProfile={() => router.push('/profile')}
             onActionPress={(id) => {
-              if (id === 'create-event') router.push('/(tabs)/courses');
-              else if (id === 'earnings')  router.push('/(tabs)/deals');
-              else if (id === 'feedback' || id === 'analytics') router.push('/(tabs)/network');
+              if (id === 'create-event') router.push('/courses');
+              else if (id === 'earnings')  router.push('/deals');
+              else if (id === 'feedback' || id === 'analytics') router.push('/network');
             }}
           />
         ) : role === 'college' ? (
@@ -52,9 +52,9 @@ export default function HomeTab() {
             onOpenProfile={() => router.push('/profile')}
             onActionPress={(id) => {
               if (id === 'announce')   router.push('/notifications');
-              else if (id === 'new-event') router.push('/(tabs)/deals');
-              else if (id === 'analytics') router.push('/(tabs)/network');
-              else if (id === 'students')  router.push('/(tabs)/network');
+              else if (id === 'new-event') router.push('/deals');
+              else if (id === 'analytics') router.push('/network');
+              else if (id === 'students')  router.push('/network');
             }}
           />
         ) : (
@@ -65,13 +65,13 @@ export default function HomeTab() {
             onOpenProfile={() => router.push('/profile')}
             onActionPress={(id) => {
               switch (id) {
-                case 'alumni':     router.push('/(tabs)/network'); break;
-                case 'jobs':       router.push('/(tabs)/courses'); break;
-                case 'events':     router.push('/(tabs)/deals');   break;
-                case 'mentorship': router.push('/(tabs)/network'); break;
+                case 'alumni':     router.push('/network'); break;
+                case 'jobs':       router.push('/courses'); break;
+                case 'events':     router.push('/deals');   break;
+                case 'mentorship': router.push('/network'); break;
                 case 'announce':   router.push('/notifications');  break;
-                case 'leaderboard':router.push('/(tabs)/network'); break;
-                case 'resources':  router.push('/(tabs)/courses'); break;
+                case 'leaderboard':router.push('/network'); break;
+                case 'resources':  router.push('/courses'); break;
                 case 'settings':   router.push('/profile');        break;
               }
             }}
