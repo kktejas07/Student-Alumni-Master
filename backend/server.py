@@ -96,18 +96,8 @@ import time
 _t0_mongo = time.perf_counter()
 print("[DB TRACE] Mongo client created")
 mongo_url = os.environ.get('MONGO_URL', 'mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin')
-from db import client as client
-db = client[os.environ.get('DB_NAME', 'studentalumniadmin')]
-
-@app.on_event("startup")
-async def verify_mongo_connection():
-    try:
-        await client.admin.command('ping')
-        _t1_mongo = time.perf_counter()
-        print(f"[DB TRACE] Mongo connection established | Duration: {(_t1_mongo - _t0_mongo) * 1000:.1f}ms")
-        print(f"[DB TRACE] Mongo Topology: {client.topology_description}")
-    except Exception as e:
-        print(f"[DB TRACE] Mongo connection failed: {e}")
+from db import client, db as _db_default
+db = _db_default
 
 # JWT configuration
 JWT_SECRET = os.environ.get('JWT_SECRET', '44ef879c2317ef383b123617fdac89bc7291a27e3848b8dbdfb9a1c1d8e8f8e9')
@@ -119,6 +109,18 @@ app = FastAPI(title="Student Alumni Platform API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernetes ingress requirement)
+
+
+@app.on_event("startup")
+async def verify_mongo_connection():
+    """Warm the Mongo connection on startup and print topology."""
+    try:
+        await client.admin.command('ping')
+        _t1_mongo = time.perf_counter()
+        print(f"[DB TRACE] Mongo connection established | Duration: {(_t1_mongo - _t0_mongo) * 1000:.1f}ms", flush=True)
+        print(f"[DB TRACE] Mongo Topology: {client.topology_description}", flush=True)
+    except Exception as e:
+        print(f"[DB TRACE] Mongo connection failed: {e}", flush=True)
 
 
 # ----------------------------------------------------------------------------
