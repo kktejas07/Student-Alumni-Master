@@ -46,6 +46,7 @@ import qrcode
 from bson import ObjectId
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
 from starlette.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr, field_validator
 
@@ -5422,9 +5423,9 @@ async def create_booking(req: BookingRequest, user: dict = Depends(get_demo_user
 async def my_bookings(user: dict = Depends(get_current_user)):
     """Returns bookings for the current user (as student or as mentor)."""
     user_id_str = str(user.get("_id") or user.get("id"))
-    query = {"student_id": user_id_str} if user["role"] == "student" \
+    query = {"student_id": user_id_str} if user.get("role") == "student" \
         else {"mentor_id": user_id_str}
-    items = await db.bookings.find(query).sort("slot_start_iso", 1).to_list(100)
+    items = await db.bookings.find(query).sort("slot_start_iso", -1).to_list(100)
     
     # If no bookings exist in database for this user, auto-seed a few so they have interactive sessions
     if not items:
@@ -5470,7 +5471,7 @@ async def my_bookings(user: dict = Depends(get_current_user)):
                             "created_at": datetime.now(timezone.utc),
                         })
             # Re-fetch after inserting
-            items = await db.bookings.find(query).sort("slot_start_iso", 1).to_list(100)
+            items = await db.bookings.find(query).sort("slot_start_iso", -1).to_list(100)
         except Exception as e:
             print(f"Error auto-seeding bookings: {e}")
 
@@ -5492,6 +5493,7 @@ async def my_bookings(user: dict = Depends(get_current_user)):
             pass
 
     out = []
+    now = datetime.now(timezone.utc)
     for item in items:
         other_id = item.get("student_id") if user["role"] == "mentor" else item.get("mentor_id")
         other_name = item.get("student_name") if user["role"] == "mentor" else item.get("mentor_name")
@@ -5505,6 +5507,13 @@ async def my_bookings(user: dict = Depends(get_current_user)):
         sched = item.get("scheduled_at")
         sched_iso = sched.isoformat() if isinstance(sched, datetime) else sched
         start_iso = item.get("slot_start_iso") or sched_iso
+        
+        status = item.get("status", "pending")
+        if status in ["confirmed", "booked", "scheduled"] and sched and isinstance(sched, datetime) and sched.replace(tzinfo=timezone.utc) < now:
+            status = "completed"
+            # Best-effort DB update
+            import asyncio
+            asyncio.create_task(db.bookings.update_one({"_id": item["_id"]}, {"$set": {"status": "completed"}}))
         
         doc = {
             "id": str(item["_id"]),
@@ -5522,7 +5531,7 @@ async def my_bookings(user: dict = Depends(get_current_user)):
             "slot_end_iso": item.get("slot_end_iso") or start_iso,
             "duration_minutes": item.get("duration_minutes", 45),
             "amount_paid": item.get("amount_paid"),
-            "status": item.get("status"),
+            "status": status,
         }
         out.append(doc)
     return {"bookings": out}
@@ -6304,7 +6313,8 @@ async def on_startup():
     await db.users.create_index("sa_id", unique=True, sparse=True)
     await db.career_suggestions.create_index("user_id")
     await db.chat_messages.create_index([("user_id", 1), ("session_id", 1)])
-    await db.bookings.create_index([("student_id", 1), ("mentor_id", 1)])
+    await db.bookings.create_index([("student_id", 1), ("slot_start_iso", -1)])
+    await db.bookings.create_index([("mentor_id", 1), ("slot_start_iso", -1)])
     await db.audit_logs.create_index("user_id")
     await db.audit_logs.create_index([("ts", -1)])
     await db.sessions.create_index("user_id")
@@ -6451,6 +6461,8 @@ _allow_creds = "*" not in _origins_list  # browsers reject credentials+wildcard
 # Fail-fast: wildcard CORS is insecure in production
 if os.getenv("ENV") == "production" and "*" in _origins_list:
     raise ValueError("CORS wildcard (*) is not allowed in production. Set ALLOWED_ORIGINS to specific domains.")
+
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 app.add_middleware(
     CORSMiddleware,
