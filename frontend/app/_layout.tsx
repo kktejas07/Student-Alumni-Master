@@ -20,6 +20,7 @@ import {
   Manrope_500Medium,
   Manrope_600SemiBold,
   Manrope_700Bold,
+  Manrope_800ExtraBold,
 } from '@expo-google-fonts/manrope';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
