@@ -4797,6 +4797,9 @@ async def list_mentors(career_path: Optional[str] = None, limit: int = 20):
     for m in real:
         m["id"] = str(m["_id"])
         m.pop("_id", None)
+        if "mentor_rating" in m:
+            m["rating"] = m["mentor_rating"].get("rating", 5.0)
+            m["total_reviews"] = m["mentor_rating"].get("total_reviews", 0)
     sample = await db.sample_mentors.find(sample_q, {"_id": 0}).limit(limit).to_list(limit)
     return {"mentors": real + sample}
 

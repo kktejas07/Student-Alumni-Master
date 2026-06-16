@@ -337,11 +337,11 @@ export function FeedbackView() {
         {/* OVERALL RATING Card */}
         <View style={[s.card, { flex: 1, minWidth: 180 }]}>
           <Text style={s.cardKicker}>OVERALL RATING</Text>
-          <Text style={s.hugeValue}>{stats?.average_rating ? stats.average_rating.toFixed(1) : '0.0'}</Text>
+          <Text style={s.hugeValue}>{stats?.average ? stats.average.toFixed(1) : '0.0'}</Text>
           <View style={{ marginVertical: 4 }}>
-            <StarRow rating={stats?.average_rating ? Math.round(stats.average_rating) : 0} size={15} />
+            <StarRow rating={stats?.average ? Math.round(stats.average) : 0} size={15} />
           </View>
-          <Text style={s.reviewsCountLabel}>{stats?.total_reviews || 0} reviews</Text>
+          <Text style={s.reviewsCountLabel}>{stats?.total || 0} reviews</Text>
         </View>
 
         {/* RATING BREAKDOWN Card */}
@@ -349,8 +349,8 @@ export function FeedbackView() {
           <Text style={s.cardKicker}>RATING BREAKDOWN</Text>
           <View style={{ marginTop: 8, gap: 5 }}>
             {[5, 4, 3, 2, 1].map((star) => {
-              const count = stats?.rating_breakdown?.[String(star)] || 0;
-              const total = stats?.total_reviews || 1;
+              const count = stats?.distribution?.[String(star)] || 0;
+              const total = stats?.total || 1;
               const pct = Math.round((count / total) * 100);
               return (
                 <View key={star} style={s.breakdownRow}>
