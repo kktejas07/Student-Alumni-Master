@@ -13,6 +13,7 @@ with status='mock_connected' so the UI can show Connected/Disconnect
 states. Wiring real OAuth flows can plug into this same row schema.
 """
 from __future__ import annotations
+from pathlib import Path
 import os, json
 from datetime import datetime, timezone
 from typing import Optional, Any, Dict, List

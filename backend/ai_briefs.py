@@ -13,6 +13,7 @@ Uses emergentintegrations LlmChat (Claude 4.5 Sonnet).
 """
 from __future__ import annotations
 
+from pydantic import BaseModel
 import os
 from datetime import datetime, timezone
 from pathlib import Path

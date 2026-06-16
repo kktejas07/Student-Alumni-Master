@@ -35,6 +35,7 @@ ENDPOINTS:
 """
 from __future__ import annotations
 
+from pydantic import BaseModel
 import os
 from datetime import datetime, timezone, timedelta
 from pathlib import Path

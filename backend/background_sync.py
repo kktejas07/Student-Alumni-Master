@@ -10,6 +10,8 @@ from jobs_feed import fetch_and_cache_all
 from events_aggregator import _aggregate_and_store
 from integrations import sync_courses_to_db, sync_internships_to_db
 
+logger = logging.getLogger("background_sync")
+
 _sync_scheduler = None
 _db_client = None
 _db_handle = None

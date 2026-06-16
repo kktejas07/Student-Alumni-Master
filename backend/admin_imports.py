@@ -23,6 +23,7 @@ Categorization rules (applied in order, first match wins):
 
 Internships (Intern / Internship / Trainee in designation) do NOT count.
 """
+from pydantic import BaseModel
 import io
 import os
 import re

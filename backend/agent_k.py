@@ -29,6 +29,7 @@ Collections:
   agent_k_prefs      { user_id, auto_approve_read, auto_approve_write, ... }
 """
 from __future__ import annotations
+from pathlib import Path
 import os
 import json
 import logging

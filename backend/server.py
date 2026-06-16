@@ -45,6 +45,7 @@ import pyotp
 import qrcode
 from bson import ObjectId
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
+from pydantic import BaseModel, Field, EmailStr, field_validator
 from starlette.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
@@ -752,7 +753,7 @@ async def get_current_user(request: Request) -> dict:
         if payload.get("type") != "access":
             raise HTTPException(401, "Invalid token type")
         print(f'[AUTH TRACE] DB_QUERY_START | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
-        user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
+        user = await db.users.find_one({"_id": ObjectId(payload["sub"])}, {"resume_documents": 0})
         print(f'[AUTH TRACE] DB_QUERY_END | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
         if not user:
             raise HTTPException(401, "User not found")

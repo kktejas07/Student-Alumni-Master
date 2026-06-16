@@ -19,6 +19,7 @@ Status flow:
     any      → admin deletes        → soft-deleted (colleges_archive)
 """
 
+from pydantic import BaseModel
 import os
 import re
 import asyncio

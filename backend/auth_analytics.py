@@ -16,6 +16,7 @@ Endpoints:
   GET  /api/auth/events            — recent events for current user (auth required)
 """
 from __future__ import annotations
+from pydantic import BaseModel
 import os
 import hashlib
 from datetime import datetime, timezone, timedelta
