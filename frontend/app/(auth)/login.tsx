@@ -7,7 +7,7 @@ import { useRouter, useLocalSearchParams, Link } from 'expo-router';
 import { ArrowLeft, Eye, EyeOff, Mail, Lock } from 'lucide-react-native';
 import Svg, { Path, G } from 'react-native-svg';
 import { AuthShell } from '@/src/views/auth/AuthShell';
-import { AuthInput, PrimaryButton, OutlineButton, StrengthMeter } from '@/src/views/auth/AuthControls';
+import { AuthInput, PrimaryButton, OutlineButton, PasswordRules } from '@/src/views/auth/AuthControls';
 import { ROLE_META, type Role } from '@/src/views/auth/RoleCards';
 import { AC, FONTS } from '@/src/views/auth/tokens';
 import { trackAuth, passwordStrength } from '@/src/lib/authAnalytics';
@@ -301,7 +301,7 @@ export default function LoginScreen() {
           onSubmitEditing={onLogin}
         />
         {password.length > 0 && (
-          <StrengthMeter score={strength.score} label={strength.label} tips={strength.tips} />
+          <PasswordRules checks={strength.checks} />
         )}
       </View>
 

@@ -141,28 +141,35 @@ const inp = StyleSheet.create({
   err: { color: AC.red, fontFamily: FONTS.bold, fontSize: 11.5, marginTop: 6 },
 });
 
-// ─── Password Strength meter ────────────────────────────────────
-export function StrengthMeter({ score, label, tips }: { score: number; label: string; tips: string[] }) {
-  const colors = ['#EF4444', '#F59E0B', '#FBBF24', '#22C55E', '#22C55E'];
+// ─── Password Rules — real-time checklist ────────────────────────
+export function PasswordRules({ checks }: { checks: { met: boolean; label: string; key: string }[] }) {
   return (
-    <View style={pm.wrap}>
-      <View style={pm.bars}>
-        {[0, 1, 2, 3].map((i) => (
-          <View key={i} style={[pm.bar, { backgroundColor: i < score ? colors[score] : 'rgba(255,255,255,0.08)' }]} />
-        ))}
-      </View>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
-        <Text style={[pm.label, { color: colors[Math.min(score, 4)] }]}>{label}</Text>
-        {tips.length > 0 && <Text numberOfLines={1} style={pm.tip}>{tips[0]}</Text>}
-      </View>
+    <View style={pr.wrap}>
+      {checks.map((c) => (
+        <View key={c.key} style={pr.row}>
+          <View style={[pr.dot, c.met ? pr.dotOk : pr.dotMiss]} />
+          <Text style={[pr.text, c.met ? pr.textOk : pr.textMiss]}>{c.label}</Text>
+        </View>
+      ))}
     </View>
   );
 }
 
-const pm = StyleSheet.create({
-  wrap: { marginTop: 10 },
-  bars: { flexDirection: 'row', gap: 6 },
-  bar: { flex: 1, height: 4, borderRadius: 3 },
-  label: { fontFamily: FONTS.bold, fontSize: 11.5 },
-  tip: { color: AC.dim, fontFamily: FONTS.med, fontSize: 11 },
+const pr = StyleSheet.create({
+  wrap: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    padding: 12,
+    gap: 7,
+    marginTop: 10,
+  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  dotOk: { backgroundColor: '#22C55E' },
+  dotMiss: { backgroundColor: 'rgba(255,255,255,0.12)' },
+  text: { fontFamily: FONTS.med, fontSize: 12 },
+  textOk: { color: '#22C55E' },
+  textMiss: { color: 'rgba(255,255,255,0.35)' },
 });

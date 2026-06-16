@@ -7,7 +7,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthShell } from '@/src/views/auth/AuthShell';
-import { AuthInput, PrimaryButton, StrengthMeter } from '@/src/views/auth/AuthControls';
+import { AuthInput, PrimaryButton, PasswordRules } from '@/src/views/auth/AuthControls';
 import { ROLE_META, RoleCards, type Role } from '@/src/views/auth/RoleCards';
 import { AC, FONTS } from '@/src/views/auth/tokens';
 import { trackAuth, passwordStrength } from '@/src/lib/authAnalytics';
@@ -63,7 +63,7 @@ export default function RegisterScreen() {
     // DOB — mandatory + role-aware min age
     const dobCheck = isDobValid(dob, minAge);
     if (!dobCheck.ok) errs.dob = dobCheck.message || 'Date of birth required';
-    if (strength.score < 2) errs.pwd = 'Pick a stronger password';
+    if (strength.checks.some(c => !c.met)) errs.pwd = 'Password does not meet all requirements';
     setErrors(errs);
     if (Object.keys(errs).length) return;
 
@@ -87,7 +87,6 @@ export default function RegisterScreen() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        // Pydantic 422 returns `detail` as an array of error objects; flatten to string.
         const raw = err.detail;
         const reason = Array.isArray(raw)
           ? raw.map((e: any) => e?.msg || e?.message || '').filter(Boolean).join(', ') || 'Could not register'
@@ -95,7 +94,21 @@ export default function RegisterScreen() {
           : typeof raw === 'object' && raw !== null ? (raw.msg || raw.message || 'Could not register')
           : 'Could not register';
         trackAuth({ event: 'register_failure', email, reason });
-        setErrors({ email: reason });
+        // Map server error to the right field
+        const reasonLower = reason.toLowerCase();
+        if (reasonLower.includes('password')) {
+          setErrors({ pwd: reason });
+        } else if (reasonLower.includes('email')) {
+          setErrors({ email: reason });
+        } else if (reasonLower.includes('phone')) {
+          setErrors({ phone: reason });
+        } else if (reasonLower.includes('name') || reasonLower.includes('full')) {
+          setErrors({ firstName: reason });
+        } else if (reasonLower.includes('dob') || reasonLower.includes('birth') || reasonLower.includes('age')) {
+          setErrors({ dob: reason });
+        } else {
+          setErrors({ email: reason });
+        }
         return;
       }
       const data = await res.json();
@@ -218,7 +231,7 @@ export default function RegisterScreen() {
               }
               onSubmitEditing={onPwdBlur}
             />
-            {pwd.length > 0 && <StrengthMeter score={strength.score} label={strength.label} tips={strength.tips} />}
+            {pwd.length > 0 && <PasswordRules checks={strength.checks} />}
           </View>
 
           <View style={{ height: 18 }} />
