@@ -1,3 +1,4 @@
+import { getBaseUrl } from '@/src/lib/env';
 /**
  * MODEL LAYER - API Service
  * All HTTP communication is centralised here. No UI / state logic.
