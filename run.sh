@@ -116,7 +116,7 @@ start_frontend() {
   fi
 
   cd "$FRONTEND_DIR"
-  EXPO_PUBLIC_BACKEND_URL="http://localhost:8000" node_modules/.bin/expo start --web --port 8081 &
+  node_modules/.bin/expo start --web --port 8081 &
   echo $! >> "$PID_FILE"
   success "Frontend started (PID $!) → http://localhost:8081"
 }
