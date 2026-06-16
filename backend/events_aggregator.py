@@ -45,6 +45,7 @@ Mongo collections:
 """
 from __future__ import annotations
 
+from pathlib import Path
 import os
 import re
 import json
@@ -58,12 +59,10 @@ import aiohttp
 from bson import ObjectId
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from motor.motor_asyncio import AsyncIOMotorClient
-from pathlib import Path
 
 load_dotenv(Path(__file__).parent / ".env")
 
-_mongo = AsyncIOMotorClient(os.environ["MONGO_URL"])
+from db import client as _mongo
 _db = _mongo[os.environ["DB_NAME"]]
 
 logger = logging.getLogger("events_aggregator")

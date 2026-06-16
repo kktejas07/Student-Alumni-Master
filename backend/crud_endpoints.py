@@ -35,6 +35,7 @@ ENDPOINTS:
 """
 from __future__ import annotations
 
+from pydantic import BaseModel
 import os
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -44,12 +45,10 @@ from typing import Any, Dict, Optional, List
 from bson import ObjectId
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Request
-from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel
 
 load_dotenv(Path(__file__).parent / ".env")
 
-_db = AsyncIOMotorClient(os.environ["MONGO_URL"])[os.environ["DB_NAME"]]
+from db import db as _db
 router = APIRouter()
 
 

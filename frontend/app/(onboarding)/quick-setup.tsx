@@ -1,3 +1,4 @@
+import { getBaseUrl } from '@/src/lib/env';
 /**
  * Quick Setup — Flat onboarding per HTML spec (Batch B, Hybrid approach).
  *
@@ -26,7 +27,7 @@ import { api } from '@/src/models/services/api';
 import { DarkChip } from '@/src/views/web/OnboardingShell';
 import { Clock } from 'lucide-react-native';
 
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BASE = getBaseUrl();
 
 const SESSION_PRICES = [499, 799, 999, 1499];
 const CURRENT_YEAR = new Date().getFullYear();

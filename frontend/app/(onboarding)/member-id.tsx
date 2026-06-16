@@ -11,7 +11,7 @@
  */
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { AuthShell } from '@/src/views/auth/AuthShell';
 import { PrimaryButton } from '@/src/views/auth/AuthControls';
 import { FONTS } from '@/src/views/auth/tokens';
@@ -22,6 +22,7 @@ import { MemberIdCard, MemberRole, MemberTier } from '@/src/views/components/Mem
 
 export default function MemberId() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ from?: string }>();
   const toast = useToast();
   const user = useAuthStore((u) => u.user);
   const role = (user?.role as MemberRole) || 'student';
@@ -86,17 +87,31 @@ export default function MemberId() {
     <AuthShell role={role}>
       <Pressable
         onPress={() => {
-          if (router.canGoBack()) {
-            router.back();
-          } else {
+          if (params.from === 'onboarding') {
             if (role === 'college') {
-              router.replace('/(onboarding)/college-onboard');
+              router.replace({ pathname: '/(onboarding)/college-onboard', params: { step: '5' } } as any);
             } else if (role === 'student') {
-              router.replace('/(onboarding)/student-onboard');
+              router.replace({ pathname: '/(onboarding)/student-onboard', params: { step: '6' } } as any);
             } else if (role === 'alumni') {
-              router.replace('/(onboarding)/alumni-onboard');
+              router.replace({ pathname: '/(onboarding)/alumni-onboard', params: { step: '5' } } as any);
+            } else if (role === 'mentor') {
+              router.replace({ pathname: '/(onboarding)/mentor-onboard', params: { step: '7' } } as any);
             } else {
               router.replace('/welcome');
+            }
+          } else {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              if (role === 'college') {
+                router.replace('/(onboarding)/college-onboard');
+              } else if (role === 'student') {
+                router.replace('/(onboarding)/student-onboard');
+              } else if (role === 'alumni') {
+                router.replace('/(onboarding)/alumni-onboard');
+              } else {
+                router.replace('/welcome');
+              }
             }
           }
         }}

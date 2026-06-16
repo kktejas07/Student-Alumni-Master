@@ -77,7 +77,7 @@ export default function StudentPlatform() {
               rentals: '/rentals',
               career: '/career-ai',
             };
-            if (routeMap[id]) router.push(routeMap[id]);
+            if (routeMap[id]) router.push(routeMap[id] as any);
             else setScreen(id);
           }}
           brandSubtitle="Web Dashboard"

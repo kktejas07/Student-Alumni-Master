@@ -1,9 +1,7 @@
 import asyncio
-from motor.motor_asyncio import AsyncIOMotorClient
+from db import client, db
 
 async def main():
-    client = AsyncIOMotorClient("mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin")
-    db = client.studentalumniadmin
 
     from reviews import seed_sample_reviews
     count = await seed_sample_reviews(db, count_per_mentor=5)

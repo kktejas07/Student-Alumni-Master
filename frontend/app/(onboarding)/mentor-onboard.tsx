@@ -1,3 +1,4 @@
+import { getBaseUrl } from '@/src/lib/env';
 /**
  * Mentor Onboarding — 8-step wizard per Mentor UI spec (Archive.zip screenshots).
  *
@@ -14,7 +15,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, TextInput as RNTextInput } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   ArrowLeft, Camera, Upload, GraduationCap, BriefcaseBusiness, BookOpen, Award, Sparkles, Code, CheckCircle2, Check,
   Compass, Code as CodeIcon, Rocket, MessageSquare, Brain, UsersRound, TrendingUp, FileText, Palette, HandHeart,
@@ -34,7 +35,7 @@ import { Dropdown } from '@/src/views/web/Dropdown';
 import { WebcamModal } from '@/src/views/components/WebcamModal';
 
 const TOTAL = 8;
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BASE = getBaseUrl();
 const CURRENT_YEAR = new Date().getFullYear();
 // For mentors, batch year is in the past — they've already graduated.
 const BATCH_YEARS = Array.from({ length: 30 }, (_, i) => String(CURRENT_YEAR - i));
@@ -123,10 +124,20 @@ function Stepper({ step }: { step: number }) {
 
 export default function MentorOnboard() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ step?: string }>();
   const toast = useToast();
   const user = useAuthStore((u) => u.user);
   const refreshUser = useAuthStore((u) => u.refreshUser);
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(params.step ? parseInt(params.step, 10) : 0);
+
+  useEffect(() => {
+    if (params.step) {
+      const parsed = parseInt(params.step, 10);
+      if (!isNaN(parsed) && parsed >= 0 && parsed < TOTAL) {
+        setStep(parsed);
+      }
+    }
+  }, [params.step]);
 
   // ---- Step 1: Profile ----
   const [jobTitle,  setJobTitle]    = useState('');

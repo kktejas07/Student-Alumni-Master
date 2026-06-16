@@ -3,13 +3,10 @@ import json
 import logging
 from enum import Enum
 from datetime import datetime, timezone
-from motor.motor_asyncio import AsyncIOMotorClient
-
-logger = logging.getLogger(__name__)
 
 MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
 DB_NAME = os.environ.get("DB_NAME", "student_alumni_db")
-_mongo = AsyncIOMotorClient(MONGO_URL)
+from db import client as _mongo
 db = _mongo[DB_NAME]
 
 class DisplayCategory(str, Enum):

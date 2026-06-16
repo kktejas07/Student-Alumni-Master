@@ -1,7 +1,5 @@
 import os
 import asyncio
-from motor.motor_asyncio import AsyncIOMotorClient
-from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -35,7 +33,7 @@ async def reset():
         return
 
     print(f"Connecting to MongoDB: {db_name}...")
-    client = AsyncIOMotorClient(mongo_url)
+    from db import client as client
     db = client[db_name]
 
     # 1. Reset applied_jobs array in users collection

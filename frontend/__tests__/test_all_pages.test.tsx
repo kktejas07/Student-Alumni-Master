@@ -58,10 +58,11 @@ export const ALL_ROUTES = [
   { path: "/styleguide", name: "Styleguide", auth: false },
   { path: "/applications/[id]", name: "Application Detail", auth: true },
   { path: "/platform", name: "Platform", auth: true },
-
-  // Auth routes
   { path: "/about", name: "About Us", auth: false },
   { path: "/faq", name: "FAQ", auth: false },
+  { path: "/profile", name: "My Profile Tab", auth: true },
+
+  // Auth routes
   { path: "/register", name: "Auth Register", auth: false },
   { path: "/forgot-password", name: "Forgot Password", auth: false },
   { path: "/email-verify", name: "Email Verify", auth: false },
@@ -250,6 +251,10 @@ describe("API Service Layer - All Methods", () => {
     { name: "skillIntelligence", method: "GET", path: "/api/users/me/skill-intelligence", auth: true },
     { name: "getCompletion", method: "GET", path: "/api/users/me/completion", auth: true },
     { name: "getStats", method: "GET", path: "/api/users/me/stats", auth: true },
+    { name: "getPublicProfile", method: "GET", path: "/api/users/{userId}/public-profile", auth: true },
+    { name: "generateBio", method: "POST", path: "/api/ai/generate-bio", auth: true },
+    { name: "networkDiscover", method: "GET", path: "/api/network/discover", auth: true },
+    { name: "sendConnectionRequest", method: "POST", path: "/api/network/connect/{otherId}", auth: true },
   ];
 
   test("all API methods are documented", () => {
