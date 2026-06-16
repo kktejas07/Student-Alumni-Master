@@ -185,56 +185,7 @@ export function EventsView() {
     return allowedCats.includes(e.cat?.toLowerCase());
   });
 
-  const renderCard = (e: Ev, idx: number) => {
-    const isReg = e.registered || rsvpd.has(e.id);
-    return (
-      <GlassCard
-        key={e.id}
-        delay={idx * 40}
-        radius={14}
-        padding={0}
-        style={{ flexGrow: 1, flexBasis: 300, maxWidth: 360, overflow: 'hidden' }}
-      >
-        <View style={[s.cover, { backgroundColor: e.accent + '22', borderColor: e.accent + '40' }]}>
-          <CalIcon size={28} color={e.accent} />
-        </View>
-        <View style={{ padding: 14 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <Badge label={e.cat} color="purple" />
-            <Badge label={e.kind === 'free' ? 'FREE' : `₹${e.price}`} color={e.kind === 'free' ? 'green' : 'amber'} />
-          </View>
-          <Text numberOfLines={2} style={s.title}>{e.title}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
-            <CalIcon size={11} color={SC.muted} />
-            <Text style={s.meta}>{e.date}</Text>
-            <Text style={s.dot}>·</Text>
-            <MapPin size={11} color={SC.muted} />
-            <Text style={s.meta}>{e.city}</Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-            <UsersIcon size={11} color={SC.muted} />
-            <Text style={s.meta}>{e.attending} attending</Text>
-          </View>
-          {isReg ? (
-            <View style={[s.cta, { backgroundColor: SC.green, flexDirection: 'row', gap: 6 }]}>
-              <Check size={14} color="#fff" />
-              <Text style={s.ctaText}>Registered</Text>
-            </View>
-          ) : (
-            <Pressable onPress={() => onRSVP(e.id)}>
-              <LinearGradient
-                colors={[GRAD.from, GRAD.to]}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                style={s.cta}
-              >
-                <Text style={s.ctaText}>{e.kind === 'free' ? 'RSVP' : 'Book seat'}</Text>
-              </LinearGradient>
-            </Pressable>
-          )}
-        </View>
-      </GlassCard>
-    );
-  };
+
 
   return (
     <View>

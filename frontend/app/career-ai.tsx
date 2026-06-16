@@ -24,32 +24,38 @@ import {
   ActivityIndicator, useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   Target, User as UserIcon, Sparkles, Flame, ArrowLeft,
   MessageSquare, Briefcase, Star, Award, Folder, Link2, Code,
-  CircleCheck as CheckCircle2, GitBranch, FileText, Mic, Search, ChevronRight, Calendar,
+  CircleCheck as CheckCircle2, FileText, Mic, ChevronRight
 } from 'lucide-react-native';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components/Toast';
 import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
+import { CompletionRing } from '@/src/views/web/profile/CompletionRing';
 
 const C = {
-  bg: '#0A0814',
-  card: 'rgba(255,255,255,0.04)',
-  cardSolid: '#1A1530',
-  border: 'rgba(255,255,255,0.08)',
-  text: '#fff',
-  text2: 'rgba(255,255,255,0.65)',
-  dim: 'rgba(255,255,255,0.4)',
-  purple: '#7C3AED',
-  purpleL: '#A78BFA',
-  teal: '#14B8A6',
-  blue: '#3B82F6',
-  amber: '#F59E0B',
-  red: '#EF4444',
-  green: '#10B981',
-  orange: '#F97316',
+  bg: '#0d0b1f',
+  card: 'rgba(255,255,255,0.032)',
+  cardH: 'rgba(255,255,255,0.06)',
+  border: 'rgba(255,255,255,0.07)',
+  border2: 'rgba(255,255,255,0.12)',
+  text: '#f0eeff',
+  text2: 'rgba(240,238,255,0.55)',
+  dim: 'rgba(240,238,255,0.28)',
+  purple: '#6d28d9',
+  purple2: '#7c3aed',
+  purpleL: '#a78bfa',
+  purpleXL: '#c4b5fd',
+  teal: '#2dd4bf',
+  blue: '#60a5fa',
+  amber: '#fbbf24',
+  red: '#f87171',
+  green: '#34d399',
+  orange: '#fb923c',
+  pink: '#f472b6',
 };
 const FT = { med: 'DMSans_500Medium', bold: 'DMSans_700Bold', xbold: 'DMSans_800ExtraBold' };
 
@@ -58,20 +64,41 @@ interface RoadmapResp {
   target_company_type?: string;
   progress_pct?: number;
   skill_scores?: Record<string, number>;
-  weekly_plan?: Array<{ weeks: string; title: string; tasks: string[] }>;
-  milestones_completed?: number[];
+  milestones?: {
+    id: string;
+    title: string;
+    description: string;
+    milestone_type: string;
+    completion_rule?: string;
+    completed: boolean;
+    completed_at?: string;
+  }[];
+  milestones_completed?: string[];
   suggestion?: string;
   generated_at?: string;
 }
 
 const SKILL_META: { key: string; label: string; color: string; Icon: any }[] = [
-  { key: 'communication',  label: 'Communication',  color: '#A78BFA', Icon: MessageSquare },
-  { key: 'soft_skills',    label: 'Soft Skills',    color: '#14B8A6', Icon: Star },
-  { key: 'technical',      label: 'Technical Skills', color: '#5EEAD4', Icon: Code },
-  { key: 'interview_prep', label: 'Interview Prep', color: '#3B82F6', Icon: Mic },
-  { key: 'networking',     label: 'Networking',     color: '#C4B5FD', Icon: UserIcon },
-  { key: 'leadership',     label: 'Leadership',     color: '#F59E0B', Icon: Award },
+  { key: 'Technical Excellence',  label: 'Technical Excellence',  color: '#5EEAD4', Icon: Code },
+  { key: 'Professional Communication', label: 'Professional Communication', color: '#A78BFA', Icon: MessageSquare },
+  { key: 'Personal Brand', label: 'Personal Brand', color: '#F472B6', Icon: Star },
+  { key: 'Leadership & Collaboration', label: 'Leadership & Collaboration', color: '#F59E0B', Icon: Award },
+  { key: 'Career Preparation', label: 'Career Preparation', color: '#3B82F6', Icon: Mic },
+  { key: 'Industry Presence', label: 'Industry Presence', color: '#C4B5FD', Icon: UserIcon },
 ];
+
+const GAINS: Record<string, number> = {
+  RESUME: 8,
+  PROJECT: 12,
+  LINKEDIN: 5,
+  PORTFOLIO: 7,
+  CERTIFICATION: 6,
+  MOCK_INTERVIEW: 8,
+  NETWORKING: 4,
+  SKILLS: 5,
+  PROFILE: 3,
+  JOB_APPLICATION: 2,
+};
 
 export default function CareerAIPage({ embedded = false }: { embedded?: boolean } = {}) {
   const router = useRouter();
@@ -91,56 +118,36 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   }, [isEmbedded, initialized, user, router]);
 
   const { width: winW } = useWindowDimensions();
-  const cols = winW >= 1280 ? 4 : winW >= 900 ? 2 : 1;
+  const isLarge = winW >= 900;
+  const row1Cols = winW >= 1024 ? 4 : winW >= 640 ? 2 : 1;
 
   const [loading, setLoading] = useState(true);
   const [roadmap, setRoadmap] = useState<RoadmapResp>({});
   const [profileStrength, setProfileStrength] = useState(0);
-  const [aiSessions, setAiSessions] = useState(0);
+
   const [skillStreak, setSkillStreak] = useState(0);
-  const [completing, setCompleting] = useState<number | null>(null);
-
-  const completed = useMemo<number[]>(() => roadmap.milestones_completed || [], [roadmap]);
-
-  const toggleMilestone = useCallback(async (idx: number) => {
-    if (completing !== null) return;
-    setCompleting(idx);
-    const wasDone = completed.includes(idx);
-    try {
-      const resp: any = await request(`/ai/career-roadmap/milestone/${idx}/complete`, {
-        method: 'POST',
-        body: { undo: wasDone },
-      } as any);
-      setRoadmap((r) => ({ ...r, milestones_completed: resp.milestones_completed || [] }));
-      // Show toasts for new badge unlocks
-      const nb = resp.new_badges || [];
-      if (!wasDone && nb.length) {
-        nb.forEach((b: any) => toast.success('🎉 New badge earned', `${b.label} — view it under Profile › Manage Profile › Earned Badges`));
-      } else if (!wasDone) {
-        const nm = resp.next_milestone;
-        if (nm) toast.info('Milestone complete', `Next up — Week ${nm.weeks}: ${nm.title}`);
-        else if (resp.next_phase_unlocked) toast.success('🎯 Roadmap complete!', 'All 12 weeks completed — great work!');
-      }
-    } catch (e: any) {
-      toast.error('Could not update', e?.message || 'Please try again.');
-    } finally {
-      setCompleting(null);
-    }
-  }, [completed, completing, toast]);
+  const [careerIntel, setCareerIntel] = useState<any>(null);
+  
+  const allMilestones = useMemo(() => roadmap.milestones || [], [roadmap]);
+  const completedMilestones = useMemo(() => allMilestones.filter(m => m.completed), [allMilestones]);
+  const pendingMilestones = useMemo(() => allMilestones.filter(m => !m.completed), [allMilestones]);
+  const firstPendingIdx = useMemo(() => allMilestones.findIndex(m => !m.completed), [allMilestones]);
 
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      const [rm, comp, stats] = await Promise.all([
+      const [rm, comp, stats, intel] = await Promise.all([
         request<RoadmapResp>('/ai/career-roadmap', { method: 'POST' } as any).catch(() => ({})),
         request<any>('/users/me/completion').catch(() => ({})),
         request<any>('/users/me/stats').catch(() => ({})),
+        request<any>('/users/me/skill-intelligence').catch(() => ({})),
       ]);
       setRoadmap(rm || {});
       setProfileStrength(Number(comp?.percentage || 0));
-      setAiSessions(Number(stats?.sessions_completed || 0));
+
       // Best-effort streak — if no backend value, infer from daily-brief existence
       setSkillStreak(Number(stats?.skill_streak || 0));
+      setCareerIntel(intel || null);
     } catch (e: any) {
       toast.error('Could not load', e?.message || 'Please try again.');
     } finally {
@@ -150,41 +157,112 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 
   useEffect(() => { reload(); }, [reload]);
 
-  const overallSkillScore = useMemo(() => {
-    const ss = roadmap.skill_scores || {};
-    const vals = SKILL_META.map((s) => Number(ss[s.key] || 0));
-    if (!vals.length) return 0;
-    return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
-  }, [roadmap]);
+  const { readinessScore, readinessLevel, nextGoal, bandProgress } = useMemo(() => {
+    let score = 0;
+    let level = 'Explorer';
+    let nextLevel = 'Builder';
+    let nextScore = 21;
 
-  // Build Your Profile checklist — status auto-derived from user object
-  const builds = useMemo(() => {
-    const u: any = user || {};
-    return [
-      { id: 'resume',    label: 'Resume',         desc: 'Upload or build resume',         done: !!u.resume_url || !!u.resume_data, Icon: FileText, color: C.purpleL,
-        onPress: () => router.push('/me' as any) },
-      { id: 'portfolio', label: 'Portfolio',      desc: 'Showcase your work',            done: !!u.portfolio_url || (Array.isArray(u.projects) && u.projects.length > 0), Icon: Briefcase, color: '#22D3EE',
-        onPress: () => router.push('/student-portal' as any) },
-      { id: 'skills',    label: 'Skills',         desc: 'List your expertise',           done: Array.isArray(u.skills) && u.skills.length >= 3, Icon: Star, color: '#F59E0B',
-        onPress: () => router.push('/student-portal' as any) },
-      { id: 'certs',     label: 'Certifications', desc: 'Add credentials',               done: Array.isArray(u.certifications) && u.certifications.length > 0, Icon: Award, color: '#10B981',
-        onPress: () => router.push('/me' as any) },
-      { id: 'projects',  label: 'Projects',       desc: 'Highlight achievements',        done: Array.isArray(u.projects) && u.projects.length > 0, Icon: Folder, color: '#A78BFA',
-        onPress: () => router.push('/student-portal' as any) },
-      { id: 'linkedin',  label: 'LinkedIn Boost', desc: 'Optimise LinkedIn profile',     done: !!u.linkedin_url, Icon: Link2, color: '#3B82F6',
-        onPress: () => router.push('/student-portal' as any) },
-      { id: 'mock',      label: 'Mock Interviews',desc: 'Practice with AI interviewer',  done: false, Icon: Code, color: '#EC4899',
-        onPress: () => toast.info('Mock interviewer', 'AI mock interviewer coming this Friday!') },
-      { id: 'cvreview',  label: 'CV Review',      desc: 'Get AI CV feedback',            done: false, Icon: CheckCircle2, color: '#5EEAD4',
-        onPress: () => toast.info('CV Review', 'AI CV review queued for Phase 2.') },
-      { id: 'github',    label: 'GitHub',         desc: 'Link GitHub profile',           done: !!u.github_url, Icon: GitBranch, color: '#E5E5E5',
-        onPress: () => router.push('/student-portal' as any) },
-      { id: 'letter',    label: 'Career Letter',  desc: 'AI-generated career summary',   done: false, Icon: Search, color: '#FB923C',
-        onPress: () => toast.info('Career Letter', 'AI Letter Builder lands in Phase 2.') },
-    ];
-  }, [user, router, toast]);
+    if (careerIntel?.readiness_score !== undefined) {
+      if (typeof careerIntel.readiness_score === 'object') {
+        score = careerIntel.readiness_score.score || 0;
+        level = careerIntel.readiness_score.level || 'Explorer';
+        // Prefer backend-provided next_level/next_threshold (enriched object)
+        nextLevel = careerIntel.readiness_score.next_level || nextLevel;
+        nextScore = careerIntel.readiness_score.next_threshold || nextScore;
+      } else {
+        score = Number(careerIntel.readiness_score) || 0;
+      }
+    } else {
+      const ss = roadmap.skill_scores || {};
+      const vals = SKILL_META.map((s) => Number(ss[s.key] || 0));
+      if (vals.length) score = vals.reduce((a, b) => a + b, 0) / vals.length;
+    }
 
-  if (loading && !roadmap.weekly_plan) {
+    score = Math.round(score);
+
+    // Derive next level if not provided by backend
+    if (nextLevel === 'Builder' && nextScore === 21) {
+      if (score > 20) { nextLevel = 'Developing Professional'; nextScore = 41; }
+      if (score > 40) { nextLevel = 'Career Ready'; nextScore = 61; }
+      if (score > 60) { nextLevel = 'Industry Ready'; nextScore = 81; }
+      if (score > 80) { nextLevel = 'Industry Ready'; nextScore = 100; }
+    }
+
+    // Compute within-band progress for the progress bar
+    // Band floors: Explorer=0, Builder=21, Developing=41, Career=61, Industry=81
+    const BAND_FLOORS: Record<string, number> = {
+      'Explorer': 0,
+      'Builder': 21,
+      'Developing Professional': 41,
+      'Career Ready': 61,
+      'Industry Ready': 81,
+    };
+    const floor = BAND_FLOORS[level] ?? 0;
+    const ceiling = nextScore;
+    const bandRange = ceiling - floor;
+    const bandProgress = bandRange > 0
+      ? Math.min(100, Math.round(((score - floor) / bandRange) * 100))
+      : 100;
+
+    return {
+      readinessScore: score,
+      readinessLevel: level,
+      nextGoal: `Next Goal: ${nextLevel} (${nextScore}%)`,
+      bandProgress,
+    };
+  }, [roadmap, careerIntel]);
+
+  const { potentialScore, getLevelForScore } = useMemo(() => {
+    const getLevelForScore = (s: number) => {
+      if (s <= 20) return 'Explorer';
+      if (s <= 40) return 'Builder';
+      if (s <= 60) return 'Developing Professional';
+      if (s <= 80) return 'Career Ready';
+      return 'Industry Ready';
+    };
+
+    if (careerIntel?.potential_score !== undefined) {
+      const pScore = Number(careerIntel.potential_score) || 0;
+      const calculatedGap = Number(careerIntel.readiness_gap) || 0;
+      const numRemaining = Math.max(1, pendingMilestones.length);
+      const gainPerMilestone = Math.max(1, Math.round(calculatedGap / numRemaining));
+      return { potentialScore: pScore, gap: calculatedGap, gainPerMilestone, getLevelForScore };
+    }
+
+    const aiSkillVals = SKILL_META.map((s) => Number((roadmap.skill_scores || {})[s.key] || 0));
+    const aiSkillAvg = aiSkillVals.length ? aiSkillVals.reduce((a, b) => a + b, 0) / aiSkillVals.length : 0;
+    
+    const potentialProfilePoints = profileStrength * 0.15;
+    const potentialMilestonePoints = 25;
+    
+    let pScore = (aiSkillAvg * 0.60) + potentialProfilePoints + potentialMilestonePoints;
+    pScore = Math.min(100, Math.round(pScore));
+    
+    const calculatedGap = Math.max(0, pScore - readinessScore);
+
+    const numRemaining = Math.max(1, pendingMilestones.length);
+    const gainPerMilestone = Math.max(1, Math.round(calculatedGap / numRemaining));
+
+    return { potentialScore: pScore, gap: calculatedGap, gainPerMilestone, getLevelForScore };
+  }, [careerIntel, roadmap.skill_scores, pendingMilestones.length, profileStrength, readinessScore]);
+
+  const getMilestoneMeta = useCallback((type?: string) => {
+    const t = (type || '').toUpperCase();
+    if (t === 'RESUME') return { Icon: FileText, color: C.purpleL, onPress: () => router.push('/student-portal?tab=profile&ptab=manage&section=resume' as any) };
+    if (t === 'PORTFOLIO') return { Icon: Briefcase, color: '#22D3EE', onPress: () => router.push('/student-portal?tab=profile&ptab=profile-info' as any) };
+    if (t === 'SKILLS') return { Icon: Star, color: '#F59E0B', onPress: () => router.push('/student-portal?tab=profile&ptab=profile-info&section=skills' as any) };
+    if (t === 'CERTIFICATION') return { Icon: Award, color: '#10B981', onPress: () => router.push('/student-portal?tab=profile&ptab=manage&section=certifications' as any) };
+    if (t === 'PROJECT') return { Icon: Folder, color: '#A78BFA', onPress: () => router.push('/student-portal?tab=profile&ptab=manage&section=projects' as any) };
+    if (t === 'LINKEDIN') return { Icon: Link2, color: '#3B82F6', onPress: () => router.push('/student-portal?tab=profile&ptab=profile-info&section=linkedin' as any) };
+    if (t === 'MOCK_INTERVIEW') return { Icon: Code, color: '#EC4899', onPress: () => toast.info('Mock Interview', 'AI mock interviewer coming soon!') };
+    if (t === 'NETWORKING') return { Icon: MessageSquare, color: C.teal, onPress: () => router.push('/student-portal?tab=network' as any) };
+    if (t === 'PROFILE') return { Icon: UserIcon, color: C.blue, onPress: () => router.push('/student-portal?tab=profile&ptab=manage' as any) };
+    if (t === 'JOB_APPLICATION') return { Icon: Briefcase, color: C.amber, onPress: () => router.push('/student-portal?tab=jobs' as any) };
+    return { Icon: Target, color: C.dim, onPress: () => toast.info('Milestone', 'Check profile settings') };
+  }, [router, toast]);
+
+  if (loading && !roadmap.milestones) {
     return (
       <View style={[embedded ? s.embeddedShell : s.shell, { alignItems: 'center', justifyContent: 'center', padding: 40 }]}>
         <ActivityIndicator size="large" color={C.purpleL} />
@@ -196,6 +274,9 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   const targetRole = roadmap.target_role || 'Software Engineer';
   const targetCo = roadmap.target_company_type || 'Top Tech Company';
   const progress = roadmap.progress_pct ?? 42;
+
+  const estimatedWeeks = pendingMilestones.length > 0 ? `~${pendingMilestones.length * 2} Weeks` : 'Goal Reached';
+  const skillScores = careerIntel?.skill_scores || {};
 
   const Container: any = embedded ? View : ScrollView;
   const containerProps: any = embedded
@@ -217,8 +298,14 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
             <Text style={s.title}>AI Career Roadmap</Text>
             <View style={s.onlinePill}>
               <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: C.green }} />
-              <Text style={s.onlinePillText}>Online · Personalised for you</Text>
+              <Text style={s.onlinePillText}>Online</Text>
             </View>
+            {skillStreak > 0 && (
+              <View style={[s.onlinePill, { backgroundColor: 'rgba(239,68,68,0.1)', borderColor: 'rgba(239,68,68,0.3)' }]}>
+                <Flame size={10} color={C.red} fill={C.red} />
+                <Text style={[s.onlinePillText, { color: C.red }]}>{skillStreak} Day Streak</Text>
+              </View>
+            )}
           </View>
           {!!roadmap.suggestion && (
             <Text style={s.suggest}>“{roadmap.suggestion}”</Text>
@@ -226,163 +313,506 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
         </View>
       </View>
 
-      {/* Overview metrics */}
-      <View style={[s.grid, { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` } as any]}>
-        <Metric label="OVERALL SKILL SCORE" value={`${overallSkillScore}%`} sub={`Across ${SKILL_META.length} skills`} Icon={Target} tint={C.purple} />
-        <Metric label="PROFILE STRENGTH"    value={`${profileStrength}%`}  sub={profileStrength >= 100 ? 'All complete' : `${100 - profileStrength}% to go`} Icon={UserIcon} tint={C.teal} />
-        <Metric label="AI SESSIONS"         value={`${aiSessions}`}        sub="This month" Icon={Sparkles} tint={C.orange} />
-        <Metric label="SKILL STREAK"        value={`${skillStreak} days`}  sub={skillStreak ? 'Keep it up!' : 'Start your streak today'} Icon={Flame} tint={C.red} />
+      {/* Row 1: Overview metrics */}
+      <View style={[s.grid, { gridTemplateColumns: `repeat(${row1Cols}, minmax(0, 1fr))` } as any]}>
+        <Metric 
+          label="CURRENT READINESS"    
+          value={`${readinessScore}%`}   
+          sub={readinessLevel} 
+          Icon={Target} 
+          tint={C.purple} 
+          progress={bandProgress} 
+          progressLabel={nextGoal}
+        />
+        <Metric 
+          label="PROFILE STRENGTH"    
+          value={`${profileStrength}%`}  
+          sub={profileStrength >= 100 ? 'Profile complete' : `${100 - profileStrength}% to complete`} 
+          Icon={UserIcon} 
+          tint={C.blue} 
+        />
+        <Metric 
+          label="CAREER LEVEL"    
+          value={readinessLevel}   
+          sub={nextGoal} 
+          Icon={Award} 
+          tint={C.amber} 
+        />
+        <Metric 
+          label="TARGET READINESS"    
+          value={`${potentialScore}%`}   
+          sub={`Potential: ${getLevelForScore(potentialScore)}`} 
+          Icon={Sparkles} 
+          tint={C.teal} 
+        />
       </View>
 
-      {/* Goal banner (target role + progress) */}
-      <View style={s.goalCard}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <View style={s.goalIcon}><Target size={16} color="#fff" /></View>
+      {/* Row 2: Goal banner (target role + progress) */}
+      <LinearGradient
+        colors={['rgba(109,40,217,0.35)', 'rgba(91,33,182,0.18)', 'rgba(49,46,129,0.12)']}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={s.goalCard}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <View style={s.goalIcon}><Target size={14} color={C.purpleL} /></View>
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={s.goalLabel}>YOU&apos;RE {progress}% TOWARD YOUR GOAL</Text>
-            <Text style={s.goalRole}>{targetRole} <Text style={{ color: C.purpleL }}>at a {targetCo}</Text></Text>
+            <Text style={s.goalLabel}>CURRENT GOAL</Text>
+          </View>
+          <View style={{ backgroundColor: 'rgba(255,255,255,0.08)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
+            <Text style={{ color: C.text2, fontSize: 10, fontFamily: FT.bold }}>Estimated Timeline: {estimatedWeeks}</Text>
           </View>
         </View>
+        
+        <Text style={s.goalRole}>{targetRole} <Text style={{ color: C.purpleL, fontFamily: FT.xbold }}>at a {targetCo}</Text></Text>
+        
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 12, marginBottom: 4 }}>
+            <Text style={{ color: C.text2, fontSize: 11, fontFamily: FT.bold }}>Level: {readinessLevel}</Text>
+            <Text style={{ color: C.teal, fontSize: 11, fontFamily: FT.bold }}>Target: {getLevelForScore(potentialScore)}</Text>
+        </View>
         <View style={s.goalBarTrack}>
-          <View style={[s.goalBarFill, { width: `${Math.min(100, progress)}%` }]} />
+          <LinearGradient
+            colors={['#6d28d9', '#a78bfa', '#c4b5fd']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={[s.goalBarFill, { width: `${Math.min(100, progress)}%` }]}
+          />
+        </View>
+      </LinearGradient>
+
+      {/* Row 3: Skill Intelligence & Roadmap Tasks Grid */}
+      <View style={{ flexDirection: isLarge ? 'row' : 'column', gap: 18, marginBottom: 18, alignItems: 'stretch' }}>
+        {/* Left Column: Skill Score (40% width) */}
+        <View style={{ width: isLarge ? '40%' : '100%', minWidth: isLarge ? 360 : undefined }}>
+          <View style={s.skillScoreCard}>
+            <View style={{ marginBottom: 12 }}>
+              <Text style={s.cardTitle}>Skill Score</Text>
+              <Text style={s.cardSubtitle}>Overall Skill Intelligence Score</Text>
+            </View>
+
+            {/* Overall Score Circle Progress */}
+            <View style={s.overallScoreContainer}>
+              <CompletionRing
+                pct={readinessScore}
+                size={84}
+                stroke={7}
+                color={C.purpleL}
+                trackColor="rgba(255,255,255,0.06)"
+              />
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text style={s.progressStatusLabel}>
+                  {readinessLevel === 'Explorer' ? 'Needs Focus' :
+                   readinessLevel === 'Builder' ? 'Developing' :
+                   readinessLevel === 'Developing Professional' ? 'Making Progress' :
+                   readinessLevel === 'Career Ready' ? 'Good Progress' :
+                   'Excellent'}
+                </Text>
+                <Text style={s.progressSubtext}>Calculated dynamically from profile completion, projects, credentials, and links.</Text>
+              </View>
+            </View>
+
+            {/* Skill Breakdown Categories */}
+            <View style={{ gap: 10, marginVertical: 14 }}>
+              {SKILL_META.map((skill) => {
+                const score = skillScores[skill.key] !== undefined
+                  ? skillScores[skill.key]
+                  : Math.round(Number((roadmap.skill_scores || {})[skill.key] || 45));
+                return (
+                  <View key={skill.key} style={{ gap: 4 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <skill.Icon size={12} color={skill.color} />
+                        <Text style={s.breakdownName}>{skill.label}</Text>
+                      </View>
+                      <Text style={[s.breakdownPct, { color: skill.color }]}>{score}%</Text>
+                    </View>
+                    <View style={s.breakdownTrack}>
+                      <View style={[s.breakdownFill, { width: `${score}%`, backgroundColor: skill.color }]} />
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+
+            {/* CTA */}
+            <Pressable
+              onPress={() => router.push('/student-portal?tab=profile' as any)}
+              style={({ pressed, hovered }: any) => [
+                s.ctaButton,
+                (pressed || hovered) && { backgroundColor: C.purple2 }
+              ]}
+            >
+              <Text style={s.ctaText}>View Detailed Skill Intelligence</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Right Column: Career Roadmap Guided Journey (60% width) */}
+        <View style={{ flex: 1, width: isLarge ? '60%' : '100%', minWidth: 0 }}>
+          <View style={s.roadmapHeaderRow}>
+            <SectionTitle text={`YOUR CAREER JOURNEY: ${targetRole.toUpperCase()}`} />
+            {pendingMilestones.length > 0 && (
+              <Text style={s.taskCountText}>{pendingMilestones.length} Step{pendingMilestones.length > 1 ? 's' : ''} Remaining</Text>
+            )}
+          </View>
+          
+          {allMilestones.length > 0 ? (
+            <View style={{ marginTop: 12, paddingLeft: 4 }}>
+              {allMilestones.map((m, idx) => {
+                const isCompleted = m.completed;
+                const isActive = idx === firstPendingIdx;
+                const isFuture = !isCompleted && !isActive;
+                const meta = getMilestoneMeta(m.milestone_type);
+                const Icon = meta?.Icon || Target;
+                const gain = GAINS[m.milestone_type] || 3;
+
+                return (
+                  <View key={`timeline-item-${m.id}`} style={s.timelineItem}>
+                    {/* Left Timeline Line & Bullet */}
+                    <View style={s.timelineIndicatorContainer}>
+                      {idx > 0 && (
+                        <View style={[
+                          s.timelineLine,
+                          idx <= (firstPendingIdx === -1 ? allMilestones.length : firstPendingIdx) ? s.timelineLineCompleted : null
+                        ]} />
+                      )}
+                      
+                      <Pressable
+                        onPress={meta.onPress}
+                        style={[
+                          s.timelineCircle,
+                          isCompleted && { backgroundColor: C.green, borderColor: C.green },
+                          isActive && { backgroundColor: 'rgba(124,58,237,0.15)', borderColor: C.purpleL, borderWidth: 2 },
+                          isFuture && { backgroundColor: 'rgba(255,255,255,0.02)', borderColor: C.border, borderWidth: 1 }
+                        ]}
+                      >
+                        {isCompleted ? (
+                          <CheckCircle2 size={11} color={C.bg} fill={C.green} />
+                        ) : isActive ? (
+                          <Icon size={10} color={C.purpleL} />
+                        ) : (
+                          <Icon size={10} color={C.text2} />
+                        )}
+                      </Pressable>
+
+                      {idx < allMilestones.length - 1 && (
+                        <View style={[
+                          s.timelineLine,
+                          isCompleted ? s.timelineLineCompleted : null
+                        ]} />
+                      )}
+                    </View>
+
+                    {/* Right Timeline Card */}
+                    <Pressable
+                      onPress={meta.onPress}
+                      style={({ pressed, hovered }: any) => [
+                        s.timelineCard,
+                        isCompleted && s.timelineCardCompleted,
+                        isActive && s.timelineCardActive,
+                        isFuture && s.timelineCardFuture,
+                        (pressed || hovered) && { backgroundColor: C.cardH, borderColor: C.border2 }
+                      ]}
+                    >
+                      <View style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                          <Text style={[s.timelineStepText, isActive && { color: C.purpleL }]}>STEP {idx + 1}</Text>
+                          {isCompleted && (
+                            <View style={s.timelineBadgeCompleted}>
+                              <Text style={s.timelineBadgeTextCompleted}>Completed</Text>
+                            </View>
+                          )}
+                          {isActive && (
+                            <View style={s.timelineBadgeActive}>
+                              <Text style={s.timelineBadgeTextActive}>Next Action</Text>
+                            </View>
+                          )}
+                          {isFuture && (
+                            <View style={[s.timelineBadgeActive, { backgroundColor: 'rgba(255,255,255,0.04)' }]}>
+                              <Text style={[s.timelineBadgeTextActive, { color: C.text2 }]}>Locked</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={[
+                          s.timelineCardTitle,
+                          isCompleted && { textDecorationLine: 'line-through', color: C.text2 }
+                        ]} numberOfLines={1}>
+                          {m.title}
+                        </Text>
+                        <Text style={[
+                          s.timelineCardDesc,
+                          isCompleted && { color: C.dim }
+                        ]} numberOfLines={2}>
+                          {m.description}
+                        </Text>
+                      </View>
+                      
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <View style={s.gainPill}>
+                          <Sparkles size={11} color={C.teal} />
+                          <Text style={s.gainPillText}>+{gain}%</Text>
+                        </View>
+                        <ChevronRight size={14} color={C.dim} />
+                      </View>
+                    </Pressable>
+                  </View>
+                );
+              })}
+            </View>
+          ) : (
+            <View style={s.emptyStateBox}>
+              <CheckCircle2 size={32} color={C.green} style={{ marginBottom: 8 }} />
+              <Text style={s.emptyStateTitle}>All Milestones Completed!</Text>
+              <Text style={s.emptyStateDesc}>You've completed all items on your roadmap. Keep adding new achievements to your profile.</Text>
+            </View>
+          )}
         </View>
       </View>
 
-      {/* Train with AI — skill chips */}
-      <SectionTitle text="TRAIN WITH AI" />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
-        {SKILL_META.map((sk) => {
-          const pct = Number((roadmap.skill_scores || {})[sk.key] || 0);
-          return (
-            <Pressable key={sk.key} style={[s.skillChip, { borderColor: sk.color + '70' }]} testID={`skill-chip-${sk.key}`}>
-              <View style={[s.skillChipDot, { backgroundColor: sk.color }]} />
-              <Text style={s.skillChipText}>{sk.label}</Text>
-              <Text style={[s.skillChipPct, { color: sk.color }]}>{pct}%</Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
 
-      {/* Skill scores horizontal bars */}
-      <SectionTitle text="SKILL SCORES" />
-      <View style={[s.card, { gap: 12 }]}>
-        {SKILL_META.map((sk) => {
-          const Icon = sk.Icon;
-          const pct = Number((roadmap.skill_scores || {})[sk.key] || 0);
-          return (
-            <View key={sk.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <View style={[s.skillIconBox, { backgroundColor: sk.color + '20', borderColor: sk.color + '50' }]}>
-                <Icon size={14} color={sk.color} />
-              </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <Text style={s.skillRowLabel}>{sk.label}</Text>
-                  <Text style={[s.skillRowPct, { color: sk.color }]}>{pct}%</Text>
-                </View>
-                <View style={s.barTrack}>
-                  <View style={[s.barFill, { width: `${pct}%`, backgroundColor: sk.color }]} />
-                </View>
-              </View>
+      {/* Row 4: AI Recommendations & Top Opportunities */}
+      <View style={{ flexDirection: isLarge ? 'row' : 'column', gap: 18, marginBottom: 18, alignItems: 'stretch' }}>
+        {/* Left Column: AI Recommendations */}
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={s.card}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <Sparkles size={16} color={C.purpleL} />
+              <Text style={s.cardTitle}>AI Recommendations</Text>
             </View>
-          );
-        })}
+            <Text style={{ color: C.text2, fontSize: 11, fontFamily: FT.med, marginBottom: 14 }}>
+              Tailored guidance generated by Career intelligence models.
+            </Text>
+            
+            {careerIntel?.recommendation ? (
+              <View style={[s.insightBox, { marginTop: 0, marginBottom: 0 }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <Text style={[s.insightTitle, { color: C.purpleL }]}>{careerIntel.recommendation.category}</Text>
+                  <View style={s.insightGainPill}>
+                    <Text style={s.insightGainText}>{careerIntel.recommendation.gain} Readiness</Text>
+                  </View>
+                </View>
+                <Text style={[s.insightDesc, { color: C.text, fontSize: 12, lineHeight: 16 }]}>
+                  {careerIntel.recommendation.description}
+                </Text>
+              </View>
+            ) : (
+              <View style={s.emptyStateBox}>
+                <Text style={s.emptyStateTitle}>Analyzing Profile...</Text>
+                <Text style={s.emptyStateDesc}>Completing your profile will trigger more precise AI advice.</Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Right Column: Top Opportunities */}
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={s.card}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <Briefcase size={16} color={C.teal} />
+              <Text style={s.cardTitle}>Top Opportunities</Text>
+            </View>
+            <Text style={{ color: C.text2, fontSize: 11, fontFamily: FT.med, marginBottom: 10 }}>
+              Unlock high-impact career pathways aligned with your roadmap.
+            </Text>
+
+            <View style={{ gap: 8 }}>
+              <Pressable
+                onPress={() => router.push('/network' as any)}
+                style={({ pressed, hovered }: any) => [
+                  { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.02)', padding: 8, borderRadius: 8, borderWidth: 1, borderColor: C.border },
+                  (pressed || hovered) && { backgroundColor: C.cardH, borderColor: C.border2 }
+                ]}
+              >
+                <View style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: 'rgba(45,212,191,0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                  <Award size={12} color={C.teal} />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={{ color: C.text, fontSize: 11.5, fontFamily: FT.bold }} numberOfLines={1}>Mock Interview Practice</Text>
+                  <Text style={{ color: C.text2, fontSize: 10, fontFamily: FT.med }} numberOfLines={1}>Book a session with a {targetRole} mentor</Text>
+                </View>
+                <Text style={{ color: C.teal, fontSize: 10, fontFamily: FT.bold }}>+{GAINS['MOCK_INTERVIEW'] || 8}% Gain</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => router.push('/internships' as any)}
+                style={({ pressed, hovered }: any) => [
+                  { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.02)', padding: 8, borderRadius: 8, borderWidth: 1, borderColor: C.border },
+                  (pressed || hovered) && { backgroundColor: C.cardH, borderColor: C.border2 }
+                ]}
+              >
+                <View style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: 'rgba(167,139,250,0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                  <Briefcase size={12} color={C.purpleL} />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={{ color: C.text, fontSize: 11.5, fontFamily: FT.bold }} numberOfLines={1}>Explore Jobs & Internships</Text>
+                  <Text style={{ color: C.text2, fontSize: 10, fontFamily: FT.med }} numberOfLines={1}>Openings matching {targetRole} goals</Text>
+                </View>
+                <Text style={{ color: C.purpleL, fontSize: 10, fontFamily: FT.bold }}>+{GAINS['JOB_APPLICATION'] || 2}% Gain</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
       </View>
 
-      {/* 12-week roadmap timeline */}
-      <SectionTitle text="12-WEEK AI CAREER ROADMAP" />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 24, paddingVertical: 4 }}>
-        {(roadmap.weekly_plan || []).map((wk, idx) => {
-          const isDone = completed.includes(idx);
-          const isNext = !isDone && idx === ((roadmap.weekly_plan || []).findIndex((_w, i) => !completed.includes(i)));
-          return (
-            <View
-              key={`wk-${idx}`}
-              style={[
-                s.weekCard,
-                isDone && { borderColor: 'rgba(16,185,129,0.55)', backgroundColor: 'rgba(16,185,129,0.08)' },
-                isNext && { borderColor: 'rgba(167,139,250,0.55)', backgroundColor: 'rgba(167,139,250,0.10)' },
-              ]}
-              testID={`week-card-${idx}`}
-            >
-              {/* Top section grows to fill space, pushing button to bottom */}
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Calendar size={12} color={isDone ? C.green : C.purpleL} />
-                  <Text style={[s.weekRange, isDone && { color: C.green }]}>Week {wk.weeks}</Text>
-                  {isNext && (
-                    <View style={s.nextPill}>
-                      <Text style={s.nextPillText}>NEXT</Text>
-                    </View>
-                  )}
-                  {isDone && (
-                    <View style={[s.nextPill, { backgroundColor: 'rgba(16,185,129,0.18)', borderColor: 'rgba(16,185,129,0.45)' }]}>
-                      <CheckCircle2 size={10} color={C.green} />
-                      <Text style={[s.nextPillText, { color: C.green }]}>DONE</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={s.weekTitle}>{wk.title}</Text>
-                <View style={{ gap: 6, marginTop: 8 }}>
-                  {wk.tasks.slice(0, 4).map((t, i) => (
-                    <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
-                      <View style={[s.weekDot, { backgroundColor: isDone ? C.green : (isNext ? C.purpleL : C.dim) }]} />
-                      <Text style={[s.weekTask, isDone && { textDecorationLine: 'line-through', color: C.dim }]}>{t}</Text>
+      {/* Row 5: Career Readiness Breakdown & Score Contribution Analysis */}
+      <View style={{ flexDirection: isLarge ? 'row' : 'column', gap: 18, marginBottom: 18, alignItems: 'stretch' }}>
+        {/* Left Column: Why Is My Readiness X%? (Contributors Breakdown) */}
+        <View style={{ flex: isLarge ? 3 : 1, minWidth: 0 }}>
+          <View style={s.card}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <Target size={16} color={C.purpleL} />
+              <Text style={s.cardTitle}>Why Is My Readiness {readinessScore}%?</Text>
+            </View>
+            <Text style={{ color: C.text2, fontSize: 11.5, fontFamily: FT.med, marginBottom: 12 }}>
+              Calculated specifically for your target goal profile: <Text style={{ color: C.purpleL, fontFamily: FT.bold }}>{careerIntel?.profile_name || 'Professional / Specialist'}</Text>
+            </Text>
+
+            {/* Display Goal-Aware Weights */}
+            {careerIntel?.goal_weights && (
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ color: C.text2, fontSize: 9.5, fontFamily: FT.bold, letterSpacing: 0.5, marginBottom: 6, textTransform: 'uppercase' }}>Goal-Aware Score Distribution Weights</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {Object.entries(careerIntel.goal_weights).map(([cat, w]: any) => (
+                    <View key={cat} style={{ backgroundColor: 'rgba(255,255,255,0.02)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: C.border }}>
+                      <Text style={{ color: C.text, fontSize: 9.5, fontFamily: FT.med }}>{cat}: <Text style={{ color: C.purpleL, fontFamily: FT.bold }}>{Math.round(w * 100)}%</Text></Text>
                     </View>
                   ))}
                 </View>
               </View>
-              {/* Button always pinned at bottom */}
-              <Pressable
-                onPress={() => toggleMilestone(idx)}
-                disabled={completing !== null}
-                style={[
-                  s.milestoneBtn,
-                  isDone ? s.milestoneBtnDone : (isNext ? s.milestoneBtnNext : s.milestoneBtnDefault),
-                  completing !== null && { opacity: 0.6 },
-                ]}
-                testID={`week-complete-${idx}`}
-              >
-                {completing === idx ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : isDone ? (
-                  <>
-                    <CheckCircle2 size={13} color="#fff" />
-                    <Text style={s.milestoneBtnText}>Completed · Tap to undo</Text>
-                  </>
-                ) : (
-                  <>
-                    <Target size={13} color="#fff" />
-                    <Text style={s.milestoneBtnText}>Mark Milestone Complete</Text>
-                  </>
-                )}
-              </Pressable>
-            </View>
-          );
-        })}
-      </ScrollView>
+            )}
 
-      {/* Build your profile grid */}
-      <SectionTitle text="BUILD YOUR PROFILE" />
-      <View style={[s.grid, { gridTemplateColumns: `repeat(${winW >= 1024 ? 5 : winW >= 600 ? 3 : 2}, minmax(0, 1fr))` } as any]}>
-        {builds.map((b) => {
-          const Icon = b.Icon;
-          return (
-            <Pressable key={b.id} onPress={b.onPress} style={s.buildCard} testID={`build-${b.id}`}>
-              <View style={[s.buildIcon, { backgroundColor: b.color + '22', borderColor: b.color + '55' }]}>
-                <Icon size={16} color={b.color} />
-              </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={s.buildLabel} numberOfLines={1}>{b.label}</Text>
-                  {b.done && <CheckCircle2 size={11} color={C.green} />}
+            {/* Top Contributors & Missing Contributors */}
+            <View style={{ gap: 14 }}>
+              {/* Top Contributors Section */}
+              <View>
+                <Text style={{ color: C.green, fontSize: 9.5, fontFamily: FT.bold, letterSpacing: 0.5, marginBottom: 6, textTransform: 'uppercase' }}>Top Contributors (Score &ge; 60%)</Text>
+                <View style={[s.grid, { gridTemplateColumns: `repeat(${winW >= 640 ? 3 : 1}, minmax(0, 1fr))`, gap: 8 } as any]}>
+                  {SKILL_META.map(skill => {
+                    const score = skillScores[skill.key] !== undefined ? skillScores[skill.key] : Math.round(Number((roadmap.skill_scores || {})[skill.key] || 45));
+                    if (score >= 60) {
+                      return (
+                        <ContributorCard 
+                          key={`contrib-top-${skill.key}`}
+                          label={skill.label}
+                          status="Strong"
+                          value={`${score}%`}
+                          done={true}
+                          color={skill.color}
+                        />
+                      );
+                    }
+                    return null;
+                  })}
+                  {/* If no top contributors */}
+                  {SKILL_META.every(skill => (skillScores[skill.key] !== undefined ? skillScores[skill.key] : Math.round(Number((roadmap.skill_scores || {})[skill.key] || 45))) < 60) && (
+                    <Text style={{ color: C.text2, fontSize: 10, fontFamily: FT.med, fontStyle: 'italic', paddingLeft: 4 }}>No categories are currently strong. Work on actions below to build score.</Text>
+                  )}
                 </View>
-                <Text style={s.buildDesc} numberOfLines={1}>{b.desc}</Text>
               </View>
-              <ChevronRight size={14} color={C.dim} />
-            </Pressable>
-          );
-        })}
+
+              {/* Missing or Developing Contributors */}
+              <View>
+                <Text style={{ color: C.amber, fontSize: 9.5, fontFamily: FT.bold, letterSpacing: 0.5, marginBottom: 6, textTransform: 'uppercase' }}>Missing &amp; Developing (Score &lt; 60%)</Text>
+                <View style={[s.grid, { gridTemplateColumns: `repeat(${winW >= 640 ? 3 : 1}, minmax(0, 1fr))`, gap: 8 } as any]}>
+                  {SKILL_META.map(skill => {
+                    const score = skillScores[skill.key] !== undefined ? skillScores[skill.key] : Math.round(Number((roadmap.skill_scores || {})[skill.key] || 45));
+                    if (score < 60) {
+                      return (
+                        <ContributorCard 
+                          key={`contrib-missing-${skill.key}`}
+                          label={skill.label}
+                          status={score >= 40 ? "Developing" : "Needs Focus"}
+                          value={`${score}%`}
+                          done={false}
+                          color={skill.color}
+                        />
+                      );
+                    }
+                    return null;
+                  })}
+                  {/* If all completed */}
+                  {SKILL_META.every(skill => (skillScores[skill.key] !== undefined ? skillScores[skill.key] : Math.round(Number((roadmap.skill_scores || {})[skill.key] || 45))) >= 60) && (
+                    <Text style={{ color: C.green, fontSize: 10, fontFamily: FT.bold, paddingLeft: 4 }}>All categories are in a strong/career-ready state!</Text>
+                  )}
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Right Column: Score Contribution Analysis (Estimated Gains) */}
+        <View style={{ flex: isLarge ? 2 : 1, minWidth: 0 }}>
+          <View style={s.card}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <Flame size={16} color={C.amber} />
+              <Text style={s.cardTitle}>Score Contribution Analysis</Text>
+            </View>
+            <Text style={{ color: C.text2, fontSize: 11.5, fontFamily: FT.med, marginBottom: 14 }}>
+              Top 3 pending actions ranked by expected readiness gain:
+            </Text>
+
+            <View style={{ gap: 8 }}>
+              {careerIntel?.ranked_actions && careerIntel.ranked_actions.length > 0 ? (
+                careerIntel.ranked_actions.map((act: any, idx: number) => {
+                  const meta = getMilestoneMeta(act.type);
+                  const Icon = meta?.Icon || Target;
+                  return (
+                    <Pressable
+                      key={`ranked-act-${idx}`}
+                      onPress={meta.onPress}
+                      style={({ pressed, hovered }: any) => [
+                        s.gainItemCard,
+                        (pressed || hovered) && { backgroundColor: C.cardH, borderColor: C.border2 }
+                      ]}
+                    >
+                      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <View style={[s.buildIcon, { backgroundColor: meta.color + '15', borderColor: meta.color + '40', width: 28, height: 28, borderRadius: 6 }]}>
+                          <Icon size={14} color={meta.color} />
+                        </View>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={s.gainItemTitle} numberOfLines={1}>{act.title}</Text>
+                          <Text style={s.gainItemDesc} numberOfLines={1}>{act.description}</Text>
+                        </View>
+                      </View>
+                      <View style={[s.gainPill, { paddingHorizontal: 5, paddingVertical: 2 }]}>
+                        <Sparkles size={10} color={C.teal} />
+                        <Text style={[s.gainPillText, { fontSize: 9.5 }]}>+{act.gain}%</Text>
+                      </View>
+                    </Pressable>
+                  );
+                })
+              ) : (
+                <View style={s.emptyStateBox}>
+                  <CheckCircle2 size={24} color={C.green} style={{ marginBottom: 4 }} />
+                  <Text style={[s.emptyStateTitle, { fontSize: 12 }]}>High Impact Items Done!</Text>
+                  <Text style={[s.emptyStateDesc, { fontSize: 10 }]}>Your profile details are fully optimized. Work on roadmap tasks to grow readiness further.</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
       </View>
+
+
+      {/* Row 6: Completed Milestones (Verified Progress) */}
+      {completedMilestones.length > 0 && (
+        <View style={{ marginBottom: 18 }}>
+          <SectionTitle text="COMPLETED MILESTONES" />
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+            {completedMilestones.map((m) => {
+              const meta = getMilestoneMeta(m.milestone_type);
+              const Icon = meta.Icon;
+              return (
+                <View key={`prog-${m.id}`} style={[s.milestoneChip, { borderColor: meta.color + '30' }]}>
+                  <View style={{ width: 18, height: 18, borderRadius: 4, backgroundColor: meta.color + '15', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon size={10} color={meta.color} />
+                  </View>
+                  <Text style={s.milestoneChipText} numberOfLines={1}>{m.title}</Text>
+                  <CheckCircle2 size={11} color={C.green} style={{ marginLeft: 2 }} />
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      )}
 
       <Text style={{ color: C.dim, fontFamily: FT.med, fontSize: 11, textAlign: 'center', marginTop: 22 }}>
         Roadmap last generated {roadmap.generated_at ? new Date(roadmap.generated_at).toLocaleString() : '—'} · Powered by Student Alumni AI
@@ -392,16 +822,25 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 }
 
 /* ---------- helpers ---------- */
-function Metric({ label, value, sub, Icon, tint }: { label: string; value: string; sub: string; Icon: any; tint: string }) {
+function Metric({ label, value, sub, Icon, tint, progress, progressLabel }: { label: string; value: string; sub: string; Icon: any; tint: string; progress?: number; progressLabel?: string }) {
   return (
     <View style={s.metricCard}>
-      <View style={[s.metricIcon, { backgroundColor: tint + '22', borderColor: tint + '55' }]}>
-        <Icon size={16} color={tint} />
-      </View>
-      <View style={{ marginTop: 10 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={[s.metricIcon, { backgroundColor: tint + '22', borderColor: tint + '55' }]}>
+          <Icon size={14} color={tint} />
+        </View>
         <Text style={s.metricLabel}>{label}</Text>
+      </View>
+      <View style={{ marginTop: 8 }}>
         <Text style={[s.metricValue, { color: tint }]}>{value}</Text>
         <Text style={s.metricSub}>{sub}</Text>
+        {progress !== undefined && (
+          <View style={{ marginTop: 8 }}>
+            <View style={{ height: 4, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden' }}>
+              <View style={{ width: `${progress}%`, height: '100%', backgroundColor: tint, borderRadius: 2 }} />
+            </View>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -411,101 +850,409 @@ function SectionTitle({ text }: { text: string }) {
   return <Text style={s.sectionTitle}>{text}</Text>;
 }
 
+function ContributorCard({ label, status, value, done, color }: { label: string; status: string; value: string; done: boolean; color: string }) {
+  return (
+    <View style={{ backgroundColor: 'rgba(255,255,255,0.015)', padding: 10, borderRadius: 8, borderWidth: 1, borderColor: C.border }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+        <Text style={{ color: C.text, fontSize: 11, fontFamily: FT.bold }} numberOfLines={1}>{label}</Text>
+        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: done ? C.green : C.amber }} />
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
+        <Text style={{ color: C.text2, fontSize: 9.5, fontFamily: FT.med }}>{status}</Text>
+        <Text style={{ color: color, fontSize: 12, fontFamily: FT.xbold }}>{value}</Text>
+      </View>
+    </View>
+  );
+}
+
 const s = StyleSheet.create({
   shell: { flex: 1, backgroundColor: C.bg },
   embeddedShell: { flex: 1, backgroundColor: 'transparent' },
-
-  backBtn: {
-    width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  title: { color: C.text, fontFamily: FT.xbold, fontSize: 22, letterSpacing: -0.4 },
-  onlinePill: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
-    backgroundColor: 'rgba(16,185,129,0.12)', borderColor: 'rgba(16,185,129,0.45)', borderWidth: 1,
-  },
-  onlinePillText: { color: C.green, fontFamily: FT.bold, fontSize: 10 },
-  suggest: { color: C.text2, fontFamily: FT.med, fontSize: 12, marginTop: 4, fontStyle: 'italic' },
-
-  grid: { display: 'grid' as any, gap: 12, marginBottom: 14 },
-  metricCard: {
-    backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
-    borderRadius: 14, padding: 14, minHeight: 110,
-  },
-  metricIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  metricLabel: { color: C.text2, fontFamily: FT.bold, fontSize: 9.5, letterSpacing: 1.0 },
-  metricValue: { fontFamily: FT.xbold, fontSize: 24, marginTop: 3 },
-  metricSub: { color: C.dim, fontFamily: FT.med, fontSize: 11 },
-
-  goalCard: {
-    backgroundColor: 'rgba(124,58,237,0.10)',
-    borderColor: 'rgba(124,58,237,0.45)', borderWidth: 1,
-    borderRadius: 14, padding: 16, marginBottom: 14,
-  },
-  goalIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: C.purple },
-  goalLabel: { color: C.purpleL, fontFamily: FT.bold, fontSize: 10, letterSpacing: 1.2 },
-  goalRole: { color: C.text, fontFamily: FT.xbold, fontSize: 16, marginTop: 2 },
-  goalBarTrack: { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.06)', marginTop: 12, overflow: 'hidden' },
-  goalBarFill: { height: '100%', backgroundColor: C.purpleL, borderRadius: 4 },
-
-  sectionTitle: { color: C.text2, fontFamily: FT.xbold, fontSize: 11, letterSpacing: 1.2, marginTop: 18, marginBottom: 8 },
-
-  skillChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  skillChipDot: { width: 8, height: 8, borderRadius: 4 },
-  skillChipText: { color: C.text, fontFamily: FT.bold, fontSize: 12 },
-  skillChipPct: { fontFamily: FT.xbold, fontSize: 12 },
-
   card: {
     backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
-    borderRadius: 14, padding: 16,
+    borderRadius: 12, padding: 16,
   },
-  skillIconBox: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  skillRowLabel: { color: C.text, fontFamily: FT.bold, fontSize: 13 },
-  skillRowPct: { fontFamily: FT.xbold, fontSize: 13 },
-  barTrack: { height: 7, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden' },
-  barFill: { height: '100%', borderRadius: 4 },
 
-  weekCard: {
-    width: 240,
-    height: 280,
+  backBtn: {
+    width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
     backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
-    borderRadius: 14, padding: 14,
-    flexDirection: 'column',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  weekRange: { color: C.purpleL, fontFamily: FT.bold, fontSize: 10, letterSpacing: 0.6 },
-  weekTitle: { color: C.text, fontFamily: FT.xbold, fontSize: 14, marginTop: 4 },
-  weekDot: { width: 6, height: 6, borderRadius: 3, marginTop: 6 },
-  weekTask: { flex: 1, color: C.text2, fontFamily: FT.med, fontSize: 11.5, lineHeight: 16 },
-  nextPill: {
+  title: { color: C.text, fontFamily: FT.xbold, fontSize: 19, letterSpacing: -0.4 },
+  onlinePill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999,
+    backgroundColor: 'rgba(52,211,153,0.10)', borderColor: 'rgba(52,211,153,0.35)', borderWidth: 1,
+  },
+  onlinePillText: { color: C.green, fontFamily: FT.bold, fontSize: 9.5 },
+  suggest: { color: C.text2, fontFamily: FT.med, fontSize: 11.5, marginTop: 4, fontStyle: 'italic' },
+
+  grid: { display: 'grid' as any, gap: 10, marginBottom: 14 },
+  metricCard: {
+    backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
+    borderRadius: 12, padding: 12, minHeight: 75,
+  },
+  metricIcon: { width: 26, height: 26, borderRadius: 6, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  metricLabel: { color: C.text2, fontFamily: FT.bold, fontSize: 8.5, letterSpacing: 0.8 },
+  metricValue: { fontFamily: FT.xbold, fontSize: 20, marginTop: 1 },
+  metricSub: { color: C.dim, fontFamily: FT.med, fontSize: 9.5, marginTop: 1 },
+
+  goalCard: {
+    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1,
+    borderRadius: 12, padding: 15, marginBottom: 14, overflow: 'hidden'
+  },
+  goalIcon: { width: 26, height: 26, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(167,139,250,0.25)' },
+  goalLabel: { color: C.purpleXL, fontFamily: FT.bold, fontSize: 10, letterSpacing: 0.8 },
+  goalRole: { color: C.text, fontFamily: FT.xbold, fontSize: 17, marginTop: 2 },
+  goalBarTrack: { height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.07)', marginTop: 8, overflow: 'hidden' },
+  goalBarFill: { height: '100%', borderRadius: 3 },
+
+  actionCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
+    borderRadius: 10, padding: 12,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  gainPill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999,
-    backgroundColor: 'rgba(167,139,250,0.18)', borderColor: 'rgba(167,139,250,0.45)', borderWidth: 1,
-    marginLeft: 'auto',
+    backgroundColor: 'rgba(45,212,191,0.1)', borderColor: 'rgba(45,212,191,0.2)', borderWidth: 1,
+    paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6,
   },
-  nextPillText: { color: C.purpleL, fontFamily: FT.xbold, fontSize: 9, letterSpacing: 0.5 },
-  milestoneBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, marginTop: 8, height: 34, borderRadius: 8,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  gainPillText: { color: C.teal, fontFamily: FT.bold, fontSize: 10 },
+
+  sectionTitle: { color: C.text2, fontFamily: FT.bold, fontSize: 10, letterSpacing: 1.0, marginTop: 18, marginBottom: 8 },
+
+  skillList: { flexDirection: 'column', maxWidth: 800 },
+  skillRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 11,
+    paddingHorizontal: 13, paddingVertical: 11,
+    backgroundColor: C.card, borderColor: C.border, borderWidth: 1, borderTopWidth: 0,
   },
-  milestoneBtnDefault: { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1 },
-  milestoneBtnNext: { backgroundColor: C.purple },
-  milestoneBtnDone: { backgroundColor: C.green },
-  milestoneBtnText: { color: '#fff', fontFamily: FT.bold, fontSize: 11.5 },
+  skillRowFirst: { borderTopWidth: 1, borderTopLeftRadius: 11, borderTopRightRadius: 11 },
+  skillRowLast: { borderBottomLeftRadius: 11, borderBottomRightRadius: 11 },
+
+  skillIconBox: { width: 28, height: 28, borderRadius: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  skillRowLabel: { color: C.text, fontFamily: FT.bold, fontSize: 12.5 },
+  skillRowPct: { fontFamily: FT.xbold, fontSize: 12.5 },
+  barTrack: { height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden' },
+  barFill: { height: '100%', borderRadius: 3 },
+
   buildCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: C.card, borderColor: C.border, borderWidth: 1,
-    borderRadius: 12, padding: 12,
+    borderRadius: 10, padding: 9, paddingRight: 11, width: 180,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  buildIcon: { width: 34, height: 34, borderRadius: 9, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  buildLabel: { color: C.text, fontFamily: FT.bold, fontSize: 12.5 },
-  buildDesc:  { color: C.text2, fontFamily: FT.med, fontSize: 10.5, marginTop: 2 },
+  buildIcon: { width: 30, height: 30, borderRadius: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  buildLabel: { color: C.text, fontFamily: FT.bold, fontSize: 11 },
+  buildDesc:  { color: C.text2, fontFamily: FT.med, fontSize: 9.5, marginTop: 1 },
+
+  // New Skill Score Section Styles
+  skillScoreCard: {
+    backgroundColor: C.card,
+    borderColor: C.border,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+  },
+  cardTitle: {
+    color: C.text,
+    fontFamily: FT.xbold,
+    fontSize: 15,
+    letterSpacing: -0.2,
+  },
+  cardSubtitle: {
+    color: C.text2,
+    fontFamily: FT.med,
+    fontSize: 11,
+    marginTop: 2,
+  },
+  overallScoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.015)',
+    borderRadius: 10,
+    padding: 12,
+    borderColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+  },
+  progressStatusLabel: {
+    color: C.text,
+    fontFamily: FT.bold,
+    fontSize: 13,
+  },
+  progressSubtext: {
+    color: C.text2,
+    fontFamily: FT.med,
+    fontSize: 9.5,
+    marginTop: 3,
+    lineHeight: 13,
+  },
+  breakdownName: {
+    color: C.text,
+    fontFamily: FT.bold,
+    fontSize: 11,
+  },
+  breakdownPct: {
+    fontFamily: FT.xbold,
+    fontSize: 11,
+  },
+  breakdownTrack: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    overflow: 'hidden',
+  },
+  breakdownFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  insightBox: {
+    backgroundColor: 'rgba(109,40,217,0.06)',
+    borderColor: 'rgba(109,40,217,0.18)',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  insightTitle: {
+    color: C.purpleL,
+    fontFamily: FT.bold,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  insightGainPill: {
+    backgroundColor: 'rgba(45,212,191,0.1)',
+    borderColor: 'rgba(45,212,191,0.2)',
+    borderWidth: 1,
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 4,
+  },
+  insightGainText: {
+    color: C.teal,
+    fontFamily: FT.bold,
+    fontSize: 8.5,
+  },
+  insightDesc: {
+    color: C.text,
+    fontFamily: FT.med,
+    fontSize: 10.5,
+    lineHeight: 14,
+    marginTop: 4,
+  },
+  ctaButton: {
+    backgroundColor: C.purple,
+    borderRadius: 8,
+    paddingVertical: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 6,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  ctaText: {
+    color: '#fff',
+    fontFamily: FT.bold,
+    fontSize: 11.5,
+  },
+  roadmapHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  taskCountText: {
+    color: C.teal,
+    fontFamily: FT.bold,
+    fontSize: 9.5,
+    letterSpacing: 0.5,
+    marginTop: 18,
+  },
+  taskCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: C.card,
+    borderColor: C.border,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  taskTitle: {
+    color: C.text,
+    fontFamily: FT.bold,
+    fontSize: 13,
+  },
+  taskDesc: {
+    color: C.text2,
+    fontFamily: FT.med,
+    fontSize: 10.5,
+    marginTop: 2,
+  },
+  emptyStateBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: C.card,
+    borderColor: C.border,
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  emptyStateTitle: {
+    color: C.text,
+    fontFamily: FT.bold,
+    fontSize: 14,
+  },
+  emptyStateDesc: {
+    color: C.text2,
+    fontFamily: FT.med,
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 15,
+  },
+  milestoneChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: C.card,
+    borderColor: C.border,
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+  },
+  milestoneChipText: {
+    color: C.text,
+    fontFamily: FT.bold,
+    fontSize: 11,
+  },
+  gainItemCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(109,40,217,0.03)',
+    borderColor: 'rgba(109,40,217,0.12)',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 8,
+  },
+  gainItemTitle: {
+    color: C.text,
+    fontFamily: FT.bold,
+    fontSize: 11.5,
+  },
+  gainItemDesc: {
+    color: C.text2,
+    fontFamily: FT.med,
+    fontSize: 9.5,
+    marginTop: 1,
+  },
+  gainItemValue: {
+    color: C.purpleL,
+    fontFamily: FT.bold,
+    fontSize: 11,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    minHeight: 80,
+  },
+  timelineIndicatorContainer: {
+    width: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  timelineLine: {
+    width: 2,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    flex: 1,
+  },
+  timelineLineCompleted: {
+    backgroundColor: C.green,
+  },
+  timelineCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 4,
+    zIndex: 2,
+  },
+  timelineStepNumber: {
+    color: C.text2,
+    fontSize: 9,
+    fontFamily: FT.bold,
+  },
+  timelineCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: C.card,
+    borderColor: C.border,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    marginLeft: 8,
+    marginBottom: 10,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  timelineCardCompleted: {
+    backgroundColor: 'rgba(255,255,255,0.01)',
+    borderColor: 'rgba(52,211,153,0.1)',
+  },
+  timelineCardActive: {
+    backgroundColor: 'rgba(124,58,237,0.03)',
+    borderColor: 'rgba(124,58,237,0.3)',
+    borderWidth: 1.5,
+  },
+  timelineCardFuture: {
+    opacity: 0.65,
+  },
+  timelineStepText: {
+    color: C.text2,
+    fontSize: 8.5,
+    fontFamily: FT.bold,
+    letterSpacing: 0.5,
+  },
+  timelineBadgeCompleted: {
+    backgroundColor: 'rgba(52,211,153,0.1)',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  timelineBadgeTextCompleted: {
+    color: C.green,
+    fontSize: 8,
+    fontFamily: FT.bold,
+  },
+  timelineBadgeActive: {
+    backgroundColor: 'rgba(124,58,237,0.15)',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  timelineBadgeTextActive: {
+    color: C.purpleL,
+    fontSize: 8,
+    fontFamily: FT.bold,
+  },
+  timelineCardTitle: {
+    color: C.text,
+    fontFamily: FT.bold,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  timelineCardDesc: {
+    color: C.text2,
+    fontFamily: FT.med,
+    fontSize: 10.5,
+    marginTop: 1,
+  },
 });
+

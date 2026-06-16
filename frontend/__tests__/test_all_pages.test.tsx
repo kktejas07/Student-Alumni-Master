@@ -17,7 +17,7 @@ export const ALL_ROUTES = [
   { path: "/intro", name: "Introduction", auth: false },
   { path: "/get-started", name: "Get Started", auth: false },
   { path: "/login", name: "Login", auth: false },
-  { path: "/me", name: "My Profile", auth: true },
+  { path: "/student-portal?tab=profile", name: "My Profile", auth: true },
   { path: "/profile/[id]", name: "User Profile", auth: true },
   { path: "/preferences", name: "Preferences", auth: true },
   { path: "/dash-preview", name: "Dashboard Preview", auth: false },
@@ -60,7 +60,8 @@ export const ALL_ROUTES = [
   { path: "/platform", name: "Platform", auth: true },
 
   // Auth routes
-  { path: "/login", name: "Auth Login", auth: false },
+  { path: "/about", name: "About Us", auth: false },
+  { path: "/faq", name: "FAQ", auth: false },
   { path: "/register", name: "Auth Register", auth: false },
   { path: "/forgot-password", name: "Forgot Password", auth: false },
   { path: "/email-verify", name: "Email Verify", auth: false },
@@ -246,6 +247,9 @@ describe("API Service Layer - All Methods", () => {
     { name: "declineBooking", method: "POST", path: "/api/bookings/{id}/decline", auth: true },
     { name: "createMentorSession", method: "POST", path: "/api/mentor/sessions", auth: true },
     { name: "myMentorSessions", method: "GET", path: "/api/mentor/sessions/me", auth: true },
+    { name: "skillIntelligence", method: "GET", path: "/api/users/me/skill-intelligence", auth: true },
+    { name: "getCompletion", method: "GET", path: "/api/users/me/completion", auth: true },
+    { name: "getStats", method: "GET", path: "/api/users/me/stats", auth: true },
   ];
 
   test("all API methods are documented", () => {
