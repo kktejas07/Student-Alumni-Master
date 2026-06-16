@@ -118,17 +118,29 @@ export async function getDeviceInfo(): Promise<DeviceInfo | null> {
 }
 
 /** Compute basic password strength client-side (mirrors backend). */
-export function passwordStrength(pwd: string): { score: number; label: string; tips: string[] } {
-  if (!pwd) return { score: 0, label: 'empty', tips: ['Enter a password'] };
-  let score = 0;
-  const tips: string[] = [];
-  if (pwd.length >= 8) score++; else tips.push('Use at least 8 characters');
-  if (pwd.length >= 12) score++; else if (pwd.length >= 8) tips.push('12+ chars is stronger');
-  if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) score++; else tips.push('Mix upper & lower case');
-  if (/\d/.test(pwd) && /[!@#$%^&*()\-_=+\[\]{}|;:,.<>?\/]/.test(pwd)) score++;
-  else tips.push('Include a number & symbol');
-  const label = ['Very weak', 'Weak', 'Fair', 'Good', 'Strong'][Math.min(score, 4)];
-  return { score, label, tips: tips.slice(0, 2) };
+export interface PasswordCheck {
+  met: boolean;
+  label: string;
+  key: string;
+}
+
+export function passwordStrength(pwd: string): { score: number; label: string; tips: string[]; checks: PasswordCheck[] } {
+  const checks: PasswordCheck[] = [
+    { key: 'length',   label: 'At least 8 characters',                          met: pwd.length >= 8 },
+    { key: 'uppercase',label: 'One uppercase letter',                            met: /[A-Z]/.test(pwd) },
+    { key: 'lowercase',label: 'One lowercase letter',                            met: /[a-z]/.test(pwd) },
+    { key: 'digit',    label: 'One digit (0–9)',                                 met: /\d/.test(pwd) },
+    { key: 'special',  label: 'One special character (!@#$%^&*…)',               met: /[!@#$%^&*()\-_=+[\]{}|;:,.<>?/]/.test(pwd) },
+  ];
+
+  const passed = checks.filter(c => c.met).length;
+  let score = passed;
+  const label = ['Very weak', 'Weak', 'Fair', 'Strong', 'Very strong'][Math.min(passed, 4)];
+  const tips = checks.filter(c => !c.met).map(c => c.label);
+
+  if (!pwd) return { score: 0, label: 'empty', tips: ['Enter a password'], checks };
+
+  return { score, label, tips, checks };
 }
 
 export async function fetchSessions(email: string) {
