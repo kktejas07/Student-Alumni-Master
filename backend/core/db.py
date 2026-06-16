@@ -33,9 +33,40 @@ else:
     mongo_url += "?serverSelectionTimeoutMS=15000&connectTimeoutMS=15000"
 
 
-# Create exactly ONE global instance of the AsyncIOMotorClient pool with capped size
-client = AsyncIOMotorClient(mongo_url, maxPoolSize=20, minPoolSize=5)
-db = client[os.environ['DB_NAME']]
+class LazyMotorClient:
+    def __init__(self, url, **kwargs):
+        self._url = url
+        self._kwargs = kwargs
+        self._client = None
+
+    def _get_client(self):
+        if self._client is None:
+            self._client = AsyncIOMotorClient(self._url, **self._kwargs)
+        return self._client
+
+    def __getattr__(self, name):
+        return getattr(self._get_client(), name)
+
+    def __getitem__(self, name):
+        return self._get_client()[name]
+
+class LazyMotorDB:
+    def __init__(self, client, db_name):
+        self._client = client
+        self._db_name = db_name
+
+    def _get_db(self):
+        return self._client[self._db_name]
+
+    def __getattr__(self, name):
+        return getattr(self._get_db(), name)
+
+    def __getitem__(self, name):
+        return self._get_db()[name]
+
+# Create exactly ONE global instance of the Lazy wrapper
+client = LazyMotorClient(mongo_url, maxPoolSize=20, minPoolSize=5)
+db = LazyMotorDB(client, os.environ['DB_NAME'])
 
 __all__ = ['client', 'db', 'mongo_url']
 
