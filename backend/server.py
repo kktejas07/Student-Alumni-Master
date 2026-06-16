@@ -114,11 +114,17 @@ api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernet
 
 @app.on_event("startup")
 async def verify_mongo_connection():
-    """Warm the Mongo connection on startup and print topology."""
+    """Warm the Mongo connection pool before any requests are served.
+
+    Calling warm_db() here forces Motor to complete Atlas topology discovery
+    (DNS → TCP → TLS → hello handshake) during server startup rather than
+    on the first user request.  Without this warm-up, the first 10-20
+    concurrent requests all block for ~47 s waiting for topology resolution.
+    """
     try:
-        await client.admin.command('ping')
-        _t1_mongo = time.perf_counter()
-        print(f"[DB TRACE] Mongo connection established | Duration: {(_t1_mongo - _t0_mongo) * 1000:.1f}ms", flush=True)
+        from core.db import warm_db
+        ping_ms = await warm_db()
+        print(f"[DB TRACE] Mongo connection established | Duration: {ping_ms:.1f}ms", flush=True)
         print(f"[DB TRACE] Mongo Topology: {client.topology_description}", flush=True)
     except Exception as e:
         print(f"[DB TRACE] Mongo connection failed: {e}", flush=True)
@@ -782,7 +788,7 @@ def validate_student_class(school_info: SchoolInfo, age: Optional[int] = None) -
 async def register(request: Request, req: RegisterRequest):
     """Register a new user. Role is captured upfront — onboarding collects role-specific fields."""
     email = req.email.lower().strip()
-    if await db.users.find_one({"email": email}):
+    if await db.users.find_one({"email": email}, {"_id": 1}):
         raise HTTPException(400, "Email already registered")
 
     user_doc = {
@@ -876,7 +882,7 @@ async def login(request: Request, req: LoginRequest):
 
     # ── Stage 2: DB lookup ──
     _t_db0 = _time.perf_counter()
-    user = await db.users.find_one({"email": email})
+    user = await db.users.find_one({"email": email}, {"resume_documents": 0})
     _t_db1 = _time.perf_counter()
     print(f"[LOGIN TRACE] DB_LOOKUP_COMPLETE | 2. DB user lookup done  | duration={(_t_db1-_t_db0)*1000:.1f}ms | found={user is not None}", flush=True)
 

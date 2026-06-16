@@ -3,6 +3,11 @@ core.db — MongoDB connection (single source of truth).
 
 Imported by server.py and all routers/* modules. Reads MONGO_URL and DB_NAME
 from .env (these are protected vars and must NEVER be hardcoded).
+
+IMPORTANT: AsyncIOMotorClient is created eagerly at import time so that
+Motor's background thread-pool and connection logic bind to the correct
+event loop.  Call `await warm_db()` from the FastAPI startup event to force
+the topology discovery before the first request is served.
 """
 from dotenv import load_dotenv
 from pathlib import Path
@@ -11,62 +16,42 @@ import os
 # Load env from /app/backend/.env (parent directory of /core)
 load_dotenv(Path(__file__).resolve().parent.parent / '.env')
 
-# Force IPv4 resolution to prevent 21-second socket timeouts on Windows machines without IPv6 routing
-import socket
-orig_getaddrinfo = socket.getaddrinfo
-def ipv4_only_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
-    return orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
-socket.getaddrinfo = ipv4_only_getaddrinfo
-
 from motor.motor_asyncio import AsyncIOMotorClient  # noqa: E402
 
 mongo_url = os.environ['MONGO_URL']
 
+# Inject short timeouts so topology discovery never hangs for 60 s.
+_qs = "?" if "?" not in mongo_url else "&"
+if "serverSelectionTimeoutMS" not in mongo_url:
+    mongo_url += ("?" if "?" not in mongo_url else "&") + "serverSelectionTimeoutMS=10000"
+if "connectTimeoutMS" not in mongo_url:
+    mongo_url += "&connectTimeoutMS=10000"
 
-# Inject timeouts to prevent 60-second topology discovery hangs.
-if "?" in mongo_url:
-    if "serverSelectionTimeoutMS" not in mongo_url:
-        mongo_url += "&serverSelectionTimeoutMS=15000"
-    if "connectTimeoutMS" not in mongo_url:
-        mongo_url += "&connectTimeoutMS=15000"
-else:
-    mongo_url += "?serverSelectionTimeoutMS=15000&connectTimeoutMS=15000"
+# Single shared connection pool — created once at import time.
+# Motor internally defers socket activity to a background thread, so this
+# does NOT block the event loop during import.
+client = AsyncIOMotorClient(
+    mongo_url,
+    maxPoolSize=20,
+    minPoolSize=2,
+    # Resolve Atlas hostnames eagerly (avoids lazy-DNS hang on first request)
+    serverSelectionTimeoutMS=10000,
+)
+db = client[os.environ['DB_NAME']]
 
 
-class LazyMotorClient:
-    def __init__(self, url, **kwargs):
-        self._url = url
-        self._kwargs = kwargs
-        self._client = None
+async def warm_db() -> float:
+    """
+    Ping MongoDB and force topology discovery.
+    Call this from FastAPI's startup event so the pool is warm before
+    the first user request arrives.  Returns round-trip time in ms.
+    """
+    import time
+    t0 = time.perf_counter()
+    await client.admin.command("ping")
+    elapsed_ms = (time.perf_counter() - t0) * 1000
+    print(f"[DB] warm_db ping OK — {elapsed_ms:.1f} ms", flush=True)
+    return elapsed_ms
 
-    def _get_client(self):
-        if self._client is None:
-            self._client = AsyncIOMotorClient(self._url, **self._kwargs)
-        return self._client
 
-    def __getattr__(self, name):
-        return getattr(self._get_client(), name)
-
-    def __getitem__(self, name):
-        return self._get_client()[name]
-
-class LazyMotorDB:
-    def __init__(self, client, db_name):
-        self._client = client
-        self._db_name = db_name
-
-    def _get_db(self):
-        return self._client[self._db_name]
-
-    def __getattr__(self, name):
-        return getattr(self._get_db(), name)
-
-    def __getitem__(self, name):
-        return self._get_db()[name]
-
-# Create exactly ONE global instance of the Lazy wrapper
-client = LazyMotorClient(mongo_url, maxPoolSize=20, minPoolSize=5)
-db = LazyMotorDB(client, os.environ['DB_NAME'])
-
-__all__ = ['client', 'db', 'mongo_url']
-
+__all__ = ['client', 'db', 'mongo_url', 'warm_db']
