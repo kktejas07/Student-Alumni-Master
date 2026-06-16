@@ -853,7 +853,7 @@ async def login(request: Request, req: LoginRequest):
     import time as _time
     _t0 = _time.perf_counter()
     print(f"\n[LOGIN TRACE] ---- New login attempt for: {req.email} ----", flush=True)
-    print(f"[LOGIN TRACE] 1. Request received at t=0.000s", flush=True)
+    print(f"[LOGIN TRACE] REQUEST_RECEIVED | 1. Request received at t=0.000s", flush=True)
 
     email = req.email.lower().strip()
 
@@ -861,7 +861,7 @@ async def login(request: Request, req: LoginRequest):
     _t_db0 = _time.perf_counter()
     user = await db.users.find_one({"email": email})
     _t_db1 = _time.perf_counter()
-    print(f"[LOGIN TRACE] 2. DB user lookup done  | duration={(_t_db1-_t_db0)*1000:.1f}ms | found={user is not None}", flush=True)
+    print(f"[LOGIN TRACE] DB_LOOKUP_COMPLETE | 2. DB user lookup done  | duration={(_t_db1-_t_db0)*1000:.1f}ms | found={user is not None}", flush=True)
 
     if not user:
         print(f"[LOGIN TRACE] !! User not found — aborting at t={(_time.perf_counter()-_t0)*1000:.1f}ms", flush=True)
@@ -872,7 +872,7 @@ async def login(request: Request, req: LoginRequest):
     loop = asyncio.get_running_loop()
     is_valid = await loop.run_in_executor(None, verify_password, req.password, user["password_hash"])
     _t_pw1 = _time.perf_counter()
-    print(f"[LOGIN TRACE] 3. Password verification | duration={(_t_pw1-_t_pw0)*1000:.1f}ms | valid={is_valid}", flush=True)
+    print(f"[LOGIN TRACE] PASSWORD_VERIFIED | 3. Password verification | duration={(_t_pw1-_t_pw0)*1000:.1f}ms | valid={is_valid}", flush=True)
 
     if not is_valid:
         print(f"[LOGIN TRACE] !! Wrong password — aborting at t={(_time.perf_counter()-_t0)*1000:.1f}ms", flush=True)
@@ -902,7 +902,7 @@ async def login(request: Request, req: LoginRequest):
     access_token  = create_access_token(str(user["_id"]), email, user["role"])
     refresh_token = create_refresh_token(str(user["_id"]))
     _t_tok1 = _time.perf_counter()
-    print(f"[LOGIN TRACE] 4. Token generation      | duration={(_t_tok1-_t_tok0)*1000:.1f}ms", flush=True)
+    print(f"[LOGIN TRACE] JWT_CREATED | 4. Token generation      | duration={(_t_tok1-_t_tok0)*1000:.1f}ms", flush=True)
 
     # ── Stage 5: Serialize user profile ──
     _t_ser0 = _time.perf_counter()
@@ -911,7 +911,7 @@ async def login(request: Request, req: LoginRequest):
     print(f"[LOGIN TRACE] 5. Serialize user profile | duration={(_t_ser1-_t_ser0)*1000:.1f}ms", flush=True)
 
     _t_total = (_time.perf_counter() - _t0) * 1000
-    print(f"[LOGIN TRACE] 6. Returning response     | TOTAL login duration={_t_total:.1f}ms", flush=True)
+    print(f"[LOGIN TRACE] RESPONSE_SENT | 6. Returning response     | TOTAL login duration={_t_total:.1f}ms", flush=True)
     if _t_total > 2000:
         print(f"[LOGIN TRACE] [WARNING] SLOW LOGIN DETECTED: took {_t_total:.1f}ms (>2000ms threshold)", flush=True)
     print(f"[LOGIN TRACE] -------------------------------------------\n", flush=True)
