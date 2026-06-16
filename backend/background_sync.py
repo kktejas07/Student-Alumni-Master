@@ -13,6 +13,7 @@ from integrations import sync_courses_to_db, sync_internships_to_db
 logger = logging.getLogger("background_sync")
 
 _sync_scheduler = None
+_db = None
 
 async def run_unified_sync_task():
     logger.info("Starting unified background sync task for Jobs, Events, and Courses...")
@@ -29,26 +30,27 @@ async def run_unified_sync_task():
         logger.error(f"Error fetching events: {e}")
 
     try:
-        await sync_courses_to_db()
+        await sync_courses_to_db(_db)
         logger.info("Sync completed: Courses.")
     except Exception as e:
         logger.error(f"Error fetching courses: {e}")
         
     try:
-        await sync_internships_to_db()
+        await sync_internships_to_db(_db)
         logger.info("Sync completed: Adzuna Internships.")
     except Exception as e:
         logger.error(f"Error fetching adzuna internships: {e}")
 
     logger.info("Completed unified background sync task.")
 
-def start_sync_scheduler():
+def start_sync_scheduler(db):
     enabled = (os.environ.get("SYNC_SCHEDULER_ENABLED") or "1").strip().lower()
     if enabled in {"0", "false", "off", "no"}:
         return
-    global _sync_scheduler
+    global _sync_scheduler, _db
     if _sync_scheduler is not None:
         return
+    _db = db
     try:
         _sync_scheduler = AsyncIOScheduler(timezone=pytz.UTC)
         _sync_scheduler.add_job(

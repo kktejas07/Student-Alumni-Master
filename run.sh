@@ -87,16 +87,16 @@ start_backend() {
     if [[ -d "$BACKEND_DIR/venv/Scripts" ]]; then
       VENV_BIN="$BACKEND_DIR/venv/Scripts"
     fi
-    "$VENV_BIN/pip" install -q --upgrade pip
-    "$VENV_BIN/pip" install -q -r "$BACKEND_DIR/requirements.txt"
-    "$VENV_BIN/pip" install -q "uvicorn[standard]"
+    "$VENV_BIN/python" -m pip install -q --upgrade pip
+    "$VENV_BIN/python" -m pip install -q -r "$BACKEND_DIR/requirements.txt"
+    "$VENV_BIN/python" -m pip install -q "uvicorn[standard]"
     success "Dependencies installed."
   fi
 
   load_env
 
   cd "$BACKEND_DIR"
-  "$VENV_BIN/uvicorn" server:app \
+  "$VENV_BIN/python" -m uvicorn server:app \
     --host 0.0.0.0 --port 8002 --reload \
     --log-level info &
   echo $! >> "$PID_FILE"
@@ -116,7 +116,12 @@ start_frontend() {
   fi
 
   cd "$FRONTEND_DIR"
-  EXPO_PUBLIC_BACKEND_URL="http://localhost:8002" node_modules/.bin/expo start --web --port 8081 &
+  if [[ -f "node_modules/.bin/expo" ]]; then
+    EXPO_CMD="node_modules/.bin/expo"
+  else
+    EXPO_CMD="npx expo"
+  fi
+  EXPO_PUBLIC_BACKEND_URL="http://localhost:8002" $EXPO_CMD start --web --port 8081 &
   echo $! >> "$PID_FILE"
   success "Frontend started (PID $!) → http://localhost:8081"
 }

@@ -189,3 +189,10 @@ run.sh
 run.ps1
 run.sh
 run.ps1
+
+# Scratch folder and local Node/Yarn runtimes
+scratch/
+node-local/
+yarn-local/
+
+.run.pid

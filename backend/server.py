@@ -5863,7 +5863,7 @@ async def on_startup():
     # Start the Hourly Content Sync scheduler (jobs, events, courses).
     try:
         from background_sync import start_sync_scheduler
-        start_sync_scheduler()
+        start_sync_scheduler(db)
     except Exception as _e:
         logger.warning("Could not start background sync scheduler: %s", _e)
 
