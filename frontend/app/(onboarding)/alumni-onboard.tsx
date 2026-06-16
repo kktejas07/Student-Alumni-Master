@@ -1,3 +1,4 @@
+import { getBaseUrl } from '@/src/lib/env';
 /**
  * Alumni Onboarding — 6-step wizard per Alumni UI spec (New Folder With Items 4.zip).
  *
@@ -34,7 +35,7 @@ import { Dropdown } from '@/src/views/web/Dropdown';
 import { WebcamModal } from '@/src/views/components/WebcamModal';
 
 const TOTAL = 6;
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BASE = getBaseUrl();
 const CURRENT_YEAR = new Date().getFullYear();
 const GRAD_YEARS = Array.from({ length: 50 }, (_, i) => String(CURRENT_YEAR - i));
 

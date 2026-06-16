@@ -1,3 +1,4 @@
+import { getBaseUrl } from '@/src/lib/env';
 /**
  * Register — New design with role context, password strength, and analytics.
  */
@@ -15,7 +16,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { PhoneInput } from '@/src/views/web/PhoneInput';
 import { DateOfBirthPicker, isDobValid } from '@/src/views/web/DateOfBirthPicker';
 
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BASE = getBaseUrl();
 
 export default function RegisterScreen() {
   const router = useRouter();

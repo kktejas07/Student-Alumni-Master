@@ -5,7 +5,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BASE_URL = getBaseUrl();
 
 const TOKEN_KEY = 'scd_access_token';
 const REFRESH_KEY = 'scd_refresh_token';

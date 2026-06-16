@@ -1,3 +1,4 @@
+import { getBaseUrl } from '@/src/lib/env';
 /**
  * Mentor Onboarding — 8-step wizard per Mentor UI spec (Archive.zip screenshots).
  *
@@ -34,7 +35,7 @@ import { Dropdown } from '@/src/views/web/Dropdown';
 import { WebcamModal } from '@/src/views/components/WebcamModal';
 
 const TOTAL = 8;
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BASE = getBaseUrl();
 const CURRENT_YEAR = new Date().getFullYear();
 // For mentors, batch year is in the past — they've already graduated.
 const BATCH_YEARS = Array.from({ length: 30 }, (_, i) => String(CURRENT_YEAR - i));

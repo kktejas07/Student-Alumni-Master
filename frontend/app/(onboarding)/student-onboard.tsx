@@ -1,3 +1,4 @@
+import { getBaseUrl } from '@/src/lib/env';
 /**
  * Student Onboarding — 7-step wizard per HTML spec (screenshots provided).
  *
@@ -29,7 +30,7 @@ import { Dropdown } from '@/src/views/web/Dropdown';
 import { WebcamModal } from '@/src/views/components/WebcamModal';
 
 const TOTAL = 7;
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BASE = getBaseUrl();
 const CURRENT_YEAR = new Date().getFullYear();
 // Per spec — students are currently studying; graduation year ≥ current year.
 const GRAD_YEARS = Array.from({ length: 9 }, (_, i) => String(CURRENT_YEAR + i));

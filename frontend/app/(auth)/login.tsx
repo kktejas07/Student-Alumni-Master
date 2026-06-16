@@ -1,3 +1,4 @@
+import { getBaseUrl } from '@/src/lib/env';
 /**
  * Auth Login screen using AuthShell + AuthControls + analytics tracking.
  */
@@ -13,7 +14,7 @@ import { AC, FONTS } from '@/src/views/auth/tokens';
 import { trackAuth, passwordStrength } from '@/src/lib/authAnalytics';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BASE = getBaseUrl();
 
 function GoogleG({ size = 18 }: { size?: number }) {
   return (
