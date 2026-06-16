@@ -323,6 +323,11 @@ async def mentor_dashboard(mentor_email: Optional[str] = None):
 # ─── 2. STUDENT DASHBOARD ────────────────────────────────────────
 @router.get("/student/dashboard")
 async def student_dashboard(student_email: Optional[str] = None):
+    import time
+    _t0 = time.perf_counter()
+    print(f'[DASHBOARD TRACE] REQUEST_RECEIVED | t=0.0s')
+    print(f'[DASHBOARD TRACE] DB_QUERY_START | t={(time.perf_counter()-_t0)*1000:.1f}ms')
+
     """Real student dashboard. Uses `student_email` query param if provided
     (frontend passes the logged-in user's email); otherwise falls back to
     any onboarded student in the DB for unauthenticated public preview."""
@@ -529,7 +534,11 @@ async def student_dashboard(student_email: Optional[str] = None):
         "profileCompletion": {"score": career_score, "missing": missing_profile},
     }
     dashboard_cache[cache_key] = payload
+    _t1 = time.perf_counter()
+    print(f'[DASHBOARD TRACE] DB_QUERY_END | duration={(_t1-_t0)*1000:.1f}ms')
+    print(f'[DASHBOARD TRACE] RESPONSE_SENT | TOTAL dashboard duration={(_t1-_t0)*1000:.1f}ms')
     return payload
+
 
 
 # ─── 2b. STUDENT INTELLIGENCE CENTER ─────────────────────────────
@@ -567,6 +576,11 @@ def format_time_ago(dt: datetime) -> str:
 # deterministic, lightly-randomised series for sparkline shape.
 @router.get("/student/intelligence")
 async def student_intelligence(student_email: Optional[str] = None):
+    import time
+    _t0 = time.perf_counter()
+    print(f'[INTEL TRACE] REQUEST_RECEIVED | t=0.0s')
+    print(f'[INTEL TRACE] DB_QUERY_START | t={(time.perf_counter()-_t0)*1000:.1f}ms')
+
     """NexusOS Intelligence Center payload for the student dashboard.
     Returns sparkline arrays, an area-chart series, KPI totals, an
     activity feed, and an overall profile-completion percentage.

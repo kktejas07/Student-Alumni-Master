@@ -94,10 +94,21 @@ from notifications import (
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# MongoDB connection comes from .env (NEVER hardcoded)
+import time
+_t0_mongo = time.perf_counter()
+print("[DB TRACE] Mongo client created")
 mongo_url = os.environ.get('MONGO_URL', 'mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin')
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ.get('DB_NAME', 'studentalumniadmin')]
+
+@app.on_event("startup")
+async def verify_mongo_connection():
+    try:
+        await client.admin.command('ping')
+        _t1_mongo = time.perf_counter()
+        print(f"[DB TRACE] Mongo connection established | Duration: {(_t1_mongo - _t0_mongo) * 1000:.1f}ms")
+    except Exception as e:
+        print(f"[DB TRACE] Mongo connection failed: {e}")
 
 # JWT configuration
 JWT_SECRET = os.environ.get('JWT_SECRET', '44ef879c2317ef383b123617fdac89bc7291a27e3848b8dbdfb9a1c1d8e8f8e9')
