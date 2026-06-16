@@ -6420,6 +6420,10 @@ api_router.include_router(admin_imports_router)
 from admin_colleges import router as admin_colleges_router
 api_router.include_router(admin_colleges_router)
 
+# Talent Pool — searchable candidate profiles (LinkedIn, CSV, platform opt-in)
+from talent_pool import router as talent_pool_router
+api_router.include_router(talent_pool_router)
+
 # CRUD endpoints — append-only mutations (book, RSVP, enroll, apply)
 from crud_endpoints import router as crud_router
 api_router.include_router(crud_router)
