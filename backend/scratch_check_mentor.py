@@ -1,10 +1,8 @@
 import asyncio
 import json
-from motor.motor_asyncio import AsyncIOMotorClient
-from bson import ObjectId
 
 async def check():
-    client = AsyncIOMotorClient("mongodb://localhost:27017")
+    from db import client as client
     db = client["student_alumni_db"]
     mentor_id = "6a27cde3045bf8ce7898a73a"
     print("Checking sample_mentors...")

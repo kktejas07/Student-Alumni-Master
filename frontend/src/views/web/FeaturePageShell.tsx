@@ -65,7 +65,7 @@ const ROUTE_MAP: Record<string, string> = {
   insurance: '/financial', // Insurance products live inside /financial
   rentals: '/rentals',
   deals: '/deals',
-  profile: '/me',
+  profile: '/student-portal?tab=profile',
 };
 
 // Reverse map: which NAV id is "active" for a given pathname
@@ -81,7 +81,7 @@ function activeIdForPath(path: string): string {
   if (path.startsWith('/wallet')) return 'wallet';
   if (path.startsWith('/rentals')) return 'rentals';
   if (path.startsWith('/deals')) return 'deals';
-  if (path.startsWith('/me')) return 'profile';
+  if (path.startsWith('/me') || path.includes('tab=profile')) return 'profile';
   return '';
 }
 

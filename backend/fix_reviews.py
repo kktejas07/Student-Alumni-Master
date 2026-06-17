@@ -1,9 +1,7 @@
 import asyncio
-from motor.motor_asyncio import AsyncIOMotorClient
-from bson import ObjectId
 
 async def main():
-    client = AsyncIOMotorClient("mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin")
+    from db import client as client
     db = client.studentalumniadmin
 
     reviews = await db.reviews.find({"mentor_id": "auto-resolved"}).to_list(1000)

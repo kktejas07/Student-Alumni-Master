@@ -16,11 +16,8 @@ from pathlib import Path
 
 from bson import ObjectId
 from dotenv import load_dotenv
-from motor.motor_asyncio import AsyncIOMotorClient
 
-load_dotenv(Path(__file__).parent / '.env')
-
-_mongo = AsyncIOMotorClient(os.environ['MONGO_URL'])
+from db import client as _mongo
 _db = _mongo[os.environ['DB_NAME']]
 
 

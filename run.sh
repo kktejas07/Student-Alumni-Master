@@ -50,7 +50,7 @@ load_env() {
 
 # ── backend ───────────────────────────────────────────────────────────────────
 start_backend() {
-  info "Starting backend (FastAPI on :8000)…"
+  info "Starting backend (FastAPI on :8002)…"
 
   # Prefer python3.11 / python3.12 (requirements need >=3.10); fall back to python3
   PYTHON_CMD=""

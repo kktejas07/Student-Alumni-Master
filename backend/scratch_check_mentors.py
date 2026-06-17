@@ -1,8 +1,7 @@
 import asyncio
-from motor.motor_asyncio import AsyncIOMotorClient
+from db import db
 
 async def main():
-    db = AsyncIOMotorClient('mongodb://localhost:27017').student_alumni
     mentors = await db.users.find({'role': 'mentor'}).to_list(100)
     print(f"Total mentors: {len(mentors)}")
     for m in mentors:

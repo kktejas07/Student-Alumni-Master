@@ -11,10 +11,7 @@ import asyncio
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from motor.motor_asyncio import AsyncIOMotorClient
-
-load_dotenv(Path(__file__).parent / ".env")
-_db = AsyncIOMotorClient(os.environ["MONGO_URL"])[os.environ["DB_NAME"]]
+from db import db as _db
 OUT = Path("/app/memory/dashboard_test_accounts.md")
 
 

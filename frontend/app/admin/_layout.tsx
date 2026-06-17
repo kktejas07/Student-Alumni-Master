@@ -11,7 +11,7 @@ export default function AdminLayoutRoute() {
   useEffect(() => {
     if (!initialized) return;
     if (!user) { router.replace('/login' as any); return; }
-    if (user.role !== 'admin') router.replace('/' as any);
+    if (user.role !== 'admin' && user.role !== 'super_admin') router.replace('/' as any);
   }, [user, initialized]);
   return <Stack screenOptions={{ headerShown: false }} />;
 }

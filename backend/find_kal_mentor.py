@@ -1,8 +1,7 @@
 import asyncio
-from motor.motor_asyncio import AsyncIOMotorClient
+from db import client, db as _db
 
 async def main():
-    client = AsyncIOMotorClient("mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin")
     db = client.studentalumniadmin
 
     user = await db.users.find_one({"role": "mentor", "full_name": {"$regex": "kal", "$options": "i"}})

@@ -110,6 +110,7 @@ export function ManageProfilePage({ draft, setDraft, badges, onCertChange, showT
       </Card>
 
       {/* Resume & Documents */}
+      <View nativeID="resume">
       <Card title="Resume & Documents" subtitle="PDF / Doc up to 5MB. The active one is shared with employers."
         action={<Pressable onPress={handleResumeUpload} disabled={busy} style={st.uploadBtn} testID="pf-resume-upload">{busy ? <ActivityIndicator size="small" color="#fff" /> : <FileUp size={13} color="#fff" />}<Text style={st.uploadBtnText}>{busy ? 'Uploading…' : 'Upload New'}</Text></Pressable>}>
         {resumes.length === 0 ? (
@@ -136,8 +137,10 @@ export function ManageProfilePage({ draft, setDraft, badges, onCertChange, showT
           </View>
         )}
       </Card>
+      </View>
 
       {/* Profile Sections */}
+      <View nativeID="projects">
       <Card title="Profile Sections" subtitle="Toggle which sections appear on your public profile.">
         {SECTIONS.map((s) => (
           <ToggleRow
@@ -150,9 +153,12 @@ export function ManageProfilePage({ draft, setDraft, badges, onCertChange, showT
           />
         ))}
       </Card>
+      </View>
 
       {/* Certifications (reuse existing CertificatesCard) */}
-      <CertificatesCard onChanged={onCertChange} />
+      <View nativeID="certifications">
+        <CertificatesCard onChanged={onCertChange} />
+      </View>
 
       {/* Earned Badges */}
       <Card title="Earned Badges" subtitle={`${badges.length} unlocked`}>

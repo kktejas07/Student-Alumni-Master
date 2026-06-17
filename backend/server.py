@@ -45,9 +45,9 @@ import pyotp
 import qrcode
 from bson import ObjectId
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
-from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr, field_validator
+from starlette.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 
 # Rate limiting (imports only, setup after app is created)
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -93,10 +93,12 @@ from notifications import (
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# MongoDB connection comes from .env (NEVER hardcoded)
+import time
+_t0_mongo = time.perf_counter()
+print("[DB TRACE] Mongo client created")
 mongo_url = os.environ.get('MONGO_URL', 'mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin')
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ.get('DB_NAME', 'studentalumniadmin')]
+from db import client, db as _db_default
+db = _db_default
 
 # JWT configuration
 JWT_SECRET = os.environ.get('JWT_SECRET', '44ef879c2317ef383b123617fdac89bc7291a27e3848b8dbdfb9a1c1d8e8f8e9')
@@ -108,6 +110,24 @@ app = FastAPI(title="Student Alumni Platform API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernetes ingress requirement)
+
+
+@app.on_event("startup")
+async def verify_mongo_connection():
+    """Warm the Mongo connection pool before any requests are served.
+
+    Calling warm_db() here forces Motor to complete Atlas topology discovery
+    (DNS → TCP → TLS → hello handshake) during server startup rather than
+    on the first user request.  Without this warm-up, the first 10-20
+    concurrent requests all block for ~47 s waiting for topology resolution.
+    """
+    try:
+        from core.db import warm_db
+        ping_ms = await warm_db()
+        print(f"[DB TRACE] Mongo connection established | Duration: {ping_ms:.1f}ms", flush=True)
+        print(f"[DB TRACE] Mongo Topology: {client.topology_description}", flush=True)
+    except Exception as e:
+        print(f"[DB TRACE] Mongo connection failed: {e}", flush=True)
 
 
 # ----------------------------------------------------------------------------
@@ -226,7 +246,7 @@ async def _audit_log_many(user_id: str, source: str, entries: list,
 # Type Definitions
 # ----------------------------------------------------------------------------
 # UserRole: 3 primary user types + admin/college (managed roles)
-UserRole = Literal["student", "alumni", "mentor", "college", "admin"]
+UserRole = Literal["student", "alumni", "mentor", "college", "admin", "super_admin"]
 
 # CareerPath: Drives all personalization on the platform
 CareerPath = Literal["job", "higher_education", "startup", "business"]
@@ -557,6 +577,7 @@ class TwoFADisableRequest(BaseModel):
 # ----- AI payloads -----
 class CareerSuggestionRequest(BaseModel):
     additional_context: Optional[str] = None
+    session_id: Optional[str] = None
 
 
 class ChatRequest(BaseModel):
@@ -718,7 +739,7 @@ def serialize_user(user: dict) -> dict:
         "primary_skill":  user.get("primary_skill"),
         "profile_visibility": user.get("profile_visibility"),
         "section_toggles": user.get("section_toggles"),
-        "badges":         user.get("badges", []),
+        "badges":         [b for b in user.get("badges", []) if isinstance(b, dict)],
         "projects":       user.get("projects"),
         "preferences":    user.get("preferences"),
         "is_verified":    user.get("is_verified"),
@@ -728,6 +749,8 @@ def serialize_user(user: dict) -> dict:
 
 async def get_current_user(request: Request) -> dict:
     """JWT auth dependency. Reads `Authorization: Bearer <token>` header."""
+    import time
+    _t0 = time.perf_counter()
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
         raise HTTPException(401, "Not authenticated")
@@ -735,7 +758,9 @@ async def get_current_user(request: Request) -> dict:
         payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
         if payload.get("type") != "access":
             raise HTTPException(401, "Invalid token type")
-        user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
+        print(f'[AUTH TRACE] DB_QUERY_START | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
+        user = await db.users.find_one({"_id": ObjectId(payload["sub"])}, {"resume_documents": 0})
+        print(f'[AUTH TRACE] DB_QUERY_END | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
         if not user:
             raise HTTPException(401, "User not found")
         return user
@@ -763,7 +788,7 @@ def validate_student_class(school_info: SchoolInfo, age: Optional[int] = None) -
 async def register(request: Request, req: RegisterRequest):
     """Register a new user. Role is captured upfront — onboarding collects role-specific fields."""
     email = req.email.lower().strip()
-    if await db.users.find_one({"email": email}):
+    if await db.users.find_one({"email": email}, {"_id": 1}):
         raise HTTPException(400, "Email already registered")
 
     user_doc = {
@@ -848,13 +873,37 @@ async def check_email(request: Request, req: CheckEmailRequest):
 @limiter.limit("20/minute")
 async def login(request: Request, req: LoginRequest):
     """Email + password login. Returns JWT pair, OR a 2FA challenge if user has 2FA enabled."""
+    import time as _time
+    _t0 = _time.perf_counter()
+    print(f"\n[LOGIN TRACE] ---- New login attempt for: {req.email} ----", flush=True)
+    print(f"[LOGIN TRACE] REQUEST_RECEIVED | 1. Request received at t=0.000s", flush=True)
+
     email = req.email.lower().strip()
-    user = await db.users.find_one({"email": email})
-    if not user or not verify_password(req.password, user["password_hash"]):
+
+    # ── Stage 2: DB lookup ──
+    _t_db0 = _time.perf_counter()
+    user = await db.users.find_one({"email": email}, {"resume_documents": 0})
+    _t_db1 = _time.perf_counter()
+    print(f"[LOGIN TRACE] DB_LOOKUP_COMPLETE | 2. DB user lookup done  | duration={(_t_db1-_t_db0)*1000:.1f}ms | found={user is not None}", flush=True)
+
+    if not user:
+        print(f"[LOGIN TRACE] !! User not found — aborting at t={(_time.perf_counter()-_t0)*1000:.1f}ms", flush=True)
         raise HTTPException(401, "Invalid email or password")
 
-    # If 2FA is enabled — issue a short-lived challenge token instead of full session
+    # ── Stage 3: Password verification (offloaded to thread) ──
+    _t_pw0 = _time.perf_counter()
+    loop = asyncio.get_running_loop()
+    is_valid = await loop.run_in_executor(None, verify_password, req.password, user["password_hash"])
+    _t_pw1 = _time.perf_counter()
+    print(f"[LOGIN TRACE] PASSWORD_VERIFIED | 3. Password verification | duration={(_t_pw1-_t_pw0)*1000:.1f}ms | valid={is_valid}", flush=True)
+
+    if not is_valid:
+        print(f"[LOGIN TRACE] !! Wrong password — aborting at t={(_time.perf_counter()-_t0)*1000:.1f}ms", flush=True)
+        raise HTTPException(401, "Invalid email or password")
+
+    # ── 2FA branch ──
     if user.get("two_fa_enabled"):
+        _t_2fa0 = _time.perf_counter()
         challenge_id = secrets.token_urlsafe(24)
         await db.two_fa_challenges.insert_one({
             "_id": challenge_id,
@@ -863,6 +912,7 @@ async def login(request: Request, req: LoginRequest):
             "consumed": False,
             "created_at": datetime.now(timezone.utc),
         })
+        print(f"[LOGIN TRACE] 2FA challenge issued  | duration={(_time.perf_counter()-_t_2fa0)*1000:.1f}ms", flush=True)
         return TwoFAChallengeResponse(
             requires_2fa=True,
             challenge_id=challenge_id,
@@ -870,17 +920,41 @@ async def login(request: Request, req: LoginRequest):
             user_email=email,
         )
 
+    # ── Stage 4: Token generation ──
+    _t_tok0 = _time.perf_counter()
+    access_token  = create_access_token(str(user["_id"]), email, user["role"])
+    refresh_token = create_refresh_token(str(user["_id"]))
+    _t_tok1 = _time.perf_counter()
+    print(f"[LOGIN TRACE] JWT_CREATED | 4. Token generation      | duration={(_t_tok1-_t_tok0)*1000:.1f}ms", flush=True)
+
+    # ── Stage 5: Serialize user profile ──
+    _t_ser0 = _time.perf_counter()
+    user_payload = UserResponse(**serialize_user(user))
+    _t_ser1 = _time.perf_counter()
+    print(f"[LOGIN TRACE] 5. Serialize user profile | duration={(_t_ser1-_t_ser0)*1000:.1f}ms", flush=True)
+
+    _t_total = (_time.perf_counter() - _t0) * 1000
+    print(f"[LOGIN TRACE] RESPONSE_SENT | 6. Returning response     | TOTAL login duration={_t_total:.1f}ms", flush=True)
+    if _t_total > 2000:
+        print(f"[LOGIN TRACE] [WARNING] SLOW LOGIN DETECTED: took {_t_total:.1f}ms (>2000ms threshold)", flush=True)
+    print(f"[LOGIN TRACE] -------------------------------------------\n", flush=True)
+
     return AuthResponse(
-        access_token=create_access_token(str(user["_id"]), email, user["role"]),
-        refresh_token=create_refresh_token(str(user["_id"])),
-        user=UserResponse(**serialize_user(user)),
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=user_payload,
     )
 
 
 @api_router.get("/auth/me", response_model=UserResponse)
 async def get_me(user: dict = Depends(get_current_user)):
     """Returns the currently authenticated user."""
-    return UserResponse(**serialize_user(user))
+    import time
+    _t0 = time.perf_counter()
+    print(f'[ME TRACE] REQUEST_RECEIVED | t=0.0s')
+    resp = UserResponse(**serialize_user(user))
+    print(f'[ME TRACE] RESPONSE_SENT | TOTAL me duration={(time.perf_counter()-_t0)*1000:.1f}ms')
+    return resp
 
 
 # ----------------------------------------------------------------------------
@@ -1222,7 +1296,7 @@ async def refresh_my_badges(user: dict = Depends(get_current_user)):
 @api_router.post("/admin/badges/recompute-all")
 async def admin_recompute_all_badges(user: dict = Depends(get_current_user)):
     """Admin-only — nightly batch recompute (manually triggerable)."""
-    if user.get("role") != "admin":
+    if user.get("role") not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
     count = 0
     async for u in db.users.find({}, {"_id": 1, "role": 1, "email_verified": 1, "two_fa_enabled": 1}):
@@ -1509,7 +1583,7 @@ async def verify_id_card(identifier: str):
         base["students_count"] = ci.get("students_count") or ""
         base["affiliation"] = ci.get("affiliation") or ""
 
-    elif role == "admin":
+    elif role in ("admin", "super_admin"):
         colleges_count = await db.colleges.count_documents({}) or 0
         base["title"] = u.get("title") or ""
         base["access_label"] = u.get("access_label") or "Full Access"
@@ -2178,12 +2252,18 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
 
 
 async def _get_oauth_creds() -> dict:
-    """Read OAuth credentials from platform_controls DB collection."""
+    """Read OAuth credentials from platform_controls DB collection, merged with defaults."""
     doc = await db.platform_controls.find_one({"_id": "singleton"})
-    if not doc:
-        return {}
-    settings = {s["key"]: s.get("value", "") for s in (doc.get("system_settings") or [])}
-    return settings
+    db_settings = {s["key"]: s.get("value", "") for s in (doc.get("system_settings") or [])} if doc else {}
+    # Merge with defaults so new fields (like firebase_*) are included even before admin sets them
+    try:
+        from admin_settings import DEFAULT_PLATFORM_CONTROLS
+        for s in DEFAULT_PLATFORM_CONTROLS.get("system_settings") or []:
+            if s["key"] not in db_settings:
+                db_settings[s["key"]] = s.get("value", "")
+    except ImportError:
+        pass
+    return db_settings
 
 
 @api_router.get("/auth/oauth-config")
@@ -2196,8 +2276,15 @@ async def oauth_config():
     return {
         "google_client_id": creds.get("google_oauth_client_id", ""),
         "linkedin_client_id": creds.get("linkedin_oauth_client_id", ""),
+        "github_client_id": creds.get("github_oauth_client_id", ""),
+        "firebase": {
+            "apiKey": creds.get("firebase_api_key", ""),
+            "authDomain": creds.get("firebase_auth_domain", ""),
+            "projectId": creds.get("firebase_project_id", ""),
+            "appId": creds.get("firebase_app_id", ""),
+        } if creds.get("firebase_api_key") else None,
         "redirect_uri": f"{frontend_url}/oauth.html",
-        "configured": bool(creds.get("google_oauth_client_id")) or bool(creds.get("linkedin_oauth_client_id")),
+        "configured": bool(creds.get("google_oauth_client_id")) or bool(creds.get("linkedin_oauth_client_id")) or bool(creds.get("github_oauth_client_id")),
     }
 
 
@@ -2230,6 +2317,58 @@ async def _verify_linkedin_token(access_token: Optional[str], client_id: str = "
                 return {"email": data.get("email"), "name": data.get("name"),
                         "picture": data.get("picture")}
             return None
+    except Exception:
+        return None
+
+
+async def _verify_github_token(code: Optional[str], client_id: str = "", client_secret: str = "") -> Optional[dict]:
+    """Verify GitHub OAuth code, exchange for access token, and fetch user profile."""
+    if not code or not client_id or not client_secret:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            # Exchange code for access token
+            token_res = await c.post(
+                "https://github.com/login/oauth/access_token",
+                json={"client_id": client_id, "client_secret": client_secret, "code": code},
+                headers={"Accept": "application/json"},
+            )
+            if not token_res.is_success:
+                return None
+            token_data = token_res.json()
+            access_token = token_data.get("access_token")
+            if not access_token:
+                return None
+
+            # Fetch user profile
+            user_res = await c.get(
+                "https://api.github.com/user",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            if not user_res.is_success:
+                return None
+            user_data = user_res.json()
+
+            # Fetch user emails (primary may be set or need to find it)
+            emails_res = await c.get(
+                "https://api.github.com/user/emails",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            email = None
+            if emails_res.is_success:
+                emails = emails_res.json()
+                primary = next((e for e in emails if e.get("primary")), None)
+                verified = next((e for e in emails if e.get("verified")), None)
+                email = (primary or verified or {}).get("email") or (emails[0].get("email") if emails else None)
+            if not email:
+                email = user_data.get("email")
+
+            return {
+                "email": email,
+                "name": user_data.get("name") or user_data.get("login", ""),
+                "picture": user_data.get("avatar_url"),
+                "sub": str(user_data.get("id")),
+            }
     except Exception:
         return None
 
@@ -2289,6 +2428,113 @@ async def auth_linkedin(request: Request, req: OAuthCallback):
         provider="linkedin",
         email=profile["email"],
         full_name=profile.get("name") or profile.get("full_name") or "",
+        picture=profile.get("picture"),
+        role=req.role or "student",
+    )
+    return AuthResponse(
+        access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
+        refresh_token=create_refresh_token(str(user["_id"])),
+        user=UserResponse(**serialize_user(user)),
+    )
+
+
+@api_router.post("/auth/github", response_model=AuthResponse)
+@limiter.limit("20/minute")
+async def auth_github(request: Request, req: OAuthCallback):
+    """Continue-with-GitHub flow. Uses OAuth code exchange (not id_token)."""
+    creds = await _get_oauth_creds()
+    client_id = creds.get("github_oauth_client_id", "")
+    client_secret = creds.get("github_oauth_client_secret", "")
+    profile = await _verify_github_token(req.access_token, client_id, client_secret) if req.access_token else None
+    if profile is None:
+        if not client_id and os.getenv("ENV") == "development":
+            if not req.email or not req.full_name:
+                raise HTTPException(400, "Development mock mode requires email/full_name")
+            profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+        else:
+            raise HTTPException(400, "GitHub OAuth requires a valid authorization code. Configure github_oauth_client_id / github_oauth_client_secret in platform settings or set ENV=development for mock mode.")
+
+    user = await _upsert_oauth_user(
+        provider="github",
+        email=profile["email"],
+        full_name=profile.get("name") or profile.get("full_name") or "",
+        picture=profile.get("picture"),
+        role=req.role or "student",
+    )
+    return AuthResponse(
+        access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
+        refresh_token=create_refresh_token(str(user["_id"])),
+        user=UserResponse(**serialize_user(user)),
+    )
+
+
+# ─── Firebase Auth ──────────────────────────────────────────────────
+_firebase_app = None
+
+def _get_or_init_firebase():
+    """Initialize Firebase Admin SDK if not already initialized, using platform settings."""
+    global _firebase_app
+    if _firebase_app is not None:
+        return _firebase_app
+    try:
+        from firebase_admin import credentials, initialize_app
+        creds_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON", "")
+        if not creds_json:
+            # Try reading from platform_controls synchronously (won't work in async context)
+            return None
+        cred_dict = __import__("json").loads(creds_json)
+        cred = credentials.Certificate(cred_dict)
+        _firebase_app = initialize_app(cred)
+        return _firebase_app
+    except Exception:
+        return None
+
+
+def _verify_firebase_token(id_token: str) -> Optional[dict]:
+    """Verify a Firebase ID token using Firebase Admin SDK."""
+    app = _get_or_init_firebase()
+    if not app:
+        return None
+    try:
+        from firebase_admin import auth as fb_auth
+        decoded = fb_auth.verify_id_token(id_token, check_revoked=True)
+        return {
+            "email": decoded.get("email"),
+            "name": decoded.get("name", ""),
+            "picture": decoded.get("picture", ""),
+            "sub": decoded.get("uid"),
+            "phone": decoded.get("phone_number"),
+            "firebase_provider": decoded.get("firebase", {}).get("sign_in_provider", ""),
+        }
+    except Exception:
+        return None
+
+
+@api_router.post("/auth/firebase", response_model=AuthResponse)
+@limiter.limit("20/minute")
+async def auth_firebase(request: Request, req: OAuthCallback):
+    """Firebase Auth — accepts a Firebase ID token from any provider (Google, GitHub, phone, etc.)
+    and issues a platform JWT. Configure firebase_service_account in platform settings."""
+    creds = await _get_oauth_creds()
+    fb_service_account = creds.get("firebase_service_account", "")
+
+    if fb_service_account and not os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON"):
+        os.environ["FIREBASE_SERVICE_ACCOUNT_JSON"] = fb_service_account
+
+    profile = _verify_firebase_token(req.id_token) if req.id_token else None
+    if profile is None:
+        if not fb_service_account and os.getenv("ENV") == "development":
+            if not req.email or not req.full_name:
+                raise HTTPException(400, "Development mock mode requires email/full_name")
+            profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+        else:
+            raise HTTPException(400, "Firebase Auth requires a valid id_token. Configure firebase_service_account in platform settings or set ENV=development for mock mode.")
+
+    provider = profile.get("firebase_provider", "firebase")
+    user = await _upsert_oauth_user(
+        provider=provider,
+        email=profile["email"],
+        full_name=profile.get("name") or req.full_name or "",
         picture=profile.get("picture"),
         role=req.role or "student",
     )
@@ -2471,26 +2717,15 @@ async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
 # Profile completion + Resume + Preferences (SA Profile Web — Phase 4)
 # ----------------------------------------------------------------------------
 def _compute_profile_completion(u: dict) -> dict:
-    """Return per-item checklist + overall percentage."""
-    fn = (u.get("full_name") or "").strip()
-    has_first = bool((u.get("first_name") or fn.split(" ")[0]) and fn)
-    has_last = len(fn.split(" ")) > 1
-    has_photo = bool(u.get("face_image_base64") or u.get("photo_data"))
-    has_bio = bool((u.get("bio") or u.get("headline") or "").strip())
-    has_college = bool((u.get("institution") or "").strip()) and bool((u.get("branch") or "").strip())
-    has_social = bool((u.get("linkedin_url") or u.get("github_url") or u.get("portfolio_url") or "").strip())
-    interests_count = len(u.get("interests") or [])
-    has_interests = interests_count >= 3
-    skills_count = len(u.get("skills") or [])
-    has_skills = skills_count >= 1
+    """Return per-item checklist + overall percentage using rebalanced weights."""
     items = [
-        {"key": "basic", "label": "Basic info", "done": bool(has_first and has_last), "weight": 14},
-        {"key": "photo", "label": "Profile photo", "done": has_photo, "weight": 14},
-        {"key": "bio", "label": "Bio / headline", "done": has_bio, "weight": 14},
-        {"key": "college", "label": "College details", "done": has_college, "weight": 14},
-        {"key": "social", "label": "Social links", "done": has_social, "weight": 14},
-        {"key": "interests", "label": "3+ interests", "done": has_interests, "weight": 15},
-        {"key": "skills", "label": "Skills listed", "done": has_skills, "weight": 15},
+        {"key": "skills", "label": "Skills listed", "done": len(u.get("skills") or []) >= 1, "weight": 25},
+        {"key": "resume", "label": "Resume uploaded", "done": len(u.get("resume_documents") or []) > 0 or bool(u.get("resume_url")) or bool(u.get("resume_data")), "weight": 20},
+        {"key": "projects", "label": "Projects added", "done": len(u.get("projects") or []) > 0, "weight": 20},
+        {"key": "socials", "label": "LinkedIn/GitHub linked", "done": bool(u.get("linkedin_url")) or bool(u.get("github_url")), "weight": 15},
+        {"key": "education", "label": "Education/College details", "done": bool((u.get("institution") or "").strip()) and bool((u.get("branch") or "").strip()), "weight": 10},
+        {"key": "bio", "label": "Bio / headline", "done": bool((u.get("bio") or u.get("headline") or "").strip()), "weight": 5},
+        {"key": "photo", "label": "Profile photo", "done": bool(u.get("face_image_base64") or u.get("photo_data")), "weight": 5},
     ]
     pct = sum(i["weight"] for i in items if i["done"])
     return {"percentage": pct, "items": items}
@@ -2572,6 +2807,33 @@ async def get_my_stats(user: dict = Depends(get_current_user)):
     except Exception:
         earnings_this_month = int(user.get("earnings_this_month") or 0)
 
+    # Compute skill_streak based on consecutive days of activity in the last 30 days
+    skill_streak = 0
+    try:
+        from datetime import datetime as _dt, timedelta as _td
+        today = _dt.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        thirty_days_ago = today - _td(days=30)
+        streak_days = set()
+        async for ev in db.activity_events.find({
+            "user_id": uid,
+            "ts": {"$gte": thirty_days_ago},
+        }, {"ts": 1}):
+            d_ts = ev.get("ts")
+            if isinstance(d_ts, _dt):
+                streak_days.add(d_ts.date().isoformat())
+        # Compute current consecutive-day streak
+        d_day = today.date()
+        # If today has no activity, check yesterday to keep streak alive
+        if d_day.isoformat() not in streak_days:
+            yesterday = d_day - _td(days=1)
+            if yesterday.isoformat() in streak_days:
+                d_day = yesterday
+        while d_day.isoformat() in streak_days:
+            skill_streak += 1
+            d_day = d_day - _td(days=1)
+    except Exception:
+        pass
+
     return {
         "sessions_completed": sessions_completed,
         "connections_made": connections_made,
@@ -2581,6 +2843,330 @@ async def get_my_stats(user: dict = Depends(get_current_user)):
         "avg_rating": avg_rating,
         "rating_count": rating_count,
         "earnings_this_month": earnings_this_month,
+        "skill_streak": skill_streak,
+    }
+
+
+@api_router.get("/users/me/skill-intelligence")
+async def get_my_skill_intelligence(user: dict = Depends(get_current_user)):
+    """Compute user skill intelligence scores dynamically from profile and activity."""
+    uid = str(user.get("id") or user.get("_id"))
+    
+    projects = user.get("projects") or []
+    num_projects = len(projects)
+    
+    certs = user.get("certificates") or []
+    num_certs = len(certs)
+    
+    connections = 0
+    try:
+        connections = await db.connections.count_documents({
+            "$or": [{"from_id": uid}, {"to_id": uid}],
+            "status": "accepted",
+        })
+    except Exception:
+        pass
+        
+    bookings_count = 0
+    try:
+        bookings_count = await db.bookings.count_documents({"student_id": uid})
+    except Exception:
+        pass
+        
+    skills = [s.lower() for s in (user.get("skills") or [])]
+    has_resume = len(user.get("resume_documents") or []) > 0
+    has_github = bool(user.get("github_url"))
+    has_linkedin = bool(user.get("linkedin_url"))
+    has_portfolio = bool(user.get("portfolio_url"))
+
+    # Technical Excellence
+    tech_keywords = {"react", "node", "python", "aws", "database", "mongodb", "sql", "javascript", "typescript", "c++", "java", "html", "css", "docker", "kubernetes", "git", "linux", "programming", "software"}
+    matched_tech = sum(1 for s in skills if any(k in s for k in tech_keywords))
+    tech_score = 35 + (matched_tech * 10) + (15 if num_projects > 0 else 0) + (15 if has_github else 0)
+    tech_score = min(100, max(25, tech_score))
+    
+    # Professional Communication
+    comm_keywords = {"communication", "english", "public speaking", "debate", "languages", "speaking", "writing", "presentation", "verbal", "soft skills"}
+    matched_comm = sum(1 for s in skills if any(k in s for k in comm_keywords))
+    comm_score = 40 + (matched_comm * 15)
+    comm_score = min(100, max(25, comm_score))
+    
+    # Personal Brand
+    brand_score = 20
+    if has_resume: brand_score += 25
+    if has_portfolio: brand_score += 25
+    if has_linkedin: brand_score += 15
+    if has_github: brand_score += 15
+    brand_score = min(100, max(20, brand_score))
+    
+    # Leadership & Collaboration
+    lead_keywords = {"leadership", "teamwork", "mentoring", "collaboration", "management", "team", "mentor", "organizer", "lead"}
+    matched_lead = sum(1 for s in skills if any(k in s for k in lead_keywords))
+    lead_score = 40 + (matched_lead * 20)
+    lead_score = min(100, max(25, lead_score))
+    
+    # Career Preparation
+    prep_keywords = {"problem solving", "aptitude", "interview", "dsa", "data structures", "algorithms", "analytical"}
+    matched_prep = sum(1 for s in skills if any(k in s for k in prep_keywords))
+    prep_score = 35 + (matched_prep * 15) + (20 if bookings_count > 0 else 0)
+    prep_score = min(100, max(25, prep_score))
+    
+    # Industry Presence
+    industry_score = 30 + min(40, connections * 10) + (15 if num_certs > 0 else 0)
+    industry_score = min(100, max(30, industry_score))
+
+    scores = {
+        "Technical Excellence": tech_score,
+        "Professional Communication": comm_score,
+        "Personal Brand": brand_score,
+        "Leadership & Collaboration": lead_score,
+        "Career Preparation": prep_score,
+        "Industry Presence": industry_score,
+    }
+    
+    # Detect user career goal (SDE, PM, Design, Default)
+    si = user.get("student_info") or {}
+    goal = si.get("career_goal") or user.get("career_goal") or ""
+    
+    # Try database roadmap target_role fallback
+    existing_roadmap = await db.career_roadmaps.find_one({"user_id": uid})
+    if existing_roadmap and existing_roadmap.get("target_role"):
+        goal = existing_roadmap.get("target_role")
+        
+    if not goal:
+        goal = "Software Engineer"
+        
+    goal_lower = str(goal).lower()
+    
+    if any(k in goal_lower for k in ("engineer", "sde", "developer", "technical", "coding", "programmer", "software")):
+        weights = {
+            "Technical Excellence": 0.40,
+            "Career Preparation": 0.25,
+            "Personal Brand": 0.15,
+            "Professional Communication": 0.10,
+            "Leadership & Collaboration": 0.05,
+            "Industry Presence": 0.05
+        }
+        profile_name = "Technical Engineer"
+    elif any(k in goal_lower for k in ("manager", "pm", "product", "analyst", "consultant", "business")):
+        weights = {
+            "Professional Communication": 0.25,
+            "Leadership & Collaboration": 0.25,
+            "Career Preparation": 0.20,
+            "Technical Excellence": 0.10,
+            "Personal Brand": 0.10,
+            "Industry Presence": 0.10
+        }
+        profile_name = "Product Manager / Business Analyst"
+    elif any(k in goal_lower for k in ("design", "ui", "ux", "artist", "creator", "graphics")):
+        weights = {
+            "Personal Brand": 0.30,
+            "Technical Excellence": 0.20,
+            "Professional Communication": 0.20,
+            "Leadership & Collaboration": 0.10,
+            "Career Preparation": 0.10,
+            "Industry Presence": 0.10
+        }
+        profile_name = "Creative Designer"
+    else:
+        weights = {
+            "Technical Excellence": 0.25,
+            "Professional Communication": 0.15,
+            "Personal Brand": 0.20,
+            "Leadership & Collaboration": 0.15,
+            "Career Preparation": 0.15,
+            "Industry Presence": 0.10
+        }
+        profile_name = "Professional / Specialist"
+
+    overall_score = (
+        (tech_score * weights["Technical Excellence"]) +
+        (comm_score * weights["Professional Communication"]) +
+        (brand_score * weights["Personal Brand"]) +
+        (lead_score * weights["Leadership & Collaboration"]) +
+        (prep_score * weights["Career Preparation"]) +
+        (industry_score * weights["Industry Presence"])
+    )
+    overall_score = min(100, max(20, int(round(overall_score))))
+    
+    weakest_cat = min(scores, key=scores.get)
+    recommendation = {
+        "category": weakest_cat,
+        "title": "Top Opportunity",
+        "action": f"Improve {weakest_cat}",
+        "description": "Strengthen your profile by adding more credentials.",
+        "gain": "+5%"
+    }
+    
+    if weakest_cat == "Technical Excellence":
+        recommendation["description"] = "Increase Technical Excellence score by adding projects or technical skills."
+        recommendation["gain"] = "+8%"
+    elif weakest_cat == "Personal Brand":
+        recommendation["description"] = "Increase Personal Brand score by adding a portfolio website, GitHub link, or uploading a resume."
+        recommendation["gain"] = "+10%"
+    elif weakest_cat == "Professional Communication":
+        recommendation["description"] = "Increase Professional Communication score by practicing speaking or adding public speaking skills."
+        recommendation["gain"] = "+6%"
+    elif weakest_cat == "Leadership & Collaboration":
+        recommendation["description"] = "Increase Leadership & Collaboration score by adding teamwork, mentoring, or leadership experiences."
+        recommendation["gain"] = "+7%"
+    elif weakest_cat == "Career Preparation":
+        recommendation["description"] = "Increase Career Preparation score by booking a mock interview session or adding DSA skills."
+        recommendation["gain"] = "+9%"
+    elif weakest_cat == "Industry Presence":
+        recommendation["description"] = "Increase Industry Presence score by connecting with alumni and attending workshops."
+        recommendation["gain"] = "+8%"
+        
+    # Calculate profile completion
+    profile_comp = _compute_profile_completion(user)
+    profile_pct = profile_comp["percentage"]
+
+    # Calculate pending milestones
+    milestones = []
+    if existing_roadmap and existing_roadmap.get("milestones"):
+        from core.roadmap_engine import evaluate_roadmap_milestones
+        milestones = await evaluate_roadmap_milestones(user, existing_roadmap.get("milestones", []), db)
+    else:
+        fallback_milestones = [
+            {"id": "m1", "title": "Build your resume", "description": "Upload a tailored resume for AI review.", "milestone_type": "RESUME", "completion_rule": "resume_documents.length > 0", "completed": False, "completed_at": None},
+            {"id": "m2", "title": "Build Portfolio", "description": "Showcase your work and link your GitHub.", "milestone_type": "PORTFOLIO", "completion_rule": "portfolio_url exists", "completed": False, "completed_at": None},
+            {"id": "m3", "title": "Complete Profile", "description": "Write a strong bio and upload an avatar.", "milestone_type": "PROFILE", "completion_rule": "bio.length > 10", "completed": False, "completed_at": None},
+            {"id": "m4", "title": "Network with Alumni", "description": "Connect with 5 alumni in your target domain.", "milestone_type": "NETWORKING", "completion_rule": "connections.length > 0", "completed": False, "completed_at": None},
+            {"id": "m5", "title": "Practice Interviews", "description": "Book a session with a mentor for mock interviews.", "milestone_type": "MOCK_INTERVIEW", "completion_rule": "bookings.length > 0", "completed": False, "completed_at": None},
+            {"id": "m6", "title": "Add 3 Projects", "description": "Demonstrate technical skills through projects.", "milestone_type": "PROJECT", "completion_rule": "projects.length >= 1", "completed": False, "completed_at": None},
+            {"id": "m7", "title": "Earn Certifications", "description": "Complete relevant certifications on Coursera.", "milestone_type": "CERTIFICATION", "completion_rule": "certifications.length >= 1", "completed": False, "completed_at": None},
+            {"id": "m8", "title": "LinkedIn Boost", "description": "Add your LinkedIn URL to your profile.", "milestone_type": "LINKEDIN", "completion_rule": "linkedin_url exists", "completed": False, "completed_at": None},
+        ]
+        from core.roadmap_engine import evaluate_roadmap_milestones
+        milestones = await evaluate_roadmap_milestones(user, fallback_milestones, db)
+
+    pending_milestones = [m for m in milestones if not m.get("completed")]
+
+    GAINS = {
+        "RESUME": 8,
+        "PROJECT": 12,
+        "LINKEDIN": 5,
+        "PORTFOLIO": 7,
+        "CERTIFICATION": 6,
+        "MOCK_INTERVIEW": 8,
+        "NETWORKING": 4,
+        "SKILLS": 5,
+        "PROFILE": 3,
+        "JOB_APPLICATION": 2
+    }
+
+    actions = []
+    
+    # 1. Add all pending milestones
+    for m in pending_milestones:
+        m_type = m.get("milestone_type")
+        gain = GAINS.get(m_type, 3)
+        actions.append({
+            "title": m.get("title"),
+            "description": m.get("description"),
+            "gain": gain,
+            "type": m_type,
+            "source": "roadmap"
+        })
+        
+    # 2. Add missing profile completion fields
+    for item in profile_comp["items"]:
+        if not item["done"]:
+            key = item["key"]
+            if key == "skills":
+                actions.append({
+                    "title": "List Skills",
+                    "description": "Add at least 3 skills to showcase your expertise.",
+                    "gain": 5,
+                    "type": "SKILLS",
+                    "source": "profile"
+                })
+            elif key == "resume":
+                actions.append({
+                    "title": "Upload Resume",
+                    "description": "Upload a professional resume for AI scanning and parsing.",
+                    "gain": 8,
+                    "type": "RESUME",
+                    "source": "profile"
+                })
+            elif key == "projects":
+                actions.append({
+                    "title": "Add Projects",
+                    "description": "List technical or professional projects you have built.",
+                    "gain": 12,
+                    "type": "PROJECT",
+                    "source": "profile"
+                })
+            elif key == "socials":
+                actions.append({
+                    "title": "Link LinkedIn / GitHub",
+                    "description": "Add your LinkedIn or GitHub profiles to establish industry presence.",
+                    "gain": 5,
+                    "type": "LINKEDIN",
+                    "source": "profile"
+                })
+            elif key == "education":
+                actions.append({
+                    "title": "Enter Education Details",
+                    "description": "Add your college, department, and graduation year details.",
+                    "gain": 4,
+                    "type": "EDUCATION",
+                    "source": "profile"
+                })
+            elif key == "bio":
+                actions.append({
+                    "title": "Write Bio / Headline",
+                    "description": "Write a short professional headline or bio summarizing your goals.",
+                    "gain": 3,
+                    "type": "PROFILE",
+                    "source": "profile"
+                })
+            elif key == "photo":
+                actions.append({
+                    "title": "Upload Profile Photo",
+                    "description": "Add a professional headshot to personalize your profile.",
+                    "gain": 3,
+                    "type": "PHOTO",
+                    "source": "profile"
+                })
+
+    # Deduplicate actions by type
+    unique_actions = []
+    seen_types = set()
+    for act in actions:
+        if act["type"] not in seen_types:
+            seen_types.add(act["type"])
+            unique_actions.append(act)
+            
+    # Sort by gain descending
+    unique_actions.sort(key=lambda x: -x["gain"])
+    ranked_actions = unique_actions[:3]
+
+    # Calculate potential readiness
+    remaining_gains = sum(act["gain"] for act in unique_actions)
+    if overall_score >= 100:
+        potential_score = 100
+        readiness_gap = 0
+    else:
+        potential_score = overall_score + remaining_gains
+        potential_score = min(100, max(overall_score + (1 if len(unique_actions) > 0 else 0), potential_score))
+        readiness_gap = potential_score - overall_score
+
+    return {
+        "readiness_score": {
+            "score": overall_score,
+            "level": "Explorer" if overall_score <= 20 else "Builder" if overall_score <= 40 else "Developing Professional" if overall_score <= 60 else "Career Ready" if overall_score <= 80 else "Industry Ready",
+            "next_level": "Builder" if overall_score <= 20 else "Developing Professional" if overall_score <= 40 else "Career Ready" if overall_score <= 60 else "Industry Ready" if overall_score <= 80 else "Expert Ready",
+            "next_threshold": 21 if overall_score <= 20 else 41 if overall_score <= 40 else 61 if overall_score <= 60 else 81 if overall_score <= 80 else 100
+        },
+        "skill_scores": scores,
+        "recommendation": recommendation,
+        "potential_score": potential_score,
+        "readiness_gap": readiness_gap,
+        "profile_strength": profile_pct,
+        "goal_weights": weights,
+        "profile_name": profile_name,
+        "ranked_actions": ranked_actions,
     }
 
 
@@ -2807,7 +3393,7 @@ async def change_my_password(payload: dict, user: dict = Depends(get_current_use
 @api_router.get("/admin/mentors/pending")
 async def list_pending_mentors(user: dict = Depends(get_current_user)):
     """Admin: list mentors awaiting approval."""
-    if user["role"] != "admin":
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
     mentors = await db.users.find(
         {"role": "mentor", "mentor_status": "pending"},
@@ -2822,7 +3408,7 @@ async def list_pending_mentors(user: dict = Depends(get_current_user)):
 @api_router.post("/admin/mentors/{mentor_id}/approve")
 async def approve_mentor(mentor_id: str, user: dict = Depends(get_current_user)):
     """Admin: approve a pending mentor — they become visible to students."""
-    if user["role"] != "admin":
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
     res = await db.users.update_one(
         {"_id": ObjectId(mentor_id), "role": "mentor"},
@@ -2856,7 +3442,7 @@ async def reject_mentor(
     mentor_id: str, payload: dict | None = None, user: dict = Depends(get_current_user),
 ):
     """Admin: reject a mentor application with optional reason."""
-    if user["role"] != "admin":
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
     reason = (payload or {}).get("reason") if isinstance(payload, dict) else None
     update = {
@@ -2930,7 +3516,7 @@ async def admin_mentor_detail(mentor_id: str, user: dict = Depends(get_current_u
 # Super Admin Dashboard endpoints (Phase 1)
 # ----------------------------------------------------------------------------
 def _require_admin(user: dict):
-    if user.get("role") != "admin":
+    if user.get("role") not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
 
 
@@ -3071,7 +3657,7 @@ async def admin_users_list(
 ):
     """List users by role with optional search query."""
     _require_admin(user)
-    if role not in ("student", "mentor", "alumni", "college", "admin"):
+    if role not in ("student", "mentor", "alumni", "college", "admin", "super_admin"):
         raise HTTPException(400, "Invalid role")
     query: dict = {"role": role}
     if role == "mentor":
@@ -3503,7 +4089,7 @@ async def admin_user_create(payload: dict, user: dict = Depends(get_current_user
     role = (payload.get("role") or "student").strip().lower()
     if not email or not full_name:
         raise HTTPException(400, "email and full_name are required")
-    if role not in ("student", "mentor", "alumni", "college", "admin"):
+    if role not in ("student", "mentor", "alumni", "college", "admin", "super_admin"):
         raise HTTPException(400, "Invalid role")
     existing = await db.users.find_one({"email": email})
     if existing:
@@ -3592,6 +4178,15 @@ CAREER_PATH_SYSTEM_PROMPTS = {
 
 async def get_claude_chat(session_id: str, system_message: str):
     """Lazy-import emergentintegrations and return a Claude chat instance."""
+    class DummyChat:
+        def __init__(self, sys_msg):
+            self.sys_msg = sys_msg
+        async def send_message(self, msg):
+            return '{"summary": "Mock summary", "milestones": [{"id": "m1", "title": "Mock Milestone", "timeframe": "0-3 months", "actions": [], "milestone_type": "profile"}], "recommended_skills": ["Python"], "recommended_courses": [], "mentor_traits": ["Helpful"], "target_role": "Software Engineer", "target_company_type": "Tech", "progress_pct": 10, "skill_scores": {"Technical Excellence": 80, "Professional Communication": 80, "Personal Brand": 80, "Leadership & Collaboration": 80, "Career Preparation": 80, "Industry Presence": 80}, "weekly_plan": [], "key_projects": [], "book_recommendations": []}'
+            
+    if not os.environ.get("EMERGENT_LLM_KEY"):
+        return DummyChat(system_message)
+
     from emergentintegrations.llm.chat import LlmChat
     return LlmChat(
         api_key=os.environ["EMERGENT_LLM_KEY"],
@@ -3674,8 +4269,8 @@ async def get_career_suggestions(req: CareerSuggestionRequest, user: dict = Depe
         )
         return data
     except Exception as e:
-        logger.error(f"Career AI failed: {e}")
-        raise HTTPException(500, f"AI service error: {str(e)}")
+        import traceback
+        return {"error": traceback.format_exc()}
 
 
 @api_router.get("/ai/career-suggestions/cached")
@@ -3692,32 +4287,33 @@ async def ai_career_roadmap(
     body: Dict[str, Any] = None,
     user: dict = Depends(get_current_user),
 ):
-    """Generate (or return cached) a personalised 12-week career roadmap.
+    """Generate (or return cached) a personalised 12-week career roadmap."""
+    import time as _time
+    _t0 = _time.perf_counter()
+    print(f"\n[ROADMAP TRACE] ---- New roadmap request for: {user.get('email')} ----", flush=True)
+    print(f"[ROADMAP TRACE] 1. Request received at t=0.000s", flush=True)
 
-    Body: { force?: bool }
-    Output:
-      {
-        target_role: str,
-        target_company_type: str,
-        progress_pct: int,
-        skill_scores: { communication: pct, soft_skills: pct, technical: pct,
-                         interview_prep: pct, networking: pct, leadership: pct },
-        weekly_plan: [ { weeks: "1-2", title: str, tasks: [str, ...] }, ... ],   // 5 cards
-        suggestion: str          // 1-line headline tip
-      }
-    Cached per user; pass `{force:true}` to regenerate.
-    """
     body = body or {}
     force = bool(body.get("force"))
     cache_key = {"user_id": str(user["_id"])}
 
     if not force:
+        _t_cache0 = _time.perf_counter()
         existing = await db.career_roadmaps.find_one(cache_key)
-        if existing and existing.get("weekly_plan"):
-            existing["milestones_completed"] = existing.get("milestones_completed") or []
+        _t_cache1 = _time.perf_counter()
+        print(f"[ROADMAP TRACE] 2. DB cache lookup done | duration={(_t_cache1-_t_cache0)*1000:.1f}ms | found={existing is not None}", flush=True)
+        if existing and existing.get("milestones"):
+            from core.roadmap_engine import evaluate_roadmap_milestones
+            _t_eval0 = _time.perf_counter()
+            existing["milestones"] = await evaluate_roadmap_milestones(user, existing.get("milestones", []), db)
+            _t_eval1 = _time.perf_counter()
+            print(f"[ROADMAP TRACE] 3. Evaluate milestones  | duration={(_t_eval1-_t_eval0)*1000:.1f}ms", flush=True)
+            await db.career_roadmaps.update_one(cache_key, {"$set": {"milestones": existing["milestones"]}})
+            print(f"[ROADMAP TRACE] 4. Returning cached response | TOTAL duration={(_time.perf_counter()-_t0)*1000:.1f}ms", flush=True)
             return {k: v for k, v in existing.items() if k != "_id"}
 
     # Build profile context
+    _t_llm0 = _time.perf_counter()
     full_name = user.get("full_name") or "Student"
     interests = ", ".join((user.get("interests") or [])[:8]) or "general tech"
     skills = ", ".join((user.get("skills") or [])[:10]) or "core CS"
@@ -3740,12 +4336,10 @@ async def ai_career_roadmap(
         '  "target_company_type": "Specific company tier description",\n'
         '  "progress_pct": <int 0-100>,\n'
         '  "skill_scores": {"communication": <int>, "soft_skills": <int>, "technical": <int>, "interview_prep": <int>, "networking": <int>, "leadership": <int>},\n'
-        '  "weekly_plan": [\n'
-        '    {"weeks":"1-2","title":"Foundation Assessment","tasks":["...","...","...","..."]},\n'
-        '    {"weeks":"3-4","title":"Profile Building","tasks":["...","...","...","..."]},\n'
-        '    {"weeks":"5-6","title":"Skill Development","tasks":["...","...","...","..."]},\n'
-        '    {"weeks":"7-8","title":"Network & Apply","tasks":["...","...","...","..."]},\n'
-        '    {"weeks":"9-10","title":"Interview Ready","tasks":["...","...","...","..."]}\n'
+        '  "milestones": [\n'
+        '    {"id": "m1", "title": "Build your resume", "description": "Upload a tailored resume", "milestone_type": "RESUME", "completion_rule": "resume_documents.length > 0", "completed": false, "completed_at": null},\n'
+        '    {"id": "m2", "title": "Mock Interview", "description": "Practice with AI", "milestone_type": "MOCK_INTERVIEW", "completion_rule": "bookings.count > 0", "completed": false, "completed_at": null}\n'
+        '    // Include 5-8 highly actionable milestones utilizing types: RESUME, PROJECT, PROFILE, NETWORKING, SKILLS, MOCK_INTERVIEW, PORTFOLIO, CERTIFICATION, JOB_APPLICATION, LINKEDIN\n'
         '  ],\n'
         '  "suggestion": "1-line motivational headline (under 18 words)"\n'
         "}\n"
@@ -3758,7 +4352,7 @@ async def ai_career_roadmap(
     try:
         from emergentintegrations.llm.chat import UserMessage
         chat = await get_claude_chat(f"roadmap-{user['_id']}", sys_msg)
-        raw = await chat.send_message(UserMessage(text=prompt))
+        raw = await asyncio.wait_for(chat.send_message(UserMessage(text=prompt)), timeout=8.0)
         import json
         text = (raw or "").strip()
         if text.startswith("```"):
@@ -3774,33 +4368,34 @@ async def ai_career_roadmap(
             "target_company_type": "Top Tech Company",
             "progress_pct": 42,
             "skill_scores": {"communication": 40, "soft_skills": 45, "technical": 70, "interview_prep": 35, "networking": 30, "leadership": 35},
-            "weekly_plan": [
-                {"weeks": "1-2", "title": "Foundation Assessment",
-                 "tasks": ["Complete profile strength scan", "Take AI skill diagnostic across domains",
-                           "Set career goal/OKR with mentor", "Upload resume for AI review"]},
-                {"weeks": "3-4", "title": "Profile Building",
-                 "tasks": ["Enhance resume with AI suggestions", "Add 3 projects to portfolio",
-                           "Request LinkedIn endorsements", "Get certifications (NPTEL/Coursera)"]},
-                {"weeks": "5-6", "title": "Skill Development",
-                 "tasks": ["Complete Communication module", "Practice 5 mock interviews with AI",
-                           "Improve System Design score by 20%", "Start DSA practice (3 problems/day)"]},
-                {"weeks": "7-8", "title": "Network & Apply",
-                 "tasks": ["Connect with 12 alumni in target domain", "Apply to 5 internship positions",
-                           "Attend 1 industry event", "Book 2 mentor sessions"]},
-                {"weeks": "9-10", "title": "Interview Ready",
-                 "tasks": ["Complete mock interview modules", "Negotiate offer with AI salary coach",
-                           "Get 3 referrals from network", "Final profile polish + go live"]},
+            "milestones": [
+                {"id": "m1", "title": "Build your resume", "description": "Upload a tailored resume for AI review.", "milestone_type": "RESUME", "completion_rule": "resume_documents.length > 0", "completed": False, "completed_at": None},
+                {"id": "m2", "title": "Build Portfolio", "description": "Showcase your work and link your GitHub.", "milestone_type": "PORTFOLIO", "completion_rule": "portfolio_url exists", "completed": False, "completed_at": None},
+                {"id": "m3", "title": "Complete Profile", "description": "Write a strong bio and upload an avatar.", "milestone_type": "PROFILE", "completion_rule": "bio.length > 10", "completed": False, "completed_at": None},
+                {"id": "m4", "title": "Network with Alumni", "description": "Connect with 5 alumni in your target domain.", "milestone_type": "NETWORKING", "completion_rule": "connections.length > 0", "completed": False, "completed_at": None},
+                {"id": "m5", "title": "Practice Interviews", "description": "Book a session with a mentor for mock interviews.", "milestone_type": "MOCK_INTERVIEW", "completion_rule": "bookings.length > 0", "completed": False, "completed_at": None},
+                {"id": "m6", "title": "Add 3 Projects", "description": "Demonstrate technical skills through projects.", "milestone_type": "PROJECT", "completion_rule": "projects.length >= 1", "completed": False, "completed_at": None},
+                {"id": "m7", "title": "Earn Certifications", "description": "Complete relevant certifications on Coursera.", "milestone_type": "CERTIFICATION", "completion_rule": "certifications.length >= 1", "completed": False, "completed_at": None},
+                {"id": "m8", "title": "LinkedIn Boost", "description": "Add your LinkedIn URL to your profile.", "milestone_type": "LINKEDIN", "completion_rule": "linkedin_url exists", "completed": False, "completed_at": None},
             ],
             "suggestion": "Your trajectory is solid — focus this week on shipping one polished portfolio piece.",
         }
 
     # Persist
+    _t_eval_gen0 = _time.perf_counter()
+    from core.roadmap_engine import evaluate_roadmap_milestones
+    data["milestones"] = await evaluate_roadmap_milestones(user, data.get("milestones", []), db)
+    _t_eval_gen1 = _time.perf_counter()
+    print(f"[ROADMAP TRACE] 5. Evaluate roadmap milestones | duration={(_t_eval_gen1-_t_eval_gen0)*1000:.1f}ms", flush=True)
+    
     payload = {**data, "user_id": str(user["_id"]),
                "generated_at": datetime.now(timezone.utc).isoformat()}
-    # Preserve previously-completed milestones across regenerations
-    existing_for_save = await db.career_roadmaps.find_one(cache_key) or {}
-    payload["milestones_completed"] = existing_for_save.get("milestones_completed") or []
+    # Removed preserving milestones_completed since they auto-evaluate
+    _t_db_save0 = _time.perf_counter()
     await db.career_roadmaps.update_one(cache_key, {"$set": payload}, upsert=True)
+    _t_db_save1 = _time.perf_counter()
+    print(f"[ROADMAP TRACE] 6. Save cache in DB          | duration={(_t_db_save1-_t_db_save0)*1000:.1f}ms", flush=True)
+    print(f"[ROADMAP TRACE] 7. Returning generated response | TOTAL duration={(_time.perf_counter()-_t0)*1000:.1f}ms", flush=True)
     return {k: v for k, v in payload.items() if k not in ("_id",)}
 
 
@@ -3808,48 +4403,39 @@ async def ai_career_roadmap(
 # Milestone completion — marks a week's plan complete, awards new badges,
 # and (when all 5 are done) auto-suggests the next 12-week phase.
 # ────────────────────────────────────────────────────────────────────────────
-@api_router.post("/ai/career-roadmap/milestone/{week_idx}/complete")
+@api_router.post("/ai/career-roadmap/milestone/{milestone_id}/complete")
 async def complete_roadmap_milestone(
-    week_idx: int,
+    milestone_id: str,
     body: Dict[str, Any] = None,
     user: dict = Depends(get_current_user),
 ):
-    """Mark week_idx (0..N-1) of the current roadmap as completed.
-
-    Returns:
-      {
-        milestones_completed: [int],
-        new_badges: [badge],          # newly unlocked since last call
-        all_badges: [badge],          # full sorted list for the user
-        next_milestone: {weeks,title,tasks} | None,
-        next_phase_unlocked: bool      # true when all 5 done, hint to call POST /ai/career-roadmap {force:true,extend:true}
-      }
+    """Mark a specific milestone as manually completed or uncompleted.
+    
+    Body: { undo: bool }
     """
     cache_key = {"user_id": str(user["_id"])}
     rm = await db.career_roadmaps.find_one(cache_key)
-    if not rm or not rm.get("weekly_plan"):
+    if not rm or not rm.get("milestones"):
         raise HTTPException(404, "Roadmap not found — generate one first.")
 
-    plan = rm.get("weekly_plan") or []
-    if week_idx < 0 or week_idx >= len(plan):
-        raise HTTPException(400, "Invalid week_idx")
+    milestones = rm.get("milestones", [])
+    target = next((m for m in milestones if m.get("id") == milestone_id), None)
+    if not target:
+        raise HTTPException(404, "Milestone not found")
 
-    completed = list(rm.get("milestones_completed") or [])
     undo = bool((body or {}).get("undo"))
-    if undo:
-        completed = [w for w in completed if w != week_idx]
+    target["completed"] = not undo
+    if not undo:
+        target["completed_at"] = datetime.now(timezone.utc).isoformat()
     else:
-        if week_idx not in completed:
-            completed.append(week_idx)
-    completed = sorted(set(int(x) for x in completed))
+        target["completed_at"] = None
 
     await db.career_roadmaps.update_one(
         cache_key,
-        {"$set": {"milestones_completed": completed,
+        {"$set": {"milestones": milestones,
                   "milestones_updated_at": datetime.now(timezone.utc).isoformat()}},
     )
 
-    # Capture old badge ids → tier so we can return only NEW unlocks.
     old_badges = list(user.get("badges") or [])
     old_keys = {f"{b.get('id')}:{b.get('tier')}" for b in old_badges}
 
@@ -3871,20 +4457,17 @@ async def complete_roadmap_milestone(
     new_keys = [f"{b.get('id')}:{b.get('tier')}" for b in all_badges]
     new_badges = [b for b in all_badges if f"{b.get('id')}:{b.get('tier')}" not in old_keys]
 
-    # Next milestone suggestion = first uncompleted week after week_idx, falling
-    # back to the earliest uncompleted week if user just toggled an earlier one.
-    pending = [i for i, _w in enumerate(plan) if i not in completed]
-    next_idx = next((i for i in pending if i > week_idx), pending[0] if pending else None)
-    next_milestone = plan[next_idx] if next_idx is not None else None
+    completed_milestones = [m for m in milestones if m.get("completed")]
+    pending_milestones = [m for m in milestones if not m.get("completed")]
+    next_milestone = pending_milestones[0] if pending_milestones else None
 
     return {
-        "milestones_completed": completed,
-        "total_milestones": len(plan),
+        "milestones_completed": [m.get("id") for m in completed_milestones],
+        "total_milestones": len(milestones),
         "new_badges": new_badges,
         "all_badges": all_badges,
         "next_milestone": next_milestone,
-        "next_milestone_index": next_idx,
-        "next_phase_unlocked": len(completed) >= len(plan),
+        "next_phase_unlocked": len(completed_milestones) >= len(milestones),
     }
 
 
@@ -3895,21 +4478,27 @@ async def ai_daily_brief(
 ):
     """
     Generate (or return cached) a personalized AI daily brief for the user.
-
-    Caches per (user_id + UTC-date) so it's computed at most once a day.
-    Pass `{"force": true}` in the body to regenerate.
-
-    Output: { brief: str, generated_at: iso, cached: bool }
+    Instrumented with per-step timing.
     """
+    import time as _time_mod
+    _t0 = _time_mod.perf_counter()
+    def _ms(since=None):
+        return f"{(_time_mod.perf_counter() - (since or _t0)) * 1000:.1f}ms"
+    print(f"[DAILY-BRIEF] REQUEST_RECEIVED | t=0", flush=True)
+
     body = body or {}
     force = bool(body.get("force"))
 
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     cache_key = {"user_id": str(user["_id"]), "date": today}
 
+    # ── STEP 1: DB cache lookup ──
+    _s1 = _time_mod.perf_counter()
     if not force:
         existing = await db.daily_briefs.find_one(cache_key)
+        print(f"[DAILY-BRIEF] STEP 1 db_cache_lookup   {_ms(_s1)}", flush=True)
         if existing and existing.get("brief"):
+            print(f"[DAILY-BRIEF] CACHE HIT | TOTAL {_ms()}", flush=True)
             return {
                 "brief": existing["brief"],
                 "generated_at": existing.get("generated_at"),
@@ -3946,11 +4535,16 @@ async def ai_daily_brief(
         "Write today's morning brief now."
     )
 
+    # ── STEP 2: Build context and call AI ──
+    _s2 = _time_mod.perf_counter()
     try:
         from emergentintegrations.llm.chat import UserMessage
         chat = await get_claude_chat(f"daily-{user['_id']}-{today}", system_msg)
+        print(f"[DAILY-BRIEF] STEP 2a get_claude_chat  {_ms(_s2)}", flush=True)
+        _s2b = _time_mod.perf_counter()
         brief_text = await chat.send_message(UserMessage(text=prompt))
         brief_text = (brief_text or "").strip().strip('"').strip()
+        print(f"[DAILY-BRIEF] STEP 2b ai_generation    {_ms(_s2b)} ← this is where AI latency lives", flush=True)
         if not brief_text:
             raise ValueError("empty response")
     except Exception as e:
@@ -3970,11 +4564,22 @@ async def ai_daily_brief(
     # Internal default when user hasn't picked one
     used_provider = pref_ai if pref_ai in PROVIDER_LABELS else "anthropic_claude"
     provider_label = PROVIDER_LABELS.get(used_provider, "Claude")
+    # ── STEP 3: DB write ──
+    _s3 = _time_mod.perf_counter()
     await db.daily_briefs.update_one(
         cache_key,
         {"$set": {**cache_key, "brief": brief_text, "generated_at": now_iso,
                   "provider": used_provider, "provider_label": provider_label}},
         upsert=True,
+    )
+    print(f"[DAILY-BRIEF] STEP 3 db_write          {_ms(_s3)}", flush=True)
+    print(
+        f"[DAILY-BRIEF] BREAKDOWN:\n"
+        f"  db_cache_lookup  {_ms(_s1)}\n"
+        f"  ai_generation    {_ms(_s2)}\n"
+        f"  db_write         {_ms(_s3)}\n"
+        f"  TOTAL            {_ms()}",
+        flush=True,
     )
     return {"brief": brief_text, "generated_at": now_iso, "cached": False,
             "provider": used_provider, "provider_label": provider_label}
@@ -4277,7 +4882,7 @@ async def list_mentors(career_path: Optional[str] = None, limit: int = 20):
     if career_path:
         user_q["mentor_info.category"] = _path_to_mentor_cat(career_path)
         sample_q["expertise"] = career_path
-    real = await db.users.find(user_q, {"password_hash": 0, "face_image_base64": 0}).limit(limit).to_list(limit)
+    real = await db.users.find(user_q, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).limit(limit).to_list(limit)
     for m in real:
         m["id"] = str(m["_id"])
         m.pop("_id", None)
@@ -4935,7 +5540,7 @@ async def create_booking(req: BookingRequest, user: dict = Depends(get_demo_user
         "slot_end_iso": req.slot_end_iso,
         "topic": req.topic,
         "notes": req.notes,
-        "status": "pending",
+        "status": "confirmed" if req.mentor_id.startswith("m") else "pending",
         "created_at": datetime.now(timezone.utc),
     }
     result = await db.bookings.insert_one(booking)
@@ -4957,9 +5562,9 @@ async def create_booking(req: BookingRequest, user: dict = Depends(get_demo_user
 async def my_bookings(user: dict = Depends(get_current_user)):
     """Returns bookings for the current user (as student or as mentor)."""
     user_id_str = str(user.get("_id") or user.get("id"))
-    query = {"student_id": user_id_str} if user["role"] == "student" \
+    query = {"student_id": user_id_str} if user.get("role") == "student" \
         else {"mentor_id": user_id_str}
-    items = await db.bookings.find(query).sort("slot_start_iso", 1).to_list(100)
+    items = await db.bookings.find(query).sort("slot_start_iso", -1).to_list(100)
     
     # If no bookings exist in database for this user, auto-seed a few so they have interactive sessions
     if not items:
@@ -5005,7 +5610,7 @@ async def my_bookings(user: dict = Depends(get_current_user)):
                             "created_at": datetime.now(timezone.utc),
                         })
             # Re-fetch after inserting
-            items = await db.bookings.find(query).sort("slot_start_iso", 1).to_list(100)
+            items = await db.bookings.find(query).sort("slot_start_iso", -1).to_list(100)
         except Exception as e:
             print(f"Error auto-seeding bookings: {e}")
 
@@ -5027,6 +5632,7 @@ async def my_bookings(user: dict = Depends(get_current_user)):
             pass
 
     out = []
+    now = datetime.now(timezone.utc)
     for item in items:
         other_id = item.get("student_id") if user["role"] == "mentor" else item.get("mentor_id")
         other_name = item.get("student_name") if user["role"] == "mentor" else item.get("mentor_name")
@@ -5040,6 +5646,13 @@ async def my_bookings(user: dict = Depends(get_current_user)):
         sched = item.get("scheduled_at")
         sched_iso = sched.isoformat() if isinstance(sched, datetime) else sched
         start_iso = item.get("slot_start_iso") or sched_iso
+        
+        status = item.get("status", "pending")
+        if status in ["confirmed", "booked", "scheduled"] and sched and isinstance(sched, datetime) and sched.replace(tzinfo=timezone.utc) < now:
+            status = "completed"
+            # Best-effort DB update
+            import asyncio
+            asyncio.create_task(db.bookings.update_one({"_id": item["_id"]}, {"$set": {"status": "completed"}}))
         
         doc = {
             "id": str(item["_id"]),
@@ -5057,7 +5670,7 @@ async def my_bookings(user: dict = Depends(get_current_user)):
             "slot_end_iso": item.get("slot_end_iso") or start_iso,
             "duration_minutes": item.get("duration_minutes", 45),
             "amount_paid": item.get("amount_paid"),
-            "status": item.get("status"),
+            "status": status,
         }
         out.append(doc)
     return {"bookings": out}
@@ -5450,14 +6063,14 @@ async def analytics_dispatcher(user: dict = Depends(get_current_user)):
 
 @api_router.get("/analytics/super-admin")
 async def analytics_super_admin(user: dict = Depends(get_current_user)):
-    if user["role"] != "admin":
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Super admin access required")
     return await super_admin_analytics(db, include_revenue=True)
 
 
 @api_router.get("/analytics/admin")
 async def analytics_admin_endpoint(user: dict = Depends(get_current_user)):
-    if user["role"] not in ("admin",):
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin access required")
     return await super_admin_analytics(db, include_revenue=False)
 
@@ -5465,7 +6078,7 @@ async def analytics_admin_endpoint(user: dict = Depends(get_current_user)):
 @api_router.get("/analytics/college")
 async def analytics_college_endpoint(user: dict = Depends(get_current_user),
                                       institution_name: Optional[str] = None):
-    if user["role"] not in ("college", "admin"):
+    if user["role"] not in ("college", "admin", "super_admin"):
         raise HTTPException(403, "College / admin access required")
     inst = institution_name or (user.get("school_info") or {}).get("institution_name") or user.get("full_name")
     return await college_analytics(db, inst)
@@ -5474,7 +6087,7 @@ async def analytics_college_endpoint(user: dict = Depends(get_current_user),
 @api_router.get("/analytics/mentor")
 async def analytics_mentor_endpoint(user: dict = Depends(get_current_user),
                                      mentor_id: Optional[str] = None):
-    if user["role"] == "admin" and mentor_id:
+    if user["role"] in ("admin", "super_admin") and mentor_id:
         return await mentor_analytics(db, mentor_id)
     if user["role"] != "mentor":
         raise HTTPException(403, "Mentor access required")
@@ -5508,7 +6121,7 @@ async def integrations_internships(query: str = "internship", country: str = "in
 @api_router.post("/integrations/sync/courses")
 async def sync_courses(user: dict = Depends(get_current_user)):
     """Admin-only: pull Coursera + Udemy data into our courses collection."""
-    if user["role"] != "admin":
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin access required")
     res = await sync_courses_to_db(db)
     return {"synced": res, "status": integrations_status()}
@@ -5517,7 +6130,7 @@ async def sync_courses(user: dict = Depends(get_current_user)):
 @api_router.post("/integrations/sync/internships")
 async def sync_internships(user: dict = Depends(get_current_user)):
     """Admin-only: pull Adzuna data into our internships collection."""
-    if user["role"] != "admin":
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin access required")
     res = await sync_internships_to_db(db)
     return {"synced": res, "status": integrations_status()}
@@ -5573,6 +6186,10 @@ async def post_review(req: ReviewIn, user: dict = Depends(get_current_user)):
         pass
     if isinstance(review.get("created_at"), datetime):
         review["created_at"] = review["created_at"].isoformat()
+    if "_id" in review:
+        if isinstance(review["_id"], ObjectId):
+            review["_id"] = str(review["_id"])
+        review["id"] = review["_id"]
     return review
 
 
@@ -5664,7 +6281,7 @@ class ManualPushIn(BaseModel):
 
 @api_router.post("/notifications/send")
 async def notifications_send_manual(req: ManualPushIn, user: dict = Depends(get_current_user)):
-    if user["role"] != "admin":
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
     return await send_push(db, user_id=req.user_id, title=req.title, body=req.body, data=req.data)
 
@@ -5839,7 +6456,8 @@ async def on_startup():
     await db.users.create_index("sa_id", unique=True, sparse=True)
     await db.career_suggestions.create_index("user_id")
     await db.chat_messages.create_index([("user_id", 1), ("session_id", 1)])
-    await db.bookings.create_index([("student_id", 1), ("mentor_id", 1)])
+    await db.bookings.create_index([("student_id", 1), ("slot_start_iso", -1)])
+    await db.bookings.create_index([("mentor_id", 1), ("slot_start_iso", -1)])
     await db.audit_logs.create_index("user_id")
     await db.audit_logs.create_index([("ts", -1)])
     await db.sessions.create_index("user_id")
@@ -5862,8 +6480,9 @@ async def on_startup():
 
     # Start the Hourly Content Sync scheduler (jobs, events, courses).
     try:
-        from background_sync import start_sync_scheduler
-        start_sync_scheduler(db)
+        from background_sync import start_sync_scheduler, check_dependencies
+        check_dependencies()
+        start_sync_scheduler()
     except Exception as _e:
         logger.warning("Could not start background sync scheduler: %s", _e)
 
@@ -5954,6 +6573,10 @@ api_router.include_router(admin_imports_router)
 from admin_colleges import router as admin_colleges_router
 api_router.include_router(admin_colleges_router)
 
+# Talent Pool — searchable candidate profiles (LinkedIn, CSV, platform opt-in)
+from talent_pool import router as talent_pool_router
+api_router.include_router(talent_pool_router)
+
 # CRUD endpoints — append-only mutations (book, RSVP, enroll, apply)
 from crud_endpoints import router as crud_router
 api_router.include_router(crud_router)
@@ -5985,6 +6608,8 @@ _allow_creds = "*" not in _origins_list  # browsers reject credentials+wildcard
 # Fail-fast: wildcard CORS is insecure in production
 if os.getenv("ENV") == "production" and "*" in _origins_list:
     raise ValueError("CORS wildcard (*) is not allowed in production. Set ALLOWED_ORIGINS to specific domains.")
+
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 app.add_middleware(
     CORSMiddleware,

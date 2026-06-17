@@ -57,8 +57,7 @@ from typing import Any, Dict, List, Optional
 from bson import ObjectId
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Query, Request, Body, Response
-from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import random
 from cachetools import TTLCache, cached
 from pathlib import Path
@@ -78,9 +77,8 @@ from tier_logic import (
 
 load_dotenv(Path(__file__).parent / '.env')
 
-# Mongo connection (reuse main client config)
-_mongo = AsyncIOMotorClient(os.environ['MONGO_URL'])
-_db = _mongo[os.environ['DB_NAME']]
+# Mongo connection (reuse singleton from db.py)
+from db import db as _db
 
 router = APIRouter()
 
@@ -323,187 +321,206 @@ async def mentor_dashboard(mentor_email: Optional[str] = None):
 # ─── 2. STUDENT DASHBOARD ────────────────────────────────────────
 @router.get("/student/dashboard")
 async def student_dashboard(student_email: Optional[str] = None):
-    """Real student dashboard. Uses `student_email` query param if provided
-    (frontend passes the logged-in user's email); otherwise falls back to
-    any onboarded student in the DB for unauthenticated public preview."""
+    """Student dashboard — all independent DB queries run in parallel via asyncio.gather."""
+    import asyncio
+    import time
+    _t0 = time.perf_counter()
+    def _ms():
+        return f"{(time.perf_counter() - _t0) * 1000:.1f}ms"
+    print(f"[DASHBOARD] REQUEST_RECEIVED", flush=True)
+
+    # ── Profile lookup ──────────────────────────────────────────────
     student = None
     if student_email:
-        student = await _db.users.find_one({"email": student_email, "role": "student"})
+        student = await _db.users.find_one({"email": student_email, "role": "student"}, {"resume_documents": 0})
     if not student and not student_email:
-        student = await _db.users.find_one({"role": "student", "onboarding_completed": True})
+        student = await _db.users.find_one({"role": "student", "onboarding_completed": True}, {"resume_documents": 0})
         if not student:
-            student = await _db.users.find_one({"role": "student"})
+            student = await _db.users.find_one({"role": "student"}, {"resume_documents": 0})
 
     sid = str((student or {}).get("_id", ""))
     cache_key = f"dashboard_student_{sid}"
     if cache_key in dashboard_cache:
+        print(f"[DASHBOARD] CACHE HIT | {_ms()}", flush=True)
         return dashboard_cache[cache_key]
 
     name = (student or {}).get("full_name") or "Student"
-    si = (student or {}).get("school_info") or {}
-    sti = (student or {}).get("student_info") or {}
+    si   = (student or {}).get("school_info") or {}
+    sti  = (student or {}).get("student_info") or {}
+    student_skills_set = set(
+        s.lower() for s in (student.get("skills", []) if student else []) if isinstance(s, str)
+    )
+    now_utc = datetime.now(timezone.utc)
 
-    # Internship matches
-    internships_total = await _db.internships.count_documents({})
-    new_today = await _db.internships.count_documents({
-        "deadline": {"$gte": datetime.now(timezone.utc)},
-    })
-    student_skills_set = set(s.lower() for s in (student.get("skills", []) if student else []) if isinstance(s, str))
-    
-    all_internships_cur = _db.internships.find({"deadline": {"$gte": datetime.now(timezone.utc)}}).sort("_id", -1).limit(50)
-    scored_internships = []
-    async for it in all_internships_cur:
-        req_skills = set(s.lower() for s in it.get("skills_required", []) if isinstance(s, str))
-        match_pct = 65
-        if req_skills:
-            match_pct = int(len(student_skills_set.intersection(req_skills)) / max(1, len(req_skills)) * 100)
-        scored_internships.append({"match_pct": match_pct, "it": it})
-        
+    # ── PARALLEL BATCH 1: all independent counts + cursors ──────────
+    async def _get_internships_total():
+        return await _db.internships.count_documents({})
+
+    async def _get_internships_live():
+        return await _db.internships.count_documents({"deadline": {"$gte": now_utc}})
+
+    async def _get_internship_matches():
+        cur = _db.internships.find({"deadline": {"$gte": now_utc}}).sort("_id", -1).limit(50)
+        scored = []
+        async for it in cur:
+            req = set(s.lower() for s in it.get("skills_required", []) if isinstance(s, str))
+            pct = int(len(student_skills_set & req) / max(1, len(req)) * 100) if req else 65
+            scored.append({"match_pct": pct, "it": it})
+        return scored
+
+    async def _get_my_bookings():
+        return await _db.bookings.count_documents({"student_id": sid})
+
+    async def _get_completed_sessions():
+        return await _db.bookings.count_documents({"student_id": sid, "status": {"$in": ["completed", "confirmed"]}})
+
+    async def _get_apps_count():
+        return await _db.internship_applications.count_documents({"student_id": sid})
+
+    async def _get_workshops():
+        active = total = progress = 0
+        async for w in _db.workshop_registrations.find({"student_id": sid}):
+            total += 1
+            if w.get("status") in ["registered", "in_progress"]:
+                active += 1
+            progress += min(100, int((w.get("current_week", 1) / max(1, w.get("weeks", 4))) * 100))
+        avg = progress // max(1, total) if total else 0
+        return active, avg
+
+    async def _get_mentors():
+        """Fetch mentors + their session counts in one aggregation (no N+1)."""
+        mentor_docs = await _db.users.find({"role": "mentor"}).sort("_id", -1).limit(4).to_list(4)
+        if not mentor_docs:
+            return []
+        mentor_ids = [str(m["_id"]) for m in mentor_docs]
+        # Single aggregation: count confirmed sessions per mentor
+        pipeline = [
+            {"$match": {"mentor_id": {"$in": mentor_ids}, "status": {"$in": ["confirmed", "completed"]}}},
+            {"$group": {"_id": "$mentor_id", "count": {"$sum": 1}}},
+        ]
+        counts_map = {}
+        async for row in _db.bookings.aggregate(pipeline):
+            counts_map[row["_id"]] = row["count"]
+        result = []
+        for m in mentor_docs:
+            mname = m.get("full_name") or "Mentor"
+            mi = m.get("mentor_info") or {}
+            result.append({
+                "id": str(m["_id"]),
+                "name": mname,
+                "initials": _initials(mname),
+                "role": mi.get("job_title") or "Senior Mentor",
+                "company": mi.get("organization") or "—",
+                "rating": m.get("rating") or 4.9,
+                "sessions": counts_map.get(str(m["_id"]), 0),
+                "price": m.get("expected_rate_inr") or 999,
+                "color": _color_for(mname),
+                "bio": mi.get("bio") or "Experienced professional ready to share insights.",
+                "skills": m.get("skills") or ["System Design", "Career Strategy"],
+            })
+        return result
+
+    async def _get_events():
+        evts_list = await _db.events.find({"start_date": {"$gte": now_utc}}).sort("start_date", 1).limit(3).to_list(3)
+        evts = []
+        palette = ["#A78BFA", "#34D399", "#FCD34D", "#22D3EE"]
+        for i, ev in enumerate(evts_list):
+            sd = ev.get("start_date")
+            date_str = sd.strftime("%b %d") if isinstance(sd, datetime) else "TBD"
+            full_date_str = sd.strftime("%B %d, %Y at %I:%M %p") if isinstance(sd, datetime) else date_str
+            rd = ev.get("registration_deadline")
+            deadline_str = rd.strftime("%b %d, %Y") if isinstance(rd, datetime) else date_str
+            evts.append({
+                "id": _short_id(ev.get("_id")),
+                "title": ev.get("title", "Event"),
+                "date": date_str,
+                "mode": ev.get("mode") or "Online",
+                "kind": "paid" if ev.get("price") else "free",
+                "price": ev.get("price"),
+                "accent": palette[i % len(palette)],
+                "start_date": full_date_str,
+                "venue": ev.get("venue") or ev.get("location") or "Online",
+                "registration_deadline": deadline_str,
+                "category": ev.get("category") or "Workshop",
+                "organizer": ev.get("organizer") or "Student Alumni Association",
+                "image": ev.get("image_url") or ev.get("cover_image") or "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=400",
+                "url": ev.get("external_url") or "",
+                "tags": ev.get("tags") or ["Networking", "Career Development"],
+            })
+        return evts
+
+    async def _get_tier():
+        return await _student_tier_payload(student or {})
+
+    # Fire all queries in parallel
+    (
+        internships_total,
+        new_today,
+        scored_internships,
+        my_bookings,
+        completed_sessions,
+        apps_count,
+        (workshops_active, avg_course_completion),
+        rec_mentors,
+        upcoming,
+        tier,
+    ) = await asyncio.gather(
+        _get_internships_total(),
+        _get_internships_live(),
+        _get_internship_matches(),
+        _get_my_bookings(),
+        _get_completed_sessions(),
+        _get_apps_count(),
+        _get_workshops(),
+        _get_mentors(),
+        _get_events(),
+        _get_tier(),
+    )
+    print(f"[DASHBOARD] PARALLEL_BATCH done | {_ms()}", flush=True)
+
+    # ── Post-process ────────────────────────────────────────────────
     scored_internships.sort(key=lambda x: x["match_pct"], reverse=True)
-    
     top_matches = []
     for score_obj in scored_internships[:3]:
         it = score_obj["it"]
-        match_pct = score_obj["match_pct"]
         top_matches.append({
             "id": _short_id(it.get("_id")),
             "role": it.get("title", "Intern"),
             "company": it.get("company", "—"),
             "location": it.get("location", "Remote"),
-            "match": match_pct,
+            "match": score_obj["match_pct"],
             "type": "Internship",
             "logo": (it.get("company") or "?")[0],
             "logoBg": _color_for(it.get("company", "")),
         })
 
-    # Mentor connections via bookings
-    my_bookings = await _db.bookings.count_documents({"student_id": sid})
-    completed_sessions = await _db.bookings.count_documents({"student_id": sid, "status": {"$in": ["completed", "confirmed"]}})
-    apps_count = await _db.internship_applications.count_documents({"student_id": sid})
-    
-    # Courses / Workshops in progress
-    workshops_active = 0
-    workshops_total = 0
-    total_progress = 0
-    async for w in _db.workshop_registrations.find({"student_id": sid}):
-        workshops_total += 1
-        if w.get("status") in ["registered", "in_progress"]:
-            workshops_active += 1
-        wk_current = w.get("current_week", 1)
-        wk_total = w.get("weeks", 4)
-        total_progress += min(100, int((wk_current / max(1, wk_total)) * 100))
-    
-    avg_course_completion = total_progress // max(1, workshops_total) if workshops_total > 0 else 0
-    rec_mentors = []
-    mentor_cur = _db.users.find({"role": "mentor"}).sort("_id", -1).limit(4)
-    async for m in mentor_cur:
-        mname = m.get("full_name") or "Mentor"
-        mi = m.get("mentor_info") or {}
-        # Count completed sessions
-        msess = await _db.bookings.count_documents({"mentor_id": str(m["_id"]), "status": {"$in": ["confirmed", "completed"]}})
-        rec_mentors.append({
-            "id": str(m["_id"]),
-            "name": mname,
-            "initials": _initials(mname),
-            "role": mi.get("job_title") or "Senior Mentor",
-            "company": mi.get("organization") or "—",
-            "rating": m.get("rating") or 4.9,
-            "sessions": msess,
-            "price": m.get("expected_rate_inr") or 999,
-            "color": _color_for(mname),
-            "bio": mi.get("bio") or "Experienced professional ready to share industry insights, career strategies, and guidance.",
-            "skills": m.get("skills") or ["System Design", "Career Strategy"],
-        })
-
-    # Upcoming events
-    upcoming_cur = _db.events.find({
-        "start_date": {"$gte": datetime.now(timezone.utc)},
-    }).sort("start_date", 1).limit(3)
-    upcoming = []
-    palette = ["#A78BFA", "#34D399", "#FCD34D", "#22D3EE"]
-    i = 0
-    async for ev in upcoming_cur:
-        sd = ev.get("start_date")
-        date_str = sd.strftime("%b %d") if isinstance(sd, datetime) else "TBD"
-        full_date_str = sd.strftime("%B %d, %Y at %I:%M %p") if isinstance(sd, datetime) else date_str
-        rd = ev.get("registration_deadline")
-        deadline_str = rd.strftime("%b %d, %Y") if isinstance(rd, datetime) else date_str
-        is_paid = bool(ev.get("price"))
-        upcoming.append({
-            "id": _short_id(ev.get("_id")),
-            "title": ev.get("title", "Event"),
-            "date": date_str,
-            "mode": ev.get("mode") or "Online",
-            "kind": "paid" if is_paid else "free",
-            "price": ev.get("price"),
-            "accent": palette[i % len(palette)],
-            "start_date": full_date_str,
-            "venue": ev.get("venue") or ev.get("location") or "Online",
-            "registration_deadline": deadline_str,
-            "category": ev.get("category") or "Workshop",
-            "organizer": ev.get("organizer") or "Student Alumni Association",
-            "image": ev.get("image_url") or ev.get("cover_image") or "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=400",
-            "url": ev.get("external_url") or "",
-            "tags": ev.get("tags") or ["Networking", "Career Development"],
-        })
-        i += 1
-
     if not upcoming:
         now_dt = datetime.now(timezone.utc)
         upcoming = [
-            {
-                "id": "mock-event-1",
-                "title": "Resume Review Workshop",
-                "date": (now_dt + timedelta(days=2)).strftime("%b %d"),
-                "mode": "Online",
-                "kind": "free",
-                "price": None,
-                "accent": "#A78BFA",
-                "start_date": (now_dt + timedelta(days=2)).strftime("%B %d, %Y at %I:%M %p"),
-                "venue": "Online",
-                "registration_deadline": (now_dt + timedelta(days=1)).strftime("%b %d, %Y"),
-                "category": "Workshop",
-                "organizer": "Career Services",
-                "image": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=400",
-                "url": "",
-                "tags": ["Career", "Resume"],
-            },
-            {
-                "id": "mock-event-2",
-                "title": "Alumni Networking Mixer",
-                "date": (now_dt + timedelta(days=5)).strftime("%b %d"),
-                "mode": "In-Person",
-                "kind": "paid",
-                "price": 15,
-                "accent": "#34D399",
-                "start_date": (now_dt + timedelta(days=5)).strftime("%B %d, %Y at %I:%M %p"),
-                "venue": "Main Campus Tech Hub",
-                "registration_deadline": (now_dt + timedelta(days=4)).strftime("%b %d, %Y"),
-                "category": "Networking",
-                "organizer": "Student Alumni Association",
-                "image": "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?q=80&w=400",
-                "url": "",
-                "tags": ["Networking", "Alumni"],
-            }
+            {"id": "mock-event-1", "title": "Resume Review Workshop", "date": (now_dt + timedelta(days=2)).strftime("%b %d"),
+             "mode": "Online", "kind": "free", "price": None, "accent": "#A78BFA",
+             "start_date": (now_dt + timedelta(days=2)).strftime("%B %d, %Y at %I:%M %p"), "venue": "Online",
+             "registration_deadline": (now_dt + timedelta(days=1)).strftime("%b %d, %Y"), "category": "Workshop",
+             "organizer": "Career Services", "image": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=400",
+             "url": "", "tags": ["Career", "Resume"]},
+            {"id": "mock-event-2", "title": "Alumni Networking Mixer", "date": (now_dt + timedelta(days=5)).strftime("%b %d"),
+             "mode": "In-Person", "kind": "paid", "price": 15, "accent": "#34D399",
+             "start_date": (now_dt + timedelta(days=5)).strftime("%B %d, %Y at %I:%M %p"), "venue": "Main Campus Tech Hub",
+             "registration_deadline": (now_dt + timedelta(days=4)).strftime("%b %d, %Y"), "category": "Networking",
+             "organizer": "Student Alumni Association", "image": "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?q=80&w=400",
+             "url": "", "tags": ["Networking", "Alumni"]},
         ]
 
-    # Career Score (rough computation)
     skills = student.get("skills", []) if student else []
     career_score = min(100, 40 + len(skills) * 5 + (10 if student and student.get("face_image_base64") else 0))
-
-    # Compute progressPct based on real metrics
-    # Profile (30%), Mentor Sessions up to 3 (30%), Internship Applications up to 5 (40%)
     prog_profile = (career_score / 100.0) * 30
     prog_mentors = (min(3, completed_sessions) / 3.0) * 30
-    prog_interns = (min(5, apps_count) / 5.0) * 40
-    progress_pct = int(prog_profile + prog_mentors + prog_interns)
-
-    # Compute tier (Bronze/Silver/Gold/Platinum)
-    tier = await _student_tier_payload(student or {})
+    prog_interns  = (min(5, apps_count) / 5.0) * 40
+    progress_pct  = int(prog_profile + prog_mentors + prog_interns)
 
     missing_profile = []
-    if not (student and student.get("skills")): missing_profile.append("Skills")
-    if not (student and student.get("projects")): missing_profile.append("Projects")
+    if not (student and student.get("skills")):   missing_profile.append("Skills")
+    if not (student and student.get("projects")):  missing_profile.append("Projects")
     if not (student and student.get("resume_url")): missing_profile.append("Resume")
 
     payload = {
@@ -518,10 +535,10 @@ async def student_dashboard(student_email: Optional[str] = None):
             "tier": tier,
         },
         "kpis": [
-            {"id": "matches", "label": "Internship Matches",   "value": str(internships_total), "delta": f"↑ {new_today} live now", "color": "blue"},
-            {"id": "courses", "label": "Courses In Progress",  "value": str(workshops_active),  "delta": f"{avg_course_completion}% avg completion", "color": "purple"},
-            {"id": "mentors", "label": "Mentor Connections",   "value": str(my_bookings),       "delta": f"{my_bookings} bookings", "color": "green"},
-            {"id": "score",   "label": "Career Score",         "value": str(career_score),      "delta": f"Goal: {tier.get('nextTier', 'Platinum')}", "color": "amber"},
+            {"id": "matches", "label": "Internship Matches",  "value": str(internships_total), "delta": f"↑ {new_today} live now",            "color": "blue"},
+            {"id": "courses", "label": "Courses In Progress", "value": str(workshops_active),  "delta": f"{avg_course_completion}% avg completion", "color": "purple"},
+            {"id": "mentors", "label": "Mentor Connections",  "value": str(my_bookings),       "delta": f"{my_bookings} bookings",             "color": "green"},
+            {"id": "score",   "label": "Career Score",        "value": str(career_score),      "delta": f"Goal: {tier.get('nextTier', 'Platinum')}", "color": "amber"},
         ],
         "topMatches": top_matches,
         "recommendedMentors": rec_mentors,
@@ -529,7 +546,9 @@ async def student_dashboard(student_email: Optional[str] = None):
         "profileCompletion": {"score": career_score, "missing": missing_profile},
     }
     dashboard_cache[cache_key] = payload
+    print(f"[DASHBOARD] TOTAL {_ms()}", flush=True)
     return payload
+
 
 
 # ─── 2b. STUDENT INTELLIGENCE CENTER ─────────────────────────────
@@ -567,34 +586,63 @@ def format_time_ago(dt: datetime) -> str:
 # deterministic, lightly-randomised series for sparkline shape.
 @router.get("/student/intelligence")
 async def student_intelligence(student_email: Optional[str] = None):
-    """NexusOS Intelligence Center payload for the student dashboard.
-    Returns sparkline arrays, an area-chart series, KPI totals, an
-    activity feed, and an overall profile-completion percentage.
-    All values are derived from real collections (bookings, internships,
-    events) where possible; sparkline shapes are synthesised."""
+    """NexusOS Intelligence Center payload with all queries parallelized."""
+    import time
+    import asyncio
     import hashlib, random
+    _t0 = time.perf_counter()
+    def _ms(since=None):
+        return f"{(time.perf_counter() - (since or _t0)) * 1000:.1f}ms"
+    print(f"[INTEL] REQUEST_RECEIVED | t=0", flush=True)
+
     student = None
     if student_email:
-        student = await _db.users.find_one({"email": student_email})
+        student = await _db.users.find_one({"email": student_email}, {"resume_documents": 0})
     if not student and not student_email:
-        student = await _db.users.find_one({"role": "student", "onboarding_completed": True})
+        student = await _db.users.find_one({"role": "student", "onboarding_completed": True}, {"resume_documents": 0})
         if not student:
-            student = await _db.users.find_one({"role": "student"})
+            student = await _db.users.find_one({"role": "student"}, {"resume_documents": 0})
     sid = str((student or {}).get("_id", ""))
     cache_key = f"intel_student_{sid}"
     if cache_key in intel_cache:
+        print(f"[INTEL] CACHE HIT | TOTAL {_ms()}", flush=True)
         return intel_cache[cache_key]
+    print(f"[INTEL] STEP 1 user_lookup             {_ms()} (after profile fetch)", flush=True)
 
+    _s2 = time.perf_counter()
     now = datetime.now(timezone.utc)
     if now.tzinfo is None:
         now = now.replace(tzinfo=timezone.utc)
 
-    # ── Real KPI totals from DB ──
+    # Parallel batch 1: Fetch all initial counts, cursors, and events
+    (
+        apps_list,
+        bookings_list,
+        event_regs_list,
+        internships_total,
+        bk_list_4,
+        sess_list_4,
+        app_list_4,
+        reg_list_4,
+        conn_list_4,
+    ) = await asyncio.gather(
+        _db.internship_applications.find({"student_id": sid}, {"applied_at": 1, "internship_id": 1}).to_list(None),
+        _db.bookings.find({"student_id": sid}, {"created_at": 1, "scheduled_at": 1}).to_list(None),
+        _db.event_registrations.find({"student_id": sid}, {"registered_at": 1}).to_list(None),
+        _db.internships.count_documents({}),
+        _db.bookings.find({"student_id": sid}).sort("created_at", -1).limit(4).to_list(4),
+        _db.sessions.find({"user_id": sid}).sort("created_at", -1).limit(4).to_list(4),
+        _db.internship_applications.find({"student_id": sid}).sort("applied_at", -1).limit(4).to_list(4),
+        _db.event_registrations.find({"student_id": sid}).sort("registered_at", -1).limit(4).to_list(4),
+        _db.connections.find({"$or": [{"a": sid}, {"b": sid}]}).sort("created_at", -1).limit(4).to_list(4),
+    )
+
+    # ── Process Apps ──
     apps_total = 0
     apps_by_week = [0]*12
     apps_by_month = [0]*9
     applied_internship_ids = []
-    async for a in _db.internship_applications.find({"student_id": sid}, {"applied_at": 1, "internship_id": 1}):
+    for a in apps_list:
         apps_total += 1
         applied_internship_ids.append(a.get("internship_id"))
         dt = a.get("applied_at")
@@ -609,10 +657,12 @@ async def student_intelligence(student_email: Optional[str] = None):
             if 0 <= m_idx < 9:
                 apps_by_month[m_idx] += 1
 
+    # ── Process Bookings & Event Regs (views) ──
     profile_views = 0
     views_by_week = [0]*12
     views_by_month = [0]*9
-    async for b in _db.bookings.find({"student_id": sid}, {"created_at": 1, "scheduled_at": 1}):
+    
+    for b in bookings_list:
         profile_views += 1
         dt = b.get("created_at") or b.get("scheduled_at")
         if isinstance(dt, datetime):
@@ -626,7 +676,7 @@ async def student_intelligence(student_email: Optional[str] = None):
             if 0 <= m_idx < 9:
                 views_by_month[m_idx] += 1
                 
-    async for r in _db.event_registrations.find({"student_id": sid}, {"registered_at": 1}):
+    for r in event_regs_list:
         profile_views += 1
         dt = r.get("registered_at")
         if isinstance(dt, datetime):
@@ -640,10 +690,11 @@ async def student_intelligence(student_email: Optional[str] = None):
             if 0 <= m_idx < 9:
                 views_by_month[m_idx] += 1
 
+    # Batch 2 parallel fetches: internships + mentors + connection users
+    # Prepare query ids for internships
     student_skills = set(s.lower() for s in (student.get("skills", []) if student else []) if isinstance(s, str))
-    match_scores = []
+    query_ids = []
     if student_skills and applied_internship_ids:
-        query_ids = []
         for i in applied_internship_ids:
             if isinstance(i, str) and len(i) == 24:
                 try:
@@ -651,11 +702,57 @@ async def student_intelligence(student_email: Optional[str] = None):
                 except:
                     pass
             query_ids.append(i)
-        async for i in _db.internships.find({"_id": {"$in": query_ids}}):
-            req_skills = set(s.lower() for s in i.get("skills_required", []) if isinstance(s, str))
-            if req_skills:
-                match_scores.append( int(len(student_skills.intersection(req_skills)) / len(req_skills) * 100) )
+
+    # Prepare mentor ids
+    mentor_ids = set()
+    for s in sess_list_4:
+        mid = s.get("mentor_id")
+        if mid and isinstance(mid, str) and ObjectId.is_valid(mid):
+            mentor_ids.add(ObjectId(mid))
+
+    # Prepare connection user ids
+    other_ids = set()
+    for c in conn_list_4:
+        other_id = c["b"] if c["a"] == sid else c["a"]
+        if other_id and isinstance(other_id, str) and ObjectId.is_valid(other_id):
+            other_ids.add(ObjectId(other_id))
+
+    async def _fetch_internships():
+        if query_ids:
+            return await _db.internships.find({"_id": {"$in": query_ids}}).to_list(None)
+        return []
+
+    async def _fetch_mentors():
+        if mentor_ids:
+            return await _db.users.find({"_id": {"$in": list(mentor_ids)}}).to_list(None)
+        return []
+
+    async def _fetch_connection_users():
+        if other_ids:
+            return await _db.users.find({"_id": {"$in": list(other_ids)}}).to_list(None)
+        return []
+
+    (
+        matched_internships,
+        mentors_list,
+        connection_users_list,
+    ) = await asyncio.gather(
+        _fetch_internships(),
+        _fetch_mentors(),
+        _fetch_connection_users(),
+    )
+
+    # Compute matches
+    match_scores = []
+    for i in matched_internships:
+        req_skills = set(s.lower() for s in i.get("skills_required", []) if isinstance(s, str))
+        if req_skills:
+            match_scores.append( int(len(student_skills.intersection(req_skills)) / len(req_skills) * 100) )
     avg_match = sum(match_scores)//len(match_scores) if match_scores else 65
+
+    print(f"[INTEL] STEP 2 applications_internships {_ms(_s2)} (internship apps + matching)", flush=True)
+
+    _s3 = time.perf_counter()
 
     # ── Sparklines (12-point trends, cumulative) ──
     def cumulative_sum(arr, start_val=0):
@@ -675,7 +772,6 @@ async def student_intelligence(student_email: Optional[str] = None):
     spark_match = [avg_match]*12
 
     # ── Area chart: Career Momentum partitioned datasets ──
-    # Ensure there is a nice visual baseline even if the user is new
     if sum(apps_by_month) + sum(views_by_month) < 10:
         base_activity_by_month = [max(0, i*3 + random.randint(-2, 3)) for i in range(9)]
         activity_by_month = [apps_by_month[i] + views_by_month[i] + base_activity_by_month[i] for i in range(9)]
@@ -709,160 +805,107 @@ async def student_intelligence(student_email: Optional[str] = None):
     labels_1m = ["Week 1", "Week 2", "Week 3", "Week 4"]
     momentum_1m = [{"m": labels_1m[i], "v": cum_1m[i]} for i in range(4)]
 
-    # ── Live Activity Feed from MongoDB collections ──
+    # ── Live Activity Feed ──
     activity_events = []
 
-    if sid:
-        # 1. Mentor Bookings
-        try:
-            bk_cursor = _db.bookings.find({"student_id": sid}).sort("created_at", -1).limit(4)
-            async for b in bk_cursor:
-                ts = b.get("created_at")
-                activity_events.append({
-                    "title": "Mentor Session Booked",
-                    "sub": f"{b.get('topic', 'Career guidance')} • {b.get('mentor_name', 'Mentor')}",
-                    "amount": None,
-                    "amountTone": None,
-                    "icon": "account-tie-voice-outline",
-                    "tint": "#A855F7",
-                    "bgTint": "rgba(168,85,247,0.15)",
-                    "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
-                })
-        except Exception:
-            pass
+    # Map mentors
+    mentors_map = {str(m["_id"]): m for m in mentors_list}
+    # Map connection users
+    users_map = {str(u["_id"]): u for u in connection_users_list}
 
-        try:
-            sess_cursor = _db.sessions.find({"user_id": sid}).sort("created_at", -1).limit(4)
-            sessions_list = [s async for s in sess_cursor]
+    # 1. Mentor Bookings
+    for b in bk_list_4:
+        ts = b.get("created_at")
+        activity_events.append({
+            "title": "Mentor Session Booked",
+            "sub": f"{b.get('topic', 'Career guidance')} • {b.get('mentor_name', 'Mentor')}",
+            "amount": None,
+            "amountTone": None,
+            "icon": "account-tie-voice-outline",
+            "tint": "#A855F7",
+            "bgTint": "rgba(168,85,247,0.15)",
+            "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
+        })
 
-            # Gather unique mentor IDs
-            mentor_ids = set()
-            for s in sessions_list:
-                mid = s.get("mentor_id")
-                if mid and isinstance(mid, str) and ObjectId.is_valid(mid):
-                    mentor_ids.add(ObjectId(mid))
+    for s in sess_list_4:
+        ts = s.get("created_at") or s.get("scheduled_at")
+        mid_str = s.get("mentor_id")
+        mentor = mentors_map.get(mid_str) if mid_str else None
+        mentor_name = (mentor or {}).get("full_name") or (mentor or {}).get("name") or "Mentor"
+        activity_events.append({
+            "title": "Mentor Session Booked",
+            "sub": f"{s.get('topic', '1:1 Mentorship Session')} • {mentor_name}",
+            "amount": None,
+            "amountTone": None,
+            "icon": "account-tie-voice-outline",
+            "tint": "#A855F7",
+            "bgTint": "rgba(168,85,247,0.15)",
+            "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
+        })
 
-            # Batch fetch mentors
-            mentors_map = {}
-            if mentor_ids:
-                async for m in _db.users.find({"_id": {"$in": list(mentor_ids)}}):
-                    mentors_map[str(m["_id"])] = m
+    # 2. Internship Applications
+    for a in app_list_4:
+        ts = a.get("applied_at")
+        activity_events.append({
+            "title": "Application Submitted",
+            "sub": f"{a.get('company', 'Company')} • {a.get('internship_title', 'Intern')}",
+            "amount": "+1",
+            "amountTone": "positive",
+            "icon": "briefcase-check-outline",
+            "tint": "#3B82F6",
+            "bgTint": "rgba(59,130,246,0.15)",
+            "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
+        })
 
-            for s in sessions_list:
-                try:
-                    ts = s.get("created_at") or s.get("scheduled_at")
-                    mid_str = s.get("mentor_id")
-                    mentor = mentors_map.get(mid_str) if mid_str else None
-                    mentor_name = (mentor or {}).get("full_name") or (mentor or {}).get("name") or "Mentor"
-                    activity_events.append({
-                        "title": "Mentor Session Booked",
-                        "sub": f"{s.get('topic', '1:1 Mentorship Session')} • {mentor_name}",
-                        "amount": None,
-                        "amountTone": None,
-                        "icon": "account-tie-voice-outline",
-                        "tint": "#A855F7",
-                        "bgTint": "rgba(168,85,247,0.15)",
-                        "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
-                    })
-                except Exception:
-                    pass
-        except Exception:
-            pass
+    # 3. Event RSVPs
+    for r in reg_list_4:
+        ts = r.get("registered_at")
+        activity_events.append({
+            "title": "Event Registered",
+            "sub": f"{r.get('event_title', 'Workshop')}",
+            "amount": None,
+            "amountTone": None,
+            "icon": "calendar-check",
+            "tint": "#10B981",
+            "bgTint": "rgba(16,185,129,0.15)",
+            "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
+        })
 
-        # 2. Internship Applications
-        try:
-            app_cursor = _db.internship_applications.find({"student_id": sid}).sort("applied_at", -1).limit(4)
-            async for a in app_cursor:
-                ts = a.get("applied_at")
-                activity_events.append({
-                    "title": "Application Submitted",
-                    "sub": f"{a.get('company', 'Company')} • {a.get('internship_title', 'Intern')}",
-                    "amount": "+1",
-                    "amountTone": "positive",
-                    "icon": "briefcase-check-outline",
-                    "tint": "#3B82F6",
-                    "bgTint": "rgba(59,130,246,0.15)",
-                    "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
-                })
-        except Exception:
-            pass
+    # 4. Connections
+    for c in conn_list_4:
+        status = c.get("status")
+        other_id = c["b"] if c["a"] == sid else c["a"]
+        other_u = users_map.get(other_id) if other_id else None
+        other_name = other_u.get("full_name") if other_u else "Someone"
 
-        # 3. Event RSVPs
-        try:
-            reg_cursor = _db.event_registrations.find({"student_id": sid}).sort("registered_at", -1).limit(4)
-            async for r in reg_cursor:
-                ts = r.get("registered_at")
-                activity_events.append({
-                    "title": "Event Registered",
-                    "sub": f"{r.get('event_title', 'Workshop')}",
-                    "amount": None,
-                    "amountTone": None,
-                    "icon": "calendar-check",
-                    "tint": "#10B981",
-                    "bgTint": "rgba(16,185,129,0.15)",
-                    "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
-                })
-        except Exception:
-            pass
+        ts = c.get("accepted_at") if status == "accepted" else c.get("created_at")
+        title = "Connection Connected" if status == "accepted" else "Connection Requested"
+        sub = f"Connected with {other_name}" if status == "accepted" else f"Request from {other_name}"
+        icon = "account-multiple-check" if status == "accepted" else "account-plus-outline"
 
-        # 4. Connections
-        try:
-            conn_cursor = _db.connections.find({
-                "$or": [{"a": sid}, {"b": sid}]
-            }).sort("created_at", -1).limit(4)
-            conns_list = [c async for c in conn_cursor]
-
-            # Gather unique other IDs
-            other_ids = set()
-            for c in conns_list:
-                other_id = c["b"] if c["a"] == sid else c["a"]
-                if other_id and isinstance(other_id, str) and ObjectId.is_valid(other_id):
-                    other_ids.add(ObjectId(other_id))
-
-            # Batch fetch other users
-            users_map = {}
-            if other_ids:
-                async for u in _db.users.find({"_id": {"$in": list(other_ids)}}):
-                    users_map[str(u["_id"])] = u
-
-            for c in conns_list:
-                try:
-                    status = c.get("status")
-                    other_id = c["b"] if c["a"] == sid else c["a"]
-                    other_u = users_map.get(other_id) if other_id else None
-                    other_name = other_u.get("full_name") if other_u else "Someone"
-
-                    ts = c.get("accepted_at") if status == "accepted" else c.get("created_at")
-                    title = "Connection Connected" if status == "accepted" else "Connection Requested"
-                    sub = f"Connected with {other_name}" if status == "accepted" else f"Request from {other_name}"
-                    icon = "account-multiple-check" if status == "accepted" else "account-plus-outline"
-
-                    activity_events.append({
-                        "title": title,
-                        "sub": sub,
-                        "amount": None,
-                        "amountTone": None,
-                        "icon": icon,
-                        "tint": "#06B6D4",
-                        "bgTint": "rgba(6,182,212,0.15)",
-                        "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
-                    })
-                except Exception:
-                    pass
-        except Exception:
-            pass
+        activity_events.append({
+            "title": title,
+            "sub": sub,
+            "amount": None,
+            "amountTone": None,
+            "icon": icon,
+            "tint": "#06B6D4",
+            "bgTint": "rgba(6,182,212,0.15)",
+            "ts": ts if isinstance(ts, datetime) else datetime.utcnow()
+        })
 
     # Sort all events in reverse-chronological order
     activity_events.sort(key=lambda x: x["ts"], reverse=True)
+    print(f"[INTEL] STEP 3 activity_feed_queries    {_ms(_s3)} (bookings+apps+events+connections)", flush=True)
 
-    # Format the time tags using our helper
+    _s4 = time.perf_counter()
+
     activity = []
     for item in activity_events[:4]:
         ts = item.pop("ts")
         item["time"] = format_time_ago(ts)
         activity.append(item)
 
-    # Pad with premium deterministic seeds if DB activity is sparse
     if len(activity) < 4:
         paddings = [
             {
@@ -910,7 +953,6 @@ async def student_intelligence(student_email: Optional[str] = None):
         while len(activity) < 4:
             activity.append(paddings[len(activity) % len(paddings)])
 
-    # ── Trend deltas (% change between last & prev sparkline point) ──
     def _delta(arr: list[int]) -> dict:
         if len(arr) < 2 or arr[-2] == 0:
             return {"value": "0.0%", "positive": True}
@@ -972,6 +1014,16 @@ async def student_intelligence(student_email: Optional[str] = None):
         "activity": activity,
     }
     intel_cache[cache_key] = payload
+    print(f"[INTEL] STEP 4 sparkline_serialize      {_ms(_s4)} (sparklines + momentum + serialize)", flush=True)
+    print(
+        f"[INTEL] BREAKDOWN:\n"
+        f"  user_lookup               {_ms()[:5]}ms  (STEP 1)\n"
+        f"  applications_internships  {_ms(_s2)[:5]}ms  (STEP 2)\n"
+        f"  activity_feed_queries     {_ms(_s3)[:5]}ms  (STEP 3)\n"
+        f"  sparkline_serialize       {_ms(_s4)[:5]}ms  (STEP 4)\n"
+        f"  TOTAL                     {(time.perf_counter()-_t0)*1000:.1f}ms",
+        flush=True,
+    )
     return payload
 
 

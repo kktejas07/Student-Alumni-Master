@@ -54,9 +54,6 @@ from typing import Any, Dict, List
 
 import bcrypt
 from dotenv import load_dotenv
-from motor.motor_asyncio import AsyncIOMotorClient
-
-load_dotenv(Path(__file__).parent / ".env")
 
 from seed_real_datasets import (
     COLLEGES_REAL, COMPANIES_REAL, SKILLS_REAL,
@@ -66,7 +63,7 @@ from tier_logic import (
     compute_student_tier, compute_mentor_tier, compute_college_tier,
 )
 
-_db = AsyncIOMotorClient(os.environ["MONGO_URL"])[os.environ["DB_NAME"]]
+from db import db as _db
 random.seed(7)
 
 PWD_HASH = bcrypt.hashpw(b"TestPass@123", bcrypt.gensalt()).decode()

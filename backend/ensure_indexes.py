@@ -4,9 +4,6 @@ from dotenv import load_dotenv
 import logging
 
 load_dotenv()
-from motor.motor_asyncio import AsyncIOMotorClient
-
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("EnsureIndexes")
 
 async def main():
@@ -14,7 +11,7 @@ async def main():
     db_name = os.environ.get('DB_NAME', 'student_alumni')
     logger.info(f"Connecting to MongoDB: {mongo_url} | DB: {db_name}")
     
-    client = AsyncIOMotorClient(mongo_url)
+    from db import client as client
     db = client[db_name]
     
     async def safe_create(collection, *args, **kwargs):
@@ -33,6 +30,8 @@ async def main():
     logger.info("Creating indexes for bookings collection...")
     await safe_create(db.bookings, "student_id")
     await safe_create(db.bookings, "mentor_id")
+    await safe_create(db.bookings, [("student_id", 1), ("slot_start_iso", -1)])
+    await safe_create(db.bookings, [("mentor_id", 1), ("slot_start_iso", -1)])
     
     # Internships
     logger.info("Creating indexes for internships collection...")
@@ -51,6 +50,15 @@ async def main():
     logger.info("Creating indexes for connections collection...")
     await safe_create(db.connections, "a")
     await safe_create(db.connections, "b")
+    
+    # Sessions
+    logger.info("Creating indexes for sessions collection...")
+    await safe_create(db.sessions, "user_id")
+    await safe_create(db.sessions, "mentor_id")
+    
+    # Events
+    logger.info("Creating indexes for events collection...")
+    await safe_create(db.events, "start_date")
     
     logger.info("All indexes created successfully!")
     client.close()

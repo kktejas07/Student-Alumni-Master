@@ -1,3 +1,4 @@
+import { getBaseUrl } from '@/src/lib/env';
 /**
  * Onboarding step 3 — Role-specific details (Web split-screen + Native dark theme).
  */
@@ -14,7 +15,7 @@ import { Dropdown } from '@/src/views/web/Dropdown';
 import { SuggestionAutocomplete } from '@/src/views/web/SuggestionAutocomplete';
 import type { MentorCategory } from '@/src/models/entities';
 
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BASE = getBaseUrl();
 
 // Static fallback — used if /api/mentors/suggestions is unreachable.
 const FALLBACK_ORGS = [

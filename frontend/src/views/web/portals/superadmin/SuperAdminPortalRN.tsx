@@ -29,6 +29,7 @@ import { WorkflowsView } from './views/WorkflowsView';
 import { ImportsView } from './views/ImportsView';
 import { PartnersView } from './views/PartnersView';
 import { PromotionsView } from './views/PromotionsView';
+import { TalentPoolView } from './views/TalentPoolView';
 import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 
 export function SuperAdminPortalRN() {
@@ -61,7 +62,7 @@ export function SuperAdminPortalRN() {
         <TopBar title={titleFor(active)} />
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
+          contentContainerStyle={{ padding: 22, paddingBottom: 22 }}
           showsVerticalScrollIndicator={false}
         >
           <PromoBanner portal="super_admin" />
@@ -80,8 +81,9 @@ export function SuperAdminPortalRN() {
           {active === 'imports'     && <ImportsView />}
           {active === 'partners'    && <PartnersView />}
           {active === 'promotions'  && <PromotionsView />}
-          <DashboardFooter portal="super_admin" />
+          {active === 'talent-pool' && <TalentPoolView />}
         </ScrollView>
+        <DashboardFooter portal="super_admin" />
       </View>
     </View>
   );

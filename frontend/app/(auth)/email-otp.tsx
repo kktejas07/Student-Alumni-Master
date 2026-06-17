@@ -1,3 +1,4 @@
+import { getBaseUrl } from '@/src/lib/env';
 /**
  * Email OTP — per HTML spec screen "Email OTP".
  *
@@ -19,7 +20,7 @@ import { AuthInput, PrimaryButton } from '@/src/views/auth/AuthControls';
 import { AC, FONTS } from '@/src/views/auth/tokens';
 import { trackAuth } from '@/src/lib/authAnalytics';
 
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BASE = getBaseUrl();
 
 export default function EmailOTP() {
   const router = useRouter();

@@ -43,7 +43,7 @@ interface SearchResult {
 interface Props {
   value: string;
   onChangeText: (v: string) => void;
-  onSelect: (pick: InstitutionPick) => void;
+  onSelect?: (pick: InstitutionPick) => void;
   type?: 'school' | 'college' | 'university';
   placeholder?: string;
   testID?: string;
@@ -101,7 +101,7 @@ export function InstitutionAutocomplete({
       );
       logo_url = lr.candidates?.[0]?.url || '';
     } catch {}
-    onSelect({
+    onSelect?.({
       name: r.name,
       address_line: r.address_line,
       city: r.city,
@@ -115,7 +115,7 @@ export function InstitutionAutocomplete({
   const useAsIs = () => {
     setOpen(false);
     setSuppress(true);
-    onSelect({ name: value || '', manual: true });
+    onSelect?.({ name: value || '', manual: true });
   };
 
   return (
@@ -149,11 +149,9 @@ export function InstitutionAutocomplete({
           {results.length === 0 && !loading && (
             <Pressable
               onPress={useAsIs}
-              onMouseDown={(e: any) => {
-                if (Platform.OS === 'web') {
-                  e.preventDefault();
-                }
-              }}
+              {...({
+                onMouseDown: Platform.OS === 'web' ? (e: any) => e.preventDefault() : undefined,
+              } as any)}
               testID="institution-add-manual-empty"
               style={({ hovered }: any) => [
                 styles.row,
@@ -176,11 +174,9 @@ export function InstitutionAutocomplete({
               <Pressable
                 key={r.id}
                 onPress={() => pick(r)}
-                onMouseDown={(e: any) => {
-                  if (Platform.OS === 'web') {
-                    e.preventDefault();
-                  }
-                }}
+                {...({
+                  onMouseDown: Platform.OS === 'web' ? (e: any) => e.preventDefault() : undefined,
+                } as any)}
                 testID={`institution-result-${r.id}`}
                 style={({ hovered, pressed }: any) => [
                   styles.row,
@@ -203,11 +199,9 @@ export function InstitutionAutocomplete({
           {results.length > 0 && (
             <Pressable
               onPress={useAsIs}
-              onMouseDown={(e: any) => {
-                if (Platform.OS === 'web') {
-                  e.preventDefault();
-                }
-              }}
+              {...({
+                onMouseDown: Platform.OS === 'web' ? (e: any) => e.preventDefault() : undefined,
+              } as any)}
               testID="institution-add-manual"
               style={({ hovered, pressed }: any) => [
                 styles.row, styles.rowAdd,

@@ -1,3 +1,4 @@
+import { getBaseUrl } from '@/src/lib/env';
 /**
  * StudentsView — College Phase 3 Roster.
  * Live filters (dept, year, status, search) + pagination + status pills.
@@ -155,7 +156,7 @@ export function StudentsView() {
   const doExport = async () => {
     setExporting(true);
     try {
-      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || 'http://localhost:8000';
+      const base = getBaseUrl();
       const { tokenStore } = await import('@/src/models/services/api');
       const token = await tokenStore.getAccess();
       const exportParams = new URLSearchParams({ q, dept, year, status }).toString();
