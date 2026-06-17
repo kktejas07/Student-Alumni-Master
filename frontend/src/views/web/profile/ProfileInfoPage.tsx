@@ -8,7 +8,7 @@ import { Mail, Phone, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Spar
 import * as ImagePicker from 'expo-image-picker';
 import { WebcamModal } from '@/src/views/components/WebcamModal';
 import { CompletionRing } from './CompletionRing';
-import { Card, Field, TF, TA, SF, ChipPicker, C } from './primitives';
+import { Card, Field, TF, TA, SF, ChipPicker, C, PhoneField } from './primitives';
 
 const INTERESTS = [
   'Software Engineering', 'Product Management', 'Data Science', 'AI / ML',
@@ -259,7 +259,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
       <Card title="Contact Details" subtitle="How others can reach you (visible based on privacy settings).">
         <View style={[st.row, { zIndex: 19 }]}>
           <Field label="Email" half><TF value={draft.email || ''} onChangeText={() => {}} leftIcon={<Mail size={14} color={C.text2} />} testID="pf-email" /></Field>
-          <Field label="Phone" half><TF value={draft.phone || ''} onChangeText={(v) => setField('phone', v)} leftIcon={<Phone size={14} color={C.text2} />} placeholder="+91 …" testID="pf-phone" /></Field>
+          <Field label="Phone" half><PhoneField value={draft.phone || ''} onChange={(v) => setField('phone', v)} placeholder="Phone number" testID="pf-phone" /></Field>
         </View>
         <Field label="Location"><TF value={draft.location || draft.city || ''} onChangeText={(v) => setField('location', v)} leftIcon={<MapPin size={14} color={C.text2} />} placeholder="City, State" testID="pf-location" /></Field>
       </Card>
