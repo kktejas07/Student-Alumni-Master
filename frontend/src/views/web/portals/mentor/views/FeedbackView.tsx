@@ -152,7 +152,7 @@ export function FeedbackView() {
   const { width } = useWindowDimensions();
   const stack = width < 980;
   
-  const { _id: mentorId } = useCurrentUser('mentor1@persona.demo');
+  const { id: mentorId } = useCurrentUser('mentor1@persona.demo');
 
   // Local stateful list of reviews
   const [reviews, setReviews] = useState<Review[]>([]);
