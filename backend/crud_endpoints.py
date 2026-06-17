@@ -772,7 +772,7 @@ class UserInvite(BaseModel):
 
 @router.post("/admin/users/invite")
 async def invite_user(req: UserInvite):
-    if req.role not in ("student", "mentor", "college", "admin"):
+    if req.role not in ("student", "mentor", "college", "admin", "super_admin"):
         raise HTTPException(400, "Invalid role")
     existing = await _db.users.find_one({"email": req.email})
     if existing:

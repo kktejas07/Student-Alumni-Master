@@ -85,7 +85,7 @@ async def _require_admin(authorization: Optional[str]) -> dict:
     if not user:
         raise HTTPException(401, "Not authenticated")
     role = (user.get("role") or "").lower()
-    if role not in {"admin"}:
+    if role not in {"admin", "super_admin"}:
         raise HTTPException(403, "Super-admin role required")
     return user
 

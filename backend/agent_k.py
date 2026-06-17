@@ -900,7 +900,7 @@ async def _connected_ai_providers(user_id: str) -> List[Dict[str, str]]:
 
 def _is_admin(user: dict) -> bool:
     role = (user.get("role") or "").lower()
-    return role == "admin"
+    return role in ("admin", "super_admin")
 
 
 async def _assert_ai_provider_or_412(user: dict) -> None:
