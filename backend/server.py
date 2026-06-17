@@ -27,6 +27,21 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 import os
+import socket
+
+# --- GLOBALLY PATCH DNS TO PREVENT 34-SECOND IPv6 HANGS ON WINDOWS ---
+import sys
+if sys.platform == "win32" and not getattr(socket, "_ipv4_patched", False):
+    _original_getaddrinfo = socket.getaddrinfo
+
+    def _ipv4_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+        if family == 0:
+            family = socket.AF_INET
+        return _original_getaddrinfo(host, port, family, type, proto, flags)
+
+    socket.getaddrinfo = _ipv4_getaddrinfo
+    socket._ipv4_patched = True
+# ---------------------------------------------------------------------
 import re
 import uuid
 import io
@@ -4889,6 +4904,9 @@ async def list_mentors(career_path: Optional[str] = None, limit: int = 20):
     for m in real:
         m["id"] = str(m["_id"])
         m.pop("_id", None)
+        mr = m.get("mentor_rating", {})
+        m["rating"] = mr.get("rating", mr.get("average", 5.0))
+        m["total_reviews"] = mr.get("total_reviews", mr.get("total", 0))
     sample = await db.sample_mentors.find(sample_q, {"_id": 0}).limit(limit).to_list(limit)
     return {"mentors": real + sample}
 
