@@ -62,7 +62,7 @@ export function SuperAdminPortalRN() {
         <TopBar title={titleFor(active)} />
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
+          contentContainerStyle={{ padding: 22, paddingBottom: 22 }}
           showsVerticalScrollIndicator={false}
         >
           <PromoBanner portal="super_admin" />
@@ -82,8 +82,8 @@ export function SuperAdminPortalRN() {
           {active === 'partners'    && <PartnersView />}
           {active === 'promotions'  && <PromotionsView />}
           {active === 'talent-pool' && <TalentPoolView />}
-          <DashboardFooter portal="super_admin" />
         </ScrollView>
+        <DashboardFooter portal="super_admin" />
       </View>
     </View>
   );
