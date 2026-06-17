@@ -4,10 +4,9 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Platform, ActivityIndicator } from 'react-native';
-import { LinkedIn, Upload, Search, RefreshCw, Trash2, CheckCircle, XCircle } from 'lucide-react-native';
+import { LinkedIn, Upload, Search, RefreshCw, Trash2, CheckCircle, XCircle, Users } from 'lucide-react-native';
 import { request, tokenStore } from '@/src/models/services/api';
 import { SAC, FONTS } from '../tokens';
-import { atoms } from '../atoms';
 
 interface TalentProfile {
   id: string;
@@ -328,8 +327,6 @@ export function TalentPoolView() {
     </View>
   );
 }
-
-import { Users } from 'lucide-react-native';
 
 const s = StyleSheet.create({
   root: { flex: 1 },
