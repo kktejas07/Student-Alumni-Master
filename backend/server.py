@@ -2223,12 +2223,18 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
 
 
 async def _get_oauth_creds() -> dict:
-    """Read OAuth credentials from platform_controls DB collection."""
+    """Read OAuth credentials from platform_controls DB collection, merged with defaults."""
     doc = await db.platform_controls.find_one({"_id": "singleton"})
-    if not doc:
-        return {}
-    settings = {s["key"]: s.get("value", "") for s in (doc.get("system_settings") or [])}
-    return settings
+    db_settings = {s["key"]: s.get("value", "") for s in (doc.get("system_settings") or [])} if doc else {}
+    # Merge with defaults so new fields (like firebase_*) are included even before admin sets them
+    try:
+        from admin_settings import DEFAULT_PLATFORM_CONTROLS
+        for s in DEFAULT_PLATFORM_CONTROLS.get("system_settings") or []:
+            if s["key"] not in db_settings:
+                db_settings[s["key"]] = s.get("value", "")
+    except ImportError:
+        pass
+    return db_settings
 
 
 @api_router.get("/auth/oauth-config")
@@ -2434,14 +2440,34 @@ async def auth_github(request: Request, req: OAuthCallback):
 
 
 # ─── Firebase Auth ──────────────────────────────────────────────────
-def _verify_firebase_token(id_token: str) -> Optional[dict]:
-    """Verify a Firebase ID token. Requires firebase-admin SDK + service account in platform settings."""
+_firebase_app = None
+
+def _get_or_init_firebase():
+    """Initialize Firebase Admin SDK if not already initialized, using platform settings."""
+    global _firebase_app
+    if _firebase_app is not None:
+        return _firebase_app
     try:
-        import json as _json
-        from firebase_admin import auth as fb_auth
-        creds = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON", "")
-        if not creds:
+        from firebase_admin import credentials, initialize_app
+        creds_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON", "")
+        if not creds_json:
+            # Try reading from platform_controls synchronously (won't work in async context)
             return None
+        cred_dict = __import__("json").loads(creds_json)
+        cred = credentials.Certificate(cred_dict)
+        _firebase_app = initialize_app(cred)
+        return _firebase_app
+    except Exception:
+        return None
+
+
+def _verify_firebase_token(id_token: str) -> Optional[dict]:
+    """Verify a Firebase ID token using Firebase Admin SDK."""
+    app = _get_or_init_firebase()
+    if not app:
+        return None
+    try:
+        from firebase_admin import auth as fb_auth
         decoded = fb_auth.verify_id_token(id_token, check_revoked=True)
         return {
             "email": decoded.get("email"),
@@ -2463,7 +2489,6 @@ async def auth_firebase(request: Request, req: OAuthCallback):
     creds = await _get_oauth_creds()
     fb_service_account = creds.get("firebase_service_account", "")
 
-    # Set service account in env for firebase-admin SDK
     if fb_service_account and not os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON"):
         os.environ["FIREBASE_SERVICE_ACCOUNT_JSON"] = fb_service_account
 
@@ -2482,7 +2507,6 @@ async def auth_firebase(request: Request, req: OAuthCallback):
         email=profile["email"],
         full_name=profile.get("name") or req.full_name or "",
         picture=profile.get("picture"),
-
         role=req.role or "student",
     )
     return AuthResponse(
