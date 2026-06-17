@@ -29,6 +29,7 @@ import { WorkflowsView } from './views/WorkflowsView';
 import { ImportsView } from './views/ImportsView';
 import { PartnersView } from './views/PartnersView';
 import { PromotionsView } from './views/PromotionsView';
+import { TalentPoolView } from './views/TalentPoolView';
 import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 
 export function SuperAdminPortalRN() {
@@ -80,6 +81,7 @@ export function SuperAdminPortalRN() {
           {active === 'imports'     && <ImportsView />}
           {active === 'partners'    && <PartnersView />}
           {active === 'promotions'  && <PromotionsView />}
+          {active === 'talent-pool' && <TalentPoolView />}
           <DashboardFooter portal="super_admin" />
         </ScrollView>
       </View>
