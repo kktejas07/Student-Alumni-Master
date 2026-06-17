@@ -37,7 +37,7 @@ export default function PlatformRoute() {
     if (!user) router.replace('/welcome');
     else if (!user.onboarding_completed) router.replace('/(onboarding)/role-info');
     // Every role gets routed to its pixel-exact portal
-    else if (user.role === 'admin') router.replace('/super-admin');
+    else if (user.role === 'admin' || user.role === 'super_admin') router.replace('/super-admin');
     else if (user.role === 'college') router.replace('/college-portal');
     else if (user.role === 'mentor') router.replace('/mentor-portal');
     else if (user.role === 'alumni') router.replace('/alumni-portal');

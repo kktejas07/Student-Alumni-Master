@@ -246,7 +246,7 @@ async def _audit_log_many(user_id: str, source: str, entries: list,
 # Type Definitions
 # ----------------------------------------------------------------------------
 # UserRole: 3 primary user types + admin/college (managed roles)
-UserRole = Literal["student", "alumni", "mentor", "college", "admin"]
+UserRole = Literal["student", "alumni", "mentor", "college", "admin", "super_admin"]
 
 # CareerPath: Drives all personalization on the platform
 CareerPath = Literal["job", "higher_education", "startup", "business"]
@@ -1296,7 +1296,7 @@ async def refresh_my_badges(user: dict = Depends(get_current_user)):
 @api_router.post("/admin/badges/recompute-all")
 async def admin_recompute_all_badges(user: dict = Depends(get_current_user)):
     """Admin-only — nightly batch recompute (manually triggerable)."""
-    if user.get("role") != "admin":
+    if user.get("role") not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
     count = 0
     async for u in db.users.find({}, {"_id": 1, "role": 1, "email_verified": 1, "two_fa_enabled": 1}):
@@ -1583,7 +1583,7 @@ async def verify_id_card(identifier: str):
         base["students_count"] = ci.get("students_count") or ""
         base["affiliation"] = ci.get("affiliation") or ""
 
-    elif role == "admin":
+    elif role in ("admin", "super_admin"):
         colleges_count = await db.colleges.count_documents({}) or 0
         base["title"] = u.get("title") or ""
         base["access_label"] = u.get("access_label") or "Full Access"
@@ -3304,7 +3304,7 @@ async def change_my_password(payload: dict, user: dict = Depends(get_current_use
 @api_router.get("/admin/mentors/pending")
 async def list_pending_mentors(user: dict = Depends(get_current_user)):
     """Admin: list mentors awaiting approval."""
-    if user["role"] != "admin":
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
     mentors = await db.users.find(
         {"role": "mentor", "mentor_status": "pending"},
@@ -3319,7 +3319,7 @@ async def list_pending_mentors(user: dict = Depends(get_current_user)):
 @api_router.post("/admin/mentors/{mentor_id}/approve")
 async def approve_mentor(mentor_id: str, user: dict = Depends(get_current_user)):
     """Admin: approve a pending mentor — they become visible to students."""
-    if user["role"] != "admin":
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
     res = await db.users.update_one(
         {"_id": ObjectId(mentor_id), "role": "mentor"},
@@ -3353,7 +3353,7 @@ async def reject_mentor(
     mentor_id: str, payload: dict | None = None, user: dict = Depends(get_current_user),
 ):
     """Admin: reject a mentor application with optional reason."""
-    if user["role"] != "admin":
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
     reason = (payload or {}).get("reason") if isinstance(payload, dict) else None
     update = {
@@ -3427,7 +3427,7 @@ async def admin_mentor_detail(mentor_id: str, user: dict = Depends(get_current_u
 # Super Admin Dashboard endpoints (Phase 1)
 # ----------------------------------------------------------------------------
 def _require_admin(user: dict):
-    if user.get("role") != "admin":
+    if user.get("role") not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
 
 
@@ -3568,7 +3568,7 @@ async def admin_users_list(
 ):
     """List users by role with optional search query."""
     _require_admin(user)
-    if role not in ("student", "mentor", "alumni", "college", "admin"):
+    if role not in ("student", "mentor", "alumni", "college", "admin", "super_admin"):
         raise HTTPException(400, "Invalid role")
     query: dict = {"role": role}
     if role == "mentor":
@@ -4000,7 +4000,7 @@ async def admin_user_create(payload: dict, user: dict = Depends(get_current_user
     role = (payload.get("role") or "student").strip().lower()
     if not email or not full_name:
         raise HTTPException(400, "email and full_name are required")
-    if role not in ("student", "mentor", "alumni", "college", "admin"):
+    if role not in ("student", "mentor", "alumni", "college", "admin", "super_admin"):
         raise HTTPException(400, "Invalid role")
     existing = await db.users.find_one({"email": email})
     if existing:
@@ -5974,14 +5974,14 @@ async def analytics_dispatcher(user: dict = Depends(get_current_user)):
 
 @api_router.get("/analytics/super-admin")
 async def analytics_super_admin(user: dict = Depends(get_current_user)):
-    if user["role"] != "admin":
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Super admin access required")
     return await super_admin_analytics(db, include_revenue=True)
 
 
 @api_router.get("/analytics/admin")
 async def analytics_admin_endpoint(user: dict = Depends(get_current_user)):
-    if user["role"] not in ("admin",):
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin access required")
     return await super_admin_analytics(db, include_revenue=False)
 
@@ -5989,7 +5989,7 @@ async def analytics_admin_endpoint(user: dict = Depends(get_current_user)):
 @api_router.get("/analytics/college")
 async def analytics_college_endpoint(user: dict = Depends(get_current_user),
                                       institution_name: Optional[str] = None):
-    if user["role"] not in ("college", "admin"):
+    if user["role"] not in ("college", "admin", "super_admin"):
         raise HTTPException(403, "College / admin access required")
     inst = institution_name or (user.get("school_info") or {}).get("institution_name") or user.get("full_name")
     return await college_analytics(db, inst)
@@ -5998,7 +5998,7 @@ async def analytics_college_endpoint(user: dict = Depends(get_current_user),
 @api_router.get("/analytics/mentor")
 async def analytics_mentor_endpoint(user: dict = Depends(get_current_user),
                                      mentor_id: Optional[str] = None):
-    if user["role"] == "admin" and mentor_id:
+    if user["role"] in ("admin", "super_admin") and mentor_id:
         return await mentor_analytics(db, mentor_id)
     if user["role"] != "mentor":
         raise HTTPException(403, "Mentor access required")
@@ -6032,7 +6032,7 @@ async def integrations_internships(query: str = "internship", country: str = "in
 @api_router.post("/integrations/sync/courses")
 async def sync_courses(user: dict = Depends(get_current_user)):
     """Admin-only: pull Coursera + Udemy data into our courses collection."""
-    if user["role"] != "admin":
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin access required")
     res = await sync_courses_to_db(db)
     return {"synced": res, "status": integrations_status()}
@@ -6041,7 +6041,7 @@ async def sync_courses(user: dict = Depends(get_current_user)):
 @api_router.post("/integrations/sync/internships")
 async def sync_internships(user: dict = Depends(get_current_user)):
     """Admin-only: pull Adzuna data into our internships collection."""
-    if user["role"] != "admin":
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin access required")
     res = await sync_internships_to_db(db)
     return {"synced": res, "status": integrations_status()}
@@ -6192,7 +6192,7 @@ class ManualPushIn(BaseModel):
 
 @api_router.post("/notifications/send")
 async def notifications_send_manual(req: ManualPushIn, user: dict = Depends(get_current_user)):
-    if user["role"] != "admin":
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
     return await send_push(db, user_id=req.user_id, title=req.title, body=req.body, data=req.data)
 

@@ -321,7 +321,7 @@ async def mentor_analytics(db, mentor_id: str) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 async def get_analytics_for(db, user: dict) -> Dict[str, Any]:
     role = user.get("role")
-    if role == "admin":
+    if role in ("admin", "super_admin"):
         # First admin / sole admin acts as super_admin (sees revenue)
         return await super_admin_analytics(db, include_revenue=True)
     if role == "college":

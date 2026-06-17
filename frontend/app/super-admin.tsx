@@ -30,7 +30,7 @@ export default function SuperAdminRoute() {
       return;
     }
     const role = String(user.role || '').toLowerCase();
-    if (!['admin'].includes(role)) {
+    if (!['admin', 'super_admin'].includes(role)) {
       router.replace('/login?redirect=/super-admin');
     }
   }, [initialized, user]);
