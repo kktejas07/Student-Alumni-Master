@@ -44,7 +44,9 @@ import jwt
 import pyotp
 import qrcode
 from bson import ObjectId
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response
+from starlette.middleware.cors import CORSMiddleware
+from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr, field_validator
 from starlette.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -2267,9 +2269,10 @@ async def _get_oauth_creds() -> dict:
 
 
 @api_router.get("/auth/oauth-config")
-async def oauth_config():
+async def oauth_config(response: Response):
     """Returns OAuth client IDs and redirect URI for frontend login buttons.
     Only returns client IDs (safe), never secrets. If not configured, returns empty strings."""
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     creds = await _get_oauth_creds()
     raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
     frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
