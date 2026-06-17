@@ -638,7 +638,7 @@ function PlatformTab({ onSaved }: { onSaved: (s?: string) => void }) {
           {data.feature_flags.map((f: any) => (
             <View key={f.key} style={s.toggleRow}>
               <View style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
-                <Text style={s.toggleTitle}>{f.label}</Text>
+                <Text style={s.toggleTitle} numberOfLines={1}>{f.label}</Text>
                 <Text style={s.toggleDesc}>{f.description}</Text>
               </View>
               <Switch
@@ -2590,7 +2590,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 9,
     borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
-    minWidth: 160,
+    minWidth: 140, maxWidth: 200,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   editBtnText: { color: GRAD_TO, fontFamily: FONTS.xbold, fontSize: 11 },
@@ -2598,10 +2598,10 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 9,
     borderWidth: 1, borderColor: SAC.border, backgroundColor: SAC.cardSolid,
-    minWidth: 160,
+    minWidth: 140, maxWidth: 200,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  selectValue: { color: GRAD_TO, fontFamily: FONTS.bold, fontSize: 12 },
+  selectValue: { color: GRAD_TO, fontFamily: FONTS.bold, fontSize: 12, flex: 1 },
 
   // Picker Modal
   pickerBackdrop: {

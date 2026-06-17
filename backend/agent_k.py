@@ -28,6 +28,36 @@ Collections:
                        audit_log, cost_summary, started_at, completed_at }
   agent_k_prefs      { user_id, auto_approve_read, auto_approve_write, ... }
 """
+
+
+async def _get_best_ai_key() -> tuple:
+    """Returns (api_key, model_name, provider) from best available source.
+    Priority: Marketplace installed tools > Emergent env var."""
+    # 1. Check marketplace for Claude/Anthropic
+    claude = await _db.installed_tools.find_one({"tool_id": "claude", "status": "connected"})
+    if claude and claude.get("credentials", {}).get("api_key"):
+        return (claude["credentials"]["api_key"],
+                "claude-sonnet-4-5-20250929", "anthropic")
+
+    # 2. Check for OpenAI
+    openai = await _db.installed_tools.find_one({"tool_id": "openai", "status": "connected"})
+    if openai and openai.get("credentials", {}).get("api_key"):
+        return (openai["credentials"]["api_key"],
+                "gpt-4o", "openai")
+
+    # 3. Check for Gemini
+    gemini = await _db.installed_tools.find_one({"tool_id": "gemini", "status": "connected"})
+    if gemini and gemini.get("credentials", {}).get("api_key"):
+        return (gemini["credentials"]["api_key"],
+                "gemini-1.5-flash", "google")
+
+    # 4. Fall back to Emergent env var
+    emergent = os.environ.get("EMERGENT_LLM_KEY")
+    if emergent:
+        return (emergent, "claude-sonnet-4-5-20250929", "anthropic")
+
+    return ("", "", "")
+
 from __future__ import annotations
 from pathlib import Path
 import os
@@ -258,12 +288,12 @@ async def _generate_text(prompt: str, system: str = "You are a helpful drafting 
         from emergentintegrations.llm.chat import LlmChat, UserMessage
     except ImportError:
         return "(LLM unavailable in this environment.)"
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    api_key, model, provider = await _get_best_ai_key()
     if not api_key:
-        return "(EMERGENT_LLM_KEY missing.)"
+        return "(No AI provider configured. Install Claude, OpenAI, or Gemini from Marketplace.)"
     chat = (
         LlmChat(api_key=api_key, session_id=f"agentk-draft-{uuid4().hex[:8]}", system_message=system)
-        .with_model("anthropic", "claude-sonnet-4-5-20250929")
+        .with_model(provider, model)
     )
     try:
         return ((await chat.send_message(UserMessage(text=prompt))) or "").strip()
@@ -419,9 +449,9 @@ async def _plan_with_claude(prompt: str, user: dict) -> dict:
     except ImportError:
         raise HTTPException(500, "emergentintegrations not installed")
 
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    api_key, model, provider = await _get_best_ai_key()
     if not api_key:
-        raise HTTPException(500, "EMERGENT_LLM_KEY missing")
+        raise HTTPException(500, "No AI provider configured. Install Claude, OpenAI, or Gemini from Marketplace.")
 
     tools_block = _enabled_tool_summary()
     system = (
@@ -436,7 +466,7 @@ async def _plan_with_claude(prompt: str, user: dict) -> dict:
     chat = (
         LlmChat(api_key=api_key, session_id=f"agentk-plan-{uuid4().hex[:8]}",
                 system_message=system)
-        .with_model("anthropic", "claude-sonnet-4-5-20250929")
+        .with_model(provider, model)
     )
     try:
         reply = await chat.send_message(UserMessage(text=prompt))
@@ -467,7 +497,7 @@ async def _summarize_results(prompt: str, plan: dict, step_results: list, user: 
         from emergentintegrations.llm.chat import LlmChat, UserMessage
     except ImportError:
         return f"Done. Executed {len(step_results)} steps."
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    api_key, model, provider = await _get_best_ai_key()
     if not api_key:
         return f"Done. Executed {len(step_results)} steps."
     summary_prompt = (
@@ -480,7 +510,7 @@ async def _summarize_results(prompt: str, plan: dict, step_results: list, user: 
     chat = (
         LlmChat(api_key=api_key, session_id=f"agentk-sum-{uuid4().hex[:8]}",
                 system_message="You write concise post-execution summaries for an automation agent.")
-        .with_model("anthropic", "claude-sonnet-4-5-20250929")
+        .with_model(provider, model)
     )
     try:
         reply = await chat.send_message(UserMessage(text=summary_prompt))

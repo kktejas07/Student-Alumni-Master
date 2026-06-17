@@ -168,19 +168,23 @@ def _profile_out(doc: dict) -> dict:
 # ─── CSV header mapping ─────────────────────────────────────────────
 CSV_HEADER_MAP: Dict[str, List[str]] = {
     "full_name":    ["full name", "name", "fullname", "candidate name", "first name"],
+    "first_name":   ["first name", "firstname", "given name"],
+    "last_name":    ["last name", "lastname", "surname", "family name"],
     "headline":     ["headline", "tagline", "title", "designation"],
     "email":        ["email", "email address", "e-mail", "mail"],
     "phone":        ["phone", "phone number", "mobile", "contact number"],
-    "linkedin_url": ["linkedin url", "linkedin", "profile url", "linkedin profile"],
+    "linkedin_url": ["linkedin url", "linkedin", "profile url", "linkedin profile", "profile url"],
     "github_url":   ["github url", "github", "github profile"],
-    "location":     ["location", "city", "region", "address"],
+    "location":     ["location", "city", "region", "address", "general location"],
     "skills":       ["skills", "skill", "tech stack", "technologies", "key skills"],
     "experience_years": ["experience years", "experience", "years of experience", "yoe", "total experience"],
     "current_company": ["current company", "company", "employer", "organization"],
-    "current_role": ["current role", "role", "job title", "position"],
-    "education":    ["education", "degree", "qualification", "highest education"],
+    "current_role": ["current role", "role", "job title", "position", "current title"],
+    "education":    ["education", "education degree", "degree", "qualification", "highest education"],
+    "education_institution": ["education institution", "institution", "college", "university", "school"],
     "graduation_year": ["graduation year", "grad year", "year of graduation", "passing year"],
-    "bio":          ["bio", "about", "summary", "description"],
+    "bio":          ["bio", "about", "summary", "description", "evaluation summary"],
+    "zip_code":     ["zip code", "zip", "postal code", "postcode"],
 }
 
 
@@ -516,6 +520,10 @@ async def admin_commit_talent_csv(
 
     for row in rows:
         full_name = (row.get("full_name") or "").strip()
+        first_name = (row.get("first_name") or "").strip()
+        last_name = (row.get("last_name") or "").strip()
+        if not full_name and (first_name or last_name):
+            full_name = f"{first_name} {last_name}".strip()
         email = (row.get("email") or "").strip().lower()
         linkedin_url = (row.get("linkedin_url") or "").strip()
 
@@ -529,6 +537,13 @@ async def admin_commit_talent_csv(
         if not isinstance(skills, list):
             skills = []
 
+        location = row.get("location") or ""
+        zip_code = row.get("zip_code") or ""
+        if zip_code and not location:
+            location = zip_code
+        elif zip_code:
+            location = f"{location} {zip_code}".strip()
+
         doc = {
             "full_name": full_name,
             "headline": row.get("headline"),
@@ -536,12 +551,12 @@ async def admin_commit_talent_csv(
             "phone": row.get("phone"),
             "linkedin_url": linkedin_url or None,
             "github_url": row.get("github_url"),
-            "location": row.get("location"),
+            "location": location,
             "skills": skills,
             "experience_years": row.get("experience_years"),
             "current_company": row.get("current_company"),
             "current_role": row.get("current_role"),
-            "education": row.get("education"),
+            "education": row.get("education") or row.get("education_institution"),
             "graduation_year": row.get("graduation_year"),
             "bio": row.get("bio"),
             "source": "csv",
