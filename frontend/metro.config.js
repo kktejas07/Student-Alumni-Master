@@ -35,7 +35,6 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       type: 'sourceFile',
     };
   }
-
   const resolved = context.resolveRequest(context, moduleName, platform);
   if (resolved?.filePath?.endsWith('.node.mjs')) {
     return { filePath: resolved.filePath.replace('.node.mjs', '.js'), type: 'sourceFile' };

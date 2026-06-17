@@ -30,7 +30,7 @@ type Props = {
 };
 
 export function FAB({ onPress, icon, label, color = '#7C3AED',
-                       bottom = 24, right, left }: Props) {
+                       bottom = 90, right, left }: Props) {
   const scale  = useSharedValue(0);
   const opacity = useSharedValue(0);
   const hovered = useSharedValue(0);
