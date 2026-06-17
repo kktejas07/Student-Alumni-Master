@@ -1,3 +1,4 @@
+import { getBaseUrl } from '@/src/lib/env';
 /**
  * Register — New design with role context, password strength, and analytics.
  */
@@ -15,7 +16,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { PhoneInput } from '@/src/views/web/PhoneInput';
 import { DateOfBirthPicker, isDobValid } from '@/src/views/web/DateOfBirthPicker';
 
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BASE = getBaseUrl();
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -192,6 +193,7 @@ export default function RegisterScreen() {
               onChange={(iso) => { setDob(iso); setErrors((p) => ({ ...p, dob: '' })); }}
               minAge={minAge}
               required
+              editable={role === 'college'}
               helper={`You must be at least ${minAge} years old to register as a ${ROLE_META[role].label.toLowerCase()}.`}
             />
             {errors.dob ? <Text style={s.fieldErr}>{errors.dob}</Text> : null}

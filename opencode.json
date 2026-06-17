@@ -1,0 +1,17 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "http://localhost:11434/v1"
+      },
+      "models": {
+        "rafw007/qwen35-claude-coder:9b": {
+          "name": "Local Claude Coder"
+        }
+      }
+    }
+  },
+  "model": "ollama/rafw007/qwen35-claude-coder:9b"
+}

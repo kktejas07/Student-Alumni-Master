@@ -1,3 +1,4 @@
+import { getBaseUrl } from '@/src/lib/env';
 /**
  * Auth Analytics Module
  * =====================
@@ -31,7 +32,7 @@
  */
 import analytics from './analytics';
 
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BASE = getBaseUrl();
 
 export type AuthEvent =
   | 'role_selected'

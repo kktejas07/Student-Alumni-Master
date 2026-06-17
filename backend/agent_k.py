@@ -28,7 +28,7 @@ Collections:
                        audit_log, cost_summary, started_at, completed_at }
   agent_k_prefs      { user_id, auto_approve_read, auto_approve_write, ... }
 """
-
+from __future__ import annotations
 
 async def _get_best_ai_key() -> tuple:
     """Returns (api_key, model_name, provider) from best available source.
@@ -58,7 +58,7 @@ async def _get_best_ai_key() -> tuple:
 
     return ("", "", "")
 
-from __future__ import annotations
+from pathlib import Path
 import os
 import json
 import logging
@@ -68,13 +68,11 @@ from uuid import uuid4
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Header, Body
-from motor.motor_asyncio import AsyncIOMotorClient
-from pathlib import Path
 from pydantic import BaseModel
 
 load_dotenv(Path(__file__).parent / ".env")
 
-_mongo = AsyncIOMotorClient(os.environ["MONGO_URL"])
+from db import client as _mongo
 _db = _mongo[os.environ["DB_NAME"]]
 
 router = APIRouter(tags=["agent-k"])

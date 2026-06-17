@@ -13,6 +13,15 @@ from integrations import sync_courses_to_db, sync_internships_to_db
 logger = logging.getLogger("background_sync")
 
 _sync_scheduler = None
+_db_client = None
+_db_handle = None
+
+def _get_db():
+    global _db_client, _db_handle
+    if _db_client is None:
+        from db import client as _db_client
+        _db_handle = _db_client[os.environ["DB_NAME"]]
+    return _db_handle
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -67,6 +76,8 @@ def check_dependencies() -> None:
 # ────────────────────────────────────────────────────────────────────────────
 async def run_unified_sync_task():
     logger.info("Starting unified background sync task for Jobs, Events, and Courses...")
+    db = _get_db()
+    
     try:
         await fetch_and_cache_all()
         logger.info("Sync completed: Jobs & Internships.")
@@ -81,15 +92,13 @@ async def run_unified_sync_task():
 
     # Pass the db instance from server module
     try:
-        from server import db as _db
-        await sync_courses_to_db(_db)
+        await sync_courses_to_db(db)
         logger.info("Sync completed: Courses.")
     except Exception as e:
         logger.error(f"Error fetching courses: {e}")
 
     try:
-        from server import db as _db
-        await sync_internships_to_db(_db)
+        await sync_internships_to_db(db)
         logger.info("Sync completed: Adzuna Internships.")
     except Exception as e:
         logger.error(f"Error fetching adzuna internships: {e}")
@@ -183,10 +192,17 @@ def start_sync_scheduler():
 
 
 def stop_sync_scheduler():
-    global _sync_scheduler
+    global _sync_scheduler, _db_client, _db_handle
     if _sync_scheduler is not None:
         try:
             _sync_scheduler.shutdown(wait=False)
         except Exception:
             pass
         _sync_scheduler = None
+    if _db_client is not None:
+        try:
+            _db_client.close()
+        except Exception:
+            pass
+        _db_client = None
+        _db_handle = None

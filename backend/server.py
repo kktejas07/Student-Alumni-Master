@@ -48,6 +48,8 @@ from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Respons
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr, field_validator
+from starlette.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 
 # Rate limiting (imports only, setup after app is created)
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -93,10 +95,12 @@ from notifications import (
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# MongoDB connection comes from .env (NEVER hardcoded)
+import time
+_t0_mongo = time.perf_counter()
+print("[DB TRACE] Mongo client created")
 mongo_url = os.environ.get('MONGO_URL', 'mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin')
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ.get('DB_NAME', 'studentalumniadmin')]
+from db import client, db as _db_default
+db = _db_default
 
 # JWT configuration
 JWT_SECRET = os.environ.get('JWT_SECRET', '44ef879c2317ef383b123617fdac89bc7291a27e3848b8dbdfb9a1c1d8e8f8e9')
@@ -108,6 +112,24 @@ app = FastAPI(title="Student Alumni Platform API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernetes ingress requirement)
+
+
+@app.on_event("startup")
+async def verify_mongo_connection():
+    """Warm the Mongo connection pool before any requests are served.
+
+    Calling warm_db() here forces Motor to complete Atlas topology discovery
+    (DNS → TCP → TLS → hello handshake) during server startup rather than
+    on the first user request.  Without this warm-up, the first 10-20
+    concurrent requests all block for ~47 s waiting for topology resolution.
+    """
+    try:
+        from core.db import warm_db
+        ping_ms = await warm_db()
+        print(f"[DB TRACE] Mongo connection established | Duration: {ping_ms:.1f}ms", flush=True)
+        print(f"[DB TRACE] Mongo Topology: {client.topology_description}", flush=True)
+    except Exception as e:
+        print(f"[DB TRACE] Mongo connection failed: {e}", flush=True)
 
 
 # ----------------------------------------------------------------------------
@@ -729,6 +751,8 @@ def serialize_user(user: dict) -> dict:
 
 async def get_current_user(request: Request) -> dict:
     """JWT auth dependency. Reads `Authorization: Bearer <token>` header."""
+    import time
+    _t0 = time.perf_counter()
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
         raise HTTPException(401, "Not authenticated")
@@ -736,7 +760,9 @@ async def get_current_user(request: Request) -> dict:
         payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
         if payload.get("type") != "access":
             raise HTTPException(401, "Invalid token type")
-        user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
+        print(f'[AUTH TRACE] DB_QUERY_START | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
+        user = await db.users.find_one({"_id": ObjectId(payload["sub"])}, {"resume_documents": 0})
+        print(f'[AUTH TRACE] DB_QUERY_END | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
         if not user:
             raise HTTPException(401, "User not found")
         return user
@@ -764,7 +790,7 @@ def validate_student_class(school_info: SchoolInfo, age: Optional[int] = None) -
 async def register(request: Request, req: RegisterRequest):
     """Register a new user. Role is captured upfront — onboarding collects role-specific fields."""
     email = req.email.lower().strip()
-    if await db.users.find_one({"email": email}):
+    if await db.users.find_one({"email": email}, {"_id": 1}):
         raise HTTPException(400, "Email already registered")
 
     user_doc = {
@@ -852,15 +878,15 @@ async def login(request: Request, req: LoginRequest):
     import time as _time
     _t0 = _time.perf_counter()
     print(f"\n[LOGIN TRACE] ---- New login attempt for: {req.email} ----", flush=True)
-    print(f"[LOGIN TRACE] 1. Request received at t=0.000s", flush=True)
+    print(f"[LOGIN TRACE] REQUEST_RECEIVED | 1. Request received at t=0.000s", flush=True)
 
     email = req.email.lower().strip()
 
     # ── Stage 2: DB lookup ──
     _t_db0 = _time.perf_counter()
-    user = await db.users.find_one({"email": email})
+    user = await db.users.find_one({"email": email}, {"resume_documents": 0})
     _t_db1 = _time.perf_counter()
-    print(f"[LOGIN TRACE] 2. DB user lookup done  | duration={(_t_db1-_t_db0)*1000:.1f}ms | found={user is not None}", flush=True)
+    print(f"[LOGIN TRACE] DB_LOOKUP_COMPLETE | 2. DB user lookup done  | duration={(_t_db1-_t_db0)*1000:.1f}ms | found={user is not None}", flush=True)
 
     if not user:
         print(f"[LOGIN TRACE] !! User not found — aborting at t={(_time.perf_counter()-_t0)*1000:.1f}ms", flush=True)
@@ -871,7 +897,7 @@ async def login(request: Request, req: LoginRequest):
     loop = asyncio.get_running_loop()
     is_valid = await loop.run_in_executor(None, verify_password, req.password, user["password_hash"])
     _t_pw1 = _time.perf_counter()
-    print(f"[LOGIN TRACE] 3. Password verification | duration={(_t_pw1-_t_pw0)*1000:.1f}ms | valid={is_valid}", flush=True)
+    print(f"[LOGIN TRACE] PASSWORD_VERIFIED | 3. Password verification | duration={(_t_pw1-_t_pw0)*1000:.1f}ms | valid={is_valid}", flush=True)
 
     if not is_valid:
         print(f"[LOGIN TRACE] !! Wrong password — aborting at t={(_time.perf_counter()-_t0)*1000:.1f}ms", flush=True)
@@ -901,7 +927,7 @@ async def login(request: Request, req: LoginRequest):
     access_token  = create_access_token(str(user["_id"]), email, user["role"])
     refresh_token = create_refresh_token(str(user["_id"]))
     _t_tok1 = _time.perf_counter()
-    print(f"[LOGIN TRACE] 4. Token generation      | duration={(_t_tok1-_t_tok0)*1000:.1f}ms", flush=True)
+    print(f"[LOGIN TRACE] JWT_CREATED | 4. Token generation      | duration={(_t_tok1-_t_tok0)*1000:.1f}ms", flush=True)
 
     # ── Stage 5: Serialize user profile ──
     _t_ser0 = _time.perf_counter()
@@ -910,7 +936,7 @@ async def login(request: Request, req: LoginRequest):
     print(f"[LOGIN TRACE] 5. Serialize user profile | duration={(_t_ser1-_t_ser0)*1000:.1f}ms", flush=True)
 
     _t_total = (_time.perf_counter() - _t0) * 1000
-    print(f"[LOGIN TRACE] 6. Returning response     | TOTAL login duration={_t_total:.1f}ms", flush=True)
+    print(f"[LOGIN TRACE] RESPONSE_SENT | 6. Returning response     | TOTAL login duration={_t_total:.1f}ms", flush=True)
     if _t_total > 2000:
         print(f"[LOGIN TRACE] [WARNING] SLOW LOGIN DETECTED: took {_t_total:.1f}ms (>2000ms threshold)", flush=True)
     print(f"[LOGIN TRACE] -------------------------------------------\n", flush=True)
@@ -925,7 +951,12 @@ async def login(request: Request, req: LoginRequest):
 @api_router.get("/auth/me", response_model=UserResponse)
 async def get_me(user: dict = Depends(get_current_user)):
     """Returns the currently authenticated user."""
-    return UserResponse(**serialize_user(user))
+    import time
+    _t0 = time.perf_counter()
+    print(f'[ME TRACE] REQUEST_RECEIVED | t=0.0s')
+    resp = UserResponse(**serialize_user(user))
+    print(f'[ME TRACE] RESPONSE_SENT | TOTAL me duration={(time.perf_counter()-_t0)*1000:.1f}ms')
+    return resp
 
 
 # ----------------------------------------------------------------------------
@@ -4450,21 +4481,27 @@ async def ai_daily_brief(
 ):
     """
     Generate (or return cached) a personalized AI daily brief for the user.
-
-    Caches per (user_id + UTC-date) so it's computed at most once a day.
-    Pass `{"force": true}` in the body to regenerate.
-
-    Output: { brief: str, generated_at: iso, cached: bool }
+    Instrumented with per-step timing.
     """
+    import time as _time_mod
+    _t0 = _time_mod.perf_counter()
+    def _ms(since=None):
+        return f"{(_time_mod.perf_counter() - (since or _t0)) * 1000:.1f}ms"
+    print(f"[DAILY-BRIEF] REQUEST_RECEIVED | t=0", flush=True)
+
     body = body or {}
     force = bool(body.get("force"))
 
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     cache_key = {"user_id": str(user["_id"]), "date": today}
 
+    # ── STEP 1: DB cache lookup ──
+    _s1 = _time_mod.perf_counter()
     if not force:
         existing = await db.daily_briefs.find_one(cache_key)
+        print(f"[DAILY-BRIEF] STEP 1 db_cache_lookup   {_ms(_s1)}", flush=True)
         if existing and existing.get("brief"):
+            print(f"[DAILY-BRIEF] CACHE HIT | TOTAL {_ms()}", flush=True)
             return {
                 "brief": existing["brief"],
                 "generated_at": existing.get("generated_at"),
@@ -4501,11 +4538,16 @@ async def ai_daily_brief(
         "Write today's morning brief now."
     )
 
+    # ── STEP 2: Build context and call AI ──
+    _s2 = _time_mod.perf_counter()
     try:
         from emergentintegrations.llm.chat import UserMessage
         chat = await get_claude_chat(f"daily-{user['_id']}-{today}", system_msg)
+        print(f"[DAILY-BRIEF] STEP 2a get_claude_chat  {_ms(_s2)}", flush=True)
+        _s2b = _time_mod.perf_counter()
         brief_text = await chat.send_message(UserMessage(text=prompt))
         brief_text = (brief_text or "").strip().strip('"').strip()
+        print(f"[DAILY-BRIEF] STEP 2b ai_generation    {_ms(_s2b)} ← this is where AI latency lives", flush=True)
         if not brief_text:
             raise ValueError("empty response")
     except Exception as e:
@@ -4525,11 +4567,22 @@ async def ai_daily_brief(
     # Internal default when user hasn't picked one
     used_provider = pref_ai if pref_ai in PROVIDER_LABELS else "anthropic_claude"
     provider_label = PROVIDER_LABELS.get(used_provider, "Claude")
+    # ── STEP 3: DB write ──
+    _s3 = _time_mod.perf_counter()
     await db.daily_briefs.update_one(
         cache_key,
         {"$set": {**cache_key, "brief": brief_text, "generated_at": now_iso,
                   "provider": used_provider, "provider_label": provider_label}},
         upsert=True,
+    )
+    print(f"[DAILY-BRIEF] STEP 3 db_write          {_ms(_s3)}", flush=True)
+    print(
+        f"[DAILY-BRIEF] BREAKDOWN:\n"
+        f"  db_cache_lookup  {_ms(_s1)}\n"
+        f"  ai_generation    {_ms(_s2)}\n"
+        f"  db_write         {_ms(_s3)}\n"
+        f"  TOTAL            {_ms()}",
+        flush=True,
     )
     return {"brief": brief_text, "generated_at": now_iso, "cached": False,
             "provider": used_provider, "provider_label": provider_label}
@@ -5512,9 +5565,9 @@ async def create_booking(req: BookingRequest, user: dict = Depends(get_demo_user
 async def my_bookings(user: dict = Depends(get_current_user)):
     """Returns bookings for the current user (as student or as mentor)."""
     user_id_str = str(user.get("_id") or user.get("id"))
-    query = {"student_id": user_id_str} if user["role"] == "student" \
+    query = {"student_id": user_id_str} if user.get("role") == "student" \
         else {"mentor_id": user_id_str}
-    items = await db.bookings.find(query).sort("slot_start_iso", 1).to_list(100)
+    items = await db.bookings.find(query).sort("slot_start_iso", -1).to_list(100)
     
     # If no bookings exist in database for this user, auto-seed a few so they have interactive sessions
     if not items:
@@ -5560,7 +5613,7 @@ async def my_bookings(user: dict = Depends(get_current_user)):
                             "created_at": datetime.now(timezone.utc),
                         })
             # Re-fetch after inserting
-            items = await db.bookings.find(query).sort("slot_start_iso", 1).to_list(100)
+            items = await db.bookings.find(query).sort("slot_start_iso", -1).to_list(100)
         except Exception as e:
             print(f"Error auto-seeding bookings: {e}")
 
@@ -5582,6 +5635,7 @@ async def my_bookings(user: dict = Depends(get_current_user)):
             pass
 
     out = []
+    now = datetime.now(timezone.utc)
     for item in items:
         other_id = item.get("student_id") if user["role"] == "mentor" else item.get("mentor_id")
         other_name = item.get("student_name") if user["role"] == "mentor" else item.get("mentor_name")
@@ -5595,6 +5649,13 @@ async def my_bookings(user: dict = Depends(get_current_user)):
         sched = item.get("scheduled_at")
         sched_iso = sched.isoformat() if isinstance(sched, datetime) else sched
         start_iso = item.get("slot_start_iso") or sched_iso
+        
+        status = item.get("status", "pending")
+        if status in ["confirmed", "booked", "scheduled"] and sched and isinstance(sched, datetime) and sched.replace(tzinfo=timezone.utc) < now:
+            status = "completed"
+            # Best-effort DB update
+            import asyncio
+            asyncio.create_task(db.bookings.update_one({"_id": item["_id"]}, {"$set": {"status": "completed"}}))
         
         doc = {
             "id": str(item["_id"]),
@@ -5612,7 +5673,7 @@ async def my_bookings(user: dict = Depends(get_current_user)):
             "slot_end_iso": item.get("slot_end_iso") or start_iso,
             "duration_minutes": item.get("duration_minutes", 45),
             "amount_paid": item.get("amount_paid"),
-            "status": item.get("status"),
+            "status": status,
         }
         out.append(doc)
     return {"bookings": out}
@@ -6128,6 +6189,10 @@ async def post_review(req: ReviewIn, user: dict = Depends(get_current_user)):
         pass
     if isinstance(review.get("created_at"), datetime):
         review["created_at"] = review["created_at"].isoformat()
+    if "_id" in review:
+        if isinstance(review["_id"], ObjectId):
+            review["_id"] = str(review["_id"])
+        review["id"] = review["_id"]
     return review
 
 
@@ -6394,7 +6459,8 @@ async def on_startup():
     await db.users.create_index("sa_id", unique=True, sparse=True)
     await db.career_suggestions.create_index("user_id")
     await db.chat_messages.create_index([("user_id", 1), ("session_id", 1)])
-    await db.bookings.create_index([("student_id", 1), ("mentor_id", 1)])
+    await db.bookings.create_index([("student_id", 1), ("slot_start_iso", -1)])
+    await db.bookings.create_index([("mentor_id", 1), ("slot_start_iso", -1)])
     await db.audit_logs.create_index("user_id")
     await db.audit_logs.create_index([("ts", -1)])
     await db.sessions.create_index("user_id")
@@ -6545,6 +6611,8 @@ _allow_creds = "*" not in _origins_list  # browsers reject credentials+wildcard
 # Fail-fast: wildcard CORS is insecure in production
 if os.getenv("ENV") == "production" and "*" in _origins_list:
     raise ValueError("CORS wildcard (*) is not allowed in production. Set ALLOWED_ORIGINS to specific domains.")
+
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 app.add_middleware(
     CORSMiddleware,

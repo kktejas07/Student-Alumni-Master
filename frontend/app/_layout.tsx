@@ -20,6 +20,7 @@ import {
   Manrope_500Medium,
   Manrope_600SemiBold,
   Manrope_700Bold,
+  Manrope_800ExtraBold,
 } from '@expo-google-fonts/manrope';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -35,6 +36,11 @@ import { AgentKQuickLauncher } from '@/src/views/web/agent-k/AgentKQuickLauncher
 import { ConsentBanner } from '@/src/views/web/consent/ConsentBanner';
 import { TourProvider } from '@/src/views/web/tour/TourProvider';
 import { TourOverlay } from '@/src/views/web/tour/TourOverlay';
+import { LogBox } from 'react-native';
+
+LogBox.ignoreLogs(['6000ms timeout exceeded', 'fontfaceobserver']);
+
+
 
 // Material 3 theme — overrides primary/secondary to brand purple. This means
 // all react-native-paper components (Surface, Card, Button, Ripple) will pick
@@ -81,11 +87,35 @@ export default function RootLayout() {
     PlusJakartaSans_500Medium: Manrope_500Medium,
     PlusJakartaSans_600SemiBold: Manrope_600SemiBold,
     PlusJakartaSans_700Bold: Manrope_700Bold,
+    PlusJakartaSans_800ExtraBold: Manrope_800ExtraBold,
     JetBrainsMono_400Regular: require('../assets/fonts/SpaceMono-Regular.ttf'),
     JetBrainsMono_500Medium: require('../assets/fonts/SpaceMono-Regular.ttf'),
     JetBrainsMono_600SemiBold: require('../assets/fonts/SpaceMono-Regular.ttf'),
     JetBrainsMono_700Bold: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+
+  useEffect(() => {
+    if (__DEV__ && typeof window !== 'undefined') {
+      const handleError = (e: ErrorEvent) => {
+        if (e.message?.includes('6000ms timeout exceeded')) {
+          e.preventDefault();
+        }
+      };
+      const handleRejection = (e: PromiseRejectionEvent) => {
+        if (e.reason?.message?.includes('6000ms timeout exceeded')) {
+          e.preventDefault();
+        }
+      };
+      
+      window.addEventListener('error', handleError);
+      window.addEventListener('unhandledrejection', handleRejection);
+      
+      return () => {
+        window.removeEventListener('error', handleError);
+        window.removeEventListener('unhandledrejection', handleRejection);
+      };
+    }
+  }, []);
 
   const init = useAuthStore((s) => s.init);
   const initialized = useAuthStore((s) => s.initialized);

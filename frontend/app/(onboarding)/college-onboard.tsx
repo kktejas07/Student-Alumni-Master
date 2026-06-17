@@ -13,9 +13,9 @@
  *
  * After Step 6 → /(onboarding)/member-id → /(auth)/email-verify → 2FA → Welcome Dashboard
  */
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, TextInput as RNTextInput } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   ArrowLeft, Building2, GraduationCap, Globe, MapPin, Calendar, Link2,
   Camera, Upload, Award, CheckCircle2, User as UserIcon, Mail, Phone,
@@ -93,10 +93,20 @@ function Stepper({ step }: { step: number }) {
 
 export default function CollegeOnboard() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ step?: string }>();
   const toast = useToast();
   const user = useAuthStore((u) => u.user);
   const refreshUser = useAuthStore((u) => u.refreshUser);
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(params.step ? parseInt(params.step, 10) : 0);
+
+  useEffect(() => {
+    if (params.step) {
+      const parsed = parseInt(params.step, 10);
+      if (!isNaN(parsed) && parsed >= 0 && parsed < TOTAL) {
+        setStep(parsed);
+      }
+    }
+  }, [params.step]);
 
   // Step 1
   const [name,          setName]          = useState('');
@@ -255,7 +265,7 @@ export default function CollegeOnboard() {
       await api.completeOnboarding(payload);
       await refreshUser();
       toast.success(`${badge.tier} institution status earned! 🎉`, 'Generating your Member ID…');
-      router.push('/(onboarding)/member-id' as any);
+      router.push({ pathname: '/(onboarding)/member-id', params: { from: 'onboarding' } } as any);
     } catch (e: any) {
       toast.error('Setup failed', e?.message || 'Please try again.');
     }

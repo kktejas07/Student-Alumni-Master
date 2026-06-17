@@ -1,3 +1,4 @@
+import { getBaseUrl } from '@/src/lib/env';
 /**
  * Auth Login screen using AuthShell + AuthControls + analytics tracking.
  */
@@ -14,7 +15,7 @@ import { trackAuth, passwordStrength } from '@/src/lib/authAnalytics';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { initFirebaseAuth, signInWithGoogle, signInWithGitHub } from '@/src/lib/firebaseAuth';
 
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BASE = getBaseUrl();
 
 function GoogleG({ size = 18 }: { size?: number }) {
   return (
@@ -136,14 +137,21 @@ export default function LoginScreen() {
       setPwdError('Enter your password');
       return;
     }
+    console.log("LOGIN_CLICKED", { email: e });
+    console.time("LOGIN_TOTAL");
     setLoading(true);
     trackAuth({ event: 'login_attempt', email: e, role });
     try {
+      console.log("LOGIN_REQUEST_STARTED");
+      console.log("getBaseUrl() =", getBaseUrl());
+      console.time("LOGIN_REQUEST");
       const res = await fetch(`${BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: e, password: p }),
       });
+      console.timeEnd("LOGIN_REQUEST");
+      console.log("LOGIN_RESPONSE_RECEIVED");
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         const raw = err?.detail;
@@ -162,16 +170,29 @@ export default function LoginScreen() {
         router.push({ pathname: '/(auth)/two-fa-challenge', params: { challenge_id: data.challenge_id, email: data.user_email } });
         return;
       }
+      console.log("USER_FETCH_STARTED"); // It's in the same payload, but logging for clarity
       setUser(data.user);
-      setTokens(data.access_token, data.refresh_token);
+      console.log("USER_FETCH_COMPLETED");
+      
+      console.time("TOKEN_STORE");
+      await setTokens(data.access_token, data.refresh_token);
+      console.timeEnd("TOKEN_STORE");
+      console.log("TOKEN_STORED");
+      
       trackAuth({ event: 'login_success', email, role: data.user.role });
+      
       // Navigate based on role
+      console.log("NAVIGATION_STARTED");
+      console.time("NAVIGATION");
       const r = (data.user.role || '').toLowerCase();
       if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
       else if (r === 'mentor') router.replace('/mentor-portal');
       else if (r === 'college') router.replace('/college-portal');
       else if (r === 'alumni') router.replace('/alumni-portal');
       else router.replace('/student-portal');
+      console.timeEnd("NAVIGATION");
+      console.log("NAVIGATION_COMPLETED");
+      console.timeEnd("LOGIN_TOTAL");
     } catch (e: any) {
       trackAuth({ event: 'login_failure', email, reason: e?.message || 'Network error' });
       setPwdError('Network error — try again');
