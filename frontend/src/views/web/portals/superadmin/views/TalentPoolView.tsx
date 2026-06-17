@@ -4,7 +4,7 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Platform, ActivityIndicator } from 'react-native';
-import { LinkedIn, Upload, Search, RefreshCw, Trash2, CheckCircle, XCircle, Users } from 'lucide-react-native';
+import { Search, Trash2, CheckCircle, XCircle } from 'lucide-react-native';
 import { request, tokenStore } from '@/src/models/services/api';
 import { SAC, FONTS } from '../tokens';
 
@@ -62,12 +62,10 @@ export function TalentPoolView() {
   const onSearch = () => { setPage(1); fetchProfiles(1); };
 
   const onSyncLinkedIn = async () => {
-    setSyncing(true);
-    setMessage('');
+    setSyncing(true); setMessage('');
     try {
       const res = await request<{ ok: boolean; synced: number; message?: string }>(
-        '/admin/talent-pool/sync-linkedin',
-        { method: 'POST' }
+        '/admin/talent-pool/sync-linkedin', { method: 'POST' }
       );
       setMessage(res.message || `Synced ${res.synced} profiles`);
       if (res.synced > 0) fetchProfiles(page);
@@ -77,12 +75,10 @@ export function TalentPoolView() {
   };
 
   const onSyncFromUsers = async () => {
-    setSyncing(true);
-    setMessage('');
+    setSyncing(true); setMessage('');
     try {
       const res = await request<{ ok: boolean; synced: number }>(
-        '/admin/talent-pool/sync-from-users',
-        { method: 'POST' }
+        '/admin/talent-pool/sync-from-users', { method: 'POST' }
       );
       setMessage(`Synced ${res.synced} platform users`);
     } catch (e: any) {
@@ -98,26 +94,19 @@ export function TalentPoolView() {
       input.onchange = async (e: any) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        setImporting(true);
-        setMessage('');
+        setImporting(true); setMessage('');
         try {
           const accessToken = await tokenStore.getAccess();
           const formData = new FormData();
           formData.append('file', file);
-
           const res = await fetch('https://studentalumni.ai/api/admin/talent-pool/import/csv', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${accessToken}` },
-            body: formData,
+            method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: formData,
           });
           const data = await res.json();
           if (!data.ok) throw new Error(data.detail || 'Import failed');
-
-          // Auto-commit
-          const commitRes = await request<any>(
-            '/admin/talent-pool/import/commit',
-            { method: 'POST', body: { rows: data.preview } }
-          );
+          const commitRes = await request<any>('/admin/talent-pool/import/commit', {
+            method: 'POST', body: { rows: data.preview },
+          });
           setMessage(`Imported ${commitRes.upserted} profiles`);
           fetchProfiles(1);
         } catch (e: any) {
@@ -130,29 +119,19 @@ export function TalentPoolView() {
 
   const onToggleActive = async (id: string, activate: boolean) => {
     try {
-      await request(`/admin/talent-pool/${id}`, {
-        method: 'PATCH',
-        body: { is_active: activate },
-      });
+      await request(`/admin/talent-pool/${id}`, { method: 'PATCH', body: { is_active: activate } });
       fetchProfiles(page);
-    } catch (e: any) {
-      setMessage('Error: ' + (e?.message || ''));
-    }
+    } catch (e: any) { setMessage('Error: ' + (e?.message || '')); }
   };
 
   const onBulkAction = async (action: 'activate' | 'deactivate' | 'delete') => {
     if (selected.size === 0) return;
     try {
-      await request('/admin/talent-pool/bulk-action', {
-        method: 'POST',
-        body: { ids: Array.from(selected), action },
-      });
+      await request('/admin/talent-pool/bulk-action', { method: 'POST', body: { ids: Array.from(selected), action } });
       setSelected(new Set());
       fetchProfiles(page);
       setMessage(`${action}d ${selected.size} profiles`);
-    } catch (e: any) {
-      setMessage('Error: ' + (e?.message || ''));
-    }
+    } catch (e: any) { setMessage('Error: ' + (e?.message || '')); }
   };
 
   const sourceColor = (s: string) => {
@@ -166,7 +145,6 @@ export function TalentPoolView() {
 
   return (
     <View style={s.root}>
-      {/* Header */}
       <View style={s.header}>
         <View>
           <Text style={s.title}>Talent Pool</Text>
@@ -174,47 +152,36 @@ export function TalentPoolView() {
         </View>
         <View style={s.headerActions}>
           <Pressable style={[s.btn, s.btnOutline]} onPress={onSyncLinkedIn} disabled={syncing}>
-            {syncing ? <ActivityIndicator size="small" color="#fff" /> : <RefreshCw size={14} color="#fff" />}
-            <Text style={s.btnText}>Sync LinkedIn</Text>
+            {syncing ? <ActivityIndicator size="small" color="#fff" /> : null}
+            <Text style={s.btnText}>{syncing ? 'Syncing...' : 'Sync LinkedIn'}</Text>
           </Pressable>
           <Pressable style={[s.btn, s.btnOutline]} onPress={onSyncFromUsers} disabled={syncing}>
-            <Users size={14} color="#fff" />
             <Text style={s.btnText}>Sync Users</Text>
           </Pressable>
           <Pressable style={[s.btn, s.btnPrimary]} onPress={onImportCSV} disabled={importing}>
-            {importing ? <ActivityIndicator size="small" color="#fff" /> : <Upload size={14} color="#fff" />}
-            <Text style={s.btnText}>Import CSV</Text>
+            {importing ? <ActivityIndicator size="small" color="#fff" /> : null}
+            <Text style={s.btnText}>{importing ? 'Importing...' : 'Import CSV'}</Text>
           </Pressable>
         </View>
       </View>
 
       {message ? (
         <View style={s.msgBar}>
-          <Text style={s.msgText}>{message}</Text>
+          <Text style={s.msgText} numberOfLines={2}>{message}</Text>
           <Pressable onPress={() => setMessage('')}><XCircle size={14} color={SAC.muted} /></Pressable>
         </View>
       ) : null}
 
-      {/* Search & filters */}
       <View style={s.toolbar}>
         <View style={s.searchWrap}>
           <Search size={14} color={SAC.muted} />
-          <TextInput
-            style={s.searchInput}
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search profiles..."
-            placeholderTextColor={SAC.muted}
-            onSubmitEditing={onSearch}
-          />
+          <TextInput style={s.searchInput} value={search} onChangeText={setSearch}
+            placeholder="Search profiles..." placeholderTextColor={SAC.muted} onSubmitEditing={onSearch} />
         </View>
         <View style={s.filterBtns}>
           {['', 'linkedin', 'csv', 'platform', 'manual'].map((src) => (
-            <Pressable
-              key={src || 'all'}
-              style={[s.filterChip, sourceFilter === src && s.filterChipActive]}
-              onPress={() => { setSourceFilter(src); setPage(1); }}
-            >
+            <Pressable key={src || 'all'} style={[s.filterChip, sourceFilter === src && s.filterChipActive]}
+              onPress={() => { setSourceFilter(src); setPage(1); }}>
               <Text style={[s.filterChipText, sourceFilter === src && s.filterChipTextActive]}>
                 {src || 'All'}
               </Text>
@@ -223,7 +190,6 @@ export function TalentPoolView() {
         </View>
       </View>
 
-      {/* Bulk actions */}
       {selected.size > 0 && (
         <View style={s.bulkBar}>
           <Text style={s.bulkText}>{selected.size} selected</Text>
@@ -239,64 +205,44 @@ export function TalentPoolView() {
         </View>
       )}
 
-      {/* Table */}
       {loading ? (
         <View style={s.centered}><ActivityIndicator size="large" color="#8B5CF6" /></View>
       ) : (
         <ScrollView style={s.tableScroll} horizontal>
-          <View style={{ minWidth: 900 }}>
-            {/* Table header */}
+          <View style={{ minWidth: 800 }}>
             <View style={s.tableRow}>
               <View style={{ width: 40 }} />
-              <Text style={[s.th, { width: 180 }]}>Name</Text>
-              <Text style={[s.th, { width: 160 }]}>Headline / Role</Text>
-              <Text style={[s.th, { width: 160 }]}>Company</Text>
-              <Text style={[s.th, { width: 120 }]}>Location</Text>
-              <Text style={[s.th, { width: 80 }]}>Source</Text>
-              <Text style={[s.th, { width: 80 }]}>Status</Text>
-              <Text style={[s.th, { width: 120 }]}>Actions</Text>
+              <Text style={[s.th, { width: 160 }]}>Name</Text>
+              <Text style={[s.th, { width: 140 }]}>Role</Text>
+              <Text style={[s.th, { width: 140 }]}>Company</Text>
+              <Text style={[s.th, { width: 100 }]}>Location</Text>
+              <Text style={[s.th, { width: 70 }]}>Source</Text>
+              <Text style={[s.th, { width: 70 }]}>Status</Text>
+              <Text style={[s.th, { width: 100 }]}>Actions</Text>
             </View>
-
             {profiles.map((p) => (
               <View key={p.id} style={[s.tableRow, !p.is_active && s.rowInactive]}>
-                <Pressable
-                  style={{ width: 40, alignItems: 'center' }}
-                  onPress={() => {
-                    const next = new Set(selected);
-                    next.has(p.id) ? next.delete(p.id) : next.add(p.id);
-                    setSelected(next);
-                  }}
-                >
+                <Pressable style={{ width: 40, alignItems: 'center' }}
+                  onPress={() => { const next = new Set(selected); next.has(p.id) ? next.delete(p.id) : next.add(p.id); setSelected(next); }}>
                   <View style={[s.checkbox, selected.has(p.id) && s.checkboxActive]}>
                     {selected.has(p.id) && <CheckCircle size={14} color="#8B5CF6" />}
                   </View>
                 </Pressable>
-                <View style={{ width: 180 }}>
-                  <Text style={s.cell} numberOfLines={1}>{p.full_name}</Text>
-                  {p.linkedin_url && (
-                    <Pressable onPress={() => Platform.OS === 'web' ? (window as any).open(p.linkedin_url, '_blank') : null}>
-                      <LinkedIn size={12} color="#0A66C2" />
-                    </Pressable>
-                  )}
-                </View>
-                <Text style={[s.cell, { width: 160 }]} numberOfLines={1}>{p.headline || p.current_role || '—'}</Text>
-                <Text style={[s.cell, { width: 160 }]} numberOfLines={1}>{p.current_company || '—'}</Text>
-                <Text style={[s.cell, { width: 120 }]} numberOfLines={1}>{p.location || '—'}</Text>
-                <Text style={[s.cell, { width: 80, color: sourceColor(p.source) }]}>{p.source}</Text>
-                <Text style={[s.cell, { width: 80, color: p.is_active ? '#22C55E' : '#EF4444' }]}>
+                <Text style={[s.cell, { width: 160 }]} numberOfLines={1}>{p.full_name}</Text>
+                <Text style={[s.cell, { width: 140 }]} numberOfLines={1}>{p.headline || p.current_role || '-'}</Text>
+                <Text style={[s.cell, { width: 140 }]} numberOfLines={1}>{p.current_company || '-'}</Text>
+                <Text style={[s.cell, { width: 100 }]} numberOfLines={1}>{p.location || '-'}</Text>
+                <Text style={[s.cell, { width: 70, color: sourceColor(p.source) }]}>{p.source}</Text>
+                <Text style={[s.cell, { width: 70, color: p.is_active ? '#22C55E' : '#EF4444' }]}>
                   {p.is_active ? 'Active' : 'Inactive'}
                 </Text>
-                <View style={{ width: 120, flexDirection: 'row', gap: 4 }}>
-                  <Pressable
-                    style={[s.rowBtn, { backgroundColor: p.is_active ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)' }]}
-                    onPress={() => onToggleActive(p.id, !p.is_active)}
-                  >
+                <View style={{ width: 100, flexDirection: 'row', gap: 4 }}>
+                  <Pressable style={[s.rowBtn, { backgroundColor: p.is_active ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)' }]}
+                    onPress={() => onToggleActive(p.id, !p.is_active)}>
                     {p.is_active ? <XCircle size={12} color="#EF4444" /> : <CheckCircle size={12} color="#22C55E" />}
                   </Pressable>
-                  <Pressable
-                    style={[s.rowBtn, { backgroundColor: 'rgba(239,68,68,0.15)' }]}
-                    onPress={() => onToggleActive(p.id, false)}
-                  >
+                  <Pressable style={[s.rowBtn, { backgroundColor: 'rgba(239,68,68,0.15)' }]}
+                    onPress={() => onToggleActive(p.id, false)}>
                     <Trash2 size={12} color="#EF4444" />
                   </Pressable>
                 </View>
@@ -306,20 +252,15 @@ export function TalentPoolView() {
         </ScrollView>
       )}
 
-      {/* Pagination */}
       {pages > 1 && (
         <View style={s.pagination}>
-          <Pressable
-            style={[s.pageBtn, page <= 1 && { opacity: 0.4 }]}
-            onPress={() => page > 1 && (setPage(page - 1), fetchProfiles(page - 1))}
-          >
+          <Pressable style={[s.pageBtn, page <= 1 && { opacity: 0.4 }]}
+            onPress={() => page > 1 && (setPage(page - 1), fetchProfiles(page - 1))}>
             <Text style={s.pageBtnText}>Prev</Text>
           </Pressable>
           <Text style={s.pageInfo}>{page} / {pages}</Text>
-          <Pressable
-            style={[s.pageBtn, page >= pages && { opacity: 0.4 }]}
-            onPress={() => page < pages && (setPage(page + 1), fetchProfiles(page + 1))}
-          >
+          <Pressable style={[s.pageBtn, page >= pages && { opacity: 0.4 }]}
+            onPress={() => page < pages && (setPage(page + 1), fetchProfiles(page + 1))}>
             <Text style={s.pageBtnText}>Next</Text>
           </Pressable>
         </View>
