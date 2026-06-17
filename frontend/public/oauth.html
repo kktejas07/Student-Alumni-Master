@@ -115,7 +115,8 @@
         localStorage.setItem('refresh_token', data.refresh_token || '');
         const role = (data.user?.role || '').toLowerCase();
         const routes = {
-          admin: '/super-admin', mentor: '/mentor-portal',
+          admin: '/super-admin', super_admin: '/super-admin',
+          mentor: '/mentor-portal',
           college: '/college-portal', alumni: '/alumni-portal',
         };
         window.location.href = routes[role] || '/student-portal';

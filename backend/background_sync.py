@@ -103,7 +103,68 @@ async def run_unified_sync_task():
     except Exception as e:
         logger.error(f"Error fetching adzuna internships: {e}")
 
+    try:
+        await _sync_talent_pool_profiles()
+        logger.info("Sync completed: Talent Pool LinkedIn enrichment.")
+    except Exception as e:
+        logger.error(f"Error syncing talent pool: {e}")
+
     logger.info("Completed unified background sync task.")
+
+
+async def _sync_talent_pool_profiles():
+    """Periodically enrich talent pool profiles via LinkedIn/Proxycurl."""
+    try:
+        from linkedin_sync import enrich_profiles_batch, _get_proxycurl_key, _get_linkedin_api_creds
+
+        proxycurl_key = await _get_proxycurl_key()
+        linkedin_creds = await _get_linkedin_api_creds()
+
+        if not proxycurl_key and not linkedin_creds.get("client_id"):
+            logger.info("Talent pool sync skipped — no LinkedIn credentials configured")
+            return
+
+        from talent_pool import _db as tp_db
+        from datetime import datetime, timezone, timedelta
+
+        stale_threshold = datetime.now(timezone.utc) - timedelta(hours=24)
+        cursor = tp_db.talent_pool.find({
+            "linkedin_url": {"$exists": True, "$ne": None, "$ne": ""},
+            "is_active": True,
+            "$or": [
+                {"last_synced_at": {"$exists": False}},
+                {"last_synced_at": None},
+                {"last_synced_at": {"$lt": stale_threshold}},
+            ],
+        }).limit(30)
+
+        profiles = [doc async for doc in cursor]
+        if not profiles:
+            return
+
+        enriched = await enrich_profiles_batch(profiles)
+        now = datetime.now(timezone.utc)
+        synced = 0
+
+        for profile, data in enriched:
+            if not data:
+                continue
+            update = {}
+            for field in ["headline", "skills", "current_company", "current_role",
+                          "location", "photo_url", "education", "bio"]:
+                if data.get(field):
+                    update[field] = data[field]
+            if update:
+                update["last_synced_at"] = now
+                update["updated_at"] = now
+                await tp_db.talent_pool.update_one({"_id": profile["_id"]}, {"$set": update})
+                synced += 1
+
+        logger.info(f"Talent pool sync: enriched {synced}/{len(profiles)} profiles")
+    except ImportError:
+        pass
+    except Exception as e:
+        logger.warning(f"Talent pool sync error (non-fatal): {e}")
 
 
 def start_sync_scheduler():

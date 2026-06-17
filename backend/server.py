@@ -27,6 +27,21 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 import os
+import socket
+
+# --- GLOBALLY PATCH DNS TO PREVENT 34-SECOND IPv6 HANGS ON WINDOWS ---
+import sys
+if sys.platform == "win32" and not getattr(socket, "_ipv4_patched", False):
+    _original_getaddrinfo = socket.getaddrinfo
+
+    def _ipv4_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+        if family == 0:
+            family = socket.AF_INET
+        return _original_getaddrinfo(host, port, family, type, proto, flags)
+
+    socket.getaddrinfo = _ipv4_getaddrinfo
+    socket._ipv4_patched = True
+# ---------------------------------------------------------------------
 import re
 import uuid
 import io
@@ -44,7 +59,9 @@ import jwt
 import pyotp
 import qrcode
 from bson import ObjectId
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response
+from starlette.middleware.cors import CORSMiddleware
+from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr, field_validator
 from starlette.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -246,7 +263,7 @@ async def _audit_log_many(user_id: str, source: str, entries: list,
 # Type Definitions
 # ----------------------------------------------------------------------------
 # UserRole: 3 primary user types + admin/college (managed roles)
-UserRole = Literal["student", "alumni", "mentor", "college", "admin"]
+UserRole = Literal["student", "alumni", "mentor", "college", "admin", "super_admin"]
 
 # CareerPath: Drives all personalization on the platform
 CareerPath = Literal["job", "higher_education", "startup", "business"]
@@ -1296,7 +1313,7 @@ async def refresh_my_badges(user: dict = Depends(get_current_user)):
 @api_router.post("/admin/badges/recompute-all")
 async def admin_recompute_all_badges(user: dict = Depends(get_current_user)):
     """Admin-only — nightly batch recompute (manually triggerable)."""
-    if user.get("role") != "admin":
+    if user.get("role") not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
     count = 0
     async for u in db.users.find({}, {"_id": 1, "role": 1, "email_verified": 1, "two_fa_enabled": 1}):
@@ -1583,7 +1600,7 @@ async def verify_id_card(identifier: str):
         base["students_count"] = ci.get("students_count") or ""
         base["affiliation"] = ci.get("affiliation") or ""
 
-    elif role == "admin":
+    elif role in ("admin", "super_admin"):
         colleges_count = await db.colleges.count_documents({}) or 0
         base["title"] = u.get("title") or ""
         base["access_label"] = u.get("access_label") or "Full Access"
@@ -2252,18 +2269,25 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
 
 
 async def _get_oauth_creds() -> dict:
-    """Read OAuth credentials from platform_controls DB collection."""
+    """Read OAuth credentials from platform_controls DB collection, merged with defaults."""
     doc = await db.platform_controls.find_one({"_id": "singleton"})
-    if not doc:
-        return {}
-    settings = {s["key"]: s.get("value", "") for s in (doc.get("system_settings") or [])}
-    return settings
+    db_settings = {s["key"]: s.get("value", "") for s in (doc.get("system_settings") or [])} if doc else {}
+    # Merge with defaults so new fields (like firebase_*) are included even before admin sets them
+    try:
+        from admin_settings import DEFAULT_PLATFORM_CONTROLS
+        for s in DEFAULT_PLATFORM_CONTROLS.get("system_settings") or []:
+            if s["key"] not in db_settings:
+                db_settings[s["key"]] = s.get("value", "")
+    except ImportError:
+        pass
+    return db_settings
 
 
 @api_router.get("/auth/oauth-config")
-async def oauth_config():
+async def oauth_config(response: Response):
     """Returns OAuth client IDs and redirect URI for frontend login buttons.
     Only returns client IDs (safe), never secrets. If not configured, returns empty strings."""
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     creds = await _get_oauth_creds()
     raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
     frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
@@ -2271,6 +2295,12 @@ async def oauth_config():
         "google_client_id": creds.get("google_oauth_client_id", ""),
         "linkedin_client_id": creds.get("linkedin_oauth_client_id", ""),
         "github_client_id": creds.get("github_oauth_client_id", ""),
+        "firebase": {
+            "apiKey": creds.get("firebase_api_key", ""),
+            "authDomain": creds.get("firebase_auth_domain", ""),
+            "projectId": creds.get("firebase_project_id", ""),
+            "appId": creds.get("firebase_app_id", ""),
+        } if creds.get("firebase_api_key") else None,
         "redirect_uri": f"{frontend_url}/oauth.html",
         "configured": bool(creds.get("google_oauth_client_id")) or bool(creds.get("linkedin_oauth_client_id")) or bool(creds.get("github_oauth_client_id")),
     }
@@ -2446,6 +2476,83 @@ async def auth_github(request: Request, req: OAuthCallback):
         provider="github",
         email=profile["email"],
         full_name=profile.get("name") or profile.get("full_name") or "",
+        picture=profile.get("picture"),
+        role=req.role or "student",
+    )
+    return AuthResponse(
+        access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
+        refresh_token=create_refresh_token(str(user["_id"])),
+        user=UserResponse(**serialize_user(user)),
+    )
+
+
+# ─── Firebase Auth ──────────────────────────────────────────────────
+_firebase_app = None
+
+def _get_or_init_firebase():
+    """Initialize Firebase Admin SDK if not already initialized, using platform settings."""
+    global _firebase_app
+    if _firebase_app is not None:
+        return _firebase_app
+    try:
+        from firebase_admin import credentials, initialize_app
+        creds_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON", "")
+        if not creds_json:
+            # Try reading from platform_controls synchronously (won't work in async context)
+            return None
+        cred_dict = __import__("json").loads(creds_json)
+        cred = credentials.Certificate(cred_dict)
+        _firebase_app = initialize_app(cred)
+        return _firebase_app
+    except Exception:
+        return None
+
+
+def _verify_firebase_token(id_token: str) -> Optional[dict]:
+    """Verify a Firebase ID token using Firebase Admin SDK."""
+    app = _get_or_init_firebase()
+    if not app:
+        return None
+    try:
+        from firebase_admin import auth as fb_auth
+        decoded = fb_auth.verify_id_token(id_token, check_revoked=True)
+        return {
+            "email": decoded.get("email"),
+            "name": decoded.get("name", ""),
+            "picture": decoded.get("picture", ""),
+            "sub": decoded.get("uid"),
+            "phone": decoded.get("phone_number"),
+            "firebase_provider": decoded.get("firebase", {}).get("sign_in_provider", ""),
+        }
+    except Exception:
+        return None
+
+
+@api_router.post("/auth/firebase", response_model=AuthResponse)
+@limiter.limit("20/minute")
+async def auth_firebase(request: Request, req: OAuthCallback):
+    """Firebase Auth — accepts a Firebase ID token from any provider (Google, GitHub, phone, etc.)
+    and issues a platform JWT. Configure firebase_service_account in platform settings."""
+    creds = await _get_oauth_creds()
+    fb_service_account = creds.get("firebase_service_account", "")
+
+    if fb_service_account and not os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON"):
+        os.environ["FIREBASE_SERVICE_ACCOUNT_JSON"] = fb_service_account
+
+    profile = _verify_firebase_token(req.id_token) if req.id_token else None
+    if profile is None:
+        if not fb_service_account and os.getenv("ENV") == "development":
+            if not req.email or not req.full_name:
+                raise HTTPException(400, "Development mock mode requires email/full_name")
+            profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+        else:
+            raise HTTPException(400, "Firebase Auth requires a valid id_token. Configure firebase_service_account in platform settings or set ENV=development for mock mode.")
+
+    provider = profile.get("firebase_provider", "firebase")
+    user = await _upsert_oauth_user(
+        provider=provider,
+        email=profile["email"],
+        full_name=profile.get("name") or req.full_name or "",
         picture=profile.get("picture"),
         role=req.role or "student",
     )
@@ -3395,7 +3502,7 @@ async def change_my_password(payload: dict, user: dict = Depends(get_current_use
 @api_router.get("/admin/mentors/pending")
 async def list_pending_mentors(user: dict = Depends(get_current_user)):
     """Admin: list mentors awaiting approval."""
-    if user["role"] != "admin":
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
     mentors = await db.users.find(
         {"role": "mentor", "mentor_status": "pending"},
@@ -3410,7 +3517,7 @@ async def list_pending_mentors(user: dict = Depends(get_current_user)):
 @api_router.post("/admin/mentors/{mentor_id}/approve")
 async def approve_mentor(mentor_id: str, user: dict = Depends(get_current_user)):
     """Admin: approve a pending mentor — they become visible to students."""
-    if user["role"] != "admin":
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
     res = await db.users.update_one(
         {"_id": ObjectId(mentor_id), "role": "mentor"},
@@ -3444,7 +3551,7 @@ async def reject_mentor(
     mentor_id: str, payload: dict | None = None, user: dict = Depends(get_current_user),
 ):
     """Admin: reject a mentor application with optional reason."""
-    if user["role"] != "admin":
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
     reason = (payload or {}).get("reason") if isinstance(payload, dict) else None
     update = {
@@ -3518,7 +3625,7 @@ async def admin_mentor_detail(mentor_id: str, user: dict = Depends(get_current_u
 # Super Admin Dashboard endpoints (Phase 1)
 # ----------------------------------------------------------------------------
 def _require_admin(user: dict):
-    if user.get("role") != "admin":
+    if user.get("role") not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
 
 
@@ -3659,7 +3766,7 @@ async def admin_users_list(
 ):
     """List users by role with optional search query."""
     _require_admin(user)
-    if role not in ("student", "mentor", "alumni", "college", "admin"):
+    if role not in ("student", "mentor", "alumni", "college", "admin", "super_admin"):
         raise HTTPException(400, "Invalid role")
     query: dict = {"role": role}
     if role == "mentor":
@@ -4091,7 +4198,7 @@ async def admin_user_create(payload: dict, user: dict = Depends(get_current_user
     role = (payload.get("role") or "student").strip().lower()
     if not email or not full_name:
         raise HTTPException(400, "email and full_name are required")
-    if role not in ("student", "mentor", "alumni", "college", "admin"):
+    if role not in ("student", "mentor", "alumni", "college", "admin", "super_admin"):
         raise HTTPException(400, "Invalid role")
     existing = await db.users.find_one({"email": email})
     if existing:
@@ -4888,6 +4995,9 @@ async def list_mentors(career_path: Optional[str] = None, limit: int = 20):
     for m in real:
         m["id"] = str(m["_id"])
         m.pop("_id", None)
+        mr = m.get("mentor_rating", {})
+        m["rating"] = mr.get("rating", mr.get("average", 5.0))
+        m["total_reviews"] = mr.get("total_reviews", mr.get("total", 0))
     sample = await db.sample_mentors.find(sample_q, {"_id": 0}).limit(limit).to_list(limit)
     return {"mentors": real + sample}
 
@@ -6065,14 +6175,14 @@ async def analytics_dispatcher(user: dict = Depends(get_current_user)):
 
 @api_router.get("/analytics/super-admin")
 async def analytics_super_admin(user: dict = Depends(get_current_user)):
-    if user["role"] != "admin":
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Super admin access required")
     return await super_admin_analytics(db, include_revenue=True)
 
 
 @api_router.get("/analytics/admin")
 async def analytics_admin_endpoint(user: dict = Depends(get_current_user)):
-    if user["role"] not in ("admin",):
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin access required")
     return await super_admin_analytics(db, include_revenue=False)
 
@@ -6080,7 +6190,7 @@ async def analytics_admin_endpoint(user: dict = Depends(get_current_user)):
 @api_router.get("/analytics/college")
 async def analytics_college_endpoint(user: dict = Depends(get_current_user),
                                       institution_name: Optional[str] = None):
-    if user["role"] not in ("college", "admin"):
+    if user["role"] not in ("college", "admin", "super_admin"):
         raise HTTPException(403, "College / admin access required")
     inst = institution_name or (user.get("school_info") or {}).get("institution_name") or user.get("full_name")
     return await college_analytics(db, inst)
@@ -6089,7 +6199,7 @@ async def analytics_college_endpoint(user: dict = Depends(get_current_user),
 @api_router.get("/analytics/mentor")
 async def analytics_mentor_endpoint(user: dict = Depends(get_current_user),
                                      mentor_id: Optional[str] = None):
-    if user["role"] == "admin" and mentor_id:
+    if user["role"] in ("admin", "super_admin") and mentor_id:
         return await mentor_analytics(db, mentor_id)
     if user["role"] != "mentor":
         raise HTTPException(403, "Mentor access required")
@@ -6123,7 +6233,7 @@ async def integrations_internships(query: str = "internship", country: str = "in
 @api_router.post("/integrations/sync/courses")
 async def sync_courses(user: dict = Depends(get_current_user)):
     """Admin-only: pull Coursera + Udemy data into our courses collection."""
-    if user["role"] != "admin":
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin access required")
     res = await sync_courses_to_db(db)
     return {"synced": res, "status": integrations_status()}
@@ -6132,7 +6242,7 @@ async def sync_courses(user: dict = Depends(get_current_user)):
 @api_router.post("/integrations/sync/internships")
 async def sync_internships(user: dict = Depends(get_current_user)):
     """Admin-only: pull Adzuna data into our internships collection."""
-    if user["role"] != "admin":
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin access required")
     res = await sync_internships_to_db(db)
     return {"synced": res, "status": integrations_status()}
@@ -6188,6 +6298,10 @@ async def post_review(req: ReviewIn, user: dict = Depends(get_current_user)):
         pass
     if isinstance(review.get("created_at"), datetime):
         review["created_at"] = review["created_at"].isoformat()
+    if "_id" in review:
+        if isinstance(review["_id"], ObjectId):
+            review["_id"] = str(review["_id"])
+        review["id"] = review["_id"]
     return review
 
 
@@ -6279,7 +6393,7 @@ class ManualPushIn(BaseModel):
 
 @api_router.post("/notifications/send")
 async def notifications_send_manual(req: ManualPushIn, user: dict = Depends(get_current_user)):
-    if user["role"] != "admin":
+    if user["role"] not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
     return await send_push(db, user_id=req.user_id, title=req.title, body=req.body, data=req.data)
 
@@ -6570,6 +6684,10 @@ from admin_imports import router as admin_imports_router
 api_router.include_router(admin_imports_router)
 from admin_colleges import router as admin_colleges_router
 api_router.include_router(admin_colleges_router)
+
+# Talent Pool — searchable candidate profiles (LinkedIn, CSV, platform opt-in)
+from talent_pool import router as talent_pool_router
+api_router.include_router(talent_pool_router)
 
 # CRUD endpoints — append-only mutations (book, RSVP, enroll, apply)
 from crud_endpoints import router as crud_router

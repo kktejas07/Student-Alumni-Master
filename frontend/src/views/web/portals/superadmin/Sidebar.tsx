@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   LayoutDashboard, Building2, GraduationCap, UserCheck, Users, Calendar, CreditCard,
   BarChart3, CheckCircle, Sparkles, Settings, Workflow, ExternalLink, LogOut,
-  Upload, Handshake, Megaphone,
+  Upload, Handshake, Megaphone, UserPlus,
 } from 'lucide-react-native';
 import { SAC, FONTS } from './tokens';
 import { ADMIN } from './data';
@@ -41,7 +41,7 @@ function useAdminProfile() {
 export type SuperAdminNavId =
   | 'overview' | 'colleges' | 'students' | 'mentors' | 'alumni' | 'events'
   | 'payments' | 'analytics' | 'approvals' | 'ai-insights' | 'settings'
-  | 'workflows' | 'imports' | 'partners' | 'promotions';
+  | 'workflows' | 'imports' | 'partners' | 'promotions' | 'talent-pool';
 
 export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?: number; tag?: 'NEW' }> = [
   { id: 'overview',    label: 'Overview',    Icon: LayoutDashboard },
@@ -49,6 +49,7 @@ export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?:
   { id: 'students',    label: 'Students',    Icon: GraduationCap },
   { id: 'mentors',     label: 'Mentors',     Icon: UserCheck },
   { id: 'alumni',      label: 'Alumni',      Icon: Users },
+  { id: 'talent-pool', label: 'Talent Pool', Icon: UserPlus,    tag: 'NEW' },
   { id: 'imports',     label: 'Imports',     Icon: Upload,      tag: 'NEW' },
   { id: 'events',      label: 'Events',      Icon: Calendar },
   { id: 'partners',    label: 'Partners',    Icon: Handshake,   tag: 'NEW' },
@@ -57,8 +58,8 @@ export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?:
   { id: 'analytics',   label: 'Analytics',   Icon: BarChart3 },
   { id: 'approvals',   label: 'Approvals',   Icon: CheckCircle, count: 12 },
   { id: 'ai-insights', label: 'AI Insights', Icon: Sparkles,    count: 6 },
-  { id: 'settings',    label: 'Settings',    Icon: Settings },
   { id: 'workflows',   label: 'Workflows',   Icon: Workflow,    tag: 'NEW' },
+  { id: 'settings',    label: 'Settings',    Icon: Settings },
 ];
 
 export function Sidebar({

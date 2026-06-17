@@ -9,7 +9,7 @@ import { View, Text, Pressable, StyleSheet, Platform, TextInput } from 'react-na
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Mail, Lock, Check } from 'lucide-react-native';
 import { AuthShell } from '@/src/views/auth/AuthShell';
-import { AuthInput, PrimaryButton, StrengthMeter } from '@/src/views/auth/AuthControls';
+import { AuthInput, PrimaryButton, PasswordRules } from '@/src/views/auth/AuthControls';
 import { AC, FONTS } from '@/src/views/auth/tokens';
 import { trackAuth, passwordStrength } from '@/src/lib/authAnalytics';
 
@@ -117,7 +117,7 @@ export default function ForgotPassword() {
           <Text style={s.sub}>Choose a strong password you don't use anywhere else.</Text>
           <View style={{ marginTop: 22, gap: 14 }}>
             <AuthInput label="New password" value={pwd} onChangeText={(t) => { setPwd(t); setError(''); }} placeholder="At least 8 characters" secureTextEntry />
-            {pwd.length > 0 && <StrengthMeter score={strength.score} label={strength.label} tips={strength.tips} />}
+            {pwd.length > 0 && <PasswordRules checks={strength.checks} />}
             <AuthInput label="Confirm password" value={pwd2} onChangeText={(t) => { setPwd2(t); setError(''); }} placeholder="Re-enter password" secureTextEntry error={error} />
             <PrimaryButton label="Reset password" onPress={onResetPwd} loading={loading} />
           </View>

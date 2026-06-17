@@ -1317,7 +1317,7 @@ async def event_recommendations(limit: int = Query(8, ge=1, le=20),
 @router.post("/events")
 async def create_event(body: Dict[str, Any], user: dict = Depends(_get_current_user_dependency())):
     role = user.get("role")
-    if role not in ("mentor", "alumni", "college", "admin"):
+    if role not in ("mentor", "alumni", "college", "admin", "super_admin"):
         raise HTTPException(403, "Only mentors, alumni, colleges, and admins can host events")
 
     required = ["title", "event_type", "event_date_start", "location_city", "location_country"]
@@ -1380,7 +1380,7 @@ async def update_event(event_id: str, body: Dict[str, Any],
     if not doc:
         raise HTTPException(404, "Event not found")
     is_host = str(user["_id"]) == doc.get("host_user_id")
-    is_admin = user.get("role") == "admin"
+    is_admin = user.get("role") in ("admin", "super_admin")
     if not (is_host or is_admin):
         raise HTTPException(403, "Only the host or an admin can edit")
     allowed = {"title", "description", "event_type", "location_country", "location_city",
@@ -1400,7 +1400,7 @@ async def delete_event(event_id: str, user: dict = Depends(_get_current_user_dep
     if not doc:
         raise HTTPException(404, "Event not found")
     is_host = str(user["_id"]) == doc.get("host_user_id")
-    is_admin = user.get("role") == "admin"
+    is_admin = user.get("role") in ("admin", "super_admin")
     if not (is_host or is_admin):
         raise HTTPException(403, "Only the host or an admin can delete")
     await _db.events_v2.update_one({"_id": doc["_id"]},
@@ -1420,7 +1420,7 @@ async def hosted_events(user: dict = Depends(_get_current_user_dependency())):
 # ─── Admin approval queue ──────────────────────────────────────────────
 @router.get("/admin/events/pending")
 async def admin_pending_events(user: dict = Depends(_get_current_user_dependency())):
-    if user.get("role") != "admin":
+    if user.get("role") not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
     cursor = _db.events_v2.find({"status": "pending_approval", "is_active": True}).sort("created_at", -1)
     items = []
@@ -1431,7 +1431,7 @@ async def admin_pending_events(user: dict = Depends(_get_current_user_dependency
 
 @router.post("/admin/events/{event_id}/approve")
 async def admin_approve_event(event_id: str, user: dict = Depends(_get_current_user_dependency())):
-    if user.get("role") != "admin":
+    if user.get("role") not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
     res = await _db.events_v2.update_one(
         {"event_id": event_id, "status": "pending_approval"},
@@ -1446,7 +1446,7 @@ async def admin_approve_event(event_id: str, user: dict = Depends(_get_current_u
 @router.post("/admin/events/{event_id}/reject")
 async def admin_reject_event(event_id: str, body: Dict[str, Any] = None,
                               user: dict = Depends(_get_current_user_dependency())):
-    if user.get("role") != "admin":
+    if user.get("role") not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
     reason = ((body or {}).get("reason") or "").strip()
     res = await _db.events_v2.update_one(
