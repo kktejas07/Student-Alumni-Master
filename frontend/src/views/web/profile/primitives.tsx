@@ -85,7 +85,20 @@ export function TA({ value, onChangeText, placeholder, rows = 3, testID }: {
       placeholderTextColor={C.text3}
       multiline
       numberOfLines={rows}
-      style={[s.tf, s.ta, { minHeight: rows * 22 + 16 }]}
+      style={[
+        s.tf,
+        s.ta,
+        {
+          minHeight: rows * 22 + 16,
+          backgroundColor: 'rgba(255,255,255,0.04)',
+          borderColor: C.border,
+          borderWidth: 1,
+          borderRadius: 10,
+          paddingHorizontal: 12,
+          paddingTop: 10,
+          paddingBottom: 10,
+        },
+      ]}
       testID={testID}
     />
   );
