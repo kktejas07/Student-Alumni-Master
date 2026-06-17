@@ -1,10 +1,10 @@
 /**
  * Super Admin — Talent Pool Management
- * CSV import, LinkedIn sync, manage profiles
+ * Profile cards with CSV import, LinkedIn sync, bulk manage
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Platform, ActivityIndicator } from 'react-native';
-import { Search, Trash2, CheckCircle, XCircle } from 'lucide-react-native';
+import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Platform, ActivityIndicator, Linking } from 'react-native';
+import { Search, Trash2, CheckCircle, XCircle, MapPin, Briefcase, GraduationCap, Star } from 'lucide-react-native';
 import { request, tokenStore } from '@/src/models/services/api';
 import { SAC, FONTS } from '../tokens';
 
@@ -14,10 +14,16 @@ interface TalentProfile {
   headline?: string;
   email?: string;
   linkedin_url?: string;
+  github_url?: string;
   location?: string;
   skills: string[];
+  experience_years?: number;
   current_company?: string;
   current_role?: string;
+  education?: string;
+  graduation_year?: number;
+  photo_url?: string;
+  bio?: string;
   source: string;
   is_active: boolean;
   last_synced_at?: string;
@@ -37,29 +43,38 @@ export function TalentPoolView() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState('');
 
-  const fetchProfiles = useCallback(async (p: number = 1) => {
+  const goToPage = useCallback((p: number) => {
+    setPage(p);
     setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      params.set('page', String(p));
-      params.set('limit', '50');
-      if (search.trim()) params.set('q', search.trim());
-      if (sourceFilter) params.set('source', sourceFilter);
-
-      const data = await request<{ items: TalentProfile[]; total: number; pages: number }>(
-        `/admin/talent-pool?${params.toString()}`
-      );
-      setProfiles(data.items);
-      setTotal(data.total);
-      setPages(data.pages);
-    } catch (e: any) {
-      setMessage('Error: ' + (e?.message || 'Failed to load'));
-    } finally { setLoading(false); }
+    (async () => {
+      try {
+        const params = new URLSearchParams();
+        params.set('page', String(p));
+        params.set('limit', '24');
+        if (search.trim()) params.set('q', search.trim());
+        if (sourceFilter) params.set('source', sourceFilter);
+        const data = await request<{ items: TalentProfile[]; total: number; pages: number }>(
+          `/admin/talent-pool?${params.toString()}`
+        );
+        setProfiles(data.items);
+        setTotal(data.total);
+        setPages(data.pages);
+      } catch (e: any) {
+        setMessage('Error: ' + (e?.message || 'Failed to load'));
+      } finally { setLoading(false); }
+    })();
   }, [search, sourceFilter]);
+
+  const fetchProfiles = useCallback(async (p: number = 1) => { goToPage(p); }, [goToPage]);
 
   useEffect(() => { fetchProfiles(1); }, []);
 
-  const onSearch = () => { setPage(1); fetchProfiles(1); };
+  const selectAllOnPage = () => {
+    const next = new Set(selected);
+    const allSelected = profiles.every(p => next.has(p.id));
+    profiles.forEach(p => allSelected ? next.delete(p.id) : next.add(p.id));
+    setSelected(next);
+  };
 
   const onSyncLinkedIn = async () => {
     setSyncing(true); setMessage('');
@@ -69,9 +84,8 @@ export function TalentPoolView() {
       );
       setMessage(res.message || `Synced ${res.synced} profiles`);
       if (res.synced > 0) fetchProfiles(page);
-    } catch (e: any) {
-      setMessage('Sync failed: ' + (e?.message || ''));
-    } finally { setSyncing(false); }
+    } catch (e: any) { setMessage('Sync failed: ' + (e?.message || '')); }
+    finally { setSyncing(false); }
   };
 
   const onSyncFromUsers = async () => {
@@ -81,40 +95,35 @@ export function TalentPoolView() {
         '/admin/talent-pool/sync-from-users', { method: 'POST' }
       );
       setMessage(`Synced ${res.synced} platform users`);
-    } catch (e: any) {
-      setMessage('Sync failed: ' + (e?.message || ''));
-    } finally { setSyncing(false); }
+    } catch (e: any) { setMessage('Sync failed: ' + (e?.message || '')); }
+    finally { setSyncing(false); }
   };
 
-  const onImportCSV = async () => {
-    if (Platform.OS === 'web') {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.csv,.xlsx,.xls';
-      input.onchange = async (e: any) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        setImporting(true); setMessage('');
-        try {
-          const accessToken = await tokenStore.getAccess();
-          const formData = new FormData();
-          formData.append('file', file);
-          const res = await fetch('https://studentalumni.ai/api/admin/talent-pool/import/csv', {
-            method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: formData,
-          });
-          const data = await res.json();
-          if (!data.ok) throw new Error(data.detail || 'Import failed');
-          const commitRes = await request<any>('/admin/talent-pool/import/commit', {
-            method: 'POST', body: { rows: data.preview },
-          });
-          setMessage(`Imported ${commitRes.upserted} profiles`);
-          fetchProfiles(1);
-        } catch (e: any) {
-          setMessage('Import error: ' + (e?.message || ''));
-        } finally { setImporting(false); }
-      };
-      input.click();
-    }
+  const onImportCSV = () => {
+    if (Platform.OS !== 'web') return;
+    const input = document.createElement('input');
+    input.type = 'file'; input.accept = '.csv,.xlsx,.xls';
+    input.onchange = async (e: any) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      setImporting(true); setMessage('');
+      try {
+        const accessToken = await tokenStore.getAccess();
+        const formData = new FormData(); formData.append('file', file);
+        const res = await fetch('https://studentalumni.ai/api/admin/talent-pool/import/csv', {
+          method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: formData,
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.detail || 'Import failed');
+        const commitRes = await request<any>('/admin/talent-pool/import/commit', {
+          method: 'POST', body: { rows: data.preview },
+        });
+        setMessage(`Imported ${commitRes.upserted} profiles`);
+        fetchProfiles(1);
+      } catch (e: any) { setMessage('Import error: ' + (e?.message || '')); }
+      finally { setImporting(false); }
+    };
+    input.click();
   };
 
   const onToggleActive = async (id: string, activate: boolean) => {
@@ -128,23 +137,21 @@ export function TalentPoolView() {
     if (selected.size === 0) return;
     try {
       await request('/admin/talent-pool/bulk-action', { method: 'POST', body: { ids: Array.from(selected), action } });
-      setSelected(new Set());
-      fetchProfiles(page);
+      setSelected(new Set()); fetchProfiles(page);
       setMessage(`${action}d ${selected.size} profiles`);
     } catch (e: any) { setMessage('Error: ' + (e?.message || '')); }
   };
 
+  const sourceLabel = (s: string) => {
+    switch (s) { case 'linkedin': return 'LI'; case 'csv': return 'CSV'; case 'platform': return 'PL'; default: return s; }
+  };
   const sourceColor = (s: string) => {
-    switch (s) {
-      case 'linkedin': return '#0A66C2';
-      case 'csv': return '#22C55E';
-      case 'platform': return '#8B5CF6';
-      default: return SAC.muted;
-    }
+    switch (s) { case 'linkedin': return '#0A66C2'; case 'csv': return '#22C55E'; case 'platform': return '#8B5CF6'; default: return SAC.muted; }
   };
 
   return (
     <View style={s.root}>
+      {/* Header */}
       <View style={s.header}>
         <View>
           <Text style={s.title}>Talent Pool</Text>
@@ -165,6 +172,7 @@ export function TalentPoolView() {
         </View>
       </View>
 
+      {/* Message */}
       {message ? (
         <View style={s.msgBar}>
           <Text style={s.msgText} numberOfLines={2}>{message}</Text>
@@ -172,95 +180,168 @@ export function TalentPoolView() {
         </View>
       ) : null}
 
+      {/* Toolbar */}
       <View style={s.toolbar}>
         <View style={s.searchWrap}>
           <Search size={14} color={SAC.muted} />
           <TextInput style={s.searchInput} value={search} onChangeText={setSearch}
-            placeholder="Search profiles..." placeholderTextColor={SAC.muted} onSubmitEditing={onSearch} />
+            placeholder="Search by name, skills, company..." placeholderTextColor={SAC.muted}
+            onSubmitEditing={() => goToPage(1)} />
         </View>
         <View style={s.filterBtns}>
           {['', 'linkedin', 'csv', 'platform', 'manual'].map((src) => (
             <Pressable key={src || 'all'} style={[s.filterChip, sourceFilter === src && s.filterChipActive]}
               onPress={() => { setSourceFilter(src); setPage(1); }}>
-              <Text style={[s.filterChipText, sourceFilter === src && s.filterChipTextActive]}>
-                {src || 'All'}
-              </Text>
+              <Text style={[s.filterChipText, sourceFilter === src && s.filterChipTextActive]}>{src || 'All'}</Text>
             </Pressable>
           ))}
         </View>
       </View>
 
+      {/* Bulk bar */}
       {selected.size > 0 && (
         <View style={s.bulkBar}>
           <Text style={s.bulkText}>{selected.size} selected</Text>
-          <Pressable style={[s.bulkBtn, { backgroundColor: '#22C55E' }]} onPress={() => onBulkAction('activate')}>
-            <Text style={s.bulkBtnText}>Activate</Text>
-          </Pressable>
-          <Pressable style={[s.bulkBtn, { backgroundColor: '#F59E0B' }]} onPress={() => onBulkAction('deactivate')}>
-            <Text style={s.bulkBtnText}>Deactivate</Text>
-          </Pressable>
-          <Pressable style={[s.bulkBtn, { backgroundColor: '#EF4444' }]} onPress={() => onBulkAction('delete')}>
-            <Text style={s.bulkBtnText}>Delete</Text>
-          </Pressable>
+          <Pressable style={[s.bulkBtn, { backgroundColor: '#22C55E' }]} onPress={() => onBulkAction('activate')}><Text style={s.bulkBtnText}>Activate</Text></Pressable>
+          <Pressable style={[s.bulkBtn, { backgroundColor: '#F59E0B' }]} onPress={() => onBulkAction('deactivate')}><Text style={s.bulkBtnText}>Deactivate</Text></Pressable>
+          <Pressable style={[s.bulkBtn, { backgroundColor: '#EF4444' }]} onPress={() => onBulkAction('delete')}><Text style={s.bulkBtnText}>Delete</Text></Pressable>
         </View>
       )}
 
+      {/* Select All */}
+      {!loading && profiles.length > 0 && (
+        <Pressable style={s.selectAllBar} onPress={selectAllOnPage}>
+          <View style={[s.checkbox, profiles.every(p => selected.has(p.id)) && s.checkboxActive]}>
+            {profiles.every(p => selected.has(p.id)) && <CheckCircle size={12} color="#8B5CF6" />}
+          </View>
+          <Text style={s.selectAllText}>
+            {profiles.every(p => selected.has(p.id)) ? 'Deselect all' : 'Select all on this page'}
+          </Text>
+        </Pressable>
+      )}
+
+      {/* Cards Grid */}
       {loading ? (
         <View style={s.centered}><ActivityIndicator size="large" color="#8B5CF6" /></View>
+      ) : profiles.length === 0 ? (
+        <View style={s.centered}>
+          <Text style={s.emptyTitle}>No profiles found</Text>
+          <Text style={s.emptySub}>Import a CSV or sync LinkedIn to get started</Text>
+        </View>
       ) : (
-        <ScrollView style={s.tableScroll} horizontal>
-          <View style={{ minWidth: 800 }}>
-            <View style={s.tableRow}>
-              <View style={{ width: 40 }} />
-              <Text style={[s.th, { width: 160 }]}>Name</Text>
-              <Text style={[s.th, { width: 140 }]}>Role</Text>
-              <Text style={[s.th, { width: 140 }]}>Company</Text>
-              <Text style={[s.th, { width: 100 }]}>Location</Text>
-              <Text style={[s.th, { width: 70 }]}>Source</Text>
-              <Text style={[s.th, { width: 70 }]}>Status</Text>
-              <Text style={[s.th, { width: 100 }]}>Actions</Text>
-            </View>
-            {profiles.map((p) => (
-              <View key={p.id} style={[s.tableRow, !p.is_active && s.rowInactive]}>
-                <Pressable style={{ width: 40, alignItems: 'center' }}
-                  onPress={() => { const next = new Set(selected); next.has(p.id) ? next.delete(p.id) : next.add(p.id); setSelected(next); }}>
-                  <View style={[s.checkbox, selected.has(p.id) && s.checkboxActive]}>
-                    {selected.has(p.id) && <CheckCircle size={14} color="#8B5CF6" />}
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={s.grid} showsVerticalScrollIndicator={false}>
+          {profiles.map((p) => (
+            <View key={p.id} style={[s.card, !p.is_active && s.cardInactive]}>
+              {/* Select checkbox */}
+              <Pressable style={s.selectWrap} onPress={() => {
+                const next = new Set(selected);
+                next.has(p.id) ? next.delete(p.id) : next.add(p.id);
+                setSelected(next);
+              }}>
+                <View style={[s.checkbox, selected.has(p.id) && s.checkboxActive]}>
+                  {selected.has(p.id) && <CheckCircle size={12} color="#8B5CF6" />}
+                </View>
+              </Pressable>
+
+              {/* Card content */}
+              <View style={{ flex: 1 }}>
+                {/* Name + source badge */}
+                <View style={s.cardTop}>
+                  <Text style={s.cardName} numberOfLines={1}>{p.full_name || 'Unknown'}</Text>
+                  <View style={[s.sourceBadge, { backgroundColor: sourceColor(p.source) + '20', borderColor: sourceColor(p.source) }]}>
+                    <Text style={[s.sourceBadgeText, { color: sourceColor(p.source) }]}>{sourceLabel(p.source)}</Text>
                   </View>
-                </Pressable>
-                <Text style={[s.cell, { width: 160 }]} numberOfLines={1}>{p.full_name}</Text>
-                <Text style={[s.cell, { width: 140 }]} numberOfLines={1}>{p.headline || p.current_role || '-'}</Text>
-                <Text style={[s.cell, { width: 140 }]} numberOfLines={1}>{p.current_company || '-'}</Text>
-                <Text style={[s.cell, { width: 100 }]} numberOfLines={1}>{p.location || '-'}</Text>
-                <Text style={[s.cell, { width: 70, color: sourceColor(p.source) }]}>{p.source}</Text>
-                <Text style={[s.cell, { width: 70, color: p.is_active ? '#22C55E' : '#EF4444' }]}>
-                  {p.is_active ? 'Active' : 'Inactive'}
-                </Text>
-                <View style={{ width: 100, flexDirection: 'row', gap: 4 }}>
-                  <Pressable style={[s.rowBtn, { backgroundColor: p.is_active ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)' }]}
+                </View>
+
+                {/* Headline / Role */}
+                {(p.headline || p.current_role) && (
+                  <Text style={s.cardHeadline} numberOfLines={2}>
+                    {p.headline || p.current_role}
+                  </Text>
+                )}
+
+                {/* Details row */}
+                <View style={s.cardDetails}>
+                  {p.current_company && (
+                    <View style={s.detailRow}>
+                      <Briefcase size={11} color={SAC.muted} />
+                      <Text style={s.detailText} numberOfLines={1}>{p.current_company}</Text>
+                    </View>
+                  )}
+                  {p.location && (
+                    <View style={s.detailRow}>
+                      <MapPin size={11} color={SAC.muted} />
+                      <Text style={s.detailText} numberOfLines={1}>{p.location}</Text>
+                    </View>
+                  )}
+                  {p.education && (
+                    <View style={s.detailRow}>
+                      <GraduationCap size={11} color={SAC.muted} />
+                      <Text style={s.detailText} numberOfLines={1}>
+                        {p.education}{p.graduation_year ? ` · ${p.graduation_year}` : ''}
+                      </Text>
+                    </View>
+                  )}
+                  {p.experience_years != null && (
+                    <View style={s.detailRow}>
+                      <Star size={11} color="#F59E0B" />
+                      <Text style={s.detailText}>{p.experience_years} years experience</Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Skills chips */}
+                {p.skills && p.skills.length > 0 && (
+                  <View style={s.skillsRow}>
+                    {p.skills.slice(0, 5).map((sk, i) => (
+                      <View key={i} style={s.skillChip}>
+                        <Text style={s.skillChipText}>{sk}</Text>
+                      </View>
+                    ))}
+                    {p.skills.length > 5 && (
+                      <Text style={s.moreSkills}>+{p.skills.length - 5}</Text>
+                    )}
+                  </View>
+                )}
+
+                {/* Action row */}
+                <View style={s.cardActions}>
+                  {p.linkedin_url && (
+                    <Pressable style={s.actionBtn} onPress={() => Platform.OS === 'web' ? (window as any).open(p.linkedin_url, '_blank') : Linking.openURL(p.linkedin_url!)}>
+                      <Text style={s.actionBtnText}>LinkedIn</Text>
+                    </Pressable>
+                  )}
+                  {p.github_url && (
+                    <Pressable style={[s.actionBtn, { backgroundColor: '#24292e' }]} onPress={() => Platform.OS === 'web' ? (window as any).open(p.github_url, '_blank') : Linking.openURL(p.github_url!)}>
+                      <Text style={s.actionBtnText}>GitHub</Text>
+                    </Pressable>
+                  )}
+                  <View style={{ flex: 1 }} />
+                  <Pressable style={[s.iconBtn, { backgroundColor: p.is_active ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.12)' }]}
                     onPress={() => onToggleActive(p.id, !p.is_active)}>
-                    {p.is_active ? <XCircle size={12} color="#EF4444" /> : <CheckCircle size={12} color="#22C55E" />}
+                    {p.is_active ? <XCircle size={13} color="#EF4444" /> : <CheckCircle size={13} color="#22C55E" />}
                   </Pressable>
-                  <Pressable style={[s.rowBtn, { backgroundColor: 'rgba(239,68,68,0.15)' }]}
+                  <Pressable style={[s.iconBtn, { backgroundColor: 'rgba(239,68,68,0.12)' }]}
                     onPress={() => onToggleActive(p.id, false)}>
-                    <Trash2 size={12} color="#EF4444" />
+                    <Trash2 size={13} color="#EF4444" />
                   </Pressable>
                 </View>
               </View>
-            ))}
-          </View>
+            </View>
+          ))}
         </ScrollView>
       )}
 
+      {/* Pagination */}
       {pages > 1 && (
         <View style={s.pagination}>
           <Pressable style={[s.pageBtn, page <= 1 && { opacity: 0.4 }]}
-            onPress={() => page > 1 && (setPage(page - 1), fetchProfiles(page - 1))}>
+            onPress={() => page > 1 && goToPage(page - 1)}>
             <Text style={s.pageBtnText}>Prev</Text>
           </Pressable>
           <Text style={s.pageInfo}>{page} / {pages}</Text>
           <Pressable style={[s.pageBtn, page >= pages && { opacity: 0.4 }]}
-            onPress={() => page < pages && (setPage(page + 1), fetchProfiles(page + 1))}>
+            onPress={() => page < pages && goToPage(page + 1)}>
             <Text style={s.pageBtnText}>Next</Text>
           </Pressable>
         </View>
@@ -293,15 +374,37 @@ const s = StyleSheet.create({
   bulkText: { color: '#A78BFA', fontFamily: FONTS.bold, fontSize: 12, marginRight: 8 },
   bulkBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 },
   bulkBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11 },
-  tableScroll: { flex: 1 },
-  tableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' },
-  rowInactive: { opacity: 0.4 },
-  th: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 },
-  cell: { color: '#E2E8F0', fontFamily: FONTS.med, fontSize: 12 },
-  checkbox: { width: 18, height: 18, borderRadius: 4, borderWidth: 1, borderColor: SAC.border, alignItems: 'center', justifyContent: 'center' },
-  checkboxActive: { borderColor: '#8B5CF6', backgroundColor: 'rgba(139,92,246,0.1)' },
-  rowBtn: { width: 28, height: 28, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
+  selectAllBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, paddingHorizontal: 4, marginBottom: 8 },
+  selectAllText: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingBottom: 40 },
+  card: {
+    width: 'calc(33.333% - 8px)' as any, minWidth: 300, flex: 1,
+    backgroundColor: SAC.card, borderRadius: 12, borderWidth: 1, borderColor: SAC.border,
+    padding: 14, flexDirection: 'row', gap: 10,
+  },
+  cardInactive: { opacity: 0.45 },
+  selectWrap: { paddingTop: 2 },
+  checkbox: { width: 16, height: 16, borderRadius: 4, borderWidth: 1, borderColor: SAC.border, alignItems: 'center', justifyContent: 'center' },
+  checkboxActive: { borderColor: '#8B5CF6', backgroundColor: 'rgba(139,92,246,0.15)' },
+  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 4 },
+  cardName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14, flex: 1 },
+  sourceBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 0.5 },
+  sourceBadgeText: { fontSize: 9, fontFamily: FONTS.bold, letterSpacing: 0.3 },
+  cardHeadline: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginBottom: 6, lineHeight: 15 },
+  cardDetails: { gap: 3, marginBottom: 6 },
+  detailRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  detailText: { color: '#94A3B8', fontFamily: FONTS.med, fontSize: 11, flex: 1 },
+  skillsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 8 },
+  skillChip: { backgroundColor: 'rgba(139,92,246,0.12)', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
+  skillChipText: { color: '#A78BFA', fontSize: 10, fontFamily: FONTS.bold },
+  moreSkills: { color: SAC.muted, fontSize: 10, alignSelf: 'center' },
+  cardActions: { flexDirection: 'row', gap: 6, alignItems: 'center' },
+  actionBtn: { backgroundColor: '#0A66C2', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 },
+  actionBtnText: { color: '#fff', fontSize: 10, fontFamily: FONTS.bold },
+  iconBtn: { width: 28, height: 28, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
+  emptyTitle: { color: '#E2E8F0', fontFamily: FONTS.bold, fontSize: 15 },
+  emptySub: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 4 },
   pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 12, gap: 14 },
   pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SAC.card, borderRadius: 8, borderWidth: 1, borderColor: SAC.border },
   pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
