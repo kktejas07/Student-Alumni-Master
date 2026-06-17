@@ -27,6 +27,18 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 import os
+import socket
+
+# --- GLOBALLY PATCH DNS TO PREVENT 34-SECOND IPv6 HANGS ON WINDOWS ---
+_original_getaddrinfo = socket.getaddrinfo
+
+def _ipv4_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+    if family == 0:
+        family = socket.AF_INET
+    return _original_getaddrinfo(host, port, family, type, proto, flags)
+
+socket.getaddrinfo = _ipv4_getaddrinfo
+# ---------------------------------------------------------------------
 import re
 import uuid
 import io
