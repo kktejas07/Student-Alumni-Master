@@ -214,7 +214,7 @@ export default function JobsInternshipsScreen() {
 
       {/* Filters (recommended tab only) */}
       {tab === 'recommended' && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filters} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
+        <View style={styles.filters}>
           <FilterChip
             label="Type"
             value={filterType ? (filterType === 'internship' ? 'Internships' : 'Jobs') : 'All'}
@@ -242,7 +242,7 @@ export default function JobsInternshipsScreen() {
             options={[{ v: '', l: 'All Domains' }, ...domains.map((d) => ({ v: d, l: d }))]}
             onChange={(v: any) => setFilterDomain(v)}
           />
-        </ScrollView>
+        </View>
       )}
 
       {/* List */}
@@ -402,7 +402,7 @@ function FilterChip({ label, value, options, onChange }:
   { label: string; value: string; options: { v: string; l: string }[]; onChange: (v: string) => void }) {
   const [open, setOpen] = useState(false);
   return (
-    <View style={{ position: 'relative' }}>
+    <View style={[styles.filterChipWrapper, open && { zIndex: 200 }]}>
       <Pressable
         onPress={() => setOpen((o) => !o)}
         style={[styles.filterChip, open && { borderColor: '#A78BFA' }]}
@@ -472,7 +472,12 @@ const styles = StyleSheet.create({
   tabBadge: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.10)' },
   tabBadgeText: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_700Bold', fontSize: 10 },
 
-  filters: { marginBottom: 10, maxHeight: 44 },
+  filters: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 8,
+    paddingHorizontal: 16, marginBottom: 10,
+    zIndex: 50,
+    ...Platform.select({ web: { overflow: 'visible' } as any, default: {} }),
+  },
   filterChip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8,
@@ -482,8 +487,13 @@ const styles = StyleSheet.create({
   },
   filterChipLabel: { color: 'rgba(255,255,255,0.45)', fontFamily: 'DMSans_500Medium', fontSize: 11.5 },
   filterChipValue: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
+  filterChipWrapper: {
+    position: 'relative',
+    zIndex: 10,
+    ...Platform.select({ web: { overflow: 'visible' } as any, default: {} }),
+  },
   dropdown: {
-    position: 'absolute', top: 38, left: 0, minWidth: 140, zIndex: 100,
+    position: 'absolute', top: 38, left: 0, minWidth: 140, zIndex: 999,
     backgroundColor: '#1B102D',
     borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1, borderRadius: 10,
     overflow: 'hidden',
@@ -495,7 +505,7 @@ const styles = StyleSheet.create({
   list: { padding: 16, gap: 14 },
   cardInner: {
     padding: 14, gap: 10,
-    borderRadius: 14, overflow: 'hidden',
+    borderRadius: 14,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   cardImg: { width: 44, height: 44, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.05)' },

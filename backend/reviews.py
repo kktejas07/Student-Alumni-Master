@@ -43,6 +43,8 @@ async def create_review(db, *, mentor_id: str, student_id: str, student_name: st
         "rating": int(rating),
         "comment": comment[:500],
         "created_at": datetime.now(timezone.utc),
+        "mentor_reply": None,
+        "mentor_reply_at": None,
     }
     await db.reviews.insert_one(doc)
     await refresh_mentor_rating(db, mentor_id)
@@ -56,6 +58,8 @@ async def list_mentor_reviews(db, mentor_id: str, limit: int = 20) -> List[Dict[
     for it in items:
         if isinstance(it.get("created_at"), datetime):
             it["created_at"] = it["created_at"].isoformat()
+        if isinstance(it.get("mentor_reply_at"), datetime):
+            it["mentor_reply_at"] = it["mentor_reply_at"].isoformat()
     return items
 
 

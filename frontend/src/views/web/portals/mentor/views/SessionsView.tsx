@@ -43,7 +43,8 @@ import { STUDENTS as INITIAL_STUDENTS } from '../data';
 type TabId = 'upcoming' | 'past' | 'availability';
 
 type AvailabilitySlot = {
-  day: string; // 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'
+  day?: string; // 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'
+  dateStr?: string; // '2026-05-05'
   time: string; // '09:00', '09:30', '10:00', etc.
   status: 'available' | 'booked' | 'unavailable';
   bookedBy?: string;
@@ -149,9 +150,22 @@ export function SessionsView() {
 
   // Availability specific states
   const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>(DEFAULT_AVAILABILITY);
-  const [layoutMode, setLayoutMode] = useState<'grid' | 'columns'>('grid');
+  const [layoutMode, setLayoutMode] = useState<'grid' | 'columns'>('columns');
   const [savingAvailability, setSavingAvailability] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => new Date(2026, 4, 5));
+
+  // Set Availability Form States
+  const [formCalYear, setFormCalYear] = useState(2026);
+  const [formCalMonth, setFormCalMonth] = useState(4); // May
+  const [formSelectedDate, setFormSelectedDate] = useState<Date | null>(new Date(2026, 4, 5));
+  const [timeMode, setTimeMode] = useState<'single' | 'range'>('single');
+  const [formSingleTime, setFormSingleTime] = useState('09:30');
+  const [formRangeStart, setFormRangeStart] = useState('09:00');
+  const [formRangeEnd, setFormRangeEnd] = useState('17:00');
+  const [formStatus, setFormStatus] = useState<'available' | 'unavailable'>('available');
+  const [formSuccessMsg, setFormSuccessMsg] = useState<string | null>(null);
 
   // Rescheduling states
   const [reschedulingSession, setReschedulingSession] = useState<any | null>(null);
@@ -162,6 +176,200 @@ export function SessionsView() {
 
   // AI summary simulation states
   const [aiSummaryStates, setAiSummaryStates] = useState<Record<number, { text: string; loading: boolean }>>({});
+
+  const getMonday = (d: Date) => {
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(date.setDate(diff));
+  };
+
+  const handleFormPrevMonth = () => {
+    if (formCalMonth === 0) {
+      setFormCalMonth(11);
+      setFormCalYear((y) => y - 1);
+    } else {
+      setFormCalMonth((m) => m - 1);
+    }
+  };
+
+  const handleFormNextMonth = () => {
+    if (formCalMonth === 11) {
+      setFormCalMonth(0);
+      setFormCalYear((y) => y + 1);
+    } else {
+      setFormCalMonth((m) => m + 1);
+    }
+  };
+
+  const handleFormDaySelect = (day: number) => {
+    const selected = new Date(formCalYear, formCalMonth, day);
+    setFormSelectedDate(selected);
+    const monday = getMonday(selected);
+    setCurrentWeekStart(monday);
+  };
+
+  const handleApplyFormAvailability = () => {
+    if (!formSelectedDate) return;
+    
+    const dateStr = formSelectedDate.toISOString().split('T')[0];
+    const dayCode = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][formSelectedDate.getDay() === 0 ? 6 : formSelectedDate.getDay() - 1] || 'Mon';
+    
+    if (timeMode === 'single') {
+      setAvailabilitySlots((prev) => {
+        const filtered = prev.filter((s) => !(s.dateStr === dateStr && s.time === formSingleTime));
+        return [
+          ...filtered,
+          {
+            dateStr,
+            day: dayCode,
+            time: formSingleTime,
+            status: formStatus,
+          }
+        ];
+      });
+      setFormSuccessMsg(`Set ${formSingleTime} as ${formStatus} on ${formSelectedDate.toLocaleDateString([], { month: 'short', day: 'numeric' })}.`);
+    } else {
+      const startParts = formRangeStart.split(':').map(Number);
+      const endParts = formRangeEnd.split(':').map(Number);
+      
+      if (isNaN(startParts[0]) || isNaN(endParts[0])) {
+        alert("Please enter valid start and end times (format HH:MM).");
+        return;
+      }
+      
+      let currentMin = startParts[0] * 60 + (startParts[1] || 0);
+      const endMin = endParts[0] * 60 + (endParts[1] || 0);
+      
+      const newSlots: AvailabilitySlot[] = [];
+      while (currentMin < endMin) {
+        const hh = Math.floor(currentMin / 60).toString().padStart(2, '0');
+        const mm = (currentMin % 60).toString().padStart(2, '0');
+        const timeStr = `${hh}:${mm}`;
+        
+        newSlots.push({
+          dateStr,
+          day: dayCode,
+          time: timeStr,
+          status: formStatus,
+        });
+        currentMin += 30;
+      }
+      
+      if (newSlots.length === 0) {
+        alert("End time must be after start time.");
+        return;
+      }
+      
+      setAvailabilitySlots((prev) => {
+        const timesToAdd = newSlots.map((ns) => ns.time);
+        const filtered = prev.filter((s) => !(s.dateStr === dateStr && timesToAdd.includes(s.time)));
+        return [...filtered, ...newSlots];
+      });
+      
+      setFormSuccessMsg(`Set slots from ${formRangeStart} to ${formRangeEnd} as ${formStatus} on ${formSelectedDate.toLocaleDateString([], { month: 'short', day: 'numeric' })}.`);
+    }
+    
+    setTimeout(() => {
+      setFormSuccessMsg(null);
+    }, 3000);
+  };
+
+  const handlePrevWeek = () => {
+    setCurrentWeekStart((prev) => {
+      const next = new Date(prev);
+      next.setDate(prev.getDate() - 7);
+      return next;
+    });
+  };
+
+  const handleNextWeek = () => {
+    setCurrentWeekStart((prev) => {
+      const next = new Date(prev);
+      next.setDate(prev.getDate() + 7);
+      return next;
+    });
+  };
+
+  const toggleSlotForDate = (dateStr: string, dayCode: string, time: string) => {
+    setAvailabilitySlots((prev) => {
+      const exists = prev.some((s) => s.dateStr === dateStr && s.time === time);
+      if (exists) {
+        return prev.map((s) => {
+          if (s.dateStr === dateStr && s.time === time) {
+            if (s.status === 'booked') return s;
+            return {
+              ...s,
+              status: s.status === 'available' ? 'unavailable' : 'available',
+            };
+          }
+          return s;
+        });
+      } else {
+        const weeklySlot = prev.find((s) => s.day === dayCode && s.time === time && !s.dateStr);
+        const currentStatus = weeklySlot ? weeklySlot.status : 'unavailable';
+        const newStatus = currentStatus === 'available' ? 'unavailable' : 'available';
+        return [
+          ...prev,
+          {
+            dateStr,
+            day: dayCode,
+            time,
+            status: newStatus,
+          },
+        ];
+      }
+    });
+  };
+
+  const currentWeekEnd = useMemo(() => {
+    const end = new Date(currentWeekStart);
+    end.setDate(currentWeekStart.getDate() + 4);
+    return end;
+  }, [currentWeekStart]);
+
+  const weekRangeTitle = useMemo(() => {
+    const startMonth = currentWeekStart.toLocaleDateString('en-US', { month: 'short' });
+    const startDay = currentWeekStart.getDate();
+    const endMonth = currentWeekEnd.toLocaleDateString('en-US', { month: 'short' });
+    const endDay = currentWeekEnd.getDate();
+    const year = currentWeekEnd.getFullYear();
+    
+    if (startMonth === endMonth) {
+      return `Week of ${startMonth} ${startDay}–${endDay}, ${year}`;
+    } else {
+      return `Week of ${startMonth} ${startDay}–${endMonth} ${endDay}, ${year}`;
+    }
+  }, [currentWeekStart, currentWeekEnd]);
+
+  const weekDays = useMemo(() => {
+    const days = [];
+    for (let i = 0; i < 5; i++) {
+      const d = new Date(currentWeekStart);
+      d.setDate(currentWeekStart.getDate() + i);
+      days.push(d);
+    }
+    return days;
+  }, [currentWeekStart]);
+
+  const formCalendarCells = useMemo(() => {
+    const daysInMonth = new Date(formCalYear, formCalMonth + 1, 0).getDate();
+    const firstDayIndex = (new Date(formCalYear, formCalMonth, 1).getDay() + 6) % 7;
+    const cells = [];
+    for (let i = 0; i < firstDayIndex; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+    return cells;
+  }, [formCalYear, formCalMonth]);
+
+  const getDayHeaderStr = (d: Date) => {
+    const weekday = d.toLocaleDateString('en-US', { weekday: 'short' });
+    const month = d.toLocaleDateString('en-US', { month: 'short' });
+    const day = d.getDate();
+    return `${weekday} ${month} ${day}`;
+  };
+
+  const TIME_PRESETS = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30'];
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
   const now = useMemo(() => new Date(), [tab, bookingsList]);
 
@@ -340,20 +548,11 @@ export function SessionsView() {
     }, 1200);
   };
 
-  // Toggle availability slot state
+  // Toggle availability slot state (Legacy refactored to date-aware helper)
   const toggleSlot = (day: string, time: string) => {
-    setAvailabilitySlots((prev) =>
-      prev.map((s) => {
-        if (s.day === day && s.time === time) {
-          if (s.status === 'booked') return s; // Booked slots cannot be changed
-          return {
-            ...s,
-            status: s.status === 'available' ? 'unavailable' : 'available',
-          };
-        }
-        return s;
-      })
-    );
+    // Falls back to toggling recurring slots or active week
+    const dateStr = weekDays.find((d) => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][d.getDay() === 0 ? 6 : d.getDay() - 1] === day)?.toISOString()?.split('T')?.[0] || '2026-05-05';
+    toggleSlotForDate(dateStr, day, time);
   };
 
   const saveAvailabilitySlots = () => {
@@ -693,204 +892,419 @@ export function SessionsView() {
 
         {/* Tab 3: Availability Calendar Layout (Screenshots 3 & 4) */}
         {tab === 'availability' && (
-          <View style={s.availCard}>
-            {/* Title / Info Header */}
-            <View style={s.availHeaderRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.availTitle}>Availability Calendar</Text>
-                <Text style={s.availSub}>
-                  Week of May 5–9, 2026  •  <Text style={{ color: MC.tealP, fontFamily: FONTS.bold }}>{openSlotsCount} open slots</Text>  •  <Text style={{ color: MC.amber, fontFamily: FONTS.bold }}>{bookedSlotsCount} booked</Text>
-                </Text>
-              </View>
-
-              {/* Legend & Switcher */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-                <View style={s.legendRow}>
-                  <View style={s.legendItem}>
-                    <View style={[s.legendDot, { backgroundColor: '#14B8A6' }]} />
-                    <Text style={s.legendText}>Available</Text>
-                  </View>
-                  <View style={s.legendItem}>
-                    <View style={[s.legendDot, { backgroundColor: '#F59E0B' }]} />
-                    <Text style={s.legendText}>Booked</Text>
-                  </View>
-                  <View style={s.legendItem}>
-                    <View style={[s.legendDot, { backgroundColor: '#334155' }]} />
-                    <Text style={s.legendText}>Unavailable</Text>
-                  </View>
-                </View>
-
-                {/* View switcher toggle */}
-                <View style={s.switcherBox}>
-                  <Pressable 
-                    onPress={() => setLayoutMode('grid')}
-                    style={[s.switchBtn, layoutMode === 'grid' && s.switchBtnOn]}
-                  >
-                    <Grid size={14} color={layoutMode === 'grid' ? '#090D16' : '#94A3B8'} />
-                  </Pressable>
-                  <Pressable 
-                    onPress={() => setLayoutMode('columns')}
-                    style={[s.switchBtn, layoutMode === 'columns' && s.switchBtnOn]}
-                  >
-                    <List size={14} color={layoutMode === 'columns' ? '#090D16' : '#94A3B8'} />
-                  </Pressable>
-                </View>
-              </View>
-            </View>
-
-            {/* Layout A: Calendar Grid View (Screenshot 3) */}
-            {layoutMode === 'grid' && (
-              <View style={s.gridTableContainer}>
-                {/* Header row containing Days */}
-                <View style={s.gridHeaderRow}>
-                  <View style={s.gridTimeColHeader} />
-                  {['Mon May 5', 'Tue May 6', 'Wed May 7', 'Thu May 8', 'Fri May 9'].map((dayHeader, idx) => {
-                    const dayCode = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][idx];
-                    const selectedInDay = availabilitySlots.filter(s => s.day === dayCode && s.status === 'available').length;
-                    return (
-                      <View key={dayHeader} style={s.gridDayColHeader}>
-                        <Text style={s.gridDayTitle}>{dayHeader.split(' ')[0]}</Text>
-                        <Text style={s.gridDaySub}>{dayHeader.split(' ').slice(1).join(' ')}</Text>
-                        <View style={s.gridDayPill}>
-                          <Text style={s.gridDayPillText}>{selectedInDay} slots</Text>
-                        </View>
+          <View style={s.availOuterContainer}>
+            {/* Left Panel: Availability Calendar */}
+            <View style={s.availLeftPanel}>
+              <View style={s.availCard}>
+                {/* Title / Info Header */}
+                <View style={s.availHeaderRow}>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={s.availTitle}>Availability Calendar</Text>
+                      <View style={{ flexDirection: 'row', gap: 4 }}>
+                        <Pressable onPress={handlePrevWeek} style={s.navArrowSmall}>
+                          <ChevronLeft size={14} color="#fff" />
+                        </Pressable>
+                        <Pressable onPress={handleNextWeek} style={s.navArrowSmall}>
+                          <ChevronRight size={14} color="#fff" />
+                        </Pressable>
                       </View>
-                    );
-                  })}
-                </View>
+                    </View>
+                    <Text style={s.availSub}>
+                      {weekRangeTitle}  •  <Text style={{ color: MC.tealP, fontFamily: FONTS.bold }}>{openSlotsCount} open slots</Text>  •  <Text style={{ color: MC.amber, fontFamily: FONTS.bold }}>{bookedSlotsCount} booked</Text>
+                    </Text>
+                  </View>
 
-                {/* Rows for each hour */}
-                {['09:00', '10:00', '11:00', '12:00', '13:00', '14:00'].map((timeLabel) => (
-                  <View key={timeLabel} style={s.gridHourRow}>
-                    {/* Time Column */}
-                    <View style={s.gridTimeColCell}>
-                      <Text style={s.gridTimeText}>
-                        {parseInt(timeLabel) === 12 ? '12:00 PM' : parseInt(timeLabel) > 12 ? `${parseInt(timeLabel) - 12}:00 PM` : `${timeLabel} AM`}
-                      </Text>
+                  {/* Legend & Switcher */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                    <View style={s.legendRow}>
+                      <View style={s.legendItem}>
+                        <View style={[s.legendDot, { backgroundColor: '#14B8A6' }]} />
+                        <Text style={s.legendText}>Available</Text>
+                      </View>
+                      <View style={s.legendItem}>
+                        <View style={[s.legendDot, { backgroundColor: '#F59E0B' }]} />
+                        <Text style={s.legendText}>Booked</Text>
+                      </View>
+                      <View style={s.legendItem}>
+                        <View style={[s.legendDot, { backgroundColor: '#334155' }]} />
+                        <Text style={s.legendText}>Unavailable</Text>
+                      </View>
                     </View>
 
-                    {/* Day Columns */}
-                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map((dayCode) => {
-                      const slot = availabilitySlots.find((s) => s.day === dayCode && s.time === timeLabel) || 
-                                   availabilitySlots.find((s) => s.day === dayCode && s.time.startsWith(timeLabel.substring(0, 3))); // Fallback mapping
-                      
-                      const isBooked = slot?.status === 'booked';
-                      const isAvailable = slot?.status === 'available';
-                      const name = slot?.bookedBy;
-
-                      return (
-                        <Pressable 
-                          key={dayCode} 
-                          onPress={() => toggleSlot(dayCode, slot?.time || `${timeLabel}`)}
-                          disabled={isBooked}
-                          style={({ hovered }: any) => [
-                            s.gridDayColCell,
-                            isBooked && s.gridCellBooked,
-                            isAvailable && s.gridCellAvailable,
-                            hovered && !isBooked && { backgroundColor: 'rgba(20, 184, 166, 0.15)' }
-                          ]}
-                        >
-                          {isBooked ? (
-                            <View style={s.bookedContainer}>
-                              <Text style={s.bookedName}>{name}</Text>
-                              <View style={s.bookedIndicatorDot} />
-                            </View>
-                          ) : isAvailable ? (
-                            <View style={s.availableIndicatorDot} />
-                          ) : null}
-                        </Pressable>
-                      );
-                    })}
+                    {/* View switcher toggle */}
+                    <View style={s.switcherBox}>
+                      <Pressable 
+                        onPress={() => setLayoutMode('grid')}
+                        style={[s.switchBtn, layoutMode === 'grid' && s.switchBtnOn]}
+                      >
+                        <Grid size={14} color={layoutMode === 'grid' ? '#090D16' : '#94A3B8'} />
+                      </Pressable>
+                      <Pressable 
+                        onPress={() => setLayoutMode('columns')}
+                        style={[s.switchBtn, layoutMode === 'columns' && s.switchBtnOn]}
+                      >
+                        <List size={14} color={layoutMode === 'columns' ? '#090D16' : '#94A3B8'} />
+                      </Pressable>
+                    </View>
                   </View>
-                ))}
-              </View>
-            )}
+                </View>
 
-            {/* Layout B: Columns/List View (Screenshot 4) */}
-            {layoutMode === 'columns' && (
-              <View style={s.columnsOuterRow}>
-                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map((dayCode, dIdx) => {
-                  const dayName = ['Mon May 5', 'Tue May 6', 'Wed May 7', 'Thu May 8', 'Fri May 9'][dIdx];
-                  const daySlots = availabilitySlots.filter((s) => s.day === dayCode);
-                  const activeSlotsCount = daySlots.filter((s) => s.status === 'available').length;
-                  
-                  return (
-                    <View key={dayCode} style={s.columnContainer}>
-                      <View style={s.columnDayHeader}>
-                        <Text style={s.columnDayTitle}>{dayName.split(' ')[0]}</Text>
-                        <Text style={s.columnDaySub}>{dayName.split(' ').slice(1).join(' ')}</Text>
-                        <View style={[s.columnDayPill, activeSlotsCount > 0 && s.columnDayPillOn]}>
-                          <Text style={[s.columnDayPillText, activeSlotsCount > 0 && { color: '#090D16' }]}>
-                            {activeSlotsCount} slots
+                {/* Layout A: Calendar Grid View (Screenshot 3) */}
+                {layoutMode === 'grid' && (
+                  <View style={s.gridTableContainer}>
+                    {/* Header row containing Days */}
+                    <View style={s.gridHeaderRow}>
+                      <View style={s.gridTimeColHeader} />
+                      {weekDays.map((d, idx) => {
+                        const dayHeader = getDayHeaderStr(d);
+                        const dateStr = d.toISOString().split('T')[0];
+                        const dayCode = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][idx];
+                        
+                        const daySlots = TIME_PRESETS.map((time) => {
+                          let slot = availabilitySlots.find((s) => s.dateStr === dateStr && s.time === time);
+                          if (!slot) {
+                            slot = availabilitySlots.find((s) => s.day === dayCode && s.time === time && !s.dateStr);
+                          }
+                          return slot;
+                        });
+                        const selectedInDay = daySlots.filter(s => s && s.status === 'available').length;
+                        
+                        return (
+                          <View key={dayHeader} style={s.gridDayColHeader}>
+                            <Text style={s.gridDayTitle}>{dayHeader.split(' ')[0]}</Text>
+                            <Text style={s.gridDaySub}>{dayHeader.split(' ').slice(1).join(' ')}</Text>
+                            <View style={s.gridDayPill}>
+                              <Text style={s.gridDayPillText}>{selectedInDay} slots</Text>
+                            </View>
+                          </View>
+                        );
+                      })}
+                    </View>
+
+                    {/* Rows for each hour */}
+                    {['09:00', '10:00', '11:00', '12:00', '13:00', '14:00'].map((timeLabel) => (
+                      <View key={timeLabel} style={s.gridHourRow}>
+                        {/* Time Column */}
+                        <View style={s.gridTimeColCell}>
+                          <Text style={s.gridTimeText}>
+                            {parseInt(timeLabel) === 12 ? '12:00 PM' : parseInt(timeLabel) > 12 ? `${parseInt(timeLabel) - 12}:00 PM` : `${timeLabel} AM`}
                           </Text>
                         </View>
-                      </View>
 
-                      {/* List of times */}
-                      <View style={s.columnSlotsList}>
-                        {daySlots.map((slot) => {
-                          const isBooked = slot.status === 'booked';
-                          const isAvailable = slot.status === 'available';
+                        {/* Day Columns */}
+                        {weekDays.map((d, idx) => {
+                          const dateStr = d.toISOString().split('T')[0];
+                          const dayCode = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][idx];
                           
+                          let slot = availabilitySlots.find((s) => s.dateStr === dateStr && s.time === timeLabel);
+                          if (!slot) {
+                            slot = availabilitySlots.find((s) => s.day === dayCode && s.time === timeLabel && !s.dateStr);
+                          }
+                          
+                          const isBooked = slot?.status === 'booked';
+                          const isAvailable = slot?.status === 'available';
+                          const name = slot?.bookedBy;
+
                           return (
-                            <Pressable
-                              key={slot.time}
-                              onPress={() => toggleSlot(dayCode, slot.time)}
+                            <Pressable 
+                              key={dayCode} 
+                              onPress={() => toggleSlotForDate(dateStr, dayCode, slot?.time || `${timeLabel}`)}
                               disabled={isBooked}
                               style={({ hovered }: any) => [
-                                s.columnTimeCapsule,
-                                isBooked && s.columnCapsuleBooked,
-                                isAvailable && s.columnCapsuleAvailable,
-                                hovered && !isBooked && !isAvailable && { borderColor: 'rgba(255,255,255,0.2)' }
+                                s.gridDayColCell,
+                                isBooked && s.gridCellBooked,
+                                isAvailable && s.gridCellAvailable,
+                                hovered && !isBooked && { backgroundColor: 'rgba(20, 184, 166, 0.15)' }
                               ]}
                             >
-                              <Text style={[
-                                s.columnCapsuleText, 
-                                isBooked && { color: '#090D16', fontFamily: FONTS.bold },
-                                isAvailable && { color: '#fff', fontFamily: FONTS.bold }
-                              ]}>
-                                {slot.time}
-                              </Text>
                               {isBooked ? (
-                                <Text style={s.columnCapsuleName} numberOfLines={1}>{slot.bookedBy}</Text>
+                                <View style={s.bookedContainer}>
+                                  <Text style={s.bookedName}>{name}</Text>
+                                  <View style={s.bookedIndicatorDot} />
+                                </View>
                               ) : isAvailable ? (
-                                <View style={s.columnAvailableDot} />
+                                <View style={s.availableIndicatorDot} />
                               ) : null}
                             </Pressable>
                           );
                         })}
                       </View>
-                    </View>
-                  );
-                })}
-              </View>
-            )}
-
-            {/* Bottom Save Action Bar */}
-            <View style={s.availSaveBar}>
-              <Text style={s.availSaveSummary}>
-                {openSlotsCount} open slots  •  {bookedSlotsCount} sessions booked
-              </Text>
-              
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                {savedAt && (
-                  <Text style={s.saveSuccessText}>✓ Saved at {savedAt}</Text>
+                    ))}
+                  </View>
                 )}
+
+                {/* Layout B: Columns/List View (Screenshot 4) */}
+                {layoutMode === 'columns' && (
+                  <View style={s.columnsOuterRow}>
+                    {weekDays.map((d, dIdx) => {
+                      const dayHeader = getDayHeaderStr(d);
+                      const dateStr = d.toISOString().split('T')[0];
+                      const dayCode = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][dIdx];
+                      
+                      const baseTimes = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30'];
+                      const customTimes = availabilitySlots
+                        .filter((s) => s.dateStr === dateStr || (s.day === dayCode && !s.dateStr))
+                        .map((s) => s.time);
+                      const allTimes = Array.from(new Set([...baseTimes, ...customTimes])).sort();
+                      
+                      const daySlots = allTimes.map((time) => {
+                        let slot = availabilitySlots.find((s) => s.dateStr === dateStr && s.time === time);
+                        if (!slot) {
+                          slot = availabilitySlots.find((s) => s.day === dayCode && s.time === time && !s.dateStr);
+                        }
+                        return slot || { dateStr, day: dayCode, time, status: 'unavailable' as const };
+                      });
+                      
+                      const activeSlotsCount = daySlots.filter((s) => s.status === 'available').length;
+                      
+                      return (
+                        <View key={dayCode} style={s.columnContainer}>
+                          <View style={s.columnDayHeader}>
+                            <Text style={s.columnDayTitle}>{dayHeader.split(' ')[0]}</Text>
+                            <Text style={s.columnDaySub}>{dayHeader.split(' ').slice(1).join(' ')}</Text>
+                            <View style={[s.columnDayPill, activeSlotsCount > 0 && s.columnDayPillOn]}>
+                              <Text style={[s.columnDayPillText, activeSlotsCount > 0 && { color: '#090D16' }]}>
+                                {activeSlotsCount} slots
+                              </Text>
+                            </View>
+                          </View>
+
+                          {/* List of times */}
+                          <View style={s.columnSlotsList}>
+                            {daySlots.map((slot) => {
+                              const isBooked = slot.status === 'booked';
+                              const isAvailable = slot.status === 'available';
+                              
+                              return (
+                                <Pressable
+                                  key={slot.time}
+                                  onPress={() => toggleSlotForDate(dateStr, dayCode, slot.time)}
+                                  disabled={isBooked}
+                                  style={({ hovered }: any) => [
+                                    s.columnTimeCapsule,
+                                    isBooked && s.columnCapsuleBooked,
+                                    isAvailable && s.columnCapsuleAvailable,
+                                    hovered && !isBooked && !isAvailable && { borderColor: 'rgba(255,255,255,0.2)' }
+                                  ]}
+                                >
+                                  <Text style={[
+                                    s.columnCapsuleText, 
+                                    isBooked && { color: '#090D16', fontFamily: FONTS.bold },
+                                    isAvailable && { color: '#fff', fontFamily: FONTS.bold }
+                                  ]}>
+                                    {slot.time}
+                                  </Text>
+                                  {isBooked ? (
+                                    <Text style={s.columnCapsuleName} numberOfLines={1}>{slot.bookedBy}</Text>
+                                  ) : isAvailable ? (
+                                    <View style={s.columnAvailableDot} />
+                                  ) : null}
+                                </Pressable>
+                              );
+                            })}
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+
+                {/* Bottom Save Action Bar */}
+                <View style={s.availSaveBar}>
+                  <Text style={s.availSaveSummary}>
+                    {openSlotsCount} open slots  •  {bookedSlotsCount} sessions booked
+                  </Text>
+                  
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    {savedAt && (
+                      <Text style={s.saveSuccessText}>✓ Saved at {savedAt}</Text>
+                    )}
+                    
+                    <Pressable 
+                      onPress={saveAvailabilitySlots} 
+                      disabled={savingAvailability}
+                      style={({ hovered }: any) => [
+                        s.saveButton, 
+                        hovered && { backgroundColor: '#5EEAD4' },
+                        savingAvailability && { opacity: 0.7 }
+                      ]}
+                    >
+                      <CheckCircle2 size={14} color="#090D16" style={{ marginRight: 6 }} />
+                      <Text style={s.saveButtonText}>
+                        {savingAvailability ? 'Saving...' : 'Save Availability'}
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* Right Panel: Set Session Availability Form */}
+            <View style={s.availRightPanel}>
+              <View style={s.formCard}>
+                <Text style={s.formCardTitle}>Set Session Availability</Text>
+                <Text style={s.formCardSub}>Select a date, specify the time or range, and mark availability status.</Text>
                 
+                {/* Mini Month Calendar */}
+                <View style={s.formCalContainer}>
+                  <View style={s.monthRow}>
+                    <Pressable onPress={handleFormPrevMonth} style={s.navArrow}>
+                      <ChevronLeft size={16} color="#fff" />
+                    </Pressable>
+                    <Text style={s.formMonthLabel}>
+                      {MONTHS[formCalMonth]} {formCalYear}
+                    </Text>
+                    <Pressable onPress={handleFormNextMonth} style={s.navArrow}>
+                      <ChevronRight size={16} color="#fff" />
+                    </Pressable>
+                  </View>
+
+                  <View style={s.formWeekDaysRow}>
+                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => (
+                      <Text key={idx} style={s.formWeekDayName}>{day}</Text>
+                    ))}
+                  </View>
+
+                  <View style={s.formDaysGrid}>
+                    {formCalendarCells.map((day, idx) => {
+                      if (day === null) return <View key={`form-empty-${idx}`} style={s.formDayCellEmpty} />;
+                      
+                      const isSelected = formSelectedDate && 
+                        formSelectedDate.getDate() === day && 
+                        formSelectedDate.getMonth() === formCalMonth && 
+                        formSelectedDate.getFullYear() === formCalYear;
+                        
+                      return (
+                        <Pressable
+                          key={`form-day-${day}`}
+                          onPress={() => handleFormDaySelect(day)}
+                          style={[
+                            s.formDayCell,
+                            isSelected && s.formDayCellSelected,
+                          ]}
+                        >
+                          <Text style={[
+                            s.formDayText,
+                            isSelected && { color: '#090D16', fontFamily: FONTS.bold }
+                          ]}>
+                            {day}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* Selected Date Indicator */}
+                <View style={s.selectedDateBadge}>
+                  <Text style={s.selectedDateText}>
+                    {formSelectedDate ? formSelectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' }) : 'Select a date'}
+                  </Text>
+                </View>
+
+                {/* Time Selection Mode */}
+                <View style={s.formField}>
+                  <Text style={s.formFieldLabel}>Time Selection Mode</Text>
+                  <View style={s.modeToggleRow}>
+                    <Pressable 
+                      onPress={() => setTimeMode('single')} 
+                      style={[s.modeToggleBtn, timeMode === 'single' && s.modeToggleBtnActive]}
+                    >
+                      <Text style={[s.modeToggleText, timeMode === 'single' && { color: '#090D16', fontFamily: FONTS.bold }]}>Single Slot</Text>
+                    </Pressable>
+                    <Pressable 
+                      onPress={() => setTimeMode('range')} 
+                      style={[s.modeToggleBtn, timeMode === 'range' && s.modeToggleBtnActive]}
+                    >
+                      <Text style={[s.modeToggleText, timeMode === 'range' && { color: '#090D16', fontFamily: FONTS.bold }]}>Time Range</Text>
+                    </Pressable>
+                  </View>
+                </View>
+
+                {timeMode === 'single' ? (
+                  <View style={s.formField}>
+                    <Text style={s.formFieldLabel}>Select Time Slot</Text>
+                    <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                      {TIME_PRESETS.map((t) => (
+                        <Pressable
+                          key={t}
+                          onPress={() => setFormSingleTime(t)}
+                          style={[s.timePresetChipSmall, formSingleTime === t && s.timePresetChipSmallActive]}
+                        >
+                          <Text style={[s.timePresetTextSmall, formSingleTime === t && { color: '#090D16', fontFamily: FONTS.bold }]}>
+                            {t}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                ) : (
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <View style={[s.formField, { flex: 1 }]}>
+                      <Text style={s.formFieldLabel}>Start Time (HH:MM)</Text>
+                      <TextInput 
+                        value={formRangeStart} 
+                        onChangeText={setFormRangeStart} 
+                        style={s.formTextInput} 
+                        placeholder="09:00" 
+                        placeholderTextColor={MC.dim} 
+                      />
+                    </View>
+                    <View style={[s.formField, { flex: 1 }]}>
+                      <Text style={s.formFieldLabel}>End Time (HH:MM)</Text>
+                      <TextInput 
+                        value={formRangeEnd} 
+                        onChangeText={setFormRangeEnd} 
+                        style={s.formTextInput} 
+                        placeholder="17:00" 
+                        placeholderTextColor={MC.dim} 
+                      />
+                    </View>
+                  </View>
+                )}
+
+                {/* Status Selector */}
+                <View style={s.formField}>
+                  <Text style={s.formFieldLabel}>Availability Status</Text>
+                  <View style={s.statusToggleRow}>
+                    <Pressable 
+                      onPress={() => setFormStatus('available')} 
+                      style={[
+                        s.statusToggleBtn, 
+                        formStatus === 'available' && { backgroundColor: '#14B8A6', borderColor: '#14B8A6' }
+                      ]}
+                    >
+                      <View style={[s.legendDot, { backgroundColor: formStatus === 'available' ? '#090D16' : '#14B8A6', marginRight: 6 }]} />
+                      <Text style={[s.statusToggleText, formStatus === 'available' && { color: '#090D16', fontFamily: FONTS.bold }]}>Available</Text>
+                    </Pressable>
+                    <Pressable 
+                      onPress={() => setFormStatus('unavailable')} 
+                      style={[
+                        s.statusToggleBtn, 
+                        formStatus === 'unavailable' && { backgroundColor: '#475569', borderColor: '#475569' }
+                      ]}
+                    >
+                      <View style={[s.legendDot, { backgroundColor: formStatus === 'unavailable' ? '#fff' : '#475569', marginRight: 6 }]} />
+                      <Text style={[s.statusToggleText, formStatus === 'unavailable' && { color: '#fff', fontFamily: FONTS.bold }]}>Unavailable</Text>
+                    </Pressable>
+                  </View>
+                </View>
+
+                {/* Submit Action */}
                 <Pressable 
-                  onPress={saveAvailabilitySlots} 
-                  disabled={savingAvailability}
+                  onPress={handleApplyFormAvailability} 
                   style={({ hovered }: any) => [
-                    s.saveButton, 
-                    hovered && { backgroundColor: '#5EEAD4' },
-                    savingAvailability && { opacity: 0.7 }
+                    s.applyFormBtn, 
+                    hovered && { backgroundColor: '#5EEAD4' }
                   ]}
                 >
-                  <CheckCircle2 size={14} color="#090D16" style={{ marginRight: 6 }} />
-                  <Text style={s.saveButtonText}>
-                    {savingAvailability ? 'Saving...' : 'Save Availability'}
-                  </Text>
+                  <Text style={s.applyFormBtnText}>Apply Availability</Text>
                 </Pressable>
+                
+                {formSuccessMsg && (
+                  <Text style={s.formSuccessText}>{formSuccessMsg}</Text>
+                )}
               </View>
             </View>
           </View>
@@ -1621,4 +2035,220 @@ const s = StyleSheet.create({
   modalActions: { flexDirection: 'row', width: '100%', gap: 10, marginTop: 6 },
   modalCancelBtn: { flex: 1, height: 38, borderRadius: 10, borderWidth: 1, borderColor: MC.border, alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
   modalConfirmBtn: { flex: 1, height: 38, borderRadius: 10, backgroundColor: MC.tealP, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
+  
+  // Custom availability layout & form styles
+  availOuterContainer: {
+    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    gap: 20,
+    width: '100%',
+    alignItems: 'flex-start'
+  },
+  availLeftPanel: {
+    flex: Platform.OS === 'web' ? 2 : 1,
+    width: '100%',
+  },
+  availRightPanel: {
+    flex: Platform.OS === 'web' ? 1 : 1,
+    width: '100%',
+  },
+  navArrowSmall: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any)
+  },
+  formCard: {
+    backgroundColor: MC.card,
+    borderColor: MC.border,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 18,
+    gap: 14,
+    width: '100%'
+  },
+  formCardTitle: {
+    color: '#fff',
+    fontFamily: FONTS.xbold,
+    fontSize: 16
+  },
+  formCardSub: {
+    color: MC.dim,
+    fontFamily: FONTS.med,
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: -4
+  },
+  formCalContainer: {
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    borderColor: MC.border,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 10,
+    marginTop: 6
+  },
+  formMonthLabel: {
+    color: '#fff',
+    fontFamily: FONTS.bold,
+    fontSize: 13
+  },
+  formWeekDaysRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 6,
+    marginTop: 4
+  },
+  formWeekDayName: {
+    color: MC.dim,
+    fontFamily: FONTS.bold,
+    fontSize: 10,
+    width: 24,
+    textAlign: 'center'
+  },
+  formDaysGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start'
+  },
+  formDayCell: {
+    width: `${100 / 7}%`,
+    aspectRatio: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 6,
+    marginVertical: 1,
+    ...({ cursor: 'pointer' } as any)
+  },
+  formDayCellEmpty: {
+    width: `${100 / 7}%`,
+    aspectRatio: 1
+  },
+  formDayCellSelected: {
+    backgroundColor: '#14B8A6'
+  },
+  formDayText: {
+    color: '#fff',
+    fontFamily: FONTS.med,
+    fontSize: 11
+  },
+  selectedDateBadge: {
+    backgroundColor: 'rgba(20, 184, 166, 0.08)',
+    borderColor: 'rgba(20, 184, 166, 0.2)',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 8,
+    alignItems: 'center'
+  },
+  selectedDateText: {
+    color: '#5EEAD4',
+    fontFamily: FONTS.bold,
+    fontSize: 11.5
+  },
+  formField: {
+    gap: 6
+  },
+  formFieldLabel: {
+    color: MC.muted,
+    fontFamily: FONTS.bold,
+    fontSize: 11,
+    letterSpacing: 0.5
+  },
+  modeToggleRow: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: MC.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 3
+  },
+  modeToggleBtn: {
+    flex: 1,
+    paddingVertical: 6,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    ...({ cursor: 'pointer' } as any)
+  },
+  modeToggleBtnActive: {
+    backgroundColor: '#14B8A6'
+  },
+  modeToggleText: {
+    color: MC.muted,
+    fontFamily: FONTS.med,
+    fontSize: 11
+  },
+  timePresetChipSmall: {
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: MC.border
+  },
+  timePresetChipSmallActive: {
+    backgroundColor: '#14B8A6',
+    borderColor: '#14B8A6'
+  },
+  timePresetTextSmall: {
+    color: MC.muted,
+    fontFamily: FONTS.med,
+    fontSize: 11
+  },
+  formTextInput: {
+    height: 34,
+    borderRadius: 8,
+    borderColor: MC.border,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    color: '#fff',
+    fontFamily: FONTS.med,
+    fontSize: 12,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {})
+  },
+  statusToggleRow: {
+    flexDirection: 'row',
+    gap: 8
+  },
+  statusToggleBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 34,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: MC.border,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    ...({ cursor: 'pointer' } as any)
+  },
+  statusToggleText: {
+    color: MC.muted,
+    fontFamily: FONTS.med,
+    fontSize: 11
+  },
+  applyFormBtn: {
+    backgroundColor: '#14B8A6',
+    height: 38,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 6,
+    ...({ cursor: 'pointer' } as any)
+  },
+  applyFormBtnText: {
+    color: '#090D16',
+    fontFamily: FONTS.xbold,
+    fontSize: 13
+  },
+  formSuccessText: {
+    color: '#10B981',
+    fontFamily: FONTS.bold,
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 4
+  }
 });

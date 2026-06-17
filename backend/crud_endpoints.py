@@ -35,25 +35,36 @@ ENDPOINTS:
 """
 from __future__ import annotations
 
+from pydantic import BaseModel
 import os
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+import asyncio
 from typing import Any, Dict, Optional, List
 
 from bson import ObjectId
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Request
-from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel
 
 load_dotenv(Path(__file__).parent / ".env")
 
-_db = AsyncIOMotorClient(os.environ["MONGO_URL"])[os.environ["DB_NAME"]]
+from db import db as _db
 router = APIRouter()
 
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+import logging
+logger = logging.getLogger("crud_endpoints")
+
+def _fire_and_forget(coro):
+    async def _task():
+        try:
+            await coro
+        except Exception as e:
+            logger.error(f"Background task failed: {e}")
+    asyncio.create_task(_task())
 
 
 def _short_id(oid) -> str:
@@ -103,11 +114,15 @@ async def create_booking(req: BookingCreate):
 
     doc = {
         "student_id": str(student["_id"]),
+        "student_name": student.get("full_name") or "Student",
         "student_email": student["email"],
         "mentor_id": str(mentor["_id"]),
+        "mentor_name": mentor.get("full_name") or "Mentor",
         "mentor_email": mentor["email"],
         "topic": req.topic,
         "scheduled_at": sched,
+        "slot_start_iso": sched.isoformat(),
+        "slot_end_iso": (sched + timedelta(minutes=req.duration_minutes)).isoformat(),
         "duration_minutes": req.duration_minutes,
         "amount_paid": mentor.get("expected_rate_inr", 999),
         "status": "pending",
@@ -208,6 +223,59 @@ async def cancel_booking(booking_id: str):
         raise HTTPException(404, "Booking not found")
 
 
+@router.post("/student/bookings/{booking_id}/complete")
+async def complete_booking(booking_id: str):
+    q: Dict[str, Any] = {}
+    matched_in_bookings = False
+    matched_in_sessions = False
+    is_oid = False
+    try:
+        if len(booking_id) == 24:
+            booking_oid = ObjectId(booking_id)
+            is_oid = True
+            if await _db.bookings.find_one({"_id": booking_oid}):
+                q = {"_id": booking_oid}
+                matched_in_bookings = True
+            elif await _db.sessions.find_one({"_id": booking_oid}):
+                q = {"_id": booking_oid}
+                matched_in_sessions = True
+    except Exception:
+        pass
+
+    if not is_oid or (not matched_in_bookings and not matched_in_sessions):
+        import re
+        booking_rx = f"{re.escape(booking_id)}$"
+        bookings_matches = []
+        async for b in _db.bookings.find({"$expr": {"$regexMatch": {"input": {"$toString": "$_id"}, "regex": booking_rx, "options": "i"}}}, {"_id": 1}):
+            bookings_matches.append(b)
+        sessions_matches = []
+        async for s in _db.sessions.find({"$expr": {"$regexMatch": {"input": {"$toString": "$_id"}, "regex": booking_rx, "options": "i"}}}, {"_id": 1}):
+            sessions_matches.append(s)
+
+        total_matches = len(bookings_matches) + len(sessions_matches)
+        if total_matches > 1:
+            raise HTTPException(400, "Ambiguous booking ID")
+        elif len(bookings_matches) == 1:
+            q = {"_id": bookings_matches[0]["_id"]}
+            matched_in_bookings = True
+        elif len(sessions_matches) == 1:
+            q = {"_id": sessions_matches[0]["_id"]}
+            matched_in_sessions = True
+
+    if matched_in_bookings:
+        res = await _db.bookings.update_one(q, {"$set": {"status": "completed", "completed_at": _now()}})
+        if res.modified_count == 0:
+            raise HTTPException(404, "Booking not found")
+        return {"ok": True, "completed": True}
+    elif matched_in_sessions:
+        res = await _db.sessions.update_one(q, {"$set": {"status": "completed", "completed_at": _now()}})
+        if res.modified_count == 0:
+            raise HTTPException(404, "Session not found")
+        return {"ok": True, "completed": True}
+    else:
+        raise HTTPException(404, "Booking not found")
+
+
 @router.get("/student/my-bookings")
 async def my_bookings(email: Optional[str] = None, status: Optional[str] = None):
     student = await _resolve_user("student", email)
@@ -262,18 +330,28 @@ async def my_bookings(email: Optional[str] = None, status: Optional[str] = None)
     out = []
 
     # Map legacy bookings
+    now = _now()
     for b in raw_bookings:
         mid_str = b.get("mentor_id")
         mentor = mentors_map.get(mid_str) if mid_str else None
+        
+        status = b.get("status")
+        sched = b.get("scheduled_at")
+        if sched and isinstance(sched, datetime):
+            if status == "confirmed" and sched.replace(tzinfo=timezone.utc) < now:
+                status = "completed"
+                # Best-effort DB update
+                _fire_and_forget(_db.bookings.update_one({"_id": b["_id"]}, {"$set": {"status": "completed"}}))
+        
         out.append({
             "id": _short_id(b["_id"]),
             "topic": b.get("topic") or "1:1 Mentorship Session",
             "mentor_name": (mentor or {}).get("full_name") or (mentor or {}).get("name") or "Mentor",
             "mentor_email": b.get("mentor_email") or (mentor or {}).get("email"),
-            "scheduled_at": b.get("scheduled_at"),
+            "scheduled_at": sched,
             "duration_minutes": b.get("duration_minutes", 45),
             "amount_paid": b.get("amount_paid") or (mentor or {}).get("expected_rate_inr") or 0,
-            "status": b.get("status"),
+            "status": status,
         })
 
     # Map slot-based sessions
@@ -281,6 +359,14 @@ async def my_bookings(email: Optional[str] = None, status: Optional[str] = None)
         mid_str = s.get("mentor_id")
         mentor = mentors_map.get(mid_str) if mid_str else None
         s_status = s.get("status")
+        
+        sched = s.get("scheduled_at")
+        if sched and isinstance(sched, datetime):
+            if s_status in ["booked", "scheduled", "confirmed"] and sched.replace(tzinfo=timezone.utc) < now:
+                s_status = "completed"
+                # Best-effort DB update
+                _fire_and_forget(_db.sessions.update_one({"_id": s["_id"]}, {"$set": {"status": "completed"}}))
+
         # Map all session statuses cleanly
         mapped_status = (
             "confirmed" if s_status in ["booked", "scheduled", "confirmed"]
@@ -293,13 +379,13 @@ async def my_bookings(email: Optional[str] = None, status: Optional[str] = None)
             "topic": s.get("topic") or "1:1 Mentorship Session",
             "mentor_name": (mentor or {}).get("full_name") or (mentor or {}).get("name") or "Mentor",
             "mentor_email": (mentor or {}).get("email") or s.get("mentor_email"),
-            "scheduled_at": s.get("scheduled_at"),
+            "scheduled_at": sched,
             "duration_minutes": s.get("duration_minutes", 30),
             "amount_paid": (mentor or {}).get("expected_rate_inr") or 0,
             "status": mapped_status,
         })
 
-    # Sort unified list chronologically by scheduled_at
+    # Sort unified list chronologically by scheduled_at in descending order
     def get_sched(x):
         val = x.get("scheduled_at")
         if isinstance(val, datetime):
@@ -311,7 +397,7 @@ async def my_bookings(email: Optional[str] = None, status: Optional[str] = None)
                 pass
         return datetime.min
 
-    out.sort(key=get_sched)
+    out.sort(key=get_sched, reverse=True)
     return {"items": out, "count": len(out), "student_email": student["email"]}
 
 
@@ -645,6 +731,13 @@ class AvailabilitySet(BaseModel):
     slots: List[AvailabilityItem]
 
 
+@router.get("/mentor/availability")
+async def get_availability(email: Optional[str] = None):
+    mentor = await _resolve_user("mentor", email)
+    docs = await _db.mentor_availability.find({"mentor_id": str(mentor["_id"])}, {"_id": 0}).to_list(100)
+    return {"slots": docs}
+
+
 @router.post("/mentor/availability")
 async def set_availability(req: AvailabilitySet):
     mentor = await _resolve_user("mentor", req.mentor_email)
@@ -708,7 +801,7 @@ class UserInvite(BaseModel):
 
 @router.post("/admin/users/invite")
 async def invite_user(req: UserInvite):
-    if req.role not in ("student", "mentor", "college", "admin"):
+    if req.role not in ("student", "mentor", "college", "admin", "super_admin"):
         raise HTTPException(400, "Invalid role")
     existing = await _db.users.find_one({"email": req.email})
     if existing:

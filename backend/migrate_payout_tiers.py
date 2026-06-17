@@ -3,9 +3,6 @@ MongoDB migration: seed default payout tiers and create indexes.
 Run:  python migrate_payout_tiers.py
 """
 import asyncio
-from motor.motor_asyncio import AsyncIOMotorClient
-
-MONGO_URI = "mongodb://localhost:27017"
 DB_NAME = "student_alumni"
 
 DEFAULT_TIERS = [
@@ -17,7 +14,7 @@ DEFAULT_TIERS = [
 
 
 async def migrate():
-    client = AsyncIOMotorClient(MONGO_URI)
+    from db import client as client
     db = client[DB_NAME]
 
     existing = await db.payout_tiers.count_documents({})

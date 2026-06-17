@@ -32,9 +32,6 @@ from typing import Any, Dict, List
 
 import bcrypt
 from dotenv import load_dotenv
-from motor.motor_asyncio import AsyncIOMotorClient
-
-load_dotenv(Path(__file__).parent / ".env")
 
 from seed_real_datasets import (
     COLLEGES_REAL, COMPANIES_REAL, SKILLS_REAL,
@@ -45,7 +42,7 @@ from tier_logic import (
 )
 
 # Mongo
-_mongo = AsyncIOMotorClient(os.environ["MONGO_URL"])
+from db import client as _mongo
 _db = _mongo[os.environ["DB_NAME"]]
 
 # Global RNG seed for reproducibility

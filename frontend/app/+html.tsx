@@ -24,6 +24,11 @@ export default function Root({ children }: PropsWithChildren) {
               body > div:first-child { position: fixed !important; top: 0; left: 0; right: 0; bottom: 0; }
               [role="tablist"] [role="tab"] * { overflow: visible !important; }
               [role="heading"], [role="heading"] * { overflow: visible !important; }
+              ::-webkit-scrollbar { width: 6px; height: 6px; }
+              ::-webkit-scrollbar-track { background: transparent; }
+              ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 10px; }
+              ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+              * { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.15) transparent; }
             `,
           }}
         />

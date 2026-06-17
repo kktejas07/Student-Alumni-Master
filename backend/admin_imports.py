@@ -23,6 +23,7 @@ Categorization rules (applied in order, first match wins):
 
 Internships (Intern / Internship / Trainee in designation) do NOT count.
 """
+from pydantic import BaseModel
 import io
 import os
 import re
@@ -32,8 +33,6 @@ from typing import Any, Dict, List, Optional, Tuple
 from bson import ObjectId
 from dotenv import load_dotenv
 from fastapi import APIRouter, File, Header, HTTPException, UploadFile
-from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel
 
 load_dotenv()
 
@@ -49,7 +48,7 @@ except Exception:
 # ─── Mongo ─────────────────────────────────────────────────────────
 _MONGO_URL = os.getenv("MONGO_URL") or "mongodb://localhost:27017"
 _DB_NAME   = os.getenv("DB_NAME") or "career_platform"
-_client    = AsyncIOMotorClient(_MONGO_URL)
+from db import client as _client
 _db        = _client[_DB_NAME]
 
 # ─── Token / role helpers ──────────────────────────────────────────
@@ -85,7 +84,7 @@ async def _require_admin(authorization: Optional[str]) -> dict:
     if not user:
         raise HTTPException(401, "Not authenticated")
     role = (user.get("role") or "").lower()
-    if role not in {"admin"}:
+    if role not in {"admin", "super_admin"}:
         raise HTTPException(403, "Super-admin role required")
     return user
 

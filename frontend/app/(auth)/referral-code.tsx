@@ -1,3 +1,4 @@
+import { getBaseUrl } from '@/src/lib/env';
 /**
  * Referral Code — per HTML spec screen "Referral Code".
  *
@@ -16,7 +17,7 @@ import { AC, FONTS } from '@/src/views/auth/tokens';
 import { trackAuth } from '@/src/lib/authAnalytics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BASE = getBaseUrl();
 
 export default function ReferralCode() {
   const router = useRouter();
@@ -73,7 +74,16 @@ export default function ReferralCode() {
 
   return (
     <AuthShell role={role as any}>
-      <Pressable onPress={() => router.back()} style={s.back}>
+      <Pressable
+        onPress={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/(auth)/login');
+          }
+        }}
+        style={s.back}
+      >
         <ArrowLeft size={16} color={AC.muted} />
         <Text style={s.backText}>Back</Text>
       </Pressable>

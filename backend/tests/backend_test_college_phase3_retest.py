@@ -5,9 +5,11 @@ Re-test for College Portal Phase 3 — only re-test the 2 previously failing end
 """
 import json
 import sys
+import os
 import requests
 
-BASE = "https://hiring-mvvm.preview.emergentagent.com/api"
+BACKEND_URL = os.environ.get("BACKEND_URL", "https://hiring-mvvm.preview.emergentagent.com").rstrip("/")
+BASE = BACKEND_URL + "/api"
 EMAIL = "realtime@studentalumni.in"
 PASSWORD = "RealTime@2026"
 

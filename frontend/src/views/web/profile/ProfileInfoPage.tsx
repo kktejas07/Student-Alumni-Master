@@ -2,13 +2,23 @@
  * Page 1 — Profile Information.
  * Sections: Profile Completion banner, Basic Info, Contact, Academic, Interests, Social, Skills.
  */
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, Alert } from 'react-native';
-import { Mail, Phone, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Sparkles, Check, X, Upload, Camera } from 'lucide-react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, Alert, Modal } from 'react-native';
+import { Mail, Phone, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Sparkles, Check, X, Upload, Camera, TrendingUp, AlertCircle } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { WebcamModal } from '@/src/views/components/WebcamModal';
 import { CompletionRing } from './CompletionRing';
 import { Card, Field, TF, TA, SF, ChipPicker, C, PhoneField } from './primitives';
+import { request } from '@/src/models/services/api';
+import { useToast } from '@/src/views/components';
+
+const TAXONOMY_KEYS = [
+  "React", "React Native", "Next.js", "Node.js", "TypeScript", "JavaScript", "Python", "Java", "C++", 
+  "Docker", "AWS", "MongoDB", "PostgreSQL", "SQL", "HTML", "CSS", "Machine Learning", "Data Science", 
+  "System Design", "Teamwork", "Time Management", "Problem Solving", "Critical Thinking", "Adaptability", 
+  "Communication", "Public Speaking", "Presentation", "Writing", "Leadership", "Management", "Mentoring", 
+  "Project Management", "Networking", "LinkedIn", "Interview Prep", "Mock Interviews", "Resume Building"
+];
 
 const INTERESTS = [
   'Software Engineering', 'Product Management', 'Data Science', 'AI / ML',
@@ -57,10 +67,33 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
   const handleOpenMenu = () => setModalVisible(true);
   const handleCloseMenu = () => setModalVisible(false);
 
-  const setField = (k: string, v: any) => setDraft((d) => ({ ...d, [k]: v }));
+  const setField = (k: string, v: any) => setDraft((d: any) => ({ ...d, [k]: v }));
   const interests: string[] = draft.interests || [];
   const [skillInput, setSkillInput] = useState('');
   const [webcamVisible, setWebcamVisible] = useState(false);
+  
+  const toast = useToast();
+  
+  // Skill Intelligence State
+  const [skillIntel, setSkillIntel] = useState<any>(null);
+  const [loadingIntel, setLoadingIntel] = useState(false);
+  const [selectedSkill, setSelectedSkill] = useState<any>(null); // For modal
+
+  useEffect(() => {
+    fetchSkillIntelligence();
+  }, []);
+
+  const fetchSkillIntelligence = async () => {
+    setLoadingIntel(true);
+    try {
+      const res = await request<any>('/users/me/skill-intelligence');
+      setSkillIntel(res);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingIntel(false);
+    }
+  };
 
   const takeSelfie = async () => {
     if (Platform.OS === 'web') {
@@ -97,30 +130,87 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
     }
   };
 
-  const addSkillsFromInput = () => {
-    const raw = skillInput.trim();
+  const addSkillsFromInput = async (skillToAdd?: string) => {
+    const raw = skillToAdd || skillInput.trim();
     if (!raw) return;
-    const tokens = raw
-      .split(',')
-      .map((s) => s.trim().replace(/\s+/g, ' '))
-      .filter(Boolean);
-    if (!tokens.length) return;
+    
+    // Optimistic clear
+    if (!skillToAdd) setSkillInput('');
 
-    const existing: string[] = draft.skills || [];
-    const merged = [...existing];
-    tokens.forEach((token) => {
-      if (!merged.some((v) => v.toLowerCase() === token.toLowerCase())) {
-        merged.push(token);
+    try {
+      const res = await request<any>('/users/me/skills', {
+        method: 'POST',
+        body: { skill: raw }
+      });
+      
+      if (res.status === 'exists') {
+        toast.info('Skill exists', `${raw} is already on your profile.`);
+        return;
       }
-    });
-    setField('skills', merged);
-    setSkillInput('');
+      
+      // Update local draft array for legacy sync
+      const existing: string[] = draft.skills || [];
+      if (!existing.some(s => s.toLowerCase() === raw.toLowerCase())) {
+        setField('skills', [...existing, raw]);
+      }
+      
+      // Re-fetch intelligence to update UI
+      await fetchSkillIntelligence();
+      
+      // Show instant impact toast
+      if (res.skill && res.skill.weight) {
+        const bScore = res.before_score || 0;
+        const aScore = res.after_score || 0;
+        const delta = Math.max(0, aScore - bScore);
+        const bLevel = res.before_level || 'Explorer';
+        const aLevel = res.after_level || 'Explorer';
+
+        // Map display_category to a human-friendly singular label
+        const CAT_LABELS: Record<string, string> = {
+          technical_skills: 'Technical Skill',
+          communication: 'Communication',
+          soft_skills: 'Soft Skill',
+          interview_prep: 'Interview Prep',
+          networking: 'Networking',
+          leadership: 'Leadership',
+        };
+        const rawCat = (res.skill.display_category || 'skill').toLowerCase();
+        const catLabel = CAT_LABELS[rawCat] || (res.skill.display_category || 'Skill');
+
+        let msg = `+${res.skill.weight} ${catLabel} Points`;
+        if (delta > 0) msg += `\nCareer Readiness: +${Math.round(delta)}%`;
+        if (bLevel !== aLevel) {
+          msg += `\nLevel: ${bLevel} → ${aLevel} 🎉`;
+        }
+
+        toast.success('✓ Skill Analyzed', msg);
+      }
+      
+    } catch (e: any) {
+      toast.error('Failed to add skill', e?.message || 'Try again.');
+      if (!skillToAdd) setSkillInput(raw); // restore
+    }
   };
 
-  const removeSkill = (skill: string) => {
-    const existing: string[] = draft.skills || [];
-    setField('skills', existing.filter((s) => s.toLowerCase() !== skill.toLowerCase()));
+  const removeSkill = async (skillName: string) => {
+    try {
+      await request(`/users/me/skills/${encodeURIComponent(skillName)}`, { method: 'DELETE' });
+      
+      const existing: string[] = draft.skills || [];
+      setField('skills', existing.filter((s) => s.toLowerCase() !== skillName.toLowerCase()));
+      
+      await fetchSkillIntelligence();
+      toast.info('Removed', `${skillName} removed from profile.`);
+    } catch (e) {
+      toast.error('Error', 'Could not remove skill.');
+    }
   };
+
+  const filteredSuggestions = skillInput.length >= 2 
+    ? TAXONOMY_KEYS.filter(k => k.toLowerCase().includes(skillInput.toLowerCase()) && 
+      !(skillIntel?.skills || []).some((s: any) => s.skill_name.toLowerCase() === k.toLowerCase()))
+      .slice(0, 3)
+    : [];
 
   return (
     <View style={{ gap: 16 }}>
@@ -148,7 +238,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
       <Card title="Basic Information" subtitle="Your name, photo, and a short tagline.">
         <View style={st.photoRow}>
           <View style={{ position: 'relative' }}>
-            <Pressable onPress={onUploadPhoto} style={st.avatarLg} testID="profile-avatar-upload">
+            <Pressable onPress={handleOpenMenu} style={st.avatarLg} testID="profile-avatar-upload">
               {photo ? (
                 <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
               ) : (
@@ -178,13 +268,9 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
                 </>
               ) : (
                 <>
-                  <Pressable onPress={onUploadPhoto} style={st.btnPrimary} testID="pf-upload-photo">
+                  <Pressable onPress={handleOpenMenu} style={st.btnPrimary} testID="pf-upload-photo">
                     <Upload size={14} color="#FFF" />
                     <Text style={st.btnPrimaryText}>Upload Photo</Text>
-                  </Pressable>
-                  <Pressable onPress={takeSelfie} style={st.btnPrimary} testID="pf-take-selfie">
-                    <Camera size={14} color="#FFF" />
-                    <Text style={st.btnPrimaryText}>Take Selfie</Text>
                   </Pressable>
                   {photo && (
                     <Pressable onPress={() => {
@@ -215,18 +301,21 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
 
               {/* Selection Items */}
               <View style={{ width: '100%', gap: 10 }}>
-                {onTakeSelfie && (
-                  <Pressable
-                    onPress={() => {
-                      handleCloseMenu();
+                <Pressable
+                  onPress={() => {
+                    handleCloseMenu();
+                    if (onTakeSelfie) {
                       onTakeSelfie();
-                    }}
-                    style={st.menuItem}
-                  >
-                    <Camera size={18} color={themeColor} />
-                    <Text style={st.menuItemText}>Take Selfie</Text>
-                  </Pressable>
-                )}
+                    } else {
+                      takeSelfie();
+                    }
+                  }}
+                  style={st.menuItem}
+                  testID="pf-select-take-selfie"
+                >
+                  <Camera size={18} color={themeColor} />
+                  <Text style={st.menuItemText}>Take Selfie</Text>
+                </Pressable>
 
                 <Pressable
                   onPress={() => {
@@ -234,11 +323,11 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
                     onUploadPhoto();
                   }}
                   style={st.menuItem}
+                  testID="pf-select-upload-photo"
                 >
                   <Upload size={18} color={themeColor} />
                   <Text style={st.menuItemText}>Upload Photo</Text>
                 </Pressable>
-
               </View>
             </View>
           </View>
@@ -287,36 +376,157 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
 
       {/* Social Links */}
       <Card title="Social Links" subtitle="Show up on your network cards & profile detail.">
+        <View nativeID="linkedin">
         <Field label="LinkedIn"><TF value={draft.linkedin_url || ''} onChangeText={(v) => setField('linkedin_url', v)} leftIcon={<Link2 size={14} color={C.text2} />} placeholder="https://linkedin.com/in/username" testID="pf-linkedin" /></Field>
+        </View>
+        <View nativeID="github">
         <Field label="GitHub"><TF value={draft.github_url || ''} onChangeText={(v) => setField('github_url', v)} leftIcon={<GithubIcon size={14} color={C.text2} />} placeholder="https://github.com/username" testID="pf-github" /></Field>
+        </View>
         <Field label="Portfolio / Website"><TF value={draft.portfolio_url || ''} onChangeText={(v) => setField('portfolio_url', v)} leftIcon={<Globe size={14} color={C.text2} />} placeholder="https://yoursite.com" testID="pf-portfolio" /></Field>
       </Card>
 
-      {/* Skills */}
-      <Card title="Skills" subtitle="Add one or multiple skills (comma-separated), then click Add Skill.">
-        <View style={st.skillInputRow}>
-          <View style={{ flex: 1 }}>
-            <TF
-              value={skillInput}
-              onChangeText={setSkillInput}
-              onSubmitEditing={addSkillsFromInput}
-              placeholder="e.g. Python, Figma, React, Public Speaking"
-              testID="pf-skills"
-            />
-          </View>
-          <Pressable onPress={addSkillsFromInput} style={st.skillAddBtn}>
-            <Text style={st.skillAddBtnText}>Add Skill</Text>
-          </Pressable>
-        </View>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 4 }}>
-          {(draft.skills || []).map((sk: string, i: number) => (
-            <Pressable key={`${sk}-${i}`} onPress={() => removeSkill(sk)} style={st.skillChip}>
-              <Text style={st.skillChipText}>{sk}</Text>
-              <X size={11} color="#C4B5FD" />
+      {/* Skill Intelligence Experience */}
+      <View nativeID="skills">
+      <Card title="Skill Intelligence" subtitle="Add skills to instantly see how AI categorizes them and impacts your career readiness.">
+        
+        {/* Typeahead Input */}
+        <View style={{ zIndex: 50 }}>
+          <View style={st.skillInputRow}>
+            <View style={{ flex: 1 }}>
+              <TF
+                value={skillInput}
+                onChangeText={setSkillInput}
+                onSubmitEditing={() => addSkillsFromInput()}
+                placeholder="e.g. React, Docker, Leadership"
+                testID="pf-skills"
+              />
+            </View>
+            <Pressable onPress={() => addSkillsFromInput()} style={st.skillAddBtn}>
+              <Text style={st.skillAddBtnText}>Analyze & Add</Text>
             </Pressable>
-          ))}
+          </View>
+          
+          {/* Suggestions Dropdown */}
+          {filteredSuggestions.length > 0 && (
+            <View style={st.suggestionsBox}>
+              {filteredSuggestions.map(sug => (
+                <Pressable key={sug} onPress={() => addSkillsFromInput(sug)} style={st.suggestionItem}>
+                  <Sparkles size={12} color="#A78BFA" />
+                  <Text style={st.suggestionText}>{sug}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
         </View>
+
+        {/* Rich Skill Chips */}
+        <View style={st.chipsContainer}>
+          {(skillIntel?.skills || []).map((sk: any, i: number) => {
+            const isAI = sk.source === 'ai';
+            return (
+              <Pressable key={sk._id || i} onPress={() => setSelectedSkill(sk)} style={st.richChip}>
+                <View style={st.richChipTop}>
+                  <Text style={st.richChipName}>{sk.skill_name}</Text>
+                  <Pressable onPress={(e) => { e.stopPropagation(); removeSkill(sk.skill_name); }} style={st.richChipDel}>
+                    <X size={12} color="rgba(255,255,255,0.4)" />
+                  </Pressable>
+                </View>
+                <View style={st.richChipBottom}>
+                  <View style={[st.richBadge, { backgroundColor: isAI ? 'rgba(236,72,153,0.15)' : 'rgba(16,185,129,0.15)' }]}>
+                    <Text style={[st.richBadgeText, { color: isAI ? '#F472B6' : '#34D399' }]}>{sk.subcategory || 'Uncategorized'}</Text>
+                  </View>
+                  <View style={st.richBadge}>
+                    <Text style={st.richBadgeText}>+{sk.weight || 0} Pts</Text>
+                  </View>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {/* Intelligence Panel */}
+        {skillIntel && skillIntel.analytics && (
+          <View style={st.intelPanel}>
+            <View style={st.intelHeader}>
+              <TrendingUp size={16} color="#A78BFA" />
+              <Text style={st.intelTitle}>Career Readiness Impact</Text>
+            </View>
+            
+            <View style={st.intelGrid}>
+              {Object.entries(skillIntel.analytics.display_categories || {}).filter(([_,v]) => (v as number) > 0).map(([k, v]) => (
+                <View key={k} style={st.intelStat}>
+                  <Text style={st.intelStatLabel}>{k.split('_').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ')}</Text>
+                  <Text style={st.intelStatValue}>+{Math.round(v as number)} Points</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 16, marginTop: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={st.intelSubHeading}>Detected Strengths</Text>
+                {skillIntel.analytics.strengths?.length > 0 ? (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                    {skillIntel.analytics.strengths.map((s: string) => (
+                      <View key={s} style={st.strengthBadge}><Check size={10} color="#10B981"/><Text style={st.strengthText}>{s}</Text></View>
+                    ))}
+                  </View>
+                ) : <Text style={st.intelEmpty}>No clear strengths yet.</Text>}
+              </View>
+
+              <View style={{ flex: 1 }}>
+                <Text style={st.intelSubHeading}>Missing Areas (Gaps)</Text>
+                {skillIntel.analytics.gaps?.length > 0 ? (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                    {skillIntel.analytics.gaps.map((g: string) => (
+                      <View key={g} style={st.gapBadge}><AlertCircle size={10} color="#F59E0B"/><Text style={st.gapText}>{g.split('_').join(' ')}</Text></View>
+                    ))}
+                  </View>
+                ) : <Text style={st.intelEmpty}>No critical gaps!</Text>}
+              </View>
+            </View>
+          </View>
+        )}
       </Card>
+      </View>
+
+      {/* Skill Details Modal */}
+      {selectedSkill && (
+        <View style={st.modalBackdrop}>
+          <View style={st.modalCard}>
+            <View style={st.modalHeader}>
+              <Text style={st.modalTitle}>Skill Intelligence Data</Text>
+              <Pressable onPress={() => setSelectedSkill(null)} style={st.modalCloseBtn}>
+                <X size={18} color="rgba(255,255,255,0.7)" />
+              </Pressable>
+            </View>
+            
+            <View style={{ width: '100%', gap: 12, alignItems: 'flex-start' }}>
+              <Text style={{ color: '#fff', fontSize: 24, fontFamily: 'DMSans_700Bold' }}>{selectedSkill.skill_name}</Text>
+              
+              <View style={st.modalDetailRow}>
+                <Text style={st.modalDetailLabel}>Subcategory:</Text>
+                <Text style={st.modalDetailValue}>{selectedSkill.subcategory}</Text>
+              </View>
+              <View style={st.modalDetailRow}>
+                <Text style={st.modalDetailLabel}>Career Category:</Text>
+                <Text style={st.modalDetailValue}>{selectedSkill.display_category}</Text>
+              </View>
+              <View style={st.modalDetailRow}>
+                <Text style={st.modalDetailLabel}>Weight / Impact:</Text>
+                <Text style={st.modalDetailValue}>+{selectedSkill.weight} Points</Text>
+              </View>
+              <View style={st.modalDetailRow}>
+                <Text style={st.modalDetailLabel}>Classification Source:</Text>
+                <Text style={st.modalDetailValue}>{selectedSkill.source === 'ai' ? 'Emergent AI' : 'Taxonomy Engine'}</Text>
+              </View>
+              <View style={st.modalDetailRow}>
+                <Text style={st.modalDetailLabel}>AI Confidence:</Text>
+                <Text style={st.modalDetailValue}>{Math.round(selectedSkill.confidence * 100)}%</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      )}
       <WebcamModal
         visible={webcamVisible}
         onClose={() => setWebcamVisible(false)}
@@ -377,7 +587,7 @@ const st = StyleSheet.create({
     borderColor: '#0B0717', borderWidth: 2,
   },
   modalBackdrop: {
-    position: 'absolute',
+    position: Platform.OS === 'web' ? 'fixed' : 'absolute' as any,
     top: 0, bottom: 0, left: 0, right: 0,
     backgroundColor: 'rgba(0,0,0,0.80)',
     alignItems: 'center',
@@ -499,17 +709,52 @@ const st = StyleSheet.create({
     ...({ cursor: 'pointer' } as any),
   },
   skillAddBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12 },
-  skillChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: 'rgba(167,139,250,0.10)',
-    borderColor: 'rgba(167,139,250,0.30)',
-    borderWidth: 1,
-    ...({ cursor: 'pointer' } as any),
+  
+  // Suggestions
+  suggestionsBox: {
+    position: 'absolute', top: 48, left: 0, right: 0,
+    backgroundColor: '#1E1B4B', borderColor: '#312E81', borderWidth: 1, borderRadius: 10,
+    padding: 6, gap: 4, zIndex: 100,
+    ...(Platform.OS === 'web' ? { boxShadow: '0 10px 25px rgba(0,0,0,0.5)' } : {}),
   },
-  skillChipText: { color: '#C4B5FD', fontFamily: 'DMSans_500Medium', fontSize: 11 },
+  suggestionItem: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.05)', ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}) },
+  suggestionText: { color: '#E0E7FF', fontFamily: 'DMSans_500Medium', fontSize: 13 },
+
+  // Rich Chips
+  chipsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
+  richChip: {
+    width: 160, padding: 12, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(167,139,250,0.15)', borderWidth: 1,
+    gap: 8,
+    ...(Platform.OS === 'web' ? { cursor: 'pointer', transition: 'all 0.2s' } : {}),
+  },
+  richChipTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  richChipName: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  richChipDel: { padding: 4, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 6 },
+  richChipBottom: { flexDirection: 'row', gap: 6 },
+  richBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: 'rgba(167,139,250,0.15)' },
+  richBadgeText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 10 },
+
+  // Intel Panel
+  intelPanel: {
+    marginTop: 20, padding: 16, borderRadius: 14,
+    backgroundColor: 'rgba(15,23,42,0.6)', borderColor: 'rgba(51,65,85,0.5)', borderWidth: 1,
+  },
+  intelHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  intelTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  intelGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  intelStat: { flex: 1, minWidth: 120, padding: 12, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1 },
+  intelStatLabel: { color: '#94A3B8', fontFamily: 'DMSans_500Medium', fontSize: 11, marginBottom: 4 },
+  intelStatValue: { color: '#34D399', fontFamily: 'DMSans_800ExtraBold', fontSize: 16 },
+  intelSubHeading: { color: '#94A3B8', fontFamily: 'DMSans_700Bold', fontSize: 12, marginTop: 8 },
+  intelEmpty: { color: 'rgba(255,255,255,0.4)', fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 6 },
+  strengthBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(16,185,129,0.1)' },
+  strengthText: { color: '#34D399', fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
+  gapBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(245,158,11,0.1)' },
+  gapText: { color: '#FCD34D', fontFamily: 'DMSans_600SemiBold', fontSize: 11 },
+
+  // Modal specifics
+  modalDetailRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingVertical: 8, borderBottomColor: 'rgba(255,255,255,0.05)', borderBottomWidth: 1 },
+  modalDetailLabel: { color: '#94A3B8', fontFamily: 'DMSans_500Medium', fontSize: 13 },
+  modalDetailValue: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
 });

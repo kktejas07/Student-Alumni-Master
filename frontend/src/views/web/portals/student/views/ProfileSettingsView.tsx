@@ -26,7 +26,7 @@ import {
   View, Text, Pressable, StyleSheet, ScrollView, Image, Platform,
   ActivityIndicator, useWindowDimensions,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   User, Settings as SettingsIcon, Bell, ShieldCheck, IdCard,
   CheckCircle2, GraduationCap, Award, ExternalLink, Sparkles,
@@ -140,7 +140,22 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
   const role: RoleKey = (props.roleOverride || (user?.role as RoleKey) || 'student');
   const cfg = ROLE_CFG[role] || ROLE_CFG.student;
 
-  const [tab, setTab] = useState<TabKey>('profile-info');
+  const { ptab, section } = useLocalSearchParams<{ ptab?: string, section?: string }>();
+  const [tab, setTab] = useState<TabKey>((ptab as TabKey) || 'profile-info');
+
+  useEffect(() => {
+    if (ptab && ptab !== tab) {
+      setTab(ptab as TabKey);
+    }
+  }, [ptab]);
+
+  useEffect(() => {
+    if (Platform.OS === 'web' && section) {
+      setTimeout(() => {
+        document.getElementById(section)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 500); // Wait for render
+    }
+  }, [section, tab]);
   const [draft, setDraft] = useState<any>(user || {});
   const [completion, setCompletion] = useState<{ percentage: number; items: any[] }>({ percentage: 0, items: [] });
   const [stats, setStats] = useState<any>({});
@@ -185,6 +200,22 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
   }, [refreshUser]);
 
   useEffect(() => { reload(); }, [reload]);
+
+  const draftPhoto = draft.photo_data || draft.face_image_base64;
+  useEffect(() => {
+    const userPhoto = user?.photo_data || user?.face_image_base64;
+    if (draftPhoto !== userPhoto) {
+      useAuthStore.getState().setPhotoOverride(draftPhoto || '');
+    } else {
+      useAuthStore.getState().setPhotoOverride(null);
+    }
+  }, [draftPhoto, user]);
+
+  useEffect(() => {
+    return () => {
+      useAuthStore.getState().setPhotoOverride(null);
+    };
+  }, []);
 
   // Track if draft changed vs last server snapshot
   const dirty = useMemo(() => {

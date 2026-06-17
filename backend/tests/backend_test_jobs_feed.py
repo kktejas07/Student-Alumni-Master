@@ -9,12 +9,12 @@ import time
 import requests
 from pymongo import MongoClient
 
-BASE = "https://hiring-mvvm.preview.emergentagent.com/api"
+BASE = "http://localhost:8080/api"
 EMAIL = "realtime@studentalumni.in"
 PASSWORD = "RealTime@2026"
 
 MONGO_URL = "mongodb://localhost:27017"
-DB_NAME = "career_platform"
+DB_NAME = os.environ.get("DB_NAME", "studentalumniadmin")
 
 results = []  # (name, passed, detail)
 
@@ -50,8 +50,8 @@ if r.status_code == 200:
     print("  total_unique:", j.get("total_unique"), " ttl:", j.get("ttl_minutes"))
     nonzero = [k for k, v in src.items() if v and v > 0]
     record("1.1 ≥3 sources non-zero", len(nonzero) >= 3, f"non-zero={nonzero}")
-    expected_keys = {"RemoteOK", "ArbeitNow", "The Muse", "Remotive", "Jobicy"}
-    record("1.2 all 5 source keys present", expected_keys.issubset(set(src.keys())),
+    expected_keys = {"RemoteOK", "ArbeitNow", "The Muse", "Remotive", "Jobicy", "Himalayas", "HackerNews"}
+    record("1.2 all 7 source keys present", expected_keys.issubset(set(src.keys())),
            f"keys={list(src.keys())}")
     record("1.3 total_unique >= 100", (j.get("total_unique") or 0) >= 100,
            f"total_unique={j.get('total_unique')}")
@@ -83,8 +83,8 @@ if r.status_code == 200:
     record("2b.4 allowed_types == [Internship,Full-time,Contract]",
            set(j.get("allowed_types") or []) == {"Internship", "Full-time", "Contract"},
            f"allowed_types={j.get('allowed_types')}")
-    expected_sources = {"RemoteOK", "ArbeitNow", "The Muse", "Remotive", "Jobicy"}
-    record("2b.5 available_sources includes all 5",
+    expected_sources = {"RemoteOK", "ArbeitNow", "The Muse", "Remotive", "Jobicy", "Himalayas", "HackerNews"}
+    record("2b.5 available_sources includes all 7",
            expected_sources.issubset(set(j.get("available_sources") or [])),
            f"got={j.get('available_sources')}")
 

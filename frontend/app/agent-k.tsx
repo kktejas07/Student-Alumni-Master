@@ -111,10 +111,13 @@ export default function AgentKPage() {
   const [scheduleEditor, setScheduleEditor] = useState<{ card: Card } | null>(null);
   const [busyScheduleId, setBusyScheduleId] = useState<string | null>(null);
 
-  // Where to send the user when they tap "Open AI Marketplace" — the
-  // Profile → Tools & Integrations sub-tab is the official place to
-  // connect / disconnect their AI providers.
-  const integrationsRoute = '/me?tab=integrations';
+  const integrationsRoute = useMemo(() => {
+    const role = user?.role || 'student';
+    if (role === 'alumni') {
+      return '/alumni-portal?tab=profile&ptab=integrations';
+    }
+    return '/student-portal?tab=profile&ptab=integrations';
+  }, [user?.role]);
 
   // Pretty-print the connected providers for the "Powered by …" badge.
   const poweredByLabel = useMemo(() => {

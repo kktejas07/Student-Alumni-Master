@@ -13,6 +13,7 @@ with status='mock_connected' so the UI can show Connected/Disconnect
 states. Wiring real OAuth flows can plug into this same row schema.
 """
 from __future__ import annotations
+from pathlib import Path
 import os, json
 from datetime import datetime, timezone
 from typing import Optional, Any, Dict, List
@@ -20,8 +21,6 @@ from uuid import uuid4
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Header, Body, Request
-from motor.motor_asyncio import AsyncIOMotorClient
-from pathlib import Path
 from pydantic import BaseModel
 import jwt as _jwt
 
@@ -29,7 +28,7 @@ from core.roles import Role, Perm, SYSTEM_ROLES, seed_admin_roles
 
 load_dotenv(Path(__file__).parent / ".env")
 
-_mongo = AsyncIOMotorClient(os.environ["MONGO_URL"])
+from db import client as _mongo
 _db = _mongo[os.environ["DB_NAME"]]
 
 router = APIRouter(tags=["admin-settings"])
@@ -59,8 +58,10 @@ async def _require_admin(authorization: Optional[str]) -> dict:
     user = await _resolve_user(authorization)
     if not user:
         raise HTTPException(401, "Not authenticated")
-    if (user.get("role") or "").lower().strip() != Role.ADMIN:
-        raise HTTPException(403, "Admin access required")
+    role = (user.get("role") or "").lower().strip()
+    if role not in {"admin", "super_admin"} and role != Role.ADMIN:
+        if not user.get("is_super_admin"):
+            raise HTTPException(403, "Admin access required")
     return user
 
 
@@ -795,10 +796,13 @@ DEFAULT_PLATFORM_CONTROLS = {
         {"key": "default_locale",  "label": "Default Locale",    "value": "en-IN"},
         {"key": "default_tz",      "label": "Default Timezone",  "value": "Asia/Kolkata"},
         {"key": "default_currency","label": "Default Currency",  "value": "INR (₹)"},
-        {"key": "google_oauth_client_id","label": "Google OAuth Client ID","value": "", "type": "text", "help": "From Google Cloud Console → APIs & Services → Credentials"},
-        {"key": "google_oauth_client_secret","label": "Google OAuth Client Secret","value": "", "type": "password"},
         {"key": "linkedin_oauth_client_id","label": "LinkedIn OAuth Client ID","value": "", "type": "text", "help": "From LinkedIn Developer Portal → Apps → Auth"},
         {"key": "linkedin_oauth_client_secret","label": "LinkedIn OAuth Client Secret","value": "", "type": "password"},
+        {"key": "firebase_api_key","label": "Firebase API Key","value": "", "type": "text", "help": "From Firebase Console → Project Settings → Web API Key"},
+        {"key": "firebase_auth_domain","label": "Firebase Auth Domain","value": "", "type": "text", "help": "e.g. your-project.firebaseapp.com"},
+        {"key": "firebase_project_id","label": "Firebase Project ID","value": "", "type": "text", "help": "From Firebase Console → Project Settings"},
+        {"key": "firebase_app_id","label": "Firebase App ID","value": "", "type": "text"},
+        {"key": "firebase_service_account","label": "Firebase Service Account JSON","value": "", "type": "password", "help": "Paste full service account JSON from Firebase Console → Project Settings → Service Accounts → Generate New Private Key"},
     ],
 }
 

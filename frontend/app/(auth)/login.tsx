@@ -1,3 +1,4 @@
+import { getBaseUrl } from '@/src/lib/env';
 /**
  * Auth Login screen using AuthShell + AuthControls + analytics tracking.
  */
@@ -7,13 +8,14 @@ import { useRouter, useLocalSearchParams, Link } from 'expo-router';
 import { ArrowLeft, Eye, EyeOff, Mail, Lock } from 'lucide-react-native';
 import Svg, { Path, G } from 'react-native-svg';
 import { AuthShell } from '@/src/views/auth/AuthShell';
-import { AuthInput, PrimaryButton, OutlineButton, StrengthMeter } from '@/src/views/auth/AuthControls';
+import { AuthInput, PrimaryButton, OutlineButton, PasswordRules } from '@/src/views/auth/AuthControls';
 import { ROLE_META, type Role } from '@/src/views/auth/RoleCards';
 import { AC, FONTS } from '@/src/views/auth/tokens';
 import { trackAuth, passwordStrength } from '@/src/lib/authAnalytics';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { initFirebaseAuth, signInWithGoogle, signInWithGitHub } from '@/src/lib/firebaseAuth';
 
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BASE = getBaseUrl();
 
 function GoogleG({ size = 18 }: { size?: number }) {
   return (
@@ -36,6 +38,14 @@ function LinkedInIn({ size = 18 }: { size?: number }) {
   );
 }
 
+function GitHubCat({ size = 18 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path fill="#fff" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+    </Svg>
+  );
+}
+
 export default function LoginScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ role?: Role; email?: string }>();
@@ -49,14 +59,21 @@ export default function LoginScreen() {
   const [emailError, setEmailError] = useState('');
   const [pwdError, setPwdError] = useState('');
   const [exists, setExists] = useState<boolean | null>(null);
-  const [oauthModal, setOauthModal] = useState<{ provider: 'google' | 'linkedin'; name: string; email: string } | null>(null);
-  const [oauthCfg, setOauthCfg] = useState<{ google_client_id: string; linkedin_client_id: string; redirect_uri: string; configured: boolean } | null>(null);
+  const [oauthModal, setOauthModal] = useState<{ provider: 'google' | 'linkedin' | 'github'; name: string; email: string } | null>(null);
+  const [oauthCfg, setOauthCfg] = useState<{ google_client_id: string; linkedin_client_id: string; github_client_id: string; redirect_uri: string; configured: boolean; firebase?: { apiKey: string; authDomain: string; projectId: string; appId: string } | null } | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
         const res = await fetch(`${BASE}/api/auth/oauth-config`);
-        if (res.ok) setOauthCfg(await res.json());
+        if (res.ok) {
+          const cfg = await res.json();
+          setOauthCfg(cfg);
+          // Init Firebase Auth if configured
+          if (cfg.firebase?.apiKey) {
+            initFirebaseAuth(cfg.firebase);
+          }
+        }
       } catch {}
     })();
   }, []);
@@ -120,14 +137,21 @@ export default function LoginScreen() {
       setPwdError('Enter your password');
       return;
     }
+    console.log("LOGIN_CLICKED", { email: e });
+    console.time("LOGIN_TOTAL");
     setLoading(true);
     trackAuth({ event: 'login_attempt', email: e, role });
     try {
+      console.log("LOGIN_REQUEST_STARTED");
+      console.log("getBaseUrl() =", getBaseUrl());
+      console.time("LOGIN_REQUEST");
       const res = await fetch(`${BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: e, password: p }),
       });
+      console.timeEnd("LOGIN_REQUEST");
+      console.log("LOGIN_RESPONSE_RECEIVED");
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         const raw = err?.detail;
@@ -146,16 +170,29 @@ export default function LoginScreen() {
         router.push({ pathname: '/(auth)/two-fa-challenge', params: { challenge_id: data.challenge_id, email: data.user_email } });
         return;
       }
+      console.log("USER_FETCH_STARTED"); // It's in the same payload, but logging for clarity
       setUser(data.user);
-      setTokens(data.access_token, data.refresh_token);
+      console.log("USER_FETCH_COMPLETED");
+      
+      console.time("TOKEN_STORE");
+      await setTokens(data.access_token, data.refresh_token);
+      console.timeEnd("TOKEN_STORE");
+      console.log("TOKEN_STORED");
+      
       trackAuth({ event: 'login_success', email, role: data.user.role });
+      
       // Navigate based on role
+      console.log("NAVIGATION_STARTED");
+      console.time("NAVIGATION");
       const r = (data.user.role || '').toLowerCase();
-      if (r === 'admin') router.replace('/super-admin');
+      if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
       else if (r === 'mentor') router.replace('/mentor-portal');
       else if (r === 'college') router.replace('/college-portal');
       else if (r === 'alumni') router.replace('/alumni-portal');
       else router.replace('/student-portal');
+      console.timeEnd("NAVIGATION");
+      console.log("NAVIGATION_COMPLETED");
+      console.timeEnd("LOGIN_TOTAL");
     } catch (e: any) {
       trackAuth({ event: 'login_failure', email, reason: e?.message || 'Network error' });
       setPwdError('Network error — try again');
@@ -186,7 +223,7 @@ export default function LoginScreen() {
       setTokens(data.access_token, data.refresh_token);
       trackAuth({ event: 'login_success', email: oauthEmail, role: data.user.role });
       const r = (data.user.role || '').toLowerCase();
-      if (r === 'admin') router.replace('/super-admin');
+      if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
       else if (r === 'mentor') router.replace('/mentor-portal');
       else if (r === 'college') router.replace('/college-portal');
       else if (r === 'alumni') router.replace('/alumni-portal');
@@ -227,13 +264,42 @@ export default function LoginScreen() {
       {/* OAuth row */}
       <View style={s.oauthRow}>
         <View style={{ flex: 1 }}>
-          <OutlineButton label="Google" icon={<GoogleG size={16} />} onPress={() => {
-            if (oauthCfg?.google_client_id && Platform.OS === 'web') {
-              const state = `google_${Math.random().toString(36).slice(2)}`;
-              const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${oauthCfg.google_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&response_type=id_token&scope=openid%20email%20profile&state=${state}&nonce=${Math.random().toString(36)}`;
-              window.open(url, '_blank', 'width=600,height=700');
-            } else {
-              setOauthModal({ provider: 'google', name: '', email: '' });
+          <OutlineButton label="Google" icon={<GoogleG size={16} />} onPress={async () => {
+            try {
+              // Firebase Auth (preferred)
+              if (oauthCfg?.firebase && Platform.OS === 'web') {
+                const result = await signInWithGoogle();
+                if (!result) return;
+                const res = await fetch(`${BASE}/api/auth/firebase`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id_token: result.idToken }),
+                });
+                if (!res.ok) throw new Error('Firebase auth failed');
+                const data = await res.json();
+                setUser(data.user);
+                setTokens(data.access_token, data.refresh_token);
+                trackAuth({ event: 'login_success', email: data.user.email, role: data.user.role });
+                const r = (data.user.role || '').toLowerCase();
+                if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
+                else if (r === 'mentor') router.replace('/mentor-portal');
+                else if (r === 'college') router.replace('/college-portal');
+                else if (r === 'alumni') router.replace('/alumni-portal');
+                else router.replace('/student-portal');
+                return;
+              }
+              // Legacy OAuth fallback
+              if (oauthCfg?.google_client_id && Platform.OS === 'web') {
+                const state = `google_${Math.random().toString(36).slice(2)}`;
+                const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${oauthCfg.google_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&response_type=id_token&scope=openid%20email%20profile&state=${state}&nonce=${Math.random().toString(36)}`;
+                window.open(url, '_blank', 'width=600,height=700');
+              } else {
+                setOauthModal({ provider: 'google', name: '', email: '' });
+              }
+            } catch (e: any) {
+              if (e?.code !== 'auth/popup-closed-by-user') {
+                setPwdError(e?.message || 'Google sign-in failed');
+              }
             }
           }} />
         </View>
@@ -245,6 +311,46 @@ export default function LoginScreen() {
               window.open(url, '_blank', 'width=600,height=700');
             } else {
               setOauthModal({ provider: 'linkedin', name: '', email: '' });
+            }
+          }} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <OutlineButton label="GitHub" icon={<GitHubCat size={16} />} onPress={async () => {
+            try {
+              // Firebase Auth (preferred)
+              if (oauthCfg?.firebase && Platform.OS === 'web') {
+                const result = await signInWithGitHub();
+                if (!result) return;
+                const res = await fetch(`${BASE}/api/auth/firebase`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id_token: result.idToken }),
+                });
+                if (!res.ok) throw new Error('Firebase auth failed');
+                const data = await res.json();
+                setUser(data.user);
+                setTokens(data.access_token, data.refresh_token);
+                trackAuth({ event: 'login_success', email: data.user.email, role: data.user.role });
+                const r = (data.user.role || '').toLowerCase();
+                if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
+                else if (r === 'mentor') router.replace('/mentor-portal');
+                else if (r === 'college') router.replace('/college-portal');
+                else if (r === 'alumni') router.replace('/alumni-portal');
+                else router.replace('/student-portal');
+                return;
+              }
+              // Legacy OAuth fallback
+              if (oauthCfg?.github_client_id && Platform.OS === 'web') {
+                const state = `github_${Math.random().toString(36).slice(2)}`;
+                const url = `https://github.com/login/oauth/authorize?client_id=${oauthCfg.github_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&scope=user:email&state=${state}`;
+                window.open(url, '_blank', 'width=600,height=700');
+              } else {
+                setOauthModal({ provider: 'github', name: '', email: '' });
+              }
+            } catch (e: any) {
+              if (e?.code !== 'auth/popup-closed-by-user') {
+                setPwdError(e?.message || 'GitHub sign-in failed');
+              }
             }
           }} />
         </View>
@@ -282,7 +388,7 @@ export default function LoginScreen() {
           onSubmitEditing={onLogin}
         />
         {password.length > 0 && (
-          <StrengthMeter score={strength.score} label={strength.label} tips={strength.tips} />
+          <PasswordRules checks={strength.checks} />
         )}
       </View>
 

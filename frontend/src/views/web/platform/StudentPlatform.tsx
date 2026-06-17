@@ -67,7 +67,7 @@ export default function StudentPlatform() {
           onNav={(id) => {
             // Route these to standalone pages
             const routeMap: Record<string, string> = {
-              profile: '/me',
+              profile: '/student-portal?tab=profile',
               events: '/events',
               network: '/network',
               internships: '/internships',
@@ -77,7 +77,7 @@ export default function StudentPlatform() {
               rentals: '/rentals',
               career: '/career-ai',
             };
-            if (routeMap[id]) router.push(routeMap[id]);
+            if (routeMap[id]) router.push(routeMap[id] as any);
             else setScreen(id);
           }}
           brandSubtitle="Web Dashboard"

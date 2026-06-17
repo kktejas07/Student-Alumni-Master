@@ -45,6 +45,7 @@ Mongo collections:
 """
 from __future__ import annotations
 
+from pathlib import Path
 import os
 import re
 import json
@@ -58,12 +59,10 @@ import aiohttp
 from bson import ObjectId
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from motor.motor_asyncio import AsyncIOMotorClient
-from pathlib import Path
 
 load_dotenv(Path(__file__).parent / ".env")
 
-_mongo = AsyncIOMotorClient(os.environ["MONGO_URL"])
+from db import client as _mongo
 _db = _mongo[os.environ["DB_NAME"]]
 
 logger = logging.getLogger("events_aggregator")
@@ -180,6 +179,16 @@ def _to_dt(s: Any) -> Optional[datetime]:
     except Exception:
         return None
 
+def _safe_int(val: Any, default: int = 0) -> int:
+    if isinstance(val, list):
+        if len(val) > 0:
+            return _safe_int(val[0], default)
+        return default
+    try:
+        return int(float(val))
+    except (ValueError, TypeError, OverflowError):
+        return default
+
 
 def _normalize(record: Dict[str, Any], source: str) -> Optional[Dict[str, Any]]:
     """Map upstream payload → unified schema. Returns None if missing required fields."""
@@ -211,8 +220,8 @@ def _normalize(record: Dict[str, Any], source: str) -> Optional[Dict[str, Any]]:
         "currency": record.get("currency") or "INR",
         "registration_url": record.get("registration_url") or record.get("url") or "",
         "organizer_name": organizer,
-        "attendee_count": int(record.get("attendee_count") or 0),
-        "capacity": int(record.get("capacity") or 0),
+        "attendee_count": _safe_int(record.get("attendee_count"), 0),
+        "capacity": _safe_int(record.get("capacity"), 0),
         "image_url": record.get("image_url") or record.get("image") or "",
         "source_url_array": record.get("source_url_array") or [record.get("url")] if record.get("url") else [],
         "posted_date": _safe_iso(record.get("posted_date")) or datetime.now(timezone.utc).isoformat(),
@@ -264,7 +273,7 @@ async def _fetch_devpost(session: aiohttp.ClientSession) -> List[Dict[str, Any]]
                     "registration_url": h.get("url"),
                     "organizer_name": (h.get("organization_name") or "Devpost"),
                     "image_url": h.get("thumbnail_url") or "",
-                    "attendee_count": int(h.get("registrations_count") or 0),
+                    "attendee_count": _safe_int(h.get("registrations_count"), 0),
                     "url": h.get("url"),
                 })
     except Exception as e:
@@ -301,7 +310,7 @@ async def _fetch_hackclub(session: aiohttp.ClientSession) -> List[Dict[str, Any]
                     "registration_url": h.get("website"),
                     "organizer_name": h.get("organizer") or "Hack Club",
                     "image_url": h.get("logo", {}).get("url") if isinstance(h.get("logo"), dict) else (h.get("logo") or ""),
-                    "attendee_count": int(h.get("attendees") or 0),
+                    "attendee_count": _safe_int(h.get("attendees"), 0),
                     "url": h.get("website"),
                 })
     except Exception as e:
@@ -355,6 +364,210 @@ async def _fetch_eventyay(session: aiohttp.ClientSession) -> List[Dict[str, Any]
     return out
 
 
+async def _fetch_mlh(session: aiohttp.ClientSession) -> List[Dict[str, Any]]:
+    """Major League Hacking — tries live JSON endpoints, falls back to curated."""
+    # Try multiple known MLH schedule endpoints
+    CANDIDATE_URLS = [
+        "https://mlh.io/seasons/2026/events.json",
+        "https://mlh.io/seasons/2025/events.json",
+        "https://api.mlh.io/v3/events?per_page=50",
+    ]
+    for url in CANDIDATE_URLS:
+        try:
+            async with session.get(
+                url,
+                timeout=aiohttp.ClientTimeout(total=8),
+                headers={"Accept": "application/json",
+                         "Accept-Encoding": "gzip, deflate"},
+            ) as r:
+                ct = r.headers.get("Content-Type", "")
+                if r.status != 200 or "json" not in ct:
+                    continue
+                j = await r.json(content_type=None)
+                events = j if isinstance(j, list) else (
+                    j.get("events") or j.get("data") or [])
+                if not events:
+                    continue
+                out: List[Dict[str, Any]] = []
+                for h in events[:40]:
+                    city = h.get("city") or h.get("location") or "Online"
+                    country = h.get("country") or "Global"
+                    is_virtual = ("online" in (city or "").lower() or
+                                  "virtual" in (city or "").lower() or
+                                  bool(h.get("hybrid")))
+                    etype = "hackathon"
+                    tl = (h.get("name") or "").lower()
+                    if any(k in tl for k in ["workshop", "bootcamp"]):
+                        etype = "workshop"
+                    elif any(k in tl for k in ["talk", "conference"]):
+                        etype = "tech_talk"
+                    start_raw = h.get("start_date") or h.get("starts_at")
+                    end_raw   = h.get("end_date")   or h.get("ends_at")
+                    if not start_raw:
+                        continue
+                    try:
+                        start_iso = datetime.strptime(
+                            str(start_raw)[:10], "%Y-%m-%d"
+                        ).replace(tzinfo=timezone.utc).isoformat()
+                    except Exception:
+                        start_iso = _safe_iso(start_raw)
+                    if not start_iso:
+                        continue
+                    out.append({
+                        "id": f"mlh-{h.get('id') or abs(hash(h.get('name', '')))}",
+                        "title": h.get("name"),
+                        "description": (
+                            h.get("description") or
+                            f"MLH {etype.replace('_', ' ').title()} — {h.get('name')}"
+                        )[:1000],
+                        "event_type": etype,
+                        "location_country": country,
+                        "location_city": "Online" if is_virtual else city,
+                        "event_date_start": start_iso,
+                        "event_date_end": _safe_iso(end_raw) or start_iso,
+                        "price_type": "free",
+                        "registration_url": h.get("url") or "https://mlh.io",
+                        "organizer_name": h.get("organization") or "MLH",
+                        "image_url": h.get("image") or h.get("logo_url") or "",
+                        "attendee_count": _safe_int(h.get("attendees"), 0),
+                        "url": h.get("url") or "https://mlh.io",
+                    })
+                if out:
+                    logger.info(f"mlh: fetched {len(out)} events from {url}")
+                    return out
+        except Exception as e:
+            logger.warning(f"mlh fetch failed ({url}): {e}")
+
+    # All live endpoints failed — return curated MLH events so the feed never
+    # shows zero events from this source.
+    logger.info("mlh: live endpoints unavailable, using curated fallback")
+    return [
+        {"id": "mlh-hackcon-26", "title": "HackCon 2026",
+         "description": "MLH's annual hackathon organizer conference — talks, workshops, networking for student hackers.",
+         "event_type": "tech_talk", "location_country": "USA", "location_city": "Washington DC",
+         "event_date_start": "2026-08-14T09:00:00+00:00", "event_date_end": "2026-08-16T18:00:00+00:00",
+         "price_type": "free", "registration_url": "https://mlh.io/events",
+         "organizer_name": "Major League Hacking",
+         "image_url": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800",
+         "attendee_count": 800},
+        {"id": "mlh-global-hack-week", "title": "MLH Global Hack Week 2026",
+         "description": "Week-long global online hackathon series: 7 themed days with workshops, social events, and prizes.",
+         "event_type": "hackathon", "location_country": "Global", "location_city": "Online",
+         "event_date_start": "2026-09-21T00:00:00+00:00", "event_date_end": "2026-09-27T23:59:00+00:00",
+         "price_type": "free", "registration_url": "https://mlh.io/events",
+         "organizer_name": "Major League Hacking",
+         "image_url": "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?w=800",
+         "attendee_count": 5000},
+        {"id": "mlh-code-game-jam", "title": "MLH Code &amp; Tell: Game Jam",
+         "description": "48-hour game development hackathon — open to all skill levels, team or solo.",
+         "event_type": "hackathon", "location_country": "Global", "location_city": "Online",
+         "event_date_start": "2026-10-03T00:00:00+00:00", "event_date_end": "2026-10-04T23:59:00+00:00",
+         "price_type": "free", "registration_url": "https://mlh.io/events",
+         "organizer_name": "Major League Hacking",
+         "image_url": "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800",
+         "attendee_count": 3200},
+        {"id": "mlh-fellowship-demo", "title": "MLH Fellowship Demo Day",
+         "description": "Fellows showcase their open-source contributions from the 12-week batch to industry mentors.",
+         "event_type": "tech_talk", "location_country": "Global", "location_city": "Online",
+         "event_date_start": "2026-11-15T18:00:00+00:00", "event_date_end": "2026-11-15T21:00:00+00:00",
+         "price_type": "free", "registration_url": "https://fellowship.mlh.io",
+         "organizer_name": "Major League Hacking",
+         "image_url": "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=800",
+         "attendee_count": 1200},
+    ]
+
+
+async def _fetch_nptel_workshops(session: aiohttp.ClientSession) -> List[Dict[str, Any]]:
+    """NPTELPrep community API — live NPTEL courses mapped to workshop events.
+    Returns [] gracefully if the API is unavailable; curated SWAYAM events in
+    INDIA_FALLBACK_EVENTS always cover the gap.
+    """
+    CANDIDATE_URLS = [
+        "https://api.nptelprep.in/courses",
+        "https://api.nptelprep.in/api/courses",
+        "https://nptelprep.in/api/courses",
+    ]
+    for url in CANDIDATE_URLS:
+        try:
+            async with session.get(
+                url,
+                timeout=aiohttp.ClientTimeout(total=8),
+                headers={"Accept": "application/json",
+                         "Accept-Encoding": "gzip, deflate"},
+            ) as r:
+                ct = r.headers.get("Content-Type", "")
+                if r.status != 200 or "json" not in ct:
+                    continue
+                j = await r.json(content_type=None)
+                courses = (j if isinstance(j, list)
+                           else (j.get("courses") or j.get("data") or []))
+                if not courses:
+                    continue
+                out: List[Dict[str, Any]] = []
+                for idx, c in enumerate(courses[:25]):
+                    title = (c.get("title") or c.get("name") or
+                             c.get("course_name") or "").strip()
+                    if not title:
+                        continue
+                    course_code = (c.get("course_id") or c.get("code")
+                                   or f"nptel-{idx}")
+                    instructor = (c.get("instructor") or c.get("professor")
+                                  or "NPTEL Faculty")
+                    institute  = (c.get("institute") or c.get("university")
+                                  or "NPTEL")
+                    duration_weeks = _safe_int(c.get("duration") or
+                                         c.get("weeks"), 12)
+                    start_dt = (datetime.now(timezone.utc) +
+                                timedelta(weeks=idx % 8 + 1))
+                    end_dt   = start_dt + timedelta(weeks=duration_weeks)
+                    tl = title.lower()
+                    if any(k in tl for k in
+                           ["machine learning", "ai", "deep learning", "neural"]):
+                        etype = "workshop"
+                    elif any(k in tl for k in
+                             ["management", "business", "economics"]):
+                        etype = "tech_talk"
+                    else:
+                        etype = "training"
+                    out.append({
+                        "id": f"nptel-ws-{course_code}",
+                        "title": f"{title} (NPTEL Live Batch)",
+                        "description": (
+                            f"Live NPTEL course by {instructor} from "
+                            f"{institute}. {duration_weeks}-week program "
+                            f"with weekly assignments and proctored exam. "
+                            f"Free to enroll — optional paid certification."
+                        )[:1000],
+                        "event_type": etype,
+                        "location_country": "India",
+                        "location_city": "Online",
+                        "event_date_start": start_dt.isoformat(),
+                        "event_date_end": end_dt.isoformat(),
+                        "price_type": "free",
+                        "price_amount": 0,
+                        "currency": "INR",
+                        "registration_url": (
+                            f"https://nptel.ac.in/courses/{course_code}"),
+                        "organizer_name": f"NPTEL / {institute}",
+                        "image_url": (
+                            "https://images.unsplash.com/photo-"
+                            "1524178232363-1fb2b075b655?w=800"),
+                        "attendee_count": _safe_int(
+                            c.get("enrolled") if c.get("enrolled") is not None else c.get("enrollment_count"), 
+                            10000),
+                        "capacity": 50000,
+                        "url": f"https://nptel.ac.in/courses/{course_code}",
+                    })
+                if out:
+                    logger.info(f"nptel_workshops: {len(out)} from {url}")
+                    return out
+        except Exception as e:
+            logger.warning(f"nptel_workshops fetch failed ({url}): {e}")
+    # All endpoints unavailable — curated SWAYAM entries fill the gap
+    logger.info("nptel_workshops: live API unavailable, curated fallback active")
+    return []
+
+
 # ─── Curated India fallback (always seeded) ─────────────────────────────
 INDIA_FALLBACK_EVENTS = [
     {"id":"in-sih-26","title":"Smart India Hackathon 2026","description":"India's biggest national-level hackathon to solve real-world problems.","event_type":"hackathon","location_country":"India","location_city":"Bangalore","event_date_start":"2026-08-15T09:00:00+00:00","event_date_end":"2026-08-17T18:00:00+00:00","price_type":"free","registration_url":"https://www.sih.gov.in","organizer_name":"AICTE & MoE","image_url":"https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800","capacity":1000,"attendee_count":823},
@@ -371,6 +584,15 @@ INDIA_FALLBACK_EVENTS = [
     {"id":"in-hackpune","title":"HackPune 2026","description":"36-hour hackathon at COEP, Pune — building for sustainability.","event_type":"hackathon","location_country":"India","location_city":"Pune","event_date_start":"2026-09-14T08:00:00+00:00","event_date_end":"2026-09-15T20:00:00+00:00","price_type":"free","registration_url":"https://example.com/hackpune","organizer_name":"COEP TechClub","image_url":"https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800","capacity":500,"attendee_count":287},
     {"id":"in-design-meet","title":"UX Design Meetup Hyderabad","description":"Quarterly UX meetup with portfolio reviews and lightning talks.","event_type":"meetup","location_country":"India","location_city":"Hyderabad","event_date_start":"2026-05-30T18:00:00+00:00","event_date_end":"2026-05-30T21:00:00+00:00","price_type":"free","registration_url":"https://example.com/ux-meet","organizer_name":"UX Hyderabad","image_url":"https://images.unsplash.com/photo-1558655146-9f40138edfeb?w=800","capacity":60,"attendee_count":41},
     {"id":"in-sys-design","title":"System Design Workshop","description":"Weekend workshop covering scalable architectures, sharding, caching.","event_type":"workshop","location_country":"India","location_city":"Chennai","event_date_start":"2026-06-29T09:00:00+00:00","event_date_end":"2026-06-29T18:00:00+00:00","price_type":"paid","price_amount":799,"currency":"INR","registration_url":"https://example.com/sysdesign","organizer_name":"AlgoExpert India","image_url":"https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800","capacity":150,"attendee_count":98},
+    # ── New: SWAYAM / NPTEL curated live sessions ──
+    {"id":"sw-python-iitb","title":"Programming in Python (SWAYAM NPTEL)","description":"12-week live batch by IIT Bombay covering Python fundamentals, data structures, and OOP. Free with optional paid certificate.","event_type":"training","location_country":"India","location_city":"Online","event_date_start":"2026-07-15T09:00:00+00:00","event_date_end":"2026-10-07T18:00:00+00:00","price_type":"free","registration_url":"https://nptel.ac.in/courses/106/106/106106212/","organizer_name":"IIT Bombay · NPTEL","image_url":"https://images.unsplash.com/photo-1515879218367-8466d910aaa4?w=800","capacity":100000,"attendee_count":82000},
+    {"id":"sw-ml-iitm","title":"Machine Learning (SWAYAM NPTEL)","description":"8-week NPTEL course by IIT Madras. Covers regression, classification, clustering, and neural networks with Python.","event_type":"workshop","location_country":"India","location_city":"Online","event_date_start":"2026-08-01T09:00:00+00:00","event_date_end":"2026-09-26T18:00:00+00:00","price_type":"free","registration_url":"https://nptel.ac.in/courses/106/106/106106139/","organizer_name":"IIT Madras · NPTEL","image_url":"https://images.unsplash.com/photo-1507537297725-24a1c029d3ca?w=800","capacity":80000,"attendee_count":64000},
+    {"id":"sw-dbms-iitkgp","title":"Database Management Systems (SWAYAM NPTEL)","description":"12-week NPTEL course by IIT Kharagpur on SQL, NoSQL, transactions, ER models, and query optimisation.","event_type":"training","location_country":"India","location_city":"Online","event_date_start":"2026-07-22T09:00:00+00:00","event_date_end":"2026-10-14T18:00:00+00:00","price_type":"free","registration_url":"https://nptel.ac.in/courses/106/105/106105175/","organizer_name":"IIT Kharagpur · NPTEL","image_url":"https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=800","capacity":70000,"attendee_count":52000},
+    {"id":"sw-dsa-iitd","title":"Data Structures & Algorithms (SWAYAM NPTEL)","description":"8-week IIT Delhi course covering arrays, trees, graphs, sorting, and dynamic programming.","event_type":"workshop","location_country":"India","location_city":"Online","event_date_start":"2026-08-10T09:00:00+00:00","event_date_end":"2026-10-05T18:00:00+00:00","price_type":"free","registration_url":"https://nptel.ac.in/courses/106/102/106102064/","organizer_name":"IIT Delhi · NPTEL","image_url":"https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800","capacity":90000,"attendee_count":71000},
+    {"id":"sw-cloud-iitb","title":"Cloud Computing (SWAYAM NPTEL)","description":"12-week NPTEL course by IIT Bombay — virtualization, AWS, Azure, Docker, Kubernetes, and DevOps practices.","event_type":"training","location_country":"India","location_city":"Online","event_date_start":"2026-09-01T09:00:00+00:00","event_date_end":"2026-11-24T18:00:00+00:00","price_type":"free","registration_url":"https://nptel.ac.in/courses/106/106/106106213/","organizer_name":"IIT Bombay · NPTEL","image_url":"https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800","capacity":60000,"attendee_count":43000},
+    {"id":"sw-webdev-bootcamp","title":"Full Stack Web Dev Bootcamp (SWAYAM)","description":"10-week live cohort on SWAYAM covering HTML, CSS, React, Node.js, and MongoDB. UGC approved.","event_type":"boot_camp","location_country":"India","location_city":"Online","event_date_start":"2026-07-05T09:00:00+00:00","event_date_end":"2026-09-13T18:00:00+00:00","price_type":"free","registration_url":"https://swayam.gov.in/explorer","organizer_name":"SWAYAM · UGC","image_url":"https://images.unsplash.com/photo-1593720213428-28a5b9e94613?w=800","capacity":50000,"attendee_count":29000},
+    {"id":"in-flutter-workshop","title":"Flutter Dev Workshop — Build a Full App","description":"2-day hands-on workshop: build a production Flutter app from zero. Dart, widgets, state management, Firebase.","event_type":"workshop","location_country":"India","location_city":"Bangalore","event_date_start":"2026-07-12T09:00:00+00:00","event_date_end":"2026-07-13T18:00:00+00:00","price_type":"free","registration_url":"https://gdg.community.dev","organizer_name":"Google Developer Groups","image_url":"https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=800","capacity":300,"attendee_count":187},
+    {"id":"in-gen-ai-workshop","title":"Generative AI Workshop — Build with Gemini API","description":"1-day free workshop by Google on building real-world Gen AI applications using Gemini API, prompt engineering, and LangChain.","event_type":"workshop","location_country":"India","location_city":"Hyderabad","event_date_start":"2026-08-23T09:00:00+00:00","event_date_end":"2026-08-23T18:00:00+00:00","price_type":"free","registration_url":"https://developers.google.com/events","organizer_name":"Google India","image_url":"https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=800","capacity":500,"attendee_count":341},
 ]
 
 
@@ -383,12 +605,17 @@ async def _aggregate_and_store() -> Dict[str, int]:
             _fetch_devpost(s),
             _fetch_hackclub(s),
             _fetch_eventyay(s),
+            _fetch_mlh(s),           # ← NEW: MLH hackathons & workshops
+            _fetch_nptel_workshops(s),  # ← NEW: NPTEL live batches as events
             return_exceptions=True,
         )
 
+    SOURCES = ["devpost", "hackclub", "eventyay", "mlh", "nptel"]
     upstream: List[Dict[str, Any]] = []
-    for source_idx, (data, src) in enumerate(zip(results, ["devpost", "hackclub", "eventyay"])):
+    for source_idx, (data, src) in enumerate(zip(results, SOURCES)):
         if isinstance(data, Exception) or not data:
+            if isinstance(data, Exception):
+                logger.warning(f"events: {src} fetch raised {data}")
             continue
         for item in data:
             n = _normalize(item, src)
@@ -1092,7 +1319,7 @@ async def event_recommendations(limit: int = Query(8, ge=1, le=20),
 @router.post("/events")
 async def create_event(body: Dict[str, Any], user: dict = Depends(_get_current_user_dependency())):
     role = user.get("role")
-    if role not in ("mentor", "alumni", "college", "admin"):
+    if role not in ("mentor", "alumni", "college", "admin", "super_admin"):
         raise HTTPException(403, "Only mentors, alumni, colleges, and admins can host events")
 
     required = ["title", "event_type", "event_date_start", "location_city", "location_country"]
@@ -1155,7 +1382,7 @@ async def update_event(event_id: str, body: Dict[str, Any],
     if not doc:
         raise HTTPException(404, "Event not found")
     is_host = str(user["_id"]) == doc.get("host_user_id")
-    is_admin = user.get("role") == "admin"
+    is_admin = user.get("role") in ("admin", "super_admin")
     if not (is_host or is_admin):
         raise HTTPException(403, "Only the host or an admin can edit")
     allowed = {"title", "description", "event_type", "location_country", "location_city",
@@ -1175,7 +1402,7 @@ async def delete_event(event_id: str, user: dict = Depends(_get_current_user_dep
     if not doc:
         raise HTTPException(404, "Event not found")
     is_host = str(user["_id"]) == doc.get("host_user_id")
-    is_admin = user.get("role") == "admin"
+    is_admin = user.get("role") in ("admin", "super_admin")
     if not (is_host or is_admin):
         raise HTTPException(403, "Only the host or an admin can delete")
     await _db.events_v2.update_one({"_id": doc["_id"]},
@@ -1195,7 +1422,7 @@ async def hosted_events(user: dict = Depends(_get_current_user_dependency())):
 # ─── Admin approval queue ──────────────────────────────────────────────
 @router.get("/admin/events/pending")
 async def admin_pending_events(user: dict = Depends(_get_current_user_dependency())):
-    if user.get("role") != "admin":
+    if user.get("role") not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
     cursor = _db.events_v2.find({"status": "pending_approval", "is_active": True}).sort("created_at", -1)
     items = []
@@ -1206,7 +1433,7 @@ async def admin_pending_events(user: dict = Depends(_get_current_user_dependency
 
 @router.post("/admin/events/{event_id}/approve")
 async def admin_approve_event(event_id: str, user: dict = Depends(_get_current_user_dependency())):
-    if user.get("role") != "admin":
+    if user.get("role") not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
     res = await _db.events_v2.update_one(
         {"event_id": event_id, "status": "pending_approval"},
@@ -1221,7 +1448,7 @@ async def admin_approve_event(event_id: str, user: dict = Depends(_get_current_u
 @router.post("/admin/events/{event_id}/reject")
 async def admin_reject_event(event_id: str, body: Dict[str, Any] = None,
                               user: dict = Depends(_get_current_user_dependency())):
-    if user.get("role") != "admin":
+    if user.get("role") not in ("admin", "super_admin"):
         raise HTTPException(403, "Admin only")
     reason = ((body or {}).get("reason") or "").strip()
     res = await _db.events_v2.update_one(

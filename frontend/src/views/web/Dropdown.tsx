@@ -8,7 +8,7 @@
  *
  * Props match the legacy Dropdown surface so existing call sites work.
  */
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Modal, Platform, TextInput,
 } from 'react-native';
@@ -35,6 +35,14 @@ interface Props {
   allowOther?: boolean;
   /** Extra label for the dropdown overlay header (e.g. "INSTITUTION TYPE"). */
   overlayHeader?: string;
+
+  // Editable text entry options
+  editable?: boolean;
+  keyboardType?: 'default' | 'numeric' | 'number-pad';
+  maxLength?: number;
+  inputRef?: React.RefObject<any>;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 const OTHER_VALUE = '__other__';
@@ -42,15 +50,95 @@ const OTHER_VALUE = '__other__';
 export function Dropdown({
   label, required, optional, value, options, onChange,
   placeholder = 'Select…', testID, allowOther = true, overlayHeader,
+  editable, keyboardType = 'default', maxLength, inputRef, onFocus, onBlur,
 }: Props) {
   const { primary } = useRoleTheme();
   const [open, setOpen] = useState(false);
   const [manualMode, setManualMode] = useState(false);
   const [manualText, setManualText] = useState('');
+  const [filterText, setFilterText] = useState('');
+  const typeBufferRef = useRef('');
+
+  // Clear filter when dropdown opens or closes
+  useEffect(() => {
+    typeBufferRef.current = '';
+    setFilterText('');
+  }, [open]);
+
+  // Keyboard capture via document-level listener (web only)
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !open) return;
+
+    const handler = (e: KeyboardEvent) => {
+      // Ignore if a text input inside the card is focused (manual mode)
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      const key = e.key;
+
+      if (key === 'Escape') {
+        e.stopPropagation();
+        setOpen(false);
+        return;
+      }
+
+      const buf = typeBufferRef.current;
+
+      if (key === 'Enter') {
+        if (buf) {
+          const lower = buf.toLowerCase();
+          const exact = options.find((o) => o.label.toLowerCase() === lower);
+          if (exact) {
+            onChange(exact.value);
+            setManualMode(false);
+            setOpen(false);
+          }
+        }
+        return;
+      }
+
+      if (key === 'Backspace') {
+        const next = buf.slice(0, -1);
+        typeBufferRef.current = next;
+        setFilterText(next);
+        return;
+      }
+
+      if (key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const next = buf + key;
+        typeBufferRef.current = next;
+        setFilterText(next);
+
+        const lower = next.toLowerCase();
+        const matching = options.filter((o) => o.label.toLowerCase().startsWith(lower));
+        if (matching.length === 1) {
+          onChange(matching[0].value);
+          setManualMode(false);
+          setOpen(false);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open, options, onChange]);
+
+  const [isFocused, setIsFocused] = useState(false);
+  const [localText, setLocalText] = useState('');
+
+  React.useEffect(() => {
+    if (isFocused) {
+      setLocalText(value || '');
+    }
+  }, [value, isFocused]);
 
   const sel = options.find((o) => o.value === value);
   // If the current value isn't in options, we're in "manual" mode.
   const showingManual = manualMode || (!!value && !sel);
+
+  // Filter options based on keyboard type-ahead text
+  const filteredOptions = filterText
+    ? options.filter((o) => o.label.toLowerCase().startsWith(filterText.toLowerCase()))
+    : options;
 
   const triggerLabel = showingManual
     ? (manualText || value || placeholder)
@@ -64,7 +152,43 @@ export function Dropdown({
       </Text>
 
       {/* Trigger / Manual input */}
-      {showingManual ? (
+      {editable ? (
+        <View
+          style={[
+            s.triggerRow,
+            isFocused && { borderColor: primary },
+            open && { borderColor: primary, backgroundColor: `${primary}10` },
+          ]}
+        >
+          <TextInput
+            ref={inputRef}
+            value={isFocused ? localText : (sel?.label || value || '')}
+            onChangeText={(t) => {
+              setLocalText(t);
+              onChange(t);
+            }}
+            placeholder={placeholder}
+            placeholderTextColor="rgba(255,255,255,0.4)"
+            style={s.editableInput}
+            keyboardType={Platform.OS === 'web' ? 'default' : keyboardType}
+            maxLength={maxLength}
+            onFocus={() => {
+              setIsFocused(true);
+              setLocalText(value || '');
+              onFocus?.();
+            }}
+            onBlur={() => {
+              setIsFocused(false);
+              setLocalText('');
+              onBlur?.();
+            }}
+            testID={testID}
+          />
+          <Pressable onPress={() => setOpen(true)} style={s.chevronPressable}>
+            <ChevronDown size={18} color="rgba(255,255,255,0.6)" />
+          </Pressable>
+        </View>
+      ) : showingManual ? (
         <View style={[s.triggerRow, { borderColor: primary }]}>
           <TextInput
             value={manualText || value || ''}
@@ -100,24 +224,30 @@ export function Dropdown({
       )}
 
       {/* Modal overlay — backdrop click closes; positioned-centred card */}
-      <Modal transparent visible={open} animationType="fade" onRequestClose={() => setOpen(false)}>
-        <Pressable style={s.backdrop} onPress={() => setOpen(false)}>
-          <Pressable
-            // Stop propagation: tapping inside the card should not close it
-            onPress={(e: any) => e?.stopPropagation?.()}
-            style={s.cardWrap}
-          >
-            <OptionListCard
-              headerLabel={overlayHeader || label.toUpperCase()}
-              options={options}
-              selectedValue={value}
-              onSelect={(opt) => { onChange(opt.value); setManualMode(false); setOpen(false); }}
-              showOther={allowOther}
-              onSelectOther={() => { setOpen(false); setManualMode(true); setManualText(''); onChange(''); }}
-            />
+      {open && (
+        <Modal transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+          <Pressable style={s.backdrop} onPress={() => setOpen(false)}>
+            <Pressable
+              onPress={(e: any) => e?.stopPropagation?.()}
+              style={s.cardWrap}
+              onKeyDown={(e: any) => {
+                if (Platform.OS === 'web' && e?.key === 'Escape') {
+                  setOpen(false);
+                }
+              }}
+            >
+              <OptionListCard
+                headerLabel={overlayHeader || label.toUpperCase()}
+                options={filteredOptions}
+                selectedValue={value}
+                onSelect={(opt) => { onChange(opt.value); setManualMode(false); setOpen(false); }}
+                showOther={allowOther}
+                onSelectOther={() => { setOpen(false); setManualMode(true); setManualText(''); onChange(''); }}
+              />
+            </Pressable>
           </Pressable>
-        </Pressable>
-      </Modal>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -140,16 +270,34 @@ const s = StyleSheet.create({
   triggerPlaceholder: { color: 'rgba(255,255,255,0.4)' },
   manualInput: {
     flex: 1,
+    minWidth: 0,
     color: '#FFF',
     fontSize: 14,
     fontFamily: 'DMSans_500Medium',
     ...(Platform.OS === 'web' ? ({ outlineWidth: 0 } as any) : {}),
+  },
+  editableInput: {
+    flex: 1,
+    minWidth: 0,
+    color: '#FFF',
+    fontSize: 14,
+    fontFamily: 'DMSans_500Medium',
+    padding: 0,
+    height: '100%',
+    ...(Platform.OS === 'web' ? ({ outlineWidth: 0 } as any) : {}),
+  },
+  chevronPressable: {
+    padding: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   editPill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: 'rgba(124,58,237,0.4)',
     borderRadius: 999,
     paddingHorizontal: 10, paddingVertical: 4,
+    flexShrink: 0,
   },
   editPillText: { color: '#FFF', fontFamily: 'DMSans_700Bold', fontSize: 11 },
   backdrop: {

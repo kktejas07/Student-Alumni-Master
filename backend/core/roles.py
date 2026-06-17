@@ -23,16 +23,15 @@ from pathlib import Path
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 # Lazy MongoDB connection — only connects when first needed
-_mongo = None
 _db = None
 
 def _get_db():
-    global _mongo, _db
+    global _db
     if _db is None:
-        from motor.motor_asyncio import AsyncIOMotorClient
-        _mongo = AsyncIOMotorClient(os.environ["MONGO_URL"])
-        _db = _mongo[os.environ["DB_NAME"]]
+        from core.db import db as shared_db
+        _db = shared_db
     return _db
+
 _JWT_SECRET = os.environ.get("JWT_SECRET", "")
 _JWT_ALG = os.environ.get("JWT_ALGORITHM", "HS256")
 

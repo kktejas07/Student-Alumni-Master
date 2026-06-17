@@ -169,7 +169,6 @@ export default function MoneyCoach({ initialCmd, onAction }: {
               }}
             >
               <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 style={{ flex: 1 }}>
                 
                 {/* Header */}
