@@ -135,7 +135,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
     if (!raw) return;
     
     // Optimistic clear
-    if (!skillToAdd) setSkillInput('');
+    setSkillInput('');
 
     try {
       const res = await request<any>('/users/me/skills', {
@@ -213,7 +213,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
     : [];
 
   return (
-    <View style={{ gap: 16 }}>
+    <View style={{ gap: 16, zIndex: 10, position: 'relative' }}>
       {/* Completion Banner */}
       <View style={[st.banner, completion.percentage >= 100 && st.bannerComplete]}>
         <CompletionRing pct={completion.percentage} size={92} color={completion.percentage >= 100 ? '#10B981' : '#A78BFA'} />
@@ -386,11 +386,11 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
       </Card>
 
       {/* Skill Intelligence Experience */}
-      <View nativeID="skills">
+      <View nativeID="skills" style={{ zIndex: 99, position: 'relative' }}>
       <Card title="Skill Intelligence" subtitle="Add skills to instantly see how AI categorizes them and impacts your career readiness.">
         
         {/* Typeahead Input */}
-        <View style={{ zIndex: 50 }}>
+        <View style={{ zIndex: 999, position: 'relative' }}>
           <View style={st.skillInputRow}>
             <View style={{ flex: 1 }}>
               <TF
@@ -713,11 +713,11 @@ const st = StyleSheet.create({
   // Suggestions
   suggestionsBox: {
     position: 'absolute', top: 48, left: 0, right: 0,
-    backgroundColor: '#1E1B4B', borderColor: '#312E81', borderWidth: 1, borderRadius: 10,
-    padding: 6, gap: 4, zIndex: 100,
+    backgroundColor: '#13091F', borderColor: 'rgba(167,139,250,0.25)', borderWidth: 1, borderRadius: 10,
+    padding: 6, gap: 4, zIndex: 9999,
     ...(Platform.OS === 'web' ? { boxShadow: '0 10px 25px rgba(0,0,0,0.5)' } : {}),
   },
-  suggestionItem: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.05)', ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}) },
+  suggestionItem: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.03)', ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}) },
   suggestionText: { color: '#E0E7FF', fontFamily: 'DMSans_500Medium', fontSize: 13 },
 
   // Rich Chips

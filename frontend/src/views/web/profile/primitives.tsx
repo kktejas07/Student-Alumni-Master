@@ -122,7 +122,7 @@ export function SF({ value, onChange, options, placeholder, testID }: {
       </Pressable>
       {open && (
         <View style={s.ddMenu}>
-          <ScrollView nestedScrollEnabled={true} keyboardShouldPersistTaps="handled" style={{ maxHeight: 220 }}>
+          <ScrollView nestedScrollEnabled={true} keyboardShouldPersistTaps="handled" style={{ maxHeight: 150 }}>
             {options.map((o) => (
               <Pressable key={o} onPress={() => { onChange(o); setOpen(false); }} style={s.ddItem}>
                 <Text style={[s.ddText, value === o && { color: C.purple, fontFamily: 'DMSans_700Bold' }]}>{o}</Text>
@@ -241,7 +241,7 @@ const s = StyleSheet.create({
   ta: { textAlignVertical: 'top', paddingTop: 8 },
   ddMenu: {
     position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
-    backgroundColor: '#1A1426', borderColor: C.border, borderWidth: 1, borderRadius: 10,
+    backgroundColor: '#13091F', borderColor: C.border, borderWidth: 1, borderRadius: 10,
     overflow: 'hidden', zIndex: 9999,
     ...(Platform.OS === 'web' ? { boxShadow: '0 8px 32px rgba(0,0,0,0.4)' } as any : { elevation: 8 }),
   },

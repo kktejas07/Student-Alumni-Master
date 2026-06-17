@@ -2644,6 +2644,9 @@ def _compute_profile_completion(u: dict) -> dict:
 
 @api_router.get("/users/me/completion")
 async def get_my_completion(user: dict = Depends(get_current_user)):
+    user_db = await db.users.find_one({"_id": user["_id"]}, {"resume_documents": 1})
+    if user_db:
+        user["resume_documents"] = user_db.get("resume_documents") or []
     return _compute_profile_completion(user)
 
 
@@ -2758,6 +2761,88 @@ async def get_my_stats(user: dict = Depends(get_current_user)):
     }
 
 
+def _categorize_skill(skill_name: str) -> tuple[str, int]:
+    s = skill_name.lower()
+    
+    # Technical Excellence
+    tech_keywords = {"react", "node", "python", "aws", "database", "mongodb", "sql", "javascript", "typescript", "c++", "java", "html", "css", "docker", "kubernetes", "git", "linux", "programming", "software", "next.js", "nextjs", "backend", "frontend", "web", "cloud", "devops"}
+    if any(k in s for k in tech_keywords):
+        return "technical_skills", 10
+        
+    # Professional Communication
+    comm_keywords = {"communication", "english", "public speaking", "debate", "languages", "speaking", "writing", "presentation", "verbal", "soft skills"}
+    if any(k in s for k in comm_keywords):
+        return "communication", 15
+        
+    # Leadership & Collaboration
+    lead_keywords = {"leadership", "teamwork", "mentoring", "collaboration", "management", "team", "mentor", "organizer", "lead"}
+    if any(k in s for k in lead_keywords):
+        return "leadership", 20
+        
+    # Career Preparation
+    prep_keywords = {"problem solving", "aptitude", "interview", "dsa", "data structures", "algorithms", "analytical"}
+    if any(k in s for k in prep_keywords):
+        return "interview_prep", 15
+
+    # Default fallback
+    return "technical_skills", 5
+
+
+@api_router.post("/users/me/skills")
+async def add_user_skill(req: dict, user: dict = Depends(get_current_user)):
+    skill = req.get("skill", "").strip()
+    if not skill:
+        raise HTTPException(400, "Skill name is required")
+        
+    skills = user.get("skills") or []
+    # Case-insensitive exists check
+    if any(s.lower() == skill.lower() for s in skills):
+        return {"status": "exists", "skill": {"skill_name": skill, "weight": 0}}
+        
+    # Calculate before stats/scores using skill-intelligence
+    before_intel = await get_my_skill_intelligence(user)
+    before_score = before_intel["readiness_score"]["score"]
+    before_level = before_intel["readiness_score"]["level"]
+    
+    # Add skill to array in DB
+    await db.users.update_one({"_id": user["_id"]}, {"$addToSet": {"skills": skill}})
+    
+    # Re-fetch user document to get updated skills list
+    updated_user = await db.users.find_one({"_id": user["_id"]})
+    
+    # Calculate after stats/scores
+    after_intel = await get_my_skill_intelligence(updated_user)
+    after_score = after_intel["readiness_score"]["score"]
+    after_level = after_intel["readiness_score"]["level"]
+    
+    display_category, weight = _categorize_skill(skill)
+    
+    return {
+        "status": "success",
+        "skill": {
+            "skill_name": skill,
+            "weight": weight,
+            "display_category": display_category
+        },
+        "before_score": before_score,
+        "after_score": after_score,
+        "before_level": before_level,
+        "after_level": after_level
+    }
+
+
+@api_router.delete("/users/me/skills/{skill_name}")
+async def delete_user_skill(skill_name: str, user: dict = Depends(get_current_user)):
+    skills = user.get("skills") or []
+    target_skill = next((s for s in skills if s.lower() == skill_name.lower()), None)
+    
+    if not target_skill:
+        raise HTTPException(404, "Skill not found on profile")
+        
+    await db.users.update_one({"_id": user["_id"]}, {"$pull": {"skills": target_skill}})
+    return {"status": "success", "removed": target_skill}
+
+
 @api_router.get("/users/me/skill-intelligence")
 async def get_my_skill_intelligence(user: dict = Depends(get_current_user)):
     """Compute user skill intelligence scores dynamically from profile and activity."""
@@ -2785,7 +2870,8 @@ async def get_my_skill_intelligence(user: dict = Depends(get_current_user)):
         pass
         
     skills = [s.lower() for s in (user.get("skills") or [])]
-    has_resume = len(user.get("resume_documents") or []) > 0
+    user_db = await db.users.find_one({"_id": user["_id"]}, {"resume_documents": 1})
+    has_resume = len((user_db.get("resume_documents") or []) if user_db else []) > 0
     has_github = bool(user.get("github_url"))
     has_linkedin = bool(user.get("linkedin_url"))
     has_portfolio = bool(user.get("portfolio_url"))
@@ -3180,7 +3266,8 @@ async def disconnect_integration(
 @api_router.get("/users/me/resume")
 async def get_my_resume(user: dict = Depends(get_current_user)):
     """Return resume metadata (not the binary data URL — call /resume/raw for that)."""
-    docs = (user.get("resume_documents") or [])
+    user_db = await db.users.find_one({"_id": user["_id"]}, {"resume_documents": 1})
+    docs = (user_db.get("resume_documents") or []) if user_db else []
     return {"documents": [{
         "id": d.get("id"), "name": d.get("name"), "size": d.get("size"),
         "uploaded_at": d.get("uploaded_at"), "active": d.get("active", False),
@@ -3190,7 +3277,8 @@ async def get_my_resume(user: dict = Depends(get_current_user)):
 @api_router.get("/users/me/resume/{doc_id}/raw")
 async def download_my_resume(doc_id: str, user: dict = Depends(get_current_user)):
     """Return the data URL of a specific resume document (used by client to trigger download)."""
-    docs = (user.get("resume_documents") or [])
+    user_db = await db.users.find_one({"_id": user["_id"]}, {"resume_documents": 1})
+    docs = (user_db.get("resume_documents") or []) if user_db else []
     for d in docs:
         if d.get("id") == doc_id:
             return {"id": doc_id, "name": d.get("name"), "data_url": d.get("data_url")}
@@ -3210,7 +3298,8 @@ async def upload_my_resume(payload: dict, user: dict = Depends(get_current_user)
     # Soft size cap: 5 MB
     if size > 5 * 1024 * 1024:
         raise HTTPException(400, "File too large (max 5MB)")
-    docs = list(user.get("resume_documents") or [])
+    user_db = await db.users.find_one({"_id": user["_id"]}, {"resume_documents": 1})
+    docs = list((user_db.get("resume_documents") or []) if user_db else [])
     # Mark all existing as inactive
     for d in docs:
         d["active"] = False
@@ -3232,7 +3321,8 @@ async def upload_my_resume(payload: dict, user: dict = Depends(get_current_user)
 
 @api_router.delete("/users/me/resume/{doc_id}")
 async def delete_my_resume(doc_id: str, user: dict = Depends(get_current_user)):
-    docs = list(user.get("resume_documents") or [])
+    user_db = await db.users.find_one({"_id": user["_id"]}, {"resume_documents": 1})
+    docs = list((user_db.get("resume_documents") or []) if user_db else [])
     new_docs = [d for d in docs if d.get("id") != doc_id]
     if len(new_docs) == len(docs):
         raise HTTPException(404, "Document not found")
@@ -3248,7 +3338,8 @@ async def delete_my_resume(doc_id: str, user: dict = Depends(get_current_user)):
 
 @api_router.post("/users/me/resume/{doc_id}/activate")
 async def activate_my_resume(doc_id: str, user: dict = Depends(get_current_user)):
-    docs = list(user.get("resume_documents") or [])
+    user_db = await db.users.find_one({"_id": user["_id"]}, {"resume_documents": 1})
+    docs = list((user_db.get("resume_documents") or []) if user_db else [])
     found = False
     for d in docs:
         if d.get("id") == doc_id:

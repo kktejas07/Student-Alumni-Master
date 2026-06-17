@@ -399,7 +399,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
           {tab === 'security'      && <ComingSoon title="Security Centre"          sub="2FA, login history & active sessions land in Phase 2." />}
 
           {(tab === 'profile-info' || tab === 'manage' || tab === 'settings') && (
-            <View style={{ marginTop: 4 }}>
+            <View style={{ marginTop: 4, zIndex: 1, position: 'relative' }}>
               <FooterActions
                 dirty={dirty}
                 saving={saving}

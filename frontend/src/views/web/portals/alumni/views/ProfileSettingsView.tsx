@@ -359,7 +359,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
 
           {/* Save bar */}
           {(tab === 'profile-info' || tab === 'manage' || tab === 'settings') && (
-            <View style={{ marginTop: 4 }}>
+            <View style={{ marginTop: 4, zIndex: 1, position: 'relative' }}>
               <FooterActions
                 dirty={dirty}
                 saving={saving}
