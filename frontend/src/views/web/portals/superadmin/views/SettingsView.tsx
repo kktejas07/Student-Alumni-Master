@@ -664,7 +664,7 @@ function PlatformTab({ onSaved }: { onSaved: (s?: string) => void }) {
               const displayValue = it.value || (opts.length === 0 ? 'Add value' : 'Select');
               return (
                 <View key={it.key} style={[s.systemRow, idx === data.system_settings.length - 1 ? { borderBottomWidth: 0 } : null]}>
-                  <Text style={s.toggleTitle}>{it.label}</Text>
+                  <Text style={s.toggleTitle} numberOfLines={1}>{it.label}</Text>
                   <Pressable
                     onPress={() => setPickerSetting({
                       key: it.key,
@@ -676,7 +676,7 @@ function PlatformTab({ onSaved }: { onSaved: (s?: string) => void }) {
                     })}
                     style={({ hovered }: any) => [s.selectBtn, hovered && Platform.OS === 'web' ? { borderColor: 'rgba(251,146,60,0.60)' } : null]}
                   >
-                    <Text style={[s.selectValue, !it.value ? { color: SAC.dim } : null]}>
+                    <Text style={[s.selectValue, !it.value ? { color: SAC.dim } : null]} numberOfLines={1}>
                       {isSecret && it.value ? '••••••••••••' : displayValue}
                     </Text>
                     <View style={{ opacity: 0.6 }}>
@@ -2580,11 +2580,11 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 11, paddingHorizontal: 4,
   },
-  toggleTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
+  toggleTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13, flex: 1, marginRight: 8 },
   toggleDesc: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
   systemRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: SAC.border, gap: 12,
+    paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: SAC.border, gap: 8,
   },
   selectBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
