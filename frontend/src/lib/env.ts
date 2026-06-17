@@ -23,8 +23,9 @@ export function getBaseUrl() {
   // Web fallback: if accessed via network IP (e.g. 192.168.1.5), use that IP instead of localhost
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     const hostname = window.location.hostname;
+    const protocol = window.location.protocol;
     if (hostname && hostname !== 'localhost') {
-      return `http://${hostname}:8002`;
+      return `${protocol}//${hostname}:8002`;
     }
   }
 
