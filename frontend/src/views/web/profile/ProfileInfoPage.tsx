@@ -4,7 +4,7 @@
  */
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, Alert, Modal } from 'react-native';
-import { Mail, Phone, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Sparkles, Check, X, Upload, Camera, TrendingUp, AlertCircle } from 'lucide-react-native';
+import { Mail, Phone, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Sparkles, Check, X, Upload, Camera, TrendingUp, AlertCircle, Plus, Trash2, Folder } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { WebcamModal } from '@/src/views/components/WebcamModal';
 import { CompletionRing } from './CompletionRing';
@@ -69,8 +69,12 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
 
   const setField = (k: string, v: any) => setDraft((d: any) => ({ ...d, [k]: v }));
   const interests: string[] = draft.interests || [];
+  const projects = draft.projects || [];
   const [skillInput, setSkillInput] = useState('');
   const [webcamVisible, setWebcamVisible] = useState(false);
+  const [newProjName, setNewProjName] = useState('');
+  const [newProjDesc, setNewProjDesc] = useState('');
+  const [projModalVisible, setProjModalVisible] = useState(false);
   
   const toast = useToast();
   
@@ -135,7 +139,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
     if (!raw) return;
     
     // Optimistic clear
-    if (!skillToAdd) setSkillInput('');
+    setSkillInput('');
 
     try {
       const res = await request<any>('/users/me/skills', {
@@ -213,7 +217,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
     : [];
 
   return (
-    <View style={{ gap: 16 }}>
+    <View style={{ gap: 16, zIndex: 10, position: 'relative' }}>
       {/* Completion Banner */}
       <View style={[st.banner, completion.percentage >= 100 && st.bannerComplete]}>
         <CompletionRing pct={completion.percentage} size={92} color={completion.percentage >= 100 ? '#10B981' : '#A78BFA'} />
@@ -261,16 +265,30 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
                     <Check size={14} color="#FFF" />
                     <Text style={st.btnPrimaryText}>Confirm</Text>
                   </Pressable>
-                  <Pressable onPress={() => { setPendingPhoto(null); takeSelfie(); }} style={st.btnGhost} testID="pf-retake-photo">
-                    <Camera size={14} color="#A78BFA" />
+                  <Pressable onPress={() => { setPendingPhoto(null); if (onTakeSelfie) { onTakeSelfie(); } else { takeSelfie(); } }} style={st.btnGhost} testID="pf-retake-photo">
+                    <Camera size={14} color={themeColor} />
                     <Text style={st.btnGhostText}>Retake</Text>
                   </Pressable>
                 </>
               ) : (
                 <>
-                  <Pressable onPress={handleOpenMenu} style={st.btnPrimary} testID="pf-upload-photo">
+                  <Pressable onPress={onUploadPhoto} style={st.btnPrimary} testID="pf-upload-photo">
                     <Upload size={14} color="#FFF" />
                     <Text style={st.btnPrimaryText}>Upload Photo</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      if (onTakeSelfie) {
+                        onTakeSelfie();
+                      } else {
+                        takeSelfie();
+                      }
+                    }}
+                    style={st.btnPrimary}
+                    testID="pf-take-selfie"
+                  >
+                    <Camera size={14} color="#FFF" />
+                    <Text style={st.btnPrimaryText}>Take Selfie</Text>
                   </Pressable>
                   {photo && (
                     <Pressable onPress={() => {
@@ -385,12 +403,55 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
         <Field label="Portfolio / Website"><TF value={draft.portfolio_url || ''} onChangeText={(v) => setField('portfolio_url', v)} leftIcon={<Globe size={14} color={C.text2} />} placeholder="https://yoursite.com" testID="pf-portfolio" /></Field>
       </Card>
 
+      {/* Projects */}
+      <Card
+        title="Projects"
+        subtitle="Showcase technical or professional projects you have built."
+        action={
+          <Pressable onPress={() => setProjModalVisible(true)} style={st.projHeaderAddBtn} testID="pf-projects-add-btn">
+            <Plus size={13} color="#fff" />
+            <Text style={st.projHeaderAddBtnText}>Add</Text>
+          </Pressable>
+        }
+      >
+        {projects.length === 0 ? (
+          <View style={st.emptyProj}>
+            <Folder size={28} color={C.text3} />
+            <Text style={st.emptyProjText}>No projects added yet. Click Add to add your first project.</Text>
+          </View>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {projects.map((proj: any, idx: number) => (
+              <View key={idx} style={st.projRow}>
+                <View style={st.projIcon}>
+                  <Folder size={16} color={C.purple} />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={st.projName} numberOfLines={1}>{proj.name || 'Untitled Project'}</Text>
+                  {!!proj.description && <Text style={st.projDesc}>{proj.description}</Text>}
+                </View>
+                <Pressable
+                  onPress={() => {
+                    const newProjList = projects.filter((_: any, i: number) => i !== idx);
+                    setField('projects', newProjList);
+                  }}
+                  style={st.projDelBtn}
+                  testID={`pf-project-delete-${idx}`}
+                >
+                  <Trash2 size={14} color={C.rose} />
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        )}
+      </Card>
+
       {/* Skill Intelligence Experience */}
-      <View nativeID="skills">
+      <View nativeID="skills" style={{ zIndex: 99, position: 'relative' }}>
       <Card title="Skill Intelligence" subtitle="Add skills to instantly see how AI categorizes them and impacts your career readiness.">
         
         {/* Typeahead Input */}
-        <View style={{ zIndex: 50 }}>
+        <View style={{ zIndex: 999, position: 'relative' }}>
           <View style={st.skillInputRow}>
             <View style={{ flex: 1 }}>
               <TF
@@ -527,6 +588,68 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
           </View>
         </View>
       )}
+
+      {/* Add Project Modal */}
+      <Modal
+        transparent
+        visible={projModalVisible}
+        animationType="fade"
+        onRequestClose={() => { setProjModalVisible(false); setNewProjName(''); setNewProjDesc(''); }}
+      >
+        <View style={st.modalBackdrop}>
+          <View style={[st.modalCard, { maxWidth: 450, alignItems: 'stretch' }]}>
+            {/* Header */}
+            <View style={st.modalHeader}>
+              <Text style={st.modalTitle}>Add a New Project</Text>
+              <Pressable onPress={() => { setProjModalVisible(false); setNewProjName(''); setNewProjDesc(''); }} style={st.modalCloseBtn}>
+                <X size={18} color="rgba(255,255,255,0.7)" />
+              </Pressable>
+            </View>
+
+            {/* Form Fields */}
+            <View style={{ gap: 12, width: '100%' }}>
+              <Field label="Project Title / Name">
+                <TF
+                  value={newProjName}
+                  onChangeText={setNewProjName}
+                  placeholder="e.g. Portfolio Website, E-commerce App"
+                  testID="pf-modal-project-name"
+                />
+              </Field>
+              <Field label="Project Description">
+                <TA
+                  value={newProjDesc}
+                  onChangeText={setNewProjDesc}
+                  rows={4}
+                  placeholder="Briefly describe what you built, technologies used, and outcomes…"
+                  testID="pf-modal-project-desc"
+                />
+              </Field>
+              <Pressable
+                onPress={() => {
+                  const trimmedName = newProjName.trim();
+                  if (!trimmedName) {
+                    toast.error('Required', 'Please enter a project name.');
+                    return;
+                  }
+                  const newProjList = [...projects, { name: trimmedName, description: newProjDesc.trim() }];
+                  setField('projects', newProjList);
+                  setNewProjName('');
+                  setNewProjDesc('');
+                  setProjModalVisible(false);
+                  toast.success('Added', `Project "${trimmedName}" added successfully.`);
+                }}
+                style={st.projAddBtn}
+                testID="pf-modal-project-submit"
+              >
+                <Plus size={14} color="#FFF" />
+                <Text style={st.projAddBtnText}>Add Project</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <WebcamModal
         visible={webcamVisible}
         onClose={() => setWebcamVisible(false)}
@@ -713,11 +836,11 @@ const st = StyleSheet.create({
   // Suggestions
   suggestionsBox: {
     position: 'absolute', top: 48, left: 0, right: 0,
-    backgroundColor: '#1E1B4B', borderColor: '#312E81', borderWidth: 1, borderRadius: 10,
-    padding: 6, gap: 4, zIndex: 100,
+    backgroundColor: '#13091F', borderColor: 'rgba(167,139,250,0.25)', borderWidth: 1, borderRadius: 10,
+    padding: 6, gap: 4, zIndex: 9999,
     ...(Platform.OS === 'web' ? { boxShadow: '0 10px 25px rgba(0,0,0,0.5)' } : {}),
   },
-  suggestionItem: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.05)', ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}) },
+  suggestionItem: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.03)', ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {}) },
   suggestionText: { color: '#E0E7FF', fontFamily: 'DMSans_500Medium', fontSize: 13 },
 
   // Rich Chips
@@ -757,4 +880,101 @@ const st = StyleSheet.create({
   modalDetailRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingVertical: 8, borderBottomColor: 'rgba(255,255,255,0.05)', borderBottomWidth: 1 },
   modalDetailLabel: { color: '#94A3B8', fontFamily: 'DMSans_500Medium', fontSize: 13 },
   modalDetailValue: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 13 },
+
+  // Projects section styles
+  emptyProj: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    gap: 8,
+  },
+  emptyProjText: {
+    color: 'rgba(255,255,255,0.45)',
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  projRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    borderRadius: 11,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: 'rgba(255,255,255,0.09)',
+    borderWidth: 1,
+  },
+  projIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(167,139,250,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  projName: {
+    color: '#fff',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 13,
+  },
+  projDesc: {
+    color: 'rgba(255,255,255,0.55)',
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 11.5,
+    marginTop: 2,
+  },
+  projDelBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 7,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(244,63,94,0.40)',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  projForm: {
+    marginTop: 10,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.06)',
+    gap: 12,
+  },
+  projFormTitle: {
+    color: '#fff',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  projAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: '#A78BFA',
+    ...(Platform.OS === 'web' ? ({ backgroundImage: 'linear-gradient(135deg, #A78BFA 0%, #7C3AED 55%, #6D28D9 100%)', boxShadow: '0 6px 18px rgba(124,58,237,0.35)' } as any) : {}),
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  projAddBtnText: {
+    color: '#fff',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 12,
+  },
+  projHeaderAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#A78BFA',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  projHeaderAddBtnText: {
+    color: '#fff',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 12,
+  },
 });

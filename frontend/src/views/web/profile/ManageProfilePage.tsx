@@ -165,7 +165,7 @@ export function ManageProfilePage({ draft, setDraft, badges, onCertChange, showT
         {badges.length === 0 ? (
           <View style={st.empty}><Award size={28} color={C.text3} /><Text style={st.emptyText}>Earn badges by completing your profile and engaging with the platform.</Text></View>
         ) : (
-          <MaterialBadgeStack badges={badges} size="md" />
+          <MaterialBadgeStack badges={badges} size="sm" />
         )}
       </Card>
     </View>

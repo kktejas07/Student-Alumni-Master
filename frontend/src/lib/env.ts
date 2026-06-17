@@ -20,13 +20,14 @@ export function getBaseUrl() {
     }
   }
 
-  // Web fallback: if accessed via network IP (e.g. 192.168.1.5), use that IP instead of localhost
+  // Web logic: if accessed via production domain, return empty string for relative routing.
+  // Otherwise, construct url with accessed port 8002.
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    const protocol = window.location.protocol;
-    if (hostname && hostname !== 'localhost') {
-      return `${protocol}//${hostname}:8002`;
+    const hn = window.location.hostname;
+    if (hn !== 'localhost' && hn !== '127.0.0.1' && !hn.startsWith('192.168.') && !hn.startsWith('10.')) {
+      return '';
     }
+    return `${window.location.protocol}//${hn}:8002`;
   }
 
   return 'http://localhost:8002';
