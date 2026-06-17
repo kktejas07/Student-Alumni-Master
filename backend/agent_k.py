@@ -28,7 +28,7 @@ Collections:
                        audit_log, cost_summary, started_at, completed_at }
   agent_k_prefs      { user_id, auto_approve_read, auto_approve_write, ... }
 """
-
+from __future__ import annotations
 
 async def _get_best_ai_key() -> tuple:
     """Returns (api_key, model_name, provider) from best available source.
@@ -58,7 +58,6 @@ async def _get_best_ai_key() -> tuple:
 
     return ("", "", "")
 
-from __future__ import annotations
 from pathlib import Path
 import os
 import json
