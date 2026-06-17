@@ -2271,6 +2271,12 @@ async def oauth_config():
         "google_client_id": creds.get("google_oauth_client_id", ""),
         "linkedin_client_id": creds.get("linkedin_oauth_client_id", ""),
         "github_client_id": creds.get("github_oauth_client_id", ""),
+        "firebase": {
+            "apiKey": creds.get("firebase_api_key", ""),
+            "authDomain": creds.get("firebase_auth_domain", ""),
+            "projectId": creds.get("firebase_project_id", ""),
+            "appId": creds.get("firebase_app_id", ""),
+        } if creds.get("firebase_api_key") else None,
         "redirect_uri": f"{frontend_url}/oauth.html",
         "configured": bool(creds.get("google_oauth_client_id")) or bool(creds.get("linkedin_oauth_client_id")) or bool(creds.get("github_oauth_client_id")),
     }
@@ -2447,6 +2453,65 @@ async def auth_github(request: Request, req: OAuthCallback):
         email=profile["email"],
         full_name=profile.get("name") or profile.get("full_name") or "",
         picture=profile.get("picture"),
+        role=req.role or "student",
+    )
+    return AuthResponse(
+        access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
+        refresh_token=create_refresh_token(str(user["_id"])),
+        user=UserResponse(**serialize_user(user)),
+    )
+
+
+# ─── Firebase Auth ──────────────────────────────────────────────────
+def _verify_firebase_token(id_token: str) -> Optional[dict]:
+    """Verify a Firebase ID token. Requires firebase-admin SDK + service account in platform settings."""
+    try:
+        import json as _json
+        from firebase_admin import auth as fb_auth
+        creds = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON", "")
+        if not creds:
+            return None
+        decoded = fb_auth.verify_id_token(id_token, check_revoked=True)
+        return {
+            "email": decoded.get("email"),
+            "name": decoded.get("name", ""),
+            "picture": decoded.get("picture", ""),
+            "sub": decoded.get("uid"),
+            "phone": decoded.get("phone_number"),
+            "firebase_provider": decoded.get("firebase", {}).get("sign_in_provider", ""),
+        }
+    except Exception:
+        return None
+
+
+@api_router.post("/auth/firebase", response_model=AuthResponse)
+@limiter.limit("20/minute")
+async def auth_firebase(request: Request, req: OAuthCallback):
+    """Firebase Auth — accepts a Firebase ID token from any provider (Google, GitHub, phone, etc.)
+    and issues a platform JWT. Configure firebase_service_account in platform settings."""
+    creds = await _get_oauth_creds()
+    fb_service_account = creds.get("firebase_service_account", "")
+
+    # Set service account in env for firebase-admin SDK
+    if fb_service_account and not os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON"):
+        os.environ["FIREBASE_SERVICE_ACCOUNT_JSON"] = fb_service_account
+
+    profile = _verify_firebase_token(req.id_token) if req.id_token else None
+    if profile is None:
+        if not fb_service_account and os.getenv("ENV") == "development":
+            if not req.email or not req.full_name:
+                raise HTTPException(400, "Development mock mode requires email/full_name")
+            profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+        else:
+            raise HTTPException(400, "Firebase Auth requires a valid id_token. Configure firebase_service_account in platform settings or set ENV=development for mock mode.")
+
+    provider = profile.get("firebase_provider", "firebase")
+    user = await _upsert_oauth_user(
+        provider=provider,
+        email=profile["email"],
+        full_name=profile.get("name") or req.full_name or "",
+        picture=profile.get("picture"),
+
         role=req.role or "student",
     )
     return AuthResponse(

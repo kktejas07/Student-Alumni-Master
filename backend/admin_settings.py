@@ -800,6 +800,11 @@ DEFAULT_PLATFORM_CONTROLS = {
         {"key": "linkedin_oauth_client_secret","label": "LinkedIn OAuth Client Secret","value": "", "type": "password"},
         {"key": "github_oauth_client_id","label": "GitHub OAuth Client ID","value": "", "type": "text", "help": "From GitHub Settings → Developer settings → OAuth Apps"},
         {"key": "github_oauth_client_secret","label": "GitHub OAuth Client Secret","value": "", "type": "password"},
+        {"key": "firebase_api_key","label": "Firebase API Key","value": "", "type": "text", "help": "From Firebase Console → Project Settings → Web API Key"},
+        {"key": "firebase_auth_domain","label": "Firebase Auth Domain","value": "", "type": "text", "help": "e.g. your-project.firebaseapp.com"},
+        {"key": "firebase_project_id","label": "Firebase Project ID","value": "", "type": "text", "help": "From Firebase Console → Project Settings"},
+        {"key": "firebase_app_id","label": "Firebase App ID","value": "", "type": "text"},
+        {"key": "firebase_service_account","label": "Firebase Service Account JSON","value": "", "type": "password", "help": "Paste full service account JSON from Firebase Console → Project Settings → Service Accounts → Generate New Private Key"},
     ],
 }
 
