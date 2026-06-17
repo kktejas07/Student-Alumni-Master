@@ -58,8 +58,10 @@ async def _require_admin(authorization: Optional[str]) -> dict:
     user = await _resolve_user(authorization)
     if not user:
         raise HTTPException(401, "Not authenticated")
-    if (user.get("role") or "").lower().strip() != Role.ADMIN:
-        raise HTTPException(403, "Admin access required")
+    role = (user.get("role") or "").lower().strip()
+    if role not in {"admin", "super_admin"} and role != Role.ADMIN:
+        if not user.get("is_super_admin"):
+            raise HTTPException(403, "Admin access required")
     return user
 
 
