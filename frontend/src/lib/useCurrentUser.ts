@@ -15,6 +15,8 @@ export function useCurrentUser(fallbackEmail?: string) {
     email: user?.email || fallbackEmail || '',
     role:  user?.role  || 'student',
     name:  user?.full_name || user?.email?.split('@')[0] || 'Guest',
+    _id:   user?._id,
+    id:    user?.id || user?._id,
     isAuthed: !!user,
   };
 }

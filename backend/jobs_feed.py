@@ -131,7 +131,7 @@ async def _fetch_remoteok(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
             })
         return out
     except Exception as e:
-        logger.warning(f"[jobs_feed] RemoteOK fetch failed: {e}")
+        logger.info(f"[jobs_feed] RemoteOK fetch failed: {e}")
         return []
 
 async def _fetch_arbeitnow(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
@@ -165,7 +165,7 @@ async def _fetch_arbeitnow(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
             })
         return out
     except Exception as e:
-        logger.warning(f"[jobs_feed] ArbeitNow fetch failed: {e}")
+        logger.info(f"[jobs_feed] ArbeitNow fetch failed: {e}")
         return []
 
 async def _fetch_the_muse(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
@@ -206,7 +206,7 @@ async def _fetch_the_muse(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
                     "logo_url": _company_logo(company),
                 })
         except Exception as e:
-            logger.warning(f"[jobs_feed] The Muse fetch failed for {u}: {e}")
+            logger.info(f"[jobs_feed] The Muse fetch failed for {u}: {e}")
     return out
 
 
@@ -244,7 +244,7 @@ async def _fetch_remoteok_interns(client: httpx.AsyncClient) -> List[Dict[str, A
             })
         return out
     except Exception as e:
-        logger.warning(f"[jobs_feed] RemoteOK intern fetch failed: {e}")
+        logger.info(f"[jobs_feed] RemoteOK intern fetch failed: {e}")
         return []
 
 async def _fetch_remotive(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
@@ -277,7 +277,7 @@ async def _fetch_remotive(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
             })
         return out
     except Exception as e:
-        logger.warning(f"[jobs_feed] Remotive fetch failed: {e}")
+        logger.info(f"[jobs_feed] Remotive fetch failed: {e}")
         return []
 
 async def _fetch_jobicy(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
@@ -310,7 +310,7 @@ async def _fetch_jobicy(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
             })
         return out
     except Exception as e:
-        logger.warning(f"[jobs_feed] Jobicy fetch failed: {e}")
+        logger.info(f"[jobs_feed] Jobicy fetch failed: {e}")
         return []
 
 async def _fetch_himalayas(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
@@ -358,7 +358,7 @@ async def _fetch_himalayas(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
             })
         return out
     except Exception as e:
-        logger.warning(f"[jobs_feed] Himalayas fetch failed: {e}")
+        logger.info(f"[jobs_feed] Himalayas fetch failed: {e}")
         return []
 
 async def _fetch_hackernews(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
@@ -420,7 +420,7 @@ async def _fetch_hackernews(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
             })
         return out
     except Exception as e:
-        logger.warning(f"[jobs_feed] Hacker News fetch failed: {e}")
+        logger.info(f"[jobs_feed] Hacker News fetch failed: {e}")
         return []
 
 
@@ -466,7 +466,7 @@ async def _fetch_himalayas_p2(client: httpx.AsyncClient) -> List[Dict[str, Any]]
             })
         return out
     except Exception as e:
-        logger.warning(f"[jobs_feed] Himalayas p2 fetch failed: {e}")
+        logger.info(f"[jobs_feed] Himalayas p2 fetch failed: {e}")
         return []
 
 
@@ -518,7 +518,7 @@ async def _fetch_weworkremotely(client: httpx.AsyncClient) -> List[Dict[str, Any
                     "logo_url":   _company_logo(company),
                 })
         except Exception as e:
-            logger.warning(f"[jobs_feed] WeWorkRemotely feed {feed_url} failed: {e}")
+            logger.info(f"[jobs_feed] WeWorkRemotely feed {feed_url} failed: {e}")
     return out
 
 
@@ -555,7 +555,7 @@ async def _fetch_remotive_dev(client: httpx.AsyncClient) -> List[Dict[str, Any]]
             })
         return out
     except Exception as e:
-        logger.warning(f"[jobs_feed] Remotive dev fetch failed: {e}")
+        logger.info(f"[jobs_feed] Remotive dev fetch failed: {e}")
         return []
 
 
@@ -593,7 +593,7 @@ async def _fetch_arbeitnow_page2(client: httpx.AsyncClient) -> List[Dict[str, An
             })
         return out
     except Exception as e:
-        logger.warning(f"[jobs_feed] ArbeitNow page2 fetch failed: {e}")
+        logger.info(f"[jobs_feed] ArbeitNow page2 fetch failed: {e}")
         return []
 
 

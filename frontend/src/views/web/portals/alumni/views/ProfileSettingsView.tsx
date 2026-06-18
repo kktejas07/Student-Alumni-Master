@@ -185,7 +185,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
     const watched = [
       'first_name','last_name','full_name','headline','bio','phone','city','state','location',
       'photo_data','face_image_base64','institution','branch','graduation_year','cgpa',
-      'interests','skills','linkedin_url','github_url','portfolio_url','profile_visibility',
+      'interests','skills','projects','linkedin_url','github_url','portfolio_url','profile_visibility',
       'section_toggles','primary_skill','preferences',
     ];
     return watched.some((k) => JSON.stringify((draft as any)[k] ?? null) !== JSON.stringify((user as any)[k] ?? null));
@@ -215,7 +215,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
       const watched = [
         'first_name','last_name','full_name','headline','bio','phone','city','state','location',
         'photo_data','face_image_base64','institution','branch','graduation_year','cgpa',
-        'interests','skills','linkedin_url','github_url','portfolio_url','profile_visibility',
+        'interests','skills','projects','linkedin_url','github_url','portfolio_url','profile_visibility',
         'section_toggles','primary_skill','preferences',
       ];
       watched.forEach((k) => {
@@ -359,7 +359,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
 
           {/* Save bar */}
           {(tab === 'profile-info' || tab === 'manage' || tab === 'settings') && (
-            <View style={{ marginTop: 4 }}>
+            <View style={{ marginTop: 4, zIndex: 1, position: 'relative' }}>
               <FooterActions
                 dirty={dirty}
                 saving={saving}

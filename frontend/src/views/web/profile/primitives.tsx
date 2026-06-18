@@ -5,6 +5,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, Pressable, Animated, Platform, ScrollView } from 'react-native';
 import { ChevronDown, Check } from 'lucide-react-native';
+import { COUNTRY_CODES } from './countryCodes';
 
 export const C = {
   bg: '#0C0818',
@@ -85,7 +86,20 @@ export function TA({ value, onChangeText, placeholder, rows = 3, testID }: {
       placeholderTextColor={C.text3}
       multiline
       numberOfLines={rows}
-      style={[s.tf, s.ta, { minHeight: rows * 22 + 16 }]}
+      style={[
+        s.tf,
+        s.ta,
+        {
+          minHeight: rows * 22 + 16,
+          backgroundColor: 'rgba(255,255,255,0.04)',
+          borderColor: C.border,
+          borderWidth: 1,
+          borderRadius: 10,
+          paddingHorizontal: 12,
+          paddingTop: 10,
+          paddingBottom: 10,
+        },
+      ]}
       testID={testID}
     />
   );
@@ -122,12 +136,78 @@ export function SF({ value, onChange, options, placeholder, testID }: {
       </Pressable>
       {open && (
         <View style={s.ddMenu}>
-          <ScrollView nestedScrollEnabled={true} keyboardShouldPersistTaps="handled" style={{ maxHeight: 220 }}>
+          <ScrollView nestedScrollEnabled={true} keyboardShouldPersistTaps="handled" style={{ maxHeight: 150 }}>
             {options.map((o) => (
               <Pressable key={o} onPress={() => { onChange(o); setOpen(false); }} style={s.ddItem}>
                 <Text style={[s.ddText, value === o && { color: C.purple, fontFamily: 'DMSans_700Bold' }]}>{o}</Text>
               </Pressable>
             ))}
+          </ScrollView>
+        </View>
+      )}
+    </View>
+  );
+}
+
+export function SSF({ value, onChange, options, placeholder, testID }: {
+  value: string; onChange: (v: string) => void; options: string[]; placeholder?: string; testID?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const wrapRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const handleClick = (e: MouseEvent) => {
+      if (wrapRef.current && wrapRef.current.contains && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    if (open) {
+      setTimeout(() => document.addEventListener('mousedown', handleClick), 0);
+    }
+    return () => {
+      if (Platform.OS === 'web') document.removeEventListener('mousedown', handleClick);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) setSearch('');
+  }, [open]);
+
+  const filtered = options.filter(o => o.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <View ref={wrapRef} style={[{ position: 'relative' }, Platform.OS === 'web' ? { zIndex: open ? 9999 : 1 } as any : { zIndex: open ? 9999 : 1 }]}>
+      <Pressable style={[s.tfWrap, open && { borderColor: C.purple, backgroundColor: 'rgba(167,139,250,0.08)' }]} onPress={() => setOpen((o) => !o)} testID={testID}>
+        <Text style={[s.tf, { color: value ? C.text : C.text3, paddingVertical: 0 }]} numberOfLines={1}>
+          {value || placeholder || 'Select…'}
+        </Text>
+        <ChevronDown size={14} color={open ? C.purple : C.text2} />
+      </Pressable>
+      {open && (
+        <View style={s.ddMenu}>
+          <View style={{ padding: 8, borderBottomWidth: 1, borderBottomColor: C.borderHi || 'rgba(255,255,255,0.1)' }}>
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search..."
+              placeholderTextColor={C.text3}
+              style={[{ color: C.text, fontFamily: 'DMSans_500Medium', fontSize: 13, padding: 6, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 6 }, Platform.OS === 'web' ? { outlineStyle: 'none' } as any : {}]}
+              autoFocus
+            />
+          </View>
+          <ScrollView nestedScrollEnabled={true} keyboardShouldPersistTaps="handled" style={{ maxHeight: 220 }}>
+            {filtered.map((o) => (
+              <Pressable key={o} onPress={() => { onChange(o); setOpen(false); }} style={s.ddItem}>
+                <Text style={[s.ddText, value === o && { color: C.purple, fontFamily: 'DMSans_700Bold' }]}>{o}</Text>
+              </Pressable>
+            ))}
+            {filtered.length === 0 && (
+              <View style={{ padding: 12, alignItems: 'center' }}>
+                <Text style={{ color: C.text3, fontSize: 12, fontFamily: 'DMSans_400Regular' }}>No matches found</Text>
+              </View>
+            )}
           </ScrollView>
         </View>
       )}
@@ -220,6 +300,65 @@ export function SaveBar({ dirty, saving, onSave, onDiscard, lastSavedAt }: {
   );
 }
 
+export function PhoneField({ value, onChange, placeholder, testID }: {
+  value: string; onChange: (v: string) => void; placeholder?: string; testID?: string;
+}) {
+  const sortedCodes = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
+  
+  let code = '+91';
+  let num = value || '';
+  
+  if (value && value.startsWith('+')) {
+    const match = sortedCodes.find(c => value.startsWith(c.code));
+    if (match) {
+      code = match.code;
+      num = value.slice(match.code.length);
+    }
+  } else if (value && !value.startsWith('+')) {
+    num = value;
+  }
+
+  const handleCodeChange = (newDisplayVal: string) => {
+    const newCode = newDisplayVal.split(' ')[0];
+    onChange(newCode + num);
+  };
+
+  const handleNumChange = (t: string) => {
+    const digits = t.replace(/\D/g, '');
+    const config = COUNTRY_CODES.find(c => c.code === code);
+    if (config && digits.length > config.max) {
+      return; 
+    }
+    // If the user clears the number, we might just want to keep the code, or clear everything.
+    // Usually it's better to store code + digits. If digits is empty, maybe we just store the code.
+    onChange(digits ? code + digits : '');
+  };
+
+  const selectedDisplay = `${code} (${COUNTRY_CODES.find(c => c.code === code)?.name || ''})`;
+  const options = COUNTRY_CODES.map(c => `${c.code} (${c.name})`);
+
+  return (
+    <View style={[{ flexDirection: 'row', gap: 10 }, Platform.OS === 'web' ? { zIndex: 99 } : {}]}>
+      <View style={{ flex: 4, position: 'relative', zIndex: 99 }}>
+        <SSF 
+          value={selectedDisplay} 
+          onChange={handleCodeChange} 
+          options={options} 
+          placeholder="Code" 
+        />
+      </View>
+      <View style={{ flex: 7 }}>
+        <TF 
+          value={num} 
+          onChangeText={handleNumChange} 
+          placeholder={placeholder || 'Number...'} 
+          testID={testID} 
+        />
+      </View>
+    </View>
+  );
+}
+
 const s = StyleSheet.create({
   card: {
     backgroundColor: C.card,
@@ -241,7 +380,7 @@ const s = StyleSheet.create({
   ta: { textAlignVertical: 'top', paddingTop: 8 },
   ddMenu: {
     position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
-    backgroundColor: '#1A1426', borderColor: C.border, borderWidth: 1, borderRadius: 10,
+    backgroundColor: '#13091F', borderColor: C.border, borderWidth: 1, borderRadius: 10,
     overflow: 'hidden', zIndex: 9999,
     ...(Platform.OS === 'web' ? { boxShadow: '0 8px 32px rgba(0,0,0,0.4)' } as any : { elevation: 8 }),
   },
