@@ -409,7 +409,7 @@ export function SessionsView() {
           _rawDate: schedDate,
         };
       })
-      .sort((a, b) => a._rawDate.getTime() - b._rawDate.getTime());
+      .sort((a, b) => (isNaN(a._rawDate.getTime()) ? 0 : a._rawDate.getTime()) - (isNaN(b._rawDate.getTime()) ? 0 : b._rawDate.getTime()));
   }, [bookingsList, students, studentsMap, now]);
 
   const past = useMemo(() => {
@@ -470,7 +470,7 @@ export function SessionsView() {
           _rawDate: schedDate,
         };
       })
-      .sort((a, b) => b._rawDate.getTime() - a._rawDate.getTime());
+      .sort((a, b) => (isNaN(b._rawDate.getTime()) ? 0 : b._rawDate.getTime()) - (isNaN(a._rawDate.getTime()) ? 0 : a._rawDate.getTime()));
   }, [bookingsList, students, studentsMap, now]);
 
   const handlePrevMonth = () => {

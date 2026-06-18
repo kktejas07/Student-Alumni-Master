@@ -799,12 +799,12 @@ export function NetworkView() {
                     <Text style={s.actionBtnOutlineText}>View Profile</Text>
                   </Pressable>
 
-                  {conn.has(m.id) || m.connectionState === 'connected' ? (
+                  {conn.includes(m.id) || m.connectionState === 'connected' ? (
                     <View style={[s.connectedBadge, { flex: 1, marginRight: 4 }]}>
                       <Check size={11} color={SC.green} style={{ marginRight: 4 }} />
                       <Text style={s.connectedText}>Connected</Text>
                     </View>
-                  ) : pending.has(m.id) || m.connectionState === 'pending' ? (
+                  ) : pending.includes(m.id) || m.connectionState === 'pending' ? (
                     <View style={[s.pendingBadge, { flex: 1, marginRight: 4 }]}>
                       <Clock size={11} color={SC.amber} style={{ marginRight: 4 }} />
                       <Text style={s.pendingText}>Pending</Text>
@@ -848,8 +848,8 @@ export function NetworkView() {
               </Pressable>
             </View>
             {pickedPerson && (() => {
-              const isConnected = conn.has(pickedPerson.id) || pickedPerson.connectionState === 'connected';
-              const isPending = pending.has(pickedPerson.id) || pickedPerson.connectionState === 'pending';
+              const isConnected = conn.includes(pickedPerson.id) || pickedPerson.connectionState === 'connected';
+              const isPending = pending.includes(pickedPerson.id) || pickedPerson.connectionState === 'pending';
               const nameInitials = pickedPerson.initials;
               const titleLine = pickedPerson.role || pickedPerson.subline || 'Member';
               const collegeLine = pickedPerson.company || pickedPerson.college || '';

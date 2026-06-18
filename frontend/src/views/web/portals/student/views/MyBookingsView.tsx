@@ -85,7 +85,7 @@ export function MyBookingsView() {
   };
 
   const items = data?.items || [];
-  const parseDate = (d: any) => d ? new Date(d).getTime() : 0;
+  const parseDate = (d: any) => { if (!d) return 0; const t = new Date(d).getTime(); return isNaN(t) ? 0 : t; };
   const upcoming = items.filter((b) => b.status === 'confirmed' || b.status === 'accepted').sort((a, b) => parseDate(a.scheduled_at) - parseDate(b.scheduled_at));
   const pending = items.filter((b) => b.status === 'pending').sort((a, b) => parseDate(a.scheduled_at) - parseDate(b.scheduled_at));
   const cancelled = items.filter((b) => b.status === 'cancelled' || b.status === 'declined' || b.status === 'expired').sort((a, b) => parseDate(b.scheduled_at) - parseDate(a.scheduled_at));

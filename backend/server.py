@@ -5580,10 +5580,10 @@ async def my_bookings(user: dict = Depends(get_current_user)):
         
         dt_compare = None
         if isinstance(sched, datetime):
-            dt_compare = sched.replace(tzinfo=timezone.utc)
+            dt_compare = sched.astimezone(timezone.utc)
         elif start_iso:
             try:
-                dt_compare = datetime.fromisoformat(start_iso.replace("Z", "+00:00")).replace(tzinfo=timezone.utc)
+                dt_compare = datetime.fromisoformat(start_iso.replace("Z", "+00:00")).astimezone(timezone.utc)
             except Exception:
                 pass
 
