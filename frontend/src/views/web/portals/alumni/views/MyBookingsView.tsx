@@ -39,7 +39,7 @@ export function MyBookingsView() {
 
   const items = data?.items || [];
   const upcoming = items.filter((b) => b.status === 'confirmed');
-  const cancelled = items.filter((b) => b.status === 'cancelled');
+  const cancelled = items.filter((b) => b.status === 'cancelled' || b.status === 'expired');
 
   return (
     <View style={{ gap: 16 }}>

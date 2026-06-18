@@ -87,7 +87,7 @@ export function MyBookingsView() {
   const items = data?.items || [];
   const upcoming = items.filter((b) => b.status === 'confirmed' || b.status === 'accepted');
   const pending = items.filter((b) => b.status === 'pending');
-  const cancelled = items.filter((b) => b.status === 'cancelled' || b.status === 'declined');
+  const cancelled = items.filter((b) => b.status === 'cancelled' || b.status === 'declined' || b.status === 'expired');
   const completed = items.filter((b) => b.status === 'completed' || b.status === 'attended');
 
   return (
