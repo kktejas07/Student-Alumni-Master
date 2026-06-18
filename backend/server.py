@@ -3256,7 +3256,30 @@ async def get_my_skill_intelligence(user: dict = Depends(get_current_user)):
         potential_score = min(100, max(overall_score + (1 if len(unique_actions) > 0 else 0), potential_score))
         readiness_gap = potential_score - overall_score
 
+    # Calculate analyzed skills list for the frontend
+    user_skills = user.get("skills") or []
+    analyzed_skills = []
+    for sk in user_skills:
+        display_category, weight = _categorize_skill(sk)
+        subcat_map = {
+            "technical_skills": "Technical Skill",
+            "communication": "Communication",
+            "leadership": "Leadership",
+            "interview_prep": "Interview Prep",
+            "soft_skills": "Soft Skill",
+            "networking": "Networking"
+        }
+        subcategory = subcat_map.get(display_category, "Skill")
+        analyzed_skills.append({
+            "skill_name": sk,
+            "subcategory": subcategory,
+            "weight": weight,
+            "source": "taxonomy",
+            "confidence": 1.0
+        })
+
     return {
+        "skills": analyzed_skills,
         "readiness_score": {
             "score": overall_score,
             "level": "Explorer" if overall_score <= 20 else "Builder" if overall_score <= 40 else "Developing Professional" if overall_score <= 60 else "Career Ready" if overall_score <= 80 else "Industry Ready",
