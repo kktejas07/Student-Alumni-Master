@@ -229,7 +229,7 @@ async def mentor_dashboard(mentor_email: Optional[str] = None):
             distribution[int(round(r))] += 1
             
     rating_dist = []
-    total_ratings = len(ratings)
+    total_ratings = sum(distribution.values())
     for stars in [5, 4, 3, 2, 1]:
         count = distribution[stars]
         pct = int((count / total_ratings) * 100) if total_ratings > 0 else 0
