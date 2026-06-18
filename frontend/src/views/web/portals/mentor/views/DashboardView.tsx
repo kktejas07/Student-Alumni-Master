@@ -66,6 +66,9 @@ export function DashboardView({ onNav }: Props) {
   const STUDENTS = students;
   const RATING_DIST = MOCK.RATING_DIST;
 
+  const { width } = useWindowDimensions();
+  const isWide = width >= 1080;
+
   if (loading || studentsLoading) {
     return (
       <View style={{ flex: 1, padding: 60, alignItems: 'center', justifyContent: 'center' }}>
@@ -73,9 +76,6 @@ export function DashboardView({ onNav }: Props) {
       </View>
     );
   }
-
-  const { width } = useWindowDimensions();
-  const isWide = width >= 1080;
 
   const STATS = [
     { Icon: Calendar, label: 'Sessions Today', value: String(TODAY_SESSIONS.length), sub: TODAY_SESSIONS[0] ? 'Next at ' + TODAY_SESSIONS[0].time : 'No more today', subColor: MC.tealP },
