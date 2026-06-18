@@ -30,17 +30,26 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 interface Props { onNav: (id: string) => void; }
 
-const MENTOR_EMPTY = {
+interface MentorDashboardData {
+  mentor: any;
+  kpis: any[];
+  todaySessions: any[];
+  monthly: any[];
+  pendingRequests: number;
+  ratingDist?: any[];
+}
+
+const MENTOR_EMPTY: MentorDashboardData = {
   mentor: {},
   kpis: [],
   todaySessions: [],
-  monthly: {},
+  monthly: [],
   pendingRequests: 0,
 };
 
 export function DashboardView({ onNav }: Props) {
   // Fetch live data; falls back to empty if API unreachable.
-  const { data, loading } = usePortalData<any>('/mentor/dashboard', MENTOR_EMPTY);
+  const { data, loading } = usePortalData<MentorDashboardData>('/mentor/dashboard', MENTOR_EMPTY);
   const liveMentor = data?.mentor as any;
   const tier = liveMentor?.tier;
 
@@ -50,8 +59,12 @@ export function DashboardView({ onNav }: Props) {
 
   React.useEffect(() => {
     async function loadDashboardConnections() {
+      if (!user || !user.email) {
+        setStudentsLoading(false);
+        return;
+      }
       try {
-        const connRes = await api.mentorConnections(user?.email);
+        const connRes = await api.mentorConnections(user.email);
         setStudents(connRes?.items || []);
       } catch (e) {
         console.warn('Dashboard connections fetch failed:', e);
