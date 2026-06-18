@@ -85,10 +85,11 @@ export function MyBookingsView() {
   };
 
   const items = data?.items || [];
-  const upcoming = items.filter((b) => b.status === 'confirmed' || b.status === 'accepted');
-  const pending = items.filter((b) => b.status === 'pending');
-  const cancelled = items.filter((b) => b.status === 'cancelled' || b.status === 'declined' || b.status === 'expired');
-  const completed = items.filter((b) => b.status === 'completed' || b.status === 'attended');
+  const parseDate = (d: any) => d ? new Date(d).getTime() : 0;
+  const upcoming = items.filter((b) => b.status === 'confirmed' || b.status === 'accepted').sort((a, b) => parseDate(a.scheduled_at) - parseDate(b.scheduled_at));
+  const pending = items.filter((b) => b.status === 'pending').sort((a, b) => parseDate(a.scheduled_at) - parseDate(b.scheduled_at));
+  const cancelled = items.filter((b) => b.status === 'cancelled' || b.status === 'declined' || b.status === 'expired').sort((a, b) => parseDate(b.scheduled_at) - parseDate(a.scheduled_at));
+  const completed = items.filter((b) => b.status === 'completed' || b.status === 'attended').sort((a, b) => parseDate(b.scheduled_at) - parseDate(a.scheduled_at));
 
   return (
     <View style={{ gap: 16 }}>

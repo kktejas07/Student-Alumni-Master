@@ -5592,7 +5592,9 @@ async def my_bookings(user: dict = Depends(get_current_user)):
             status = new_status
             # Best-effort DB update
             import asyncio
-            asyncio.create_task(db.bookings.update_one({"_id": item["_id"]}, {"$set": {"status": new_status}}))
+            async def _update_status(item_id, st):
+                await db.bookings.update_one({"_id": item_id}, {"$set": {"status": st}})
+            asyncio.create_task(_update_status(item["_id"], new_status))
         
         doc = {
             "id": str(item["_id"]),
