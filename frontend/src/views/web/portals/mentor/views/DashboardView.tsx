@@ -13,7 +13,7 @@
  *    - Upcoming sessions mini list
  */
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, Platform, useWindowDimensions, Linking } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform, useWindowDimensions, Linking, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Calendar, Users, Coins, Star as StarIcon, Sparkles, ArrowUpRight,
@@ -30,22 +30,23 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 interface Props { onNav: (id: string) => void; }
 
-const MENTOR_MOCK = {
-  mentor: { ...MOCK.MENTOR, tier: undefined as any },
+const MENTOR_EMPTY = {
+  mentor: {},
   kpis: [],
-  todaySessions: MOCK.TODAY_SESSIONS,
-  monthly: MOCK.MONTHLY,
-  pendingRequests: MOCK.SESSION_REQUESTS.length,
+  todaySessions: [],
+  monthly: {},
+  pendingRequests: 0,
 };
 
 export function DashboardView({ onNav }: Props) {
-  // Fetch live data; falls back to mock if API unreachable.
-  const { data } = usePortalData<typeof MENTOR_MOCK>('/mentor/dashboard', MENTOR_MOCK);
+  // Fetch live data; falls back to empty if API unreachable.
+  const { data, loading } = usePortalData<any>('/mentor/dashboard', MENTOR_EMPTY);
   const liveMentor = data?.mentor as any;
   const tier = liveMentor?.tier;
 
   const user = useAuthStore((s) => s.user);
   const [students, setStudents] = React.useState<any[]>([]);
+  const [studentsLoading, setStudentsLoading] = React.useState(true);
 
   React.useEffect(() => {
     async function loadDashboardConnections() {
@@ -54,14 +55,24 @@ export function DashboardView({ onNav }: Props) {
         setStudents(connRes?.items || []);
       } catch (e) {
         console.warn('Dashboard connections fetch failed:', e);
+      } finally {
+        setStudentsLoading(false);
       }
     }
     loadDashboardConnections();
   }, [user]);
 
-  const TODAY_SESSIONS = data?.todaySessions || MOCK.TODAY_SESSIONS;
-  const STUDENTS = students.length > 0 ? students : MOCK.STUDENTS;
+  const TODAY_SESSIONS = data?.todaySessions || [];
+  const STUDENTS = students;
   const RATING_DIST = MOCK.RATING_DIST;
+
+  if (loading || studentsLoading) {
+    return (
+      <View style={{ flex: 1, padding: 60, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={MC.tealP} size="large" />
+      </View>
+    );
+  }
 
   const { width } = useWindowDimensions();
   const isWide = width >= 1080;
