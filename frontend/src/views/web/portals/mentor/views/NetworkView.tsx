@@ -469,6 +469,27 @@ export function NetworkView() {
     });
   }, [normalizedDiscover, filter]);
 
+  const discoverCounts = useMemo(() => {
+    const getCount = (secKey: string) => {
+      const sec = discoverSections.find(s => s.key === secKey);
+      if (!sec) return 0;
+      return sec.items.map(normalizeDiscoverUser).filter((person: any) => {
+        if (filter === 'students') return person.tag === 'Student';
+        if (filter === 'alumnis') return person.tag === 'Alumni';
+        if (filter === 'mentors') return person.tag === 'Mentor';
+        if (filter === 'industry') return person.tag === 'Mentor' || person.tag === 'Alumni';
+        return true;
+      }).length;
+    };
+    return {
+      interest: getCount('by_interest'),
+      path: getCount('by_career'),
+      college: getCount('by_college'),
+      recommended: getCount('mentors'),
+      expand: getCount('expand')
+    };
+  }, [discoverSections, filter]);
+
   // Request actions
   const handleAcceptRequest = async (id: string, name: string) => {
     try {
@@ -892,7 +913,7 @@ export function NetworkView() {
             >
               <Heart size={12} color={discoverSubTab === 'interest' ? '#5EEAD4' : '#E2E8F0'} style={{ marginRight: 6 }} />
               <Text style={[s.discChipText, discoverSubTab === 'interest' && s.discChipTextOn]}>Matched by Interest</Text>
-              <View style={[s.discBadge, discoverSubTab === 'interest' && s.discBadgeOn]}><Text style={s.discBadgeText}>5</Text></View>
+              <View style={[s.discBadge, discoverSubTab === 'interest' && s.discBadgeOn]}><Text style={s.discBadgeText}>{discoverCounts.interest}</Text></View>
             </Pressable>
 
             <Pressable 
@@ -901,7 +922,7 @@ export function NetworkView() {
             >
               <Settings size={12} color={discoverSubTab === 'path' ? '#F97316' : '#E2E8F0'} style={{ marginRight: 6 }} />
               <Text style={s.discChipText}>Matched by Career Path</Text>
-              <View style={[s.discBadge, { backgroundColor: 'rgba(249,115,22,0.1)' }]}><Text style={[s.discBadgeText, { color: '#F97316' }]}>3</Text></View>
+              <View style={[s.discBadge, { backgroundColor: 'rgba(249,115,22,0.1)' }]}><Text style={[s.discBadgeText, { color: '#F97316' }]}>{discoverCounts.path}</Text></View>
             </Pressable>
 
             <Pressable 
@@ -910,7 +931,7 @@ export function NetworkView() {
             >
               <GraduationCap size={12} color={discoverSubTab === 'college' ? '#3B82F6' : '#E2E8F0'} style={{ marginRight: 6 }} />
               <Text style={s.discChipText}>From Your College</Text>
-              <View style={[s.discBadge, { backgroundColor: 'rgba(59,130,246,0.1)' }]}><Text style={[s.discBadgeText, { color: '#3B82F6' }]}>2</Text></View>
+              <View style={[s.discBadge, { backgroundColor: 'rgba(59,130,246,0.1)' }]}><Text style={[s.discBadgeText, { color: '#3B82F6' }]}>{discoverCounts.college}</Text></View>
             </Pressable>
 
             <Pressable 
@@ -919,7 +940,7 @@ export function NetworkView() {
             >
               <Users size={12} color={discoverSubTab === 'recommended' ? '#F59E0B' : '#E2E8F0'} style={{ marginRight: 6 }} />
               <Text style={s.discChipText}>Recommended Mentors</Text>
-              <View style={[s.discBadge, { backgroundColor: 'rgba(245,158,11,0.1)' }]}><Text style={[s.discBadgeText, { color: '#F59E0B' }]}>3</Text></View>
+              <View style={[s.discBadge, { backgroundColor: 'rgba(245,158,11,0.1)' }]}><Text style={[s.discBadgeText, { color: '#F59E0B' }]}>{discoverCounts.recommended}</Text></View>
             </Pressable>
 
             <Pressable 
@@ -928,7 +949,7 @@ export function NetworkView() {
             >
               <Activity size={12} color={discoverSubTab === 'expand' ? '#EC4899' : '#E2E8F0'} style={{ marginRight: 6 }} />
               <Text style={s.discChipText}>Expand Your Horizons</Text>
-              <View style={[s.discBadge, { backgroundColor: 'rgba(236,72,153,0.1)' }]}><Text style={[s.discBadgeText, { color: '#EC4899' }]}>3</Text></View>
+              <View style={[s.discBadge, { backgroundColor: 'rgba(236,72,153,0.1)' }]}><Text style={[s.discBadgeText, { color: '#EC4899' }]}>{discoverCounts.expand}</Text></View>
             </Pressable>
           </View>
 
