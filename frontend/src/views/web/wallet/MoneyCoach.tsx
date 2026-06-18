@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { request } from '@/src/models/services/api';
+import { Layout } from '../../../theme';
 
 interface CoachMessage {
   role: 'user' | 'assistant';
@@ -114,7 +115,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
           onClick={() => setOpen(true)}
           style={{
             position: 'fixed',
-            bottom: '90px',
+            bottom: `${Layout.floatingOffset}px`,
             right: '20px',
             width: '56px',
             height: '56px',
@@ -566,7 +567,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
 }
 
 const s = StyleSheet.create({
-  bubble: { position: 'absolute', bottom: 90, right: 20,
+  bubble: { position: 'absolute', bottom: Layout.floatingOffset, right: 20,
     width: 56, height: 56, borderRadius: 999,
     backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center',
     boxShadow: '0 8px 28px rgba(124,58,237,0.55)' as any,

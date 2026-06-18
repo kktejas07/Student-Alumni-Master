@@ -12,6 +12,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, withSpring, Easing,
 } from 'react-native-reanimated';
+import { Layout } from '../../../theme';
 
 const AView = Animated.createAnimatedComponent(Pressable as any);
 
@@ -30,7 +31,7 @@ type Props = {
 };
 
 export function FAB({ onPress, icon, label, color = '#7C3AED',
-                       bottom = 90, right, left }: Props) {
+                       bottom = Layout.floatingOffset, right, left }: Props) {
   const scale  = useSharedValue(0);
   const opacity = useSharedValue(0);
   const hovered = useSharedValue(0);

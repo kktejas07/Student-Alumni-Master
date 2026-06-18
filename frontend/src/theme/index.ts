@@ -143,3 +143,8 @@ export const Shadows = {
     },
   }) as any,
 };
+
+export const Layout = {
+  floatingOffset: 90,
+} as const;
+

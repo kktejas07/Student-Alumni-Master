@@ -25,13 +25,13 @@ config.cacheStores = [
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (moduleName === 'qrcode') {
     return {
-      filePath: path.join(__dirname, 'node_modules/qrcode/lib/browser.js'),
+      filePath: require.resolve('qrcode/lib/browser.js'),
       type: 'sourceFile',
     };
   }
   if (moduleName === 'lucide-react-native') {
     return {
-      filePath: path.join(__dirname, 'node_modules/lucide-react-native/dist/cjs/lucide-react-native.js'),
+      filePath: require.resolve('lucide-react-native'),
       type: 'sourceFile',
     };
   }
