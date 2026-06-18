@@ -64,7 +64,7 @@ export function DashboardView({ onNav }: Props) {
 
   const TODAY_SESSIONS = data?.todaySessions || [];
   const STUDENTS = students;
-  const RATING_DIST = MOCK.RATING_DIST;
+  const RATING_DIST = data?.ratingDist || [];
 
   const { width } = useWindowDimensions();
   const isWide = width >= 1080;
@@ -235,10 +235,10 @@ export function DashboardView({ onNav }: Props) {
         <View style={s.widgetCard}>
           <Text style={s.widgetKicker}>FEEDBACK SUMMARY</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 34 }}>4.9</Text>
+            <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 34 }}>{liveMentor?.rating || '0.0'}</Text>
             <View>
-              <StarRow rating={5} size={14} />
-              <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 3 }}>42 reviews</Text>
+              <StarRow rating={Math.round(Number(liveMentor?.rating || 0))} size={14} />
+              <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 3 }}>{data?.kpis?.find((k: any) => k.id === 'rating')?.delta || '0 reviews'}</Text>
             </View>
           </View>
           {RATING_DIST.slice(0, 3).map((d) => (

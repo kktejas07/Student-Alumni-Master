@@ -221,7 +221,19 @@ async def mentor_dashboard(mentor_email: Optional[str] = None):
     # Reviews
     review_cur = _db.reviews.find({"mentor_id": mentor_id})
     ratings = [r.get("rating", 0) async for r in review_cur]
-    avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else 4.8
+    avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else 0.0
+    
+    distribution = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0}
+    for r in ratings:
+        if isinstance(r, (int, float)) and 1 <= round(r) <= 5:
+            distribution[int(round(r))] += 1
+            
+    rating_dist = []
+    total_ratings = len(ratings)
+    for stars in [5, 4, 3, 2, 1]:
+        count = distribution[stars]
+        pct = int((count / total_ratings) * 100) if total_ratings > 0 else 0
+        rating_dist.append({"stars": stars, "count": count, "pct": pct})
 
     # Today's sessions (exactly today)
     now = datetime.now(timezone.utc)
@@ -308,10 +320,11 @@ async def mentor_dashboard(mentor_email: Optional[str] = None):
         },
         "kpis": [
             {"id": "earnings",  "label": "Earnings",        "value": _money(earnings),                "delta": "↑ 12%",                  "color": "amber"},
-            {"id": "sessions",  "label": "Sessions",        "value": str(confirmed),                  "delta": f"↑ {months[-1]['sessions']} this mo", "color": "teal"},
+            {"id": "sessions",  "label": "Sessions",        "value": str(confirmed),                  "delta": f"↑ {months[-1]['sessions']} this mo" if months else "", "color": "teal"},
             {"id": "students",  "label": "Active Students", "value": str(active_students),            "delta": f"↑ {pending} pending",   "color": "blue"},
             {"id": "rating",    "label": "Avg Rating",      "value": str(avg_rating),                 "delta": f"{len(ratings)} reviews","color": "green"},
         ],
+        "ratingDist": rating_dist,
         "todaySessions": today_sessions,
         "monthly": months,
         "pendingRequests": pending,
@@ -3159,7 +3172,7 @@ async def mentor_connections(email: Optional[str] = None):
                 "date": ns_dt.strftime("%b %d, %Y"),
                 "time": ns_dt.strftime("%H:%M"),
                 "topic": ns.get("topic") or "1:1 Mentorship Session",
-                "daysAway": max(0, (ns_dt - now).days)
+                "daysAway": max(0, (ns_dt.date() - now.date()).days)
             }
         elif status == "active" and idx % 2 == 0:
             ns_dt = now + timedelta(days=7 + (idx % 3))
@@ -3167,7 +3180,7 @@ async def mentor_connections(email: Optional[str] = None):
                 "date": ns_dt.strftime("%b %d, %Y"),
                 "time": "10:00 AM",
                 "topic": "System Design Mock Interview" if idx % 3 == 0 else "Career Growth Plan",
-                "daysAway": (ns_dt - now).days
+                "daysAway": max(0, (ns_dt.date() - now.date()).days)
             }
 
         # Last session date/notes
