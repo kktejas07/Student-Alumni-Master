@@ -2406,6 +2406,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
 
     out = []
     me_id_str = str(user["_id"]) if user else ""
+    proj = {"email": 1, "full_name": 1, "role": 1, "school_info": 1, "alumni_info": 1, "bio": 1, "photo_data": 1, "face_image_base64": 1, "skills": 1, "mentor_profile": 1, "mentor_info": 1}
 
     # Fetch all connected/pending users from rel_map first so they are never omitted due to limit
     connected_users = []
@@ -2417,7 +2418,6 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             except Exception:
                 pass
         if connected_ids:
-            proj = {"email": 1, "full_name": 1, "role": 1, "school_info": 1, "alumni_info": 1, "bio": 1, "photo_data": 1, "face_image_base64": 1, "skills": 1}
             connected_users = await _db.users.find({"_id": {"$in": connected_ids}}, proj).to_list(len(connected_ids))
 
     # Fetch Alumni (ensuring connected ones are included first)
