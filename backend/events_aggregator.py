@@ -277,7 +277,7 @@ async def _fetch_devpost(session: aiohttp.ClientSession) -> List[Dict[str, Any]]
                     "url": h.get("url"),
                 })
     except Exception as e:
-        logger.warning(f"devpost fetch failed: {e}")
+        logger.info(f"devpost fetch failed: {e}")
     return out
 
 
@@ -314,7 +314,7 @@ async def _fetch_hackclub(session: aiohttp.ClientSession) -> List[Dict[str, Any]
                     "url": h.get("website"),
                 })
     except Exception as e:
-        logger.warning(f"hackclub fetch failed: {e}")
+        logger.info(f"hackclub fetch failed: {e}")
     return out
 
 
@@ -360,17 +360,15 @@ async def _fetch_eventyay(session: aiohttp.ClientSession) -> List[Dict[str, Any]
                     "url": a.get("external-event-url"),
                 })
     except Exception as e:
-        logger.warning(f"eventyay fetch failed: {e}")
+        logger.info(f"eventyay fetch failed: {e}")
     return out
 
 
 async def _fetch_mlh(session: aiohttp.ClientSession) -> List[Dict[str, Any]]:
     """Major League Hacking — tries live JSON endpoints, falls back to curated."""
-    # Try multiple known MLH schedule endpoints
     CANDIDATE_URLS = [
         "https://mlh.io/seasons/2026/events.json",
         "https://mlh.io/seasons/2025/events.json",
-        "https://api.mlh.io/v3/events?per_page=50",
     ]
     for url in CANDIDATE_URLS:
         try:
@@ -436,7 +434,7 @@ async def _fetch_mlh(session: aiohttp.ClientSession) -> List[Dict[str, Any]]:
                     logger.info(f"mlh: fetched {len(out)} events from {url}")
                     return out
         except Exception as e:
-            logger.warning(f"mlh fetch failed ({url}): {e}")
+            logger.info(f"mlh fetch failed ({url}): {e}")
 
     # All live endpoints failed — return curated MLH events so the feed never
     # shows zero events from this source.
@@ -562,7 +560,7 @@ async def _fetch_nptel_workshops(session: aiohttp.ClientSession) -> List[Dict[st
                     logger.info(f"nptel_workshops: {len(out)} from {url}")
                     return out
         except Exception as e:
-            logger.warning(f"nptel_workshops fetch failed ({url}): {e}")
+            logger.info(f"nptel_workshops fetch failed ({url}): {e}")
     # All endpoints unavailable — curated SWAYAM entries fill the gap
     logger.info("nptel_workshops: live API unavailable, curated fallback active")
     return []
