@@ -6270,13 +6270,26 @@ async def post_review(req: ReviewIn, user: dict = Depends(get_current_user)):
         try:
             if ObjectId.is_valid(b_id):
                 booking = await db.bookings.find_one({"_id": ObjectId(b_id)})
+                if not booking:
+                    booking = await db.sessions.find_one({"_id": ObjectId(b_id)})
         except Exception:
             pass
         if not booking:
-            try:
-                booking = await db.bookings.find_one({"id": b_id})
-            except Exception:
-                pass
+            import re
+            booking_rx = f"{re.escape(b_id)}$"
+            
+            bookings_matches = []
+            async for b in db.bookings.find({"$expr": {"$regexMatch": {"input": {"$toString": "$_id"}, "regex": booking_rx, "options": "i"}}}, {"mentor_id": 1}):
+                bookings_matches.append(b)
+                
+            sessions_matches = []
+            async for s in db.sessions.find({"$expr": {"$regexMatch": {"input": {"$toString": "$_id"}, "regex": booking_rx, "options": "i"}}}, {"mentor_id": 1}):
+                sessions_matches.append(s)
+                
+            total_matches = len(bookings_matches) + len(sessions_matches)
+            if total_matches == 1:
+                booking = bookings_matches[0] if bookings_matches else sessions_matches[0]
+
         if booking and "mentor_id" in booking:
             mentor_id = str(booking["mentor_id"])
 
