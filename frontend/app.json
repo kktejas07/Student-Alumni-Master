@@ -4,14 +4,14 @@
     "slug": "frontend",
     "version": "1.1.1",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/sa-icon.png",
     "scheme": "frontend",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.careerpath.app",
-      "buildNumber": "19",
+      "buildNumber": "20",
       "infoPlist": {
         "NSCameraUsageDescription": "Capture your profile photo for your unique student ID.",
         "NSPhotoLibraryUsageDescription": "Choose a profile photo for your student ID."
@@ -19,9 +19,9 @@
     },
     "android": {
       "package": "com.careerpath.app",
-      "versionCode": 19,
+      "versionCode": 20,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/sa-adaptive-icon.png",
         "backgroundColor": "#0a0f1e"
       },
       "edgeToEdgeEnabled": true,
@@ -30,14 +30,14 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/sa-favicon.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-image.png",
+          "image": "./assets/images/sa-splash-image.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#0a0f1e"

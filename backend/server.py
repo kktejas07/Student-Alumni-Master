@@ -5760,11 +5760,24 @@ async def my_bookings(user: dict = Depends(get_current_user)):
         start_iso = item.get("slot_start_iso") or sched_iso
         
         status = item.get("status", "pending")
-        if status in ["confirmed", "booked", "scheduled"] and sched and isinstance(sched, datetime) and sched.replace(tzinfo=timezone.utc) < now:
-            status = "completed"
+        
+        dt_compare = None
+        if isinstance(sched, datetime):
+            dt_compare = sched.astimezone(timezone.utc)
+        elif start_iso:
+            try:
+                dt_compare = datetime.fromisoformat(start_iso.replace("Z", "+00:00")).astimezone(timezone.utc)
+            except Exception:
+                pass
+
+        if status in ["confirmed", "booked", "scheduled", "pending"] and dt_compare and dt_compare < now:
+            new_status = "expired" if status == "pending" else "completed"
+            status = new_status
             # Best-effort DB update
             import asyncio
-            asyncio.create_task(db.bookings.update_one({"_id": item["_id"]}, {"$set": {"status": "completed"}}))
+            async def _update_status(item_id, st):
+                await db.bookings.update_one({"_id": item_id}, {"$set": {"status": st}})
+            asyncio.create_task(_update_status(item["_id"], new_status))
         
         doc = {
             "id": str(item["_id"]),

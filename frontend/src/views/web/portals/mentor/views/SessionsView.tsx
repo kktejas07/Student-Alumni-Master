@@ -406,8 +406,10 @@ export function SessionsView() {
           topic: b.topic || 'Mentorship Session',
           daysAway,
           student: studentProfile,
+          _rawDate: schedDate,
         };
-      });
+      })
+      .sort((a, b) => (isNaN(a._rawDate.getTime()) ? 0 : a._rawDate.getTime()) - (isNaN(b._rawDate.getTime()) ? 0 : b._rawDate.getTime()));
   }, [bookingsList, students, studentsMap, now]);
 
   const past = useMemo(() => {
@@ -464,9 +466,11 @@ export function SessionsView() {
           notes: b.notes || b.topic || 'Mentorship session completed.',
           sessionsCount: studentProfile.sessionsCompleted || 1,
           score: b.evaluation_score || '8/10',
-          feedback: b.evaluation_feedback || 'Great session. Keep up the good work.'
+          feedback: b.evaluation_feedback || 'Great session. Keep up the good work.',
+          _rawDate: schedDate,
         };
-      });
+      })
+      .sort((a, b) => (isNaN(b._rawDate.getTime()) ? 0 : b._rawDate.getTime()) - (isNaN(a._rawDate.getTime()) ? 0 : a._rawDate.getTime()));
   }, [bookingsList, students, studentsMap, now]);
 
   const handlePrevMonth = () => {

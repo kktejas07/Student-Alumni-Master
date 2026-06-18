@@ -25,8 +25,8 @@ export function NetworkView() {
   const PEOPLE = data?.items || [];
   const [filter, setFilter] = useState('All');
   const [q, setQ] = useState('');
-  const [conn, setConn] = useState<Set<string>>(new Set());
-  const [pending, setPending] = useState<Set<string>>(new Set());
+  const [conn, setConn] = useState<string[]>([]);
+  const [pending, setPending] = useState<string[]>([]);
 
   const portalNav = React.useContext(AlumniPortalNavContext);
   React.useEffect(() => {
@@ -43,16 +43,12 @@ export function NetworkView() {
   });
 
   const send = async (id: string) => {
-    setPending((p) => new Set(p).add(id));
+    setPending((p) => [...p, id]);
     try {
       await request(`/network/connect/${id}`, { method: 'POST' });
       toast.success('Connection Sent! ✉️', 'Your connection invite is permanently registered.');
     } catch (err: any) {
-      setPending((p) => {
-        const next = new Set(p);
-        next.delete(id);
-        return next;
-      });
+      setPending((p) => p.filter(x => x !== id));
       toast.error('Could not connect', err?.message || 'Please try again.');
     }
   };
@@ -73,8 +69,8 @@ export function NetworkView() {
 
       <View style={s.grid}>
         {list.map((p) => {
-          const c = conn.has(p.id) || p.connection_state === 'connected';
-          const pn = pending.has(p.id) || p.connection_state === 'pending';
+          const c = conn.includes(p.id) || p.connection_state === 'connected';
+          const pn = pending.includes(p.id) || p.connection_state === 'pending';
           return (
             <View key={p.id} style={[s.card, { flexGrow: 1, flexBasis: 300, maxWidth: 360, height: 195, justifyContent: 'space-between' }]}>
               <View>
