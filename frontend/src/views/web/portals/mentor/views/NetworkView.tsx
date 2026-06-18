@@ -473,7 +473,7 @@ export function NetworkView() {
     const getCount = (secKey: string) => {
       const sec = discoverSections.find(s => s.key === secKey);
       if (!sec) return 0;
-      return sec.items.map(normalizeDiscoverUser).filter((person: any) => {
+      return (sec.items || []).map(normalizeDiscoverUser).filter((person: any) => {
         if (filter === 'students') return person.tag === 'Student';
         if (filter === 'alumnis') return person.tag === 'Alumni';
         if (filter === 'mentors') return person.tag === 'Mentor';
