@@ -740,13 +740,13 @@ def serialize_user(user: dict) -> dict:
         "first_name":     user.get("first_name"),
         "last_name":      user.get("last_name"),
         "headline":       user.get("headline"),
-        "photo_data":     user.get("photo_data") or user.get("face_image_base64"),
-        "institution":    user.get("institution") or (user.get("school_info") or {}).get("institution_name"),
-        "branch":         user.get("branch") or (user.get("school_info") or {}).get("branch_or_stream") or (user.get("school_info") or {}).get("current_course") or (user.get("alumni_info") or {}).get("branch_or_stream"),
-        "stream":         user.get("stream") or (user.get("school_info") or {}).get("branch_or_stream") or (user.get("school_info") or {}).get("current_course"),
-        "department":     user.get("department") or (user.get("school_info") or {}).get("branch_or_stream"),
-        "graduation_year": user.get("graduation_year") or (user.get("school_info") or {}).get("graduation_year") or (user.get("alumni_info") or {}).get("graduation_year"),
-        "cgpa":           user.get("cgpa") or (user.get("student_info") or {}).get("cgpa"),
+        "photo_data":     user.get("photo_data") or user.get("face_image_base64") or user.get("oauth_picture"),
+        "institution":    user.get("institution"),
+        "branch":         user.get("branch"),
+        "stream":         user.get("stream"),
+        "department":     user.get("department"),
+        "graduation_year": user.get("graduation_year"),
+        "cgpa":           user.get("cgpa"),
         "location":       user.get("location"),
         "city":           user.get("city"),
         "state":          user.get("state"),
@@ -2228,11 +2228,10 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
     email = email.lower().strip()
     user = await db.users.find_one({"email": email})
     if user:
-        # Update OAuth metadata if user signed in with this provider
-        await db.users.update_one(
-            {"_id": user["_id"]},
-            {"$set": {"oauth_provider": provider, "oauth_picture": picture}},
-        )
+        update = {"oauth_provider": provider, "oauth_picture": picture}
+        if picture:
+            update["photo_data"] = picture
+        await db.users.update_one({"_id": user["_id"]}, {"$set": update})
         return await db.users.find_one({"_id": user["_id"]})
 
     # New OAuth user — create with onboarding NOT yet completed so the client
@@ -2250,6 +2249,7 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
         "interests": [],
         "skills": [],
         "bio": None,
+        "photo_data": picture,
         "face_image_base64": None,
         "oauth_provider": provider,
         "oauth_picture": picture,
@@ -2322,19 +2322,48 @@ def _verify_google_token(id_token: Optional[str], client_id: str = "") -> Option
         return None
 
 
-async def _verify_linkedin_token(access_token: Optional[str], client_id: str = "", client_secret: str = "") -> Optional[dict]:
-    """Verify a LinkedIn access token if credentials are configured, else return None (mock fallback)."""
-    if not access_token or not client_id:
+def _frontend_redirect_uri() -> str:
+    """Build the OAuth redirect URI that matches what oauth_config returns."""
+    raw = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
+    base = raw if (raw.startswith("http://") or raw.startswith("https://")) else "https://studentalumni.ai"
+    return f"{base}/oauth.html"
+
+
+async def _verify_linkedin_token(code: Optional[str], client_id: str = "", client_secret: str = "") -> Optional[dict]:
+    """Exchange LinkedIn OAuth authorization code for an access token, then fetch user info."""
+    if not code or not client_id or not client_secret:
         return None
     try:
-        async with httpx.AsyncClient(timeout=10) as c:
-            r = await c.get("https://api.linkedin.com/v2/userinfo",
-                            headers={"Authorization": f"Bearer {access_token}"})
-            if r.is_success:
-                data = r.json()
-                return {"email": data.get("email"), "name": data.get("name"),
-                        "picture": data.get("picture")}
-            return None
+        async with httpx.AsyncClient(timeout=15) as c:
+            # Exchange authorization code for access token
+            token_res = await c.post(
+                "https://www.linkedin.com/oauth/v2/accessToken",
+                data={
+                    "grant_type": "authorization_code",
+                    "code": code,
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "redirect_uri": _frontend_redirect_uri(),
+                },
+                headers={"Accept": "application/json"},
+            )
+            if not token_res.is_success:
+                return None
+            token_data = token_res.json()
+            access_token = token_data.get("access_token")
+            if not access_token:
+                return None
+
+            # Fetch user profile with the access token
+            user_res = await c.get(
+                "https://api.linkedin.com/v2/userinfo",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            if not user_res.is_success:
+                return None
+            data = user_res.json()
+            return {"email": data.get("email"), "name": data.get("name"),
+                    "picture": data.get("picture")}
     except Exception:
         return None
 

@@ -3,7 +3,7 @@ import { getBaseUrl } from '@/src/lib/env';
  * Auth Login screen using AuthShell + AuthControls + analytics tracking.
  */
 import React, { useState, useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet, Alert, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams, Link } from 'expo-router';
 import { ArrowLeft, Eye, EyeOff, Mail, Lock } from 'lucide-react-native';
 import Svg, { Path, G } from 'react-native-svg';
