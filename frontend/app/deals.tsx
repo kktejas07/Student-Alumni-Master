@@ -545,64 +545,71 @@ function AdvisorMetric({ label, value, icon, tint }: { label: string; value: str
 }
 
 function DealCard({ d, onClaim }: { d: Deal; onClaim: (d: Deal) => void }) {
-  const visible = (d.tags || []).slice(0, 3);
-  const overflow = (d.tags || []).length - visible.length;
+  const visible = (d.tags || []).filter((t) => t !== 'HOT').slice(0, 3);
+  const overflow = (d.tags || []).filter((t) => t !== 'HOT').length - visible.length;
   return (
     <View style={[s.card, { borderColor: d.accent + '44' }]}>
-      {/* Top: Logo + brand + HOT badge */}
-      <View style={s.cardTop}>
-        <View style={s.cardLogoWrap}>
-          {d.logo_url ? (
-            <Image source={{ uri: d.logo_url }} style={s.cardLogo} resizeMode="contain" />
-          ) : (
-            <View style={[s.cardLogoFallback, { backgroundColor: d.accent + '33' }]}>
-              <Text style={{ color: d.accent, fontSize: 18, fontWeight: '800' }}>{d.brand[0]}</Text>
-            </View>
-          )}
+      {/* Wrap top details in a flex: 1 view to push CTA to the bottom */}
+      <View style={{ flex: 1, gap: 8 }}>
+        {/* Top: Logo + title/brand + prices */}
+        <View style={s.cardTop}>
+          {/* Col 1: Logo */}
+          <View style={s.cardLogoWrap}>
+            {d.logo_url ? (
+              <Image source={{ uri: d.logo_url }} style={s.cardLogo} resizeMode="contain" />
+            ) : (
+              <View style={[s.cardLogoFallback, { backgroundColor: d.accent + '33' }]}>
+                <Text style={{ color: d.accent, fontSize: 18, fontWeight: '800' }}>{d.brand[0]}</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Col 2: Brand + Title */}
+          <View style={{ flex: 1, marginLeft: 10, justifyContent: 'center' }}>
+            <Text style={s.cardTitle} numberOfLines={1}>{d.title}</Text>
+            <Text style={s.cardBrand}>{d.brand}</Text>
+          </View>
+
+          {/* Col 3: Prices */}
+          <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
+            <Text style={[s.cardPrice, { color: '#86EFAC' }]}>{d.price_label}</Text>
+            {d.original_inr > d.price_inr && (
+              <Text style={s.cardOrig}>{d.original_label}</Text>
+            )}
+            {d.discount_pct > 0 && (
+              <Text style={[s.cardPct, { color: '#FCD34D' }]}>{d.discount_pct}% off</Text>
+            )}
+          </View>
         </View>
 
-        <View style={{ flex: 1, alignItems: 'flex-end' }}>
-          <Text style={[s.cardPrice, { color: d.accent }]}>{d.price_label}</Text>
-          {d.original_inr > d.price_inr && (
-            <Text style={s.cardOrig}>{d.original_label}</Text>
-          )}
-          {d.discount_pct > 0 && (
-            <Text style={[s.cardPct, { color: d.accent }]}>{d.discount_pct}% off</Text>
-          )}
-        </View>
-
+        {/* HOT badge (rendered completely inline right above the description) */}
         {d.tags?.includes('HOT') && (
           <View style={s.hotChip}>
             <MaterialCommunityIcons name="fire" size={10} color="#fff" />
             <Text style={s.hotChipText}>HOT</Text>
           </View>
         )}
+
+        {/* Description */}
+        <Text style={s.cardDesc} numberOfLines={2}>{d.description}</Text>
+
+        {/* Tag pills */}
+        {visible.length > 0 && (
+          <View style={s.tagRow}>
+            {visible.map((t) => <TagPill key={t} tag={t} />)}
+            {overflow > 0 && (
+              <View style={s.overflowPill}>
+                <Text style={s.overflowText}>+{overflow}</Text>
+              </View>
+            )}
+          </View>
+        )}
       </View>
 
-      {/* Brand + title */}
-      <View style={{ marginTop: 10, gap: 2 }}>
-        <Text style={s.cardTitle} numberOfLines={1}>{d.title}</Text>
-        <Text style={s.cardBrand}>{d.brand}</Text>
-      </View>
-
-      {/* Description */}
-      <Text style={s.cardDesc} numberOfLines={2}>{d.description}</Text>
-
-      {/* Tag pills */}
-      {visible.length > 0 && (
-        <View style={s.tagRow}>
-          {visible.map((t) => <TagPill key={t} tag={t} />)}
-          {overflow > 0 && (
-            <View style={s.overflowPill}>
-              <Text style={s.overflowText}>+{overflow}</Text>
-            </View>
-          )}
-        </View>
-      )}
 
       {/* CTA */}
       <Pressable
-        style={[s.cardCTA, { backgroundColor: d.accent }]}
+        style={[s.cardCTA, { backgroundColor: '#5D2EE6', marginTop: 'auto' }]}
         onPress={() => onClaim(d)}
       >
         <Text style={s.cardCTAText}>Claim Deal</Text>
@@ -745,7 +752,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     gap: 8,
   },
-  cardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, position: 'relative' },
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10, position: 'relative' },
   cardLogoWrap: { width: 44, height: 44, borderRadius: 12, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.06)' },
   cardLogo: { width: 44, height: 44, backgroundColor: '#fff' },
   cardLogoFallback: {
@@ -756,10 +763,10 @@ const s = StyleSheet.create({
   cardOrig: { color: C.text3, fontSize: 11, textDecorationLine: 'line-through' },
   cardPct: { fontSize: 11, fontWeight: '700' },
   hotChip: {
-    position: 'absolute', top: -4, right: -4,
     flexDirection: 'row', alignItems: 'center', gap: 3,
     backgroundColor: '#EF4444',
     paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6,
+    alignSelf: 'flex-start',
   },
   hotChipText: { color: '#fff', fontSize: 9, fontWeight: '900', letterSpacing: 0.4 },
 
