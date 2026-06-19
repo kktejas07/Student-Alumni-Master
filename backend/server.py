@@ -3824,7 +3824,7 @@ async def admin_users_list(
     if role == "mentor":
         query["mentor_status"] = "approved"
     if q:
-        rx = {"$regex": q, "$options": "i"}
+        rx = {"$regex": re.escape(q), "$options": "i"}
         query["$or"] = [
             {"full_name": rx}, {"email": rx},
             {"school_info.institution_name": rx},
@@ -3922,7 +3922,7 @@ async def admin_users_directory_list(
     if category == "masters":
         query["school_info.current_degree"] = {"$in": ["Masters", "M.Tech", "MBA", "MS", "PhD"]}
     if q:
-        rx = {"$regex": q, "$options": "i"}
+        rx = {"$regex": re.escape(q), "$options": "i"}
         query["$or"] = [
             {"full_name": rx}, {"email": rx},
             {"school_info.institution_name": rx},
@@ -5131,7 +5131,7 @@ async def list_opportunities(
     if mode:
         query["mode"] = mode
     if q:
-        rx = {"$regex": q, "$options": "i"}
+        rx = {"$regex": re.escape(q), "$options": "i"}
         query["$or"] = [{"title": rx}, {"company": rx}, {"skills": rx}, {"description": rx}, {"domain": rx}]
     items = await db.internships.find(query, {"_id": 0}).limit(limit).to_list(limit)
     saved = set(user.get("saved_opportunities") or [])
@@ -5346,7 +5346,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     # Pull a healthy candidate set
     base_query: dict = {"_id": {"$ne": user["_id"]}}
     if q:
-        rx = {"$regex": q, "$options": "i"}
+        rx = {"$regex": re.escape(q), "$options": "i"}
         base_query["$or"] = [{"full_name": rx}, {"email": rx}]
     candidates = await db.users.find(base_query, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).to_list(500)
 

@@ -580,7 +580,7 @@ async def list_colleges(
     if status and status != "all":
         match["status"] = status
     if q:
-        match["name"] = {"$regex": q, "$options": "i"}
+        match["name"] = {"$regex": re.escape(q), "$options": "i"}
 
     skip = (page - 1) * limit
     total = await _db.colleges.count_documents(match)
