@@ -60,7 +60,7 @@ export default function LoginScreen() {
   const [pwdError, setPwdError] = useState('');
   const [exists, setExists] = useState<boolean | null>(null);
 
-  const [oauthCfg, setOauthCfg] = useState<{ google_client_id: string; linkedin_client_id: string; github_client_id: string; redirect_uri: string; configured: boolean; firebase?: { apiKey: string; authDomain: string; projectId: string; appId: string } | null } | null>(null);
+  const [oauthCfg, setOauthCfg] = useState<{ firebase?: { apiKey: string; authDomain: string; projectId: string; appId: string } | null } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -231,7 +231,6 @@ export default function LoginScreen() {
         <View style={{ flex: 1 }}>
           <OutlineButton label="Google" icon={<GoogleG size={16} />} onPress={async () => {
             try {
-              // Firebase Auth (preferred)
               if (oauthCfg?.firebase && Platform.OS === 'web') {
                 const result = await signInWithGoogle();
                 if (!result) return;
@@ -251,34 +250,22 @@ export default function LoginScreen() {
                 else if (r === 'college') router.replace('/college-portal');
                 else if (r === 'alumni') router.replace('/alumni-portal');
                 else router.replace('/student-portal');
-                return;
-              }
-              // Legacy OAuth fallback
-              if (oauthCfg?.google_client_id && Platform.OS === 'web') {
-                const state = `google_${Math.random().toString(36).slice(2)}`;
-                const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${oauthCfg.google_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&response_type=id_token&scope=openid%20email%20profile&state=${state}&nonce=${Math.random().toString(36)}`;
-                window.open(url, '_blank', 'width=600,height=700');
+              } else {
+                setPwdError('Google sign-in is not configured. Contact admin.');
               }
             } catch (e: any) {
-              if (e?.code !== 'auth/popup-closed-by-user') {
-                setPwdError(e?.message || 'Google sign-in failed');
-              }
+              setPwdError(e?.message || 'Google sign-in failed');
             }
           }} />
         </View>
         <View style={{ flex: 1 }}>
           <OutlineButton label="LinkedIn" icon={<LinkedInIn size={16} />} onPress={() => {
-            if (oauthCfg?.linkedin_client_id && Platform.OS === 'web') {
-              const state = `linkedin_${Math.random().toString(36).slice(2)}`;
-              const url = `https://www.linkedin.com/oauth/v2/authorization?client_id=${oauthCfg.linkedin_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&response_type=code&scope=openid%20email%20profile&state=${state}`;
-              window.open(url, '_blank', 'width=600,height=700');
-            }
+            setPwdError('LinkedIn sign-in is not configured. Contact admin.');
           }} />
         </View>
         <View style={{ flex: 1 }}>
           <OutlineButton label="GitHub" icon={<GitHubCat size={16} />} onPress={async () => {
             try {
-              // Firebase Auth (preferred)
               if (oauthCfg?.firebase && Platform.OS === 'web') {
                 const result = await signInWithGitHub();
                 if (!result) return;
@@ -298,18 +285,11 @@ export default function LoginScreen() {
                 else if (r === 'college') router.replace('/college-portal');
                 else if (r === 'alumni') router.replace('/alumni-portal');
                 else router.replace('/student-portal');
-                return;
-              }
-              // Legacy OAuth fallback
-              if (oauthCfg?.github_client_id && Platform.OS === 'web') {
-                const state = `github_${Math.random().toString(36).slice(2)}`;
-                const url = `https://github.com/login/oauth/authorize?client_id=${oauthCfg.github_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&scope=user:email&state=${state}`;
-                window.open(url, '_blank', 'width=600,height=700');
+              } else {
+                setPwdError('GitHub sign-in is not configured. Contact admin.');
               }
             } catch (e: any) {
-              if (e?.code !== 'auth/popup-closed-by-user') {
-                setPwdError(e?.message || 'GitHub sign-in failed');
-              }
+              setPwdError(e?.message || 'GitHub sign-in failed');
             }
           }} />
         </View>
