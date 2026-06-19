@@ -24,6 +24,7 @@ export default function AdvisorAIBlock({
   advisorEmail = 'advisor@studentalumni.in',
   aiOpen: externalAiOpen,
   setAiOpen: externalSetAiOpen,
+  aiInputRef,
 }: {
   context?: string;
   advisorTitle?: string;
@@ -38,6 +39,7 @@ export default function AdvisorAIBlock({
   advisorEmail?: string;
   aiOpen?: boolean;
   setAiOpen?: (open: boolean) => void;
+  aiInputRef?: React.RefObject<any>;
 }) {
   const [internalAiOpen, setInternalAiOpen] = useState(false);
   const aiOpen = externalAiOpen !== undefined ? externalAiOpen : internalAiOpen;
@@ -108,7 +110,18 @@ export default function AdvisorAIBlock({
         </View>
         <Text style={s.title}>{aiTitle}</Text>
         <Text style={s.desc}>{aiDesc}</Text>
-        <Pressable style={[s.cta, { backgroundColor: aiAccent }]} onPress={() => setAiOpen(!aiOpen)}>
+        <Pressable
+          style={[s.cta, { backgroundColor: aiAccent }]}
+          onPress={() => {
+            const nextOpen = !aiOpen;
+            setAiOpen(nextOpen);
+            if (nextOpen) {
+              setTimeout(() => {
+                aiInputRef?.current?.focus();
+              }, 150);
+            }
+          }}
+        >
           <MaterialCommunityIcons name="message-text" size={14} color="#0A2E1A" />
           <Text style={[s.ctaText, { color: '#0A2E1A' }]}>Chat with AI</Text>
         </Pressable>
@@ -116,6 +129,7 @@ export default function AdvisorAIBlock({
           <View style={s.expanded}>
             <View style={s.inputRow}>
               <TextInput
+                ref={aiInputRef}
                 value={aiQuestion}
                 onChangeText={setAiQuestion}
                 placeholder={`Ask about ${context}…`}

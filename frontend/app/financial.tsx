@@ -2,16 +2,16 @@
  * /financial — Scholarships, Startup Funding, Investors/VCs, Loans, Insurance.
  * Wired to /api/financial/* live backend.
  */
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, TextInput, Platform } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, TextInput, Platform, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { FAB } from '@/src/views/web/md3';
-import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
 import { request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useRouter } from 'expo-router';
+import FinancialCoach from '@/src/views/web/FinancialCoach';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 const Icon = (props: { name: IconName; size?: number; color?: string;
@@ -175,6 +175,39 @@ export default function FinancialPage() {
   const [emiTen, setEmiTen] = useState(120);
   const [emi, setEmi] = useState<any>(null);
   const [advisorChatOpen, setAdvisorChatOpen] = useState(false);
+  const [advisorOpen, setAdvisorOpen] = useState(false);
+
+  // Load financial profile on mount to pre-fill AI helper answers
+  useEffect(() => {
+    let active = true;
+    async function fetchProfile() {
+      try {
+        const p = await request<any>('/financial/me/profile');
+        if (!active) return;
+        if (p) {
+          const loadedAnswers: Record<string, string> = {};
+          const keys = [
+            'cgpa', 'annual_family_income', 'course_level', 'institution_tier',
+            'loan_need', 'loan_repayment_capacity', 'has_collateral', 'cibil_range',
+            'startup_stage', 'startup_sector', 'funding_need', 'has_cofounder',
+            'age', 'coverage_type', 'insurance_budget'
+          ];
+          for (const key of keys) {
+            if (p[key] !== undefined && p[key] !== null) {
+              loadedAnswers[key] = String(p[key]);
+            }
+          }
+          setAiAnswers((prev) => ({ ...prev, ...loadedAnswers }));
+        }
+      } catch (err) {
+        console.warn('Failed to load financial profile:', err);
+      }
+    }
+    fetchProfile();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const tabInfo = TABS.find(t => t.id === tab)!;
 
@@ -461,48 +494,59 @@ export default function FinancialPage() {
 
 
       {/* Advisor + AI Chat CTAs */}
-      <View style={{ marginTop: 18 }}>
-        <AdvisorAIBlock
-          context="financial"
-          advisorTitle="Talk to a Student Advisor"
-          advisorDesc="Need personalised financial advice? Connect with our dedicated student advisors."
-          aiTitle="Ask the Financial AI"
-          aiDesc="Got a question about financial products? Chat with our AI assistant 24x7."
-          advisorAccent="#8B5CF6"
-          aiAccent="#14B8A6"
-          advisorIcon="target"
-          aiIcon="auto-fix"
-          aiOpen={advisorChatOpen}
-          setAiOpen={setAdvisorChatOpen}
-        />
+      <View style={s.ctaRow}>
+        {/* Advisor card */}
+        <View style={[s.ctaCard, { borderColor: '#8B5CF655' }]}>
+          <View style={[s.iconBox, { backgroundColor: '#8B5CF622', borderColor: '#8B5CF655', width: 38, height: 38 }]}>
+            <MaterialCommunityIcons name="target" size={18} color="#8B5CF6" />
+          </View>
+          <Text style={s.ctaTitle}>Talk to a Student Advisor</Text>
+          <Text style={s.ctaSub}>Need personalised financial advice? Connect with our dedicated student advisors.</Text>
+          <Pressable
+            style={[s.ctaBtn, { backgroundColor: '#8B5CF6', borderRadius: 8 }]}
+            onPress={() => setAdvisorOpen(!advisorOpen)}
+          >
+            <Text style={s.ctaBtnText}>Connect with Advisor</Text>
+          </Pressable>
+          {advisorOpen && (
+            <View style={{ marginTop: 8, gap: 6 }}>
+              <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }} onPress={() => Linking.openURL('tel:+919876543210').catch(() => {})}>
+                <MaterialCommunityIcons name="phone" size={14} color="#8B5CF6" />
+                <Text style={{ color: '#8B5CF6', fontSize: 12.5, fontWeight: '600' }}>+919876543210</Text>
+              </Pressable>
+              <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }} onPress={() => Linking.openURL('mailto:advisor@studentalumni.in?subject=Help with financial').catch(() => {})}>
+                <MaterialCommunityIcons name="email" size={14} color="#8B5CF6" />
+                <Text style={{ color: '#8B5CF6', fontSize: 12.5, fontWeight: '600' }}>advisor@studentalumni.in</Text>
+              </Pressable>
+              <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, fontStyle: 'italic', marginTop: 4 }}>
+                Mon–Fri · 9am – 7pm IST · response within 4 hours
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* AI card */}
+        <View style={[s.ctaCard, { borderColor: '#14B8A655' }]}>
+          <View style={[s.iconBox, { backgroundColor: '#14B8A622', borderColor: '#14B8A655', width: 38, height: 38 }]}>
+            <MaterialCommunityIcons name="auto-fix" size={18} color="#14B8A6" />
+          </View>
+          <Text style={s.ctaTitle}>Ask the Financial AI</Text>
+          <Text style={s.ctaSub}>Got a question about financial products? Chat with our AI assistant 24x7.</Text>
+          <Pressable
+            style={[s.ctaBtn, { backgroundColor: '#14B8A6', borderRadius: 8 }]}
+            onPress={() => setAdvisorChatOpen(true)}
+          >
+            <Text style={[s.ctaBtnText, { color: '#0A2E1A' }]}>Chat with AI</Text>
+          </Pressable>
+        </View>
       </View>
+
+      {/* Floating Financial AI Coach (works same as Money Coach) */}
+      <FinancialCoach open={advisorChatOpen} setOpen={setAdvisorChatOpen} />
 
       {/* MD3 Floating Action Button — open AI chat */}
       <FAB icon="brain" label="Financial AI" color="#5F259F"
-            onPress={() => {
-              setAdvisorChatOpen(true);
-              if (Platform.OS === 'web') {
-                setTimeout(() => {
-                  try {
-                    const divs = document.querySelectorAll('div');
-                    let scrollEl = null;
-                    for (let i = 0; i < divs.length; i++) {
-                      const div = divs[i];
-                      const style = window.getComputedStyle(div);
-                      if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && div.scrollHeight > div.clientHeight) {
-                        scrollEl = div;
-                        break;
-                      }
-                    }
-                    if (scrollEl) {
-                      scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'smooth' });
-                    } else {
-                      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-                    }
-                  } catch {}
-                }, 150);
-              }
-            }} />
+            onPress={() => setAdvisorChatOpen(true)} />
     </FeaturePageShell>
   );
 }
