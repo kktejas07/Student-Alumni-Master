@@ -2205,7 +2205,8 @@ def _nlp_categorize_event(title: str, desc: str, cat: str) -> str:
     if "fest" in text or "festival" in text or "cultural" in text: return "fest"
     if "tech talk" in text or "speaker" in text or "tech" in text: return "tech talk"
     
-    return (cat or "workshop").lower()
+    # Strict fallback to guarantee frontend filter compatibility
+    return "workshop"
 
 @router.get("/student/events")
 async def student_events_list(student_email: Optional[str] = None, page: int = 1, per_page: int = 24):
