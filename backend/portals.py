@@ -1304,7 +1304,7 @@ async def super_students(limit: int = 50, q: Optional[str] = None):
     """Cross-college student directory."""
     match: Dict[str, Any] = {"role": "student"}
     if q:
-        match["full_name"] = {"$regex": q, "$options": "i"}
+        match["full_name"] = {"$regex": re.escape(q), "$options": "i"}
 
     cur = _db.users.find(match).limit(limit)
     out = []
