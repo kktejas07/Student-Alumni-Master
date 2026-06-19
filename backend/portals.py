@@ -2189,7 +2189,7 @@ async def college_career_intel(college_name: Optional[str] = None):
 
 
 @router.get("/student/events")
-async def student_events_list(student_email: Optional[str] = None, limit: int = 100):
+async def student_events_list(student_email: Optional[str] = None, page: int = 1, per_page: int = 24):
     """Events relevant to the student (with attendance status)."""
     student = None
     if student_email:
@@ -2198,11 +2198,13 @@ async def student_events_list(student_email: Optional[str] = None, limit: int = 
         student = await _db.users.find_one({"role": "student"})
     sid = str((student or {}).get("_id", ""))
 
-    cache_key = f"events_student_{sid}"
+    cache_key = f"events_student_{sid}_p{page}"
     if cache_key in events_cache:
         return events_cache[cache_key]
 
-    cur = _db.events.find().sort("start_date", 1).limit(limit)
+    total = await _db.events.count_documents({})
+    skip = (page - 1) * per_page
+    cur = _db.events.find().sort("start_date", 1).skip(skip).limit(per_page)
     events = [ev async for ev in cur]
     
     event_ids = [str(ev.get("_id")) for ev in events]
@@ -2250,7 +2252,7 @@ async def student_events_list(student_email: Optional[str] = None, limit: int = 
         })
         i += 1
         
-    payload = {"items": out}
+    payload = {"items": out, "total": total, "page": page, "per_page": per_page, "pages": max(1, (total + per_page - 1) // per_page)}
     if sid:
         events_cache[cache_key] = payload
     return payload
@@ -2390,7 +2392,7 @@ async def student_wallet(student_email: Optional[str] = None):
 
 
 @router.get("/student/network")
-async def student_network(student_email: Optional[str] = None, email: Optional[str] = None, limit: int = 60):
+async def student_network(student_email: Optional[str] = None, email: Optional[str] = None, limit: int = 60, page: int = 1, per_page: int = 60):
     """Mixed alumni + student + mentor network for the Network tab."""
     user = None
     u_email = email or student_email
@@ -2529,7 +2531,11 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "photo_data": m.get("photo_data") or m.get("face_image_base64"),
         })
 
-    payload = {"items": out}
+    total = len(out)
+    skip = (page - 1) * per_page
+    sliced = out[skip:skip + per_page]
+
+    payload = {"items": sliced, "total": total, "page": page, "per_page": per_page, "pages": max(1, (total + per_page - 1) // per_page)}
     if user:
         network_cache[cache_key] = payload
     return payload
@@ -3060,7 +3066,7 @@ async def my_tier(email: Optional[str] = None, role: Optional[str] = None):
 
 
 @router.get("/mentor/connections")
-async def mentor_connections(email: Optional[str] = None):
+async def mentor_connections(email: Optional[str] = None, page: int = 1, per_page: int = 24):
     # 1. Resolve mentor
     mentor = None
     if email:
@@ -3243,8 +3249,11 @@ async def mentor_connections(email: Optional[str] = None):
             "tags": [role.upper()] + (u.get("skills", []) or [])[:2],
             "messages": 0 if status != "pending" else (idx % 3),
         })
+    total = len(out)
+    skip = (page - 1) * per_page
+    sliced = out[skip:skip + per_page]
+    return {"items": sliced, "total": total, "page": page, "per_page": per_page, "pages": max(1, (total + per_page - 1) // per_page)}
 
-    return {"items": out}
 
 class MentorEventCreate(BaseModel):
     title: str
