@@ -24,7 +24,6 @@ import { SC, FONTS } from '../tokens';
 import { GRAD } from '../portalkit';
 import { GlassCard } from '../glass';
 import { Av, Badge } from '../atoms';
-import { usePortalData } from '@/src/lib/portalApi';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useToast } from '@/src/views/components';
 import { request } from '@/src/models/services/api';
@@ -118,13 +117,26 @@ export function NetworkView() {
   const [alumniLimit, setAlumniLimit] = useState(3);
   const [studentLimit, setStudentLimit] = useState(3);
 
-  // Fetch student network dataset
+  // Paginated fetch for network data
+  const [networkData, setNetworkData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [networkPage, setNetworkPage] = useState(1);
+  const [networkPages, setNetworkPages] = useState(1);
+
   const path = authUser?.email
-    ? `/student/network?student_email=${encodeURIComponent(authUser.email)}`
-    : '/student/network';
-  
-  const { data, loading, refresh } = usePortalData<any>(path, { items: [] }, 60_000);
-  const rawPeople = data?.items || [];
+    ? `/student/network?student_email=${encodeURIComponent(authUser.email)}&page=${networkPage}&per_page=24`
+    : `/student/network?page=${networkPage}&per_page=24`;
+
+  useEffect(() => {
+    setLoading(true);
+    request<any>(path).then(res => {
+      setNetworkData(res);
+      setNetworkPages(res.pages || 1);
+    }).catch(() => setNetworkData({ items: [] }))
+    .finally(() => setLoading(false));
+  }, [authUser?.email, networkPage]);
+
+  const rawPeople = networkData?.items || [];
 
   const sumChars = (str: string) => {
     return str.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
