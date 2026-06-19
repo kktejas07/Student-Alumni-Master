@@ -3879,7 +3879,8 @@ async def admin_users_list(
 async def admin_users_directory_list(
     category: str = "all",
     q: str = "",
-    limit: int = 200,
+    page: int = 1,
+    limit: int = 24,
     user: dict = Depends(get_current_user),
 ):
     """User directory list — supports 'all', 'student', 'masters', 'alumni', 'mentor' categories.
@@ -3928,9 +3929,11 @@ async def admin_users_directory_list(
             {"mentor_profile.organization": rx},
             {"alumni_info.alumni_employer": rx},
         ]
+    skip = (page - 1) * limit
+    total = await db.users.count_documents(query)
     items = await db.users.find(
         query, {"password_hash": 0, "face_image_base64": 0},
-    ).sort("created_at", -1).limit(limit).to_list(limit)
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     out = []
     for u in items:
         mp = u.get("mentor_profile") or {}
@@ -3969,8 +3972,7 @@ async def admin_users_directory_list(
                 if isinstance(u.get("created_at"), datetime) else str(u.get("created_at", "")),
             "linkedin_url": u.get("linkedin_url") or mp.get("linkedin_url") or ai.get("alumni_linkedin_url"),
         })
-    total = await db.users.count_documents(query)
-    return {"items": out, "total": total, "counts": counts}
+    return {"items": out, "total": total, "page": page, "limit": limit, "pages": max(1, (total + limit - 1) // limit), "counts": counts}
 
 
 @api_router.post("/admin/users/profile/{user_id}/approve")
