@@ -164,6 +164,7 @@ export function EventsView() {
       const res = await request<any>(`/student/events?page=${p}&per_page=24`);
       setEventsData(res);
       setEventsPages(res.pages || 1);
+      setEventsPage(p);
     } catch { setEventsData({ items: [] }); }
     finally { setEventsLoading(false); }
   }, []);
