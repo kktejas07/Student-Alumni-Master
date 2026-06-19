@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Calendar as CalIcon, MapPin, Users as UsersIcon, Check, Award, ArrowRight, Globe2, Sparkles } from '../iconShims';
 import { SC, FONTS } from '../tokens';
@@ -7,6 +7,7 @@ import { GRAD } from '../portalkit';
 import { GlassCard } from '../glass';
 import { Badge } from '../atoms';
 import { usePortalData, postPortal, fetchPortal } from '@/src/lib/portalApi';
+import { request } from '@/src/models/services/api';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 type Ev = { id: string; title: string; date: string; mode: string; city: string; cat: string; attending: number; capacity: number; kind: string; price?: number; accent: string; registered: boolean; description?: string; tags?: string[]; spotsLeft?: number; };
@@ -142,12 +143,27 @@ const enrichEvent = (e: Ev) => {
 };
 
 export function EventsView() {
-  const { data } = usePortalData<typeof FALLBACK>('/student/events', FALLBACK);
-  const EVENTS = data?.items || [];
+  const [eventsData, setEventsData] = useState<any>(null);
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [eventsPage, setEventsPage] = useState(1);
+  const [eventsPages, setEventsPages] = useState(1);
+  const EVENTS = eventsData?.items || [];
   const [filter, setFilter] = useState('All');
   const [rsvpd, setRsvpd] = useState<Set<string>>(new Set());
   const [recs, setRecs] = useState<any[]>([]);
   const [myEvents, setMyEvents] = useState<any[]>([]);
+
+  const fetchEvents = useCallback(async (p: number) => {
+    setEventsLoading(true);
+    try {
+      const res = await request<any>(`/student/events?page=${p}&per_page=24`);
+      setEventsData(res);
+      setEventsPages(res.pages || 1);
+    } catch { setEventsData({ items: [] }); }
+    finally { setEventsLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchEvents(1); }, [fetchEvents]);
 
   useEffect(() => {
     fetchPortal<any>('/events/me/recommendations')
@@ -208,8 +224,12 @@ export function EventsView() {
         <Text style={{ color: SC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 }}>Handpicked for your interests</Text>
       </View>
 
-      <View style={s.grid}>
-        {list.map((e, idx) => {
+      {eventsLoading ? (
+        <View style={{ paddingVertical: 60, alignItems: 'center' }}><ActivityIndicator size="large" color={SC.primary} /></View>
+      ) : (
+        <>
+          <View style={s.grid}>
+            {list.map((e, idx) => {
           const isReg = e.registered || rsvpd.has(e.id);
           const spotsColor = e.spotsLeft <= 5 ? '#EF4444' // red
                            : e.spotsLeft <= 50 ? '#F59E0B' // orange/yellow
@@ -315,6 +335,20 @@ export function EventsView() {
           );
         })}
       </View>
+
+      {eventsPages > 1 && (
+        <View style={s.pagination}>
+          <Pressable style={[s.pageBtn, eventsPage <= 1 && { opacity: 0.4 }]} onPress={() => eventsPage > 1 && fetchEvents(eventsPage - 1)}>
+            <Text style={s.pageBtnText}>Prev</Text>
+          </Pressable>
+          <Text style={s.pageInfo}>{eventsPage} / {eventsPages}</Text>
+          <Pressable style={[s.pageBtn, eventsPage >= eventsPages && { opacity: 0.4 }]} onPress={() => eventsPage < eventsPages && fetchEvents(eventsPage + 1)}>
+            <Text style={s.pageBtnText}>Next</Text>
+          </Pressable>
+        </View>
+      )}
+    </>
+      )}
     </View>
   );
 }
@@ -434,4 +468,8 @@ const s = StyleSheet.create({
     fontFamily: FONTS.bold,
     fontSize: 11,
   },
+  pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 16, gap: 14 },
+  pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  pageInfo: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12 },
 });

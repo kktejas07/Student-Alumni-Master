@@ -24,7 +24,6 @@ import { SC, FONTS } from '../tokens';
 import { GRAD } from '../portalkit';
 import { GlassCard } from '../glass';
 import { Av, Badge } from '../atoms';
-import { usePortalData } from '@/src/lib/portalApi';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useToast } from '@/src/views/components';
 import { request } from '@/src/models/services/api';
@@ -42,9 +41,9 @@ export function NetworkView() {
   const [q, setQ] = useState('');
   
   // Dynamic action collections
-  const [conn, setConn] = useState<Set<string>>(new Set());
-  const [pending, setPending] = useState<Set<string>>(new Set());
-  const [localSent, setLocalSent] = useState<Set<string>>(new Set());
+  const [conn, setConn] = useState<string[]>([]);
+  const [pending, setPending] = useState<string[]>([]);
+  const [localSent, setLocalSent] = useState<string[]>([]);
 
   // Modal profile viewer state
   const [pickedPerson, setPickedPerson] = useState<any | null>(null);
@@ -118,13 +117,26 @@ export function NetworkView() {
   const [alumniLimit, setAlumniLimit] = useState(3);
   const [studentLimit, setStudentLimit] = useState(3);
 
-  // Fetch student network dataset
+  // Paginated fetch for network data
+  const [networkData, setNetworkData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [networkPage, setNetworkPage] = useState(1);
+  const [networkPages, setNetworkPages] = useState(1);
+
   const path = authUser?.email
-    ? `/student/network?student_email=${encodeURIComponent(authUser.email)}`
-    : '/student/network';
-  
-  const { data, loading, refresh } = usePortalData<any>(path, { items: [] }, 60_000);
-  const rawPeople = data?.items || [];
+    ? `/student/network?student_email=${encodeURIComponent(authUser.email)}&page=${networkPage}&per_page=24`
+    : `/student/network?page=${networkPage}&per_page=24`;
+
+  useEffect(() => {
+    setLoading(true);
+    request<any>(path).then(res => {
+      setNetworkData(res);
+      setNetworkPages(res.pages || 1);
+    }).catch(() => setNetworkData({ items: [] }))
+    .finally(() => setLoading(false));
+  }, [authUser?.email, networkPage]);
+
+  const rawPeople = networkData?.items || [];
 
   const sumChars = (str: string) => {
     return str.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -214,23 +226,15 @@ export function NetworkView() {
 
   // Connection invitations sender
   const handleConnect = async (id: string, name: string) => {
-    setPending((p) => new Set(p).add(id));
+    setPending((p) => [...p, id]);
     try {
       await request(`/network/connect/${id}`, { method: 'POST' });
       toast.success('Connection Sent! ✉️', `Your connection invite to ${name} has been sent.`);
-      setPending((p) => {
-        const next = new Set(p);
-        next.delete(id);
-        return next;
-      });
+      setPending((p) => p.filter(x => x !== id));
       // update state locally
-      setLocalSent((s) => new Set(s).add(id));
+      setLocalSent((s) => [...s, id]);
     } catch (err: any) {
-      setPending((p) => {
-        const next = new Set(p);
-        next.delete(id);
-        return next;
-      });
+      setPending((p) => p.filter(x => x !== id));
       toast.error('Could not connect', err?.message || 'Please try again.');
     }
   };
@@ -381,12 +385,12 @@ export function NetworkView() {
                         <Text style={s.actionBtnOutlineText}>View Profile</Text>
                       </Pressable>
 
-                      {conn.has(m.id) || m.connectionState === 'connected' ? (
+                      {conn.includes(m.id) || m.connectionState === 'connected' ? (
                         <View style={[s.connectedBadge, { flex: 1, marginRight: 4 }]}>
                           <Check size={11} color={SC.green} style={{ marginRight: 4 }} />
                           <Text style={s.connectedText}>Connected</Text>
                         </View>
-                      ) : localSent.has(m.id) || pending.has(m.id) || m.connectionState === 'pending' ? (
+                      ) : localSent.includes(m.id) || pending.includes(m.id) || m.connectionState === 'pending' ? (
                         <View style={[s.pendingBadge, { flex: 1, marginRight: 4 }]}>
                           <Clock size={11} color={SC.amber} style={{ marginRight: 4 }} />
                           <Text style={s.pendingText}>Pending</Text>
@@ -446,8 +450,8 @@ export function NetworkView() {
 
               <View style={s.grid}>
                 {visibleAlumni.map((al) => {
-                  const isPending = localSent.has(al.id) || pending.has(al.id) || al.connectionState === 'pending';
-                  const isConnected = conn.has(al.id) || al.connectionState === 'connected';
+                  const isPending = localSent.includes(al.id) || pending.includes(al.id) || al.connectionState === 'pending';
+                  const isConnected = conn.includes(al.id) || al.connectionState === 'connected';
 
                   return (
                     <GlassCard key={al.id} radius={14} padding={16} style={s.card}>
@@ -549,8 +553,8 @@ export function NetworkView() {
 
               <View style={s.grid}>
                 {visibleStudents.map((student) => {
-                  const isPending = localSent.has(student.id) || pending.has(student.id) || student.connectionState === 'pending';
-                  const isConnected = conn.has(student.id) || student.connectionState === 'connected';
+                  const isPending = localSent.includes(student.id) || pending.includes(student.id) || student.connectionState === 'pending';
+                  const isConnected = conn.includes(student.id) || student.connectionState === 'connected';
 
                   return (
                     <GlassCard key={student.id} radius={14} padding={16} style={s.card}>
@@ -807,12 +811,12 @@ export function NetworkView() {
                     <Text style={s.actionBtnOutlineText}>View Profile</Text>
                   </Pressable>
 
-                  {conn.has(m.id) || m.connectionState === 'connected' ? (
+                  {conn.includes(m.id) || m.connectionState === 'connected' ? (
                     <View style={[s.connectedBadge, { flex: 1, marginRight: 4 }]}>
                       <Check size={11} color={SC.green} style={{ marginRight: 4 }} />
                       <Text style={s.connectedText}>Connected</Text>
                     </View>
-                  ) : pending.has(m.id) || m.connectionState === 'pending' ? (
+                  ) : pending.includes(m.id) || m.connectionState === 'pending' ? (
                     <View style={[s.pendingBadge, { flex: 1, marginRight: 4 }]}>
                       <Clock size={11} color={SC.amber} style={{ marginRight: 4 }} />
                       <Text style={s.pendingText}>Pending</Text>
@@ -856,8 +860,8 @@ export function NetworkView() {
               </Pressable>
             </View>
             {pickedPerson && (() => {
-              const isConnected = conn.has(pickedPerson.id) || pickedPerson.connectionState === 'connected';
-              const isPending = pending.has(pickedPerson.id) || pickedPerson.connectionState === 'pending';
+              const isConnected = conn.includes(pickedPerson.id) || pickedPerson.connectionState === 'connected';
+              const isPending = pending.includes(pickedPerson.id) || pickedPerson.connectionState === 'pending';
               const nameInitials = pickedPerson.initials;
               const titleLine = pickedPerson.role || pickedPerson.subline || 'Member';
               const collegeLine = pickedPerson.company || pickedPerson.college || '';

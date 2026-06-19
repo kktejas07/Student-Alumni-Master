@@ -49,6 +49,8 @@ export function CollegesView() {
   const [q, setQ] = useState('');
   const [data, setData] = useState<any>(null);
   const [busy, setBusy] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
   const [open, setOpen] = useState<any>(null); // detail-modal college
   const [bump, setBump] = useState(0);
   const [creating, setCreating] = useState(false);
@@ -66,25 +68,28 @@ export function CollegesView() {
     finally { setBackfilling(false); }
   };
 
-  const load = useCallback(async () => {
+  const goToPage = useCallback((p: number) => {
+    setPage(p);
     setBusy(true);
-    try {
-      const r = await request<any>(`/admin/colleges/list?status=${tab}&q=${encodeURIComponent(q)}&limit=200`);
-      setData(r);
-    } catch (e: any) {
-      // Token may not be ready on first paint — retry once after a short delay
-      if (/401|Not authenticated/i.test(String(e?.message || ''))) {
-        await new Promise((r) => setTimeout(r, 600));
-        try {
-          const r = await request<any>(`/admin/colleges/list?status=${tab}&q=${encodeURIComponent(q)}&limit=200`);
-          setData(r);
-          return;
-        } catch {}
-      }
-      console.warn('Colleges list load failed', e);
-      setData({ items: [], total: 0, counts: { all: 0, pending: 0, active: 0, paused: 0 } });
-    } finally { setBusy(false); }
+    (async () => {
+      try {
+        const r = await request<any>(`/admin/colleges/list?status=${tab}&q=${encodeURIComponent(q)}&page=${p}&limit=24`);
+        setData(r);
+        setPages(r.pages || 1);
+      } catch (e: any) {
+        if (/401|Not authenticated/i.test(String(e?.message || ''))) {
+          await new Promise((r) => setTimeout(r, 600));
+          try {
+            const r = await request<any>(`/admin/colleges/list?status=${tab}&q=${encodeURIComponent(q)}&page=${p}&limit=24`);
+            setData(r); setPages(r.pages || 1); return;
+          } catch {}
+        }
+        console.warn('Colleges list load failed', e);
+        setData({ items: [], total: 0, counts: { all: 0, pending: 0, active: 0, paused: 0 } });
+      } finally { setBusy(false); }
+    })();
   }, [tab, q, bump]);
+  const load = useCallback(() => { goToPage(1); }, [goToPage]);
   useEffect(() => { load(); }, [load]);
 
   const counts = data?.counts || {};
@@ -192,8 +197,22 @@ export function CollegesView() {
       )}
       {items.length > 0 && (
         <Text style={[s.muted, { textAlign: 'center', paddingVertical: 6 }]}>
-          Showing {items.length} of {data?.total || 0} · newest first
+          Showing {items.length} of {data?.total || 0}
         </Text>
+      )}
+
+      {pages > 1 && (
+        <View style={s.pagination}>
+          <Pressable style={[s.pageBtn, page <= 1 && { opacity: 0.4 }]}
+            onPress={() => page > 1 && goToPage(page - 1)}>
+            <Text style={s.pageBtnText}>Prev</Text>
+          </Pressable>
+          <Text style={s.pageInfo}>{page} / {pages}</Text>
+          <Pressable style={[s.pageBtn, page >= pages && { opacity: 0.4 }]}
+            onPress={() => page < pages && goToPage(page + 1)}>
+            <Text style={s.pageBtnText}>Next</Text>
+          </Pressable>
+        </View>
       )}
 
       <CollegeDetail college={open} onClose={() => setOpen(null)} onSaved={() => { flash('Updated'); setBump((b) => b + 1); }} />
@@ -672,4 +691,8 @@ const s = StyleSheet.create({
   warnBox: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.30)' },
 
   skBox: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 6 },
+  pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 12, gap: 14 },
+  pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SAC.card, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  pageInfo: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
 });

@@ -104,8 +104,6 @@ async def create_booking(req: BookingCreate):
     mentor = await _db.users.find_one({"role": "mentor", "email": req.mentor_email})
     if not mentor:
         raise HTTPException(404, "Mentor not found")
-    if mentor.get("mentor_status") and mentor.get("mentor_status") != "approved":
-        raise HTTPException(400, "Mentor not approved")
 
     try:
         sched = datetime.fromisoformat(req.scheduled_at) if req.scheduled_at else _now() + timedelta(days=2, hours=10)
@@ -277,7 +275,7 @@ async def complete_booking(booking_id: str):
 
 
 @router.get("/student/my-bookings")
-async def my_bookings(email: Optional[str] = None, status: Optional[str] = None):
+async def my_bookings(email: Optional[str] = None, status: Optional[str] = None, page: int = 1, per_page: int = 20):
     student = await _resolve_user("student", email)
     sid = str(student["_id"])
 
@@ -398,7 +396,10 @@ async def my_bookings(email: Optional[str] = None, status: Optional[str] = None)
         return datetime.min
 
     out.sort(key=get_sched, reverse=True)
-    return {"items": out, "count": len(out), "student_email": student["email"]}
+    total = len(out)
+    skip = (page - 1) * per_page
+    sliced = out[skip:skip + per_page]
+    return {"items": sliced, "total": total, "page": page, "per_page": per_page, "pages": max(1, (total + per_page - 1) // per_page), "student_email": student["email"]}
 
 
 # ════════════════════════════════════════════════════════════════
@@ -498,10 +499,12 @@ async def apply_internship(internship_id: str, req: ApplyRequest, request: Reque
 
 
 @router.get("/student/my-applications")
-async def my_applications(email: Optional[str] = None):
+async def my_applications(email: Optional[str] = None, page: int = 1, per_page: int = 20):
     student = await _resolve_user("student", email)
+    total = await _db.internship_applications.count_documents({"student_id": str(student["_id"])})
+    skip = (page - 1) * per_page
     out = []
-    async for a in _db.internship_applications.find({"student_id": str(student["_id"])}).sort("applied_at", -1).limit(50):
+    async for a in _db.internship_applications.find({"student_id": str(student["_id"])}).sort("applied_at", -1).skip(skip).limit(per_page):
         out.append({
             "id": _short_id(a["_id"]),
             "internship_title": a.get("internship_title"),
@@ -509,7 +512,7 @@ async def my_applications(email: Optional[str] = None):
             "status": a.get("status"),
             "applied_at": a.get("applied_at"),
         })
-    return {"items": out, "count": len(out)}
+    return {"items": out, "total": total, "page": page, "per_page": per_page, "pages": max(1, (total + per_page - 1) // per_page)}
 
 
 # ════════════════════════════════════════════════════════════════
@@ -547,10 +550,12 @@ async def enroll_workshop(req: WorkshopEnroll):
 
 
 @router.get("/student/my-workshops")
-async def my_workshops(email: Optional[str] = None):
+async def my_workshops(email: Optional[str] = None, page: int = 1, per_page: int = 20):
     student = await _resolve_user("student", email)
+    total = await _db.workshop_registrations.count_documents({"student_id": str(student["_id"])})
+    skip = (page - 1) * per_page
     out = []
-    async for w in _db.workshop_registrations.find({"student_id": str(student["_id"])}).sort("registered_at", -1).limit(50):
+    async for w in _db.workshop_registrations.find({"student_id": str(student["_id"])}).sort("registered_at", -1).skip(skip).limit(per_page):
         out.append({
             "id": _short_id(w["_id"]),
             "title": w.get("workshop_title"),
@@ -562,7 +567,7 @@ async def my_workshops(email: Optional[str] = None):
             "certificate_url": w.get("certificate_url"),
             "registered_at": w.get("registered_at"),
         })
-    return {"items": out, "count": len(out)}
+    return {"items": out, "total": total, "page": page, "per_page": per_page, "pages": max(1, (total + per_page - 1) // per_page)}
 
 
 class WorkshopProgressReq(BaseModel):

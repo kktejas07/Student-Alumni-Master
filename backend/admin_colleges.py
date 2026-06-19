@@ -570,8 +570,8 @@ def _serialize(c: dict, student_count: int = 0) -> dict:
 async def list_colleges(
     status: Optional[str] = None,
     q: Optional[str] = None,
-    limit: int = 200,
-    offset: int = 0,
+    page: int = 1,
+    limit: int = 24,
     authorization: Optional[str] = Header(None),
 ):
     await _require_admin(authorization)
@@ -580,10 +580,11 @@ async def list_colleges(
     if status and status != "all":
         match["status"] = status
     if q:
-        match["name"] = {"$regex": q, "$options": "i"}
+        match["name"] = {"$regex": re.escape(q), "$options": "i"}
 
+    skip = (page - 1) * limit
     total = await _db.colleges.count_documents(match)
-    cur = _db.colleges.find(match).sort([("created_at", -1), ("_id", -1)]).skip(offset).limit(limit)
+    cur = _db.colleges.find(match).sort([("created_at", -1), ("_id", -1)]).skip(skip).limit(limit)
 
     # Aggregate student counts by normalized college name
     name_to_id: Dict[str, str] = {}
@@ -615,7 +616,7 @@ async def list_colleges(
         "active":   await _db.colleges.count_documents({"status": "active"}),
         "paused":   await _db.colleges.count_documents({"status": "paused"}),
     }
-    return {"items": items, "total": total, "counts": counts}
+    return {"items": items, "total": total, "page": page, "limit": limit, "pages": max(1, (total + limit - 1) // limit), "counts": counts}
 
 
 @router.get("/admin/colleges/{cid}")

@@ -944,10 +944,10 @@ async def list_users(
         match["category"] = category
     if q:
         match["$or"] = [
-            {"full_name":    {"$regex": q, "$options": "i"}},
-            {"email":        {"$regex": q, "$options": "i"}},
-            {"college":      {"$regex": q, "$options": "i"}},
-            {"company":      {"$regex": q, "$options": "i"}},
+            {"full_name":    {"$regex": re.escape(q), "$options": "i"}},
+            {"email":        {"$regex": re.escape(q), "$options": "i"}},
+            {"college":      {"$regex": re.escape(q), "$options": "i"}},
+            {"company":      {"$regex": re.escape(q), "$options": "i"}},
         ]
     total = await _db.users.count_documents(match)
     # Sort newest first — created_at desc, falling back to _id desc

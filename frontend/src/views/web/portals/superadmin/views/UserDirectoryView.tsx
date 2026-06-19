@@ -57,6 +57,8 @@ export function UserDirectoryView({
   const [q, setQ]     = useState('');
   const [data, setData] = useState<any>(null);
   const [busy, setBusy] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
   const [profileId, setProfileId] = useState<string | null>(null);
   const [pendingOnly, setPendingOnly] = useState(false);
   const [bump, setBump] = useState(0);
@@ -65,23 +67,28 @@ export function UserDirectoryView({
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const { toast, flash } = useToast();
 
-  const load = useCallback(async () => {
+  const goToPage = useCallback((p: number) => {
+    setPage(p);
     setBusy(true);
-    try {
-      const r = await request<any>(`/admin/users/list?category=${cat}&q=${encodeURIComponent(q)}&limit=200`);
-      setData(r);
-    } catch (e: any) {
-      if (/401|Not authenticated/i.test(String(e?.message || ''))) {
-        await new Promise((r) => setTimeout(r, 600));
-        try {
-          const r = await request<any>(`/admin/users/list?category=${cat}&q=${encodeURIComponent(q)}&limit=200`);
-          setData(r); return;
-        } catch {}
-      }
-      console.warn('Users list load failed', e);
-      setData({ items: [], total: 0, counts: {} });
-    } finally { setBusy(false); }
+    (async () => {
+      try {
+        const r = await request<any>(`/admin/users/list?category=${cat}&q=${encodeURIComponent(q)}&page=${p}&limit=24`);
+        setData(r);
+        setPages(r.pages || 1);
+      } catch (e: any) {
+        if (/401|Not authenticated/i.test(String(e?.message || ''))) {
+          await new Promise((r) => setTimeout(r, 600));
+          try {
+            const r = await request<any>(`/admin/users/list?category=${cat}&q=${encodeURIComponent(q)}&page=${p}&limit=24`);
+            setData(r); setPages(r.pages || 1); return;
+          } catch {}
+        }
+        console.warn('Users list load failed', e);
+        setData({ items: [], total: 0, counts: {} });
+      } finally { setBusy(false); }
+    })();
   }, [cat, q, bump]);
+  const load = useCallback(() => { goToPage(1); }, [goToPage]);
   useEffect(() => { load(); }, [load]);
 
   const counts = data?.counts || {};
@@ -237,8 +244,22 @@ export function UserDirectoryView({
 
       {items.length > 0 && (
         <Text style={[st.muted, { textAlign: 'center', paddingVertical: 6 }]}>
-          Showing {items.length} of {data?.total || 0} · newest first
+          Showing {items.length} of {data?.total || 0}
         </Text>
+      )}
+
+      {pages > 1 && (
+        <View style={st.pagination}>
+          <Pressable style={[st.pageBtn, page <= 1 && { opacity: 0.4 }]}
+            onPress={() => page > 1 && goToPage(page - 1)}>
+            <Text style={st.pageBtnText}>Prev</Text>
+          </Pressable>
+          <Text style={st.pageInfo}>{page} / {pages}</Text>
+          <Pressable style={[st.pageBtn, page >= pages && { opacity: 0.4 }]}
+            onPress={() => page < pages && goToPage(page + 1)}>
+            <Text style={st.pageBtnText}>Next</Text>
+          </Pressable>
+        </View>
       )}
 
       <ProfilePanel userId={profileId} onClose={() => setProfileId(null)} onSaved={() => { flash('Updated'); setBump((b) => b + 1); }} />
@@ -620,4 +641,8 @@ const st = StyleSheet.create({
   warnBox: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.08)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.30)' },
   btnText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
   secText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12 },
+  pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 12, gap: 14 },
+  pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SAC.card, borderRadius: 8, borderWidth: 1, borderColor: SAC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  pageInfo: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 },
 });

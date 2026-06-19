@@ -221,7 +221,19 @@ async def mentor_dashboard(mentor_email: Optional[str] = None):
     # Reviews
     review_cur = _db.reviews.find({"mentor_id": mentor_id})
     ratings = [r.get("rating", 0) async for r in review_cur]
-    avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else 4.8
+    avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else 0.0
+    
+    distribution = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0}
+    for r in ratings:
+        if isinstance(r, (int, float)) and 1 <= round(r) <= 5:
+            distribution[int(round(r))] += 1
+            
+    rating_dist = []
+    total_ratings = sum(distribution.values())
+    for stars in [5, 4, 3, 2, 1]:
+        count = distribution[stars]
+        pct = int((count / total_ratings) * 100) if total_ratings > 0 else 0
+        rating_dist.append({"stars": stars, "count": count, "pct": pct})
 
     # Today's sessions (exactly today)
     now = datetime.now(timezone.utc)
@@ -308,10 +320,11 @@ async def mentor_dashboard(mentor_email: Optional[str] = None):
         },
         "kpis": [
             {"id": "earnings",  "label": "Earnings",        "value": _money(earnings),                "delta": "↑ 12%",                  "color": "amber"},
-            {"id": "sessions",  "label": "Sessions",        "value": str(confirmed),                  "delta": f"↑ {months[-1]['sessions']} this mo", "color": "teal"},
+            {"id": "sessions",  "label": "Sessions",        "value": str(confirmed),                  "delta": f"↑ {months[-1]['sessions']} this mo" if months else "", "color": "teal"},
             {"id": "students",  "label": "Active Students", "value": str(active_students),            "delta": f"↑ {pending} pending",   "color": "blue"},
             {"id": "rating",    "label": "Avg Rating",      "value": str(avg_rating),                 "delta": f"{len(ratings)} reviews","color": "green"},
         ],
+        "ratingDist": rating_dist,
         "todaySessions": today_sessions,
         "monthly": months,
         "pendingRequests": pending,
@@ -1291,7 +1304,7 @@ async def super_students(limit: int = 50, q: Optional[str] = None):
     """Cross-college student directory."""
     match: Dict[str, Any] = {"role": "student"}
     if q:
-        match["full_name"] = {"$regex": q, "$options": "i"}
+        match["full_name"] = {"$regex": re.escape(q), "$options": "i"}
 
     cur = _db.users.find(match).limit(limit)
     out = []
@@ -2176,7 +2189,7 @@ async def college_career_intel(college_name: Optional[str] = None):
 
 
 @router.get("/student/events")
-async def student_events_list(student_email: Optional[str] = None, limit: int = 100):
+async def student_events_list(student_email: Optional[str] = None, page: int = 1, per_page: int = 24):
     """Events relevant to the student (with attendance status)."""
     student = None
     if student_email:
@@ -2185,11 +2198,13 @@ async def student_events_list(student_email: Optional[str] = None, limit: int = 
         student = await _db.users.find_one({"role": "student"})
     sid = str((student or {}).get("_id", ""))
 
-    cache_key = f"events_student_{sid}"
+    cache_key = f"events_student_{sid}_p{page}"
     if cache_key in events_cache:
         return events_cache[cache_key]
 
-    cur = _db.events.find().sort("start_date", 1).limit(limit)
+    total = await _db.events.count_documents({})
+    skip = (page - 1) * per_page
+    cur = _db.events.find().sort("start_date", 1).skip(skip).limit(per_page)
     events = [ev async for ev in cur]
     
     event_ids = [str(ev.get("_id")) for ev in events]
@@ -2237,7 +2252,7 @@ async def student_events_list(student_email: Optional[str] = None, limit: int = 
         })
         i += 1
         
-    payload = {"items": out}
+    payload = {"items": out, "total": total, "page": page, "per_page": per_page, "pages": max(1, (total + per_page - 1) // per_page)}
     if sid:
         events_cache[cache_key] = payload
     return payload
@@ -2377,7 +2392,7 @@ async def student_wallet(student_email: Optional[str] = None):
 
 
 @router.get("/student/network")
-async def student_network(student_email: Optional[str] = None, email: Optional[str] = None, limit: int = 60):
+async def student_network(student_email: Optional[str] = None, email: Optional[str] = None, limit: int = 60, page: int = 1, per_page: int = 60):
     """Mixed alumni + student + mentor network for the Network tab."""
     user = None
     u_email = email or student_email
@@ -2406,6 +2421,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
 
     out = []
     me_id_str = str(user["_id"]) if user else ""
+    proj = {"email": 1, "full_name": 1, "role": 1, "school_info": 1, "alumni_info": 1, "bio": 1, "photo_data": 1, "face_image_base64": 1, "skills": 1, "mentor_profile": 1, "mentor_info": 1}
 
     # Fetch all connected/pending users from rel_map first so they are never omitted due to limit
     connected_users = []
@@ -2417,7 +2433,6 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             except Exception:
                 pass
         if connected_ids:
-            proj = {"email": 1, "full_name": 1, "role": 1, "school_info": 1, "alumni_info": 1, "bio": 1, "photo_data": 1, "face_image_base64": 1, "skills": 1}
             connected_users = await _db.users.find({"_id": {"$in": connected_ids}}, proj).to_list(len(connected_ids))
 
     # Fetch Alumni (ensuring connected ones are included first)
@@ -2516,7 +2531,11 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "photo_data": m.get("photo_data") or m.get("face_image_base64"),
         })
 
-    payload = {"items": out}
+    total = len(out)
+    skip = (page - 1) * per_page
+    sliced = out[skip:skip + per_page]
+
+    payload = {"items": sliced, "total": total, "page": page, "per_page": per_page, "pages": max(1, (total + per_page - 1) // per_page)}
     if user:
         network_cache[cache_key] = payload
     return payload
@@ -3047,7 +3066,7 @@ async def my_tier(email: Optional[str] = None, role: Optional[str] = None):
 
 
 @router.get("/mentor/connections")
-async def mentor_connections(email: Optional[str] = None):
+async def mentor_connections(email: Optional[str] = None, page: int = 1, per_page: int = 24):
     # 1. Resolve mentor
     mentor = None
     if email:
@@ -3159,7 +3178,7 @@ async def mentor_connections(email: Optional[str] = None):
                 "date": ns_dt.strftime("%b %d, %Y"),
                 "time": ns_dt.strftime("%H:%M"),
                 "topic": ns.get("topic") or "1:1 Mentorship Session",
-                "daysAway": max(0, (ns_dt - now).days)
+                "daysAway": max(0, (ns_dt.date() - now.date()).days)
             }
         elif status == "active" and idx % 2 == 0:
             ns_dt = now + timedelta(days=7 + (idx % 3))
@@ -3167,7 +3186,7 @@ async def mentor_connections(email: Optional[str] = None):
                 "date": ns_dt.strftime("%b %d, %Y"),
                 "time": "10:00 AM",
                 "topic": "System Design Mock Interview" if idx % 3 == 0 else "Career Growth Plan",
-                "daysAway": (ns_dt - now).days
+                "daysAway": max(0, (ns_dt.date() - now.date()).days)
             }
 
         # Last session date/notes
@@ -3230,8 +3249,11 @@ async def mentor_connections(email: Optional[str] = None):
             "tags": [role.upper()] + (u.get("skills", []) or [])[:2],
             "messages": 0 if status != "pending" else (idx % 3),
         })
+    total = len(out)
+    skip = (page - 1) * per_page
+    sliced = out[skip:skip + per_page]
+    return {"items": sliced, "total": total, "page": page, "per_page": per_page, "pages": max(1, (total + per_page - 1) // per_page)}
 
-    return {"items": out}
 
 class MentorEventCreate(BaseModel):
     title: str

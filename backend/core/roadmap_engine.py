@@ -34,7 +34,7 @@ async def evaluate_roadmap_milestones(user: Dict[str, Any], milestones: List[Dic
             is_done = len(user.get("projects") or []) > 0
             
         elif m_type == MilestoneType.PROFILE.value:
-            is_done = len(user.get("bio", "")) > 10
+            is_done = len(user.get("bio") or "") > 10
             
         elif m_type == MilestoneType.NETWORKING.value:
             if db is not None and user_id_str:

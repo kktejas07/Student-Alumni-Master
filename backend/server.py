@@ -740,13 +740,13 @@ def serialize_user(user: dict) -> dict:
         "first_name":     user.get("first_name"),
         "last_name":      user.get("last_name"),
         "headline":       user.get("headline"),
-        "photo_data":     user.get("photo_data") or user.get("face_image_base64"),
-        "institution":    user.get("institution") or (user.get("school_info") or {}).get("institution_name"),
-        "branch":         user.get("branch") or (user.get("school_info") or {}).get("branch_or_stream") or (user.get("school_info") or {}).get("current_course") or (user.get("alumni_info") or {}).get("branch_or_stream"),
-        "stream":         user.get("stream") or (user.get("school_info") or {}).get("branch_or_stream") or (user.get("school_info") or {}).get("current_course"),
-        "department":     user.get("department") or (user.get("school_info") or {}).get("branch_or_stream"),
-        "graduation_year": user.get("graduation_year") or (user.get("school_info") or {}).get("graduation_year") or (user.get("alumni_info") or {}).get("graduation_year"),
-        "cgpa":           user.get("cgpa") or (user.get("student_info") or {}).get("cgpa"),
+        "photo_data":     user.get("photo_data") or user.get("face_image_base64") or user.get("oauth_picture"),
+        "institution":    user.get("institution"),
+        "branch":         user.get("branch"),
+        "stream":         user.get("stream"),
+        "department":     user.get("department"),
+        "graduation_year": user.get("graduation_year"),
+        "cgpa":           user.get("cgpa"),
         "location":       user.get("location"),
         "city":           user.get("city"),
         "state":          user.get("state"),
@@ -2228,11 +2228,10 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
     email = email.lower().strip()
     user = await db.users.find_one({"email": email})
     if user:
-        # Update OAuth metadata if user signed in with this provider
-        await db.users.update_one(
-            {"_id": user["_id"]},
-            {"$set": {"oauth_provider": provider, "oauth_picture": picture}},
-        )
+        update = {"oauth_provider": provider, "oauth_picture": picture}
+        if picture:
+            update["photo_data"] = picture
+        await db.users.update_one({"_id": user["_id"]}, {"$set": update})
         return await db.users.find_one({"_id": user["_id"]})
 
     # New OAuth user — create with onboarding NOT yet completed so the client
@@ -2250,6 +2249,7 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
         "interests": [],
         "skills": [],
         "bio": None,
+        "photo_data": picture,
         "face_image_base64": None,
         "oauth_provider": provider,
         "oauth_picture": picture,
@@ -2322,19 +2322,48 @@ def _verify_google_token(id_token: Optional[str], client_id: str = "") -> Option
         return None
 
 
-async def _verify_linkedin_token(access_token: Optional[str], client_id: str = "", client_secret: str = "") -> Optional[dict]:
-    """Verify a LinkedIn access token if credentials are configured, else return None (mock fallback)."""
-    if not access_token or not client_id:
+def _frontend_redirect_uri() -> str:
+    """Build the OAuth redirect URI that matches what oauth_config returns."""
+    raw = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
+    base = raw if (raw.startswith("http://") or raw.startswith("https://")) else "https://studentalumni.ai"
+    return f"{base}/oauth.html"
+
+
+async def _verify_linkedin_token(code: Optional[str], client_id: str = "", client_secret: str = "") -> Optional[dict]:
+    """Exchange LinkedIn OAuth authorization code for an access token, then fetch user info."""
+    if not code or not client_id or not client_secret:
         return None
     try:
-        async with httpx.AsyncClient(timeout=10) as c:
-            r = await c.get("https://api.linkedin.com/v2/userinfo",
-                            headers={"Authorization": f"Bearer {access_token}"})
-            if r.is_success:
-                data = r.json()
-                return {"email": data.get("email"), "name": data.get("name"),
-                        "picture": data.get("picture")}
-            return None
+        async with httpx.AsyncClient(timeout=15) as c:
+            # Exchange authorization code for access token
+            token_res = await c.post(
+                "https://www.linkedin.com/oauth/v2/accessToken",
+                data={
+                    "grant_type": "authorization_code",
+                    "code": code,
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "redirect_uri": _frontend_redirect_uri(),
+                },
+                headers={"Accept": "application/json"},
+            )
+            if not token_res.is_success:
+                return None
+            token_data = token_res.json()
+            access_token = token_data.get("access_token")
+            if not access_token:
+                return None
+
+            # Fetch user profile with the access token
+            user_res = await c.get(
+                "https://api.linkedin.com/v2/userinfo",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            if not user_res.is_success:
+                return None
+            data = user_res.json()
+            return {"email": data.get("email"), "name": data.get("name"),
+                    "picture": data.get("picture")}
     except Exception:
         return None
 
@@ -3256,7 +3285,30 @@ async def get_my_skill_intelligence(user: dict = Depends(get_current_user)):
         potential_score = min(100, max(overall_score + (1 if len(unique_actions) > 0 else 0), potential_score))
         readiness_gap = potential_score - overall_score
 
+    # Calculate analyzed skills list for the frontend
+    user_skills = user.get("skills") or []
+    analyzed_skills = []
+    for sk in user_skills:
+        display_category, weight = _categorize_skill(sk)
+        subcat_map = {
+            "technical_skills": "Technical Skill",
+            "communication": "Communication",
+            "leadership": "Leadership",
+            "interview_prep": "Interview Prep",
+            "soft_skills": "Soft Skill",
+            "networking": "Networking"
+        }
+        subcategory = subcat_map.get(display_category, "Skill")
+        analyzed_skills.append({
+            "skill_name": sk,
+            "subcategory": subcategory,
+            "weight": weight,
+            "source": "taxonomy",
+            "confidence": 1.0
+        })
+
     return {
+        "skills": analyzed_skills,
         "readiness_score": {
             "score": overall_score,
             "level": "Explorer" if overall_score <= 20 else "Builder" if overall_score <= 40 else "Developing Professional" if overall_score <= 60 else "Career Ready" if overall_score <= 80 else "Industry Ready",
@@ -3772,7 +3824,7 @@ async def admin_users_list(
     if role == "mentor":
         query["mentor_status"] = "approved"
     if q:
-        rx = {"$regex": q, "$options": "i"}
+        rx = {"$regex": re.escape(q), "$options": "i"}
         query["$or"] = [
             {"full_name": rx}, {"email": rx},
             {"school_info.institution_name": rx},
@@ -3827,7 +3879,8 @@ async def admin_users_list(
 async def admin_users_directory_list(
     category: str = "all",
     q: str = "",
-    limit: int = 200,
+    page: int = 1,
+    limit: int = 24,
     user: dict = Depends(get_current_user),
 ):
     """User directory list — supports 'all', 'student', 'masters', 'alumni', 'mentor' categories.
@@ -3869,16 +3922,18 @@ async def admin_users_directory_list(
     if category == "masters":
         query["school_info.current_degree"] = {"$in": ["Masters", "M.Tech", "MBA", "MS", "PhD"]}
     if q:
-        rx = {"$regex": q, "$options": "i"}
+        rx = {"$regex": re.escape(q), "$options": "i"}
         query["$or"] = [
             {"full_name": rx}, {"email": rx},
             {"school_info.institution_name": rx},
             {"mentor_profile.organization": rx},
             {"alumni_info.alumni_employer": rx},
         ]
+    skip = (page - 1) * limit
+    total = await db.users.count_documents(query)
     items = await db.users.find(
         query, {"password_hash": 0, "face_image_base64": 0},
-    ).sort("created_at", -1).limit(limit).to_list(limit)
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     out = []
     for u in items:
         mp = u.get("mentor_profile") or {}
@@ -3917,8 +3972,7 @@ async def admin_users_directory_list(
                 if isinstance(u.get("created_at"), datetime) else str(u.get("created_at", "")),
             "linkedin_url": u.get("linkedin_url") or mp.get("linkedin_url") or ai.get("alumni_linkedin_url"),
         })
-    total = await db.users.count_documents(query)
-    return {"items": out, "total": total, "counts": counts}
+    return {"items": out, "total": total, "page": page, "limit": limit, "pages": max(1, (total + limit - 1) // limit), "counts": counts}
 
 
 @api_router.post("/admin/users/profile/{user_id}/approve")
@@ -5077,7 +5131,7 @@ async def list_opportunities(
     if mode:
         query["mode"] = mode
     if q:
-        rx = {"$regex": q, "$options": "i"}
+        rx = {"$regex": re.escape(q), "$options": "i"}
         query["$or"] = [{"title": rx}, {"company": rx}, {"skills": rx}, {"description": rx}, {"domain": rx}]
     items = await db.internships.find(query, {"_id": 0}).limit(limit).to_list(limit)
     saved = set(user.get("saved_opportunities") or [])
@@ -5292,7 +5346,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     # Pull a healthy candidate set
     base_query: dict = {"_id": {"$ne": user["_id"]}}
     if q:
-        rx = {"$regex": q, "$options": "i"}
+        rx = {"$regex": re.escape(q), "$options": "i"}
         base_query["$or"] = [{"full_name": rx}, {"email": rx}]
     candidates = await db.users.find(base_query, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).to_list(500)
 
@@ -5760,11 +5814,24 @@ async def my_bookings(user: dict = Depends(get_current_user)):
         start_iso = item.get("slot_start_iso") or sched_iso
         
         status = item.get("status", "pending")
-        if status in ["confirmed", "booked", "scheduled"] and sched and isinstance(sched, datetime) and sched.replace(tzinfo=timezone.utc) < now:
-            status = "completed"
+        
+        dt_compare = None
+        if isinstance(sched, datetime):
+            dt_compare = sched.astimezone(timezone.utc)
+        elif start_iso:
+            try:
+                dt_compare = datetime.fromisoformat(start_iso.replace("Z", "+00:00")).astimezone(timezone.utc)
+            except Exception:
+                pass
+
+        if status in ["confirmed", "booked", "scheduled", "pending"] and dt_compare and dt_compare < now:
+            new_status = "expired" if status == "pending" else "completed"
+            status = new_status
             # Best-effort DB update
             import asyncio
-            asyncio.create_task(db.bookings.update_one({"_id": item["_id"]}, {"$set": {"status": "completed"}}))
+            async def _update_status(item_id, st):
+                await db.bookings.update_one({"_id": item_id}, {"$set": {"status": st}})
+            asyncio.create_task(_update_status(item["_id"], new_status))
         
         doc = {
             "id": str(item["_id"]),
@@ -6270,13 +6337,26 @@ async def post_review(req: ReviewIn, user: dict = Depends(get_current_user)):
         try:
             if ObjectId.is_valid(b_id):
                 booking = await db.bookings.find_one({"_id": ObjectId(b_id)})
+                if not booking:
+                    booking = await db.sessions.find_one({"_id": ObjectId(b_id)})
         except Exception:
             pass
         if not booking:
-            try:
-                booking = await db.bookings.find_one({"id": b_id})
-            except Exception:
-                pass
+            import re
+            booking_rx = f"{re.escape(b_id)}$"
+            
+            bookings_matches = []
+            async for b in db.bookings.find({"$expr": {"$regexMatch": {"input": {"$toString": "$_id"}, "regex": booking_rx, "options": "i"}}}, {"mentor_id": 1}):
+                bookings_matches.append(b)
+                
+            sessions_matches = []
+            async for s in db.sessions.find({"$expr": {"$regexMatch": {"input": {"$toString": "$_id"}, "regex": booking_rx, "options": "i"}}}, {"mentor_id": 1}):
+                sessions_matches.append(s)
+                
+            total_matches = len(bookings_matches) + len(sessions_matches)
+            if total_matches == 1:
+                booking = bookings_matches[0] if bookings_matches else sessions_matches[0]
+
         if booking and "mentor_id" in booking:
             mentor_id = str(booking["mentor_id"])
 

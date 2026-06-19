@@ -1,0 +1,7 @@
+# Security.txt — https://securitytxt.org/
+# This file helps security researchers report vulnerabilities.
+
+Contact: mailto:security@studentalumni.ai
+Expires: 2027-06-18T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://studentalumni.ai/.well-known/security.txt

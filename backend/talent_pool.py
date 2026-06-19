@@ -331,7 +331,8 @@ async def talent_pool_opt_in(authorization: Optional[str] = Header(None)):
             ),
             "education": (user.get("school_info") or {}).get("institution_name"),
             "graduation_year": (user.get("school_info") or {}).get("graduation_year"),
-            "photo_url": user.get("photo_data"),
+            "photo_url": user.get("photo_data") if user.get("photo_data") and not str(user.get("photo_data", "")).startswith("data:") else None,
+            "photo_data": user.get("photo_data") if user.get("photo_data") and str(user.get("photo_data", "")).startswith("data:") else None,
             "bio": user.get("bio"),
             "source": "platform",
             "source_platform_user_id": uid,
@@ -693,7 +694,8 @@ async def admin_sync_from_platform_users(
             ),
             "education": (user.get("school_info") or {}).get("institution_name"),
             "graduation_year": (user.get("school_info") or {}).get("graduation_year"),
-            "photo_url": user.get("photo_data"),
+            "photo_url": user.get("photo_data") if user.get("photo_data") and not str(user.get("photo_data", "")).startswith("data:") else None,
+            "photo_data": user.get("photo_data") if user.get("photo_data") and str(user.get("photo_data", "")).startswith("data:") else None,
             "bio": user.get("bio"),
             "source": "platform",
             "source_platform_user_id": uid,
@@ -727,7 +729,17 @@ async def admin_list_talent_pool(
 
     mongo_filter: Dict[str, Any] = {}
     if q:
-        mongo_filter["$text"] = {"$search": q}
+        escaped = re.escape(q.strip())
+        mongo_filter["$or"] = [
+            {"full_name":          {"$regex": escaped, "$options": "i"}},
+            {"headline":           {"$regex": escaped, "$options": "i"}},
+            {"current_role":       {"$regex": escaped, "$options": "i"}},
+            {"current_company":    {"$regex": escaped, "$options": "i"}},
+            {"location":           {"$regex": escaped, "$options": "i"}},
+            {"education":          {"$regex": escaped, "$options": "i"}},
+            {"bio":                {"$regex": escaped, "$options": "i"}},
+            {"skills":             {"$regex": escaped, "$options": "i"}},
+        ]
     if source:
         mongo_filter["source"] = source
     if is_active is not None:
