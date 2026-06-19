@@ -1218,6 +1218,6 @@ const s = StyleSheet.create({
   fixedOverlay: {
     position: Platform.OS === 'web' ? ('fixed' as any) : 'absolute',
     top: -3000, bottom: -3000, left: -3000, right: -3000,
-    zIndex: 99990, cursor: 'default'
+    zIndex: 99990, ...({ cursor: 'default' } as any)
   }
 });

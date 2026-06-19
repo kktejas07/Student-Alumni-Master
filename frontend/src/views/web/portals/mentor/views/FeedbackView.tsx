@@ -220,7 +220,7 @@ export function FeedbackView() {
     }, 1200);
   };
 
-  const handleAiDraftReply = (reviewId: number) => {
+  const handleAiDraftReply = (reviewId: number | string) => {
     setIsGeneratingAi(true);
     setTimeout(() => {
       setIsGeneratingAi(false);
