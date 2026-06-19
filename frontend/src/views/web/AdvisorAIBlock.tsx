@@ -162,7 +162,7 @@ const s = StyleSheet.create({
   desc: { color: 'rgba(255,255,255,0.70)', fontSize: 12.5, lineHeight: 18 },
   cta: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    paddingVertical: 11, borderRadius: 999, marginTop: 6,
+    paddingVertical: 11, borderRadius: 8, marginTop: 6,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   ctaText: { color: '#fff', fontSize: 12.5, fontWeight: '800' },

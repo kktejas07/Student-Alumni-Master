@@ -332,7 +332,8 @@ export default function MoneyCoach({ initialCmd, onAction }: {
 
                 {/* Chips */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 6, paddingHorizontal: 14, paddingBottom: 6 }}>
+                  style={{ flexGrow: 0 }}
+                  contentContainerStyle={{ gap: 6, paddingHorizontal: 14, paddingBottom: 6, alignItems: 'center' }}>
                   {SLASH_CHIPS.map((c) => (
                     <div key={c.cmd}
                       onClick={() => send(c.cmd)}
@@ -341,8 +342,8 @@ export default function MoneyCoach({ initialCmd, onAction }: {
                         flexDirection: 'row',
                         alignItems: 'center',
                         gap: '5px',
-                        padding: '6px 10px',
-                        borderRadius: '999px',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
                         backgroundColor: 'rgba(167,139,250,0.10)',
                         border: '1px solid rgba(167,139,250,0.30)',
                         cursor: 'pointer',
@@ -532,7 +533,8 @@ export default function MoneyCoach({ initialCmd, onAction }: {
               </ScrollView>
 
               <ScrollView horizontal showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 6, paddingHorizontal: 14, paddingBottom: 6 }}>
+                style={{ flexGrow: 0 }}
+                contentContainerStyle={{ gap: 6, paddingHorizontal: 14, paddingBottom: 6, alignItems: 'center' }}>
                 {SLASH_CHIPS.map((c) => (
                   <Pressable key={c.cmd}
                     onPress={() => send(c.cmd)}
@@ -618,7 +620,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center' },
   planActionTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
   planActionMeta: { color: C.text3, fontFamily: 'DMSans_600SemiBold', fontSize: 10 },
-  planActionBtn: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 999,
+  planActionBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
     backgroundColor: '#7C3AED', ...({ cursor: 'pointer' } as any) },
   planActionBtnText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 10 },
 
@@ -633,7 +635,7 @@ const s = StyleSheet.create({
   donutBarFill: { height: 6 },
 
   /* Generic action button */
-  actBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
+  actBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,
     backgroundColor: 'rgba(167,139,250,0.20)',
     borderColor: 'rgba(167,139,250,0.40)', borderWidth: 1,
     ...({ cursor: 'pointer' } as any) },
@@ -641,7 +643,7 @@ const s = StyleSheet.create({
 
   /* Slash chip */
   slashChip: { flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,
     backgroundColor: 'rgba(167,139,250,0.10)',
     borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1,
     ...({ cursor: 'pointer' } as any) },
