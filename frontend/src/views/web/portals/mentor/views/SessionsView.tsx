@@ -121,12 +121,14 @@ export function SessionsView() {
   const [bookingsList, setBookingsList] = useState<any[]>([]);
   const [studentsMap, setStudentsMap] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
+  const [connPage, setConnPage] = useState(1);
+  const [connPages, setConnPages] = useState(1);
 
-  const loadData = async () => {
+  const loadData = async (p: number = 1) => {
     try {
       setLoading(true);
       const email = user?.email;
-      const connRes = await api.mentorConnections(email);
+      const connRes = await api.mentorConnections(email, p, 24);
       const conns = connRes?.items || [];
       const sMap: Record<string, any> = {};
       conns.forEach((c: any) => {
@@ -134,6 +136,8 @@ export function SessionsView() {
       });
       setStudentsMap(sMap);
       setStudents(conns.length > 0 ? conns : INITIAL_STUDENTS);
+      setConnPage(p);
+      setConnPages(connRes.pages || 1);
 
       const bookRes = await api.myBookings().catch(() => ({ bookings: [] }));
       setBookingsList(bookRes.bookings || []);
@@ -145,7 +149,7 @@ export function SessionsView() {
   };
 
   useEffect(() => {
-    loadData();
+    loadData(1);
   }, [user]);
 
   // Availability specific states
@@ -893,6 +897,18 @@ export function SessionsView() {
             </View>
           );
         })}
+
+        {(tab === 'upcoming' || tab === 'past') && connPages > 1 && (
+          <View style={s.pagination}>
+            <Pressable style={[s.pageBtn, connPage <= 1 && { opacity: 0.4 }]} onPress={() => connPage > 1 && loadData(connPage - 1)}>
+              <Text style={s.pageBtnText}>Prev</Text>
+            </Pressable>
+            <Text style={s.pageInfo}>{connPage} / {connPages}</Text>
+            <Pressable style={[s.pageBtn, connPage >= connPages && { opacity: 0.4 }]} onPress={() => connPage < connPages && loadData(connPage + 1)}>
+              <Text style={s.pageBtnText}>Next</Text>
+            </Pressable>
+          </View>
+        )}
 
         {/* Tab 3: Availability Calendar Layout (Screenshots 3 & 4) */}
         {tab === 'availability' && (
@@ -2254,5 +2270,9 @@ const s = StyleSheet.create({
     fontSize: 11,
     textAlign: 'center',
     marginTop: 4
-  }
+  },
+  pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 16, gap: 14 },
+  pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: MC.card, borderRadius: 8, borderWidth: 1, borderColor: MC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  pageInfo: { color: MC.muted, fontFamily: FONTS.med, fontSize: 12 },
 });

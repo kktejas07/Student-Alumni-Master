@@ -336,7 +336,7 @@ export const api = {
     max_attendees: number;
   }) => request<any>('/mentor/sessions', { method: 'POST', body: payload }),
   myMentorSessions: () => request<any>('/mentor/sessions/me'),
-  mentorConnections: (email?: string) => request<any>(`/mentor/connections${email ? `?email=${encodeURIComponent(email)}` : ''}`),
+  mentorConnections: (email?: string, page: number = 1, per_page: number = 24) => request<any>(`/mentor/connections${email ? `?email=${encodeURIComponent(email)}&page=${page}&per_page=${per_page}` : `?page=${page}&per_page=${per_page}`}`),
   acceptConnection: (otherId: string) => request<any>(`/network/accept/${otherId}`, { method: 'POST', body: {} }),
   rejectConnection: (otherId: string) => request<any>(`/network/reject/${otherId}`, { method: 'POST', body: {} }),
   withdrawConnection: (otherId: string) => request<any>(`/network/withdraw/${otherId}`, { method: 'POST', body: {} }),
