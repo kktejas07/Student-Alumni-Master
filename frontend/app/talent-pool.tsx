@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TextInput, ScrollView, Pressable, StyleSheet, Platform, Linking, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, ScrollView, Pressable, StyleSheet, Platform, Linking, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -37,6 +37,7 @@ interface TalentProfile {
   education?: string;
   graduation_year?: number;
   photo_url?: string;
+  photo_data?: string;
   bio?: string;
   source: string;
   is_active: boolean;
@@ -139,11 +140,15 @@ export default function TalentPoolPage() {
     >
       {/* Header */}
       <View style={s.cardHeader}>
-        <View style={s.avatar}>
-          <Text style={s.avatarText}>
-            {(profile.full_name || '?')[0].toUpperCase()}
-          </Text>
-        </View>
+        {profile.photo_url || profile.photo_data ? (
+          <Image source={{ uri: profile.photo_url || profile.photo_data! }} style={s.avatarImage} />
+        ) : (
+          <View style={s.avatar}>
+            <Text style={s.avatarText}>
+              {(profile.full_name || '?')[0].toUpperCase()}
+            </Text>
+          </View>
+        )}
         <View style={{ flex: 1 }}>
           <Text style={s.cardName} numberOfLines={1}>{profile.full_name}</Text>
           {profile.headline && (
@@ -402,6 +407,7 @@ const s = StyleSheet.create({
     width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.accent,
     alignItems: 'center', justifyContent: 'center',
   },
+  avatarImage: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.card },
   avatarText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   cardName: { color: '#fff', fontSize: 15, fontWeight: '600', flex: 1 },
   cardHeadline: { color: COLORS.muted, fontSize: 12, marginTop: 1 },

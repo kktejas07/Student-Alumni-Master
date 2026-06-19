@@ -26,6 +26,7 @@ interface TalentProfile {
   education?: string;
   graduation_year?: number;
   photo_url?: string;
+  photo_data?: string;
   bio?: string;
   source: string;
   is_active: boolean;
@@ -249,8 +250,8 @@ export function TalentPoolView() {
               </Pressable>
 
               {/* Photo */}
-              {p.photo_url ? (
-                <Image source={{ uri: p.photo_url }} style={s.avatar} />
+              {(p as any).photo_url || (p as any).photo_data ? (
+                <Image source={{ uri: (p as any).photo_url || (p as any).photo_data }} style={s.avatar} />
               ) : (
                 <View style={s.avatarPlaceholder}>
                   <Text style={s.avatarInitial}>{(p.full_name || '?')[0].toUpperCase()}</Text>
@@ -381,8 +382,8 @@ function ProfileDetailModal({ visible, profile, onClose }: { visible: boolean; p
         <Animated.View entering={FadeInDown.duration(220)} style={s.modalCard}>
           {/* Hero */}
           <LinearGradient colors={[GRAD.from, GRAD.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.modalHero}>
-            {p.photo_url ? (
-              <Image source={{ uri: p.photo_url }} style={s.modalAvatar} />
+            {p.photo_url || p.photo_data ? (
+              <Image source={{ uri: p.photo_url || p.photo_data! }} style={s.modalAvatar} />
             ) : (
               <View style={s.modalAvatarPlaceholder}>
                 <Text style={s.modalAvatarInitial}>{(p.full_name || '?')[0].toUpperCase()}</Text>
