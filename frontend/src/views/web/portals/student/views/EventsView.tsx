@@ -19,16 +19,16 @@ const CATEGORY_MAP: Record<string, string[]> = {
   'hackathon': ['hackathon', 'codethon'],
   'codethon': ['hackathon', 'codethon'],
   'workshop': ['workshop', 'training'],
-  'tech talk': ['talk', 'workshop', 'tech_talk'],
+  'tech talk': ['tech talk', 'tech_talk', 'workshop'],
   'training': ['workshop', 'training'],
-  'founder talk': ['startup', 'talk', 'founder talk', 'spotlight'],
-  'meetup': ['networking', 'meetup'],
+  'founder talk': ['founder talk', 'founder_talk', 'spotlight'],
+  'meetup': ['meetup', 'networking'],
   'fest': ['fest'],
   'webinar': ['webinar', 'online'],
   'panel': ['panel', 'panel discussion'],
-  'q&a': ['qa', 'q&a session'],
+  'q&a': ['q&a', 'qa', 'q&a session'],
   'interview': ['interview', 'mock interview'],
-  'spotlight': ['spotlight', 'founder talk'],
+  'spotlight': ['spotlight', 'founder talk', 'founder_talk'],
 };
 
 const catColorMap: Record<string, any> = {

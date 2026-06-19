@@ -3373,6 +3373,16 @@ async def update_mentor_event(event_id: str, ev: MentorEventCreate, email: Optio
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid event ID")
         
+    mentor = await _db.users.find_one({"email": email, "role": "mentor"}) if email else None
+    if not mentor:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    existing = await _db.events.find_one({"_id": obj_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if str(existing.get("mentor_id")) != str(mentor["_id"]):
+        raise HTTPException(status_code=403, detail="Not your event")
+        
     doc = {
         "title": ev.title,
         "description": ev.desc,
@@ -3389,9 +3399,6 @@ async def update_mentor_event(event_id: str, ev: MentorEventCreate, email: Optio
     }
     
     res = await _db.events.update_one({"_id": obj_id}, {"$set": doc})
-    if res.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Event not found")
-        
     return {"ok": True}
 
 @router.delete("/mentor/events/{event_id}")
@@ -3401,8 +3408,19 @@ async def delete_mentor_event(event_id: str, email: Optional[str] = None):
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid event ID")
         
-    res = await _db.events.delete_one({"_id": obj_id})
-    if res.deleted_count == 0:
+    mentor = await _db.users.find_one({"email": email, "role": "mentor"}) if email else None
+    if not mentor:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    existing = await _db.events.find_one({"_id": obj_id})
+    if not existing:
         raise HTTPException(status_code=404, detail="Event not found")
+    if str(existing.get("mentor_id")) != str(mentor["_id"]):
+        raise HTTPException(status_code=403, detail="Not your event")
+        
+    res = await _db.events.delete_one({"_id": obj_id})
+    
+    # Clean up orphaned event registrations
+    await _db.event_registrations.delete_many({"event_id": event_id})
         
     return {"ok": True}
