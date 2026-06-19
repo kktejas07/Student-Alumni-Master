@@ -35,19 +35,21 @@ export function ConnectionsView() {
   const [picked, setPicked] = useState<any | null>(null);
   const [studentsList, setStudentsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
   const [actioningId, setActioningId] = useState<string | null>(null);
 
-  const loadConnections = async () => {
+  const loadConnections = async (p: number = 1) => {
     try {
       const email = user?.email;
-      const res = await api.mentorConnections(email);
+      const res = await api.mentorConnections(email, p, 24);
       const items = res?.items || [];
       setStudentsList(items);
+      setPages(res.pages || 1);
+      setPage(p);
       if (picked) {
         const fresh = items.find((item: any) => item.id === picked.id);
-        if (fresh) {
-          setPicked(fresh);
-        }
+        if (fresh) setPicked(fresh);
       }
     } catch (e) {
       console.warn('Failed to load mentor connections:', e);
@@ -57,7 +59,7 @@ export function ConnectionsView() {
   };
 
   useEffect(() => {
-    loadConnections();
+    loadConnections(1);
   }, [user]);
 
   const handleConnectionDecision = async (otherId: string, decision: 'accept' | 'decline' | 'withdraw' | 'connect') => {
@@ -444,6 +446,17 @@ export function ConnectionsView() {
           {list.length === 0 && (
             <View style={s.empty}>
               <Text style={{ color: MC.muted, fontFamily: FONTS.med }}>No connections match those filters.</Text>
+            </View>
+          )}
+          {pages > 1 && (
+            <View style={s.pagination}>
+              <Pressable style={[s.pageBtn, page <= 1 && { opacity: 0.4 }]} onPress={() => page > 1 && loadConnections(page - 1)}>
+                <Text style={s.pageBtnText}>Prev</Text>
+              </Pressable>
+              <Text style={s.pageInfo}>{page} / {pages}</Text>
+              <Pressable style={[s.pageBtn, page >= pages && { opacity: 0.4 }]} onPress={() => page < pages && loadConnections(page + 1)}>
+                <Text style={s.pageBtnText}>Next</Text>
+              </Pressable>
             </View>
           )}
         </View>
@@ -1155,4 +1168,8 @@ const s = StyleSheet.create({
   dayText: { color: '#fff', fontFamily: FONTS.med, fontSize: 11 },
   dayTextSelected: { color: MC.bg, fontFamily: FONTS.bold },
   confirmBtn: { backgroundColor: MC.tealP, height: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginTop: 10, cursor: 'pointer' },
+  pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 16, gap: 14 },
+  pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: MC.card, borderRadius: 8, borderWidth: 1, borderColor: MC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  pageInfo: { color: MC.muted, fontFamily: FONTS.med, fontSize: 12 },
 });
