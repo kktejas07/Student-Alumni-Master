@@ -60,7 +60,7 @@ export default function LoginScreen() {
   const [pwdError, setPwdError] = useState('');
   const [exists, setExists] = useState<boolean | null>(null);
 
-  const [oauthCfg, setOauthCfg] = useState<{ firebase?: { apiKey: string; authDomain: string; projectId: string; appId: string } | null } | null>(null);
+  const [oauthCfg, setOauthCfg] = useState<{ linkedin_client_id?: string; redirect_uri?: string; firebase?: { apiKey: string; authDomain: string; projectId: string; appId: string } | null } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -260,7 +260,13 @@ export default function LoginScreen() {
         </View>
         <View style={{ flex: 1 }}>
           <OutlineButton label="LinkedIn" icon={<LinkedInIn size={16} />} onPress={() => {
-            setPwdError('LinkedIn sign-in is not configured. Contact admin.');
+            if (oauthCfg?.linkedin_client_id && Platform.OS === 'web') {
+              const state = `linkedin_${Math.random().toString(36).slice(2)}`;
+              const url = `https://www.linkedin.com/oauth/v2/authorization?client_id=${oauthCfg.linkedin_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri!)}&response_type=code&scope=openid%20email%20profile&state=${state}`;
+              window.open(url, '_blank', 'width=600,height=700');
+            } else {
+              setPwdError('LinkedIn sign-in is not configured. Contact admin.');
+            }
           }} />
         </View>
         <View style={{ flex: 1 }}>
