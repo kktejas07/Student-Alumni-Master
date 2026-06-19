@@ -729,7 +729,17 @@ async def admin_list_talent_pool(
 
     mongo_filter: Dict[str, Any] = {}
     if q:
-        mongo_filter["$text"] = {"$search": q}
+        escaped = re.escape(q.strip())
+        mongo_filter["$or"] = [
+            {"full_name":          {"$regex": escaped, "$options": "i"}},
+            {"headline":           {"$regex": escaped, "$options": "i"}},
+            {"current_role":       {"$regex": escaped, "$options": "i"}},
+            {"current_company":    {"$regex": escaped, "$options": "i"}},
+            {"location":           {"$regex": escaped, "$options": "i"}},
+            {"education":          {"$regex": escaped, "$options": "i"}},
+            {"bio":                {"$regex": escaped, "$options": "i"}},
+            {"skills":             {"$regex": escaped, "$options": "i"}},
+        ]
     if source:
         mongo_filter["source"] = source
     if is_active is not None:
