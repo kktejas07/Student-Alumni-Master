@@ -6660,6 +6660,13 @@ async def on_startup():
     await db.agent_runs.create_index([("schedule_id", 1), ("started_at", -1)])
     await db.workflow_events.create_index("event_type")
     await db.workflow_events.create_index([("fired_at", -1)])
+    
+    # Missing indexes for performance
+    await db.connections.create_index("a")
+    await db.connections.create_index("b")
+    await db.connections.create_index("mentor_id")
+    await db.events.create_index("mentor_id")
+    await db.event_registrations.create_index("event_id")
     await seed_admin()
     await seed_data()
 

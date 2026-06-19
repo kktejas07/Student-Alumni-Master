@@ -3332,11 +3332,21 @@ async def my_mentor_events(email: Optional[str] = None):
         mentor = await _db.users.find_one({"role": "mentor"})
     
     sid = str((mentor or {}).get("_id", ""))
-    cur = _db.events.find({"mentor_id": sid}).sort("created_at", -1)
+    cur = await _db.events.find({"mentor_id": sid}).sort("created_at", -1).to_list(1000)
     
+    event_ids = [str(e["_id"]) for e in cur]
+    regs_counts = {}
+    if event_ids:
+        agg = await _db.event_registrations.aggregate([
+            {"$match": {"event_id": {"$in": event_ids}}},
+            {"$group": {"_id": "$event_id", "count": {"$sum": 1}}}
+        ]).to_list(None)
+        for r in agg:
+            regs_counts[r["_id"]] = r["count"]
+            
     out = []
-    async for e in cur:
-        regs = await _db.event_registrations.count_documents({"event_id": str(e.get("_id"))})
+    for e in cur:
+        regs = regs_counts.get(str(e.get("_id")), 0)
         out.append({
             "id": str(e["_id"]),
             "title": e.get("title"),
