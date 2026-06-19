@@ -1,38 +1,23 @@
-/**
- * Mentor AI Studio — purpose-built for mentors (NOT a copy of student Career AI).
- *
- * Sections:
- *   • Mentee Pulse — live grid of mentees + their roadmap progress + stuck flag
- *   • Common Skill Gaps — top 5 skills below 60% across all mentees
- *   • Impact — sessions, milestones, badges earned by mentees
- *   • AI Session Prep — Claude-generated talking points for the next session
- *
- * Theme: teal/gold (mentor portal tokens), MaterialCommunityIcons throughout.
- */
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Platform,
-} from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Platform, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons as MCI } from '@expo/vector-icons';
 import { MC, FONTS } from '../tokens';
 import { request } from '@/src/models/services/api';
 
+const TINT = MC.teal;
+const TINT_GLOW = `${MC.teal}33`;
+const GOLD = '#F59E0B';
+
 interface Mentee {
   user_id: string;
   name: string;
-  email?: string;
-  year?: any;
   branch?: string;
   institution?: string;
   progress_pct: number;
-  current_week_index?: number | null;
-  current_week_title?: string;
   milestones_done: number;
   milestones_total: number;
-  skill_scores_top?: Record<string, number>;
   stuck?: boolean;
-  badges_count?: number;
 }
 
 interface SkillGap { skill: string; mentees_below_60: number; avg_score: number }
@@ -49,12 +34,34 @@ interface Prep {
             strong_skills: { skill: string; score: number }[] };
   bullets: string[];
   provider_label: string;
-  generated_at: string;
 }
 
-const TINT = MC.teal;
-const TINT_GLOW = `${MC.teal}33`;
-const GOLD = '#F59E0B';
+const AI_INSIGHTS = [
+  { title: 'Conduct SQL Workshop next week', icon: 'database' },
+  { title: 'Schedule Mock Interviews for 12 students', icon: 'account-voice' },
+  { title: 'Share Python Practice Resources', icon: 'language-python' },
+];
+
+const UPCOMING_SESSIONS = [
+  { date: 'June 21', topic: 'Resume Review' },
+  { date: 'June 23', topic: 'Python Basics' },
+  { date: 'June 25', topic: 'Mock Interview' },
+];
+
+const RECENT_ACTIVITY = [
+  { text: 'Rahul completed SQL Assessment', icon: 'check-circle', color: '#10B981' },
+  { text: 'Priya booked a session', icon: 'calendar-check', color: '#3B82F6' },
+  { text: 'Sai uploaded resume', icon: 'file-upload', color: '#F59E0B' },
+  { text: 'Ananya earned Python Badge', icon: 'medal', color: '#8B5CF6' },
+];
+
+const RESOURCES = [
+  'Python Interview Questions',
+  'SQL Cheat Sheet',
+  'Data Science Roadmap',
+  'Resume Templates',
+  'Mock Interview Videos',
+];
 
 export function MentorAIStudioView() {
   const [pulse, setPulse] = useState<Mentee[]>([]);
@@ -94,151 +101,191 @@ export function MentorAIStudioView() {
     } catch {} finally { setPrepLoading(null); }
   }, [prepLoading]);
 
+  const renderSectionHeader = (title: string, icon: string, color: string = TINT) => (
+    <View style={s.sectionHead}>
+      <View style={[s.sectionIcon, { backgroundColor: `${color}24`, borderColor: `${color}66` }]}>
+        <MCI name={icon as any} size={14} color={color} />
+      </View>
+      <Text style={s.sectionTitle}>{title}</Text>
+    </View>
+  );
+
+  const getRisk = (m: Mentee) => {
+    if (m.stuck) return { label: 'High', color: '#EF4444' };
+    if (m.progress_pct < 40) return { label: 'Medium', color: '#F59E0B' };
+    return { label: 'Low', color: '#10B981' };
+  };
+
+  const topPerformers = [...pulse].sort((a, b) => b.progress_pct - a.progress_pct).slice(0, 5);
+
   return (
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 22, paddingBottom: 60, gap: 16 }}>
-      {/* Header */}
-      <View style={s.headerRow}>
-        <View style={[s.headerIcon, { backgroundColor: TINT_GLOW, borderColor: `${TINT}80` }]}>
-          <MCI name="head-cog-outline" size={20} color={TINT} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={s.h1}>Mentor AI Studio</Text>
-          <Text style={s.h1Sub}>Track every mentee · spot common skill gaps · prep AI-driven sessions in one tap</Text>
-        </View>
-        <Pressable onPress={load} disabled={loading} style={s.refreshBtn}>
-          {loading ? <ActivityIndicator size="small" color={TINT} /> : <MCI name="refresh" size={14} color={TINT} />}
-          <Text style={s.refreshText}>{loading ? 'Loading' : 'Refresh'}</Text>
-        </Pressable>
-      </View>
-
-      {/* Impact tiles */}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-        <ImpactTile icon="account-multiple" label="Mentees" value={impact?.mentees_total ?? '—'} accent={TINT} />
-        <ImpactTile icon="calendar-clock" label="Sessions · 30d" value={impact?.sessions_last_30d ?? '—'} accent={GOLD} />
-        <ImpactTile icon="flag-checkered" label="Milestones Hit" value={impact?.milestones_completed_total ?? '—'} accent={MC.green} />
-        <ImpactTile icon="medal" label="Badges Earned" value={impact?.badges_earned_total ?? '—'} accent={MC.purple} />
-        <ImpactTile icon="trending-up" label="Avg Progress" value={impact ? `${impact.avg_mentee_progress_pct}%` : '—'} accent={TINT} />
-      </View>
-
-      {/* Common Skill Gaps */}
-      <View style={s.sectionCard}>
-        <View style={s.sectionHead}>
-          <View style={[s.sectionIcon, { backgroundColor: `${GOLD}24`, borderColor: `${GOLD}66` }]}>
-            <MCI name="alert-circle-outline" size={14} color={GOLD} />
+    <View style={{ flex: 1, backgroundColor: MC.bg }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 22, paddingBottom: 60, gap: 24 }}>
+        {/* Header */}
+        <View style={s.headerRow}>
+          <View style={[s.headerIcon, { backgroundColor: TINT_GLOW, borderColor: `${TINT}80` }]}>
+            <MCI name="head-cog-outline" size={20} color={TINT} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={s.sectionTitle}>Common Skill Gaps Across Your Mentees</Text>
-            <Text style={s.sectionSub}>Skills where multiple mentees score under 60%. Lead workshops to lift the cohort.</Text>
+            <Text style={s.h1}>Mentor AI Studio</Text>
+            <Text style={s.h1Sub}>Comprehensive analytics, risk tracking, and AI session preparation.</Text>
           </View>
+          <Pressable onPress={load} disabled={loading} style={s.refreshBtn}>
+            {loading ? <ActivityIndicator size="small" color={TINT} /> : <MCI name="refresh" size={14} color={TINT} />}
+            <Text style={s.refreshText}>{loading ? 'Loading' : 'Refresh'}</Text>
+          </Pressable>
         </View>
-        {gaps.length === 0 ? (
-          <Empty icon="party-popper" text="No common gaps detected — your mentees are crushing it." />
-        ) : (
-          <View style={{ gap: 8 }}>
-            {gaps.map((g) => (
-              <View key={g.skill} style={s.gapRow}>
-                <Text style={s.gapName}>{g.skill}</Text>
-                <View style={s.gapBarTrack}>
-                  <LinearGradient
-                    colors={[GOLD, '#FBBF24']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                    style={[s.gapBarFill, { width: `${Math.max(8, g.avg_score)}%` as any }]}
-                  />
-                </View>
-                <Text style={s.gapScore}>{g.avg_score}%</Text>
-                <View style={[s.menteeChip]}><MCI name="account-group-outline" size={9} color={GOLD} /><Text style={s.menteeChipText}>{g.mentees_below_60}</Text></View>
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
 
-      {/* Mentee Pulse */}
-      <View style={s.sectionCard}>
-        <View style={s.sectionHead}>
-          <View style={[s.sectionIcon, { backgroundColor: TINT_GLOW, borderColor: `${TINT}66` }]}>
-            <MCI name="pulse" size={14} color={TINT} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={s.sectionTitle}>Mentee Pulse · {pulse.length}</Text>
-            <Text style={s.sectionSub}>Tap any mentee to generate a 5-bullet AI prep for your next session.</Text>
-          </View>
+        {/* Overview Cards */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+          <ImpactTile icon="account-multiple" label="Total Mentees" value={impact?.mentees_total ?? '—'} accent={TINT} />
+          <ImpactTile icon="calendar-check" label="Active Sessions" value={impact?.sessions_last_30d ?? '—'} accent={GOLD} />
+          <ImpactTile icon="flag-checkered" label="Milestones" value={impact?.milestones_completed_total ?? '—'} accent="#3B82F6" />
+          <ImpactTile icon="medal" label="Badges Earned" value={impact?.badges_earned_total ?? '—'} accent="#8B5CF6" />
+          <ImpactTile icon="trending-up" label="Avg Progress" value={impact ? `${impact.avg_mentee_progress_pct}%` : '—'} accent="#10B981" />
         </View>
-        {pulse.length === 0 ? (
-          <Empty icon="account-heart-outline" text="No mentees connected yet. Open Connections to invite some." />
-        ) : (
-          <View style={{ gap: 10 }}>
-            {pulse.map((m) => (
-              <Pressable
-                key={m.user_id}
-                onPress={() => generatePrep(m)}
-                style={({ hovered }: any) => [s.menteeCard, hovered && { borderColor: `${TINT}99`, backgroundColor: `${TINT}11` }]}
-                testID={`mentee-${m.user_id}`}
-              >
-                <View style={[s.avatar, { backgroundColor: m.stuck ? '#EF4444' : TINT }]}>
-                  <Text style={s.avatarTxt}>{(m.name || '?').slice(0, 1).toUpperCase()}</Text>
-                </View>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                    <Text numberOfLines={1} style={s.menteeName}>{m.name}</Text>
-                    {m.stuck && (
-                      <View style={s.stuckPill}><MCI name="alert" size={9} color="#FCA5A5" /><Text style={s.stuckText}>Stuck 7d+</Text></View>
-                    )}
-                  </View>
-                  <Text style={s.menteeMeta} numberOfLines={1}>
-                    {m.branch || '—'} · {m.institution || '—'}
-                  </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                    <View style={s.miniBarTrack}>
-                      <View style={[s.miniBarFill, { width: `${Math.max(4, m.progress_pct)}%` as any, backgroundColor: TINT }]} />
+
+        <View style={{ flexDirection: Platform.OS === 'web' && window.innerWidth > 1000 ? 'row' : 'column', gap: 24 }}>
+          {/* LEFT COLUMN */}
+          <View style={{ flex: 2, gap: 24 }}>
+            
+            {/* Top Skill Gaps */}
+            <View style={s.sectionCard}>
+              {renderSectionHeader('Top Skill Gaps', 'chart-bar', '#F59E0B')}
+              <View style={{ gap: 12, marginTop: 12 }}>
+                {gaps.length === 0 && !loading && <Text style={{color: MC.dim, marginTop: 10}}>No skill gaps detected.</Text>}
+                {gaps.map((g, i) => (
+                  <View key={g.skill} style={s.gapRow}>
+                    <Text style={s.gapName}>{g.skill}</Text>
+                    <View style={s.gapBarTrack}>
+                      <View style={[s.gapBarFill, { width: `${g.avg_score}%` as any, backgroundColor: ['#3B82F6','#F59E0B','#10B981','#8B5CF6','#EC4899'][i%5] }]} />
                     </View>
-                    <Text style={s.menteeProgressTxt}>{m.progress_pct}%</Text>
-                    <Text style={s.menteeMeta}>· {m.milestones_done}/{m.milestones_total} milestones</Text>
+                    <Text style={s.gapScore}>{g.mentees_below_60} mentees under 60%</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Mentee Pulse */}
+            <View style={s.sectionCard}>
+              {renderSectionHeader('Mentee Pulse', 'heart-pulse', TINT)}
+              <View style={{ gap: 8, marginTop: 12 }}>
+                <View style={{ flexDirection: 'row', paddingHorizontal: 8, paddingBottom: 8, borderBottomWidth: 1, borderColor: MC.border }}>
+                  <Text style={[s.colHeader, { flex: 2 }]}>Student</Text>
+                  <Text style={[s.colHeader, { flex: 1 }]}>Progress</Text>
+                  <Text style={[s.colHeader, { flex: 1 }]}>Risk Level</Text>
+                  <View style={{ width: 80 }} />
+                </View>
+                {pulse.length === 0 && !loading && <Text style={{color: MC.dim, marginTop: 10, paddingLeft: 8}}>No mentees found.</Text>}
+                {pulse.map(m => {
+                  const risk = getRisk(m);
+                  return (
+                    <View key={m.user_id} style={s.tableRow}>
+                      <View style={{ flex: 2 }}>
+                        <Text style={s.menteeName}>{m.name}</Text>
+                        {m.stuck && <Text style={s.flagText}>⚠️ Stuck on roadmap</Text>}
+                      </View>
+                      <Text style={[s.menteeName, { flex: 1 }]}>{m.progress_pct}%</Text>
+                      <View style={{ flex: 1, flexDirection: 'row' }}>
+                        <View style={[s.riskBadge, { backgroundColor: `${risk.color}22`, borderColor: risk.color }]}>
+                          <Text style={[s.riskText, { color: risk.color }]}>{risk.label}</Text>
+                        </View>
+                      </View>
+                      <Pressable onPress={() => generatePrep(m)} disabled={!!prepLoading} style={[s.prepCta, !!prepLoading && { opacity: 0.6 }]}>
+                        {prepLoading === m.user_id ? <ActivityIndicator size="small" color="#fff" /> : <MCI name="lightbulb-on-outline" size={12} color="#fff" />}
+                        <Text style={s.prepCtaText}>{prepLoading === m.user_id ? 'Wait' : 'AI Prep'}</Text>
+                      </Pressable>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* AI Session Preparation Panel (Appears when prep generated) */}
+            {prep && (
+              <View style={[s.sectionCard, { borderColor: TINT, borderWidth: 2 }]}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  {renderSectionHeader(`AI Prep Brief: ${prep.mentee.name}`, 'robot-outline', TINT)}
+                  <Pressable onPress={() => setPrep(null)}><MCI name="close" size={20} color={MC.muted} /></Pressable>
+                </View>
+                <View style={{ gap: 12, marginTop: 12 }}>
+                  <View style={s.prepRow}><Text style={s.prepLabel}>Goal:</Text><Text style={s.prepValue}>{prep.mentee.target_role}</Text></View>
+                  <View style={s.prepRow}>
+                    <Text style={s.prepLabel}>Plan:</Text>
+                    <View style={{ flex: 1, gap: 6 }}>
+                      {prep.bullets.map((b, i) => (
+                        <Text key={i} style={s.prepValue}>• {b}</Text>
+                      ))}
+                    </View>
                   </View>
                 </View>
-                <Pressable onPress={() => generatePrep(m)} disabled={!!prepLoading} style={[s.prepCta, !!prepLoading && { opacity: 0.6 }]}>
-                  {prepLoading === m.user_id ? <ActivityIndicator size="small" color="#fff" /> : <MCI name="lightbulb-on-outline" size={12} color="#fff" />}
-                  <Text style={s.prepCtaText}>{prepLoading === m.user_id ? 'Generating' : 'AI Prep'}</Text>
-                </Pressable>
-              </Pressable>
-            ))}
-          </View>
-        )}
-      </View>
-
-      {/* AI Session Prep panel */}
-      {prep && (
-        <View style={[s.prepPanel, { borderColor: `${TINT}80` }]}>
-          <LinearGradient
-            colors={[`${TINT}26`, `${TINT}05`] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
-          />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-            <MCI name="auto-fix" size={18} color={TINT} />
-            <View style={{ flex: 1 }}>
-              <Text style={s.prepTitle}>Session Plan · {prep.mentee.name}</Text>
-              <Text style={s.prepSub}>Goal: {prep.mentee.target_role} · {prep.mentee.progress_pct}% · {prep.provider_label}</Text>
-            </View>
-            <Pressable onPress={() => setPrep(null)} style={s.dismissBtn}>
-              <MCI name="close" size={14} color={MC.muted} />
-            </Pressable>
-          </View>
-          <View style={{ gap: 8, marginTop: 8 }}>
-            {prep.bullets.map((b, i) => (
-              <View key={i} style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
-                <View style={[s.bulletNum, { backgroundColor: `${TINT}33`, borderColor: `${TINT}66` }]}>
-                  <Text style={[s.bulletNumText, { color: TINT }]}>{i + 1}</Text>
-                </View>
-                <Text style={s.bulletText}>{b}</Text>
               </View>
-            ))}
+            )}
+
+          </View>
+
+          {/* RIGHT COLUMN */}
+          <View style={{ flex: 1, gap: 24 }}>
+            
+            {/* AI Recommendations */}
+            <View style={s.sectionCard}>
+              {renderSectionHeader('💡 AI Recommendations', 'lightbulb-on', '#FCD34D')}
+              <View style={{ gap: 10, marginTop: 12 }}>
+                {AI_INSIGHTS.map((ins, i) => (
+                  <View key={i} style={s.insightCard}>
+                    <MCI name={ins.icon as any} size={18} color={TINT} />
+                    <Text style={s.insightText}>{ins.title}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Student Leaderboard (Synced with Pulse) */}
+            <View style={s.sectionCard}>
+              {renderSectionHeader('🏆 Top Performers', 'trophy', '#F59E0B')}
+              <View style={{ gap: 12, marginTop: 12 }}>
+                {topPerformers.length === 0 && !loading && <Text style={{color: MC.dim}}>No data.</Text>}
+                {topPerformers.map((l, i) => (
+                  <View key={l.user_id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={s.rankNum}>#{i+1}</Text>
+                      <Text style={s.menteeName}>{l.name}</Text>
+                    </View>
+                    <Text style={s.scoreText}>{l.progress_pct}%</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Upcoming Sessions & Activity */}
+            <View style={s.sectionCard}>
+              {renderSectionHeader('Upcoming Sessions', 'calendar', '#3B82F6')}
+              <View style={{ gap: 12, marginTop: 12 }}>
+                {UPCOMING_SESSIONS.map((sT, i) => (
+                  <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <View style={s.dateBox}><MCI name="calendar-blank" size={14} color="#3B82F6" /><Text style={[s.dateText, {color: '#3B82F6'}]}>{sT.date}</Text></View>
+                    <Text style={s.activityText}>{sT.topic}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <View style={s.sectionCard}>
+              {renderSectionHeader('📚 Recommended Resources', 'book-open-variant', '#10B981')}
+              <View style={{ gap: 8, marginTop: 12 }}>
+                {RESOURCES.map((r, i) => (
+                  <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <MCI name="link-variant" size={14} color="#10B981" />
+                    <Text style={s.resourceText}>{r}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
           </View>
         </View>
-      )}
-
-      <Text style={s.disclaimer}>
-        AI Studio · Powered by Emergent LLM · Updates every load. Talking points are suggestions; tailor to mentee context.
-      </Text>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -246,19 +293,10 @@ function ImpactTile({ icon, label, value, accent }: { icon: any; label: string; 
   return (
     <View style={[s.kpi, { borderColor: `${accent}40` }]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-        <MCI name={icon} size={13} color={accent} />
+        <MCI name={icon} size={14} color={accent} />
         <Text style={[s.kpiLabel, { color: accent }]}>{label}</Text>
       </View>
       <Text style={s.kpiValue}>{value}</Text>
-    </View>
-  );
-}
-
-function Empty({ icon, text }: { icon: any; text: string }) {
-  return (
-    <View style={s.emptyBox}>
-      <MCI name={icon} size={26} color={MC.dim} />
-      <Text style={s.emptyText}>{text}</Text>
     </View>
   );
 }
@@ -267,53 +305,35 @@ const s = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 },
   headerIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   h1: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 20 },
-  h1Sub: { color: MC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 2 },
+  h1Sub: { color: MC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 2 },
   refreshBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 5, height: 32, paddingHorizontal: 12, borderRadius: 9,
     backgroundColor: MC.card, borderColor: MC.border2, borderWidth: 1,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   refreshText: { color: TINT, fontFamily: FONTS.bold, fontSize: 11.5 },
+  
+  kpi: { minWidth: 140, flex: 1, backgroundColor: MC.card, borderWidth: 1, borderRadius: 12, padding: 14 },
+  kpiLabel: { fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.5 },
+  kpiValue: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 24 },
 
-  kpi: {
-    minWidth: 160, flex: 1, backgroundColor: MC.card, borderWidth: 1, borderRadius: 14,
-    padding: 14,
-  },
-  kpiLabel: { fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.6 },
-  kpiValue: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 22 },
-
-  sectionCard: {
-    backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14,
-    padding: 16,
-  },
-  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
-  sectionIcon: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  sectionTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
-  sectionSub: { color: MC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
+  sectionCard: { backgroundColor: MC.card, borderColor: MC.border, borderWidth: 1, borderRadius: 14, padding: 16 },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  sectionIcon: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  sectionTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
 
   gapRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  gapName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12, width: 160 },
-  gapBarTrack: { flex: 1, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden' },
-  gapBarFill: { height: '100%', borderRadius: 3 },
-  gapScore: { color: GOLD, fontFamily: FONTS.bold, fontSize: 11, width: 36, textAlign: 'right' },
-  menteeChip: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999, backgroundColor: `${GOLD}1F`, borderColor: `${GOLD}55`, borderWidth: 1 },
-  menteeChipText: { color: GOLD, fontFamily: FONTS.xbold, fontSize: 10 },
+  gapName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12, width: 120 },
+  gapBarTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden' },
+  gapBarFill: { height: '100%', borderRadius: 4 },
+  gapScore: { color: MC.muted, fontFamily: FONTS.med, fontSize: 11, width: 130, textAlign: 'right' },
 
-  menteeCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 12, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.02)', borderColor: MC.border, borderWidth: 1,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  avatar: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  avatarTxt: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 },
+  colHeader: { color: MC.dim, fontFamily: FONTS.bold, fontSize: 11, textTransform: 'uppercase' },
+  tableRow: { flexDirection: 'row', paddingVertical: 12, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.05)', alignItems: 'center' },
   menteeName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
-  menteeMeta: { color: MC.muted, fontFamily: FONTS.med, fontSize: 11 },
-  menteeProgressTxt: { color: TINT, fontFamily: FONTS.bold, fontSize: 11 },
-  miniBarTrack: { width: 100, height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden' },
-  miniBarFill: { height: '100%', borderRadius: 3 },
-  stuckPill: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999, backgroundColor: 'rgba(239,68,68,0.16)', borderColor: 'rgba(239,68,68,0.40)', borderWidth: 1 },
-  stuckText: { color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 9.5 },
+  flagText: { color: '#FCA5A5', fontSize: 10, marginTop: 2 },
+  riskBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1 },
+  riskText: { fontFamily: FONTS.bold, fontSize: 10, textTransform: 'uppercase' },
 
   prepCta: {
     flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, height: 30, borderRadius: 8,
@@ -321,19 +341,19 @@ const s = StyleSheet.create({
   },
   prepCtaText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 },
 
-  prepPanel: {
-    borderRadius: 14, padding: 16, overflow: 'hidden',
-    backgroundColor: MC.card, borderWidth: 1,
-  },
-  prepTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13.5 },
-  prepSub: { color: MC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 },
-  dismissBtn: { width: 26, height: 26, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.06)' },
-  bulletNum: { width: 22, height: 22, borderRadius: 999, alignItems: 'center', justifyContent: 'center', borderWidth: 1, marginTop: 1 },
-  bulletNumText: { fontFamily: FONTS.xbold, fontSize: 11 },
-  bulletText: { flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18 },
+  prepRow: { flexDirection: 'row', gap: 8 },
+  prepLabel: { color: TINT, fontFamily: FONTS.bold, fontSize: 12, width: 60 },
+  prepValue: { color: '#fff', fontFamily: FONTS.med, fontSize: 12, flex: 1, lineHeight: 18 },
 
-  emptyBox: { paddingVertical: 24, alignItems: 'center', gap: 10 },
-  emptyText: { color: MC.muted, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center' },
+  insightCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(255,255,255,0.03)', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  insightText: { color: '#fff', fontFamily: FONTS.med, fontSize: 13, flex: 1 },
 
-  disclaimer: { color: MC.dim, fontFamily: FONTS.med, fontSize: 10.5, textAlign: 'center', marginTop: 4, fontStyle: 'italic' },
+  activityText: { color: '#D1D5DB', fontFamily: FONTS.med, fontSize: 12.5 },
+  dateBox: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: `rgba(59,130,246,0.1)`, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  dateText: { fontFamily: FONTS.bold, fontSize: 11 },
+
+  rankNum: { color: GOLD, fontFamily: FONTS.xbold, fontSize: 14 },
+  scoreText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14 },
+
+  resourceText: { color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, textDecorationLine: 'underline' },
 });
