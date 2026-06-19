@@ -60,7 +60,11 @@ export default function LoginScreen() {
   const [pwdError, setPwdError] = useState('');
   const [exists, setExists] = useState<boolean | null>(null);
 
+<<<<<<< HEAD
   const [oauthCfg, setOauthCfg] = useState<{ linkedin_client_id?: string; redirect_uri?: string; firebase?: { apiKey: string; authDomain: string; projectId: string; appId: string } | null } | null>(null);
+=======
+  const [oauthCfg, setOauthCfg] = useState<{ firebase?: { apiKey: string; authDomain: string; projectId: string; appId: string } | null } | null>(null);
+>>>>>>> f36a0338 (Fix talent pool search with ; remove legacy OAuth popup fallback from login)
 
   useEffect(() => {
     (async () => {
