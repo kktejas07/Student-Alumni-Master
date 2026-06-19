@@ -3,10 +3,13 @@
  * Profile cards with CSV import, LinkedIn sync, bulk manage
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Platform, ActivityIndicator, Linking } from 'react-native';
-import { Search, Trash2, CheckCircle, XCircle, MapPin, Briefcase, GraduationCap, Star } from 'lucide-react-native';
+import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Platform, ActivityIndicator, Linking, Image, Modal } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { Search, Trash2, CheckCircle, XCircle, MapPin, Briefcase, GraduationCap, Star, X, Mail, Building2, ExternalLink, Calendar } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { request, tokenStore } from '@/src/models/services/api';
 import { SAC, FONTS } from '../tokens';
+import { GRAD } from '../applekit';
 
 interface TalentProfile {
   id: string;
@@ -42,6 +45,8 @@ export function TalentPoolView() {
   const [pages, setPages] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState('');
+  const [detailProfile, setDetailProfile] = useState<TalentProfile | null>(null);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
 
   const goToPage = useCallback((p: number) => {
     setPage(p);
@@ -231,20 +236,29 @@ export function TalentPoolView() {
       ) : (
         <ScrollView style={{ flex: 1 }} contentContainerStyle={s.grid} showsVerticalScrollIndicator={false}>
           {profiles.map((p) => (
-            <View key={p.id} style={[s.card, !p.is_active && s.cardInactive]}>
+            <Pressable
+              key={p.id}
+              style={[s.card, !p.is_active && s.cardInactive]}
+              onPress={() => { setDetailProfile(p); setDetailModalVisible(true); }}
+            >
               {/* Select checkbox */}
-              <Pressable style={s.selectWrap} onPress={() => {
-                const next = new Set(selected);
-                next.has(p.id) ? next.delete(p.id) : next.add(p.id);
-                setSelected(next);
-              }}>
+              <Pressable style={s.selectWrap} onPress={(e: any) => { e.stopPropagation?.(); const next = new Set(selected); next.has(p.id) ? next.delete(p.id) : next.add(p.id); setSelected(next); }}>
                 <View style={[s.checkbox, selected.has(p.id) && s.checkboxActive]}>
                   {selected.has(p.id) && <CheckCircle size={12} color="#8B5CF6" />}
                 </View>
               </Pressable>
 
+              {/* Photo */}
+              {p.photo_url ? (
+                <Image source={{ uri: p.photo_url }} style={s.avatar} />
+              ) : (
+                <View style={s.avatarPlaceholder}>
+                  <Text style={s.avatarInitial}>{(p.full_name || '?')[0].toUpperCase()}</Text>
+                </View>
+              )}
+
               {/* Card content */}
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
                 {/* Name + source badge */}
                 <View style={s.cardTop}>
                   <Text style={s.cardName} numberOfLines={1}>{p.full_name || 'Unknown'}</Text>
@@ -285,7 +299,7 @@ export function TalentPoolView() {
                   {p.experience_years != null && (
                     <View style={s.detailRow}>
                       <Star size={11} color="#F59E0B" />
-                      <Text style={s.detailText}>{p.experience_years} years experience</Text>
+                      <Text style={s.detailText}>{p.experience_years} years</Text>
                     </View>
                   )}
                 </View>
@@ -307,27 +321,27 @@ export function TalentPoolView() {
                 {/* Action row */}
                 <View style={s.cardActions}>
                   {p.linkedin_url && (
-                    <Pressable style={s.actionBtn} onPress={() => Platform.OS === 'web' ? (window as any).open(p.linkedin_url, '_blank') : Linking.openURL(p.linkedin_url!)}>
+                    <Pressable style={s.actionBtn} onPress={(e: any) => { e.stopPropagation?.(); Platform.OS === 'web' ? (window as any).open(p.linkedin_url, '_blank') : Linking.openURL(p.linkedin_url!); }}>
                       <Text style={s.actionBtnText}>LinkedIn</Text>
                     </Pressable>
                   )}
                   {p.github_url && (
-                    <Pressable style={[s.actionBtn, { backgroundColor: '#24292e' }]} onPress={() => Platform.OS === 'web' ? (window as any).open(p.github_url, '_blank') : Linking.openURL(p.github_url!)}>
+                    <Pressable style={[s.actionBtn, { backgroundColor: '#24292e' }]} onPress={(e: any) => { e.stopPropagation?.(); Platform.OS === 'web' ? (window as any).open(p.github_url, '_blank') : Linking.openURL(p.github_url!); }}>
                       <Text style={s.actionBtnText}>GitHub</Text>
                     </Pressable>
                   )}
                   <View style={{ flex: 1 }} />
                   <Pressable style={[s.iconBtn, { backgroundColor: p.is_active ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.12)' }]}
-                    onPress={() => onToggleActive(p.id, !p.is_active)}>
+                    onPress={(e: any) => { e.stopPropagation?.(); onToggleActive(p.id, !p.is_active); }}>
                     {p.is_active ? <XCircle size={13} color="#EF4444" /> : <CheckCircle size={13} color="#22C55E" />}
                   </Pressable>
                   <Pressable style={[s.iconBtn, { backgroundColor: 'rgba(239,68,68,0.12)' }]}
-                    onPress={() => onToggleActive(p.id, false)}>
+                    onPress={(e: any) => { e.stopPropagation?.(); onToggleActive(p.id, false); }}>
                     <Trash2 size={13} color="#EF4444" />
                   </Pressable>
                 </View>
               </View>
-            </View>
+            </Pressable>
           ))}
         </ScrollView>
       )}
@@ -346,7 +360,168 @@ export function TalentPoolView() {
           </Pressable>
         </View>
       )}
+
+      {/* Profile Detail Modal */}
+      <ProfileDetailModal
+        visible={detailModalVisible}
+        profile={detailProfile}
+        onClose={() => { setDetailModalVisible(false); setTimeout(() => setDetailProfile(null), 200); }}
+      />
     </View>
+  );
+}
+
+function ProfileDetailModal({ visible, profile, onClose }: { visible: boolean; profile: TalentProfile | null; onClose: () => void }) {
+  if (!profile) return null;
+  const p = profile;
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={s.modalBg}>
+        <Animated.View entering={FadeInDown.duration(220)} style={s.modalCard}>
+          {/* Hero */}
+          <LinearGradient colors={[GRAD.from, GRAD.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.modalHero}>
+            {p.photo_url ? (
+              <Image source={{ uri: p.photo_url }} style={s.modalAvatar} />
+            ) : (
+              <View style={s.modalAvatarPlaceholder}>
+                <Text style={s.modalAvatarInitial}>{(p.full_name || '?')[0].toUpperCase()}</Text>
+              </View>
+            )}
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={s.modalTitle} numberOfLines={1}>{p.full_name}</Text>
+              {(p.headline || p.current_role) && (
+                <Text style={s.modalRole} numberOfLines={1}>{p.headline || p.current_role}</Text>
+              )}
+              {p.current_company && (
+                <Text style={s.modalCompany}>{p.current_company}</Text>
+              )}
+            </View>
+            <Pressable onPress={onClose} style={s.modalCloseBtn}><X size={16} color="#fff" /></Pressable>
+          </LinearGradient>
+
+          <ScrollView style={{ maxHeight: 540 }} contentContainerStyle={{ padding: 20, gap: 16 }}>
+            {/* Bio */}
+            {p.bio && (
+              <View>
+                <Text style={s.modalSectionLabel}>ABOUT</Text>
+                <Text style={s.modalBio}>{p.bio}</Text>
+              </View>
+            )}
+
+            {/* Experience */}
+            <View>
+              <Text style={s.modalSectionLabel}>EXPERIENCE</Text>
+              <View style={{ marginTop: 8, gap: 8 }}>
+                {p.current_role && (
+                  <View style={s.modalDetailRow}>
+                    <Briefcase size={13} color={SAC.muted} />
+                    <Text style={s.modalDetailLabel}>Role</Text>
+                    <Text style={s.modalDetailValue}>{p.current_role}</Text>
+                  </View>
+                )}
+                {p.current_company && (
+                  <View style={s.modalDetailRow}>
+                    <Building2 size={13} color={SAC.muted} />
+                    <Text style={s.modalDetailLabel}>Company</Text>
+                    <Text style={s.modalDetailValue}>{p.current_company}</Text>
+                  </View>
+                )}
+                {p.experience_years != null && (
+                  <View style={s.modalDetailRow}>
+                    <Star size={13} color="#F59E0B" />
+                    <Text style={s.modalDetailLabel}>Experience</Text>
+                    <Text style={s.modalDetailValue}>{p.experience_years} years</Text>
+                  </View>
+                )}
+                {p.education && (
+                  <View style={s.modalDetailRow}>
+                    <GraduationCap size={13} color={SAC.muted} />
+                    <Text style={s.modalDetailLabel}>Education</Text>
+                    <Text style={s.modalDetailValue}>{p.education}{p.graduation_year ? ` · ${p.graduation_year}` : ''}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Skills */}
+            {p.skills && p.skills.length > 0 && (
+              <View>
+                <Text style={s.modalSectionLabel}>SKILLS</Text>
+                <View style={s.modalSkillsGrid}>
+                  {p.skills.map((sk, i) => (
+                    <View key={i} style={s.modalSkillChip}>
+                      <Text style={s.modalSkillChipText}>{sk}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Contact */}
+            <View>
+              <Text style={s.modalSectionLabel}>CONTACT</Text>
+              <View style={{ marginTop: 8, gap: 8 }}>
+                {p.email && (
+                  <Pressable style={s.modalDetailRow} onPress={() => { if (Platform.OS === 'web') (window as any).open(`mailto:${p.email}`); else Linking.openURL(`mailto:${p.email!}`); }}>
+                    <Mail size={13} color={SAC.muted} />
+                    <Text style={s.modalDetailLabel}>Email</Text>
+                    <Text style={[s.modalDetailValue, { color: GRAD.to, textDecorationLine: 'underline' }]}>{p.email}</Text>
+                  </Pressable>
+                )}
+                {p.location && (
+                  <View style={s.modalDetailRow}>
+                    <MapPin size={13} color={SAC.muted} />
+                    <Text style={s.modalDetailLabel}>Location</Text>
+                    <Text style={s.modalDetailValue}>{p.location}</Text>
+                  </View>
+                )}
+                {p.linkedin_url && (
+                  <Pressable style={s.modalDetailRow} onPress={() => Platform.OS === 'web' ? (window as any).open(p.linkedin_url, '_blank') : Linking.openURL(p.linkedin_url!)}>
+                    <ExternalLink size={13} color="#0A66C2" />
+                    <Text style={s.modalDetailLabel}>LinkedIn</Text>
+                    <Text style={[s.modalDetailValue, { color: '#0A66C2', textDecorationLine: 'underline' }]} numberOfLines={1}>{p.linkedin_url}</Text>
+                  </Pressable>
+                )}
+                {p.github_url && (
+                  <Pressable style={s.modalDetailRow} onPress={() => Platform.OS === 'web' ? (window as any).open(p.github_url, '_blank') : Linking.openURL(p.github_url!)}>
+                    <ExternalLink size={13} color="#fff" />
+                    <Text style={s.modalDetailLabel}>GitHub</Text>
+                    <Text style={[s.modalDetailValue, { color: '#fff', textDecorationLine: 'underline' }]} numberOfLines={1}>{p.github_url}</Text>
+                  </Pressable>
+                )}
+              </View>
+            </View>
+
+            {/* Meta */}
+            <View>
+              <Text style={s.modalSectionLabel}>META</Text>
+              <View style={{ marginTop: 8, gap: 8 }}>
+                <View style={s.modalDetailRow}>
+                  <Calendar size={13} color={SAC.muted} />
+                  <Text style={s.modalDetailLabel}>Source</Text>
+                  <Text style={s.modalDetailValue}>{p.source.toUpperCase()}</Text>
+                </View>
+                {p.imported_at && (
+                  <View style={s.modalDetailRow}>
+                    <Calendar size={13} color={SAC.muted} />
+                    <Text style={s.modalDetailLabel}>Imported</Text>
+                    <Text style={s.modalDetailValue}>{new Date(p.imported_at).toLocaleDateString()}</Text>
+                  </View>
+                )}
+                {p.last_synced_at && (
+                  <View style={s.modalDetailRow}>
+                    <Calendar size={13} color={SAC.muted} />
+                    <Text style={s.modalDetailLabel}>Last synced</Text>
+                    <Text style={s.modalDetailValue}>{new Date(p.last_synced_at).toLocaleDateString()}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          </ScrollView>
+        </Animated.View>
+      </View>
+    </Modal>
   );
 }
 
@@ -377,10 +552,48 @@ const s = StyleSheet.create({
   selectAllBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, paddingHorizontal: 4, marginBottom: 8 },
   selectAllText: { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingBottom: 40 },
+  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: SAC.card },
+  avatarPlaceholder: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(139,92,246,0.2)', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(139,92,246,0.3)',
+  },
+  avatarInitial: { color: '#A78BFA', fontFamily: FONTS.bold, fontSize: 14 },
+  modalAvatar: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' },
+  modalAvatarPlaceholder: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)',
+  },
+  modalAvatarInitial: { color: '#fff', fontFamily: FONTS.bold, fontSize: 18 },
+  modalBg: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
+    alignItems: 'center', justifyContent: 'center', padding: 20,
+    ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
+  },
+  modalCard: {
+    width: '100%', maxWidth: 540, maxHeight: '92%',
+    backgroundColor: SAC.bg2, borderRadius: 16, borderWidth: 1, borderColor: SAC.border2, overflow: 'hidden',
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 60px rgba(0,0,0,0.7)' } as any) : {}),
+  },
+  modalHero: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, paddingRight: 12 },
+  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 },
+  modalRole: { color: 'rgba(255,255,255,0.75)', fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },
+  modalCompany: { color: 'rgba(255,255,255,0.55)', fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
+  modalCloseBtn: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.3)', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  modalSectionLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.8 },
+  modalBio: { color: '#CBD5E1', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 19, marginTop: 8 },
+  modalDetailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  modalDetailLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11, width: 90 },
+  modalDetailValue: { color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, flex: 1 },
+  modalSkillsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  modalSkillChip: { backgroundColor: 'rgba(139,92,246,0.15)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: 'rgba(139,92,246,0.25)' },
+  modalSkillChipText: { color: '#A78BFA', fontSize: 11, fontFamily: FONTS.bold },
   card: {
     width: 'calc(33.333% - 8px)' as any, minWidth: 300, flex: 1,
     backgroundColor: SAC.card, borderRadius: 12, borderWidth: 1, borderColor: SAC.border,
     padding: 14, flexDirection: 'row', gap: 10,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   cardInactive: { opacity: 0.45 },
   selectWrap: { paddingTop: 2 },

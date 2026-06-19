@@ -59,7 +59,7 @@ export default function LoginScreen() {
   const [emailError, setEmailError] = useState('');
   const [pwdError, setPwdError] = useState('');
   const [exists, setExists] = useState<boolean | null>(null);
-  const [oauthModal, setOauthModal] = useState<{ provider: 'google' | 'linkedin' | 'github'; name: string; email: string } | null>(null);
+
   const [oauthCfg, setOauthCfg] = useState<{ google_client_id: string; linkedin_client_id: string; github_client_id: string; redirect_uri: string; configured: boolean; firebase?: { apiKey: string; authDomain: string; projectId: string; appId: string } | null } | null>(null);
 
   useEffect(() => {
@@ -201,41 +201,6 @@ export default function LoginScreen() {
     }
   };
 
-  const onOAuth = async () => {
-    if (!oauthModal) return;
-    const { provider, name, email: oauthEmail } = oauthModal;
-    if (!oauthEmail || !name) return;
-    setLoading(true);
-    trackAuth({ event: 'oauth_attempt', extra: { provider } });
-    try {
-      const res = await fetch(`${BASE}/api/auth/${provider}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: oauthEmail, full_name: name, role }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        setPwdError(err?.detail || `${provider} sign-in failed`);
-        return;
-      }
-      const data = await res.json();
-      setUser(data.user);
-      setTokens(data.access_token, data.refresh_token);
-      trackAuth({ event: 'login_success', email: oauthEmail, role: data.user.role });
-      const r = (data.user.role || '').toLowerCase();
-      if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
-      else if (r === 'mentor') router.replace('/mentor-portal');
-      else if (r === 'college') router.replace('/college-portal');
-      else if (r === 'alumni') router.replace('/alumni-portal');
-      else router.replace('/student-portal');
-    } catch (e: any) {
-      trackAuth({ event: 'login_failure', email: oauthEmail, reason: e?.message || 'Network error' });
-      setPwdError('Network error — try again');
-    } finally {
-      setLoading(false);
-      setOauthModal(null);
-    }
-  };
 
   return (
     <AuthShell role={role}>
@@ -293,8 +258,6 @@ export default function LoginScreen() {
                 const state = `google_${Math.random().toString(36).slice(2)}`;
                 const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${oauthCfg.google_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&response_type=id_token&scope=openid%20email%20profile&state=${state}&nonce=${Math.random().toString(36)}`;
                 window.open(url, '_blank', 'width=600,height=700');
-              } else {
-                setOauthModal({ provider: 'google', name: '', email: '' });
               }
             } catch (e: any) {
               if (e?.code !== 'auth/popup-closed-by-user') {
@@ -309,8 +272,6 @@ export default function LoginScreen() {
               const state = `linkedin_${Math.random().toString(36).slice(2)}`;
               const url = `https://www.linkedin.com/oauth/v2/authorization?client_id=${oauthCfg.linkedin_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&response_type=code&scope=openid%20email%20profile&state=${state}`;
               window.open(url, '_blank', 'width=600,height=700');
-            } else {
-              setOauthModal({ provider: 'linkedin', name: '', email: '' });
             }
           }} />
         </View>
@@ -344,8 +305,6 @@ export default function LoginScreen() {
                 const state = `github_${Math.random().toString(36).slice(2)}`;
                 const url = `https://github.com/login/oauth/authorize?client_id=${oauthCfg.github_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&scope=user:email&state=${state}`;
                 window.open(url, '_blank', 'width=600,height=700');
-              } else {
-                setOauthModal({ provider: 'github', name: '', email: '' });
               }
             } catch (e: any) {
               if (e?.code !== 'auth/popup-closed-by-user') {
@@ -406,41 +365,7 @@ export default function LoginScreen() {
         <Text style={s.signupLink} onPress={() => router.push('/get-started')}>Get started</Text>
       </Text>
 
-      {/* OAuth Modal */}
-      {oauthModal && (
-        <View style={s.overlay}>
-          <View style={s.modal}>
-            <Text style={s.modalTitle}>Continue with {oauthModal.provider === 'google' ? 'Google' : 'LinkedIn'}</Text>
-            <Text style={s.modalSub}>Enter your details to continue</Text>
-            {!oauthCfg?.configured && (
-              <View style={{ marginBottom: 12, padding: 10, borderRadius: 8, backgroundColor: 'rgba(251,191,36,0.12)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.25)' }}>
-                <Text style={{ color: '#fbbf24', fontFamily: FONTS.med, fontSize: 11, textAlign: 'center' }}>
-                  OAuth not configured — enter details directly (development mode)
-                </Text>
-              </View>
-            )}
-            <AuthInput
-              label="Full Name"
-              value={oauthModal.name}
-              onChangeText={(t) => setOauthModal({ ...oauthModal, name: t })}
-              placeholder="John Doe"
-            />
-            <View style={{ height: 12 }} />
-            <AuthInput
-              label="Email"
-              value={oauthModal.email}
-              onChangeText={(t) => setOauthModal({ ...oauthModal, email: t })}
-              placeholder="you@example.com"
-              keyboardType="email-address"
-            />
-            <View style={{ height: 16 }} />
-            <PrimaryButton label="Continue" onPress={onOAuth} loading={loading} />
-            <Pressable onPress={() => setOauthModal(null)} style={{ marginTop: 12, alignItems: 'center' }}>
-              <Text style={{ color: AC.muted, fontFamily: FONTS.med, fontSize: 13 }}>Cancel</Text>
-            </Pressable>
-          </View>
-        </View>
-      )}
+      
     </AuthShell>
   );
 }
@@ -467,15 +392,4 @@ const s = StyleSheet.create({
   signup: { textAlign: 'center', color: AC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 18 },
   signupLink: { color: AC.primaryL, fontFamily: FONTS.bold, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
 
-  overlay: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center',
-    zIndex: 100,
-  },
-  modal: {
-    width: '90%', maxWidth: 400, backgroundColor: '#1a1a2e', borderRadius: 16,
-    padding: 24, borderWidth: 1, borderColor: 'rgba(124,58,237,0.3)',
-  },
-  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 18, marginBottom: 4 },
-  modalSub: { color: AC.muted, fontFamily: FONTS.med, fontSize: 13, marginBottom: 20 },
 });
