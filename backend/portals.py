@@ -3355,3 +3355,44 @@ async def my_mentor_events(email: Optional[str] = None):
             "registered": regs,
         })
     return {"items": out}
+
+@router.put("/mentor/events/{event_id}")
+async def update_mentor_event(event_id: str, ev: MentorEventCreate, email: Optional[str] = None):
+    try:
+        obj_id = ObjectId(event_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid event ID")
+        
+    doc = {
+        "title": ev.title,
+        "description": ev.desc,
+        "date_str": ev.date,
+        "time_str": ev.time,
+        "mode": ev.platform,
+        "duration": ev.duration,
+        "capacity": ev.seats,
+        "visibility": ev.visibility,
+        "price": ev.price,
+        "category": ev.type,
+        "coverColor": ev.coverColor,
+        "updated_at": datetime.utcnow()
+    }
+    
+    res = await _db.events.update_one({"_id": obj_id}, {"$set": doc})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Event not found")
+        
+    return {"ok": True}
+
+@router.delete("/mentor/events/{event_id}")
+async def delete_mentor_event(event_id: str, email: Optional[str] = None):
+    try:
+        obj_id = ObjectId(event_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid event ID")
+        
+    res = await _db.events.delete_one({"_id": obj_id})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Event not found")
+        
+    return {"ok": True}
