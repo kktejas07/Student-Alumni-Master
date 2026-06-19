@@ -104,8 +104,6 @@ async def create_booking(req: BookingCreate):
     mentor = await _db.users.find_one({"role": "mentor", "email": req.mentor_email})
     if not mentor:
         raise HTTPException(404, "Mentor not found")
-    if mentor.get("mentor_status") and mentor.get("mentor_status") != "approved":
-        raise HTTPException(400, "Mentor not approved")
 
     try:
         sched = datetime.fromisoformat(req.scheduled_at) if req.scheduled_at else _now() + timedelta(days=2, hours=10)

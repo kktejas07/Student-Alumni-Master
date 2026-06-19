@@ -13,7 +13,7 @@
  *    - Upcoming sessions mini list
  */
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, Platform, useWindowDimensions, Linking } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform, useWindowDimensions, Linking, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Calendar, Users, Coins, Star as StarIcon, Sparkles, ArrowUpRight,
@@ -30,41 +30,65 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 interface Props { onNav: (id: string) => void; }
 
-const MENTOR_MOCK = {
-  mentor: { ...MOCK.MENTOR, tier: undefined as any },
+interface MentorDashboardData {
+  mentor: any;
+  kpis: any[];
+  todaySessions: any[];
+  monthly: any[];
+  pendingRequests: number;
+  ratingDist?: any[];
+}
+
+const MENTOR_EMPTY: MentorDashboardData = {
+  mentor: {},
   kpis: [],
-  todaySessions: MOCK.TODAY_SESSIONS,
-  monthly: MOCK.MONTHLY,
-  pendingRequests: MOCK.SESSION_REQUESTS.length,
+  todaySessions: [],
+  monthly: [],
+  pendingRequests: 0,
 };
 
 export function DashboardView({ onNav }: Props) {
-  // Fetch live data; falls back to mock if API unreachable.
-  const { data } = usePortalData<typeof MENTOR_MOCK>('/mentor/dashboard', MENTOR_MOCK);
+  // Fetch live data; falls back to empty if API unreachable.
+  const { data, loading } = usePortalData<MentorDashboardData>('/mentor/dashboard', MENTOR_EMPTY);
   const liveMentor = data?.mentor as any;
   const tier = liveMentor?.tier;
 
   const user = useAuthStore((s) => s.user);
   const [students, setStudents] = React.useState<any[]>([]);
+  const [studentsLoading, setStudentsLoading] = React.useState(true);
 
   React.useEffect(() => {
     async function loadDashboardConnections() {
+      if (!user || !user.email) {
+        setStudentsLoading(false);
+        return;
+      }
       try {
-        const connRes = await api.mentorConnections(user?.email);
+        const connRes = await api.mentorConnections(user.email);
         setStudents(connRes?.items || []);
       } catch (e) {
         console.warn('Dashboard connections fetch failed:', e);
+      } finally {
+        setStudentsLoading(false);
       }
     }
     loadDashboardConnections();
   }, [user]);
 
-  const TODAY_SESSIONS = data?.todaySessions || MOCK.TODAY_SESSIONS;
-  const STUDENTS = students.length > 0 ? students : MOCK.STUDENTS;
-  const RATING_DIST = MOCK.RATING_DIST;
+  const TODAY_SESSIONS = data?.todaySessions || [];
+  const STUDENTS = students;
+  const RATING_DIST = data?.ratingDist || [];
 
   const { width } = useWindowDimensions();
   const isWide = width >= 1080;
+
+  if (loading || studentsLoading) {
+    return (
+      <View style={{ flex: 1, padding: 60, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={MC.tealP} size="large" />
+      </View>
+    );
+  }
 
   const STATS = [
     { Icon: Calendar, label: 'Sessions Today', value: String(TODAY_SESSIONS.length), sub: TODAY_SESSIONS[0] ? 'Next at ' + TODAY_SESSIONS[0].time : 'No more today', subColor: MC.tealP },
@@ -224,10 +248,10 @@ export function DashboardView({ onNav }: Props) {
         <View style={s.widgetCard}>
           <Text style={s.widgetKicker}>FEEDBACK SUMMARY</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 34 }}>4.9</Text>
+            <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 34 }}>{liveMentor?.rating || '0.0'}</Text>
             <View>
-              <StarRow rating={5} size={14} />
-              <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 3 }}>42 reviews</Text>
+              <StarRow rating={Math.round(Number(liveMentor?.rating || 0))} size={14} />
+              <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 3 }}>{data?.kpis?.find((k: any) => k.id === 'rating')?.delta || '0 reviews'}</Text>
             </View>
           </View>
           {RATING_DIST.slice(0, 3).map((d) => (

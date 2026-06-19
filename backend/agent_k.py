@@ -30,6 +30,7 @@ Collections:
 """
 from __future__ import annotations
 
+
 async def _get_best_ai_key() -> tuple:
     """Returns (api_key, model_name, provider) from best available source.
     Priority: Marketplace installed tools > Emergent env var."""

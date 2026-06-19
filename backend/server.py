@@ -3285,7 +3285,30 @@ async def get_my_skill_intelligence(user: dict = Depends(get_current_user)):
         potential_score = min(100, max(overall_score + (1 if len(unique_actions) > 0 else 0), potential_score))
         readiness_gap = potential_score - overall_score
 
+    # Calculate analyzed skills list for the frontend
+    user_skills = user.get("skills") or []
+    analyzed_skills = []
+    for sk in user_skills:
+        display_category, weight = _categorize_skill(sk)
+        subcat_map = {
+            "technical_skills": "Technical Skill",
+            "communication": "Communication",
+            "leadership": "Leadership",
+            "interview_prep": "Interview Prep",
+            "soft_skills": "Soft Skill",
+            "networking": "Networking"
+        }
+        subcategory = subcat_map.get(display_category, "Skill")
+        analyzed_skills.append({
+            "skill_name": sk,
+            "subcategory": subcategory,
+            "weight": weight,
+            "source": "taxonomy",
+            "confidence": 1.0
+        })
+
     return {
+        "skills": analyzed_skills,
         "readiness_score": {
             "score": overall_score,
             "level": "Explorer" if overall_score <= 20 else "Builder" if overall_score <= 40 else "Developing Professional" if overall_score <= 60 else "Career Ready" if overall_score <= 80 else "Industry Ready",
@@ -5789,11 +5812,24 @@ async def my_bookings(user: dict = Depends(get_current_user)):
         start_iso = item.get("slot_start_iso") or sched_iso
         
         status = item.get("status", "pending")
-        if status in ["confirmed", "booked", "scheduled"] and sched and isinstance(sched, datetime) and sched.replace(tzinfo=timezone.utc) < now:
-            status = "completed"
+        
+        dt_compare = None
+        if isinstance(sched, datetime):
+            dt_compare = sched.astimezone(timezone.utc)
+        elif start_iso:
+            try:
+                dt_compare = datetime.fromisoformat(start_iso.replace("Z", "+00:00")).astimezone(timezone.utc)
+            except Exception:
+                pass
+
+        if status in ["confirmed", "booked", "scheduled", "pending"] and dt_compare and dt_compare < now:
+            new_status = "expired" if status == "pending" else "completed"
+            status = new_status
             # Best-effort DB update
             import asyncio
-            asyncio.create_task(db.bookings.update_one({"_id": item["_id"]}, {"$set": {"status": "completed"}}))
+            async def _update_status(item_id, st):
+                await db.bookings.update_one({"_id": item_id}, {"$set": {"status": st}})
+            asyncio.create_task(_update_status(item["_id"], new_status))
         
         doc = {
             "id": str(item["_id"]),
@@ -6299,13 +6335,26 @@ async def post_review(req: ReviewIn, user: dict = Depends(get_current_user)):
         try:
             if ObjectId.is_valid(b_id):
                 booking = await db.bookings.find_one({"_id": ObjectId(b_id)})
+                if not booking:
+                    booking = await db.sessions.find_one({"_id": ObjectId(b_id)})
         except Exception:
             pass
         if not booking:
-            try:
-                booking = await db.bookings.find_one({"id": b_id})
-            except Exception:
-                pass
+            import re
+            booking_rx = f"{re.escape(b_id)}$"
+            
+            bookings_matches = []
+            async for b in db.bookings.find({"$expr": {"$regexMatch": {"input": {"$toString": "$_id"}, "regex": booking_rx, "options": "i"}}}, {"mentor_id": 1}):
+                bookings_matches.append(b)
+                
+            sessions_matches = []
+            async for s in db.sessions.find({"$expr": {"$regexMatch": {"input": {"$toString": "$_id"}, "regex": booking_rx, "options": "i"}}}, {"mentor_id": 1}):
+                sessions_matches.append(s)
+                
+            total_matches = len(bookings_matches) + len(sessions_matches)
+            if total_matches == 1:
+                booking = bookings_matches[0] if bookings_matches else sessions_matches[0]
+
         if booking and "mentor_id" in booking:
             mentor_id = str(booking["mentor_id"])
 
