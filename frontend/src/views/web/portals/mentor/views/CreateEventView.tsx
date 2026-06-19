@@ -159,7 +159,7 @@ export function CreateEventView() {
     if (!time) { toast.error('Missing Time', 'Please select a time'); return; }
 
     const numSeats = parseInt(seats) || 100;
-    const ticketPrice = pricing === 'paid' ? (parseFloat(price) || 0) : undefined;
+    const ticketPrice = pricing === 'paid' ? (parseFloat(price) || 0) : null;
 
     if (subView === 'edit' && editingEventId !== null) {
       toast.info('Coming Soon', 'Edit functionality not fully integrated yet.');
@@ -188,8 +188,9 @@ export function CreateEventView() {
         refresh();
         setSubView('list');
         resetForm();
-      } catch (err) {
-        toast.error('Creation Failed', 'Failed to publish event. Please try again.');
+      } catch (err: any) {
+        console.error('Publish Error:', err);
+        toast.error('Creation Failed', err?.message || 'Failed to publish event. Please try again.');
       }
     }
   };

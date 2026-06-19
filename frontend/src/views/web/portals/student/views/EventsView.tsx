@@ -13,17 +13,22 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 type Ev = { id: string; title: string; date: string; mode: string; city: string; cat: string; attending: number; capacity: number; kind: string; price?: number; accent: string; registered: boolean; description?: string; tags?: string[]; spotsLeft?: number; };
 const FALLBACK = { items: [] as Ev[] };
 
-const FILTERS = ['All', 'Hackathon', 'Codethon', 'Workshop', 'Tech Talk', 'Training', 'Founder Talk', 'Meetup', 'Fest'];
+const FILTERS = ['All', 'Hackathon', 'Codethon', 'Workshop', 'Tech Talk', 'Training', 'Founder Talk', 'Meetup', 'Fest', 'Webinar', 'Panel', 'Q&A', 'Interview', 'Spotlight'];
 
 const CATEGORY_MAP: Record<string, string[]> = {
   'hackathon': ['hackathon', 'codethon'],
   'codethon': ['hackathon', 'codethon'],
   'workshop': ['workshop', 'training'],
-  'tech talk': ['talk', 'workshop'],
+  'tech talk': ['talk', 'workshop', 'tech_talk'],
   'training': ['workshop', 'training'],
-  'founder talk': ['startup', 'talk'],
-  'meetup': ['networking'],
+  'founder talk': ['startup', 'talk', 'founder talk', 'spotlight'],
+  'meetup': ['networking', 'meetup'],
   'fest': ['fest'],
+  'webinar': ['webinar', 'online'],
+  'panel': ['panel', 'panel discussion'],
+  'q&a': ['qa', 'q&a session'],
+  'interview': ['interview', 'mock interview'],
+  'spotlight': ['spotlight', 'founder talk'],
 };
 
 const catColorMap: Record<string, any> = {
