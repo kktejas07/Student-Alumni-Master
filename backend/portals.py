@@ -2435,14 +2435,29 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
         if connected_ids:
             connected_users = await _db.users.find({"_id": {"$in": connected_ids}}, proj).to_list(len(connected_ids))
 
+    my_skills = user.get("skills", []) if user else []
+    my_college = user.get("school_info", {}).get("institution_name") if user else None
+
     # Fetch Alumni (ensuring connected ones are included first)
     connected_alumni = [u for u in connected_users if u.get("role") == "alumni"]
     seen_alumni = {str(u["_id"]) for u in connected_alumni}
-    al_cur = _db.users.find({
+    alumni_query = {
         "role": "alumni",
         "_id": {"$nin": [ObjectId(i) for i in seen_alumni]}
-    }, proj).sort("_id", -1).limit(max(0, limit - len(connected_alumni)))
+    }
+    # Match by Interest
+    if my_skills:
+        alumni_query["$or"] = [
+            {"alumni_info.interests": {"$in": my_skills}},
+            {"skills": {"$in": my_skills}}
+        ]
+    al_cur = _db.users.find(alumni_query, proj).sort("_id", -1).limit(max(0, limit - len(connected_alumni)))
     alumni_users = connected_alumni + [a async for a in al_cur]
+    # Fallback if strict interest matching yielded nothing
+    if len(alumni_users) < 3:
+        fallback_cur = _db.users.find({"role": "alumni", "_id": {"$nin": [ObjectId(i) for i in seen_alumni] + [a["_id"] for a in alumni_users]}}, proj).sort("_id", -1).limit(max(0, limit - len(alumni_users)))
+        alumni_users.extend([a async for a in fallback_cur])
+
     for a in alumni_users:
         other_id = str(a["_id"])
         if other_id == me_id_str:
@@ -2468,11 +2483,20 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     # Fetch Students (ensuring connected ones are included first)
     connected_students = [u for u in connected_users if u.get("role") == "student"]
     seen_students = {str(u["_id"]) for u in connected_students}
-    st_cur = _db.users.find({
+    student_query = {
         "role": "student",
         "_id": {"$nin": [ObjectId(i) for i in seen_students]}
-    }, proj).sort("_id", -1).limit(max(0, limit - len(connected_students)))
+    }
+    # From Your College
+    if my_college:
+        student_query["school_info.institution_name"] = my_college
+    st_cur = _db.users.find(student_query, proj).sort("_id", -1).limit(max(0, limit - len(connected_students)))
     student_users = connected_students + [s async for s in st_cur]
+    # Fallback if strict college matching yielded nothing
+    if len(student_users) < 3:
+        fallback_cur = _db.users.find({"role": "student", "_id": {"$nin": [ObjectId(i) for i in seen_students] + [s["_id"] for s in student_users]}}, proj).sort("_id", -1).limit(max(0, limit - len(student_users)))
+        student_users.extend([s async for s in fallback_cur])
+    
     for s in student_users:
         other_id = str(s["_id"])
         if other_id == me_id_str:
