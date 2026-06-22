@@ -686,7 +686,7 @@ def generate_qr_code(data: str) -> str:
     qr.make(fit=True)
     img = qr.make_image(fill_color="#5F259F", back_color="#FFFFFF")  # Brand purple QR
     buf = io.BytesIO()
-    img.save(buf, format="PNG")
+    getattr(img, "save")(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
@@ -1668,7 +1668,7 @@ def _generate_totp_qr(uri: str) -> str:
     qr.make(fit=True)
     img = qr.make_image(fill_color="#7C3AED", back_color="#FFFFFF")
     buf = io.BytesIO()
-    img.save(buf, format="PNG")
+    getattr(img, "save")(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
@@ -3388,7 +3388,7 @@ async def connect_integration(
     try:
         await _audit_log(  # type: ignore
             user_id=str(user["_id"]),
-            field_name=f"integrations.{provider}",
+            field=f"integrations.{provider}",
             old_value=None, new_value=rec,
             source="integration_connect",
         )
@@ -3412,7 +3412,7 @@ async def disconnect_integration(
     try:
         await _audit_log(  # type: ignore
             user_id=str(user["_id"]),
-            field_name=f"integrations.{p}",
+            field=f"integrations.{p}",
             old_value=user.get("integrations", {}).get(p),
             new_value=None,
             source="integration_disconnect",
