@@ -250,7 +250,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
   },
-  brandLogo: { width: 32, height: 32, borderRadius: RADII.sm, alignItems: 'center', justifyContent: 'center' },
+  brandLogo: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   brandLogoText: { color: '#fff', fontFamily: TYPO.display800, fontSize: 12, letterSpacing: 0.5 },
   brandTitle: { fontFamily: TYPO.display700, fontSize: 14, letterSpacing: -0.3 },
   brandSub: { fontFamily: TYPO.body500, fontSize: 10.5 },

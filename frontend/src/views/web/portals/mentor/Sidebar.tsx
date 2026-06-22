@@ -200,7 +200,7 @@ const s = StyleSheet.create({
     width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
     ...({ cursor: 'pointer' } as any),
   },
-  brandLogo: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  brandLogo: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
   brandTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
   brandSub: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 0.5 },
 
