@@ -50,6 +50,19 @@ export default function AdvisorAIBlock({
   const [aiBusy, setAiBusy] = useState(false);
   const [aiAnswer, setAiAnswer] = useState<string | null>(null);
 
+  // Manage delayed focus on open and cleanup focus timeout on close/unmount
+  React.useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+    if (aiOpen) {
+      timer = setTimeout(() => {
+        aiInputRef?.current?.focus();
+      }, 150);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [aiOpen, aiInputRef]);
+
   const onAskAI = async () => {
     if (!aiQuestion.trim() || aiBusy) return;
     setAiBusy(true);
@@ -112,15 +125,7 @@ export default function AdvisorAIBlock({
         <Text style={s.desc}>{aiDesc}</Text>
         <Pressable
           style={[s.cta, { backgroundColor: aiAccent }]}
-          onPress={() => {
-            const nextOpen = !aiOpen;
-            setAiOpen(nextOpen);
-            if (nextOpen) {
-              setTimeout(() => {
-                aiInputRef?.current?.focus();
-              }, 150);
-            }
-          }}
+          onPress={() => setAiOpen(!aiOpen)}
         >
           <MaterialCommunityIcons name="message-text" size={14} color="#0A2E1A" />
           <Text style={[s.ctaText, { color: '#0A2E1A' }]}>Chat with AI</Text>

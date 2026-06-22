@@ -179,6 +179,7 @@ export default function FinancialPage() {
 
   // Load financial profile on mount to pre-fill AI helper answers
   useEffect(() => {
+    if (!initialized || !user) return;
     let active = true;
     async function fetchProfile() {
       try {
@@ -197,7 +198,15 @@ export default function FinancialPage() {
               loadedAnswers[key] = String(p[key]);
             }
           }
-          setAiAnswers((prev) => ({ ...prev, ...loadedAnswers }));
+          setAiAnswers((prev) => {
+            const merged = { ...prev };
+            for (const key of Object.keys(loadedAnswers)) {
+              if (merged[key] === undefined || merged[key] === null || merged[key] === '') {
+                merged[key] = loadedAnswers[key];
+              }
+            }
+            return merged;
+          });
         }
       } catch (err) {
         console.warn('Failed to load financial profile:', err);
@@ -207,7 +216,7 @@ export default function FinancialPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [initialized, user]);
 
   const tabInfo = TABS.find(t => t.id === tab)!;
 

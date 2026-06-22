@@ -133,8 +133,9 @@ export default function FinancialCoach({ open, setOpen }: {
                     <Text style={s.title}>Financial AI</Text>
                     <Text style={s.subtitle}>Free · intelligent · 24x7 AI support</Text>
                   </View>
-                  <div
+                  <button
                     onClick={() => setOpen(false)}
+                    aria-label="Close chatbot"
                     style={{
                       width: '30px',
                       height: '30px',
@@ -144,10 +145,13 @@ export default function FinancialCoach({ open, setOpen }: {
                       alignItems: 'center',
                       justifyContent: 'center',
                       cursor: 'pointer',
+                      border: 'none',
+                      outline: 'none',
+                      padding: 0,
                     }}
                   >
                     <MaterialCommunityIcons name="close" size={18} color="#fff" />
-                  </div>
+                  </button>
                 </View>
 
                 {/* Messages scroll area */}
@@ -182,7 +186,7 @@ export default function FinancialCoach({ open, setOpen }: {
                   style={{ flexGrow: 0 }}
                   contentContainerStyle={{ gap: 6, paddingHorizontal: 14, paddingBottom: 6, alignItems: 'center' }}>
                   {SLASH_CHIPS.map((c) => (
-                    <div key={c.cmd}
+                    <button key={c.cmd}
                       onClick={() => send(c.cmd)}
                       style={{
                         display: 'flex',
@@ -194,11 +198,15 @@ export default function FinancialCoach({ open, setOpen }: {
                         backgroundColor: 'rgba(255,255,255,0.05)',
                         border: `1px solid ${C.border}`,
                         cursor: 'pointer',
+                        color: 'inherit',
+                        fontFamily: 'inherit',
+                        fontSize: 'inherit',
+                        outline: 'none',
                       }}
                     >
                       <MaterialCommunityIcons name={c.icon} size={11} color="#A78BFA" />
                       <Text style={s.slashChipText}>{c.label}</Text>
-                    </div>
+                    </button>
                   ))}
                 </ScrollView>
 
@@ -214,7 +222,9 @@ export default function FinancialCoach({ open, setOpen }: {
                     style={s.input}
                     returnKeyType="send"
                   />
-                  <div onClick={() => send()}
+                  <button onClick={() => send()}
+                    disabled={busy}
+                    aria-label="Send message"
                     style={{
                       width: '38px',
                       height: '38px',
@@ -225,10 +235,13 @@ export default function FinancialCoach({ open, setOpen }: {
                       justifyContent: 'center',
                       cursor: busy ? 'default' : 'pointer',
                       opacity: busy ? 0.6 : 1,
+                      border: 'none',
+                      outline: 'none',
+                      padding: 0,
                     }}
                   >
                     <MaterialCommunityIcons name="send" size={15} color="#fff" />
-                  </div>
+                  </button>
                 </View>
               </KeyboardAvoidingView>
             </div>
