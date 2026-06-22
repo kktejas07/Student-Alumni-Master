@@ -2188,6 +2188,26 @@ async def college_career_intel(college_name: Optional[str] = None):
     return {"skill_gaps": skill_gaps, "hiring_intent": hiring_intent, "roles_in_demand": roles_in_demand}
 
 
+def _nlp_categorize_event(title: str, desc: str, cat: str) -> str:
+    text = f"{title or ''} {desc or ''} {cat or ''}".lower()
+    
+    if "hackathon" in text or "hack " in text: return "hackathon"
+    if "codethon" in text or "code " in text or "competitive" in text: return "codethon"
+    if "workshop" in text or "hands-on" in text or "handson" in text: return "workshop"
+    if "training" in text or "course" in text: return "training"
+    if "founder" in text or "startup" in text or "ceo" in text: return "founder talk"
+    if "webinar" in text or "online session" in text: return "webinar"
+    if "panel" in text or "discussion" in text: return "panel"
+    if "q&a" in text or "qa " in text or "ama " in text: return "q&a"
+    if "interview" in text or "mock" in text: return "interview"
+    if "spotlight" in text: return "spotlight"
+    if "meetup" in text or "network" in text: return "meetup"
+    if "fest" in text or "festival" in text or "cultural" in text: return "fest"
+    if "tech talk" in text or "speaker" in text or "tech" in text: return "tech talk"
+    
+    # Strict fallback to guarantee frontend filter compatibility
+    return "workshop"
+
 @router.get("/student/events")
 async def student_events_list(student_email: Optional[str] = None, page: int = 1, per_page: int = 24):
     """Events relevant to the student (with attendance status)."""
@@ -2235,13 +2255,15 @@ async def student_events_list(student_email: Optional[str] = None, page: int = 1
         regs = counts_map.get(ev_id_str, 0)
         registered = ev_id_str in user_regs
         
+        nlp_cat = _nlp_categorize_event(ev.get("title"), ev.get("description"), ev.get("category"))
+        
         out.append({
             "id": _short_id(ev.get("_id")),
             "title": ev.get("title", "Event"),
             "date": date_str,
             "mode": ev.get("mode") or "Online",
             "city": ev.get("venue") or "Online",
-            "cat": ev.get("category", "Workshop"),
+            "cat": nlp_cat,
             "attending": regs,
             "capacity": ev.get("capacity") or 500,
             "kind": "paid" if ev.get("price") else "free",
