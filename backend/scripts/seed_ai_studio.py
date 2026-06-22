@@ -97,13 +97,22 @@ async def seed_ai_studio():
         
         # 6. Create Sessions (some in past 30 days)
         for _ in range(random.randint(1, 3)):
-            await _db.sessions.insert_one({
-                "mentor_id": mentor_id,
-                "user_id": student_id,
-                "mentee_id": student_id,
-                "scheduled_at": now - timedelta(days=random.randint(1, 28)),
-                "status": "completed"
-            })
+            scheduled_time = now - timedelta(days=random.randint(1, 28))
+            await _db.sessions.update_one(
+                {
+                    "mentor_id": mentor_id,
+                    "user_id": student_id,
+                    "scheduled_at": scheduled_time
+                },
+                {"$set": {
+                    "mentor_id": mentor_id,
+                    "user_id": student_id,
+                    "mentee_id": student_id,
+                    "scheduled_at": scheduled_time,
+                    "status": "completed"
+                }},
+                upsert=True
+            )
             
     print("✅ Mentor AI Studio data successfully seeded!")
 

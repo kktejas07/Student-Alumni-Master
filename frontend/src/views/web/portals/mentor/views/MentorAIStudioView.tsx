@@ -98,7 +98,9 @@ export function MentorAIStudioView() {
         body: { mentee_id: mentee.user_id },
       } as any);
       setPrep(r);
-    } catch {} finally { setPrepLoading(null); }
+    } catch (e: any) {
+      console.error('AI session prep failed:', e?.message || e);
+    } finally { setPrepLoading(null); }
   }, [prepLoading]);
 
   const renderSectionHeader = (title: string, icon: string, color: string = TINT) => (
@@ -145,7 +147,7 @@ export function MentorAIStudioView() {
           <ImpactTile icon="trending-up" label="Avg Progress" value={impact ? `${impact.avg_mentee_progress_pct}%` : '—'} accent="#10B981" />
         </View>
 
-        <View style={{ flexDirection: Platform.OS === 'web' && window.innerWidth > 1000 ? 'row' : 'column', gap: 24 }}>
+        <View style={{ flexDirection: Platform.OS === 'web' && typeof window !== 'undefined' && window.innerWidth > 1000 ? 'row' : 'column', gap: 24 }}>
           {/* LEFT COLUMN */}
           <View style={{ flex: 2, gap: 24 }}>
             
