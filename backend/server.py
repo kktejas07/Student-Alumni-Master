@@ -103,6 +103,7 @@ from notifications import (
     mark_inbox_read, unread_count, notify_booking_created, notify_booking_confirmed,
     notify_event_registered, notify_mentor_approved, notify_review_received,
 )
+from core.email import send_otp_email
 
 # ----------------------------------------------------------------------------
 # Setup & Configuration
@@ -475,6 +476,35 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class VerifyOtpRequest(BaseModel):
+    email: EmailStr
+    otp: str
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def _password_strength(cls, v):
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one digit")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
+            raise ValueError("Password must contain at least one special character (!@#$%^&*...)")
+        return v
 
 
 class OnboardingRequest(BaseModel):
@@ -961,6 +991,68 @@ async def login(request: Request, req: LoginRequest):
         refresh_token=refresh_token,
         user=user_payload,
     )
+
+
+@api_router.post("/auth/forgot-password")
+@limiter.limit("5/minute")
+async def forgot_password(request: Request, req: ForgotPasswordRequest):
+    email = req.email.lower().strip()
+    user = await db.users.find_one({"email": email})
+    if not user:
+        raise HTTPException(status_code=404, detail="No account found with this email address.")
+    
+    otp = ''.join(random.choices(string.digits, k=6))
+    expires = datetime.now(timezone.utc) + timedelta(minutes=15)
+    
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"reset_otp": otp, "reset_otp_expires_at": expires}}
+    )
+    
+    success = await send_otp_email(email, otp)
+    if not success:
+        raise HTTPException(500, "Failed to send email. Please try again later.")
+        
+    return {"message": "If that email is registered, we've sent a verification code."}
+
+
+@api_router.post("/auth/verify-otp")
+@limiter.limit("10/minute")
+async def verify_otp(request: Request, req: VerifyOtpRequest):
+    email = req.email.lower().strip()
+    user = await db.users.find_one({"email": email})
+    if not user or "reset_otp" not in user:
+        raise HTTPException(400, "Invalid or expired verification code.")
+        
+    if user.get("reset_otp_expires_at") and datetime.now(timezone.utc) > user["reset_otp_expires_at"].replace(tzinfo=timezone.utc):
+        raise HTTPException(400, "Verification code has expired.")
+        
+    if user["reset_otp"] != req.otp:
+        raise HTTPException(400, "Invalid verification code.")
+        
+    return {"message": "Code verified successfully."}
+
+
+@api_router.post("/auth/reset-password")
+@limiter.limit("5/minute")
+async def reset_password(request: Request, req: ResetPasswordRequest):
+    email = req.email.lower().strip()
+    user = await db.users.find_one({"email": email})
+    
+    if not user or "reset_otp" not in user:
+        raise HTTPException(400, "Invalid reset request.")
+        
+    if user.get("reset_otp_expires_at") and datetime.now(timezone.utc) > user["reset_otp_expires_at"].replace(tzinfo=timezone.utc):
+        raise HTTPException(400, "Reset session has expired. Please try forgot password again.")
+        
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {
+            "$set": {"password_hash": hash_password(req.new_password)},
+            "$unset": {"reset_otp": "", "reset_otp_expires_at": ""}
+        }
+    )
+    return {"message": "Password updated successfully."}
 
 
 @api_router.get("/auth/me", response_model=UserResponse)

@@ -32,3 +32,6 @@ export function getBaseUrl() {
 
   return 'http://localhost:8002';
 }
+
+export const BASE = getBaseUrl();
+
