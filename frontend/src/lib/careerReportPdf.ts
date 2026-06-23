@@ -446,9 +446,7 @@ export async function generateCareerReportPdf(data: CareerReportData): Promise<v
     const actualY = y + idx * rowH;
     const isCompleted = m.completed;
     const isActive    = !isCompleted && idx === data.milestones.findIndex(x => !x.completed);
-    const isFuture    = !isCompleted && !isActive;
     const gain = GAINS[m.milestone_type] || 3;
-    const milColour   = MILESTONE_COLORS[m.milestone_type] || PDF_COLORS.purpleL;
 
     // Alternating row
     if (idx % 2 === 0) roundRect(doc, marginX, actualY - 2, contentW, rowH, 2, [18, 15, 45]);

@@ -18,7 +18,7 @@
  *   GET  /users/me/skill-intelligence – readiness / skill scores
  */
 import React, {
-  useCallback, useEffect, useMemo, useRef, useState,
+  useCallback, useEffect, useMemo, useState,
 } from 'react';
 import {
   ActivityIndicator, Platform, Pressable, ScrollView,
@@ -30,7 +30,7 @@ import { useRouter } from 'expo-router';
 import {
   ArrowLeft, Award, Briefcase, ChevronRight, CircleCheck as CheckCircle2,
   Code, Download, FileText, Flame, Folder, Link2, MessageSquare,
-  Mic, Sparkles, Star, Target, TrendingUp, User as UserIcon,
+  Mic, Star, Target, TrendingUp, User as UserIcon,
 } from 'lucide-react-native';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
