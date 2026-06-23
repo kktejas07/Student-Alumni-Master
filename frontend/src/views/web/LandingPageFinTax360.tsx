@@ -18,7 +18,7 @@
  */
 import React, { useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, Pressable,
+  View, Text, StyleSheet, ScrollView, Pressable, Image,
   useWindowDimensions, Animated, Easing, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -155,9 +155,7 @@ function Navbar({ isDesktop, router }: { isDesktop: boolean; router: ReturnType<
     } as any)]}>
       <View style={[nav.inner, { maxWidth: 1280 }]}>
         <Pressable onPress={() => router.push('/')} style={nav.brand}>
-          <View style={nav.logoMark}>
-            <Sparkles size={18} color="#fff" />
-          </View>
+          <Image source={require('@/assets/images/sa-icon.png')} style={{ width: 32, height: 32 }} resizeMode="contain" />
           <Text style={nav.brandText}>StudentAlumni</Text>
         </Pressable>
 
@@ -509,7 +507,7 @@ function Footer({ isDesktop }: { isDesktop: boolean }) {
           {/* Brand */}
           <View style={{ flex: isDesktop ? 1.4 : undefined, gap: 12 }}>
             <Pressable style={nav.brand}>
-              <View style={nav.logoMark}><Sparkles size={18} color="#fff" /></View>
+              <Image source={require('@/assets/images/sa-icon.png')} style={{ width: 32, height: 32 }} resizeMode="contain" />
               <Text style={nav.brandText}>StudentAlumni</Text>
             </Pressable>
             <Text style={footer.tag}>

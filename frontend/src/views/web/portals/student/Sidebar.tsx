@@ -113,9 +113,7 @@ export function Sidebar({
       {/* Brand */}
       <FadeInView delay={20}>
         <View style={[s.brand, collapsed && { justifyContent: 'center' }]} nativeID="student-brand">
-          <LinearGradient colors={GRADS.brand as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.brandLogo}>
-            <Text style={s.brandLogoText}>SA</Text>
-          </LinearGradient>
+          <Image source={require('@/assets/images/sa-icon.png')} style={s.brandLogo} />
           {!collapsed && (
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={[s.brandTitle, { color: C.text }]}>Student Alumni</Text>
@@ -252,7 +250,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
   },
-  brandLogo: { width: 32, height: 32, borderRadius: RADII.sm, alignItems: 'center', justifyContent: 'center' },
+  brandLogo: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   brandLogoText: { color: '#fff', fontFamily: TYPO.display800, fontSize: 12, letterSpacing: 0.5 },
   brandTitle: { fontFamily: TYPO.display700, fontSize: 14, letterSpacing: -0.3 },
   brandSub: { fontFamily: TYPO.body500, fontSize: 10.5 },

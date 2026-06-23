@@ -63,9 +63,7 @@ export function Sidebar({
         </Pressable>
         {!collapsed && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-            <LinearGradient colors={[MC.teal, MC.tealD] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.brandLogo}>
-              <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: -0.5 }}>SA</Text>
-            </LinearGradient>
+            <Image source={require('@/assets/images/sa-icon.png')} style={s.brandLogo} />
             <View style={{ minWidth: 0, flex: 1 }}>
               <Text style={s.brandTitle} numberOfLines={1}>Mentor Portal</Text>
               <Text style={s.brandSub} numberOfLines={1}>Student Alumni</Text>
@@ -202,7 +200,7 @@ const s = StyleSheet.create({
     width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
     ...({ cursor: 'pointer' } as any),
   },
-  brandLogo: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  brandLogo: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
   brandTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
   brandSub: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 0.5 },
 
