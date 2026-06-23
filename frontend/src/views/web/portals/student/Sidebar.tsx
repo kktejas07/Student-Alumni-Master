@@ -35,7 +35,7 @@ import { SC, PALETTE, TYPO } from './tokens';
 import { STUDENT } from './data';
 import { Av } from './atoms';
 import { FadeInView, PressScale, SparkIcon, PulseDot } from './motion';
-import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
+
 
 export type StudentNavId =
   | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'events'
@@ -179,10 +179,7 @@ export function Sidebar({
         </FadeInView>
       )}
 
-      {/* Agent K launcher — sits ABOVE the main nav */}
-      <FadeInView delay={150}>
-        <AgentKLauncher collapsed={collapsed} />
-      </FadeInView>
+
 
       {/* Nav */}
       <ScrollView
