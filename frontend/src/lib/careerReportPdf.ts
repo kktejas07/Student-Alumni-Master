@@ -198,7 +198,8 @@ function drawFooter(doc: any, pageW: number, pageH: number, pageNum: number, tot
 ────────────────────────────────────────────── */
 export async function generateCareerReportPdf(data: CareerReportData): Promise<void> {
   // Dynamic import so bundle stays small for non-web targets
-  const { jsPDF } = await import('jspdf');
+  // @ts-ignore
+  const { jsPDF } = await import('jspdf/dist/jspdf.es.min.js');
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
@@ -242,7 +243,6 @@ export async function generateCareerReportPdf(data: CareerReportData): Promise<v
   }
 
   // Online indicator
-  setFill(doc, [52, 211, 153, 30]);
   roundRect(doc, pageW - 50, 12, 36, 8, 3, [25, 60, 45]);
   setFill(doc, PDF_COLORS.green);
   doc.circle(pageW - 44, 16.5, 2, 'F');
