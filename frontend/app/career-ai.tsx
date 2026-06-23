@@ -37,6 +37,7 @@ import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components/Toast';
 import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 import { CompletionRing } from '@/src/views/web/profile/CompletionRing';
+import { generateCareerReportPdf, type CareerReportData } from '@/src/lib/careerReportPdf';
 
 /* ────────── Design tokens ────────── */
 const C = {
@@ -290,6 +291,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   /* ── State ── */
   const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
   const [roadmap, setRoadmap] = useState<RoadmapResp>({});
   const [profileStrength, setProfileStrength] = useState(0);
   const [skillStreak, setSkillStreak] = useState(0);
@@ -412,34 +414,47 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
     return { Icon: Target, color: C.dim, onPress: () => toast.info('Milestone', 'Check profile settings') };
   }, [router, toast]);
 
-  /* ── Download roadmap as text ── */
-  const downloadRoadmap = useCallback(() => {
-    if (Platform.OS !== 'web') { toast.info('Download', 'Download is available on web only.'); return; }
-    const lines: string[] = [
-      `AI Career Roadmap — ${roadmap.target_role || 'Career'}`,
-      `Generated: ${roadmap.generated_at ? new Date(roadmap.generated_at).toLocaleString() : '—'}`,
-      '',
-      `Target: ${roadmap.target_role} at ${roadmap.target_company_type}`,
-      `Current Readiness: ${readinessScore}% (${readinessLevel})`,
-      `Target Readiness: ${potentialScore}%`,
-      `Profile Strength: ${profileStrength}%`,
-      '',
-      '── Career Journey ──',
-      ...allMilestones.map((m, i) =>
-        `[${m.completed ? '✓' : ' '}] Step ${i + 1}: ${m.title}\n    ${m.description}`
-      ),
-      '',
-      '── Skill Scores ──',
-      ...SKILL_META.map(s => `${s.short}: ${skillScores[s.key]}%`),
-      '',
-      `Powered by Student Alumni AI`,
-    ];
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'career-roadmap.txt'; a.click();
-    URL.revokeObjectURL(url);
-  }, [roadmap, readinessScore, readinessLevel, potentialScore, profileStrength, allMilestones, skillScores]);
+  /* ── Generate PDF Career Report ── */
+  const generateCareerReport = useCallback(async () => {
+    if (Platform.OS !== 'web') {
+      toast.info('PDF Report', 'Report download is available on web only.');
+      return;
+    }
+    if (generatingPdf) return;
+    setGeneratingPdf(true);
+    try {
+      const reportData: CareerReportData = {
+        studentName: user?.full_name || user?.email || 'Student',
+        targetRole: roadmap.target_role || 'Software Engineer',
+        targetCompany: roadmap.target_company_type || 'Top Tech Company',
+        readinessScore,
+        readinessLevel,
+        nextGoal,
+        bandProgress,
+        potentialScore,
+        potentialLevel: getLevelForScore(potentialScore),
+        profileStrength,
+        progressPct: Math.min(100, roadmap.progress_pct ?? 42),
+        generatedAt: roadmap.generated_at,
+        estimatedWeeks: pendingMilestones.length > 0 ? `~${pendingMilestones.length * 2} Weeks` : 'Goal Reached!',
+        suggestion: roadmap.suggestion,
+        skillScores,
+        milestones: allMilestones,
+        rankedActions,
+        recommendation: careerIntel?.recommendation,
+      };
+      await generateCareerReportPdf(reportData);
+      toast.success('Report Ready', 'Your career report PDF has been downloaded.');
+    } catch (err: any) {
+      toast.error('Report Failed', err?.message || 'Could not generate PDF. Please try again.');
+    } finally {
+      setGeneratingPdf(false);
+    }
+  }, [
+    generatingPdf, user, roadmap, readinessScore, readinessLevel, nextGoal, bandProgress,
+    potentialScore, getLevelForScore, profileStrength, pendingMilestones, skillScores,
+    allMilestones, rankedActions, careerIntel, toast,
+  ]);
 
   /* ── Loading state ── */
   if (loading && !roadmap.milestones) {
@@ -506,14 +521,20 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
               : <Text style={s.regenBtnText}>↺ Regenerate</Text>}
           </Pressable>
           <Pressable
-            onPress={downloadRoadmap}
+            onPress={generateCareerReport}
+            disabled={generatingPdf}
             style={({ pressed, hovered }: any) => [
               s.downloadBtn,
-              (pressed || hovered) && { opacity: 0.8 },
+              (pressed || hovered) && !generatingPdf && { opacity: 0.8 },
+              generatingPdf && { opacity: 0.7 },
             ]}
           >
-            <Download size={14} color="#fff" />
-            <Text style={s.downloadBtnText}>Download Roadmap</Text>
+            {generatingPdf
+              ? <ActivityIndicator size={14} color="#fff" />
+              : <Download size={14} color="#fff" />}
+            <Text style={s.downloadBtnText}>
+              {generatingPdf ? 'Generating…' : 'Generate Career Report'}
+            </Text>
           </Pressable>
         </View>
       </View>

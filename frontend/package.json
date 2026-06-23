@@ -20,7 +20,10 @@
         {
           "tsconfig": {
             "jsx": "react-jsx",
-            "types": ["jest", "node"]
+            "types": [
+              "jest",
+              "node"
+            ]
           }
         }
       ]
@@ -87,6 +90,7 @@
     "expo-web-browser": "~15.0.11",
     "firebase": "^12.12.1",
     "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "lexical": "^0.44.0",
     "lucide-react-native": "^1.14.0",
     "moti": "^0.30.0",
