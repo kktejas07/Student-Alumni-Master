@@ -117,9 +117,9 @@ export default function FeaturePageShell({
   let brandSubtitle = 'Web Dashboard';
   let orbColor1 = 'rgba(139,92,246,0.18)';
   let orbColor2 = 'rgba(59,130,246,0.18)';
-  let heroBorder = 'rgba(139,92,246,0.20)';
-  let heroBg = 'rgba(124, 58, 237, 0.18)';
-  let heroBoxShadow = '0 20px 60px -12px rgba(139,92,246,0.25), 0 0 0 1px rgba(255, 255, 255, 0.08) inset';
+  let heroBorder = 'rgba(176,127,223,0.30)';
+  let heroBg = 'rgba(95, 37, 159, 0.18)';
+  let heroBoxShadow = '0 20px 60px -12px rgba(95, 37, 159, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.08) inset';
   let heroOrbColor1 = 'rgba(139,92,246,0.22)';
   let heroOrbColor2 = 'rgba(191,219,254,0.18)';
   let avatarGradient: readonly [string, string] | undefined = undefined;
@@ -131,9 +131,9 @@ export default function FeaturePageShell({
     brandSubtitle = 'Alumni Dashboard';
     orbColor1 = 'rgba(249,115,22,0.18)'; // orange
     orbColor2 = 'rgba(59,130,246,0.18)'; // blue
-    heroBorder = 'rgba(96,165,250,0.30)'; // blue
-    heroBg = 'rgba(29,78,216,0.28)';
-    heroBoxShadow = '0 20px 60px -12px rgba(29,78,216,0.40), 0 0 0 1px rgba(96,165,250,0.15) inset';
+    heroBorder = 'rgba(96,165,250,0.25)'; // blue
+    heroBg = 'rgba(29,78,216,0.18)';
+    heroBoxShadow = '0 20px 60px -12px rgba(29,78,216,0.25), 0 0 0 1px rgba(255, 255, 255, 0.08) inset';
     heroOrbColor1 = 'rgba(96,165,250,0.22)';
     heroOrbColor2 = 'rgba(191,219,254,0.18)';
     avatarGradient = ['#C2410C', '#7C2D12'] as const;
@@ -144,9 +144,9 @@ export default function FeaturePageShell({
     brandSubtitle = 'Mentor Dashboard';
     orbColor1 = 'rgba(94,234,212,0.18)'; // teal
     orbColor2 = 'rgba(20,74,54,0.28)';   // green
-    heroBorder = 'rgba(94,234,212,0.30)';
-    heroBg = 'rgba(15,118,110,0.28)';
-    heroBoxShadow = '0 20px 60px -12px rgba(15,118,110,0.40), 0 0 0 1px rgba(94,234,212,0.15) inset';
+    heroBorder = 'rgba(94,234,212,0.25)';
+    heroBg = 'rgba(15,118,110,0.18)';
+    heroBoxShadow = '0 20px 60px -12px rgba(15,118,110,0.25), 0 0 0 1px rgba(255, 255, 255, 0.08) inset';
     heroOrbColor1 = 'rgba(94,234,212,0.22)';
     heroOrbColor2 = 'rgba(204,251,241,0.18)';
   } else if (role === 'college' || role === 'admin') {
@@ -156,9 +156,9 @@ export default function FeaturePageShell({
     brandSubtitle = 'College Dashboard';
     orbColor1 = 'rgba(129,140,248,0.18)'; // indigo
     orbColor2 = 'rgba(30,41,80,0.28)';   // blue
-    heroBorder = 'rgba(129,140,248,0.30)';
-    heroBg = 'rgba(67,56,202,0.28)';
-    heroBoxShadow = '0 20px 60px -12px rgba(67,56,202,0.40), 0 0 0 1px rgba(129,140,248,0.15) inset';
+    heroBorder = 'rgba(129,140,248,0.25)';
+    heroBg = 'rgba(67,56,202,0.18)';
+    heroBoxShadow = '0 20px 60px -12px rgba(67,56,202,0.25), 0 0 0 1px rgba(255, 255, 255, 0.08) inset';
     heroOrbColor1 = 'rgba(129,140,248,0.22)';
     heroOrbColor2 = 'rgba(224,231,255,0.18)';
   }
