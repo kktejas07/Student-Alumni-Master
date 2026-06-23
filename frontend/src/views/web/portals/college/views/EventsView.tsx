@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Calendar as CalIcon, Plus } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { View, Text, Pressable, StyleSheet, TextInput } from 'react-native';
+import { Calendar as CalIcon, Plus, Search } from 'lucide-react-native';
 import { CC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
 import { usePortalData } from '@/src/lib/portalApi';
@@ -24,15 +24,33 @@ const FALLBACK = { items: [] as Ev[] };
 export function EventsView({ onNavigate }: { onNavigate?: (id: any) => void }) {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const [query, setQuery] = useState('');
+  
   const collegeName = user?.college_info?.institution_name || user?.school_info?.institution_name || '';
-  const path = collegeName ? `/college/events?college_name=${encodeURIComponent(collegeName)}` : '/college/events';
+  
+  let path = '/college/events';
+  const params = new URLSearchParams();
+  if (collegeName) params.append('college_name', collegeName);
+  if (query.trim()) params.append('query', query.trim());
+  if (params.toString()) path += '?' + params.toString();
+
   const { data } = usePortalData<typeof FALLBACK>(path, FALLBACK);
   const events = data?.items || [];
   return (
     <View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14, gap: 12 }}>
         <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 16 }}>All Events ({events.length})</Text>
         <View style={{ flex: 1 }} />
+        <View style={s.searchWrap}>
+          <Search size={16} color={CC.muted} />
+          <TextInput
+            style={s.searchInput}
+            placeholder="Search events..."
+            placeholderTextColor={CC.muted}
+            value={query}
+            onChangeText={setQuery}
+          />
+        </View>
         <Pressable style={s.cta} onPress={() => onNavigate?.('create-event')}>
           <Plus size={14} color="#fff" />
           <Text style={s.ctaText}>Create Event</Text>
@@ -82,4 +100,6 @@ const s = StyleSheet.create({
   date: { color: CC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 4 },
   manage: { marginTop: 12, height: 32, borderRadius: 8, backgroundColor: CC.card, borderWidth: 1, borderColor: CC.border2, alignItems: 'center', justifyContent: 'center' },
   manageText: { color: CC.accentBright, fontFamily: FONTS.bold, fontSize: 12 },
+  searchWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: CC.card, borderWidth: 1, borderColor: CC.border, borderRadius: 10, paddingHorizontal: 12, height: 34, minWidth: 200 },
+  searchInput: { flex: 1, marginLeft: 8, color: '#fff', fontSize: 13, fontFamily: FONTS.med, outlineStyle: 'none' },
 });

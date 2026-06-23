@@ -2033,15 +2033,26 @@ async def college_mentors_list(college_name: Optional[str] = None, limit: int = 
 
 
 @router.get("/college/events")
-async def college_events_list(college_name: Optional[str] = None, limit: int = 100):
+async def college_events_list(college_name: Optional[str] = None, query: Optional[str] = None, limit: int = 100):
     """Events at or linked to this college."""
     q = {}
+    
+    conditions = []
     if college_name:
-        q = {"$or": [{"college_name": college_name}, {"organizer": college_name}]}
-        count = await _db.events.count_documents(q)
-        if count == 0:
-            q = {}
-    cur = _db.events.find(q).sort("start_date", 1).limit(limit)
+        conditions.append({"$or": [{"college_name": college_name}, {"organizer": college_name}]})
+    
+    if query:
+        conditions.append({"title": {"$regex": query, "$options": "i"}})
+        
+    if conditions:
+        q = {"$and": conditions}
+        if college_name and not query:
+            # Check if college has any events, if not fallback to all (for seeded test data)
+            count = await _db.events.count_documents(q)
+            if count == 0:
+                q = {}
+
+    cur = _db.events.find(q).sort([("created_at", -1), ("start_date", -1)]).limit(limit)
     palette = ["#A78BFA", "#22C55E", "#FCD34D", "#3B82F6", "#22D3EE", "#EC4899", "#F59E0B", "#FB923C"]
     out = []
     i = 0

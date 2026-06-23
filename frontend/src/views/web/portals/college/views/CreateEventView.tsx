@@ -87,8 +87,8 @@ export function CreateEventView({ onNavigate }: { onNavigate?: (id: any) => void
 
         <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
           <View style={{ flex: 1, minWidth: 150 }}>
-            <Field label="Start Date (YYYY-MM-DD)">
-              <TextInput value={startDate} onChangeText={setStartDate} style={s.input} placeholder="2026-08-15" placeholderTextColor={CC.dim} />
+            <Field label="Start Date & Time">
+              <TextInput value={startDate} onChangeText={setStartDate} style={s.input} placeholder="YYYY-MM-DDTHH:MM" placeholderTextColor={CC.dim} {...(Platform.OS === 'web' ? { type: 'datetime-local' } as any : {})} />
             </Field>
           </View>
           <View style={{ flex: 1, minWidth: 150 }}>
