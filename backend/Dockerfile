@@ -19,7 +19,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-COPY requirements.txt .
+# Copy requirements.txt from either context
+COPY requirements.txt* backend/requirements.txt* ./
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt && \
     pip install "uvicorn[standard]" gunicorn
@@ -36,4 +37,4 @@ HEALTHCHECK --interval=30s --timeout=8s --start-period=20s --retries=3 \
     CMD curl -fsS http://localhost:8000/api/health || exit 1
 
 ENV UVICORN_WORKERS=2
-CMD ["sh", "-c", "uvicorn server:app --host 0.0.0.0 --port 8000 --workers ${UVICORN_WORKERS} --proxy-headers --forwarded-allow-ips '*'"]
+CMD ["sh", "-c", "if [ -d /app/backend ]; then cd /app/backend; fi; uvicorn server:app --host 0.0.0.0 --port 8000 --workers ${UVICORN_WORKERS} --proxy-headers --forwarded-allow-ips '*'"]
