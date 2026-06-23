@@ -854,7 +854,10 @@ async def create_college_event(req: EventCreate):
         "_user_created": True,
     }
     res = await _db.events.insert_one(doc)
-    return {"ok": True, "event_id": _short_id(res.inserted_id)}
+    event_id = _short_id(res.inserted_id)
+    # Backfill the "id" field so /events/{id}/register can find this event
+    await _db.events.update_one({"_id": res.inserted_id}, {"$set": {"id": event_id}})
+    return {"ok": True, "event_id": event_id}
 
 
 @router.get("/college/my-students")

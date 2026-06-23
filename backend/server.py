@@ -6167,30 +6167,57 @@ async def my_mentor_sessions(user: dict = Depends(get_current_user)):
 # ----------------------------------------------------------------------------
 # Event Registration with QR Code
 # ----------------------------------------------------------------------------
+async def _find_event_by_id(db, event_id: str):
+    """Multi-strategy event lookup: by id field → full ObjectId → short-id suffix.
+    College-created events only have a MongoDB _id; seeded events have an 'id' string."""
+    # 1. Exact match on 'id' field (set for seeded + new college events)
+    event = await db.events.find_one({"id": event_id})
+    if event:
+        return event
+    # 2. Full ObjectId match (24-hex)
+    try:
+        event = await db.events.find_one({"_id": ObjectId(event_id)})
+        if event:
+            return event
+    except Exception:
+        pass
+    # 3. Short-id suffix match (last 8 hex chars of ObjectId)
+    import re as _re
+    sfx = _re.escape(event_id) + "$"
+    async for ev in db.events.find(
+        {"$expr": {"$regexMatch": {"input": {"$toString": "$_id"}, "regex": sfx, "options": "i"}}}
+    ):
+        return ev
+    return None
+
+
 @api_router.post("/events/{event_id}/register")
 async def register_event(event_id: str, user: dict = Depends(get_current_user)):
     """Register the user for an event and generate a unique attendance QR code.
     The QR contains: SA-EVENT:{event_id}|{user_unique_id}|{registration_id}
     Organizers scan it on entry to mark attendance."""
-    event = await db.events.find_one({"id": event_id})
+    event = await _find_event_by_id(db, event_id)
     if not event:
         raise HTTPException(404, "Event not found")
 
+    # Always use the canonical id stored in the doc (consistent key for all queries)
+    canonical_id = event.get("id") or event_id
+
     # Idempotent — return existing registration if user already registered
     existing = await db.event_registrations.find_one(
-        {"event_id": event_id, "user_id": str(user["_id"])}, {"_id": 0}
+        {"event_id": canonical_id, "user_id": str(user["_id"])}, {"_id": 0}
     )
     if existing:
         return existing
 
     reg_id = secrets.token_hex(8)
-    qr_payload = f"SA-EVENT:{event_id}|{user.get('unique_id')}|{reg_id}"
+    qr_payload = f"SA-EVENT:{canonical_id}|{user.get('unique_id') or str(user['_id'])}|{reg_id}"
     registration = {
         "id": reg_id,
-        "event_id": event_id,
-        "event_title": event["title"],
+        "event_id": canonical_id,
+        "event_title": event.get("title", "Event"),
         "user_id": str(user["_id"]),
-        "user_name": user["full_name"],
+        "user_name": user.get("full_name") or user.get("name") or "",
         "user_unique_id": user.get("unique_id"),
         "qr_code_base64": generate_qr_code(qr_payload),
         "registered_at": datetime.now(timezone.utc).isoformat(),
@@ -6203,9 +6230,19 @@ async def register_event(event_id: str, user: dict = Depends(get_current_user)):
 @api_router.get("/events/{event_id}/my-registration")
 async def my_event_registration(event_id: str, user: dict = Depends(get_current_user)):
     """Returns the user's registration for a given event (or None)."""
+    # Try with the given event_id first
     reg = await db.event_registrations.find_one(
         {"event_id": event_id, "user_id": str(user["_id"])}, {"_id": 0}
     )
+    if not reg:
+        # Fall back to canonical ID if we can find the event
+        event = await _find_event_by_id(db, event_id)
+        if event:
+            canonical_id = event.get("id") or event_id
+            if canonical_id != event_id:
+                reg = await db.event_registrations.find_one(
+                    {"event_id": canonical_id, "user_id": str(user["_id"])}, {"_id": 0}
+                )
     return reg or {}
 
 

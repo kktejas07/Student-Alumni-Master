@@ -25,10 +25,12 @@ export function CreateEventView({ onNavigate }: { onNavigate?: (id: any) => void
   const [price, setPrice] = useState('0');
   const [creating, setCreating] = useState(false);
   const [createdEvent, setCreatedEvent] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const create = async () => {
     try {
       setCreating(true);
+      setError(null);
       const sd = startDate || new Date(Date.now() + 14 * 86400000).toISOString();
       const j = await request<any>('/college/events', {
         method: 'POST',
@@ -41,9 +43,9 @@ export function CreateEventView({ onNavigate }: { onNavigate?: (id: any) => void
       setCreatedEvent({ ...j, title, category, mode });
       setTimeout(() => {
         onNavigate?.('events');
-      }, 1500);
-    } catch {
-      // silent — keep form open so user can retry
+      }, 2000);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to create event. Please try again.');
     } finally { setCreating(false); }
   };
 
@@ -85,6 +87,11 @@ export function CreateEventView({ onNavigate }: { onNavigate?: (id: any) => void
 
         <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
           <View style={{ flex: 1, minWidth: 150 }}>
+            <Field label="Start Date (YYYY-MM-DD)">
+              <TextInput value={startDate} onChangeText={setStartDate} style={s.input} placeholder="2026-08-15" placeholderTextColor={CC.dim} />
+            </Field>
+          </View>
+          <View style={{ flex: 1, minWidth: 150 }}>
             <Field label="Capacity">
               <TextInput value={capacity} onChangeText={setCapacity} keyboardType="numeric" style={s.input} placeholder="200" placeholderTextColor={CC.dim} />
             </Field>
@@ -96,20 +103,29 @@ export function CreateEventView({ onNavigate }: { onNavigate?: (id: any) => void
           </View>
         </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Pressable
-            onPress={create}
-            disabled={creating || !title || !collegeName}
-            style={({ hovered }: any) => [s.createBtn, hovered && { transform: [{ translateY: -1 }] }, (creating || !title || !collegeName) && { opacity: 0.5 }]}
-          >
-            <Sparkles size={13} color={CC.bg} />
-            <Text style={s.createText}>{creating ? 'Creating…' : 'Create Event'}</Text>
-          </Pressable>
-          {createdEvent && (
-            <View style={s.successBox}>
-              <CheckCircle size={14} color="#22C55E" />
-              <Text style={{ color: '#22C55E', fontFamily: FONTS.bold, fontSize: 12 }}>
-                {createdEvent.title} · id {createdEvent.event_id}
+        <View style={{ gap: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Pressable
+              onPress={create}
+              disabled={creating || !title || !collegeName}
+              style={({ hovered }: any) => [s.createBtn, hovered && { transform: [{ translateY: -1 }] }, (creating || !title || !collegeName) && { opacity: 0.5 }]}
+            >
+              <Sparkles size={13} color={CC.bg} />
+              <Text style={s.createText}>{creating ? 'Creating…' : 'Create Event'}</Text>
+            </Pressable>
+            {createdEvent && (
+              <View style={s.successBox}>
+                <CheckCircle size={14} color="#22C55E" />
+                <Text style={{ color: '#22C55E', fontFamily: FONTS.bold, fontSize: 12 }}>
+                  "{createdEvent.title}" created! Redirecting…
+                </Text>
+              </View>
+            )}
+          </View>
+          {error && (
+            <View style={s.errorBox}>
+              <Text style={{ color: '#EF4444', fontFamily: FONTS.bold, fontSize: 12 }}>
+                ✕ {error}
               </Text>
             </View>
           )}
@@ -140,4 +156,5 @@ const s = StyleSheet.create({
   createBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 18, height: 40, borderRadius: 10, backgroundColor: CC.accentBright, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   createText: { color: CC.bg, fontFamily: FONTS.xbold, fontSize: 13 },
   successBox: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, backgroundColor: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.30)', borderWidth: 1 },
+  errorBox: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: 'rgba(239,68,68,0.10)', borderColor: 'rgba(239,68,68,0.35)', borderWidth: 1 },
 });

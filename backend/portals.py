@@ -2048,7 +2048,10 @@ async def college_events_list(college_name: Optional[str] = None, limit: int = 1
     async for ev in cur:
         sd = ev.get("start_date")
         date_str = sd.strftime("%b %d") if isinstance(sd, datetime) else "TBD"
-        regs = await _db.event_registrations.count_documents({"event_id": str(ev.get("_id"))})
+        # Use the stored "id" field (short-id for college-created events) so this
+        # matches the key used by /events/{id}/register when inserting registrations.
+        canonical_ev_id = ev.get("id") or str(ev.get("_id"))
+        regs = await _db.event_registrations.count_documents({"event_id": canonical_ev_id})
         out.append({
             "id": _short_id(ev.get("_id")),
             "title": ev.get("title", "Event"),
