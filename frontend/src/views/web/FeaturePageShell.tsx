@@ -117,9 +117,9 @@ export default function FeaturePageShell({
   let brandSubtitle = 'Web Dashboard';
   let orbColor1 = 'rgba(139,92,246,0.18)';
   let orbColor2 = 'rgba(59,130,246,0.18)';
-  let heroBorder = 'rgba(139,92,246,0.30)';
-  let heroBg = 'rgba(20, 26, 45, 0.55)';
-  let heroBoxShadow = '0 20px 60px -12px rgba(139,92,246,0.40), 0 0 0 1px rgba(139,92,246,0.15) inset';
+  let heroBorder = 'rgba(139,92,246,0.20)';
+  let heroBg = 'rgba(124, 58, 237, 0.18)';
+  let heroBoxShadow = '0 20px 60px -12px rgba(139,92,246,0.25), 0 0 0 1px rgba(255, 255, 255, 0.08) inset';
   let heroOrbColor1 = 'rgba(139,92,246,0.22)';
   let heroOrbColor2 = 'rgba(191,219,254,0.18)';
   let avatarGradient: readonly [string, string] | undefined = undefined;
@@ -398,5 +398,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 4,
     maxWidth: 720,
+  },
+  heroBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 4,
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(10px)',
+        } as any)
+      : {}),
+  },
+  heroBadgeText: {
+    fontSize: 22,
   },
 });
