@@ -6662,11 +6662,14 @@ async def on_startup():
     await db.workflow_events.create_index([("fired_at", -1)])
     
     # Missing indexes for performance
-    await db.connections.create_index("a")
-    await db.connections.create_index("b")
-    await db.connections.create_index("mentor_id")
-    await db.events.create_index("mentor_id")
-    await db.event_registrations.create_index("event_id")
+    try:
+        await db.connections.create_index("a")
+        await db.connections.create_index("b")
+        await db.connections.create_index("mentor_id")
+        await db.events.create_index("mentor_id")
+        await db.event_registrations.create_index("event_id")
+    except Exception as e:
+        logger.warning(f"Could not create missing indexes: {e}")
     await seed_admin()
     await seed_data()
 
