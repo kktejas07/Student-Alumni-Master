@@ -686,7 +686,7 @@ def generate_qr_code(data: str) -> str:
     qr.make(fit=True)
     img = qr.make_image(fill_color="#5F259F", back_color="#FFFFFF")  # Brand purple QR
     buf = io.BytesIO()
-    img.save(buf, format="PNG")
+    getattr(img, "save")(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
@@ -1668,7 +1668,7 @@ def _generate_totp_qr(uri: str) -> str:
     qr.make(fit=True)
     img = qr.make_image(fill_color="#7C3AED", back_color="#FFFFFF")
     buf = io.BytesIO()
-    img.save(buf, format="PNG")
+    getattr(img, "save")(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
@@ -3388,7 +3388,7 @@ async def connect_integration(
     try:
         await _audit_log(  # type: ignore
             user_id=str(user["_id"]),
-            field_name=f"integrations.{provider}",
+            field=f"integrations.{provider}",
             old_value=None, new_value=rec,
             source="integration_connect",
         )
@@ -3412,7 +3412,7 @@ async def disconnect_integration(
     try:
         await _audit_log(  # type: ignore
             user_id=str(user["_id"]),
-            field_name=f"integrations.{p}",
+            field=f"integrations.{p}",
             old_value=user.get("integrations", {}).get(p),
             new_value=None,
             source="integration_disconnect",
@@ -6642,34 +6642,37 @@ async def seed_admin():
 
 @app.on_event("startup")
 async def on_startup():
-    await db.users.create_index("email", unique=True)
-    await db.users.create_index("unique_id")
-    await db.users.create_index([("role", 1), ("mentor_status", 1)])
-    await db.users.create_index("sa_id", unique=True, sparse=True)
-    await db.career_suggestions.create_index("user_id")
-    await db.chat_messages.create_index([("user_id", 1), ("session_id", 1)])
-    await db.bookings.create_index([("student_id", 1), ("slot_start_iso", -1)])
-    await db.bookings.create_index([("mentor_id", 1), ("slot_start_iso", -1)])
-    await db.audit_logs.create_index("user_id")
-    await db.audit_logs.create_index([("ts", -1)])
-    await db.sessions.create_index("user_id")
-    await db.sessions.create_index([("expires_at", 1)], expireAfterSeconds=0)
+    async def safe_create_index(collection, *args, **kwargs):
+        try:
+            await collection.create_index(*args, **kwargs)
+        except Exception as e:
+            logger.warning(f"Skipping index creation for {collection.name} {args}: {e}")
+
+    await safe_create_index(db.users, "email", unique=True)
+    await safe_create_index(db.users, "unique_id")
+    await safe_create_index(db.users, [("role", 1), ("mentor_status", 1)])
+    await safe_create_index(db.users, "sa_id", unique=True, sparse=True)
+    await safe_create_index(db.career_suggestions, "user_id")
+    await safe_create_index(db.chat_messages, [("user_id", 1), ("session_id", 1)])
+    await safe_create_index(db.bookings, [("student_id", 1), ("slot_start_iso", -1)])
+    await safe_create_index(db.bookings, [("mentor_id", 1), ("slot_start_iso", -1)])
+    await safe_create_index(db.audit_logs, "user_id")
+    await safe_create_index(db.audit_logs, [("ts", -1)])
+    await safe_create_index(db.sessions, "user_id")
+    await safe_create_index(db.sessions, [("expires_at", 1)], expireAfterSeconds=0)
     # Agent K scheduled — indexes that the tick query and per-user list rely on
-    await db.agent_k_schedules.create_index([("status", 1), ("next_run_at", 1)])
-    await db.agent_k_schedules.create_index([("user_id", 1), ("created_at", -1)])
-    await db.agent_runs.create_index([("schedule_id", 1), ("started_at", -1)])
-    await db.workflow_events.create_index("event_type")
-    await db.workflow_events.create_index([("fired_at", -1)])
+    await safe_create_index(db.agent_k_schedules, [("status", 1), ("next_run_at", 1)])
+    await safe_create_index(db.agent_k_schedules, [("user_id", 1), ("created_at", -1)])
+    await safe_create_index(db.agent_runs, [("schedule_id", 1), ("started_at", -1)])
+    await safe_create_index(db.workflow_events, "event_type")
+    await safe_create_index(db.workflow_events, [("fired_at", -1)])
     
     # Missing indexes for performance
-    try:
-        await db.connections.create_index("a")
-        await db.connections.create_index("b")
-        await db.connections.create_index("mentor_id")
-        await db.events.create_index("mentor_id")
-        await db.event_registrations.create_index("event_id")
-    except Exception as e:
-        logger.warning(f"Could not create missing indexes: {e}")
+    await safe_create_index(db.connections, "a")
+    await safe_create_index(db.connections, "b")
+    await safe_create_index(db.connections, "mentor_id")
+    await safe_create_index(db.events, "mentor_id")
+    await safe_create_index(db.event_registrations, "event_id")
     await seed_admin()
     await seed_data()
 
