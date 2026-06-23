@@ -769,8 +769,9 @@ async def get_current_user(request: Request) -> dict:
     import time
     _t0 = time.perf_counter()
     auth = request.headers.get("Authorization", "")
+    print(f"[AUTH TRACE] path={request.url.path} auth={auth[:15]}...", flush=True)
     if not auth.startswith("Bearer "):
-        raise HTTPException(401, "Not authenticated")
+        raise HTTPException(401, f"Not authenticated (auth={auth[:15]}...)")
     try:
         payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
         if payload.get("type") != "access":
@@ -5265,7 +5266,8 @@ def _user_card(u: dict) -> dict:
     ai = u.get("alumni_info") or {}
     raw_badges = u.get("badges") or []
     tier_rank = {"special": 4, "high": 3, "verified": 2, "moderate": 1, "low": 0}
-    sorted_badges = sorted(raw_badges, key=lambda b: -tier_rank.get(b.get("tier"), 0))
+    valid_badges = [b for b in raw_badges if isinstance(b, dict)]
+    sorted_badges = sorted(valid_badges, key=lambda b: -tier_rank.get(b.get("tier"), 0))
     top_badges = [
         {"id": b.get("id"), "label": b.get("label"), "tier": b.get("tier"),
          "icon": b.get("icon"), "kind": b.get("kind"), "category": b.get("category")}
