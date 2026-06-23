@@ -367,14 +367,10 @@ function HeroCard({ isWide }: { isWide: boolean }) {
   return (
     <View style={[styles.heroShell, !isWide && { padding: 20 }]}>
       <LinearGradient
-        colors={['rgba(95, 37, 159, 0.15)', 'rgba(45, 7, 96, 0.15)']}
+        colors={['#5F259F', '#7B3DBF', '#2D0760']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-      {/* Decorative orbs */}
-      <View pointerEvents="none" style={[styles.heroOrb, { width: 300, height: 300, top: -80, right: -40, backgroundColor: 'rgba(176,127,223,0.18)' }]} />
-      <View pointerEvents="none" style={[styles.heroOrb, { width: 180, height: 180, bottom: -40, left: 20, backgroundColor: 'rgba(95,37,159,0.22)' }]} />
-
       <View style={[styles.heroBody, !isWide && { flexDirection: 'column', gap: 24 }]}>
         {/* Left side */}
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -542,17 +538,8 @@ const styles = StyleSheet.create({
 
   // Hero
   heroShell: {
-    borderRadius: 20,
-    padding: 32,
-    overflow: 'hidden',
+    borderRadius: 20, padding: 32, overflow: 'hidden',
     position: 'relative',
-    borderWidth: 1,
-    borderColor: 'rgba(176, 127, 223, 0.30)',
-    backgroundColor: 'rgba(95, 37, 159, 0.18)',
-    ...(Platform.OS === 'web' ? ({
-      backdropFilter: 'blur(20px)',
-      boxShadow: '0 20px 60px -12px rgba(95,37,159,0.25), 0 0 0 1px rgba(255, 255, 255, 0.08) inset',
-    } as any) : {}),
   },
   heroOrb: { position: 'absolute', borderRadius: 999, ...({ filter: 'blur(80px)' } as any) },
   heroBody: { flexDirection: 'row', gap: 32, alignItems: 'center' },
