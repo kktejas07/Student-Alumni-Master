@@ -10,10 +10,12 @@ SMTP_PORT = int(os.environ.get("SMTP_PORT", 465))
 SMTP_USER = os.environ.get("SMTP_USER", "")
 SMTP_PASS = os.environ.get("SMTP_PASS", "")
 MAIL_FROM = os.environ.get("MAIL_FROM", SMTP_USER)
+SMTP_USE_TLS = os.environ.get("SMTP_USE_TLS", str(SMTP_PORT == 465)).lower() == "true"
+SMTP_START_TLS = os.environ.get("SMTP_START_TLS", str(SMTP_PORT == 587)).lower() == "true"
 
 async def send_otp_email(to_email: str, otp: str):
     if not SMTP_HOST:
-        logger.warning(f"SMTP not configured. Mocking OTP send to {to_email}: {otp}")
+        logger.warning(f"SMTP not configured. Mocking OTP send to {to_email}")
         return True
 
     message = EmailMessage()
@@ -44,8 +46,8 @@ async def send_otp_email(to_email: str, otp: str):
             port=SMTP_PORT,
             username=SMTP_USER,
             password=SMTP_PASS,
-            use_tls=(SMTP_PORT == 465),
-            start_tls=(SMTP_PORT == 587)
+            use_tls=SMTP_USE_TLS,
+            start_tls=SMTP_START_TLS
         )
         logger.info(f"OTP sent to {to_email}")
         return True

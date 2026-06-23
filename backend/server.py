@@ -489,6 +489,7 @@ class VerifyOtpRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     email: EmailStr
+    otp: str
     new_password: str
 
     @field_validator("new_password")
@@ -996,22 +997,21 @@ async def login(request: Request, req: LoginRequest):
 @api_router.post("/auth/forgot-password")
 @limiter.limit("5/minute")
 async def forgot_password(request: Request, req: ForgotPasswordRequest):
+    import hashlib
     email = req.email.lower().strip()
     user = await db.users.find_one({"email": email})
-    if not user:
-        raise HTTPException(status_code=404, detail="No account found with this email address.")
     
-    otp = ''.join(random.choices(string.digits, k=6))
+    otp = ''.join(secrets.choice(string.digits) for _ in range(6))
     expires = datetime.now(timezone.utc) + timedelta(minutes=15)
+    otp_hash = hashlib.sha256(otp.encode()).hexdigest()
     
-    await db.users.update_one(
-        {"_id": user["_id"]},
-        {"$set": {"reset_otp": otp, "reset_otp_expires_at": expires}}
-    )
-    
-    success = await send_otp_email(email, otp)
-    if not success:
-        raise HTTPException(500, "Failed to send email. Please try again later.")
+    if user:
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"reset_otp_hash": otp_hash, "reset_otp_expires_at": expires, "reset_otp_attempts": 0}}
+        )
+        # We ignore errors from send_otp_email to not reveal if the email exists
+        await send_otp_email(email, otp)
         
     return {"message": "If that email is registered, we've sent a verification code."}
 
@@ -1019,15 +1019,23 @@ async def forgot_password(request: Request, req: ForgotPasswordRequest):
 @api_router.post("/auth/verify-otp")
 @limiter.limit("10/minute")
 async def verify_otp(request: Request, req: VerifyOtpRequest):
+    import hashlib
     email = req.email.lower().strip()
     user = await db.users.find_one({"email": email})
-    if not user or "reset_otp" not in user:
+    if not user or "reset_otp_hash" not in user:
         raise HTTPException(400, "Invalid or expired verification code.")
         
     if user.get("reset_otp_expires_at") and datetime.now(timezone.utc) > user["reset_otp_expires_at"].replace(tzinfo=timezone.utc):
         raise HTTPException(400, "Verification code has expired.")
         
-    if user["reset_otp"] != req.otp:
+    attempts = user.get("reset_otp_attempts", 0)
+    if attempts >= 5:
+        await db.users.update_one({"_id": user["_id"]}, {"$unset": {"reset_otp_hash": "", "reset_otp_expires_at": "", "reset_otp_attempts": ""}})
+        raise HTTPException(400, "Too many failed attempts. Please request a new code.")
+
+    otp_hash = hashlib.sha256(req.otp.encode()).hexdigest()
+    if user["reset_otp_hash"] != otp_hash:
+        await db.users.update_one({"_id": user["_id"]}, {"$inc": {"reset_otp_attempts": 1}})
         raise HTTPException(400, "Invalid verification code.")
         
     return {"message": "Code verified successfully."}
@@ -1036,20 +1044,31 @@ async def verify_otp(request: Request, req: VerifyOtpRequest):
 @api_router.post("/auth/reset-password")
 @limiter.limit("5/minute")
 async def reset_password(request: Request, req: ResetPasswordRequest):
+    import hashlib
     email = req.email.lower().strip()
     user = await db.users.find_one({"email": email})
     
-    if not user or "reset_otp" not in user:
+    if not user or "reset_otp_hash" not in user:
         raise HTTPException(400, "Invalid reset request.")
         
     if user.get("reset_otp_expires_at") and datetime.now(timezone.utc) > user["reset_otp_expires_at"].replace(tzinfo=timezone.utc):
         raise HTTPException(400, "Reset session has expired. Please try forgot password again.")
         
+    attempts = user.get("reset_otp_attempts", 0)
+    if attempts >= 5:
+        await db.users.update_one({"_id": user["_id"]}, {"$unset": {"reset_otp_hash": "", "reset_otp_expires_at": "", "reset_otp_attempts": ""}})
+        raise HTTPException(400, "Too many failed attempts. Please request a new code.")
+
+    otp_hash = hashlib.sha256(req.otp.encode()).hexdigest()
+    if user["reset_otp_hash"] != otp_hash:
+        await db.users.update_one({"_id": user["_id"]}, {"$inc": {"reset_otp_attempts": 1}})
+        raise HTTPException(400, "Invalid verification code.")
+        
     await db.users.update_one(
         {"_id": user["_id"]},
         {
             "$set": {"password_hash": hash_password(req.new_password)},
-            "$unset": {"reset_otp": "", "reset_otp_expires_at": ""}
+            "$unset": {"reset_otp_hash": "", "reset_otp_expires_at": "", "reset_otp_attempts": ""}
         }
     )
     return {"message": "Password updated successfully."}

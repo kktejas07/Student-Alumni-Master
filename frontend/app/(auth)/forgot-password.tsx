@@ -88,7 +88,7 @@ export default function ForgotPassword() {
       const res = await fetch(`${BASE}/api/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, new_password: pwd })
+        body: JSON.stringify({ email, otp: otp.join(''), new_password: pwd })
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
