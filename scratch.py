@@ -2,12 +2,16 @@ import asyncio
 import json
 import urllib.request
 import urllib.error
+import os
+
+EMAIL = os.getenv("API_EMAIL")
+PASSWORD = os.getenv("API_PASSWORD")
 
 async def run():
     # Login to get token
     req = urllib.request.Request(
         'http://localhost:8000/api/auth/login',
-        data=json.dumps({"email": "student@studentalumni.ai", "password": "Password!123"}).encode('utf-8'),
+        data=json.dumps({"email": EMAIL, "password": PASSWORD}).encode('utf-8'),
         headers={'Content-Type': 'application/json'}
     )
     try:
@@ -15,6 +19,8 @@ async def run():
             res = json.loads(response.read().decode())
             token = res.get("access_token")
             print("Token length:", len(token) if token else "No token")
+            if not token:
+                raise ValueError("Failed to retrieve access token")
             
             # Call network/requests
             req2 = urllib.request.Request(

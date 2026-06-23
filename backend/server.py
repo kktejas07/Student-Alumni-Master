@@ -769,9 +769,9 @@ async def get_current_user(request: Request) -> dict:
     import time
     _t0 = time.perf_counter()
     auth = request.headers.get("Authorization", "")
-    print(f"[AUTH TRACE] path={request.url.path} auth={auth[:15]}...", flush=True)
+    print(f"[AUTH TRACE] path={request.url.path}", flush=True)
     if not auth.startswith("Bearer "):
-        raise HTTPException(401, f"Not authenticated (auth={auth[:15]}...)")
+        raise HTTPException(401, "Not authenticated")
     try:
         payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
         if payload.get("type") != "access":

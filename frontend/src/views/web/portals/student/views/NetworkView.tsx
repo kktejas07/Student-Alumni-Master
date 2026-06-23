@@ -97,7 +97,7 @@ export function NetworkView() {
       college,
       year: u.graduation_year || u.year || 2026,
       tags: u.skills || u.interests || [],
-      mutual: u.mutual_connections || u.mutual || 5,
+      mutual: u.mutual_connections ?? u.mutual ?? 5,
       linkedin: u.linkedin_url || u.linkedin || '',
       github: u.github_url || u.github || '',
       connectionState: u.connection_state || 'none',
@@ -269,7 +269,7 @@ export function NetworkView() {
           name,
           avatar,
           color,
-          role: (role === 'student' ? 'Student' : role === 'alumni' ? 'Alumni' : 'Industry') as any,
+          role: (role === 'student' ? 'Student' : role === 'alumni' ? 'Alumni' : role === 'mentor' ? 'Mentor' : 'Industry') as any,
           subtitle,
           time: req.requested_at ? 'Pending' : '2d ago',
           message: req.message || ''
@@ -508,17 +508,26 @@ export function NetworkView() {
           
           {/* Secondary Sub-filters Row */}
           <View style={s.subFiltersRow}>
-            {['everyone', 'students', 'alumnis', 'mentors', 'industry'].map((f) => (
+            {['everyone', 'students', 'alumnis', 'mentors', 'industry'].map((f) => {
+              const filterLabels: Record<string, string> = {
+                everyone: 'Everyone',
+                students: 'Students',
+                alumnis: 'Alumni',
+                mentors: 'Mentors',
+                industry: 'Industry'
+              };
+              return (
               <Pressable 
                 key={f}
                 onPress={() => setFilter(f as FilterType)} 
                 style={[s.subFilterChip, filter === f && s.subFilterChipOn]}
               >
                 <Text style={[s.subFilterText, filter === f && s.subFilterTextOn]}>
-                  {f.charAt(0).toUpperCase() + f.slice(1)}
+                  {filterLabels[f] || f}
                 </Text>
               </Pressable>
-            ))}
+              );
+            })}
           </View>
 
           {/* Search Input Box */}
@@ -540,7 +549,7 @@ export function NetworkView() {
               style={[s.tabBtn, discoverSubTab === 'interest' && s.tabBtnActive]}
             >
               <Heart size={12} color={discoverSubTab === 'interest' ? '#5EEAD4' : '#E2E8F0'} style={{ marginRight: 6 }} />
-              <Text style={[s.tabBtnText, discoverSubTab === 'interest' && s.tabBtnTextOn]}>Matched by Interest</Text>
+              <Text style={[s.tabBtnText, discoverSubTab === 'interest' && s.tabBtnTextActive]}>Matched by Interest</Text>
               <View style={[s.discBadge, discoverSubTab === 'interest' && s.discBadgeOn]}><Text style={s.discBadgeText}>{discoverCounts.interest}</Text></View>
             </Pressable>
 
@@ -745,8 +754,8 @@ export function NetworkView() {
 
             <View style={{ gap: 8, marginTop: 10 }}>
               {incomingRequests.map((req) => {
-                const tagStyle = req.role === 'Student' ? s.rolePillStudent : s.rolePillAlumni;
-                const tagTextStyle = req.role === 'Student' ? s.rolePillStudentText : s.rolePillAlumniText;
+                const tagStyle = req.role === 'Student' ? s.rolePillStudent : req.role === 'Mentor' ? s.rolePillMentor : req.role === 'Industry' ? s.rolePillIndustry : s.rolePillAlumni;
+                const tagTextStyle = req.role === 'Student' ? s.rolePillStudentText : req.role === 'Mentor' ? s.rolePillMentorText : req.role === 'Industry' ? s.rolePillIndustryText : s.rolePillAlumniText;
 
                 return (
                   <View key={req.id} style={s.requestRow}>
@@ -800,14 +809,18 @@ export function NetworkView() {
             </View>
 
             <View style={{ gap: 8, marginTop: 10 }}>
-              {sentRequests.map((req) => (
+              {sentRequests.map((req) => {
+                const tagStyle = req.role === 'Student' ? s.rolePillStudent : req.role === 'Mentor' ? s.rolePillMentor : req.role === 'Industry' ? s.rolePillIndustry : s.rolePillAlumni;
+                const tagTextStyle = req.role === 'Student' ? s.rolePillStudentText : req.role === 'Mentor' ? s.rolePillMentorText : req.role === 'Industry' ? s.rolePillIndustryText : s.rolePillAlumniText;
+
+                return (
                 <View key={req.id} style={s.requestRow}>
                   <Av initials={req.avatar} size={42} color={req.color} />
                   <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <Text style={s.requestName}>{req.name}</Text>
-                      <View style={[s.rolePillBase, s.rolePillIndustry]}>
-                        <Text style={[s.rolePillBaseText, s.rolePillIndustryText]}>{req.role}</Text>
+                      <View style={[s.rolePillBase, tagStyle]}>
+                        <Text style={[s.rolePillBaseText, tagTextStyle]}>{req.role}</Text>
                       </View>
                       <Text style={s.requestTimeText}>{req.time}</Text>
                     </View>
@@ -820,7 +833,8 @@ export function NetworkView() {
                     <Text style={s.pendingStatusText}>Pending</Text>
                   </View>
                 </View>
-              ))}
+                );
+              })}
 
               {sentRequests.length === 0 && (
                 <Text style={s.noRequestText}>No pending sent requests.</Text>
@@ -1978,24 +1992,7 @@ const s = StyleSheet.create({
   },
 
   // Search input style
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.20)',
-    borderColor: SC.border,
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 40,
-    marginBottom: 10
-  },
-  searchInput: {
-    flex: 1,
-    color: '#fff',
-    fontFamily: FONTS.med,
-    fontSize: 13,
-    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {})
-  },
+
 
   // Discover sub tab style
   discoverRow: {
@@ -2057,18 +2054,7 @@ const s = StyleSheet.create({
     paddingBottom: 10,
     ...({ cursor: 'pointer' } as any)
   },
-  secTitle: {
-    color: '#fff',
-    fontFamily: FONTS.xbold,
-    fontSize: 15,
-    letterSpacing: -0.2
-  },
-  secSub: {
-    color: SC.dim,
-    fontFamily: FONTS.med,
-    fontSize: 11,
-    marginTop: 2
-  },
+
   secBadge: {
     paddingHorizontal: 6,
     paddingVertical: 1,
@@ -2344,28 +2330,7 @@ const s = StyleSheet.create({
     fontFamily: FONTS.xbold,
     fontSize: 13
   },
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-    justifyContent: 'flex-end',
-    alignItems: Platform.OS === 'web' ? 'flex-end' : 'stretch',
-  },
-  modal: {
-    backgroundColor: SC.bg2 || '#090D16',
-    borderColor: SC.border,
-    borderLeftWidth: Platform.OS === 'web' ? 1 : 0,
-    borderWidth: Platform.OS === 'web' ? 0 : 1,
-    borderTopLeftRadius: Platform.OS === 'web' ? 0 : 20,
-    borderTopRightRadius: Platform.OS === 'web' ? 0 : 20,
-    width: Platform.OS === 'web' ? 440 : '100%',
-    height: Platform.OS === 'web' ? '100%' : '85%',
-    maxHeight: '100%',
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: -10, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20
-  },
+
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2406,35 +2371,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     ...({ cursor: 'pointer' } as any)
   },
-  connectBtnLarge: {
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: '#14B8A6',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...({ cursor: 'pointer' } as any)
-  },
-  connectedPillLarge: {
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: 'rgba(20,184,166,0.1)',
-    borderColor: 'rgba(20,184,166,0.2)',
-    borderWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pendingPillLarge: {
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: 'rgba(245,158,11,0.1)',
-    borderColor: 'rgba(245,158,11,0.2)',
-    borderWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+
   successPopupContainer: {
     position: 'absolute',
     top: 24,
