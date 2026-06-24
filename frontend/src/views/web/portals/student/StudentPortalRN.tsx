@@ -20,7 +20,7 @@ import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 
 import { Sidebar, StudentNavId } from './Sidebar';
 import { TopBar } from './TopBar';
-import { AnimatedAurora, GridOverlay, RouteTransition } from './glass';
+import { AnimatedAurora, GridOverlay, RouteTransition, AiCopilotFab } from './glass';
 import { StudentNotificationsPanel } from './views/NotificationsPanel';
 import { PALETTE } from './tokens';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -154,7 +154,8 @@ function PortalShell() {
             </ScrollView>
           </StudentPortalNavContext.Provider>
 
-
+          {/* Global AI Copilot FAB — visible on every Student screen */}
+          <AiCopilotFab onPress={() => router.push('/agent-k')} />
         </View>
         {showNotifs && (
           <StudentNotificationsPanel

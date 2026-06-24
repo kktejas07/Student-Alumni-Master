@@ -14,7 +14,7 @@ import { SAC, FONTS } from './tokens';
 import { ADMIN } from './data';
 import { Av, Badge } from './atoms';
 import { GRAD } from './applekit';
-
+import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 /* Display info for the sidebar profile blocks — uses the real logged-in
@@ -88,6 +88,8 @@ export function Sidebar({
         <ExternalLink size={13} color={SAC.muted} />
       </Pressable>
 
+      {/* Agent K launcher */}
+      <AgentKLauncher />
 
       {/* Nav */}
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 4, paddingBottom: 8 }} showsVerticalScrollIndicator={false}>

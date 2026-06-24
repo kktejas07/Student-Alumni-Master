@@ -42,6 +42,3 @@ export function getBaseUrl() {
 
   return `http://localhost:${port}`;
 }
-
-export const BASE = getBaseUrl();
-

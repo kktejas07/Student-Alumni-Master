@@ -19,7 +19,7 @@ import { GRADS } from './gradients';
 import { STUDENT } from './data';
 import { Av } from './atoms';
 import { FadeInView, PressScale, SparkIcon, PulseDot } from './motion';
-
+import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
 import { router } from 'expo-router';
 
 export type StudentNavId =
@@ -105,7 +105,10 @@ export function Sidebar({
         </PressScale>
       </FadeInView>
 
-
+      {/* Agent K launcher — sits above the main nav (Chunk 2) */}
+      <FadeInView delay={140}>
+        <AgentKLauncher />
+      </FadeInView>
 
       {/* Nav */}
       <ScrollView
