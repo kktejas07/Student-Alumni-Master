@@ -19,7 +19,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile, File
 from pydantic import BaseModel
-import csv, io
+import csv
+import io
 from db import client as _mongo
 _db = _mongo[os.environ["DB_NAME"]]
 logger = logging.getLogger("college_portal")
@@ -103,15 +104,17 @@ def _seed_roster() -> List[Dict[str, Any]]:
 
 async def get_roster(college_id: str, user_doc: dict) -> List[Dict[str, Any]]:
     if not user_doc.get("demo_seeded"):
-        demo_students = _seed_roster()
-        for s in demo_students:
-            s["college_id"] = college_id
-            s.pop("_id", None)
-        if demo_students:
-            await _db.college_students.insert_many(demo_students)
+        count = await _db.college_students.count_documents({"college_id": college_id})
+        if count == 0:
+            demo_students = _seed_roster()
+            for s in demo_students:
+                s["college_id"] = college_id
+                s.pop("_id", None)
+            if demo_students:
+                await _db.college_students.insert_many(demo_students)
         await _db.users.update_one({"_id": user_doc["_id"]}, {"$set": {"demo_seeded": True}})
     
-    cursor = _db.college_students.find({"college_id": college_id}, {"_id": 0})
+    cursor = _db.college_students.find({"college_id": college_id}, {"_id": 0}).sort("id", 1)
     return await cursor.to_list(None)
 
 
@@ -167,8 +170,13 @@ class AddStudentPayload(BaseModel):
 
 @router.post("/college/students")
 async def add_college_student(payload: AddStudentPayload, user: dict = Depends(_auth())):
-    count = await _db.college_students.count_documents({"college_id": str(user["_id"])})
-    student_id = f"STU-{1001 + count}"
+    counter_doc = await _db.counters.find_one_and_update(
+        {"_id": f"student_seq_{user['_id']}"},
+        {"$inc": {"seq": 1}},
+        upsert=True,
+        return_document=True
+    )
+    student_id = f"STU-{1000 + counter_doc['seq']}"
     
     # Calculate status
     if payload.cgpa >= 9.0:
@@ -210,9 +218,9 @@ async def export_college_students_csv(
     dept: str = Query("all"),
     year: str = Query("all"),
     status: str = Query("all"),
-    user: dict = Depends(_auth()),
 ):
-    import csv, io
+    import csv
+    import io
 
     items = await get_roster(str(user["_id"]), user)
     if dept and dept != "all":
@@ -443,18 +451,19 @@ async def upload_college_students(file: UploadFile = File(...), user: dict = Dep
         raise HTTPException(400, "Must be a CSV file")
         
     contents = await file.read()
+    if len(contents) > 5 * 1024 * 1024:  # 5MB limit
+        raise HTTPException(400, "File too large. Maximum size is 5MB.")
+
     try:
         decoded = contents.decode('utf-8')
     except Exception:
         raise HTTPException(400, "Invalid file encoding. Must be UTF-8.")
         
     reader = csv.DictReader(io.StringIO(decoded))
-    
-    count = await _db.college_students.count_documents({"college_id": str(user["_id"])})
     to_insert = []
     
     for row in reader:
-        cleaned_row = {k.strip().lower(): v.strip() for k, v in row.items() if k}
+        cleaned_row = {k.strip().lower(): (v.strip() if v else "") for k, v in row.items() if k}
         
         name = cleaned_row.get("name") or "Unknown Student"
         email = cleaned_row.get("email") or ""
@@ -492,12 +501,8 @@ async def upload_college_students(file: UploadFile = File(...), user: dict = Dep
         if not initials:
             initials = "ST"
             
-        count += 1
-        student_id = f"STU-{1001 + count}"
-        
         to_insert.append({
             "college_id": str(user["_id"]),
-            "id": student_id,
             "name": name,
             "initials": initials,
             "email": email,
@@ -514,6 +519,16 @@ async def upload_college_students(file: UploadFile = File(...), user: dict = Dep
         })
         
     if to_insert:
+        counter_doc = await _db.counters.find_one_and_update(
+            {"_id": f"student_seq_{user['_id']}"},
+            {"$inc": {"seq": len(to_insert)}},
+            upsert=True,
+            return_document=True
+        )
+        start_seq = counter_doc['seq'] - len(to_insert)
+        for i, s in enumerate(to_insert):
+            s["id"] = f"STU-{1000 + start_seq + 1 + i}"
+
         await _db.college_students.insert_many(to_insert)
         
     return {"ok": True, "count": len(to_insert)}

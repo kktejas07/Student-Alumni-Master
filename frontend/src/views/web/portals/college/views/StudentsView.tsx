@@ -112,6 +112,7 @@ export function StudentsView() {
   const [exporting, setExporting] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const isBusy = submitting || clearing || uploading;
 
   const params = new URLSearchParams({
     q, dept, year, status, page: String(page), page_size: '20',
@@ -126,7 +127,7 @@ export function StudentsView() {
   }, [page, dept, year, status]);
 
   const handleAddStudent = async () => {
-    if (!nameVal.trim() || !emailVal.trim()) return;
+    if (isBusy || !nameVal.trim() || !emailVal.trim()) return;
     setSubmitting(true);
     try {
       await postPortal('/college/students', {
@@ -181,6 +182,7 @@ export function StudentsView() {
   };
 
   const doClear = async () => {
+    if (isBusy) return;
     if (Platform.OS === 'web' && !window.confirm("Are you sure you want to clear all students?")) return;
     setClearing(true);
     try {
@@ -191,11 +193,16 @@ export function StudentsView() {
         method: 'DELETE',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      if (resp.ok) refresh();
-    } catch { /* silent */ } finally { setClearing(false); }
+      if (resp.ok) {
+        refresh();
+      } else {
+        alert('Failed to clear students');
+      }
+    } catch { alert('Clear error'); } finally { setClearing(false); }
   };
 
   const doUpload = () => {
+    if (isBusy) return;
     if (Platform.OS !== 'web') return; // File picker only web for now
     const input = document.createElement('input');
     input.type = 'file';
@@ -236,19 +243,19 @@ export function StudentsView() {
             placeholderTextColor={CC.dim} style={s.searchInput} />
         </View>
         <View style={{ flex: 1 }} />
-        <Pressable style={s.clearBtn} onPress={doClear} disabled={clearing}>
+        <Pressable style={s.clearBtn} onPress={doClear} disabled={isBusy}>
           <MaterialCommunityIcons name="delete" size={14} color="#EF4444" />
           <Text style={s.clearBtnText}>{clearing ? 'Clearing…' : 'Clear All'}</Text>
         </Pressable>
-        <Pressable style={s.exportBtn} onPress={doExport} disabled={exporting}>
+        <Pressable style={s.exportBtn} onPress={doExport} disabled={exporting || isBusy}>
           <MaterialCommunityIcons name={exporting ? "loading" : "download"} size={14} color={CC.muted} />
           <Text style={s.exportBtnText}>{exporting ? 'Exporting…' : 'Export'}</Text>
         </Pressable>
-        <Pressable style={s.uploadBtn} onPress={doUpload} disabled={uploading}>
+        <Pressable style={s.uploadBtn} onPress={doUpload} disabled={isBusy}>
           <MaterialCommunityIcons name="upload" size={14} color="#fff" />
           <Text style={s.uploadBtnText}>{uploading ? 'Uploading…' : 'Upload CSV'}</Text>
         </Pressable>
-        <Pressable style={s.cta} onPress={() => setModalVisible(true)}>
+        <Pressable style={s.cta} onPress={() => setModalVisible(true)} disabled={isBusy}>
           <MaterialCommunityIcons name="plus" size={14} color="#fff" />
           <Text style={s.ctaText}>Add Student</Text>
         </Pressable>

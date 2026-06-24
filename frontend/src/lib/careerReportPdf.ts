@@ -200,6 +200,8 @@ export async function generateCareerReportPdf(data: CareerReportData): Promise<v
     await new Promise((resolve, reject) => {
       const script = document.createElement('script');
       script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+      script.integrity = "sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==";
+      script.crossOrigin = "anonymous";
       script.onload = resolve;
       script.onerror = reject;
       document.head.appendChild(script);
