@@ -199,7 +199,7 @@ function drawFooter(doc: any, pageW: number, pageH: number, pageNum: number, tot
 export async function generateCareerReportPdf(data: CareerReportData): Promise<void> {
   // Dynamic import so bundle stays small for non-web targets
   // @ts-ignore
-  const { jsPDF } = await import('jspdf');
+  const { jsPDF } = await import('jspdf/dist/jspdf.umd.min.js');
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
