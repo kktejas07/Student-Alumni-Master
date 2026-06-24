@@ -79,7 +79,11 @@ export default function ForgotPassword() {
 
   const onResetPwd = async () => {
     setError('');
-    if (strength.score < 2) { setError('Pick a stronger password'); return; }
+    if (pwd.length < 8) { setError('Password must be at least 8 characters'); return; }
+    if (!/[A-Z]/.test(pwd)) { setError('Password must contain an uppercase letter'); return; }
+    if (!/[a-z]/.test(pwd)) { setError('Password must contain a lowercase letter'); return; }
+    if (!/\d/.test(pwd)) { setError('Password must contain a digit'); return; }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(pwd)) { setError('Password must contain a special character'); return; }
     if (pwd !== pwd2) { setError('Passwords don\u2019t match'); return; }
     setLoading(true);
     trackAuth({ event: 'password_strength_check', password_for_strength: pwd });
