@@ -132,5 +132,5 @@ yarl==1.23.0
 zipp==3.23.0
 cachetools==7.1.4
 firebase-admin==6.6.0
-
+aiosmtplib==3.0.2
 playwright==1.60.0
