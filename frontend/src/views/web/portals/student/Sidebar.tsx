@@ -16,7 +16,7 @@
  *     dashboards we ship later)
  */
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform, Pressable, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useSidebarStore } from '@/src/viewmodels/stores/sidebarStore';
