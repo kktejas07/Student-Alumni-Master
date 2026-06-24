@@ -17,8 +17,10 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List
 from pathlib import Path
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile, File
 from pydantic import BaseModel
+import csv
+import io
 from db import client as _mongo
 _db = _mongo[os.environ["DB_NAME"]]
 logger = logging.getLogger("college_portal")
@@ -100,12 +102,25 @@ def _seed_roster() -> List[Dict[str, Any]]:
     return out
 
 
-_ROSTER_CACHE = {"items": None, "ts": None}
-def _roster() -> List[Dict[str, Any]]:
-    if _ROSTER_CACHE["items"] is None:
-        _ROSTER_CACHE["items"] = _seed_roster()
-        _ROSTER_CACHE["ts"] = datetime.now(timezone.utc)
-    return _ROSTER_CACHE["items"]
+async def get_roster(college_id: str, user_doc: dict) -> List[Dict[str, Any]]:
+    if not user_doc.get("demo_seeded"):
+        count = await _db.college_students.count_documents({"college_id": college_id})
+        if count == 0:
+            demo_students = _seed_roster()
+            for s in demo_students:
+                s["college_id"] = college_id
+                s.pop("_id", None)
+            if demo_students:
+                await _db.college_students.insert_many(demo_students)
+                await _db.counters.update_one(
+                    {"_id": f"student_seq_{college_id}"},
+                    {"$set": {"seq": len(demo_students)}},
+                    upsert=True
+                )
+        await _db.users.update_one({"_id": user_doc["_id"]}, {"$set": {"demo_seeded": True}})
+    
+    cursor = _db.college_students.find({"college_id": college_id}, {"_id": 0}).sort("id", 1)
+    return await cursor.to_list(None)
 
 
 # ─── Endpoints ───────────────────────────────────────────────────────────
@@ -119,7 +134,7 @@ async def college_students(
     page_size: int = Query(20),
     user: dict = Depends(_auth()),
 ):
-    items = list(_roster())
+    items = await get_roster(str(user["_id"]), user)
     if dept and dept != "all":
         items = [s for s in items if s["dept"] == dept]
     if year and year != "all":
@@ -160,11 +175,13 @@ class AddStudentPayload(BaseModel):
 
 @router.post("/college/students")
 async def add_college_student(payload: AddStudentPayload, user: dict = Depends(_auth())):
-    roster_list = _roster()
-    
-    # Generate next ID
-    next_num = 1001 + len(roster_list)
-    student_id = f"STU-{next_num}"
+    counter_doc = await _db.counters.find_one_and_update(
+        {"_id": f"student_seq_{user['_id']}"},
+        {"$inc": {"seq": 1}},
+        upsert=True,
+        return_document=True
+    )
+    student_id = f"STU-{1000 + counter_doc['seq']}"
     
     # Calculate status
     if payload.cgpa >= 9.0:
@@ -179,6 +196,7 @@ async def add_college_student(payload: AddStudentPayload, user: dict = Depends(_
         initials = "ST"
         
     new_student = {
+        "college_id": str(user["_id"]),
         "id": student_id,
         "name": payload.name,
         "initials": initials,
@@ -195,7 +213,7 @@ async def add_college_student(payload: AddStudentPayload, user: dict = Depends(_
         "sector": None
     }
     
-    roster_list.append(new_student)
+    await _db.college_students.insert_one(new_student.copy())
     return {"ok": True, "student": new_student}
 
 
@@ -205,11 +223,11 @@ async def export_college_students_csv(
     dept: str = Query("all"),
     year: str = Query("all"),
     status: str = Query("all"),
-    user: dict = Depends(_auth()),
 ):
-    import csv, io
+    import csv
+    import io
 
-    items = list(_roster())
+    items = await get_roster(str(user["_id"]), user)
     if dept and dept != "all":
         items = [s for s in items if s["dept"] == dept]
     if year and year != "all":
@@ -251,7 +269,8 @@ async def export_college_students_csv(
 
 @router.get("/college/students/{student_id}")
 async def college_student_detail(student_id: str, user: dict = Depends(_auth())):
-    s = next((x for x in _roster() if x["id"] == student_id), None)
+    items = await get_roster(str(user["_id"]), user)
+    s = next((x for x in items if x["id"] == student_id), None)
     if not s:
         raise HTTPException(404, "Student not found")
     # Add mock activity feed
@@ -268,7 +287,7 @@ async def college_student_detail(student_id: str, user: dict = Depends(_auth()))
 
 @router.get("/college/analytics")
 async def college_analytics(user: dict = Depends(_auth())):
-    items = _roster()
+    items = await get_roster(str(user["_id"]), user)
     total = len(items)
     placed_items = [s for s in items if s["placed"]]
     placed = len(placed_items)
@@ -380,7 +399,7 @@ async def college_analytics(user: dict = Depends(_auth())):
 
 @router.get("/college/departments")
 async def college_departments(user: dict = Depends(_auth())):
-    items = _roster()
+    items = await get_roster(str(user["_id"]), user)
     out = []
     for d in DEPTS:
         d_items = [s for s in items if s["dept"] == d]
@@ -397,7 +416,7 @@ async def college_departments(user: dict = Depends(_auth())):
 
 @router.get("/college/recruiters")
 async def college_recruiters(user: dict = Depends(_auth())):
-    items = _roster()
+    items = await get_roster(str(user["_id"]), user)
     placed_items = [s for s in items if s["placed"]]
     company_counts: Dict[str, Dict[str, Any]] = {}
     for s in placed_items:
@@ -423,6 +442,101 @@ async def college_recruiters(user: dict = Depends(_auth())):
         })
     out.sort(key=lambda x: -x["hires"])
     return {"recruiters": out}
+
+
+@router.delete("/college/students/clear")
+async def clear_college_students(user: dict = Depends(_auth())):
+    await _db.college_students.delete_many({"college_id": str(user["_id"])})
+    return {"ok": True}
+
+
+@router.post("/college/students/upload")
+async def upload_college_students(file: UploadFile = File(...), user: dict = Depends(_auth())):
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(400, "Must be a CSV file")
+        
+    contents = await file.read()
+    if len(contents) > 5 * 1024 * 1024:  # 5MB limit
+        raise HTTPException(400, "File too large. Maximum size is 5MB.")
+
+    try:
+        decoded = contents.decode('utf-8')
+    except Exception:
+        raise HTTPException(400, "Invalid file encoding. Must be UTF-8.")
+        
+    reader = csv.DictReader(io.StringIO(decoded))
+    to_insert = []
+    
+    for row in reader:
+        cleaned_row = {k.strip().lower(): (v.strip() if v else "") for k, v in row.items() if k}
+        
+        name = cleaned_row.get("name") or "Unknown Student"
+        email = cleaned_row.get("email") or ""
+        dept = cleaned_row.get("department") or cleaned_row.get("dept") or "CSE"
+        year = cleaned_row.get("year") or "1st"
+        
+        try:
+            cgpa = float(cleaned_row.get("cgpa", 0))
+        except ValueError:
+            cgpa = 0.0
+            
+        try:
+            attendance = int(cleaned_row.get("attendance %") or cleaned_row.get("attendance", 0))
+        except ValueError:
+            attendance = 0
+            
+        status_input = cleaned_row.get("status", "").lower()
+        if status_input == "top" or cgpa >= 9.0:
+            status = "top"
+        elif status_input == "at_risk" or cgpa < 7.0 or attendance < 75:
+            status = "at_risk"
+        else:
+            status = "good"
+            
+        placed_input = cleaned_row.get("placed", "").lower()
+        placed = placed_input in ["yes", "true", "1", "y"]
+        company = cleaned_row.get("company") if placed else None
+        
+        try:
+            package_lpa = float(cleaned_row.get("package (lpa)") or cleaned_row.get("package", 0)) if placed else None
+        except ValueError:
+            package_lpa = None
+            
+        initials = "".join([p[0] for p in name.split() if p]).upper()[:2]
+        if not initials:
+            initials = "ST"
+            
+        to_insert.append({
+            "college_id": str(user["_id"]),
+            "name": name,
+            "initials": initials,
+            "email": email,
+            "dept": dept,
+            "year": year,
+            "cgpa": cgpa,
+            "attendance": attendance,
+            "status": status,
+            "color": COLORS.get(dept, "#3B82F6"),
+            "placed": placed,
+            "company": company,
+            "package_lpa": package_lpa,
+            "sector": None
+        })
+        
+    if to_insert:
+        counter_doc = await _db.counters.find_one_and_update(
+            {"_id": f"student_seq_{user['_id']}"},
+            {"$inc": {"seq": len(to_insert)}},
+            upsert=True,
+            return_document=True
+        )
+        start_seq = counter_doc['seq'] - len(to_insert)
+        for i, s in enumerate(to_insert):
+            s["id"] = f"STU-{1000 + start_seq + 1 + i}"
+
+        await _db.college_students.insert_many(to_insert)
+        
+    return {"ok": True, "count": len(to_insert)}
 
 
 # ─── Announcements ───────────────────────────────────────────────────────────

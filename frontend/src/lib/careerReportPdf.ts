@@ -275,13 +275,21 @@ function drawFooter(doc: any, pageW: number, pageH: number, pageNum: number, tot
   doc.text(`Page ${pageNum} of ${totalPages}`, pageW - 14, y, { align: 'right' });
 }
 
-/* ──────────────────────────────────────────────
-   Main export
-────────────────────────────────────────────── */
 export async function generateCareerReportPdf(data: CareerReportData): Promise<void> {
-  // Dynamic import so bundle stays small for non-web targets
-  // @ts-ignore
-  const { jsPDF } = await import('jspdf/dist/jspdf.es.min.js');
+  // Dynamic script injection to bypass Metro bundler's strict AMD require parsing
+  let jsPDF = (window as any).jspdf?.jsPDF;
+  if (!jsPDF) {
+    await new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+      script.integrity = "sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==";
+      script.crossOrigin = "anonymous";
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+    jsPDF = (window as any).jspdf.jsPDF;
+  }
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
