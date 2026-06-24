@@ -276,9 +276,7 @@ function Navbar({
       <View style={[styles.navInner, { maxWidth: 1280 }]}>
         {/* Logo */}
         <Pressable style={styles.logoRow} onPress={() => onNav('hero')}>
-          <View style={styles.logoBadge}>
-            <SALogo size={26} variant="glass" />
-          </View>
+          <Image source={require('@/assets/images/sa-icon.png')} style={{ width: 28, height: 28 }} resizeMode="contain" />
           <Text style={styles.brandText}>StudentAlumni</Text>
         </Pressable>
 
@@ -734,9 +732,7 @@ function Footer({
         {/* Brand col */}
         <View style={{ flex: 1.4, minWidth: 240, gap: 16 }}>
           <View style={styles.logoRow}>
-            <View style={styles.logoBadge}>
-              <SALogo size={24} variant="glass" />
-            </View>
+            <Image source={require('@/assets/images/sa-icon.png')} style={{ width: 28, height: 28 }} resizeMode="contain" />
             <Text style={styles.brandText}>StudentAlumni</Text>
           </View>
           <Text style={styles.footerDesc}>

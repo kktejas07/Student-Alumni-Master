@@ -213,7 +213,7 @@ export function EventsView() {
     <View>
       <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
         {FILTERS.map((f) => (
-          <Pressable key={f} onPress={() => setFilter(f)} style={[s.chip, filter === f && s.chipOn]}>
+          <Pressable key={f} onPress={() => { setFilter(f); fetchEvents(1); }} style={[s.chip, filter === f && s.chipOn]}>
             <Text style={{ color: filter === f ? '#fff' : SC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>{f}</Text>
           </Pressable>
         ))}
