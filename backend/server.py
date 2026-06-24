@@ -59,7 +59,7 @@ import jwt
 import pyotp
 import qrcode
 from bson import ObjectId
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response, BackgroundTasks
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr, field_validator
@@ -995,16 +995,22 @@ async def login(request: Request, req: LoginRequest):
     )
 
 
+def _hash_otp(otp: str) -> str:
+    import hashlib
+    import hmac
+    import os
+    pepper = os.environ.get("OTP_HASH_SECRET", "default_insecure_pepper").encode()
+    return hmac.new(pepper, otp.encode(), hashlib.sha256).hexdigest()
+
 @api_router.post("/auth/forgot-password")
 @limiter.limit("5/minute")
-async def forgot_password(request: Request, req: ForgotPasswordRequest):
-    import hashlib
+async def forgot_password(request: Request, req: ForgotPasswordRequest, background_tasks: BackgroundTasks):
     email = req.email.lower().strip()
     user = await db.users.find_one({"email": email})
     
     otp = ''.join(secrets.choice(string.digits) for _ in range(6))
     expires = datetime.now(timezone.utc) + timedelta(minutes=15)
-    otp_hash = hashlib.sha256(otp.encode()).hexdigest()
+    otp_hash = _hash_otp(otp)
     
     if user:
         await db.users.update_one(
@@ -1012,7 +1018,7 @@ async def forgot_password(request: Request, req: ForgotPasswordRequest):
             {"$set": {"reset_otp_hash": otp_hash, "reset_otp_expires_at": expires, "reset_otp_attempts": 0}}
         )
         # We ignore errors from send_otp_email to not reveal if the email exists
-        await send_otp_email(email, otp)
+        background_tasks.add_task(send_otp_email, email, otp)
         
     return {"message": "If that email is registered, we've sent a verification code."}
 
@@ -1020,7 +1026,6 @@ async def forgot_password(request: Request, req: ForgotPasswordRequest):
 @api_router.post("/auth/verify-otp")
 @limiter.limit("10/minute")
 async def verify_otp(request: Request, req: VerifyOtpRequest):
-    import hashlib
     email = req.email.lower().strip()
     user = await db.users.find_one({"email": email})
     if not user or "reset_otp_hash" not in user:
@@ -1034,7 +1039,7 @@ async def verify_otp(request: Request, req: VerifyOtpRequest):
         await db.users.update_one({"_id": user["_id"]}, {"$unset": {"reset_otp_hash": "", "reset_otp_expires_at": "", "reset_otp_attempts": ""}})
         raise HTTPException(400, "Too many failed attempts. Please request a new code.")
 
-    otp_hash = hashlib.sha256(req.otp.encode()).hexdigest()
+    otp_hash = _hash_otp(req.otp)
     if user["reset_otp_hash"] != otp_hash:
         await db.users.update_one({"_id": user["_id"]}, {"$inc": {"reset_otp_attempts": 1}})
         raise HTTPException(400, "Invalid verification code.")
@@ -1045,7 +1050,6 @@ async def verify_otp(request: Request, req: VerifyOtpRequest):
 @api_router.post("/auth/reset-password")
 @limiter.limit("5/minute")
 async def reset_password(request: Request, req: ResetPasswordRequest):
-    import hashlib
     email = req.email.lower().strip()
     user = await db.users.find_one({"email": email})
     
@@ -1060,7 +1064,7 @@ async def reset_password(request: Request, req: ResetPasswordRequest):
         await db.users.update_one({"_id": user["_id"]}, {"$unset": {"reset_otp_hash": "", "reset_otp_expires_at": "", "reset_otp_attempts": ""}})
         raise HTTPException(400, "Too many failed attempts. Please request a new code.")
 
-    otp_hash = hashlib.sha256(req.otp.encode()).hexdigest()
+    otp_hash = _hash_otp(req.otp)
     if user["reset_otp_hash"] != otp_hash:
         await db.users.update_one({"_id": user["_id"]}, {"$inc": {"reset_otp_attempts": 1}})
         raise HTTPException(400, "Invalid verification code.")

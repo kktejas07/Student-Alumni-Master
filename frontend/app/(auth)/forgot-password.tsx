@@ -27,6 +27,7 @@ export default function ForgotPassword() {
   const otpRefs = useRef<Array<TextInput | null>>([]);
 
   const strength = passwordStrength(pwd);
+  const getErrorMsg = (data: any, fallback: string) => Array.isArray(data?.detail) ? data.detail[0]?.msg || fallback : data?.detail || fallback;
 
   const onSendOtp = async () => {
     setError('');
@@ -41,7 +42,7 @@ export default function ForgotPassword() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || 'Failed to send reset email');
+        throw new Error(getErrorMsg(data, 'Failed to send reset email'));
       }
       trackAuth({ event: 'otp_sent', email });
       setStep(2);
@@ -55,7 +56,7 @@ export default function ForgotPassword() {
   const onVerifyOtp = async () => {
     setError('');
     const code = otp.join('');
-    if (code.length !== 6) { setError('Enter all 6 digits'); return; }
+    if (code.length !== 6 || !/^\d{6}$/.test(code)) { setError('Enter a valid 6-digit code'); return; }
     setLoading(true);
     try {
       const res = await fetch(`${BASE}/api/auth/verify-otp`, {
@@ -65,7 +66,7 @@ export default function ForgotPassword() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || 'Invalid or expired code');
+        throw new Error(getErrorMsg(data, 'Invalid or expired code'));
       }
       trackAuth({ event: 'otp_verified', email, success: true });
       setStep(3);
@@ -86,7 +87,7 @@ export default function ForgotPassword() {
     if (!/[!@#$%^&*(),.?":{}|<>]/.test(pwd)) { setError('Password must contain a special character'); return; }
     if (pwd !== pwd2) { setError('Passwords don\u2019t match'); return; }
     setLoading(true);
-    trackAuth({ event: 'password_strength_check', password_for_strength: pwd });
+    trackAuth({ event: 'password_strength_check', strength_score: strength.score });
     
     try {
       const res = await fetch(`${BASE}/api/auth/reset-password`, {
@@ -96,7 +97,7 @@ export default function ForgotPassword() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || 'Failed to reset password');
+        throw new Error(getErrorMsg(data, 'Failed to reset password'));
       }
       trackAuth({ event: 'reset_password_complete', email });
       setStep(4);
@@ -161,9 +162,11 @@ export default function ForgotPassword() {
                       return;
                     }
                     const nx = [...otp];
-                    nx[i] = t.slice(-1);
+                    const char = t.slice(-1);
+                    if (char && !/^\d$/.test(char)) return;
+                    nx[i] = char;
                     setOtp(nx);
-                    if (t && i < 5) otpRefs.current[i + 1]?.focus();
+                    if (char && i < 5) otpRefs.current[i + 1]?.focus();
                   }}
                   onKeyPress={(e: any) => {
                     if (e.nativeEvent.key === 'Backspace' && !d && i > 0) {
