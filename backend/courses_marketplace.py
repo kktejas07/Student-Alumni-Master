@@ -1855,6 +1855,68 @@ async def _fetch_nptelprep() -> List[Dict[str, Any]]:
     return []
 
 
+async def _fetch_openedx() -> List[Dict[str, Any]]:
+    """Fetch live course catalog from your Open edX instance."""
+    openedx_domain = os.environ.get("OPENEDX_DOMAIN", "courses.edx.org")
+    try:
+        import httpx
+        api_url = f"https://{openedx_domain}/api/courses/v1/courses/"
+        async with httpx.AsyncClient(timeout=6) as cx:
+            r = await cx.get(api_url, headers={"Accept": "application/json"})
+            if r.status_code != 200:
+                return []
+            data = r.json()
+            raw = data.get("results") or []
+            out: List[Dict[str, Any]] = []
+            for idx, c in enumerate(raw[:30]):
+                title = (c.get("name") or c.get("title") or "").strip()
+                if not title:
+                    continue
+                cid = c.get("id") or c.get("course_id") or f"openedx-{idx}"
+                org = c.get("org") or "Open edX"
+                
+                # Check for course image URI and fix relative URLs
+                image_uri = ""
+                if c.get("media") and c["media"].get("course_image"):
+                    uri = c["media"]["course_image"].get("uri", "")
+                    if uri:
+                        image_uri = uri if uri.startswith("http") else f"https://{openedx_domain}{uri}"
+                if not image_uri:
+                    image_uri = "https://via.placeholder.com/300x180?text=Technical+Course"
+
+                out.append({
+                    "id": f"openedx-{cid}",
+                    "source": "openedx",
+                    "external_id": str(cid),
+                    "title": title,
+                    "short_desc": f"Learn {title} on our official Open edX platform.",
+                    "thumbnail": "🎓",
+                    "provider": {"name": org, "type": "platform", "logo_url": ""},
+                    "instructors": [f"{org} Faculty"],
+                    "category": "tech",
+                    "subcategory": "web-dev",
+                    "level": "Intermediate",
+                    "language": "English",
+                    "duration_hours": 30,
+                    "duration_label": "Self-paced",
+                    "enrolled_count": 100,
+                    "rating": 4.8,
+                    "review_count": 10,
+                    "pricing": {"type": "free", "original_inr": 0, "sa_inr": 0},
+                    "certification": {
+                        "available": True, "free": True, "type": "completion",
+                        "accreditor": org, "recognised": True, "cost_inr": 0,
+                    },
+                    "self_paced": True,
+                    "enroll_url": f"https://{openedx_domain}/courses/{cid}/about",
+                    "tags": ["OPEN_EDX", "FREE"],
+                })
+            return out
+    except Exception as e:
+        logger.warning(f"[courses] Open edX live fetch failed: {e}")
+    return []
+
+
 @router.get("/courses/live-catalog")
 async def live_catalog(user: dict = Depends(_auth()), force: bool = False):
     import asyncio
@@ -1865,13 +1927,13 @@ async def live_catalog(user: dict = Depends(_auth()), force: bool = False):
         _LIVE_CACHE.get("courses")):
         return {"courses": _LIVE_CACHE["courses"], "cached": True,
                 "fetched_at": cached_at.isoformat(),
-                "sources": ["mit_ocw", "freecodecamp", "nptelprep", "curated"]}
+                "sources": ["mit_ocw", "freecodecamp", "nptelprep", "openedx", "curated"]}
     results = await asyncio.gather(
-        _fetch_mit_ocw(), _fetch_freecodecamp(), _fetch_nptelprep(),
+        _fetch_mit_ocw(), _fetch_freecodecamp(), _fetch_nptelprep(), _fetch_openedx(),
         return_exceptions=True)
     live: List[Dict[str, Any]] = []
     sources_used = ["curated"]
-    for src_id, res in zip(["mit_ocw", "freecodecamp", "nptelprep"], results):
+    for src_id, res in zip(["mit_ocw", "freecodecamp", "nptelprep", "openedx"], results):
         if isinstance(res, list) and res:
             live.extend(res)
             sources_used.append(src_id)
