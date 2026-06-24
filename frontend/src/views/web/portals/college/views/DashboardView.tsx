@@ -9,7 +9,7 @@
  *   • Recent Activity (left) + Top Recruiters (right)
  */
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   GraduationCap, Users, Trophy, CalendarDays, Sparkles, ArrowRight,
@@ -50,12 +50,21 @@ export function DashboardView({
   const user = useAuthStore((state) => state.user);
   const collegeName = user?.institution || user?.college_info?.institution_name || user?.school_info?.institution_name || '';
 
-  const { data } = usePortalData<typeof COLLEGE_MOCK>(
+  const { data, loading } = usePortalData<typeof COLLEGE_MOCK>(
     collegeName
       ? `/admin/college-stats?college_name=${encodeURIComponent(collegeName)}`
       : '/admin/college-stats',
     COLLEGE_MOCK
   );
+
+  if (loading && data === COLLEGE_MOCK) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+        <ActivityIndicator size="large" color="#FCD34D" />
+      </View>
+    );
+  }
+
   const COLLEGE = data!.college;
   const KPIS = data!.kpis;
   const DEPT_PLACEMENT = data!.deptPlacement;
