@@ -30,6 +30,7 @@ export default function ForgotPassword() {
   const getErrorMsg = (data: any, fallback: string) => Array.isArray(data?.detail) ? data.detail[0]?.msg || fallback : data?.detail || fallback;
 
   const onSendOtp = async () => {
+    if (loading) return;
     setError('');
     if (!email || !email.includes('@')) { setError('Enter a valid email'); return; }
     setLoading(true);
@@ -181,7 +182,7 @@ export default function ForgotPassword() {
             {error ? <Text style={s.errText}>{error}</Text> : null}
             <View style={{ marginTop: 22, gap: 12 }}>
               <PrimaryButton label="Verify code" onPress={onVerifyOtp} loading={loading} />
-              <Pressable onPress={onSendOtp}>
+              <Pressable onPress={onSendOtp} disabled={loading} style={{ opacity: loading ? 0.5 : 1 }}>
                 <Text style={s.resend}>Didn’t receive code? <Text style={s.resendLink}>Resend</Text></Text>
               </Pressable>
             </View>
