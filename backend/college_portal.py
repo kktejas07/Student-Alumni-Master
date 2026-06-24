@@ -112,6 +112,11 @@ async def get_roster(college_id: str, user_doc: dict) -> List[Dict[str, Any]]:
                 s.pop("_id", None)
             if demo_students:
                 await _db.college_students.insert_many(demo_students)
+                await _db.counters.update_one(
+                    {"_id": f"student_seq_{college_id}"},
+                    {"$set": {"seq": len(demo_students)}},
+                    upsert=True
+                )
         await _db.users.update_one({"_id": user_doc["_id"]}, {"$set": {"demo_seeded": True}})
     
     cursor = _db.college_students.find({"college_id": college_id}, {"_id": 0}).sort("id", 1)
