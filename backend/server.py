@@ -476,6 +476,18 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class VerifyResetOtpRequest(BaseModel):
+    email: EmailStr
+    otp: str
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str
+
 
 class OnboardingRequest(BaseModel):
     """Unified onboarding payload — only the fields relevant to the user's role
@@ -885,6 +897,93 @@ async def check_email(request: Request, req: CheckEmailRequest):
         "full_name": user.get("full_name"),
         "onboarding_completed": user.get("onboarding_completed", False),
     }
+
+
+@api_router.post("/auth/forgot-password")
+@limiter.limit("5/minute")
+async def forgot_password(request: Request, req: ForgotPasswordRequest):
+    email = req.email.lower().strip()
+    user = await db.users.find_one({"email": email})
+    if not user:
+        # Return success even if user doesn't exist to prevent email enumeration
+        return {"success": True}
+        
+    import random
+    import hashlib
+    from datetime import datetime, timedelta
+    from core.email import send_email
+    
+    otp = str(random.randint(100000, 999999))
+    otp_hash = hashlib.sha256(otp.encode()).hexdigest()
+    expires = datetime.utcnow() + timedelta(minutes=15)
+    
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"reset_otp_hash": otp_hash, "reset_otp_expires": expires}, "$unset": {"reset_otp": ""}}
+    )
+    
+    body = f"<p>Your password reset code is: <strong>{otp}</strong></p><p>This code will expire in 15 minutes.</p>"
+    
+    # We await the email send but don't strictly fail the request if the email config is missing, 
+    # though practically the user won't get the email.
+    import asyncio
+    asyncio.create_task(send_email(email, "Password Reset Code", body))
+    
+    return {"success": True}
+
+
+@api_router.post("/auth/verify-reset-otp")
+@limiter.limit("10/minute")
+async def verify_reset_otp(request: Request, req: VerifyResetOtpRequest):
+    email = req.email.lower().strip()
+    user = await db.users.find_one({"email": email})
+    if not user:
+        raise HTTPException(400, "Invalid email or OTP")
+        
+    import hashlib
+    from datetime import datetime
+    otp_hash = user.get("reset_otp_hash")
+    expires = user.get("reset_otp_expires")
+    
+    if not otp_hash or not expires or datetime.utcnow() > expires:
+        raise HTTPException(400, "OTP expired or invalid")
+        
+    req_hash = hashlib.sha256(req.otp.strip().encode()).hexdigest()
+    if otp_hash != req_hash:
+        raise HTTPException(400, "Invalid OTP")
+        
+    return {"success": True}
+
+
+@api_router.post("/auth/reset-password")
+@limiter.limit("5/minute")
+async def reset_password(request: Request, req: ResetPasswordRequest):
+    email = req.email.lower().strip()
+    user = await db.users.find_one({"email": email})
+    if not user:
+        raise HTTPException(400, "Invalid email or OTP")
+        
+    import hashlib
+    from datetime import datetime
+    otp_hash = user.get("reset_otp_hash")
+    expires = user.get("reset_otp_expires")
+    
+    if not otp_hash or not expires or datetime.utcnow() > expires:
+        raise HTTPException(400, "OTP expired or invalid")
+        
+    req_hash = hashlib.sha256(req.otp.strip().encode()).hexdigest()
+    if otp_hash != req_hash:
+        raise HTTPException(400, "OTP expired or invalid")
+        
+    from core.security import get_password_hash
+    new_hashed = get_password_hash(req.new_password)
+    
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"hashed_password": new_hashed}, "$unset": {"reset_otp_hash": "", "reset_otp_expires": ""}}
+    )
+    
+    return {"success": True}
 
 
 @api_router.post("/auth/login")
