@@ -131,6 +131,6 @@ websockets==16.0
 yarl==1.23.0
 zipp==3.23.0
 cachetools==7.1.4
-firebase-admin==6.6.0
+firebase-admin==7.4.0
 
 playwright==1.60.0
