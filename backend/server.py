@@ -1468,7 +1468,7 @@ async def my_id_card(user: dict = Depends(get_current_user)):
 
     si = user.get("school_info") or {}
     ai = user.get("alumni_info") or {}
-    cp = user.get("college_profile") or {}
+    cp = user.get("college_info") or user.get("college_profile") or {}
     mi = user.get("mentor_info") or user.get("mentor_profile") or {}
     role = (user.get("role") or "").lower()
     status = _student_status_label(user)
@@ -1476,6 +1476,7 @@ async def my_id_card(user: dict = Depends(get_current_user)):
     institution = (
         si.get("institution_name")
         or ai.get("institution_name")
+        or cp.get("institution_name")
         or (user.get("full_name") if role == "college" else None)
         or "—"
     )
@@ -1566,7 +1567,7 @@ async def verify_id_card(identifier: str):
     si = u.get("school_info") or {}
     ai = u.get("alumni_info") or {}
     mi = u.get("mentor_info") or u.get("mentor_profile") or {}
-    ci = u.get("college_profile") or {}
+    ci = u.get("college_info") or u.get("college_profile") or {}
     adm = u.get("admin_profile") or {}
 
     if role == "student":
@@ -1594,7 +1595,7 @@ async def verify_id_card(identifier: str):
         base["institution"] = ai.get("institution_name") or si.get("institution_name") or ""
 
     elif role == "college":
-        base["institution"] = u.get("full_name") or ci.get("institution_name") or ""
+        base["institution"] = ci.get("institution_name") or u.get("full_name") or ""
         base["city"] = ci.get("city") or ""
         base["state"] = ci.get("state") or ""
         base["departments"] = ci.get("departments") or []

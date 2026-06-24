@@ -48,7 +48,7 @@ export function DashboardView({
   onNavigate?: (id: CollegeNavId) => void;
 }) {
   const user = useAuthStore((state) => state.user);
-  const collegeName = user?.college_info?.institution_name || user?.school_info?.institution_name || '';
+  const collegeName = user?.institution || user?.college_info?.institution_name || user?.school_info?.institution_name || '';
 
   const { data } = usePortalData<typeof COLLEGE_MOCK>(
     collegeName
