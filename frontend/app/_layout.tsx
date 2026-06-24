@@ -32,7 +32,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { Colors } from '@/src/theme';
 import { ToastProvider } from '@/src/views/components';
 import analytics from '@/src/lib/analytics';
-
+import { AgentKQuickLauncher } from '@/src/views/web/agent-k/AgentKQuickLauncher';
 import { ConsentBanner } from '@/src/views/web/consent/ConsentBanner';
 import { TourProvider } from '@/src/views/web/tour/TourProvider';
 import { TourOverlay } from '@/src/views/web/tour/TourOverlay';
@@ -159,7 +159,8 @@ export default function RootLayout() {
                   animationDuration: 280,
                 }}
               />
-
+              {/* Agent K — global Cmd/Ctrl+K quick launcher modal */}
+              <AgentKQuickLauncher />
               {/* Phase B — privacy & cookie consent banner (web only) */}
               <ConsentBanner />
               {/* Phase B — product tour spotlight overlay (web only) */}
