@@ -351,7 +351,7 @@ export const api = {
   networkDiscover: (q?: string) => request<any>(`/network/discover${q ? `?q=${encodeURIComponent(q)}` : ''}`),
   networkRequests: () => request<any>('/network/requests'),
   sendConnectionRequest: (otherId: string, message?: string) =>
-    request<any>(`/network/connect/${otherId}`, {
+    request<any>(`/network/connect/${encodeURIComponent(otherId)}`, {
       method: 'POST',
       body: message ? { message } : {},
     }),

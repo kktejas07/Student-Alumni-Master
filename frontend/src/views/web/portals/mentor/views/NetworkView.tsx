@@ -648,7 +648,7 @@ export function NetworkView() {
           <User size={13} color={tab === 'requests' ? '#090D16' : MC.muted} style={{ marginRight: 6 }} />
           <Text style={[s.tabPillText, tab === 'requests' && s.tabPillTextOn]}>Requests</Text>
           <View style={[s.reqBadge, tab === 'requests' && s.reqBadgeOn]}>
-            <Text style={s.reqBadgeText}>{incomingRequests.length}</Text>
+            <Text style={s.reqBadgeText}>{incomingRequests.length + sentRequests.length}</Text>
           </View>
         </Pressable>
       </View>
@@ -764,12 +764,12 @@ export function NetworkView() {
                               <User size={13} color="#EF4444" />
                             </Pressable>
                             {student.linkedin && (
-                              <Pressable onPress={() => Linking.openURL(`https://${student.linkedin}`)} style={[s.iconSquareBtn, { backgroundColor: '#0A66C2' }]}>
+                              <Pressable onPress={() => student.linkedin ? Linking.openURL(student.linkedin.startsWith('http') ? student.linkedin : `https://${student.linkedin}`) : alert('No link provided')} style={[s.iconSquareBtn, { backgroundColor: '#0A66C2' }]}>
                                 <LinkedinGlyph size={13} color="#fff" />
                               </Pressable>
                             )}
                             {student.github && (
-                              <Pressable onPress={() => Linking.openURL(`https://${student.github}`)} style={[s.iconSquareBtn, { backgroundColor: '#24292e' }]}>
+                              <Pressable onPress={() => student.github ? Linking.openURL(student.github.startsWith('http') ? student.github : `https://${student.github}`) : alert('No link provided')} style={[s.iconSquareBtn, { backgroundColor: '#24292e' }]}>
                                 <Code size={13} color="#fff" />
                               </Pressable>
                             )}
@@ -854,11 +854,11 @@ export function NetworkView() {
                             <Pressable onPress={() => alert(`Starting message chat with ${person.name}`)} style={[s.iconSquareBtn, { borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
                               <User size={13} color="#EF4444" />
                             </Pressable>
-                            <Pressable onPress={() => Linking.openURL(`https://${person.linkedin}`)} style={[s.iconSquareBtn, { backgroundColor: '#0A66C2' }]}>
+                            <Pressable onPress={() => person.linkedin ? Linking.openURL(person.linkedin.startsWith('http') ? person.linkedin : `https://${person.linkedin}`) : alert('No link provided')} style={[s.iconSquareBtn, { backgroundColor: '#0A66C2' }]}>
                               <LinkedinGlyph size={13} color="#fff" />
                             </Pressable>
                             {person.github && (
-                              <Pressable onPress={() => Linking.openURL(`https://${person.github}`)} style={[s.iconSquareBtn, { backgroundColor: '#24292e' }]}>
+                              <Pressable onPress={() => person.github ? Linking.openURL(person.github.startsWith('http') ? person.github : `https://${person.github}`) : alert('No link provided')} style={[s.iconSquareBtn, { backgroundColor: '#24292e' }]}>
                                 <Code size={13} color="#fff" />
                               </Pressable>
                             )}
@@ -1065,11 +1065,11 @@ export function NetworkView() {
                             <Pressable onPress={() => alert(`Starting message chat with ${person.name}`)} style={[s.iconSquareBtn, { height: 32, width: 32, borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
                               <User size={13} color="#EF4444" />
                             </Pressable>
-                            <Pressable onPress={() => Linking.openURL(`https://${person.linkedin}`)} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#0A66C2' }]}>
+                            <Pressable onPress={() => person.linkedin ? Linking.openURL(person.linkedin.startsWith('http') ? person.linkedin : `https://${person.linkedin}`) : alert('No link provided')} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#0A66C2' }]}>
                               <LinkedinGlyph size={13} color="#fff" />
                             </Pressable>
                             {person.github && (
-                              <Pressable onPress={() => Linking.openURL(`https://${person.github}`)} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#24292e' }]}>
+                              <Pressable onPress={() => person.github ? Linking.openURL(person.github.startsWith('http') ? person.github : `https://${person.github}`) : alert('No link provided')} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#24292e' }]}>
                                 <Code size={13} color="#fff" />
                               </Pressable>
                             )}
@@ -1311,7 +1311,7 @@ export function NetworkView() {
                       <View style={{ flexDirection: 'row', gap: 6, alignSelf: 'flex-start' }}>
                         {pickedPerson.linkedin && (
                           <Pressable 
-                            onPress={() => Linking.openURL(`https://${pickedPerson.linkedin}`)} 
+                            onPress={() => pickedPerson.linkedin ? Linking.openURL(pickedPerson.linkedin.startsWith('http') ? pickedPerson.linkedin : `https://${pickedPerson.linkedin}`) : alert('No link provided')} 
                             style={s.socialIconBtn}
                           >
                             <LinkedinGlyph size={14} color="#fff" />
@@ -1319,7 +1319,7 @@ export function NetworkView() {
                         )}
                         {pickedPerson.github && (
                           <Pressable 
-                            onPress={() => Linking.openURL(`https://${pickedPerson.github}`)} 
+                            onPress={() => pickedPerson.github ? Linking.openURL(pickedPerson.github.startsWith('http') ? pickedPerson.github : `https://${pickedPerson.github}`) : alert('No link provided')} 
                             style={s.socialIconBtn}
                           >
                             <Code size={14} color="#fff" />
