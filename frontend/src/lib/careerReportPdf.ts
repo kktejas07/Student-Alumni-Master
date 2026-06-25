@@ -9,10 +9,13 @@
  *   1. Cover — student name, target role, generation date, platform branding
  *   2. Career Overview — KPI summary (readiness, level, target, profile strength)
  *              + goal banner + progress bar
- *   3. Skill Analysis — radar-equivalent horizontal bar chart for each skill
- *   4. Career Journey — full milestone list with status indicators
+ *   3. Skill Analysis — radar chart + horizontal bar breakdown for each skill
+ *   4. Career Journey — full milestone list with correct page breaks (unlimited)
  *   5. Score Contribution & Next Steps
  */
+
+// Fix 11: GAINS is the single source of truth — imported from shared constants
+import { GAINS } from './careerConstants';
 
 // Colours matching the Career AI dark theme (re-stated as RGB for jsPDF)
 const PDF_COLORS = {
@@ -65,12 +68,6 @@ const MILESTONE_COLORS: Record<string, [number,number,number]> = {
   CERTIFICATION:  [16, 185,129],
   LINKEDIN:       [59, 130,246],
   JOB_APPLICATION:[251,191, 36],
-};
-
-const GAINS: Record<string, number> = {
-  RESUME: 8, PROJECT: 12, LINKEDIN: 5, PORTFOLIO: 7,
-  CERTIFICATION: 6, MOCK_INTERVIEW: 8, NETWORKING: 4,
-  SKILLS: 5, PROFILE: 3, JOB_APPLICATION: 2,
 };
 
 /* ──────────────────────────────────────────────
@@ -181,6 +178,91 @@ function drawPageBg(doc: any, pageW: number, pageH: number) {
   doc.rect(0, 0, pageW, pageH, 'F');
 }
 
+/**
+ * Fix 14: Vector radar/spider chart drawn with jsPDF primitives.
+ * Renders a hexagonal radar chart for 6 skill dimensions.
+ */
+function drawRadarChart(
+  doc: any,
+  cx: number,
+  cy: number,
+  radius: number,
+  skills: { key: string; score: number; color: [number,number,number] }[],
+) {
+  const n = skills.length;
+  const angleStep = (2 * Math.PI) / n;
+  const startAngle = -Math.PI / 2; // start at top
+
+  const toXY = (level: number, i: number) => ({
+    x: cx + radius * level * Math.cos(startAngle + i * angleStep),
+    y: cy + radius * level * Math.sin(startAngle + i * angleStep),
+  });
+
+  // 1. Draw grid rings (20%, 40%, 60%, 80%, 100%)
+  [0.2, 0.4, 0.6, 0.8, 1.0].forEach((lvl) => {
+    const pts = skills.map((_, i) => toXY(lvl, i));
+    setDraw(doc, lvl === 1.0 ? PDF_COLORS.border : [30, 25, 60]);
+    doc.setLineWidth(0.25);
+    pts.forEach((pt, i) => {
+      const next = pts[(i + 1) % n];
+      if (i === 0) doc.moveTo(pt.x, pt.y);
+      doc.line(pt.x, pt.y, next.x, next.y);
+    });
+  });
+
+  // 2. Spoke lines
+  skills.forEach((_, i) => {
+    const outer = toXY(1, i);
+    setDraw(doc, PDF_COLORS.border);
+    doc.setLineWidth(0.3);
+    doc.line(cx, cy, outer.x, outer.y);
+  });
+
+  // 3. Data polygon (filled with purple, semi-transparent approximation via alpha)
+  const dataPoints = skills.map((sk, i) => toXY(sk.score / 100, i));
+  setFill(doc, [109, 40, 217]);
+  setDraw(doc, PDF_COLORS.purpleL);
+  doc.setLineWidth(0.8);
+  doc.setFillColor(109, 40, 217);
+  doc.setDrawColor(...PDF_COLORS.purpleL);
+  doc.setGState && doc.setGState(new (doc.GState || Object)({ opacity: 0.35 }));
+  const polyStr = dataPoints.map(p => `${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
+  // Use lines to draw polygon
+  if (dataPoints.length > 0) {
+    doc.setFillColor(109, 40, 217);
+    doc.setDrawColor(...PDF_COLORS.purpleL);
+    doc.lines(
+      dataPoints.slice(1).map((p, i) => [p.x - dataPoints[i].x, p.y - dataPoints[i].y]),
+      dataPoints[0].x, dataPoints[0].y,
+      [1, 1], 'FD', true,
+    );
+  }
+  doc.setGState && doc.setGState(new (doc.GState || Object)({ opacity: 1.0 }));
+
+  // 4. Draw vertex dots and skill labels
+  skills.forEach((sk, i) => {
+    const outer = toXY(1, i);
+    const data_pt = toXY(sk.score / 100, i);
+
+    // Data dot
+    setFill(doc, sk.color);
+    doc.circle(data_pt.x, data_pt.y, 1.5, 'F');
+
+    // Label (positioned outside the outer ring)
+    const labelPt = toXY(1.28, i);
+    const shortKey = sk.key.replace(' & ', ' &\n').replace('Professional ', 'Prof. ');
+    setTxt(doc, PDF_COLORS.text2);
+    setFont(doc, 6);
+    doc.text(shortKey, labelPt.x, labelPt.y, { align: 'center', baseline: 'middle' });
+
+    // Score % next to dot
+    setTxt(doc, sk.color);
+    setFont(doc, 6.5, 'bold');
+    const scorePt = toXY(sk.score / 100 + 0.12, i);
+    doc.text(`${sk.score}%`, scorePt.x, scorePt.y, { align: 'center', baseline: 'middle' });
+  });
+}
+
 /** Footer line */
 function drawFooter(doc: any, pageW: number, pageH: number, pageNum: number, totalPages: number) {
   const y = pageH - 10;
@@ -193,13 +275,21 @@ function drawFooter(doc: any, pageW: number, pageH: number, pageNum: number, tot
   doc.text(`Page ${pageNum} of ${totalPages}`, pageW - 14, y, { align: 'right' });
 }
 
-/* ──────────────────────────────────────────────
-   Main export
-────────────────────────────────────────────── */
 export async function generateCareerReportPdf(data: CareerReportData): Promise<void> {
-  // Dynamic import so bundle stays small for non-web targets
-  // @ts-ignore
-  const { jsPDF } = await import('jspdf/dist/jspdf.es.min.js');
+  // Dynamic script injection to bypass Metro bundler's strict AMD require parsing
+  let jsPDF = (window as any).jspdf?.jsPDF;
+  if (!jsPDF) {
+    await new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+      script.integrity = "sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==";
+      script.crossOrigin = "anonymous";
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+    jsPDF = (window as any).jspdf.jsPDF;
+  }
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
@@ -367,42 +457,45 @@ export async function generateCareerReportPdf(data: CareerReportData): Promise<v
   setFont(doc, 8, 'bold');
   doc.text(`Next: ${data.nextGoal}`, marginX + 55, y + 36);
 
-  y += 60;
-  y = sectionHeader(doc, marginX, y, contentW, 'SKILL BREAKDOWN');
+  y = sectionHeader(doc, marginX, y, contentW, 'SKILL ANALYSIS');
 
-  // Skill bars
+  // Fix 14: Add radar chart to skill analysis page
+  const radarSkills = SKILL_KEYS.map(key => ({
+    key,
+    score: Math.round(data.skillScores[key] ?? 0),
+    color: (SKILL_COLORS[key] || PDF_COLORS.purpleL) as [number,number,number],
+  }));
+  const radarCx = marginX + 42;
+  const radarCy = y + 44;
+  const radarR  = 36;
+  drawRadarChart(doc, radarCx, radarCy, radarR, radarSkills);
+
+  // Horizontal bars on the right side
+  const barsX = marginX + 95;
+  const barsW = contentW - 95;
   SKILL_KEYS.forEach((key, idx) => {
-    const score = Math.round(data.skillScores[key] ?? 40);
+    const score = Math.round(data.skillScores[key] ?? 0);
     const colour = SKILL_COLORS[key] || PDF_COLORS.purpleL;
     const isStrong = score >= 60;
-    const barY = y + idx * 20;
+    const barY = y + idx * 16;
 
-    // Row bg
-    if (idx % 2 === 0) roundRect(doc, marginX, barY - 2, contentW, 18, 2, [18, 15, 45]);
-
-    // Skill name
     setTxt(doc, PDF_COLORS.white);
-    setFont(doc, 8.5, 'bold');
-    doc.text(key, marginX + 4, barY + 9);
+    setFont(doc, 7.5, 'bold');
+    doc.text(key, barsX, barY + 6);
 
-    // Status badge
     const statusLabel = isStrong ? 'Strong' : score >= 40 ? 'Developing' : 'Needs Focus';
     const statusBg: RGB = isStrong ? [16,100,60] : score >= 40 ? [100,80,10] : [100,30,30];
     const statusFg: RGB = isStrong ? PDF_COLORS.green : score >= 40 ? PDF_COLORS.amber : PDF_COLORS.red;
-    badge(doc, marginX + 90, barY + 10, statusLabel, statusBg, statusFg);
+    badge(doc, barsX + 60, barY + 7, statusLabel, statusBg, statusFg);
 
-    // Score %
     setTxt(doc, colour);
-    setFont(doc, 9, 'bold');
-    doc.text(`${score}%`, pageW - marginX - 4, barY + 9, { align: 'right' });
+    setFont(doc, 8, 'bold');
+    doc.text(`${score}%`, barsX + barsW, barY + 6, { align: 'right' });
 
-    // Progress bar
-    const barX = marginX + 4;
-    const barW = contentW - 55;
-    progressBar(doc, barX, barY + 12, barW, 3.5, score, PDF_COLORS.bgAccent, colour);
+    progressBar(doc, barsX, barY + 9, barsW - 4, 3, score, PDF_COLORS.bgAccent, colour);
   });
 
-  y += SKILL_KEYS.length * 20 + 12;
+  y += Math.max(radarCy + radarR + 8 - (y + 60), SKILL_KEYS.length * 16 + 12) + 52;
 
   // Goal-awareness note
   roundRect(doc, marginX, y, contentW, 20, 3, [25, 16, 60], PDF_COLORS.border);
@@ -417,86 +510,94 @@ export async function generateCareerReportPdf(data: CareerReportData): Promise<v
   );
 
   /* ═══════════════════════════════════════════
-     PAGE 3 – Career Journey
+     PAGE 4+ – Career Journey  (Fix 6: cursor-tracked loop, unlimited milestones)
   ═══════════════════════════════════════════ */
   doc.addPage();
   drawPageBg(doc, pageW, pageH);
 
-  y = 20;
-  setTxt(doc, PDF_COLORS.white);
-  setFont(doc, 16, 'bold');
-  doc.text('Career Journey', marginX, y);
-  setTxt(doc, PDF_COLORS.text2);
-  setFont(doc, 9);
-  doc.text(`${data.targetRole} — ${data.milestones.filter(m => m.completed).length} of ${data.milestones.length} steps completed`, marginX, y + 8);
-  y += 20;
+  // Page header helper
+  const journeyPageHeader = () => {
+    setTxt(doc, PDF_COLORS.white);
+    setFont(doc, 16, 'bold');
+    doc.text('Career Journey', marginX, 18);
+    setTxt(doc, PDF_COLORS.text2);
+    setFont(doc, 9);
+    doc.text(
+      `${data.targetRole} — ${data.milestones.filter(m => m.completed).length} of ${data.milestones.length} steps completed`,
+      marginX, 26,
+    );
+    return 36; // cursorY after header
+  };
 
-  // Milestone list
+  let cursorY = journeyPageHeader();
+  const ROW_H      = 22;   // height of one milestone row
+  const PAGE_GUARD = 18;   // bottom margin before forcing a new page
+  const firstPendingIdx = data.milestones.findIndex(m => !m.completed);
+
   data.milestones.forEach((m, idx) => {
-    const rowH = 22;
-    const rowY = y + idx * rowH;
-
-    // Page break check
-    if (rowY + rowH > pageH - 20) {
+    // Fix 6: check if next row fits before drawing it
+    if (cursorY + ROW_H > pageH - PAGE_GUARD) {
       doc.addPage();
       drawPageBg(doc, pageW, pageH);
-      y = 20 - idx * rowH; // recalculate
+      cursorY = journeyPageHeader();
     }
 
-    const actualY = y + idx * rowH;
+    const rowY = cursorY;
     const isCompleted = m.completed;
-    const isActive    = !isCompleted && idx === data.milestones.findIndex(x => !x.completed);
+    const isActive    = !isCompleted && idx === firstPendingIdx;
     const gain = GAINS[m.milestone_type] || 3;
 
-    // Alternating row
-    if (idx % 2 === 0) roundRect(doc, marginX, actualY - 2, contentW, rowH, 2, [18, 15, 45]);
+    // Alternating row bg
+    if (idx % 2 === 0) roundRect(doc, marginX, rowY - 2, contentW, ROW_H, 2, [18, 15, 45]);
 
     // Step number circle
     const dotColor: RGB = isCompleted ? PDF_COLORS.green : isActive ? PDF_COLORS.purpleL : PDF_COLORS.dim;
     setFill(doc, dotColor);
-    doc.circle(marginX + 7, actualY + 9, 5, 'F');
+    doc.circle(marginX + 7, rowY + 9, 5, 'F');
     setTxt(doc, PDF_COLORS.bg);
     setFont(doc, 6, 'bold');
-    doc.text(`${idx + 1}`, marginX + 7, actualY + 11, { align: 'center' });
+    doc.text(`${idx + 1}`, marginX + 7, rowY + 11, { align: 'center' });
 
     // Step label
     setTxt(doc, isActive ? PDF_COLORS.purpleL : PDF_COLORS.dim);
     setFont(doc, 6.5, 'bold');
-    doc.text(`STEP ${idx + 1}`, marginX + 16, actualY + 6);
+    doc.text(`STEP ${idx + 1}`, marginX + 16, rowY + 6);
 
     // Status badge
     if (isCompleted) {
-      badge(doc, marginX + 36, actualY + 6, 'Completed', [16,80,50], PDF_COLORS.green);
+      badge(doc, marginX + 36, rowY + 6, 'Completed', [16,80,50], PDF_COLORS.green);
     } else if (isActive) {
-      badge(doc, marginX + 36, actualY + 6, 'Next Action', [60,30,120], PDF_COLORS.purpleL);
+      badge(doc, marginX + 36, rowY + 6, 'Next Action', [60,30,120], PDF_COLORS.purpleL);
     } else {
-      badge(doc, marginX + 36, actualY + 6, 'Locked', [40,38,60], PDF_COLORS.dim);
+      badge(doc, marginX + 36, rowY + 6, 'Locked', [40,38,60], PDF_COLORS.dim);
     }
 
     // Title
     setTxt(doc, isCompleted ? PDF_COLORS.text2 : PDF_COLORS.white);
     setFont(doc, 9, 'bold');
-    doc.text(m.title, marginX + 16, actualY + 14, { maxWidth: contentW - 55 });
+    doc.text(m.title, marginX + 16, rowY + 14, { maxWidth: contentW - 55 });
 
     // Description
     setTxt(doc, PDF_COLORS.text2);
     setFont(doc, 7.5);
-    doc.text(m.description || '', marginX + 16, actualY + 20, { maxWidth: contentW - 55 });
+    doc.text(m.description || '', marginX + 16, rowY + 20, { maxWidth: contentW - 55 });
 
     // Gain pill
     const gainX = pageW - marginX - 20;
     setFill(doc, [20, 80, 70]);
-    doc.roundedRect(gainX - 2, actualY + 5, 22, 8, 2, 2, 'F');
+    doc.roundedRect(gainX - 2, rowY + 5, 22, 8, 2, 2, 'F');
     setTxt(doc, PDF_COLORS.teal);
     setFont(doc, 7.5, 'bold');
-    doc.text(`+${gain}%`, gainX + 9, actualY + 11, { align: 'center' });
+    doc.text(`+${gain}%`, gainX + 9, rowY + 11, { align: 'center' });
 
-    // Timeline connector line (between dots)
+    // Timeline connector (bottom of dot to top of next)
     if (idx < data.milestones.length - 1) {
       setDraw(doc, isCompleted ? PDF_COLORS.green : PDF_COLORS.border);
       doc.setLineWidth(0.5);
-      doc.line(marginX + 7, actualY + 14, marginX + 7, actualY + rowH);
+      doc.line(marginX + 7, rowY + 14, marginX + 7, rowY + ROW_H);
     }
+
+    cursorY += ROW_H; // advance cursor
   });
 
   /* ═══════════════════════════════════════════

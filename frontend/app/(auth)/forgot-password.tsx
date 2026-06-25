@@ -13,6 +13,8 @@ import { AuthInput, PrimaryButton, PasswordRules } from '@/src/views/auth/AuthCo
 import { AC, FONTS } from '@/src/views/auth/tokens';
 import { trackAuth, passwordStrength } from '@/src/lib/authAnalytics';
 
+import { getBaseUrl } from '@/src/lib/env';
+
 export default function ForgotPassword() {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
@@ -24,14 +26,28 @@ export default function ForgotPassword() {
   const [error, setError] = useState('');
 
   const strength = passwordStrength(pwd);
+  const BASE = getBaseUrl();
 
   const onSendOtp = async () => {
     setError('');
     if (!email || !email.includes('@')) { setError('Enter a valid email'); return; }
     setLoading(true);
     trackAuth({ event: 'forgot_password_request', email });
-    trackAuth({ event: 'otp_sent', email });
-    setTimeout(() => { setLoading(false); setStep(2); }, 600);
+    
+    try {
+      const res = await fetch(`${BASE}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      if (!res.ok) throw new Error('Failed to send OTP');
+      trackAuth({ event: 'otp_sent', email });
+      setStep(2);
+    } catch (e: any) {
+      setError(e.message || 'Failed to send OTP');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const onVerifyOtp = async () => {
@@ -39,8 +55,24 @@ export default function ForgotPassword() {
     const code = otp.join('');
     if (code.length !== 6) { setError('Enter all 6 digits'); return; }
     setLoading(true);
-    trackAuth({ event: 'otp_verified', email, success: true });
-    setTimeout(() => { setLoading(false); setStep(3); }, 500);
+    
+    try {
+      const res = await fetch(`${BASE}/api/auth/verify-reset-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp: code })
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || 'Invalid OTP');
+      }
+      trackAuth({ event: 'otp_verified', email, success: true });
+      setStep(3);
+    } catch (e: any) {
+      setError(e.message || 'Invalid OTP');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const onResetPwd = async () => {
@@ -49,8 +81,25 @@ export default function ForgotPassword() {
     if (pwd !== pwd2) { setError('Passwords don\u2019t match'); return; }
     setLoading(true);
     trackAuth({ event: 'password_strength_check', password_for_strength: pwd });
-    trackAuth({ event: 'reset_password_complete', email });
-    setTimeout(() => { setLoading(false); setStep(4); }, 600);
+    
+    try {
+      const code = otp.join('');
+      const res = await fetch(`${BASE}/api/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp: code, new_password: pwd })
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || 'Failed to reset password');
+      }
+      trackAuth({ event: 'reset_password_complete', email });
+      setStep(4);
+    } catch (e: any) {
+      setError(e.message || 'Failed to reset password');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

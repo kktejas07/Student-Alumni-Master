@@ -110,6 +110,9 @@ export function StudentsView() {
   const [attendanceVal, setAttendanceVal] = useState('85');
   const [submitting, setSubmitting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const isBusy = submitting || clearing || uploading;
 
   const params = new URLSearchParams({
     q, dept, year, status, page: String(page), page_size: '20',
@@ -124,7 +127,7 @@ export function StudentsView() {
   }, [page, dept, year, status]);
 
   const handleAddStudent = async () => {
-    if (!nameVal.trim() || !emailVal.trim()) return;
+    if (isBusy || !nameVal.trim() || !emailVal.trim()) return;
     setSubmitting(true);
     try {
       await postPortal('/college/students', {
@@ -178,6 +181,57 @@ export function StudentsView() {
     } catch { /* silent */ } finally { setExporting(false); }
   };
 
+  const doClear = async () => {
+    if (isBusy) return;
+    if (Platform.OS === 'web' && !window.confirm("Are you sure you want to clear all students?")) return;
+    setClearing(true);
+    try {
+      const base = getBaseUrl();
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      const resp = await fetch(`${base}/api/college/students/clear`, {
+        method: 'DELETE',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (resp.ok) {
+        refresh();
+      } else {
+        alert('Failed to clear students');
+      }
+    } catch { alert('Clear error'); } finally { setClearing(false); }
+  };
+
+  const doUpload = () => {
+    if (isBusy) return;
+    if (Platform.OS !== 'web') return; // File picker only web for now
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      setUploading(true);
+      try {
+        const base = getBaseUrl();
+        const { tokenStore } = await import('@/src/models/services/api');
+        const token = await tokenStore.getAccess();
+        const fd = new FormData();
+        fd.append('file', file);
+        const resp = await fetch(`${base}/api/college/students/upload`, {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: fd,
+        });
+        if (resp.ok) {
+          refresh();
+        } else {
+          alert('Failed to upload CSV');
+        }
+      } catch { alert('Upload error'); } finally { setUploading(false); }
+    };
+    input.click();
+  };
+
   return (
     <View style={{ gap: 14 }}>
       {/* Tool row */}
@@ -189,13 +243,21 @@ export function StudentsView() {
             placeholderTextColor={CC.dim} style={s.searchInput} />
         </View>
         <View style={{ flex: 1 }} />
-        <Pressable style={s.cta} onPress={() => setModalVisible(true)}>
+        <Pressable style={s.clearBtn} onPress={doClear} disabled={isBusy}>
+          <MaterialCommunityIcons name="delete" size={14} color="#EF4444" />
+          <Text style={s.clearBtnText}>{clearing ? 'Clearing…' : 'Clear All'}</Text>
+        </Pressable>
+        <Pressable style={s.exportBtn} onPress={doExport} disabled={exporting || isBusy}>
+          <MaterialCommunityIcons name={exporting ? "loading" : "download"} size={14} color={CC.muted} />
+          <Text style={s.exportBtnText}>{exporting ? 'Exporting…' : 'Export'}</Text>
+        </Pressable>
+        <Pressable style={s.uploadBtn} onPress={doUpload} disabled={isBusy}>
+          <MaterialCommunityIcons name="upload" size={14} color="#fff" />
+          <Text style={s.uploadBtnText}>{uploading ? 'Uploading…' : 'Upload CSV'}</Text>
+        </Pressable>
+        <Pressable style={s.cta} onPress={() => setModalVisible(true)} disabled={isBusy}>
           <MaterialCommunityIcons name="plus" size={14} color="#fff" />
           <Text style={s.ctaText}>Add Student</Text>
-        </Pressable>
-        <Pressable style={s.exportBtn} onPress={doExport} disabled={exporting}>
-          <MaterialCommunityIcons name={exporting ? "loading" : "download"} size={14} color={CC.muted} />
-          <Text style={s.exportBtnText}>{exporting ? 'Exporting…' : 'Export CSV'}</Text>
         </Pressable>
       </View>
 
@@ -435,6 +497,15 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderColor: CC.border, borderWidth: 1 },
   exportBtnText: { color: CC.muted, fontFamily: FONTS.bold, fontSize: 11.5 },
+  clearBtn: { flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, height: 36, borderRadius: 10,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: 'rgba(239, 68, 68, 0.3)', borderWidth: 1 },
+  clearBtnText: { color: '#EF4444', fontFamily: FONTS.bold, fontSize: 11.5 },
+  uploadBtn: { flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, height: 36, borderRadius: 10,
+    backgroundColor: '#3B82F6' },
+  uploadBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11.5 },
 
   filterRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 14 },
   filterLabel: { color: CC.muted, fontFamily: FONTS.xbold,
