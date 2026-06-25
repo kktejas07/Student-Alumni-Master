@@ -4,13 +4,31 @@
  */
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, Alert, Modal } from 'react-native';
-import { Mail, Phone, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Sparkles, Check, X, Upload, Camera, TrendingUp, AlertCircle, Plus, Trash2, Folder } from 'lucide-react-native';
+import { Mail, Phone, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Sparkles, Check, X, Upload, Camera, TrendingUp, AlertCircle, Plus, Trash2, Folder, Image as ImageIcon } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { WebcamModal } from '@/src/views/components/WebcamModal';
 import { CompletionRing } from './CompletionRing';
 import { Card, Field, TF, TA, SF, ChipPicker, C, PhoneField } from './primitives';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
+import { SuggestionAutocomplete } from '@/src/views/web/SuggestionAutocomplete';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+
+const CITY_LIST = [
+  'Mumbai', 'Delhi', 'Bengaluru', 'Hyderabad', 'Chennai', 'Kolkata',
+  'Pune', 'Ahmedabad', 'Jaipur', 'Lucknow', 'Kanpur', 'Indore',
+  'Bhopal', 'Coimbatore', 'Nagpur', 'Surat', 'Vadodara', 'Patna',
+  'Visakhapatnam', 'Kochi', 'Thiruvananthapuram', 'Chandigarh',
+  'Guwahati', 'Bhubaneswar', 'Mysuru', 'Mangaluru', 'Vijayawada'
+];
+
+const STATE_LIST = [
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
+  'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
+  'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
+  'Telangana', ' त्रिपुरा', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal'
+];
 
 const TAXONOMY_KEYS = [
   "React", "React Native", "Next.js", "Node.js", "TypeScript", "JavaScript", "Python", "Java", "C++", 
@@ -58,6 +76,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
   const initials = ((draft.full_name || '?').split(' ').slice(0,2).map((s: string) => s[0] || '').join('') || '?').toUpperCase();
 
   const isMentor = !!onTakeSelfie;
+  const isCollege = draft.role === 'college' || useAuthStore.getState().user?.role === 'college';
   const themeColor = isMentor ? '#14B8A6' : '#A78BFA';
   const themeBg = isMentor ? 'rgba(20,184,166,0.15)' : 'rgba(167,139,250,0.15)';
   const themeBadgeBg = isMentor ? '#14B8A6' : '#7C3AED';
@@ -124,6 +143,24 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
     } catch (e) {
       console.error(e);
       Alert.alert('Error', 'Could not open camera.');
+    }
+  };
+
+  const pickBannerImage = async () => {
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [3, 1],
+        quality: 0.6,
+        base64: true,
+      });
+      if (!result.canceled && result.assets[0]?.base64) {
+        setDraft((d: any) => ({ ...d, banner_data: `data:image/jpeg;base64,${result.assets[0].base64}` }));
+      }
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'Could not pick image.');
     }
   };
 
@@ -305,6 +342,37 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
           </View>
         </View>
 
+        {isCollege && (
+          <View style={[st.photoRow, { marginTop: 16 }]}>
+            {draft.banner_data ? (
+              <View style={{ width: '100%', height: 120, borderRadius: 12, overflow: 'hidden' }}>
+                <Image source={{ uri: draft.banner_data }} style={StyleSheet.absoluteFillObject} />
+              </View>
+            ) : (
+              <View style={{ width: '100%', height: 120, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', justifyContent: 'center', alignItems: 'center' }}>
+                <ImageIcon size={32} color={C.text3} />
+              </View>
+            )}
+            <View style={{ flex: 1, minWidth: 0, gap: 8, marginTop: 8 }}>
+              <Text style={st.photoTitle}>College Banner</Text>
+              <Text style={st.photoHint}>JPG, PNG up to 5MB. Recommended 1200x400px (3:1 aspect ratio).</Text>
+              <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
+                <Pressable onPress={pickBannerImage} style={st.btnPrimary} testID="pf-upload-banner">
+                  <Upload size={14} color="#FFF" />
+                  <Text style={st.btnPrimaryText}>Upload Banner</Text>
+                </Pressable>
+                {draft.banner_data && (
+                  <Pressable onPress={() => {
+                    setDraft((d: any) => ({ ...d, banner_data: '' }));
+                  }} style={st.btnGhost}>
+                    <Text style={st.btnGhostText}>Remove</Text>
+                  </Pressable>
+                )}
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* Inline Action Selection Modal (Replaces native Modal to bypass web overlay issues) */}
         {modalVisible && (
           <View style={st.modalBackdrop}>
@@ -368,29 +436,52 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
           <Field label="Email" half><TF value={draft.email || ''} onChangeText={() => {}} leftIcon={<Mail size={14} color={C.text2} />} testID="pf-email" /></Field>
           <Field label="Phone" half><PhoneField value={draft.phone || ''} onChange={(v) => setField('phone', v)} placeholder="Phone number" testID="pf-phone" /></Field>
         </View>
-        <Field label="Location"><TF value={draft.location || draft.city || ''} onChangeText={(v) => setField('location', v)} leftIcon={<MapPin size={14} color={C.text2} />} placeholder="City, State" testID="pf-location" /></Field>
+        <View style={[st.row, { zIndex: 18 }]}>
+          <View style={{ flex: 1 }}>
+            <SuggestionAutocomplete
+              label="City"
+              value={draft.city || ''}
+              onChangeText={(v) => setField('city', v)}
+              placeholder="e.g. Mumbai"
+              suggestions={CITY_LIST}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <SuggestionAutocomplete
+              label="State"
+              value={draft.state || ''}
+              onChangeText={(v) => setField('state', v)}
+              placeholder="e.g. Maharashtra"
+              suggestions={STATE_LIST}
+            />
+          </View>
+        </View>
       </Card>
 
       {/* Academic Details */}
-      <Card title="Academic Details" subtitle="Your education info — used for matching with peers.">
-        <Field label="College / University"><TF value={draft.institution || ''} onChangeText={(v) => setField('institution', v)} leftIcon={<Building2 size={14} color={C.text2} />} placeholder="e.g. IIT Bombay" testID="pf-college" /></Field>
-        <View style={[st.row, { zIndex: 18 }]}>
-          <Field label="Stream" half hint="Class 11/12 stream (PCM, Commerce, etc.)"><SF value={String(draft.stream || '')} onChange={(v) => setField('stream', v)} options={STREAMS} placeholder="Select stream" testID="pf-stream" /></Field>
-          <Field label="Branch / Major" half><TF value={draft.branch || ''} onChangeText={(v) => setField('branch', v)} placeholder="Computer Science" testID="pf-branch" /></Field>
-        </View>
-        <View style={[st.row, { zIndex: 17 }]}>
-          <Field label="Department" half hint="College department / faculty"><SF value={String(draft.department || '')} onChange={(v) => setField('department', v)} options={DEPARTMENTS} placeholder="Select department" testID="pf-department" /></Field>
-          <Field label="Graduation Year" half><SF value={String(draft.graduation_year || '')} onChange={(v) => setField('graduation_year', v)} options={GRAD_YEARS} placeholder="Select year" testID="pf-grad-year" /></Field>
-        </View>
-        <Field label="CGPA / GPA" hint="Optional — out of 10 (or your scale)."><TF value={String(draft.cgpa || '')} onChangeText={(v) => setField('cgpa', v)} placeholder="8.5" testID="pf-cgpa" /></Field>
-      </Card>
+      {!isCollege && (
+        <>
+        <Card title="Academic Details" subtitle="Your education info — used for matching with peers.">
+          <Field label="College / University"><TF value={draft.institution || ''} onChangeText={(v) => setField('institution', v)} leftIcon={<Building2 size={14} color={C.text2} />} placeholder="e.g. IIT Bombay" testID="pf-college" /></Field>
+          <View style={[st.row, { zIndex: 18 }]}>
+            <Field label="Stream" half hint="Class 11/12 stream (PCM, Commerce, etc.)"><SF value={String(draft.stream || '')} onChange={(v) => setField('stream', v)} options={STREAMS} placeholder="Select stream" testID="pf-stream" /></Field>
+            <Field label="Branch / Major" half><TF value={draft.branch || ''} onChangeText={(v) => setField('branch', v)} placeholder="Computer Science" testID="pf-branch" /></Field>
+          </View>
+          <View style={[st.row, { zIndex: 17 }]}>
+            <Field label="Department" half hint="College department / faculty"><SF value={String(draft.department || '')} onChange={(v) => setField('department', v)} options={DEPARTMENTS} placeholder="Select department" testID="pf-department" /></Field>
+            <Field label="Graduation Year" half><SF value={String(draft.graduation_year || '')} onChange={(v) => setField('graduation_year', v)} options={GRAD_YEARS} placeholder="Select year" testID="pf-grad-year" /></Field>
+          </View>
+          <Field label="CGPA / GPA" hint="Optional — out of 10 (or your scale)."><TF value={String(draft.cgpa || '')} onChangeText={(v) => setField('cgpa', v)} placeholder="8.5" testID="pf-cgpa" /></Field>
+        </Card>
 
-      {/* Interests */}
-      <Card title="Interests & Career Focus" subtitle={`Pick at least 3 — used for personalized matches. (${interests.length}/${INTERESTS.length} selected)`}>
-        <ChipPicker options={INTERESTS} selected={interests} onToggle={(o) => {
-          setField('interests', interests.includes(o) ? interests.filter((x: string) => x !== o) : [...interests, o]);
-        }} />
-      </Card>
+        {/* Interests */}
+        <Card title="Interests & Career Focus" subtitle={`Pick at least 3 — used for personalized matches. (${interests.length}/${INTERESTS.length} selected)`}>
+          <ChipPicker options={INTERESTS} selected={interests} onToggle={(o) => {
+            setField('interests', interests.includes(o) ? interests.filter((x: string) => x !== o) : [...interests, o]);
+          }} />
+        </Card>
+        </>
+      )}
 
       {/* Social Links */}
       <Card title="Social Links" subtitle="Show up on your network cards & profile detail.">
@@ -404,6 +495,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
       </Card>
 
       {/* Projects */}
+      {!isCollege && (
       <Card
         title="Projects"
         subtitle="Showcase technical or professional projects you have built."
@@ -445,8 +537,10 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
           </View>
         )}
       </Card>
+      )}
 
       {/* Skill Intelligence Experience */}
+      {!isCollege && (
       <View nativeID="skills" style={{ zIndex: 99, position: 'relative' }}>
       <Card title="Skill Intelligence" subtitle="Add skills to instantly see how AI categorizes them and impacts your career readiness.">
         
@@ -549,6 +643,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
         )}
       </Card>
       </View>
+      )}
 
       {/* Skill Details Modal */}
       {selectedSkill && (
