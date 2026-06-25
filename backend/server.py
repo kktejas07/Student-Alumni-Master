@@ -741,6 +741,7 @@ def serialize_user(user: dict) -> dict:
         "last_name":      user.get("last_name"),
         "headline":       user.get("headline"),
         "photo_data":     user.get("photo_data") or user.get("face_image_base64") or user.get("oauth_picture"),
+        "banner_data":    user.get("banner_data"),
         "institution":    user.get("institution"),
         "branch":         user.get("branch"),
         "stream":         user.get("stream"),
@@ -2735,7 +2736,7 @@ async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
     allowed = {
         # Identity / basics
         "full_name", "first_name", "last_name", "headline", "bio",
-        "phone", "city", "state", "location", "face_image_base64", "photo_data",
+        "phone", "city", "state", "location", "face_image_base64", "photo_data", "banner_data",
         # Academic
         "institution", "branch", "graduation_year", "year", "cgpa",
         "stream", "department",

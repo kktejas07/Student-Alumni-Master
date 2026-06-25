@@ -25,8 +25,8 @@ import { AIInsightsView } from './views/AIInsightsView';
 import { CareerIntelView } from './views/CareerIntelView';
 import { PlacementsView } from './views/PlacementsView';
 import { ProfileView } from './views/ProfileView';
-// Shared role-aware comprehensive profile view (purple theme, identical to student).
-import { ProfileSettingsView as SharedProfileSettingsView } from '../student/views/ProfileSettingsView';
+// Role-specific settings view for the College portal
+import { ProfileSettingsView } from './views/ProfileSettingsView';
 import { CreateEventView } from './views/CreateEventView';
 import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 
@@ -99,7 +99,7 @@ export function CollegePortalRN() {
           {active === 'ai-insights'  && <AIInsightsView />}
           {active === 'career-intel' && <CareerIntelView />}
           {active === 'placements'   && <PlacementsView />}
-          {active === 'profile'      && <SharedProfileSettingsView roleOverride="college" />}
+          {active === 'profile'      && <ProfileSettingsView />}
           <DashboardFooter portal="college" />
         </ScrollView>
       </View>
