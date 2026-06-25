@@ -343,7 +343,7 @@ export default function RentalsPage() {
       />
 
       {/* MD3 Floating Action Button — open Stay AI Chat */}
-      <FAB icon="brain" label="Ask Stay AI" color="#5F259F"
+      <FAB icon="brain" label="Ask Stay AI" color="#7C3AED" bottom={90} right={20}
             onPress={() => setAiChatOpen(true)} />
     </FeaturePageShell>
   );
