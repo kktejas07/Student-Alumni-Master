@@ -5732,6 +5732,7 @@ async def my_connection_requests(user: dict = Depends(get_current_user)):
     rels = await db.connections.find(
         {"status": "pending", "b": me_id}, {"_id": 0},
     ).to_list(200)
+    
     out_incoming = []
     if rels:
         requester_ids = [r["a"] for r in rels]
