@@ -45,6 +45,8 @@ function LinkedinGlyph({ size = 14, color = '#fff' }: { size?: number; color?: s
   );
 }
 
+
+
 export function NetworkView() {
   const toast = useToast();
   const router = useRouter();
@@ -227,13 +229,23 @@ export function NetworkView() {
     ? `/student/network?student_email=${encodeURIComponent(authUser.email)}&page=${networkPage}&per_page=24`
     : `/student/network?page=${networkPage}&per_page=24`;
 
-  useEffect(() => {
-    setLoading(true);
-    request<any>(path).then(res => {
+  const fetchNetworkData = async (isRefresh: boolean = false) => {
+    try {
+      const res = await request<any>(path);
       setNetworkData(res);
       setNetworkPages(res.pages || 1);
-    }).catch(() => setNetworkData({ items: [] }))
-    .finally(() => setLoading(false));
+    } catch (e: any) {
+      if (!isRefresh) {
+        setNetworkData({ items: [] });
+      } else {
+        toast.error('Refresh Failed', e?.message || 'Could not sync latest network data.');
+      }
+    }
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    fetchNetworkData(false).finally(() => setLoading(false));
   }, [authUser?.email, networkPage]);
 
 
@@ -305,6 +317,7 @@ export function NetworkView() {
       await api.acceptConnection(id);
       toast.success('Connection Accepted! 🎉', `${name} is now connected with you.`);
       await loadRequests();
+      await fetchNetworkData(true);
     } catch (e: any) {
       toast.error('Failed to accept request', e.message || 'Please try again.');
     }
