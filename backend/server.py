@@ -1474,7 +1474,8 @@ async def my_id_card(user: dict = Depends(get_current_user)):
     status = _student_status_label(user)
 
     institution = (
-        si.get("institution_name")
+        user.get("institution")
+        or si.get("institution_name")
         or ai.get("institution_name")
         or cp.get("institution_name")
         or (user.get("full_name") if role == "college" else None)
@@ -2758,6 +2759,37 @@ async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
         safe["full_name"] = (str(fn or "").strip() + " " + str(ln or "").strip()).strip()
     if safe:
         safe["updated_at"] = datetime.now(timezone.utc)
+        
+        # Keep nested info in sync if root fields like institution are updated
+        si = user.get("school_info") or {}
+        si_updated = False
+        
+        if "institution" in safe:
+            si["institution_name"] = safe["institution"]
+            si_updated = True
+            cp = user.get("college_info") or user.get("college_profile")
+            if cp:
+                cp["institution_name"] = safe["institution"]
+                safe["college_info"] = cp
+        if "branch" in safe:
+            si["branch_or_stream"] = safe["branch"]
+            si_updated = True
+        if "graduation_year" in safe:
+            si["graduation_year"] = safe["graduation_year"]
+            si_updated = True
+        if "cgpa" in safe:
+            si["cgpa"] = safe["cgpa"]
+            si_updated = True
+        if "city" in safe:
+            si["city"] = safe["city"]
+            si_updated = True
+        if "state" in safe:
+            si["state"] = safe["state"]
+            si_updated = True
+            
+        if si_updated:
+            safe["school_info"] = si
+
         await db.users.update_one({"_id": user["_id"]}, {"$set": safe})
     return UserResponse(**serialize_user(await db.users.find_one({"_id": user["_id"]})))
 
@@ -5292,11 +5324,12 @@ def _user_card(u: dict) -> dict:
         uid = str(u.get("_id") or u.get("id") or "")
         is_online = (sum(ord(c) for c in uid) % 3) != 0
 
+    cp = u.get("college_info") or u.get("college_profile") or {}
     return {
         "id": str(u.get("_id") or u.get("id")),
         "full_name": u.get("full_name") or u.get("email"),
         "role": u.get("role"),
-        "institution": si.get("institution_name") or ai.get("institution_name") or u.get("full_name") if u.get("role") == "college" else si.get("institution_name") or ai.get("institution_name"),
+        "institution": u.get("institution") or si.get("institution_name") or ai.get("institution_name") or cp.get("institution_name") or (u.get("full_name") if u.get("role") == "college" else None),
         "city": si.get("city") or ai.get("city"),
         "state": si.get("state") or ai.get("state"),
         "branch": si.get("branch_or_stream") or ai.get("branch_or_stream"),
