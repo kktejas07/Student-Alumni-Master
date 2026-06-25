@@ -7,12 +7,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, ScrollView,
-  ActivityIndicator, TextInput, Modal, Platform,
+  ActivityIndicator, TextInput, Modal, Platform, Linking,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 import { FAB } from '@/src/views/web/md3';
-import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
+import AIRentalAdvisor from '@/src/views/web/AIRentalAdvisor';
 import { request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useRouter } from 'expo-router';
@@ -86,6 +86,8 @@ export default function RentalsPage() {
 
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [bookingsOpen, setBookingsOpen] = useState(false);
+  const [aiChatOpen, setAiChatOpen] = useState(false);
+  const [advisorOpen, setAdvisorOpen] = useState(false);
 
   const [bookingFor, setBookingFor] = useState<Listing | null>(null);
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
@@ -238,19 +240,78 @@ export default function RentalsPage() {
         </View>
       )}
 
-      {/* Advisor AI block */}
+      {/* Advisor & My Bookings Block */}
       <View style={{ marginTop: 18 }}>
-        <AdvisorAIBlock
-          context="rentals"
-          advisorTitle="Talk to a Stay Advisor"
-          advisorDesc="Looking for housing near campus, a road-trip car, or a group retreat? Our advisors curate options in 4 hours."
-          aiTitle="Ask the SA Stay AI"
-          aiDesc="Tell us your budget, city & vibe. Our AI ranks the best 6 picks instantly."
-          advisorAccent="#F472B6"
-          aiAccent="#22D3EE"
-          advisorIcon="account-tie-voice"
-          aiIcon="brain"
-        />
+        <View style={s.advisorRow}>
+          {/* Advisor Card */}
+          <View style={[s.advisorCard, { borderColor: '#F472B655' }]}>
+            <View style={[s.advisorIconBox, { backgroundColor: '#F472B622', borderColor: '#F472B666' }]}>
+              <MaterialCommunityIcons name="account-tie-voice" size={20} color="#F472B6" />
+            </View>
+            <Text style={s.advisorTitle}>Talk to a Stay Advisor</Text>
+            <Text style={s.advisorDesc}>
+              Looking for housing near campus, a road-trip car, or a group retreat? Our advisors curate options in 4 hours.
+            </Text>
+            <Pressable
+              style={[s.advisorCTA, { backgroundColor: '#F472B6' }]}
+              onPress={() => setAdvisorOpen(!advisorOpen)}
+            >
+              <MaterialCommunityIcons name="phone-in-talk" size={14} color="#fff" />
+              <Text style={s.advisorCTAText}>Connect with Advisor</Text>
+            </Pressable>
+            {advisorOpen && (
+              <View style={s.advisorExpanded}>
+                <Pressable style={s.advisorLinkRow} onPress={() => Linking.openURL('tel:+919876543210').catch(() => {})}>
+                  <MaterialCommunityIcons name="phone" size={14} color="#F472B6" />
+                  <Text style={[s.advisorLinkText, { color: '#F472B6' }]}>+91 9876543210</Text>
+                </Pressable>
+                <Pressable style={s.advisorLinkRow} onPress={() => Linking.openURL('mailto:advisor@studentalumni.in?subject=Help with rentals').catch(() => {})}>
+                  <MaterialCommunityIcons name="email" size={14} color="#F472B6" />
+                  <Text style={[s.advisorLinkText, { color: '#F472B6' }]}>advisor@studentalumni.in</Text>
+                </Pressable>
+                <Text style={s.advisorNote}>Mon–Fri · 9am – 7pm IST · response within 4 hours</Text>
+              </View>
+            )}
+          </View>
+
+          {/* My Bookings Card */}
+          <View style={[s.advisorCard, { borderColor: '#8B5CF655' }]}>
+            <View style={[s.advisorIconBox, { backgroundColor: '#8B5CF622', borderColor: '#8B5CF666' }]}>
+              <MaterialCommunityIcons name="ticket-confirmation" size={20} color="#8B5CF6" />
+            </View>
+            <Text style={s.advisorTitle}>My Bookings</Text>
+            {bookings.length > 0 ? (
+              <View style={{ gap: 6, flexGrow: 1 }}>
+                <Text style={s.advisorDesc} numberOfLines={1}>
+                  <Text style={{ fontWeight: '800', color: '#fff' }}>Current Stay:</Text> {bookings[0].listing_snapshot?.title || 'Active Booking'}
+                </Text>
+                <Text style={s.advisorDesc}>
+                  <Text style={{ fontWeight: '800', color: '#fff' }}>Dates:</Text> {fmtDate(bookings[0].check_in)} – {fmtDate(bookings[0].check_out)}
+                </Text>
+                <Text style={s.advisorDesc}>
+                  <Text style={{ fontWeight: '800', color: '#fff' }}>Status:</Text>{' '}
+                  <Text style={{ color: '#86EFAC', fontWeight: '800' }}>{bookings[0].status.toUpperCase()}</Text>
+                </Text>
+                {bookings.length > 1 && (
+                  <Text style={[s.advisorDesc, { color: 'rgba(255,255,255,0.4)', marginTop: 2 }]}>
+                    + {bookings.length - 1} more active booking(s)
+                  </Text>
+                )}
+              </View>
+            ) : (
+              <Text style={s.advisorDesc}>
+                No active stays or bookings found. Browse housing, hostels, or vehicles from the catalog above to book.
+              </Text>
+            )}
+            <Pressable
+              style={[s.advisorCTA, { backgroundColor: '#8B5CF6' }]}
+              onPress={() => setBookingsOpen(true)}
+            >
+              <MaterialCommunityIcons name="ticket-confirmation" size={14} color="#fff" />
+              <Text style={s.advisorCTAText}>Show My Bookings</Text>
+            </Pressable>
+          </View>
+        </View>
       </View>
 
       {/* Booking sheet */}
@@ -275,9 +336,15 @@ export default function RentalsPage() {
         onCancelled={loadData}
       />
 
-      {/* MD3 Floating Action Button — open My Bookings */}
-      <FAB icon="ticket-confirmation" label="My Bookings" color="#5F259F"
-            onPress={() => setBookingsOpen(true)} />
+      {/* Floating Stay AI Assistant Chat */}
+      <AIRentalAdvisor
+        open={aiChatOpen}
+        setOpen={setAiChatOpen}
+      />
+
+      {/* MD3 Floating Action Button — open Stay AI Chat */}
+      <FAB icon="brain" label="Ask Stay AI" color="#22D3EE"
+            onPress={() => setAiChatOpen(true)} />
     </FeaturePageShell>
   );
 }
@@ -1042,4 +1109,34 @@ const s = StyleSheet.create({
     borderColor: 'rgba(239,68,68,0.30)', borderWidth: 1,
     ...({ cursor: 'pointer' } as any) },
   cancelLinkText: { color: '#FCA5A5', fontFamily: 'DMSans_700Bold', fontSize: 11 },
+
+  advisorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'stretch' },
+  advisorCard: {
+    flex: 1, minWidth: 260,
+    padding: 18, borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1, gap: 10,
+    flexDirection: 'column',
+  },
+  advisorIconBox: {
+    width: 40, height: 40, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1,
+  },
+  advisorTitle: { color: '#fff', fontSize: 15, fontWeight: '800', marginTop: 4, fontFamily: 'DMSans_800ExtraBold' },
+  advisorDesc: { color: 'rgba(255,255,255,0.70)', fontSize: 12.5, lineHeight: 18, fontFamily: 'DMSans_500Medium' },
+  advisorCTA: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: 11, borderRadius: 8, marginTop: 'auto',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  advisorCTAText: { color: '#fff', fontSize: 12.5, fontWeight: '800', fontFamily: 'DMSans_800ExtraBold' },
+  advisorExpanded: {
+    marginTop: 6, paddingTop: 10,
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)',
+    gap: 8,
+  },
+  advisorLinkRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  advisorLinkText: { fontSize: 12.5, fontWeight: '600', fontFamily: 'DMSans_700Bold' },
+  advisorNote: { color: 'rgba(255,255,255,0.45)', fontSize: 11, fontStyle: 'italic', marginTop: 4, fontFamily: 'DMSans_500Medium' },
 });
