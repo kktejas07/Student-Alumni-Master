@@ -2764,13 +2764,16 @@ async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
         si = user.get("school_info") or {}
         si_updated = False
         
+        is_college = user.get("role") == "college"
+        cp = user.get("college_info") or user.get("college_profile")
+        cp_updated = False
+        
         if "institution" in safe:
             si["institution_name"] = safe["institution"]
             si_updated = True
-            cp = user.get("college_info") or user.get("college_profile")
             if cp:
                 cp["institution_name"] = safe["institution"]
-                safe["college_info"] = cp
+                cp_updated = True
         if "branch" in safe:
             si["branch_or_stream"] = safe["branch"]
             si_updated = True
@@ -2783,12 +2786,24 @@ async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
         if "city" in safe:
             si["city"] = safe["city"]
             si_updated = True
+            if is_college and cp:
+                cp["city"] = safe["city"]
+                cp_updated = True
         if "state" in safe:
             si["state"] = safe["state"]
             si_updated = True
+            if is_college and cp:
+                cp["state"] = safe["state"]
+                cp_updated = True
             
         if si_updated:
             safe["school_info"] = si
+            
+        if cp_updated:
+            if "college_info" in user:
+                safe["college_info"] = cp
+            if "college_profile" in user:
+                safe["college_profile"] = cp
 
         await db.users.update_one({"_id": user["_id"]}, {"$set": safe})
     return UserResponse(**serialize_user(await db.users.find_one({"_id": user["_id"]})))
