@@ -57,6 +57,12 @@ export function DashboardView({
     COLLEGE_MOCK
   );
 
+  const { width } = useWindowDimensions();
+  const stack = width < 1100;
+
+  const [briefText, setBriefText] = React.useState<string>('');
+  const [briefLoading, setBriefLoading] = React.useState<boolean>(false);
+
   if (loading && data === COLLEGE_MOCK) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
@@ -71,12 +77,6 @@ export function DashboardView({
   const RECENT_ACTIVITY = data!.recentActivity;
   const UPCOMING_EVENTS = data!.upcomingEvents;
   const TOP_RECRUITERS = data!.topRecruiters;
-
-  const { width } = useWindowDimensions();
-  const stack = width < 1100;
-
-  const [briefText, setBriefText] = React.useState<string>('');
-  const [briefLoading, setBriefLoading] = React.useState<boolean>(false);
 
   return (
     <View style={{ gap: 16 }}>
