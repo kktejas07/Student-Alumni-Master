@@ -4539,7 +4539,7 @@ async def get_claude_chat(session_id: str, system_message: str):
                     ],
                     "suggestion": "Your trajectory is solid — focus this week on shipping one polished portfolio piece."
                 }"""
-            if "chat" in self.sess_id.lower() or "financial" in self.sess_id.lower() or "You are speaking with" in self.sys_msg:
+            if "chat" in self.sess_id.lower() or "financial" in self.sess_id.lower() or "stay" in self.sess_id.lower() or "rentals" in self.sess_id.lower() or "You are speaking with" in self.sys_msg:
                 user_text = getattr(msg, "text", str(msg))
                 clean_text = user_text.replace("[financial] ", "").replace("[career] ", "").strip()
                 if "/scholarships" in clean_text.lower():

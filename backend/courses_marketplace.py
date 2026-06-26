@@ -1890,7 +1890,7 @@ async def _fetch_openedx() -> List[Dict[str, Any]]:
                     "external_id": str(cid),
                     "title": title,
                     "short_desc": f"Learn {title} on our official Open edX platform.",
-                    "thumbnail": "🎓",
+                    "thumbnail": image_uri,
                     "provider": {"name": org, "type": "platform", "logo_url": ""},
                     "instructors": [f"{org} Faculty"],
                     "category": "tech",

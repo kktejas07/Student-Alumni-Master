@@ -124,6 +124,10 @@ export default function RentalsPage() {
 
   const visibleListings = useMemo(() => listings, [listings]);
 
+  const activeBookings = useMemo(() => bookings.filter(b => b.status === 'confirmed' || b.status === 'pending'), [bookings]);
+  const currentStay = activeBookings[0] || bookings[0];
+  const displayCount = activeBookings.length > 0 ? activeBookings.length : bookings.length;
+
   return (
     <FeaturePageShell
       title="Find Your Perfect Stay"
@@ -283,18 +287,18 @@ export default function RentalsPage() {
             {bookings.length > 0 ? (
               <View style={{ gap: 6, flexGrow: 1 }}>
                 <Text style={s.advisorDesc} numberOfLines={1}>
-                  <Text style={{ fontWeight: '800', color: '#fff' }}>Current Stay:</Text> {bookings[0].listing_snapshot?.title || 'Active Booking'}
+                  <Text style={{ fontWeight: '800', color: '#fff' }}>Current Stay:</Text> {currentStay.listing_snapshot?.title || 'Active Booking'}
                 </Text>
                 <Text style={s.advisorDesc}>
-                  <Text style={{ fontWeight: '800', color: '#fff' }}>Dates:</Text> {fmtDate(bookings[0].check_in)} – {fmtDate(bookings[0].check_out)}
+                  <Text style={{ fontWeight: '800', color: '#fff' }}>Dates:</Text> {fmtDate(currentStay.check_in)} – {fmtDate(currentStay.check_out)}
                 </Text>
                 <Text style={s.advisorDesc}>
                   <Text style={{ fontWeight: '800', color: '#fff' }}>Status:</Text>{' '}
-                  <Text style={{ color: '#86EFAC', fontWeight: '800' }}>{bookings[0].status?.toUpperCase() || 'UNKNOWN'}</Text>
+                  <Text style={{ color: '#86EFAC', fontWeight: '800' }}>{currentStay.status?.toUpperCase() || 'UNKNOWN'}</Text>
                 </Text>
-                {bookings.length > 1 && (
+                {displayCount > 1 && (
                   <Text style={[s.advisorDesc, { color: 'rgba(255,255,255,0.4)', marginTop: 2 }]}>
-                    + {bookings.length - 1} more active booking(s)
+                    + {displayCount - 1} more active booking(s)
                   </Text>
                 )}
               </View>
