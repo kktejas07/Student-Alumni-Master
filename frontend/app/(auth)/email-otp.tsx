@@ -78,8 +78,9 @@ export default function EmailOTP() {
           autoCapitalize="none"
           error={error}
           onSubmitEditing={onSend}
+          testID="otp-email"
         />
-        <PrimaryButton label="Send OTP Code" onPress={onSend} loading={loading} />
+        <PrimaryButton label="Send OTP Code" onPress={onSend} loading={loading} testID="otp-send-code" />
       </View>
 
       <View style={s.footerRow}>

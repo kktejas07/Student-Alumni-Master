@@ -115,27 +115,31 @@ export function WebPrimaryBtn({
 
 // ─── Ghost button (transparent w/ border) ────────────────────────────────────
 export function WebGhostBtn({
-  label, onPress, testID, style, leftIcon,
+  label, onPress, testID, style, leftIcon, disabled, loading,
 }: {
   label: string;
   onPress: () => void;
   testID?: string;
   style?: any;
   leftIcon?: ReactNode;
+  disabled?: boolean;
+  loading?: boolean;
 }) {
   return (
     <Pressable
       onPress={onPress}
       testID={testID}
+      disabled={disabled || loading}
       style={({ hovered, pressed }: any) => [
         controlStyles.ghost,
-        hovered && controlStyles.ghostHover,
-        pressed && { transform: [{ scale: 0.985 }] },
+        hovered && !disabled && !loading && controlStyles.ghostHover,
+        pressed && !disabled && !loading && { transform: [{ scale: 0.985 }] },
+        (disabled || loading) && { opacity: 0.5 },
         style,
       ]}
     >
       {leftIcon ? <View>{leftIcon}</View> : null}
-      <Text style={controlStyles.ghostText}>{label}</Text>
+      <Text style={controlStyles.ghostText}>{loading ? 'Working...' : label}</Text>
     </Pressable>
   );
 }

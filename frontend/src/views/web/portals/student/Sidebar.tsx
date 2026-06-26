@@ -16,7 +16,7 @@
  *     dashboards we ship later)
  */
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform, Pressable, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useSidebarStore } from '@/src/viewmodels/stores/sidebarStore';
@@ -230,6 +230,7 @@ export function Sidebar({
         onPress={onLogout}
         style={[s.logoutRow, collapsed && { justifyContent: 'center', paddingHorizontal: 0 }]}
         accessibilityLabel="Log out of your account"
+        testID="logout-button"
         accessibilityHint="Signs you out and returns to the welcome screen"
       >
         <LogOut size={14} color={C.danger} />

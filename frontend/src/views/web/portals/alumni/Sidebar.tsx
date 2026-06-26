@@ -5,7 +5,7 @@
  * Career AI, accessibility roles/labels, breathing pulse on status dot.
  */
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useRouter } from 'expo-router';
@@ -157,6 +157,7 @@ export function Sidebar({
         onPress={onLogout}
         style={s.logoutRow}
         accessibilityLabel="Log out of your alumni account"
+        testID="logout-button"
       >
         <LogOut size={14} color="#FCA5A5" />
         <Text style={s.logoutText}>Log out</Text>

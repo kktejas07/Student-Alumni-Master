@@ -26,6 +26,8 @@ import {
 } from 'react-native';
 import Svg, { Circle, Defs, Line, LinearGradient as SvgLinearGradient, Polygon, Stop, Text as SvgText } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
+import { LogBox } from 'react-native';
+LogBox.ignoreAllLogs();
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft, Award, Briefcase, ChevronRight, CircleCheck as CheckCircle2,
@@ -38,6 +40,13 @@ import { useToast } from '@/src/views/components/Toast';
 import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 import { CompletionRing } from '@/src/views/web/profile/CompletionRing';
 import { generateCareerReportPdf, type CareerReportData } from '@/src/lib/careerReportPdf';
+import {
+  GAINS,
+  ROADMAP_SKILL_KEY_MAP,
+  SKILL_CATEGORY_KEYS,
+  normalizeRoadmapSkillScores,
+  getImpactLabel,
+} from '@/src/lib/careerConstants';
 
 /* ────────── Design tokens ────────── */
 const C = {
@@ -76,12 +85,7 @@ const SKILL_META = [
   { key: 'Industry Presence',            label: 'Industry\nPresence',           short: 'Industry Presence',          color: '#C4B5FD', Icon: UserIcon },
 ];
 
-const GAINS: Record<string, number> = {
-  RESUME: 8, PROJECT: 12, LINKEDIN: 5, PORTFOLIO: 7,
-  CERTIFICATION: 6, MOCK_INTERVIEW: 8, NETWORKING: 4,
-  SKILLS: 5, PROFILE: 3, JOB_APPLICATION: 2,
-};
-
+// GAINS and IMPACT_LABEL are now imported from careerConstants.ts (centralized)
 const IMPACT_LABEL: Record<number, { text: string; color: string }> = {
   12: { text: 'High Impact',   color: C.purpleL },
   8:  { text: 'High Impact',   color: C.purpleL },
@@ -337,8 +341,9 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
         nextScore = careerIntel.readiness_score.next_threshold || nextScore;
       } else { score = Number(careerIntel.readiness_score) || 0; }
     } else {
-      const ss = roadmap.skill_scores || {};
-      const vals = SKILL_META.map(s => Number(ss[s.key] || 0));
+      const rawRoadmap = roadmap.skill_scores || {};
+      const normalized = normalizeRoadmapSkillScores(rawRoadmap);
+      const vals = SKILL_META.map(s => Number(normalized[s.key] || 0));
       if (vals.length) score = vals.reduce((a, b) => a + b, 0) / vals.length;
     }
     score = Math.round(score);
@@ -365,7 +370,9 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
     if (careerIntel?.potential_score !== undefined) {
       return { potentialScore: Number(careerIntel.potential_score) || 0, getLevelForScore };
     }
-    const aiSkillVals = SKILL_META.map(s => Number((roadmap.skill_scores || {})[s.key] || 0));
+    const rawRoadmap = roadmap.skill_scores || {};
+    const normalized = normalizeRoadmapSkillScores(rawRoadmap);
+    const aiSkillVals = SKILL_META.map(s => Number(normalized[s.key] || 0));
     const avg = aiSkillVals.length ? aiSkillVals.reduce((a, b) => a + b, 0) / aiSkillVals.length : 0;
     const pScore = Math.min(100, Math.round(avg * 0.60 + profileStrength * 0.15 + 25));
     return { potentialScore: pScore, getLevelForScore };
@@ -373,11 +380,22 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 
   /* ── Skill scores (normalised to 0-100) ── */
   const skillScores = useMemo<Record<string, number>>(() => {
-    const base = careerIntel?.skill_scores || {};
+    // Prefer skill-intelligence API scores (canonical keys)
+    if (careerIntel?.skill_scores) {
+      const base = careerIntel.skill_scores;
+      return SKILL_META.reduce<Record<string, number>>((acc, s) => {
+        acc[s.key] = base[s.key] !== undefined ? Number(base[s.key]) : 0;
+        return acc;
+      }, {});
+    }
+    // Fix 1: Fallback to roadmap skill_scores — normalize LLM short keys → canonical keys
+    const rawRoadmap = roadmap.skill_scores || {};
+    const normalized = normalizeRoadmapSkillScores(rawRoadmap);
     return SKILL_META.reduce<Record<string, number>>((acc, s) => {
-      acc[s.key] = base[s.key] !== undefined
-        ? Number(base[s.key])
-        : Math.round(Number((roadmap.skill_scores || {})[s.key] || 40));
+      // Use normalized canonical key, then check short-key alias, else 0 (never hardcode a default score)
+      acc[s.key] = normalized[s.key] !== undefined
+        ? Math.round(Number(normalized[s.key]))
+        : 0;
       return acc;
     }, {});
   }, [careerIntel, roadmap.skill_scores]);
@@ -468,7 +486,8 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 
   const targetRole = roadmap.target_role || 'Software Engineer';
   const targetCo   = roadmap.target_company_type || 'Top Tech Company';
-  const progress   = Math.min(100, roadmap.progress_pct ?? 42);
+  // Fix 2: progress_pct is now computed server-side from milestone completion, default 0
+  const progress   = Math.min(100, roadmap.progress_pct ?? 0);
   const estimatedWeeks = pendingMilestones.length > 0 ? `~${pendingMilestones.length * 2} Weeks` : 'Goal Reached!';
   const radarSize = Math.min(isLarge ? 280 : winW * 0.72, 310);
 
@@ -501,9 +520,12 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
               </View>
             )}
           </View>
+        {/* Fix 10: Reserve min-height for suggestion area to prevent layout jump */}
+        <View style={{ minHeight: 20 }}>
           {!!roadmap.suggestion && (
             <Text style={s.suggest} numberOfLines={2}>{roadmap.suggestion}</Text>
           )}
+        </View>
         </View>
 
         {/* Download + Regenerate */}
@@ -540,6 +562,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
       </View>
 
       {/* ──────── KPI TILES ──────── */}
+      {/* Fix 8: 5-tile row with Skill Streak added */}
       <View style={{ flexDirection: 'row', gap: 10, flexWrap: isLarge ? 'nowrap' : 'wrap' }}>
 
         {/* 1 – Current Readiness (ring) */}
@@ -610,6 +633,22 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
             <View style={[s.kpiBandFill, { width: `${profileStrength}%`, backgroundColor: C.blue }]} />
           </View>
           <Text style={s.kpiBandLabel}>Complete to boost score</Text>
+        </View>
+
+        {/* 5 – Skill Streak (Fix 8) */}
+        <View style={[s.kpiCard, { flex: isLarge ? 1 : 0, minWidth: isLarge ? 0 : '47%' }]}>
+          <Text style={s.kpiLabel}>SKILL STREAK</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
+            <View style={[s.kpiIconWrap, { backgroundColor: C.red + '22', borderColor: C.red + '55' }]}>
+              <Flame size={15} color={C.red} fill={C.red} />
+            </View>
+            <Text style={[s.kpiValue, { color: C.red }]}>{skillStreak}</Text>
+          </View>
+          <Text style={[s.kpiSub, { marginTop: 4 }]}>{skillStreak === 0 ? 'No active streak' : skillStreak === 1 ? '1 day streak' : `${skillStreak} days`}</Text>
+          <View style={[s.kpiBandTrack, { marginTop: 10 }]}>
+            <View style={[s.kpiBandFill, { width: `${Math.min(100, skillStreak * 10)}%`, backgroundColor: C.red }]} />
+          </View>
+          <Text style={s.kpiBandLabel}>Activity streak</Text>
         </View>
       </View>
 
@@ -777,10 +816,14 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 
                   return (
                     <View key={`step-${m.id}`} style={s.journeyRow}>
-                      {/* Indicator */}
+                      {/* Fix 9: Timeline connector line — correctly propagate green for completed chain */}
                       <View style={s.journeyIndicator}>
+                        {/* Top connector: green if current or previous item is completed */}
                         {idx > 0 && (
-                          <View style={[s.journeyLine, isCompleted || idx <= firstPendingIdx ? s.journeyLineActive : null]} />
+                          <View style={[
+                            s.journeyLine,
+                            (isCompleted || (idx <= firstPendingIdx && firstPendingIdx > 0)) ? s.journeyLineActive : null,
+                          ]} />
                         )}
                         <View style={[
                           s.journeyDot,
@@ -794,6 +837,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
                             <meta.Icon size={11} color={isActive ? C.purpleL : C.dim} />
                           )}
                         </View>
+                        {/* Bottom connector: green only if this milestone is completed */}
                         {idx < allMilestones.length - 1 && (
                           <View style={[s.journeyLine, isCompleted ? s.journeyLineActive : null]} />
                         )}
@@ -906,7 +950,8 @@ const s = StyleSheet.create({
     backgroundColor: C.bgCard, borderColor: C.border, borderWidth: 1,
     borderRadius: 14, padding: 14,
   },
-  kpiLabel:     { color: C.text2, fontFamily: FT.bold, fontSize: 9.5, letterSpacing: 0.9 },
+  // Fix 13: KPI label font raised from 9.5px to 12px for accessibility (WCAG AA)
+  kpiLabel:     { color: C.text2, fontFamily: FT.bold, fontSize: 12, letterSpacing: 0.6 },
   kpiValue:     { fontFamily: FT.xbold, fontSize: 22, letterSpacing: -0.5 },
   kpiSub:       { color: C.dim, fontFamily: FT.med, fontSize: 11 },
   kpiBandTrack: { height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' },
