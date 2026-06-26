@@ -71,12 +71,12 @@ interface Props {
 }
 
 export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, onTakeSelfie }: Props) {
+  const isCollege = draft.role === 'college' || useAuthStore.getState().user?.role === 'college';
   const [pendingPhoto, setPendingPhoto] = useState<string | null>(null);
-  const photo = pendingPhoto || draft.photo_data || draft.face_image_base64;
+  const photo = pendingPhoto || (isCollege ? draft.college_logo_data : (draft.photo_data || draft.face_image_base64));
   const initials = ((draft.full_name || '?').split(' ').slice(0,2).map((s: string) => s[0] || '').join('') || '?').toUpperCase();
 
   const isMentor = !!onTakeSelfie;
-  const isCollege = draft.role === 'college' || useAuthStore.getState().user?.role === 'college';
   const themeColor = isMentor ? '#14B8A6' : '#A78BFA';
   const themeBg = isMentor ? 'rgba(20,184,166,0.15)' : 'rgba(167,139,250,0.15)';
   const themeBadgeBg = isMentor ? '#14B8A6' : '#7C3AED';
@@ -166,7 +166,11 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
 
   const confirmPhoto = () => {
     if (pendingPhoto) {
-      setDraft((d: any) => ({ ...d, photo_data: pendingPhoto, face_image_base64: pendingPhoto }));
+      if (isCollege) {
+        setDraft((d: any) => ({ ...d, college_logo_data: pendingPhoto }));
+      } else {
+        setDraft((d: any) => ({ ...d, photo_data: pendingPhoto, face_image_base64: pendingPhoto }));
+      }
       setPendingPhoto(null);
     }
   };
@@ -256,24 +260,26 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
   return (
     <View style={{ gap: 16, zIndex: 10, position: 'relative' }}>
       {/* Completion Banner */}
-      <View style={[st.banner, completion.percentage >= 100 && st.bannerComplete]}>
-        <CompletionRing pct={completion.percentage} size={92} color={completion.percentage >= 100 ? '#10B981' : '#A78BFA'} />
-        <View style={{ flex: 1, minWidth: 0, gap: 10 }}>
-          <Text style={st.bannerTitle}>Profile Completion</Text>
-          <Text style={st.bannerSub}>Complete your profile to unlock personalized recommendations & higher trust signals.</Text>
-          <View style={st.itemsRow}>
-            {completion.items.map((it) => (
-              <View key={it.key} style={[st.itemPill, it.done && st.itemPillDone]}>
-                {it.done ? <Check size={11} color={C.green} /> : <View style={st.dot} />}
-                <Text style={[st.itemPillText, it.done && { color: C.green }]}>{it.label}</Text>
-              </View>
-            ))}
-            {completion.percentage >= 100 && (
-              <View style={st.completePill}><Sparkles size={11} color="#fff" /><Text style={st.completePillText}>Complete</Text></View>
-            )}
+      {!isCollege && (
+        <View style={[st.banner, completion.percentage >= 100 && st.bannerComplete]}>
+          <CompletionRing pct={completion.percentage} size={92} color={completion.percentage >= 100 ? '#10B981' : '#A78BFA'} />
+          <View style={{ flex: 1, minWidth: 0, gap: 10 }}>
+            <Text style={st.bannerTitle}>Profile Completion</Text>
+            <Text style={st.bannerSub}>Complete your profile to unlock personalized recommendations & higher trust signals.</Text>
+            <View style={st.itemsRow}>
+              {completion.items.map((it) => (
+                <View key={it.key} style={[st.itemPill, it.done && st.itemPillDone]}>
+                  {it.done ? <Check size={11} color={C.green} /> : <View style={st.dot} />}
+                  <Text style={[st.itemPillText, it.done && { color: C.green }]}>{it.label}</Text>
+                </View>
+              ))}
+              {completion.percentage >= 100 && (
+                <View style={st.completePill}><Sparkles size={11} color="#fff" /><Text style={st.completePillText}>Complete</Text></View>
+              )}
+            </View>
           </View>
         </View>
-      </View>
+      )}
 
       {/* Basic Information */}
       <Card title="Basic Information" subtitle="Your name, photo, and a short tagline.">

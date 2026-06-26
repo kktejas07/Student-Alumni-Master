@@ -538,6 +538,8 @@ class UserResponse(BaseModel):
     last_name: Optional[str] = None
     headline: Optional[str] = None
     photo_data: Optional[str] = None
+    banner_data: Optional[str] = None
+    college_logo_data: Optional[str] = None
     institution: Optional[str] = None
     branch: Optional[str] = None
     stream: Optional[str] = None
@@ -2835,7 +2837,7 @@ async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
     allowed = {
         # Identity / basics
         "full_name", "first_name", "last_name", "headline", "bio",
-        "phone", "city", "state", "location", "face_image_base64", "photo_data", "banner_data",
+        "phone", "city", "state", "location", "face_image_base64", "photo_data", "banner_data", "college_logo_data",
         # Academic
         "institution", "branch", "graduation_year", "year", "cgpa",
         "stream", "department",
@@ -2913,16 +2915,24 @@ async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
 # Profile completion + Resume + Preferences (SA Profile Web — Phase 4)
 # ----------------------------------------------------------------------------
 def _compute_profile_completion(u: dict) -> dict:
-    """Return per-item checklist + overall percentage using rebalanced weights."""
-    items = [
-        {"key": "skills", "label": "Skills listed", "done": len(u.get("skills") or []) >= 1, "weight": 25},
-        {"key": "resume", "label": "Resume uploaded", "done": len(u.get("resume_documents") or []) > 0 or bool(u.get("resume_url")) or bool(u.get("resume_data")), "weight": 20},
-        {"key": "projects", "label": "Projects added", "done": len(u.get("projects") or []) > 0, "weight": 20},
-        {"key": "socials", "label": "LinkedIn/GitHub linked", "done": bool(u.get("linkedin_url")) or bool(u.get("github_url")), "weight": 15},
-        {"key": "education", "label": "Education/College details", "done": bool((u.get("institution") or "").strip()) and bool((u.get("branch") or "").strip()), "weight": 10},
-        {"key": "bio", "label": "Bio / headline", "done": bool((u.get("bio") or u.get("headline") or "").strip()), "weight": 5},
-        {"key": "photo", "label": "Profile photo", "done": bool(u.get("face_image_base64") or u.get("photo_data")), "weight": 5},
-    ]
+    if u.get("role") == "college":
+        items = [
+            {"key": "photo", "label": "College Logo", "done": bool(u.get("college_logo_data") or u.get("photo_data")), "weight": 20},
+            {"key": "banner", "label": "College Banner", "done": bool(u.get("banner_data")), "weight": 20},
+            {"key": "bio", "label": "Tagline / Bio", "done": bool((u.get("bio") or u.get("headline") or "").strip()), "weight": 20},
+            {"key": "location", "label": "City & State", "done": bool((u.get("city") or "").strip()) and bool((u.get("state") or "").strip()), "weight": 20},
+            {"key": "socials", "label": "Social Links", "done": bool(u.get("linkedin_url")), "weight": 20},
+        ]
+    else:
+        items = [
+            {"key": "skills", "label": "Skills listed", "done": len(u.get("skills") or []) > 0, "weight": 25},
+            {"key": "resume", "label": "Resume uploaded", "done": len(u.get("resume_documents") or []) > 0 or bool(u.get("resume_url")) or bool(u.get("resume_data")), "weight": 20},
+            {"key": "projects", "label": "Projects added", "done": len(u.get("projects") or []) > 0, "weight": 20},
+            {"key": "socials", "label": "LinkedIn/GitHub linked", "done": bool(u.get("linkedin_url")) or bool(u.get("github_url")), "weight": 15},
+            {"key": "education", "label": "Education/College details", "done": bool((u.get("institution") or "").strip()) and bool((u.get("branch") or "").strip()), "weight": 10},
+            {"key": "bio", "label": "Bio / headline", "done": bool((u.get("bio") or u.get("headline") or "").strip()), "weight": 5},
+            {"key": "photo", "label": "Profile photo", "done": bool(u.get("face_image_base64") or u.get("photo_data")), "weight": 5},
+        ]
     pct = sum(i["weight"] for i in items if i["done"])
     return {"percentage": pct, "items": items}
 
