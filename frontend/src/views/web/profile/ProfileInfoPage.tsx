@@ -493,6 +493,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
       </Card>
 
       {/* Contact Details */}
+      <View style={{ zIndex: 50, position: 'relative' }}>
       <Card title="Contact Details" subtitle="How others can reach you (visible based on privacy settings).">
         <View style={[st.row, { zIndex: 19 }]}>
           <Field label="Email" half><TF value={draft.email || ''} onChangeText={() => {}} leftIcon={<Mail size={14} color={C.text2} />} testID="pf-email" /></Field>
@@ -518,11 +519,13 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
             />
           </View>
         </View>
+        </View>
       </Card>
+      </View>
 
       {/* Academic Details */}
       {!isCollege && (
-        <>
+        <View style={{ zIndex: 40, position: 'relative' }}>
         <Card title="Academic Details" subtitle="Your education info — used for matching with peers.">
           <Field label="College / University"><TF value={draft.institution || ''} onChangeText={(v) => setField('institution', v)} leftIcon={<Building2 size={14} color={C.text2} />} placeholder="e.g. IIT Bombay" testID="pf-college" /></Field>
           <View style={[st.row, { zIndex: 18 }]}>
@@ -542,7 +545,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
             setField('interests', interests.includes(o) ? interests.filter((x: string) => x !== o) : [...interests, o]);
           }} />
         </Card>
-        </>
+        </View>
       )}
 
       {/* Social Links */}
