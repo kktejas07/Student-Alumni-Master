@@ -277,98 +277,134 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
 
       {/* Basic Information */}
       <Card title="Basic Information" subtitle="Your name, photo, and a short tagline.">
-        <View style={st.photoRow}>
-          <View style={{ position: 'relative' }}>
-            <Pressable onPress={handleOpenMenu} style={st.avatarLg} testID="profile-avatar-upload">
-              {photo ? (
-                <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
-              ) : (
-                <Text style={st.avatarLgText}>{initials}</Text>
-              )}
-            </Pressable>
-            {photo && (
-              <View style={st.avatarCheck}>
-                <Check size={11} color="#fff" />
-              </View>
-            )}
-          </View>
-          <View style={{ flex: 1, minWidth: 0, gap: 8 }}>
-            <Text style={st.photoTitle}>Profile Photo</Text>
-            <Text style={st.photoHint}>JPG, PNG up to 5MB. Recommended 400×400px.</Text>
-            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
-              {pendingPhoto ? (
-                <>
-                  <Pressable onPress={confirmPhoto} style={st.btnConfirm} testID="pf-confirm-photo">
-                    <Check size={14} color="#FFF" />
-                    <Text style={st.btnPrimaryText}>Confirm</Text>
-                  </Pressable>
-                  <Pressable onPress={() => { setPendingPhoto(null); if (onTakeSelfie) { onTakeSelfie(); } else { takeSelfie(); } }} style={st.btnGhost} testID="pf-retake-photo">
-                    <Camera size={14} color={themeColor} />
-                    <Text style={st.btnGhostText}>Retake</Text>
-                  </Pressable>
-                </>
-              ) : (
-                <>
-                  <Pressable onPress={onUploadPhoto} style={st.btnPrimary} testID="pf-upload-photo">
-                    <Upload size={14} color="#FFF" />
-                    <Text style={st.btnPrimaryText}>Upload Photo</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => {
-                      if (onTakeSelfie) {
-                        onTakeSelfie();
-                      } else {
-                        takeSelfie();
-                      }
-                    }}
-                    style={st.btnPrimary}
-                    testID="pf-take-selfie"
-                  >
-                    <Camera size={14} color="#FFF" />
-                    <Text style={st.btnPrimaryText}>Take Selfie</Text>
-                  </Pressable>
-                  {photo && (
-                    <Pressable onPress={() => {
-                      setDraft((d: any) => ({ ...d, photo_data: '', face_image_base64: '' }));
-                    }} style={st.btnGhost}>
-                      <Text style={st.btnGhostText}>Remove</Text>
-                    </Pressable>
-                  )}
-                </>
+        {!isCollege ? (
+          <View style={st.photoRow}>
+            <View style={{ position: 'relative' }}>
+              <Pressable onPress={handleOpenMenu} style={st.avatarLg} testID="profile-avatar-upload">
+                {photo ? (
+                  <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
+                ) : (
+                  <Text style={st.avatarLgText}>{initials}</Text>
+                )}
+              </Pressable>
+              {photo && (
+                <View style={st.avatarCheck}>
+                  <Check size={11} color="#fff" />
+                </View>
               )}
             </View>
-
-            <Text style={st.photoHint}>JPG, PNG up to 5MB. Click Upload Photo to select a file from your system or capture a webcam selfie.</Text>
-          </View>
-        </View>
-
-        {isCollege && (
-          <View style={[st.photoRow, { marginTop: 16 }]}>
-            {draft.banner_data ? (
-              <View style={{ width: '100%', height: 120, borderRadius: 12, overflow: 'hidden' }}>
-                <Image source={{ uri: draft.banner_data }} style={StyleSheet.absoluteFillObject} />
-              </View>
-            ) : (
-              <View style={{ width: '100%', height: 120, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', justifyContent: 'center', alignItems: 'center' }}>
-                <ImageIcon size={32} color={C.text3} />
-              </View>
-            )}
-            <View style={{ flex: 1, minWidth: 0, gap: 8, marginTop: 8 }}>
-              <Text style={st.photoTitle}>College Banner</Text>
-              <Text style={st.photoHint}>JPG, PNG up to 5MB. Recommended 1200x400px (3:1 aspect ratio).</Text>
+            <View style={{ flex: 1, minWidth: 0, gap: 8 }}>
+              <Text style={st.photoTitle}>Profile Photo</Text>
+              <Text style={st.photoHint}>JPG, PNG up to 5MB. Recommended 400×400px.</Text>
               <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
-                <Pressable onPress={pickBannerImage} style={st.btnPrimary} testID="pf-upload-banner">
+                {pendingPhoto ? (
+                  <>
+                    <Pressable onPress={confirmPhoto} style={st.btnConfirm} testID="pf-confirm-photo">
+                      <Check size={14} color="#FFF" />
+                      <Text style={st.btnPrimaryText}>Confirm</Text>
+                    </Pressable>
+                    <Pressable onPress={() => { setPendingPhoto(null); if (onTakeSelfie) { onTakeSelfie(); } else { takeSelfie(); } }} style={st.btnGhost} testID="pf-retake-photo">
+                      <Camera size={14} color={themeColor} />
+                      <Text style={st.btnGhostText}>Retake</Text>
+                    </Pressable>
+                  </>
+                ) : (
+                  <>
+                    <Pressable onPress={onUploadPhoto} style={st.btnPrimary} testID="pf-upload-photo">
+                      <Upload size={14} color="#FFF" />
+                      <Text style={st.btnPrimaryText}>Upload Photo</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => {
+                        if (onTakeSelfie) {
+                          onTakeSelfie();
+                        } else {
+                          takeSelfie();
+                        }
+                      }}
+                      style={st.btnPrimary}
+                      testID="pf-take-selfie"
+                    >
+                      <Camera size={14} color="#FFF" />
+                      <Text style={st.btnPrimaryText}>Take Selfie</Text>
+                    </Pressable>
+                    {photo && (
+                      <Pressable onPress={() => {
+                        setDraft((d: any) => ({ ...d, photo_data: '', face_image_base64: '' }));
+                      }} style={st.btnGhost}>
+                        <Text style={st.btnGhostText}>Remove</Text>
+                      </Pressable>
+                    )}
+                  </>
+                )}
+              </View>
+
+              <Text style={st.photoHint}>JPG, PNG up to 5MB. Click Upload Photo to select a file from your system or capture a webcam selfie.</Text>
+            </View>
+          </View>
+        ) : (
+          <View style={{ marginBottom: 16 }}>
+            {/* Banner Container */}
+            <View style={{ width: '100%', height: 160, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', position: 'relative', borderWidth: 1, borderColor: C.border }}>
+              
+              {/* Banner Image / Placeholder */}
+              <View style={{ width: '100%', height: '100%', borderRadius: 12, overflow: 'hidden' }}>
+                {draft.banner_data ? (
+                  <Image source={{ uri: draft.banner_data }} style={StyleSheet.absoluteFillObject} />
+                ) : (
+                  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ImageIcon size={32} color={C.text3} />
+                    <Text style={[st.photoHint, { marginTop: 8 }]}>Banner: 1200x400px</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Banner Controls (Top Left) */}
+              <View style={{ position: 'absolute', top: 12, left: 12, flexDirection: 'row', gap: 8 }}>
+                <Pressable onPress={pickBannerImage} style={{ backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <Upload size={14} color="#FFF" />
-                  <Text style={st.btnPrimaryText}>Upload Banner</Text>
+                  <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '600' }}>Upload Banner</Text>
                 </Pressable>
                 {draft.banner_data && (
-                  <Pressable onPress={() => {
-                    setDraft((d: any) => ({ ...d, banner_data: '' }));
-                  }} style={st.btnGhost}>
-                    <Text style={st.btnGhostText}>Remove</Text>
+                  <Pressable onPress={() => setDraft((d: any) => ({ ...d, banner_data: '' }))} style={{ backgroundColor: 'rgba(0,0,0,0.6)', padding: 8, borderRadius: 20 }}>
+                    <Trash2 size={14} color="#FFF" />
                   </Pressable>
                 )}
               </View>
+
+              {/* Profile Photo (Logo) on the RIGHT */}
+              <View style={{ position: 'absolute', bottom: -30, right: 24, zIndex: 10 }}>
+                <Pressable onPress={handleOpenMenu} testID="profile-avatar-upload">
+                  <View style={{ width: 90, height: 90, borderRadius: 12, borderWidth: 4, borderColor: C.card, backgroundColor: C.bg, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
+                    {photo ? (
+                      <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
+                    ) : (
+                      <Text style={[st.avatarLgText, { fontSize: 32 }]}>{initials}</Text>
+                    )}
+                  </View>
+                  <View style={{ position: 'absolute', bottom: -6, right: -6, backgroundColor: C.purple, padding: 6, borderRadius: 20, borderWidth: 2, borderColor: C.card }}>
+                    <Camera size={14} color="#FFF" />
+                  </View>
+                </Pressable>
+              </View>
+
+            </View>
+            <View style={{ marginTop: 40, paddingHorizontal: 4 }}>
+              <Text style={st.photoHint}>JPG, PNG up to 5MB. Click the camera icon on the logo or upload button on the banner.</Text>
+              
+              {/* Keep the confirm/retake photo UI for logo changes */}
+              {(pendingPhoto) && (
+                <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+                  <Pressable onPress={confirmPhoto} style={st.btnConfirm} testID="pf-confirm-photo">
+                    <Check size={14} color="#FFF" />
+                    <Text style={st.btnPrimaryText}>Confirm Logo</Text>
+                  </Pressable>
+                  <Pressable onPress={() => { setPendingPhoto(null); }} style={st.btnGhost} testID="pf-retake-photo">
+                    <Trash2 size={14} color={themeColor} />
+                    <Text style={st.btnGhostText}>Discard</Text>
+                  </Pressable>
+                </View>
+              )}
             </View>
           </View>
         )}
