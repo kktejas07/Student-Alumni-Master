@@ -164,6 +164,37 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
     }
   };
 
+  const pickCollegeLogo = async () => {
+    if (Platform.OS === 'web') {
+      const input = (document as any).createElement('input');
+      input.type = 'file';
+      input.accept = 'image/png,image/jpeg,image/webp';
+      input.onchange = (e: any) => {
+        const f = e.target.files?.[0]; if (!f) return;
+        const r = new FileReader();
+        r.onload = () => { setDraft((d: any) => ({ ...d, college_logo_data: r.result })); };
+        r.readAsDataURL(f);
+      };
+      input.click();
+      return;
+    }
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.6,
+        base64: true,
+      });
+      if (!result.canceled && result.assets[0]?.base64) {
+        setDraft((d: any) => ({ ...d, college_logo_data: `data:image/jpeg;base64,${result.assets[0].base64}` }));
+      }
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'Could not pick image.');
+    }
+  };
+
   const confirmPhoto = () => {
     if (pendingPhoto) {
       if (isCollege) {
@@ -324,7 +355,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
               </View>
               {/* Small camera edit button */}
               <Pressable
-                onPress={handleOpenMenu}
+                onPress={pickCollegeLogo}
                 style={{ position: 'absolute', bottom: -6, right: -6, width: 28, height: 28, borderRadius: 14, backgroundColor: '#A78BFA', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#131938' }}
                 testID="pf-college-logo-upload"
               >

@@ -225,7 +225,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
       'first_name','last_name','full_name','headline','bio','phone','city','state','location',
       'photo_data','face_image_base64','institution','branch','graduation_year','cgpa',
       'interests','skills','projects','linkedin_url','github_url','portfolio_url','profile_visibility',
-      'section_toggles','primary_skill','preferences',
+      'section_toggles','primary_skill','preferences','banner_data','college_logo_data'
     ];
     return watched.some((k) => JSON.stringify((draft as any)[k] ?? null) !== JSON.stringify((user as any)[k] ?? null));
   }, [draft, user]);
@@ -255,7 +255,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
         'first_name','last_name','full_name','headline','bio','phone','city','state','location',
         'photo_data','face_image_base64','institution','branch','graduation_year','cgpa',
         'interests','skills','projects','linkedin_url','github_url','portfolio_url','profile_visibility',
-        'section_toggles','primary_skill','preferences',
+        'section_toggles','primary_skill','preferences','banner_data','college_logo_data'
       ];
       watched.forEach((k) => {
         if (JSON.stringify((draft as any)[k] ?? null) !== JSON.stringify((user as any)[k] ?? null)) {
