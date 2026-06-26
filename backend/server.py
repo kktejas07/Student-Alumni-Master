@@ -5649,7 +5649,13 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     state_by_user: Dict[str, str] = {}
     for r in rels:
         other = r["b"] if r["a"] == me_id else r["a"]
-        state_by_user[other] = r.get("status", "pending")
+        st = r.get("status", "pending")
+        if st == "pending" and r.get("b") == me_id:
+            state_by_user[other] = "incoming"
+        elif st == "accepted":
+            state_by_user[other] = "connected"
+        else:
+            state_by_user[other] = st
 
     # Pull a healthy candidate set
     base_query: dict = {"_id": {"$ne": user["_id"]}}
@@ -5658,7 +5664,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
         base_query["$or"] = [{"full_name": rx}, {"email": rx}]
     candidates = await db.users.find(base_query, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).to_list(500)
 
-    cards = [_user_card(c) for c in candidates]
+    cards = [_user_card(c) for c in candidates if str(c.get("_id") or c.get("id")) != me_id]
     # attach connection_state (none|pending|connected|incoming)
     for c in cards:
         st = state_by_user.get(c["id"])
@@ -5686,7 +5692,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
         mentor_q,
         {"password_hash": 0, "face_image_base64": 0},
     ).sort("_id", -1).limit(100).to_list(100)
-    mentor_cards = [_user_card(m) for m in approved_mentors]
+    mentor_cards = [_user_card(m) for m in approved_mentors if str(m.get("_id") or m.get("id")) != me_id]
     for m in mentor_cards:
         m["connection_state"] = state_by_user.get(m["id"], "none")
     # Boost mentors matching career path
@@ -5888,12 +5894,27 @@ async def send_connection_request(other_id: str, req: Optional[ConnectRequestIn]
 @api_router.post("/network/accept/{other_id}")
 async def accept_connection(other_id: str, user: dict = Depends(get_current_user)):
     me_id = str(user.get("_id") or user.get("id"))
+    
+    # Check if already accepted or if the connection exists in any direction
+    existing = await db.connections.find_one({
+        "$or": [
+            {"a": other_id, "b": me_id},
+            {"a": me_id, "b": other_id}
+        ]
+    })
+    
+    if not existing:
+        raise HTTPException(404, "No connection request found between these users")
+        
+    if existing.get("status") == "accepted":
+        # Already accepted, just return success
+        return {"action": "accepted"}
+
     res = await db.connections.update_one(
-        {"a": other_id, "b": me_id, "status": "pending"},
+        {"_id": existing["_id"]},
         {"$set": {"status": "accepted", "accepted_at": datetime.utcnow()}},
     )
-    if res.matched_count == 0:
-        raise HTTPException(404, "No pending request from this user")
+
     try:
         await db.notifications.insert_one({
             "id": str(ObjectId()),
@@ -5912,22 +5933,32 @@ async def accept_connection(other_id: str, user: dict = Depends(get_current_user
 @api_router.post("/network/reject/{other_id}")
 async def reject_connection(other_id: str, user: dict = Depends(get_current_user)):
     me_id = str(user.get("_id") or user.get("id"))
-    res = await db.connections.delete_one(
-        {"a": other_id, "b": me_id, "status": "pending"},
-    )
-    if res.deleted_count == 0:
+    existing = await db.connections.find_one({
+        "$or": [
+            {"a": other_id, "b": me_id, "status": "pending"},
+            {"a": me_id, "b": other_id, "status": "pending"}
+        ]
+    })
+    if not existing:
         raise HTTPException(404, "No pending request to reject")
+    
+    res = await db.connections.delete_one({"_id": existing["_id"]})
     return {"action": "rejected"}
 
 
 @api_router.post("/network/withdraw/{other_id}")
 async def withdraw_connection(other_id: str, user: dict = Depends(get_current_user)):
     me_id = str(user.get("_id") or user.get("id"))
-    res = await db.connections.delete_one(
-        {"a": me_id, "b": other_id, "status": "pending"},
-    )
-    if res.deleted_count == 0:
+    existing = await db.connections.find_one({
+        "$or": [
+            {"a": other_id, "b": me_id, "status": "pending"},
+            {"a": me_id, "b": other_id, "status": "pending"}
+        ]
+    })
+    if not existing:
         raise HTTPException(404, "No pending request to withdraw")
+    
+    res = await db.connections.delete_one({"_id": existing["_id"]})
     return {"action": "withdrawn"}
 
 
