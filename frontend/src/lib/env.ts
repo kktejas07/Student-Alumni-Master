@@ -33,8 +33,7 @@ export function getBaseUrl() {
   // Otherwise, construct url with accessed port.
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     let hn = window.location.hostname;
-    if (hn === 'localhost') hn = '127.0.0.1'; // Force IPv4 to avoid ::1 resolution issues with Uvicorn
-    if (hn !== '127.0.0.1' && !hn.startsWith('192.168.') && !hn.startsWith('10.')) {
+    if (hn !== 'localhost' && hn !== '127.0.0.1' && !hn.startsWith('192.168.') && !hn.startsWith('10.')) {
       return '';
     }
     return `${window.location.protocol}//${hn}:${port}`;

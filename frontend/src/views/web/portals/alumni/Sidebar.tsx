@@ -157,6 +157,7 @@ export function Sidebar({
         onPress={onLogout}
         style={s.logoutRow}
         accessibilityLabel="Log out of your alumni account"
+        testID="logout-button"
       >
         <LogOut size={14} color="#FCA5A5" />
         <Text style={s.logoutText}>Log out</Text>

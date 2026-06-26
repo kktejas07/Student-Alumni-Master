@@ -975,8 +975,8 @@ async def reset_password(request: Request, req: ResetPasswordRequest):
     if otp_hash != req_hash:
         raise HTTPException(400, "OTP expired or invalid")
         
-    from core.security import get_password_hash
-    new_hashed = get_password_hash(req.new_password)
+    from core.security import hash_password
+    new_hashed = hash_password(req.new_password)
     
     await db.users.update_one(
         {"_id": user["_id"]},

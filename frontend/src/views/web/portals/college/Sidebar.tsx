@@ -121,6 +121,7 @@ export function Sidebar({
       <Pressable
         onPress={onLogout}
         style={({ hovered }: any) => [s.logoutRow, hovered && { backgroundColor: 'rgba(239,68,68,0.10)' }]}
+        testID="logout-button"
       >
         <LogOut size={14} color="#FCA5A5" />
         <Text style={s.logoutText}>Log Out</Text>

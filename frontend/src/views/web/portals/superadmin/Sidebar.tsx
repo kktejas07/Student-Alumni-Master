@@ -140,6 +140,7 @@ export function Sidebar({
       <Pressable
         onPress={onLogout}
         style={({ hovered }: any) => [s.footer, hovered && { backgroundColor: 'rgba(239,68,68,0.10)' }]}
+        testID="logout-button"
       >
         <Av initials={profile.initials} size={32} color={SAC.primaryD} />
         <View style={{ flex: 1, minWidth: 0 }}>

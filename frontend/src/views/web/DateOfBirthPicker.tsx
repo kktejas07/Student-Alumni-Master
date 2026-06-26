@@ -20,7 +20,7 @@ export function DateOfBirthPicker({
   required = true,
   label = 'Date of Birth',
   helper,
-  editable = false,
+  editable = true,
 }: {
   /** ISO 8601 (YYYY-MM-DD) or empty string */
   value: string;

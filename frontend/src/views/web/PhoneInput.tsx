@@ -76,21 +76,17 @@ function parsePhone(value: string): { dial: string; local: string; country: Coun
   return { dial: '+91', local: v, country: COUNTRIES[0] };
 }
 
-export function PhoneInput({
-  label,
-  value,
-  onChangeText,
-  placeholder = '98765 43210',
-  testID,
-  helper,
-}: {
+export const PhoneInput = React.forwardRef<RNTextInput, {
   label?: string;
   value: string;
   onChangeText: (v: string) => void;
   placeholder?: string;
   testID?: string;
   helper?: string;
-}) {
+  onSubmitEditing?: () => void;
+  blurOnSubmit?: boolean;
+}>((props, ref) => {
+  const { label, value, onChangeText, placeholder = '98765 43210', testID, helper, onSubmitEditing, blurOnSubmit } = props;
   const parsed = parsePhone(value);
   const [country, setCountry] = useState<Country>(parsed.country);
   const [local, setLocal] = useState<string>(parsed.local);
@@ -125,6 +121,7 @@ export function PhoneInput({
           </Pressable>
           <View style={s.num}>
             <RNTextInput
+              ref={ref}
               value={local}
               onChangeText={(n) => commit(country, n)}
               placeholder={placeholder}
@@ -133,6 +130,8 @@ export function PhoneInput({
               autoComplete="tel"
               textContentType="telephoneNumber"
               autoCorrect={false}
+              onSubmitEditing={onSubmitEditing}
+              blurOnSubmit={blurOnSubmit}
               style={s.input}
               testID={testID}
             />
@@ -172,7 +171,7 @@ export function PhoneInput({
       {helper ? <Text style={s.helper}>{helper}</Text> : null}
     </View>
   );
-}
+});
 
 const s = StyleSheet.create({
   label: {
