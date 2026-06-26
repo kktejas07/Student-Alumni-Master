@@ -230,6 +230,7 @@ export function Sidebar({
         onPress={onLogout}
         style={[s.logoutRow, collapsed && { justifyContent: 'center', paddingHorizontal: 0 }]}
         accessibilityLabel="Log out of your account"
+        testID="logout-button"
         accessibilityHint="Signs you out and returns to the welcome screen"
       >
         <LogOut size={14} color={C.danger} />

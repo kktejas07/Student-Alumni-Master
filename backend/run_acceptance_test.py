@@ -53,6 +53,7 @@ def run():
     api_potential  = intel.get("potential_score", 0)
     api_gap        = intel.get("readiness_gap", 0)
     api_profile    = comp.get("percentage", 0)
+    from playwright.sync_api import sync_playwright
     api_streak     = stats.get("skill_streak", 0)
     api_progress   = roadmap.get("progress_pct", 0)
     api_role       = roadmap.get("target_role", "")
@@ -64,7 +65,7 @@ def run():
     log(f"API skill_scores: {json.dumps(api_skill_scores)}")
     log(f"API progress_pct={api_progress} milestones={len(api_milestones)} streak={api_streak}")
 
-    from playwright.sync_api import sync_playwright
+        
 
     console_errors   = []
     network_failures = []

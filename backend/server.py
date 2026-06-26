@@ -975,8 +975,8 @@ async def reset_password(request: Request, req: ResetPasswordRequest):
     if otp_hash != req_hash:
         raise HTTPException(400, "OTP expired or invalid")
         
-    from core.security import get_password_hash
-    new_hashed = get_password_hash(req.new_password)
+    from core.security import hash_password
+    new_hashed = hash_password(req.new_password)
     
     await db.users.update_one(
         {"_id": user["_id"]},
@@ -1567,14 +1567,16 @@ async def my_id_card(user: dict = Depends(get_current_user)):
 
     si = user.get("school_info") or {}
     ai = user.get("alumni_info") or {}
-    cp = user.get("college_profile") or {}
+    cp = user.get("college_info") or user.get("college_profile") or {}
     mi = user.get("mentor_info") or user.get("mentor_profile") or {}
     role = (user.get("role") or "").lower()
     status = _student_status_label(user)
 
     institution = (
-        si.get("institution_name")
+        user.get("institution")
+        or si.get("institution_name")
         or ai.get("institution_name")
+        or cp.get("institution_name")
         or (user.get("full_name") if role == "college" else None)
         or "—"
     )
@@ -1665,7 +1667,7 @@ async def verify_id_card(identifier: str):
     si = u.get("school_info") or {}
     ai = u.get("alumni_info") or {}
     mi = u.get("mentor_info") or u.get("mentor_profile") or {}
-    ci = u.get("college_profile") or {}
+    ci = u.get("college_info") or u.get("college_profile") or {}
     adm = u.get("admin_profile") or {}
 
     if role == "student":
@@ -1693,7 +1695,7 @@ async def verify_id_card(identifier: str):
         base["institution"] = ai.get("institution_name") or si.get("institution_name") or ""
 
     elif role == "college":
-        base["institution"] = u.get("full_name") or ci.get("institution_name") or ""
+        base["institution"] = ci.get("institution_name") or u.get("full_name") or ""
         base["city"] = ci.get("city") or ""
         base["state"] = ci.get("state") or ""
         base["departments"] = ci.get("departments") or []
@@ -2856,6 +2858,52 @@ async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
         safe["full_name"] = (str(fn or "").strip() + " " + str(ln or "").strip()).strip()
     if safe:
         safe["updated_at"] = datetime.now(timezone.utc)
+        
+        # Keep nested info in sync if root fields like institution are updated
+        si = user.get("school_info") or {}
+        si_updated = False
+        
+        is_college = user.get("role") == "college"
+        cp = user.get("college_info") or user.get("college_profile")
+        cp_updated = False
+        
+        if "institution" in safe:
+            si["institution_name"] = safe["institution"]
+            si_updated = True
+            if cp:
+                cp["institution_name"] = safe["institution"]
+                cp_updated = True
+        if "branch" in safe:
+            si["branch_or_stream"] = safe["branch"]
+            si_updated = True
+        if "graduation_year" in safe:
+            si["graduation_year"] = safe["graduation_year"]
+            si_updated = True
+        if "cgpa" in safe:
+            si["cgpa"] = safe["cgpa"]
+            si_updated = True
+        if "city" in safe:
+            si["city"] = safe["city"]
+            si_updated = True
+            if is_college and cp:
+                cp["city"] = safe["city"]
+                cp_updated = True
+        if "state" in safe:
+            si["state"] = safe["state"]
+            si_updated = True
+            if is_college and cp:
+                cp["state"] = safe["state"]
+                cp_updated = True
+            
+        if si_updated:
+            safe["school_info"] = si
+            
+        if cp_updated:
+            if "college_info" in user:
+                safe["college_info"] = cp
+            if "college_profile" in user:
+                safe["college_profile"] = cp
+
         await db.users.update_one({"_id": user["_id"]}, {"$set": safe})
     return UserResponse(**serialize_user(await db.users.find_one({"_id": user["_id"]})))
 
@@ -5530,11 +5578,12 @@ def _user_card(u: dict) -> dict:
         uid = str(u.get("_id") or u.get("id") or "")
         is_online = (sum(ord(c) for c in uid) % 3) != 0
 
+    cp = u.get("college_info") or u.get("college_profile") or {}
     return {
         "id": str(u.get("_id") or u.get("id")),
         "full_name": u.get("full_name") or u.get("email"),
         "role": u.get("role"),
-        "institution": si.get("institution_name") or ai.get("institution_name") or u.get("full_name") if u.get("role") == "college" else si.get("institution_name") or ai.get("institution_name"),
+        "institution": u.get("institution") or si.get("institution_name") or ai.get("institution_name") or cp.get("institution_name") or (u.get("full_name") if u.get("role") == "college" else None),
         "city": si.get("city") or ai.get("city"),
         "state": si.get("state") or ai.get("state"),
         "branch": si.get("branch_or_stream") or ai.get("branch_or_stream"),
@@ -5732,6 +5781,7 @@ async def my_connection_requests(user: dict = Depends(get_current_user)):
     rels = await db.connections.find(
         {"status": "pending", "b": me_id}, {"_id": 0},
     ).to_list(200)
+    
     out_incoming = []
     if rels:
         requester_ids = [r["a"] for r in rels]

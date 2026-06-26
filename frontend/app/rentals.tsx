@@ -290,7 +290,7 @@ export default function RentalsPage() {
                 </Text>
                 <Text style={s.advisorDesc}>
                   <Text style={{ fontWeight: '800', color: '#fff' }}>Status:</Text>{' '}
-                  <Text style={{ color: '#86EFAC', fontWeight: '800' }}>{bookings[0].status.toUpperCase()}</Text>
+                  <Text style={{ color: '#86EFAC', fontWeight: '800' }}>{bookings[0].status?.toUpperCase() || 'UNKNOWN'}</Text>
                 </Text>
                 {bookings.length > 1 && (
                   <Text style={[s.advisorDesc, { color: 'rgba(255,255,255,0.4)', marginTop: 2 }]}>
@@ -755,7 +755,7 @@ function BookingsDrawer({ open, bookings, onClose, onCancelled }:
                     </View>
                     <View style={[s.statusPill, statusStyle(b.status)]}>
                       <Text style={[s.statusText, { color: statusStyle(b.status).color }]}>
-                        {b.status.toUpperCase()}
+                        {b.status?.toUpperCase() || 'UNKNOWN'}
                       </Text>
                     </View>
                   </View>

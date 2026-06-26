@@ -29,6 +29,15 @@ export default function EmailVerify() {
   const role = useAuthStore((u) => u.user?.role) as any;
 
   const [step, setStep] = useState<0 | 1 | 2>(0);
+  const [resending, setResending] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const t = setTimeout(() => setResendTimer(r => r - 1), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [resendTimer]);
 
   const verify = () => {
     setStep(1);
@@ -39,7 +48,12 @@ export default function EmailVerify() {
   };
 
   const resend = () => {
-    toast.info('Verification email resent', `New link sent to ${email}`);
+    setResending(true);
+    setTimeout(() => {
+      setResending(false);
+      setResendTimer(60);
+      toast.info('Verification email resent', `New link sent to ${email}`);
+    }, 1000);
   };
 
   const skipToDashboard = () => {
@@ -53,7 +67,7 @@ export default function EmailVerify() {
 
   const Body = (
     <View>
-      {step === 0 && <PendingView email={email} onVerify={verify} onResend={resend} onChangeEmail={() => router.back()} />}
+      {step === 0 && <PendingView email={email} onVerify={verify} onResend={resend} onChangeEmail={() => router.back()} resending={resending} resendTimer={resendTimer} />}
       {step === 1 && <VerifyingView />}
       {step === 2 && <DoneView onSetup2FA={goSetup2FA} onSkip={skipToDashboard} />}
     </View>
@@ -67,6 +81,7 @@ export default function EmailVerify() {
           <Pressable
             onPress={() => router.back()}
             style={({ hovered }: any) => [styles.back, hovered && { opacity: 1 }]}
+            testID="verify-back"
           >
             <ArrowLeft size={16} color="rgba(255,255,255,0.75)" />
             <Text style={styles.backText}>Back</Text>
@@ -82,7 +97,7 @@ export default function EmailVerify() {
     <SafeAreaView style={nativeStyles.safe} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={nativeStyles.container}>
         {step === 0 && (
-          <Pressable onPress={() => router.back()} style={nativeStyles.backNative}>
+          <Pressable onPress={() => router.back()} style={nativeStyles.backNative} testID="verify-back">
             <ArrowLeft size={22} color="rgba(255,255,255,0.85)" />
           </Pressable>
         )}
@@ -95,9 +110,9 @@ export default function EmailVerify() {
 // ─── State views ─────────────────────────────────────────────────────────────
 
 function PendingView({
-  email, onVerify, onResend, onChangeEmail,
+  email, onVerify, onResend, onChangeEmail, resending, resendTimer,
 }: {
-  email: string; onVerify: () => void; onResend: () => void; onChangeEmail: () => void;
+  email: string; onVerify: () => void; onResend: () => void; onChangeEmail: () => void; resending: boolean; resendTimer: number;
 }) {
   // "Float" animation on email icon
   const floatY = useRef(new Animated.Value(0)).current;
@@ -151,9 +166,9 @@ function PendingView({
         </View>
       </View>
 
-      <WebPrimaryBtn label="I've verified my email →" onPress={onVerify} testID="email-verify-confirm-btn" />
+      <WebPrimaryBtn label="I've verified my email →" onPress={onVerify} testID="verify-email" />
       <View style={{ height: 10 }} />
-      <WebGhostBtn label="Resend verification email" onPress={onResend} testID="email-verify-resend-btn" />
+      <WebGhostBtn label={resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend verification email"} disabled={resendTimer > 0 || resending} loading={resending} onPress={onResend} testID="verify-resend" />
 
       <View style={{ alignItems: 'center', marginTop: 16 }}>
         <Pressable

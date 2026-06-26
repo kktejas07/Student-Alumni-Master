@@ -15,6 +15,9 @@ export function PrimaryButton({
   loading,
   icon,
   fullWidth = true,
+  testID,
+  accessibilityLabel,
+  accessibilityHint,
 }: {
   label: string;
   onPress?: () => void;
@@ -22,6 +25,9 @@ export function PrimaryButton({
   loading?: boolean;
   icon?: React.ReactNode;
   fullWidth?: boolean;
+  testID?: string;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }) {
   const inactive = disabled || loading;
   // Pull colours from RoleThemeContext (provided by AuthShell). Falls back to
@@ -30,6 +36,12 @@ export function PrimaryButton({
   return (
     <Pressable
       onPress={inactive ? undefined : onPress}
+      testID={testID}
+      accessible={true}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel || label}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled: inactive, busy: loading }}
       style={[btn.wrap, fullWidth ? { width: '100%' } : null, inactive && btn.disabled]}
     >
       <LinearGradient
@@ -59,9 +71,9 @@ const btn = StyleSheet.create({
 });
 
 // ─── Outline button ─────────────────────────────────────────────
-export function OutlineButton({ label, onPress, icon, disabled, testID }: { label: string; onPress?: () => void; icon?: React.ReactNode; disabled?: boolean; testID?: string }) {
+export function OutlineButton({ label, onPress, icon, disabled, testID, accessibilityLabel, accessibilityHint }: { label: string; onPress?: () => void; icon?: React.ReactNode; disabled?: boolean; testID?: string; accessibilityLabel?: string; accessibilityHint?: string }) {
   return (
-    <Pressable onPress={disabled ? undefined : onPress} style={[ob.wrap, disabled && { opacity: 0.5 }]} testID={testID}>
+    <Pressable onPress={disabled ? undefined : onPress} style={[ob.wrap, disabled && { opacity: 0.5 }]} testID={testID} accessible={true} accessibilityRole="button" accessibilityLabel={accessibilityLabel || label} accessibilityHint={accessibilityHint} accessibilityState={{ disabled }}>
       {icon}
       <Text style={ob.text}>{label}</Text>
     </Pressable>
@@ -74,20 +86,7 @@ const ob = StyleSheet.create({
 });
 
 // ─── Text Input ─────────────────────────────────────────────────
-export function AuthInput({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  secureTextEntry,
-  keyboardType,
-  autoCapitalize,
-  hint,
-  error,
-  leftIcon,
-  rightSlot,
-  onSubmitEditing,
-}: {
+export const AuthInput = React.forwardRef<TextInput, {
   label?: string;
   value: string;
   onChangeText: (t: string) => void;
@@ -100,7 +99,20 @@ export function AuthInput({
   leftIcon?: React.ReactNode;
   rightSlot?: React.ReactNode;
   onSubmitEditing?: () => void;
-}) {
+  blurOnSubmit?: boolean;
+  editable?: boolean;
+  autoFocus?: boolean;
+  testID?: string;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+}>((props, ref) => {
+  const {
+    label, value, onChangeText, placeholder, secureTextEntry,
+    keyboardType, autoCapitalize, hint, error, leftIcon, rightSlot,
+    onSubmitEditing, blurOnSubmit, editable = true, autoFocus,
+    testID, accessibilityLabel, accessibilityHint
+  } = props;
+  
   const [focused, setFocused] = React.useState(false);
   const { primary } = useRoleTheme();
   const focusBg = primary ? `${primary}10` : 'rgba(124,58,237,0.06)';
@@ -110,6 +122,7 @@ export function AuthInput({
       <View style={[inp.row, focused && [inp.rowOn, { borderColor: primary, backgroundColor: focusBg }], error && inp.rowErr]}>
         {leftIcon ? <View style={{ marginRight: 10 }}>{leftIcon}</View> : null}
         <TextInput
+          ref={ref}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
@@ -121,14 +134,22 @@ export function AuthInput({
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           onSubmitEditing={onSubmitEditing}
-          style={inp.input}
+          blurOnSubmit={blurOnSubmit}
+          editable={editable}
+          autoFocus={autoFocus}
+          testID={testID}
+          accessible={true}
+          accessibilityLabel={accessibilityLabel || (typeof label === 'string' ? label : placeholder)}
+          accessibilityHint={accessibilityHint}
+          accessibilityState={{ disabled: !editable }}
+          style={[inp.input, !editable && { opacity: 0.6 }]}
         />
         {rightSlot}
       </View>
-      {error ? <Text style={inp.err}>{typeof error === 'string' ? error : (error as any)?.msg || (error as any)?.message || JSON.stringify(error)}</Text> : hint ? <Text style={inp.hint}>{hint}</Text> : null}
+      {error ? <Text style={inp.err} accessibilityLiveRegion="polite">{typeof error === 'string' ? error : (error as any)?.msg || (error as any)?.message || JSON.stringify(error)}</Text> : hint ? <Text style={inp.hint}>{hint}</Text> : null}
     </View>
   );
-}
+});
 
 const inp = StyleSheet.create({
   wrap: { width: '100%' },

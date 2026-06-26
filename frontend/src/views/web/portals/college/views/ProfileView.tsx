@@ -4,39 +4,47 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Award, MapPin, Globe, Phone, Mail, Building2 } from 'lucide-react-native';
 import { CC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
-import { COLLEGE } from '../data';
+import { useStore } from '@nanostores/react';
+import { authStore } from '@/src/models/services/api';
 
 export function ProfileView() {
   const { width } = useWindowDimensions();
   const stack = width < 980;
+  
+  const user = useStore(authStore);
+  const collegeName = user?.institution || "College Admin";
+  const initials = collegeName.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase() || "C";
+  const city = user?.city || "City";
+  const state = user?.state || "State";
+  const location = `${city}, ${state}`.replace(/^, | , $/g, '');
+  const affiliation = user?.affiliation || "Unknown Affiliation";
+  const studentsCount = user?.students_count || "0";
+  const email = user?.email || "admin@college.edu";
+  
   return (
     <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
       <View style={{ flex: stack ? undefined : 1.5, gap: 12 }}>
         <View style={s.card}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-            <Av initials={COLLEGE.initials} size={70} color={CC.primary} />
+            <Av initials={initials} size={70} color={CC.primary} />
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={s.name}>{COLLEGE.name}</Text>
+              <Text style={s.name}>{collegeName}</Text>
               <View style={{ flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-                <Badge label={COLLEGE.rank} color="cyan" />
                 <Badge label="Verified ✓" color="green" />
-                <Badge label="Est. 1869" color="purple" />
               </View>
             </View>
             <Pressable style={s.editBtn}><Text style={{ color: CC.accentBright, fontFamily: FONTS.bold, fontSize: 12 }}>Edit</Text></Pressable>
           </View>
           <View style={{ marginTop: 18, gap: 8 }}>
-            <Row Icon={MapPin}    label="Location"  value="5, Mahapalika Marg, Mumbai 400001" />
-            <Row Icon={Globe}     label="Website"   value="xaviers.edu" />
-            <Row Icon={Phone}     label="Contact"   value="+91 22 2262 0661" />
-            <Row Icon={Mail}      label="Email"     value="admin@xaviers.edu" />
-            <Row Icon={Building2} label="Affiliation" value="University of Mumbai" />
+            <Row Icon={MapPin}    label="Location"  value={location} />
+            <Row Icon={Mail}      label="Email"     value={email} />
+            <Row Icon={Building2} label="Affiliation" value={affiliation} />
           </View>
         </View>
         <View style={s.card}>
           <Text style={s.cardTitle}>Accreditations</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 }}>
-            {[{ l:'NAAC A++',c:'#22D3EE' }, { l:'NIRF Top 50',c:'#FBBF24' }, { l:'AICTE',c:'#A78BFA' }, { l:'Autonomous',c:'#22C55E' }].map((x) => (
+            {[{ l:'AICTE',c:'#A78BFA' }, { l:'Autonomous',c:'#22C55E' }].map((x) => (
               <View key={x.l} style={[s.accBox, { borderColor: x.c + '60' }]}>
                 <Award size={20} color={x.c} />
                 <Text style={s.accLabel}>{x.l}</Text>
@@ -48,13 +56,13 @@ export function ProfileView() {
       <View style={{ width: stack ? '100%' : 320 }}>
         <LinearGradient colors={[CC.primary, CC.primaryD] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.idCard}>
           <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 10, letterSpacing: 1 }}>ADMIN PORTAL · DIGITAL ID</Text>
-          <Av initials={COLLEGE.initials} size={56} color="#fff" />
-          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18, marginTop: 10 }}>{COLLEGE.name}</Text>
-          <Text style={{ color: CC.accentBright, fontFamily: FONTS.bold, fontSize: 11.5, marginTop: 2 }}>Admin Code: SXC-A88-2026</Text>
+          <Av initials={initials} size={56} color="#fff" />
+          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18, marginTop: 10 }}>{collegeName}</Text>
+          <Text style={{ color: CC.accentBright, fontFamily: FONTS.bold, fontSize: 11.5, marginTop: 2 }}>Admin Code: ADM-2026</Text>
           <View style={s.idStats}>
-            <Stat label="Students" value="3,240" /><View style={s.divider} />
-            <Stat label="Alumni"   value="8,400" /><View style={s.divider} />
-            <Stat label="Placement" value="94%" />
+            <Stat label="Students" value={studentsCount} /><View style={s.divider} />
+            <Stat label="Alumni"   value="—" /><View style={s.divider} />
+            <Stat label="Placement" value="—" />
           </View>
         </LinearGradient>
       </View>

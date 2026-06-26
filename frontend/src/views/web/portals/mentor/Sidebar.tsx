@@ -168,6 +168,7 @@ export function Sidebar({
       {/* Logout */}
       <Pressable
         onPress={onLogout}
+        testID="logout-button"
         style={({ hovered }: any) => [s.logoutRow,
           { justifyContent: collapsed ? 'center' : 'flex-start', gap: collapsed ? 0 : 11, padding: collapsed ? 11 : 12 },
           hovered && { backgroundColor: 'rgba(239,68,68,0.10)' },

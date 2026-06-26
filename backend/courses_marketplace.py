@@ -1882,7 +1882,7 @@ async def _fetch_openedx() -> List[Dict[str, Any]]:
                     if uri:
                         image_uri = uri if uri.startswith("http") else f"https://{openedx_domain}{uri}"
                 if not image_uri:
-                    image_uri = "https://via.placeholder.com/300x180?text=Technical+Course"
+                    image_uri = "https://placehold.co/300x180?text=Technical+Course"
 
                 out.append({
                     "id": f"openedx-{cid}",

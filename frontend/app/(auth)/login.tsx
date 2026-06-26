@@ -2,8 +2,8 @@ import { getBaseUrl } from '@/src/lib/env';
 /**
  * Auth Login screen using AuthShell + AuthControls + analytics tracking.
  */
-import React, { useState, useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, Pressable, StyleSheet, Platform, TextInput } from 'react-native';
 import { useRouter, useLocalSearchParams, Link } from 'expo-router';
 import { ArrowLeft, Eye, EyeOff, Mail, Lock } from 'lucide-react-native';
 import Svg, { Path, G } from 'react-native-svg';
@@ -59,6 +59,9 @@ export default function LoginScreen() {
   const [emailError, setEmailError] = useState('');
   const [pwdError, setPwdError] = useState('');
   const [exists, setExists] = useState<boolean | null>(null);
+  // Guard against double-submit within the same animation frame
+  const submittingRef = useRef(false);
+  const pwdRef = useRef<TextInput>(null);
 
   const [oauthCfg, setOauthCfg] = useState<{ linkedin_client_id?: string; redirect_uri?: string; firebase?: { apiKey: string; authDomain: string; projectId: string; appId: string } | null } | null>(null);
 
@@ -116,6 +119,11 @@ export default function LoginScreen() {
     // Hit /auth/check or /auth/me after a probe — for now, optimistic UX
     setExists(null);
   };
+  
+  const onEmailSubmit = () => {
+    onEmailBlur();
+    pwdRef.current?.focus();
+  };
 
   const onPasswordBlur = async () => {
     if (password) {
@@ -137,21 +145,17 @@ export default function LoginScreen() {
       setPwdError('Enter your password');
       return;
     }
-    console.log("LOGIN_CLICKED", { email: e });
-    console.time("LOGIN_TOTAL");
+    // Prevent double-submit within same animation frame (before React re-renders the disabled button)
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     trackAuth({ event: 'login_attempt', email: e, role });
     try {
-      console.log("LOGIN_REQUEST_STARTED");
-      console.log("getBaseUrl() =", getBaseUrl());
-      console.time("LOGIN_REQUEST");
       const res = await fetch(`${BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: e, password: p }),
       });
-      console.timeEnd("LOGIN_REQUEST");
-      console.log("LOGIN_RESPONSE_RECEIVED");
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         const raw = err?.detail;
@@ -170,33 +174,27 @@ export default function LoginScreen() {
         router.push({ pathname: '/(auth)/two-fa-challenge', params: { challenge_id: data.challenge_id, email: data.user_email } });
         return;
       }
-      console.log("USER_FETCH_STARTED"); // It's in the same payload, but logging for clarity
       setUser(data.user);
-      console.log("USER_FETCH_COMPLETED");
-      
-      console.time("TOKEN_STORE");
-      await setTokens(data.access_token, data.refresh_token);
-      console.timeEnd("TOKEN_STORE");
-      console.log("TOKEN_STORED");
-      
+      // Fire token storage without awaiting — localStorage writes are synchronous on web.
+      // Navigation should not be blocked by this microtask overhead.
+      setTokens(data.access_token, data.refresh_token);
       trackAuth({ event: 'login_success', email, role: data.user.role });
-      
-      // Navigate based on role
-      console.log("NAVIGATION_STARTED");
-      console.time("NAVIGATION");
+      // Stop loading BEFORE navigating so the component unmounts in a clean state,
+      // preventing a stale loading→false re-render from racing the navigation event queue.
+      setLoading(false);
+      submittingRef.current = false;
       const r = (data.user.role || '').toLowerCase();
       if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
       else if (r === 'mentor') router.replace('/mentor-portal');
       else if (r === 'college') router.replace('/college-portal');
       else if (r === 'alumni') router.replace('/alumni-portal');
       else router.replace('/student-portal');
-      console.timeEnd("NAVIGATION");
-      console.log("NAVIGATION_COMPLETED");
-      console.timeEnd("LOGIN_TOTAL");
+      return; // prevent finally from running setLoading again
     } catch (e: any) {
       trackAuth({ event: 'login_failure', email, reason: e?.message || 'Network error' });
       setPwdError('Network error — try again');
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
@@ -229,7 +227,7 @@ export default function LoginScreen() {
       {/* OAuth row */}
       <View style={s.oauthRow}>
         <View style={{ flex: 1 }}>
-          <OutlineButton label="Google" icon={<GoogleG size={16} />} onPress={async () => {
+          <OutlineButton label="Google" testID="login-google" icon={<GoogleG size={16} />} onPress={async () => {
             try {
               if (oauthCfg?.firebase && Platform.OS === 'web') {
                 const result = await signInWithGoogle();
@@ -259,7 +257,7 @@ export default function LoginScreen() {
           }} />
         </View>
         <View style={{ flex: 1 }}>
-          <OutlineButton label="LinkedIn" icon={<LinkedInIn size={16} />} onPress={() => {
+          <OutlineButton label="LinkedIn" testID="login-linkedin" icon={<LinkedInIn size={16} />} onPress={() => {
             if (oauthCfg?.linkedin_client_id && Platform.OS === 'web') {
               const state = `linkedin_${Math.random().toString(36).slice(2)}`;
               const url = `https://www.linkedin.com/oauth/v2/authorization?client_id=${oauthCfg.linkedin_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri!)}&response_type=code&scope=openid%20email%20profile&state=${state}`;
@@ -270,7 +268,7 @@ export default function LoginScreen() {
           }} />
         </View>
         <View style={{ flex: 1 }}>
-          <OutlineButton label="GitHub" icon={<GitHubCat size={16} />} onPress={async () => {
+          <OutlineButton label="GitHub" testID="login-github" icon={<GitHubCat size={16} />} onPress={async () => {
             try {
               if (oauthCfg?.firebase && Platform.OS === 'web') {
                 const result = await signInWithGitHub();
@@ -315,22 +313,29 @@ export default function LoginScreen() {
           placeholder="you@university.edu"
           keyboardType="email-address"
           error={emailError}
-          onSubmitEditing={onEmailBlur}
+          onSubmitEditing={onEmailSubmit}
+          blurOnSubmit={false}
+          autoFocus={true}
+          editable={!loading}
+          testID="login-email"
         />
 
         <AuthInput
+          ref={pwdRef}
           label="Password"
           value={password}
           onChangeText={(t) => { setPassword(t); setPwdError(''); }}
           placeholder="Enter your password"
           secureTextEntry={!showPwd}
           error={pwdError}
+          editable={!loading}
           rightSlot={
-            <Pressable onPress={() => setShowPwd((v) => !v)} style={{ paddingHorizontal: 6 }}>
+            <Pressable onPress={() => setShowPwd((v) => !v)} style={{ paddingHorizontal: 6 }} testID="login-show-password" accessibilityRole="button" accessibilityLabel={showPwd ? "Hide password" : "Show password"}>
               {showPwd ? <EyeOff size={16} color={AC.muted} /> : <Eye size={16} color={AC.muted} />}
             </Pressable>
           }
           onSubmitEditing={onLogin}
+          testID="login-password"
         />
         {password.length > 0 && (
           <PasswordRules checks={strength.checks} />
@@ -339,16 +344,16 @@ export default function LoginScreen() {
 
       <View style={s.row}>
         <View />
-        <Pressable onPress={() => router.push('/(auth)/forgot-password')}>
+        <Pressable onPress={() => router.push('/(auth)/forgot-password')} testID="login-forgot-password">
           <Text style={s.forgot}>Forgot password?</Text>
         </Pressable>
       </View>
 
-      <PrimaryButton label="Sign in" onPress={onLogin} loading={loading} />
+      <PrimaryButton label="Sign in" onPress={onLogin} loading={loading} testID="login-submit" />
 
       <Text style={s.signup}>
         New to Student Alumni?{' '}
-        <Text style={s.signupLink} onPress={() => router.push('/get-started')}>Get started</Text>
+        <Text style={s.signupLink} onPress={() => router.push('/get-started')} testID="login-get-started">Get started</Text>
       </Text>
 
       
