@@ -756,6 +756,7 @@ def serialize_user(user: dict) -> dict:
         "headline":       user.get("headline"),
         "photo_data":     user.get("photo_data") or user.get("face_image_base64") or user.get("oauth_picture"),
         "banner_data":    user.get("banner_data"),
+        "college_logo_data": user.get("college_logo_data"),
         "institution":    user.get("institution"),
         "branch":         user.get("branch"),
         "stream":         user.get("stream"),

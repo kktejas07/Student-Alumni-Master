@@ -341,7 +341,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
             <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 'auto' }}>
               <Pressable onPress={onUploadPhoto} style={{ backgroundColor: '#A78BFA', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Upload size={14} color="#FFF" />
-                <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>Upload Logo</Text>
+                <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>Upload Photo</Text>
               </Pressable>
               <Pressable onPress={onTakeSelfie} style={{ backgroundColor: '#A78BFA', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Camera size={14} color="#FFF" />
