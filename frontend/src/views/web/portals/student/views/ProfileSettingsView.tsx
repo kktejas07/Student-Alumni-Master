@@ -336,6 +336,25 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
               </View>
             </View>
           </View>
+          
+          {role === 'college' && (
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 'auto' }}>
+              <Pressable onPress={onUploadPhoto} style={{ backgroundColor: '#A78BFA', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Upload size={14} color="#FFF" />
+                <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>Upload Logo</Text>
+              </Pressable>
+              <Pressable onPress={onTakeSelfie} style={{ backgroundColor: '#A78BFA', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Camera size={14} color="#FFF" />
+                <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>Take Selfie</Text>
+              </Pressable>
+              {photo && (
+                <Pressable onPress={() => setDraft((d: any) => ({ ...d, photo_data: '', face_image_base64: '' }))} style={{ backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>Remove</Text>
+                </Pressable>
+              )}
+            </View>
+          )}
+
         </View>
       </View>
 
