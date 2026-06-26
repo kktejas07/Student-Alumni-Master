@@ -444,46 +444,44 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
             </View>
           </View>
 
+          {/* Role-aware stats list */}
           {role !== 'college' && (
-            <>
-              {/* Role-aware stats list */}
-              <View style={st.sideCard}>
-                <Text style={st.sideHeading}>{cfg.statsHeading}</Text>
-                <View style={{ marginTop: 10, gap: 4 }}>
-                  {cfg.stats(stats).map((row, i, arr) => (
-                    <StatRow
-                      key={row.label}
-                      Icon={row.Icon}
-                      label={row.label}
-                      value={row.value}
-                      tint={row.tint}
-                      last={i === arr.length - 1}
-                    />
-                  ))}
-                </View>
+            <View style={st.sideCard}>
+              <Text style={st.sideHeading}>{cfg.statsHeading}</Text>
+              <View style={{ marginTop: 10, gap: 4 }}>
+                {cfg.stats(stats).map((row, i, arr) => (
+                  <StatRow
+                    key={row.label}
+                    Icon={row.Icon}
+                    label={row.label}
+                    value={row.value}
+                    tint={row.tint}
+                    last={i === arr.length - 1}
+                  />
+                ))}
               </View>
-
-              {/* Role-aware ID card */}
-              <View style={st.sideCard}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                  <ShieldCheck size={14} color="#A78BFA" />
-                  <Text style={st.idTitle}>{cfg.idLabel}</Text>
-                </View>
-                <Text style={st.idValue}>{saId}</Text>
-                <Text style={st.idMeta}>
-                  {draft.is_verified ? 'Verified' : 'Active'} · since {new Date(user?.created_at || Date.now()).getFullYear()}
-                </Text>
-                <Pressable
-                  onPress={() => router.push('/member-id' as any)}
-                  style={st.viewIdBtn}
-                  testID="pf-view-digital-id"
-                >
-                  <IdCard size={14} color="#fff" />
-                  <Text style={st.viewIdBtnText}>View Digital ID Card →</Text>
-                </Pressable>
-              </View>
-            </>
+            </View>
           )}
+
+          {/* Role-aware ID card */}
+          <View style={st.sideCard}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <ShieldCheck size={14} color="#A78BFA" />
+              <Text style={st.idTitle}>{cfg.idLabel}</Text>
+            </View>
+            <Text style={st.idValue}>{saId}</Text>
+            <Text style={st.idMeta}>
+              {draft.is_verified ? 'Verified' : 'Active'} · since {new Date(user?.created_at || Date.now()).getFullYear()}
+            </Text>
+            <Pressable
+              onPress={() => router.push('/member-id' as any)}
+              style={st.viewIdBtn}
+              testID="pf-view-digital-id"
+            >
+              <IdCard size={14} color="#fff" />
+              <Text style={st.viewIdBtnText}>View Digital ID Card →</Text>
+            </Pressable>
+          </View>
         </View>
       </View>
       <WebcamModal
