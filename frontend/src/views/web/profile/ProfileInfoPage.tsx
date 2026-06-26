@@ -519,7 +519,6 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
             />
           </View>
         </View>
-        </View>
       </Card>
       </View>
 
