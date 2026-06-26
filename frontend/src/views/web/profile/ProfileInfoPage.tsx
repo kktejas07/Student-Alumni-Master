@@ -282,6 +282,59 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
       )}
 
 
+      {/* College Banner Block (Outside Card) */}
+      {isCollege && (
+        <View style={{ marginBottom: 24, position: 'relative', zIndex: 10 }}>
+          {/* Banner Container */}
+          <View style={{ width: '100%', height: 180, borderRadius: 16, backgroundColor: '#131938', borderWidth: 1, borderColor: C.border, position: 'relative' }}>
+            
+            {/* Banner Image / Placeholder */}
+            <View style={{ width: '100%', height: '100%', borderRadius: 16, overflow: 'hidden' }}>
+              {draft.banner_data ? (
+                <Image source={{ uri: draft.banner_data }} style={StyleSheet.absoluteFillObject} />
+              ) : (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                  <ImageIcon size={32} color={C.text3} />
+                  <Text style={{ color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 13, marginTop: 8 }}>Banner: 1200x400px</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Banner Controls (Top Left) */}
+            <View style={{ position: 'absolute', top: 16, left: 16, flexDirection: 'row', gap: 8 }}>
+              <Pressable onPress={pickBannerImage} style={{ backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Upload size={14} color="#FFF" />
+                <Text style={{ color: '#FFF', fontSize: 13, fontFamily: 'DMSans_700Bold' }}>Upload Banner</Text>
+              </Pressable>
+              {draft.banner_data && (
+                <Pressable onPress={() => setDraft((d: any) => ({ ...d, banner_data: '' }))} style={{ backgroundColor: 'rgba(0,0,0,0.6)', padding: 10, borderRadius: 20 }}>
+                  <Trash2 size={14} color="#FFF" />
+                </Pressable>
+              )}
+            </View>
+
+            {/* Profile Photo (Logo) on the Bottom Right */}
+            <View style={{ position: 'absolute', bottom: 12, right: 12, zIndex: 20 }}>
+              <View style={{ width: 84, height: 84, borderRadius: 16, backgroundColor: '#0a0f1e', overflow: 'hidden', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+                {photo ? (
+                  <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
+                ) : (
+                  <Text style={{ color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 32 }}>{initials}</Text>
+                )}
+              </View>
+              {/* Small camera edit button */}
+              <Pressable
+                onPress={handleOpenMenu}
+                style={{ position: 'absolute', bottom: -6, right: -6, width: 28, height: 28, borderRadius: 14, backgroundColor: '#A78BFA', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#131938' }}
+                testID="pf-college-logo-upload"
+              >
+                <Camera size={14} color="#FFF" />
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      )}
+
       {/* Basic Information */}
       <Card title="Basic Information" subtitle="Your name, photo, and a short tagline.">
         {!isCollege && (
