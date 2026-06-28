@@ -29,6 +29,12 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       type: 'sourceFile',
     };
   }
+  if (moduleName === 'jspdf/dist/jspdf.es.min.js') {
+    return {
+      filePath: require.resolve('jspdf/dist/jspdf.es.min.js'),
+      type: 'sourceFile',
+    };
+  }
   if (moduleName === 'lucide-react-native') {
     return {
       filePath: require.resolve('lucide-react-native'),

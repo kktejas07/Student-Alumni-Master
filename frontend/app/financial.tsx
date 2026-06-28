@@ -605,7 +605,7 @@ const s = StyleSheet.create({
   bullet: { width: 6, height: 6, borderRadius: 3 },
   highlightText: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12 },
 
-  applyBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 9, ...({ cursor: 'pointer' } as any) },
+  applyBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 9, marginTop: 'auto', ...({ cursor: 'pointer' } as any) },
   applyText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12, letterSpacing: 0.3 },
 
   // Match% badge + AI helper + meta pills

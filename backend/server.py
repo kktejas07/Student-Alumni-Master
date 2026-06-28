@@ -4528,8 +4528,9 @@ CAREER_PATH_SYSTEM_PROMPTS = {
 async def get_claude_chat(session_id: str, system_message: str):
     """Lazy-import emergentintegrations and return a Claude chat instance."""
     class DummyChat:
-        def __init__(self, sys_msg):
+        def __init__(self, sys_msg, sess_id):
             self.sys_msg = sys_msg
+            self.sess_id = sess_id
         async def send_message(self, msg):
             if "12-week" in self.sys_msg:
                 # Use the rich fallback data for the career-ai page
@@ -4550,9 +4551,18 @@ async def get_claude_chat(session_id: str, system_message: str):
                     ],
                     "suggestion": "Your trajectory is solid — focus this week on shipping one polished portfolio piece."
                 }"""
+            if "chat" in self.sess_id.lower() or "financial" in self.sess_id.lower() or "stay" in self.sess_id.lower() or "rentals" in self.sess_id.lower() or "You are speaking with" in self.sys_msg:
+                user_text = getattr(msg, "text", str(msg))
+                clean_text = user_text.replace("[financial] ", "").replace("[career] ", "").strip()
+                if "/scholarships" in clean_text.lower():
+                    return "Here are some top scholarships for you:\n\n1. **Global Tech Leaders Scholarship** - $5,000 for Computer Science students.\n2. **Diversity in STEM Grant** - $3,500 (Deadline: Next month).\n3. **University Merit Award** - $2,000 based on GPA.\n\nReply with a scholarship name to learn more or apply!"
+                elif "/loans" in clean_text.lower():
+                    return "Here are the top student loan options available right now:\n\n1. **Federal Subsidized Loan** - 4.99% APY (Recommended)\n2. **Sallie Mae Smart Option** - 6.5% APY\n3. **Discover Undergraduate** - 7.2% APY\n\nLet me know if you want to calculate your monthly payments!"
+                else:
+                    return f"This is a mock AI response to: '{clean_text}'. Please configure EMERGENT_LLM_KEY for real, intelligent AI responses."
             return '{"summary": "Mock summary", "milestones": [{"id": "m1", "title": "Mock Milestone", "timeframe": "0-3 months", "actions": [], "milestone_type": "profile"}], "recommended_skills": ["Python"], "recommended_courses": [], "mentor_traits": ["Helpful"], "target_role": "Software Engineer", "target_company_type": "Tech", "progress_pct": 10, "skill_scores": {"Technical Excellence": 80, "Professional Communication": 80, "Personal Brand": 80, "Leadership & Collaboration": 80, "Career Preparation": 80, "Industry Presence": 80}, "weekly_plan": [], "key_projects": [], "book_recommendations": []}'
     if not os.environ.get("EMERGENT_LLM_KEY"):
-        return DummyChat(system_message)
+        return DummyChat(system_message, session_id)
 
     from emergentintegrations.llm.chat import LlmChat
     return LlmChat(
