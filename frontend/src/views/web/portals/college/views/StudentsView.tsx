@@ -206,7 +206,7 @@ export function StudentsView() {
     if (Platform.OS !== 'web') return; // File picker only web for now
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.csv';
+    input.accept = '.csv, .xlsx';
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
@@ -253,7 +253,7 @@ export function StudentsView() {
         </Pressable>
         <Pressable style={s.uploadBtn} onPress={doUpload} disabled={isBusy}>
           <MaterialCommunityIcons name="upload" size={14} color="#fff" />
-          <Text style={s.uploadBtnText}>{uploading ? 'Uploading…' : 'Upload CSV'}</Text>
+          <Text style={s.uploadBtnText}>{uploading ? 'Uploading…' : 'Upload CSV / XLSX'}</Text>
         </Pressable>
         <Pressable style={s.cta} onPress={() => setModalVisible(true)} disabled={isBusy}>
           <MaterialCommunityIcons name="plus" size={14} color="#fff" />
