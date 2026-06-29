@@ -40,13 +40,7 @@ export function TopBar({
         <TextInput placeholder="Search…" placeholderTextColor={CC.dim} style={s.searchInput} />
       </View>
 
-      <Pressable
-        onPress={onNotificationsPress || (() => router.push('/notifications'))}
-        style={({ hovered }: any) => [s.iconBtn, hovered && { backgroundColor: CC.cardH }]}
-      >
-        <Inbox size={16} color={CC.muted} />
-        <View style={s.numPill}><Text style={s.numText}>5</Text></View>
-      </Pressable>
+
 
       <Pressable
         onPress={onCalendarPress || (() => {})}
