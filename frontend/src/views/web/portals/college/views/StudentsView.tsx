@@ -573,22 +573,22 @@ export function StudentsView() {
       {confirmModal && confirmModal.visible && (
         <Modal transparent animationType="fade" visible={true} onRequestClose={() => setConfirmModal(null)}>
           <View style={mst.overlay}>
-            <View style={mst.card}>
-              <View style={mst.header}>
+            <View style={[mst.modal, { maxWidth: 380, gap: 10 }]}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={mst.title}>{confirmModal.title}</Text>
-                <Pressable onPress={() => setConfirmModal(null)} style={({ hovered }: any) => [mst.closeBtn, hovered && mst.closeBtnH]}>
+                <Pressable onPress={() => setConfirmModal(null)}>
                   <MaterialCommunityIcons name="close" size={20} color={CC.dim} />
                 </Pressable>
               </View>
-              <Text style={{ color: CC.muted, fontFamily: FONTS.med, fontSize: 14, marginBottom: 24, marginTop: 10, lineHeight: 20 }}>
+              <Text style={{ color: CC.muted, fontFamily: FONTS.med, fontSize: 13.5, marginBottom: 16, marginTop: 4, lineHeight: 20 }}>
                 {confirmModal.message}
               </Text>
-              <View style={mst.footer}>
-                <Pressable onPress={() => setConfirmModal(null)} style={[mst.btn, { backgroundColor: CC.cardH }]}>
-                  <Text style={mst.btnText}>Cancel</Text>
+              <View style={mst.actions}>
+                <Pressable onPress={() => setConfirmModal(null)} style={mst.cancelBtn}>
+                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 }}>Cancel</Text>
                 </Pressable>
-                <Pressable onPress={confirmModal.onConfirm} style={[mst.btn, { backgroundColor: confirmModal.actionColor || CC.primary }]}>
-                  <Text style={[mst.btnText, { color: '#fff' }]}>{confirmModal.actionText}</Text>
+                <Pressable onPress={confirmModal.onConfirm} style={[mst.submitBtn, { backgroundColor: confirmModal.actionColor || CC.primary }]}>
+                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 }}>{confirmModal.actionText}</Text>
                 </Pressable>
               </View>
             </View>
