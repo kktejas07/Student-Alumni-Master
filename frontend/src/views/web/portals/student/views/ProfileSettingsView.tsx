@@ -318,6 +318,9 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={st.name}>{fullName}</Text>
+            {role === 'college' && !!draft.institution && (
+              <Text style={[st.subline, { color: '#E0E7FF', marginBottom: 6, marginTop: -2 }]}>{draft.institution}</Text>
+            )}
             <Text style={st.subline}>{headline}</Text>
             <View style={st.badgeRow}>
               {!!draft.cgpa && (
