@@ -10,7 +10,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
-import { usePortalData, postPortal } from '@/src/lib/portalApi';
+import { usePortalData, postPortal, putPortal } from '@/src/lib/portalApi';
 
 const DEPTS = ['CSE', 'ECE', 'ME', 'EEE', 'Civil', 'Chem', 'MBA'];
 const YEARS = ['1st', '2nd', '3rd', '4th', 'Final'];
@@ -102,6 +102,7 @@ export function StudentsView() {
 
   // Modal State
   const [modalVisible, setModalVisible] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [nameVal, setNameVal] = useState('');
   const [emailVal, setEmailVal] = useState('');
   const [deptVal, setDeptVal] = useState('CSE');
@@ -126,22 +127,35 @@ export function StudentsView() {
     DeviceEventEmitter.emit('scrollCollegePortalToTop');
   }, [page, dept, year, status]);
 
-  const handleAddStudent = async () => {
+  const handleSaveStudent = async () => {
     if (isBusy || !nameVal.trim() || !emailVal.trim()) return;
     setSubmitting(true);
     try {
-      await postPortal('/college/students', {
-        body: {
-          name: nameVal,
-          email: emailVal,
-          dept: deptVal,
-          year: yearVal,
-          cgpa: parseFloat(cgpaVal) || 0.0,
-          attendance: parseInt(attendanceVal, 10) || 0,
-        }
-      });
-      // request() throws on error, so reaching here means success
+      if (editingStudent) {
+        await putPortal(`/college/students/${editingStudent.id}`, {
+          body: {
+            name: nameVal,
+            email: emailVal,
+            dept: deptVal,
+            year: yearVal,
+            cgpa: parseFloat(cgpaVal) || 0.0,
+            attendance: parseInt(attendanceVal, 10) || 0,
+          }
+        });
+      } else {
+        await postPortal('/college/students', {
+          body: {
+            name: nameVal,
+            email: emailVal,
+            dept: deptVal,
+            year: yearVal,
+            cgpa: parseFloat(cgpaVal) || 0.0,
+            attendance: parseInt(attendanceVal, 10) || 0,
+          }
+        });
+      }
       setModalVisible(false);
+      setEditingStudent(null);
       setNameVal('');
       setEmailVal('');
       setDeptVal('CSE');
@@ -255,7 +269,16 @@ export function StudentsView() {
           <MaterialCommunityIcons name="upload" size={14} color="#fff" />
           <Text style={s.uploadBtnText}>{uploading ? 'Uploading…' : 'Upload CSV / XLSX'}</Text>
         </Pressable>
-        <Pressable style={s.cta} onPress={() => setModalVisible(true)} disabled={isBusy}>
+        <Pressable style={s.cta} onPress={() => {
+          setEditingStudent(null);
+          setNameVal('');
+          setEmailVal('');
+          setDeptVal('CSE');
+          setYearVal('1st');
+          setCgpaVal('8.0');
+          setAttendanceVal('85');
+          setModalVisible(true);
+        }} disabled={isBusy}>
           <MaterialCommunityIcons name="plus" size={14} color="#fff" />
           <Text style={s.ctaText}>Add Student</Text>
         </Pressable>
@@ -331,8 +354,17 @@ export function StudentsView() {
                   <Text style={s.unplaced}>—</Text>
                 )}
               </View>
-              <Pressable style={[{ width: 32, alignItems: 'center' }]}>
-                <MaterialCommunityIcons name="dots-horizontal"
+              <Pressable style={[{ width: 32, alignItems: 'center' }]} onPress={() => {
+                setEditingStudent(st);
+                setNameVal(st.name);
+                setEmailVal(st.email);
+                setDeptVal(st.dept);
+                setYearVal(st.year);
+                setCgpaVal(String(st.cgpa));
+                setAttendanceVal(String(st.attendance));
+                setModalVisible(true);
+              }}>
+                <MaterialCommunityIcons name="pencil"
                   size={16} color={CC.muted} />
               </Pressable>
             </View>
@@ -365,7 +397,7 @@ export function StudentsView() {
         <View style={mst.overlay}>
           <View style={mst.modal}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <Text style={mst.title}>Add New Student</Text>
+              <Text style={mst.title}>{editingStudent ? 'Edit Student' : 'Add New Student'}</Text>
               <Pressable onPress={() => setModalVisible(false)} style={{ padding: 4 }}>
                 <MaterialCommunityIcons name="close" size={16} color="#fff" />
               </Pressable>
@@ -443,9 +475,9 @@ export function StudentsView() {
               <Pressable style={mst.cancelBtn} onPress={() => setModalVisible(false)}>
                 <Text style={{ color: CC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
               </Pressable>
-              <Pressable style={mst.submitBtn} onPress={handleAddStudent} disabled={submitting}>
+              <Pressable style={mst.submitBtn} onPress={handleSaveStudent} disabled={submitting}>
                 <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
-                  {submitting ? 'Adding…' : 'Add Student'}
+                  {submitting ? 'Saving…' : editingStudent ? 'Save Changes' : 'Add Student'}
                 </Text>
               </Pressable>
             </View>
