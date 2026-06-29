@@ -67,7 +67,7 @@ export function Sidebar({
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Av initials={collegeInitials} size={40} color="#6366F1" />
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text numberOfLines={1} style={s.collegeName}>{collegeName}</Text>
+            <Text style={s.collegeName}>{collegeName}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
               <Text style={s.collegeRole}>Admin ·</Text>
               <Badge label={collegeRank} color="cyan" />
