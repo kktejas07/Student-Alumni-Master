@@ -299,7 +299,15 @@ export function NetworkView() {
     try {
       const email = user?.email;
       const res = await api.mentorConnections(email);
-      setConnectionsList((res?.items || []).map((c: any) => {
+      const items = res?.items || [];
+      const connectedItems = items.filter(
+        (item: any) =>
+          item.status !== 'none' &&
+          item.status !== 'withdrawn' &&
+          item.status !== 'declined' &&
+          item.status !== 'rejected'
+      );
+      setConnectionsList(connectedItems.map((c: any) => {
         const role = c.role || (c.tags && c.tags[0] ? c.tags[0].toLowerCase() : 'student');
         const tag = role === 'mentor' ? 'Mentor' : role === 'alumni' ? 'Alumni' : 'Student';
         return {
