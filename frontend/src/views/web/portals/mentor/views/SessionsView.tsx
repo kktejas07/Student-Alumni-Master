@@ -129,7 +129,13 @@ export function SessionsView() {
       setLoading(true);
       const email = user?.email;
       const connRes = await api.mentorConnections(email, p, 24);
-      const conns = connRes?.items || [];
+      const conns = (connRes?.items || []).filter(
+        (item: any) =>
+          item.status !== 'none' &&
+          item.status !== 'withdrawn' &&
+          item.status !== 'declined' &&
+          item.status !== 'rejected'
+      );
       const sMap: Record<string, any> = {};
       conns.forEach((c: any) => {
         sMap[c.id] = c;

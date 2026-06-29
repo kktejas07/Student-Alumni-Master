@@ -64,8 +64,16 @@ export function DashboardView({ onNav }: Props) {
         return;
       }
       try {
-        const connRes = await api.mentorConnections(user.email);
-        setStudents(connRes?.items || []);
+        const connRes = await api.mentorConnections(user?.email);
+        const items = connRes?.items || [];
+        const connectedItems = items.filter(
+          (item: any) =>
+            item.status !== 'none' &&
+            item.status !== 'withdrawn' &&
+            item.status !== 'declined' &&
+            item.status !== 'rejected'
+        );
+        setStudents(connectedItems);
       } catch (e) {
         console.warn('Dashboard connections fetch failed:', e);
       } finally {
