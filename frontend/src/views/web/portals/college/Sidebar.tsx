@@ -65,7 +65,7 @@ export function Sidebar({
       {/* College card */}
       <View style={s.collegeCard}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Av initials={collegeInitials} size={40} color="#6366F1" />
+          <Av photo={user?.photo_data || user?.face_image_base64 || null} initials={collegeInitials} size={40} color="#6366F1" />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={s.collegeName}>{collegeName}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
