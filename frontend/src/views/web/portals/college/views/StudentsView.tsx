@@ -11,6 +11,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
 import { usePortalData, postPortal, putPortal } from '@/src/lib/portalApi';
+import { useToast } from '@/src/views/components';
 
 const DEPTS = ['CSE', 'ECE', 'ME', 'EEE', 'Civil', 'Chem', 'MBA'];
 const YEARS = ['1st', '2nd', '3rd', '4th', 'Final'];
@@ -101,6 +102,8 @@ export function StudentsView() {
   const [page, setPage] = useState(1);
 
   // Modal State
+  const toast = useToast();
+  const [confirmModal, setConfirmModal] = useState<{ visible: boolean; title: string; message: string; actionText: string; actionColor?: string; onConfirm: () => void } | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
@@ -198,47 +201,67 @@ export function StudentsView() {
 
   const doClear = async () => {
     if (isBusy) return;
-    if (Platform.OS === 'web' && !window.confirm("Are you sure you want to clear all students?")) return;
-    setClearing(true);
-    try {
-      const base = getBaseUrl();
-      const { tokenStore } = await import('@/src/models/services/api');
-      const token = await tokenStore.getAccess();
-      const resp = await fetch(`${base}/api/college/students/clear`, {
-        method: 'DELETE',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (resp.ok) {
-        refresh();
-      } else {
-        alert('Failed to clear students');
+    setConfirmModal({
+      visible: true,
+      title: 'Clear All Students',
+      message: 'Are you sure you want to clear all students? This action cannot be undone.',
+      actionText: 'Clear All',
+      actionColor: '#EF4444',
+      onConfirm: async () => {
+        setConfirmModal(null);
+        setClearing(true);
+        try {
+          const base = getBaseUrl();
+          const { tokenStore } = await import('@/src/models/services/api');
+          const token = await tokenStore.getAccess();
+          const resp = await fetch(`${base}/api/college/students/clear`, {
+            method: 'DELETE',
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
+          if (resp.ok) {
+            toast.success('Success', 'Cleared all students successfully');
+            refresh();
+          } else {
+            toast.error('Error', 'Failed to clear students');
+          }
+        } catch { toast.error('Error', 'Clear error'); } finally { setClearing(false); }
       }
-    } catch { alert('Clear error'); } finally { setClearing(false); }
+    });
   };
 
   const doBulkDelete = async () => {
     if (isBusy || selectedIds.size === 0) return;
-    if (Platform.OS === 'web' && !window.confirm(`Delete ${selectedIds.size} selected students?`)) return;
-    setClearing(true);
-    try {
-      const base = getBaseUrl();
-      const { tokenStore } = await import('@/src/models/services/api');
-      const token = await tokenStore.getAccess();
-      const resp = await fetch(`${base}/api/college/students/bulk-delete`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({ ids: Array.from(selectedIds) })
-      });
-      if (resp.ok) {
-        setSelectedIds(new Set());
-        refresh();
-      } else {
-        alert('Failed to delete selected students');
+    setConfirmModal({
+      visible: true,
+      title: 'Delete Selected',
+      message: `Are you sure you want to delete ${selectedIds.size} selected students?`,
+      actionText: 'Delete',
+      actionColor: '#EF4444',
+      onConfirm: async () => {
+        setConfirmModal(null);
+        setClearing(true);
+        try {
+          const base = getBaseUrl();
+          const { tokenStore } = await import('@/src/models/services/api');
+          const token = await tokenStore.getAccess();
+          const resp = await fetch(`${base}/api/college/students/bulk-delete`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify({ ids: Array.from(selectedIds) })
+          });
+          if (resp.ok) {
+            toast.success('Success', 'Deleted selected students successfully');
+            setSelectedIds(new Set());
+            refresh();
+          } else {
+            toast.error('Error', 'Failed to delete selected students');
+          }
+        } catch { toast.error('Error', 'Delete error'); } finally { setClearing(false); }
       }
-    } catch { alert('Delete error'); } finally { setClearing(false); }
+    });
   };
 
   const doUpload = () => {
@@ -545,6 +568,33 @@ export function StudentsView() {
           </View>
         </View>
       </Modal>
+
+      {/* Confirm Modal */}
+      {confirmModal && confirmModal.visible && (
+        <Modal transparent animationType="fade" visible={true} onRequestClose={() => setConfirmModal(null)}>
+          <View style={mst.overlay}>
+            <View style={mst.card}>
+              <View style={mst.header}>
+                <Text style={mst.title}>{confirmModal.title}</Text>
+                <Pressable onPress={() => setConfirmModal(null)} style={({ hovered }: any) => [mst.closeBtn, hovered && mst.closeBtnH]}>
+                  <MaterialCommunityIcons name="close" size={20} color={CC.dim} />
+                </Pressable>
+              </View>
+              <Text style={{ color: CC.muted, fontFamily: FONTS.med, fontSize: 14, marginBottom: 24, marginTop: 10, lineHeight: 20 }}>
+                {confirmModal.message}
+              </Text>
+              <View style={mst.footer}>
+                <Pressable onPress={() => setConfirmModal(null)} style={[mst.btn, { backgroundColor: CC.cardH }]}>
+                  <Text style={mst.btnText}>Cancel</Text>
+                </Pressable>
+                <Pressable onPress={confirmModal.onConfirm} style={[mst.btn, { backgroundColor: confirmModal.actionColor || CC.primary }]}>
+                  <Text style={[mst.btnText, { color: '#fff' }]}>{confirmModal.actionText}</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }
