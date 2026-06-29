@@ -452,23 +452,29 @@ async def clear_college_students(user: dict = Depends(_auth())):
 
 @router.post("/college/students/upload")
 async def upload_college_students(file: UploadFile = File(...), user: dict = Depends(_auth())):
-    if not file.filename.endswith('.csv'):
-        raise HTTPException(400, "Must be a CSV file")
+    if not (file.filename.endswith('.csv') or file.filename.endswith('.xlsx')):
+        raise HTTPException(400, "Must be a CSV or XLSX file")
         
     contents = await file.read()
     if len(contents) > 5 * 1024 * 1024:  # 5MB limit
         raise HTTPException(400, "File too large. Maximum size is 5MB.")
 
+    import pandas as pd
     try:
-        decoded = contents.decode('utf-8')
-    except Exception:
-        raise HTTPException(400, "Invalid file encoding. Must be UTF-8.")
+        if file.filename.endswith('.csv'):
+            df = pd.read_csv(io.BytesIO(contents))
+        else:
+            df = pd.read_excel(io.BytesIO(contents))
+            
+        df = df.fillna("")
+        reader = df.to_dict(orient="records")
+    except Exception as e:
+        raise HTTPException(400, f"Error parsing file: {str(e)}")
         
-    reader = csv.DictReader(io.StringIO(decoded))
     to_insert = []
     
     for row in reader:
-        cleaned_row = {k.strip().lower(): (v.strip() if v else "") for k, v in row.items() if k}
+        cleaned_row = {str(k).strip().lower(): (str(v).strip() if str(v) else "") for k, v in row.items() if str(k).strip()}
         
         name = cleaned_row.get("name") or "Unknown Student"
         email = cleaned_row.get("email") or ""
