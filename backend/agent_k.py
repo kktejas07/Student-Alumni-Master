@@ -29,6 +29,38 @@ Collections:
   agent_k_prefs      { user_id, auto_approve_read, auto_approve_write, ... }
 """
 from __future__ import annotations
+from pathlib import Path
+
+
+async def _get_best_ai_key() -> tuple:
+    """Returns (api_key, model_name, provider) from best available source.
+    Priority: Marketplace installed tools > Emergent env var."""
+    # 1. Check marketplace for Claude/Anthropic
+    claude = await _db.installed_tools.find_one({"tool_id": "claude", "status": "connected"})
+    if claude and claude.get("credentials", {}).get("api_key"):
+        return (claude["credentials"]["api_key"],
+                "claude-sonnet-4-5-20250929", "anthropic")
+
+    # 2. Check for OpenAI
+    openai = await _db.installed_tools.find_one({"tool_id": "openai", "status": "connected"})
+    if openai and openai.get("credentials", {}).get("api_key"):
+        return (openai["credentials"]["api_key"],
+                "gpt-4o", "openai")
+
+    # 3. Check for Gemini
+    gemini = await _db.installed_tools.find_one({"tool_id": "gemini", "status": "connected"})
+    if gemini and gemini.get("credentials", {}).get("api_key"):
+        return (gemini["credentials"]["api_key"],
+                "gemini-1.5-flash", "google")
+
+    # 4. Fall back to Emergent env var
+    emergent = os.environ.get("EMERGENT_LLM_KEY")
+    if emergent:
+        return (emergent, "claude-sonnet-4-5-20250929", "anthropic")
+
+    return ("", "", "")
+
+
 import os
 import json
 import logging
