@@ -176,11 +176,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
       const res = await ImagePicker.launchCameraAsync({ cameraType: ImagePicker.CameraType.front, quality: 0.5, base64: true, allowsEditing: true, aspect: [1, 1] });
       if (!res.canceled && res.assets[0]?.base64) {
         const base64Photo = `data:image/jpeg;base64,${res.assets[0].base64}`;
-        if (role === 'college') {
-          setDraft((d: any) => ({ ...d, college_logo_data: base64Photo }));
-        } else {
-          setDraft((d: any) => ({ ...d, photo_data: base64Photo, face_image_base64: base64Photo }));
-        }
+        setDraft((d: any) => ({ ...d, photo_data: base64Photo, face_image_base64: base64Photo }));
       }
     } catch {
       toast.error('Camera', 'Could not open camera.');
@@ -243,13 +239,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
       const f = e.target.files?.[0]; if (!f) return;
       if (f.size > 5 * 1024 * 1024) { toast.error('Too large', 'Max 5 MB'); return; }
       const r = new FileReader();
-      r.onload = () => { 
-        if (role === 'college') {
-          setDraft((d: any) => ({ ...d, college_logo_data: r.result }));
-        } else {
-          setDraft((d: any) => ({ ...d, photo_data: r.result, face_image_base64: r.result })); 
-        }
-      };
+      r.onload = () => { setDraft((d: any) => ({ ...d, photo_data: r.result, face_image_base64: r.result })); };
       r.readAsDataURL(f);
     };
     input.click();
@@ -301,7 +291,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
   const headline = role === 'college' 
     ? (draft.headline) 
     : ([draft.branch ? `B.Tech ${draft.branch}` : null, draft.institution].filter(Boolean).join(' · ') || draft.headline || cfg.fallbackHeadline);
-  const photo = role === 'college' ? (draft.college_logo_data || draft.college_info?.logo || draft.school_info?.logo) : (draft.photo_data || draft.face_image_base64);
+  const photo = draft.photo_data || draft.face_image_base64;
   const saId = draft.unique_id || user?.unique_id || '—';
 
   if (loading && !user) {
@@ -362,10 +352,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
                 <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>Take Selfie</Text>
               </Pressable>
               {photo && (
-                <Pressable onPress={() => {
-                  if (role === 'college') setDraft((d: any) => ({ ...d, college_logo_data: '' }));
-                  else setDraft((d: any) => ({ ...d, photo_data: '', face_image_base64: '' }));
-                }} style={{ backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Pressable onPress={() => setDraft((d: any) => ({ ...d, photo_data: '', face_image_base64: '' }))} style={{ backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>Remove</Text>
                 </Pressable>
               )}
