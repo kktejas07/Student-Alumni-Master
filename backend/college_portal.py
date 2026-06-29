@@ -561,6 +561,19 @@ async def clear_college_students(user: dict = Depends(_auth())):
     await _db.college_students.delete_many({"college_id": str(user["_id"])})
     return {"ok": True}
 
+class BulkDeletePayload(BaseModel):
+    ids: list[str]
+
+@router.post("/college/students/bulk-delete")
+async def bulk_delete_college_students(payload: BulkDeletePayload, user: dict = Depends(_auth())):
+    if not payload.ids:
+        return {"ok": True, "deleted_count": 0}
+    result = await _db.college_students.delete_many({
+        "college_id": str(user["_id"]),
+        "id": {"$in": payload.ids}
+    })
+    return {"ok": True, "deleted_count": result.deleted_count}
+
 
 @router.post("/college/students/upload")
 async def upload_college_students(file: UploadFile = File(...), user: dict = Depends(_auth())):

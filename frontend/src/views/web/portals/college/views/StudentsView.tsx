@@ -102,6 +102,7 @@ export function StudentsView() {
 
   // Modal State
   const [modalVisible, setModalVisible] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [nameVal, setNameVal] = useState('');
   const [emailVal, setEmailVal] = useState('');
@@ -215,6 +216,31 @@ export function StudentsView() {
     } catch { alert('Clear error'); } finally { setClearing(false); }
   };
 
+  const doBulkDelete = async () => {
+    if (isBusy || selectedIds.size === 0) return;
+    if (Platform.OS === 'web' && !window.confirm(`Delete ${selectedIds.size} selected students?`)) return;
+    setClearing(true);
+    try {
+      const base = getBaseUrl();
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      const resp = await fetch(`${base}/api/college/students/bulk-delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ ids: Array.from(selectedIds) })
+      });
+      if (resp.ok) {
+        setSelectedIds(new Set());
+        refresh();
+      } else {
+        alert('Failed to delete selected students');
+      }
+    } catch { alert('Delete error'); } finally { setClearing(false); }
+  };
+
   const doUpload = () => {
     if (isBusy) return;
     if (Platform.OS !== 'web') return; // File picker only web for now
@@ -257,6 +283,12 @@ export function StudentsView() {
             placeholderTextColor={CC.dim} style={s.searchInput} />
         </View>
         <View style={{ flex: 1 }} />
+        {selectedIds.size > 0 && (
+          <Pressable style={[s.clearBtn, { marginRight: 8 }]} onPress={doBulkDelete} disabled={isBusy}>
+            <MaterialCommunityIcons name="delete" size={14} color="#EF4444" />
+            <Text style={s.clearBtnText}>Delete Selected ({selectedIds.size})</Text>
+          </Pressable>
+        )}
         <Pressable style={s.clearBtn} onPress={doClear} disabled={isBusy}>
           <MaterialCommunityIcons name="delete" size={14} color="#EF4444" />
           <Text style={s.clearBtnText}>{clearing ? 'Clearing…' : 'Clear All'}</Text>
@@ -302,6 +334,21 @@ export function StudentsView() {
       {/* Table */}
       <View style={s.table}>
         <View style={s.tableHead}>
+          <Pressable
+            style={{ width: 32, alignItems: 'center', justifyContent: 'center' }}
+            onPress={() => {
+              if (selectedIds.size === list.length && list.length > 0) {
+                setSelectedIds(new Set());
+              } else {
+                setSelectedIds(new Set(list.map(s => s.id)));
+              }
+            }}>
+            <MaterialCommunityIcons
+              name={list.length > 0 && selectedIds.size === list.length ? "checkbox-marked" : "checkbox-blank-outline"}
+              size={18}
+              color={list.length > 0 && selectedIds.size === list.length ? CC.primary : CC.dim}
+            />
+          </Pressable>
           <Text style={[s.th, { flex: 2 }]}>Student</Text>
           <Text style={[s.th, { flex: 1 }]}>Dept</Text>
           <Text style={[s.th, { flex: 1 }]}>Year</Text>
@@ -320,6 +367,20 @@ export function StudentsView() {
           const b = statusBadge(st.status);
           return (
             <View key={st.id} style={s.row}>
+              <Pressable
+                style={{ width: 32, alignItems: 'center', justifyContent: 'center' }}
+                onPress={() => {
+                  const newSet = new Set(selectedIds);
+                  if (newSet.has(st.id)) newSet.delete(st.id);
+                  else newSet.add(st.id);
+                  setSelectedIds(newSet);
+                }}>
+                <MaterialCommunityIcons
+                  name={selectedIds.has(st.id) ? "checkbox-marked" : "checkbox-blank-outline"}
+                  size={18}
+                  color={selectedIds.has(st.id) ? CC.primary : CC.dim}
+                />
+              </Pressable>
               <View style={[{ flex: 2, flexDirection: 'row',
                               alignItems: 'center', gap: 10 }]}>
                 <Av initials={st.initials} size={32} color={st.color} />
