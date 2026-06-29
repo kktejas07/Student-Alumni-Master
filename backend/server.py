@@ -1,5 +1,3769 @@
 """
 Student Alumni Platform - Backend
+==================================
+A FastAPI + MongoDB backend for a student career development platform.
+
+ARCHITECTURE:
+- 3 primary user roles: student, alumni, mentor (admin/college handled separately)
+- JWT auth with email/password (Google/LinkedIn OAuth handled by separate Phase)
+- Claude Sonnet 4.5 AI for personalized career guidance
+- Role-based registration with role-specific validation
+- Mentor accounts require admin review (status=pending until approved)
+- Education-level + career-path-based content prioritization
+- Multi-tenant (college) support for institutional dashboards
+
+CONTENT PRIORITIZATION LOGIC:
+1. Interest-based filtering: career_path drives content
+2. Educational level segmentation:
+   - Class 11/12: prioritize Campus Tours, Scholarships
+   - University students: prioritize Internships, Hackathons, Higher Ed
+3. Real-time event priority (deadlines surface to top)
+4. 8 modular categories visible per Student dashboard
+"""
+from dotenv import load_dotenv
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).parent
+load_dotenv(ROOT_DIR / '.env')
+
+import os
+import socket
+
+# --- GLOBALLY PATCH DNS TO PREVENT 34-SECOND IPv6 HANGS ON WINDOWS ---
+import sys
+if sys.platform == "win32" and not getattr(socket, "_ipv4_patched", False):
+    _original_getaddrinfo = socket.getaddrinfo
+
+    def _ipv4_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+        if family == 0:
+            family = socket.AF_INET
+        return _original_getaddrinfo(host, port, family, type, proto, flags)
+
+    socket.getaddrinfo = _ipv4_getaddrinfo
+    socket._ipv4_patched = True
+# ---------------------------------------------------------------------
+import re
+import uuid
+import io
+import base64
+import logging
+import secrets
+import random
+import string
+import asyncio
+from datetime import datetime, timezone, timedelta
+from typing import List, Optional, Literal, Dict, Any
+
+import bcrypt
+import jwt
+import pyotp
+import qrcode
+from bson import ObjectId
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response
+from starlette.middleware.cors import CORSMiddleware
+from motor.motor_asyncio import AsyncIOMotorClient
+from pydantic import BaseModel, Field, EmailStr, field_validator
+from starlette.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+
+# Rate limiting (imports only, setup after app is created)
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
+
+# Content prioritization engine — implements interest + edu-level + deadline + frequency scoring
+from personalization import (
+    build_personalized_dashboard,
+    track_module_click,
+    transition_to_alumni,
+    CAREER_PATH_TO_MENTOR_CATEGORY,
+)
+
+# Multi-role badge engine
+from badges import (
+    compute_badges, refresh_user_badges, compute_all_users_badges, get_tier_theme,
+)
+
+# Role-based analytics + external API integrations
+from analytics import get_analytics_for, super_admin_analytics, college_analytics, mentor_analytics
+from integrations import (
+    fetch_coursera_courses, fetch_udemy_courses, fetch_adzuna_internships,
+    sync_courses_to_db, sync_internships_to_db, integrations_status,
+)
+
+# Mentor reviews/ratings + Push notifications
+from reviews import (
+    create_review, list_mentor_reviews, get_mentor_rating_stats,
+    seed_sample_reviews, refresh_mentor_rating,
+)
+from notifications import (
+    register_push_token, deregister_push_token, send_push, list_inbox,
+    mark_inbox_read, unread_count, notify_booking_created, notify_booking_confirmed,
+    notify_event_registered, notify_mentor_approved, notify_review_received,
+)
+
+# Services -- single source of truth for business logic
+from services.career_intelligence_service import compute_full_intelligence, invalidate_intel_cache
+from services.profile_service import compute_profile_completion
+from services.career_roadmap_service import get_roadmap_summary
+
+# ----------------------------------------------------------------------------
+# Setup & Configuration
+# ----------------------------------------------------------------------------
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+import time
+_t0_mongo = time.perf_counter()
+print("[DB TRACE] Mongo client created")
+mongo_url = os.environ.get('MONGO_URL', 'mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin')
+from db import client, db as _db_default, fetch_users_with_mock_limit
+db = _db_default
+
+# JWT configuration
+JWT_SECRET = os.environ.get('JWT_SECRET', '44ef879c2317ef383b123617fdac89bc7291a27e3848b8dbdfb9a1c1d8e8f8e9')
+JWT_ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days for mobile (less re-login friction)
+REFRESH_TOKEN_EXPIRE_DAYS = 30
+
+app = FastAPI(title="Student Alumni Platform API")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernetes ingress requirement)
+
+
+@app.on_event("startup")
+async def verify_mongo_connection():
+    """Warm the Mongo connection pool before any requests are served.
+
+    Calling warm_db() here forces Motor to complete Atlas topology discovery
+    (DNS → TCP → TLS → hello handshake) during server startup rather than
+    on the first user request.  Without this warm-up, the first 10-20
+    concurrent requests all block for ~47 s waiting for topology resolution.
+    """
+    try:
+        from core.db import warm_db
+        ping_ms = await warm_db()
+        print(f"[DB TRACE] Mongo connection established | Duration: {ping_ms:.1f}ms", flush=True)
+        print(f"[DB TRACE] Mongo Topology: {client.topology_description}", flush=True)
+    except Exception as e:
+        print(f"[DB TRACE] Mongo connection failed: {e}", flush=True)
+
+
+# ----------------------------------------------------------------------------
+# Encryption-at-Rest — Fernet (AES-128 in CBC mode + HMAC-SHA256)
+# ----------------------------------------------------------------------------
+# Per spec — encrypt sensitive personal data (dob, phone, postal_code) at rest.
+# Backwards-compat: legacy users may have plaintext values; decrypt() returns
+# the input as-is when it can't be decoded as Fernet ciphertext.
+try:
+    from cryptography.fernet import Fernet, InvalidToken  # noqa: E402
+    _HAS_CRYPTOGRAPHY = True
+except Exception:
+    _HAS_CRYPTOGRAPHY = False
+    class Fernet:
+        @staticmethod
+        def generate_key():
+            return b"dummy_key_for_dev_booting_without_cryptography_32b_len="
+        def __init__(self, key):
+            pass
+        def encrypt(self, data: bytes) -> bytes:
+            return data
+        def decrypt(self, data: bytes) -> bytes:
+            return data
+    class InvalidToken(Exception):
+        pass
+
+_FERNET_KEY = os.environ.get("FERNET_KEY")
+if not _FERNET_KEY:
+    # Auto-generate a session key in dev so the app boots; logs a warning.
+    if _HAS_CRYPTOGRAPHY:
+        _FERNET_KEY = Fernet.generate_key().decode()
+    else:
+        _FERNET_KEY = Fernet.generate_key().decode('utf-8')
+    print(f"⚠️  FERNET_KEY not set — using ephemeral key (dev only): {_FERNET_KEY[:12]}…")
+_FERNET = Fernet(_FERNET_KEY.encode() if isinstance(_FERNET_KEY, str) else _FERNET_KEY)
+# Marker so we can recognise our ciphertexts in mixed-format collections.
+_ENC_PREFIX = "enc::"
+
+
+def encrypt_value(plain: Optional[str]) -> Optional[str]:
+    """Wrap a string with the Fernet token + a recognisable prefix."""
+    if plain is None or plain == "":
+        return plain
+    if isinstance(plain, str) and plain.startswith(_ENC_PREFIX):
+        return plain  # already encrypted
+    try:
+        token = _FERNET.encrypt(plain.encode("utf-8")).decode("utf-8")
+        return f"{_ENC_PREFIX}{token}"
+    except Exception:
+        return plain  # never block the write on encryption failure
+
+
+def decrypt_value(value: Optional[str]) -> Optional[str]:
+    """Unwrap a Fernet ciphertext. Returns the input unchanged if not ours."""
+    if value is None or value == "":
+        return value
+    if isinstance(value, str) and value.startswith(_ENC_PREFIX):
+        try:
+            return _FERNET.decrypt(value[len(_ENC_PREFIX):].encode("utf-8")).decode("utf-8")
+        except InvalidToken:
+            return None  # tampered or wrong key — return None defensively
+        except Exception:
+            return None
+    return value  # legacy plaintext
+
+
+# ----------------------------------------------------------------------------
+# Audit Log Helpers — write every personal-data change to `audit_logs`
+# ----------------------------------------------------------------------------
+# Schema: { user_id, field_name, old_value, new_value, source, validation_status,
+#           ts (UTC datetime), is_manual_entry }
+async def _audit_log(user_id: str, field: str, old_value, new_value, *,
+                     source: str = "onboarding",
+                     validation_status: str = "passed",
+                     is_manual_entry: bool = False) -> None:
+    """Insert a single audit entry. Best-effort — never raise to caller."""
+    try:
+        await db.audit_logs.insert_one({
+            "user_id": user_id,
+            "field_name": field,
+            "old_value": old_value if old_value is not None else None,
+            "new_value": new_value if new_value is not None else None,
+            "source": source,
+            "validation_status": validation_status,
+            "is_manual_entry": bool(is_manual_entry),
+            "ts": datetime.now(timezone.utc),
+        })
+    except Exception:
+        # Don't let audit failures break the user's flow.
+        pass
+
+
+async def _audit_log_many(user_id: str, source: str, entries: list,
+                          validation_status: str = "passed") -> None:
+    """Bulk insert audit entries. `entries` is a list of (field, old, new) tuples."""
+    if not entries:
+        return
+    try:
+        docs = [{
+            "user_id": user_id,
+            "field_name": f,
+            "old_value": o,
+            "new_value": n,
+            "source": source,
+            "validation_status": validation_status,
+            "is_manual_entry": False,
+            "ts": datetime.now(timezone.utc),
+        } for (f, o, n) in entries if n is not None and n != ""]
+        if docs:
+            await db.audit_logs.insert_many(docs, ordered=False)
+    except Exception:
+        pass
+
+
+# ----------------------------------------------------------------------------
+# Type Definitions
+# ----------------------------------------------------------------------------
+# UserRole: 3 primary user types + admin/college (managed roles)
+UserRole = Literal["student", "alumni", "mentor", "college", "admin", "super_admin"]
+
+# CareerPath: Drives all personalization on the platform
+CareerPath = Literal["job", "higher_education", "startup", "business"]
+
+# EducationLevel: Used for content segmentation per spec
+# (+1=Class 11, +2=Class 12, btech=undergrad, masters=postgrad, phd=research)
+EducationLevel = Literal["plus_one", "plus_two", "btech", "bachelors", "masters", "phd", "other"]
+
+# MentorCategory: Per spec — 4 distinct categories (split startup vs business)
+# MentorCategory: 10-category taxonomy organized by function.
+# Tech & Engineering: it_software, engineering_manager
+# Talent & People:    tech_recruiter, hr_mentor
+# Career Development: career_coach, higher_education
+# Entrepreneurship:   startup_mentor, startup_advisor
+# Business:           business_mentor, industry_advisor
+MentorCategory = Literal[
+    "it_software", "engineering_manager",
+    "tech_recruiter", "hr_mentor",
+    "career_coach", "higher_education",
+    "startup_mentor", "startup_advisor",
+    "business_mentor", "industry_advisor",
+    # Per Mentor Onboarding spec — 10 archetype tiles. Below are the 3 new
+    # archetype slugs that don't map cleanly to legacy values above.
+    "interview_prep",       # Mock interviews, DSA, system design rounds
+    "creative_design",      # UX/UI, branding, creative careers & portfolios
+    "life_wellness",        # Work-life balance, mental health & mindfulness
+    # Backward-compat aliases (read-only — old data may still have these)
+    "startup", "business", "education", "startup_business",
+]
+
+# MentorStatus: Mentors are reviewed by admins before being visible to students
+MentorStatus = Literal["pending", "approved", "rejected"]
+
+
+# ----------------------------------------------------------------------------
+# Pydantic Models — Request / Response payloads
+# ----------------------------------------------------------------------------
+class SchoolInfo(BaseModel):
+    """Institution / education info common to all roles."""
+    institution_name: str
+    institution_type: Literal["school", "college", "university"] = "college"
+    # Made optional — in the new onboarding flow we collect graduation_year +
+    # branch_or_stream instead, and this field is derived downstream when needed.
+    class_or_year: Optional[str] = None
+    branch_or_stream: Optional[str] = None
+    board_or_university: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    country: str = "India"
+    graduation_year: Optional[int] = None  # Required for alumni
+
+
+class MentorInfo(BaseModel):
+    """Mentor-specific fields per spec — requires admin approval."""
+    category: MentorCategory  # Primary archetype (derived from categories[0] if multi-select used)
+    organization: str  # Mandatory: company / institution name
+    job_title: str  # Mandatory: designation
+    linkedin_url: Optional[str] = None  # Recommended for credibility
+    years_of_experience: Optional[int] = None
+    bio: Optional[str] = None
+    # Per HTML spec — 1:1 session price in INR (revenue-critical).
+    # Suggested chips: 499 / 799 / 999 / 1499; free custom values allowed.
+    session_price_inr: Optional[int] = None
+    # Per Mentor Onboarding 8-step wizard (Step 2: "Mentorship Archetype")
+    # — multi-select tile grid; mentor can pick all that apply.
+    categories: Optional[List[MentorCategory]] = None
+    # Step 3: Education Background (single select; same taxonomy as students)
+    education_level: Optional[str] = None
+    # Step 4: "Your Expertise" — chip multi-select (free-form skill labels)
+    expertise: Optional[List[str]] = None
+    # Step 5: Availability — list of weekly recurring slot keys
+    # e.g. ["mon_18_19", "sat_10_12"] — see frontend AVAILABILITY_SLOTS map.
+    availability: Optional[List[str]] = None
+    # Step 6: Profile photo (base64) — also stored on user.face_image_base64
+    profile_photo: Optional[str] = None
+    # Step 7: College & Batch (institution name + graduation year)
+    college: Optional[str] = None
+    college_batch: Optional[int] = None  # graduation year
+
+
+class CollegeInfo(BaseModel):
+    """College / Institution-specific fields per College 6-step Onboarding spec."""
+    institution_name: str
+    institution_type: Optional[Literal["school", "college", "university", "institute"]] = "university"
+    affiliated_university: Optional[str] = None  # e.g. "Delhi University" (for affiliated colleges)
+    official_website: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    country: str = "India"
+    # Optional admin contact details the college can fill later
+    accreditation: Optional[str] = None  # e.g. "NAAC A+", "NBA"
+    year_established: Optional[int] = None
+    # Step 1 — National Ranking Tier (single-select chip)
+    # Slugs: top_50 / top_51_200 / top_201_500 / not_ranked
+    ranking_tier: Optional[str] = None
+    # Step 1 — Accreditations & Rankings (multi-select chips — see frontend ACCRED list)
+    accreditations: Optional[List[str]] = None
+    # Step 2 — Contact Person (primary admin)
+    contact_name: Optional[str] = None
+    contact_designation: Optional[str] = None  # e.g. "TPO", "Dean Students", "Principal"
+    contact_official_email: Optional[str] = None  # MUST end in .ac.in / .edu (validated client-side)
+    contact_phone: Optional[str] = None
+    # Step 3 — Features Needed (multi-select tile keys — see frontend FEATURES list)
+    # Possible values: student_placement, alumni_network, mentor_connections,
+    #                  industry_tieups, event_management, job_portal
+    features_needed: Optional[List[str]] = None
+    # Step 4 — Logo & Cover Photo (base64)
+    logo: Optional[str] = None
+    cover_photo: Optional[str] = None
+    # Step 5 — Bio + writing style
+    bio: Optional[str] = None
+    writing_style: Optional[str] = None
+
+
+class AlumniInfo(BaseModel):
+    """Alumni-specific fields per Alumni 6-step Onboarding Wizard spec."""
+    graduation_year: int
+    university: str
+    current_employer: Optional[str] = None
+    current_role: Optional[str] = None
+    employment_status: Literal["employed", "self_employed", "studying", "between_jobs"] = "employed"
+    # Per spec — LinkedIn highly recommended for alumni
+    linkedin_url: Optional[str] = None
+    # Per spec — alumni may opt-in as mentors with a category
+    wants_to_mentor: bool = False
+    mentor_category: Optional[MentorCategory] = None
+    mentor_categories: Optional[List[MentorCategory]] = None    # multi-select archetypes
+    # Step 1 — Your Career Now: years of experience (auto-derived from grad year if blank)
+    years_of_experience: Optional[int] = None
+    # Step 2 — Interests & Skills: 4 multi-select chip groups
+    domain_expertise: Optional[List[str]] = None  # e.g. Software Engineering, Product, Finance
+    tech_skills: Optional[List[str]] = None       # Python, React, ML/AI, …
+    business_skills: Optional[List[str]] = None   # Excel, Financial Modelling, Sales, …
+    soft_skills: Optional[List[str]] = None       # Communication, Leadership, …
+    # Step 3 — Your Next Chapter: single-select from 6 paths
+    # Slugs: become_mentor / level_up_career / build_startup / higher_education / explore_options / give_back
+    next_chapter: Optional[str] = None
+    # Step 4 — Profile Photo (base64; also stored on user.face_image_base64)
+    profile_photo: Optional[str] = None
+    # Step 5 — Bio + writing style chip
+    bio: Optional[str] = None
+    writing_style: Optional[str] = None  # Friendly & warm / Professional / Inspiring / Concise / Detailed
+
+
+class StudentInfo(BaseModel):
+    """Student-specific fields per spec."""
+    age: Optional[int] = None  # Minimum age 10+ per spec (collected during onboarding)
+    education_level: Optional[EducationLevel] = None
+    career_interests: List[str] = Field(default_factory=list)
+    # Per spec — specific aspiration (e.g. "Software Developer", "Web Developer")
+    # Used directly in AI roadmap prompts to drive interest-based filtering
+    career_goal: Optional[str] = None
+    # Per HTML spec — Academic GPA (0.0–10.0 CGPA scale or 0.0–4.0 if GPA).
+    # Used by college dashboards and AI recommendations for scholarship matching.
+    cgpa: Optional[float] = None
+
+
+# ----- Auth payloads -----
+class RegisterRequest(BaseModel):
+    """Initial registration. Role-specific fields collected in onboarding step."""
+    email: EmailStr
+    password: str
+    full_name: str
+    role: UserRole
+    phone: Optional[str] = None
+    # Per spec — Date of Birth is mandatory at registration. ISO 8601 (YYYY-MM-DD).
+    # Backend enforces minimum age of 18 unless the role is 'student' (>=13).
+    dob: Optional[str] = None
+    # Country alpha-2 code for phone/postal code validation context.
+    country_code: Optional[str] = None
+    # Postal / PIN code (validated per country at the frontend; stored verbatim).
+    postal_code: Optional[str] = None
+
+    @field_validator("password")
+    @classmethod
+    def _password_strength(cls, v):
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one digit")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
+            raise ValueError("Password must contain at least one special character (!@#$%^&*...)")
+        return v
+
+    @field_validator("dob")
+    @classmethod
+    def _dob_valid(cls, v):
+        if not v:
+            return v  # mandatory enforcement happens in the route (role-aware)
+        from datetime import date as _date
+        try:
+            d = _date.fromisoformat(v)
+        except Exception:
+            raise ValueError("Date of birth must be in YYYY-MM-DD format")
+        today = _date.today()
+        if d > today:
+            raise ValueError("Date of birth cannot be in the future")
+        # Min age guard — 13 absolute floor; route can re-enforce 18 by role.
+        age = today.year - d.year - ((today.month, today.day) < (d.month, d.day))
+        if age < 13:
+            raise ValueError("You must be at least 13 years old to register")
+        return v
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class VerifyResetOtpRequest(BaseModel):
+    email: EmailStr
+    otp: str
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str
+
+
+class OnboardingRequest(BaseModel):
+    """Unified onboarding payload — only the fields relevant to the user's role
+    are validated. Field validation by role is enforced in the handler."""
+    school_info: SchoolInfo
+    career_path: Optional[CareerPath] = None  # Required for student/alumni
+    student_info: Optional[StudentInfo] = None  # Required if role=student
+    alumni_info: Optional[AlumniInfo] = None  # Required if role=alumni
+    mentor_info: Optional[MentorInfo] = None  # Required if role=mentor
+    college_info: Optional[CollegeInfo] = None  # Required if role=college (per spec)
+    interests: List[str] = Field(default_factory=list)
+    skills: List[str] = Field(default_factory=list)
+    bio: Optional[str] = None
+    face_image_base64: Optional[str] = None  # Profile photo (base64-encoded)
+    # Per HTML spec — collect phone number during onboarding for all roles.
+    # Stored at the root user level (not role-specific).
+    phone: Optional[str] = None
+
+
+class UserResponse(BaseModel):
+    """Public user payload — never includes password_hash."""
+    id: str
+    email: EmailStr
+    full_name: str
+    role: UserRole
+    phone: Optional[str] = None
+    unique_id: Optional[str] = None
+    qr_code_base64: Optional[str] = None
+    school_info: Optional[SchoolInfo] = None
+    career_path: Optional[CareerPath] = None
+    student_info: Optional[StudentInfo] = None
+    alumni_info: Optional[AlumniInfo] = None
+    mentor_info: Optional[MentorInfo] = None
+    college_info: Optional[CollegeInfo] = None
+    mentor_status: Optional[MentorStatus] = None  # Only set for mentors
+    interests: List[str] = []
+    skills: List[str] = []
+    bio: Optional[str] = None
+    face_image_base64: Optional[str] = None
+    onboarding_completed: bool = False
+    two_fa_enabled: bool = False
+    dob: Optional[str] = None  # ISO 8601 (YYYY-MM-DD)
+    country_code: Optional[str] = None
+    postal_code: Optional[str] = None
+    created_at: datetime
+    # Phase-4 SA Profile Web fields (set via PUT /users/me — must round-trip)
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    headline: Optional[str] = None
+    photo_data: Optional[str] = None
+    banner_data: Optional[str] = None
+    college_logo_data: Optional[str] = None
+    institution: Optional[str] = None
+    branch: Optional[str] = None
+    stream: Optional[str] = None
+    department: Optional[str] = None
+    graduation_year: Optional[int] = None
+    cgpa: Optional[float] = None
+    location: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    github_url: Optional[str] = None
+    portfolio_url: Optional[str] = None
+    primary_skill: Optional[str] = None
+    profile_visibility: Optional[str] = None
+    section_toggles: Optional[Dict[str, Any]] = None
+    projects: Optional[List[Dict[str, Any]]] = None
+    preferences: Optional[Dict[str, Any]] = None
+    is_verified: Optional[bool] = None
+    ranking_tier: Optional[str] = None
+    badges: List[Dict[str, Any]] = []
+
+
+class AuthResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    user: UserResponse
+
+
+class TwoFAChallengeResponse(BaseModel):
+    """Returned by /auth/login when 2FA is enabled — client must call /auth/2fa/verify."""
+    requires_2fa: bool = True
+    challenge_id: str
+    methods: List[str] = ["totp"]
+    user_email: str  # show on challenge screen for context
+
+
+class TwoFASetupRequest(BaseModel):
+    pass  # auth-only
+
+
+class TwoFASetupResponse(BaseModel):
+    secret: str
+    otpauth_uri: str
+    qr_code_base64: str  # PNG, base64-encoded
+
+
+class TwoFAEnableRequest(BaseModel):
+    code: str  # 6-digit TOTP code from authenticator app
+
+
+class TwoFAEnableResponse(BaseModel):
+    enabled: bool = True
+    backup_codes: List[str]  # show ONCE
+
+
+class TwoFAVerifyRequest(BaseModel):
+    challenge_id: str
+    code: str  # 6-digit TOTP or 10-char backup code
+
+
+class TwoFADisableRequest(BaseModel):
+    password: str
+    code: str
+
+
+# ----- AI payloads -----
+class ChatRequest(BaseModel):
+    message: str
+    session_id: Optional[str] = None
+
+
+class ChatResponse(BaseModel):
+    session_id: str
+    message: str
+
+
+# ----- Booking payloads -----
+class BookingRequest(BaseModel):
+    """Student books a mentor for a 1:1 session."""
+    mentor_id: str
+    slot_start_iso: str  # ISO datetime string
+    slot_end_iso: str
+    topic: str
+    notes: Optional[str] = None
+
+
+class ConnectRequestIn(BaseModel):
+    message: Optional[str] = None
+
+
+class MentorBookingCreateRequest(BaseModel):
+    """Mentor schedules a booking with a student."""
+    student_id: str
+    slot_start_iso: str  # ISO datetime string
+    topic: str
+    notes: Optional[str] = None
+
+
+class RescheduleRequest(BaseModel):
+    """Request payload to reschedule a session."""
+    slot_start_iso: str  # ISO datetime string
+
+
+
+# ----------------------------------------------------------------------------
+# Helpers — Auth, hashing, ID generation
+# ----------------------------------------------------------------------------
+def hash_password(password: str) -> str:
+    """Bcrypt is the industry standard for password hashing in 2026."""
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def verify_password(plain: str, hashed: str) -> bool:
+    return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+
+
+def create_access_token(user_id: str, email: str, role: str) -> str:
+    """Short-lived access token for API authentication."""
+    payload = {
+        "sub": user_id,
+        "email": email,
+        "role": role,
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+        "type": "access",
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+def create_refresh_token(user_id: str) -> str:
+    """Long-lived refresh token to obtain new access tokens without re-login."""
+    payload = {
+        "sub": user_id,
+        "exp": datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
+        "type": "refresh",
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+def generate_unique_id(role: str) -> str:
+    """Platform unique ID format: SA-{YEAR}-{ROLE_CODE}-{6 RANDOM CHARS}.
+    Example: SA-2026-STU-A7B2X9. Used as the user's QR code payload."""
+    role_codes = {"student": "STU", "alumni": "ALM", "mentor": "MNT", "college": "CLG", "admin": "ADM"}
+    code = role_codes.get(role, "USR")
+    rand = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    return f"SA-{datetime.now().year}-{code}-{rand}"
+
+
+def generate_qr_code(data: str) -> str:
+    """Generate base64-encoded PNG QR code for a unique platform ID."""
+    qr = qrcode.QRCode(version=1, box_size=10, border=2,
+                       error_correction=qrcode.constants.ERROR_CORRECT_M)
+    qr.add_data(data)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="#5F259F", back_color="#FFFFFF")  # Brand purple QR
+    buf = io.BytesIO()
+    getattr(img, "save")(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode("utf-8")
+
+
+def _safe_block(model_cls, value):
+    """Try to coerce a stored dict into the given Pydantic model. If it fails
+    validation (e.g. seed data missing required fields), return None instead of
+    crashing the whole user payload. Logged so we know it happened."""
+    if value is None:
+        return None
+    try:
+        # Validate but return as dict so FastAPI re-validates with the parent model
+        return model_cls(**value).model_dump(exclude_none=False)
+    except Exception:
+        return None
+
+
+def serialize_user(user: dict) -> dict:
+    """Strip internal fields (_id, password_hash) from user dict before sending to client.
+    Decrypts at-rest fields (phone / dob / postal_code) on the way out.
+    """
+    if not user:
+        return None
+    return {
+        "id": str(user.get("_id")),
+        "email": user.get("email"),
+        "full_name": user.get("full_name"),
+        "role": user.get("role"),
+        # Sensitive fields — decrypt before exposing.
+        "phone":        decrypt_value(user.get("phone")),
+        "unique_id": user.get("unique_id"),
+        "qr_code_base64": user.get("qr_code_base64"),
+        "school_info":  _safe_block(SchoolInfo,  user.get("school_info")),
+        "career_path":  user.get("career_path"),
+        "student_info": _safe_block(StudentInfo, user.get("student_info")),
+        "alumni_info":  _safe_block(AlumniInfo,  user.get("alumni_info")),
+        "mentor_info":  _safe_block(MentorInfo,  user.get("mentor_info")),
+        "college_info": _safe_block(CollegeInfo, user.get("college_info")),
+        "mentor_status": user.get("mentor_status"),
+        "interests": user.get("interests", []),
+        "skills": user.get("skills", []),
+        "bio": user.get("bio"),
+        "face_image_base64": user.get("face_image_base64"),
+        "onboarding_completed": user.get("onboarding_completed", False),
+        "two_fa_enabled": user.get("two_fa_enabled", False),
+        # Phase A — DOB / country / postal — exposed on every user response.
+        "dob":          decrypt_value(user.get("dob")),
+        "country_code": user.get("country_code"),
+        "postal_code":  decrypt_value(user.get("postal_code")),
+        "created_at": user.get("created_at"),
+        # Phase-4 SA Profile Web fields — round-trip through PUT /users/me & /auth/me
+        "first_name":     user.get("first_name"),
+        "last_name":      user.get("last_name"),
+        "headline":       user.get("headline"),
+        "photo_data":     user.get("photo_data") or user.get("face_image_base64") or user.get("oauth_picture"),
+        "banner_data":    user.get("banner_data"),
+        "college_logo_data": user.get("college_logo_data"),
+        "institution":    user.get("institution"),
+        "branch":         user.get("branch"),
+        "stream":         user.get("stream"),
+        "department":     user.get("department"),
+        "graduation_year": user.get("graduation_year"),
+        "cgpa":           user.get("cgpa"),
+        "location":       user.get("location"),
+        "city":           user.get("city"),
+        "state":          user.get("state"),
+        "linkedin_url":   user.get("linkedin_url"),
+        "github_url":     user.get("github_url"),
+        "portfolio_url":  user.get("portfolio_url"),
+        "primary_skill":  user.get("primary_skill"),
+        "profile_visibility": user.get("profile_visibility"),
+        "section_toggles": user.get("section_toggles"),
+        "badges":         [b for b in user.get("badges", []) if isinstance(b, dict)],
+        "projects":       user.get("projects"),
+        "preferences":    user.get("preferences"),
+        "is_verified":    user.get("is_verified"),
+        "ranking_tier":   user.get("ranking_tier"),
+    }
+
+
+async def get_current_user(request: Request) -> dict:
+    """JWT auth dependency. Reads `Authorization: Bearer <token>` header."""
+    import time
+    _t0 = time.perf_counter()
+    auth = request.headers.get("Authorization", "")
+    print(f"[AUTH TRACE] path={request.url.path}", flush=True)
+    if not auth.startswith("Bearer "):
+        raise HTTPException(401, "Not authenticated")
+    try:
+        payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "access":
+            raise HTTPException(401, "Invalid token type")
+        print(f'[AUTH TRACE] DB_QUERY_START | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
+        user = await db.users.find_one({"_id": ObjectId(payload["sub"])}, {"resume_documents": 0})
+        print(f'[AUTH TRACE] DB_QUERY_END | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
+        if not user:
+            raise HTTPException(401, "User not found")
+        return user
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(401, "Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(401, "Invalid token")
+
+
+def validate_student_class(school_info: SchoolInfo, age: Optional[int] = None) -> None:
+    """Per spec: students must be age 10+ AND in Class 11 (+1) or above."""
+    if age is not None and age < 10:
+        raise HTTPException(400, "Students must be at least 10 years old to register.")
+    cls = (school_info.class_or_year or "").strip().lower()
+    # If user typed a single number, reject 1-10
+    if cls.isdigit() and int(cls) < 11:
+        raise HTTPException(400, "Students must be in Class 11 (+1) or above.")
+
+
+# ----------------------------------------------------------------------------
+# Auth Endpoints
+# ----------------------------------------------------------------------------
+@api_router.post("/auth/register", response_model=AuthResponse)
+@limiter.limit("10/minute")
+async def register(request: Request, req: RegisterRequest):
+    """Register a new user. Role is captured upfront — onboarding collects role-specific fields."""
+    email = req.email.lower().strip()
+    if await db.users.find_one({"email": email}, {"_id": 1}):
+        raise HTTPException(400, "Email already registered")
+
+    user_doc = {
+        "email": email,
+        "password_hash": hash_password(req.password),
+        "full_name": req.full_name.strip(),
+        "role": req.role,
+        # Sensitive PII — encrypted at rest with Fernet (decrypted on read).
+        "phone": encrypt_value(req.phone),
+        "dob": encrypt_value(req.dob),
+        "country_code": req.country_code,  # not sensitive, kept plain for indexing
+        "postal_code": encrypt_value(req.postal_code),
+        "unique_id": None,
+        "qr_code_base64": None,
+        "school_info": None,
+        "career_path": None,
+        "student_info": None,
+        "alumni_info": None,
+        "mentor_info": None,
+        # Mentors are pending until admin approves (per spec).
+        "mentor_status": "pending" if req.role == "mentor" else None,
+        "interests": [],
+        "skills": [],
+        "bio": None,
+        "face_image_base64": None,
+        "onboarding_completed": False,
+        "created_at": datetime.now(timezone.utc),
+        "last_login": datetime.utcnow(),
+    }
+    result = await db.users.insert_one(user_doc)
+    user_id = str(result.inserted_id)
+    user_doc["_id"] = result.inserted_id
+
+    # Audit log — capture the full registration payload for compliance.
+    # Sensitive PII (phone / dob / postal_code) are encrypted in audit_logs
+    # too — never store plaintext outside the in-flight request.
+    await _audit_log_many(user_id=user_id, source="register", entries=[
+        ("email",        None, req.email),
+        ("full_name",    None, req.full_name),
+        ("role",         None, req.role),
+        ("phone",        None, encrypt_value(req.phone or "")),
+        ("dob",          None, encrypt_value(req.dob or "")),
+        ("country_code", None, req.country_code or ""),
+        ("postal_code",  None, encrypt_value(req.postal_code or "")),
+    ])
+
+    return AuthResponse(
+        access_token=create_access_token(user_id, email, req.role),
+        refresh_token=create_refresh_token(user_id),
+        user=UserResponse(**serialize_user(user_doc)),
+    )
+
+
+class CheckEmailRequest(BaseModel):
+    email: EmailStr
+
+
+@api_router.post("/auth/check-email")
+@limiter.limit("30/minute")
+async def check_email(request: Request, req: CheckEmailRequest):
+    """Smart Email Detect (per HTML spec) — checks whether an email already has
+    an account so the client can decide whether to route to Login (existing)
+    or Register (new). Also returns the user's role if we have one, so Login
+    can show the correct branding.
+
+    NOTE: This endpoint intentionally reveals account existence — it's the
+    explicit UX contract of the Smart Email Detect screen in the spec. Rate
+    limiting is the responsibility of the ingress layer.
+    """
+    email = req.email.lower().strip()
+    user = await db.users.find_one({"email": email}, {"role": 1, "full_name": 1, "onboarding_completed": 1})
+    if not user:
+        return {"exists": False}
+    return {
+        "exists": True,
+        "role": user.get("role"),
+        "full_name": user.get("full_name"),
+        "onboarding_completed": user.get("onboarding_completed", False),
+    }
+
+
+@api_router.post("/auth/forgot-password")
+@limiter.limit("5/minute")
+async def forgot_password(request: Request, req: ForgotPasswordRequest):
+    email = req.email.lower().strip()
+    user = await db.users.find_one({"email": email})
+    if not user:
+        # Return success even if user doesn't exist to prevent email enumeration
+        return {"success": True}
+        
+    import random
+    import hashlib
+    from datetime import datetime, timedelta
+    from core.email import send_email
+    
+    otp = str(random.randint(100000, 999999))
+    otp_hash = hashlib.sha256(otp.encode()).hexdigest()
+    expires = datetime.utcnow() + timedelta(minutes=15)
+    
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"reset_otp_hash": otp_hash, "reset_otp_expires": expires}, "$unset": {"reset_otp": ""}}
+    )
+    
+    body = f"<p>Your password reset code is: <strong>{otp}</strong></p><p>This code will expire in 15 minutes.</p>"
+    
+    # We await the email send but don't strictly fail the request if the email config is missing, 
+    # though practically the user won't get the email.
+    import asyncio
+    asyncio.create_task(send_email(email, "Password Reset Code", body))
+    
+    return {"success": True}
+
+
+@api_router.post("/auth/verify-reset-otp")
+@limiter.limit("10/minute")
+async def verify_reset_otp(request: Request, req: VerifyResetOtpRequest):
+    email = req.email.lower().strip()
+    user = await db.users.find_one({"email": email})
+    if not user:
+        raise HTTPException(400, "Invalid email or OTP")
+        
+    import hashlib
+    from datetime import datetime
+    otp_hash = user.get("reset_otp_hash")
+    expires = user.get("reset_otp_expires")
+    
+    if not otp_hash or not expires or datetime.utcnow() > expires:
+        raise HTTPException(400, "OTP expired or invalid")
+        
+    req_hash = hashlib.sha256(req.otp.strip().encode()).hexdigest()
+    if otp_hash != req_hash:
+        raise HTTPException(400, "Invalid OTP")
+        
+    return {"success": True}
+
+
+@api_router.post("/auth/reset-password")
+@limiter.limit("5/minute")
+async def reset_password(request: Request, req: ResetPasswordRequest):
+    email = req.email.lower().strip()
+    user = await db.users.find_one({"email": email})
+    if not user:
+        raise HTTPException(400, "Invalid email or OTP")
+        
+    import hashlib
+    from datetime import datetime
+    otp_hash = user.get("reset_otp_hash")
+    expires = user.get("reset_otp_expires")
+    
+    if not otp_hash or not expires or datetime.utcnow() > expires:
+        raise HTTPException(400, "OTP expired or invalid")
+        
+    req_hash = hashlib.sha256(req.otp.strip().encode()).hexdigest()
+    if otp_hash != req_hash:
+        raise HTTPException(400, "OTP expired or invalid")
+        
+    from core.security import hash_password
+    new_hashed = hash_password(req.new_password)
+    
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"hashed_password": new_hashed}, "$unset": {"reset_otp_hash": "", "reset_otp_expires": ""}}
+    )
+    
+    return {"success": True}
+
+
+@api_router.post("/auth/login")
+@limiter.limit("20/minute")
+async def login(request: Request, req: LoginRequest):
+    """Email + password login. Returns JWT pair, OR a 2FA challenge if user has 2FA enabled."""
+    import time as _time
+    _t0 = _time.perf_counter()
+    print(f"\n[LOGIN TRACE] ---- New login attempt for: {req.email} ----", flush=True)
+    print(f"[LOGIN TRACE] REQUEST_RECEIVED | 1. Request received at t=0.000s", flush=True)
+
+    email = req.email.lower().strip()
+
+    # ── Stage 2: DB lookup ──
+    _t_db0 = _time.perf_counter()
+    user = await db.users.find_one({"email": email}, {"resume_documents": 0})
+    _t_db1 = _time.perf_counter()
+    print(f"[LOGIN TRACE] DB_LOOKUP_COMPLETE | 2. DB user lookup done  | duration={(_t_db1-_t_db0)*1000:.1f}ms | found={user is not None}", flush=True)
+
+    if not user:
+        print(f"[LOGIN TRACE] !! User not found — aborting at t={(_time.perf_counter()-_t0)*1000:.1f}ms", flush=True)
+        raise HTTPException(401, "Invalid email or password")
+
+    # ── Stage 3: Password verification (offloaded to thread) ──
+    _t_pw0 = _time.perf_counter()
+    loop = asyncio.get_running_loop()
+    is_valid = await loop.run_in_executor(None, verify_password, req.password, user["password_hash"])
+    _t_pw1 = _time.perf_counter()
+    print(f"[LOGIN TRACE] PASSWORD_VERIFIED | 3. Password verification | duration={(_t_pw1-_t_pw0)*1000:.1f}ms | valid={is_valid}", flush=True)
+
+    if not is_valid:
+        print(f"[LOGIN TRACE] !! Wrong password — aborting at t={(_time.perf_counter()-_t0)*1000:.1f}ms", flush=True)
+        raise HTTPException(401, "Invalid email or password")
+
+    # ── 2FA branch ──
+    if user.get("two_fa_enabled"):
+        _t_2fa0 = _time.perf_counter()
+        challenge_id = secrets.token_urlsafe(24)
+        await db.two_fa_challenges.insert_one({
+            "_id": challenge_id,
+            "user_id": str(user["_id"]),
+            "expires_at": datetime.now(timezone.utc) + timedelta(minutes=10),
+            "consumed": False,
+            "created_at": datetime.now(timezone.utc),
+        })
+        print(f"[LOGIN TRACE] 2FA challenge issued  | duration={(_time.perf_counter()-_t_2fa0)*1000:.1f}ms", flush=True)
+        return TwoFAChallengeResponse(
+            requires_2fa=True,
+            challenge_id=challenge_id,
+            methods=["totp", "backup"],
+            user_email=email,
+        )
+
+    # ── Stage 4: Token generation ──
+    _t_tok0 = _time.perf_counter()
+    access_token  = create_access_token(str(user["_id"]), email, user["role"])
+    refresh_token = create_refresh_token(str(user["_id"]))
+    _t_tok1 = _time.perf_counter()
+    print(f"[LOGIN TRACE] JWT_CREATED | 4. Token generation      | duration={(_t_tok1-_t_tok0)*1000:.1f}ms", flush=True)
+
+    try:
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"last_login": datetime.utcnow()}}
+        )
+    except Exception as e:
+        print(f"[LOGIN] Failed to update last_login: {e}", flush=True)
+
+    # ── Stage 5: Serialize user profile ──
+    _t_ser0 = _time.perf_counter()
+    user_payload = UserResponse(**serialize_user(user))
+    _t_ser1 = _time.perf_counter()
+    print(f"[LOGIN TRACE] 5. Serialize user profile | duration={(_t_ser1-_t_ser0)*1000:.1f}ms", flush=True)
+
+    _t_total = (_time.perf_counter() - _t0) * 1000
+    print(f"[LOGIN TRACE] RESPONSE_SENT | 6. Returning response     | TOTAL login duration={_t_total:.1f}ms", flush=True)
+    if _t_total > 2000:
+        print(f"[LOGIN TRACE] [WARNING] SLOW LOGIN DETECTED: took {_t_total:.1f}ms (>2000ms threshold)", flush=True)
+    print(f"[LOGIN TRACE] -------------------------------------------\n", flush=True)
+
+    return AuthResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=user_payload,
+    )
+
+
+@api_router.get("/auth/me", response_model=UserResponse)
+async def get_me(user: dict = Depends(get_current_user)):
+    """Returns the currently authenticated user."""
+    import time
+    _t0 = time.perf_counter()
+    print(f'[ME TRACE] REQUEST_RECEIVED | t=0.0s')
+    try:
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"last_login": datetime.utcnow()}}
+        )
+    except Exception as e:
+        print(f"[ME TRACE] Failed to update last_login: {e}", flush=True)
+    resp = UserResponse(**serialize_user(user))
+    print(f'[ME TRACE] RESPONSE_SENT | TOTAL me duration={(time.perf_counter()-_t0)*1000:.1f}ms')
+    return resp
+
+
+# ----------------------------------------------------------------------------
+# Mentor Onboarding — Suggestions (organizations + job titles)
+# ----------------------------------------------------------------------------
+# A curated, India-first list tailored for the core mentor archetypes
+# (IT/Software · Career Coaching · Business / MBA · Academia). The frontend
+# calls this on mount to populate its autocomplete & dropdown. The lists are
+# intentionally broad — user can always type a custom value if not listed.
+_MENTOR_ORGANIZATIONS = [
+    # Big tech / product
+    "Google", "Microsoft", "Meta", "Amazon", "Apple", "Netflix",
+    "Adobe", "Salesforce", "Oracle", "IBM", "SAP", "Intel", "NVIDIA",
+    "LinkedIn", "Uber", "Airbnb", "Stripe", "Atlassian", "Shopify",
+    "Samsung Research", "Qualcomm", "Cisco", "VMware", "ServiceNow",
+    # India Tech
+    "Flipkart", "Swiggy", "Zomato", "Paytm", "PhonePe", "Razorpay",
+    "Cred", "Meesho", "Zerodha", "Groww", "Nykaa", "Ola", "Myntra",
+    "Byjus", "Unacademy", "Vedantu", "upGrad",
+    "Freshworks", "Zoho", "Postman", "Hackerrank", "BrowserStack",
+    # Services & consulting
+    "TCS", "Infosys", "Wipro", "HCL Tech", "Tech Mahindra",
+    "Cognizant", "Accenture", "Capgemini", "Deloitte", "EY",
+    "PwC", "KPMG", "McKinsey & Company", "BCG", "Bain & Company",
+    "JP Morgan Chase", "Goldman Sachs", "Morgan Stanley", "Barclays",
+    # Enterprise / hardware / core
+    "Reliance Jio", "Tata Motors", "Mahindra", "Bajaj Auto", "L&T",
+    "Bharti Airtel", "ITC", "HDFC Bank", "ICICI Bank", "SBI",
+    "Maruti Suzuki", "Hero MotoCorp", "Mahindra & Mahindra",
+    # AI / emerging
+    "OpenAI", "Anthropic", "Hugging Face", "Cohere",
+    # Indian R&D / Public-sector
+    "DRDO", "ISRO", "BARC", "BEL", "HAL",
+    # Academia — top IITs / NITs / IISc
+    "IIT Bombay", "IIT Delhi", "IIT Madras", "IIT Kanpur",
+    "IIT Kharagpur", "IIT Roorkee", "IIT Guwahati", "IIT Hyderabad",
+    "IISc Bangalore", "IIIT Bangalore", "IIIT Hyderabad",
+    "NIT Trichy", "NIT Warangal", "NIT Surathkal",
+    "BITS Pilani", "VIT Vellore", "Manipal Institute of Technology",
+    "ISB Hyderabad", "IIM Ahmedabad", "IIM Bangalore", "IIM Calcutta",
+    "XLRI Jamshedpur",
+    # Fallback
+    "Independent / Freelancer", "Startup (Stealth)",
+]
+
+_MENTOR_JOB_TITLES = [
+    # IT / Software Engineering
+    "Software Engineer",
+    "Senior Software Engineer",
+    "Staff Software Engineer",
+    "Principal Engineer",
+    "Engineering Manager",
+    "Senior Engineering Manager",
+    "Director of Engineering",
+    "VP of Engineering",
+    "CTO",
+    "Tech Lead",
+    "Architect / Solution Architect",
+    "DevOps / SRE Engineer",
+    "Data Engineer",
+    "Machine Learning Engineer",
+    "Data Scientist",
+    "AI / Research Scientist",
+    "Product Manager",
+    "Senior Product Manager",
+    "Director of Product",
+    "UX / Product Designer",
+    "QA / Test Engineer",
+    "Mobile Engineer (iOS / Android)",
+    "Front-end Engineer",
+    "Full-stack Engineer",
+    "Cybersecurity Engineer",
+    # HR / Recruiting
+    "Technical Recruiter",
+    "HR Manager",
+    "Talent Acquisition Lead",
+    "People Partner",
+    # Career Coaching / Higher-Ed
+    "Career Coach",
+    "Career Counsellor",
+    "Study Abroad Consultant",
+    "Admissions Consultant",
+    "Professor / Assistant Professor",
+    "Associate Professor",
+    "Dean",
+    "Head of Department",
+    # Business / MBA / Advisory
+    "Founder",
+    "Co-founder",
+    "CEO",
+    "COO",
+    "CFO",
+    "CMO",
+    "Business Head",
+    "VP of Sales",
+    "VP of Marketing",
+    "Management Consultant",
+    "Industry Advisor",
+    "Investor / Venture Partner",
+    # Fallback
+    "Other",
+]
+
+
+@api_router.get("/mentors/suggestions")
+async def mentor_suggestions():
+    """Return organization + job title suggestion lists used by the mentor
+    onboarding form (role-details). No auth required — these are static
+    reference lists that help users complete the form quickly."""
+    return {
+        "organizations": _MENTOR_ORGANIZATIONS,
+        "job_titles": _MENTOR_JOB_TITLES,
+    }
+
+
+# ----------------------------------------------------------------------------
+# Course / Stream Catalog — Indian Engineering + Popular Global Disciplines
+# ----------------------------------------------------------------------------
+_COURSES_CATALOG = [
+    "Computer Science Engineering (CSE)",
+    "Information Technology (IT)",
+    "Electronics & Communication (ECE)",
+    "Electrical & Electronics (EEE)",
+    "Electrical Engineering",
+    "Mechanical Engineering",
+    "Civil Engineering",
+    "Chemical Engineering",
+    "Aerospace Engineering",
+    "Automobile Engineering",
+    "Biomedical Engineering",
+    "Biotechnology",
+    "Metallurgical Engineering",
+    "Mining Engineering",
+    "Marine Engineering",
+    "Production / Industrial Engineering",
+    "Agricultural Engineering",
+    "Textile Engineering",
+    "Artificial Intelligence & Machine Learning",
+    "Data Science",
+    "Cyber Security",
+    "Robotics & Automation",
+    "Electronics & Instrumentation",
+    "Mechatronics",
+    "Nanotechnology",
+    "Bioinformatics",
+    "Architecture (B.Arch)",
+    "Pharmacy (B.Pharm)",
+    "Design (B.Des)",
+    "Commerce / BBA",
+    "Mathematics",
+    "Physics",
+    "Chemistry",
+    "Economics",
+    "Management (MBA)",
+    "Law (LLB)",
+    "Medicine (MBBS)",
+    "Other",
+]
+
+
+@api_router.get("/courses")
+async def courses():
+    """Return the curated course/stream catalog used by Student onboarding.
+    Engineering-heavy per SA's India-first rollout + a fallback 'Other'."""
+    return {"courses": _COURSES_CATALOG}
+
+
+
+
+# ----------------------------------------------------------------------------
+# Badge endpoints (multi-role tiered + universal)
+# ----------------------------------------------------------------------------
+@api_router.get("/users/me/badges")
+async def my_badges(user: dict = Depends(get_current_user)):
+    """Compute & return the current user's badges + theme metadata."""
+    badges = await compute_badges(db, user)
+    try:
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"badges": badges, "badges_updated_at": datetime.utcnow()}},
+        )
+    except Exception:
+        pass
+    return {"badges": badges, "theme": get_tier_theme()}
+
+
+@api_router.get("/users/{user_id}/badges")
+async def user_badges(user_id: str):
+    """Public — fetch any user's badges (used on mentor cards / profile pages)."""
+    try:
+        target = await db.users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        target = None
+    if not target:
+        raise HTTPException(404, "User not found")
+    cached = target.get("badges")
+    if cached and target.get("badges_updated_at"):
+        return {"badges": cached, "theme": get_tier_theme(), "cached": True}
+    badges = await compute_badges(db, target)
+    try:
+        await db.users.update_one(
+            {"_id": target["_id"]},
+            {"$set": {"badges": badges, "badges_updated_at": datetime.utcnow()}},
+        )
+    except Exception:
+        pass
+    return {"badges": badges, "theme": get_tier_theme()}
+
+
+@api_router.get("/users/{user_id}/public-profile")
+async def get_public_profile(user_id: str, viewer: dict = Depends(get_current_user)):
+    """Sanitized public profile for the Social View page.
+    Returns role-tinted fields with viewer-aware visibility.
+    """
+    # Simple no-auth fetch — visibility is enforced inside via privacy settings.
+    try:
+        target = await db.users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        target = None
+    if not target:
+        raise HTTPException(404, "User not found")
+
+    # Check connection status
+    viewer_id = str(viewer.get("_id") or viewer.get("id"))
+    connection_state = "none"
+    conn = await db.connections.find_one({
+        "$or": [{"a": viewer_id, "b": user_id}, {"a": user_id, "b": viewer_id}]
+    })
+    if conn:
+        status = conn.get("status")
+        if status == "accepted":
+            connection_state = "connected"
+        elif status == "pending":
+            if conn.get("a") == viewer_id:
+                connection_state = "pending"
+            else:
+                connection_state = "incoming"
+
+    visibility = target.get("profile_visibility") or "public"
+    if visibility == "private":
+        raise HTTPException(403, "This profile is private")
+
+    prefs = (target.get("preferences") or {}).get("privacy") or {}
+    show_email = bool(prefs.get("show_email"))
+    show_phone = bool(prefs.get("show_phone"))
+
+    # Compute badges (cached path)
+    badges = target.get("badges") or []
+    if not badges:
+        try:
+            badges = await compute_badges(db, target)
+        except Exception:
+            badges = []
+
+    si = target.get("school_info") or {}
+    role = target.get("role") or "student"
+    is_mentor = role == "mentor"
+
+    # Mentor session stats (mocked for now if not present)
+    session_stats = target.get("session_stats") or ({
+        "total": int(target.get("sessions_completed") or 0),
+        "avg_rating": target.get("rating"),
+        "active_mentees": int(target.get("active_mentees") or 0),
+    } if is_mentor else None)
+
+    # Mock LinkedIn / GitHub / Experience until real integrations land
+    out = {
+        "id": str(target.get("_id")),
+        "sa_id": target.get("sa_id"),
+        "role": role,
+        "full_name": target.get("full_name"),
+        "first_name": target.get("first_name"),
+        "last_name": target.get("last_name"),
+        "headline": target.get("headline"),
+        "bio": target.get("bio"),
+        "photo_data": target.get("photo_data") or target.get("face_image_base64"),
+        "is_online": target.get("is_online", True),
+        "is_verified": target.get("is_verified", False),
+        # Identity meta
+        "institution": target.get("institution") or si.get("institution_name"),
+        "branch": target.get("branch"),
+        "graduation_year": target.get("graduation_year") or target.get("year"),
+        "cgpa": target.get("cgpa"),
+        "city": target.get("city") or target.get("location"),
+        "state": target.get("state"),
+        "career_path": target.get("career_path"),
+        # Career
+        "job_title": target.get("job_title"),
+        "organization": target.get("organization"),
+        # Skills
+        "skills": target.get("skills") or [],
+        "interests": target.get("interests") or si.get("interests") or [],
+        "primary_skill": target.get("primary_skill"),
+        # Social — privacy-aware
+        "linkedin_url": target.get("linkedin_url"),
+        "github_url": target.get("github_url"),
+        "portfolio_url": target.get("portfolio_url"),
+        "email": target.get("email") if show_email else None,
+        "phone": target.get("phone") if show_phone else None,
+        "show_email": show_email,
+        "show_phone": show_phone,
+        # Badges
+        "badges": badges,
+        "badges_total": len(badges),
+        # Mentor-only
+        "is_mentor": is_mentor,
+        "rating": target.get("rating"),
+        "sessions": target.get("sessions"),
+        "expected_rate_inr": target.get("expected_rate_inr"),
+        "session_stats": session_stats,
+        # Experience / education / projects (use whatever's stored, otherwise empty)
+        "experience": target.get("experience") or [],
+        "education": target.get("education") or ([{
+            "institution": target.get("institution") or si.get("institution_name") or "—",
+            "degree": target.get("branch") or "—",
+            "year": target.get("graduation_year") or target.get("year") or "—",
+        }] if (target.get("institution") or si.get("institution_name")) else []),
+        "projects": target.get("projects") or [],
+        # Mock GitHub stats (UI shows it when github_url present)
+        "github_stats": target.get("github_stats") or ({
+            "languages": [
+                {"name": "Python", "pct": 38, "color": "#3776ab"},
+                {"name": "TypeScript", "pct": 26, "color": "#3178c6"},
+                {"name": "JavaScript", "pct": 18, "color": "#f1e05a"},
+                {"name": "Go", "pct": 10, "color": "#00ADD8"},
+                {"name": "Other", "pct": 8, "color": "#94a3b8"},
+            ],
+            "contributions_last_year": 642,
+            "longest_streak": 21,
+            "current_streak": 4,
+            "pinned_repos": [
+                {"name": "career-coach", "desc": "AI-powered career planner.", "stars": 28, "language": "TypeScript", "language_color": "#3178c6"},
+                {"name": "mentor-match", "desc": "Recsys for student-mentor pairing.", "stars": 14, "language": "Python", "language_color": "#3776ab"},
+                {"name": "study-buddy-cli", "desc": "Pomodoro CLI for study sprints.", "stars": 9, "language": "Go", "language_color": "#00ADD8"},
+                {"name": "portfolio-v2", "desc": "Personal portfolio website.", "stars": 6, "language": "TypeScript", "language_color": "#3178c6"},
+            ],
+        } if target.get("github_url") else None),
+        # Privacy meta
+        "profile_visibility": visibility,
+        "connection_state": connection_state,
+    }
+    return out
+
+
+@api_router.post("/users/me/badges/refresh")
+async def refresh_my_badges(user: dict = Depends(get_current_user)):
+    """Force-recompute & persist (called after key events from the client)."""
+    badges = await compute_badges(db, user)
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"badges": badges, "badges_updated_at": datetime.utcnow()}},
+    )
+    return {"badges": badges, "theme": get_tier_theme()}
+
+
+@api_router.post("/admin/badges/recompute-all")
+async def admin_recompute_all_badges(user: dict = Depends(get_current_user)):
+    """Admin-only — nightly batch recompute (manually triggerable)."""
+    if user.get("role") not in ("admin", "super_admin"):
+        raise HTTPException(403, "Admin only")
+    count = 0
+    async for u in db.users.find({}, {"_id": 1, "role": 1, "email_verified": 1, "two_fa_enabled": 1}):
+        full = await db.users.find_one({"_id": u["_id"]})
+        if full:
+            badges = await compute_badges(db, full)
+            await db.users.update_one(
+                {"_id": full["_id"]},
+                {"$set": {"badges": badges, "badges_updated_at": datetime.utcnow()}},
+            )
+            count += 1
+    return {"processed": count}
+
+
+# ─── Certificates CRUD ──────────────────────────────────────────────────
+@api_router.get("/users/me/certificates")
+async def my_certificates(user: dict = Depends(get_current_user)):
+    """List the current user's certificates."""
+    return {"certificates": user.get("certificates") or []}
+
+
+@api_router.post("/users/me/certificates")
+async def add_my_certificate(payload: dict, user: dict = Depends(get_current_user)):
+    """Add a certificate. Required: name, issuer, year."""
+    name = (payload.get("name") or "").strip()
+    issuer = (payload.get("issuer") or "").strip()
+    year_raw = payload.get("year")
+    if not name or not issuer:
+        raise HTTPException(400, "name and issuer are required")
+    try:
+        year = int(year_raw) if year_raw else None
+    except Exception:
+        raise HTTPException(400, "year must be a number")
+    cert = {
+        "id": uuid.uuid4().hex[:12],
+        "name": name,
+        "issuer": issuer,
+        "year": year,
+        "credential_url": (payload.get("credential_url") or "").strip() or None,
+        "added_at": datetime.utcnow().isoformat(),
+    }
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$push": {"certificates": cert}, "$set": {"updated_at": datetime.utcnow()}},
+    )
+    # Recompute badges (certificates count badge will refresh)
+    fresh = await db.users.find_one({"_id": user["_id"]})
+    if fresh:
+        try:
+            badges = await compute_badges(db, fresh)
+            await db.users.update_one(
+                {"_id": user["_id"]},
+                {"$set": {"badges": badges, "badges_updated_at": datetime.utcnow()}},
+            )
+        except Exception:
+            pass
+    return {"ok": True, "certificate": cert}
+
+
+@api_router.delete("/users/me/certificates/{cert_id}")
+async def delete_my_certificate(cert_id: str, user: dict = Depends(get_current_user)):
+    """Remove a certificate by id."""
+    res = await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$pull": {"certificates": {"id": cert_id}}},
+    )
+    if res.modified_count == 0:
+        raise HTTPException(404, "Certificate not found")
+    # Recompute badges
+    fresh = await db.users.find_one({"_id": user["_id"]})
+    if fresh:
+        try:
+            badges = await compute_badges(db, fresh)
+            await db.users.update_one(
+                {"_id": user["_id"]},
+                {"$set": {"badges": badges, "badges_updated_at": datetime.utcnow()}},
+            )
+        except Exception:
+            pass
+    return {"ok": True, "deleted": cert_id}
+
+
+
+# ─── Digital ID Card ────────────────────────────────────────────────────
+def _generate_sa_id() -> str:
+    """Generate a fresh SA-{YY}-{6digit} identifier."""
+    yy = datetime.utcnow().year % 100
+    n = random.randint(100000, 999999)
+    return f"SA-{yy:02d}-{n}"
+
+
+def _student_status_label(user: dict) -> dict:
+    """Compute display status for any user role. Returns label + color."""
+    role = (user.get("role") or "").lower()
+    if role == "alumni":
+        return {"label": "Alumni", "color": "#A78BFA"}
+    if role == "mentor":
+        return {"label": "Mentor", "color": "#F59E0B"}
+    if role == "college":
+        return {"label": "Institution", "color": "#22D3EE"}
+    if role == "admin":
+        return {"label": "Super Admin" if user.get("is_super_admin") else "Admin", "color": "#10B981"}
+    si = user.get("school_info") or {}
+    cls = (si.get("class_or_year") or si.get("current_course") or "").lower()
+    gy = si.get("graduation_year")
+    now = datetime.utcnow().year
+    try:
+        gy = int(gy) if gy else None
+    except Exception:
+        gy = None
+    if gy:
+        years_left = gy - now
+        if years_left <= 0:
+            return {"label": "Graduating", "color": "#10B981"}
+        if years_left == 1:
+            return {"label": "Final Year", "color": "#10B981"}
+        if years_left == 2:
+            return {"label": "Pre-Final Year", "color": "#22D3EE"}
+        return {"label": "Junior", "color": "#A78BFA"}
+    if "12" in cls or "plus two" in cls:
+        return {"label": "Class 12 · Senior", "color": "#10B981"}
+    if "11" in cls or "plus one" in cls:
+        return {"label": "Class 11", "color": "#22D3EE"}
+    if "10" in cls:
+        return {"label": "Class 10", "color": "#A78BFA"}
+    return {"label": "Student", "color": "#A78BFA"}
+
+
+@api_router.get("/users/me/id-card")
+async def my_id_card(user: dict = Depends(get_current_user)):
+    """
+    Return the user's Digital ID Card payload.
+
+    Lazy-assigns sa_id on first call. Returns:
+      sa_id, full_name, role, status (label+color), college, batch,
+      branch, photo_data, verify_url, qr_payload, issued_at
+    """
+    sa_id = user.get("sa_id")
+    if not sa_id:
+        # Lazy-assign — retry up to 5 times to avoid duplicate IDs.
+        for _ in range(5):
+            sa_id = _generate_sa_id()
+            existing = await db.users.find_one({"sa_id": sa_id})
+            if not existing:
+                break
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"sa_id": sa_id, "sa_id_issued_at": datetime.utcnow()}},
+        )
+        user["sa_id"] = sa_id
+
+    si = user.get("school_info") or {}
+    ai = user.get("alumni_info") or {}
+    cp = user.get("college_info") or user.get("college_profile") or {}
+    mi = user.get("mentor_info") or user.get("mentor_profile") or {}
+    role = (user.get("role") or "").lower()
+    status = _student_status_label(user)
+
+    institution = (
+        user.get("institution")
+        or si.get("institution_name")
+        or ai.get("institution_name")
+        or cp.get("institution_name")
+        or (user.get("full_name") if role == "college" else None)
+        or "—"
+    )
+    branch = si.get("branch_or_stream") or ai.get("branch_or_stream") or si.get("current_course") or ""
+    batch = si.get("graduation_year") or ai.get("graduation_year")
+    if batch:
+        try:
+            batch = f"Class of {int(batch)}"
+        except Exception:
+            batch = str(batch)
+
+    company = mi.get("company") or mi.get("organization") or user.get("company") or ""
+    position = mi.get("position") or mi.get("job_title") or user.get("position") or ""
+    years_exp = mi.get("years_experience") or mi.get("years_of_experience") or user.get("years_experience") or ""
+    if years_exp:
+        try:
+            years_exp = f"{int(years_exp)} Years"
+        except Exception:
+            years_exp = str(years_exp)
+
+    raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
+    frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
+    public_verify_url = f"{frontend_url}/verify/{sa_id}"
+
+    return {
+        "sa_id": sa_id,
+        "full_name": user.get("full_name") or user.get("email"),
+        "email": user.get("email"),
+        "role": role,
+        "status": status,
+        "institution": institution,
+        "branch": branch,
+        "batch": batch,
+        "city": si.get("city") or cp.get("city"),
+        "state": si.get("state") or cp.get("state"),
+        "photo_data": user.get("face_image_base64"),
+        "linkedin_url": user.get("linkedin_url"),
+        "issued_at": (user.get("sa_id_issued_at") or datetime.utcnow()).isoformat()
+            if isinstance(user.get("sa_id_issued_at"), datetime) else str(user.get("sa_id_issued_at") or datetime.utcnow().isoformat()),
+        "verify_url": public_verify_url,
+        "qr_payload": public_verify_url,
+        "company": company,
+        "position": position,
+        "years_experience": years_exp,
+    }
+
+
+@api_router.get("/id-cards/{identifier}")
+async def verify_id_card(identifier: str):
+    """
+    Universal public ID verification — works for ALL user roles.
+    Accepts sa_id (students, alumni, mentors, colleges) or admin_id (admins).
+    Returns role-specific fields dynamically. Nothing is hardcoded — all from DB.
+    """
+    u = await db.users.find_one(
+        {"$or": [{"sa_id": identifier}, {"admin_id": identifier}]},
+        {"password_hash": 0, "phone": 0, "face_image_base64": 0, "two_fa_secret": 0},
+    )
+    if not u:
+        raise HTTPException(404, "Invalid ID")
+
+    role = (u.get("role") or "").lower().strip()
+    is_super = u.get("is_super_admin", False)
+    ROLE_LABELS = {
+        "admin": "Super Admin" if is_super else "Admin",
+        "student": "Student",
+        "alumni": "Alumni",
+        "mentor": "Mentor",
+        "college": "College",
+        "college_admin": "College Admin",
+    }
+    role_label = ROLE_LABELS.get(role) or " ".join(w.capitalize() for w in role.replace("_", " ").split()) or "Member"
+    base = {
+        "valid": True,
+        "id": u.get("sa_id") or u.get("admin_id") or identifier,
+        "full_name": u.get("full_name") or u.get("name") or "—",
+        "email": u.get("email") or "—",
+        "role": role,
+        "role_label": role_label,
+        "org": u.get("org") or "Student Alumni",
+        "status": _student_status_label(u),
+        "photo": u.get("photo") or u.get("avatar_url") or "",
+        "issued_at": (u.get("sa_id_issued_at") or u.get("created_at") or "").isoformat()
+            if isinstance(u.get("sa_id_issued_at") or u.get("created_at"), datetime) else "",
+    }
+
+    # ─── Role-specific fields (all from DB, no hardcoded fallbacks) ───
+    si = u.get("school_info") or {}
+    ai = u.get("alumni_info") or {}
+    mi = u.get("mentor_info") or u.get("mentor_profile") or {}
+    ci = u.get("college_info") or u.get("college_profile") or {}
+    adm = u.get("admin_profile") or {}
+
+    if role == "student":
+        base["institution"] = si.get("institution_name") or ""
+        base["batch"] = si.get("graduation_year") or ""
+        base["branch"] = si.get("branch_or_stream") or si.get("current_course") or ""
+        base["city"] = si.get("city") or ""
+        base["state"] = si.get("state") or ""
+        base["class_or_year"] = si.get("class_or_year") or ""
+
+    elif role == "alumni":
+        base["institution"] = ai.get("institution_name") or si.get("institution_name") or ""
+        base["graduation_year"] = ai.get("graduation_year") or si.get("graduation_year") or ""
+        base["company"] = ai.get("company") or u.get("company") or ""
+        base["position"] = ai.get("position") or u.get("position") or ""
+        base["branch"] = ai.get("branch_or_stream") or si.get("branch_or_stream") or ""
+        base["city"] = ai.get("city") or si.get("city") or ""
+        base["state"] = ai.get("state") or si.get("state") or ""
+
+    elif role == "mentor":
+        base["expertise"] = mi.get("expertise") or u.get("skills") or []
+        base["company"] = mi.get("company") or mi.get("organization") or u.get("company") or ""
+        base["position"] = mi.get("position") or mi.get("job_title") or u.get("position") or ""
+        base["years_experience"] = mi.get("years_experience") or mi.get("years_of_experience") or ""
+        base["institution"] = ai.get("institution_name") or si.get("institution_name") or ""
+
+    elif role == "college":
+        base["institution"] = ci.get("institution_name") or u.get("full_name") or ""
+        base["city"] = ci.get("city") or ""
+        base["state"] = ci.get("state") or ""
+        base["departments"] = ci.get("departments") or []
+        base["students_count"] = ci.get("students_count") or ""
+        base["affiliation"] = ci.get("affiliation") or ""
+
+    elif role in ("admin", "super_admin"):
+        colleges_count = await db.colleges.count_documents({}) or 0
+        base["title"] = u.get("title") or ""
+        base["access_label"] = u.get("access_label") or "Full Access"
+        base["colleges_count"] = colleges_count
+        base["admin_id"] = u.get("admin_id") or ""
+        base["permissions"] = u.get("permissions") or []
+
+    # Remove empty fields for cleaner response
+    cleaned = {k: v for k, v in base.items() if v is not None and v != "" and v != [] and v != {}}
+    return cleaned
+
+
+
+
+
+@api_router.post("/auth/refresh")
+@limiter.limit("30/minute")
+async def refresh_token(request: Request, payload: dict):
+    """Exchanges a valid refresh token for a fresh access token."""
+    token = payload.get("refresh_token")
+    if not token:
+        raise HTTPException(400, "Missing refresh_token")
+    try:
+        data = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        if data.get("type") != "refresh":
+            raise HTTPException(401, "Invalid token type")
+        user = await db.users.find_one({"_id": ObjectId(data["sub"])})
+        if not user:
+            raise HTTPException(401, "User not found")
+        return {"access_token": create_access_token(str(user["_id"]), user["email"], user["role"])}
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(401, "Refresh token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(401, "Invalid refresh token")
+
+
+# ----------------------------------------------------------------------------
+# 2FA (Two-Factor Authentication) Endpoints — TOTP-based (RFC 6238)
+# ----------------------------------------------------------------------------
+# Flow:
+#   1. POST /auth/2fa/setup    → returns secret + QR for authenticator app
+#   2. POST /auth/2fa/enable   → user verifies first code → 2FA flipped on + backup codes
+#   3. POST /auth/login        → if 2fa_enabled, returns challenge instead of tokens
+#   4. POST /auth/2fa/verify   → user submits code → tokens issued
+#   5. POST /auth/2fa/disable  → password + code → 2FA disabled
+# ----------------------------------------------------------------------------
+TOTP_ISSUER = "Student Alumni"
+
+
+def _generate_backup_codes(n: int = 10) -> List[str]:
+    """Returns N human-readable backup codes (XXXX-XXXX format)."""
+    out = []
+    for _ in range(n):
+        a = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+        b = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+        out.append(f"{a}-{b}")
+    return out
+
+
+def _generate_totp_qr(uri: str) -> str:
+    """Generate base64-encoded PNG QR for a TOTP otpauth:// URI."""
+    qr = qrcode.QRCode(version=1, box_size=10, border=2,
+                       error_correction=qrcode.constants.ERROR_CORRECT_M)
+    qr.add_data(uri)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="#7C3AED", back_color="#FFFFFF")
+    buf = io.BytesIO()
+    getattr(img, "save")(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode("utf-8")
+
+
+@api_router.get("/downloads/sa_flows.zip")
+async def download_sa_flows_zip():
+    """Serves the bundled flow-screenshots ZIP for the current user session."""
+    from fastapi.responses import FileResponse
+    p = "/app/backend/static_downloads/sa_flows.zip"
+    if not os.path.exists(p):
+        raise HTTPException(404, "Archive not found")
+    return FileResponse(p, media_type="application/zip", filename="sa_flows.zip")
+
+
+@api_router.get("/downloads/expo_qr.png")
+async def download_expo_qr():
+    """Serves the QR code that Expo Go can scan to open the live app."""
+    from fastapi.responses import FileResponse
+    p = "/app/backend/static_downloads/expo_qr.png"
+    if not os.path.exists(p):
+        raise HTTPException(404, "QR not found")
+    return FileResponse(p, media_type="image/png")
+
+
+# ----------------------------------------------------------------------------
+# Institution Autocomplete (OpenStreetMap Nominatim) + Logo (Clearbit/Google)
+# ----------------------------------------------------------------------------
+import httpx
+from urllib.parse import urlparse
+
+_NOMINATIM_HEADERS = {"User-Agent": "StudentAlumni/1.0 (contact@studentalumni.app)"}
+
+# In-memory cache (q+type → results) to avoid repeated Nominatim hits.
+# TTL ~ 30 min. Bounded size 256 entries.
+_INST_CACHE: dict = {}
+_INST_CACHE_TTL = 60 * 30
+_INST_CACHE_MAX = 256
+
+
+def _cache_get(key: str):
+    entry = _INST_CACHE.get(key)
+    if not entry:
+        return None
+    ts, val = entry
+    if (datetime.utcnow().timestamp() - ts) > _INST_CACHE_TTL:
+        _INST_CACHE.pop(key, None)
+        return None
+    return val
+
+
+def _cache_set(key: str, val):
+    if len(_INST_CACHE) >= _INST_CACHE_MAX:
+        # drop oldest
+        try:
+            oldest = min(_INST_CACHE, key=lambda k: _INST_CACHE[k][0])
+            _INST_CACHE.pop(oldest, None)
+        except ValueError:
+            pass
+    _INST_CACHE[key] = (datetime.utcnow().timestamp(), val)
+
+
+# Educational types we want to KEEP from Nominatim
+_EDU_TYPES = {
+    "school", "college", "university", "kindergarten", "language_school",
+    "music_school", "driving_school", "research_institute",
+    "educational_institution",
+}
+# Types we want to REJECT (roads, hostels, hotels, residences, etc.)
+_REJECT_TYPES = {
+    "hostel", "apartments", "apartment", "house", "residential", "dormitory",
+    "road", "highway", "motorway", "trunk", "primary", "secondary", "tertiary",
+    "service", "footway", "path", "bridge", "junction", "roundabout",
+    "yes", "hotel", "guest_house", "motel", "neighbourhood", "suburb",
+    "village", "town", "city", "construction", "garage", "shop",
+}
+# Educational keywords for name-based fallback detection
+_EDU_KEYWORDS = (
+    "school", "college", "university", "vidyalaya", "vidhyalaya", "vidya",
+    "kendriya", "navodaya", "academy", "institute", "polytechnic", "campus",
+    "convent", "gurukul", "mahavidyalaya", "iit ", "iim ", "nit ", "iiit",
+    "public school", "high school", "junior", "senior secondary",
+    "intermediate", "inter college", "junior college", "pu college",
+    "pre-university", "pre university",
+)
+
+
+def _smart_titlecase(s: str) -> str:
+    """Title-case but preserve common acronyms & joins (DPS, JNTU, IIT, etc.)."""
+    if not s:
+        return s
+    parts = s.split()
+    out = []
+    for p in parts:
+        # Keep mostly-uppercase short words as acronyms (IIT, JNTU, KPHB, NH44 etc.)
+        letters = "".join(c for c in p if c.isalpha())
+        if letters and letters.isupper() and len(letters) <= 5:
+            out.append(p.upper())
+        elif p.lower() in {"of", "the", "and", "for", "in", "at", "on"}:
+            out.append(p.lower())
+        else:
+            out.append(p[:1].upper() + p[1:].lower() if p else p)
+    if out:
+        out[0] = out[0][:1].upper() + out[0][1:]
+    return " ".join(out)
+
+
+def _looks_like_institution(item: dict) -> tuple[bool, str]:
+    """Returns (keep, normalized_name)."""
+    typ = (item.get("type") or "").lower()
+    cat = (item.get("category") or "").lower()
+    full = (item.get("display_name") or "").strip()
+    primary = full.split(",")[0].strip() if full else ""
+    primary_lower = primary.lower()
+
+    # Hard reject obvious non-institutions
+    if typ in _REJECT_TYPES or cat in {"highway"}:
+        return False, primary
+
+    # Reject names that look like landmarks/POIs near an institution but not the institution itself
+    bad_endings = (
+        " gate", " gate 1", " gate 2", " gate 3", " phase 1", " phase 2", " phase 3",
+        " phase 4", " phase 5", " phase 6", " road", " highway", " flyover", " bridge",
+        " junction", " crossing", " circle", " square", " stop", " bus stop",
+        " metro station", " railway station", " station", " hostel", " ladies hostel",
+        " boys hostel", " girls hostel", " apartments", " apartment", " quarters",
+    )
+    if any(primary_lower.endswith(b) for b in bad_endings):
+        return False, primary
+
+    # Reject if first segment is just a road/highway-style label without edu keyword
+    road_markers = ("road", "highway", "flyover", "bridge", "lane", "marg", "street", "nagar")
+    if any(primary_lower.endswith(" " + m) or primary_lower == m for m in road_markers):
+        if not any(k in primary_lower for k in _EDU_KEYWORDS):
+            return False, primary
+
+    # Reject hostels / apartments by name when they don't include an edu keyword
+    junk_markers = ("hostel", "apartment", "apartments", "pg ", "lodge", "guest house")
+    if any(j in primary_lower for j in junk_markers) and not any(
+        k in primary_lower for k in _EDU_KEYWORDS
+    ):
+        return False, primary
+
+    # Accept educational types
+    if typ in _EDU_TYPES:
+        return True, _smart_titlecase(primary)
+    if cat in {"amenity", "building", "office"} and typ in _EDU_TYPES:
+        return True, _smart_titlecase(primary)
+    # Accept by name keyword (covers cases where Nominatim mislabels type)
+    if any(k in primary_lower for k in _EDU_KEYWORDS):
+        return True, _smart_titlecase(primary)
+    return False, primary
+
+
+@api_router.get("/institutions/search")
+async def institution_search(q: str, country: str = "India", type: str = ""):
+    """Autocomplete proxy for institution search via Photon (Komoot, OSM-based).
+    Photon supports OSM tag filtering and is more permissive with rate limits.
+
+    Args:
+        q: free-text query (min 2 chars)
+        country: country bias (default India) — used only for cache key
+        type: optional 'school' | 'college' | 'university' — maps to amenity tags
+    """
+    q = (q or "").strip()
+    if len(q) < 2:
+        return {"results": []}
+
+    type_lower = (type or "").lower().strip()
+
+    # Cache key
+    cache_key = f"{q.lower()}|{type_lower}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return {"results": cached, "cached": True}
+
+    # Build Photon params. amenity:school/college/university filters precisely.
+    # type=school (now semantically "Inter / Inter Board College") → primarily
+    # amenity:college (where Indian Junior / Intermediate / Inter Board / PU
+    # colleges are tagged in OSM). amenity:school kept as a fallback because
+    # many composite K-12+Inter schools are tagged only as schools in OSM.
+    osm_tags: list[str] = []
+    if type_lower == "school":
+        # Inter Board Colleges first, regular schools as backup.
+        osm_tags = ["amenity:college", "amenity:school"]
+    elif type_lower == "college":
+        # Engineering / technical focus: IITs / NITs / IIITs are often tagged
+        # as amenity:university in OSM, so include both.
+        osm_tags = ["amenity:university", "amenity:college"]
+    elif type_lower == "university":
+        osm_tags = ["amenity:university", "amenity:college"]
+    else:
+        osm_tags = ["amenity:school", "amenity:college", "amenity:university"]
+
+    # Photon accepts repeated osm_tag params via query string.
+    params: list[tuple[str, str]] = [
+        ("q", q),
+        ("limit", "20"),
+        ("lang", "en"),
+    ]
+    for tag in osm_tags:
+        params.append(("osm_tag", tag))
+
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            r = await client.get(
+                "https://photon.komoot.io/api/",
+                params=params,
+                headers=_NOMINATIM_HEADERS,
+            )
+            if r.status_code == 429:
+                return {"results": [], "rate_limited": True}
+            r.raise_for_status()
+            payload = r.json() or {}
+            features = payload.get("features", []) or []
+    except Exception as e:
+        return {"results": [], "error": str(e)}
+
+    out: list[dict] = []
+    seen: set[str] = set()
+    # Medical / health-science institutions to EXCLUDE for type=college
+    # (the user wants only technical engineering institutions under College).
+    MEDICAL_KEYWORDS = (
+        "medical", "dental", "pharmacy", "pharma ", "ayurved", "homeopath",
+        "nursing", "veterinary", "siddha", "unani", "physiotherapy",
+        "physiotherapy", "yoga ", "naturopathy", "homoeopathic", "homoeopathy",
+        " mbbs", " bds", " bhms", " bams", "paramedical",
+        "aiims", "jipmer", "kgmu", "afmc", "cmc vellore",
+        "all india institute of medical",
+    )
+    # Ranking boosts based on type
+    INTER_KEYWORDS = ("junior college", "inter college", "intermediate college",
+                      "pu college", "puc", "jr college", "jr. college",
+                      "intermediate", "junior", " inter ", "+1", "+2",
+                      "pre-university", "pre university", "pre-univ")
+    # Engineering / technical institution keywords (Indian context)
+    ENG_KEYWORDS = (
+        # Premier institutes (IITs / NITs / IIITs / IISc / IISER)
+        "iit ", "indian institute of technology",
+        "nit ", "national institute of technology",
+        "iiit ", "indian institute of information technology",
+        "iisc", "indian institute of science",
+        "iiser", "indian institute of science education",
+        # Private deemed universities
+        "bits ", "birla institute of technology", "birla institute of science",
+        "vit ", "vellore institute", "srm ", "manipal", "amrita",
+        "thapar", "lpu", "lovely professional", "shiv nadar",
+        "ashoka university", "ashoka", "iiit hyderabad", "dhirubhai",
+        # Generic engineering keywords
+        "engineering", "technology", "technical", "polytechnic",
+        "tech university", "technological", "school of engineering",
+        "college of engineering", "institute of technology",
+        "nirma", "psg ", "coimbatore institute", "cit ", "kits",
+        "rec ", "anna university",
+    )
+
+    def _inter_score(props: dict) -> int:
+        n = (props.get("name") or "").lower()
+        return -sum(1 for k in INTER_KEYWORDS if k in n)
+
+    def _eng_score(props: dict) -> int:
+        n = (props.get("name") or "").lower()
+        # Boost for engineering keyword + extra boost for premier institutes
+        base = -sum(1 for k in ENG_KEYWORDS if k in n)
+        if "iit " in n or "indian institute of technology" in n:
+            base -= 5
+        if "nit " in n or "national institute of technology" in n:
+            base -= 4
+        if "iiit " in n or "indian institute of information" in n:
+            base -= 3
+        return base
+
+    if type_lower == "school":
+        features = sorted(features, key=lambda f: _inter_score(f.get("properties") or {}))
+    elif type_lower == "college":
+        features = sorted(features, key=lambda f: _eng_score(f.get("properties") or {}))
+    for feat in features:
+        props = (feat.get("properties") or {})
+        name = (props.get("name") or "").strip()
+        if not name:
+            continue
+        # Reject if not in target country (India by default)
+        country_name = props.get("country") or country
+        if country and country.lower() not in country_name.lower():
+            continue
+        primary = _smart_titlecase(name)
+        primary_lower = primary.lower()
+
+        # Apply name-quality guards (reuse existing reject lists for safety)
+        bad_endings = (
+            " gate", " phase 1", " phase 2", " phase 3", " phase 4", " phase 5",
+            " phase 6", " road", " highway", " flyover", " bridge",
+            " junction", " crossing", " circle", " square", " stop",
+            " bus stop", " metro station", " railway station", " station",
+            " hostel", " ladies hostel", " boys hostel", " girls hostel",
+            " apartments", " apartment", " quarters",
+        )
+        if any(primary_lower.endswith(b) for b in bad_endings):
+            continue
+
+        # For type=college, exclude medical / dental / pharmacy / nursing institutions.
+        # User wants only Technical Engineering institutions under College.
+        if type_lower == "college" and any(k in primary_lower for k in MEDICAL_KEYWORDS):
+            continue
+
+        city = (
+            props.get("city") or props.get("town") or props.get("village")
+            or props.get("locality") or props.get("district")
+            or props.get("county") or ""
+        )
+        state = props.get("state") or ""
+
+        key = f"{primary.lower()}|{city.lower()}"
+        if key in seen:
+            continue
+        seen.add(key)
+
+        # Photon doesn't expose a website tag, but we can probe extra props.
+        domain = ""
+
+        # Build a clean address line from street/postcode/city/state
+        street = props.get("street") or ""
+        postcode = props.get("postcode") or ""
+        addr_line = ", ".join(
+            x for x in [street, props.get("locality"), city, state, postcode, country_name] if x
+        )
+
+        out.append({
+            "id": f"{props.get('osm_type','')}{props.get('osm_id','')}",
+            "name": primary,
+            "display_name": addr_line,
+            "address_line": addr_line,
+            "city": city,
+            "state": state,
+            "country": country_name,
+            "lat": (feat.get("geometry") or {}).get("coordinates", [None, None])[1],
+            "lon": (feat.get("geometry") or {}).get("coordinates", [None, None])[0],
+            "domain": domain,
+            "type": props.get("osm_value") or "",
+        })
+        if len(out) >= 8:
+            break
+    _cache_set(cache_key, out)
+    return {"results": out}
+
+
+@api_router.get("/institutions/logo")
+async def institution_logo(name: str = "", domain: str = ""):
+    """Returns CANDIDATE logo URLs for an institution. Frontend tries them in order
+    via <Image onError> and falls back to a default icon if all fail.
+      1) Clearbit if domain is known
+      2) Clearbit on guessed domain (slug + .ac.in/.edu.in/.in/.com)
+      3) Google Favicon (always works for any domain)
+    """
+    name = (name or "").strip()
+    domain = (domain or "").strip().lower().replace("www.", "")
+
+    candidates = []
+    if domain:
+        candidates.append(domain)
+    if name:
+        slug = "".join(c.lower() for c in name if c.isalnum())
+        if slug:
+            candidates.extend([f"{slug}.ac.in", f"{slug}.edu.in", f"{slug}.in", f"{slug}.com"])
+
+    urls = []
+    for d in candidates:
+        urls.append({"url": f"https://logo.clearbit.com/{d}", "source": "clearbit", "domain": d})
+    # Always include Google Favicon as a final fallback (high success rate)
+    if candidates:
+        d = candidates[0]
+        urls.append({"url": f"https://www.google.com/s2/favicons?domain={d}&sz=128", "source": "google_favicon", "domain": d})
+    return {"candidates": urls}
+
+
+@api_router.post("/auth/2fa/setup", response_model=TwoFASetupResponse)
+async def two_fa_setup(user: dict = Depends(get_current_user)):
+    """Generate a fresh TOTP secret and QR for the authenticator app.
+    Stored as `pending_two_fa_secret` until the user confirms with /enable."""
+    secret = pyotp.random_base32()
+    uri = pyotp.totp.TOTP(secret).provisioning_uri(
+        name=user["email"], issuer_name=TOTP_ISSUER,
+    )
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"pending_two_fa_secret": secret}},
+    )
+    return TwoFASetupResponse(
+        secret=secret,
+        otpauth_uri=uri,
+        qr_code_base64=_generate_totp_qr(uri),
+    )
+
+
+@api_router.post("/auth/2fa/enable", response_model=TwoFAEnableResponse)
+async def two_fa_enable(req: TwoFAEnableRequest, user: dict = Depends(get_current_user)):
+    """User confirms TOTP code → 2FA officially enabled + backup codes returned ONCE."""
+    pending = user.get("pending_two_fa_secret")
+    if not pending:
+        raise HTTPException(400, "No pending 2FA setup. Call /auth/2fa/setup first.")
+
+    code = (req.code or "").strip().replace(" ", "")
+    if not pyotp.TOTP(pending).verify(code, valid_window=1):
+        raise HTTPException(400, "Invalid 2FA code. Try again.")
+
+    backup_codes = _generate_backup_codes()
+    # Store hashed backup codes (bcrypt) — never plaintext
+    backup_hashes = [hash_password(c) for c in backup_codes]
+
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {
+            "$set": {
+                "two_fa_secret": pending,
+                "two_fa_enabled": True,
+                "two_fa_backup_codes": backup_hashes,
+            },
+            "$unset": {"pending_two_fa_secret": ""},
+        },
+    )
+    return TwoFAEnableResponse(enabled=True, backup_codes=backup_codes)
+
+
+@api_router.post("/auth/2fa/verify", response_model=AuthResponse)
+@limiter.limit("10/minute")
+async def two_fa_verify(request: Request, req: TwoFAVerifyRequest):
+    """User submits TOTP/backup code with the challenge_id from /auth/login.
+    On success → returns full access + refresh JWT pair."""
+    challenge = await db.two_fa_challenges.find_one({"_id": req.challenge_id})
+    if not challenge:
+        raise HTTPException(401, "Invalid or expired challenge")
+    if challenge.get("consumed"):
+        raise HTTPException(401, "Challenge already used")
+    if challenge["expires_at"].replace(tzinfo=None) < datetime.utcnow():
+        raise HTTPException(401, "Challenge expired. Please log in again.")
+
+    user = await db.users.find_one({"_id": ObjectId(challenge["user_id"])})
+    if not user:
+        raise HTTPException(401, "User not found")
+
+    code = (req.code or "").strip().replace(" ", "")
+
+    # 1) Try TOTP first
+    secret = user.get("two_fa_secret")
+    valid = bool(secret) and pyotp.TOTP(secret).verify(code, valid_window=1)
+
+    # 2) Try backup codes (one-time-use)
+    used_backup_idx = None
+    if not valid and "-" in code:
+        for i, h in enumerate(user.get("two_fa_backup_codes") or []):
+            if verify_password(code, h):
+                valid = True
+                used_backup_idx = i
+                break
+
+    if not valid:
+        raise HTTPException(401, "Invalid 2FA code")
+
+    # Consume challenge + invalidate used backup code
+    await db.two_fa_challenges.update_one(
+        {"_id": req.challenge_id},
+        {"$set": {"consumed": True, "consumed_at": datetime.now(timezone.utc)}},
+    )
+    update_fields = {"last_login": datetime.utcnow()}
+    if used_backup_idx is not None:
+        backup_codes = user.get("two_fa_backup_codes", [])
+        backup_codes.pop(used_backup_idx)
+        update_fields["two_fa_backup_codes"] = backup_codes
+    await db.users.update_one({"_id": user["_id"]}, {"$set": update_fields})
+
+    return AuthResponse(
+        access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
+        refresh_token=create_refresh_token(str(user["_id"])),
+        user=UserResponse(**serialize_user(user)),
+    )
+
+
+@api_router.post("/auth/2fa/disable")
+async def two_fa_disable(req: TwoFADisableRequest, user: dict = Depends(get_current_user)):
+    """Disable 2FA — requires current password AND valid TOTP code (or backup)."""
+    if not verify_password(req.password, user["password_hash"]):
+        raise HTTPException(401, "Invalid password")
+
+    secret = user.get("two_fa_secret")
+    code = (req.code or "").strip().replace(" ", "")
+    valid = bool(secret) and pyotp.TOTP(secret).verify(code, valid_window=1)
+    if not valid:
+        # try backup
+        for h in user.get("two_fa_backup_codes") or []:
+            if verify_password(code, h):
+                valid = True
+                break
+    if not valid:
+        raise HTTPException(401, "Invalid 2FA code")
+
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {
+            "$set": {"two_fa_enabled": False},
+            "$unset": {
+                "two_fa_secret": "",
+                "two_fa_backup_codes": "",
+                "pending_two_fa_secret": "",
+            },
+        },
+    )
+    return {"disabled": True}
+
+
+@api_router.post("/auth/2fa/regenerate-backup-codes", response_model=TwoFAEnableResponse)
+async def two_fa_regenerate_backup(req: TwoFAEnableRequest, user: dict = Depends(get_current_user)):
+    """Regenerate backup codes — requires current TOTP code. Old codes invalidated."""
+    if not user.get("two_fa_enabled"):
+        raise HTTPException(400, "2FA is not enabled")
+    secret = user.get("two_fa_secret")
+    code = (req.code or "").strip().replace(" ", "")
+    if not (secret and pyotp.TOTP(secret).verify(code, valid_window=1)):
+        raise HTTPException(401, "Invalid 2FA code")
+
+    backup_codes = _generate_backup_codes()
+    backup_hashes = [hash_password(c) for c in backup_codes]
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"two_fa_backup_codes": backup_hashes}},
+    )
+    return TwoFAEnableResponse(enabled=True, backup_codes=backup_codes)
+
+
+
+# ----------------------------------------------------------------------------
+# OAuth Endpoints (Google + LinkedIn)
+# ----------------------------------------------------------------------------
+# NOTE: These endpoints currently use a MOCKED token-validation flow for the
+# development build. To switch to real OAuth verification:
+#   1. Set GOOGLE_OAUTH_CLIENT_ID / LINKEDIN_OAUTH_CLIENT_ID + secrets in .env
+#   2. Replace the `_verify_google_token` / `_verify_linkedin_token` stubs below
+#      with real google.auth + httpx calls (see integration_playbook).
+# The endpoint shape and the upstream JWT issuance flow stay identical, so the
+# frontend doesn't need any changes when we wire up real verification.
+#
+# Frontend flow (per Option C):
+#   - User taps "Continue with Google" → opens browser via expo-auth-session
+#   - Returns id_token / access_token → frontend POSTs to /auth/google
+#   - Backend verifies (mocked for now), upserts user, returns our JWT
+# ----------------------------------------------------------------------------
+class OAuthCallback(BaseModel):
+    """Generic OAuth callback payload sent from the Expo client."""
+    id_token: Optional[str] = None         # Google ID token (JWT)
+    access_token: Optional[str] = None     # Provider access token (LinkedIn)
+    # MOCK MODE — the client may pass these directly in dev. In production
+    # these are extracted server-side from the verified provider token.
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = None
+    picture: Optional[str] = None
+    role: Optional[UserRole] = "student"   # Used only when creating a new account
+
+
+async def _upsert_oauth_user(provider: str, email: str, full_name: str,
+                              picture: Optional[str], role: str = "student") -> dict:
+    """Find or create a user from an OAuth profile. Marks them with `oauth_provider`."""
+    email = email.lower().strip()
+    user = await db.users.find_one({"email": email})
+    if user:
+        update = {"oauth_provider": provider, "oauth_picture": picture, "last_login": datetime.utcnow()}
+        if picture:
+            update["photo_data"] = picture
+        await db.users.update_one({"_id": user["_id"]}, {"$set": update})
+        return await db.users.find_one({"_id": user["_id"]})
+
+    # New OAuth user — create with onboarding NOT yet completed so the client
+    # routes them through the onboarding flow.
+    user_doc = {
+        "email": email,
+        "password_hash": hash_password(secrets.token_urlsafe(16)),  # random unguessable password
+        "full_name": full_name or email.split("@")[0].title(),
+        "role": role or "student",
+        "phone": None,
+        "unique_id": generate_unique_id(role or "student"),
+        "qr_code_base64": None,
+        "school_info": None,
+        "career_path": None,
+        "interests": [],
+        "skills": [],
+        "bio": None,
+        "photo_data": picture,
+        "face_image_base64": None,
+        "oauth_provider": provider,
+        "oauth_picture": picture,
+        "onboarding_completed": False,
+        "created_at": datetime.now(timezone.utc),
+        "last_login": datetime.utcnow(),
+    }
+    res = await db.users.insert_one(user_doc)
+    user_doc["_id"] = res.inserted_id
+    user_doc["qr_code_base64"] = generate_qr_code(
+        f"SA-USER:{user_doc['unique_id']}|{email}|{user_doc['role']}"
+    )
+    await db.users.update_one(
+        {"_id": res.inserted_id},
+        {"$set": {"qr_code_base64": user_doc["qr_code_base64"]}},
+    )
+    return user_doc
+
+
+async def _get_oauth_creds() -> dict:
+    """Read OAuth credentials from platform_controls DB collection, merged with defaults."""
+    doc = await db.platform_controls.find_one({"_id": "singleton"})
+    db_settings = {s["key"]: s.get("value", "") for s in (doc.get("system_settings") or [])} if doc else {}
+    # Merge with defaults so new fields (like firebase_*) are included even before admin sets them
+    try:
+        from admin_settings import DEFAULT_PLATFORM_CONTROLS
+        for s in DEFAULT_PLATFORM_CONTROLS.get("system_settings") or []:
+            if s["key"] not in db_settings:
+                db_settings[s["key"]] = s.get("value", "")
+    except ImportError:
+        pass
+    return db_settings
+
+
+@api_router.get("/auth/oauth-config")
+async def oauth_config(response: Response):
+    """Returns OAuth client IDs and redirect URI for frontend login buttons.
+    Only returns client IDs (safe), never secrets. If not configured, returns empty strings."""
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    creds = await _get_oauth_creds()
+    raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
+    frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
+    return {
+        "google_client_id": creds.get("google_oauth_client_id", ""),
+        "linkedin_client_id": creds.get("linkedin_oauth_client_id", ""),
+        "github_client_id": creds.get("github_oauth_client_id", ""),
+        "firebase": {
+            "apiKey": creds.get("firebase_api_key", ""),
+            "authDomain": creds.get("firebase_auth_domain", ""),
+            "projectId": creds.get("firebase_project_id", ""),
+            "appId": creds.get("firebase_app_id", ""),
+        } if creds.get("firebase_api_key") else None,
+        "redirect_uri": f"{frontend_url}/oauth.html",
+        "configured": bool(creds.get("google_oauth_client_id")) or bool(creds.get("linkedin_oauth_client_id")) or bool(creds.get("github_oauth_client_id")),
+    }
+
+
+def _verify_google_token(id_token: Optional[str], client_id: str = "") -> Optional[dict]:
+    """Verify a Google ID token if credentials are configured, else return None (mock fallback)."""
+    if not id_token or not client_id:
+        return None
+    try:
+        from google.auth.transport import requests as g_req
+        from google.oauth2 import id_token as g_id
+        info = g_id.verify_oauth2_token(id_token, g_req.Request(), client_id)
+        if info.get("iss") not in ("accounts.google.com", "https://accounts.google.com"):
+            return None
+        return {"email": info.get("email"), "name": info.get("name"), "picture": info.get("picture"),
+                "sub": info.get("sub")}
+    except Exception:
+        return None
+
+
+def _frontend_redirect_uri() -> str:
+    """Build the OAuth redirect URI that matches what oauth_config returns."""
+    raw = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
+    base = raw if (raw.startswith("http://") or raw.startswith("https://")) else "https://studentalumni.ai"
+    return f"{base}/oauth.html"
+
+
+async def _verify_linkedin_token(code: Optional[str], client_id: str = "", client_secret: str = "") -> Optional[dict]:
+    """Exchange LinkedIn OAuth authorization code for an access token, then fetch user info."""
+    if not code or not client_id or not client_secret:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            # Exchange authorization code for access token
+            token_res = await c.post(
+                "https://www.linkedin.com/oauth/v2/accessToken",
+                data={
+                    "grant_type": "authorization_code",
+                    "code": code,
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "redirect_uri": _frontend_redirect_uri(),
+                },
+                headers={"Accept": "application/json"},
+            )
+            if not token_res.is_success:
+                return None
+            token_data = token_res.json()
+            access_token = token_data.get("access_token")
+            if not access_token:
+                return None
+
+            # Fetch user profile with the access token
+            user_res = await c.get(
+                "https://api.linkedin.com/v2/userinfo",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            if not user_res.is_success:
+                return None
+            data = user_res.json()
+            return {"email": data.get("email"), "name": data.get("name"),
+                    "picture": data.get("picture")}
+    except Exception:
+        return None
+
+
+async def _verify_github_token(code: Optional[str], client_id: str = "", client_secret: str = "") -> Optional[dict]:
+    """Verify GitHub OAuth code, exchange for access token, and fetch user profile."""
+    if not code or not client_id or not client_secret:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            # Exchange code for access token
+            token_res = await c.post(
+                "https://github.com/login/oauth/access_token",
+                json={"client_id": client_id, "client_secret": client_secret, "code": code},
+                headers={"Accept": "application/json"},
+            )
+            if not token_res.is_success:
+                return None
+            token_data = token_res.json()
+            access_token = token_data.get("access_token")
+            if not access_token:
+                return None
+
+            # Fetch user profile
+            user_res = await c.get(
+                "https://api.github.com/user",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            if not user_res.is_success:
+                return None
+            user_data = user_res.json()
+
+            # Fetch user emails (primary may be set or need to find it)
+            emails_res = await c.get(
+                "https://api.github.com/user/emails",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            email = None
+            if emails_res.is_success:
+                emails = emails_res.json()
+                primary = next((e for e in emails if e.get("primary")), None)
+                verified = next((e for e in emails if e.get("verified")), None)
+                email = (primary or verified or {}).get("email") or (emails[0].get("email") if emails else None)
+            if not email:
+                email = user_data.get("email")
+
+            return {
+                "email": email,
+                "name": user_data.get("name") or user_data.get("login", ""),
+                "picture": user_data.get("avatar_url"),
+                "sub": str(user_data.get("id")),
+            }
+    except Exception:
+        return None
+
+
+@api_router.post("/auth/google", response_model=AuthResponse)
+@limiter.limit("20/minute")
+async def auth_google(request: Request, req: OAuthCallback):
+    """Continue-with-Google flow.
+
+    Real flow: client (Expo) opens Google OAuth → receives `id_token` → POSTs here.
+    The `id_token` must be a real Google JWT that is verified against the configured
+    GOOGLE_OAUTH_CLIENT_ID. Mock mode (passing email/full_name directly) is ONLY
+    allowed when ENV=development and no client_id is configured.
+    """
+    creds = await _get_oauth_creds()
+    client_id = creds.get("google_oauth_client_id", "")
+    profile = _verify_google_token(req.id_token, client_id) if req.id_token else None
+    if profile is None:
+        if not client_id and os.getenv("ENV") == "development":
+            if not req.email or not req.full_name:
+                raise HTTPException(400, "Development mock mode requires email/full_name")
+            profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+        else:
+            raise HTTPException(400, "Google OAuth requires a valid id_token. Configure google_oauth_client_id in platform settings or set ENV=development for mock mode.")
+
+    user = await _upsert_oauth_user(
+        provider="google",
+        email=profile["email"],
+        full_name=profile.get("name") or profile.get("full_name") or "",
+        picture=profile.get("picture"),
+        role=req.role or "student",
+    )
+    return AuthResponse(
+        access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
+        refresh_token=create_refresh_token(str(user["_id"])),
+        user=UserResponse(**serialize_user(user)),
+    )
+
+
+@api_router.post("/auth/linkedin", response_model=AuthResponse)
+@limiter.limit("20/minute")
+async def auth_linkedin(request: Request, req: OAuthCallback):
+    """Continue-with-LinkedIn flow. Same structure as /auth/google."""
+    creds = await _get_oauth_creds()
+    client_id = creds.get("linkedin_oauth_client_id", "")
+    client_secret = creds.get("linkedin_oauth_client_secret", "")
+    profile = await _verify_linkedin_token(req.access_token, client_id, client_secret) if req.access_token else None
+    if profile is None:
+        if not client_id and os.getenv("ENV") == "development":
+            if not req.email or not req.full_name:
+                raise HTTPException(400, "Development mock mode requires email/full_name")
+            profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+        else:
+            raise HTTPException(400, "LinkedIn OAuth requires a valid access_token. Configure linkedin_oauth_client_id in platform settings or set ENV=development for mock mode.")
+
+    user = await _upsert_oauth_user(
+        provider="linkedin",
+        email=profile["email"],
+        full_name=profile.get("name") or profile.get("full_name") or "",
+        picture=profile.get("picture"),
+        role=req.role or "student",
+    )
+    return AuthResponse(
+        access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
+        refresh_token=create_refresh_token(str(user["_id"])),
+        user=UserResponse(**serialize_user(user)),
+    )
+
+
+@api_router.post("/auth/github", response_model=AuthResponse)
+@limiter.limit("20/minute")
+async def auth_github(request: Request, req: OAuthCallback):
+    """Continue-with-GitHub flow. Uses OAuth code exchange (not id_token)."""
+    creds = await _get_oauth_creds()
+    client_id = creds.get("github_oauth_client_id", "")
+    client_secret = creds.get("github_oauth_client_secret", "")
+    profile = await _verify_github_token(req.access_token, client_id, client_secret) if req.access_token else None
+    if profile is None:
+        if not client_id and os.getenv("ENV") == "development":
+            if not req.email or not req.full_name:
+                raise HTTPException(400, "Development mock mode requires email/full_name")
+            profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+        else:
+            raise HTTPException(400, "GitHub OAuth requires a valid authorization code. Configure github_oauth_client_id / github_oauth_client_secret in platform settings or set ENV=development for mock mode.")
+
+    user = await _upsert_oauth_user(
+        provider="github",
+        email=profile["email"],
+        full_name=profile.get("name") or profile.get("full_name") or "",
+        picture=profile.get("picture"),
+        role=req.role or "student",
+    )
+    return AuthResponse(
+        access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
+        refresh_token=create_refresh_token(str(user["_id"])),
+        user=UserResponse(**serialize_user(user)),
+    )
+
+
+# ─── Firebase Auth ──────────────────────────────────────────────────
+_firebase_app = None
+
+def _get_or_init_firebase():
+    """Initialize Firebase Admin SDK if not already initialized, using platform settings."""
+    global _firebase_app
+    if _firebase_app is not None:
+        return _firebase_app
+    try:
+        from firebase_admin import credentials, initialize_app
+        creds_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON", "")
+        if not creds_json:
+            # Try reading from platform_controls synchronously (won't work in async context)
+            return None
+        cred_dict = __import__("json").loads(creds_json)
+        cred = credentials.Certificate(cred_dict)
+        _firebase_app = initialize_app(cred)
+        return _firebase_app
+    except Exception:
+        return None
+
+
+def _verify_firebase_token(id_token: str) -> Optional[dict]:
+    """Verify a Firebase ID token using Firebase Admin SDK."""
+    app = _get_or_init_firebase()
+    if not app:
+        return None
+    try:
+        from firebase_admin import auth as fb_auth
+        decoded = fb_auth.verify_id_token(id_token, check_revoked=True)
+        return {
+            "email": decoded.get("email"),
+            "name": decoded.get("name", ""),
+            "picture": decoded.get("picture", ""),
+            "sub": decoded.get("uid"),
+            "phone": decoded.get("phone_number"),
+            "firebase_provider": decoded.get("firebase", {}).get("sign_in_provider", ""),
+        }
+    except Exception:
+        return None
+
+
+@api_router.post("/auth/firebase", response_model=AuthResponse)
+@limiter.limit("20/minute")
+async def auth_firebase(request: Request, req: OAuthCallback):
+    """Firebase Auth — accepts a Firebase ID token from any provider (Google, GitHub, phone, etc.)
+    and issues a platform JWT. Configure firebase_service_account in platform settings."""
+    creds = await _get_oauth_creds()
+    fb_service_account = creds.get("firebase_service_account", "")
+
+    if fb_service_account and not os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON"):
+        os.environ["FIREBASE_SERVICE_ACCOUNT_JSON"] = fb_service_account
+
+    profile = _verify_firebase_token(req.id_token) if req.id_token else None
+    if profile is None:
+        if not fb_service_account and os.getenv("ENV") == "development":
+            if not req.email or not req.full_name:
+                raise HTTPException(400, "Development mock mode requires email/full_name")
+            profile = {"email": req.email, "name": req.full_name, "picture": req.picture}
+        else:
+            raise HTTPException(400, "Firebase Auth requires a valid id_token. Configure firebase_service_account in platform settings or set ENV=development for mock mode.")
+
+    provider = profile.get("firebase_provider", "firebase")
+    user = await _upsert_oauth_user(
+        provider=provider,
+        email=profile["email"],
+        full_name=profile.get("name") or req.full_name or "",
+        picture=profile.get("picture"),
+        role=req.role or "student",
+    )
+    return AuthResponse(
+        access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
+        refresh_token=create_refresh_token(str(user["_id"])),
+        user=UserResponse(**serialize_user(user)),
+    )
+
+
+# ----------------------------------------------------------------------------
+# Onboarding & Profile Endpoints
+# ----------------------------------------------------------------------------
+@api_router.post("/users/onboarding", response_model=UserResponse)
+async def complete_onboarding(req: OnboardingRequest, user: dict = Depends(get_current_user)):
+    """Complete role-specific onboarding & generate unique ID + QR code."""
+    role = user["role"]
+
+    # ---- Role-specific validation ----
+    # NOTE: We auto-derive role-specific data from existing fields when missing,
+    # so legacy onboarding flows continue to work. Strict validation is
+    # enforced for clearly-required fields only.
+    if role == "student":
+        if not req.career_path:
+            raise HTTPException(400, "Career path is required for students")
+        # Validate Class 11+ even if no detailed student_info is provided
+        validate_student_class(req.school_info, req.student_info.age if req.student_info else None)
+        # Auto-create student_info if missing (use sensible defaults)
+        if not req.student_info:
+            cls = (req.school_info.class_or_year or "").strip().lower()
+            edu_level = "plus_one" if "11" in cls else "plus_two" if "12" in cls else "btech"
+            req.student_info = StudentInfo(age=18, education_level=edu_level,
+                                            career_interests=req.interests)
+    elif role == "alumni":
+        if not req.career_path:
+            raise HTTPException(400, "Career path is required for alumni")
+        # Auto-create alumni_info if missing
+        if not req.alumni_info:
+            req.alumni_info = AlumniInfo(
+                graduation_year=req.school_info.graduation_year or datetime.now().year,
+                university=req.school_info.institution_name,
+            )
+    elif role == "mentor":
+        # Mentors strictly require org + job_title (per spec)
+        if not req.mentor_info:
+            raise HTTPException(400, "mentor_info is required for mentors (organization, job_title)")
+        if not req.mentor_info.organization or not req.mentor_info.job_title:
+            raise HTTPException(400, "Organization and job title are mandatory for mentors")
+
+    # ---- Generate unique ID + QR code (idempotent — only on first onboarding) ----
+    unique_id = user.get("unique_id") or generate_unique_id(role)
+    qr_payload = f"SA-USER:{unique_id}|{user['email']}|{role}"
+    qr_code = generate_qr_code(qr_payload)
+
+    # ---- Build update document ----
+    update = {
+        "school_info": req.school_info.model_dump(),
+        "career_path": req.career_path,
+        "interests": req.interests,
+        "skills": req.skills,
+        "bio": req.bio,
+        "face_image_base64": req.face_image_base64,
+        "photo_data": req.face_image_base64,
+        "unique_id": unique_id,
+        "qr_code_base64": qr_code,
+        "onboarding_completed": True,
+        "updated_at": datetime.now(timezone.utc),
+    }
+    # Phone (collected during onboarding for all roles per spec) — encrypted at rest.
+    if req.phone:
+        update["phone"] = encrypt_value(req.phone.strip())
+    if req.student_info:
+        update["student_info"] = req.student_info.model_dump()
+    if req.alumni_info:
+        update["alumni_info"] = req.alumni_info.model_dump()
+    if req.mentor_info:
+        update["mentor_info"] = req.mentor_info.model_dump()
+    if req.college_info:
+        update["college_info"] = req.college_info.model_dump()
+        # Mirror institution_name into school_info so existing aggregations keep working
+        si = update.get("school_info") or {}
+        si.setdefault("institution_name", req.college_info.institution_name)
+        si.setdefault("institution_type", req.college_info.institution_type or "university")
+        if req.college_info.city:    si.setdefault("city", req.college_info.city)
+        if req.college_info.state:   si.setdefault("state", req.college_info.state)
+        update["school_info"] = si
+
+    # ---- Audit log — capture every onboarding field change ----
+    user_id_str = str(user["_id"])
+    audit_entries = []
+    for field in ("school_info", "career_path", "interests", "skills", "bio",
+                  "student_info", "alumni_info", "mentor_info", "college_info"):
+        if field in update and update[field] is not None:
+            old_val = user.get(field)
+            new_val = update[field]
+            if old_val != new_val:
+                audit_entries.append((field, old_val, new_val))
+    if req.phone:
+        # Log encrypted form so audit collection never holds plaintext PII.
+        audit_entries.append(("phone", None, update.get("phone")))
+
+    await db.users.update_one({"_id": user["_id"]}, {"$set": update})
+    if audit_entries:
+        await _audit_log_many(user_id=user_id_str, source="onboarding", entries=audit_entries)
+    return UserResponse(**serialize_user(await db.users.find_one({"_id": user["_id"]})))
+
+
+@api_router.get("/audit-logs/me")
+async def get_my_audit_logs(
+    user: dict = Depends(get_current_user),
+    limit: int = 100,
+    skip: int = 0,
+):
+    """Phase B — return the calling user's audit trail (most recent first).
+
+    Response shape: { total, items: [{field_name, old_value, new_value, source,
+    validation_status, is_manual_entry, ts}] }.
+
+    Sensitive fields (phone, dob, postal_code) are decrypted on-the-fly so
+    the user can audit their own changes without seeing ciphertext.
+    """
+    uid = str(user["_id"])
+    total = await db.audit_logs.count_documents({"user_id": uid})
+    cursor = db.audit_logs.find({"user_id": uid}).sort("ts", -1).skip(int(skip)).limit(min(int(limit), 500))
+    items = []
+    async for doc in cursor:
+        items.append({
+            "field_name": doc.get("field_name"),
+            "old_value": (decrypt_value(doc.get("old_value"))
+                          if isinstance(doc.get("old_value"), str)
+                          and doc["old_value"].startswith(_ENC_PREFIX)
+                          else doc.get("old_value")),
+            "new_value": (decrypt_value(doc.get("new_value"))
+                          if isinstance(doc.get("new_value"), str)
+                          and doc["new_value"].startswith(_ENC_PREFIX)
+                          else doc.get("new_value")),
+            "source": doc.get("source"),
+            "validation_status": doc.get("validation_status"),
+            "is_manual_entry": bool(doc.get("is_manual_entry", False)),
+            "ts": doc.get("ts").isoformat() if doc.get("ts") else None,
+        })
+    return {"total": total, "items": items}
+
+
+@api_router.put("/users/me", response_model=UserResponse)
+async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
+    """Self-profile update — expanded field set (Phase 4 SA Profile Web)."""
+    allowed = {
+        # Identity / basics
+        "full_name", "first_name", "last_name", "headline", "bio",
+        "phone", "city", "state", "location", "face_image_base64", "photo_data", "banner_data", "college_logo_data",
+        # Academic
+        "institution", "branch", "graduation_year", "year", "cgpa",
+        "stream", "department",
+        # Career
+        "career_path", "primary_skill", "interests", "skills",
+        # Social
+        "linkedin_url", "github_url", "portfolio_url",
+        # Visibility
+        "profile_visibility",
+        # Section toggles + sections content (free-form)
+        "section_toggles", "projects",
+        # Preferences (settings page)
+        "preferences",
+    }
+    safe = {k: v for k, v in updates.items() if k in allowed}
+    # Synthesize full_name when first/last provided
+    if ("first_name" in safe or "last_name" in safe) and "full_name" not in safe:
+        u_now = user
+        fn = safe.get("first_name", u_now.get("first_name") or (u_now.get("full_name") or "").split(" ")[0])
+        ln = safe.get("last_name",  u_now.get("last_name")  or " ".join((u_now.get("full_name") or "").split(" ")[1:]))
+        safe["full_name"] = (str(fn or "").strip() + " " + str(ln or "").strip()).strip()
+    if safe:
+        safe["updated_at"] = datetime.now(timezone.utc)
+        
+        # Keep nested info in sync if root fields like institution are updated
+        si = user.get("school_info") or {}
+        si_updated = False
+        
+        is_college = user.get("role") == "college"
+        cp = user.get("college_info") or user.get("college_profile")
+        cp_updated = False
+        
+        if "institution" in safe:
+            si["institution_name"] = safe["institution"]
+            si_updated = True
+            if cp:
+                cp["institution_name"] = safe["institution"]
+                cp_updated = True
+        if "branch" in safe:
+            si["branch_or_stream"] = safe["branch"]
+            si_updated = True
+        if "graduation_year" in safe:
+            si["graduation_year"] = safe["graduation_year"]
+            si_updated = True
+        if "cgpa" in safe:
+            si["cgpa"] = safe["cgpa"]
+            si_updated = True
+        if "city" in safe:
+            si["city"] = safe["city"]
+            si_updated = True
+            if is_college and cp:
+                cp["city"] = safe["city"]
+                cp_updated = True
+        if "state" in safe:
+            si["state"] = safe["state"]
+            si_updated = True
+            if is_college and cp:
+                cp["state"] = safe["state"]
+                cp_updated = True
+            
+        if si_updated:
+            safe["school_info"] = si
+            
+        if cp_updated:
+            if "college_info" in user:
+                safe["college_info"] = cp
+            if "college_profile" in user:
+                safe["college_profile"] = cp
+
+        await db.users.update_one({"_id": user["_id"]}, {"$set": safe})
+        # Invalidate skill intelligence cache whenever profile data changes
+        # (linkedin_url, github_url, portfolio_url, skills, projects, bio, etc.
+        #  all affect Career AI scores — stale cache causes incorrect readiness)
+        _CAREER_AI_AFFECTING_FIELDS = {
+            "linkedin_url", "github_url", "portfolio_url", "skills",
+            "projects", "bio", "student_info", "career_path",
+            "career_goal", "institution", "branch", "graduation_year",
+            "face_image_base64", "photo_data",
+        }
+        if safe.keys() & _CAREER_AI_AFFECTING_FIELDS:
+            invalidate_intel_cache(str(user.get("id") or user.get("_id")))
+    return UserResponse(**serialize_user(await db.users.find_one({"_id": user["_id"]})))
+
+
+# ----------------------------------------------------------------------------
+# Profile completion + Resume + Preferences (SA Profile Web — Phase 4)
+# _compute_profile_completion moved to services/profile_service.py
+# All callers should use compute_profile_completion() from services.
+
+
+@api_router.get("/users/me/completion")
+async def get_my_completion(user: dict = Depends(get_current_user)):
+    user_db = await db.users.find_one({"_id": user["_id"]}, {"resume_documents": 1})
+    if user_db:
+        user["resume_documents"] = user_db.get("resume_documents") or []
+    return compute_profile_completion(user)
+
+
+@api_router.get("/users/me/stats")
+async def get_my_stats(user: dict = Depends(get_current_user)):
+    uid = str(user.get("id") or user.get("_id"))
+
+    # Sessions completed (mentor sessions where user was mentee/mentor and status=completed)
+    sessions_completed = 0
+    mentor_sessions = 0
+    try:
+        sessions_completed = await db.mentor_sessions.count_documents({
+            "$or": [{"mentor_id": uid}, {"mentee_id": uid}],
+            "status": {"$in": ["completed", "done", "finished"]},
+        })
+        mentor_sessions = await db.mentor_sessions.count_documents({
+            "mentee_id": uid,
+            "status": {"$in": ["scheduled", "confirmed", "upcoming", "completed"]},
+        })
+    except Exception:
+        sessions_completed = int(user.get("sessions_completed") or user.get("sessions") or 0)
+        mentor_sessions = int(user.get("mentor_sessions") or 0)
+
+    # Connections made
+    connections_made = 0
+    try:
+        connections_made = await db.connections.count_documents({
+            "$or": [{"from_id": uid}, {"to_id": uid}],
+            "status": "accepted",
+        })
+    except Exception:
+        connections_made = int(user.get("connections_made") or 0)
+
+    # Profile views (counter incremented elsewhere; fallback to user field)
+    profile_views = int(user.get("profile_views") or 0)
+
+    # Applications sent (internship/job applications)
+    applications_sent = 0
+    try:
+        applications_sent = await db.applications.count_documents({"user_id": uid})
+    except Exception:
+        applications_sent = int(user.get("applications_sent") or 0)
+
+    # Mentor-specific aggregates (rating + monthly earnings) — cheap if collections empty
+    avg_rating = 0.0
+    rating_count = 0
+    earnings_this_month = 0
+    try:
+        rating_pipeline = [
+            {"$match": {"mentor_id": uid, "rating": {"$gte": 1}}},
+            {"$group": {"_id": None, "avg": {"$avg": "$rating"}, "n": {"$sum": 1}}},
+        ]
+        async for doc in db.feedback.aggregate(rating_pipeline):
+            avg_rating = round(float(doc.get("avg") or 0), 2)
+            rating_count = int(doc.get("n") or 0)
+    except Exception:
+        avg_rating = float(user.get("rating_avg") or 0)
+        rating_count = int(user.get("rating_count") or 0)
+
+    try:
+        from datetime import datetime as _dt
+        now = _dt.utcnow()
+        earnings_pipeline = [
+            {"$match": {
+                "user_id": uid, "type": "earning",
+                "created_at": {"$gte": _dt(now.year, now.month, 1)},
+            }},
+            {"$group": {"_id": None, "total": {"$sum": "$amount"}}},
+        ]
+        async for doc in db.payments.aggregate(earnings_pipeline):
+            earnings_this_month = int(doc.get("total") or 0)
+    except Exception:
+        earnings_this_month = int(user.get("earnings_this_month") or 0)
+
+    # Compute skill_streak based on consecutive days of activity in the last 30 days
+    skill_streak = 0
+    try:
+        from datetime import datetime as _dt, timedelta as _td
+        today = _dt.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        thirty_days_ago = today - _td(days=30)
+        streak_days = set()
+        async for ev in db.activity_events.find({
+            "user_id": uid,
+            "ts": {"$gte": thirty_days_ago},
+        }, {"ts": 1}):
+            d_ts = ev.get("ts")
+            if isinstance(d_ts, _dt):
+                streak_days.add(d_ts.date().isoformat())
+        # Compute current consecutive-day streak
+        d_day = today.date()
+        # If today has no activity, check yesterday to keep streak alive
+        if d_day.isoformat() not in streak_days:
+            yesterday = d_day - _td(days=1)
+            if yesterday.isoformat() in streak_days:
+                d_day = yesterday
+        while d_day.isoformat() in streak_days:
+            skill_streak += 1
+            d_day = d_day - _td(days=1)
+    except Exception:
+        pass
+
+    return {
+        "sessions_completed": sessions_completed,
+        "connections_made": connections_made,
+        "profile_views": profile_views,
+        "mentor_sessions": mentor_sessions,
+        "applications_sent": applications_sent,
+        "avg_rating": avg_rating,
+        "rating_count": rating_count,
+        "earnings_this_month": earnings_this_month,
+        "skill_streak": skill_streak,
+    }
+
+
+def _categorize_skill(skill_name: str) -> tuple[str, int]:
+    s = skill_name.lower()
+    
+    # Technical Excellence
+    tech_keywords = {"react", "node", "python", "aws", "database", "mongodb", "sql", "javascript", "typescript", "c++", "java", "html", "css", "docker", "kubernetes", "git", "linux", "programming", "software", "next.js", "nextjs", "backend", "frontend", "web", "cloud", "devops"}
+    if any(k in s for k in tech_keywords):
+        return "technical_skills", 10
+        
+    # Professional Communication
+    comm_keywords = {"communication", "english", "public speaking", "debate", "languages", "speaking", "writing", "presentation", "verbal", "soft skills"}
+    if any(k in s for k in comm_keywords):
+        return "communication", 15
+        
+    # Leadership & Collaboration
+    lead_keywords = {"leadership", "teamwork", "mentoring", "collaboration", "management", "team", "mentor", "organizer", "lead"}
+    if any(k in s for k in lead_keywords):
+        return "leadership", 20
+        
+    # Career Preparation
+    prep_keywords = {"problem solving", "aptitude", "interview", "dsa", "data structures", "algorithms", "analytical"}
+    if any(k in s for k in prep_keywords):
+        return "interview_prep", 15
+
+    # Default fallback
+    return "technical_skills", 5
+
+
+@api_router.post("/users/me/skills")
+async def add_user_skill(req: dict, user: dict = Depends(get_current_user)):
+    skill = req.get("skill", "").strip()
+    if not skill:
+        raise HTTPException(400, "Skill name is required")
+        
+    skills = user.get("skills") or []
+    # Case-insensitive exists check
+    if any(s.lower() == skill.lower() for s in skills):
+        return {"status": "exists", "skill": {"skill_name": skill, "weight": 0}}
+        
+    # Calculate before stats/scores using skill-intelligence service
+    uid = str(user.get("id") or user.get("_id"))
+    before_intel = await compute_full_intelligence(user, uid, db)
+    before_score = before_intel["readiness_score"]["score"]
+    before_level = before_intel["readiness_score"]["level"]
+    
+    # Add skill to array in DB
+    await db.users.update_one({"_id": user["_id"]}, {"$addToSet": {"skills": skill}})
+    invalidate_intel_cache(uid)
+    
+    # Re-fetch user document to get updated skills list
+    updated_user = await db.users.find_one({"_id": user["_id"]})
+    
+    # Calculate after stats/scores
+    after_intel = await compute_full_intelligence(updated_user, uid, db)
+    after_score = after_intel["readiness_score"]["score"]
+    after_level = after_intel["readiness_score"]["level"]
+    
+    display_category, weight = _categorize_skill(skill)
+    
+    return {
+        "status": "success",
+        "skill": {
+            "skill_name": skill,
+            "weight": weight,
+            "display_category": display_category
+        },
+        "before_score": before_score,
+        "after_score": after_score,
+        "before_level": before_level,
+        "after_level": after_level
+    }
+
+
+@api_router.delete("/users/me/skills/{skill_name}")
+async def delete_user_skill(skill_name: str, user: dict = Depends(get_current_user)):
+    skills = user.get("skills") or []
+    target_skill = next((s for s in skills if s.lower() == skill_name.lower()), None)
+    
+    if not target_skill:
+        raise HTTPException(404, "Skill not found on profile")
+        
+    await db.users.update_one({"_id": user["_id"]}, {"$pull": {"skills": target_skill}})
+    invalidate_intel_cache(str(user.get("id") or user.get("_id")))
+    return {"status": "success", "removed": target_skill}
+
+
+# career_goal_simulator and career_predictions_endpoint moved to routers/career_ai.py
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Tools & Integrations (Profile sub-tab)
+# Stores per-user external tool connections used to power AI brief context,
+# default session platform selection and outreach tooling.
+# ════════════════════════════════════════════════════════════════════════════
+INTEGRATION_PROVIDERS = {
+    # AI providers — used for personalising the AI brief
+    "ai":       {"openai_chatgpt", "anthropic_claude", "google_gemini"},
+    # Email services
+    "email":    {"gmail", "outlook", "icloud"},
+    # Video conferencing
+    "video":    {"google_meet", "zoom", "ms_teams"},
+    # Calendar & productivity
+    "calendar": {"google_calendar", "outlook_calendar", "notion", "slack"},
+}
+ALL_INTEGRATION_PROVIDERS: set[str] = {p for s in INTEGRATION_PROVIDERS.values() for p in s}
+
+
+@api_router.get("/users/me/integrations")
+async def list_my_integrations(user: dict = Depends(get_current_user)):
+    """List the current user's connected tools/integrations + default platform."""
+    integrations = (user.get("integrations") or {})
+    prefs = (user.get("preferences") or {})
+    return {
+        "integrations": integrations,
+        "default_video_platform": prefs.get("default_video_platform"),
+        "default_ai_provider":    prefs.get("default_ai_provider"),
+    }
+
+
+@api_router.post("/users/me/integrations")
+async def connect_integration(
+    body: Dict[str, Any],
+    user: dict = Depends(get_current_user),
+):
+    """Connect (or update) a single integration.
+    Body: { provider: 'gmail'|'zoom'|..., email?: str, account_label?: str }
+
+    NOTE: This is a metadata-only stub for MVP — full OAuth flows for
+    each provider will be wired separately when client credentials are
+    supplied.  We persist the user-supplied email/label so the AI brief
+    and session-link generators know which account to use.
+    """
+    provider = (body or {}).get("provider", "").strip().lower()
+    if provider not in ALL_INTEGRATION_PROVIDERS:
+        raise HTTPException(400, f"unknown provider: {provider}")
+    email = (body or {}).get("email") or ""
+    label = (body or {}).get("account_label") or email or provider
+    rec = {
+        "provider": provider,
+        "email": email,
+        "account_label": label,
+        "status": "connected",
+        "connected_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {f"integrations.{provider}": rec}}
+    )
+    try:
+        await _audit_log(  # type: ignore
+            user_id=str(user["_id"]),
+            field=f"integrations.{provider}",
+            old_value=None, new_value=rec,
+            source="integration_connect",
+        )
+    except Exception:
+        pass
+    return {"ok": True, "integration": rec}
+
+
+@api_router.delete("/users/me/integrations/{provider}")
+async def disconnect_integration(
+    provider: str,
+    user: dict = Depends(get_current_user),
+):
+    p = provider.strip().lower()
+    if p not in ALL_INTEGRATION_PROVIDERS:
+        raise HTTPException(400, f"unknown provider: {p}")
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$unset": {f"integrations.{p}": ""}}
+    )
+    try:
+        await _audit_log(  # type: ignore
+            user_id=str(user["_id"]),
+            field=f"integrations.{p}",
+            old_value=user.get("integrations", {}).get(p),
+            new_value=None,
+            source="integration_disconnect",
+        )
+    except Exception:
+        pass
+    return {"ok": True}
+
+
+@api_router.get("/users/me/resume")
+async def get_my_resume(user: dict = Depends(get_current_user)):
+    """Return resume metadata (not the binary data URL — call /resume/raw for that)."""
+    user_db = await db.users.find_one({"_id": user["_id"]}, {"resume_documents": 1})
+    docs = (user_db.get("resume_documents") or []) if user_db else []
+    return {"documents": [{
+        "id": d.get("id"), "name": d.get("name"), "size": d.get("size"),
+        "uploaded_at": d.get("uploaded_at"), "active": d.get("active", False),
+    } for d in docs]}
+
+
+@api_router.get("/users/me/resume/{doc_id}/raw")
+async def download_my_resume(doc_id: str, user: dict = Depends(get_current_user)):
+    """Return the data URL of a specific resume document (used by client to trigger download)."""
+    user_db = await db.users.find_one({"_id": user["_id"]}, {"resume_documents": 1})
+    docs = (user_db.get("resume_documents") or []) if user_db else []
+    for d in docs:
+        if d.get("id") == doc_id:
+            return {"id": doc_id, "name": d.get("name"), "data_url": d.get("data_url")}
+    raise HTTPException(404, "Document not found")
+
+
+@api_router.post("/users/me/resume")
+async def upload_my_resume(payload: dict, user: dict = Depends(get_current_user)):
+    """Upload a resume as base64 data URL.
+    Body: { name: str, size: int (bytes), data_url: 'data:application/pdf;base64,...' }
+    """
+    name = (payload.get("name") or "").strip() or "Resume.pdf"
+    size = int(payload.get("size") or 0)
+    data_url = payload.get("data_url") or ""
+    if not data_url.startswith("data:"):
+        raise HTTPException(400, "data_url must be a base64 data URL")
+    # Soft size cap: 5 MB
+    if size > 5 * 1024 * 1024:
+        raise HTTPException(400, "File too large (max 5MB)")
+    user_db = await db.users.find_one({"_id": user["_id"]}, {"resume_documents": 1})
+    docs = list((user_db.get("resume_documents") or []) if user_db else [])
+    # Mark all existing as inactive
+    for d in docs:
+        d["active"] = False
+    new_doc = {
+        "id": str(ObjectId()),
+        "name": name,
+        "size": size,
+        "data_url": data_url,
+        "uploaded_at": datetime.now(timezone.utc).isoformat(),
+        "active": True,
+    }
+    docs.insert(0, new_doc)
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"resume_documents": docs, "updated_at": datetime.now(timezone.utc)}},
+    )
+    # Fix 12: Invalidate skill-intelligence cache so scores reflect new resume
+    invalidate_intel_cache(str(user.get("id") or user.get("_id")))
+    return {"id": new_doc["id"], "name": new_doc["name"], "active": True}
+
+
+@api_router.delete("/users/me/resume/{doc_id}")
+async def delete_my_resume(doc_id: str, user: dict = Depends(get_current_user)):
+    user_db = await db.users.find_one({"_id": user["_id"]}, {"resume_documents": 1})
+    docs = list((user_db.get("resume_documents") or []) if user_db else [])
+    new_docs = [d for d in docs if d.get("id") != doc_id]
+    if len(new_docs) == len(docs):
+        raise HTTPException(404, "Document not found")
+    # Ensure at least one is marked active if any remain
+    if new_docs and not any(d.get("active") for d in new_docs):
+        new_docs[0]["active"] = True
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"resume_documents": new_docs, "updated_at": datetime.now(timezone.utc)}},
+    )
+# ai_career_roadmap and complete_roadmap_milestone moved to routers/career_ai.py
+
+@api_router.post("/ai/daily-brief")
+async def ai_daily_brief(
+    body: Dict[str, Any] = None,
+    user: dict = Depends(get_current_user),
+):
+    """
+    Generate (or return cached) a personalized AI daily brief for the user.
+    Instrumented with per-step timing.
+    """
+    import time as _time_mod
+    _t0 = _time_mod.perf_counter()
+    def _ms(since=None):
+        return f"{(_time_mod.perf_counter() - (since or _t0)) * 1000:.1f}ms"
+    print(f"[DAILY-BRIEF] REQUEST_RECEIVED | t=0", flush=True)
+
+    body = body or {}
+    force = bool(body.get("force"))
+
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    cache_key = {"user_id": str(user["_id"]), "date": today}
+
+    # ── STEP 1: DB cache lookup ──
+    _s1 = _time_mod.perf_counter()
+    if not force:
+        existing = await db.daily_briefs.find_one(cache_key)
+        print(f"[DAILY-BRIEF] STEP 1 db_cache_lookup   {_ms(_s1)}", flush=True)
+        if existing and existing.get("brief"):
+            print(f"[DAILY-BRIEF] CACHE HIT | TOTAL {_ms()}", flush=True)
+            return {
+                "brief": existing["brief"],
+                "generated_at": existing.get("generated_at"),
+                "cached": True,
+            }
+
+    # Build profile context
+    full_name = user.get("full_name") or "there"
+    role = user.get("role") or "student"
+    interests = ", ".join((user.get("interests") or [])[:6]) or "general tech"
+    skills = ", ".join((user.get("skills") or [])[:6]) or "core CS"
+    institution = user.get("institution") or (user.get("school_info") or {}).get("institution_name") or ""
+    branch = user.get("branch") or (user.get("school_info") or {}).get("branch_or_stream") or ""
+    grad_year = user.get("graduation_year") or ""
+    si = user.get("student_info") or {}
+    goal = si.get("career_goal") or "Software Engineer at a top tech company"
+
+    # Connected tools — feeds AI context so the brief can reference them.
+    integrations = user.get("integrations") or {}
+    tools_summary = ", ".join(integrations.keys()) if integrations else "none yet"
+    pref_ai = ((user.get("preferences") or {}).get("default_ai_provider")) or ""
+
+    system_msg = (
+        "You are an upbeat AI career coach for the Student Alumni platform. "
+        "Write a 2-3 sentence personalised morning brief tailored to the user. "
+        "Keep it warm, action-oriented, and end with a single concrete suggestion. "
+        "If the user has connected useful tools, gently weave one of them into the suggestion. "
+        "Plain text only — no markdown, no lists, no emojis."
+    )
+    prompt = (
+        f"User: {full_name}\nRole: {role}\nInstitution: {institution} ({branch}, class of {grad_year})\n"
+        f"Interests: {interests}\nKey skills: {skills}\nGoal: {goal}\n"
+        f"Connected tools: {tools_summary}\nPreferred AI: {pref_ai or 'auto'}\n\n"
+        "Write today's morning brief now."
+    )
+
+    # ── STEP 2: Build context and call AI ──
+    _s2 = _time_mod.perf_counter()
+    try:
+        from emergentintegrations.llm.chat import UserMessage
+        chat = await get_claude_chat(f"daily-{user['_id']}-{today}", system_msg)
+        print(f"[DAILY-BRIEF] STEP 2a get_claude_chat  {_ms(_s2)}", flush=True)
+        _s2b = _time_mod.perf_counter()
+        brief_text = await chat.send_message(UserMessage(text=prompt))
+        brief_text = (brief_text or "").strip().strip('"').strip()
+        print(f"[DAILY-BRIEF] STEP 2b ai_generation    {_ms(_s2b)} ← this is where AI latency lives", flush=True)
+        if not brief_text:
+            raise ValueError("empty response")
+    except Exception as e:
+        logger.error(f"daily-brief AI failed: {e}")
+        brief_text = (
+            f"Good morning, {full_name.split(' ')[0]}! Today's a great day to push forward on your "
+            f"{interests.split(',')[0].strip()} goals. Try one focused 25-minute deep-work session before lunch."
+        )
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    # Resolve a friendly label for the AI provider that produced this brief.
+    PROVIDER_LABELS = {
+        "openai_chatgpt": "ChatGPT",
+        "anthropic_claude": "Claude",
+        "google_gemini": "Gemini",
+    }
+    # Internal default when user hasn't picked one
+    used_provider = pref_ai if pref_ai in PROVIDER_LABELS else "anthropic_claude"
+    provider_label = PROVIDER_LABELS.get(used_provider, "Claude")
+    # ── STEP 3: DB write ──
+    _s3 = _time_mod.perf_counter()
+    await db.daily_briefs.update_one(
+        cache_key,
+        {"$set": {**cache_key, "brief": brief_text, "generated_at": now_iso,
+                  "provider": used_provider, "provider_label": provider_label}},
+        upsert=True,
+    )
+    print(f"[DAILY-BRIEF] STEP 3 db_write          {_ms(_s3)}", flush=True)
+    print(
+        f"[DAILY-BRIEF] BREAKDOWN:\n"
+        f"  db_cache_lookup  {_ms(_s1)}\n"
+        f"  ai_generation    {_ms(_s2)}\n"
+        f"  db_write         {_ms(_s3)}\n"
+        f"  TOTAL            {_ms()}",
+        flush=True,
+    )
+    return {"brief": brief_text, "generated_at": now_iso, "cached": False,
+            "provider": used_provider, "provider_label": provider_label}
+
+
+@api_router.post("/ai/chat", response_model=ChatResponse)
+async def ai_chat(req: ChatRequest, user: dict = Depends(get_current_user)):
+    career_path = user.get("career_path") or "job"
+    base = CAREER_PATH_SYSTEM_PROMPTS.get(career_path, CAREER_PATH_SYSTEM_PROMPTS["job"])
+    system_msg = (
+        f"{base}\n\nYou are speaking with {user.get('full_name')}, a {user.get('role')}. "
+        "Keep replies concise (2-4 short paragraphs), friendly, and actionable."
+    )
+    session_id = req.session_id or f"chat-{uuid.uuid4().hex[:12]}"
+    try:
+        from emergentintegrations.llm.chat import UserMessage
+        chat = await get_claude_chat(session_id, system_msg)
+        reply = await chat.send_message(UserMessage(text=req.message))
+
+        # Persist chat history (used to render conversation on reload)
+        await db.chat_messages.insert_many([
+            {"user_id": str(user["_id"]), "session_id": session_id, "role": "user",
+             "content": req.message, "created_at": datetime.now(timezone.utc)},
+            {"user_id": str(user["_id"]), "session_id": session_id, "role": "assistant",
+             "content": reply, "created_at": datetime.now(timezone.utc)},
+        ])
+        return ChatResponse(session_id=session_id, message=reply)
+    except Exception as e:
+        logger.error(f"AI chat failed: {e}")
+        raise HTTPException(500, f"AI service error: {str(e)}")
+
+
+@api_router.get("/ai/chat/history")
+async def chat_history(session_id: Optional[str] = None, user: dict = Depends(get_current_user)):
+    query = {"user_id": str(user["_id"])}
+    if session_id:
+        query["session_id"] = session_id
+    msgs = await db.chat_messages.find(query, {"_id": 0}).sort("created_at", 1).to_list(200)
+    for m in msgs:
+        if isinstance(m.get("created_at"), datetime):
+            m["created_at"] = m["created_at"].isoformat()
+    return {"messages": msgs}
+
+
+@api_router.post("/ai/generate-bio")
+async def ai_generate_bio(
+    body: Dict[str, Any] = None,
+    user: dict = Depends(get_current_user),
+):
+    """
+    Generate a short personalised bio in the requested writing style using Claude.
+    Accepts profile context (role, name, education, organisation, interests, etc.)
+    and returns a 2–3 sentence bio tailored to that style.
+    """
+    body = body or {}
+    role = (body.get("role") or user.get("role") or "student").lower()
+    full_name = body.get("full_name") or user.get("full_name") or ""
+    writing_style = (body.get("writing_style") or "").strip()
+    existing_bio = (body.get("existing_bio") or "").strip()
+
+    # Build contextual prompt based on role
+    context_lines = [f"Full name: {full_name}", f"Role: {role}"]
+
+    if role == "student":
+        context_lines.append(f"College / Institution: {body.get('institution') or ''}")
+        context_lines.append(f"Education level: {body.get('education_level') or ''}")
+        context_lines.append(f"Career goal: {body.get('career_goal') or ''}")
+        interests = body.get("interests") or []
+        skills = body.get("skills") or []
+        if interests:
+            context_lines.append(f"Interests: {', '.join(interests if isinstance(interests, list) else [interests])}")
+        if skills:
+            context_lines.append(f"Skills: {', '.join(skills if isinstance(skills, list) else [skills])}")
+    elif role == "mentor":
+        context_lines.append(f"Organization: {body.get('organization') or ''}")
+        context_lines.append(f"Job title: {body.get('job_title') or ''}")
+        context_lines.append(f"Mentor category: {body.get('mentor_category') or ''}")
+        expertise = body.get("expertise") or body.get("skills") or []
+        if expertise:
+            context_lines.append(f"Expertise: {', '.join(expertise if isinstance(expertise, list) else [expertise])}")
+    elif role == "alumni":
+        context_lines.append(f"Organization: {body.get('organization') or ''}")
+        context_lines.append(f"Job title: {body.get('job_title') or ''}")
+        context_lines.append(f"College / University: {body.get('institution') or ''}")
+        context_lines.append(f"Graduation year: {body.get('graduation_year') or ''}")
+        context_lines.append(f"Employment status: {body.get('employment_status') or ''}")
+        interests = body.get("interests") or []
+        if interests:
+            context_lines.append(f"Interests: {', '.join(interests if isinstance(interests, list) else [interests])}")
+    elif role == "college" or role == "institution":
+        context_lines.append(f"Institution name: {body.get('institution_name') or body.get('institution') or ''}")
+        context_lines.append(f"Location: {body.get('location') or ''}")
+        context_lines.append(f"Institution type: {body.get('institution_type') or ''}")
+
+    if existing_bio:
+        context_lines.append(f"Existing draft: {existing_bio}")
+
+    style_guidance = {
+        "friendly & warm": "Make it approachable, heartfelt, and conversational.",
+        "professional": "Keep it polished, confident, and career-focused.",
+        "inspiring": "Use aspirational language that motivates the reader.",
+        "concise": "Be brief and direct — 1–2 tight sentences.",
+        "detailed": "Include specific accomplishments, skills, or background details.",
+    }
+    style_instruction = style_guidance.get(writing_style.lower(), "Keep it natural and genuine.")
+
+    system_msg = (
+        "You are a professional bio writer for the Student Alumni platform. "
+        "Write a short 2–3 sentence personalised bio based on the user's profile information. "
+        f"{style_instruction} "
+        "Output only the bio text — no prefixes, no markdown, no quotation marks around the text."
+    )
+    prompt = (
+        f"Generate a {writing_style or 'natural'} bio for this user.\n\n"
+        + "\n".join(context_lines)
+        + "\n\nBio:"
+    )
+
+    try:
+        from emergentintegrations.llm.chat import UserMessage
+        chat = await get_claude_chat(f"bio-{user['_id']}", system_msg)
+        bio_text = await chat.send_message(UserMessage(text=prompt))
+        bio_text = (bio_text or "").strip().strip('"').strip()
+        if not bio_text:
+            raise ValueError("empty response")
+    except Exception as e:
+        logger.error(f"generate-bio AI failed: {e}")
+        
+        name_first = full_name.split(' ')[0] if full_name else ""
+        name_display = name_first or ("An enthusiastic platform member" if role == "student" else "A dedicated professional")
+        
+        # Extracted variables with defaults
+        inst = body.get('institution') or body.get('institution_name') or "our premier institution"
+        edu = body.get('education_level') or "studies"
+        goal = body.get('career_goal') or "achieving high impact"
+        org = body.get('organization') or "our organization"
+        title = body.get('job_title') or "Expert"
+        
+        # Format list to readable string
+        def format_list(lst):
+            if not lst:
+                return ""
+            if isinstance(lst, str):
+                return lst
+            if len(lst) == 1:
+                return lst[0]
+            if len(lst) == 2:
+                return f"{lst[0]} and {lst[1]}"
+            return f"{', '.join(lst[:-1])}, and {lst[-1]}"
+            
+        skills_str = format_list(body.get('skills') or body.get('expertise') or [])
+        ints_str = format_list(body.get('interests') or [])
+        
+        bio_templates = {}
+        
+        if role == "student":
+            bio_templates = {
+                "friendly & warm": (
+                    f"Hi! I'm {name_display}, currently pursuing my {edu} at {inst}. "
+                    f"I'm super passionate about {skills_str or 'learning new things'} and love exploring {ints_str or 'new technologies'}. "
+                    f"I'd love to connect with mentors and peers to help me with my goal of {goal.lower()}!"
+                ),
+                "professional": (
+                    f"{full_name or 'A dedicated student'} is a driven {edu} candidate at {inst}. "
+                    f"Equipped with strong skills in {skills_str or 'problem solving'}, they are committed to {goal.lower()}. "
+                    f"They seek to collaborate with industry professionals to drive innovation and professional growth."
+                ),
+                "inspiring": (
+                    f"Believer in the power of education and technology to change the world. "
+                    f"I'm {name_display}, studying at {inst} and honing my skills in {skills_str or 'collaboration'}. "
+                    f"My ultimate mission is {goal.lower()} and making a lasting difference in the industry!"
+                ),
+                "concise": (
+                    f"{full_name or 'Dedicated student'} — pursuing {edu} at {inst}. "
+                    f"Skilled in {skills_str or 'innovation'} and focused on {goal.lower()}."
+                ),
+                "detailed": (
+                    f"As a {edu} student at {inst}, I am actively building my expertise in {skills_str or 'key technologies'}. "
+                    f"With interests spanning {ints_str or 'various domains'}, my academic journey is geared towards {goal.lower()}. "
+                    f"I look forward to networking with alumni and industry leaders to create meaningful professional opportunities."
+                )
+            }
+        elif role == "mentor":
+            category = body.get('mentor_category') or "mentorship"
+            bio_templates = {
+                "friendly & warm": (
+                    f"Hello! I'm {name_display}, working as a {title} at {org}. "
+                    f"I specialize in {skills_str or category} and love helping the next generation. "
+                    f"Always open for a friendly chat, virtual coffee, and sharing guidance to help you grow!"
+                ),
+                "professional": (
+                    f"{full_name or 'An experienced mentor'} is an accomplished {title} at {org}. "
+                    f"With deep expertise in {skills_str or 'industry practices'}, they focus on {category}. "
+                    f"Dedicated to fostering professional growth and guiding students toward career readiness."
+                ),
+                "inspiring": (
+                    f"Passionate about unlocking potential and fostering the leaders of tomorrow. "
+                    f"I'm {name_display}, leveraging my experience as a {title} at {org} to guide aspiring talent. "
+                    f"Let's work together to turn career aspirations into impactful realities!"
+                ),
+                "concise": (
+                    f"{full_name or 'Expert mentor'} — {title} at {org}. "
+                    f"Specializing in {skills_str or category} and dedicated to professional mentorship."
+                ),
+                "detailed": (
+                    f"Serving as a {title} at {org}, I bring specialized knowledge in {skills_str or 'domain expertise'}. "
+                    f"My professional background in {category} enables me to offer structured guidance to students. "
+                    f"I am eager to share insights, review career paths, and support the academic community through active mentorship."
+                )
+            }
+        elif role == "alumni":
+            bio_templates = {
+                "friendly & warm": (
+                    f"Hey there! I'm {name_display}, proud graduate of {inst} class of {body.get('graduation_year') or 'recent years'}. "
+                    f"Currently, I'm working as a {title} at {org} while keeping active in {skills_str or 'development'}. "
+                    f"I'm always excited to give back to my alma mater and connect with current students!"
+                ),
+                "professional": (
+                    f"{full_name or 'An alumni member'} is an alumnus of {inst} and currently serves as a {title} at {org}. "
+                    f"Their background includes strong capabilities in {skills_str or 'industry skills'}. "
+                    f"They are keen to connect with fellow alumni and assist students with transition from campus to corporate life."
+                ),
+                "inspiring": (
+                    f"Proud {inst} alumnus, currently pushing boundaries as a {title} at {org}. "
+                    f"My journey taught me that mentorship and lifelong learning are keys to success. "
+                    f"I am eager to share my experiences and inspire the next wave of students to achieve greatness!"
+                ),
+                "concise": (
+                    f"{full_name or 'Alumni graduate'} — {title} at {org} and alumnus of {inst}. "
+                    f"Skilled in {skills_str or 'technology'} and passionate about networking."
+                ),
+                "detailed": (
+                    f"Graduated from {inst}, I now apply my skills as a {title} at {org}. "
+                    f"Specializing in {skills_str or 'various domains'}, I maintain a strong interest in {ints_str or 'professional networking'}. "
+                    f"I look forward to sharing placements insights and supporting campus career initiatives on this platform."
+                )
+            }
+        elif role in ["college", "institution"]:
+            loc = body.get('location') or "India"
+            itype = body.get('institution_type') or "institution"
+            bio_templates = {
+                "friendly & warm": (
+                    f"Welcome to {full_name or 'our institution'} located in {loc}! "
+                    f"We are a leading {itype} dedicated to providing a vibrant, supportive learning environment. "
+                    f"Our community brings students and alumni together to collaborate and build successful futures."
+                ),
+                "professional": (
+                    f"{full_name or 'Our premier college'} is a distinguished {itype} situated in {loc}. "
+                    f"We focus on academic excellence, state-of-the-art facilities, and strong industry collaboration. "
+                    f"We are committed to nurturing talent and empowering our students for global career readiness."
+                ),
+                "inspiring": (
+                    f"Shaping minds and building futures at {full_name or 'our campus'} in {loc}. "
+                    f"As a premier {itype}, we believe in holistic education, innovation, and strong community roots. "
+                    f"Join us in our mission to inspire learning and foster the leaders of tomorrow!"
+                ),
+                "concise": (
+                    f"{full_name or 'Premier institution'} — leading {itype} in {loc}. "
+                    f"Committed to academic excellence and comprehensive career outcomes."
+                ),
+                "detailed": (
+                    f"Established as a premier {itype} in {loc}, {full_name or 'our institution'} is dedicated to high-quality education. "
+                    f"We offer comprehensive placement programs, strong alumni networks, and deep industry integration. "
+                    f"Our goal is to prepare students to meet global challenges through robust academics and active mentorship."
+                )
+            }
+        else:
+            bio_templates = {
+                "friendly & warm": f"Hi! I'm {name_display}. I'm friendly, warm, and passionate about making connections and building community.",
+                "professional": f"{full_name or 'A dedicated professional'} is focused on delivering excellence and bringing professional values to their work.",
+                "inspiring": f"Driven by purpose and passion, I believe in inspiring others and making a positive difference every single day.",
+                "concise": f"{full_name or 'Dedicated professional'} — passionate about impact, growth, and excellence.",
+                "detailed": f"I am a committed professional with a diverse background. I actively leverage my skills to solve complex problems, collaborate effectively, and drive growth."
+            }
+
+        bio_text = bio_templates.get(writing_style.lower(), bio_templates.get("professional", existing_bio or (
+            f"{full_name.split(' ')[0] if full_name else 'A dedicated professional'} — "
+            f"passionate about making an impact in their field."
+        )))
+
+    return {"bio": bio_text}
+
+
+# ----------------------------------------------------------------------------
+# Catalog Endpoints (8 dashboard modules)
+# ----------------------------------------------------------------------------
+@api_router.get("/catalog/courses")
+async def list_courses(career_path: Optional[str] = None, limit: int = 20):
+    """Module 3: Courses (MIT, Harvard, K12, Coursera, etc.)"""
+    query = {"career_paths": career_path} if career_path else {}
+    items = await db.courses.find(query, {"_id": 0}).limit(limit).to_list(limit)
+    return {"courses": items}
+
+
+@api_router.get("/catalog/mentors")
+async def list_mentors(career_path: Optional[str] = None, limit: int = 20):
+    """Mentor discovery — only APPROVED mentors are visible to students."""
+    user_q = {"role": "mentor", "mentor_status": "approved"}
+    sample_q: dict = {}
+    if career_path:
+        user_q["mentor_info.category"] = _path_to_mentor_cat(career_path)
+        sample_q["expertise"] = career_path
+    real = await db.users.find(user_q, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).limit(limit).to_list(limit)
+    for m in real:
+        m["id"] = str(m["_id"])
+        m.pop("_id", None)
+        mr = m.get("mentor_rating", {})
+        m["rating"] = mr.get("rating", mr.get("average", 5.0))
+        m["total_reviews"] = mr.get("total_reviews", mr.get("total", 0))
+    sample = await db.sample_mentors.find(sample_q, {"_id": 0}).limit(limit).to_list(limit)
+    return {"mentors": real + sample}
+
+>>>>>>> 8e92791b (Save local progress before merge)
 
 def _path_to_mentor_cat(path: str) -> str:
     """Map career_path → mentor category for matching logic.
