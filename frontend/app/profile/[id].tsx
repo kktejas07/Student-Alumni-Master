@@ -191,26 +191,58 @@ export default function ProfileSocialView() {
                     <Calendar size={14} color="#fff" /><Text style={styles.btnTextWhite}>Book Session</Text>
                   </Pressable>
                 ) : (
-                  <Pressable 
-                    onPress={async () => {
-                      if (isPending) return;
-                      try {
-                        setIsPending(true);
-                        await api.sendConnectionRequest(profile.id);
-                        showToast('Connection request sent ✓');
-                      } catch (e: any) {
-                        showToast(e.message || 'Failed to send request');
-                        setIsPending(false);
-                      }
-                    }} 
-                    style={[styles.btn, isPending ? styles.btnGhost : styles.btnPrimary, isPending && { opacity: 0.7 }]} 
-                    testID="psv-connect"
-                  >
-                    <UserPlus size={14} color={isPending ? C.text2 : "#fff"} />
-                    <Text style={isPending ? styles.btnTextLight : styles.btnTextWhite}>
-                      {isPending ? 'Pending' : 'Connect'}
-                    </Text>
-                  </Pressable>
+                  profile.connection_state === 'connected' ? (
+                    <View style={[styles.btn, { backgroundColor: 'rgba(16,185,129,0.16)', borderColor: 'rgba(16,185,129,0.40)', borderWidth: 1 }]} testID="psv-connected">
+                      <Check size={14} color="#10B981" />
+                      <Text style={[styles.btnTextWhite, { color: '#10B981' }]}>Connected</Text>
+                    </View>
+                  ) : profile.connection_state === 'pending' ? (
+                    <View style={[styles.btn, { backgroundColor: 'rgba(245,158,11,0.16)', borderColor: 'rgba(245,158,11,0.40)', borderWidth: 1 }]} testID="psv-pending">
+                      <Clock size={14} color="#F59E0B" />
+                      <Text style={[styles.btnTextWhite, { color: '#F59E0B' }]}>Pending</Text>
+                    </View>
+                  ) : profile.connection_state === 'incoming' ? (
+                    <Pressable
+                      onPress={async () => {
+                        try {
+                          await api.acceptConnection(profile.id);
+                          showToast('Connected!');
+                          setProfile((p: any) => p ? { ...p, connection_state: 'connected' } : null);
+                        } catch {
+                          showToast('Failed to accept');
+                        }
+                      }}
+                      style={[styles.btn, styles.btnPrimary]}
+                      testID="psv-accept"
+                    >
+                      <Check size={14} color="#fff" />
+                      <Text style={styles.btnTextWhite}>Accept Connection</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable
+                      onPress={async () => {
+                        // Optimistically set to pending
+                        setProfile((p: any) => p ? { ...p, connection_state: 'pending' } : null);
+                        try {
+                          const r = await api.sendConnectionRequest(profile.id);
+                          if (r?.action === 'auto_accepted') {
+                            setProfile((p: any) => p ? { ...p, connection_state: 'connected' } : null);
+                            showToast('Connected!');
+                          } else {
+                            showToast('Request sent ✓');
+                          }
+                        } catch {
+                          setProfile((p: any) => p ? { ...p, connection_state: 'none' } : null);
+                          showToast('Failed to connect');
+                        }
+                      }}
+                      style={[styles.btn, styles.btnPrimary]}
+                      testID="psv-connect"
+                    >
+                      <UserPlus size={14} color="#fff" />
+                      <Text style={styles.btnTextWhite}>Connect</Text>
+                    </Pressable>
+                  )
                 )}
                 <Pressable onPress={() => showToast('Direct messages coming soon ✨')} style={[styles.btn, styles.btnGhost]} testID="psv-message">
                   <MessageSquare size={14} color={C.text} /><Text style={styles.btnTextLight}>Message</Text>
