@@ -1080,31 +1080,52 @@ async def college_admin_stats(college_name: Optional[str] = None):
             {"dept": "Design",           "pct": 96, "placed":  43, "color": "#A78BFA"},
         ]
 
-    # Recent activity from bookings + events
+    # Recent activity from new students + events
     recent = []
-    rb_cur = _db.bookings.find().sort("created_at", -1).limit(3)
-    async for b in rb_cur:
+    
+    # New students/alumni joined
+    user_cur = _db.users.find({
+        "$or": [
+            {"school_info.institution_name": college_name},
+            {"institution": college_name},
+            {"college": college_name}
+        ],
+        "role": {"$in": ["student", "alumni"]}
+    }).sort("_id", -1).limit(4)
+    async for u in user_cur:
+        role_label = u.get("role", "user").capitalize()
         recent.append({
-            "id": _short_id(b.get("_id")),
-            "kind": "booking",
-            "text": f"Mentor session booked — {b.get('topic', 'Career')}",
-            "time": (b.get("created_at") or datetime.utcnow()).strftime("%b %d, %H:%M") if isinstance(b.get("created_at"), datetime) else "—",
-            "icon": "Briefcase",
+            "id": _short_id(u.get("_id")),
+            "kind": "user",
+            "text": f"New {role_label} joined — {u.get('full_name', 'Student')}",
+            "time": (u.get("created_at") or datetime.utcnow()).strftime("%b %d") if isinstance(u.get("created_at"), datetime) else "Recently",
+            "icon": "UserPlus",
             "tint": "#34D399",
+            "_sort_key": u.get("created_at") or datetime.min
         })
-    ev_cur = _db.events.find().sort("registration_deadline", -1).limit(3)
+
+    ev_cur = _db.events.find({"college_name": college_name}).sort("created_at", -1).limit(3)
     async for ev in ev_cur:
         recent.append({
             "id": _short_id(ev.get("_id")),
             "kind": "event",
-            "text": f"{ev.get('title', 'Event')} — {ev.get('category', 'Event')}",
-            "time": "Recently",
+            "text": f"Event created — {ev.get('title', 'Event')}",
+            "time": (ev.get("created_at") or datetime.utcnow()).strftime("%b %d") if isinstance(ev.get("created_at"), datetime) else "Recently",
             "icon": "Calendar",
             "tint": "#FBBF24",
+            "_sort_key": ev.get("created_at") or datetime.min
         })
+        
+    recent.sort(key=lambda x: x["_sort_key"], reverse=True)
+    for r in recent:
+        r.pop("_sort_key", None)
+    recent = recent[:5]
 
     # Upcoming events
-    upcoming_cur = _db.events.find({"start_date": {"$gte": datetime.now(timezone.utc)}}).sort("start_date", 1).limit(4)
+    upcoming_cur = _db.events.find({
+        "$or": [{"college_name": college_name}, {"college_name": None}],
+        "start_date": {"$gte": datetime.now(timezone.utc)}
+    }).sort("start_date", 1).limit(4)
     upcoming = []
     async for ev in upcoming_cur:
         sd = ev.get("start_date")
