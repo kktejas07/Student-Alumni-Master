@@ -104,6 +104,7 @@ export default function AlumniOnboard() {
   const user = useAuthStore((u) => u.user);
   const refreshUser = useAuthStore((u) => u.refreshUser);
   const [step, setStep] = useState(params.step ? parseInt(params.step, 10) : 0);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (params.step) {
@@ -236,6 +237,8 @@ export default function AlumniOnboard() {
   };
 
   const submitOnboarding = async () => {
+    if (submitting) return;
+    setSubmitting(true);
     try {
       const gy = parseInt(gradYear || '0', 10) || CURRENT_YEAR;
       const payload: any = {
@@ -276,6 +279,8 @@ export default function AlumniOnboard() {
       router.push({ pathname: '/(onboarding)/member-id', params: { from: 'onboarding' } } as any);
     } catch (e: any) {
       toast.error('Setup failed', e?.message || 'Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -542,7 +547,7 @@ export default function AlumniOnboard() {
           <ArrowLeft size={18} color="#FFF" />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <PrimaryButton label={ctaLabel} onPress={onContinue} />
+          <PrimaryButton label={ctaLabel} onPress={onContinue} loading={submitting} disabled={submitting} />
         </View>
       </View>
       <WebcamModal

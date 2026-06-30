@@ -129,6 +129,7 @@ export default function MentorOnboard() {
   const user = useAuthStore((u) => u.user);
   const refreshUser = useAuthStore((u) => u.refreshUser);
   const [step, setStep] = useState(params.step ? parseInt(params.step, 10) : 0);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (params.step) {
@@ -271,6 +272,8 @@ export default function MentorOnboard() {
   };
 
   const submitOnboarding = async () => {
+    if (submitting) return;
+    setSubmitting(true);
     try {
       const primary = (archetypes[0] || 'career_coach') as any;
       const payload: any = {
@@ -309,6 +312,8 @@ export default function MentorOnboard() {
       router.push(`/(auth)/email-verify?email=${encodeURIComponent(user?.email || '')}` as any);
     } catch (e: any) {
       toast.error('Setup failed', e?.message || 'Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -612,7 +617,7 @@ export default function MentorOnboard() {
           </Pressable>
         ) : <View style={{ width: 42 }} />}
         <View style={{ flex: 1 }}>
-          <PrimaryButton label={step === TOTAL - 1 ? 'See My Member ID →' : 'Continue →'} onPress={onContinue} />
+          <PrimaryButton label={step === TOTAL - 1 ? 'See My Member ID →' : 'Continue →'} onPress={onContinue} loading={submitting} disabled={submitting} />
         </View>
       </View>
       <WebcamModal

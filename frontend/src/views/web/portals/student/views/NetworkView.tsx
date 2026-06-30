@@ -45,8 +45,6 @@ function LinkedinGlyph({ size = 14, color = '#fff' }: { size?: number; color?: s
   );
 }
 
-
-
 export function NetworkView() {
   const toast = useToast();
   const router = useRouter();
@@ -60,7 +58,6 @@ export function NetworkView() {
   const [discoverSections, setDiscoverSections] = useState<any[]>([]);
   const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
   const [sentRequests, setSentRequests] = useState<any[]>([]);
-  const [connectionsList, setConnectionsList] = useState<any[]>([]);
   const [showMatchedInterest, setShowMatchedInterest] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -230,23 +227,13 @@ export function NetworkView() {
     ? `/student/network?student_email=${encodeURIComponent(authUser.email)}&page=${networkPage}&per_page=24`
     : `/student/network?page=${networkPage}&per_page=24`;
 
-  const fetchNetworkData = async (isRefresh: boolean = false) => {
-    try {
-      const res = await request<any>(path);
-      setNetworkData(res);
-      setNetworkPages(res.pages || 1);
-    } catch (e: any) {
-      if (!isRefresh) {
-        setNetworkData({ items: [] });
-      } else {
-        toast.error('Refresh Failed', e?.message || 'Could not sync latest network data.');
-      }
-    }
-  };
-
   useEffect(() => {
     setLoading(true);
-    fetchNetworkData(false).finally(() => setLoading(false));
+    request<any>(path).then(res => {
+      setNetworkData(res);
+      setNetworkPages(res.pages || 1);
+    }).catch(() => setNetworkData({ items: [] }))
+    .finally(() => setLoading(false));
   }, [authUser?.email, networkPage]);
 
 
@@ -295,41 +282,10 @@ export function NetworkView() {
     }
   };
 
-  const loadConnections = async () => {
-    try {
-      const res = await api.networkConnections();
-      const normalizeConn = (req: any) => {
-        const role = req.role || 'student';
-        const name = req.full_name || req.name || 'Anonymous';
-        const avatar = req.avatar || (name.split(' ').slice(0, 2).map((p: any) => p[0] || '').join('').toUpperCase());
-        const color = req.color || '#14B8A6';
-        const company = req.organization || req.company || '';
-        const college = req.institution || req.college || '';
-        const jobTitle = req.job_title || req.branch || '';
-
-        return {
-          id: req.id || req._id,
-          name,
-          initials: avatar,
-          color,
-          kind: role,
-          role: jobTitle || role,
-          company: company || college,
-          mutual: req.mutual || 0,
-          tags: req.skills || req.interests || [],
-          connectionState: 'connected'
-        };
-      };
-      setConnectionsList((res?.items || []).map(normalizeConn));
-    } catch (e) {
-      console.warn('Failed to load connections:', e);
-    }
-  };
-
   useEffect(() => {
     const init = async () => {
       setLoading(true);
-      await Promise.all([loadDiscover(), loadRequests(), loadConnections()]);
+      await Promise.all([loadDiscover(), loadRequests()]);
       setLoading(false);
     };
     init();
@@ -349,8 +305,6 @@ export function NetworkView() {
       await api.acceptConnection(id);
       toast.success('Connection Accepted! 🎉', `${name} is now connected with you.`);
       await loadRequests();
-      await loadConnections();
-      await fetchNetworkData(true);
     } catch (e: any) {
       toast.error('Failed to accept request', e.message || 'Please try again.');
     }
@@ -363,6 +317,30 @@ export function NetworkView() {
       await loadRequests();
     } catch (e: any) {
       toast.error('Failed to ignore request', e.message || 'Please try again.');
+    }
+  };
+
+  const handleWithdrawRequest = async (id: string, name: string) => {
+    try {
+      await api.withdrawConnection(id);
+      toast.success('Invite Withdrawn', `Connection request to ${name} has been withdrawn.`);
+      
+      setDiscoverSections(prev => prev.map(section => ({
+        ...section,
+        items: section.items.map((item: any) =>
+          item.id === id
+            ? { ...item, connection_state: 'none', connectionState: 'none' }
+            : item
+        )
+      })));
+
+      setLocalSent((s) => s.filter(x => x !== id));
+
+      setPickedPerson(prev => prev && prev.id === id ? { ...prev, connectionState: 'none', connection_state: 'none' } : prev);
+
+      await loadRequests();
+    } catch (e: any) {
+      toast.error('Failed to withdraw request', e.message || 'Please try again.');
     }
   };
 
@@ -451,6 +429,9 @@ export function NetworkView() {
   const visibleStudents = useMemo(() => studentsList.slice(0, studentLimit), [studentsList, studentLimit]);
 
   // Connections Tab: Accepted relationships
+  const connectionsList = useMemo(() => {
+    return filteredList.filter(p => p.connectionState === 'connected');
+  }, [filteredList]);
 
   // Connection invitations sender
   const handleConnect = async (id: string, name: string) => {
@@ -710,9 +691,26 @@ export function NetworkView() {
                             <Text style={[s.draftMsgBtnText, { color: '#86EFAC' }]}>Connected</Text>
                           </View>
                         ) : person.connectionState === 'pending' || localSent.includes(person.id) ? (
-                          <View style={[s.draftMsgBtn, { borderColor: 'rgba(245,158,11,0.3)', backgroundColor: 'rgba(245,158,11,0.06)' }]}>
-                            <Clock size={12} color="#FDE047" style={{ marginRight: 6 }} />
-                            <Text style={[s.draftMsgBtnText, { color: '#FDE047' }]}>Pending Invite</Text>
+                          <View style={{ flexDirection: 'row', gap: 6, width: '100%' }}>
+                            <View style={[s.draftMsgBtn, { flex: 1, borderColor: 'rgba(245,158,11,0.3)', backgroundColor: 'rgba(245,158,11,0.06)' }]}>
+                              <Clock size={12} color="#FDE047" style={{ marginRight: 6 }} />
+                              <Text style={[s.draftMsgBtnText, { color: '#FDE047' }]}>Pending</Text>
+                            </View>
+                            <Pressable 
+                              onPress={() => handleWithdrawRequest(person.id, person.name)}
+                              style={({ hovered }: any) => [
+                                s.draftMsgBtn, 
+                                { 
+                                  flex: 1, 
+                                  borderColor: 'rgba(239,68,68,0.3)', 
+                                  backgroundColor: 'rgba(239,68,68,0.06)' 
+                                },
+                                hovered && { backgroundColor: 'rgba(239,68,68,0.12)', borderColor: 'rgba(239,68,68,0.5)' }
+                              ]}
+                            >
+                              <X size={12} color="#FCA5A5" style={{ marginRight: 6 }} />
+                              <Text style={[s.draftMsgBtnText, { color: '#FCA5A5' }]}>Withdraw</Text>
+                            </Pressable>
                           </View>
                         ) : person.connectionState === 'incoming' ? (
                           <Pressable 
@@ -1103,7 +1101,7 @@ export function NetworkView() {
             </View>
             {pickedPerson && (() => {
               const isConnected = conn.includes(pickedPerson.id) || pickedPerson.connectionState === 'connected';
-              const isPending = pending.includes(pickedPerson.id) || pickedPerson.connectionState === 'pending';
+              const isPending = pending.includes(pickedPerson.id) || pickedPerson.connectionState === 'pending' || localSent.includes(pickedPerson.id);
               const nameInitials = pickedPerson.initials;
               const titleLine = pickedPerson.role || pickedPerson.subline || 'Member';
               const collegeLine = pickedPerson.company || pickedPerson.college || '';
@@ -1191,34 +1189,74 @@ export function NetworkView() {
                   {/* Connection / Booking Action Button. */}
                   <View style={{ marginTop: 8 }}>
                     {pickedPerson.kind === 'mentor' ? (
-                      <View style={{ flexDirection: 'row', gap: 10 }}>
+                      <View style={{ gap: 10 }}>
                         {isConnected ? (
-                          <View style={[s.connectedPillLarge, { flex: 1 }]}>
-                            <Check size={16} color={SC.green} style={{ marginRight: 6 }} />
-                            <Text style={{ color: SC.green, fontFamily: FONTS.bold, fontSize: 14 }}>Connected</Text>
+                          <View style={{ flexDirection: 'row', gap: 10 }}>
+                            <View style={[s.connectedPillLarge, { flex: 1 }]}>
+                              <Check size={16} color={SC.green} style={{ marginRight: 6 }} />
+                              <Text style={{ color: SC.green, fontFamily: FONTS.bold, fontSize: 14 }}>Connected</Text>
+                            </View>
+                            <Pressable 
+                              onPress={() => handleOpenBooking(pickedPerson)} 
+                              style={[s.bookBtnLarge, { flex: 1.2 }]}
+                            >
+                              <Calendar size={16} color="#fff" style={{ marginRight: 8 }} />
+                              <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 }}>Book Session</Text>
+                            </Pressable>
                           </View>
                         ) : isPending ? (
-                          <View style={[s.pendingPillLarge, { flex: 1 }]}>
-                            <Clock size={16} color={SC.amber} style={{ marginRight: 6 }} />
-                            <Text style={{ color: SC.amber, fontFamily: FONTS.bold, fontSize: 14 }}>Pending</Text>
+                          <View style={{ gap: 10 }}>
+                            <View style={{ flexDirection: 'row', gap: 10 }}>
+                              <View style={[s.pendingPillLarge, { flex: 1, height: 44 }]}>
+                                <Clock size={16} color={SC.amber} style={{ marginRight: 6 }} />
+                                <Text style={{ color: SC.amber, fontFamily: FONTS.bold, fontSize: 14 }}>Pending</Text>
+                              </View>
+                              <Pressable 
+                                onPress={() => {
+                                  setPickedPerson(null);
+                                  handleWithdrawRequest(pickedPerson.id, pickedPerson.name);
+                                }}
+                                style={({ hovered }: any) => [
+                                  s.pendingPillLarge, 
+                                  { 
+                                    flex: 1, 
+                                    height: 44,
+                                    backgroundColor: 'rgba(239, 68, 68, 0.08)', 
+                                    borderColor: 'rgba(239, 68, 68, 0.25)' 
+                                  },
+                                  hovered && { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.4)' }
+                                ]}
+                              >
+                                <X size={16} color="#FCA5A5" style={{ marginRight: 6 }} />
+                                <Text style={{ color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 14 }}>Withdraw Invite</Text>
+                              </Pressable>
+                            </View>
+                            <Pressable 
+                              onPress={() => handleOpenBooking(pickedPerson)} 
+                              style={[s.bookBtnLarge, { width: '100%' }]}
+                            >
+                              <Calendar size={16} color="#fff" style={{ marginRight: 8 }} />
+                              <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 }}>Book Session</Text>
+                            </Pressable>
                           </View>
                         ) : (
-                          <Pressable 
-                            onPress={() => handleConnect(pickedPerson.id, pickedPerson.name)} 
-                            style={[s.connectBtnLarge, { flex: 1, backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)' }]}
-                          >
-                            <UserPlus size={16} color={SC.accentBright} style={{ marginRight: 6 }} />
-                            <Text style={{ color: SC.accentBright, fontFamily: FONTS.xbold, fontSize: 14 }}>Connect</Text>
-                          </Pressable>
+                          <View style={{ flexDirection: 'row', gap: 10 }}>
+                            <Pressable 
+                              onPress={() => handleConnect(pickedPerson.id, pickedPerson.name)} 
+                              style={[s.connectBtnLarge, { flex: 1, backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)' }]}
+                            >
+                              <UserPlus size={16} color={SC.accentBright} style={{ marginRight: 6 }} />
+                              <Text style={{ color: SC.accentBright, fontFamily: FONTS.xbold, fontSize: 14 }}>Connect</Text>
+                            </Pressable>
+                            <Pressable 
+                              onPress={() => handleOpenBooking(pickedPerson)} 
+                              style={[s.bookBtnLarge, { flex: 1.2 }]}
+                            >
+                              <Calendar size={16} color="#fff" style={{ marginRight: 8 }} />
+                              <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 }}>Book Session</Text>
+                            </Pressable>
+                          </View>
                         )}
-                        
-                        <Pressable 
-                          onPress={() => handleOpenBooking(pickedPerson)} 
-                          style={[s.bookBtnLarge, { flex: 1.2 }]}
-                        >
-                          <Calendar size={16} color="#fff" style={{ marginRight: 8 }} />
-                          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 14 }}>Book Session</Text>
-                        </Pressable>
                       </View>
                     ) : isConnected ? (
                       <View style={s.connectedPillLarge}>
@@ -1226,9 +1264,29 @@ export function NetworkView() {
                         <Text style={{ color: SC.green, fontFamily: FONTS.bold, fontSize: 14 }}>Connected</Text>
                       </View>
                     ) : isPending ? (
-                      <View style={s.pendingPillLarge}>
-                        <Clock size={16} color={SC.amber} style={{ marginRight: 6 }} />
-                        <Text style={{ color: SC.amber, fontFamily: FONTS.bold, fontSize: 14 }}>Request Pending</Text>
+                      <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+                        <View style={[s.pendingPillLarge, { flex: 1 }]}>
+                          <Clock size={16} color={SC.amber} style={{ marginRight: 6 }} />
+                          <Text style={{ color: SC.amber, fontFamily: FONTS.bold, fontSize: 14 }}>Request Pending</Text>
+                        </View>
+                        <Pressable 
+                          onPress={() => {
+                            setPickedPerson(null);
+                            handleWithdrawRequest(pickedPerson.id, pickedPerson.name);
+                          }}
+                          style={({ hovered }: any) => [
+                            s.pendingPillLarge, 
+                            { 
+                              flex: 1, 
+                              backgroundColor: 'rgba(239, 68, 68, 0.08)', 
+                              borderColor: 'rgba(239, 68, 68, 0.25)' 
+                            },
+                            hovered && { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.4)' }
+                          ]}
+                        >
+                          <X size={16} color="#FCA5A5" style={{ marginRight: 6 }} />
+                          <Text style={{ color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 14 }}>Withdraw Invite</Text>
+                        </Pressable>
                       </View>
                     ) : (
                       <Pressable 

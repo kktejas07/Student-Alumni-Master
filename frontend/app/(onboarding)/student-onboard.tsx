@@ -88,6 +88,7 @@ export default function StudentOnboard() {
   const user = useAuthStore((u) => u.user);
   const refreshUser = useAuthStore((u) => u.refreshUser);
   const [step, setStep] = useState(params.step ? parseInt(params.step, 10) : 0);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (params.step) {
@@ -198,6 +199,8 @@ export default function StudentOnboard() {
   };
 
   const submitOnboarding = async () => {
+    if (submitting) return;
+    setSubmitting(true);
     try {
       const payload: any = {
         school_info: {
@@ -228,6 +231,8 @@ export default function StudentOnboard() {
       router.push({ pathname: '/(onboarding)/member-id', params: { from: 'onboarding' } } as any);
     } catch (e: any) {
       toast.error('Setup failed', e?.message || 'Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -448,7 +453,7 @@ export default function StudentOnboard() {
           </Pressable>
         ) : <View style={{ width: 42 }} />}
         <View style={{ flex: 1 }}>
-          <PrimaryButton label={step === TOTAL - 1 ? 'See My Member ID →' : 'Continue →'} onPress={onContinue} />
+          <PrimaryButton label={step === TOTAL - 1 ? 'See My Member ID →' : 'Continue →'} onPress={onContinue} loading={submitting} disabled={submitting} />
         </View>
       </View>
       <WebcamModal

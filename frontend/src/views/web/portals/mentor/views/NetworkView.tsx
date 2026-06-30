@@ -512,6 +512,34 @@ export function NetworkView() {
     }
   };
 
+  const handleWithdrawRequest = async (id: string, name: string) => {
+    try {
+      await api.withdrawConnection(id);
+      toast.success('Invite Withdrawn', `Connection request to ${name} has been withdrawn.`);
+      
+      setDiscoverSections(prev => prev.map(section => ({
+        ...section,
+        items: section.items.map((item: any) =>
+          item.id === id
+            ? { ...item, connection_state: 'none', connectionState: 'none' }
+            : item
+        )
+      })));
+
+      setConnectionsList(prev => prev.map((item: any) =>
+        item.id === id
+          ? { ...item, connection_state: 'none', connectionState: 'none' }
+          : item
+      ));
+
+      setPickedPerson(prev => prev && prev.id === id ? { ...prev, connectionState: 'none', connection_state: 'none' } : prev);
+
+      await loadRequests();
+    } catch (e: any) {
+      toast.error('Failed to withdraw invitation', e.message || 'Please try again.');
+    }
+  };
+
   // Open connection dialog
   const openConnectDialog = (person: any) => {
     setConnectPerson(person);
@@ -1030,9 +1058,26 @@ export function NetworkView() {
                             <Text style={[s.draftMsgBtnText, { color: '#86EFAC' }]}>Connected</Text>
                           </View>
                         ) : person.connectionState === 'pending' ? (
-                          <View style={[s.draftMsgBtn, { borderColor: 'rgba(245,158,11,0.3)', backgroundColor: 'rgba(245,158,11,0.06)' }]}>
-                            <Clock size={12} color="#FDE047" style={{ marginRight: 6 }} />
-                            <Text style={[s.draftMsgBtnText, { color: '#FDE047' }]}>Pending Invite</Text>
+                          <View style={{ flexDirection: 'row', gap: 6, width: '100%' }}>
+                            <View style={[s.draftMsgBtn, { flex: 1, borderColor: 'rgba(245,158,11,0.3)', backgroundColor: 'rgba(245,158,11,0.06)' }]}>
+                              <Clock size={12} color="#FDE047" style={{ marginRight: 6 }} />
+                              <Text style={[s.draftMsgBtnText, { color: '#FDE047' }]}>Pending</Text>
+                            </View>
+                            <Pressable 
+                              onPress={() => handleWithdrawRequest(person.id, person.name)}
+                              style={({ hovered }: any) => [
+                                s.draftMsgBtn, 
+                                { 
+                                  flex: 1, 
+                                  borderColor: 'rgba(239,68,68,0.3)', 
+                                  backgroundColor: 'rgba(239,68,68,0.06)' 
+                                },
+                                hovered && { backgroundColor: 'rgba(239,68,68,0.12)', borderColor: 'rgba(239,68,68,0.5)' }
+                              ]}
+                            >
+                              <X size={12} color="#FCA5A5" style={{ marginRight: 6 }} />
+                              <Text style={[s.draftMsgBtnText, { color: '#FCA5A5' }]}>Withdraw</Text>
+                            </Pressable>
                           </View>
                         ) : person.connectionState === 'incoming' ? (
                           <Pressable 
@@ -1380,9 +1425,29 @@ export function NetworkView() {
                         <Text style={{ color: MC.tealP, fontFamily: FONTS.bold, fontSize: 14 }}>Connected</Text>
                       </View>
                     ) : isPending ? (
-                      <View style={s.pendingPillLarge}>
-                        <Clock size={16} color={MC.amber} style={{ marginRight: 6 }} />
-                        <Text style={{ color: MC.amber, fontFamily: FONTS.bold, fontSize: 14 }}>Request Pending</Text>
+                      <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+                        <View style={[s.pendingPillLarge, { flex: 1 }]}>
+                          <Clock size={16} color={MC.amber} style={{ marginRight: 6 }} />
+                          <Text style={{ color: MC.amber, fontFamily: FONTS.bold, fontSize: 14 }}>Request Pending</Text>
+                        </View>
+                        <Pressable 
+                          onPress={() => {
+                            setPickedPerson(null);
+                            handleWithdrawRequest(pickedPerson.id, pickedPerson.name);
+                          }}
+                          style={({ hovered }: any) => [
+                            s.pendingPillLarge, 
+                            { 
+                              flex: 1, 
+                              backgroundColor: 'rgba(239, 68, 68, 0.08)', 
+                              borderColor: 'rgba(239, 68, 68, 0.25)' 
+                            },
+                            hovered && { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.4)' }
+                          ]}
+                        >
+                          <X size={16} color="#FCA5A5" style={{ marginRight: 6 }} />
+                          <Text style={{ color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 14 }}>Withdraw Invite</Text>
+                        </Pressable>
                       </View>
                     ) : pickedPerson.connectionState === 'incoming' ? (
                       <Pressable 
