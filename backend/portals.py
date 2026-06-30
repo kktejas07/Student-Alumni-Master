@@ -2051,6 +2051,53 @@ async def college_alumni_list(college_name: Optional[str] = None, limit: int = 3
             "linkedin_url": a.get("linkedin_url") or "",
             "github_url": a.get("github_url") or "",
         })
+
+    if not out:
+        out = [
+            {
+                "id": "mock_alumni_1",
+                "name": "Ishaan Alumni",
+                "initials": "IA",
+                "batch": 2023,
+                "role": "SDE-2",
+                "company": "Amazon",
+                "city": "Bengaluru",
+                "donor": False,
+                "color": "#F59E0B",
+                "skills": ["AWS", "Node.js", "System Design"],
+                "linkedin_url": "https://linkedin.com",
+                "github_url": "https://github.com",
+            },
+            {
+                "id": "mock_alumni_2",
+                "name": "Riya Alumni",
+                "initials": "RA",
+                "batch": 2020,
+                "role": "Product Manager",
+                "company": "Google",
+                "city": "Hyderabad",
+                "donor": True,
+                "color": "#10B981",
+                "skills": ["Product Strategy", "Agile", "UX"],
+                "linkedin_url": "https://linkedin.com",
+                "github_url": "",
+            },
+            {
+                "id": "mock_alumni_3",
+                "name": "Aarav Test Alumni",
+                "initials": "AA",
+                "batch": 2022,
+                "role": "Data Scientist",
+                "company": "Microsoft",
+                "city": "Pune",
+                "donor": False,
+                "color": "#22D3EE",
+                "skills": ["Python", "Machine Learning", "SQL"],
+                "linkedin_url": "",
+                "github_url": "https://github.com",
+            }
+        ]
+
     return {"items": out, "college": college_name}
 
 
