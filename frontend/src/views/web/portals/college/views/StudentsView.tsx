@@ -146,6 +146,7 @@ export function StudentsView() {
             attendance: parseInt(attendanceVal, 10) || 0,
           }
         });
+        toast.success('Student Updated', 'The student record has been updated successfully.');
       } else {
         await postPortal('/college/students', {
           body: {
@@ -157,6 +158,7 @@ export function StudentsView() {
             attendance: parseInt(attendanceVal, 10) || 0,
           }
         });
+        toast.success('Student Added', 'The new student has been added to the roster.');
       }
       setModalVisible(false);
       setEditingStudent(null);
@@ -168,6 +170,7 @@ export function StudentsView() {
       setAttendanceVal('85');
       refresh();
     } catch {
+      toast.error('Error', 'Failed to save student.');
       // silent — keep modal open so user can retry
     } finally {
       setSubmitting(false);
