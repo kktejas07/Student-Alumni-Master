@@ -286,11 +286,12 @@ export function StudentsView() {
           body: fd,
         });
         if (resp.ok) {
+          toast.success('Upload Successful', 'Student data has been securely added to your roster.');
           refresh();
         } else {
-          alert('Failed to upload CSV');
+          toast.error('Upload Failed', 'Could not process the uploaded file.');
         }
-      } catch { alert('Upload error'); } finally { setUploading(false); }
+      } catch { toast.error('Error', 'Upload error'); } finally { setUploading(false); }
     };
     input.click();
   };
@@ -372,6 +373,7 @@ export function StudentsView() {
               color={list.length > 0 && selectedIds.size === list.length ? CC.primary : CC.dim}
             />
           </Pressable>
+          <Text style={[s.th, { width: 40, textAlign: 'center' }]}>S.No</Text>
           <Text style={[s.th, { flex: 2 }]}>Student</Text>
           <Text style={[s.th, { flex: 1 }]}>Dept</Text>
           <Text style={[s.th, { flex: 1 }]}>Year</Text>
@@ -386,8 +388,9 @@ export function StudentsView() {
             <MaterialCommunityIcons name="account-search" size={28} color={CC.dim} />
             <Text style={s.emptyText}>No students match these filters</Text>
           </View>
-        ) : list.map((st) => {
+        ) : list.map((st, index) => {
           const b = statusBadge(st.status);
+          const sno = (page - 1) * 20 + index + 1;
           return (
             <View key={st.id} style={s.row}>
               <Pressable
@@ -404,6 +407,7 @@ export function StudentsView() {
                   color={selectedIds.has(st.id) ? CC.primary : CC.dim}
                 />
               </Pressable>
+              <Text style={[s.cell, { width: 40, textAlign: 'center', color: CC.dim }]}>{sno}</Text>
               <View style={[{ flex: 2, flexDirection: 'row',
                               alignItems: 'center', gap: 10 }]}>
                 <Av initials={st.initials} size={32} color={st.color} />
