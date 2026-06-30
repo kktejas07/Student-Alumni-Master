@@ -2069,7 +2069,12 @@ async def college_career_intel(college_name: Optional[str] = None):
 
 
 @router.get("/student/events")
-async def student_events_list(student_email: Optional[str] = None, page: int = 1, per_page: int = 100):
+async def student_events_list(
+    student_email: Optional[str] = None,
+    page: int = 1,
+    per_page: int = 24,
+    sort_by: str = "upcoming"
+):
     """Events relevant to the student (with attendance status)."""
     student = None
     if student_email:
@@ -2078,14 +2083,100 @@ async def student_events_list(student_email: Optional[str] = None, page: int = 1
         student = await _db.users.find_one({"role": "student"})
     sid = str((student or {}).get("_id", ""))
 
-    cache_key = f"events_student_{sid}_p{page}"
+    cache_key = f"events_student_{sid}_p{page}_s{sort_by}"
     if cache_key in events_cache:
         return events_cache[cache_key]
 
-    total = await _db.events.count_documents({})
+    # Build DB query based on sort_by
+    now = datetime.utcnow()
+    
+    def to_naive(dt: datetime) -> datetime:
+        if dt.tzinfo is not None:
+            return dt.replace(tzinfo=None)
+        return dt
+
+    cur = _db.events.find({})
+    all_events = [ev async for ev in cur]
+    
+    parsed_events = []
+    for ev in all_events:
+        # Resolve start date
+        sd = ev.get("start_date") or ev.get("date")
+        if isinstance(sd, str):
+            try:
+                sd = datetime.fromisoformat(sd.replace("Z", "+00:00"))
+            except Exception:
+                sd = None
+        if isinstance(sd, datetime):
+            sd = to_naive(sd)
+        else:
+            sd = None
+            
+        # Resolve created_at
+        ca = ev.get("created_at")
+        if isinstance(ca, str):
+            try:
+                ca = datetime.fromisoformat(ca.replace("Z", "+00:00"))
+            except Exception:
+                ca = None
+        if isinstance(ca, datetime):
+            ca = to_naive(ca)
+        else:
+            ca = None
+            
+        # Resolve end date
+        ed = ev.get("end_date") or ev.get("event_date_end")
+        if isinstance(ed, str):
+            try:
+                ed = datetime.fromisoformat(ed.replace("Z", "+00:00"))
+            except Exception:
+                ed = None
+        if isinstance(ed, datetime):
+            ed = to_naive(ed)
+        else:
+            ed = None
+            
+        if sd is None:
+            continue
+            
+        if ed is None:
+            ed = sd + timedelta(days=1)
+            
+        ev["_resolved_start"] = sd
+        ev["_resolved_created"] = ca or datetime.min
+        ev["_resolved_end"] = ed
+        parsed_events.append(ev)
+        
+    today_start = datetime(now.year, now.month, now.day)
+    filtered_events = []
+    
+    for ev in parsed_events:
+        sd = ev["_resolved_start"]
+        ed = ev["_resolved_end"]
+        
+        if sort_by == "upcoming":
+            if sd >= today_start:
+                filtered_events.append(ev)
+        elif sort_by == "ongoing":
+            if sd <= now <= ed:
+                filtered_events.append(ev)
+        elif sort_by == "ended":
+            if ed < now:
+                filtered_events.append(ev)
+        elif sort_by in ("recently_created", "all", "none"):
+            filtered_events.append(ev)
+
+    # Sort
+    if sort_by in ("upcoming", "ongoing", "all", "none"):
+        filtered_events.sort(key=lambda x: x["_resolved_start"])
+    elif sort_by == "recently_created":
+        filtered_events.sort(key=lambda x: x["_resolved_created"], reverse=True)
+    elif sort_by == "ended":
+        filtered_events.sort(key=lambda x: x["_resolved_start"], reverse=True)
+        
+    total = len(filtered_events)
     skip = (page - 1) * per_page
-    cur = _db.events.find().sort("_id", -1).skip(skip).limit(per_page)
-    events = [ev async for ev in cur]
+    events = filtered_events[skip : skip + per_page]
     
     event_ids = [str(ev.get("_id")) for ev in events]
     
@@ -2106,11 +2197,42 @@ async def student_events_list(student_email: Optional[str] = None, page: int = 1
     palette = ["#A78BFA", "#22C55E", "#FCD34D", "#3B82F6", "#22D3EE", "#EC4899", "#F59E0B", "#FB923C"]
     out = []
     i = 0
-    async for ev in cur:
-        sd = ev.get("start_date")
+    for ev in events:
+        # Resolve the event's date
+        sd = ev.get("start_date") or ev.get("date")
+        if isinstance(sd, str):
+            try:
+                sd = datetime.fromisoformat(sd.replace("Z", "+00:00"))
+            except Exception:
+                pass
+        
         date_str = sd.strftime("%b %d") if isinstance(sd, datetime) else "TBD"
-        regs = await _db.event_registrations.count_documents({"event_id": str(ev.get("_id"))})
-        registered = await _db.event_registrations.find_one({"event_id": str(ev.get("_id")), "student_id": sid}) is not None
+        ev_id_str = str(ev.get("_id"))
+        
+        regs = counts_map.get(ev_id_str, 0)
+        registered = ev_id_str in user_regs
+        
+        nlp_cat = _nlp_categorize_event(ev.get("title"), ev.get("description"), ev.get("category"))
+        
+        created_at_val = ev.get("created_at")
+        start_date_val = ev.get("start_date") or ev.get("date")
+        end_date_val = ev.get("end_date") or ev.get("event_date_end") or start_date_val
+        
+        def _to_iso(val: Any) -> str:
+            if not val:
+                return ""
+            if isinstance(val, datetime):
+                return val.isoformat()
+            if isinstance(val, str):
+                try:
+                    return datetime.fromisoformat(val.replace("Z", "+00:00")).isoformat()
+                except Exception:
+                    return val
+            return str(val)
+            
+        created_at_str = _to_iso(created_at_val)
+        start_date_str = _to_iso(start_date_val)
+        end_date_str = _to_iso(end_date_val)
         out.append({
             "id": _short_id(ev.get("_id")),
             "title": ev.get("title", "Event"),
@@ -2124,6 +2246,10 @@ async def student_events_list(student_email: Optional[str] = None, page: int = 1
             "price": ev.get("price"),
             "accent": palette[i % len(palette)],
             "registered": registered,
+            "description": ev.get("description", ""),
+            "created_at": created_at_str,
+            "start_date": start_date_str,
+            "end_date": end_date_str,
         })
         i += 1
         

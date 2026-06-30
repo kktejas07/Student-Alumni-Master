@@ -751,7 +751,38 @@ async def create_college_event(req: EventCreate):
         "_user_created": True,
     }
     res = await _db.events.insert_one(doc)
-    return {"ok": True, "event_id": _short_id(res.inserted_id)}
+    event_id_str = str(res.inserted_id)
+
+    # 1. Fetch all student users and create notification cards
+    try:
+        students = await _db.users.find({"role": "student"}).to_list(None)
+        if students:
+            notification_docs = [
+                {
+                    "user_id": str(s["_id"]),
+                    "title": "New Event Invitation",
+                    "body": f"A new event '{req.title}' has been scheduled by {req.college_name or 'your college'}. Click to register!",
+                    "data": {"type": "new_event", "event_id": event_id_str},
+                    "type": "new_event",
+                    "read": False,
+                    "created_at": _now(),
+                }
+                for s in students
+            ]
+            await _db.notifications.insert_many(notification_docs)
+    except Exception as e:
+        logger.warning(f"Failed to notify students: {e}")
+
+    # 2. Clear portals events cache so the new event shows up immediately on frontend
+    try:
+        from portals import events_cache
+        events_cache.clear()
+    except Exception as e:
+        logger.warning(f"Failed to clear events_cache: {e}")
+
+    return {"ok": True, "event_id": event_id_str}
+
+
 
 
 @router.get("/college/my-students")
