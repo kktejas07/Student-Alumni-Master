@@ -1054,9 +1054,15 @@ async def college_admin_stats(college_name: Optional[str] = None):
         ]).to_list(1)
         college_name = agg[0]["_id"] if agg else "St. Xavier's College"
 
-    students_cnt = await _db.users.count_documents({"role": "student", "school_info.institution_name": college_name})
-    alumni_cnt = await _db.users.count_documents({"role": "alumni", "school_info.institution_name": college_name})
-
+    college_query = {
+        "$or": [
+            {"school_info.institution_name": college_name},
+            {"institution": college_name},
+            {"college": college_name}
+        ]
+    }
+    students_cnt = await _db.users.count_documents({"role": "student", **college_query})
+    alumni_cnt = await _db.users.count_documents({"role": "alumni", **college_query})
     # Department breakdown
     dept_agg = await _db.users.aggregate([
         {"$match": {"role": "student", "school_info.institution_name": college_name, "school_info.branch_or_stream": {"$ne": None}}},
@@ -1156,8 +1162,23 @@ async def college_admin_stats(college_name: Optional[str] = None):
             "color": _color_for(r["_id"] or ""),
         })
 
+    # Calculate real placement rate (based on alumni with current employer)
+    placed_alumni_cnt = await _db.users.count_documents({
+        "role": "alumni",
+        "alumni_info.current_employer": {"$nin": [None, "", "—", "-"]},
+        **college_query
+    })
+    placement_pct_num = int((placed_alumni_cnt / alumni_cnt) * 100) if alumni_cnt > 0 else 0
+
+    # Events this month
+    now = datetime.now(timezone.utc)
+    start_of_month = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
+    events_this_month = await _db.events.count_documents({
+        "college_name": college_name,
+        "start_date": {"$gte": start_of_month}
+    })
+
     # Tier (Bronze/Silver/Gold/Platinum) — based on NAAC + students + placement + alumni
-    placement_pct_num = 94  # already used as static; will be aggregated below
     tier = await _college_tier_payload(college_name, students_cnt, alumni_cnt, float(placement_pct_num))
 
     return {
@@ -1174,8 +1195,8 @@ async def college_admin_stats(college_name: Optional[str] = None):
         "kpis": [
             {"id": "students",  "label": "Total Students",     "value": str(students_cnt),      "delta": "↑ this semester",        "color": "blue"},
             {"id": "alumni",    "label": "Alumni Network",     "value": str(alumni_cnt),        "delta": "growing",                 "color": "purple"},
-            {"id": "placement", "label": "Placement Rate",     "value": "94%",                  "delta": "↑ 4% YoY",                "color": "green"},
-            {"id": "events",    "label": "Events This Month",  "value": str(len(upcoming)),     "delta": f"{len(upcoming)} upcoming","color": "amber"},
+            {"id": "placement", "label": "Placement Rate",     "value": f"{placement_pct_num}%", "delta": f"from {alumni_cnt} alumni",  "color": "green"},
+            {"id": "events",    "label": "Events This Month",  "value": str(events_this_month),  "delta": f"{len(upcoming)} upcoming","color": "amber"},
         ],
         "deptPlacement": dept_placement,
         "recentActivity": recent[:6],
