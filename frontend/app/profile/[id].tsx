@@ -83,8 +83,24 @@ export default function ProfileSocialView() {
   ];
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={[styles.screen, { backgroundColor: 'transparent' }]} edges={['top', 'bottom']}>
+      <Pressable 
+        style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(12, 8, 24, 0.7)' }, Platform.OS === 'web' ? { backdropFilter: 'blur(12px)' } as any : {}]}
+        onPress={() => router.back()}
+      />
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: isMobile ? 0 : 40 }} pointerEvents="box-none">
+        <View style={{ 
+          width: '100%', 
+          maxWidth: 960, 
+          height: isMobile ? '100%' : '94%', 
+          backgroundColor: C.bg, 
+          borderRadius: isMobile ? 0 : 20, 
+          overflow: 'hidden',
+          borderColor: C.border,
+          borderWidth: isMobile ? 0 : 1,
+          ...(Platform.OS === 'web' && !isMobile ? { boxShadow: '0 10px 40px rgba(0,0,0,0.5)' } as any : {})
+        }}>
+          <ScrollView contentContainerStyle={{ paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
         {/* HERO */}
         <View style={styles.hero}>
           <Pressable onPress={() => router.back()} style={styles.backBtn} testID="psv-back">
@@ -202,11 +218,13 @@ export default function ProfileSocialView() {
       </ScrollView>
 
       {toast && (
-        <View style={styles.toast} pointerEvents="none">
+        <View style={styles.toast}>
           <Check size={14} color={C.green} />
           <Text style={styles.toastText}>{toast}</Text>
         </View>
       )}
+        </View>
+      </View>
     </SafeAreaView>
   );
 }

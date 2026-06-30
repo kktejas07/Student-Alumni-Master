@@ -158,7 +158,16 @@ export default function RootLayout() {
                   animation: 'slide_from_right',
                   animationDuration: 280,
                 }}
-              />
+              >
+                <Stack.Screen 
+                  name="profile/[id]" 
+                  options={{ 
+                    presentation: 'transparentModal', 
+                    animation: 'fade',
+                    contentStyle: { backgroundColor: 'transparent' }
+                  }} 
+                />
+              </Stack>
               {/* Agent K — global Cmd/Ctrl+K quick launcher modal */}
               <AgentKQuickLauncher />
               {/* Phase B — privacy & cookie consent banner (web only) */}
