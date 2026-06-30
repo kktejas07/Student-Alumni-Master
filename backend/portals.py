@@ -2908,8 +2908,8 @@ async def mentor_connections(email: Optional[str] = None):
             else:
                 status = "completed"
 
-        # Skip if they are not connected/pending (i.e. withdrawn, declined, none)
-        if status in ("none", "withdrawn", "declined", "rejected"):
+        # Skip if they are not accepted connections
+        if status not in ("active", "accepted", "completed"):
             continue
 
         # Force completed connections to have 100% progress
