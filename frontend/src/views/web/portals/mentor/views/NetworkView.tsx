@@ -503,8 +503,17 @@ export function NetworkView() {
     try {
       await api.acceptConnection(id);
       toast.success('Connection Accepted! 🎉', `${name} is now connected with you.`);
+      setDiscoverSections(prev => prev.map(section => ({
+        ...section,
+        items: (section.items || []).map((item: any) =>
+          item.id === id
+            ? { ...item, connection_state: 'connected', connectionState: 'connected' }
+            : item
+        )
+      })));
       await loadRequests();
       await loadConnections();
+      await loadDiscover();
     } catch (e: any) {
       toast.error('Failed to accept request', e.message || 'Please try again.');
     }
