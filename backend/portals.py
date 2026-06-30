@@ -2023,7 +2023,15 @@ async def college_alumni_list(college_name: Optional[str] = None, limit: int = 3
         ]).to_list(1)
         college_name = agg[0]["_id"] if agg else None
 
-    cur = _db.users.find({"role": "alumni", "school_info.institution_name": college_name}).limit(limit)
+    college_query = {
+        "$or": [
+            {"school_info.institution_name": college_name},
+            {"institution": college_name},
+            {"college": college_name}
+        ]
+    } if college_name else {"school_info.institution_name": {"$ne": None}}
+    
+    cur = _db.users.find({"role": "alumni", **college_query}).limit(limit)
     out = []
     async for a in cur:
         ai = a.get("alumni_info") or {}
@@ -2039,6 +2047,9 @@ async def college_alumni_list(college_name: Optional[str] = None, limit: int = 3
             "city": si.get("city") or "—",
             "donor": is_donor,
             "color": _color_for(a.get("full_name", "")),
+            "skills": a.get("skills") or ai.get("interests") or [],
+            "linkedin_url": a.get("linkedin_url") or "",
+            "github_url": a.get("github_url") or "",
         })
     return {"items": out, "college": college_name}
 
