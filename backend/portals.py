@@ -2461,7 +2461,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             connected_users = await _db.users.find({"_id": {"$in": connected_ids}}, proj).to_list(len(connected_ids))
 
     my_skills = user.get("skills", []) if user else []
-    my_college = user.get("school_info", {}).get("institution_name") if user else None
+    my_college = ((user.get("school_info") or {}).get("institution_name") or user.get("institution") or user.get("college")) if user else None
 
     # Fetch Alumni (ensuring connected ones are included first)
     connected_alumni = [u for u in connected_users if u.get("role") == "alumni"]
@@ -2514,7 +2514,11 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     }
     # From Your College
     if my_college:
-        student_query["school_info.institution_name"] = my_college
+        student_query["$or"] = [
+            {"school_info.institution_name": my_college},
+            {"institution": my_college},
+            {"college": my_college}
+        ]
     st_cur = _db.users.find(student_query, proj).sort("_id", -1).limit(max(0, limit - len(connected_students)))
     student_users = connected_students + [s async for s in st_cur]
     # Fallback if strict college matching yielded nothing

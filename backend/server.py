@@ -5662,7 +5662,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     my_interests = user.get("interests") or si.get("interests") or []
     my_skills = user.get("skills") or []
     my_cp = user.get("career_path")
-    my_inst = si.get("institution_name")
+    my_inst = si.get("institution_name") or user.get("institution") or user.get("college")
     # Existing connection state to mark cards
     rels = await db.connections.find(
         {"$or": [{"a": me_id}, {"b": me_id}]},
@@ -5704,7 +5704,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     by_skills.sort(key=lambda c: -_matches_count(my_skills, c.get("skills") or []))
 
     # Section: by_college
-    by_college = [c for c in cards if my_inst and c.get("institution") == my_inst]
+    by_college = [c for c in cards if my_inst and my_inst in [c.get("institution"), c.get("college"), (c.get("school_info") or {}).get("institution_name")]]
 
     # Section: mentors (approved)
     mentor_q = {"_id": {"$ne": user["_id"]}, "role": "mentor", "mentor_status": "approved"}
