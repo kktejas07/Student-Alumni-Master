@@ -4548,6 +4548,8 @@ async def get_claude_chat(session_id: str, system_message: str):
                     return "Here are the top student loan options available right now:\n\n1. **Federal Subsidized Loan** - 4.99% APY (Recommended)\n2. **Sallie Mae Smart Option** - 6.5% APY\n3. **Discover Undergraduate** - 7.2% APY\n\nLet me know if you want to calculate your monthly payments!"
                 else:
                     return f"This is a mock AI response to: '{clean_text}'. Please configure EMERGENT_LLM_KEY for real, intelligent AI responses."
+            if "daily" in self.sess_id.lower():
+                return "Good morning! Here is a mock daily brief because AI is not configured. Focus on your top skills today."
             return '{"summary": "Mock summary", "milestones": [{"id": "m1", "title": "Mock Milestone", "timeframe": "0-3 months", "actions": [], "milestone_type": "profile"}], "recommended_skills": ["Python"], "recommended_courses": [], "mentor_traits": ["Helpful"], "target_role": "Software Engineer", "target_company_type": "Tech", "progress_pct": 10, "skill_scores": {"Technical Excellence": 80, "Professional Communication": 80, "Personal Brand": 80, "Leadership & Collaboration": 80, "Career Preparation": 80, "Industry Presence": 80}, "weekly_plan": [], "key_projects": [], "book_recommendations": []}'
     if not os.environ.get("EMERGENT_LLM_KEY"):
         return DummyChat(system_message, session_id)
@@ -4977,12 +4979,16 @@ async def ai_daily_brief(
         existing = await db.daily_briefs.find_one(cache_key)
         print(f"[DAILY-BRIEF] STEP 1 db_cache_lookup   {_ms(_s1)}", flush=True)
         if existing and existing.get("brief"):
-            print(f"[DAILY-BRIEF] CACHE HIT | TOTAL {_ms()}", flush=True)
-            return {
-                "brief": existing["brief"],
-                "generated_at": existing.get("generated_at"),
-                "cached": True,
-            }
+            brief_val = existing["brief"].strip()
+            if brief_val.startswith("{") and brief_val.endswith("}"):
+                force = True
+            else:
+                print(f"[DAILY-BRIEF] CACHE HIT | TOTAL {_ms()}", flush=True)
+                return {
+                    "brief": existing["brief"],
+                    "generated_at": existing.get("generated_at"),
+                    "cached": True,
+                }
 
     # Build profile context
     full_name = user.get("full_name") or "there"
