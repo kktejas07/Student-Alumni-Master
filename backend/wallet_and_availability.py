@@ -19,15 +19,10 @@ from datetime import datetime, timezone, timedelta, time as dt_time
 from typing import Any, Dict, List, Optional
 
 from bson import ObjectId
-from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Query
-from motor.motor_asyncio import AsyncIOMotorClient
-from pathlib import Path
 
-load_dotenv(Path(__file__).parent / ".env")
+from core.db import db as _db
 
-_mongo = AsyncIOMotorClient(os.environ["MONGO_URL"])
-_db = _mongo[os.environ["DB_NAME"]]
 
 logger = logging.getLogger("wallet")
 router = APIRouter()

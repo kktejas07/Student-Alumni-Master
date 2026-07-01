@@ -16,23 +16,13 @@ from fastapi import HTTPException, Header
 import jwt as _jwt
 import os
 from datetime import datetime
-from motor.motor_asyncio import AsyncIOMotorClient
-from dotenv import load_dotenv
-from pathlib import Path
 
-load_dotenv(Path(__file__).parent.parent / ".env")
-
-# Lazy MongoDB connection — only connects when first needed
-_mongo = None
-_db = None
-
+# core.db cannot be imported at module load time (circular-import-safe pattern):
+# use a thin accessor so the singleton is fetched only on first real call.
 def _get_db():
-    global _mongo, _db
-    if _db is None:
-        from motor.motor_asyncio import AsyncIOMotorClient
-        _mongo = AsyncIOMotorClient(os.environ["MONGO_URL"])
-        _db = _mongo[os.environ["DB_NAME"]]
-    return _db
+    from core.db import db
+    return db
+
 _JWT_SECRET = os.environ.get("JWT_SECRET", "")
 _JWT_ALG = os.environ.get("JWT_ALGORITHM", "HS256")
 

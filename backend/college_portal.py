@@ -14,14 +14,10 @@ import logging
 import random
 from datetime import datetime, timezone
 from typing import Any, Dict, List
-from pathlib import Path
-from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Query
-from motor.motor_asyncio import AsyncIOMotorClient
 
-load_dotenv(Path(__file__).parent / ".env")
-_mongo = AsyncIOMotorClient(os.environ["MONGO_URL"])
-_db = _mongo[os.environ["DB_NAME"]]
+from core.db import db as _db
+
 logger = logging.getLogger("college_portal")
 router = APIRouter()
 

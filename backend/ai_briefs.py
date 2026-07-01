@@ -15,23 +15,19 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any, Dict, Optional
 from uuid import uuid4
 
 from bson import ObjectId
-from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException
-from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 
 from tier_logic import compute_student_tier, compute_mentor_tier, compute_college_tier
 
-load_dotenv(Path(__file__).parent / ".env")
+from core.db import db as _db
+
 
 # Mongo
-_mongo = AsyncIOMotorClient(os.environ["MONGO_URL"])
-_db = _mongo[os.environ["DB_NAME"]]
 
 router = APIRouter()
 

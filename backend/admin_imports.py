@@ -30,12 +30,10 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from bson import ObjectId
-from dotenv import load_dotenv
 from fastapi import APIRouter, File, Header, HTTPException, UploadFile
-from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 
-load_dotenv()
+from core.db import db as _db
 
 router = APIRouter()
 
@@ -46,19 +44,9 @@ except Exception:
     async def ensure_college(name: str, created_by: str = "import"):  # type: ignore
         return None
 
-# ─── Mongo ─────────────────────────────────────────────────────────
-_MONGO_URL = os.getenv("MONGO_URL") or "mongodb://localhost:27017"
-_DB_NAME   = os.getenv("DB_NAME") or "career_platform"
-_client    = AsyncIOMotorClient(_MONGO_URL)
-_db        = _client[_DB_NAME]
-
 # ─── Token / role helpers ──────────────────────────────────────────
-try:
-    import jwt  # PyJWT
-    _JWT_SECRET = os.getenv("JWT_SECRET", "")
-except Exception:
-    jwt = None  # type: ignore
-    _JWT_SECRET = ""
+import jwt as _jwt
+_JWT_SECRET = os.getenv("JWT_SECRET", "")
 
 
 async def _resolve_user(authorization: Optional[str]) -> Optional[dict]:
@@ -66,9 +54,7 @@ async def _resolve_user(authorization: Optional[str]) -> Optional[dict]:
         return None
     token = authorization.split(" ", 1)[1].strip()
     try:
-        if jwt is None:
-            return None
-        payload = jwt.decode(token, _JWT_SECRET, algorithms=["HS256"])
+        payload = _jwt.decode(token, _JWT_SECRET, algorithms=["HS256"])
     except Exception:
         return None
     uid = payload.get("sub") or payload.get("user_id") or payload.get("id")
