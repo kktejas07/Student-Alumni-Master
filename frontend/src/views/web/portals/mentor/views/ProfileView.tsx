@@ -5,7 +5,8 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, useWindowDimensions, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { QrCode, Linkedin, Globe, MapPin, Briefcase, GraduationCap, Star as StarIcon } from 'lucide-react-native';
+import { QrCode, Globe, MapPin, Briefcase, GraduationCap, Star as StarIcon } from 'lucide-react-native';
+import { Linkedin } from '../../student/iconShims';
 import { MC, FONTS } from '../tokens';
 import { Av, StarRow, Badge } from '../atoms';
 import { MENTOR } from '../data';

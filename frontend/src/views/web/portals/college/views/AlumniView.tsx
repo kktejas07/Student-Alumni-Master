@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet, useWindowDimensions, Platform, Linking } from 'react-native';
-import { Search, Users, Eye, Linkedin, Github } from 'lucide-react-native';
+import { Search, Users, Eye } from 'lucide-react-native';
+import { Linkedin, Github } from '../../student/iconShims';
 import { CC, FONTS } from '../tokens';
 import { Av } from '../atoms';
 import { usePortalData } from '@/src/lib/portalApi';
