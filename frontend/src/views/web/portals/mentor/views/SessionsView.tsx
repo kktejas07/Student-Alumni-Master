@@ -114,6 +114,22 @@ const DEFAULT_AVAILABILITY: AvailabilitySlot[] = [
   { day: 'Fri', time: '13:30', status: 'unavailable' },
 ];
 
+const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const getMonday = (d: Date) => {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(date.setDate(diff));
+};
+
+const formatLocalDate = (d: Date) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export function SessionsView() {
   const [tab, setTab] = useState<TabId>('upcoming');
   const user = useAuthStore((s) => s.user);
@@ -187,13 +203,6 @@ export function SessionsView() {
   // AI summary simulation states
   const [aiSummaryStates, setAiSummaryStates] = useState<Record<number, { text: string; loading: boolean }>>({});
 
-  const getMonday = (d: Date) => {
-    const date = new Date(d);
-    const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-    return new Date(date.setDate(diff));
-  };
-
   const handleFormPrevMonth = () => {
     if (formCalMonth === 0) {
       setFormCalMonth(11);
@@ -222,7 +231,7 @@ export function SessionsView() {
   const handleApplyFormAvailability = () => {
     if (!formSelectedDate) return;
     
-    const dateStr = formSelectedDate.toISOString().split('T')[0];
+    const dateStr = formatLocalDate(formSelectedDate);
     const dayCode = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][formSelectedDate.getDay() === 0 ? 6 : formSelectedDate.getDay() - 1] || 'Mon';
     
     if (timeMode === 'single') {
@@ -565,7 +574,7 @@ export function SessionsView() {
   // Toggle availability slot state (Legacy refactored to date-aware helper)
   const toggleSlot = (day: string, time: string) => {
     // Falls back to toggling recurring slots or active week
-    const dateStr = weekDays.find((d) => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][d.getDay() === 0 ? 6 : d.getDay() - 1] === day)?.toISOString()?.split('T')?.[0] || '2026-05-05';
+    const dateStr = weekDays.find((d) => DAYS_OF_WEEK[d.getDay()] === day)?.toISOString()?.split('T')?.[0] || '2026-05-05';
     toggleSlotForDate(dateStr, day, time);
   };
 
@@ -590,9 +599,48 @@ export function SessionsView() {
   for (let i = 0; i < firstDayIndex; i++) calendarCells.push(null);
   for (let d = 1; d <= daysInMonth; d++) calendarCells.push(d);
 
+  const mergedAvailabilitySlots = useMemo(() => {
+    let slots = [...availabilitySlots];
+    upcoming.forEach((u) => {
+      if (!u._rawDate || isNaN(u._rawDate.getTime())) return;
+      const d = u._rawDate;
+      const localYear = d.getFullYear();
+      const localMonth = String(d.getMonth() + 1).padStart(2, '0');
+      const localDay = String(d.getDate()).padStart(2, '0');
+      const dateStr = `${localYear}-${localMonth}-${localDay}`;
+      
+      const localHours = String(d.getHours()).padStart(2, '0');
+      const localMinutes = String(d.getMinutes()).padStart(2, '0');
+      const timeStr = `${localHours}:${localMinutes}`;
+      const dayCode = DAYS_OF_WEEK[d.getDay()];
+      
+      // Check if there is an existing slot on this exact date and time.
+      const existingIndex = slots.findIndex(
+        (s) => s.dateStr === dateStr && s.time === timeStr
+      );
+      
+      if (existingIndex > -1) {
+        slots[existingIndex] = {
+          ...slots[existingIndex],
+          status: 'booked',
+          bookedBy: u.student.name,
+        };
+      } else {
+        slots.push({
+          dateStr,
+          day: dayCode,
+          time: timeStr,
+          status: 'booked',
+          bookedBy: u.student.name,
+        });
+      }
+    });
+    return slots;
+  }, [availabilitySlots, upcoming]);
+
   // Availability counters
-  const openSlotsCount = availabilitySlots.filter((s) => s.status === 'available').length;
-  const bookedSlotsCount = availabilitySlots.filter((s) => s.status === 'booked').length;
+  const openSlotsCount = mergedAvailabilitySlots.filter((s) => s.status === 'available').length;
+  const bookedSlotsCount = mergedAvailabilitySlots.filter((s) => s.status === 'booked').length;
 
   if (loading) {
     return (
@@ -984,13 +1032,13 @@ export function SessionsView() {
                       <View style={s.gridTimeColHeader} />
                       {weekDays.map((d, idx) => {
                         const dayHeader = getDayHeaderStr(d);
-                        const dateStr = d.toISOString().split('T')[0];
-                        const dayCode = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][idx];
+                        const dateStr = formatLocalDate(d);
+                        const dayCode = DAYS_OF_WEEK[d.getDay()];
                         
                         const daySlots = TIME_PRESETS.map((time) => {
-                          let slot = availabilitySlots.find((s) => s.dateStr === dateStr && s.time === time);
+                          let slot = mergedAvailabilitySlots.find((s) => s.dateStr === dateStr && s.time === time);
                           if (!slot) {
-                            slot = availabilitySlots.find((s) => s.day === dayCode && s.time === time && !s.dateStr);
+                            slot = mergedAvailabilitySlots.find((s) => s.day === dayCode && s.time === time && !s.dateStr);
                           }
                           return slot;
                         });
@@ -1020,12 +1068,12 @@ export function SessionsView() {
 
                         {/* Day Columns */}
                         {weekDays.map((d, idx) => {
-                          const dateStr = d.toISOString().split('T')[0];
-                          const dayCode = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][idx];
+                          const dateStr = formatLocalDate(d);
+                          const dayCode = DAYS_OF_WEEK[d.getDay()];
                           
-                          let slot = availabilitySlots.find((s) => s.dateStr === dateStr && s.time === timeLabel);
+                          let slot = mergedAvailabilitySlots.find((s) => s.dateStr === dateStr && s.time === timeLabel);
                           if (!slot) {
-                            slot = availabilitySlots.find((s) => s.day === dayCode && s.time === timeLabel && !s.dateStr);
+                            slot = mergedAvailabilitySlots.find((s) => s.day === dayCode && s.time === timeLabel && !s.dateStr);
                           }
                           
                           const isBooked = slot?.status === 'booked';
@@ -1065,19 +1113,19 @@ export function SessionsView() {
                   <View style={s.columnsOuterRow}>
                     {weekDays.map((d, dIdx) => {
                       const dayHeader = getDayHeaderStr(d);
-                      const dateStr = d.toISOString().split('T')[0];
-                      const dayCode = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][dIdx];
+                      const dateStr = formatLocalDate(d);
+                      const dayCode = DAYS_OF_WEEK[d.getDay()];
                       
                       const baseTimes = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30'];
-                      const customTimes = availabilitySlots
+                      const customTimes = mergedAvailabilitySlots
                         .filter((s) => s.dateStr === dateStr || (s.day === dayCode && !s.dateStr))
                         .map((s) => s.time);
                       const allTimes = Array.from(new Set([...baseTimes, ...customTimes])).sort();
                       
                       const daySlots = allTimes.map((time) => {
-                        let slot = availabilitySlots.find((s) => s.dateStr === dateStr && s.time === time);
+                        let slot = mergedAvailabilitySlots.find((s) => s.dateStr === dateStr && s.time === time);
                         if (!slot) {
-                          slot = availabilitySlots.find((s) => s.day === dayCode && s.time === time && !s.dateStr);
+                          slot = mergedAvailabilitySlots.find((s) => s.day === dayCode && s.time === time && !s.dateStr);
                         }
                         return slot || { dateStr, day: dayCode, time, status: 'unavailable' as const };
                       });
