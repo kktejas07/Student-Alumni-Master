@@ -78,7 +78,7 @@ from tier_logic import (
 load_dotenv(Path(__file__).parent / '.env')
 
 # Mongo connection (reuse singleton from db.py)
-from db import db as _db
+from db import db as _db, fetch_users_with_mock_limit
 
 router = APIRouter()
 
@@ -2576,12 +2576,16 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             {"alumni_info.interests": {"$in": my_skills}},
             {"skills": {"$in": my_skills}}
         ]
-    al_cur = _db.users.find(alumni_query, proj).sort("_id", -1).limit(max(0, limit - len(connected_alumni)))
-    alumni_users = connected_alumni + [a async for a in al_cur]
+    fetch_limit = max(0, limit - len(connected_alumni))
+    fetched_alumni = await fetch_users_with_mock_limit(alumni_query, fetch_limit, mock_limit=5, proj=proj)
+    alumni_users = connected_alumni + fetched_alumni
+    
     # Fallback if strict interest matching yielded nothing
     if len(alumni_users) < 3:
-        fallback_cur = _db.users.find({"role": "alumni", "_id": {"$nin": [ObjectId(i) for i in seen_alumni] + [a["_id"] for a in alumni_users]}}, proj).sort("_id", -1).limit(max(0, limit - len(alumni_users)))
-        alumni_users.extend([a async for a in fallback_cur])
+        fallback_query = {"role": "alumni", "_id": {"$nin": [ObjectId(i) for i in seen_alumni] + [a["_id"] for a in alumni_users]}}
+        fallback_limit = max(0, limit - len(alumni_users))
+        fetched_fallback = await fetch_users_with_mock_limit(fallback_query, fallback_limit, mock_limit=5, proj=proj)
+        alumni_users.extend(fetched_fallback)
 
     for a in alumni_users:
         other_id = str(a["_id"])
@@ -2619,12 +2623,16 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             {"institution": my_college},
             {"college": my_college}
         ]
-    st_cur = _db.users.find(student_query, proj).sort("_id", -1).limit(max(0, limit - len(connected_students)))
-    student_users = connected_students + [s async for s in st_cur]
+    fetch_limit = max(0, limit - len(connected_students))
+    fetched_students = await fetch_users_with_mock_limit(student_query, fetch_limit, mock_limit=5, proj=proj)
+    student_users = connected_students + fetched_students
+    
     # Fallback if strict college matching yielded nothing
     if len(student_users) < 3:
-        fallback_cur = _db.users.find({"role": "student", "_id": {"$nin": [ObjectId(i) for i in seen_students] + [s["_id"] for s in student_users]}}, proj).sort("_id", -1).limit(max(0, limit - len(student_users)))
-        student_users.extend([s async for s in fallback_cur])
+        fallback_query = {"role": "student", "_id": {"$nin": [ObjectId(i) for i in seen_students] + [s["_id"] for s in student_users]}}
+        fallback_limit = max(0, limit - len(student_users))
+        fetched_fallback = await fetch_users_with_mock_limit(fallback_query, fallback_limit, mock_limit=5, proj=proj)
+        student_users.extend(fetched_fallback)
     
     for s in student_users:
         other_id = str(s["_id"])
@@ -2653,11 +2661,13 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     # Fetch Mentors (ensuring connected ones are included first)
     connected_mentors = [u for u in connected_users if u.get("role") == "mentor"]
     seen_mentors = {str(u["_id"]) for u in connected_mentors}
-    me_cur = _db.users.find({
+    mentor_query = {
         "role": "mentor",
         "_id": {"$nin": [ObjectId(i) for i in seen_mentors]}
-    }, proj).sort("_id", -1).limit(max(0, limit - len(connected_mentors)))
-    mentor_users = connected_mentors + [m async for m in me_cur]
+    }
+    fetch_limit = max(0, limit - len(connected_mentors))
+    fetched_mentors = await fetch_users_with_mock_limit(mentor_query, fetch_limit, mock_limit=5, proj=proj)
+    mentor_users = connected_mentors + fetched_mentors
     for m in mentor_users:
         other_id = str(m["_id"])
         if other_id == me_id_str:
