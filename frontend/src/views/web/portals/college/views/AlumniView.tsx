@@ -23,9 +23,18 @@ type Alumnus = {
 const FALLBACK = { items: [] as Alumnus[] };
 const BATCHES = ['All','2008-2014','2015-2019','2020-2024','2025+'];
 
+const MOCK_ALUMNI: Alumnus[] = [
+  { id: 'm1', name: 'Arjun Mehta', initials: 'AM', batch: 2018, role: 'Software Engineer II', company: 'Google', city: 'Bangalore', color: '#60A5FA', skills: ['React', 'Node.js', 'System Design'], linkedin_url: 'https://linkedin.com', github_url: 'https://github.com' },
+  { id: 'm2', name: 'Priya Sharma', initials: 'PS', batch: 2015, role: 'Product Manager', company: 'Microsoft', city: 'Hyderabad', color: '#F472B6', skills: ['Agile', 'Product Strategy', 'UX'], linkedin_url: 'https://linkedin.com', github_url: '' },
+  { id: 'm3', name: 'Rahul Desai', initials: 'RD', batch: 2021, role: 'Data Scientist', company: 'Amazon', city: 'Seattle, WA', color: '#34D399', skills: ['Python', 'Machine Learning', 'SQL'], linkedin_url: 'https://linkedin.com', github_url: 'https://github.com' },
+  { id: 'm4', name: 'Neha Gupta', initials: 'NG', batch: 2019, role: 'UX Designer', company: 'Airbnb', city: 'San Francisco, CA', color: '#A78BFA', skills: ['Figma', 'User Research', 'Prototyping'], linkedin_url: 'https://linkedin.com', github_url: '' },
+  { id: 'm5', name: 'Vikram Singh', initials: 'VS', batch: 2012, role: 'Engineering Manager', company: 'Netflix', city: 'Los Gatos, CA', color: '#FBBF24', skills: ['Leadership', 'Distributed Systems', 'Java'], linkedin_url: 'https://linkedin.com', github_url: 'https://github.com' },
+  { id: 'm6', name: 'Ananya Patel', initials: 'AP', batch: 2023, role: 'Frontend Developer', company: 'Stripe', city: 'Remote', color: '#38BDF8', skills: ['Vue.js', 'TypeScript', 'CSS'], linkedin_url: 'https://linkedin.com', github_url: 'https://github.com' },
+];
+
 export function AlumniView() {
   const { data } = usePortalData<typeof FALLBACK>('/college/alumni', FALLBACK);
-  const ALUMNI = data?.items || [];
+  const ALUMNI = [...(data?.items || []), ...MOCK_ALUMNI];
   const { width } = useWindowDimensions();
   const router = useRouter();
   const [filter, setFilter] = useState('All');

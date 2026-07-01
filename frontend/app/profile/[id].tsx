@@ -19,7 +19,7 @@ import {
   GraduationCap, Star, Calendar, Share2, MessageSquare, UserPlus, Check, Clock,
   Crown, Award, Code2, Code2 as GithubIcon, Building2, X as CloseX, ChevronRight, BadgeCheck,
 } from 'lucide-react-native';
-import { request } from '@/src/models/services/api';
+import { request, api } from '@/src/models/services/api';
 import { useAuth } from '@/src/viewmodels/hooks';
 
 const C = {
@@ -40,11 +40,32 @@ export default function ProfileSocialView() {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<TabKey>('overview');
   const [toast, setToast] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
   const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2400); };
 
   useEffect(() => {
     if (!id) return;
     setLoading(true); setError(null);
+    
+    // Intercept mock accounts from Alumni cards
+    if (id.startsWith('m') && !isNaN(Number(id.substring(1)))) {
+      const mockProfiles: Record<string, any> = {
+        'm1': { id: 'm1', full_name: 'Arjun Mehta', role: 'alumni', headline: 'Software Engineer II at Google', city: 'Bangalore', institution: 'Nexus University', graduation_year: 2018, skills: ['React', 'Node.js', 'System Design'], show_email: true, email: 'arjun@example.com', github_url: 'https://github.com', linkedin_url: 'https://linkedin.com' },
+        'm2': { id: 'm2', full_name: 'Priya Sharma', role: 'alumni', headline: 'Product Manager at Microsoft', city: 'Hyderabad', institution: 'Nexus University', graduation_year: 2015, skills: ['Agile', 'Product Strategy', 'UX'], show_email: false, linkedin_url: 'https://linkedin.com' },
+        'm3': { id: 'm3', full_name: 'Rahul Desai', role: 'alumni', headline: 'Data Scientist at Amazon', city: 'Seattle, WA', institution: 'Nexus University', graduation_year: 2021, skills: ['Python', 'Machine Learning', 'SQL'], show_email: true, email: 'rahul@example.com', github_url: 'https://github.com', linkedin_url: 'https://linkedin.com' },
+        'm4': { id: 'm4', full_name: 'Neha Gupta', role: 'alumni', headline: 'UX Designer at Airbnb', city: 'San Francisco, CA', institution: 'Nexus University', graduation_year: 2019, skills: ['Figma', 'User Research', 'Prototyping'], show_email: false, linkedin_url: 'https://linkedin.com' },
+        'm5': { id: 'm5', full_name: 'Vikram Singh', role: 'alumni', headline: 'Engineering Manager at Netflix', city: 'Los Gatos, CA', institution: 'Nexus University', graduation_year: 2012, skills: ['Leadership', 'Distributed Systems', 'Java'], show_email: true, email: 'vikram@example.com', github_url: 'https://github.com', linkedin_url: 'https://linkedin.com' },
+        'm6': { id: 'm6', full_name: 'Ananya Patel', role: 'alumni', headline: 'Frontend Developer at Stripe', city: 'Remote', institution: 'Nexus University', graduation_year: 2023, skills: ['Vue.js', 'TypeScript', 'CSS'], show_email: true, email: 'ananya@example.com', github_url: 'https://github.com', linkedin_url: 'https://linkedin.com' },
+      };
+      if (mockProfiles[id]) {
+        setTimeout(() => {
+          setProfile(mockProfiles[id]);
+          setLoading(false);
+        }, 500);
+        return;
+      }
+    }
+
     request<any>(`/users/${id}/public-profile`)
       .then((p) => setProfile(p))
       .catch((e: any) => setError(e?.message || 'Failed to load profile'))
@@ -170,8 +191,25 @@ export default function ProfileSocialView() {
                     <Calendar size={14} color="#fff" /><Text style={styles.btnTextWhite}>Book Session</Text>
                   </Pressable>
                 ) : (
-                  <Pressable onPress={() => showToast('Connection request sent ✓')} style={[styles.btn, styles.btnPrimary]} testID="psv-connect">
-                    <UserPlus size={14} color="#fff" /><Text style={styles.btnTextWhite}>Connect</Text>
+                  <Pressable 
+                    onPress={async () => {
+                      if (isPending) return;
+                      try {
+                        setIsPending(true);
+                        await api.sendConnectionRequest(profile.id);
+                        showToast('Connection request sent ✓');
+                      } catch (e: any) {
+                        showToast(e.message || 'Failed to send request');
+                        setIsPending(false);
+                      }
+                    }} 
+                    style={[styles.btn, isPending ? styles.btnGhost : styles.btnPrimary, isPending && { opacity: 0.7 }]} 
+                    testID="psv-connect"
+                  >
+                    <UserPlus size={14} color={isPending ? C.text2 : "#fff"} />
+                    <Text style={isPending ? styles.btnTextLight : styles.btnTextWhite}>
+                      {isPending ? 'Pending' : 'Connect'}
+                    </Text>
                   </Pressable>
                 )}
                 <Pressable onPress={() => showToast('Direct messages coming soon ✨')} style={[styles.btn, styles.btnGhost]} testID="psv-message">
