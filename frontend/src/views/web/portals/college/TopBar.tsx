@@ -1,7 +1,7 @@
 /**
  * College Admin Portal — top bar.
  */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-native';
 import { Search, Bell, Calendar as CalIcon, Inbox } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -9,6 +9,7 @@ import { CC, FONTS } from './tokens';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 import { Av } from './atoms';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { api } from '@/src/models/services/api';
 
 export function TopBar({
   title = 'Dashboard',
@@ -26,6 +27,15 @@ export function TopBar({
   const fullName = user?.full_name || '';
   const initials = fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('').toUpperCase() || 'CO';
   const photo = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64 || user?.college_info?.logo;
+  
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    api.notifications().then((r) => {
+      const items = r.notifications || r.items || [];
+      setUnreadCount(items.filter((n: any) => !n.read).length);
+    }).catch(() => {});
+  }, []);
   return (
     <View style={s.bar}>
       <Text style={s.title}>{title}</Text>
@@ -51,7 +61,9 @@ export function TopBar({
         style={({ hovered }: any) => [s.iconBtn, hovered && { backgroundColor: CC.cardH }]}
       >
         <Bell size={16} color={CC.muted} />
-        <View style={[s.numPill, { backgroundColor: '#EF4444' }]}><Text style={s.numText}>3</Text></View>
+        {unreadCount > 0 && (
+          <View style={[s.numPill, { backgroundColor: '#EF4444' }]}><Text style={s.numText}>{unreadCount}</Text></View>
+        )}
       </Pressable>
 
 
