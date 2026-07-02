@@ -37,18 +37,7 @@ import { MyWorkshopsView } from './views/MyWorkshopsView';
 
 import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 
-// Navigation context for internal portal navigation
-export const StudentPortalNavContext = createContext<{
-  navigate: (id: StudentNavId, params?: { q?: string }) => void;
-  searchQuery: string;
-  setSearchQuery: (q: string) => void;
-} | null>(null);
-
-export const useStudentPortalNav = () => {
-  const ctx = useContext(StudentPortalNavContext);
-  if (!ctx) throw new Error('useStudentPortalNav must be used inside StudentPortalRN');
-  return ctx;
-};
+import { StudentPortalNavContext, useStudentPortalNav } from './StudentPortalNavContext';
 
 // Feature pages imported as components for inline rendering
 import CoursesPage from '@/app/courses';

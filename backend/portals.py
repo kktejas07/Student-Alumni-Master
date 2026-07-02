@@ -59,7 +59,7 @@ from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Query, Request, Body, Response, Depends
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from backend.core.deps import get_current_user
+from core.deps import get_current_user
 from pydantic import BaseModel
 from pathlib import Path
 

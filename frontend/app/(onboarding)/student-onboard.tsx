@@ -28,7 +28,7 @@ import { PhoneInput } from '@/src/views/web/PhoneInput';
 import { Dropdown } from '@/src/views/web/Dropdown';
 
 const TOTAL = 7;
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 const CURRENT_YEAR = new Date().getFullYear();
 // Per spec — students are currently studying; graduation year ≥ current year.
 const GRAD_YEARS = Array.from({ length: 9 }, (_, i) => String(CURRENT_YEAR + i));

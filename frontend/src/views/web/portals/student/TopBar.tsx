@@ -13,14 +13,16 @@
  * Accepts optional `scrolled` prop from the portal shell so the glass
  * blur can react to scroll without re-rendering the whole tree.
  */
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Platform, Image } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Bell, Search } from './iconShims';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { STUDENT } from './data';
 import { Av } from './atoms';
+import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { api } from '@/src/models/services/api';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 import { useTheme } from '@/src/theme/ThemeContext';
 import { useBreakpoint } from '@/src/theme/breakpoints';
@@ -50,6 +52,15 @@ export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
   const cycleTheme = () => {
     setMode(mode === 'light' ? 'dark' : mode === 'dark' ? 'system' : 'light');
   };
+
+  const router = useRouter();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    api.notifications()
+      .then(res => setUnreadCount(res.unread || 0))
+      .catch(console.error);
+  }, []);
 
   // Hide search box on tablets to save space; phones already hide sidebar
   const showSearch = bp.atLeast('lg');
@@ -108,14 +119,16 @@ export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
         <FadeInView delay={180}>
           <PressScale
             style={[s.iconBtn, { backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder }]}
-            onPress={() => {}}
+            onPress={() => router.push('/notifications')}
             accessibilityLabel="Notifications"
             accessibilityHint="Opens the notifications panel"
           >
             <Bell size={16} color={PALETTE.violet} />
-            <View style={[s.bellDotWrap, { backgroundColor: PALETTE.bg1 }]}>
-              <PulseDot size={7} color={PALETTE.rose} />
-            </View>
+            {unreadCount > 0 && (
+              <View style={[s.bellDotWrap, { backgroundColor: PALETTE.bg1 }]}>
+                <PulseDot size={7} color={PALETTE.rose} />
+              </View>
+            )}
           </PressScale>
         </FadeInView>
 
