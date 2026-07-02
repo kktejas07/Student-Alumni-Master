@@ -412,8 +412,10 @@ export function SessionsView() {
           tags: ['1:1 Session'],
         };
         const schedDate = new Date(b.scheduled_at || b.slot_start_iso);
-        const diffMs = schedDate.getTime() - now.getTime();
-        const daysAway = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+        const startOfSchedDate = new Date(schedDate.getFullYear(), schedDate.getMonth(), schedDate.getDate());
+        const startOfNow = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const diffDays = Math.round((startOfSchedDate.getTime() - startOfNow.getTime()) / (1000 * 60 * 60 * 24));
+        const daysAway = Math.max(0, diffDays);
         
         const timeFormatted = schedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const dateFormatted = schedDate.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
@@ -812,7 +814,9 @@ export function SessionsView() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={s.studentName}>{u.student.name}</Text>
                     <View style={s.remainingBadge}>
-                      <Text style={s.remainingBadgeText}>In {u.daysAway}d</Text>
+                      <Text style={s.remainingBadgeText}>
+                        {u.daysAway === 0 ? 'Today' : `In ${u.daysAway}d`}
+                      </Text>
                     </View>
                   </View>
                   <Text style={s.studentSub}>{u.student.branch} - {u.student.college}</Text>
