@@ -18,9 +18,11 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import FeaturePageShell from '@/src/views/web/FeaturePageShell';
+import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 import MoneyCoach from '@/src/views/web/wallet/MoneyCoach';
 import { request } from '@/src/models/services/api';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useRouter } from 'expo-router';
 
 // ─── Types ───────────────────────────────────────────────────────────────
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -154,6 +156,21 @@ function relTime(iso: string): string {
 
 // ─── Component ───────────────────────────────────────────────────────────
 export default function WalletScreen() {
+  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const initialized = useAuthStore((s) => s.initialized);
+  const isEmbedded = React.useContext(EmbeddedShellContext);
+
+  useEffect(() => {
+    if (!isEmbedded && initialized && user) {
+      if (user.role === 'alumni') {
+        router.replace('/alumni-portal?tab=wallet' as any);
+      } else if (user.role === 'student') {
+        router.replace('/student-portal?tab=wallet' as any);
+      }
+    }
+  }, [isEmbedded, initialized, user, router]);
+
   const [tab, setTab] = useState<typeof TABS[number]['id']>('overview');
   const [data, setData] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);

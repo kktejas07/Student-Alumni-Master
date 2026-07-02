@@ -14,6 +14,7 @@ import {
   Bell, GraduationCap, Users, Calendar, TrendingUp, Megaphone,
   PlusSquare, BarChart3, ChevronRight, ArrowUpRight, Briefcase,
 } from 'lucide-react-native';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 const BLUE = '#60A5FA';
 const BLUE_TINT = 'rgba(96,165,250,0.18)';
@@ -55,6 +56,9 @@ export function CollegeDashboardView({
   const { width } = useWindowDimensions();
   const isWide = width >= 768;
 
+  const user = useAuthStore((s) => s.user);
+  const firstName = (user?.full_name || '').split(' ')[0] || 'Admin';
+
   const fade = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(fade, { toValue: 1, duration: 420, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
@@ -71,7 +75,7 @@ export function CollegeDashboardView({
         {/* Top bar */}
         <View style={styles.topBar}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.greeting}>Good morning 🏫</Text>
+            <Text style={styles.greeting}>Good morning, {firstName} 👋</Text>
             <Text style={[styles.name, isWide && { fontSize: 28 }]} numberOfLines={2}>{collegeName}</Text>
           </View>
           <Pressable onPress={onOpenNotifications} testID="college-notif-btn"

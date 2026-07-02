@@ -313,24 +313,24 @@ const [newWorkflow, setNewWorkflow] = useState({ name: '', trigger: '', event_tr
                             {new Date(log.at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                           </Text>
                         </View>
-                        {log.steps?.map((s, si) => (
+                        {log.steps?.map((step_obj, si) => (
                           <View key={si} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 4 }}>
-                            {s.success ? <Check size={10} color={SAC.green} /> : <X size={10} color={SAC.red} />}
-                            <Text style={[s.logStep, { color: s.success ? SAC.muted : SAC.red }]}>{s.step}: {s.message}</Text>
+                            {step_obj.success ? <Check size={10} color={SAC.green} /> : <X size={10} color={SAC.red} />}
+                            <Text style={[s.logStep, { color: step_obj.success ? SAC.muted : SAC.red }]}>{step_obj.step}: {step_obj.message}</Text>
                           </View>
                         ))}
                       </View>
-                  ))}
-                </View>
-                {(w.event_triggers?.length > 0) && (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 5, flexWrap: 'wrap' }}>
-                    <Text style={{ color: SAC.dim, fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 0.5 }}>EVENTS:</Text>
-                    {w.event_triggers.map((et, idx) => (
-                      <Text key={idx} style={s.eventPill}>{et}</Text>
                     ))}
                   </View>
-                )}
-              </View>
+                  {(viewWf?.event_triggers?.length > 0) && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 5, flexWrap: 'wrap' }}>
+                      <Text style={{ color: SAC.dim, fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 0.5 }}>EVENTS:</Text>
+                      {viewWf.event_triggers.map((et, idx) => (
+                        <Text key={idx} style={s.eventPill}>{et}</Text>
+                      ))}
+                    </View>
+                  )}
+                </View>
               )}
             </ScrollView>
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, padding: 14, borderTopWidth: 1, borderTopColor: SAC.border }}>

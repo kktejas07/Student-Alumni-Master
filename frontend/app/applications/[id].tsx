@@ -9,6 +9,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import FeaturePageShell from '@/src/views/web/FeaturePageShell';
 import { request } from '@/src/models/services/api';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -42,6 +43,30 @@ const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('en-IN',
 export default function ApplicationTrackerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const role = user?.role || 'student';
+
+  const themeColor =
+    role === 'alumni' ? '#60A5FA' :
+    role === 'mentor' ? '#5EEAD4' :
+    role === 'college' || role === 'admin' ? '#818CF8' :
+    '#A78BFA';
+
+  const activeTabColor =
+    role === 'alumni' ? '#3B82F6' :
+    role === 'mentor' ? '#14B8A6' :
+    role === 'college' || role === 'admin' ? '#6366F1' :
+    '#7C3AED';
+
+  const handleBack = () => {
+    if (role === 'alumni') {
+      router.replace('/alumni-portal?tab=higher-ed' as any);
+    } else if (role === 'student') {
+      router.replace('/student-portal?tab=higher-ed' as any);
+    } else {
+      router.replace('/higher-education' as any);
+    }
+  };
   const [app, setApp] = useState<any | null>(null);
   const [nextSteps, setNextSteps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,9 +93,9 @@ export default function ApplicationTrackerScreen() {
 
   if (loading) {
     return (
-      <FeaturePageShell title="Application Tracker" subtitle="Loading…" heroEmoji="📋" accent="#7C3AED">
+      <FeaturePageShell title="Application Tracker" subtitle="Loading…" heroEmoji="📋" accent={themeColor}>
         <View style={{ paddingVertical: 60, alignItems: 'center' }}>
-          <ActivityIndicator color="#A78BFA" size="large" />
+          <ActivityIndicator color={themeColor} size="large" />
         </View>
       </FeaturePageShell>
     );
@@ -78,8 +103,8 @@ export default function ApplicationTrackerScreen() {
 
   if (!app || error) {
     return (
-      <FeaturePageShell title="Application Tracker" subtitle={error || 'Not found'} heroEmoji="📋" accent="#7C3AED">
-        <Pressable style={s.backBtn} onPress={() => router.replace('/higher-education' as any)}>
+      <FeaturePageShell title="Application Tracker" subtitle={error || 'Not found'} heroEmoji="📋" accent={themeColor}>
+        <Pressable style={s.backBtn} onPress={handleBack}>
           <MaterialCommunityIcons name="arrow-left" size={14} color="#fff" />
           <Text style={s.backBtnText}>Back to programmes</Text>
         </Pressable>
@@ -90,16 +115,16 @@ export default function ApplicationTrackerScreen() {
   const prog = app.programme_snapshot || {};
   const status = STATUS_META[app.status] || STATUS_META.submitted;
   const days = app.days_until_decision ?? 0;
-  const daysColor = days > 30 ? '#A78BFA' : days >= 14 ? '#F59E0B' : '#F87171';
+  const daysColor = days > 30 ? themeColor : days >= 14 ? '#F59E0B' : '#F87171';
 
   return (
     <FeaturePageShell
       title={prog.name || 'Application'}
       subtitle={`${prog.institution} · ${prog.country} · App ID: ${app.app_id}`}
       heroEmoji="📋"
-      accent="#7C3AED"
+      accent={themeColor}
       rightSlot={
-        <Pressable style={s.backBtn} onPress={() => router.replace('/higher-education' as any)}>
+        <Pressable style={s.backBtn} onPress={handleBack}>
           <MaterialCommunityIcons name="arrow-left" size={14} color="#fff" />
           <Text style={s.backBtnText}>Programmes</Text>
         </Pressable>
@@ -145,10 +170,9 @@ export default function ApplicationTrackerScreen() {
         </View>
       </View>
 
-      {/* Deadlines */}
       <View style={s.card}>
         <View style={s.cardHead}>
-          <MaterialCommunityIcons name="calendar-check" size={16} color="#A78BFA" />
+          <MaterialCommunityIcons name="calendar-check" size={16} color={themeColor} />
           <Text style={s.cardTitle}>Deadlines Checklist</Text>
         </View>
         <View style={{ gap: 8 }}>
@@ -182,7 +206,7 @@ export default function ApplicationTrackerScreen() {
         <View style={{ gap: 12 }}>
           {(app.timeline || []).map((t: any, idx: number) => {
             const dotColor = t.status === 'done' ? '#34D399'
-                          : t.status === 'current' ? '#A78BFA' : '#475569';
+                          : t.status === 'current' ? themeColor : '#475569';
             return (
               <View key={t.id} style={s.tlRow}>
                 <View style={[s.tlDot, { backgroundColor: dotColor + '22', borderColor: dotColor }]}>
@@ -204,15 +228,14 @@ export default function ApplicationTrackerScreen() {
         </View>
       </View>
 
-      {/* Next Steps (AI) */}
-      <View style={[s.card, { borderColor: 'rgba(167,139,250,0.45)' }]}>
+      <View style={[s.card, { borderColor: themeColor + '73' }]}>
         <View style={s.cardHead}>
-          <MaterialCommunityIcons name="auto-fix" size={16} color="#A78BFA" />
+          <MaterialCommunityIcons name="auto-fix" size={16} color={themeColor} />
           <Text style={s.cardTitle}>Next Steps</Text>
-          <Pressable style={s.aiBtn} onPress={fetchSteps} disabled={stepsBusy}>
-            {stepsBusy ? <ActivityIndicator color="#A78BFA" size="small" /> : <>
-              <MaterialCommunityIcons name="refresh" size={11} color="#A78BFA" />
-              <Text style={s.aiBtnText}>Generate</Text>
+          <Pressable style={[s.aiBtn, { backgroundColor: themeColor + '26', borderColor: themeColor + '73' }]} onPress={fetchSteps} disabled={stepsBusy}>
+            {stepsBusy ? <ActivityIndicator color={themeColor} size="small" /> : <>
+              <MaterialCommunityIcons name="refresh" size={11} color={themeColor} />
+              <Text style={[s.aiBtnText, { color: themeColor }]}>Generate</Text>
             </>}
           </Pressable>
         </View>
@@ -221,15 +244,15 @@ export default function ApplicationTrackerScreen() {
         )}
         {nextSteps.map((step, i) => (
           <View key={i} style={s.stepRow}>
-            <View style={s.stepBullet}>
-              <Text style={s.stepBulletText}>{i + 1}</Text>
+            <View style={[s.stepBullet, { backgroundColor: themeColor + '33' }]}>
+              <Text style={[s.stepBulletText, { color: themeColor }]}>{i + 1}</Text>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.stepTitle}>{step.title}</Text>
               {step.why && <Text style={s.stepWhy}>{step.why}</Text>}
             </View>
             {step.action?.label && (
-              <View style={s.stepAction}>
+              <View style={[s.stepAction, { backgroundColor: activeTabColor }]}>
                 <Text style={s.stepActionText}>{step.action.label}</Text>
               </View>
             )}
@@ -258,6 +281,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.08)',
     borderColor: C.border, borderWidth: 1,
+    ...({ cursor: 'pointer' } as any),
   },
   backBtnText: { color: '#fff', fontSize: 11, fontWeight: '700' },
 

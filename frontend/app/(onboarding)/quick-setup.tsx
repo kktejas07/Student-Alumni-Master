@@ -24,20 +24,32 @@ import { Dropdown } from '@/src/views/web/Dropdown';
 import { PhoneInput } from '@/src/views/web/PhoneInput';
 import { api } from '@/src/models/services/api';
 import { DarkChip } from '@/src/views/web/OnboardingShell';
+import { Clock } from 'lucide-react-native';
 
 const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 const SESSION_PRICES = [499, 799, 999, 1499];
+const CURRENT_YEAR = new Date().getFullYear();
+const GRAD_YEARS = Array.from({ length: 60 }, (_, i) => String(CURRENT_YEAR + 6 - i));
 
-// Simple 3-dot stepper for spec feel — steps differ per role
+// Stepper — separating the steps using a hyphen / dash (line)
 function Stepper({ active, total }: { active: number; total: number }) {
   return (
     <View style={s.stepRow}>
-      {Array.from({ length: total }, (_, i) => (
-        <View key={i} style={[s.stepDot, i === active && s.stepDotActive]}>
-          <Text style={[s.stepText, i === active && s.stepTextActive]}>{i + 1}</Text>
-        </View>
-      ))}
+      {Array.from({ length: total }, (_, i) => {
+        const done = i < active;
+        const current = i === active;
+        return (
+          <React.Fragment key={i}>
+            <View style={[s.stepDot, (done || current) && s.stepDotActive]}>
+              <Text style={[s.stepText, (done || current) && s.stepTextActive]}>{i + 1}</Text>
+            </View>
+            {i < total - 1 && (
+              <View style={[s.stepLine, done && s.stepLineActive]} />
+            )}
+          </React.Fragment>
+        );
+      })}
     </View>
   );
 }
@@ -61,7 +73,6 @@ export default function QuickSetup() {
   // Mentor / Alumni shared
   const [currentRole, setCurrentRole] = useState('');
   const [company, setCompany]         = useState('');
-  const [collegeBatch, setCollegeBatch] = useState('');
 
   // Mentor
   const [sessionPrice, setSessionPrice] = useState<number | undefined>(999);
@@ -78,10 +89,14 @@ export default function QuickSetup() {
   const [city, setCity]           = useState('');
   const [stateName, setStateName] = useState('');
 
-  // Populated from API on mount — used by Mentor/Alumni Company autocomplete + Student course dropdown
+  // Populated from API on mount — used by Mentor/Alumni Company/Role autocomplete + Student course dropdown
   const [orgs, setOrgs]       = useState<string[]>([
     'Google', 'Microsoft', 'Amazon', 'TCS', 'Infosys', 'Flipkart', 'Swiggy',
     'Razorpay', 'Deloitte', 'IIT Bombay', 'Independent / Freelancer',
+  ]);
+  const [roleSuggestions, setRoleSuggestions] = useState<string[]>([
+    'Software Engineer', 'Senior Software Engineer', 'Engineering Manager',
+    'Tech Lead', 'Product Manager', 'Data Scientist', 'Founder', 'CTO',
   ]);
   const [courses, setCourses] = useState<string[]>([
     'Computer Science Engineering (CSE)', 'Information Technology (IT)',
@@ -97,6 +112,7 @@ export default function QuickSetup() {
           fetch(`${BASE}/api/courses`).then((r) => r.ok ? r.json() : null).catch(() => null),
         ]);
         if (o?.organizations?.length) setOrgs(o.organizations);
+        if (o?.job_titles?.length)    setRoleSuggestions(o.job_titles);
         if (c?.courses?.length)       setCourses(c.courses);
       } catch {/* keep fallbacks */}
     })();
@@ -117,23 +133,23 @@ export default function QuickSetup() {
   const validate = (): string | null => {
     if (role === 'student') {
       if (!college.trim()) return 'College / University is required.';
-      if (!gradYear.trim() || isNaN(Number(gradYear))) return 'Enter a valid graduation year.';
+      if (!gradYear.trim() || isNaN(Number(gradYear))) return 'Pick a valid Batch Year.';
       if (!fullName.trim()) return 'Full name is required.';
       if (!phone.replace(/\D/g, '').length || phone.replace(/\D/g, '').length < 10) return 'Enter a valid phone number.';
     }
     if (role === 'mentor') {
       if (!currentRole.trim()) return 'Current role is required.';
       if (!company.trim())     return 'Company is required.';
-      if (!collegeBatch.trim()) return 'College & Batch is required.';
+      if (!college.trim())     return 'College / University is required.';
+      if (!gradYear.trim())    return 'Batch Year is required.';
       if (!sessionPrice || sessionPrice < 100) return 'Pick or enter a session price.';
       if (!phone.replace(/\D/g, '').length || phone.replace(/\D/g, '').length < 10) return 'Enter a valid phone number.';
     }
     if (role === 'alumni') {
-      if (!fullName.trim()) return 'Full name is required.';
       if (!currentRole.trim()) return 'Current role is required.';
       if (!company.trim())     return 'Company is required.';
-      if (!collegeBatch.trim()) return 'College & Batch is required.';
-      if (!gradYear.trim() || isNaN(Number(gradYear))) return 'Enter a valid graduation year.';
+      if (!college.trim())     return 'College / University is required.';
+      if (!gradYear.trim() || isNaN(Number(gradYear))) return 'Pick a valid Batch Year.';
     }
     if (role === 'college') {
       if (!instName.trim()) return 'Institution name is required.';
@@ -149,21 +165,14 @@ export default function QuickSetup() {
     setError('');
     setLoading(true);
     try {
-      // Parse "IIT Bombay, 2018" style combined field
-      const [cbInst = '', cbYear = ''] = (collegeBatch || '').split(',').map((s) => s.trim());
-
       const payload: any = {
         school_info: {
           country: 'India',
           institution_type: role === 'college' ? 'university' : 'college',
           institution_name:
-            role === 'student' ? college.trim()
-            : role === 'mentor' || role === 'alumni' ? cbInst
-            : college.trim(),
+            role === 'college' ? instName.trim() : college.trim(),
           graduation_year:
-            role === 'student' ? parseInt(gradYear, 10)
-            : role === 'alumni' ? parseInt(gradYear, 10)
-            : cbYear ? parseInt(cbYear, 10) : undefined,
+            (role === 'college' || !gradYear) ? undefined : parseInt(gradYear, 10),
         },
         interests: [],
         skills: [],
@@ -197,7 +206,7 @@ export default function QuickSetup() {
         payload.career_path = 'job';
         payload.alumni_info = {
           graduation_year: parseInt(gradYear, 10),
-          university: cbInst || college.trim(),
+          university: college.trim(),
           current_employer: company.trim(),
           current_role: currentRole.trim(),
           employment_status: 'employed',
@@ -264,7 +273,14 @@ export default function QuickSetup() {
               />
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ flex: 1 }}>
-                  <AuthInput label="Graduation Year" value={gradYear} onChangeText={setGradYear} placeholder="2026" keyboardType="numeric" />
+                  <Dropdown
+                    label="Batch Year *"
+                    value={gradYear}
+                    options={GRAD_YEARS.map((y) => ({ value: y, label: y }))}
+                    onChange={setGradYear}
+                    placeholder="Select year"
+                    testID="student-grad-year"
+                  />
                 </View>
                 <View style={{ flex: 1 }}>
                   <AuthInput label="CGPA (optional, 0.0-10.0)" value={cgpa} onChangeText={setCgpa} placeholder="8.4" keyboardType="decimal-pad" />
@@ -288,7 +304,15 @@ export default function QuickSetup() {
           {/* MENTOR */}
           {role === 'mentor' && (
             <>
-              <AuthInput label="Current Role" value={currentRole} onChangeText={setCurrentRole} placeholder="e.g. SDE-2 at Google" />
+              <SuggestionAutocomplete
+                label="Current Role"
+                value={currentRole}
+                onChangeText={setCurrentRole}
+                suggestions={roleSuggestions}
+                placeholder="e.g. SDE-2 at Google"
+                helper="Pick from our curated list — or type your own."
+                testID="mentor-role"
+              />
               <SuggestionAutocomplete
                 label="Company"
                 value={company}
@@ -298,7 +322,22 @@ export default function QuickSetup() {
                 helper="Pick from our curated list — or type your own."
                 testID="mentor-company"
               />
-              <AuthInput label="College & Batch" value={collegeBatch} onChangeText={setCollegeBatch} placeholder="IIT Bombay, 2018" />
+              <Text style={s.section}>College / University *</Text>
+              <InstitutionAutocomplete
+                value={college}
+                onChangeText={setCollege}
+                type="college"
+                placeholder="Search your college / university (Indian institutions)"
+                testID="mentor-college"
+              />
+              <Dropdown
+                label="Batch Year *"
+                value={gradYear}
+                options={GRAD_YEARS.map((y) => ({ value: y, label: y }))}
+                onChange={setGradYear}
+                placeholder="Select year"
+                testID="mentor-grad-year"
+              />
               <PhoneInput label="Phone Number *" value={phone} onChangeText={setPhone} />
               <Text style={s.section}>Session Price (₹)</Text>
               <View style={s.chipRow}>
@@ -331,26 +370,54 @@ export default function QuickSetup() {
           {/* ALUMNI */}
           {role === 'alumni' && (
             <>
-              <AuthInput label="Full Name" value={fullName} onChangeText={setFullName} placeholder="e.g. Arjun Sharma" autoCapitalize="words" />
-              <AuthInput label="Current Role" value={currentRole} onChangeText={setCurrentRole} placeholder="e.g. Senior Software Engineer" />
+              <SuggestionAutocomplete
+                label="Current Role"
+                value={currentRole}
+                onChangeText={setCurrentRole}
+                suggestions={roleSuggestions}
+                placeholder="e.g. Senior Software Engineer"
+                helper="Pick from our curated list — or type your own."
+                testID="alumni-role"
+              />
               <SuggestionAutocomplete
                 label="Company"
                 value={company}
                 onChangeText={setCompany}
                 suggestions={orgs}
                 placeholder="Company name (type to search)"
+                helper="Pick from our curated list — or type your own."
                 testID="alumni-company"
               />
-              <AuthInput label="College & Batch" value={collegeBatch} onChangeText={setCollegeBatch} placeholder="IIT Bombay, 2018" />
+              <Text style={s.section}>College / University *</Text>
+              <InstitutionAutocomplete
+                value={college}
+                onChangeText={setCollege}
+                type="college"
+                placeholder="Search your college / university (Indian institutions)"
+                testID="alumni-college"
+              />
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ flex: 1 }}>
-                  <AuthInput label="Graduation Year" value={gradYear} onChangeText={setGradYear} placeholder="2018" keyboardType="numeric" />
+                  <Dropdown
+                    label="Batch Year *"
+                    value={gradYear}
+                    options={GRAD_YEARS.map((y) => ({ value: y, label: y }))}
+                    onChange={setGradYear}
+                    placeholder="Select year"
+                    testID="alumni-grad-year"
+                  />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <AuthInput label="Years of Experience" value={yoe} onChangeText={setYoe} placeholder="e.g. 5" keyboardType="numeric" />
+                  <AuthInput
+                    label="Years of Experience"
+                    value={yoe}
+                    onChangeText={setYoe}
+                    placeholder="e.g. 5"
+                    keyboardType="numeric"
+                    leftIcon={<Clock size={16} color="rgba(255,255,255,0.55)" />}
+                  />
                 </View>
               </View>
-              <PhoneInput label="Phone Number *" value={phone} onChangeText={setPhone} />
             </>
           )}
 
@@ -417,6 +484,7 @@ export default function QuickSetup() {
 
       <View style={{ marginTop: 10, gap: 10 }}>
         <PrimaryButton label="Continue →" onPress={onSubmit} loading={loading} />
+        <OutlineButton label="← Go Back" onPress={() => router.replace('/welcome')} testID="quick-setup-back" />
         <Pressable onPress={onCompleteDeeper}>
           <Text style={s.deepLink}>Want to share more? Complete your full profile →</Text>
         </Pressable>
@@ -426,7 +494,7 @@ export default function QuickSetup() {
 }
 
 const s = StyleSheet.create({
-  stepRow: { flexDirection: 'row', gap: 8, marginBottom: 22, justifyContent: 'center' },
+  stepRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 22, justifyContent: 'center' },
   stepDot: {
     width: 28, height: 28, borderRadius: 14,
     borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.18)',
@@ -436,6 +504,8 @@ const s = StyleSheet.create({
   stepDotActive: { borderColor: '#B07FDF', backgroundColor: 'rgba(176,127,223,0.18)' },
   stepText: { color: 'rgba(255,255,255,0.4)', fontFamily: FONTS.bold, fontSize: 11 },
   stepTextActive: { color: '#E9D5FF' },
+  stepLine: { width: 24, height: 1.5, backgroundColor: 'rgba(255,255,255,0.14)' },
+  stepLineActive: { backgroundColor: '#B07FDF' },
   title: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 26, marginBottom: 6, textAlign: 'center' },
   sub: { color: 'rgba(255,255,255,0.6)', fontFamily: FONTS.med, fontSize: 13.5, textAlign: 'center', marginBottom: 18 },
   section: {

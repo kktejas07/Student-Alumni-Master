@@ -16,7 +16,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, TextInput as RNTextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
-  ArrowLeft, Camera, Upload, GraduationCap, BriefcaseBusiness, BookOpen, Award, Sparkles, Code, CheckCircle2,
+  ArrowLeft, Camera, Upload, GraduationCap, BriefcaseBusiness, BookOpen, Award, Sparkles, Code, CheckCircle2, Check,
   Compass, Code as CodeIcon, Rocket, MessageSquare, Brain, UsersRound, TrendingUp, FileText, Palette, HandHeart,
   Briefcase, Building2, Clock, Trophy, Scroll, GraduationCap as Cap, BookOpen as BookIcon,
 } from 'lucide-react-native';
@@ -31,6 +31,7 @@ import { DarkChip } from '@/src/views/web/OnboardingShell';
 import { InstitutionAutocomplete } from '@/src/views/web/InstitutionAutocomplete';
 import { SuggestionAutocomplete } from '@/src/views/web/SuggestionAutocomplete';
 import { Dropdown } from '@/src/views/web/Dropdown';
+import { WebcamModal } from '@/src/views/components/WebcamModal';
 
 const TOTAL = 8;
 const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
@@ -151,10 +152,41 @@ export default function MentorOnboard() {
 
   // ---- Step 6: Photo ----
   const [photo, setPhoto] = useState<string>('');
+  const [pendingPhoto, setPendingPhoto] = useState<string | null>(null);
+  const [webcamVisible, setWebcamVisible] = useState(false);
+
+  const confirmPhoto = () => {
+    if (!pendingPhoto) return;
+    setPhoto(pendingPhoto);
+    setPendingPhoto(null);
+    toast.success('Photo confirmed', 'Looking great!');
+  };
 
   // ---- Step 7: Bio ----
   const [bio, setBio]     = useState('');
   const [style, setStyle] = useState('');
+  const [generatingBio, setGeneratingBio] = useState(false);
+
+  const handleStylePress = async (s: string) => {
+    setStyle(s);
+    setGeneratingBio(true);
+    try {
+      const res = await api.generateBio({
+        role: 'mentor',
+        full_name: user?.full_name,
+        writing_style: s,
+        existing_bio: bio || undefined,
+        organization: company,
+        job_title: jobTitle,
+        mentor_category: archetypes[0],
+        expertise,
+      });
+      if (res?.bio) setBio(res.bio.slice(0, 300));
+    } catch {
+    } finally {
+      setGeneratingBio(false);
+    }
+  };
 
   // ---- Suggestions (fetched once on mount) ----
   const [roleSuggestions, setRoleSuggestions]   = useState<string[]>([]);
@@ -247,7 +279,7 @@ export default function MentorOnboard() {
           education_level:    edu || undefined,
           expertise:          expertise,
           availability:       availability,
-          profile_photo:      photo || undefined,
+          profile_photo:      photo || pendingPhoto || undefined,
           college:            college,
           college_batch:      batch ? parseInt(batch, 10) : undefined,
           bio:                bio || undefined,
@@ -256,7 +288,7 @@ export default function MentorOnboard() {
         interests:   [],
         skills:      expertise,
         bio:         bio || `${jobTitle || 'Mentor'} at ${company || ''} — open to mentor students`,
-        face_image_base64: photo || undefined,
+        face_image_base64: photo || pendingPhoto || undefined,
       };
       await api.completeOnboarding(payload);
       await refreshUser();
@@ -273,17 +305,21 @@ export default function MentorOnboard() {
     try {
       const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.5, base64: true, allowsEditing: true, aspect: [1, 1] });
       if (!res.canceled && res.assets[0]?.base64) {
-        setPhoto(`data:image/jpeg;base64,${res.assets[0].base64}`);
+        setPendingPhoto(`data:image/jpeg;base64,${res.assets[0].base64}`);
       }
     } catch { toast.error('Photo', 'Could not open gallery.'); }
   };
   const takeSelfie = async () => {
+    if (Platform.OS === 'web') {
+      setWebcamVisible(true);
+      return;
+    }
     try {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) { toast.error('Camera', 'Permission denied.'); return; }
-      const res = await ImagePicker.launchCameraAsync({ quality: 0.5, base64: true, allowsEditing: true, aspect: [1, 1] });
+      const res = await ImagePicker.launchCameraAsync({ cameraType: ImagePicker.CameraType.front, quality: 0.5, base64: true, allowsEditing: true, aspect: [1, 1] });
       if (!res.canceled && res.assets[0]?.base64) {
-        setPhoto(`data:image/jpeg;base64,${res.assets[0].base64}`);
+        setPendingPhoto(`data:image/jpeg;base64,${res.assets[0].base64}`);
       }
     } catch { toast.error('Camera', 'Could not open camera.'); }
   };
@@ -469,8 +505,10 @@ export default function MentorOnboard() {
           {/* === STEP 6: Photo === */}
           {step === 5 && (
             <View style={{ alignItems: 'center', gap: 16 }}>
-              <Pressable onPress={pickPhoto} style={s.photoFrame}>
-                {photo ? (
+              <Pressable onPress={takeSelfie} style={s.photoFrame}>
+                {pendingPhoto ? (
+                  <Image source={{ uri: pendingPhoto }} style={s.photoImg} />
+                ) : photo ? (
                   <Image source={{ uri: photo }} style={s.photoImg} />
                 ) : (
                   <View style={{ alignItems: 'center', gap: 8 }}>
@@ -480,10 +518,17 @@ export default function MentorOnboard() {
                 )}
               </Pressable>
               <Text style={s.helper}>A profile photo helps build trust with mentors and peers.{'\n'}Your photo is only visible to connected users.</Text>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <Pressable style={s.smallBtn} onPress={takeSelfie}><Camera size={14} color="#FFF" /><Text style={s.smallBtnText}>Take Selfie</Text></Pressable>
-                <Pressable style={s.smallBtn} onPress={pickPhoto}><Upload size={14} color="#FFF" /><Text style={s.smallBtnText}>Upload Photo</Text></Pressable>
-              </View>
+              {pendingPhoto ? (
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <Pressable style={s.confirmBtn} onPress={confirmPhoto}><Check size={14} color="#000" /><Text style={s.confirmBtnText}>Confirm</Text></Pressable>
+                  <Pressable style={s.smallBtn} onPress={() => { setPendingPhoto(null); takeSelfie(); }}><Camera size={14} color="#FFF" /><Text style={s.smallBtnText}>Retake</Text></Pressable>
+                </View>
+              ) : (
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <Pressable style={s.smallBtn} onPress={takeSelfie}><Camera size={14} color="#FFF" /><Text style={s.smallBtnText}>Take Selfie</Text></Pressable>
+                  <Pressable style={s.smallBtn} onPress={pickPhoto}><Upload size={14} color="#FFF" /><Text style={s.smallBtnText}>Upload Photo</Text></Pressable>
+                </View>
+              )}
             </View>
           )}
 
@@ -504,7 +549,8 @@ export default function MentorOnboard() {
               <Text style={s.helperRight}>{bio.length}/300</Text>
               <Text style={s.helper}>Keep it genuine — 2–3 sentences work best.</Text>
               <Text style={s.section}>Writing Style</Text>
-              <View style={s.chipRow}>{STYLES.map((x) => (<DarkChip key={x} label={x} active={style === x} onPress={() => setStyle(x)} />))}</View>
+              <View style={s.chipRow}>{STYLES.map((x) => (<DarkChip key={x} label={x} active={style === x} onPress={() => handleStylePress(x)} />))}</View>
+              {generatingBio && <Text style={s.generatingText}>✨ Generating your bio…</Text>}
             </>
           )}
 
@@ -558,6 +604,14 @@ export default function MentorOnboard() {
           <PrimaryButton label={step === TOTAL - 1 ? 'See My Member ID →' : 'Continue →'} onPress={onContinue} />
         </View>
       </View>
+      <WebcamModal
+        visible={webcamVisible}
+        onClose={() => setWebcamVisible(false)}
+        onCapture={(base64) => {
+          setPendingPhoto(base64);
+          setWebcamVisible(false);
+        }}
+      />
     </AuthShell>
   );
 }
@@ -654,6 +708,8 @@ const s = StyleSheet.create({
   helperRight: { color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.med, fontSize: 11, textAlign: 'right', marginTop: -10 },
   smallBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: 'rgba(124,58,237,0.32)', borderWidth: 1, borderColor: 'rgba(176,127,223,0.4)' },
   smallBtnText: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 12 },
+  confirmBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 999, backgroundColor: '#C4B5FD', borderWidth: 1, borderColor: '#C4B5FD' },
+  confirmBtnText: { color: '#000', fontFamily: FONTS.bold, fontSize: 12 },
 
   // Bio textarea
   textareaWrap: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)', paddingHorizontal: 14, paddingVertical: 12 },
@@ -670,4 +726,5 @@ const s = StyleSheet.create({
 
   navRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
   backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  generatingText: { color: '#A78BFA', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 6 },
 });

@@ -36,8 +36,8 @@ export function AIInsightsView() {
                 </View>
                 <Text style={s.body}>{it.body}</Text>
                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-                  <Pressable style={s.actBtn}><Text style={s.actText}>Take action</Text></Pressable>
-                  <Pressable style={s.dismissBtn}><Text style={s.dismissText}>Dismiss</Text></Pressable>
+                  <Pressable style={s.actBtn} onPress={() => onDismiss(it.id)}><Text style={s.actText}>Take action</Text></Pressable>
+                  <Pressable style={s.dismissBtn} onPress={() => onDismiss(it.id)}><Text style={s.dismissText}>Dismiss</Text></Pressable>
                 </View>
               </View>
             </View>

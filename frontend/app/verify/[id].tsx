@@ -160,9 +160,9 @@ export default function VerifyScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={s.detailLabel}>Expertise</Text>
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-                      {data.expertise.map((s: string, i: number) => (
+                      {data.expertise.map((skill: string, i: number) => (
                         <View key={i} style={s.skillPill}>
-                          <Text style={s.skillText}>{s}</Text>
+                          <Text style={s.skillText}>{skill}</Text>
                         </View>
                       ))}
                     </View>
