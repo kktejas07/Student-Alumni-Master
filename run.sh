@@ -48,9 +48,8 @@ start_backend() {
 
   # Prefer python3.11 / python3.12 (requirements need >=3.10); fall back to python3
   PYTHON=""
-  for candidate in python3.12 python3.11 python3.10 python3 python; do
+  for candidate in python3.12 python3.11 python3.10 python3 py python; do
     if command -v "$candidate" &>/dev/null; then
-      ver=$("$candidate" -c 'import sys; print(sys.version_info[:2])')
       if "$candidate" -c 'import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)' 2>/dev/null; then
         PYTHON="$candidate"
         break
