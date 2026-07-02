@@ -90,6 +90,13 @@ async def get_me(user: dict = Depends(get_current_user)):
     import time
     _t0 = time.perf_counter()
     print(f'[ME TRACE] REQUEST_RECEIVED | t=0.0s')
+    try:
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"last_login": datetime.utcnow()}}
+        )
+    except Exception as e:
+        print(f"[ME TRACE] Failed to update last_login: {e}", flush=True)
     resp = UserResponse(**serialize_user(user))
     print(f'[ME TRACE] RESPONSE_SENT | TOTAL me duration={(time.perf_counter()-_t0)*1000:.1f}ms')
     return resp
