@@ -850,6 +850,7 @@ async def register(request: Request, req: RegisterRequest):
         "face_image_base64": None,
         "onboarding_completed": False,
         "created_at": datetime.now(timezone.utc),
+        "last_login": datetime.utcnow(),
     }
     result = await db.users.insert_one(user_doc)
     user_id = str(result.inserted_id)
@@ -1048,6 +1049,14 @@ async def login(request: Request, req: LoginRequest):
     _t_tok1 = _time.perf_counter()
     print(f"[LOGIN TRACE] JWT_CREATED | 4. Token generation      | duration={(_t_tok1-_t_tok0)*1000:.1f}ms", flush=True)
 
+    try:
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"last_login": datetime.utcnow()}}
+        )
+    except Exception as e:
+        print(f"[LOGIN] Failed to update last_login: {e}", flush=True)
+
     # ── Stage 5: Serialize user profile ──
     _t_ser0 = _time.perf_counter()
     user_payload = UserResponse(**serialize_user(user))
@@ -1073,6 +1082,13 @@ async def get_me(user: dict = Depends(get_current_user)):
     import time
     _t0 = time.perf_counter()
     print(f'[ME TRACE] REQUEST_RECEIVED | t=0.0s')
+    try:
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"last_login": datetime.utcnow()}}
+        )
+    except Exception as e:
+        print(f"[ME TRACE] Failed to update last_login: {e}", flush=True)
     resp = UserResponse(**serialize_user(user))
     print(f'[ME TRACE] RESPONSE_SENT | TOTAL me duration={(time.perf_counter()-_t0)*1000:.1f}ms')
     return resp
@@ -2236,10 +2252,12 @@ async def two_fa_verify(request: Request, req: TwoFAVerifyRequest):
         {"_id": req.challenge_id},
         {"$set": {"consumed": True, "consumed_at": datetime.now(timezone.utc)}},
     )
+    update_fields = {"last_login": datetime.utcnow()}
     if used_backup_idx is not None:
         backup_codes = user.get("two_fa_backup_codes", [])
         backup_codes.pop(used_backup_idx)
-        await db.users.update_one({"_id": user["_id"]}, {"$set": {"two_fa_backup_codes": backup_codes}})
+        update_fields["two_fa_backup_codes"] = backup_codes
+    await db.users.update_one({"_id": user["_id"]}, {"$set": update_fields})
 
     return AuthResponse(
         access_token=create_access_token(str(user["_id"]), user["email"], user["role"]),
@@ -2334,7 +2352,7 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
     email = email.lower().strip()
     user = await db.users.find_one({"email": email})
     if user:
-        update = {"oauth_provider": provider, "oauth_picture": picture}
+        update = {"oauth_provider": provider, "oauth_picture": picture, "last_login": datetime.utcnow()}
         if picture:
             update["photo_data"] = picture
         await db.users.update_one({"_id": user["_id"]}, {"$set": update})
@@ -2361,6 +2379,7 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
         "oauth_picture": picture,
         "onboarding_completed": False,
         "created_at": datetime.now(timezone.utc),
+        "last_login": datetime.utcnow(),
     }
     res = await db.users.insert_one(user_doc)
     user_doc["_id"] = res.inserted_id

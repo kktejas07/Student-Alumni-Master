@@ -96,9 +96,24 @@ async def mentee_pulse(user: dict = Depends(_get_current_user_dependency())):
             if not u:
                 continue
             rm = await _db.career_roadmaps.find_one({"user_id": str(u["_id"])}) or {}
-            wp = rm.get("weekly_plan") or []
-            done = rm.get("milestones_completed") or []
-            current_week = next((i for i in range(len(wp)) if i not in done), len(wp))
+            
+            # Support both new milestones model and legacy weekly_plan model
+            if "milestones" in rm:
+                wp = rm.get("milestones") or []
+                done_count = sum(1 for m in wp if m.get("completed"))
+                total_count = len(wp)
+                progress_pct = round(done_count / total_count * 100) if total_count > 0 else rm.get("progress_pct", 0)
+                current_week = next((i for i, m in enumerate(wp) if not m.get("completed")), total_count)
+                current_week_title = wp[current_week]["title"] if current_week < total_count else "Roadmap complete"
+            else:
+                wp = rm.get("weekly_plan") or []
+                done = rm.get("milestones_completed") or []
+                done_count = len(done)
+                total_count = len(wp)
+                progress_pct = round(done_count / total_count * 100) if total_count > 0 else rm.get("progress_pct", 0)
+                current_week = next((i for i in range(total_count) if i not in done), total_count)
+                current_week_title = wp[current_week]["title"] if current_week < total_count else "Roadmap complete"
+
             # Get last session specifically with this mentor
             last_booking = await _db.bookings.find_one(
                 {"mentor_id": str(user.get("_id") or user.get("id")), "student_id": str(u["_id"]), "status": {"$in": ["confirmed", "completed"]}},
@@ -154,11 +169,11 @@ async def mentee_pulse(user: dict = Depends(_get_current_user_dependency())):
                 "graduation_year": u.get("graduation_year"),
                 "institution": u.get("institution"),
                 "branch": u.get("branch") or u.get("department"),
-                "progress_pct": rm.get("progress_pct", 0),
-                "current_week_index": current_week if current_week < len(wp) else None,
-                "current_week_title": (wp[current_week]["title"] if current_week < len(wp) else "Roadmap complete"),
-                "milestones_done": len(done),
-                "milestones_total": len(wp),
+                "progress_pct": progress_pct,
+                "current_week_index": current_week if current_week < total_count else None,
+                "current_week_title": current_week_title,
+                "milestones_done": done_count,
+                "milestones_total": total_count,
                 "skill_scores_top": dict(sorted((rm.get("skill_scores") or {}).items(),
                                                   key=lambda kv: -kv[1])[:3]),
                 "last_session_at": last_session_at,
@@ -240,8 +255,20 @@ async def impact(user: dict = Depends(_get_current_user_dependency())):
     counted = 0
     for m_id in ids:
         rm = await _db.career_roadmaps.find_one({"user_id": str(m_id)}) or {}
-        total_done += len(rm.get("milestones_completed") or [])
-        total_progress += float(rm.get("progress_pct") or 0)
+        if "milestones" in rm:
+            wp = rm.get("milestones") or []
+            done_count = sum(1 for m in wp if m.get("completed"))
+            total_count = len(wp)
+            pct = round(done_count / total_count * 100) if total_count > 0 else rm.get("progress_pct", 0)
+        else:
+            wp = rm.get("weekly_plan") or []
+            done = rm.get("milestones_completed") or []
+            done_count = len(done)
+            total_count = len(wp)
+            pct = round(done_count / total_count * 100) if total_count > 0 else rm.get("progress_pct", 0)
+            
+        total_done += done_count
+        total_progress += float(pct)
         try:
             try:
                 u = await _db.users.find_one({"_id": ObjectId(m_id)})
@@ -292,13 +319,19 @@ async def session_prep(body: Dict[str, Any] = None,
 
     rm = await _db.career_roadmaps.find_one({"user_id": str(u["_id"])}) or {}
     target = rm.get("target_role") or "Software Engineer"
-    progress = rm.get("progress_pct") or 0
+    if "milestones" in rm:
+        wp = rm.get("milestones") or []
+        done = sum(1 for m in wp if m.get("completed"))
+        total = len(wp)
+    else:
+        wp = rm.get("weekly_plan") or []
+        done = len(rm.get("milestones_completed") or [])
+        total = len(wp)
+    progress = round(done / total * 100) if total > 0 else (rm.get("progress_pct") or 0)
     weak_skills = sorted([(k, v) for k, v in (rm.get("skill_scores") or {}).items() if v < 60],
                          key=lambda kv: kv[1])[:3]
     strong_skills = sorted([(k, v) for k, v in (rm.get("skill_scores") or {}).items() if v >= 70],
                            key=lambda kv: -kv[1])[:3]
-    done = len(rm.get("milestones_completed") or [])
-    total = len(rm.get("weekly_plan") or [])
     name = u.get("full_name") or u.get("email", "Mentee").split("@")[0]
 
     # Try LLM
