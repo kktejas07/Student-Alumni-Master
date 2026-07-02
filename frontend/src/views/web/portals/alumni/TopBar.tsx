@@ -1,13 +1,13 @@
-/**
- * Student Portal — top bar with greeting + bell + search + avatar.
- */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { Bell, Search } from './iconShims';
 import { SC, FONTS } from './tokens';
 import { STUDENT } from './data';
 import { Av } from './atoms';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
+import { AlumniPortalNavContext } from './AlumniPortalRN';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -16,8 +16,35 @@ function greeting(): string {
   return 'Good evening';
 }
 
-export function TopBar() {
-  const firstName = STUDENT.name.split(' ')[0];
+export function TopBar({
+  activeView = 'dashboard',
+  onAvatarPress,
+}: {
+  activeView?: string;
+  onAvatarPress?: () => void;
+} = {}) {
+  const router = useRouter();
+  const user = useAuthStore((u) => u.user);
+  const fullName = user?.full_name || STUDENT.name;
+  const firstName = fullName.split(' ')[0] || STUDENT.name.split(' ')[0];
+  const initials = fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('').toUpperCase() || STUDENT.initials;
+  const photo = user?.photo_data || user?.face_image_base64;
+  const portalNav = React.useContext(AlumniPortalNavContext);
+  const [q, setQ] = React.useState(portalNav?.searchQuery || '');
+
+  useEffect(() => {
+    setQ(portalNav?.searchQuery || '');
+  }, [portalNav?.searchQuery]);
+
+  const handleSearch = () => {
+    if (q.trim() && portalNav) {
+      portalNav.setSearchQuery(q.trim());
+      if (activeView !== 'network' && activeView !== 'internships') {
+        portalNav.navigate('internships');
+      }
+    }
+  };
+
   return (
     <View style={s.bar}>
       <View style={{ flex: 1, minWidth: 0 }}>
@@ -26,18 +53,39 @@ export function TopBar() {
       </View>
 
       <View style={s.searchBox}>
-        <Search size={14} color={SC.dim} />
-        <TextInput placeholder="Search anything…" placeholderTextColor={SC.dim} style={s.searchInput} />
+        <Pressable
+          onPress={handleSearch}
+          style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}
+          accessibilityLabel="Execute search"
+        >
+          <Search size={14} color={q.trim() ? '#fff' : SC.dim} />
+        </Pressable>
+        <TextInput
+          value={q}
+          onChangeText={setQ}
+          onSubmitEditing={handleSearch}
+          placeholder="Search anything…"
+          placeholderTextColor={SC.dim}
+          style={s.searchInput}
+        />
       </View>
 
-      <Pressable style={({ hovered }: any) => [s.bell, hovered && { backgroundColor: SC.cardH }]}>
+      <Pressable
+        onPress={() => router.push('/notifications')}
+        style={({ hovered }: any) => [s.bell, hovered && { backgroundColor: SC.cardH }]}
+      >
         <Bell size={16} color={SC.accent} />
         <View style={s.bellDot} />
       </Pressable>
 
       <HelpMenu portal="alumni" />
 
-      <Av initials={STUDENT.initials} size={36} color={SC.primary} />
+      <Pressable
+        onPress={onAvatarPress || (() => router.push('/(tabs)/profile'))}
+        style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}
+      >
+        <Av initials={initials} size={36} color={SC.primary} photo={photo} />
+      </Pressable>
     </View>
   );
 }
@@ -48,6 +96,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 22, paddingVertical: 14,
     borderBottomWidth: 1, borderBottomColor: SC.border,
     backgroundColor: SC.bg2,
+    position: 'relative', zIndex: 10,
   },
   greet: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.4 },
   sub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 },

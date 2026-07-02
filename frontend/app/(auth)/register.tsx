@@ -15,7 +15,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { PhoneInput } from '@/src/views/web/PhoneInput';
 import { DateOfBirthPicker, isDobValid } from '@/src/views/web/DateOfBirthPicker';
 
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -150,7 +150,7 @@ export default function RegisterScreen() {
             <AuthInput label="Email" value={email} onChangeText={(t) => { setEmail(t); setErrors((p) => ({ ...p, email: '' })); }} placeholder="you@university.edu" keyboardType="email-address" error={errors.email} />
 
             {/* Personal Information — phone (with country code) + DOB (mandatory) */}
-            <View>
+            <View style={{ zIndex: 10, position: 'relative' }}>
               <Text style={s.fieldLabel}>Phone Number<Text style={{ color: '#EF4444' }}> *</Text></Text>
               <PhoneInput
                 value={phone}

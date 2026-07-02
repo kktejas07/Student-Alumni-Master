@@ -5,7 +5,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8001';
+const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 const TOKEN_KEY = 'scd_access_token';
 const REFRESH_KEY = 'scd_refresh_token';
@@ -198,6 +198,27 @@ export const api = {
   chatHistory: (session_id?: string) =>
     request<any>(`/ai/chat/history${session_id ? `?session_id=${session_id}` : ''}`),
 
+  generateBio: (data: {
+    role: string;
+    full_name?: string;
+    writing_style: string;
+    existing_bio?: string;
+    institution?: string;
+    education_level?: string;
+    career_goal?: string;
+    interests?: string[];
+    skills?: string[];
+    organization?: string;
+    job_title?: string;
+    mentor_category?: string;
+    expertise?: string[];
+    graduation_year?: string;
+    employment_status?: string;
+    institution_name?: string;
+    location?: string;
+    institution_type?: string;
+  }) => request<{ bio: string }>('/ai/generate-bio', { method: 'POST', body: data }),
+
   // Catalog
   listCourses: (career_path?: string) =>
     request<any>(`/catalog/courses${career_path ? `?career_path=${career_path}` : ''}`),
@@ -293,6 +314,17 @@ export const api = {
     max_attendees: number;
   }) => request<any>('/mentor/sessions', { method: 'POST', body: payload }),
   myMentorSessions: () => request<any>('/mentor/sessions/me'),
+  mentorConnections: (email?: string) => request<any>(`/mentor/connections${email ? `?email=${encodeURIComponent(email)}` : ''}`),
+  acceptConnection: (otherId: string) => request<any>(`/network/accept/${otherId}`, { method: 'POST', body: {} }),
+  rejectConnection: (otherId: string) => request<any>(`/network/reject/${otherId}`, { method: 'POST', body: {} }),
+  createMentorBooking: (payload: {
+    student_id: string;
+    slot_start_iso: string;
+    topic: string;
+    notes?: string;
+  }) => request<any>('/mentor/bookings', { method: 'POST', body: payload }),
+  rescheduleBooking: (id: string, slotStartIso: string) =>
+    request<any>(`/bookings/${id}/reschedule`, { method: 'POST', body: { slot_start_iso: slotStartIso } }),
 };
 
 export { BASE_URL };

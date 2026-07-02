@@ -9,8 +9,10 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import FeaturePageShell from '@/src/views/web/FeaturePageShell';
+import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useRouter } from 'expo-router';
 import { AnimatedCard, FAB } from '@/src/views/web/md3';
 import CareerTrackInline from '@/src/views/web/courses/CareerTrackInline';
 import CourseDetailDrawer from '@/src/views/web/courses/CourseDetailDrawer';
@@ -87,6 +89,21 @@ const fmtCount = (n: number) => {
 };
 
 export default function CoursesPage() {
+  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const initialized = useAuthStore((s) => s.initialized);
+  const isEmbedded = React.useContext(EmbeddedShellContext);
+
+  useEffect(() => {
+    if (!isEmbedded && initialized && user) {
+      if (user.role === 'alumni') {
+        router.replace('/alumni-portal?tab=courses' as any);
+      } else if (user.role === 'student') {
+        router.replace('/student-portal?tab=courses' as any);
+      }
+    }
+  }, [isEmbedded, initialized, user, router]);
+
   const [sections, setSections] = useState<Section[]>([]);
   const [hero, setHero] = useState<Hero[]>([]);
   const [stats, setStats] = useState({ total_courses: 0, free_courses: 0,
@@ -112,6 +129,7 @@ export default function CoursesPage() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [enrollFor, setEnrollFor] = useState<Course | null>(null);
   const [detailCourse, setDetailCourse] = useState<Course | null>(null);
+  const [advisorOpen, setAdvisorOpen] = useState(false);
   const [activeTrackSlug, setActiveTrackSlug] = useState<string | null>(null);
   const [featured, setFeatured] = useState<Course[]>([]);
   const [trendingFree, setTrendingFree] = useState<Course[]>([]);
@@ -785,7 +803,7 @@ export default function CoursesPage() {
                           onClose={() => setDetailCourse(null)} />
 
       {/* AI Course Advisor floating widget */}
-      <AICourseAdvisor onCourseClick={(c) => setDetailCourse(c)} />
+      <AICourseAdvisor open={advisorOpen} setOpen={setAdvisorOpen} onCourseClick={(c) => setDetailCourse(c)} />
 
       {/* Enroll modal */}
       <EnrollModal course={enrollFor}
@@ -813,13 +831,7 @@ export default function CoursesPage() {
         icon="brain"
         label="Course AI"
         color="#7C3AED"
-        onPress={() => {
-          if (Platform.OS === 'web') {
-            try {
-              window.scrollTo({ top: 9999, behavior: 'smooth' });
-            } catch {}
-          }
-        }}
+        onPress={() => setAdvisorOpen(true)}
       />
     </FeaturePageShell>
   );

@@ -25,7 +25,8 @@ import * as MOCK from '../data';
 import { usePortalData } from '@/src/lib/portalApi';
 import { TierBadge } from '@/src/views/web/TierBadge';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
-import { request } from '@/src/models/services/api';
+import { api, request } from '@/src/models/services/api';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 interface Props { onNav: (id: string) => void; }
 
@@ -42,22 +43,34 @@ export function DashboardView({ onNav }: Props) {
   const { data } = usePortalData<typeof MENTOR_MOCK>('/mentor/dashboard', MENTOR_MOCK);
   const liveMentor = data?.mentor as any;
   const tier = liveMentor?.tier;
-  // For now we still consume MOCK.* directly inside the JSX since the
-  // existing render references local arrays. The fetch call above primes
-  // the cache so subsequent views see fresh data; full prop mapping will
-  // happen as views are rebuilt against the API contract.
-  const TODAY_SESSIONS = MOCK.TODAY_SESSIONS;
-  const STUDENTS = MOCK.STUDENTS;
+
+  const user = useAuthStore((s) => s.user);
+  const [students, setStudents] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    async function loadDashboardConnections() {
+      try {
+        const connRes = await api.mentorConnections(user?.email);
+        setStudents(connRes?.items || []);
+      } catch (e) {
+        console.warn('Dashboard connections fetch failed:', e);
+      }
+    }
+    loadDashboardConnections();
+  }, [user]);
+
+  const TODAY_SESSIONS = data?.todaySessions || MOCK.TODAY_SESSIONS;
+  const STUDENTS = students.length > 0 ? students : MOCK.STUDENTS;
   const RATING_DIST = MOCK.RATING_DIST;
 
   const { width } = useWindowDimensions();
   const isWide = width >= 1080;
 
   const STATS = [
-    { Icon: Calendar, label: 'Sessions Today', value: String(TODAY_SESSIONS.length), sub: 'Next at ' + TODAY_SESSIONS[0].time, subColor: MC.tealP },
+    { Icon: Calendar, label: 'Sessions Today', value: String(TODAY_SESSIONS.length), sub: TODAY_SESSIONS[0] ? 'Next at ' + TODAY_SESSIONS[0].time : 'No more today', subColor: MC.tealP },
     { Icon: Users,    label: 'Total Students', value: String(STUDENTS.length),       sub: '↑ 2 this week',                  subColor: MC.green },
-    { Icon: Coins,    label: 'This Month',     value: '₹28,500',                       sub: '↑ 12% vs last',                   subColor: MC.green },
-    { Icon: StarIcon, label: 'Rating',         value: '4.9',                          sub: '42 student reviews',             subColor: MC.amber },
+    { Icon: Coins,    label: 'This Month',     value: data?.kpis?.find((k: any) => k.id === 'earnings')?.value || '₹28,500', sub: '↑ 12% vs last', subColor: MC.green },
+    { Icon: StarIcon, label: 'Rating',         value: String(liveMentor?.rating || '4.9'),                          sub: `${data?.kpis?.find((k: any) => k.id === 'rating')?.delta || '42 student reviews'}`,             subColor: MC.amber },
   ];
 
   const upcoming = STUDENTS.filter((s) => s.nextSession).slice(0, 3);
@@ -249,6 +262,8 @@ export function DashboardView({ onNav }: Props) {
 
 /** AI Daily Briefing card — prominent purple-tinted glass with CTA */
 function AIDailyBriefing({ onNav }: { onNav: (id: string) => void }) {
+  const user = useAuthStore((s) => s.user);
+  const firstName = (user as any)?.first_name || (user?.full_name || '').split(' ')[0] || 'Mentor';
   const [briefText, setBriefText] = React.useState<string>('');
   const [briefLoading, setBriefLoading] = React.useState<boolean>(false);
 
@@ -277,7 +292,7 @@ function AIDailyBriefing({ onNav }: { onNav: (id: string) => void }) {
         </View>
       </View>
       <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 16, lineHeight: 22, marginBottom: 8 }}>
-        {briefText ? 'Today\'s briefing' : 'Good morning, Mentor ✨'}
+        {briefText ? 'Today\'s briefing' : `Good morning, ${firstName} ✨`}
       </Text>
       <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18, marginBottom: 12 }}>
         {briefText || (

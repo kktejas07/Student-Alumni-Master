@@ -140,6 +140,7 @@ if r.status_code == 200:
 section("C) Student workshops")
 
 # 9. Enroll
+reg_id = None
 r = jpost("/student/workshops/enroll", {
     "student_email": "workshop2@persona.demo",
     "workshop_title": "Test Bootcamp",
@@ -148,7 +149,8 @@ r = jpost("/student/workshops/enroll", {
 })
 check("9. POST /student/workshops/enroll → 200", r.status_code == 200, f"got {r.status_code}: {r.text[:200]}")
 if r.status_code == 200:
-    check("   registration_id present", bool(r.json().get("registration_id")), r.text)
+    reg_id = r.json().get("registration_id")
+    check("   registration_id present", bool(reg_id), r.text)
 
 # 10. Idempotent
 r = jpost("/student/workshops/enroll", {
@@ -166,6 +168,66 @@ check("11. GET /student/my-workshops → 200", r.status_code == 200, f"got {r.st
 if r.status_code == 200:
     titles = [i.get("title") for i in r.json().get("items", [])]
     check("   list includes 'Test Bootcamp'", "Test Bootcamp" in titles, f"titles={titles}")
+
+# 11.5 progress simulations
+if reg_id:
+    # 1. Start action
+    r = jpost("/student/workshops/progress", {
+        "student_email": "workshop2@persona.demo",
+        "registration_id": reg_id,
+        "action": "start"
+    })
+    check("11.5a POST /student/workshops/progress (start) → 200", r.status_code == 200, r.text)
+    if r.status_code == 200:
+        body = r.json()
+        check("    status is in_progress", body.get("status") == "in_progress", str(body))
+        check("    current_week is 1", body.get("current_week") == 1, str(body))
+
+    # 2. Advance action
+    r = jpost("/student/workshops/progress", {
+        "student_email": "workshop2@persona.demo",
+        "registration_id": reg_id,
+        "action": "advance"
+    })
+    check("11.5b POST /student/workshops/progress (advance) → 200", r.status_code == 200, r.text)
+    if r.status_code == 200:
+        body = r.json()
+        check("    status is in_progress", body.get("status") == "in_progress", str(body))
+        check("    current_week is 2", body.get("current_week") == 2, str(body))
+
+    # 3. Complete action
+    r = jpost("/student/workshops/progress", {
+        "student_email": "workshop2@persona.demo",
+        "registration_id": reg_id,
+        "action": "complete"
+    })
+    check("11.5c POST /student/workshops/progress (complete) → 200", r.status_code == 200, r.text)
+    if r.status_code == 200:
+        body = r.json()
+        check("    status is completed", body.get("status") == "completed", str(body))
+        check("    current_week is 4", body.get("current_week") == 4, str(body))
+        check("    has completed_at", bool(body.get("completed_at")), str(body))
+        check("    has certificate_url", bool(body.get("certificate_url")), str(body))
+
+    # 4. Boundary checking (advance past weeks)
+    r = jpost("/student/workshops/progress", {
+        "student_email": "workshop2@persona.demo",
+        "registration_id": reg_id,
+        "action": "advance"
+    })
+    check("11.5d advance past weeks clamps", r.status_code == 200, r.text)
+    if r.status_code == 200:
+        body = r.json()
+        check("    status remains completed", body.get("status") == "completed", str(body))
+        check("    current_week remains 4", body.get("current_week") == 4, str(body))
+
+    # 5. Invalid action check
+    r = jpost("/student/workshops/progress", {
+        "student_email": "workshop2@persona.demo",
+        "registration_id": reg_id,
+        "action": "invalid_action_value"
+    })
+    check("11.5e invalid action → 400", r.status_code == 400, f"got {r.status_code}")
 
 # ──────────────────────── D) Events ────────────────────────
 section("D) Student events")

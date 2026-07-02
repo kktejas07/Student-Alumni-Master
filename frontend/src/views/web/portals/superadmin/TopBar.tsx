@@ -97,6 +97,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 22, paddingVertical: 12,
     borderBottomWidth: 1, borderBottomColor: SAC.border,
     backgroundColor: SAC.bg2,
+    position: 'relative', zIndex: 10,
   },
   title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 18, letterSpacing: -0.4 },
   date:  { color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },

@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   Download, Share2, ShieldCheck, MapPin, GraduationCap, Calendar,
-  ArrowLeft, Sparkles,
+  ArrowLeft, Sparkles, Briefcase, Award, Clock,
 } from 'lucide-react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { request } from '@/src/models/services/api';
@@ -38,6 +38,9 @@ interface IDCard {
   issued_at: string;
   verify_url: string;
   qr_payload: string;
+  company?: string;
+  position?: string;
+  years_experience?: string;
 }
 
 export default function DigitalIDScreen() {
@@ -207,31 +210,64 @@ export default function DigitalIDScreen() {
 
               {/* Detail rows */}
               <View style={styles.detailGrid}>
-                <DetailItem
-                  icon={<GraduationCap size={13} color="rgba(255,255,255,0.55)" />}
-                  label="INSTITUTION"
-                  value={card.institution}
-                />
-                {!!card.branch && (
-                  <DetailItem
-                    icon={<Sparkles size={13} color="rgba(255,255,255,0.55)" />}
-                    label="BRANCH"
-                    value={card.branch}
-                  />
-                )}
-                {!!card.batch && (
-                  <DetailItem
-                    icon={<Calendar size={13} color="rgba(255,255,255,0.55)" />}
-                    label="BATCH"
-                    value={card.batch}
-                  />
-                )}
-                {(card.city || card.state) && (
-                  <DetailItem
-                    icon={<MapPin size={13} color="rgba(255,255,255,0.55)" />}
-                    label="LOCATION"
-                    value={[card.city, card.state].filter(Boolean).join(', ')}
-                  />
+                {card.role === 'mentor' ? (
+                  <>
+                    <DetailItem
+                      icon={<Briefcase size={13} color="rgba(255,255,255,0.55)" />}
+                      label="COMPANY"
+                      value={card.company || '—'}
+                    />
+                    {!!card.position && (
+                      <DetailItem
+                        icon={<Award size={13} color="rgba(255,255,255,0.55)" />}
+                        label="POSITION"
+                        value={card.position}
+                      />
+                    )}
+                    {!!card.years_experience && (
+                      <DetailItem
+                        icon={<Clock size={13} color="rgba(255,255,255,0.55)" />}
+                        label="EXPERIENCE"
+                        value={card.years_experience}
+                      />
+                    )}
+                    {(card.city || card.state) && (
+                      <DetailItem
+                        icon={<MapPin size={13} color="rgba(255,255,255,0.55)" />}
+                        label="LOCATION"
+                        value={[card.city, card.state].filter(Boolean).join(', ')}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <DetailItem
+                      icon={<GraduationCap size={13} color="rgba(255,255,255,0.55)" />}
+                      label="INSTITUTION"
+                      value={card.institution || '—'}
+                    />
+                    {!!card.branch && (
+                      <DetailItem
+                        icon={<Sparkles size={13} color="rgba(255,255,255,0.55)" />}
+                        label="BRANCH"
+                        value={card.branch}
+                      />
+                    )}
+                    {!!card.batch && (
+                      <DetailItem
+                        icon={<Calendar size={13} color="rgba(255,255,255,0.55)" />}
+                        label="BATCH"
+                        value={card.batch}
+                      />
+                    )}
+                    {(card.city || card.state) && (
+                      <DetailItem
+                        icon={<MapPin size={13} color="rgba(255,255,255,0.55)" />}
+                        label="LOCATION"
+                        value={[card.city, card.state].filter(Boolean).join(', ')}
+                      />
+                    )}
+                  </>
                 )}
               </View>
 

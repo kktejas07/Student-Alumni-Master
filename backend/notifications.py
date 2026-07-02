@@ -20,6 +20,7 @@ import asyncio
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 import httpx
+from bson import ObjectId
 
 
 EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
@@ -99,6 +100,7 @@ async def _log_inbox(db, user_id: str, title: str, body: str, data: Optional[Dic
         "title": title,
         "body": body,
         "data": data or {},
+        "type": (data or {}).get("type"),
         "read": False,
         "created_at": datetime.now(timezone.utc),
     })
@@ -106,21 +108,37 @@ async def _log_inbox(db, user_id: str, title: str, body: str, data: Optional[Dic
 
 async def list_inbox(db, user_id: str, limit: int = 30) -> List[Dict[str, Any]]:
     cursor = (
-        db.notifications.find({"user_id": str(user_id)}, {"_id": 0})
+        db.notifications.find({"user_id": str(user_id)})
         .sort("created_at", -1)
         .limit(limit)
     )
     items = await cursor.to_list(limit)
     for it in items:
+        if "_id" in it:
+            it["id"] = str(it["_id"])
+            del it["_id"]
         if isinstance(it.get("created_at"), datetime):
             it["created_at"] = it["created_at"].isoformat()
+        if "body" in it and "message" not in it:
+            it["message"] = it["body"]
+        if "data" in it and isinstance(it["data"], dict) and "type" in it["data"] and "type" not in it:
+            it["type"] = it["data"]["type"]
     return items
 
 
 async def mark_inbox_read(db, user_id: str, ids: Optional[List[str]] = None) -> int:
     q: Dict[str, Any] = {"user_id": str(user_id)}
     if ids:
-        q["id"] = {"$in": ids}
+        objs = []
+        for i in ids:
+            try:
+                objs.append(ObjectId(i))
+            except Exception:
+                pass
+        q["$or"] = [
+            {"id": {"$in": ids}},
+            {"_id": {"$in": objs}}
+        ]
     res = await db.notifications.update_many(q, {"$set": {"read": True}})
     return res.modified_count
 
