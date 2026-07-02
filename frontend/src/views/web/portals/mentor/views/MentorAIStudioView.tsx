@@ -136,8 +136,10 @@ export function MentorAIStudioView() {
 
   const getRisk = (m: Mentee) => {
     if (m.stuck) return { label: 'High', color: '#EF4444' };
-    if (m.progress_pct < 40) return { label: 'Medium', color: '#F59E0B' };
-    return { label: 'Low', color: '#10B981' };
+    if (m.progress_pct < 60) return { label: 'High', color: '#EF4444' };
+    if (m.progress_pct < 80) return { label: 'Moderate', color: '#F59E0B' };
+    if (m.progress_pct < 100) return { label: 'Low', color: '#10B981' };
+    return { label: 'Very Low', color: '#3B82F6' };
   };
 
   const topPerformers = [...pulse].sort((a, b) => b.progress_pct - a.progress_pct).slice(0, 5);
