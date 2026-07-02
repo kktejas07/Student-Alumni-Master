@@ -48,12 +48,15 @@ const MENTOR_EMPTY: MentorDashboardData = {
 };
 
 export function DashboardView({ onNav }: Props) {
+  const user = useAuthStore((s) => s.user);
+  const dashPath = user?.email
+    ? `/mentor/dashboard?mentor_email=${encodeURIComponent(user.email)}`
+    : '/mentor/dashboard';
+
   // Fetch live data; falls back to empty if API unreachable.
-  const { data, loading } = usePortalData<MentorDashboardData>('/mentor/dashboard', MENTOR_EMPTY);
+  const { data, loading } = usePortalData<MentorDashboardData>(dashPath, MENTOR_EMPTY);
   const liveMentor = data?.mentor as any;
   const tier = liveMentor?.tier;
-
-  const user = useAuthStore((s) => s.user);
   const [students, setStudents] = React.useState<any[]>([]);
   const [studentsLoading, setStudentsLoading] = React.useState(true);
 
