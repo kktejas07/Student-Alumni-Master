@@ -45,16 +45,38 @@ async def _mentee_ids(mentor: dict) -> List[str]:
     """List of mentee user_ids this mentor is connected to."""
     out = set()
     mid = str(mentor.get("_id"))
+    
+    # 1. Fetch from connections collection (both key pairs a/b and legacy keys)
     async for c in _db.connections.find({"$or": [
+        {"a": mid}, {"b": mid},
         {"mentor_id": mid}, {"connected_user_id": mid}, {"user_id": mid},
     ]}):
-        for k in ("user_id", "mentee_id", "connected_user_id", "student_id"):
-            if c.get(k) and c[k] != mid:
-                out.add(str(c[k]))
-    # Fallback — if the mentor has booked sessions, treat the bookers as mentees
+        # Only count active/accepted connections
+        status = c.get("status")
+        if status and status not in ("active", "accepted", "completed"):
+            continue
+            
+        other = None
+        if "a" in c and "b" in c:
+            other = c["b"] if c["a"] == mid else c["a"]
+        else:
+            for k in ("user_id", "mentee_id", "connected_user_id", "student_id"):
+                if c.get(k) and c[k] != mid:
+                    other = c[k]
+                    break
+        if other and other != mid:
+            out.add(str(other))
+            
+    # 2. Fallback — if the mentor has booked sessions, treat the bookers as mentees
+    async for s in _db.bookings.find({"mentor_id": mid, "status": {"$in": ["confirmed", "completed", "accepted", "pending"]}}):
+        if s.get("student_id"):
+            out.add(str(s["student_id"]))
+            
+    # 3. Fallback — if the mentor has sessions, treat the users as mentees
     async for s in _db.sessions.find({"mentor_id": mid}):
         if s.get("user_id"):
             out.add(str(s["user_id"]))
+            
     return list(out)
 
 
@@ -77,10 +99,41 @@ async def mentee_pulse(user: dict = Depends(_get_current_user_dependency())):
             wp = rm.get("weekly_plan") or []
             done = rm.get("milestones_completed") or []
             current_week = next((i for i in range(len(wp)) if i not in done), len(wp))
-            last_session = await _db.sessions.find_one(
-                {"$or": [{"user_id": str(u["_id"])}, {"mentee_id": str(u["_id"])}]},
+            # Get last session specifically with this mentor
+            last_booking = await _db.bookings.find_one(
+                {"mentor_id": str(user.get("_id") or user.get("id")), "student_id": str(u["_id"]), "status": {"$in": ["confirmed", "completed"]}},
                 sort=[("scheduled_at", -1)],
             )
+            last_sess = await _db.sessions.find_one(
+                {"mentor_id": str(user.get("_id") or user.get("id")), "$or": [{"user_id": str(u["_id"])}, {"mentee_id": str(u["_id"])}]},
+                sort=[("scheduled_at", -1)],
+            )
+            
+            last_session_at = None
+            if last_booking and last_sess:
+                b_date = last_booking.get("scheduled_at")
+                if isinstance(b_date, str):
+                    try:
+                        b_date = datetime.fromisoformat(b_date.replace("Z", "+00:00"))
+                    except Exception:
+                        b_date = None
+                s_date = last_sess.get("scheduled_at")
+                if b_date and s_date:
+                    last_session_at = max(b_date, s_date)
+                elif b_date:
+                    last_session_at = b_date
+                else:
+                    last_session_at = s_date
+            elif last_booking:
+                b_date = last_booking.get("scheduled_at")
+                if isinstance(b_date, str):
+                    try:
+                        b_date = datetime.fromisoformat(b_date.replace("Z", "+00:00"))
+                    except Exception:
+                        b_date = None
+                last_session_at = b_date
+            elif last_sess:
+                last_session_at = last_sess.get("scheduled_at")
 
             # Stuck detection — handle tz-naive last_login from Mongo
             ll = u.get("last_login")
@@ -108,7 +161,7 @@ async def mentee_pulse(user: dict = Depends(_get_current_user_dependency())):
                 "milestones_total": len(wp),
                 "skill_scores_top": dict(sorted((rm.get("skill_scores") or {}).items(),
                                                   key=lambda kv: -kv[1])[:3]),
-                "last_session_at": (last_session or {}).get("scheduled_at"),
+                "last_session_at": last_session_at,
                 "stuck": stuck,
                 "stuck_days": stuck_days,
                 "badges_count": len(u.get("badges") or []),
@@ -159,10 +212,27 @@ async def impact(user: dict = Depends(_get_current_user_dependency())):
     now = datetime.now(timezone.utc)
     thirty = now - timedelta(days=30)
 
-    sessions_30 = await _db.sessions.count_documents({
+    sessions_30_completed = await _db.sessions.count_documents({
         "mentor_id": mid,
         "scheduled_at": {"$gte": thirty},
     })
+    bookings_30 = 0
+    async for b in _db.bookings.find({
+        "mentor_id": mid,
+        "status": {"$in": ["confirmed", "completed", "accepted"]}
+    }):
+        b_date = b.get("scheduled_at")
+        if isinstance(b_date, str):
+            try:
+                b_date = datetime.fromisoformat(b_date.replace("Z", "+00:00"))
+            except Exception:
+                b_date = None
+        if isinstance(b_date, datetime):
+            if b_date.tzinfo is None:
+                b_date = b_date.replace(tzinfo=timezone.utc)
+            if b_date >= thirty:
+                bookings_30 += 1
+    sessions_30 = sessions_30_completed + bookings_30
 
     total_done = 0
     total_badges = 0

@@ -42,11 +42,7 @@ const AI_INSIGHTS = [
   { title: 'Share Python Practice Resources', icon: 'language-python' },
 ];
 
-const UPCOMING_SESSIONS = [
-  { date: 'June 21', topic: 'Resume Review' },
-  { date: 'June 23', topic: 'Python Basics' },
-  { date: 'June 25', topic: 'Mock Interview' },
-];
+// UPCOMING_SESSIONS is now fetched dynamically from bookings
 
 const RECENT_ACTIVITY = [
   { text: 'Rahul completed SQL Assessment', icon: 'check-circle', color: '#10B981' },
@@ -70,18 +66,44 @@ export function MentorAIStudioView() {
   const [loading, setLoading] = useState(true);
   const [prep, setPrep] = useState<Prep | null>(null);
   const [prepLoading, setPrepLoading] = useState<string | null>(null);
+  const [upcoming, setUpcoming] = useState<any[]>([]);
+
+  const formatSessionDate = (isoStr: string) => {
+    try {
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return 'Upcoming';
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${months[d.getMonth()]} ${d.getDate()}`;
+    } catch {
+      return 'Upcoming';
+    }
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [a, b, c]: any = await Promise.all([
+      const [a, b, c, d]: any = await Promise.all([
         request('/mentor/ai-studio/mentee-pulse'),
         request('/mentor/ai-studio/skill-gaps'),
         request('/mentor/ai-studio/impact'),
+        request('/bookings/me').catch(() => ({ bookings: [] })),
       ]);
       setPulse(a.items || []);
       setGaps(b.items || []);
       setImpact(c || null);
+
+      const books = d.bookings || [];
+      const now = new Date();
+      const filtered = books.filter((b: any) => {
+        const schedDate = b.slot_start_iso ? new Date(b.slot_start_iso) : (b.scheduled_at ? new Date(b.scheduled_at) : null);
+        return schedDate && schedDate > now && ['confirmed', 'accepted', 'pending'].includes(b.status);
+      });
+      filtered.sort((x: any, y: any) => {
+        const dx = x.slot_start_iso ? new Date(x.slot_start_iso).getTime() : new Date(x.scheduled_at).getTime();
+        const dy = y.slot_start_iso ? new Date(y.slot_start_iso).getTime() : new Date(y.scheduled_at).getTime();
+        return dx - dy;
+      });
+      setUpcoming(filtered.slice(0, 5));
     } catch (e: any) {
       console.warn('Mentor AI load failed', e?.message);
     } finally { setLoading(false); }
@@ -263,10 +285,20 @@ export function MentorAIStudioView() {
             <View style={s.sectionCard}>
               {renderSectionHeader('Upcoming Sessions', 'calendar', '#3B82F6')}
               <View style={{ gap: 12, marginTop: 12 }}>
-                {UPCOMING_SESSIONS.map((sT, i) => (
-                  <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <View style={s.dateBox}><MCI name="calendar-blank" size={14} color="#3B82F6" /><Text style={[s.dateText, {color: '#3B82F6'}]}>{sT.date}</Text></View>
-                    <Text style={s.activityText}>{sT.topic}</Text>
+                {upcoming.length === 0 && !loading && (
+                  <Text style={{ color: MC.dim, fontSize: 12.5 }}>No upcoming sessions scheduled.</Text>
+                )}
+                {upcoming.map((sess, i) => (
+                  <View key={sess.id || i} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <View style={s.dateBox}>
+                      <MCI name="calendar-blank" size={14} color="#3B82F6" />
+                      <Text style={[s.dateText, { color: '#3B82F6' }]}>
+                        {formatSessionDate(sess.slot_start_iso || sess.scheduled_at)}
+                      </Text>
+                    </View>
+                    <Text style={s.activityText} numberOfLines={1}>
+                      {sess.student_name ? `${sess.student_name}: ` : ''}{sess.topic}
+                    </Text>
                   </View>
                 ))}
               </View>
