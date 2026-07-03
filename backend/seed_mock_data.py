@@ -583,7 +583,6 @@ async def upsert_user(email: str, password: str, full_name: str, role: str,
         "interests": extra.get("interests", []),
         "skills": extra.get("skills", []),
         "bio": extra.get("bio"),
-        "face_image_base64": None,
         "onboarding_completed": True,
         "created_at": NOW,
     }
