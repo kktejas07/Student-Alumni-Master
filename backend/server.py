@@ -2725,7 +2725,7 @@ def _get_or_init_firebase():
     if _firebase_app is not None:
         return _firebase_app
     try:
-        from firebase_admin import credentials, initialize_app
+        from firebase_admin import credentials, initialize_app  # type: ignore
         creds_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON", "")
         if not creds_json:
             # Try reading from platform_controls synchronously (won't work in async context)
@@ -2744,7 +2744,7 @@ def _verify_firebase_token(id_token: str) -> Optional[dict]:
     if not app:
         return None
     try:
-        from firebase_admin import auth as fb_auth
+        from firebase_admin import auth as fb_auth  # type: ignore
         decoded = fb_auth.verify_id_token(id_token, check_revoked=True)
         return {
             "email": decoded.get("email"),
