@@ -21,7 +21,6 @@ import { Bell, Search } from './iconShims';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { STUDENT } from './data';
 import { Av } from './atoms';
-import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { api } from '@/src/models/services/api';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
