@@ -746,7 +746,6 @@ def serialize_user(user: dict) -> dict:
         "interests": user.get("interests", []),
         "skills": user.get("skills", []),
         "bio": user.get("bio"),
-        "face_image_base64": user.get("face_image_base64"),
         "onboarding_completed": user.get("onboarding_completed", False),
         "two_fa_enabled": user.get("two_fa_enabled", False),
         # Phase A — DOB / country / postal — exposed on every user response.
@@ -797,10 +796,86 @@ async def get_current_user(request: Request) -> dict:
         if payload.get("type") != "access":
             raise HTTPException(401, "Invalid token type")
         print(f'[AUTH TRACE] DB_QUERY_START | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
-        user = await db.users.find_one({"_id": ObjectId(payload["sub"])}, {"resume_documents": 0})
+        user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
         print(f'[AUTH TRACE] DB_QUERY_END | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
         if not user:
             raise HTTPException(401, "User not found")
+
+        # ── Schema Unification Migration Helper ──
+        needs_migration = False
+        updates = {"$set": {}, "$unset": {}}
+
+        # 1. Image Schema
+        if not user.get("photo_data") and (user.get("photo_data")):
+            user["photo_data"] = user.get("photo_data")
+            updates["$set"]["photo_data"] = user["photo_data"]
+            if "face_image_base64" in user: updates["$unset"]["face_image_base64"] = ""
+            if "photo" in user: updates["$unset"]["photo"] = ""
+            needs_migration = True
+
+        # 2. Career Goal
+        si = user.get("student_info") or {}
+        if not si.get("career_goal") and (user.get("career_goal") or user.get("career_path")):
+            si["career_goal"] = user.get("career_goal") or user.get("career_path")
+            user["student_info"] = si
+            updates["$set"]["student_info"] = si
+            if "career_goal" in user: updates["$unset"]["career_goal"] = ""
+            if "career_path" in user: updates["$unset"]["career_path"] = ""
+            needs_migration = True
+
+        # 3. Education
+        s_info = user.get("school_info") or {}
+        has_edu_legacy = False
+        for legacy_key, target_key in [
+            ("branch", "branch_or_stream"),
+            ("cgpa", "cgpa"),
+            ("graduation_year", "graduation_year"),
+            ("class_or_year", "class_or_year"),
+            ("department", "branch_or_stream")
+        ]:
+            if legacy_key in user:
+                if target_key not in s_info or not s_info[target_key]:
+                    s_info[target_key] = user[legacy_key]
+                updates["$unset"][legacy_key] = ""
+                has_edu_legacy = True
+        if has_edu_legacy:
+            user["school_info"] = s_info
+            updates["$set"]["school_info"] = s_info
+            needs_migration = True
+
+        # 4. Resume
+        if user.get("resume_url"):
+            legacy_url = user.get("resume_url")
+            new_doc = {
+                "id": "legacy_migrated",
+                "name": "Legacy_Resume.pdf",
+                "size": 0,
+                "data_url": legacy_url,
+                "uploaded_at": datetime.now(timezone.utc).isoformat(),
+                "active": True
+            }
+            updates["$push"] = {"resume_documents": new_doc}
+            if not user.get("resume_documents"):
+                user["resume_documents"] = []
+            user["resume_documents"].append(new_doc)
+            if "resume_url" in user: updates["$unset"]["resume_url"] = ""
+            if "resume_data" in user: updates["$unset"]["resume_data"] = ""
+            needs_migration = True
+
+        if needs_migration:
+            try:
+                if not updates["$unset"]: del updates["$unset"]
+                if not updates["$set"]: del updates["$set"]
+                if not updates.get("$push"): updates.pop("$push", None)
+                if updates:
+                    await db.users.update_one({"_id": user["_id"]}, updates)
+            except Exception as e:
+                print(f"Migration error: {e}", flush=True)
+        
+        # Remove large binary fields from response to match legacy behavior
+        if "resume_documents" in user:
+            del user["resume_documents"]
+            
         return user
     except jwt.ExpiredSignatureError:
         raise HTTPException(401, "Token expired")
@@ -851,13 +926,34 @@ async def register(request: Request, req: RegisterRequest):
         "interests": [],
         "skills": [],
         "bio": None,
-        "face_image_base64": None,
         "onboarding_completed": False,
         "created_at": datetime.now(timezone.utc),
     }
     result = await db.users.insert_one(user_doc)
     user_id = str(result.inserted_id)
     user_doc["_id"] = result.inserted_id
+
+    # Pre-seed a default onboarding roadmap for students so they don't face an empty journey or LLM wait on first visit
+    if req.role == "student":
+        default_roadmap = {
+            "user_id": user_id,
+            "target_role": "Software Engineer",
+            "target_company_type": "Top Company in your field",
+            "skill_scores": {"communication": 20, "soft_skills": 20, "technical": 20, "interview_prep": 20, "networking": 20, "leadership": 20},
+            "milestones": [
+                {"id": "m1", "title": "Complete Profile", "description": "Write a strong bio and upload an avatar.", "milestone_type": "PROFILE", "completion_rule": "bio.length > 10", "completed": False, "completed_at": None},
+                {"id": "m2", "title": "Build your resume", "description": "Upload a tailored resume for AI review.", "milestone_type": "RESUME", "completion_rule": "resume_documents.length > 0", "completed": False, "completed_at": None},
+                {"id": "m3", "title": "LinkedIn Boost", "description": "Add your LinkedIn URL to your profile.", "milestone_type": "LINKEDIN", "completion_rule": "linkedin_url exists", "completed": False, "completed_at": None},
+                {"id": "m4", "title": "Network with Alumni", "description": "Connect with alumni in your target domain.", "milestone_type": "NETWORKING", "completion_rule": "connections.length > 0", "completed": False, "completed_at": None},
+                {"id": "m5", "title": "Add Projects", "description": "Demonstrate technical skills through projects.", "milestone_type": "PROJECT", "completion_rule": "projects.length >= 1", "completed": False, "completed_at": None},
+                {"id": "m6", "title": "Build Portfolio", "description": "Showcase your work and link your GitHub.", "milestone_type": "PORTFOLIO", "completion_rule": "portfolio_url exists", "completed": False, "completed_at": None},
+            ],
+            "suggestion": "Welcome! Complete your profile to unlock AI-personalized recommendations.",
+            "progress_pct": 0,
+            "_career_goal_snapshot": "",
+            "generated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.career_roadmaps.insert_one(default_roadmap)
 
     # Audit log — capture the full registration payload for compliance.
     # Sensitive PII (phone / dob / postal_code) are encrypted in audit_logs
@@ -1480,7 +1576,7 @@ async def get_public_profile(user_id: str):
         "last_name": target.get("last_name"),
         "headline": target.get("headline"),
         "bio": target.get("bio"),
-        "photo_data": target.get("photo_data") or target.get("face_image_base64"),
+        "photo_data": target.get("photo_data"),
         "is_online": target.get("is_online", True),
         "is_verified": target.get("is_verified", False),
         # Identity meta
@@ -1761,7 +1857,7 @@ async def my_id_card(user: dict = Depends(get_current_user)):
         "batch": batch,
         "city": si.get("city") or cp.get("city"),
         "state": si.get("state") or cp.get("state"),
-        "photo_data": user.get("face_image_base64"),
+        "photo_data": user.get("photo_data"),
         "linkedin_url": user.get("linkedin_url"),
         "issued_at": (user.get("sa_id_issued_at") or datetime.utcnow()).isoformat()
             if isinstance(user.get("sa_id_issued_at"), datetime) else str(user.get("sa_id_issued_at") or datetime.utcnow().isoformat()),
@@ -1782,7 +1878,7 @@ async def verify_id_card(identifier: str):
     """
     u = await db.users.find_one(
         {"$or": [{"sa_id": identifier}, {"admin_id": identifier}]},
-        {"password_hash": 0, "phone": 0, "face_image_base64": 0, "two_fa_secret": 0},
+        {"password_hash": 0, "phone": 0, "two_fa_secret": 0},
     )
     if not u:
         raise HTTPException(404, "Invalid ID")
@@ -2501,7 +2597,6 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
         "skills": [],
         "bio": None,
         "photo_data": picture,
-        "face_image_base64": None,
         "oauth_provider": provider,
         "oauth_picture": picture,
         "onboarding_completed": False,
@@ -2911,7 +3006,6 @@ async def complete_onboarding(req: OnboardingRequest, user: dict = Depends(get_c
         "interests": req.interests,
         "skills": req.skills,
         "bio": req.bio,
-        "face_image_base64": req.face_image_base64,
         "photo_data": req.face_image_base64,
         "unique_id": unique_id,
         "qr_code_base64": qr_code,
@@ -3033,32 +3127,52 @@ async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
         cp = user.get("college_info") or user.get("college_profile")
         cp_updated = False
         
+        # ── Schema Unification Intercept ──
+        if "face_image_base64" in safe:
+            if "photo_data" not in safe:
+                safe["photo_data"] = safe["face_image_base64"]
+            del safe["face_image_base64"]
+
+        sti = user.get("student_info") or {}
+        sti_updated = False
+        if "career_path" in safe:
+            sti["career_goal"] = safe.pop("career_path")
+            sti_updated = True
+        if "career_goal" in safe:
+            sti["career_goal"] = safe.pop("career_goal")
+            sti_updated = True
+        if sti_updated:
+            safe["student_info"] = sti
+
         if "institution" in safe:
-            si["institution_name"] = safe["institution"]
+            si["institution_name"] = safe.pop("institution")
             si_updated = True
             if cp:
-                cp["institution_name"] = safe["institution"]
+                cp["institution_name"] = si["institution_name"]
                 cp_updated = True
         if "branch" in safe:
-            si["branch_or_stream"] = safe["branch"]
+            si["branch_or_stream"] = safe.pop("branch")
+            si_updated = True
+        if "department" in safe:
+            si["branch_or_stream"] = safe.pop("department")
             si_updated = True
         if "graduation_year" in safe:
-            si["graduation_year"] = safe["graduation_year"]
+            si["graduation_year"] = safe.pop("graduation_year")
             si_updated = True
         if "cgpa" in safe:
-            si["cgpa"] = safe["cgpa"]
+            si["cgpa"] = safe.pop("cgpa")
             si_updated = True
         if "city" in safe:
-            si["city"] = safe["city"]
+            si["city"] = safe.pop("city")
             si_updated = True
             if is_college and cp:
-                cp["city"] = safe["city"]
+                cp["city"] = si["city"]
                 cp_updated = True
         if "state" in safe:
-            si["state"] = safe["state"]
+            si["state"] = safe.pop("state")
             si_updated = True
             if is_college and cp:
-                cp["state"] = safe["state"]
+                cp["state"] = si["state"]
                 cp_updated = True
             
         if si_updated:
@@ -3076,8 +3190,8 @@ async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
 
 # ----------------------------------------------------------------------------
 # Profile completion + Resume + Preferences (SA Profile Web — Phase 4)
-# ----------------------------------------------------------------------------
 def _compute_profile_completion(u: dict) -> dict:
+    """Return per-item checklist + overall percentage using rebalanced weights."""
     if u.get("role") == "college":
         items = [
             {"key": "photo", "label": "College Logo", "done": bool(u.get("college_logo_data") or u.get("photo_data")), "weight": 20},
@@ -3087,12 +3201,13 @@ def _compute_profile_completion(u: dict) -> dict:
             {"key": "socials", "label": "Social Links", "done": bool(u.get("linkedin_url")), "weight": 20},
         ]
     else:
+        inst_done = bool((u.get("institution") or (u.get("school_info") or {}).get("institution_name") or "").strip()) and bool((u.get("branch") or (u.get("school_info") or {}).get("branch_or_stream") or "").strip())
         items = [
             {"key": "skills", "label": "Skills listed", "done": len(u.get("skills") or []) > 0, "weight": 25},
             {"key": "resume", "label": "Resume uploaded", "done": len(u.get("resume_documents") or []) > 0 or bool(u.get("resume_url")) or bool(u.get("resume_data")), "weight": 20},
             {"key": "projects", "label": "Projects added", "done": len(u.get("projects") or []) > 0, "weight": 20},
             {"key": "socials", "label": "LinkedIn/GitHub linked", "done": bool(u.get("linkedin_url")) or bool(u.get("github_url")), "weight": 15},
-            {"key": "education", "label": "Education/College details", "done": bool((u.get("institution") or "").strip()) and bool((u.get("branch") or "").strip()), "weight": 10},
+            {"key": "education", "label": "Education/College details", "done": inst_done, "weight": 10},
             {"key": "bio", "label": "Bio / headline", "done": bool((u.get("bio") or u.get("headline") or "").strip()), "weight": 5},
             {"key": "photo", "label": "Profile photo", "done": bool(u.get("face_image_base64") or u.get("photo_data")), "weight": 5},
         ]
@@ -3300,12 +3415,188 @@ async def delete_user_skill(skill_name: str, user: dict = Depends(get_current_us
         raise HTTPException(404, "Skill not found on profile")
         
     await db.users.update_one({"_id": user["_id"]}, {"$pull": {"skills": target_skill}})
+    _SKILL_INTEL_CACHE.pop(str(user.get("id") or user.get("_id")), None)
     return {"status": "success", "removed": target_skill}
 
 
 # ── Skill Intelligence in-memory cache (5-minute TTL per user) ──────────────
 _SKILL_INTEL_CACHE: dict = {}   # {user_id: {"ts": datetime, "data": dict}}
 _SKILL_INTEL_TTL_SECS = 300     # 5 minutes
+
+_ALL_STANDARD_MILESTONES = [
+    {"id": "m1", "title": "Build your resume", "description": "Upload a tailored resume for AI review.", "milestone_type": "RESUME", "completion_rule": "resume_documents.length > 0 or resume_url exists", "completed": False, "completed_at": None},
+    {"id": "m2", "title": "Build Portfolio", "description": "Showcase your work and link your GitHub.", "milestone_type": "PORTFOLIO", "completion_rule": "portfolio_url exists", "completed": False, "completed_at": None},
+    {"id": "m3", "title": "Complete Profile", "description": "Write a strong bio and upload an avatar.", "milestone_type": "PROFILE", "completion_rule": "bio.length > 10", "completed": False, "completed_at": None},
+    {"id": "m4", "title": "Network with Alumni", "description": "Connect with alumni in your target domain.", "milestone_type": "NETWORKING", "completion_rule": "connections.length > 0", "completed": False, "completed_at": None},
+    {"id": "m5", "title": "Practice Interviews", "description": "Book a session with a mentor for mock interviews.", "milestone_type": "MOCK_INTERVIEW", "completion_rule": "bookings.length > 0", "completed": False, "completed_at": None},
+    {"id": "m6", "title": "Add 3 Projects", "description": "Demonstrate technical skills through projects.", "milestone_type": "PROJECT", "completion_rule": "projects.length >= 1", "completed": False, "completed_at": None},
+    {"id": "m7", "title": "Earn Certifications", "description": "Complete relevant certifications.", "milestone_type": "CERTIFICATION", "completion_rule": "certifications.length >= 1", "completed": False, "completed_at": None},
+    {"id": "m8", "title": "LinkedIn Boost", "description": "Add your LinkedIn URL to your profile.", "milestone_type": "LINKEDIN", "completion_rule": "linkedin_url exists", "completed": False, "completed_at": None},
+    {"id": "m9", "title": "List Core Skills", "description": "Add at least 3 skills to showcase your expertise.", "milestone_type": "SKILLS", "completion_rule": "skills.length >= 3", "completed": False, "completed_at": None},
+    {"id": "m10", "title": "Apply to Jobs", "description": "Apply to internships and full-time roles.", "milestone_type": "JOB_APPLICATION", "completion_rule": "applied_jobs.length > 0", "completed": False, "completed_at": None},
+]
+
+
+def _compute_dynamic_action_impact(m_type, overall_score, scores, weights, goal_name, has_resume, num_projects, connections_count, bookings_count, num_certs, skills_len):
+    """Compute dynamic score contribution, reason, and impact breakdown for a pending action."""
+    m_type = str(m_type or "PROFILE").upper()
+    
+    if m_type == "RESUME":
+        w = weights.get("Personal Brand", 0.20)
+        base_gain = int(round(25 * w))
+        bonus = 3 if scores.get("Personal Brand", 0) < 50 else 0
+        gain = max(5, min(15, base_gain + bonus))
+        reason = "Your profile currently has no resume uploaded for AI review." if not has_resume else "Updating your resume ensures AI keyword matching stays fresh."
+        impact = [f"+{gain}% Readiness", "+25% Personal Brand", "+15% Recruiter Visibility"]
+    elif m_type == "PROJECT":
+        w = weights.get("Technical Excellence", 0.25)
+        base_gain = int(round(15 * w))
+        bonus = int((100 - scores.get("Technical Excellence", 50)) * 0.15) if scores.get("Technical Excellence", 0) < 60 else 0
+        gain = max(6, min(20, base_gain + bonus))
+        reason = "You currently have no technical projects listed to showcase practical experience." if num_projects == 0 else f"Adding advanced projects addresses your largest skill gap for {goal_name} roles."
+        tech_gain = min(25, max(10, int((100 - scores.get("Technical Excellence", 50)) * 0.4)))
+        impact = [f"+{gain}% Readiness", f"+{tech_gain}% Technical Excellence", "+15% Portfolio Strength"]
+    elif m_type == "SKILLS":
+        gain = max(5, min(12, int((100 - overall_score) * 0.12))) if skills_len < 3 else max(3, min(8, int((100 - overall_score) * 0.08)))
+        reason = "You have fewer than 3 skills listed. Listing core domain skills is critical for keyword matching." if skills_len < 3 else f"Expanding your technical skills aligns your profile with industry requirements for {goal_name}."
+        impact = [f"+{gain}% Readiness", "+15% Keyword Matching", "+10% Technical Excellence"]
+    elif m_type == "MOCK_INTERVIEW":
+        w = weights.get("Career Preparation", 0.15)
+        base_gain = int(round(20 * w))
+        bonus = 4 if scores.get("Career Preparation", 0) < 50 else 0
+        gain = max(6, min(15, base_gain + bonus))
+        reason = "You haven't completed any practice mock interviews yet to refine your interview skills." if bookings_count == 0 else "Regular mock interview practice builds confidence and sharpens your communication."
+        impact = [f"+{gain}% Readiness", "+20% Career Preparation", "+15% Interview Confidence"]
+    elif m_type == "PORTFOLIO":
+        w = weights.get("Personal Brand", 0.20)
+        base_gain = int(round(25 * w))
+        bonus = 3 if scores.get("Personal Brand", 0) < 50 else 0
+        gain = max(6, min(15, base_gain + bonus))
+        reason = "You do not have a live portfolio link to showcase your work and projects to recruiters."
+        impact = [f"+{gain}% Readiness", "+25% Personal Brand", "+15% Online Presence"]
+    elif m_type == "LINKEDIN":
+        w = weights.get("Personal Brand", 0.20)
+        gain = max(5, min(10, int(round(15 * w)) + 2))
+        reason = "Your LinkedIn profile is not linked, which limits recruiter outreach and professional networking."
+        impact = [f"+{gain}% Readiness", "+15% Personal Brand", "+10% Industry Presence"]
+    elif m_type == "NETWORKING":
+        w = weights.get("Industry Presence", 0.10)
+        gain = max(4, min(12, int(round(15 * w)) + (4 if connections_count == 0 else 0)))
+        reason = "You have 0 alumni connections. Expanding your network increases referral opportunities." if connections_count == 0 else "Connecting with mentors and alumni unlocks industry insights and job referrals."
+        impact = [f"+{gain}% Readiness", "+15% Industry Presence", "+10% Referral Opportunity"]
+    elif m_type == "CERTIFICATION":
+        w = weights.get("Industry Presence", 0.10)
+        gain = max(6, min(14, int(round(15 * w)) + (4 if scores.get("Industry Presence", 0) < 50 else 0)))
+        reason = f"Earning recognized professional certifications validates your technical expertise in {goal_name}."
+        impact = [f"+{gain}% Readiness", "+15% Industry Presence", "+10% Resume Authority"]
+    elif m_type == "JOB_APPLICATION":
+        gain = max(4, min(10, int((100 - overall_score) * 0.08)))
+        reason = "You haven't started applying to roles yet. Putting your skills to practice in applications builds momentum."
+        impact = [f"+{gain}% Readiness", "+15% Market Feedback", "+10% Career Preparation"]
+    elif m_type == "EDUCATION":
+        gain = max(3, min(6, int((100 - overall_score) * 0.05)))
+        reason = "Adding complete education and academic records establishes your background for recruiter screening."
+        impact = [f"+{gain}% Readiness", "+10% Profile Credibility", "+5% Personal Brand"]
+    elif m_type == "PHOTO":
+        gain = 3
+        reason = "Adding a professional headshot humanizes your profile and increases profile view engagement by 40%."
+        impact = [f"+{gain}% Readiness", "+10% Personal Brand", "+5% Recruiter Trust"]
+    else:
+        gain = max(3, min(8, int((100 - overall_score) * 0.06)))
+        reason = "Completing your bio and headline makes a powerful first impression on hiring managers and alumni."
+        impact = [f"+{gain}% Readiness", "+10% Personal Brand", "+10% Profile Credibility"]
+        
+    est_readiness = min(100, overall_score + gain)
+    return {
+        "gain": gain,
+        "reason": reason,
+        "impact_breakdown": impact,
+        "current_readiness": overall_score,
+        "estimated_readiness": est_readiness
+    }
+
+
+def _enhance_roadmap_milestones_with_context(user, milestones, goal_name, prev_roadmap=None):
+    """Enhance uncompleted roadmap milestones with context-aware, goal-directed, progressive difficulty."""
+    goal_lower = str(goal_name or "").lower()
+    projects = user.get("projects") or []
+    skills = user.get("skills") or []
+    certs = user.get("certificates") or []
+    
+    num_projects = len(projects)
+    num_skills = len(skills)
+    
+    prev_completed = {}
+    if prev_roadmap and prev_roadmap.get("milestones"):
+        for pm in prev_roadmap.get("milestones", []):
+            if pm.get("completed"):
+                prev_completed[pm.get("milestone_type")] = pm
+
+    enhanced = []
+    seen_types = set()
+    for m in milestones:
+        m_copy = dict(m)
+        m_type = str(m_copy.get("milestone_type") or "").upper()
+        if m_type in seen_types:
+            continue
+        seen_types.add(m_type)
+        
+        # Preserve already completed milestones from previous roadmap so they are never regenerated
+        if m_type in prev_completed:
+            enhanced.append(dict(prev_completed[m_type]))
+            continue
+            
+        if m_copy.get("completed"):
+            enhanced.append(m_copy)
+            continue
+            
+        if m_type == "PROJECT":
+            if num_projects >= 1:
+                m_copy["title"] = "Build Advanced System Design / Capstone Project"
+                m_copy["description"] = f"Deploy a production-ready application showcasing scalability and architecture for {goal_name} roles."
+            elif any(k in goal_lower for k in ("ai", "ml", "data", "python")):
+                m_copy["title"] = "Train a Machine Learning Model / Kaggle Project"
+                m_copy["description"] = "Build and evaluate a predictive model using Python, PyTorch, or Scikit-Learn."
+            elif any(k in goal_lower for k in ("cyber", "security", "network")):
+                m_copy["title"] = "Build a Network Security / Vulnerability Assessment Lab"
+                m_copy["description"] = "Set up a virtual lab or complete CTF challenges to demonstrate practical penetration testing."
+            elif any(k in goal_lower for k in ("product", "manager", "pm", "business")):
+                m_copy["title"] = "Create a Product Case Study & Growth Dashboard"
+                m_copy["description"] = "Analyze user metrics, build a wireframe prototype, and publish a comprehensive product teardown."
+        elif m_type == "SKILLS":
+            if num_skills >= 3:
+                m_copy["title"] = "Master Domain Architecture & Core CS Skills (6+ Skills)"
+                m_copy["description"] = f"Expand your technical stack with advanced tools and frameworks required for top tier {goal_name} roles."
+            elif any(k in goal_lower for k in ("ai", "ml", "data")):
+                m_copy["title"] = "Master Python, PyTorch & Data Engineering Skills"
+                m_copy["description"] = "Add at least 3 domain-specific AI/ML and data manipulation skills."
+            elif any(k in goal_lower for k in ("cyber", "security")):
+                m_copy["title"] = "Master Linux Security, Networking & Cryptography"
+                m_copy["description"] = "Add core information security, firewall configuration, and scripting skills."
+            elif any(k in goal_lower for k in ("product", "manager", "pm")):
+                m_copy["title"] = "Master Product Analytics, Agile & User Research Skills"
+                m_copy["description"] = "Add core product roadmapping, data analytics, and leadership skills."
+        elif m_type == "CERTIFICATION":
+            if any(k in goal_lower for k in ("ai", "ml", "data")):
+                m_copy["title"] = "Earn Deep Learning / Data Science Certification"
+                m_copy["description"] = "Obtain an industry recognized credential from AWS, Coursera, or DeepLearning.AI."
+            elif any(k in goal_lower for k in ("cyber", "security")):
+                m_copy["title"] = "Earn CompTIA Security+ / CEH Certification"
+                m_copy["description"] = "Validate your practical security skills with a recognized industry certification."
+            elif any(k in goal_lower for k in ("cloud", "devops", "aws")):
+                m_copy["title"] = "Earn AWS / Cloud Solutions Architect Certification"
+                m_copy["description"] = "Demonstrate cloud infrastructure mastery with an official cloud provider certification."
+        elif m_type == "NETWORKING":
+            if int(user.get("connections_made") or 0) >= 1:
+                m_copy["title"] = "Build an Industry Network (5+ Alumni Connections)"
+                m_copy["description"] = f"Expand your reach by connecting with senior alumni working in {goal_name} roles."
+        elif m_type == "MOCK_INTERVIEW":
+            if int(user.get("bookings_count") or 0) >= 1:
+                m_copy["title"] = "Complete Advanced System / Technical Mock Interviews"
+                m_copy["description"] = "Schedule a rigorous technical interview practice session with an industry mentor."
+                
+        enhanced.append(m_copy)
+    return enhanced
 
 
 @api_router.get("/users/me/skill-intelligence")
@@ -3499,19 +3790,15 @@ async def get_my_skill_intelligence(user: dict = Depends(get_current_user)):
     # Calculate pending milestones
     milestones = []
     if existing_roadmap and existing_roadmap.get("milestones"):
+        ms = existing_roadmap.get("milestones", [])
+        existing_types = {m.get("milestone_type") for m in ms}
+        for std_m in _ALL_STANDARD_MILESTONES:
+            if std_m["milestone_type"] not in existing_types:
+                ms.append(dict(std_m))
         from core.roadmap_engine import evaluate_roadmap_milestones
-        milestones = await evaluate_roadmap_milestones(user, existing_roadmap.get("milestones", []), db)
+        milestones = await evaluate_roadmap_milestones(user, ms, db)
     else:
-        fallback_milestones = [
-            {"id": "m1", "title": "Build your resume", "description": "Upload a tailored resume for AI review.", "milestone_type": "RESUME", "completion_rule": "resume_documents.length > 0", "completed": False, "completed_at": None},
-            {"id": "m2", "title": "Build Portfolio", "description": "Showcase your work and link your GitHub.", "milestone_type": "PORTFOLIO", "completion_rule": "portfolio_url exists", "completed": False, "completed_at": None},
-            {"id": "m3", "title": "Complete Profile", "description": "Write a strong bio and upload an avatar.", "milestone_type": "PROFILE", "completion_rule": "bio.length > 10", "completed": False, "completed_at": None},
-            {"id": "m4", "title": "Network with Alumni", "description": "Connect with 5 alumni in your target domain.", "milestone_type": "NETWORKING", "completion_rule": "connections.length > 0", "completed": False, "completed_at": None},
-            {"id": "m5", "title": "Practice Interviews", "description": "Book a session with a mentor for mock interviews.", "milestone_type": "MOCK_INTERVIEW", "completion_rule": "bookings.length > 0", "completed": False, "completed_at": None},
-            {"id": "m6", "title": "Add 3 Projects", "description": "Demonstrate technical skills through projects.", "milestone_type": "PROJECT", "completion_rule": "projects.length >= 1", "completed": False, "completed_at": None},
-            {"id": "m7", "title": "Earn Certifications", "description": "Complete relevant certifications on Coursera.", "milestone_type": "CERTIFICATION", "completion_rule": "certifications.length >= 1", "completed": False, "completed_at": None},
-            {"id": "m8", "title": "LinkedIn Boost", "description": "Add your LinkedIn URL to your profile.", "milestone_type": "LINKEDIN", "completion_rule": "linkedin_url exists", "completed": False, "completed_at": None},
-        ]
+        fallback_milestones = [dict(m) for m in _ALL_STANDARD_MILESTONES]
         from core.roadmap_engine import evaluate_roadmap_milestones
         milestones = await evaluate_roadmap_milestones(user, fallback_milestones, db)
 
@@ -3527,7 +3814,9 @@ async def get_my_skill_intelligence(user: dict = Depends(get_current_user)):
         "NETWORKING": 4,
         "SKILLS": 5,
         "PROFILE": 3,
-        "JOB_APPLICATION": 2
+        "JOB_APPLICATION": 2,
+        "PHOTO": 3,
+        "EDUCATION": 4,
     }
 
     actions = []
@@ -3535,75 +3824,45 @@ async def get_my_skill_intelligence(user: dict = Depends(get_current_user)):
     # 1. Add all pending milestones
     for m in pending_milestones:
         m_type = m.get("milestone_type")
-        gain = GAINS.get(m_type, 3)
+        imp = _compute_dynamic_action_impact(m_type, overall_score, scores, weights, goal, has_resume, num_projects, connections, bookings_count, num_certs, len(skills))
         actions.append({
             "title": m.get("title"),
             "description": m.get("description"),
-            "gain": gain,
+            "gain": imp["gain"],
             "type": m_type,
-            "source": "roadmap"
+            "source": "roadmap",
+            "reason": imp["reason"],
+            "impact_breakdown": imp["impact_breakdown"],
+            "current_readiness": imp["current_readiness"],
+            "estimated_readiness": imp["estimated_readiness"]
         })
         
     # 2. Add missing profile completion fields
     for item in profile_comp["items"]:
         if not item["done"]:
             key = item["key"]
-            if key == "skills":
-                actions.append({
-                    "title": "List Skills",
-                    "description": "Add at least 3 skills to showcase your expertise.",
-                    "gain": 5,
-                    "type": "SKILLS",
-                    "source": "profile"
-                })
-            elif key == "resume":
-                actions.append({
-                    "title": "Upload Resume",
-                    "description": "Upload a professional resume for AI scanning and parsing.",
-                    "gain": 8,
-                    "type": "RESUME",
-                    "source": "profile"
-                })
-            elif key == "projects":
-                actions.append({
-                    "title": "Add Projects",
-                    "description": "List technical or professional projects you have built.",
-                    "gain": 12,
-                    "type": "PROJECT",
-                    "source": "profile"
-                })
-            elif key == "socials":
-                actions.append({
-                    "title": "Link LinkedIn / GitHub",
-                    "description": "Add your LinkedIn or GitHub profiles to establish industry presence.",
-                    "gain": 5,
-                    "type": "LINKEDIN",
-                    "source": "profile"
-                })
-            elif key == "education":
-                actions.append({
-                    "title": "Enter Education Details",
-                    "description": "Add your college, department, and graduation year details.",
-                    "gain": 4,
-                    "type": "EDUCATION",
-                    "source": "profile"
-                })
-            elif key == "bio":
-                actions.append({
-                    "title": "Write Bio / Headline",
-                    "description": "Write a short professional headline or bio summarizing your goals.",
-                    "gain": 3,
-                    "type": "PROFILE",
-                    "source": "profile"
-                })
-            elif key == "photo":
-                actions.append({
-                    "title": "Upload Profile Photo",
-                    "description": "Add a professional headshot to personalize your profile.",
-                    "gain": 3,
-                    "type": "PHOTO",
-                    "source": "profile"
-                })
+            m_type_map = {
+                "skills": "SKILLS", "resume": "RESUME", "projects": "PROJECT",
+                "socials": "LINKEDIN", "education": "EDUCATION", "bio": "PROFILE", "photo": "PHOTO"
+            }
+            m_type = m_type_map.get(key, "PROFILE")
+            imp = _compute_dynamic_action_impact(m_type, overall_score, scores, weights, goal, has_resume, num_projects, connections, bookings_count, num_certs, len(skills))
+            titles_map = {
+                "skills": "List Skills", "resume": "Upload Resume", "projects": "Add Projects",
+                "socials": "Link LinkedIn / GitHub", "education": "Enter Education Details",
+                "bio": "Write Bio / Headline", "photo": "Upload Profile Photo"
+            }
+            actions.append({
+                "title": titles_map.get(key, "Complete Profile"),
+                "description": imp["reason"],
+                "gain": imp["gain"],
+                "type": m_type,
+                "source": "profile",
+                "reason": imp["reason"],
+                "impact_breakdown": imp["impact_breakdown"],
+                "current_readiness": imp["current_readiness"],
+                "estimated_readiness": imp["estimated_readiness"]
+            })
 
     # Deduplicate actions by type
     unique_actions = []
@@ -3615,7 +3874,7 @@ async def get_my_skill_intelligence(user: dict = Depends(get_current_user)):
             
     # Sort by gain descending
     unique_actions.sort(key=lambda x: -x["gain"])
-    ranked_actions = unique_actions[:3]
+    ranked_actions = unique_actions[:4]
 
     # Calculate potential readiness
     remaining_gains = sum(act["gain"] for act in unique_actions)
@@ -3649,6 +3908,120 @@ async def get_my_skill_intelligence(user: dict = Depends(get_current_user)):
             "confidence": 1.0
         })
 
+    # ── Objective 1: Score Explainability Layer ──
+    readiness_factors = []
+    for cat_name, cat_score in scores.items():
+        w_val = weights.get(cat_name, 0.15)
+        earned_pts = int(round(cat_score * w_val))
+        max_pts = int(round(100 * w_val))
+        readiness_factors.append({
+            "label": cat_name,
+            "earned": earned_pts,
+            "weight_pct": int(round(w_val * 100)),
+            "max": max_pts,
+            "score_pct": cat_score
+        })
+
+    cat_breakdowns = {
+        "Technical Excellence": {
+            "current_score": tech_score,
+            "weight_pct": int(round(weights.get("Technical Excellence", 0.25) * 100)),
+            "missing_points": max(0, 100 - tech_score),
+            "factors": [
+                {"label": "Skills Matching", "earned": matched_tech * 10, "max": 35, "done": matched_tech > 0},
+                {"label": "Projects Built", "earned": 15 if num_projects > 0 else 0, "max": 15, "done": num_projects > 0},
+                {"label": "GitHub Portfolio", "earned": 15 if has_github else 0, "max": 15, "done": has_github},
+                {"label": "Base Foundation", "earned": 35, "max": 35, "done": True}
+            ]
+        },
+        "Professional Communication": {
+            "current_score": comm_score,
+            "weight_pct": int(round(weights.get("Professional Communication", 0.15) * 100)),
+            "missing_points": max(0, 100 - comm_score),
+            "factors": [
+                {"label": "Communication Skills", "earned": matched_comm * 15, "max": 60, "done": matched_comm > 0},
+                {"label": "Base Foundation", "earned": 40, "max": 40, "done": True}
+            ]
+        },
+        "Personal Brand": {
+            "current_score": brand_score,
+            "weight_pct": int(round(weights.get("Personal Brand", 0.20) * 100)),
+            "missing_points": max(0, 100 - brand_score),
+            "factors": [
+                {"label": "Resume Uploaded", "earned": 25 if has_resume else 0, "max": 25, "done": has_resume},
+                {"label": "Portfolio Website", "earned": 25 if has_portfolio else 0, "max": 25, "done": has_portfolio},
+                {"label": "LinkedIn Connected", "earned": 15 if has_linkedin else 0, "max": 15, "done": has_linkedin},
+                {"label": "GitHub Connected", "earned": 15 if has_github else 0, "max": 15, "done": has_github},
+                {"label": "Base Foundation", "earned": 20, "max": 20, "done": True}
+            ]
+        },
+        "Leadership & Collaboration": {
+            "current_score": lead_score,
+            "weight_pct": int(round(weights.get("Leadership & Collaboration", 0.15) * 100)),
+            "missing_points": max(0, 100 - lead_score),
+            "factors": [
+                {"label": "Leadership Skills", "earned": matched_lead * 20, "max": 60, "done": matched_lead > 0},
+                {"label": "Base Foundation", "earned": 40, "max": 40, "done": True}
+            ]
+        },
+        "Career Preparation": {
+            "current_score": prep_score,
+            "weight_pct": int(round(weights.get("Career Preparation", 0.15) * 100)),
+            "missing_points": max(0, 100 - prep_score),
+            "factors": [
+                {"label": "Aptitude & DSA Skills", "earned": matched_prep * 15, "max": 45, "done": matched_prep > 0},
+                {"label": "Mock Interviews", "earned": 20 if bookings_count > 0 else 0, "max": 20, "done": bookings_count > 0},
+                {"label": "Base Foundation", "earned": 35, "max": 35, "done": True}
+            ]
+        },
+        "Industry Presence": {
+            "current_score": industry_score,
+            "weight_pct": int(round(weights.get("Industry Presence", 0.10) * 100)),
+            "missing_points": max(0, 100 - industry_score),
+            "factors": [
+                {"label": "Alumni Connections", "earned": min(40, connections * 10), "max": 40, "done": connections > 0},
+                {"label": "Certifications Earned", "earned": 15 if num_certs > 0 else 0, "max": 15, "done": num_certs > 0},
+                {"label": "Base Foundation", "earned": 30, "max": 30, "done": True}
+            ]
+        }
+    }
+
+    score_explanations = {
+        "readiness": {
+            "current": overall_score,
+            "target": 100,
+            "missing_points": max(0, 100 - overall_score),
+            "factors": readiness_factors
+        },
+        "categories": cat_breakdowns
+    }
+
+    if ranked_actions:
+        top_act = ranked_actions[0]
+        recommendation = {
+            "category": top_act["type"],
+            "title": top_act["title"],
+            "action": top_act["title"],
+            "description": top_act["reason"],
+            "gain": f"+{top_act['gain']}%",
+            "reason": top_act["reason"],
+            "impact": top_act["impact_breakdown"],
+            "current_readiness": top_act["current_readiness"],
+            "estimated_readiness": top_act["estimated_readiness"]
+        }
+    else:
+        recommendation = {
+            "category": "General",
+            "title": "Profile Optimized",
+            "action": "Maintain Excellence",
+            "description": "Your profile is outstanding! Continue networking and applying for top opportunities.",
+            "gain": "+0%",
+            "reason": "You have completed all primary roadmap and profile milestones.",
+            "impact": ["100% Profile Strength", "Top Tier Readiness"],
+            "current_readiness": overall_score,
+            "estimated_readiness": overall_score
+        }
+
     _result = {
         "skills": analyzed_skills,
         "readiness_score": {
@@ -3665,6 +4038,7 @@ async def get_my_skill_intelligence(user: dict = Depends(get_current_user)):
         "goal_weights": weights,
         "profile_name": profile_name,
         "ranked_actions": ranked_actions,
+        "score_explanations": score_explanations,
     }
     # ── Store in cache ──
     import time as _time_mod
@@ -3840,6 +4214,7 @@ async def delete_my_resume(doc_id: str, user: dict = Depends(get_current_user)):
         {"_id": user["_id"]},
         {"$set": {"resume_documents": new_docs, "updated_at": datetime.now(timezone.utc)}},
     )
+    _SKILL_INTEL_CACHE.pop(str(user.get("id") or user.get("_id")), None)
     return {"status": "deleted", "id": doc_id}
 
 
@@ -4109,7 +4484,7 @@ async def list_pending_mentors(user: dict = Depends(get_current_user)):
         raise HTTPException(403, "Admin only")
     mentors = await db.users.find(
         {"role": "mentor", "mentor_status": "pending"},
-        {"password_hash": 0, "face_image_base64": 0},
+        {"password_hash": 0},
     ).to_list(100)
     for m in mentors:
         m["id"] = str(m["_id"])
@@ -4183,7 +4558,7 @@ async def admin_mentor_detail(mentor_id: str, user: dict = Depends(get_current_u
     try:
         m = await db.users.find_one(
             {"_id": ObjectId(mentor_id)},
-            {"password_hash": 0, "face_image_base64": 0},
+            {"password_hash": 0},
         )
     except Exception:
         m = None
@@ -4272,7 +4647,7 @@ async def admin_overview(user: dict = Depends(get_current_user)):
 
     # Recent activity: latest registrations
     recent_users = await db.users.find(
-        {}, {"password_hash": 0, "face_image_base64": 0},
+        {}, {"password_hash": 0},
     ).sort("created_at", -1).limit(8).to_list(8)
     activity = []
     for u in recent_users:
@@ -4325,7 +4700,7 @@ async def admin_approvals(
         status = "pending"
     items = await db.users.find(
         {"role": "mentor", "mentor_status": status},
-        {"password_hash": 0, "face_image_base64": 0},
+        {"password_hash": 0},
     ).sort("created_at", -1).limit(100).to_list(100)
     counts = {
         s: await db.users.count_documents({"role": "mentor", "mentor_status": s})
@@ -4375,7 +4750,7 @@ async def admin_users_list(
             {"alumni_info.alumni_employer": rx},
         ]
     items = await db.users.find(
-        query, {"password_hash": 0, "face_image_base64": 0},
+        query, {"password_hash": 0},
     ).sort("created_at", -1).limit(limit).to_list(limit)
     out = []
     for u in items:
@@ -4475,7 +4850,7 @@ async def admin_users_directory_list(
     skip = (page - 1) * limit
     total = await db.users.count_documents(query)
     items = await db.users.find(
-        query, {"password_hash": 0, "face_image_base64": 0},
+        query, {"password_hash": 0},
     ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     out = []
     for u in items:
@@ -4565,7 +4940,7 @@ async def admin_get_user_profile(user_id: str, user: dict = Depends(get_current_
     _require_admin(user)
     u = await db.users.find_one(
         _user_query(user_id),
-        {"password_hash": 0, "face_image_base64": 0},
+        {"password_hash": 0},
     )
     if not u:
         raise HTTPException(404, "User not found")
@@ -4689,7 +5064,7 @@ async def admin_settings_list(user: dict = Depends(get_current_user)):
     """List of admin users."""
     _require_admin(user)
     items = await db.users.find(
-        {"role": "admin"}, {"password_hash": 0, "face_image_base64": 0},
+        {"role": "admin"}, {"password_hash": 0},
     ).to_list(50)
     return {
         "items": [
@@ -4761,7 +5136,7 @@ async def admin_user_update(user_id: str, payload: dict, user: dict = Depends(ge
     if res.matched_count == 0:
         raise HTTPException(404, "User not found")
     fresh = await db.users.find_one(
-        _user_query(user_id), {"password_hash": 0, "face_image_base64": 0},
+        _user_query(user_id), {"password_hash": 0},
     )
     if fresh:
         fresh["id"] = str(fresh.get("_id"))
@@ -5077,7 +5452,15 @@ async def ai_career_roadmap(
         if existing and existing.get("milestones"):
             from core.roadmap_engine import evaluate_roadmap_milestones
             _t_eval0 = _time.perf_counter()
-            existing["milestones"] = await evaluate_roadmap_milestones(user, existing.get("milestones", []), db)
+            ms = existing.get("milestones", [])
+            existing_types = {m.get("milestone_type") for m in ms}
+            for std_m in _ALL_STANDARD_MILESTONES:
+                if std_m["milestone_type"] not in existing_types:
+                    ms.append(dict(std_m))
+            _si_tmp = user.get("student_info") or {}
+            _goal_tmp = _si_tmp.get("career_goal") or user.get("career_goal") or "Software Engineer"
+            ms = _enhance_roadmap_milestones_with_context(user, ms, _goal_tmp, existing)
+            existing["milestones"] = await evaluate_roadmap_milestones(user, ms, db)
             _t_eval1 = _time.perf_counter()
             print(f"[ROADMAP TRACE] 3. Evaluate milestones  | duration={(_t_eval1-_t_eval0)*1000:.1f}ms", flush=True)
             # ── Fix 4: recompute progress_pct from actual milestone completion ──
@@ -5089,6 +5472,7 @@ async def ai_career_roadmap(
                 "milestones": existing["milestones"],
                 "progress_pct": existing["progress_pct"],
             }})
+            _SKILL_INTEL_CACHE.pop(str(user.get("id") or user.get("_id")), None)
             print(f"[ROADMAP TRACE] 4. Returning cached response | TOTAL duration={(_time.perf_counter()-_t0)*1000:.1f}ms", flush=True)
             return {k: v for k, v in existing.items() if k != "_id"}
 
@@ -5144,8 +5528,8 @@ async def ai_career_roadmap(
         '  "skill_scores": {"communication": <int 0-100>, "soft_skills": <int 0-100>, "technical": <int 0-100>, "interview_prep": <int 0-100>, "networking": <int 0-100>, "leadership": <int 0-100>},\n'
         '  "milestones": [\n'
         '    {"id": "m1", "title": "...", "description": "...", "milestone_type": "RESUME", "completion_rule": "resume_documents.length > 0", "completed": false, "completed_at": null},\n'
-        '    // 6-10 milestones. Types: RESUME, PROJECT, PROFILE, NETWORKING, SKILLS, MOCK_INTERVIEW, PORTFOLIO, CERTIFICATION, JOB_APPLICATION, LINKEDIN\n'
-        '    // Do NOT include milestone types the student has already completed (see profile signals).\n'
+        '    // 8-10 milestones. Types: RESUME, PROJECT, PROFILE, NETWORKING, SKILLS, MOCK_INTERVIEW, PORTFOLIO, CERTIFICATION, JOB_APPLICATION, LINKEDIN\n'
+        '    // You MUST include all standard milestone types so the student can track their complete journey and progress percentage.\n'
         '  ],\n'
         '  "suggestion": "1-line motivational headline personalised to this student (under 20 words)"\n'
         "}\n"
@@ -5178,28 +5562,13 @@ async def ai_career_roadmap(
             if text.startswith("json"): text = text[4:]
             text = text.strip()
         data = json.loads(text)
+        if not data.get("milestones"):
+            raise ValueError("LLM returned empty milestones array")
     except Exception as e:
         logger.error(f"career-roadmap AI failed: {e}")
         # ── Fix 2: Fallback milestone list — progress_pct computed below, not hardcoded ──
-        # Build a personalized fallback: only include milestones NOT already completed
-        _fallback_milestones = []
-        if not has_resume:
-            _fallback_milestones.append({"id": "m1", "title": "Build your resume", "description": "Upload a tailored resume for AI review.", "milestone_type": "RESUME", "completion_rule": "resume_documents.length > 0", "completed": False, "completed_at": None})
-        if not has_portfolio:
-            _fallback_milestones.append({"id": "m2", "title": "Build Portfolio", "description": "Showcase your work and link your GitHub.", "milestone_type": "PORTFOLIO", "completion_rule": "portfolio_url exists", "completed": False, "completed_at": None})
-        _fallback_milestones.append({"id": "m3", "title": "Complete Profile", "description": "Write a strong bio and upload an avatar.", "milestone_type": "PROFILE", "completion_rule": "bio.length > 10", "completed": False, "completed_at": None})
-        if connections_count == 0:
-            _fallback_milestones.append({"id": "m4", "title": "Network with Alumni", "description": "Connect with 5 alumni in your target domain.", "milestone_type": "NETWORKING", "completion_rule": "connections.length > 0", "completed": False, "completed_at": None})
-        if bookings_count == 0:
-            _fallback_milestones.append({"id": "m5", "title": "Practice Interviews", "description": "Book a session with a mentor for mock interviews.", "milestone_type": "MOCK_INTERVIEW", "completion_rule": "bookings.length > 0", "completed": False, "completed_at": None})
-        if num_projects == 0:
-            _fallback_milestones.append({"id": "m6", "title": "Add 3 Projects", "description": "Demonstrate technical skills through projects.", "milestone_type": "PROJECT", "completion_rule": "projects.length >= 1", "completed": False, "completed_at": None})
-        if num_certs == 0:
-            _fallback_milestones.append({"id": "m7", "title": "Earn Certifications", "description": "Complete relevant certifications on Coursera.", "milestone_type": "CERTIFICATION", "completion_rule": "certifications.length >= 1", "completed": False, "completed_at": None})
-        if not has_linkedin:
-            _fallback_milestones.append({"id": "m8", "title": "LinkedIn Boost", "description": "Add your LinkedIn URL to your profile.", "milestone_type": "LINKEDIN", "completion_rule": "linkedin_url exists", "completed": False, "completed_at": None})
-        if not _fallback_milestones:
-            _fallback_milestones = [{"id": "m1", "title": "Keep growing!", "description": "Continue building your professional presence.", "milestone_type": "PROFILE", "completion_rule": "", "completed": False, "completed_at": None}]
+        # Build fallback with all standard milestones so full journey is visible
+        _fallback_milestones = [dict(m) for m in _ALL_STANDARD_MILESTONES]
         data = {
             "target_role": goal.split(" at ")[0].strip() if " at " in goal else goal,
             "target_company_type": "Top Company in your field",
@@ -5211,7 +5580,22 @@ async def ai_career_roadmap(
     # ── Fix 2 & 4: Persist — compute progress_pct from real milestone completion ──
     _t_eval_gen0 = _time.perf_counter()
     from core.roadmap_engine import evaluate_roadmap_milestones
+    
+    # Sanitize LLM generated milestones: force 'completed' to False so evaluate_roadmap_milestones can correctly determine their actual status
+    for m in data.get("milestones", []):
+        m["completed"] = False
+        m["completed_at"] = None
+    existing_types = {m.get("milestone_type") for m in data.get("milestones", [])}
+    for std_m in _ALL_STANDARD_MILESTONES:
+        if std_m["milestone_type"] not in existing_types:
+            data.setdefault("milestones", []).append(dict(std_m))
+        
+    _si_tmp = user.get("student_info") or {}
+    _goal_tmp = _si_tmp.get("career_goal") or user.get("career_goal") or "Software Engineer"
+    _prev_roadmap = await db.career_roadmaps.find_one({"user_id": str(user["_id"])})
+    data["milestones"] = _enhance_roadmap_milestones_with_context(user, data.get("milestones", []), _goal_tmp, _prev_roadmap)
     data["milestones"] = await evaluate_roadmap_milestones(user, data.get("milestones", []), db)
+    _SKILL_INTEL_CACHE.pop(str(user.get("id") or user.get("_id")), None)
     _t_eval_gen1 = _time.perf_counter()
     print(f"[ROADMAP TRACE] 5. Evaluate roadmap milestones | duration={(_t_eval_gen1-_t_eval_gen0)*1000:.1f}ms", flush=True)
 
@@ -5283,6 +5667,7 @@ async def complete_roadmap_milestone(
             "milestones_updated_at": datetime.now(timezone.utc).isoformat(),
         }},
     )
+    _SKILL_INTEL_CACHE.pop(str(user.get("id") or user.get("_id")), None)
 
     old_badges = list(user.get("badges") or [])
     old_keys = {f"{b.get('id')}:{b.get('tier')}" for b in old_badges}
@@ -5730,7 +6115,7 @@ async def list_mentors(career_path: Optional[str] = None, limit: int = 20):
     if career_path:
         user_q["mentor_info.category"] = _path_to_mentor_cat(career_path)
         sample_q["expertise"] = career_path
-    real = await db.users.find(user_q, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).limit(limit).to_list(limit)
+    real = await db.users.find(user_q, {"password_hash": 0}).sort("_id", -1).limit(limit).to_list(limit)
     for m in real:
         m["id"] = str(m["_id"])
         m.pop("_id", None)
@@ -6041,7 +6426,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     if q:
         rx = {"$regex": re.escape(q), "$options": "i"}
         base_query["$or"] = [{"full_name": rx}, {"email": rx}]
-    candidates = await db.users.find(base_query, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).to_list(500)
+    candidates = await db.users.find(base_query, {"password_hash": 0}).sort("_id", -1).to_list(500)
 
     cards = [_user_card(c) for c in candidates if str(c.get("_id") or c.get("id")) != me_id]
     # attach connection_state (none|pending|connected|incoming)
@@ -6069,7 +6454,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
         mentor_q["$or"] = [{"full_name": rx}, {"email": rx}]
     approved_mentors = await db.users.find(
         mentor_q,
-        {"password_hash": 0, "face_image_base64": 0},
+        {"password_hash": 0},
     ).sort("_id", -1).limit(100).to_list(100)
     mentor_cards = [_user_card(m) for m in approved_mentors if str(m.get("_id") or m.get("id")) != me_id]
     for m in mentor_cards:
@@ -6149,7 +6534,7 @@ async def my_connections(user: dict = Depends(get_current_user)):
         except Exception:
             pass
     users = await db.users.find(
-        {"_id": {"$in": objs}}, {"password_hash": 0, "face_image_base64": 0},
+        {"_id": {"$in": objs}}, {"password_hash": 0},
     ).to_list(len(objs))
     cards = [_user_card(u) for u in users]
     for c in cards:
@@ -6176,7 +6561,7 @@ async def my_connection_requests(user: dict = Depends(get_current_user)):
                 objs.append(ObjectId(rid))
             except Exception:
                 pass
-        users = await db.users.find({"_id": {"$in": objs}}, {"password_hash": 0, "face_image_base64": 0}).to_list(len(objs))
+        users = await db.users.find({"_id": {"$in": objs}}, {"password_hash": 0}).to_list(len(objs))
         by_id = {str(u["_id"]): u for u in users}
         for r in rels:
             u = by_id.get(r["a"])
@@ -6201,7 +6586,7 @@ async def my_connection_requests(user: dict = Depends(get_current_user)):
                 objs_sent.append(ObjectId(rid))
             except Exception:
                 pass
-        users_sent = await db.users.find({"_id": {"$in": objs_sent}}, {"password_hash": 0, "face_image_base64": 0}).to_list(len(objs_sent))
+        users_sent = await db.users.find({"_id": {"$in": objs_sent}}, {"password_hash": 0}).to_list(len(objs_sent))
         by_id_sent = {str(u["_id"]): u for u in users_sent}
         for r in sent_rels:
             u = by_id_sent.get(r["b"])
@@ -6498,7 +6883,7 @@ async def my_bookings(user: dict = Depends(get_current_user)):
         try:
             oids = [ObjectId(x) for x in other_ids if ObjectId.is_valid(x)]
             if oids:
-                other_users = await db.users.find({"_id": {"$in": oids}}, {"full_name": 1, "photo_data": 1, "face_image_base64": 1, "photo": 1}).to_list(len(oids))
+                other_users = await db.users.find({"_id": {"$in": oids}}, {"full_name": 1, "photo_data": 1}).to_list(len(oids))
                 for ou in other_users:
                     users_map[str(ou["_id"])] = ou
         except Exception:
@@ -6514,7 +6899,7 @@ async def my_bookings(user: dict = Depends(get_current_user)):
         if other_id and other_id in users_map:
             ou = users_map[other_id]
             other_name = ou.get("full_name") or other_name
-            other_photo = ou.get("photo_data") or ou.get("face_image_base64") or ou.get("photo")
+            other_photo = ou.get("photo_data")
                 
         sched = item.get("scheduled_at")
         sched_iso = sched.isoformat() if isinstance(sched, datetime) else sched
@@ -7334,7 +7719,6 @@ async def seed_admin():
             "interests": [],
             "skills": [],
             "bio": None,
-            "face_image_base64": None,
             "onboarding_completed": True,
             "created_at": datetime.now(timezone.utc),
         })
