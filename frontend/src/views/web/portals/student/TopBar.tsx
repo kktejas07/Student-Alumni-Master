@@ -92,8 +92,6 @@ export function TopBar({
   const cycleTheme = () => {
     setMode(mode === 'light' ? 'dark' : mode === 'dark' ? 'system' : 'light');
   };
-
-  const router = useRouter();
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
