@@ -2426,7 +2426,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     rel_map = {}
     if user:
         me_id = str(user["_id"])
-        cache_key = f"network_student_{me_id}"
+        cache_key = f"network_student_{me_id}_p{page}_l{limit}_pp{per_page}"
         if cache_key in network_cache:
             return network_cache[cache_key]
         

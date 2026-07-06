@@ -6975,6 +6975,7 @@ async def on_startup():
 
     await safe_create_index(db.users, "email", unique=True)
     await safe_create_index(db.users, "unique_id")
+    await safe_create_index(db.users, [("role", 1), ("_id", -1)])
     await safe_create_index(db.users, [("role", 1), ("mentor_status", 1)])
     await safe_create_index(db.users, "sa_id", unique=True, sparse=True)
     await safe_create_index(db.career_suggestions, "user_id")
