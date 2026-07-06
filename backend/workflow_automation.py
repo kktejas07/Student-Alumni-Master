@@ -25,14 +25,10 @@ from __future__ import annotations
 import os, asyncio, logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
-from dotenv import load_dotenv
-from motor.motor_asyncio import AsyncIOMotorClient
-from pathlib import Path
 
-load_dotenv(Path(__file__).parent / ".env")
+from core.db import db as _db
 
-_mongo = AsyncIOMotorClient(os.environ["MONGO_URL"])
-_db = _mongo[os.environ["DB_NAME"]]
+
 _logger = logging.getLogger("workflow_automation")
 
 # ── Step registry (mirrors the one in portals.py for standalone execution) ──

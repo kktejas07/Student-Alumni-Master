@@ -19,7 +19,11 @@ import jwt as _jwt
 import os
 from datetime import datetime
 
-from .db import db as _db  # Phase 3: use shared singleton — no new MongoClient
+# core.db cannot be imported at module load time (circular-import-safe pattern):
+# use a thin accessor so the singleton is fetched only on first real call.
+def _get_db():
+    from core.db import db
+    return db
 
 _JWT_SECRET = os.environ.get("JWT_SECRET", "")
 _JWT_ALG = os.environ.get("JWT_ALGORITHM", "HS256")
@@ -215,7 +219,7 @@ async def has_permission(user: dict, permission: str) -> bool:
 
     # Slow path: custom role stored in DB
     try:
-        role_doc = await _db.admin_roles.find_one({"key": role})
+        role_doc = await _get_db().admin_roles.find_one({"key": role})
         if role_doc:
             return permission in role_doc.get("permissions", [])
     except Exception:
@@ -289,7 +293,7 @@ async def seed_admin_roles(db=None):
     Call on startup or via migration. Uses $setOnInsert for idempotency.
     Accepts an optional db parameter for callers that already hold a reference;
     falls back to the core.db singleton."""
-    target_db = db or _db
+    target_db = db or _get_db()
     for role_def in SYSTEM_ROLES:
         await target_db.admin_roles.update_one(
             {"key": role_def["key"]},

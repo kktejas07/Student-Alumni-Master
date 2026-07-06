@@ -23,15 +23,11 @@ from __future__ import annotations
 import os, re, json, uuid, hashlib, logging
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
-from pathlib import Path
 from bson import ObjectId
-from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Query
-from motor.motor_asyncio import AsyncIOMotorClient
 
-load_dotenv(Path(__file__).parent / ".env")
-_mongo = AsyncIOMotorClient(os.environ["MONGO_URL"])
-_db = _mongo[os.environ["DB_NAME"]]
+from core.db import db as _db
+
 logger = logging.getLogger("higher_ed")
 router = APIRouter()
 

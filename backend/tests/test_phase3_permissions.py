@@ -180,7 +180,7 @@ async def test_unknown_role_hits_db_and_returns_false_on_miss():
     user = {"role": "custom_role_xyz"}
     mock_db = MagicMock()
     mock_db.admin_roles.find_one = AsyncMock(return_value=None)  # not in DB
-    with patch("core.roles._db", mock_db):
+    with patch("core.roles._get_db", return_value=mock_db):
         result = await has_permission(user, Perm.ANALYTICS_VIEW)
     assert result is False
     mock_db.admin_roles.find_one.assert_awaited_once_with({"key": "custom_role_xyz"})
@@ -195,7 +195,7 @@ async def test_custom_role_in_db_with_permission():
         "key": "custom_manager",
         "permissions": [Perm.ANALYTICS_VIEW, Perm.USERS_VIEW],
     })
-    with patch("core.roles._db", mock_db):
+    with patch("core.roles._get_db", return_value=mock_db):
         assert await has_permission(user, Perm.ANALYTICS_VIEW) is True
         assert await has_permission(user, Perm.ROLES_MANAGE) is False
 
@@ -206,7 +206,7 @@ async def test_has_permission_never_raises_on_db_error():
     user = {"role": "some_broken_role"}
     mock_db = MagicMock()
     mock_db.admin_roles.find_one = AsyncMock(side_effect=Exception("DB down"))
-    with patch("core.roles._db", mock_db):
+    with patch("core.roles._get_db", return_value=mock_db):
         result = await has_permission(user, Perm.ANALYTICS_VIEW)
     assert result is False  # safe fallback
 
@@ -305,7 +305,7 @@ async def test_require_permission_student_denied_analytics():
     from core.deps import require_permission
     mock_db = MagicMock()
     mock_db.admin_roles.find_one = AsyncMock(return_value=None)
-    with patch("core.roles._db", mock_db):
+    with patch("core.roles._get_db", return_value=mock_db):
         dep = require_permission(Perm.ANALYTICS_VIEW)
         user = {"role": "student"}
         with pytest.raises(HTTPException) as exc_info:

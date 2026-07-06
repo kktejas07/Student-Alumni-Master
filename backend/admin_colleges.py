@@ -27,63 +27,38 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 from bson import ObjectId
-from dotenv import load_dotenv
 from fastapi import APIRouter, Header, HTTPException
-from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 
-load_dotenv()
+from core.db import db as _db
 
 router = APIRouter()
 
-# ─── Mongo ─────────────────────────────────────────────────────────
-_MONGO_URL = os.getenv("MONGO_URL") or "mongodb://localhost:27017"
-_DB_NAME   = os.getenv("DB_NAME") or "career_platform"
-_client    = AsyncIOMotorClient(_MONGO_URL)
-_db        = _client[_DB_NAME]
-
-# ─── Auth helpers ──────────────────────────────────────────────────
-try:
-    import jwt  # PyJWT
-    _JWT_SECRET = os.getenv("JWT_SECRET", "")
-except Exception:
-    jwt = None  # type: ignore
-    _JWT_SECRET = ""
-
-
-async def _resolve_user(authorization: Optional[str]) -> Optional[dict]:
+# ─── Thin sync wrapper for non-FastAPI call sites in this module ───
+async def _require_admin(authorization):
+    """Wraps core require_admin for local callers that pass auth as a plain string."""
+    import jwt as _jwt
+    from bson import ObjectId
     if not authorization or not authorization.lower().startswith("bearer "):
-        return None
+        raise HTTPException(401, "Not authenticated")
     token = authorization.split(" ", 1)[1].strip()
     try:
-        if jwt is None:
-            return None
-        payload = jwt.decode(token, _JWT_SECRET, algorithms=["HS256"])
+        JWT_SECRET = __import__('os').environ.get("JWT_SECRET", "")
+        payload = _jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
     except Exception:
-        return None
-    uid = payload.get("sub") or payload.get("user_id") or payload.get("id")
+        raise HTTPException(401, "Invalid token")
+    uid = payload.get("sub") or payload.get("user_id")
     if not uid:
-        return None
-    u = None
+        raise HTTPException(401, "Invalid token payload")
     try:
         u = await _db.users.find_one({"_id": ObjectId(uid)})
     except Exception:
-        pass
-    if not u:
         u = await _db.users.find_one({"_id": uid})
-    if not u and payload.get("email"):
-        u = await _db.users.find_one({"email": payload.get("email")})
-    return u
-
-
-async def _require_admin(authorization: Optional[str]) -> dict:
-    user = await _resolve_user(authorization)
-    if not user:
-        raise HTTPException(401, "Not authenticated")
-    role = (user.get("role") or "").lower()
-    if role not in {"admin"}:
+    if not u:
+        raise HTTPException(401, "User not found")
+    if (u.get("role") or "").lower() != "admin":
         raise HTTPException(403, "Super-admin role required")
-    return user
+    return u
 
 
 # ─── Helpers ───────────────────────────────────────────────────────

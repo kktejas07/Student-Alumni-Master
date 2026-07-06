@@ -8,6 +8,7 @@ import { Sparkles, Plus, Calendar, Users, ChevronDown, ChevronLeft, ChevronRight
 import { MC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
 import { MY_EVENTS as INITIAL_EVENTS, MentorEvent } from '../data';
+import { request } from '@/src/models/services/api';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -18,9 +19,10 @@ export function CreateEventView() {
   const { width } = useWindowDimensions();
   const stack = width < 1024;
 
-  const [events, setEvents] = useState<MentorEvent[]>(INITIAL_EVENTS);
+  const [events, setEvents] = useState<MentorEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [subView, setSubView] = useState<'list' | 'create' | 'edit'>('list');
-  const [editingEventId, setEditingEventId] = useState<number | null>(null);
+  const [editingEventId, setEditingEventId] = useState<number | string | null>(null);
 
   // Form States
   const [eventType, setEventType] = useState<MentorEvent['type']>('webinar');
@@ -93,6 +95,51 @@ export function CreateEventView() {
     }
   }, [eventType, subView]);
 
+  const fetchEvents = async () => {
+    setIsLoading(true);
+    try {
+      const res = await request<{ items: any[] }>('/events/me/hosted');
+      const apiEvents: MentorEvent[] = (res.items || []).map(item => {
+        const dt = new Date(item.event_date_start || Date.now());
+        const dateStr = `${MONTH_NAMES[dt.getMonth()]} ${dt.getDate()}, ${dt.getFullYear()}`;
+        
+        let hours = dt.getHours();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        const mins = dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes();
+        const timeStr = `${hours < 10 ? '0'+hours : hours}:${mins} ${ampm}`;
+
+        return {
+          id: item.event_id,
+          title: item.title || '',
+          desc: item.description || '',
+          date: dateStr,
+          time: timeStr,
+          seats: item.capacity || 100,
+          registered: item.attendee_count || 0,
+          type: item.event_type || 'webinar',
+          platform: item.location_city || 'Google Meet',
+          duration: 60,
+          pricing: item.price_type || 'free',
+          price: item.price_amount || 0,
+          coverColor: item.image_url || '#6366F1',
+          status: item.status === 'completed' ? 'completed' : 'upcoming',
+          visibility: 'All Connections',
+        };
+      });
+      setEvents(apiEvents);
+    } catch (e) {
+      console.warn('Failed to fetch mentor events', e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
   // Statistics Calculation
   const totalEvents = events.length;
   const totalRegs = events.reduce((sum, e) => sum + e.registered, 0);
@@ -137,7 +184,7 @@ export function CreateEventView() {
     }, 600);
   };
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     if (!title.trim()) { alert('Please enter an event title'); return; }
     if (!date) { alert('Please select a date'); return; }
     if (!time) { alert('Please select a time'); return; }
@@ -145,59 +192,54 @@ export function CreateEventView() {
     const numSeats = parseInt(seats) || 100;
     const ticketPrice = pricing === 'paid' ? (parseFloat(price) || 0) : undefined;
 
-    if (subView === 'edit' && editingEventId !== null) {
-      // Edit mode
-      setEvents((prev) =>
-        prev.map((e) =>
-          e.id === editingEventId
-            ? {
-                ...e,
-                title,
-                desc,
-                date,
-                time,
-                duration,
-                platform,
-                seats: numSeats,
-                visibility,
-                pricing,
-                price: ticketPrice,
-                coverColor,
-              }
-            : e
-        )
-      );
-      alert('Event updated successfully!');
-    } else {
-      // Create mode
-      const newEvent: MentorEvent = {
-        id: Date.now(),
-        title,
-        desc,
-        date,
-        time,
-        seats: numSeats,
-        registered: 0, // Freshly created event starts with 0
-        type: eventType,
-        platform,
-        duration,
-        pricing,
-        price: ticketPrice,
-        coverColor,
-        status: 'upcoming',
-        visibility,
-      };
-      setEvents((prev) => [newEvent, ...prev]);
-      alert('Event published successfully!');
+    // Handle "dd-mm-yyyy" logic vs standard formatted date
+    let parsedDate = new Date(`${date} ${time}`);
+    if (isNaN(parsedDate.getTime())) {
+      parsedDate = new Date();
     }
+    const isoString = parsedDate.toISOString();
 
-    resetForm();
-    setSubView('list');
+    const payload = {
+      title: title.trim(),
+      description: desc.trim(),
+      event_type: eventType,
+      location_country: 'Online',
+      location_city: platform,
+      event_date_start: isoString,
+      event_date_end: isoString,
+      price_type: pricing,
+      price_amount: ticketPrice || 0,
+      currency: 'INR',
+      capacity: numSeats,
+      image_url: coverColor,
+    };
+
+    try {
+      if (subView === 'edit' && editingEventId !== null) {
+        // Edit mode
+        await request(`/events/${editingEventId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+        alert('Event updated successfully!');
+      } else {
+        // Create mode
+        await request('/events', { method: 'POST', body: JSON.stringify(payload) });
+        alert('Event published successfully!');
+      }
+      resetForm();
+      setSubView('list');
+      fetchEvents();
+    } catch (e: any) {
+      alert(e.message || 'Failed to save event');
+    }
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number | string) => {
     if (confirm('Are you sure you want to delete this event?')) {
-      setEvents((prev) => prev.filter((e) => e.id !== id));
+      try {
+        await request(`/events/${id}`, { method: 'DELETE' });
+        fetchEvents();
+      } catch (e: any) {
+        alert(e.message || 'Failed to delete event');
+      }
     }
   };
 

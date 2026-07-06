@@ -20,18 +20,13 @@ import os
 import hashlib
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
-from pathlib import Path
 
 from bson import ObjectId
-from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Request
-from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 
-load_dotenv(Path(__file__).parent / '.env')
+from core.db import db as _db
 
-_mongo = AsyncIOMotorClient(os.environ['MONGO_URL'])
-_db = _mongo[os.environ['DB_NAME']]
 
 router = APIRouter(tags=["auth-analytics"])
 

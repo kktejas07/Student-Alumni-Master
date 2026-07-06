@@ -56,10 +56,11 @@ from typing import Any, Dict, List, Optional
 
 from bson import ObjectId
 from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException, Query, Request, Body, Response
+from fastapi import APIRouter, HTTPException, Query, Request, Body, Response, Depends
 from motor.motor_asyncio import AsyncIOMotorClient
+
+from core.deps import get_current_user
 from pydantic import BaseModel
-from pathlib import Path
 
 from tier_logic import (
     compute_student_tier,
@@ -67,12 +68,7 @@ from tier_logic import (
     compute_college_tier,
     student_suggestions_for_tier,
 )
-
-load_dotenv(Path(__file__).parent / '.env')
-
-# Mongo connection (reuse main client config)
-_mongo = AsyncIOMotorClient(os.environ['MONGO_URL'])
-_db = _mongo[os.environ['DB_NAME']]
+from core.db import db as _db
 
 router = APIRouter()
 
@@ -1802,6 +1798,53 @@ async def college_events_list(college_name: Optional[str] = None, limit: int = 1
         })
         i += 1
     return {"items": out}
+
+
+from pydantic import BaseModel
+class AnnouncementCreate(BaseModel):
+    title: str
+    body: str
+    audience: Optional[str] = "all"
+    tag: Optional[str] = "general"
+
+@router.post("/college/announcements")
+async def create_college_announcement(
+    data: AnnouncementCreate,
+    user: dict = Depends(get_current_user)
+):
+    college_name = user.get("college_info", {}).get("institution_name") or user.get("school_info", {}).get("institution_name") or "Unknown College"
+    
+    announcement = {
+        "title": data.title,
+        "body": data.body,
+        "audience": data.audience,
+        "tag": data.tag,
+        "college_name": college_name,
+        "author": user.get("full_name", "Admin"),
+        "posted_at": datetime.now(timezone.utc),
+        "pinned": False,
+    }
+    res = await _db.announcements.insert_one(announcement)
+    
+    # Notify students
+    from backend.notifications import _log_inbox
+    students_cursor = _db.users.find({
+        "role": "student",
+        "$or": [
+            {"school_info.institution_name": college_name},
+            {"college_info.institution_name": college_name}
+        ]
+    }, {"_id": 1})
+    
+    async for student in students_cursor:
+        await _log_inbox(
+            _db, 
+            str(student["_id"]), 
+            title="New Announcement: " + data.title, 
+            body=data.body[:100] + ("..." if len(data.body) > 100 else ""), 
+            data={"type": "announcement", "announcement_id": str(res.inserted_id)}
+        )
+    return {"status": "ok", "id": str(res.inserted_id)}
 
 
 @router.get("/college/announcements")
