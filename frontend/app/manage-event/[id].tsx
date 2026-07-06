@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Activi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, Users, Calendar, MapPin, Edit2, CheckCircle, Ticket, Activity } from 'lucide-react-native';
+import { ArrowLeft, Users, Calendar, MapPin, Edit2, CheckCircle, Ticket, Activity, Trash2 } from 'lucide-react-native';
 
 import { AnimatedAurora, GridOverlay, GlassCard, GlassSoft } from '@/src/views/web/portals/student/glass';
 import { PALETTE, FONTS, SC } from '@/src/views/web/portals/student/tokens';
@@ -58,6 +58,17 @@ export default function ManageEvent() {
       toast.error('Update Failed', e.message || 'Failed to update event');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const deleteEvent = async () => {
+    if (!window.confirm('Are you sure you want to delete this event?')) return;
+    try {
+      await request(`/events/${params.id}`, { method: 'DELETE' });
+      toast.success('Event Deleted', 'The event has been permanently removed.');
+      router.back();
+    } catch (e: any) {
+      toast.error('Failed to Delete', e.message || 'Could not delete event');
     }
   };
 
@@ -119,12 +130,21 @@ export default function ManageEvent() {
             <GlassCard radius={16} padding={24}>
               <View style={s.editCardHeader}>
                 <Text style={s.sectionTitle}>Event Details</Text>
-                {!editMode && (
-                  <TouchableOpacity onPress={() => setEditMode(true)} style={s.editBtn}>
-                    <Edit2 size={14} color={PALETTE.blue} />
-                    <Text style={s.editBtnText}>Edit</Text>
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  {!editMode && (
+                    <TouchableOpacity style={s.editBtn} onPress={() => setEditMode(true)}>
+                      <Edit2 size={16} color={PALETTE.blue} />
+                      <Text style={s.editBtnText}>Edit</Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity 
+                    style={[s.editBtn, { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.3)' }]} 
+                    onPress={deleteEvent}
+                  >
+                    <Trash2 size={16} color="#ef4444" />
+                    <Text style={[s.editBtnText, { color: '#ef4444' }]}>Delete</Text>
                   </TouchableOpacity>
-                )}
+                </View>
               </View>
 
               {editMode ? (
