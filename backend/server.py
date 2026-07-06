@@ -2624,7 +2624,7 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
     res = await db.users.insert_one(user_doc)
     user_doc["_id"] = res.inserted_id
     user_doc["qr_code_base64"] = generate_qr_code(
-        f"SA-USER:{user_doc['unique_id']}|{email}|{user_doc['role']}"
+        f"https://studentalumni.app/verify/{user_doc['unique_id'].split('-')[-1]}"
     )
     await db.users.update_one(
         {"_id": res.inserted_id},
@@ -3015,7 +3015,7 @@ async def complete_onboarding(req: OnboardingRequest, user: dict = Depends(get_c
 
     # ---- Generate unique ID + QR code (idempotent — only on first onboarding) ----
     unique_id = user.get("unique_id") or generate_unique_id(role)
-    qr_payload = f"SA-USER:{unique_id}|{user['email']}|{role}"
+    qr_payload = f"https://studentalumni.app/verify/{unique_id.split('-')[-1]}"
     qr_code = generate_qr_code(qr_payload)
 
     # ---- Build update document ----
@@ -7738,7 +7738,7 @@ async def seed_admin():
             "role": "admin",
             "phone": None,
             "unique_id": "SA-2026-ADM-000001",
-            "qr_code_base64": generate_qr_code(f"SA-USER:SA-2026-ADM-000001|{admin_email}|admin"),
+            "qr_code_base64": generate_qr_code("https://studentalumni.app/verify/000001"),
             "school_info": None,
             "career_path": None,
             "interests": [],
