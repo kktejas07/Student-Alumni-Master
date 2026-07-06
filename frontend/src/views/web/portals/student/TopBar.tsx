@@ -29,7 +29,7 @@ import { SP, RADII, FONT_FAMILY } from '@/src/theme/apple';
 import { GlassTopbar } from '@/src/motion/apple/components';
 import { FadeInView, PressScale, PulseDot } from './motion';
 import { PALETTE, TYPO } from './tokens';
-import { StudentPortalNavContext } from './StudentPortalRN';
+import { StudentPortalNavContext } from './StudentPortalNavContext';
 
 function greeting(): string {
   const h = new Date().getHours();
