@@ -169,6 +169,12 @@ export default function ManageEvent() {
               </Text>
             </Card>
           </View>
+        ) : (
+          <View style={{ padding: 40, alignItems: 'center' }}>
+            <Text style={[Typography.body, { color: C.textSecondary, textAlign: 'center' }]}>
+              Event not found.
+            </Text>
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>

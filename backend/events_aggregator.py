@@ -696,9 +696,29 @@ async def event_detail(event_id: str, user: dict = Depends(_get_current_user_dep
         except Exception:
             doc = None
     if not doc:
-        if event_id == "mock-v2-1":
+        try:
+            old_doc = await _db.events.find_one({"_id": ObjectId(event_id)})
+            if old_doc:
+                doc = {
+                    "event_id": str(old_doc["_id"]),
+                    "title": old_doc.get("title", "Legacy Event"),
+                    "event_type": old_doc.get("category", "workshop"),
+                    "location_city": old_doc.get("venue", "Online"),
+                    "event_date_start": old_doc.get("start_date", datetime.now()).isoformat() if isinstance(old_doc.get("start_date"), datetime) else str(old_doc.get("start_date", "TBD")),
+                    "price_type": "paid" if old_doc.get("price") else "free",
+                    "price_amount": old_doc.get("price", 0),
+                    "attendee_count": await _db.event_registrations.count_documents({"event_id": str(old_doc["_id"])}),
+                    "capacity": old_doc.get("capacity", 500),
+                    "image_url": old_doc.get("cover_image", ""),
+                    "description": old_doc.get("description", ""),
+                    "host_user_id": old_doc.get("host_user_id")
+                }
+        except Exception:
+            pass
+    if not doc:
+        if event_id in ["mock-v2-1", "mock-1"]:
             doc = {
-                "event_id": "mock-v2-1",
+                "event_id": event_id,
                 "title": "Hackathon: NextGen AI Solutions",
                 "event_type": "hackathon",
                 "location_country": "India",
