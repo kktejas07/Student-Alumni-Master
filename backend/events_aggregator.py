@@ -1255,20 +1255,36 @@ async def create_event(body: Dict[str, Any], user: dict = Depends(_get_current_u
 async def update_event(event_id: str, body: Dict[str, Any],
                        user: dict = Depends(_get_current_user_dependency())):
     doc = await _db.events_v2.find_one({"event_id": event_id})
+    legacy = False
+    if not doc:
+        try:
+            doc = await _db.events.find_one({"_id": ObjectId(event_id)})
+            legacy = True
+        except Exception:
+            pass
+            
     if not doc:
         raise HTTPException(404, "Event not found")
+        
     is_host = str(user["_id"]) == doc.get("host_user_id")
     is_admin = user.get("role") == "admin"
     if not (is_host or is_admin):
         raise HTTPException(403, "Only the host or an admin can edit")
+        
     allowed = {"title", "description", "event_type", "location_country", "location_city",
                "event_date_start", "event_date_end", "price_type", "price_amount", "currency",
                "registration_url", "image_url", "capacity", "tags", "organizer_name"}
     update = {k: v for k, v in (body or {}).items() if k in allowed}
+    
     if not update:
         raise HTTPException(400, "No valid fields to update")
     update["updated_at"] = datetime.now(timezone.utc)
-    await _db.events_v2.update_one({"_id": doc["_id"]}, {"$set": update})
+    
+    if legacy:
+        await _db.events.update_one({"_id": doc["_id"]}, {"$set": update})
+    else:
+        await _db.events_v2.update_one({"_id": doc["_id"]}, {"$set": update})
+        
     return {"ok": True, **{k: update[k] for k in update if k != "updated_at"}}
 
 
