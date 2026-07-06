@@ -25,6 +25,7 @@ import { ProfileSettingsView } from '../student/views/ProfileSettingsView';
 import { MyBookingsView } from './views/MyBookingsView';
 import { MyApplicationsView } from './views/MyApplicationsView';
 import { MyWorkshopsView } from './views/MyWorkshopsView';
+import { CareerAIView } from '../student/views/CareerAIView';
 
 import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 
@@ -100,7 +101,7 @@ export function AlumniPortalRN() {
                 onOpenCareerAi={() => setActive('career-ai')}
               />
             )}
-            {active === 'career-ai'       && <StubView title="Alumni Tools" note="Mentor matchmaker, alumni-only AMAs and curated content." deepLink="/career-ai" />}
+            {active === 'career-ai'       && <CareerAIView />}
             {active === 'internships'     && <InternshipsView />}
             {active === 'my-applications' && <MyApplicationsView />}
             {active === 'network'         && <NetworkView />}
