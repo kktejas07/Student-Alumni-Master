@@ -73,7 +73,7 @@ export default function ManageEvent() {
       <ScrollView contentContainerStyle={s.container}>
         <View style={s.header}>
           <TouchableOpacity onPress={() => router.back()} style={s.back}>
-            <ArrowLeft size={20} color={PALETTE.white} />
+            <ArrowLeft size={20} color={PALETTE.text} />
           </TouchableOpacity>
           <Text style={s.pageTitle}>Manage Event</Text>
         </View>
@@ -118,7 +118,7 @@ export default function ManageEvent() {
                 <Text style={s.sectionTitle}>Event Details</Text>
                 {!editMode && (
                   <TouchableOpacity onPress={() => setEditMode(true)} style={s.editBtn}>
-                    <Edit2 size={14} color={PALETTE.cyan} />
+                    <Edit2 size={14} color={PALETTE.blue} />
                     <Text style={s.editBtnText}>Edit</Text>
                   </TouchableOpacity>
                 )}
@@ -185,8 +185,8 @@ export default function ManageEvent() {
             {/* Attendees Section */}
             <GlassCard radius={16} padding={24} style={{ marginTop: 8 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <View style={[s.iconWrap, { backgroundColor: 'rgba(34, 197, 94, 0.15)', borderColor: 'rgba(34, 197, 94, 0.3)' }]}>
-                  <CheckCircle size={16} color={PALETTE.green} />
+                <View style={[s.iconWrap, { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.3)' }]}>
+                  <CheckCircle size={16} color={PALETTE.teal} />
                 </View>
                 <Text style={s.sectionTitle}>Attendee Management</Text>
               </View>
@@ -210,34 +210,34 @@ const s = StyleSheet.create({
   container: { padding: 24, paddingBottom: 60, maxWidth: 1000, alignSelf: 'center', width: '100%' },
   header: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 28 },
   back: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  pageTitle: { color: PALETTE.white, fontFamily: FONTS.xbold, fontSize: 24 },
+  pageTitle: { color: PALETTE.text, fontFamily: FONTS.xbold, fontSize: 24 },
   
   content: { gap: 16 },
   
   statsRow: { flexDirection: 'row', gap: 16, flexWrap: 'wrap' },
   statBox: { flex: 1, minWidth: 140, alignItems: 'center', paddingVertical: 20 },
   iconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, marginBottom: 12 },
-  statVal: { color: PALETTE.white, fontFamily: FONTS.xbold, fontSize: 26 },
+  statVal: { color: PALETTE.text, fontFamily: FONTS.xbold, fontSize: 26 },
   statLabel: { color: SC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 4 },
   
   editCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', paddingBottom: 16 },
-  sectionTitle: { color: PALETTE.white, fontFamily: FONTS.bold, fontSize: 18 },
-  editBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(34, 211, 238, 0.15)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(34, 211, 238, 0.3)' },
-  editBtnText: { color: PALETTE.cyan, fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 },
+  sectionTitle: { color: PALETTE.text, fontFamily: FONTS.bold, fontSize: 18 },
+  editBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(59, 130, 246, 0.15)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(59, 130, 246, 0.3)' },
+  editBtnText: { color: PALETTE.blue, fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 },
   
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomColor: 'rgba(255,255,255,0.05)', borderBottomWidth: 1 },
   infoKey: { color: SC.muted, fontFamily: FONTS.med, fontSize: 14 },
-  infoVal: { color: PALETTE.white, fontFamily: FONTS.bold, fontSize: 15, flex: 1, textAlign: 'right', marginLeft: 20 },
+  infoVal: { color: PALETTE.text, fontFamily: FONTS.bold, fontSize: 15, flex: 1, textAlign: 'right', marginLeft: 20 },
 
   inputLabel: { color: SC.muted, fontFamily: FONTS.semi, fontSize: 13, marginBottom: 8, marginLeft: 4 },
   inputBox: { borderRadius: 12, height: 48, justifyContent: 'center' },
-  input: { flex: 1, paddingHorizontal: 16, color: PALETTE.white, fontFamily: FONTS.med, fontSize: 15 },
+  input: { flex: 1, paddingHorizontal: 16, color: PALETTE.text, fontFamily: FONTS.med, fontSize: 15 },
 
   btn: { flex: 1, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   btnOutline: { backgroundColor: 'transparent', borderColor: 'rgba(255,255,255,0.2)' },
-  btnOutlineText: { color: PALETTE.white, fontFamily: FONTS.bold, fontSize: 15 },
+  btnOutlineText: { color: PALETTE.text, fontFamily: FONTS.bold, fontSize: 15 },
   btnSolid: { backgroundColor: PALETTE.violet, borderColor: PALETTE.violet },
-  btnSolidText: { color: PALETTE.white, fontFamily: FONTS.bold, fontSize: 15 },
+  btnSolidText: { color: PALETTE.text, fontFamily: FONTS.bold, fontSize: 15 },
 
   attendeeDesc: { color: SC.muted, fontFamily: FONTS.med, fontSize: 14, lineHeight: 22 },
 
