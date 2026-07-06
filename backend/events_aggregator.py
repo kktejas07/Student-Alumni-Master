@@ -1220,7 +1220,6 @@ async def create_event(body: Dict[str, Any], user: dict = Depends(_get_current_u
     needs_approval = role == "college"
 
     doc = {
-        "event_id": eid,
         "dedup_hash": h,
         "title": body["title"][:255],
         "description": (body.get("description") or "")[:2000],
@@ -1246,8 +1245,27 @@ async def create_event(body: Dict[str, Any], user: dict = Depends(_get_current_u
         "created_at": datetime.now(timezone.utc),
         "updated_at": datetime.now(timezone.utc),
     }
+    
+    legacy_doc = {
+        "title": doc["title"],
+        "category": doc["event_type"],
+        "start_date": _to_dt(doc["event_date_start"]),
+        "end_date": _to_dt(doc["event_date_end"]),
+        "venue": doc["location_city"],
+        "capacity": doc["capacity"],
+        "price": doc["price_amount"],
+        "mode": doc.get("event_mode") or "Online",
+        "description": doc["description"],
+        "host_user_id": doc["host_user_id"],
+        "created_at": doc["created_at"],
+    }
+    legacy_res = await _db.events.insert_one(legacy_doc)
+    
+    doc["_id"] = legacy_res.inserted_id
+    doc["event_id"] = str(legacy_res.inserted_id)
+    
     await _db.events_v2.insert_one(doc)
-    return {"ok": True, "event_id": eid, "status": doc["status"],
+    return {"ok": True, "event_id": doc["event_id"], "status": doc["status"],
             "needs_approval": needs_approval}
 
 
