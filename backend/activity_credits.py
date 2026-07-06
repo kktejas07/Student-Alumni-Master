@@ -26,15 +26,9 @@ from datetime import datetime, timezone, timedelta, date as _date
 from typing import Any, Dict, List, Optional, Tuple
 
 from bson import ObjectId
-from dotenv import load_dotenv
 from fastapi import APIRouter, Body, Depends, HTTPException
-from motor.motor_asyncio import AsyncIOMotorClient
-from pathlib import Path
 
-load_dotenv(Path(__file__).parent / ".env")
-
-_mongo = AsyncIOMotorClient(os.environ["MONGO_URL"])
-_db = _mongo[os.environ["DB_NAME"]]
+from core.db import db as _db
 
 logger = logging.getLogger("activity_credits")
 router = APIRouter()
@@ -139,7 +133,7 @@ def _compute_level(lifetime_earned: int) -> Dict[str, Any]:
 
 
 def _get_current_user_dependency():
-    from server import get_current_user  # noqa
+    from core.deps import get_current_user  # noqa
     return get_current_user
 
 

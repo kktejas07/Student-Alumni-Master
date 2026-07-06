@@ -37,18 +37,15 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timezone, timedelta
-from pathlib import Path
 from typing import Any, Dict, Optional, List
 
 from bson import ObjectId
-from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException
-from motor.motor_asyncio import AsyncIOMotorClient
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-load_dotenv(Path(__file__).parent / ".env")
+from core.db import db as _db
 
-_db = AsyncIOMotorClient(os.environ["MONGO_URL"])[os.environ["DB_NAME"]]
+
 router = APIRouter()
 
 
@@ -61,6 +58,10 @@ def _short_id(oid) -> str:
 
 
 async def _resolve_user(role: str, email: Optional[str]) -> Dict[str, Any]:
+    if email:
+        user = await _db.users.find_one({"email": email})
+        if user:
+            return user
     q: Dict[str, Any] = {"role": role}
     if email:
         q["email"] = email
@@ -106,52 +107,208 @@ async def create_booking(req: BookingCreate):
         "scheduled_at": sched,
         "duration_minutes": req.duration_minutes,
         "amount_paid": mentor.get("expected_rate_inr", 999),
-        "status": "confirmed",
+        "status": "pending",
         "created_at": _now(),
         "_user_created": True,
     }
     res = await _db.bookings.insert_one(doc)
+    
+    # Write to notifications
+    try:
+        await _db.notifications.insert_one({
+            "user_id": str(mentor["_id"]),
+            "title": "New booking request",
+            "body": f"{student.get('full_name') or 'A student'} has requested a session on '{req.topic}' for {sched.isoformat()}.",
+            "type": "booking_request",
+            "read": False,
+            "created_at": _now(),
+            "booking_id": str(res.inserted_id),
+        })
+    except Exception:
+        pass
+        
     return {"ok": True, "booking_id": _short_id(res.inserted_id), "scheduled_at": sched.isoformat(), "amount_paid": doc["amount_paid"]}
 
 
 @router.delete("/student/bookings/{booking_id}")
 async def cancel_booking(booking_id: str):
-    # Try by short-id suffix or full ObjectId
-    q: Dict[str, Any]
+    # Try by short-id suffix or full ObjectId against both bookings and sessions
+    q: Dict[str, Any] = {}
+    matched_in_bookings = False
+    matched_in_sessions = False
+
+    # Check if it is a valid 24-character ObjectId first to do O(1) direct lookup
+    is_oid = False
     try:
-        q = {"_id": ObjectId(booking_id)}
+        if len(booking_id) == 24:
+            booking_oid = ObjectId(booking_id)
+            is_oid = True
+            if await _db.bookings.find_one({"_id": booking_oid}):
+                q = {"_id": booking_oid}
+                matched_in_bookings = True
+            elif await _db.sessions.find_one({"_id": booking_oid}):
+                q = {"_id": booking_oid}
+                matched_in_sessions = True
     except Exception:
-        # match by suffix
-        all_ids = [b async for b in _db.bookings.find({}, {"_id": 1})]
-        match = next((b["_id"] for b in all_ids if str(b["_id"]).endswith(booking_id)), None)
-        if not match:
+        pass
+
+    if not is_oid or (not matched_in_bookings and not matched_in_sessions):
+        # Match by suffix - perform server-side regex matching to avoid full collection memory scans
+        import re
+        booking_rx = f"{re.escape(booking_id)}$"
+
+        bookings_matches = []
+        async for b in _db.bookings.find({
+            "$expr": {
+                "$regexMatch": {
+                    "input": {"$toString": "$_id"},
+                    "regex": booking_rx,
+                    "options": "i"
+                }
+            }
+        }, {"_id": 1}):
+            bookings_matches.append(b)
+
+        sessions_matches = []
+        async for s in _db.sessions.find({
+            "$expr": {
+                "$regexMatch": {
+                    "input": {"$toString": "$_id"},
+                    "regex": booking_rx,
+                    "options": "i"
+                }
+            }
+        }, {"_id": 1}):
+            sessions_matches.append(s)
+
+        total_matches = len(bookings_matches) + len(sessions_matches)
+        if total_matches > 1:
+            raise HTTPException(400, "Ambiguous booking ID: multiple sessions or bookings match this suffix")
+        elif len(bookings_matches) == 1:
+            q = {"_id": bookings_matches[0]["_id"]}
+            matched_in_bookings = True
+        elif len(sessions_matches) == 1:
+            q = {"_id": sessions_matches[0]["_id"]}
+            matched_in_sessions = True
+
+    if matched_in_bookings:
+        res = await _db.bookings.update_one(q, {"$set": {"status": "cancelled", "cancelled_at": _now()}})
+        if res.modified_count == 0:
             raise HTTPException(404, "Booking not found")
-        q = {"_id": match}
-    res = await _db.bookings.update_one(q, {"$set": {"status": "cancelled", "cancelled_at": _now()}})
-    if res.modified_count == 0:
+        return {"ok": True, "cancelled": True}
+    elif matched_in_sessions:
+        res = await _db.sessions.update_one(q, {"$set": {"status": "cancelled", "cancelled_at": _now()}})
+        if res.modified_count == 0:
+            raise HTTPException(404, "Session not found")
+        return {"ok": True, "cancelled": True}
+    else:
         raise HTTPException(404, "Booking not found")
-    return {"ok": True, "cancelled": True}
 
 
 @router.get("/student/my-bookings")
 async def my_bookings(email: Optional[str] = None, status: Optional[str] = None):
     student = await _resolve_user("student", email)
-    q: Dict[str, Any] = {"student_id": str(student["_id"])}
+    sid = str(student["_id"])
+
+    # 1. Fetch legacy custom bookings
+    bq: Dict[str, Any] = {"student_id": sid}
     if status:
-        q["status"] = status
+        if status == "confirmed":
+            bq["status"] = "confirmed"
+        elif status == "cancelled":
+            bq["status"] = "cancelled"
+        elif status == "completed":
+            bq["status"] = "completed"
+        else:
+            bq["status"] = status
+
+    # 2. Fetch slot-based sessions
+    sq: Dict[str, Any] = {"user_id": sid}
+    if status:
+        if status == "confirmed":
+            sq["status"] = {"$in": ["booked", "scheduled", "confirmed"]}
+        elif status == "cancelled":
+            sq["status"] = "cancelled"
+        elif status == "completed":
+            sq["status"] = {"$in": ["completed", "attended"]}
+        else:
+            sq["status"] = status
+
+    # Gather all unique mentor_ids to fetch in batch (resolves N+1 query overhead)
+    mentor_ids = set()
+    raw_bookings = []
+    async for b in _db.bookings.find(bq).sort("scheduled_at", 1).limit(50):
+        raw_bookings.append(b)
+        mid = b.get("mentor_id")
+        if mid and isinstance(mid, str) and ObjectId.is_valid(mid):
+            mentor_ids.add(ObjectId(mid))
+
+    raw_sessions = []
+    async for s in _db.sessions.find(sq).limit(50):
+        raw_sessions.append(s)
+        mid = s.get("mentor_id")
+        if mid and isinstance(mid, str) and ObjectId.is_valid(mid):
+            mentor_ids.add(ObjectId(mid))
+
+    # Single batch fetch for all mentors
+    mentors_map = {}
+    if mentor_ids:
+        async for m in _db.users.find({"_id": {"$in": list(mentor_ids)}}):
+            mentors_map[str(m["_id"])] = m
+
     out = []
-    async for b in _db.bookings.find(q).sort("scheduled_at", 1).limit(50):
-        mentor = await _db.users.find_one({"_id": ObjectId(b["mentor_id"])}) if b.get("mentor_id") else None
+
+    # Map legacy bookings
+    for b in raw_bookings:
+        mid_str = b.get("mentor_id")
+        mentor = mentors_map.get(mid_str) if mid_str else None
         out.append({
             "id": _short_id(b["_id"]),
-            "topic": b.get("topic"),
-            "mentor_name": (mentor or {}).get("full_name", "Mentor"),
-            "mentor_email": b.get("mentor_email"),
+            "topic": b.get("topic") or "1:1 Mentorship Session",
+            "mentor_name": (mentor or {}).get("full_name") or (mentor or {}).get("name") or "Mentor",
+            "mentor_email": b.get("mentor_email") or (mentor or {}).get("email"),
             "scheduled_at": b.get("scheduled_at"),
-            "duration_minutes": b.get("duration_minutes"),
-            "amount_paid": b.get("amount_paid"),
+            "duration_minutes": b.get("duration_minutes", 45),
+            "amount_paid": b.get("amount_paid") or (mentor or {}).get("expected_rate_inr") or 0,
             "status": b.get("status"),
         })
+
+    # Map slot-based sessions
+    for s in raw_sessions:
+        mid_str = s.get("mentor_id")
+        mentor = mentors_map.get(mid_str) if mid_str else None
+        s_status = s.get("status")
+        # Map all session statuses cleanly
+        mapped_status = (
+            "confirmed" if s_status in ["booked", "scheduled", "confirmed"]
+            else "cancelled" if s_status == "cancelled"
+            else "completed" if s_status in ["completed", "attended"]
+            else s_status
+        )
+        out.append({
+            "id": _short_id(s["_id"]),
+            "topic": s.get("topic") or "1:1 Mentorship Session",
+            "mentor_name": (mentor or {}).get("full_name") or (mentor or {}).get("name") or "Mentor",
+            "mentor_email": (mentor or {}).get("email") or s.get("mentor_email"),
+            "scheduled_at": s.get("scheduled_at"),
+            "duration_minutes": s.get("duration_minutes", 30),
+            "amount_paid": (mentor or {}).get("expected_rate_inr") or 0,
+            "status": mapped_status,
+        })
+
+    # Sort unified list chronologically by scheduled_at
+    def get_sched(x):
+        val = x.get("scheduled_at")
+        if isinstance(val, datetime):
+            return val
+        if isinstance(val, str):
+            try:
+                return datetime.fromisoformat(val.replace("Z", "+00:00"))
+            except Exception:
+                pass
+        return datetime.min
+
+    out.sort(key=get_sched)
     return {"items": out, "count": len(out), "student_email": student["email"]}
 
 
@@ -164,8 +321,23 @@ class ApplyRequest(BaseModel):
 
 
 @router.post("/student/internships/{internship_id}/apply")
-async def apply_internship(internship_id: str, req: ApplyRequest):
-    student = await _resolve_user("student", req.student_email)
+async def apply_internship(internship_id: str, req: ApplyRequest, request: Request):
+    student = None
+    # 1. Try to read token from Authorization header if present for secure auth
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        try:
+            import jwt
+            from core.security import JWT_SECRET, JWT_ALGORITHM
+            payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
+            if payload.get("type") == "access":
+                student = await _db.users.find_one({"_id": ObjectId(payload["sub"])})
+        except Exception:
+            pass
+
+    # 2. Fall back to request body if unauthenticated (demo switcher & automated tests compatibility)
+    if not student:
+        student = await _resolve_user("student", req.student_email)
     # Find internship by suffix-id or ObjectId
     internship = None
     try:
@@ -177,18 +349,33 @@ async def apply_internship(internship_id: str, req: ApplyRequest):
             if str(i["_id"]).endswith(internship_id):
                 internship = i; break
     if not internship:
+        # Support external feed jobs stored in jobs_cache
+        try:
+            internship = await _db.jobs_cache.find_one({"dedup_hash": internship_id})
+        except Exception:
+            pass
+    if not internship:
+        try:
+            internship = await _db.jobs_cache.find_one({"_id": ObjectId(internship_id)})
+        except Exception:
+            pass
+    if not internship:
         raise HTTPException(404, "Internship not found")
 
     # Idempotent — don't double-apply
+    internship_id_str = internship.get("dedup_hash") or str(internship["_id"])
     existing = await _db.internship_applications.find_one({
-        "internship_id": str(internship["_id"]),
+        "$or": [
+            {"internship_id": str(internship["_id"])},
+            {"internship_id": internship_id_str}
+        ],
         "student_id": str(student["_id"]),
     })
     if existing:
         return {"ok": True, "already": True, "application_id": _short_id(existing["_id"])}
 
     doc = {
-        "internship_id": str(internship["_id"]),
+        "internship_id": internship_id_str,
         "internship_title": internship.get("title"),
         "company": internship.get("company"),
         "student_id": str(student["_id"]),
@@ -199,6 +386,25 @@ async def apply_internship(internship_id: str, req: ApplyRequest):
         "applied_at": _now(),
     }
     res = await _db.internship_applications.insert_one(doc)
+
+    # Sync with users.applied_jobs so the feed button is marked as applied
+    await _db.users.update_one(
+        {"_id": student["_id"]},
+        {"$addToSet": {"applied_jobs": internship_id_str}}
+    )
+
+    # Write to job_apply_audit for unified tracking metrics
+    try:
+        url = internship.get("url") or (internship.get("source_urls") or [""])[0]
+        await _db.job_apply_audit.insert_one({
+            "user_id": str(student["_id"]),
+            "job_id": internship_id_str,
+            "source_url": url,
+            "ts": _now(),
+        })
+    except Exception:
+        pass
+
     return {"ok": True, "application_id": _short_id(res.inserted_id), "applied_at": doc["applied_at"].isoformat()}
 
 
@@ -244,6 +450,7 @@ async def enroll_workshop(req: WorkshopEnroll):
         "fee_inr": req.fee_inr,
         "weeks": req.weeks,
         "status": "registered",
+        "current_week": 1,
         "registered_at": _now(),
     }
     res = await _db.workshop_registrations.insert_one(doc)
@@ -261,11 +468,89 @@ async def my_workshops(email: Optional[str] = None):
             "fee_inr": w.get("fee_inr"),
             "weeks": w.get("weeks"),
             "status": w.get("status"),
+            "current_week": w.get("current_week", 1),
             "completed_at": w.get("completed_at"),
             "certificate_url": w.get("certificate_url"),
             "registered_at": w.get("registered_at"),
         })
     return {"items": out, "count": len(out)}
+
+
+class WorkshopProgressReq(BaseModel):
+    student_email: str
+    registration_id: str
+    action: str  # "start", "advance", "complete"
+
+
+@router.post("/student/workshops/progress")
+async def progress_workshop(req: WorkshopProgressReq):
+    if req.action not in ["start", "advance", "complete"]:
+        raise HTTPException(400, f"Invalid action: {req.action}. Must be 'start', 'advance', or 'complete'.")
+
+    # Resolve student to ensure strict authorization and scoping
+    student = await _resolve_user("student", req.student_email)
+    student_id_str = str(student["_id"])
+
+    # Find the registration scoped strictly to the student
+    reg = None
+    # 1. Try by ObjectId if 24 chars
+    if len(req.registration_id) == 24:
+        try:
+            reg = await _db.workshop_registrations.find_one({
+                "_id": ObjectId(req.registration_id),
+                "student_id": student_id_str
+            })
+        except Exception:
+            pass
+
+    # 2. Try by short-id (last 8 chars) suffix, scoped strictly to the student
+    if not reg:
+        async for w in _db.workshop_registrations.find({"student_id": student_id_str}):
+            if str(w["_id"])[-8:] == req.registration_id:
+                reg = w
+                break
+
+    if not reg:
+        raise HTTPException(404, "Workshop registration not found for the calling student")
+
+    weeks = max(1, int(reg.get("weeks") or 4))
+    current_week = int(reg.get("current_week") or 1)
+    current_week = max(1, min(current_week, weeks))
+    status = reg.get("status") or "registered"
+
+    if req.action == "start":
+        status = "in_progress"
+        current_week = 1
+    elif req.action == "advance":
+        status = "in_progress"
+        current_week = min(current_week + 1, weeks)
+        if current_week >= weeks:
+            status = "completed"
+    elif req.action == "complete":
+        status = "completed"
+        current_week = weeks
+
+    update_doc: Dict[str, Any] = {
+        "status": status,
+        "current_week": current_week
+    }
+
+    if status == "completed":
+        update_doc["completed_at"] = reg.get("completed_at") or _now()
+        update_doc["certificate_url"] = reg.get("certificate_url") or f"https://certificates.example.com/{_short_id(reg['_id'])}"
+
+    await _db.workshop_registrations.update_one(
+        {"_id": reg["_id"]},
+        {"$set": update_doc}
+    )
+
+    return {
+        "ok": True,
+        "status": status,
+        "current_week": current_week,
+        "completed_at": update_doc.get("completed_at"),
+        "certificate_url": update_doc.get("certificate_url"),
+    }
 
 
 # ════════════════════════════════════════════════════════════════

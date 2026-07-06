@@ -2,15 +2,19 @@
  * Student Portal — reusable atoms (Avatar, Badge, KpiCard, etc).
  */
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { LucideIcon } from './iconShims';
 import { SC, FONTS } from './tokens';
 
-export function Av({ initials, size = 40, color }: { initials: string; size?: number; color?: string }) {
+export function Av({ initials, size = 40, color, photo }: { initials: string; size?: number; color?: string; photo?: string }) {
   const bg = (color || SC.primary) + 'CC';
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, borderWidth: 2, borderColor: 'rgba(255,255,255,0.10)', alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: size * 0.36 }}>{initials}</Text>
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, borderWidth: 2, borderColor: 'rgba(255,255,255,0.10)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+      {photo ? (
+        <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
+      ) : (
+        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: size * 0.36 }}>{initials}</Text>
+      )}
     </View>
   );
 }

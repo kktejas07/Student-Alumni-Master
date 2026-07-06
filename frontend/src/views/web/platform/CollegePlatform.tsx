@@ -44,6 +44,15 @@ export default function CollegePlatform() {
   const isWide = width >= 768;
   const onLogout = async () => { await logout(); router.replace('/welcome'); };
 
+  const collegeName = user?.college_info?.institution_name || user?.school_info?.institution_name || 'IIT Bombay';
+  const getInitials = (name: string) => {
+    if (!name) return 'CO';
+    const parts = name.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+  const collegeInitials = getInitials(collegeName);
+
   return (
     <LinearGradient
       colors={SA.pageBgCollege as any}
@@ -62,8 +71,8 @@ export default function CollegePlatform() {
           collapsed={sidebarCollapsed}
           onToggleCollapsed={() => setSidebarCollapsed((c) => !c)}
           user={{
-            initials: 'IIT',
-            primary: user?.full_name || 'IIT Bombay',
+            initials: collegeInitials,
+            primary: collegeName,
             secondary: 'Admin · Verified',
             gradient: SAGradients.blue,
           }}
@@ -73,7 +82,7 @@ export default function CollegePlatform() {
       <View style={{ flex: 1 }}>
         {screen === 'overview' && (
           <CollegeDashboardView
-            collegeName={user?.full_name ? `${user.full_name} Admin` : "St. Xavier's College Admin"}
+            collegeName={collegeName ? `${collegeName} Admin` : "St. Xavier's College Admin"}
             notifCount={4}
             onOpenNotifications={() => router.push('/notifications')}
             onOpenProfile={() => setScreen('profile')}
@@ -111,7 +120,8 @@ function Overview({ onNav }: { onNav: (id: string) => void }) {
     api.analytics().then(setAnalytics).catch(() => {});
   }, []);
 
-  const tenantName = user?.full_name || 'Institution';
+  const collegeName = user?.college_info?.institution_name || user?.school_info?.institution_name || 'Institution';
+  const tenantName = collegeName;
   const totalStudents = analytics?.total_students || 4820;
   const totalAlumni = analytics?.total_alumni || 12400;
   const placementRate = analytics?.placement_rate_pct || 94;

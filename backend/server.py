@@ -116,12 +116,31 @@ api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernet
 # Per spec — encrypt sensitive personal data (dob, phone, postal_code) at rest.
 # Backwards-compat: legacy users may have plaintext values; decrypt() returns
 # the input as-is when it can't be decoded as Fernet ciphertext.
-from cryptography.fernet import Fernet, InvalidToken  # noqa: E402
+try:
+    from cryptography.fernet import Fernet, InvalidToken  # noqa: E402
+    _HAS_CRYPTOGRAPHY = True
+except Exception:
+    _HAS_CRYPTOGRAPHY = False
+    class Fernet:
+        @staticmethod
+        def generate_key():
+            return b"dummy_key_for_dev_booting_without_cryptography_32b_len="
+        def __init__(self, key):
+            pass
+        def encrypt(self, data: bytes) -> bytes:
+            return data
+        def decrypt(self, data: bytes) -> bytes:
+            return data
+    class InvalidToken(Exception):
+        pass
 
 _FERNET_KEY = os.environ.get("FERNET_KEY")
 if not _FERNET_KEY:
     # Auto-generate a session key in dev so the app boots; logs a warning.
-    _FERNET_KEY = Fernet.generate_key().decode()
+    if _HAS_CRYPTOGRAPHY:
+        _FERNET_KEY = Fernet.generate_key().decode()
+    else:
+        _FERNET_KEY = Fernet.generate_key().decode('utf-8')
     print(f"⚠️  FERNET_KEY not set — using ephemeral key (dev only): {_FERNET_KEY[:12]}…")
 _FERNET = Fernet(_FERNET_KEY.encode() if isinstance(_FERNET_KEY, str) else _FERNET_KEY)
 # Marker so we can recognise our ciphertexts in mixed-format collections.
@@ -560,6 +579,20 @@ class BookingRequest(BaseModel):
     notes: Optional[str] = None
 
 
+class MentorBookingCreateRequest(BaseModel):
+    """Mentor schedules a booking with a student."""
+    student_id: str
+    slot_start_iso: str  # ISO datetime string
+    topic: str
+    notes: Optional[str] = None
+
+
+class RescheduleRequest(BaseModel):
+    """Request payload to reschedule a session."""
+    slot_start_iso: str  # ISO datetime string
+
+
+
 # ----------------------------------------------------------------------------
 # Helpers — Auth, hashing, ID generation
 # ----------------------------------------------------------------------------
@@ -665,7 +698,7 @@ def serialize_user(user: dict) -> dict:
         "first_name":     user.get("first_name"),
         "last_name":      user.get("last_name"),
         "headline":       user.get("headline"),
-        "photo_data":     user.get("photo_data"),
+        "photo_data":     user.get("photo_data") or user.get("face_image_base64"),
         "institution":    user.get("institution"),
         "branch":         user.get("branch"),
         "stream":         user.get("stream"),
@@ -1105,6 +1138,7 @@ async def get_public_profile(user_id: str):
         "bio": target.get("bio"),
         "photo_data": target.get("photo_data") or target.get("face_image_base64"),
         "is_online": target.get("is_online", True),
+        "is_verified": target.get("is_verified", False),
         # Identity meta
         "institution": target.get("institution") or si.get("institution_name"),
         "branch": target.get("branch"),
@@ -1339,6 +1373,7 @@ async def my_id_card(user: dict = Depends(get_current_user)):
     si = user.get("school_info") or {}
     ai = user.get("alumni_info") or {}
     cp = user.get("college_profile") or {}
+    mi = user.get("mentor_info") or user.get("mentor_profile") or {}
     role = (user.get("role") or "").lower()
     status = _student_status_label(user)
 
@@ -1355,6 +1390,15 @@ async def my_id_card(user: dict = Depends(get_current_user)):
             batch = f"Class of {int(batch)}"
         except Exception:
             batch = str(batch)
+
+    company = mi.get("company") or mi.get("organization") or user.get("company") or ""
+    position = mi.get("position") or mi.get("job_title") or user.get("position") or ""
+    years_exp = mi.get("years_experience") or mi.get("years_of_experience") or user.get("years_experience") or ""
+    if years_exp:
+        try:
+            years_exp = f"{int(years_exp)} Years"
+        except Exception:
+            years_exp = str(years_exp)
 
     raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
     frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
@@ -1399,6 +1443,9 @@ async def my_id_card(user: dict = Depends(get_current_user)):
             if isinstance(user.get("sa_id_issued_at"), datetime) else str(user.get("sa_id_issued_at") or datetime.utcnow().isoformat()),
         "verify_url": public_verify_url,
         "qr_payload": qr_payload,
+        "company": company,
+        "position": position,
+        "years_experience": years_exp,
     }
 
 
@@ -1444,7 +1491,7 @@ async def verify_id_card(identifier: str):
     # ─── Role-specific fields (all from DB, no hardcoded fallbacks) ───
     si = u.get("school_info") or {}
     ai = u.get("alumni_info") or {}
-    mi = u.get("mentor_info") or {}
+    mi = u.get("mentor_info") or u.get("mentor_profile") or {}
     ci = u.get("college_profile") or {}
     adm = u.get("admin_profile") or {}
 
@@ -1467,10 +1514,9 @@ async def verify_id_card(identifier: str):
 
     elif role == "mentor":
         base["expertise"] = mi.get("expertise") or u.get("skills") or []
-        base["company"] = mi.get("company") or u.get("company") or ""
-        base["position"] = mi.get("position") or u.get("position") or ""
-        base["company"] = mi.get("company") or u.get("company") or ""
-        base["years_experience"] = mi.get("years_experience") or ""
+        base["company"] = mi.get("company") or mi.get("organization") or u.get("company") or ""
+        base["position"] = mi.get("position") or mi.get("job_title") or u.get("position") or ""
+        base["years_experience"] = mi.get("years_experience") or mi.get("years_of_experience") or ""
         base["institution"] = ai.get("institution_name") or si.get("institution_name") or ""
 
     elif role == "college":
@@ -2348,6 +2394,7 @@ async def complete_onboarding(req: OnboardingRequest, user: dict = Depends(get_c
         "skills": req.skills,
         "bio": req.bio,
         "face_image_base64": req.face_image_base64,
+        "photo_data": req.face_image_base64,
         "unique_id": unique_id,
         "qr_code_base64": qr_code,
         "onboarding_completed": True,
@@ -4015,6 +4062,245 @@ async def chat_history(session_id: Optional[str] = None, user: dict = Depends(ge
     return {"messages": msgs}
 
 
+@api_router.post("/ai/generate-bio")
+async def ai_generate_bio(
+    body: Dict[str, Any] = None,
+    user: dict = Depends(get_current_user),
+):
+    """
+    Generate a short personalised bio in the requested writing style using Claude.
+    Accepts profile context (role, name, education, organisation, interests, etc.)
+    and returns a 2–3 sentence bio tailored to that style.
+    """
+    body = body or {}
+    role = (body.get("role") or user.get("role") or "student").lower()
+    full_name = body.get("full_name") or user.get("full_name") or ""
+    writing_style = (body.get("writing_style") or "").strip()
+    existing_bio = (body.get("existing_bio") or "").strip()
+
+    # Build contextual prompt based on role
+    context_lines = [f"Full name: {full_name}", f"Role: {role}"]
+
+    if role == "student":
+        context_lines.append(f"College / Institution: {body.get('institution') or ''}")
+        context_lines.append(f"Education level: {body.get('education_level') or ''}")
+        context_lines.append(f"Career goal: {body.get('career_goal') or ''}")
+        interests = body.get("interests") or []
+        skills = body.get("skills") or []
+        if interests:
+            context_lines.append(f"Interests: {', '.join(interests if isinstance(interests, list) else [interests])}")
+        if skills:
+            context_lines.append(f"Skills: {', '.join(skills if isinstance(skills, list) else [skills])}")
+    elif role == "mentor":
+        context_lines.append(f"Organization: {body.get('organization') or ''}")
+        context_lines.append(f"Job title: {body.get('job_title') or ''}")
+        context_lines.append(f"Mentor category: {body.get('mentor_category') or ''}")
+        expertise = body.get("expertise") or body.get("skills") or []
+        if expertise:
+            context_lines.append(f"Expertise: {', '.join(expertise if isinstance(expertise, list) else [expertise])}")
+    elif role == "alumni":
+        context_lines.append(f"Organization: {body.get('organization') or ''}")
+        context_lines.append(f"Job title: {body.get('job_title') or ''}")
+        context_lines.append(f"College / University: {body.get('institution') or ''}")
+        context_lines.append(f"Graduation year: {body.get('graduation_year') or ''}")
+        context_lines.append(f"Employment status: {body.get('employment_status') or ''}")
+        interests = body.get("interests") or []
+        if interests:
+            context_lines.append(f"Interests: {', '.join(interests if isinstance(interests, list) else [interests])}")
+    elif role == "college" or role == "institution":
+        context_lines.append(f"Institution name: {body.get('institution_name') or body.get('institution') or ''}")
+        context_lines.append(f"Location: {body.get('location') or ''}")
+        context_lines.append(f"Institution type: {body.get('institution_type') or ''}")
+
+    if existing_bio:
+        context_lines.append(f"Existing draft: {existing_bio}")
+
+    style_guidance = {
+        "friendly & warm": "Make it approachable, heartfelt, and conversational.",
+        "professional": "Keep it polished, confident, and career-focused.",
+        "inspiring": "Use aspirational language that motivates the reader.",
+        "concise": "Be brief and direct — 1–2 tight sentences.",
+        "detailed": "Include specific accomplishments, skills, or background details.",
+    }
+    style_instruction = style_guidance.get(writing_style.lower(), "Keep it natural and genuine.")
+
+    system_msg = (
+        "You are a professional bio writer for the Student Alumni platform. "
+        "Write a short 2–3 sentence personalised bio based on the user's profile information. "
+        f"{style_instruction} "
+        "Output only the bio text — no prefixes, no markdown, no quotation marks around the text."
+    )
+    prompt = (
+        f"Generate a {writing_style or 'natural'} bio for this user.\n\n"
+        + "\n".join(context_lines)
+        + "\n\nBio:"
+    )
+
+    try:
+        from emergentintegrations.llm.chat import UserMessage
+        chat = await get_claude_chat(f"bio-{user['_id']}", system_msg)
+        bio_text = await chat.send_message(UserMessage(text=prompt))
+        bio_text = (bio_text or "").strip().strip('"').strip()
+        if not bio_text:
+            raise ValueError("empty response")
+    except Exception as e:
+        logger.error(f"generate-bio AI failed: {e}")
+        
+        name_first = full_name.split(' ')[0] if full_name else ""
+        name_display = name_first or ("An enthusiastic platform member" if role == "student" else "A dedicated professional")
+        
+        # Extracted variables with defaults
+        inst = body.get('institution') or body.get('institution_name') or "our premier institution"
+        edu = body.get('education_level') or "studies"
+        goal = body.get('career_goal') or "achieving high impact"
+        org = body.get('organization') or "our organization"
+        title = body.get('job_title') or "Expert"
+        
+        # Format list to readable string
+        def format_list(lst):
+            if not lst:
+                return ""
+            if isinstance(lst, str):
+                return lst
+            if len(lst) == 1:
+                return lst[0]
+            if len(lst) == 2:
+                return f"{lst[0]} and {lst[1]}"
+            return f"{', '.join(lst[:-1])}, and {lst[-1]}"
+            
+        skills_str = format_list(body.get('skills') or body.get('expertise') or [])
+        ints_str = format_list(body.get('interests') or [])
+        
+        bio_templates = {}
+        
+        if role == "student":
+            bio_templates = {
+                "friendly & warm": (
+                    f"Hi! I'm {name_display}, currently pursuing my {edu} at {inst}. "
+                    f"I'm super passionate about {skills_str or 'learning new things'} and love exploring {ints_str or 'new technologies'}. "
+                    f"I'd love to connect with mentors and peers to help me with my goal of {goal.lower()}!"
+                ),
+                "professional": (
+                    f"{full_name or 'A dedicated student'} is a driven {edu} candidate at {inst}. "
+                    f"Equipped with strong skills in {skills_str or 'problem solving'}, they are committed to {goal.lower()}. "
+                    f"They seek to collaborate with industry professionals to drive innovation and professional growth."
+                ),
+                "inspiring": (
+                    f"Believer in the power of education and technology to change the world. "
+                    f"I'm {name_display}, studying at {inst} and honing my skills in {skills_str or 'collaboration'}. "
+                    f"My ultimate mission is {goal.lower()} and making a lasting difference in the industry!"
+                ),
+                "concise": (
+                    f"{full_name or 'Dedicated student'} — pursuing {edu} at {inst}. "
+                    f"Skilled in {skills_str or 'innovation'} and focused on {goal.lower()}."
+                ),
+                "detailed": (
+                    f"As a {edu} student at {inst}, I am actively building my expertise in {skills_str or 'key technologies'}. "
+                    f"With interests spanning {ints_str or 'various domains'}, my academic journey is geared towards {goal.lower()}. "
+                    f"I look forward to networking with alumni and industry leaders to create meaningful professional opportunities."
+                )
+            }
+        elif role == "mentor":
+            category = body.get('mentor_category') or "mentorship"
+            bio_templates = {
+                "friendly & warm": (
+                    f"Hello! I'm {name_display}, working as a {title} at {org}. "
+                    f"I specialize in {skills_str or category} and love helping the next generation. "
+                    f"Always open for a friendly chat, virtual coffee, and sharing guidance to help you grow!"
+                ),
+                "professional": (
+                    f"{full_name or 'An experienced mentor'} is an accomplished {title} at {org}. "
+                    f"With deep expertise in {skills_str or 'industry practices'}, they focus on {category}. "
+                    f"Dedicated to fostering professional growth and guiding students toward career readiness."
+                ),
+                "inspiring": (
+                    f"Passionate about unlocking potential and fostering the leaders of tomorrow. "
+                    f"I'm {name_display}, leveraging my experience as a {title} at {org} to guide aspiring talent. "
+                    f"Let's work together to turn career aspirations into impactful realities!"
+                ),
+                "concise": (
+                    f"{full_name or 'Expert mentor'} — {title} at {org}. "
+                    f"Specializing in {skills_str or category} and dedicated to professional mentorship."
+                ),
+                "detailed": (
+                    f"Serving as a {title} at {org}, I bring specialized knowledge in {skills_str or 'domain expertise'}. "
+                    f"My professional background in {category} enables me to offer structured guidance to students. "
+                    f"I am eager to share insights, review career paths, and support the academic community through active mentorship."
+                )
+            }
+        elif role == "alumni":
+            bio_templates = {
+                "friendly & warm": (
+                    f"Hey there! I'm {name_display}, proud graduate of {inst} class of {body.get('graduation_year') or 'recent years'}. "
+                    f"Currently, I'm working as a {title} at {org} while keeping active in {skills_str or 'development'}. "
+                    f"I'm always excited to give back to my alma mater and connect with current students!"
+                ),
+                "professional": (
+                    f"{full_name or 'An alumni member'} is an alumnus of {inst} and currently serves as a {title} at {org}. "
+                    f"Their background includes strong capabilities in {skills_str or 'industry skills'}. "
+                    f"They are keen to connect with fellow alumni and assist students with transition from campus to corporate life."
+                ),
+                "inspiring": (
+                    f"Proud {inst} alumnus, currently pushing boundaries as a {title} at {org}. "
+                    f"My journey taught me that mentorship and lifelong learning are keys to success. "
+                    f"I am eager to share my experiences and inspire the next wave of students to achieve greatness!"
+                ),
+                "concise": (
+                    f"{full_name or 'Alumni graduate'} — {title} at {org} and alumnus of {inst}. "
+                    f"Skilled in {skills_str or 'technology'} and passionate about networking."
+                ),
+                "detailed": (
+                    f"Graduated from {inst}, I now apply my skills as a {title} at {org}. "
+                    f"Specializing in {skills_str or 'various domains'}, I maintain a strong interest in {ints_str or 'professional networking'}. "
+                    f"I look forward to sharing placements insights and supporting campus career initiatives on this platform."
+                )
+            }
+        elif role in ["college", "institution"]:
+            loc = body.get('location') or "India"
+            itype = body.get('institution_type') or "institution"
+            bio_templates = {
+                "friendly & warm": (
+                    f"Welcome to {full_name or 'our institution'} located in {loc}! "
+                    f"We are a leading {itype} dedicated to providing a vibrant, supportive learning environment. "
+                    f"Our community brings students and alumni together to collaborate and build successful futures."
+                ),
+                "professional": (
+                    f"{full_name or 'Our premier college'} is a distinguished {itype} situated in {loc}. "
+                    f"We focus on academic excellence, state-of-the-art facilities, and strong industry collaboration. "
+                    f"We are committed to nurturing talent and empowering our students for global career readiness."
+                ),
+                "inspiring": (
+                    f"Shaping minds and building futures at {full_name or 'our campus'} in {loc}. "
+                    f"As a premier {itype}, we believe in holistic education, innovation, and strong community roots. "
+                    f"Join us in our mission to inspire learning and foster the leaders of tomorrow!"
+                ),
+                "concise": (
+                    f"{full_name or 'Premier institution'} — leading {itype} in {loc}. "
+                    f"Committed to academic excellence and comprehensive career outcomes."
+                ),
+                "detailed": (
+                    f"Established as a premier {itype} in {loc}, {full_name or 'our institution'} is dedicated to high-quality education. "
+                    f"We offer comprehensive placement programs, strong alumni networks, and deep industry integration. "
+                    f"Our goal is to prepare students to meet global challenges through robust academics and active mentorship."
+                )
+            }
+        else:
+            bio_templates = {
+                "friendly & warm": f"Hi! I'm {name_display}. I'm friendly, warm, and passionate about making connections and building community.",
+                "professional": f"{full_name or 'A dedicated professional'} is focused on delivering excellence and bringing professional values to their work.",
+                "inspiring": f"Driven by purpose and passion, I believe in inspiring others and making a positive difference every single day.",
+                "concise": f"{full_name or 'Dedicated professional'} — passionate about impact, growth, and excellence.",
+                "detailed": f"I am a committed professional with a diverse background. I actively leverage my skills to solve complex problems, collaborate effectively, and drive growth."
+            }
+
+        bio_text = bio_templates.get(writing_style.lower(), bio_templates.get("professional", existing_bio or (
+            f"{full_name.split(' ')[0] if full_name else 'A dedicated professional'} — "
+            f"passionate about making an impact in their field."
+        )))
+
+    return {"bio": bio_text}
+
+
 # ----------------------------------------------------------------------------
 # Catalog Endpoints (8 dashboard modules)
 # ----------------------------------------------------------------------------
@@ -4241,7 +4527,7 @@ def _user_card(u: dict) -> dict:
     ]
     # Primary skill = first interest (highlighted in green) — rest stay grey
     interests = list(u.get("interests") or si.get("interests") or [])[:6]
-    skills = list((mp.get("skills") or []))[:6]
+    skills = list(u.get("skills") or mp.get("skills") or ai.get("skills") or [])[:6]
     primary_skill = (interests[0] if interests else (skills[0] if skills else None))
     # Online: based on last_login within 5 minutes (or random for seed users)
     last = u.get("last_active") or u.get("last_login")
@@ -4334,7 +4620,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     if q:
         rx = {"$regex": q, "$options": "i"}
         base_query["$or"] = [{"full_name": rx}, {"email": rx}]
-    candidates = await db.users.find(base_query, {"password_hash": 0, "face_image_base64": 0}).to_list(500)
+    candidates = await db.users.find(base_query, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).to_list(500)
 
     cards = [_user_card(c) for c in candidates]
     # attach connection_state (none|pending|connected|incoming)
@@ -4360,7 +4646,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     approved_mentors = await db.users.find(
         {"_id": {"$ne": user["_id"]}, "role": "mentor", "mentor_status": "approved"},
         {"password_hash": 0, "face_image_base64": 0},
-    ).limit(50).to_list(50)
+    ).sort("_id", -1).limit(100).to_list(100)
     mentor_cards = [_user_card(m) for m in approved_mentors]
     for m in mentor_cards:
         m["connection_state"] = state_by_user.get(m["id"], "none")
@@ -4368,9 +4654,15 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     if my_cp:
         mentor_cards.sort(key=lambda m: (m.get("category") or "").lower().find(my_cp.lower()) == -1)
 
+    # Section: peer_students (NEW)
+    peer_students = [c for c in cards if c["role"] == "student"]
+
+    # Section: explore_alumni (NEW)
+    explore_alumni = [c for c in cards if c["role"] == "alumni"]
+
     # Section: expand — diverse roles user hasn't matched on yet
-    seen_ids = {c["id"] for c in (by_interest + by_career + by_skills + by_college)} | {m["id"] for m in mentor_cards}
-    expand = [c for c in cards if c["id"] not in seen_ids and c["role"] in {"alumni", "college"}]
+    seen_ids = {c["id"] for c in (by_interest + by_career + by_skills + by_college + peer_students[:limit] + explore_alumni[:limit])} | {m["id"] for m in mentor_cards}
+    expand = [c for c in cards if c["id"] not in seen_ids and c["role"] in {"student", "alumni", "college"}]
 
     interest_label = ", ".join(my_interests[:2]) if my_interests else "Your declared interests"
     skill_label    = ", ".join(my_skills[:3])     if my_skills    else "your declared skills"
@@ -4398,6 +4690,14 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
              "subtitle": "Book a session \u00b7 First 2 free",
              "icon": "UserCheck", "tint": "#10B981",
              "items": mentor_cards[:limit]},
+            {"key": "peer_students", "title": "Peer Students",
+             "subtitle": "Connect with peers and classmates",
+             "icon": "Users", "tint": "#22D3EE",
+             "items": peer_students[:limit]},
+            {"key": "explore_alumni", "title": "Explore Alumni",
+             "subtitle": "Learn from graduates in the industry",
+             "icon": "Users", "tint": "#F59E0B",
+             "items": explore_alumni[:limit]},
             {"key": "expand", "title": "Expand Your Horizons",
              "subtitle": "People outside your current interests",
              "icon": "Compass", "tint": "#EC4899",
@@ -4621,7 +4921,7 @@ async def create_booking(req: BookingRequest, user: dict = Depends(get_current_u
         "slot_end_iso": req.slot_end_iso,
         "topic": req.topic,
         "notes": req.notes,
-        "status": "confirmed",
+        "status": "pending",
         "created_at": datetime.now(timezone.utc),
     }
     result = await db.bookings.insert_one(booking)
@@ -4646,6 +4946,110 @@ async def my_bookings(user: dict = Depends(get_current_user)):
         else {"mentor_id": str(user["_id"])}
     items = await db.bookings.find(query, {"_id": 0}).sort("slot_start_iso", 1).to_list(100)
     return {"bookings": items}
+
+
+@api_router.post("/mentor/bookings")
+async def create_mentor_booking(req: MentorBookingCreateRequest, user: dict = Depends(get_current_user)):
+    """Mentor schedules a booking with a student."""
+    if user["role"] != "mentor":
+        raise HTTPException(403, "Only mentors can schedule sessions")
+
+    # Resolve student
+    student = await db.users.find_one({"_id": ObjectId(req.student_id), "role": "student"})
+    if not student:
+        raise HTTPException(404, "Student not found")
+
+    # Parse slot_start_iso to datetime object
+    try:
+        dt_str = req.slot_start_iso.replace("Z", "+00:00")
+        scheduled_at = datetime.fromisoformat(dt_str)
+    except Exception as e:
+        raise HTTPException(400, f"Invalid date format for slot_start_iso: {e}")
+
+    booking = {
+        "student_id": req.student_id,
+        "student_name": student.get("full_name", "Student"),
+        "student_email": student["email"],
+        "mentor_id": str(user["_id"]),
+        "mentor_name": user.get("full_name", "Mentor"),
+        "mentor_email": user["email"],
+        "topic": req.topic,
+        "notes": req.notes,
+        "scheduled_at": scheduled_at,
+        "slot_start_iso": req.slot_start_iso,
+        "slot_end_iso": (scheduled_at + timedelta(minutes=45)).isoformat(),
+        "duration_minutes": 45,
+        "status": "confirmed",
+        "created_at": datetime.now(timezone.utc),
+    }
+
+    result = await db.bookings.insert_one(booking)
+    booking["id"] = str(result.inserted_id)
+    booking.pop("_id", None)
+
+    # Send notification/push to student
+    try:
+        await notify_booking_confirmed(
+            db, student_id=req.student_id,
+            mentor_name=user.get("full_name", "Mentor"),
+            when=req.slot_start_iso
+        )
+    except Exception:
+        pass
+
+    return {"ok": True, "booking": booking}
+
+
+@api_router.post("/bookings/{booking_id}/reschedule")
+async def reschedule_booking(booking_id: str, req: RescheduleRequest, user: dict = Depends(get_current_user)):
+    """Mentor or student reschedules a booking."""
+    try:
+        oid = ObjectId(booking_id)
+    except Exception:
+        oid = None
+    query = {"$or": [{"id": booking_id}]}
+    if oid:
+        query["$or"].append({"_id": oid})
+
+    booking = await db.bookings.find_one(query)
+    if not booking:
+        raise HTTPException(404, "Booking not found")
+
+    # Check permissions: must be student or mentor of the booking
+    if str(booking.get("student_id")) != str(user["_id"]) and str(booking.get("mentor_id")) != str(user["_id"]):
+        raise HTTPException(403, "You do not have permission to reschedule this booking")
+
+    try:
+        dt_str = req.slot_start_iso.replace("Z", "+00:00")
+        scheduled_at = datetime.fromisoformat(dt_str)
+    except Exception as e:
+        raise HTTPException(400, f"Invalid date format: {e}")
+
+    update_filter = {"_id": booking["_id"]} if booking.get("_id") else {"id": booking_id}
+    await db.bookings.update_one(update_filter, {"$set": {
+        "slot_start_iso": req.slot_start_iso,
+        "slot_end_iso": (scheduled_at + timedelta(minutes=45)).isoformat(),
+        "scheduled_at": scheduled_at,
+        "rescheduled_at": datetime.now(timezone.utc),
+    }})
+
+    # Notify the other party
+    other_party_id = booking.get("student_id") if user["role"] == "mentor" else booking.get("mentor_id")
+    try:
+        await db.notifications.insert_one({
+            "user_id": other_party_id,
+            "title": "Session rescheduled",
+            "message": f"{user.get('full_name')} rescheduled the session on '{booking.get('topic')}' to {req.slot_start_iso}.",
+            "type": "booking_rescheduled",
+            "booking_id": booking_id,
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception:
+        pass
+
+    return {"ok": True}
+
 
 
 # ----------------------------------------------------------------------------

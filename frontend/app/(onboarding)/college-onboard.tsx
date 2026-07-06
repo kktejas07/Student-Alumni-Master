@@ -138,7 +138,7 @@ export default function CollegeOnboard() {
   const [contactName,        setContactName]        = useState(user?.full_name || '');
   const [contactDesignation, setContactDesignation] = useState('');
   const [contactEmail,       setContactEmail]       = useState('');
-  const [contactPhone,       setContactPhone]       = useState('');
+  const [contactPhone,       setContactPhone]       = useState(user?.phone || '');
 
   // Step 3
   const [features, setFeatures] = useState<string[]>([]);
@@ -150,6 +150,27 @@ export default function CollegeOnboard() {
   // Step 5
   const [bio,   setBio]   = useState('');
   const [style, setStyle] = useState('');
+  const [generatingBio, setGeneratingBio] = useState(false);
+
+  const handleStylePress = async (s: string) => {
+    setStyle(s);
+    setGeneratingBio(true);
+    try {
+      const res = await api.generateBio({
+        role: 'college',
+        full_name: name,
+        writing_style: s,
+        existing_bio: bio || undefined,
+        institution_name: name,
+        location: `${city}, ${stateName}`,
+        institution_type: type,
+      });
+      if (res?.bio) setBio(res.bio.slice(0, 300));
+    } catch {
+    } finally {
+      setGeneratingBio(false);
+    }
+  };
 
   // Step 6: badge
   const badge = useMemo(() => {
@@ -325,7 +346,7 @@ export default function CollegeOnboard() {
                 leftIcon={<Globe size={16} color="rgba(255,255,255,0.55)" />}
               />
               <Text style={s.section}>City &amp; State</Text>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flexDirection: 'row', gap: 10, zIndex: 20, position: 'relative' }}>
                 <View style={{ flex: 1 }}>
                   <SuggestionAutocomplete
                     label="City"
@@ -406,14 +427,7 @@ export default function CollegeOnboard() {
                 keyboardType="email-address"
                 leftIcon={<Mail size={16} color="rgba(255,255,255,0.55)" />}
               />
-              <AuthInput
-                label="Phone"
-                value={contactPhone}
-                onChangeText={setContactPhone}
-                placeholder="+91 98765 43210"
-                keyboardType="phone-pad"
-                leftIcon={<Phone size={16} color="rgba(255,255,255,0.55)" />}
-              />
+
               <View style={s.infoBox}>
                 <CheckCircle2 size={16} color="#60A5FA" />
                 <Text style={s.infoText}>
@@ -496,8 +510,9 @@ export default function CollegeOnboard() {
               </Text>
               <Text style={[s.section, { marginTop: 10 }]}>Write Style</Text>
               <View style={s.chipRow}>
-                {STYLES.map((x) => (<DarkChip key={x} label={x} active={style === x} onPress={() => setStyle(x)} />))}
+                {STYLES.map((x) => (<DarkChip key={x} label={x} active={style === x} onPress={() => handleStylePress(x)} />))}
               </View>
+              {generatingBio && <Text style={s.generatingText}>✨ Generating your bio…</Text>}
             </>
           )}
 
@@ -543,9 +558,13 @@ export default function CollegeOnboard() {
       </ScrollView>
 
       <View style={s.navRow}>
-        {step > 0 ? (
-          <Pressable onPress={prev} style={s.backBtn}><ArrowLeft size={18} color="#FFF" /></Pressable>
-        ) : <View style={{ width: 42 }} />}
+        <Pressable
+          onPress={step > 0 ? prev : () => router.back()}
+          style={s.backBtn}
+          testID="college-onboard-back"
+        >
+          <ArrowLeft size={18} color="#FFF" />
+        </Pressable>
         <View style={{ flex: 1 }}>
           <PrimaryButton label={ctaLabel} onPress={onContinue} />
         </View>
@@ -611,4 +630,5 @@ const s = StyleSheet.create({
 
   navRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
   backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  generatingText: { color: '#A78BFA', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 6 },
 });

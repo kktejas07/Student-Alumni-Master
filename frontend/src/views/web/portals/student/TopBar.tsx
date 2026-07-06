@@ -13,14 +13,16 @@
  * Accepts optional `scrolled` prop from the portal shell so the glass
  * blur can react to scroll without re-rendering the whole tree.
  */
-import React, { useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, Platform, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TextInput, Pressable, StyleSheet, Platform, Image } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { useRouter } from 'expo-router';
 import { Bell, Search } from './iconShims';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { STUDENT } from './data';
 import { Av } from './atoms';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { api } from '@/src/models/services/api';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 import { useTheme } from '@/src/theme/ThemeContext';
 import { useBreakpoint } from '@/src/theme/breakpoints';
@@ -28,6 +30,7 @@ import { SP, RADII, FONT_FAMILY } from '@/src/theme/apple';
 import { GlassTopbar } from '@/src/motion/apple/components';
 import { FadeInView, PressScale, PulseDot } from './motion';
 import { PALETTE, TYPO } from './tokens';
+import { StudentPortalNavContext } from './StudentPortalRN';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -36,10 +39,39 @@ function greeting(): string {
   return 'Good evening';
 }
 
-export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
+import { Sidebar, StudentNavId } from './Sidebar';
+
+export function TopBar({
+  scrolled = false,
+  activeView = 'dashboard',
+  onAvatarPress,
+  onBellPress,
+}: {
+  scrolled?: boolean;
+  activeView?: string;
+  onAvatarPress?: () => void;
+  onBellPress?: () => void;
+} = {}) {
+  const router = useRouter();
   const { theme, isDark, mode, setMode } = useTheme();
   const bp = useBreakpoint();
   const user = useAuthStore((u) => u.user) as any;
+  const portalNav = React.useContext(StudentPortalNavContext);
+  const [q, setQ] = React.useState(portalNav?.searchQuery || '');
+
+  useEffect(() => {
+    setQ(portalNav?.searchQuery || '');
+  }, [portalNav?.searchQuery]);
+
+  const handleSearch = () => {
+    if (q.trim() && portalNav) {
+      portalNav.setSearchQuery(q.trim());
+      if (activeView !== 'network' && activeView !== 'internships') {
+        portalNav.navigate('internships');
+      }
+    }
+  };
+
   const fullName: string = (user?.full_name
     || `${user?.first_name || ''} ${user?.last_name || ''}`).trim()
     || STUDENT.name;
@@ -47,9 +79,26 @@ export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
   const initials: string = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
   const photo: string | undefined = user?.photo_data || user?.face_image_base64;
 
+  const onAvatarPressHandler = () => {
+    if (onAvatarPress) {
+      onAvatarPress();
+    } else if (onNav) {
+      onNav('profile');
+    } else {
+      router.push('/(tabs)/profile');
+    }
+  };
+
   const cycleTheme = () => {
     setMode(mode === 'light' ? 'dark' : mode === 'dark' ? 'system' : 'light');
   };
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    api.notifications()
+      .then(res => setUnreadCount(res.unread || 0))
+      .catch(console.error);
+  }, []);
 
   // Hide search box on tablets to save space; phones already hide sidebar
   const showSearch = bp.atLeast('lg');
@@ -79,8 +128,17 @@ export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
         {showSearch && (
           <FadeInView delay={120}>
             <View style={[s.searchBox, { backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder }]}>
-              <Search size={14} color={PALETTE.dim} />
+              <Pressable
+                onPress={handleSearch}
+                style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}
+                accessibilityLabel="Execute search"
+              >
+                <Search size={14} color={q.trim() ? PALETTE.text : PALETTE.dim} />
+              </Pressable>
               <TextInput
+                value={q}
+                onChangeText={setQ}
+                onSubmitEditing={handleSearch}
                 placeholder="Search anything…"
                 placeholderTextColor={PALETTE.dim}
                 style={[s.searchInput, { color: PALETTE.text, fontFamily: TYPO.body500 }]}
@@ -108,23 +166,26 @@ export function TopBar({ scrolled = false }: { scrolled?: boolean } = {}) {
         <FadeInView delay={180}>
           <PressScale
             style={[s.iconBtn, { backgroundColor: PALETTE.glassSoft, borderColor: PALETTE.glassBorder }]}
-            onPress={() => {}}
+            onPress={onBellPress || (() => router.push('/notifications'))}
             accessibilityLabel="Notifications"
             accessibilityHint="Opens the notifications panel"
           >
             <Bell size={16} color={PALETTE.violet} />
-            <View style={[s.bellDotWrap, { backgroundColor: PALETTE.bg1 }]}>
-              <PulseDot size={7} color={PALETTE.rose} />
-            </View>
+            {unreadCount > 0 && (
+              <View style={[s.bellDotWrap, { backgroundColor: PALETTE.bg1 }]}>
+                <PulseDot size={7} color={PALETTE.rose} />
+              </View>
+            )}
           </PressScale>
         </FadeInView>
 
-        <FadeInView delay={220}>
-          {photo ? (
-            <Image source={{ uri: photo }} style={{ width: 36, height: 36, borderRadius: 18 }} />
-          ) : (
-            <Av initials={initials} size={36} color={theme.primary} />
-          )}
+        <FadeInView delay={200}>
+          <PressScale
+            onPress={onAvatarPressHandler}
+            accessibilityLabel="View Profile Settings"
+          >
+            <Av initials={initials} size={36} color={theme.primary} photo={photo} />
+          </PressScale>
         </FadeInView>
 
         <HelpMenu portal="student" />

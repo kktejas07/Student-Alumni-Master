@@ -16,7 +16,7 @@ import { AC, FONTS } from '@/src/views/auth/tokens';
 import { trackAuth } from '@/src/lib/authAnalytics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 export default function ReferralCode() {
   const router = useRouter();
@@ -65,6 +65,8 @@ export default function ReferralCode() {
     const dest =
       role === 'student' ? '/(onboarding)/student-onboard' :
       role === 'mentor'  ? '/(onboarding)/mentor-onboard'  :
+      role === 'alumni'  ? '/(onboarding)/alumni-onboard'  :
+      role === 'college' ? '/(onboarding)/college-onboard' :
       '/(onboarding)/quick-setup';
     router.replace(dest as any);
   };

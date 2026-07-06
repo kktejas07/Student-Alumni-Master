@@ -60,13 +60,9 @@ from typing import Any, Dict, List, Literal, Optional
 from bson import ObjectId
 from croniter import croniter
 from fastapi import APIRouter, Body, Header, HTTPException
-from motor.motor_asyncio import AsyncIOMotorClient
-from pathlib import Path
 from pydantic import BaseModel, Field, field_validator
 import pytz
-from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).parent / ".env")
 
 # Reuse the Agent K engine — plan + execute the run through the same
 # pipeline the manual /agent-k/run uses.
@@ -79,11 +75,11 @@ from agent_k import (  # noqa: E402
     TOOL_REGISTRY as _AK_TOOL_REGISTRY,
 )
 
+from core.db import db as _db
+
 log = logging.getLogger("agent-k.scheduled")
 log.setLevel(logging.INFO)
 
-_mongo = AsyncIOMotorClient(os.environ["MONGO_URL"])
-_db = _mongo[os.environ["DB_NAME"]]
 
 router = APIRouter(tags=["agent-k-scheduled"])
 

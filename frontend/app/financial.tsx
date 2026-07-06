@@ -5,10 +5,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, TextInput, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import FeaturePageShell from '@/src/views/web/FeaturePageShell';
+import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { FAB } from '@/src/views/web/md3';
+import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
 import { request } from '@/src/models/services/api';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useRouter } from 'expo-router';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 const Icon = (props: { name: IconName; size?: number; color?: string;
@@ -98,6 +101,21 @@ function EmiSlider({ label, value, setValue, min, max, step, fmt }: any) {
 }
 
 export default function FinancialPage() {
+  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const initialized = useAuthStore((s) => s.initialized);
+  const isEmbedded = React.useContext(EmbeddedShellContext);
+
+  useEffect(() => {
+    if (!isEmbedded && initialized && user) {
+      if (user.role === 'alumni') {
+        router.replace('/alumni-portal?tab=financial' as any);
+      } else if (user.role === 'student') {
+        router.replace('/student-portal?tab=financial' as any);
+      }
+    }
+  }, [isEmbedded, initialized, user, router]);
+
   const [tab, setTab] = useState('scholarships');
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
@@ -110,6 +128,7 @@ export default function FinancialPage() {
   const [emiRate, setEmiRate] = useState(8.5);
   const [emiTen, setEmiTen] = useState(120);
   const [emi, setEmi] = useState<any>(null);
+  const [advisorChatOpen, setAdvisorChatOpen] = useState(false);
 
   const tabInfo = TABS.find(t => t.id === tab)!;
 
@@ -432,25 +451,47 @@ export default function FinancialPage() {
       </View>
 
       {/* Advisor + AI Chat CTAs */}
-      <View style={s.ctaRow}>
-        <View style={[s.ctaCard, { backgroundColor: 'rgba(95,37,159,0.12)', borderColor: 'rgba(95,37,159,0.35)' }]}>
-          <Icon name="target" size={22} color="#C4B5FD" />
-          <Text style={s.ctaTitle}>Talk to a Student Advisor</Text>
-          <Text style={s.ctaSub}>Need personalised financial advice? Connect with our dedicated student advisors.</Text>
-          <Pressable style={[s.ctaBtn, { backgroundColor: '#8B5CF6' }]}><Text style={s.ctaBtnText}>Connect with Advisor</Text></Pressable>
-        </View>
-        <View style={[s.ctaCard, { backgroundColor: 'rgba(20,184,166,0.10)', borderColor: 'rgba(20,184,166,0.35)' }]}>
-          <Icon name="auto-fix" size={22} color="#5EEAD4" />
-          <Text style={s.ctaTitle}>Ask the Financial AI</Text>
-          <Text style={s.ctaSub}>Got a question about financial products? Chat with our AI assistant 24x7.</Text>
-          <Pressable style={[s.ctaBtn, { backgroundColor: '#14B8A6' }]}><Text style={s.ctaBtnText}>Chat with AI</Text></Pressable>
-        </View>
+      <View style={{ marginTop: 18 }}>
+        <AdvisorAIBlock
+          context="financial"
+          advisorTitle="Talk to a Student Advisor"
+          advisorDesc="Need personalised financial advice? Connect with our dedicated student advisors."
+          aiTitle="Ask the Financial AI"
+          aiDesc="Got a question about financial products? Chat with our AI assistant 24x7."
+          advisorAccent="#8B5CF6"
+          aiAccent="#14B8A6"
+          advisorIcon="target"
+          aiIcon="auto-fix"
+          aiOpen={advisorChatOpen}
+          setAiOpen={setAdvisorChatOpen}
+        />
       </View>
 
       {/* MD3 Floating Action Button — open AI chat */}
       <FAB icon="brain" label="Financial AI" color="#5F259F"
             onPress={() => {
-              try { (window as any)?.scrollTo?.({ top: 9999, behavior: 'smooth' }); } catch {}
+              setAdvisorChatOpen(true);
+              if (Platform.OS === 'web') {
+                setTimeout(() => {
+                  try {
+                    const divs = document.querySelectorAll('div');
+                    let scrollEl = null;
+                    for (let i = 0; i < divs.length; i++) {
+                      const div = divs[i];
+                      const style = window.getComputedStyle(div);
+                      if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && div.scrollHeight > div.clientHeight) {
+                        scrollEl = div;
+                        break;
+                      }
+                    }
+                    if (scrollEl) {
+                      scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'smooth' });
+                    } else {
+                      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                    }
+                  } catch {}
+                }, 150);
+              }
             }} />
     </FeaturePageShell>
   );

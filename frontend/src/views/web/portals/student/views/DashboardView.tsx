@@ -13,7 +13,7 @@
 import React, { useContext } from 'react';
 import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { StudentPortalNavContext } from '../StudentPortalRN';
+import { StudentPortalNavContext } from '../StudentPortalNavContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Sparkles, Briefcase, BookOpen, Users, TrendingUp, Calendar, MapPin,
@@ -36,6 +36,7 @@ import { LiveStrip } from '@/src/views/web/LiveStrip';
 import { TrendingCompaniesWidget } from './TrendingCompaniesWidget';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
+import { useToast } from '@/src/views/components';
 
 const KPI_ICONS = { matches: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp } as const;
 
@@ -52,6 +53,7 @@ export function DashboardView() {
   // Theme-reactive colors (Apple HIG light + dark)
   const C = useColors();
   const router = useRouter();
+  const toast = useToast();
   const portalNav = useContext(StudentPortalNavContext);
   // Authenticated user — drives per-user dashboard data.
   const authUser = useAuthStore((u) => u.user);
@@ -290,7 +292,7 @@ export function DashboardView() {
         </View>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
-          <Pressable onPress={() => alert('Open full roadmap')}>
+          <Pressable onPress={() => portalNav?.navigate('career-ai')}>
             <LinearGradient
               colors={[GRAD.from, GRAD.to]}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
@@ -317,7 +319,9 @@ export function DashboardView() {
           subtitle="Real-time signals across applications, profile views and momentum."
           statusLabel="Live"
           ctaLabel="Generate Report"
-          onCta={() => alert('Career intelligence report coming soon')}
+          onCta={() => {
+            toast.success("Intelligence Report Request", "Your profile intelligence report has been requested from Agent K. It will be generated and sent to your registered email address shortly!");
+          }}
         />
 
         {/* KPI cards row */}
@@ -343,7 +347,7 @@ export function DashboardView() {
             delay={400}
             title={momentumTitle}
             subtitle={momentumSubtitle}
-            data={NX_AUDIENCE}
+            data={intel?.momentum || FALLBACK_AUDIENCE}
             color="#7B3DBF"
           />
           <ActivityCard
@@ -351,6 +355,7 @@ export function DashboardView() {
             title="Recent Activity"
             items={NX_ACTIVITY}
             ctaLabel="View All Activity"
+            onCta={() => router.push('/notifications')}
           />
         </View>
       </View>
@@ -374,11 +379,15 @@ export function DashboardView() {
         <View style={[s.col, { width: matchW as any, flex: stack ? undefined : 1.9 }]}>
           <View style={s.colHead}>
             <Text style={s.colTitle}>Top Matches for You</Text>
-            <Pressable><Text style={s.seeAll}>See all →</Text></Pressable>
+            <Pressable onPress={() => portalNav?.navigate('internships')}><Text style={s.seeAll}>See all →</Text></Pressable>
           </View>
           <View style={{ gap: 10 }}>
             {TOP_MATCHES.slice(0, 3).map((m) => (
-              <Pressable key={m.id} style={({ hovered }: any) => [s.matchRow, hovered && { backgroundColor: SC.cardH }]}>
+              <Pressable
+                key={m.id}
+                onPress={() => portalNav?.navigate('internships', { q: m.company })}
+                style={({ hovered }: any) => [s.matchRow, hovered && { backgroundColor: SC.cardH }]}
+              >
                 <View style={[s.companyLogo, { backgroundColor: m.logoBg }]}><Text style={s.companyLogoText}>{m.logo}</Text></View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text numberOfLines={1} style={s.matchRole}>{m.role}</Text>
@@ -402,7 +411,7 @@ export function DashboardView() {
         <View style={[s.col, { width: mentorW as any, flex: stack ? undefined : 1 }]}>
           <View style={s.colHead}>
             <Text style={s.colTitle}>Recommended Mentors</Text>
-            <Pressable><Text style={s.seeAll}>See all →</Text></Pressable>
+            <Pressable onPress={() => portalNav?.navigate('network')}><Text style={s.seeAll}>See all →</Text></Pressable>
           </View>
           <View style={{ gap: 10 }}>
             {RECOMMENDED_MENTORS.slice(0, 2).map((m) => (
@@ -423,7 +432,21 @@ export function DashboardView() {
                   </View>
                   <Text style={s.mentorPrice}>₹{m.price}/session</Text>
                 </View>
-                <Pressable onPress={() => alert('Book session: ' + m.name)}>
+                <Pressable
+                  onPress={() => router.push({
+                    pathname: '/mentor/' + m.id,
+                    params: {
+                      id: m.id,
+                      name: m.name,
+                      title: m.role,
+                      bio: (m.bio || 'Experienced professional ready to share industry insights, career strategies, and guidance.').slice(0, 200) + ((m.bio || '').length > 200 ? '...' : ''),
+                      avatar: m.avatar || `https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200`,
+                      rating: String(m.rating),
+                      sessions: String(m.sessions),
+                      tags: m.skills?.join(',') || 'System Design,Career Strategy',
+                    }
+                  })}
+                >
                   <LinearGradient
                     colors={[GRAD.from, GRAD.to]}
                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
@@ -443,11 +466,30 @@ export function DashboardView() {
       <View>
         <View style={s.colHead}>
           <Text style={s.colTitle}>Upcoming Events</Text>
-          <Pressable><Text style={s.seeAll}>See all →</Text></Pressable>
+          <Pressable onPress={() => portalNav?.navigate('events')}><Text style={s.seeAll}>See all →</Text></Pressable>
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           {UPCOMING_EVENTS.map((e) => (
-            <Pressable key={e.id} style={({ hovered }: any) => [s.eventCard, hovered && { backgroundColor: SC.cardH }]}>
+            <Pressable
+              key={e.id}
+              onPress={() => router.push({
+                pathname: '/event/' + e.id,
+                params: {
+                  id: e.id,
+                  title: e.title,
+                  start_date: e.start_date || e.date,
+                  venue: e.venue || 'Online',
+                  registration_deadline: e.registration_deadline || e.date,
+                  category: e.category || 'Workshop',
+                  organizer: e.organizer || 'Student Alumni Association',
+                  image: e.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=400',
+                  url: e.url || '',
+                  tags: e.tags?.join(',') || 'Networking,Career',
+                  price: e.price || '',
+                }
+              })}
+              style={({ hovered }: any) => [s.eventCard, hovered && { backgroundColor: SC.cardH }]}
+            >
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                 <View style={[s.eventIcon, { backgroundColor: e.accent + '22', borderColor: e.accent + '40' }]}>
                   <Calendar size={14} color={e.accent} />

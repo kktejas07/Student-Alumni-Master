@@ -39,6 +39,9 @@ import { NetworkSidebar, TopHero, ChatPhonePopup, BookingDrawer } from '@/src/vi
 import { request } from '@/src/models/services/api';
 import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
 import { useAuth } from '@/src/viewmodels/hooks';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
+import React from 'react';
 import { HoverGlowCard } from '@/src/views/web/HoverGlowCard';
 import { MaterialBadgeChip } from '@/src/views/components/MaterialBadgeChip';
 
@@ -77,7 +80,7 @@ interface Person {
 interface Section { key: string; title: string; subtitle: string; icon?: string; tint?: string; items: Person[]; }
 
 const SECTION_ICONS: Record<string, any> = {
-  Heart, Briefcase, GraduationCap, UserCheck, Compass, Code2,
+  Heart, Briefcase, GraduationCap, UserCheck, Compass, Code2, Users,
 };
 
 type TabKey = 'discover' | 'connections' | 'requests';
@@ -85,6 +88,19 @@ type TabKey = 'discover' | 'connections' | 'requests';
 export default function NetworkScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const initialized = useAuthStore((s) => s.initialized);
+  const isEmbedded = React.useContext(EmbeddedShellContext);
+
+  useEffect(() => {
+    if (!isEmbedded && initialized && user) {
+      if (user.role === 'alumni') {
+        router.replace('/alumni-portal?tab=network' as any);
+      } else if (user.role === 'student') {
+        router.replace('/student-portal?tab=network' as any);
+      }
+    }
+  }, [isEmbedded, initialized, user, router]);
+
   const { width: winW } = useWindowDimensions();
   // Responsive column count: 4 on wide desktop, 3 on small desktop, 2 on tablet, 1 on phone
   const cols = winW >= 1280 ? 4 : winW >= 960 ? 3 : winW >= 640 ? 2 : 1;

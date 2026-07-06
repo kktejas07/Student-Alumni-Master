@@ -14,7 +14,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, TextInput as RNTextInput } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Camera, Upload, GraduationCap, BriefcaseBusiness, BookOpen, Award, Sparkles, Code, CheckCircle2 } from 'lucide-react-native';
+import { ArrowLeft, Camera, Upload, GraduationCap, BriefcaseBusiness, BookOpen, Award, Sparkles, Code, CheckCircle2, Check } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { AuthShell } from '@/src/views/auth/AuthShell';
 import { AuthInput, PrimaryButton } from '@/src/views/auth/AuthControls';
@@ -26,9 +26,10 @@ import { DarkChip } from '@/src/views/web/OnboardingShell';
 import { InstitutionAutocomplete } from '@/src/views/web/InstitutionAutocomplete';
 import { PhoneInput } from '@/src/views/web/PhoneInput';
 import { Dropdown } from '@/src/views/web/Dropdown';
+import { WebcamModal } from '@/src/views/components/WebcamModal';
 
 const TOTAL = 7;
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 const CURRENT_YEAR = new Date().getFullYear();
 // Per spec — students are currently studying; graduation year ≥ current year.
 const GRAD_YEARS = Array.from({ length: 9 }, (_, i) => String(CURRENT_YEAR + i));
@@ -116,10 +117,43 @@ export default function StudentOnboard() {
 
   // ---- Step 5: Photo ----
   const [photo, setPhoto] = useState<string>('');  // base64
+  const [pendingPhoto, setPendingPhoto] = useState<string | null>(null);
+  const [webcamVisible, setWebcamVisible] = useState(false);
+
+  const confirmPhoto = () => {
+    if (!pendingPhoto) return;
+    setPhoto(pendingPhoto);
+    setPendingPhoto(null);
+    toast.success('Photo confirmed', 'Looking great!');
+  };
 
   // ---- Step 6: Bio ----
   const [bio, setBio]     = useState('');
   const [style, setStyle] = useState('');
+  const [generatingBio, setGeneratingBio] = useState(false);
+
+  const handleStylePress = async (s: string) => {
+    setStyle(s);
+    setGeneratingBio(true);
+    try {
+      const res = await api.generateBio({
+        role: 'student',
+        full_name: name || user?.full_name,
+        writing_style: s,
+        existing_bio: bio || undefined,
+        institution: college,
+        education_level: edu,
+        career_goal: goal,
+        interests: ints,
+        skills: [...tech, ...biz, ...soft],
+      });
+      if (res?.bio) setBio(res.bio.slice(0, 300));
+    } catch {
+      // Silently fallback — user keeps existing bio
+    } finally {
+      setGeneratingBio(false);
+    }
+  };
 
   // ---- Step 7: Badge (computed client-side for preview) ----
   const badge = useMemo(() => {
@@ -181,7 +215,7 @@ export default function StudentOnboard() {
         interests: [...ints],
         skills: [...tech, ...biz, ...soft],
         bio: bio || `${name} — ${edu || 'Student'} aspiring ${goal || 'career'}`,
-        face_image_base64: photo || undefined,
+        face_image_base64: photo || pendingPhoto || undefined,
         phone,
       };
       await api.completeOnboarding(payload);
@@ -197,17 +231,21 @@ export default function StudentOnboard() {
     try {
       const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.5, base64: true, allowsEditing: true, aspect: [1, 1] });
       if (!res.canceled && res.assets[0]?.base64) {
-        setPhoto(`data:image/jpeg;base64,${res.assets[0].base64}`);
+        setPendingPhoto(`data:image/jpeg;base64,${res.assets[0].base64}`);
       }
     } catch { toast.error('Photo', 'Could not open gallery.'); }
   };
   const takeSelfie = async () => {
+    if (Platform.OS === 'web') {
+      setWebcamVisible(true);
+      return;
+    }
     try {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) { toast.error('Camera', 'Permission denied.'); return; }
-      const res = await ImagePicker.launchCameraAsync({ quality: 0.5, base64: true, allowsEditing: true, aspect: [1, 1] });
+      const res = await ImagePicker.launchCameraAsync({ cameraType: ImagePicker.CameraType.front, quality: 0.5, base64: true, allowsEditing: true, aspect: [1, 1] });
       if (!res.canceled && res.assets[0]?.base64) {
-        setPhoto(`data:image/jpeg;base64,${res.assets[0].base64}`);
+        setPendingPhoto(`data:image/jpeg;base64,${res.assets[0].base64}`);
       }
     } catch { toast.error('Camera', 'Could not open camera.'); }
   };
@@ -342,8 +380,10 @@ export default function StudentOnboard() {
           {/* === STEP 5: Photo === */}
           {step === 4 && (
             <View style={{ alignItems: 'center', gap: 16 }}>
-              <Pressable onPress={pickPhoto} style={s.photoFrame}>
-                {photo ? (
+              <Pressable onPress={takeSelfie} style={s.photoFrame}>
+                {pendingPhoto ? (
+                  <Image source={{ uri: pendingPhoto }} style={s.photoImg} />
+                ) : photo ? (
                   <Image source={{ uri: photo }} style={s.photoImg} />
                 ) : (
                   <View style={{ alignItems: 'center', gap: 8 }}>
@@ -353,10 +393,17 @@ export default function StudentOnboard() {
                 )}
               </Pressable>
               <Text style={s.helper}>A profile photo helps build trust with mentors and peers.{'\n'}Your photo is only visible to connected users.</Text>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <Pressable style={s.smallBtn} onPress={takeSelfie}><Camera size={14} color="#FFF" /><Text style={s.smallBtnText}>Take Selfie</Text></Pressable>
-                <Pressable style={s.smallBtn} onPress={pickPhoto}><Upload size={14} color="#FFF" /><Text style={s.smallBtnText}>Upload Photo</Text></Pressable>
-              </View>
+              {pendingPhoto ? (
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <Pressable style={s.confirmBtn} onPress={confirmPhoto}><Check size={14} color="#000" /><Text style={s.confirmBtnText}>Confirm</Text></Pressable>
+                  <Pressable style={s.smallBtn} onPress={() => { setPendingPhoto(null); takeSelfie(); }}><Camera size={14} color="#FFF" /><Text style={s.smallBtnText}>Retake</Text></Pressable>
+                </View>
+              ) : (
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <Pressable style={s.smallBtn} onPress={takeSelfie}><Camera size={14} color="#FFF" /><Text style={s.smallBtnText}>Take Selfie</Text></Pressable>
+                  <Pressable style={s.smallBtn} onPress={pickPhoto}><Upload size={14} color="#FFF" /><Text style={s.smallBtnText}>Upload Photo</Text></Pressable>
+                </View>
+              )}
             </View>
           )}
 
@@ -377,7 +424,8 @@ export default function StudentOnboard() {
               <Text style={s.helperRight}>{bio.length}/300</Text>
               <Text style={s.helper}>Keep it genuine — 2–3 sentences work best.</Text>
               <Text style={s.section}>Writing Style</Text>
-              <View style={s.chipRow}>{STYLES.map((x) => (<DarkChip key={x} label={x} active={style === x} onPress={() => handleStyleSelect(x)} />))}</View>
+              <View style={s.chipRow}>{STYLES.map((x) => (<DarkChip key={x} label={x} active={style === x} onPress={() => handleStylePress(x)} />))}</View>
+              {generatingBio && <Text style={s.generatingText}>✨ Generating your bio…</Text>}
             </>
           )}
 
@@ -429,6 +477,14 @@ export default function StudentOnboard() {
           <PrimaryButton label={step === TOTAL - 1 ? 'See My Member ID →' : 'Continue →'} onPress={onContinue} />
         </View>
       </View>
+      <WebcamModal
+        visible={webcamVisible}
+        onClose={() => setWebcamVisible(false)}
+        onCapture={(base64) => {
+          setPendingPhoto(base64);
+          setWebcamVisible(false);
+        }}
+      />
     </AuthShell>
   );
 }
@@ -464,6 +520,8 @@ const s = StyleSheet.create({
   helperRight: { color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.med, fontSize: 11, textAlign: 'right', marginTop: -10 },
   smallBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: 'rgba(124,58,237,0.32)', borderWidth: 1, borderColor: 'rgba(176,127,223,0.4)' },
   smallBtnText: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 12 },
+  confirmBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 999, backgroundColor: '#C4B5FD', borderWidth: 1, borderColor: '#C4B5FD' },
+  confirmBtnText: { color: '#000', fontFamily: FONTS.bold, fontSize: 12 },
   textareaWrap: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)', paddingHorizontal: 14, paddingVertical: 12 },
   textarea: { color: '#FFF', fontFamily: FONTS.med, fontSize: 13.5, minHeight: 100, ...(Platform.OS === 'web' ? ({ outlineWidth: 0 } as any) : {}) },
   badgeCircle: { width: 120, height: 120, borderRadius: 60, borderWidth: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(124,58,237,0.22)', marginTop: 4 },
@@ -475,4 +533,5 @@ const s = StyleSheet.create({
   perk: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.med, fontSize: 12.5 },
   navRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
   backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  generatingText: { color: '#A78BFA', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 6 },
 });

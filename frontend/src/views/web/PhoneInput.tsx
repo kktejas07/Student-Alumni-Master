@@ -113,56 +113,59 @@ export function PhoneInput({
   };
 
   return (
-    <View style={{ position: 'relative', zIndex: 40, marginBottom: 14 }}>
+    <View style={{ marginBottom: 14 }}>
       {label ? <Text style={s.label}>{label}</Text> : null}
-      <View style={s.row}>
-        <Pressable onPress={() => setPickerOpen((o) => !o)} style={s.cc} testID={`${testID || 'phone'}-cc`}>
-          <Text style={s.flag}>{country.flag}</Text>
-          <Text style={s.dial}>{country.dial}</Text>
-          <ChevronDown size={14} color="rgba(255,255,255,0.5)" />
-        </Pressable>
-        <View style={s.num}>
-          <RNTextInput
-            value={local}
-            onChangeText={(n) => commit(country, n)}
-            placeholder={placeholder}
-            placeholderTextColor="rgba(255,255,255,0.32)"
-            keyboardType="phone-pad"
-            style={s.input}
-            testID={testID}
-          />
-        </View>
-      </View>
-      {helper ? <Text style={s.helper}>{helper}</Text> : null}
-
-      {pickerOpen && (
-        <View style={s.dropdown}>
-          <View style={s.searchRow}>
-            <Search size={14} color="rgba(255,255,255,0.5)" />
+      <View style={{ position: 'relative', zIndex: pickerOpen ? 999 : 40 }}>
+        <View style={s.row}>
+          <Pressable onPress={() => setPickerOpen((o) => !o)} style={s.cc} testID={`${testID || 'phone'}-cc`}>
+            <Text style={s.flag}>{country.flag}</Text>
+            <Text style={s.codeText}>{country.code}</Text>
+            <Text style={s.dial}>{country.dial}</Text>
+            <ChevronDown size={14} color="rgba(255,255,255,0.5)" />
+          </Pressable>
+          <View style={s.num}>
             <RNTextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Search country"
-              placeholderTextColor="rgba(255,255,255,0.4)"
-              style={s.searchInput}
-              autoFocus
+              value={local}
+              onChangeText={(n) => commit(country, n)}
+              placeholder={placeholder}
+              placeholderTextColor="rgba(255,255,255,0.32)"
+              keyboardType="phone-pad"
+              style={s.input}
+              testID={testID}
             />
           </View>
-          <ScrollView style={{ maxHeight: 260 }} keyboardShouldPersistTaps="handled">
-            {filtered.map((c) => (
-              <Pressable
-                key={c.code}
-                onPress={() => { commit(c, local); setPickerOpen(false); setSearch(''); }}
-                style={({ hovered }: any) => [s.item, hovered && s.itemHover]}
-              >
-                <Text style={s.flag}>{c.flag}</Text>
-                <Text style={s.itemName}>{c.name}</Text>
-                <Text style={s.itemDial}>{c.dial}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
         </View>
-      )}
+
+        {pickerOpen && (
+          <View style={s.dropdown}>
+            <View style={s.searchRow}>
+              <Search size={14} color="rgba(255,255,255,0.5)" />
+              <RNTextInput
+                value={search}
+                onChangeText={setSearch}
+                placeholder="Search country"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                style={s.searchInput}
+                autoFocus
+              />
+            </View>
+            <ScrollView style={{ maxHeight: 260 }} keyboardShouldPersistTaps="handled">
+              {filtered.map((c) => (
+                <Pressable
+                  key={c.code}
+                  onPress={() => { commit(c, local); setPickerOpen(false); setSearch(''); }}
+                  style={({ hovered }: any) => [s.item, hovered && s.itemHover]}
+                >
+                  <Text style={s.flag}>{c.flag}</Text>
+                  <Text style={s.itemName}>{c.name} ({c.code})</Text>
+                  <Text style={s.itemDial}>{c.dial}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+      </View>
+      {helper ? <Text style={s.helper}>{helper}</Text> : null}
     </View>
   );
 }
@@ -179,10 +182,11 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: Platform.OS === 'ios' ? 13 : 11,
     backgroundColor: 'rgba(255,255,255,0.03)',
     borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderRadius: 12,
-    minWidth: 112,
+    minWidth: 124,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  flag: { fontSize: 16 },
+  codeText: { color: '#FFF', fontFamily: FONTS.med, fontSize: 14, marginLeft: 2, marginRight: 2 },
+  flag: { fontSize: 16, color: '#FFF' },
   dial: { color: '#FFF', fontFamily: FONTS.med, fontSize: 14 },
   num: { flex: 1 },
   input: {
@@ -197,7 +201,7 @@ const s = StyleSheet.create({
     fontSize: 11.5, marginTop: 6,
   },
   dropdown: {
-    position: 'absolute', top: 74, left: 0, width: 280,
+    position: 'absolute', top: 52, left: 0, width: 280,
     backgroundColor: '#1A1625',
     borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1,
     borderRadius: 12, paddingVertical: 6,

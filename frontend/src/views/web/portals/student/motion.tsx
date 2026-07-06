@@ -88,7 +88,7 @@ export function Stagger({
 
 /* ─── PressScale (gesture-driven scale + ripple + a11y) ──────────────── */
 export function PressScale({
-  children, onPress, style, scaleTo = 0.97, hitSlop, disabled, testID,
+  children, onPress, style, scaleTo = 0.97, hitSlop, disabled, testID, nativeID,
   accessibilityLabel, accessibilityHint, accessibilityRole = 'button',
   accessibilityState,
 }: {
@@ -99,6 +99,7 @@ export function PressScale({
   hitSlop?: number;
   disabled?: boolean;
   testID?: string;
+  nativeID?: string;
   accessibilityLabel?: string;
   accessibilityHint?: string;
   accessibilityRole?: 'button' | 'link' | 'tab' | 'switch' | 'header' | 'image';
@@ -110,6 +111,7 @@ export function PressScale({
     <Animated.View style={aStyle}>
       <Pressable
         testID={testID}
+        nativeID={nativeID}
         disabled={disabled}
         onPressIn={() => { scale.value = withSpring(scaleTo, { damping: 14, stiffness: 280 }); }}
         onPressOut={() => { scale.value = withSpring(1, { damping: 12, stiffness: 220 }); }}

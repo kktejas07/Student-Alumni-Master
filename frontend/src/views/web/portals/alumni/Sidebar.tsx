@@ -8,6 +8,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useRouter } from 'expo-router';
 import {
   LayoutDashboard, Sparkles, Briefcase, Users, Calendar, Wallet,
   Tag, CreditCard, GraduationCap, Home, User, ExternalLink, LogOut,
@@ -19,6 +20,7 @@ import { STUDENT } from './data';
 import { Av } from './atoms';
 import { FadeInView, PressScale, SparkIcon, PulseDot } from './motion';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
+import { router } from 'expo-router';
 
 export type StudentNavId =
   | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'events'
@@ -46,10 +48,12 @@ export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: bo
 export function Sidebar({
   active, onNav, onLogout,
 }: { active: StudentNavId; onNav: (id: StudentNavId) => void; onLogout: () => void }) {
+  const router = useRouter();
   const user = useAuthStore((u) => u.user) as any;
   const fullName = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim();
   const name = fullName || STUDENT.name;
   const initials = (name.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
+  const photo = user?.photo_data || user?.face_image_base64;
   const ai: any = user?.alumni_info || {};
   const subTitle =
     [ai.current_role, ai.current_company].filter(Boolean).join(' @ ') ||
@@ -74,10 +78,10 @@ export function Sidebar({
 
       {/* Alumni profile card */}
       <FadeInView delay={70}>
-        <View style={s.profileCard}>
+        <PressScale onPress={() => onNav('profile')} style={s.profileCard}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <View style={{ position: 'relative' }}>
-              <Av initials={initials} size={40} color={SC.primaryL} />
+              <Av initials={initials} size={40} color={SC.primaryL} photo={photo} />
               <View style={s.statusDotWrap}>
                 <PulseDot size={10} color="#22C55E" />
               </View>
@@ -87,12 +91,12 @@ export function Sidebar({
               <Text numberOfLines={1} style={s.profileYear}>{subTitle}</Text>
             </View>
           </View>
-        </View>
+        </PressScale>
       </FadeInView>
 
       {/* Alumni card pill */}
-      <FadeInView delay={120}>
-        <PressScale style={s.idCardPill} onPress={() => {}}>
+      <FadeInView delay={95}>
+        <PressScale style={s.idCardPill} onPress={() => router.push('/id-card')}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={s.idCardLabel}>My Alumni Card</Text>
             <Text style={s.idCardNumber}>{saId}</Text>
@@ -173,7 +177,10 @@ const s = StyleSheet.create({
   brandTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13, letterSpacing: -0.2 },
   brandSub: { color: SC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
 
-  profileCard: { paddingHorizontal: 4, paddingVertical: 8, marginBottom: 10 },
+  profileCard: {
+    paddingHorizontal: 4, paddingVertical: 8, marginBottom: 10,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
   statusDotWrap: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: SC.bg2, alignItems: 'center', justifyContent: 'center' },
   profileName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
   profileYear: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11 },

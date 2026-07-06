@@ -2,22 +2,43 @@
  * Mentor Portal — Session Requests view.
  * Each card has student info, topic, date, AI fit-score and Accept/Decline.
  */
-import React, { useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { Sparkles, Check, X } from 'lucide-react-native';
 import { MC, FONTS } from '../tokens';
 import { Av, Badge, Countdown } from '../atoms';
 import { SESSION_REQUESTS } from '../data';
+import { api } from '@/src/models/services/api';
 
-type Decision = 'pending' | 'accepted' | 'declined';
+export type Decision = 'pending' | 'accepted' | 'declined';
 
-export function RequestsView() {
-  const [decisions, setDecisions] = useState<Record<number, Decision>>({});
+export interface RequestsViewProps {
+  decisions: Record<number, Decision>;
+  onSetDecision: (id: number, d: Decision) => void;
+}
 
-  const set = (id: number, d: Decision) => setDecisions((p) => ({ ...p, [id]: d }));
+export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
+  const [liveRequests, setLiveRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actioningId, setActioningId] = useState<string | null>(null);
+
+  const loadLiveRequests = async () => {
+    try {
+      const res = await api.myBookings();
+      const pendingBookings = (res?.bookings || []).filter((b: any) => b.status === 'pending');
+      setLiveRequests(pendingBookings);
+    } catch (e) {
+      console.warn('Failed to load live requests', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadLiveRequests();
+  }, []);
 
   const aiScore = (topic: string) => {
-    // mock — "score" some keywords
     const k = topic.toLowerCase();
     if (k.includes('system')) return { score: 96, label: 'Excellent fit' };
     if (k.includes('startup')) return { score: 89, label: 'Strong fit' };
@@ -25,12 +46,70 @@ export function RequestsView() {
     return { score: 72, label: 'Fair fit' };
   };
 
+  const handleLiveDecision = async (bookingId: string, type: 'accept' | 'decline') => {
+    setActioningId(bookingId);
+    try {
+      if (type === 'accept') {
+        await api.confirmBooking(bookingId);
+      } else {
+        await api.declineBooking(bookingId);
+      }
+      await loadLiveRequests();
+    } catch (e) {
+      console.error('Failed to update booking status', e);
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  // Combine static and live requests
+  const allRequests = useMemo(() => {
+    const mappedLive = liveRequests.map((b) => {
+      const dateObj = new Date(b.slot_start_iso);
+      const daysAway = Math.max(0, Math.ceil((dateObj.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+      return {
+        id: b.id,
+        isLive: true,
+        studentName: b.student_name || 'Student',
+        avatar: (b.student_name || 'ST').split(' ').slice(0, 2).map((p: string) => p[0] || '').join('').toUpperCase(),
+        color: MC.teal,
+        college: 'Student-Alumni Platform',
+        branch: 'Mentee',
+        year: dateObj.getFullYear(),
+        topic: b.topic || 'Mentorship Session',
+        time: dateObj.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }),
+        daysAway,
+        type: 'free',
+        status: b.status,
+      };
+    });
+
+    const mappedStatic = SESSION_REQUESTS.map((r) => {
+      const d = decisions[r.id] || 'pending';
+      return {
+        ...r,
+        isLive: false,
+        status: d === 'accepted' ? 'confirmed' : d === 'declined' ? 'cancelled' : 'pending',
+      };
+    });
+
+    return [...mappedLive, ...mappedStatic];
+  }, [liveRequests, decisions]);
+
   const stats = useMemo(() => {
-    const accepted = Object.values(decisions).filter((d) => d === 'accepted').length;
-    const declined = Object.values(decisions).filter((d) => d === 'declined').length;
-    const pending  = SESSION_REQUESTS.length - accepted - declined;
+    const pending = allRequests.filter((r) => r.status === 'pending').length;
+    const accepted = allRequests.filter((r) => r.status === 'confirmed' || r.status === 'accepted').length;
+    const declined = allRequests.filter((r) => r.status === 'cancelled' || r.status === 'declined').length;
     return { accepted, declined, pending };
-  }, [decisions]);
+  }, [allRequests]);
+
+  if (loading) {
+    return (
+      <View style={{ padding: 40, alignItems: 'center' }}>
+        <ActivityIndicator color={MC.tealP} size="large" />
+      </View>
+    );
+  }
 
   return (
     <View>
@@ -48,9 +127,10 @@ export function RequestsView() {
 
       {/* Cards */}
       <View style={{ gap: 12 }}>
-        {SESSION_REQUESTS.map((req) => {
-          const d = decisions[req.id] || 'pending';
+        {allRequests.map((req) => {
           const ai = aiScore(req.topic);
+          const isPending = req.status === 'pending';
+
           return (
             <View key={req.id} style={s.card}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -58,7 +138,7 @@ export function RequestsView() {
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 14 }}>{req.studentName}</Text>
-                    <Badge label={req.type === 'paid' ? `Paid ₹${req.amount}` : 'Free'} color={req.type === 'paid' ? 'green' : 'teal'} />
+                    <Badge label={req.type === 'paid' ? `Paid ₹${(req as any).amount}` : 'Free'} color={req.type === 'paid' ? 'green' : 'teal'} />
                   </View>
                   <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 }}>{req.college} · {req.branch} · {req.year}</Text>
                   <Text style={{ color: '#fff', fontFamily: FONTS.med, fontSize: 13, marginTop: 6 }}>“{req.topic}”</Text>
@@ -79,14 +159,45 @@ export function RequestsView() {
               </View>
 
               {/* Actions */}
-              {d === 'pending' ? (
+              {isPending ? (
                 <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-                  <Pressable onPress={() => set(req.id, 'accepted')} style={s.acceptBtn}><Check size={14} color={MC.bg} /><Text style={{ color: MC.bg, fontFamily: FONTS.xbold, fontSize: 12 }}>Accept</Text></Pressable>
-                  <Pressable onPress={() => set(req.id, 'declined')} style={s.declineBtn}><X size={14} color={MC.red} /><Text style={{ color: MC.red, fontFamily: FONTS.bold, fontSize: 12 }}>Decline</Text></Pressable>
+                  <Pressable
+                    disabled={actioningId === String(req.id)}
+                    onPress={() => {
+                      if (req.isLive) {
+                        handleLiveDecision(String(req.id), 'accept');
+                      } else {
+                        onSetDecision(Number(req.id), 'accepted');
+                      }
+                    }}
+                    style={[s.acceptBtn, actioningId === String(req.id) && { opacity: 0.6 }]}
+                  >
+                    <Check size={14} color={MC.bg} />
+                    <Text style={{ color: MC.bg, fontFamily: FONTS.xbold, fontSize: 12 }}>
+                      {actioningId === String(req.id) ? 'Processing...' : 'Accept'}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    disabled={actioningId === String(req.id)}
+                    onPress={() => {
+                      if (req.isLive) {
+                        handleLiveDecision(String(req.id), 'decline');
+                      } else {
+                        onSetDecision(Number(req.id), 'declined');
+                      }
+                    }}
+                    style={[s.declineBtn, actioningId === String(req.id) && { opacity: 0.6 }]}
+                  >
+                    <X size={14} color={MC.red} />
+                    <Text style={{ color: MC.red, fontFamily: FONTS.bold, fontSize: 12 }}>Decline</Text>
+                  </Pressable>
                 </View>
               ) : (
                 <View style={{ marginTop: 12, alignSelf: 'flex-start' }}>
-                  <Badge label={d === 'accepted' ? 'Accepted ✓' : 'Declined'} color={d === 'accepted' ? 'green' : 'red'} />
+                  <Badge
+                    label={req.status === 'confirmed' || req.status === 'accepted' ? 'Accepted ✓' : 'Declined'}
+                    color={req.status === 'confirmed' || req.status === 'accepted' ? 'green' : 'red'}
+                  />
                 </View>
               )}
             </View>

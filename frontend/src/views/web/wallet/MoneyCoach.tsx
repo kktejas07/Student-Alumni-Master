@@ -31,6 +31,8 @@ const SLASH_CHIPS = [
 const C = { bg: '#09080F', surface: '#14121C', border: '#2A2636',
             text: '#fff', text2: '#B7B3C6', text3: '#7B7593' };
 
+const ReactDOM = Platform.OS === 'web' ? require('react-dom') : null;
+
 export default function MoneyCoach({ initialCmd, onAction }: {
   initialCmd?: string;
   onAction?: (action: string, url?: string) => void;
@@ -103,6 +105,290 @@ export default function MoneyCoach({ initialCmd, onAction }: {
       if (Platform.OS === 'web') window.location.href = url;
     }
   };
+
+  if (Platform.OS === 'web' && ReactDOM) {
+    return ReactDOM.createPortal(
+      <>
+        {/* Floating bubble fixed in viewport */}
+        <div
+          onClick={() => setOpen(true)}
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            width: '56px',
+            height: '56px',
+            borderRadius: '999px',
+            backgroundColor: '#7C3AED',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 8px 28px rgba(124,58,237,0.55)',
+            zIndex: 99999,
+            cursor: 'pointer',
+          }}
+        >
+          <MaterialCommunityIcons name="message-text" size={22} color="#fff" />
+        </div>
+
+        {/* Modal Panel */}
+        {open && (
+          <div
+            onClick={() => setOpen(false)}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(10,5,22,0.55)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'flex-end',
+              zIndex: 100000,
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: '420px',
+                maxWidth: '100%',
+                height: '600px',
+                maxHeight: '90%',
+                backgroundColor: C.bg,
+                borderRadius: '18px',
+                marginRight: '20px',
+                marginBottom: '20px',
+                borderWidth: '1px',
+                borderColor: C.border,
+                borderStyle: 'solid',
+                overflow: 'hidden',
+                boxShadow: '0 24px 60px rgba(0,0,0,0.65)',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                style={{ flex: 1 }}>
+                
+                {/* Header */}
+                <View style={s.header}>
+                  <View style={s.brain}>
+                    <MaterialCommunityIcons name="message-text" size={18} color="#fff" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.title}>Money Coach</Text>
+                    <Text style={s.subtitle}>Free · deterministic · no API cost</Text>
+                  </View>
+                  <div
+                    onClick={() => setOpen(false)}
+                    style={{
+                      width: '30px',
+                      height: '30px',
+                      borderRadius: '999px',
+                      backgroundColor: 'rgba(255,255,255,0.06)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <MaterialCommunityIcons name="close" size={18} color="#fff" />
+                  </div>
+                </View>
+
+                {/* Messages scroll area */}
+                <ScrollView ref={scrollRef} style={{ flex: 1 }}
+                  contentContainerStyle={{ padding: 14, gap: 10 }}>
+                  {messages.map((m, i) => (
+                    <View key={i} style={[s.msgRow,
+                      m.role === 'user' && { alignSelf: 'flex-end' }]}>
+                      <View style={[s.msgBubble,
+                        m.role === 'user'
+                          ? { backgroundColor: '#7C3AED' }
+                          : { backgroundColor: 'rgba(255,255,255,0.05)',
+                              borderColor: C.border, borderWidth: 1 }]}>
+                        {m.cmd && m.role === 'assistant' && m.cmd !== 'chat' && (
+                          <View style={s.cmdBadge}>
+                            <Text style={s.cmdBadgeText}>/{m.cmd}</Text>
+                          </View>
+                        )}
+                        <Text style={[s.msgText,
+                          m.role === 'user' && { color: '#fff' }]}>
+                          {m.text}
+                        </Text>
+
+                        {/* Render structured cards */}
+                        {m.cards?.map((card, ci) => {
+                          if (card.type === 'credit_plan') {
+                            return (
+                              <View key={ci} style={s.planCard}>
+                                <View style={s.planHeader}>
+                                  <MaterialCommunityIcons name="rocket-launch" size={14} color="#F59E0B" />
+                                  <Text style={s.planEta}>
+                                    Fastest: {card.fastest_path_days} days · {card.target_tier}
+                                  </Text>
+                                  <View style={s.planGapPill}>
+                                    <Text style={s.planGapText}>{card.credits_needed} cr</Text>
+                                  </View>
+                                </View>
+                                <View style={{ gap: 6, marginTop: 6 }}>
+                                  {(card.actions || []).map((a: any, ai: number) => (
+                                    <View key={ai} style={s.planAction}>
+                                      <View style={s.planCheck}>
+                                        <MaterialCommunityIcons name="checkbox-blank-circle-outline"
+                                          size={14} color="#A78BFA" />
+                                      </View>
+                                      <View style={{ flex: 1 }}>
+                                        <Text style={s.planActionTitle}>{a.title}</Text>
+                                        <Text style={s.planActionMeta}>
+                                          +{a.gain} cr · {a.eta_days}d · {a.effort}
+                                        </Text>
+                                      </View>
+                                      {a.action && (
+                                        <div
+                                          onClick={() => handleAction(a.action.type, a.action.url)}
+                                          style={{
+                                            padding: '5px 8px',
+                                            borderRadius: '999px',
+                                            backgroundColor: '#7C3AED',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                          }}
+                                        >
+                                          <Text style={s.planActionBtnText}>
+                                            {a.action.label || 'Go'}
+                                          </Text>
+                                        </div>
+                                      )}
+                                    </View>
+                                  ))}
+                                </View>
+                              </View>
+                            );
+                          }
+                          if (card.type === 'donut') {
+                            const total = card.data.reduce((s: number, d: any) => s + d.value, 0) || 1;
+                            return (
+                              <View key={ci} style={s.donutCard}>
+                                {card.data.slice(0, 6).map((d: any, di: number) => {
+                                  const pct = Math.round((d.value / total) * 100);
+                                  const tints = ['#7C3AED', '#06B6D4', '#F59E0B', '#10B981', '#EC4899', '#A78BFA'];
+                                  const tint = tints[di % tints.length];
+                                  return (
+                                    <View key={di} style={{ gap: 4 }}>
+                                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                        <Text style={s.donutLabel}>{d.label}</Text>
+                                        <Text style={[s.donutValue, { color: tint }]}>
+                                          {d.value} cr · {pct}%
+                                        </Text>
+                                      </View>
+                                      <View style={s.donutBarBg}>
+                                        <View style={[s.donutBarFill,
+                                          { width: `${pct}%`, backgroundColor: tint }]} />
+                                      </View>
+                                    </View>
+                                  );
+                                })}
+                              </View>
+                            );
+                          }
+                          return null;
+                        })}
+
+                        {/* Action buttons */}
+                        {m.actions && m.actions.length > 0 && (
+                          <View style={{ flexDirection: 'row', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                            {m.actions.map((a, ai) => (
+                              <div key={ai}
+                                onClick={() => handleAction(a.action, a.url)}
+                                style={{
+                                  padding: '6px 10px',
+                                  borderRadius: '999px',
+                                  backgroundColor: 'rgba(167,139,250,0.20)',
+                                  border: '1px solid rgba(167,139,250,0.40)',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                <Text style={s.actBtnText}>{a.label}</Text>
+                              </div>
+                            ))}
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  ))}
+                  {busy && (
+                    <View style={s.msgRow}>
+                      <View style={[s.msgBubble, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
+                        <ActivityIndicator color="#A78BFA" size="small" />
+                      </View>
+                    </View>
+                  )}
+                </ScrollView>
+
+                {/* Chips */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 6, paddingHorizontal: 14, paddingBottom: 6 }}>
+                  {SLASH_CHIPS.map((c) => (
+                    <div key={c.cmd}
+                      onClick={() => send(c.cmd)}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '6px 10px',
+                        borderRadius: '999px',
+                        backgroundColor: 'rgba(167,139,250,0.10)',
+                        border: '1px solid rgba(167,139,250,0.30)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <MaterialCommunityIcons name={c.icon} size={11} color="#A78BFA" />
+                      <Text style={s.slashChipText}>{c.label}</Text>
+                    </div>
+                  ))}
+                </ScrollView>
+
+                {/* Input row */}
+                <View style={s.inputRow}>
+                  <TextInput
+                    value={input}
+                    onChangeText={setInput}
+                    onSubmitEditing={() => send()}
+                    placeholder="Ask about spend, credits, savings…"
+                    placeholderTextColor={C.text3}
+                    style={s.input}
+                    returnKeyType="send"
+                  />
+                  <div onClick={() => send()}
+                    style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '999px',
+                      backgroundColor: '#7C3AED',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: busy ? 'default' : 'pointer',
+                      opacity: busy ? 0.6 : 1,
+                    }}
+                  >
+                    <MaterialCommunityIcons name="send" size={15} color="#fff" />
+                  </div>
+                </View>
+              </KeyboardAvoidingView>
+            </div>
+          </div>
+        )}
+      </>,
+      document.body
+    );
+  }
 
   return (
     <>

@@ -32,6 +32,7 @@ import {
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components/Toast';
+import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 
 const C = {
   bg: '#0A0814',
@@ -76,6 +77,19 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   const router = useRouter();
   const toast = useToast();
   const user = useAuthStore((u) => u.user);
+  const initialized = useAuthStore((u) => u.initialized);
+  const isEmbedded = React.useContext(EmbeddedShellContext) || embedded;
+
+  useEffect(() => {
+    if (!isEmbedded && initialized && user) {
+      if (user.role === 'alumni') {
+        router.replace('/alumni-portal?tab=career-ai' as any);
+      } else if (user.role === 'student') {
+        router.replace('/student-portal?tab=career-ai' as any);
+      }
+    }
+  }, [isEmbedded, initialized, user, router]);
+
   const { width: winW } = useWindowDimensions();
   const cols = winW >= 1280 ? 4 : winW >= 900 ? 2 : 1;
 
