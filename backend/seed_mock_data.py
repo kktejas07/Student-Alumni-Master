@@ -33,11 +33,10 @@ from typing import Any, Dict, List
 from dotenv import load_dotenv
 load_dotenv()
 
-# Reuse server.py utilities (hash_password, generate_qr_code, generate_unique_id)
+# Import utilities from canonical core modules (Phase 2: no longer via server.py)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from server import (  # noqa: E402
-    hash_password, generate_qr_code, generate_unique_id, db,
-)
+from core.security import hash_password, generate_qr_code, generate_unique_id  # noqa: E402
+from core.db import db  # noqa: E402
 
 random.seed(42)
 NOW = datetime.now(timezone.utc)

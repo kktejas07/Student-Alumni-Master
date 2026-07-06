@@ -56,6 +56,16 @@ from slowapi.errors import RateLimitExceeded
 
 limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
 
+# ── Phase 2: canonical security/auth imports (single source of truth) ──────
+from core.security import (
+    encrypt_value, decrypt_value,
+    hash_password, verify_password,
+    create_access_token, create_refresh_token,
+    generate_unique_id, generate_qr_code,
+    _audit_log, _audit_log_many,
+)
+from core.deps import get_current_user  # noqa: F401  (re-exported for sub-routers)
+
 # Content prioritization engine — implements interest + edu-level + deadline + frequency scoring
 from personalization import (
     build_personalized_dashboard,
@@ -110,116 +120,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernetes ingress requirement)
 
 
-# ----------------------------------------------------------------------------
-# Encryption-at-Rest — Fernet (AES-128 in CBC mode + HMAC-SHA256)
-# ----------------------------------------------------------------------------
-# Per spec — encrypt sensitive personal data (dob, phone, postal_code) at rest.
-# Backwards-compat: legacy users may have plaintext values; decrypt() returns
-# the input as-is when it can't be decoded as Fernet ciphertext.
-try:
-    from cryptography.fernet import Fernet, InvalidToken  # noqa: E402
-    _HAS_CRYPTOGRAPHY = True
-except Exception:
-    _HAS_CRYPTOGRAPHY = False
-    class Fernet:
-        @staticmethod
-        def generate_key():
-            return b"dummy_key_for_dev_booting_without_cryptography_32b_len="
-        def __init__(self, key):
-            pass
-        def encrypt(self, data: bytes) -> bytes:
-            return data
-        def decrypt(self, data: bytes) -> bytes:
-            return data
-    class InvalidToken(Exception):
-        pass
-
-_FERNET_KEY = os.environ.get("FERNET_KEY")
-if not _FERNET_KEY:
-    # Auto-generate a session key in dev so the app boots; logs a warning.
-    if _HAS_CRYPTOGRAPHY:
-        _FERNET_KEY = Fernet.generate_key().decode()
-    else:
-        _FERNET_KEY = Fernet.generate_key().decode('utf-8')
-    print(f"⚠️  FERNET_KEY not set — using ephemeral key (dev only): {_FERNET_KEY[:12]}…")
-_FERNET = Fernet(_FERNET_KEY.encode() if isinstance(_FERNET_KEY, str) else _FERNET_KEY)
-# Marker so we can recognise our ciphertexts in mixed-format collections.
-_ENC_PREFIX = "enc::"
-
-
-def encrypt_value(plain: Optional[str]) -> Optional[str]:
-    """Wrap a string with the Fernet token + a recognisable prefix."""
-    if plain is None or plain == "":
-        return plain
-    if isinstance(plain, str) and plain.startswith(_ENC_PREFIX):
-        return plain  # already encrypted
-    try:
-        token = _FERNET.encrypt(plain.encode("utf-8")).decode("utf-8")
-        return f"{_ENC_PREFIX}{token}"
-    except Exception:
-        return plain  # never block the write on encryption failure
-
-
-def decrypt_value(value: Optional[str]) -> Optional[str]:
-    """Unwrap a Fernet ciphertext. Returns the input unchanged if not ours."""
-    if value is None or value == "":
-        return value
-    if isinstance(value, str) and value.startswith(_ENC_PREFIX):
-        try:
-            return _FERNET.decrypt(value[len(_ENC_PREFIX):].encode("utf-8")).decode("utf-8")
-        except InvalidToken:
-            return None  # tampered or wrong key — return None defensively
-        except Exception:
-            return None
-    return value  # legacy plaintext
-
-
-# ----------------------------------------------------------------------------
-# Audit Log Helpers — write every personal-data change to `audit_logs`
-# ----------------------------------------------------------------------------
-# Schema: { user_id, field_name, old_value, new_value, source, validation_status,
-#           ts (UTC datetime), is_manual_entry }
-async def _audit_log(user_id: str, field: str, old_value, new_value, *,
-                     source: str = "onboarding",
-                     validation_status: str = "passed",
-                     is_manual_entry: bool = False) -> None:
-    """Insert a single audit entry. Best-effort — never raise to caller."""
-    try:
-        await db.audit_logs.insert_one({
-            "user_id": user_id,
-            "field_name": field,
-            "old_value": old_value if old_value is not None else None,
-            "new_value": new_value if new_value is not None else None,
-            "source": source,
-            "validation_status": validation_status,
-            "is_manual_entry": bool(is_manual_entry),
-            "ts": datetime.now(timezone.utc),
-        })
-    except Exception:
-        # Don't let audit failures break the user's flow.
-        pass
-
-
-async def _audit_log_many(user_id: str, source: str, entries: list,
-                          validation_status: str = "passed") -> None:
-    """Bulk insert audit entries. `entries` is a list of (field, old, new) tuples."""
-    if not entries:
-        return
-    try:
-        docs = [{
-            "user_id": user_id,
-            "field_name": f,
-            "old_value": o,
-            "new_value": n,
-            "source": source,
-            "validation_status": validation_status,
-            "is_manual_entry": False,
-            "ts": datetime.now(timezone.utc),
-        } for (f, o, n) in entries if n is not None and n != ""]
-        if docs:
-            await db.audit_logs.insert_many(docs, ordered=False)
-    except Exception:
-        pass
+# (Encryption-at-rest + audit log helpers are now in core.security — imported above)
 
 
 # ----------------------------------------------------------------------------
@@ -593,59 +494,7 @@ class RescheduleRequest(BaseModel):
 
 
 
-# ----------------------------------------------------------------------------
-# Helpers — Auth, hashing, ID generation
-# ----------------------------------------------------------------------------
-def hash_password(password: str) -> str:
-    """Bcrypt is the industry standard for password hashing in 2026."""
-    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-
-
-def verify_password(plain: str, hashed: str) -> bool:
-    return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
-
-
-def create_access_token(user_id: str, email: str, role: str) -> str:
-    """Short-lived access token for API authentication."""
-    payload = {
-        "sub": user_id,
-        "email": email,
-        "role": role,
-        "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
-        "type": "access",
-    }
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
-
-
-def create_refresh_token(user_id: str) -> str:
-    """Long-lived refresh token to obtain new access tokens without re-login."""
-    payload = {
-        "sub": user_id,
-        "exp": datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
-        "type": "refresh",
-    }
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
-
-
-def generate_unique_id(role: str) -> str:
-    """Platform unique ID format: SA-{YEAR}-{ROLE_CODE}-{6 RANDOM CHARS}.
-    Example: SA-2026-STU-A7B2X9. Used as the user's QR code payload."""
-    role_codes = {"student": "STU", "alumni": "ALM", "mentor": "MNT", "college": "CLG", "admin": "ADM"}
-    code = role_codes.get(role, "USR")
-    rand = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-    return f"SA-{datetime.now().year}-{code}-{rand}"
-
-
-def generate_qr_code(data: str) -> str:
-    """Generate base64-encoded PNG QR code for a unique platform ID."""
-    qr = qrcode.QRCode(version=1, box_size=10, border=2,
-                       error_correction=qrcode.constants.ERROR_CORRECT_M)
-    qr.add_data(data)
-    qr.make(fit=True)
-    img = qr.make_image(fill_color="#5F259F", back_color="#FFFFFF")  # Brand purple QR
-    buf = io.BytesIO()
-    img.save(buf, format="PNG")
-    return base64.b64encode(buf.getvalue()).decode("utf-8")
+# (hash_password / verify_password / create_*_token / generate_* are now in core.security — imported above)
 
 
 def _safe_block(model_cls, value):
@@ -722,23 +571,7 @@ def serialize_user(user: dict) -> dict:
     }
 
 
-async def get_current_user(request: Request) -> dict:
-    """JWT auth dependency. Reads `Authorization: Bearer <token>` header."""
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        raise HTTPException(401, "Not authenticated")
-    try:
-        payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        if payload.get("type") != "access":
-            raise HTTPException(401, "Invalid token type")
-        user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
-        if not user:
-            raise HTTPException(401, "User not found")
-        return user
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(401, "Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(401, "Invalid token")
+# (get_current_user is now in core.deps — imported above)
 
 
 def validate_student_class(school_info: SchoolInfo, age: Optional[int] = None) -> None:
