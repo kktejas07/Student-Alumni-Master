@@ -4,35 +4,23 @@ Import this instead of hardcoding role strings everywhere.
 
 Usage:
     from core.roles import Role, Perm, require_admin, is_admin, get_role_label
+    from core.deps import require_role, require_permission
 
-    user = await require_admin(authorization)  # raises 401/403 if not admin
-    if is_admin(user):
-        # admin-only logic
-    label = get_role_label(user)
+    # FastAPI dependency — admin guard:
+    user = Depends(require_role(Role.ADMIN))
+
+    # FastAPI dependency — fine-grained permission:
+    user = Depends(require_permission(Perm.MENTORS_APPROVE))
 """
 
-from typing import Dict, List, Optional, Literal, Set
+from typing import Dict, List, Optional, Set
 from fastapi import HTTPException, Header
 import jwt as _jwt
 import os
 from datetime import datetime
-from motor.motor_asyncio import AsyncIOMotorClient
-from dotenv import load_dotenv
-from pathlib import Path
 
-load_dotenv(Path(__file__).parent.parent / ".env")
+from .db import db as _db  # Phase 3: use shared singleton — no new MongoClient
 
-# Lazy MongoDB connection — only connects when first needed
-_mongo = None
-_db = None
-
-def _get_db():
-    global _mongo, _db
-    if _db is None:
-        from motor.motor_asyncio import AsyncIOMotorClient
-        _mongo = AsyncIOMotorClient(os.environ["MONGO_URL"])
-        _db = _mongo[os.environ["DB_NAME"]]
-    return _db
 _JWT_SECRET = os.environ.get("JWT_SECRET", "")
 _JWT_ALG = os.environ.get("JWT_ALGORITHM", "HS256")
 
@@ -208,14 +196,31 @@ def get_role_color(user: dict) -> str:
     return ROLE_COLORS.get(get_role(user), "#A78BFA")
 
 
-def has_permission(user: dict, permission: str) -> bool:
-    """Check if user has a specific permission (from their role definition).
-    NOTE: This is a STUB — the permission system is not yet wired to access control.
-    Currently, all admins have full access, and other roles have role-based gates."""
+async def has_permission(user: dict, permission: str) -> bool:
+    """Check if user has a specific permission.
+
+    Lookup order:
+      1. Admins always pass (short-circuit — no DB hit).
+      2. SYSTEM_ROLES constant — covers all built-in roles without a DB round-trip.
+      3. DB `admin_roles` collection — for custom roles created via the admin UI.
+    """
     role = get_role(user)
     if role == Role.ADMIN:
-        return True  # Admins have all permissions
-    # Look up from DB role definition
+        return True  # super-set; always pass
+
+    # Fast path: check the in-process SYSTEM_ROLES constants first
+    for role_def in SYSTEM_ROLES:
+        if role_def["key"] == role:
+            return permission in role_def["permissions"]
+
+    # Slow path: custom role stored in DB
+    try:
+        role_doc = await _db.admin_roles.find_one({"key": role})
+        if role_doc:
+            return permission in role_doc.get("permissions", [])
+    except Exception:
+        pass  # never block on permission lookup failure
+
     return False
 
 
@@ -282,7 +287,8 @@ async def require_super_admin(authorization: Optional[str] = Header(None)) -> di
 async def seed_admin_roles(db=None):
     """Ensure all system roles exist in admin_roles collection.
     Call on startup or via migration. Uses $setOnInsert for idempotency.
-    If db is provided, uses it; otherwise creates its own connection."""
+    Accepts an optional db parameter for callers that already hold a reference;
+    falls back to the core.db singleton."""
     target_db = db or _db
     for role_def in SYSTEM_ROLES:
         await target_db.admin_roles.update_one(
@@ -292,9 +298,9 @@ async def seed_admin_roles(db=None):
                 "name": role_def["name"],
                 "description": role_def["description"],
                 "permissions": role_def["permissions"],
-                "is_system": role_def["is_system"],
+                "is_system": True,
                 "created_at": datetime.utcnow(),
             }},
             upsert=True,
         )
-    print(f"✅ Seeded {len(SYSTEM_ROLES)} system roles to admin_roles collection")
+    print(f"\u2705 Seeded {len(SYSTEM_ROLES)} system roles to admin_roles collection")

@@ -741,6 +741,44 @@ async def get_current_user(request: Request) -> dict:
         raise HTTPException(401, "Invalid token")
 
 
+# Phase 3 — centralized dependency factories (replace hand-rolled role checks)
+def require_role(*roles: str):
+    """FastAPI dependency factory: enforce that the caller has one of the given roles.
+    Raises 403 with a clear message instead of a bare 'Admin only' string.
+
+    Usage: user = Depends(require_role("admin"))
+           user = Depends(require_role("college", "admin"))
+    """
+    async def _dep(user: dict = Depends(get_current_user)) -> dict:
+        user_role = (user.get("role") or "").lower().strip()
+        if user_role not in roles:
+            raise HTTPException(
+                403,
+                f"Access denied. Required: {' or '.join(roles)}. Your role: {user_role}",
+            )
+        return user
+    return _dep
+
+
+def require_permission(permission: str):
+    """FastAPI dependency factory: enforce a named permission from core.roles.Perm.
+    Admins auto-pass. Other roles are checked against SYSTEM_ROLES (no DB hit for built-ins).
+
+    Usage: user = Depends(require_permission("mentors.approve"))
+           user = Depends(require_permission("analytics.view"))
+    """
+    async def _dep(user: dict = Depends(get_current_user)) -> dict:
+        from core.roles import has_permission as _has_perm
+        if not await _has_perm(user, permission):
+            user_role = (user.get("role") or "unknown").lower()
+            raise HTTPException(
+                403,
+                f"Permission denied: '{permission}' not granted to role '{user_role}'.",
+            )
+        return user
+    return _dep
+
+
 def validate_student_class(school_info: SchoolInfo, age: Optional[int] = None) -> None:
     """Per spec: students must be age 10+ AND in Class 11 (+1) or above."""
     if age is not None and age < 10:
@@ -1216,10 +1254,8 @@ async def refresh_my_badges(user: dict = Depends(get_current_user)):
 
 
 @api_router.post("/admin/badges/recompute-all")
-async def admin_recompute_all_badges(user: dict = Depends(get_current_user)):
+async def admin_recompute_all_badges(user: dict = Depends(require_role("admin"))):
     """Admin-only — nightly batch recompute (manually triggerable)."""
-    if user.get("role") != "admin":
-        raise HTTPException(403, "Admin only")
     count = 0
     async for u in db.users.find({}, {"_id": 1, "role": 1, "email_verified": 1, "two_fa_enabled": 1}):
         full = await db.users.find_one({"_id": u["_id"]})
@@ -2801,10 +2837,8 @@ async def change_my_password(payload: dict, user: dict = Depends(get_current_use
 # Mentor Approval Endpoints (Admin only)
 # ----------------------------------------------------------------------------
 @api_router.get("/admin/mentors/pending")
-async def list_pending_mentors(user: dict = Depends(get_current_user)):
+async def list_pending_mentors(user: dict = Depends(require_permission("mentors.approve"))):
     """Admin: list mentors awaiting approval."""
-    if user["role"] != "admin":
-        raise HTTPException(403, "Admin only")
     mentors = await db.users.find(
         {"role": "mentor", "mentor_status": "pending"},
         {"password_hash": 0, "face_image_base64": 0},
@@ -2816,10 +2850,8 @@ async def list_pending_mentors(user: dict = Depends(get_current_user)):
 
 
 @api_router.post("/admin/mentors/{mentor_id}/approve")
-async def approve_mentor(mentor_id: str, user: dict = Depends(get_current_user)):
+async def approve_mentor(mentor_id: str, user: dict = Depends(require_permission("mentors.approve"))):
     """Admin: approve a pending mentor — they become visible to students."""
-    if user["role"] != "admin":
-        raise HTTPException(403, "Admin only")
     res = await db.users.update_one(
         {"_id": ObjectId(mentor_id), "role": "mentor"},
         {"$set": {
@@ -2849,11 +2881,10 @@ async def approve_mentor(mentor_id: str, user: dict = Depends(get_current_user))
 
 @api_router.post("/admin/mentors/{mentor_id}/reject")
 async def reject_mentor(
-    mentor_id: str, payload: dict | None = None, user: dict = Depends(get_current_user),
+    mentor_id: str, payload: dict | None = None,
+    user: dict = Depends(require_permission("mentors.approve")),
 ):
     """Admin: reject a mentor application with optional reason."""
-    if user["role"] != "admin":
-        raise HTTPException(403, "Admin only")
     reason = (payload or {}).get("reason") if isinstance(payload, dict) else None
     update = {
         "mentor_status": "rejected",
@@ -5287,16 +5318,12 @@ async def analytics_dispatcher(user: dict = Depends(get_current_user)):
 
 
 @api_router.get("/analytics/super-admin")
-async def analytics_super_admin(user: dict = Depends(get_current_user)):
-    if user["role"] != "admin":
-        raise HTTPException(403, "Super admin access required")
+async def analytics_super_admin(user: dict = Depends(require_role("admin"))):
     return await super_admin_analytics(db, include_revenue=True)
 
 
 @api_router.get("/analytics/admin")
-async def analytics_admin_endpoint(user: dict = Depends(get_current_user)):
-    if user["role"] not in ("admin",):
-        raise HTTPException(403, "Admin access required")
+async def analytics_admin_endpoint(user: dict = Depends(require_role("admin"))):
     return await super_admin_analytics(db, include_revenue=False)
 
 
@@ -5344,19 +5371,15 @@ async def integrations_internships(query: str = "internship", country: str = "in
 
 
 @api_router.post("/integrations/sync/courses")
-async def sync_courses(user: dict = Depends(get_current_user)):
+async def sync_courses(user: dict = Depends(require_role("admin"))):
     """Admin-only: pull Coursera + Udemy data into our courses collection."""
-    if user["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
     res = await sync_courses_to_db(db)
     return {"synced": res, "status": integrations_status()}
 
 
 @api_router.post("/integrations/sync/internships")
-async def sync_internships(user: dict = Depends(get_current_user)):
+async def sync_internships(user: dict = Depends(require_role("admin"))):
     """Admin-only: pull Adzuna data into our internships collection."""
-    if user["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
     res = await sync_internships_to_db(db)
     return {"synced": res, "status": integrations_status()}
 
@@ -5451,9 +5474,7 @@ class ManualPushIn(BaseModel):
 
 
 @api_router.post("/notifications/send")
-async def notifications_send_manual(req: ManualPushIn, user: dict = Depends(get_current_user)):
-    if user["role"] != "admin":
-        raise HTTPException(403, "Admin only")
+async def notifications_send_manual(req: ManualPushIn, user: dict = Depends(require_role("admin"))):
     return await send_push(db, user_id=req.user_id, title=req.title, body=req.body, data=req.data)
 
 

@@ -150,6 +150,12 @@ def _get_current_user_dependency():
     return get_current_user
 
 
+def _get_admin_dependency():
+    from core.deps import require_role  # noqa
+    from core.roles import Role  # noqa
+    return require_role(Role.ADMIN)
+
+
 # ─── Helpers ────────────────────────────────────────────────────────────
 def _dedup_hash(title: str, city: str, when: str) -> str:
     raw = f"{(title or '').lower().strip()}|{(city or '').lower().strip()}|{(when or '').strip()[:10]}"
@@ -1194,9 +1200,7 @@ async def hosted_events(user: dict = Depends(_get_current_user_dependency())):
 
 # ─── Admin approval queue ──────────────────────────────────────────────
 @router.get("/admin/events/pending")
-async def admin_pending_events(user: dict = Depends(_get_current_user_dependency())):
-    if user.get("role") != "admin":
-        raise HTTPException(403, "Admin only")
+async def admin_pending_events(user: dict = Depends(_get_admin_dependency())):
     cursor = _db.events_v2.find({"status": "pending_approval", "is_active": True}).sort("created_at", -1)
     items = []
     async for d in cursor:
@@ -1205,9 +1209,7 @@ async def admin_pending_events(user: dict = Depends(_get_current_user_dependency
 
 
 @router.post("/admin/events/{event_id}/approve")
-async def admin_approve_event(event_id: str, user: dict = Depends(_get_current_user_dependency())):
-    if user.get("role") != "admin":
-        raise HTTPException(403, "Admin only")
+async def admin_approve_event(event_id: str, user: dict = Depends(_get_admin_dependency())):
     res = await _db.events_v2.update_one(
         {"event_id": event_id, "status": "pending_approval"},
         {"$set": {"status": "published", "approved_by": str(user["_id"]),
@@ -1220,9 +1222,7 @@ async def admin_approve_event(event_id: str, user: dict = Depends(_get_current_u
 
 @router.post("/admin/events/{event_id}/reject")
 async def admin_reject_event(event_id: str, body: Dict[str, Any] = None,
-                              user: dict = Depends(_get_current_user_dependency())):
-    if user.get("role") != "admin":
-        raise HTTPException(403, "Admin only")
+                              user: dict = Depends(_get_admin_dependency())):
     reason = ((body or {}).get("reason") or "").strip()
     res = await _db.events_v2.update_one(
         {"event_id": event_id, "status": "pending_approval"},
