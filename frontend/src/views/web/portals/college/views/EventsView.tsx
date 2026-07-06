@@ -44,7 +44,7 @@ export function EventsView({ onNavigate }: { onNavigate?: (id: any) => void }) {
             <Pressable
               style={s.manage}
               onPress={() => router.push({
-                pathname: `/event/manage/${e.id}` as any,
+                pathname: `/manage-event/${e.id}` as any,
                 params: {
                   id: e.id,
                   title: e.title,
