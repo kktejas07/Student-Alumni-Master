@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, Users, Calendar, MapPin, Edit2, CheckCircle, Ticket, Activity } from 'lucide-react-native';
-import { Colors as C, Spacing, Typography } from '@/src/theme';
-import { Card, Button } from '@/src/views/components';
+
+import { AnimatedAurora, GridOverlay, GlassCard, GlassSoft } from '@/src/views/web/portals/student/glass';
+import { PALETTE, FONTS, SC } from '@/src/views/web/portals/student/tokens';
 import { request } from '@/src/models/services/api';
 
 export default function ManageEvent() {
@@ -28,7 +30,6 @@ export default function ManageEvent() {
   const loadEvent = async () => {
     setLoading(true);
     try {
-      // Backend route GET /events/{id}
       const res = await request<any>(`/events/${params.id}`);
       setEvent(res);
       setTitle(res.title || '');
@@ -49,7 +50,7 @@ export default function ManageEvent() {
       };
       await request(`/events/${params.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
       setEditMode(false);
-      loadEvent(); // reload
+      loadEvent(); 
     } catch (e: any) {
       alert(e.message || 'Failed to update event');
     } finally {
@@ -57,123 +58,146 @@ export default function ManageEvent() {
     }
   };
 
-  if (loading && !event) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <Text style={[Typography.body, { color: C.textSecondary, margin: 20 }]}>Loading management portal...</Text>
-      </SafeAreaView>
-    );
-  }
-
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.back}>
-            <ArrowLeft size={24} color={C.textPrimary} />
+    <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
+      {/* NexusOS Deep Glass Background */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={['#0a0f1e', '#131938']}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject as any}
+      />
+      <AnimatedAurora intensity="normal" />
+      <GridOverlay />
+
+      <ScrollView contentContainerStyle={s.container}>
+        <View style={s.header}>
+          <TouchableOpacity onPress={() => router.back()} style={s.back}>
+            <ArrowLeft size={20} color={PALETTE.white} />
           </TouchableOpacity>
-          <Text style={[Typography.h3, { color: C.textPrimary }]}>Manage Event</Text>
+          <Text style={s.pageTitle}>Manage Event</Text>
         </View>
 
-        {event ? (
-          <View style={styles.content}>
+        {loading && !event ? (
+          <View style={s.centerBox}>
+            <ActivityIndicator color={PALETTE.violet} />
+            <Text style={s.loadingText}>Loading event details...</Text>
+          </View>
+        ) : event ? (
+          <View style={s.content}>
             {/* Quick Stats Banner */}
-            <View style={styles.statsRow}>
-              <View style={styles.statBox}>
-                <Users size={20} color={C.brandPurple} />
-                <Text style={styles.statVal}>{event.attendee_count || 0}</Text>
-                <Text style={styles.statLabel}>Registered</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Ticket size={20} color={C.brandPurple} />
-                <Text style={styles.statVal}>{event.capacity || 'Unlimited'}</Text>
-                <Text style={styles.statLabel}>Capacity</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Activity size={20} color={C.brandPurple} />
-                <Text style={styles.statVal}>{event.spots_left !== undefined ? event.spots_left : '-'}</Text>
-                <Text style={styles.statLabel}>Spots Left</Text>
-              </View>
+            <View style={s.statsRow}>
+              <GlassCard radius={14} padding={16} style={s.statBox}>
+                <View style={[s.iconWrap, { backgroundColor: 'rgba(139, 92, 246, 0.15)', borderColor: 'rgba(139, 92, 246, 0.3)' }]}>
+                  <Users size={18} color={PALETTE.violet} />
+                </View>
+                <Text style={s.statVal}>{event.attendee_count || 0}</Text>
+                <Text style={s.statLabel}>Registered</Text>
+              </GlassCard>
+
+              <GlassCard radius={14} padding={16} style={s.statBox}>
+                <View style={[s.iconWrap, { backgroundColor: 'rgba(34, 211, 238, 0.15)', borderColor: 'rgba(34, 211, 238, 0.3)' }]}>
+                  <Ticket size={18} color={PALETTE.teal} />
+                </View>
+                <Text style={s.statVal}>{event.capacity || 'Unlimited'}</Text>
+                <Text style={s.statLabel}>Capacity</Text>
+              </GlassCard>
+
+              <GlassCard radius={14} padding={16} style={s.statBox}>
+                <View style={[s.iconWrap, { backgroundColor: 'rgba(236, 72, 153, 0.15)', borderColor: 'rgba(236, 72, 153, 0.3)' }]}>
+                  <Activity size={18} color={PALETTE.rose} />
+                </View>
+                <Text style={s.statVal}>{event.spots_left !== undefined ? event.spots_left : '-'}</Text>
+                <Text style={s.statLabel}>Spots Left</Text>
+              </GlassCard>
             </View>
 
             {/* Editing Section */}
-            <Card style={styles.editCard}>
-              <View style={styles.editCardHeader}>
-                <Text style={[Typography.h4, { color: C.textPrimary }]}>Event Details</Text>
+            <GlassCard radius={16} padding={24}>
+              <View style={s.editCardHeader}>
+                <Text style={s.sectionTitle}>Event Details</Text>
                 {!editMode && (
-                  <TouchableOpacity onPress={() => setEditMode(true)} style={styles.editBtn}>
-                    <Edit2 size={14} color={C.brandPurple} />
-                    <Text style={[Typography.label, { color: C.brandPurple, marginLeft: 4 }]}>Edit</Text>
+                  <TouchableOpacity onPress={() => setEditMode(true)} style={s.editBtn}>
+                    <Edit2 size={14} color={PALETTE.cyan} />
+                    <Text style={s.editBtnText}>Edit</Text>
                   </TouchableOpacity>
                 )}
               </View>
 
               {editMode ? (
-                <View style={{ gap: 12, marginTop: 16 }}>
+                <View style={{ gap: 16, marginTop: 20 }}>
                   <View>
-                    <Text style={styles.inputLabel}>Event Title</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={title}
-                      onChangeText={setTitle}
-                      placeholder="Event Title"
-                      placeholderTextColor={C.textMuted}
-                    />
+                    <Text style={s.inputLabel}>Event Title</Text>
+                    <GlassSoft style={s.inputBox}>
+                      <TextInput
+                        style={s.input}
+                        value={title}
+                        onChangeText={setTitle}
+                        placeholder="Event Title"
+                        placeholderTextColor={SC.dim}
+                      />
+                    </GlassSoft>
                   </View>
                   <View>
-                    <Text style={styles.inputLabel}>Capacity</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={capacity}
-                      onChangeText={setCapacity}
-                      placeholder="e.g. 200"
-                      keyboardType="numeric"
-                      placeholderTextColor={C.textMuted}
-                    />
+                    <Text style={s.inputLabel}>Capacity</Text>
+                    <GlassSoft style={s.inputBox}>
+                      <TextInput
+                        style={s.input}
+                        value={capacity}
+                        onChangeText={setCapacity}
+                        placeholder="e.g. 200"
+                        keyboardType="numeric"
+                        placeholderTextColor={SC.dim}
+                      />
+                    </GlassSoft>
                   </View>
-                  <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
-                    <Button title="Cancel" variant="outline" onPress={() => setEditMode(false)} style={{ flex: 1 }} />
-                    <Button title={saving ? "Saving..." : "Save Changes"} onPress={saveEdits} style={{ flex: 1 }} loading={saving} />
+                  <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+                    <TouchableOpacity style={[s.btn, s.btnOutline]} onPress={() => setEditMode(false)}>
+                      <Text style={s.btnOutlineText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[s.btn, s.btnSolid]} onPress={saveEdits} disabled={saving}>
+                      <Text style={s.btnSolidText}>{saving ? "Saving..." : "Save Changes"}</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               ) : (
-                <View style={{ gap: 12, marginTop: 16 }}>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoKey}>Title</Text>
-                    <Text style={styles.infoVal}>{event.title}</Text>
+                <View style={{ gap: 16, marginTop: 20 }}>
+                  <View style={s.infoRow}>
+                    <Text style={s.infoKey}>Title</Text>
+                    <Text style={s.infoVal}>{event.title}</Text>
                   </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoKey}>Type</Text>
-                    <Text style={styles.infoVal}>{event.event_type}</Text>
+                  <View style={s.infoRow}>
+                    <Text style={s.infoKey}>Type</Text>
+                    <Text style={s.infoVal}>{event.event_type}</Text>
                   </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoKey}>Date</Text>
-                    <Text style={styles.infoVal}>{event.event_date_start ? new Date(event.event_date_start).toLocaleString() : 'TBD'}</Text>
+                  <View style={s.infoRow}>
+                    <Text style={s.infoKey}>Date</Text>
+                    <Text style={s.infoVal}>{event.event_date_start ? new Date(event.event_date_start).toLocaleString() : 'TBD'}</Text>
                   </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoKey}>Location</Text>
-                    <Text style={styles.infoVal}>{event.location_city || 'Online'}</Text>
+                  <View style={s.infoRow}>
+                    <Text style={s.infoKey}>Location</Text>
+                    <Text style={s.infoVal}>{event.location_city || 'Online'}</Text>
                   </View>
                 </View>
               )}
-            </Card>
+            </GlassCard>
 
             {/* Attendees Section */}
-            <Card style={styles.attendeesCard}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <CheckCircle size={18} color={C.green} />
-                <Text style={[Typography.h4, { color: C.textPrimary }]}>Attendee Management</Text>
+            <GlassCard radius={16} padding={24} style={{ marginTop: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <View style={[s.iconWrap, { backgroundColor: 'rgba(34, 197, 94, 0.15)', borderColor: 'rgba(34, 197, 94, 0.3)' }]}>
+                  <CheckCircle size={16} color={PALETTE.green} />
+                </View>
+                <Text style={s.sectionTitle}>Attendee Management</Text>
               </View>
-              <Text style={[Typography.body, { color: C.textSecondary }]}>
+              <Text style={s.attendeeDesc}>
                 {event.attendee_count || 0} students have registered. Detailed attendee list and QR scanning will be available here soon.
               </Text>
-            </Card>
+            </GlassCard>
           </View>
         ) : (
-          <View style={{ padding: 40, alignItems: 'center' }}>
-            <Text style={[Typography.body, { color: C.textSecondary, textAlign: 'center' }]}>
-              Event not found.
-            </Text>
+          <View style={s.centerBox}>
+            <Text style={s.notFoundText}>Event not found.</Text>
           </View>
         )}
       </ScrollView>
@@ -181,28 +205,43 @@ export default function ManageEvent() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.background },
-  container: { padding: Spacing.lg, paddingBottom: 60 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
-  back: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, backgroundColor: C.surface },
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: '#0a0f1e' },
+  container: { padding: 24, paddingBottom: 60, maxWidth: 1000, alignSelf: 'center', width: '100%' },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 28 },
+  back: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  pageTitle: { color: PALETTE.white, fontFamily: FONTS.xbold, fontSize: 24 },
+  
   content: { gap: 16 },
   
-  statsRow: { flexDirection: 'row', gap: 12 },
-  statBox: { flex: 1, backgroundColor: C.surface, padding: 16, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderColor: C.border, borderWidth: 1 },
-  statVal: { ...Typography.h3, color: C.textPrimary, marginTop: 8 },
-  statLabel: { ...Typography.label, color: C.textSecondary, marginTop: 2 },
+  statsRow: { flexDirection: 'row', gap: 16, flexWrap: 'wrap' },
+  statBox: { flex: 1, minWidth: 140, alignItems: 'center', paddingVertical: 20 },
+  iconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, marginBottom: 12 },
+  statVal: { color: PALETTE.white, fontFamily: FONTS.xbold, fontSize: 26 },
+  statLabel: { color: SC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 4 },
   
-  editCard: { padding: 20 },
-  editCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  editBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.brandPurple + '20', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  editCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', paddingBottom: 16 },
+  sectionTitle: { color: PALETTE.white, fontFamily: FONTS.bold, fontSize: 18 },
+  editBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(34, 211, 238, 0.15)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(34, 211, 238, 0.3)' },
+  editBtnText: { color: PALETTE.cyan, fontFamily: FONTS.bold, fontSize: 13, marginLeft: 6 },
   
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomColor: C.border, borderBottomWidth: 1 },
-  infoKey: { ...Typography.body, color: C.textSecondary },
-  infoVal: { ...Typography.bodyBold, color: C.textPrimary, flex: 1, textAlign: 'right', marginLeft: 16 },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomColor: 'rgba(255,255,255,0.05)', borderBottomWidth: 1 },
+  infoKey: { color: SC.muted, fontFamily: FONTS.med, fontSize: 14 },
+  infoVal: { color: PALETTE.white, fontFamily: FONTS.bold, fontSize: 15, flex: 1, textAlign: 'right', marginLeft: 20 },
 
-  inputLabel: { ...Typography.label, color: C.textSecondary, marginBottom: 6 },
-  input: { height: 44, backgroundColor: C.background, borderColor: C.border, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, color: C.textPrimary, ...Typography.body },
+  inputLabel: { color: SC.muted, fontFamily: FONTS.semi, fontSize: 13, marginBottom: 8, marginLeft: 4 },
+  inputBox: { borderRadius: 12, height: 48, justifyContent: 'center' },
+  input: { flex: 1, paddingHorizontal: 16, color: PALETTE.white, fontFamily: FONTS.med, fontSize: 15 },
 
-  attendeesCard: { padding: 20, marginTop: 8 },
+  btn: { flex: 1, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  btnOutline: { backgroundColor: 'transparent', borderColor: 'rgba(255,255,255,0.2)' },
+  btnOutlineText: { color: PALETTE.white, fontFamily: FONTS.bold, fontSize: 15 },
+  btnSolid: { backgroundColor: PALETTE.violet, borderColor: PALETTE.violet },
+  btnSolidText: { color: PALETTE.white, fontFamily: FONTS.bold, fontSize: 15 },
+
+  attendeeDesc: { color: SC.muted, fontFamily: FONTS.med, fontSize: 14, lineHeight: 22 },
+
+  centerBox: { padding: 60, alignItems: 'center', justifyContent: 'center' },
+  loadingText: { color: SC.muted, fontFamily: FONTS.med, fontSize: 15, marginTop: 16 },
+  notFoundText: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 16 },
 });
