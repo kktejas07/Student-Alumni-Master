@@ -75,7 +75,7 @@ export default function ManageEvent() {
           <Text style={[Typography.h3, { color: C.textPrimary }]}>Manage Event</Text>
         </View>
 
-        {event && (
+        {event ? (
           <View style={styles.content}>
             {/* Quick Stats Banner */}
             <View style={styles.statsRow}>
