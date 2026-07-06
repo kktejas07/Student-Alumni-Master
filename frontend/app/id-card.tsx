@@ -15,12 +15,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
-  Download, Share2, ShieldCheck, MapPin, GraduationCap, Calendar,
-  ArrowLeft, Sparkles,
+  Share2, ShieldCheck, MapPin, GraduationCap, Calendar,
+  ArrowLeft, Sparkles, Copy, CreditCard,
 } from 'lucide-react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { request } from '@/src/models/services/api';
-import { Colors as C } from '@/src/theme';
+
 
 interface IDCard {
   sa_id: string;
@@ -67,13 +67,12 @@ export default function DigitalIDScreen() {
     if (!card) return;
     const text = `Verify my Student-Alumni ID:\n\nName: ${card.full_name}\nSA-ID: ${card.sa_id}\nInstitution: ${card.institution}\nStatus: ${card.status.label}\n\nVerify at: ${card.verify_url}`;
     if (Platform.OS === 'web') {
-      // Use Web Share API if available, else copy to clipboard
-      if ((navigator as any).share) {
-        try { await (navigator as any).share({ title: 'My SA Digital ID', text }); }
+      if (typeof navigator !== 'undefined' && (navigator as any).share) {
+        try { await (navigator as any).share({ title: 'My SA Digital ID', text, url: card.verify_url }); }
         catch { /* user cancelled */ }
-      } else if ((navigator as any).clipboard) {
+      } else if (typeof navigator !== 'undefined' && (navigator as any).clipboard) {
         await (navigator as any).clipboard.writeText(text);
-        if (typeof window !== 'undefined') window.alert('Card details copied to clipboard');
+        if (typeof window !== 'undefined') window.alert('Card details copied to clipboard!');
       }
     } else {
       try { await Share.share({ message: text, title: 'My SA Digital ID' }); }
@@ -81,25 +80,54 @@ export default function DigitalIDScreen() {
     }
   };
 
+  const handleCopyId = async () => {
+    if (!card) return;
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && (navigator as any).clipboard) {
+      await (navigator as any).clipboard.writeText(card.sa_id);
+      if (typeof window !== 'undefined') window.alert(`Copied: ${card.sa_id}`);
+    } else {
+      try { await Share.share({ message: card.sa_id }); } catch { /* cancelled */ }
+    }
+  };
+
   const handleDownload = async () => {
     if (Platform.OS !== 'web') return;
     setDownloading(true);
     try {
-      // Use html2canvas if available; else fall back to print dialog.
-      const html2canvas = (window as any).html2canvas;
       const node = (cardRef.current as any) as HTMLElement;
-      if (html2canvas && node) {
-        const canvas = await html2canvas(node, { backgroundColor: null, scale: 2 });
+      if (!node) {
+        if (typeof window !== 'undefined') window.print();
+        return;
+      }
+      // Try html2canvas from CDN if loaded, otherwise print fallback
+      const html2canvas = (window as any).html2canvas;
+      if (html2canvas) {
+        const canvas = await html2canvas(node, { backgroundColor: '#130A28', scale: 2, useCORS: true });
         const link = document.createElement('a');
         link.download = `${card?.sa_id || 'id-card'}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
       } else {
-        // Fallback: trigger print
-        if (typeof window !== 'undefined') window.print();
+        // Load html2canvas dynamically as a last resort
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('Failed to load html2canvas'));
+          document.head.appendChild(script);
+        }).then(async () => {
+          const canvas = await (window as any).html2canvas(node, { backgroundColor: '#130A28', scale: 2, useCORS: true });
+          const link = document.createElement('a');
+          link.download = `${card?.sa_id || 'id-card'}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        }).catch(() => {
+          if (typeof window !== 'undefined') window.print();
+        });
       }
     } catch (e) {
       console.error('download failed', e);
+      if (typeof window !== 'undefined') window.print();
     } finally {
       setDownloading(false);
     }
@@ -238,12 +266,20 @@ export default function DigitalIDScreen() {
               {/* QR + footer */}
               <View style={styles.cardFooter}>
                 <View style={styles.qrWrap}>
-                  <QRCode
-                    value={card.qr_payload}
-                    size={104}
-                    backgroundColor="white"
-                    color="#0B0510"
-                  />
+                  {/* Guard: QRCode crashes if value is empty/null */}
+                  {card.qr_payload ? (
+                    <QRCode
+                      value={card.qr_payload}
+                      size={104}
+                      backgroundColor="white"
+                      color="#0B0510"
+                    />
+                  ) : (
+                    <View style={styles.qrFallback}>
+                      <ShieldCheck size={32} color={ACCENT} />
+                      <Text style={styles.qrFallbackText}>QR{`\n`}Pending</Text>
+                    </View>
+                  )}
                 </View>
                 <View style={{ flex: 1, marginLeft: 16, justifyContent: 'flex-end' }}>
                   <Text style={styles.footerLabel}>SCAN TO VERIFY</Text>
@@ -264,14 +300,18 @@ export default function DigitalIDScreen() {
 
         {/* Action buttons */}
         <View style={styles.actions}>
+          <Pressable onPress={handleCopyId} style={[styles.btn, styles.btnGhost]} testID="id-copy">
+            <Copy size={15} color={ACCENT} />
+            <Text style={styles.btnGhostText}>Copy ID</Text>
+          </Pressable>
           {Platform.OS === 'web' && (
             <Pressable onPress={handleDownload} style={[styles.btn, styles.btnPrimary]} testID="id-download">
-              <Download size={16} color="#fff" />
-              <Text style={styles.btnPrimaryText}>{downloading ? 'Saving…' : 'Download PNG'}</Text>
+              <CreditCard size={15} color="#fff" />
+              <Text style={styles.btnPrimaryText}>{downloading ? 'Saving…' : 'Save Card'}</Text>
             </Pressable>
           )}
           <Pressable onPress={handleShare} style={[styles.btn, styles.btnGhost]} testID="id-share">
-            <Share2 size={16} color="#A78BFA" />
+            <Share2 size={15} color={ACCENT} />
             <Text style={styles.btnGhostText}>Share</Text>
           </Pressable>
         </View>
@@ -403,7 +443,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'flex-end',
     borderTopColor: CARD_BORDER, borderTopWidth: 1, paddingTop: 14,
   },
-  qrWrap: { padding: 6, backgroundColor: '#fff', borderRadius: 12 },
+  qrWrap: { padding: 6, backgroundColor: '#fff', borderRadius: 12, width: 116, height: 116, alignItems: 'center', justifyContent: 'center' },
+  qrFallback: { width: 104, height: 104, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  qrFallbackText: { color: ACCENT, fontFamily: 'DMSans_700Bold', fontSize: 10, textAlign: 'center', lineHeight: 14 },
   footerLabel: {
     color: 'rgba(255,255,255,0.40)', fontFamily: 'DMSans_700Bold',
     fontSize: 9, letterSpacing: 0.8, marginBottom: 4,

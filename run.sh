@@ -47,10 +47,10 @@ start_backend() {
   info "Starting backend (FastAPI on :8000)…"
 
   # Prefer python3.11 / python3.12 (requirements need >=3.10); fall back to python3
+  # On Windows: `py` (launcher) and `python` are the common names
   PYTHON=""
-  for candidate in python3.12 python3.11 python3.10 python3; do
+  for candidate in python3.12 python3.11 python3.10 python3 python py; do
     if command -v "$candidate" &>/dev/null; then
-      ver=$("$candidate" -c 'import sys; print(sys.version_info[:2])')
       if "$candidate" -c 'import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)' 2>/dev/null; then
         PYTHON="$candidate"
         break
@@ -60,19 +60,26 @@ start_backend() {
   [[ -n "$PYTHON" ]] || error "Python 3.10+ is required. Install it and re-run."
   success "Using $PYTHON ($($PYTHON --version))"
 
+  # On Windows (Git Bash / MSYS2) venv scripts live in Scripts/, not bin/
+  if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]] || [[ "$(uname -s 2>/dev/null)" == MINGW* ]] || [[ "$(uname -s 2>/dev/null)" == MSYS* ]]; then
+    VENV_BIN="$BACKEND_DIR/venv/Scripts"
+  else
+    VENV_BIN="$BACKEND_DIR/venv/bin"
+  fi
+
   if [[ ! -d "$BACKEND_DIR/venv" ]]; then
     warn "No venv found — creating one and installing dependencies…"
     "$PYTHON" -m venv "$BACKEND_DIR/venv"
-    "$BACKEND_DIR/venv/bin/pip" install -q --upgrade pip
-    "$BACKEND_DIR/venv/bin/pip" install -q -r "$BACKEND_DIR/requirements.txt"
-    "$BACKEND_DIR/venv/bin/pip" install -q "uvicorn[standard]"
+    "$VENV_BIN/pip" install -q --upgrade pip
+    "$VENV_BIN/pip" install -q -r "$BACKEND_DIR/requirements.txt"
+    "$VENV_BIN/pip" install -q "uvicorn[standard]"
     success "Dependencies installed."
   fi
 
   load_env
 
   cd "$BACKEND_DIR"
-  "$BACKEND_DIR/venv/bin/uvicorn" server:app \
+  "$VENV_BIN/uvicorn" server:app \
     --host 0.0.0.0 --port 8000 --reload \
     --log-level info &
   echo $! >> "$PID_FILE"

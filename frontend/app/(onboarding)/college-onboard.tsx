@@ -95,8 +95,15 @@ export default function CollegeOnboard() {
   const router = useRouter();
   const toast = useToast();
   const user = useAuthStore((u) => u.user);
+  const initialized = useAuthStore((u) => u.initialized);
   const refreshUser = useAuthStore((u) => u.refreshUser);
   const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    if (initialized && !user) {
+      router.replace('/(auth)/login');
+    }
+  }, [initialized, user, router]);
 
   // Step 1
   const [name,          setName]          = useState('');

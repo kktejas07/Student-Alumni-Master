@@ -1360,6 +1360,28 @@ async def my_id_card(user: dict = Depends(get_current_user)):
     frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
     public_verify_url = f"{frontend_url}/verify/{sa_id}"
 
+    status_label = status.get("label") if isinstance(status, dict) else str(status)
+    qr_details = [
+        "--- STUDENT ALUMNI MEMBER ID ---",
+        f"Name: {user.get('full_name') or user.get('email')}",
+        f"Email: {user.get('email')}",
+        f"Role: {role.upper()}",
+    ]
+    job = (user.get("mentor_info") or {}).get("job_title") or (user.get("alumni_info") or {}).get("job_title")
+    co = (user.get("mentor_info") or {}).get("company") or (user.get("alumni_info") or {}).get("company")
+    if job:
+        role_desc = f"{job}"
+        if co:
+            role_desc += f" at {co}"
+        qr_details.append(f"Work: {role_desc}")
+    qr_details.append(f"Institution: {institution}")
+    if batch:
+        qr_details.append(f"Batch: {batch}")
+    qr_details.append(f"ID: {sa_id}")
+    qr_details.append(f"Status: {status_label}")
+    qr_details.append(f"Verify: {public_verify_url}")
+    qr_payload = "\n".join(qr_details)
+
     return {
         "sa_id": sa_id,
         "full_name": user.get("full_name") or user.get("email"),
@@ -1376,7 +1398,7 @@ async def my_id_card(user: dict = Depends(get_current_user)):
         "issued_at": (user.get("sa_id_issued_at") or datetime.utcnow()).isoformat()
             if isinstance(user.get("sa_id_issued_at"), datetime) else str(user.get("sa_id_issued_at") or datetime.utcnow().isoformat()),
         "verify_url": public_verify_url,
-        "qr_payload": public_verify_url,
+        "qr_payload": qr_payload,
     }
 
 
@@ -2288,9 +2310,34 @@ async def complete_onboarding(req: OnboardingRequest, user: dict = Depends(get_c
         if not req.mentor_info.organization or not req.mentor_info.job_title:
             raise HTTPException(400, "Organization and job title are mandatory for mentors")
 
-    # ---- Generate unique ID + QR code (idempotent — only on first onboarding) ----
+    # ---- Generate unique ID (idempotent — only on first onboarding) ----
     unique_id = user.get("unique_id") or generate_unique_id(role)
-    qr_payload = f"SA-USER:{unique_id}|{user['email']}|{role}"
+
+    # ---- Build rich profile card for QR payload ----
+    raw_frontend_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
+    frontend_url_qr = raw_frontend_url if (raw_frontend_url.startswith("http://") or raw_frontend_url.startswith("https://")) else "https://studentalumni.ai"
+    public_verify_url_qr = f"{frontend_url_qr}/verify/{unique_id}"
+
+    _qr_lines = [
+        "--- STUDENT ALUMNI MEMBER ID ---",
+        f"Name: {user.get('full_name') or user.get('email')}",
+        f"Email: {user.get('email')}",
+        f"Role: {role.upper()}",
+    ]
+    _job = (req.mentor_info.job_title if req.mentor_info else None) or (req.alumni_info.job_title if req.alumni_info else None)
+    _org = (req.mentor_info.organization if req.mentor_info else None) or (req.alumni_info.company if req.alumni_info else None)
+    if _job:
+        _work = _job + (f" at {_org}" if _org else "")
+        _qr_lines.append(f"Work: {_work}")
+    _inst = req.school_info.institution_name if req.school_info else None
+    if _inst:
+        _qr_lines.append(f"Institution: {_inst}")
+    _batch = req.school_info.graduation_year if req.school_info else None
+    if _batch:
+        _qr_lines.append(f"Batch: Class of {_batch}")
+    _qr_lines.append(f"ID: {unique_id}")
+    _qr_lines.append(f"Verify: {public_verify_url_qr}")
+    qr_payload = "\n".join(_qr_lines)
     qr_code = generate_qr_code(qr_payload)
 
     # ---- Build update document ----

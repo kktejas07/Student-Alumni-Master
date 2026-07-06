@@ -11,6 +11,78 @@ this session. Earlier history pre-dates this changelog.
 
 ## [Unreleased]
 
+## [0.20.0] — 2026-07-06 — Onboarding UX polish · ID card improvements · Registration hardening
+
+Quality-of-life improvements across the onboarding funnel, digital ID card,
+and registration flow based on user testing feedback.
+
+### Added — Bio writing-style auto-suggestion (all 4 onboarding flows)
+- Selecting a **Writing Style chip** in the Bio step now auto-populates
+  a contextual draft bio using the profile data collected in earlier steps
+  (role, company, college, YoE, interests/career goal).
+- Five style presets per role: **Friendly & warm**, **Professional**,
+  **Inspiring**, **Concise**, **Detailed** — each generates a unique
+  role-aware template capped at 300 chars.
+- Applies to: `student-onboard`, `mentor-onboard`, `alumni-onboard`,
+  `college-onboard`.
+
+### Added — Auth guard on all onboarding routes
+- Every onboarding screen now redirects to `/login` immediately if the auth
+  store has initialised but no user is present, preventing ghost onboarding
+  sessions from navigation history.
+
+### Added — ID card "Copy ID" button
+- New `Copy ID` action button on the Digital ID Card screen copies the raw
+  `SA-XXXX-ROLE-XXXXXX` identifier to clipboard (web) or native share
+  sheet (mobile).
+
+### Changed — Richer QR payload (backend + ID card)
+- **`GET /api/users/me/id-card`** — `qr_payload` is now a multi-line
+  human-readable block (Name, Email, Role, Work, Institution, Batch, ID,
+  Status, Verify URL) instead of just the verify URL.
+- **`POST /api/users/onboarding`** — same rich payload baked into the QR
+  code generated at onboarding time, so previously-onboarded users get the
+  enriched payload on their next ID-card fetch.
+- Bug fix: `unique_id` was referenced before assignment in the QR payload
+  block — corrected ordering.
+
+### Changed — ID card download improvements
+- `html2canvas` is now lazy-loaded from CDN when not pre-loaded, with a
+  `window.print()` fallback if CDN load fails.
+- Download button label changed to **"Save Card"** with a `CreditCard` icon.
+- `backgroundColor` for html2canvas set to `#130A28` (card background) so
+  exported PNG has the correct dark background instead of white.
+- QR code wrapped in a null-guard — shows a `ShieldCheck` placeholder
+  instead of crashing when `qr_payload` is empty.
+
+### Changed — Register page: email-already-exists handling
+- When registration returns a 409 / "already registered" message, a tappable
+  **"→ Sign in to your existing account instead"** link now appears directly
+  below the email field, routing to `/login`.
+- Response body is parsed via `res.text()` first to prevent silent parse
+  failures on non-JSON error bodies.
+
+### Fixed — SuggestionAutocomplete UX
+- Input now correctly wraps in `Pressable` so tapping anywhere in the field
+  row focuses the underlying `TextInput`.
+- Blur timeout increased to 350 ms (was 180 ms) to allow dropdown item taps
+  to register before focus clears.
+- "Other (type your own)" no longer clears the typed value on selection.
+- Empty-string input clears `manualMode` so the suggestion dropdown
+  reappears naturally after backspacing.
+
+### Files
+```
+~ backend/server.py                                      rich QR payload + unique_id fix
+~ frontend/app/id-card.tsx                               Copy ID · lazy html2canvas · QR guard
+~ frontend/app/(auth)/register.tsx                       email-exists detection + sign-in link
+~ frontend/app/(onboarding)/student-onboard.tsx          auth guard + bio style auto-suggestion
+~ frontend/app/(onboarding)/mentor-onboard.tsx           auth guard + bio style auto-suggestion
+~ frontend/app/(onboarding)/alumni-onboard.tsx           auth guard + bio style auto-suggestion
+~ frontend/app/(onboarding)/college-onboard.tsx          auth guard
+~ frontend/src/views/web/SuggestionAutocomplete.tsx      UX fixes (Pressable wrap, blur timing, manual mode)
+```
+
 ## [0.19.0] — 2026-06-?? — Global AI Copilot FAB + FinTax360 sweep across all Student views
 
 Two big polish items that complete the v0.18.x theme rollout for Student.

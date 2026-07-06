@@ -83,8 +83,15 @@ export default function StudentOnboard() {
   const router = useRouter();
   const toast = useToast();
   const user = useAuthStore((u) => u.user);
+  const initialized = useAuthStore((u) => u.initialized);
   const refreshUser = useAuthStore((u) => u.refreshUser);
   const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    if (initialized && !user) {
+      router.replace('/(auth)/login');
+    }
+  }, [initialized, user, router]);
 
   // ---- Step 1: College ----
   const [college, setCollege]   = useState('');
@@ -203,6 +210,36 @@ export default function StudentOnboard() {
         setPhoto(`data:image/jpeg;base64,${res.assets[0].base64}`);
       }
     } catch { toast.error('Camera', 'Could not open camera.'); }
+  };
+
+  const generateSuggestedBio = (selectedStyle: string) => {
+    const goalStr = goal === 'faang' ? 'landing a FAANG job' : goal === 'startup' ? 'building my own startup' : goal === 'mba_ms' ? 'cracking MBA/MS admissions' : 'exploring career options';
+    const collegeStr = college ? ` at ${college}` : '';
+    
+    let suggested = '';
+    switch (selectedStyle) {
+      case 'Friendly & warm':
+        suggested = `Hey! I'm a student${collegeStr}. Passionate about learning, and my current focus is ${goalStr}. Looking forward to connecting with mentors and alumni!`;
+        break;
+      case 'Professional':
+        suggested = `Student${collegeStr} with interest in ${ints.slice(0, 3).join(', ') || 'technology'}. Dedicated to ${goalStr} and seeking industry guidance.`;
+        break;
+      case 'Inspiring':
+        suggested = `Learning today, leading tomorrow. As a student${collegeStr}, I am building skills in ${ints.slice(0, 3).join(', ') || 'technology'} to achieve my goal of ${goalStr}.`;
+        break;
+      case 'Concise':
+        suggested = `Student${collegeStr} focused on ${goalStr}.`;
+        break;
+      case 'Detailed':
+        suggested = `Hello! I am currently pursuing my education${collegeStr}. My academic and personal interests lie in ${ints.slice(0, 3).join(', ') || 'various fields'}. My immediate goal is ${goalStr}, and I am looking for mock interviews and advice.`;
+        break;
+    }
+    setBio(suggested.slice(0, 300));
+  };
+
+  const handleStyleSelect = (selectedStyle: string) => {
+    setStyle(selectedStyle);
+    generateSuggestedBio(selectedStyle);
   };
 
   const HEADS = [
@@ -340,7 +377,7 @@ export default function StudentOnboard() {
               <Text style={s.helperRight}>{bio.length}/300</Text>
               <Text style={s.helper}>Keep it genuine — 2–3 sentences work best.</Text>
               <Text style={s.section}>Writing Style</Text>
-              <View style={s.chipRow}>{STYLES.map((x) => (<DarkChip key={x} label={x} active={style === x} onPress={() => setStyle(x)} />))}</View>
+              <View style={s.chipRow}>{STYLES.map((x) => (<DarkChip key={x} label={x} active={style === x} onPress={() => handleStyleSelect(x)} />))}</View>
             </>
           )}
 

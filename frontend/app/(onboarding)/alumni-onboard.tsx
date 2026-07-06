@@ -99,8 +99,15 @@ export default function AlumniOnboard() {
   const router = useRouter();
   const toast = useToast();
   const user = useAuthStore((u) => u.user);
+  const initialized = useAuthStore((u) => u.initialized);
   const refreshUser = useAuthStore((u) => u.refreshUser);
   const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    if (initialized && !user) {
+      router.replace('/(auth)/login');
+    }
+  }, [initialized, user, router]);
 
   // Step 1
   const [fullName,  setFullName]   = useState(user?.full_name || '');
@@ -248,6 +255,37 @@ export default function AlumniOnboard() {
       const res = await ImagePicker.launchCameraAsync({ quality: 0.5, base64: true, allowsEditing: true, aspect: [1, 1] });
       if (!res.canceled && res.assets[0]?.base64) setPhoto(`data:image/jpeg;base64,${res.assets[0].base64}`);
     } catch { toast.error('Camera', 'Could not open camera.'); }
+  };
+
+  const generateSuggestedBio = (selectedStyle: string) => {
+    const roleStr = jobTitle || 'alumni';
+    const companyStr = company ? ` at ${company}` : '';
+    const years = yoe ? `${yoe}+ years` : 'several years';
+    
+    let suggested = '';
+    switch (selectedStyle) {
+      case 'Friendly & warm':
+        suggested = `Hi! I'm an alum of ${college || 'my college'}. I currently work as a ${roleStr}${companyStr} with ${years} of experience. Excited to connect with juniors and offer career guidance!`;
+        break;
+      case 'Professional':
+        suggested = `${college || 'IIT'} alumnus working as a ${roleStr}${companyStr}. Passionate about technical mentorship, industry insights, and career growth.`;
+        break;
+      case 'Inspiring':
+        suggested = `Paying it forward. As a ${college || 'IIT'} graduate and ${roleStr}${companyStr}, I'm here to help the next generation navigate their career paths and achieve their dreams.`;
+        break;
+      case 'Concise':
+        suggested = `${roleStr}${companyStr}. Alum of ${college || 'IIT'} with ${years} experience.`;
+        break;
+      case 'Detailed':
+        suggested = `Greetings! I am a proud alumnus of ${college || 'my college'}. Currently, I am a ${roleStr}${companyStr}. I have over ${years} of experience in the industry, and I look forward to mentoring juniors on placements, coding, and networking.`;
+        break;
+    }
+    setBio(suggested.slice(0, 300));
+  };
+
+  const handleStyleSelect = (selectedStyle: string) => {
+    setStyle(selectedStyle);
+    generateSuggestedBio(selectedStyle);
   };
 
   const HEADS = [
@@ -427,7 +465,7 @@ export default function AlumniOnboard() {
               <Text style={s.helper}>Your bio appears on your alumni profile - keep it authentic.</Text>
               <Text style={[s.section, { marginTop: 10 }]}>Write Style</Text>
               <View style={s.chipRow}>
-                {STYLES.map((x) => (<DarkChip key={x} label={x} active={style === x} onPress={() => setStyle(x)} />))}
+                {STYLES.map((x) => (<DarkChip key={x} label={x} active={style === x} onPress={() => handleStyleSelect(x)} />))}
               </View>
             </>
           )}

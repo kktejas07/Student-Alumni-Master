@@ -8,7 +8,7 @@
  * checkmark on selected, same "Other (type your own)" fallback, same
  * role-aware accent colour.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   View, Text, Pressable, StyleSheet, Platform, TextInput as RNTextInput,
 } from 'react-native';
@@ -40,6 +40,7 @@ export function SuggestionAutocomplete({
   testID?: string;
 }) {
   const { primary } = useRoleTheme();
+  const inputRef = useRef<RNTextInput>(null);
   const [focused, setFocused] = useState(false);
   const [manualMode, setManualMode] = useState(false);
 
@@ -58,18 +59,32 @@ export function SuggestionAutocomplete({
   return (
     <View style={[styles.container, { zIndex: showDropdown ? 9999 : 30 }]}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
-      <View style={[styles.wrap, {
-        borderColor: focused ? primary : 'rgba(255,255,255,0.12)',
-        backgroundColor: focused ? `${primary}10` : 'rgba(255,255,255,0.03)',
-      }]}>
+      <Pressable
+        onPress={() => inputRef.current?.focus()}
+        style={[styles.wrap, {
+          borderColor: focused ? primary : 'rgba(255,255,255,0.12)',
+          backgroundColor: focused ? `${primary}10` : 'rgba(255,255,255,0.03)',
+        }]}
+      >
         {!manualMode && <Search size={14} color="rgba(255,255,255,0.5)" />}
         <RNTextInput
+          ref={inputRef}
           value={value}
-          onChangeText={(t) => { if (manualMode) setManualMode(true); onChangeText(t); }}
+          onChangeText={(t) => {
+            if (!t.trim()) setManualMode(false);
+            onChangeText(t);
+          }}
           placeholder={manualMode ? `Please enter your ${label.toLowerCase()}` : placeholder}
           placeholderTextColor="rgba(255,255,255,0.32)"
           onFocus={() => setFocused(true)}
-          onBlur={() => setTimeout(() => setFocused(false), 180)}
+          onBlur={() => {
+            setTimeout(() => {
+              setFocused(false);
+              if (value && value.trim() && !isMatchedSuggestion) {
+                setManualMode(true);
+              }
+            }, 350);
+          }}
           testID={testID}
           autoCapitalize="words"
           style={styles.input}
@@ -83,7 +98,7 @@ export function SuggestionAutocomplete({
             <Text style={styles.editPillText}>Pick</Text>
           </Pressable>
         )}
-      </View>
+      </Pressable>
       {helper ? <Text style={styles.helper}>{helper}</Text> : null}
       {!focused && value && (isMatchedSuggestion || manualMode) ? (
         <Text style={styles.statusHint}>{isMatchedSuggestion ? '✓ Selected from list' : '✎ Manual entry'}</Text>
@@ -99,7 +114,7 @@ export function SuggestionAutocomplete({
             onSelect={(opt) => { onChangeText(opt.value); setManualMode(false); setFocused(false); }}
             showOther={allowOther}
             otherLabel={otherLabel}
-            onSelectOther={() => { setManualMode(true); onChangeText(''); setFocused(false); }}
+            onSelectOther={() => { setManualMode(true); setFocused(false); }}
           />
         </View>
       )}

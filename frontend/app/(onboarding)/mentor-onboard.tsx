@@ -124,8 +124,15 @@ export default function MentorOnboard() {
   const router = useRouter();
   const toast = useToast();
   const user = useAuthStore((u) => u.user);
+  const initialized = useAuthStore((u) => u.initialized);
   const refreshUser = useAuthStore((u) => u.refreshUser);
   const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    if (initialized && !user) {
+      router.replace('/(auth)/login');
+    }
+  }, [initialized, user, router]);
 
   // ---- Step 1: Profile ----
   const [jobTitle,  setJobTitle]    = useState('');
@@ -286,6 +293,37 @@ export default function MentorOnboard() {
         setPhoto(`data:image/jpeg;base64,${res.assets[0].base64}`);
       }
     } catch { toast.error('Camera', 'Could not open camera.'); }
+  };
+
+  const generateSuggestedBio = (selectedStyle: string) => {
+    const roleStr = jobTitle || 'mentor';
+    const companyStr = company ? ` at ${company}` : '';
+    const years = yoe ? `${yoe}+ years` : 'several years';
+    
+    let suggested = '';
+    switch (selectedStyle) {
+      case 'Friendly & warm':
+        suggested = `Hey there! I'm a ${roleStr}${companyStr} with ${years} of experience. I love guiding students on system design, interview prep, and career growth. Let's chat and build something great!`;
+        break;
+      case 'Professional':
+        suggested = `Experienced ${roleStr}${companyStr} with a demonstrated history of ${years} in the industry. Specialized in mentoring students for technical roles, FAANG interview prep, and career planning.`;
+        break;
+      case 'Inspiring':
+        suggested = `Empowering the next generation of builders. As a ${roleStr}${companyStr} with ${years} of experience, I'm here to help you unlock your potential, master system design, and land your dream role.`;
+        break;
+      case 'Concise':
+        suggested = `${roleStr}${companyStr} with ${yoe || '5'}+ YOE. Mentoring in system design and career preparation.`;
+        break;
+      case 'Detailed':
+        suggested = `Hello! I currently work as a ${roleStr}${companyStr}. Over the past ${years}, I have developed deep expertise in software engineering and system architecture. I am passionate about mentoring juniors, mock sessions, and career guidance.`;
+        break;
+    }
+    setBio(suggested.slice(0, 300));
+  };
+
+  const handleStyleSelect = (selectedStyle: string) => {
+    setStyle(selectedStyle);
+    generateSuggestedBio(selectedStyle);
   };
 
   const HEADS = [
@@ -504,7 +542,7 @@ export default function MentorOnboard() {
               <Text style={s.helperRight}>{bio.length}/300</Text>
               <Text style={s.helper}>Keep it genuine — 2–3 sentences work best.</Text>
               <Text style={s.section}>Writing Style</Text>
-              <View style={s.chipRow}>{STYLES.map((x) => (<DarkChip key={x} label={x} active={style === x} onPress={() => setStyle(x)} />))}</View>
+              <View style={s.chipRow}>{STYLES.map((x) => (<DarkChip key={x} label={x} active={style === x} onPress={() => handleStyleSelect(x)} />))}</View>
             </>
           )}
 

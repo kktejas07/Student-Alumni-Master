@@ -34,6 +34,7 @@ export default function RegisterScreen() {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [emailAlreadyExists, setEmailAlreadyExists] = useState(false);
   const setUser = useAuthStore((s) => s.setUser);
   const setTokens = useAuthStore((s) => s.setTokens);
 
@@ -86,16 +87,31 @@ export default function RegisterScreen() {
         }),
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        // Pydantic 422 returns `detail` as an array of error objects; flatten to string.
-        const raw = err.detail;
-        const reason = Array.isArray(raw)
-          ? raw.map((e: any) => e?.msg || e?.message || '').filter(Boolean).join(', ') || 'Could not register'
-          : typeof raw === 'string' ? raw
-          : typeof raw === 'object' && raw !== null ? (raw.msg || raw.message || 'Could not register')
-          : 'Could not register';
+        // Read body as text first so we never lose it on parse failure.
+        const text = await res.text().catch(() => '');
+        let reason = 'Could not register';
+        try {
+          const err = text ? JSON.parse(text) : {};
+          const raw = err.detail;
+          reason = Array.isArray(raw)
+            ? raw.map((e: any) => e?.msg || e?.message || '').filter(Boolean).join(', ') || reason
+            : typeof raw === 'string' ? raw
+            : typeof raw === 'object' && raw !== null ? (raw.msg || raw.message || reason)
+            : reason;
+        } catch { /* keep default reason */ }
         trackAuth({ event: 'register_failure', email, reason });
-        setErrors({ email: reason });
+        // Special case: email already registered → prompt to sign in instead.
+        const isAlreadyRegistered =
+          reason.toLowerCase().includes('already registered') ||
+          reason.toLowerCase().includes('already in use') ||
+          res.status === 409;
+        if (isAlreadyRegistered) {
+          setEmailAlreadyExists(true);
+          setErrors({ email: 'This email already has an account.' });
+        } else {
+          setEmailAlreadyExists(false);
+          setErrors({ email: reason });
+        }
         return;
       }
       const data = await res.json();
@@ -147,7 +163,12 @@ export default function RegisterScreen() {
                 <AuthInput label="Last name" value={lastName} onChangeText={(t) => { setLastName(t); setErrors((p) => ({ ...p, lastName: '' })); }} placeholder="e.g. Kapoor" autoCapitalize="words" error={errors.lastName} />
               </View>
             </View>
-            <AuthInput label="Email" value={email} onChangeText={(t) => { setEmail(t); setErrors((p) => ({ ...p, email: '' })); }} placeholder="you@university.edu" keyboardType="email-address" error={errors.email} />
+            <AuthInput label="Email" value={email} onChangeText={(t) => { setEmail(t); setErrors((p) => ({ ...p, email: '' })); setEmailAlreadyExists(false); }} placeholder="you@university.edu" keyboardType="email-address" error={errors.email} />
+            {emailAlreadyExists && (
+              <Pressable onPress={() => router.replace('/(auth)/login')} style={{ marginTop: -10, marginBottom: 4 }}>
+                <Text style={{ color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 13 }}>→ Sign in to your existing account instead</Text>
+              </Pressable>
+            )}
 
             {/* Personal Information — phone (with country code) + DOB (mandatory) */}
             <View>
