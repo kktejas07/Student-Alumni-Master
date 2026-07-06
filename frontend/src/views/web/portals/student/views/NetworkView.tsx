@@ -11,7 +11,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useToast } from '@/src/views/components';
 import { request } from '@/src/models/services/api';
 
-import { StudentPortalNavContext } from '../StudentPortalRN';
+import { StudentPortalNavContext } from '../StudentPortalNavContext';
 
 type Person = { id: string; name: string; initials: string; kind: 'alumni' | 'student' | 'mentor'; role: string; subline: string; college: string; batch: number; tags: string[]; color: string; connection_state?: 'connected' | 'pending' | 'none' };
 const FALLBACK = { items: [] as Person[] };
