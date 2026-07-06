@@ -1267,7 +1267,7 @@ async def update_event(event_id: str, body: Dict[str, Any],
         raise HTTPException(404, "Event not found")
         
     is_host = str(user["_id"]) == doc.get("host_user_id")
-    is_admin = user.get("role") == "admin"
+    is_admin = user.get("role") in ["admin", "college", "superadmin"]
     if not (is_host or is_admin):
         raise HTTPException(403, "Only the host or an admin can edit")
         
