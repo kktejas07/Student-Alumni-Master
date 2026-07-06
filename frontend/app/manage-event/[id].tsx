@@ -8,9 +8,11 @@ import { ArrowLeft, Users, Calendar, MapPin, Edit2, CheckCircle, Ticket, Activit
 import { AnimatedAurora, GridOverlay, GlassCard, GlassSoft } from '@/src/views/web/portals/student/glass';
 import { PALETTE, FONTS, SC } from '@/src/views/web/portals/student/tokens';
 import { request } from '@/src/models/services/api';
+import { useToast } from '@/src/views/components/Toast';
 
 export default function ManageEvent() {
   const router = useRouter();
+  const toast = useToast();
   const params = useLocalSearchParams<any>();
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -48,11 +50,12 @@ export default function ManageEvent() {
         title: title.trim(),
         capacity: parseInt(capacity) || 100,
       };
-      await request(`/events/${params.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      await request(`/events/${params.id}`, { method: 'PATCH', body: payload });
       setEditMode(false);
+      toast.success('Event Updated', 'Changes have been saved successfully.');
       loadEvent(); 
     } catch (e: any) {
-      alert(e.message || 'Failed to update event');
+      toast.error('Update Failed', e.message || 'Failed to update event');
     } finally {
       setSaving(false);
     }
