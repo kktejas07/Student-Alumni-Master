@@ -4686,8 +4686,8 @@ async def ai_career_roadmap(
     when the student's career goal changes.
     """
     # ── Fix 3: Role guard ──
-    if user.get("role") not in ("student",):
-        raise HTTPException(403, "Career roadmap is available to students only")
+    if user.get("role") not in ("student", "alumni"):
+        raise HTTPException(403, "Career roadmap is available to students and alumni only")
 
     import time as _time
     _t0 = _time.perf_counter()
