@@ -7,6 +7,7 @@ import { GRAD } from '../portalkit';
 import { GlassCard } from '../glass';
 import { Badge } from '../atoms';
 import { usePortalData, postPortal } from '@/src/lib/portalApi';
+import { useRouter } from 'expo-router';
 
 type Ev = { id: string; title: string; date: string; mode: string; city: string; cat: string; attending: number; capacity: number; kind: string; price?: number; accent: string; registered: boolean };
 const FALLBACK = { items: [] as Ev[] };
@@ -14,14 +15,29 @@ const FALLBACK = { items: [] as Ev[] };
 const FILTERS = ['All', 'Free', 'Paid', 'Online', 'Onsite'];
 
 export function EventsView() {
+  const router = useRouter();
   const { data } = usePortalData<typeof FALLBACK>('/student/events', FALLBACK);
   const EVENTS = data?.items || [];
   const [filter, setFilter] = useState('All');
   const [rsvpd, setRsvpd] = useState<Set<string>>(new Set());
 
-  const onRSVP = async (id: string) => {
-    setRsvpd((p) => new Set(p).add(id));
-    try { await postPortal(`/student/events/${id}/rsvp`); } catch {}
+  const onRSVP = async (e: Ev) => {
+    // Navigate to event details to get QR code
+    router.push({
+      pathname: `/event/${e.id}` as any,
+      params: {
+        id: e.id,
+        title: e.title,
+        start_date: e.date,
+        venue: e.city || 'Online',
+        registration_deadline: e.date,
+        category: e.cat || 'Workshop',
+        organizer: 'Institution Partner',
+        image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=400',
+        url: '',
+        price: e.price !== undefined && e.price !== null ? String(e.price) : '',
+      }
+    });
   };
 
   const list = EVENTS.filter((e) => {
@@ -79,7 +95,7 @@ export function EventsView() {
                     <Text style={s.ctaText}>Registered</Text>
                   </View>
                 ) : (
-                  <Pressable onPress={() => onRSVP(e.id)}>
+                  <Pressable onPress={() => onRSVP(e)}>
                     <LinearGradient
                       colors={[GRAD.from, GRAD.to]}
                       start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
