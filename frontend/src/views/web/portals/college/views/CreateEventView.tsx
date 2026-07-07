@@ -7,6 +7,7 @@ import { Calendar, CheckCircle, Sparkles } from 'lucide-react-native';
 import { CC, FONTS } from '../tokens';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
+import { useRouter } from 'expo-router';
 
 const MODES = ['Online', 'In-person', 'Hybrid'];
 const CATEGORIES = ['Workshop', 'Hackathon', 'Career Fair', 'Talk', 'Networking'];
@@ -99,19 +100,32 @@ export function CreateEventView({ onNavigate }: { onNavigate?: (id: any) => void
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <Pressable
             onPress={create}
-            disabled={creating || !title || !collegeName}
-            style={({ hovered }: any) => [s.createBtn, hovered && { transform: [{ translateY: -1 }] }, (creating || !title || !collegeName) && { opacity: 0.5 }]}
+            disabled={creating || !!createdEvent || !title || !collegeName}
+            style={({ hovered }: any) => [s.createBtn, hovered && { transform: [{ translateY: -1 }] }, (creating || !!createdEvent || !title || !collegeName) && { opacity: 0.5 }]}
           >
             <Sparkles size={13} color={CC.bg} />
-            <Text style={s.createText}>{creating ? 'Creating…' : 'Create Event'}</Text>
+            <Text style={s.createText}>{creating ? 'Creating…' : createdEvent ? 'Created!' : 'Create Event'}</Text>
           </Pressable>
+          
           {createdEvent && (
-            <View style={s.successBox}>
-              <CheckCircle size={14} color="#22C55E" />
-              <Text style={{ color: '#22C55E', fontFamily: FONTS.bold, fontSize: 12 }}>
-                {createdEvent.title} · id {createdEvent.event_id}
-              </Text>
-            </View>
+            <>
+              <View style={s.successBox}>
+                <CheckCircle size={14} color="#22C55E" />
+                <Text style={{ color: '#22C55E', fontFamily: FONTS.bold, fontSize: 12 }}>
+                  {createdEvent.title}
+                </Text>
+              </View>
+              
+              <Pressable
+                onPress={() => {
+                   const router = require('expo-router').router;
+                   router.push(`/manage-event/${createdEvent.event_id}`);
+                }}
+                style={({ hovered }: any) => [s.createBtn, { backgroundColor: CC.card, borderColor: CC.border, borderWidth: 1 }, hovered && { transform: [{ translateY: -1 }] }]}
+              >
+                <Text style={{ color: CC.text, fontFamily: FONTS.bold, fontSize: 12 }}>Manage Event →</Text>
+              </Pressable>
+            </>
           )}
         </View>
       </View>
