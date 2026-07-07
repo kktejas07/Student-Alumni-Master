@@ -59,6 +59,7 @@ from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Query, Request, Body, Response
 from pydantic import BaseModel, Field
 import random
+import pytz
 from cachetools import TTLCache, cached
 from pathlib import Path
 
@@ -237,13 +238,23 @@ async def mentor_dashboard(mentor_email: Optional[str] = None):
 
     # Today's sessions (exactly today)
     now = datetime.now(timezone.utc)
-    start_of_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    tz_name = (mentor or {}).get("timezone") or "Asia/Kolkata"
+    try:
+        tz = pytz.timezone(tz_name)
+    except Exception:
+        tz = pytz.timezone("Asia/Kolkata")
+
+    now_local = datetime.now(tz)
+    start_of_today = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
     end_of_today = start_of_today + timedelta(days=1)
     
     today_cur = _db.bookings.find({
         "mentor_id": mentor_id,
         "status": {"$ne": "cancelled"},
-        "scheduled_at": {"$gte": start_of_today, "$lt": end_of_today}
+        "scheduled_at": {
+            "$gte": start_of_today.replace(tzinfo=None),
+            "$lt": end_of_today.replace(tzinfo=None)
+        }
     }).sort("scheduled_at", 1).limit(5)
     today_bookings = [b async for b in today_cur]
     
@@ -260,12 +271,25 @@ async def mentor_dashboard(mentor_email: Optional[str] = None):
 
     today_sessions = []
     for b in today_bookings:
+        status = b.get("status")
+        if status == "completed":
+            continue
+            
+        sched = b.get("scheduled_at")
+        if isinstance(sched, datetime):
+            sched_naive = sched.replace(tzinfo=None)
+            duration = b.get("duration_minutes") or 30
+            end_time_naive = sched_naive + timedelta(minutes=duration)
+            now_naive = now_local.replace(tzinfo=None)
+            if end_time_naive < now_naive:
+                continue
+
         sid_str = str(b.get("student_id"))
         student_doc = students_map.get(sid_str)
         sname = (student_doc or {}).get("full_name") or "Student"
-        sched = b.get("scheduled_at")
         time_str = ""
         if isinstance(sched, datetime):
+            # Datetime represents local hour/minute directly in this schema
             time_str = sched.strftime("%H:%M")
         today_sessions.append({
             "avatar": _initials(sname),
@@ -3189,7 +3213,13 @@ async def mentor_connections(email: Optional[str] = None, page: int = 1, per_pag
             seen_ids.add(uid)
             unique_users.append(u)
 
-    now = datetime.now(timezone.utc)
+    tz_name = (mentor or {}).get("timezone") or "Asia/Kolkata"
+    try:
+        tz = pytz.timezone(tz_name)
+    except Exception:
+        tz = pytz.timezone("Asia/Kolkata")
+    now_local = datetime.now(tz)
+    now_naive = now_local.replace(tzinfo=None)
     out = []
     
     # Map unique users to the frontend card representation.
@@ -3205,8 +3235,8 @@ async def mentor_connections(email: Optional[str] = None, page: int = 1, per_pag
         # Determine status.
         status = connection_status.get(uid, "active")
 
-        # Skip if they are not connected (i.e. pending, withdrawn, declined, none, rejected)
-        if status in ("none", "withdrawn", "declined", "rejected", "pending", "pending_sent"):
+        # Skip if they are not accepted connections
+        if status not in ("active", "accepted", "completed"):
             continue
 
         # Force completed connections to have 100% progress
@@ -3217,35 +3247,36 @@ async def mentor_connections(email: Optional[str] = None, page: int = 1, per_pag
         progress = int((completed_sessions / total_sessions) * 100) if total_sessions > 0 else 0
 
         # Next session date/time/topic
-        upcoming = [b for b in s_list if b.get("scheduled_at") and b.get("scheduled_at") > now and b.get("status") != "cancelled"]
+        upcoming = [b for b in s_list if b.get("scheduled_at") and b.get("scheduled_at").replace(tzinfo=None) > now_naive and b.get("status") != "cancelled"]
         upcoming.sort(key=lambda x: x["scheduled_at"])
         next_session = None
         if upcoming:
             ns = upcoming[0]
-            ns_dt = ns["scheduled_at"]
+            ns_dt_naive = ns["scheduled_at"].replace(tzinfo=None)
             next_session = {
-                "date": ns_dt.strftime("%b %d, %Y"),
-                "time": ns_dt.strftime("%H:%M"),
+                "date": ns_dt_naive.strftime("%b %d, %Y"),
+                "time": ns_dt_naive.strftime("%H:%M"),
                 "topic": ns.get("topic") or "1:1 Mentorship Session",
-                "daysAway": max(0, (ns_dt.date() - now.date()).days)
+                "daysAway": max(0, (ns_dt_naive.date() - now_naive.date()).days)
             }
         elif status == "active" and idx % 2 == 0:
-            ns_dt = now + timedelta(days=7 + (idx % 3))
+            ns_dt_naive = now_naive + timedelta(days=7 + (idx % 3))
             next_session = {
-                "date": ns_dt.strftime("%b %d, %Y"),
+                "date": ns_dt_naive.strftime("%b %d, %Y"),
                 "time": "10:00 AM",
                 "topic": "System Design Mock Interview" if idx % 3 == 0 else "Career Growth Plan",
-                "daysAway": max(0, (ns_dt.date() - now.date()).days)
+                "daysAway": max(0, (ns_dt_naive.date() - now_naive.date()).days)
             }
 
         # Last session date/notes
-        past = [b for b in s_list if b.get("scheduled_at") and b.get("scheduled_at") <= now]
+        past = [b for b in s_list if b.get("scheduled_at") and b.get("scheduled_at").replace(tzinfo=None) <= now_naive]
         past.sort(key=lambda x: x["scheduled_at"], reverse=True)
         last_session = None
         if past:
             ls = past[0]
+            ls_dt_naive = ls["scheduled_at"].replace(tzinfo=None)
             last_session = {
-                "date": ls["scheduled_at"].strftime("%b %d, %Y"),
+                "date": ls_dt_naive.strftime("%b %d, %Y"),
                 "notes": ls.get("notes") or ls.get("topic") or "Review goals and progress."
             }
         elif completed_sessions > 0:
