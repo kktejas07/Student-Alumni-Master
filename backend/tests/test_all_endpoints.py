@@ -16,6 +16,9 @@ from datetime import datetime, timedelta
 # FIXTURES
 # ─────────────────────────────────────────────────────────────
 
+# Add pytest-asyncio marker for all async tests
+pytestmark = pytest.mark.asyncio
+
 @pytest.fixture
 def anyio_backend():
     return "asyncio"
