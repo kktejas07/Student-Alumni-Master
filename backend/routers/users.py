@@ -19,7 +19,8 @@ from core.security import (
 from core.deps import get_current_user
 from core.models import UserRole, UserResponse, SchoolInfo, MentorInfo, AlumniInfo, StudentInfo, CareerPath, EducationLevel, CollegeInfo
 from personalization import build_personalized_dashboard, track_module_click
-
+from services.career_intelligence_service import compute_full_intelligence, invalidate_intel_cache
+from services.profile_service import compute_profile_completion
 
 
 class OnboardingRequest(BaseModel):
@@ -935,41 +936,29 @@ async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
                 safe["college_profile"] = cp
 
         await db.users.update_one({"_id": user["_id"]}, {"$set": safe})
+        # Invalidate skill intelligence cache whenever profile data changes
+        # (linkedin_url, github_url, portfolio_url, skills, projects, bio, etc.
+        #  all affect Career AI scores — stale cache causes incorrect readiness)
+        _CAREER_AI_AFFECTING_FIELDS = {
+            "linkedin_url", "github_url", "portfolio_url", "skills",
+            "projects", "bio", "student_info", "career_path",
+            "career_goal", "institution", "branch", "graduation_year",
+            "face_image_base64", "photo_data",
+        }
+        if safe.keys() & _CAREER_AI_AFFECTING_FIELDS:
+            invalidate_intel_cache(str(user.get("id") or user.get("_id")))
     return UserResponse(**serialize_user(await db.users.find_one({"_id": user["_id"]})))
 
 
 # ----------------------------------------------------------------------------
 # Profile completion + Resume + Preferences (SA Profile Web — Phase 4)
 # ----------------------------------------------------------------------------
-def _compute_profile_completion(u: dict) -> dict:
-    if u.get("role") == "college":
-        items = [
-            {"key": "photo", "label": "College Logo", "done": bool(u.get("college_logo_data") or u.get("photo_data")), "weight": 20},
-            {"key": "banner", "label": "College Banner", "done": bool(u.get("banner_data")), "weight": 20},
-            {"key": "bio", "label": "Tagline / Bio", "done": bool((u.get("bio") or u.get("headline") or "").strip()), "weight": 20},
-            {"key": "location", "label": "City & State", "done": bool((u.get("city") or "").strip()) and bool((u.get("state") or "").strip()), "weight": 20},
-            {"key": "socials", "label": "Social Links", "done": bool(u.get("linkedin_url")), "weight": 20},
-        ]
-    else:
-        items = [
-            {"key": "skills", "label": "Skills listed", "done": len(u.get("skills") or []) > 0, "weight": 25},
-            {"key": "resume", "label": "Resume uploaded", "done": len(u.get("resume_documents") or []) > 0 or bool(u.get("resume_url")) or bool(u.get("resume_data")), "weight": 20},
-            {"key": "projects", "label": "Projects added", "done": len(u.get("projects") or []) > 0, "weight": 20},
-            {"key": "socials", "label": "LinkedIn/GitHub linked", "done": bool(u.get("linkedin_url")) or bool(u.get("github_url")), "weight": 15},
-            {"key": "education", "label": "Education/College details", "done": bool((u.get("institution") or "").strip()) and bool((u.get("branch") or "").strip()), "weight": 10},
-            {"key": "bio", "label": "Bio / headline", "done": bool((u.get("bio") or u.get("headline") or "").strip()), "weight": 5},
-            {"key": "photo", "label": "Profile photo", "done": bool(u.get("face_image_base64") or u.get("photo_data")), "weight": 5},
-        ]
-    pct = sum(i["weight"] for i in items if i["done"])
-    return {"percentage": pct, "items": items}
-
-
 @router.get("/users/me/completion")
 async def get_my_completion(user: dict = Depends(get_current_user)):
     user_db = await db.users.find_one({"_id": user["_id"]}, {"resume_documents": 1})
     if user_db:
         user["resume_documents"] = user_db.get("resume_documents") or []
-    return _compute_profile_completion(user)
+    return compute_profile_completion(user)
 
 
 @router.get("/users/me/stats")
@@ -1119,21 +1108,21 @@ async def add_user_skill(req: dict, user: dict = Depends(get_current_user)):
     if any(s.lower() == skill.lower() for s in skills):
         return {"status": "exists", "skill": {"skill_name": skill, "weight": 0}}
         
-    # Calculate before stats/scores using skill-intelligence
-    before_intel = await get_my_skill_intelligence(user)
+    # Calculate before stats/scores using skill-intelligence service
+    uid = str(user.get("id") or user.get("_id"))
+    before_intel = await compute_full_intelligence(user, uid, db)
     before_score = before_intel["readiness_score"]["score"]
     before_level = before_intel["readiness_score"]["level"]
     
     # Add skill to array in DB
     await db.users.update_one({"_id": user["_id"]}, {"$addToSet": {"skills": skill}})
-    # Fix 12: invalidate skill-intelligence cache for this user
-    _SKILL_INTEL_CACHE.pop(str(user.get("id") or user.get("_id")), None)
+    invalidate_intel_cache(uid)
     
     # Re-fetch user document to get updated skills list
     updated_user = await db.users.find_one({"_id": user["_id"]})
     
     # Calculate after stats/scores
-    after_intel = await get_my_skill_intelligence(updated_user)
+    after_intel = await compute_full_intelligence(updated_user, uid, db)
     after_score = after_intel["readiness_score"]["score"]
     after_level = after_intel["readiness_score"]["level"]
     
@@ -1162,374 +1151,8 @@ async def delete_user_skill(skill_name: str, user: dict = Depends(get_current_us
         raise HTTPException(404, "Skill not found on profile")
         
     await db.users.update_one({"_id": user["_id"]}, {"$pull": {"skills": target_skill}})
+    invalidate_intel_cache(str(user.get("id") or user.get("_id")))
     return {"status": "success", "removed": target_skill}
-
-
-# ── Skill Intelligence in-memory cache (5-minute TTL per user) ──────────────
-_SKILL_INTEL_CACHE: dict = {}   # {user_id: {"ts": datetime, "data": dict}}
-_SKILL_INTEL_TTL_SECS = 300     # 5 minutes
-
-
-@router.get("/users/me/skill-intelligence")
-async def get_my_skill_intelligence(user: dict = Depends(get_current_user)):
-    """Compute user skill intelligence scores dynamically from profile and activity.
-
-    Restricted to students only. Results cached per-user for 5 minutes and
-    invalidated automatically when profile fields change.
-    """
-    if user.get("role") not in ("student",):
-        raise HTTPException(403, "Career skill intelligence is available to students only")
-    uid = str(user.get("id") or user.get("_id"))
-
-    # ── Cache lookup ──
-    import time as _time_mod
-    _now_ts = _time_mod.time()
-    _cached = _SKILL_INTEL_CACHE.get(uid)
-    if _cached and (_now_ts - _cached["ts"]) < _SKILL_INTEL_TTL_SECS:
-        return _cached["data"]
-    
-    projects = user.get("projects") or []
-    num_projects = len(projects)
-    
-    certs = user.get("certificates") or []
-    num_certs = len(certs)
-    
-    connections = 0
-    try:
-        connections = await db.connections.count_documents({
-            "$or": [{"from_id": uid}, {"to_id": uid}],
-            "status": "accepted",
-        })
-    except Exception:
-        pass
-        
-    bookings_count = 0
-    try:
-        bookings_count = await db.bookings.count_documents({"student_id": uid})
-    except Exception:
-        pass
-        
-    skills = [s.lower() for s in (user.get("skills") or [])]
-    user_db = await db.users.find_one({"_id": user["_id"]}, {"resume_documents": 1})
-    has_resume = len((user_db.get("resume_documents") or []) if user_db else []) > 0
-    has_github = bool(user.get("github_url"))
-    has_linkedin = bool(user.get("linkedin_url"))
-    has_portfolio = bool(user.get("portfolio_url"))
-
-    # Technical Excellence
-    tech_keywords = {"react", "node", "python", "aws", "database", "mongodb", "sql", "javascript", "typescript", "c++", "java", "html", "css", "docker", "kubernetes", "git", "linux", "programming", "software"}
-    matched_tech = sum(1 for s in skills if any(k in s for k in tech_keywords))
-    tech_score = 35 + (matched_tech * 10) + (15 if num_projects > 0 else 0) + (15 if has_github else 0)
-    tech_score = min(100, max(25, tech_score))
-    
-    # Professional Communication
-    comm_keywords = {"communication", "english", "public speaking", "debate", "languages", "speaking", "writing", "presentation", "verbal", "soft skills"}
-    matched_comm = sum(1 for s in skills if any(k in s for k in comm_keywords))
-    comm_score = 40 + (matched_comm * 15)
-    comm_score = min(100, max(25, comm_score))
-    
-    # Personal Brand
-    brand_score = 20
-    if has_resume: brand_score += 25
-    if has_portfolio: brand_score += 25
-    if has_linkedin: brand_score += 15
-    if has_github: brand_score += 15
-    brand_score = min(100, max(20, brand_score))
-    
-    # Leadership & Collaboration
-    lead_keywords = {"leadership", "teamwork", "mentoring", "collaboration", "management", "team", "mentor", "organizer", "lead"}
-    matched_lead = sum(1 for s in skills if any(k in s for k in lead_keywords))
-    lead_score = 40 + (matched_lead * 20)
-    lead_score = min(100, max(25, lead_score))
-    
-    # Career Preparation
-    prep_keywords = {"problem solving", "aptitude", "interview", "dsa", "data structures", "algorithms", "analytical"}
-    matched_prep = sum(1 for s in skills if any(k in s for k in prep_keywords))
-    prep_score = 35 + (matched_prep * 15) + (20 if bookings_count > 0 else 0)
-    prep_score = min(100, max(25, prep_score))
-    
-    # Industry Presence
-    industry_score = 30 + min(40, connections * 10) + (15 if num_certs > 0 else 0)
-    industry_score = min(100, max(30, industry_score))
-
-    scores = {
-        "Technical Excellence": tech_score,
-        "Professional Communication": comm_score,
-        "Personal Brand": brand_score,
-        "Leadership & Collaboration": lead_score,
-        "Career Preparation": prep_score,
-        "Industry Presence": industry_score,
-    }
-    
-    # Detect user career goal (SDE, PM, Design, Default)
-    si = user.get("student_info") or {}
-    goal = si.get("career_goal") or user.get("career_goal") or ""
-    
-    # Try database roadmap target_role fallback
-    existing_roadmap = await db.career_roadmaps.find_one({"user_id": uid})
-    if existing_roadmap and existing_roadmap.get("target_role"):
-        goal = existing_roadmap.get("target_role")
-        
-    if not goal:
-        goal = "Software Engineer"
-        
-    goal_lower = str(goal).lower()
-    
-    if any(k in goal_lower for k in ("engineer", "sde", "developer", "technical", "coding", "programmer", "software")):
-        weights = {
-            "Technical Excellence": 0.40,
-            "Career Preparation": 0.25,
-            "Personal Brand": 0.15,
-            "Professional Communication": 0.10,
-            "Leadership & Collaboration": 0.05,
-            "Industry Presence": 0.05
-        }
-        profile_name = "Technical Engineer"
-    elif any(k in goal_lower for k in ("manager", "pm", "product", "analyst", "consultant", "business")):
-        weights = {
-            "Professional Communication": 0.25,
-            "Leadership & Collaboration": 0.25,
-            "Career Preparation": 0.20,
-            "Technical Excellence": 0.10,
-            "Personal Brand": 0.10,
-            "Industry Presence": 0.10
-        }
-        profile_name = "Product Manager / Business Analyst"
-    elif any(k in goal_lower for k in ("design", "ui", "ux", "artist", "creator", "graphics")):
-        weights = {
-            "Personal Brand": 0.30,
-            "Technical Excellence": 0.20,
-            "Professional Communication": 0.20,
-            "Leadership & Collaboration": 0.10,
-            "Career Preparation": 0.10,
-            "Industry Presence": 0.10
-        }
-        profile_name = "Creative Designer"
-    else:
-        weights = {
-            "Technical Excellence": 0.25,
-            "Professional Communication": 0.15,
-            "Personal Brand": 0.20,
-            "Leadership & Collaboration": 0.15,
-            "Career Preparation": 0.15,
-            "Industry Presence": 0.10
-        }
-        profile_name = "Professional / Specialist"
-
-    overall_score = (
-        (tech_score * weights["Technical Excellence"]) +
-        (comm_score * weights["Professional Communication"]) +
-        (brand_score * weights["Personal Brand"]) +
-        (lead_score * weights["Leadership & Collaboration"]) +
-        (prep_score * weights["Career Preparation"]) +
-        (industry_score * weights["Industry Presence"])
-    )
-    overall_score = min(100, max(20, int(round(overall_score))))
-    
-    weakest_cat = min(scores, key=scores.get)
-    recommendation = {
-        "category": weakest_cat,
-        "title": "Top Opportunity",
-        "action": f"Improve {weakest_cat}",
-        "description": "Strengthen your profile by adding more credentials.",
-        "gain": "+5%"
-    }
-    
-    if weakest_cat == "Technical Excellence":
-        recommendation["description"] = "Increase Technical Excellence score by adding projects or technical skills."
-        recommendation["gain"] = "+8%"
-    elif weakest_cat == "Personal Brand":
-        recommendation["description"] = "Increase Personal Brand score by adding a portfolio website, GitHub link, or uploading a resume."
-        recommendation["gain"] = "+10%"
-    elif weakest_cat == "Professional Communication":
-        recommendation["description"] = "Increase Professional Communication score by practicing speaking or adding public speaking skills."
-        recommendation["gain"] = "+6%"
-    elif weakest_cat == "Leadership & Collaboration":
-        recommendation["description"] = "Increase Leadership & Collaboration score by adding teamwork, mentoring, or leadership experiences."
-        recommendation["gain"] = "+7%"
-    elif weakest_cat == "Career Preparation":
-        recommendation["description"] = "Increase Career Preparation score by booking a mock interview session or adding DSA skills."
-        recommendation["gain"] = "+9%"
-    elif weakest_cat == "Industry Presence":
-        recommendation["description"] = "Increase Industry Presence score by connecting with alumni and attending workshops."
-        recommendation["gain"] = "+8%"
-        
-    # Calculate profile completion
-    profile_comp = _compute_profile_completion(user)
-    profile_pct = profile_comp["percentage"]
-
-    # Calculate pending milestones
-    milestones = []
-    if existing_roadmap and existing_roadmap.get("milestones"):
-        milestones = await evaluate_roadmap_milestones(user, existing_roadmap.get("milestones", []), db)
-    else:
-        fallback_milestones = [
-            {"id": "m1", "title": "Build your resume", "description": "Upload a tailored resume for AI review.", "milestone_type": "RESUME", "completion_rule": "resume_documents.length > 0", "completed": False, "completed_at": None},
-            {"id": "m2", "title": "Build Portfolio", "description": "Showcase your work and link your GitHub.", "milestone_type": "PORTFOLIO", "completion_rule": "portfolio_url exists", "completed": False, "completed_at": None},
-            {"id": "m3", "title": "Complete Profile", "description": "Write a strong bio and upload an avatar.", "milestone_type": "PROFILE", "completion_rule": "bio.length > 10", "completed": False, "completed_at": None},
-            {"id": "m4", "title": "Network with Alumni", "description": "Connect with 5 alumni in your target domain.", "milestone_type": "NETWORKING", "completion_rule": "connections.length > 0", "completed": False, "completed_at": None},
-            {"id": "m5", "title": "Practice Interviews", "description": "Book a session with a mentor for mock interviews.", "milestone_type": "MOCK_INTERVIEW", "completion_rule": "bookings.length > 0", "completed": False, "completed_at": None},
-            {"id": "m6", "title": "Add 3 Projects", "description": "Demonstrate technical skills through projects.", "milestone_type": "PROJECT", "completion_rule": "projects.length >= 1", "completed": False, "completed_at": None},
-            {"id": "m7", "title": "Earn Certifications", "description": "Complete relevant certifications on Coursera.", "milestone_type": "CERTIFICATION", "completion_rule": "certifications.length >= 1", "completed": False, "completed_at": None},
-            {"id": "m8", "title": "LinkedIn Boost", "description": "Add your LinkedIn URL to your profile.", "milestone_type": "LINKEDIN", "completion_rule": "linkedin_url exists", "completed": False, "completed_at": None},
-        ]
-        milestones = await evaluate_roadmap_milestones(user, fallback_milestones, db)
-
-    pending_milestones = [m for m in milestones if not m.get("completed")]
-
-    GAINS = {
-        "RESUME": 8,
-        "PROJECT": 12,
-        "LINKEDIN": 5,
-        "PORTFOLIO": 7,
-        "CERTIFICATION": 6,
-        "MOCK_INTERVIEW": 8,
-        "NETWORKING": 4,
-        "SKILLS": 5,
-        "PROFILE": 3,
-        "JOB_APPLICATION": 2
-    }
-
-    actions = []
-    
-    # 1. Add all pending milestones
-    for m in pending_milestones:
-        m_type = m.get("milestone_type")
-        gain = GAINS.get(m_type, 3)
-        actions.append({
-            "title": m.get("title"),
-            "description": m.get("description"),
-            "gain": gain,
-            "type": m_type,
-            "source": "roadmap"
-        })
-        
-    # 2. Add missing profile completion fields
-    for item in profile_comp["items"]:
-        if not item["done"]:
-            key = item["key"]
-            if key == "skills":
-                actions.append({
-                    "title": "List Skills",
-                    "description": "Add at least 3 skills to showcase your expertise.",
-                    "gain": 5,
-                    "type": "SKILLS",
-                    "source": "profile"
-                })
-            elif key == "resume":
-                actions.append({
-                    "title": "Upload Resume",
-                    "description": "Upload a professional resume for AI scanning and parsing.",
-                    "gain": 8,
-                    "type": "RESUME",
-                    "source": "profile"
-                })
-            elif key == "projects":
-                actions.append({
-                    "title": "Add Projects",
-                    "description": "List technical or professional projects you have built.",
-                    "gain": 12,
-                    "type": "PROJECT",
-                    "source": "profile"
-                })
-            elif key == "socials":
-                actions.append({
-                    "title": "Link LinkedIn / GitHub",
-                    "description": "Add your LinkedIn or GitHub profiles to establish industry presence.",
-                    "gain": 5,
-                    "type": "LINKEDIN",
-                    "source": "profile"
-                })
-            elif key == "education":
-                actions.append({
-                    "title": "Enter Education Details",
-                    "description": "Add your college, department, and graduation year details.",
-                    "gain": 4,
-                    "type": "EDUCATION",
-                    "source": "profile"
-                })
-            elif key == "bio":
-                actions.append({
-                    "title": "Write Bio / Headline",
-                    "description": "Write a short professional headline or bio summarizing your goals.",
-                    "gain": 3,
-                    "type": "PROFILE",
-                    "source": "profile"
-                })
-            elif key == "photo":
-                actions.append({
-                    "title": "Upload Profile Photo",
-                    "description": "Add a professional headshot to personalize your profile.",
-                    "gain": 3,
-                    "type": "PHOTO",
-                    "source": "profile"
-                })
-
-    # Deduplicate actions by type
-    unique_actions = []
-    seen_types = set()
-    for act in actions:
-        if act["type"] not in seen_types:
-            seen_types.add(act["type"])
-            unique_actions.append(act)
-            
-    # Sort by gain descending
-    unique_actions.sort(key=lambda x: -x["gain"])
-    ranked_actions = unique_actions[:3]
-
-    # Calculate potential readiness
-    remaining_gains = sum(act["gain"] for act in unique_actions)
-    if overall_score >= 100:
-        potential_score = 100
-        readiness_gap = 0
-    else:
-        potential_score = overall_score + remaining_gains
-        potential_score = min(100, max(overall_score + (1 if len(unique_actions) > 0 else 0), potential_score))
-        readiness_gap = potential_score - overall_score
-
-    # Calculate analyzed skills list for the frontend
-    user_skills = user.get("skills") or []
-    analyzed_skills = []
-    for sk in user_skills:
-        display_category, weight = _categorize_skill(sk)
-        subcat_map = {
-            "technical_skills": "Technical Skill",
-            "communication": "Communication",
-            "leadership": "Leadership",
-            "interview_prep": "Interview Prep",
-            "soft_skills": "Soft Skill",
-            "networking": "Networking"
-        }
-        subcategory = subcat_map.get(display_category, "Skill")
-        analyzed_skills.append({
-            "skill_name": sk,
-            "subcategory": subcategory,
-            "weight": weight,
-            "source": "taxonomy",
-            "confidence": 1.0
-        })
-
-    _result = {
-        "skills": analyzed_skills,
-        "readiness_score": {
-            "score": overall_score,
-            "level": "Explorer" if overall_score <= 20 else "Builder" if overall_score <= 40 else "Developing Professional" if overall_score <= 60 else "Career Ready" if overall_score <= 80 else "Industry Ready",
-            "next_level": "Builder" if overall_score <= 20 else "Developing Professional" if overall_score <= 40 else "Career Ready" if overall_score <= 60 else "Industry Ready" if overall_score <= 80 else "Expert Ready",
-            "next_threshold": 21 if overall_score <= 20 else 41 if overall_score <= 40 else 61 if overall_score <= 60 else 81 if overall_score <= 80 else 100
-        },
-        "skill_scores": scores,
-        "recommendation": recommendation,
-        "potential_score": potential_score,
-        "readiness_gap": readiness_gap,
-        "profile_strength": profile_pct,
-        "goal_weights": weights,
-        "profile_name": profile_name,
-        "ranked_actions": ranked_actions,
-    }
-    # ── Store in cache ──
-    import time as _time_mod
-    _SKILL_INTEL_CACHE[uid] = {"ts": _time_mod.time(), "data": _result}
-    return _result
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -1682,7 +1305,7 @@ async def upload_my_resume(payload: dict, user: dict = Depends(get_current_user)
         {"$set": {"resume_documents": docs, "updated_at": datetime.now(timezone.utc)}},
     )
     # Fix 12: Invalidate skill-intelligence cache so scores reflect new resume
-    _SKILL_INTEL_CACHE.pop(str(user.get("id") or user.get("_id")), None)
+    invalidate_intel_cache(str(user.get("id") or user.get("_id")))
     return {"id": new_doc["id"], "name": new_doc["name"], "active": True}
 
 
