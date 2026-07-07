@@ -18,6 +18,64 @@ export interface RequestsViewProps {
   onSetDecision: (id: number, d: Decision) => void;
 }
 
+function SessionStatusBadge({
+  dateObj,
+  daysAway,
+  status,
+  duration,
+}: {
+  dateObj: Date;
+  daysAway: number;
+  status: string;
+  duration: number;
+}) {
+  const isPast = dateObj < new Date();
+
+  if (isPast) {
+    if (status === 'completed') {
+      const c = MC.tealP;
+      const bg = 'rgba(20,184,166,0.12)';
+      return (
+        <View style={{
+          paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6,
+          backgroundColor: bg, borderColor: c + '40', borderWidth: 1,
+        }}>
+          <Text style={{ color: c, fontFamily: FONTS.xbold, fontSize: 9.5 }}>
+            Completed ({duration} min)
+          </Text>
+        </View>
+      );
+    } else {
+      const c = MC.red;
+      const bg = 'rgba(239,68,68,0.12)';
+      return (
+        <View style={{
+          paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6,
+          backgroundColor: bg, borderColor: c + '40', borderWidth: 1,
+        }}>
+          <Text style={{ color: c, fontFamily: FONTS.xbold, fontSize: 9.5 }}>
+            Not Attended
+          </Text>
+        </View>
+      );
+    }
+  }
+
+  const isUrgent = daysAway <= 3;
+  const c = isUrgent ? MC.amber : MC.tealP;
+  const bg = isUrgent ? 'rgba(245,158,11,0.15)' : 'rgba(20,184,166,0.12)';
+  return (
+    <View style={{
+      paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6,
+      backgroundColor: bg, borderColor: c + '40', borderWidth: 1,
+    }}>
+      <Text style={{ color: c, fontFamily: FONTS.xbold, fontSize: 9.5 }}>
+        {daysAway === 0 ? 'Today' : `In ${daysAway}d`}
+      </Text>
+    </View>
+  );
+}
+
 export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
   const [liveRequests, setLiveRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,6 +160,7 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
         type: 'free',
         status: b.status,
         dateObj,
+        duration_minutes: b.duration_minutes || 30,
       };
     });
 
@@ -124,7 +183,7 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
 
   const stats = useMemo(() => {
     const pending = allRequests.filter((r) => r.status === 'pending').length;
-    const accepted = allRequests.filter((r) => r.status === 'confirmed' || r.status === 'accepted').length;
+    const accepted = allRequests.filter((r) => r.status === 'confirmed' || r.status === 'accepted' || r.status === 'completed').length;
     const declined = allRequests.filter((r) => r.status === 'cancelled' || r.status === 'declined').length;
     return { accepted, declined, pending };
   }, [allRequests]);
@@ -170,7 +229,12 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
                   <Text style={{ color: '#fff', fontFamily: FONTS.med, fontSize: 13, marginTop: 6 }}>“{req.topic}”</Text>
                   <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 4 }}>{req.time}</Text>
                 </View>
-                <Countdown days={req.daysAway} />
+                <SessionStatusBadge
+                  dateObj={req.dateObj}
+                  daysAway={req.daysAway}
+                  status={req.status}
+                  duration={(req as any).duration_minutes || 30}
+                />
               </View>
 
               {/* AI Fit score */}
@@ -231,8 +295,8 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
               ) : (
                 <View style={{ marginTop: 12, alignSelf: 'flex-start' }}>
                   <Badge
-                    label={req.status === 'confirmed' || req.status === 'accepted' ? 'Accepted ✓' : 'Declined'}
-                    color={req.status === 'confirmed' || req.status === 'accepted' ? 'green' : 'red'}
+                    label={req.status === 'confirmed' || req.status === 'accepted' || req.status === 'completed' ? 'Accepted ✓' : 'Declined'}
+                    color={req.status === 'confirmed' || req.status === 'accepted' || req.status === 'completed' ? 'green' : 'red'}
                   />
                 </View>
               )}
