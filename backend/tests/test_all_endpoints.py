@@ -16,13 +16,16 @@ from datetime import datetime, timedelta
 # FIXTURES
 # ─────────────────────────────────────────────────────────────
 
+# Add pytest-asyncio marker for all async tests
+pytestmark = pytest.mark.asyncio
+
 @pytest.fixture
 def anyio_backend():
     return "asyncio"
 
 @pytest.fixture
 async def client():
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
 
 @pytest.fixture
