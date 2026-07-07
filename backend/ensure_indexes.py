@@ -50,6 +50,15 @@ async def main():
     logger.info("Creating indexes for connections collection...")
     await safe_create(db.connections, "a")
     await safe_create(db.connections, "b")
+    # Career AI: skill intelligence queries connections by from_id/to_id + status
+    await safe_create(db.connections, "from_id")
+    await safe_create(db.connections, "to_id")
+    await safe_create(db.connections, [("from_id", 1), ("status", 1)])
+    await safe_create(db.connections, [("to_id", 1), ("status", 1)])
+
+    # Career Roadmaps
+    logger.info("Creating indexes for career_roadmaps collection...")
+    await safe_create(db.career_roadmaps, "user_id")
     
     # Sessions
     logger.info("Creating indexes for sessions collection...")
