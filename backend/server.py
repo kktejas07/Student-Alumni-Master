@@ -538,6 +538,8 @@ class UserResponse(BaseModel):
     last_name: Optional[str] = None
     headline: Optional[str] = None
     photo_data: Optional[str] = None
+    banner_data: Optional[str] = None
+    college_logo_data: Optional[str] = None
     institution: Optional[str] = None
     branch: Optional[str] = None
     stream: Optional[str] = None
@@ -753,6 +755,8 @@ def serialize_user(user: dict) -> dict:
         "last_name":      user.get("last_name"),
         "headline":       user.get("headline"),
         "photo_data":     user.get("photo_data") or user.get("face_image_base64") or user.get("oauth_picture"),
+        "banner_data":    user.get("banner_data"),
+        "college_logo_data": user.get("college_logo_data"),
         "institution":    user.get("institution"),
         "branch":         user.get("branch"),
         "stream":         user.get("stream"),
@@ -2834,7 +2838,7 @@ async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
     allowed = {
         # Identity / basics
         "full_name", "first_name", "last_name", "headline", "bio",
-        "phone", "city", "state", "location", "face_image_base64", "photo_data",
+        "phone", "city", "state", "location", "face_image_base64", "photo_data", "banner_data", "college_logo_data",
         # Academic
         "institution", "branch", "graduation_year", "year", "cgpa",
         "stream", "department",
@@ -2912,16 +2916,24 @@ async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
 # Profile completion + Resume + Preferences (SA Profile Web — Phase 4)
 # ----------------------------------------------------------------------------
 def _compute_profile_completion(u: dict) -> dict:
-    """Return per-item checklist + overall percentage using rebalanced weights."""
-    items = [
-        {"key": "skills", "label": "Skills listed", "done": len(u.get("skills") or []) >= 1, "weight": 25},
-        {"key": "resume", "label": "Resume uploaded", "done": len(u.get("resume_documents") or []) > 0 or bool(u.get("resume_url")) or bool(u.get("resume_data")), "weight": 20},
-        {"key": "projects", "label": "Projects added", "done": len(u.get("projects") or []) > 0, "weight": 20},
-        {"key": "socials", "label": "LinkedIn/GitHub linked", "done": bool(u.get("linkedin_url")) or bool(u.get("github_url")), "weight": 15},
-        {"key": "education", "label": "Education/College details", "done": bool((u.get("institution") or "").strip()) and bool((u.get("branch") or "").strip()), "weight": 10},
-        {"key": "bio", "label": "Bio / headline", "done": bool((u.get("bio") or u.get("headline") or "").strip()), "weight": 5},
-        {"key": "photo", "label": "Profile photo", "done": bool(u.get("face_image_base64") or u.get("photo_data")), "weight": 5},
-    ]
+    if u.get("role") == "college":
+        items = [
+            {"key": "photo", "label": "College Logo", "done": bool(u.get("college_logo_data") or u.get("photo_data")), "weight": 20},
+            {"key": "banner", "label": "College Banner", "done": bool(u.get("banner_data")), "weight": 20},
+            {"key": "bio", "label": "Tagline / Bio", "done": bool((u.get("bio") or u.get("headline") or "").strip()), "weight": 20},
+            {"key": "location", "label": "City & State", "done": bool((u.get("city") or "").strip()) and bool((u.get("state") or "").strip()), "weight": 20},
+            {"key": "socials", "label": "Social Links", "done": bool(u.get("linkedin_url")), "weight": 20},
+        ]
+    else:
+        items = [
+            {"key": "skills", "label": "Skills listed", "done": len(u.get("skills") or []) > 0, "weight": 25},
+            {"key": "resume", "label": "Resume uploaded", "done": len(u.get("resume_documents") or []) > 0 or bool(u.get("resume_url")) or bool(u.get("resume_data")), "weight": 20},
+            {"key": "projects", "label": "Projects added", "done": len(u.get("projects") or []) > 0, "weight": 20},
+            {"key": "socials", "label": "LinkedIn/GitHub linked", "done": bool(u.get("linkedin_url")) or bool(u.get("github_url")), "weight": 15},
+            {"key": "education", "label": "Education/College details", "done": bool((u.get("institution") or "").strip()) and bool((u.get("branch") or "").strip()), "weight": 10},
+            {"key": "bio", "label": "Bio / headline", "done": bool((u.get("bio") or u.get("headline") or "").strip()), "weight": 5},
+            {"key": "photo", "label": "Profile photo", "done": bool(u.get("face_image_base64") or u.get("photo_data")), "weight": 5},
+        ]
     pct = sum(i["weight"] for i in items if i["done"])
     return {"percentage": pct, "items": items}
 
@@ -5680,7 +5692,13 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     state_by_user: Dict[str, str] = {}
     for r in rels:
         other = r["b"] if r["a"] == me_id else r["a"]
-        state_by_user[other] = r.get("status", "pending")
+        st = r.get("status", "pending")
+        if st == "pending" and r.get("b") == me_id:
+            state_by_user[other] = "incoming"
+        elif st == "accepted":
+            state_by_user[other] = "connected"
+        else:
+            state_by_user[other] = st
 
     # Pull a healthy candidate set
     base_query: dict = {"_id": {"$ne": user["_id"]}}
@@ -5689,7 +5707,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
         base_query["$or"] = [{"full_name": rx}, {"email": rx}]
     candidates = await db.users.find(base_query, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).to_list(500)
 
-    cards = [_user_card(c) for c in candidates]
+    cards = [_user_card(c) for c in candidates if str(c.get("_id") or c.get("id")) != me_id]
     # attach connection_state (none|pending|connected|incoming)
     for c in cards:
         st = state_by_user.get(c["id"])
@@ -5717,7 +5735,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
         mentor_q,
         {"password_hash": 0, "face_image_base64": 0},
     ).sort("_id", -1).limit(100).to_list(100)
-    mentor_cards = [_user_card(m) for m in approved_mentors]
+    mentor_cards = [_user_card(m) for m in approved_mentors if str(m.get("_id") or m.get("id")) != me_id]
     for m in mentor_cards:
         m["connection_state"] = state_by_user.get(m["id"], "none")
     # Boost mentors matching career path
@@ -5919,12 +5937,27 @@ async def send_connection_request(other_id: str, req: Optional[ConnectRequestIn]
 @api_router.post("/network/accept/{other_id}")
 async def accept_connection(other_id: str, user: dict = Depends(get_current_user)):
     me_id = str(user.get("_id") or user.get("id"))
+    
+    # Check if already accepted or if the connection exists in any direction
+    existing = await db.connections.find_one({
+        "$or": [
+            {"a": other_id, "b": me_id},
+            {"a": me_id, "b": other_id}
+        ]
+    })
+    
+    if not existing:
+        raise HTTPException(404, "No connection request found between these users")
+        
+    if existing.get("status") == "accepted":
+        # Already accepted, just return success
+        return {"action": "accepted"}
+
     res = await db.connections.update_one(
-        {"a": other_id, "b": me_id, "status": "pending"},
+        {"_id": existing["_id"]},
         {"$set": {"status": "accepted", "accepted_at": datetime.utcnow()}},
     )
-    if res.matched_count == 0:
-        raise HTTPException(404, "No pending request from this user")
+
     try:
         await db.notifications.insert_one({
             "id": str(ObjectId()),
@@ -5943,22 +5976,32 @@ async def accept_connection(other_id: str, user: dict = Depends(get_current_user
 @api_router.post("/network/reject/{other_id}")
 async def reject_connection(other_id: str, user: dict = Depends(get_current_user)):
     me_id = str(user.get("_id") or user.get("id"))
-    res = await db.connections.delete_one(
-        {"a": other_id, "b": me_id, "status": "pending"},
-    )
-    if res.deleted_count == 0:
+    existing = await db.connections.find_one({
+        "$or": [
+            {"a": other_id, "b": me_id, "status": "pending"},
+            {"a": me_id, "b": other_id, "status": "pending"}
+        ]
+    })
+    if not existing:
         raise HTTPException(404, "No pending request to reject")
+    
+    res = await db.connections.delete_one({"_id": existing["_id"]})
     return {"action": "rejected"}
 
 
 @api_router.post("/network/withdraw/{other_id}")
 async def withdraw_connection(other_id: str, user: dict = Depends(get_current_user)):
     me_id = str(user.get("_id") or user.get("id"))
-    res = await db.connections.delete_one(
-        {"a": me_id, "b": other_id, "status": "pending"},
-    )
-    if res.deleted_count == 0:
+    existing = await db.connections.find_one({
+        "$or": [
+            {"a": other_id, "b": me_id, "status": "pending"},
+            {"a": me_id, "b": other_id, "status": "pending"}
+        ]
+    })
+    if not existing:
         raise HTTPException(404, "No pending request to withdraw")
+    
+    res = await db.connections.delete_one({"_id": existing["_id"]})
     return {"action": "withdrawn"}
 
 

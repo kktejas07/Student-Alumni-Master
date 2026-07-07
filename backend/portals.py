@@ -2453,7 +2453,10 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             if status == "accepted":
                 rel_map[other] = "connected"
             elif status == "pending":
-                rel_map[other] = "pending"
+                if r.get("b") == me_id:
+                    rel_map[other] = "incoming"
+                else:
+                    rel_map[other] = "pending"
 
     out = []
     me_id_str = str(user["_id"]) if user else ""

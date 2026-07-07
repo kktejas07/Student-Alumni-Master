@@ -4,13 +4,31 @@
  */
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, Alert, Modal } from 'react-native';
-import { Mail, Phone, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Sparkles, Check, X, Upload, Camera, TrendingUp, AlertCircle, Plus, Trash2, Folder } from 'lucide-react-native';
+import { Mail, Phone, MapPin, Building2, Link2, Link2 as GithubIcon, Globe, Sparkles, Check, X, Upload, Camera, TrendingUp, AlertCircle, Plus, Trash2, Folder, Image as ImageIcon } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { WebcamModal } from '@/src/views/components/WebcamModal';
 import { CompletionRing } from './CompletionRing';
 import { Card, Field, TF, TA, SF, ChipPicker, C, PhoneField } from './primitives';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
+import { SuggestionAutocomplete } from '@/src/views/web/SuggestionAutocomplete';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+
+const CITY_LIST = [
+  'Mumbai', 'Delhi', 'Bengaluru', 'Hyderabad', 'Chennai', 'Kolkata',
+  'Pune', 'Ahmedabad', 'Jaipur', 'Lucknow', 'Kanpur', 'Indore',
+  'Bhopal', 'Coimbatore', 'Nagpur', 'Surat', 'Vadodara', 'Patna',
+  'Visakhapatnam', 'Kochi', 'Thiruvananthapuram', 'Chandigarh',
+  'Guwahati', 'Bhubaneswar', 'Mysuru', 'Mangaluru', 'Vijayawada'
+];
+
+const STATE_LIST = [
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
+  'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
+  'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
+  'Telangana', ' त्रिपुरा', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal'
+];
 
 const TAXONOMY_KEYS = [
   "React", "React Native", "Next.js", "Node.js", "TypeScript", "JavaScript", "Python", "Java", "C++", 
@@ -53,8 +71,9 @@ interface Props {
 }
 
 export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, onTakeSelfie }: Props) {
+  const isCollege = draft.role === 'college' || useAuthStore.getState().user?.role === 'college';
   const [pendingPhoto, setPendingPhoto] = useState<string | null>(null);
-  const photo = pendingPhoto || draft.photo_data || draft.face_image_base64;
+  const photo = pendingPhoto || (isCollege ? draft.college_logo_data : (draft.photo_data || draft.face_image_base64));
   const initials = ((draft.full_name || '?').split(' ').slice(0,2).map((s: string) => s[0] || '').join('') || '?').toUpperCase();
 
   const isMentor = !!onTakeSelfie;
@@ -127,9 +146,62 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
     }
   };
 
+  const pickBannerImage = async () => {
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [3, 1],
+        quality: 0.6,
+        base64: true,
+      });
+      if (!result.canceled && result.assets[0]?.base64) {
+        setDraft((d: any) => ({ ...d, banner_data: `data:image/jpeg;base64,${result.assets[0].base64}` }));
+      }
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'Could not pick image.');
+    }
+  };
+
+  const pickCollegeLogo = async () => {
+    if (Platform.OS === 'web') {
+      const input = (document as any).createElement('input');
+      input.type = 'file';
+      input.accept = 'image/png,image/jpeg,image/webp';
+      input.onchange = (e: any) => {
+        const f = e.target.files?.[0]; if (!f) return;
+        const r = new FileReader();
+        r.onload = () => { setDraft((d: any) => ({ ...d, college_logo_data: r.result })); };
+        r.readAsDataURL(f);
+      };
+      input.click();
+      return;
+    }
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.6,
+        base64: true,
+      });
+      if (!result.canceled && result.assets[0]?.base64) {
+        setDraft((d: any) => ({ ...d, college_logo_data: `data:image/jpeg;base64,${result.assets[0].base64}` }));
+      }
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'Could not pick image.');
+    }
+  };
+
   const confirmPhoto = () => {
     if (pendingPhoto) {
-      setDraft((d: any) => ({ ...d, photo_data: pendingPhoto, face_image_base64: pendingPhoto }));
+      if (isCollege) {
+        setDraft((d: any) => ({ ...d, college_logo_data: pendingPhoto }));
+      } else {
+        setDraft((d: any) => ({ ...d, photo_data: pendingPhoto, face_image_base64: pendingPhoto }));
+      }
       setPendingPhoto(null);
     }
   };
@@ -219,91 +291,149 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
   return (
     <View style={{ gap: 16, zIndex: 10, position: 'relative' }}>
       {/* Completion Banner */}
-      <View style={[st.banner, completion.percentage >= 100 && st.bannerComplete]}>
-        <CompletionRing pct={completion.percentage} size={92} color={completion.percentage >= 100 ? '#10B981' : '#A78BFA'} />
-        <View style={{ flex: 1, minWidth: 0, gap: 10 }}>
-          <Text style={st.bannerTitle}>Profile Completion</Text>
-          <Text style={st.bannerSub}>Complete your profile to unlock personalized recommendations & higher trust signals.</Text>
-          <View style={st.itemsRow}>
-            {completion.items.map((it) => (
-              <View key={it.key} style={[st.itemPill, it.done && st.itemPillDone]}>
-                {it.done ? <Check size={11} color={C.green} /> : <View style={st.dot} />}
-                <Text style={[st.itemPillText, it.done && { color: C.green }]}>{it.label}</Text>
-              </View>
-            ))}
-            {completion.percentage >= 100 && (
-              <View style={st.completePill}><Sparkles size={11} color="#fff" /><Text style={st.completePillText}>Complete</Text></View>
-            )}
+      {!isCollege && (
+        <View style={[st.banner, completion.percentage >= 100 && st.bannerComplete]}>
+          <CompletionRing pct={completion.percentage} size={92} color={completion.percentage >= 100 ? '#10B981' : '#A78BFA'} />
+          <View style={{ flex: 1, minWidth: 0, gap: 10 }}>
+            <Text style={st.bannerTitle}>Profile Completion</Text>
+            <Text style={st.bannerSub}>Complete your profile to unlock personalized recommendations & higher trust signals.</Text>
+            <View style={st.itemsRow}>
+              {completion.items.map((it) => (
+                <View key={it.key} style={[st.itemPill, it.done && st.itemPillDone]}>
+                  {it.done ? <Check size={11} color={C.green} /> : <View style={st.dot} />}
+                  <Text style={[st.itemPillText, it.done && { color: C.green }]}>{it.label}</Text>
+                </View>
+              ))}
+              {completion.percentage >= 100 && (
+                <View style={st.completePill}><Sparkles size={11} color="#fff" /><Text style={st.completePillText}>Complete</Text></View>
+              )}
+            </View>
           </View>
         </View>
-      </View>
+      )}
 
-      {/* Basic Information */}
-      <Card title="Basic Information" subtitle="Your name, photo, and a short tagline.">
-        <View style={st.photoRow}>
-          <View style={{ position: 'relative' }}>
-            <Pressable onPress={handleOpenMenu} style={st.avatarLg} testID="profile-avatar-upload">
-              {photo ? (
-                <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
+
+      {/* College Banner Block (Outside Card) */}
+      {isCollege && (
+        <View style={{ marginBottom: 24, position: 'relative', zIndex: 10 }}>
+          {/* Banner Container */}
+          <View style={{ width: '100%', height: 180, borderRadius: 16, backgroundColor: '#131938', borderWidth: 1, borderColor: C.border, position: 'relative' }}>
+            
+            {/* Banner Image / Placeholder */}
+            <View style={{ width: '100%', height: '100%', borderRadius: 16, overflow: 'hidden' }}>
+              {draft.banner_data ? (
+                <Image source={{ uri: draft.banner_data }} style={StyleSheet.absoluteFillObject} />
               ) : (
-                <Text style={st.avatarLgText}>{initials}</Text>
-              )}
-            </Pressable>
-            {photo && (
-              <View style={st.avatarCheck}>
-                <Check size={11} color="#fff" />
-              </View>
-            )}
-          </View>
-          <View style={{ flex: 1, minWidth: 0, gap: 8 }}>
-            <Text style={st.photoTitle}>Profile Photo</Text>
-            <Text style={st.photoHint}>JPG, PNG up to 5MB. Recommended 400×400px.</Text>
-            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
-              {pendingPhoto ? (
-                <>
-                  <Pressable onPress={confirmPhoto} style={st.btnConfirm} testID="pf-confirm-photo">
-                    <Check size={14} color="#FFF" />
-                    <Text style={st.btnPrimaryText}>Confirm</Text>
-                  </Pressable>
-                  <Pressable onPress={() => { setPendingPhoto(null); if (onTakeSelfie) { onTakeSelfie(); } else { takeSelfie(); } }} style={st.btnGhost} testID="pf-retake-photo">
-                    <Camera size={14} color={themeColor} />
-                    <Text style={st.btnGhostText}>Retake</Text>
-                  </Pressable>
-                </>
-              ) : (
-                <>
-                  <Pressable onPress={onUploadPhoto} style={st.btnPrimary} testID="pf-upload-photo">
-                    <Upload size={14} color="#FFF" />
-                    <Text style={st.btnPrimaryText}>Upload Photo</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => {
-                      if (onTakeSelfie) {
-                        onTakeSelfie();
-                      } else {
-                        takeSelfie();
-                      }
-                    }}
-                    style={st.btnPrimary}
-                    testID="pf-take-selfie"
-                  >
-                    <Camera size={14} color="#FFF" />
-                    <Text style={st.btnPrimaryText}>Take Selfie</Text>
-                  </Pressable>
-                  {photo && (
-                    <Pressable onPress={() => {
-                      setDraft((d: any) => ({ ...d, photo_data: '', face_image_base64: '' }));
-                    }} style={st.btnGhost}>
-                      <Text style={st.btnGhostText}>Remove</Text>
-                    </Pressable>
-                  )}
-                </>
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                  <ImageIcon size={32} color={C.text3} />
+                  <Text style={{ color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 13, marginTop: 8 }}>Banner: 1200x400px</Text>
+                </View>
               )}
             </View>
 
-            <Text style={st.photoHint}>JPG, PNG up to 5MB. Click Upload Photo to select a file from your system or capture a webcam selfie.</Text>
+            {/* Banner Controls (Top Left) */}
+            <View style={{ position: 'absolute', top: 16, left: 16, flexDirection: 'row', gap: 8 }}>
+              <Pressable onPress={pickBannerImage} style={{ backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Upload size={14} color="#FFF" />
+                <Text style={{ color: '#FFF', fontSize: 13, fontFamily: 'DMSans_700Bold' }}>Upload Banner</Text>
+              </Pressable>
+              {draft.banner_data && (
+                <Pressable onPress={() => setDraft((d: any) => ({ ...d, banner_data: '' }))} style={{ backgroundColor: 'rgba(0,0,0,0.6)', padding: 10, borderRadius: 20 }}>
+                  <Trash2 size={14} color="#FFF" />
+                </Pressable>
+              )}
+            </View>
+
+            {/* Profile Photo (Logo) on the Bottom Right */}
+            <View style={{ position: 'absolute', bottom: 12, right: 12, zIndex: 20 }}>
+              <View style={{ width: 84, height: 84, borderRadius: 16, backgroundColor: '#0a0f1e', overflow: 'hidden', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+                {photo ? (
+                  <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
+                ) : (
+                  <Text style={{ color: '#C4B5FD', fontFamily: 'DMSans_800ExtraBold', fontSize: 32 }}>{initials}</Text>
+                )}
+              </View>
+              {/* Small camera edit button */}
+              <Pressable
+                onPress={pickCollegeLogo}
+                style={{ position: 'absolute', bottom: -6, right: -6, width: 28, height: 28, borderRadius: 14, backgroundColor: '#A78BFA', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#131938' }}
+                testID="pf-college-logo-upload"
+              >
+                <Camera size={14} color="#FFF" />
+              </Pressable>
+            </View>
           </View>
         </View>
+      )}
+
+      {/* Basic Information */}
+      <Card title="Basic Information" subtitle="Your name, photo, and a short tagline.">
+        {!isCollege && (
+          <View style={st.photoRow}>
+            <View style={{ position: 'relative' }}>
+              <Pressable onPress={handleOpenMenu} style={st.avatarLg} testID="profile-avatar-upload">
+                {photo ? (
+                  <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} />
+                ) : (
+                  <Text style={st.avatarLgText}>{initials}</Text>
+                )}
+              </Pressable>
+              {photo && (
+                <View style={st.avatarCheck}>
+                  <Check size={11} color="#fff" />
+                </View>
+              )}
+            </View>
+            <View style={{ flex: 1, minWidth: 0, gap: 8 }}>
+              <Text style={st.photoTitle}>Profile Photo</Text>
+              <Text style={st.photoHint}>JPG, PNG up to 5MB. Recommended 400x400px.</Text>
+              <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
+                {pendingPhoto ? (
+                  <>
+                    <Pressable onPress={confirmPhoto} style={st.btnConfirm} testID="pf-confirm-photo">
+                      <Check size={14} color="#FFF" />
+                      <Text style={st.btnPrimaryText}>Confirm</Text>
+                    </Pressable>
+                    <Pressable onPress={() => { setPendingPhoto(null); if (onTakeSelfie) { onTakeSelfie(); } else { takeSelfie(); } }} style={st.btnGhost} testID="pf-retake-photo">
+                      <Camera size={14} color={themeColor} />
+                      <Text style={st.btnGhostText}>Retake</Text>
+                    </Pressable>
+                  </>
+                ) : (
+                  <>
+                    <Pressable onPress={onUploadPhoto} style={st.btnPrimary} testID="pf-upload-photo">
+                      <Upload size={14} color="#FFF" />
+                      <Text style={st.btnPrimaryText}>Upload Photo</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => {
+                        if (onTakeSelfie) {
+                          onTakeSelfie();
+                        } else {
+                          takeSelfie();
+                        }
+                      }}
+                      style={st.btnPrimary}
+                      testID="pf-take-selfie"
+                    >
+                      <Camera size={14} color="#FFF" />
+                      <Text style={st.btnPrimaryText}>Take Selfie</Text>
+                    </Pressable>
+                    {photo && (
+                      <Pressable onPress={() => {
+                        setDraft((d: any) => ({ ...d, photo_data: '', face_image_base64: '' }));
+                      }} style={st.btnGhost}>
+                        <Text style={st.btnGhostText}>Remove</Text>
+                      </Pressable>
+                    )}
+                  </>
+                )}
+              </View>
+
+              <Text style={st.photoHint}>JPG, PNG up to 5MB. Click Upload Photo to select a file from your system or capture a webcam selfie.</Text>
+            </View>
+          </View>
+        )}
 
         {/* Inline Action Selection Modal (Replaces native Modal to bypass web overlay issues) */}
         {modalVisible && (
@@ -363,34 +493,59 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
       </Card>
 
       {/* Contact Details */}
+      <View style={{ zIndex: 50, position: 'relative' }}>
       <Card title="Contact Details" subtitle="How others can reach you (visible based on privacy settings).">
         <View style={[st.row, { zIndex: 19 }]}>
           <Field label="Email" half><TF value={draft.email || ''} onChangeText={() => {}} leftIcon={<Mail size={14} color={C.text2} />} testID="pf-email" /></Field>
           <Field label="Phone" half><PhoneField value={draft.phone || ''} onChange={(v) => setField('phone', v)} placeholder="Phone number" testID="pf-phone" /></Field>
         </View>
-        <Field label="Location"><TF value={draft.location || draft.city || ''} onChangeText={(v) => setField('location', v)} leftIcon={<MapPin size={14} color={C.text2} />} placeholder="City, State" testID="pf-location" /></Field>
+        <View style={[st.row, { zIndex: 18 }]}>
+          <View style={{ flex: 1 }}>
+            <SuggestionAutocomplete
+              label="City"
+              value={draft.city || ''}
+              onChangeText={(v) => setField('city', v)}
+              placeholder="e.g. Mumbai"
+              suggestions={CITY_LIST}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <SuggestionAutocomplete
+              label="State"
+              value={draft.state || ''}
+              onChangeText={(v) => setField('state', v)}
+              placeholder="e.g. Maharashtra"
+              suggestions={STATE_LIST}
+            />
+          </View>
+        </View>
       </Card>
+      </View>
 
       {/* Academic Details */}
-      <Card title="Academic Details" subtitle="Your education info — used for matching with peers.">
-        <Field label="College / University"><TF value={draft.institution || ''} onChangeText={(v) => setField('institution', v)} leftIcon={<Building2 size={14} color={C.text2} />} placeholder="e.g. IIT Bombay" testID="pf-college" /></Field>
-        <View style={[st.row, { zIndex: 18 }]}>
-          <Field label="Stream" half hint="Class 11/12 stream (PCM, Commerce, etc.)"><SF value={String(draft.stream || '')} onChange={(v) => setField('stream', v)} options={STREAMS} placeholder="Select stream" testID="pf-stream" /></Field>
-          <Field label="Branch / Major" half><TF value={draft.branch || ''} onChangeText={(v) => setField('branch', v)} placeholder="Computer Science" testID="pf-branch" /></Field>
-        </View>
-        <View style={[st.row, { zIndex: 17 }]}>
-          <Field label="Department" half hint="College department / faculty"><SF value={String(draft.department || '')} onChange={(v) => setField('department', v)} options={DEPARTMENTS} placeholder="Select department" testID="pf-department" /></Field>
-          <Field label="Graduation Year" half><SF value={String(draft.graduation_year || '')} onChange={(v) => setField('graduation_year', v)} options={GRAD_YEARS} placeholder="Select year" testID="pf-grad-year" /></Field>
-        </View>
-        <Field label="CGPA / GPA" hint="Optional — out of 10 (or your scale)."><TF value={String(draft.cgpa || '')} onChangeText={(v) => setField('cgpa', v)} placeholder="8.5" testID="pf-cgpa" /></Field>
-      </Card>
+      {!isCollege && (
+        <View style={{ zIndex: 40, position: 'relative' }}>
+        <Card title="Academic Details" subtitle="Your education info — used for matching with peers.">
+          <Field label="College / University"><TF value={draft.institution || ''} onChangeText={(v) => setField('institution', v)} leftIcon={<Building2 size={14} color={C.text2} />} placeholder="e.g. IIT Bombay" testID="pf-college" /></Field>
+          <View style={[st.row, { zIndex: 18 }]}>
+            <Field label="Stream" half hint="Class 11/12 stream (PCM, Commerce, etc.)"><SF value={String(draft.stream || '')} onChange={(v) => setField('stream', v)} options={STREAMS} placeholder="Select stream" testID="pf-stream" /></Field>
+            <Field label="Branch / Major" half><TF value={draft.branch || ''} onChangeText={(v) => setField('branch', v)} placeholder="Computer Science" testID="pf-branch" /></Field>
+          </View>
+          <View style={[st.row, { zIndex: 17 }]}>
+            <Field label="Department" half hint="College department / faculty"><SF value={String(draft.department || '')} onChange={(v) => setField('department', v)} options={DEPARTMENTS} placeholder="Select department" testID="pf-department" /></Field>
+            <Field label="Graduation Year" half><SF value={String(draft.graduation_year || '')} onChange={(v) => setField('graduation_year', v)} options={GRAD_YEARS} placeholder="Select year" testID="pf-grad-year" /></Field>
+          </View>
+          <Field label="CGPA / GPA" hint="Optional — out of 10 (or your scale)."><TF value={String(draft.cgpa || '')} onChangeText={(v) => setField('cgpa', v)} placeholder="8.5" testID="pf-cgpa" /></Field>
+        </Card>
 
-      {/* Interests */}
-      <Card title="Interests & Career Focus" subtitle={`Pick at least 3 — used for personalized matches. (${interests.length}/${INTERESTS.length} selected)`}>
-        <ChipPicker options={INTERESTS} selected={interests} onToggle={(o) => {
-          setField('interests', interests.includes(o) ? interests.filter((x: string) => x !== o) : [...interests, o]);
-        }} />
-      </Card>
+        {/* Interests */}
+        <Card title="Interests & Career Focus" subtitle={`Pick at least 3 — used for personalized matches. (${interests.length}/${INTERESTS.length} selected)`}>
+          <ChipPicker options={INTERESTS} selected={interests} onToggle={(o) => {
+            setField('interests', interests.includes(o) ? interests.filter((x: string) => x !== o) : [...interests, o]);
+          }} />
+        </Card>
+        </View>
+      )}
 
       {/* Social Links */}
       <Card title="Social Links" subtitle="Show up on your network cards & profile detail.">
@@ -404,6 +559,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
       </Card>
 
       {/* Projects */}
+      {!isCollege && (
       <Card
         title="Projects"
         subtitle="Showcase technical or professional projects you have built."
@@ -445,8 +601,10 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
           </View>
         )}
       </Card>
+      )}
 
       {/* Skill Intelligence Experience */}
+      {!isCollege && (
       <View nativeID="skills" style={{ zIndex: 99, position: 'relative' }}>
       <Card title="Skill Intelligence" subtitle="Add skills to instantly see how AI categorizes them and impacts your career readiness.">
         
@@ -549,6 +707,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
         )}
       </Card>
       </View>
+      )}
 
       {/* Skill Details Modal */}
       {selectedSkill && (

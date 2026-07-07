@@ -60,6 +60,7 @@ export function NetworkView() {
   const [discoverSections, setDiscoverSections] = useState<any[]>([]);
   const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
   const [sentRequests, setSentRequests] = useState<any[]>([]);
+  const [connectionsList, setConnectionsList] = useState<any[]>([]);
   const [showMatchedInterest, setShowMatchedInterest] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -294,10 +295,41 @@ export function NetworkView() {
     }
   };
 
+  const loadConnections = async () => {
+    try {
+      const res = await api.networkConnections();
+      const normalizeConn = (req: any) => {
+        const role = req.role || 'student';
+        const name = req.full_name || req.name || 'Anonymous';
+        const avatar = req.avatar || (name.split(' ').slice(0, 2).map((p: any) => p[0] || '').join('').toUpperCase());
+        const color = req.color || '#14B8A6';
+        const company = req.organization || req.company || '';
+        const college = req.institution || req.college || '';
+        const jobTitle = req.job_title || req.branch || '';
+
+        return {
+          id: req.id || req._id,
+          name,
+          initials: avatar,
+          color,
+          kind: role,
+          role: jobTitle || role,
+          company: company || college,
+          mutual: req.mutual || 0,
+          tags: req.skills || req.interests || [],
+          connectionState: 'connected'
+        };
+      };
+      setConnectionsList((res?.items || []).map(normalizeConn));
+    } catch (e) {
+      console.warn('Failed to load connections:', e);
+    }
+  };
+
   useEffect(() => {
     const init = async () => {
       setLoading(true);
-      await Promise.all([loadDiscover(), loadRequests()]);
+      await Promise.all([loadDiscover(), loadRequests(), loadConnections()]);
       setLoading(false);
     };
     init();
@@ -317,6 +349,7 @@ export function NetworkView() {
       await api.acceptConnection(id);
       toast.success('Connection Accepted! 🎉', `${name} is now connected with you.`);
       await loadRequests();
+      await loadConnections();
       await fetchNetworkData(true);
     } catch (e: any) {
       toast.error('Failed to accept request', e.message || 'Please try again.');
@@ -418,9 +451,6 @@ export function NetworkView() {
   const visibleStudents = useMemo(() => studentsList.slice(0, studentLimit), [studentsList, studentLimit]);
 
   // Connections Tab: Accepted relationships
-  const connectionsList = useMemo(() => {
-    return filteredList.filter(p => p.connectionState === 'connected');
-  }, [filteredList]);
 
   // Connection invitations sender
   const handleConnect = async (id: string, name: string) => {

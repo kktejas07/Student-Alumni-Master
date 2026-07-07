@@ -33,6 +33,7 @@ import {
   Briefcase, UsersRound, Eye, CalendarCheck, FileSearch,
   Star, IndianRupee, Building2, Plug,
 } from '../iconShims';
+import { Upload, Camera } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { ProfileInfoPage } from '@/src/views/web/profile/ProfileInfoPage';
@@ -224,7 +225,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
       'first_name','last_name','full_name','headline','bio','phone','city','state','location',
       'photo_data','face_image_base64','institution','branch','graduation_year','cgpa',
       'interests','skills','projects','linkedin_url','github_url','portfolio_url','profile_visibility',
-      'section_toggles','primary_skill','preferences',
+      'section_toggles','primary_skill','preferences','banner_data','college_logo_data'
     ];
     return watched.some((k) => JSON.stringify((draft as any)[k] ?? null) !== JSON.stringify((user as any)[k] ?? null));
   }, [draft, user]);
@@ -254,7 +255,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
         'first_name','last_name','full_name','headline','bio','phone','city','state','location',
         'photo_data','face_image_base64','institution','branch','graduation_year','cgpa',
         'interests','skills','projects','linkedin_url','github_url','portfolio_url','profile_visibility',
-        'section_toggles','primary_skill','preferences',
+        'section_toggles','primary_skill','preferences','banner_data','college_logo_data'
       ];
       watched.forEach((k) => {
         if (JSON.stringify((draft as any)[k] ?? null) !== JSON.stringify((user as any)[k] ?? null)) {
@@ -335,6 +336,25 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
               </View>
             </View>
           </View>
+          
+          {role === 'college' && (
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 'auto' }}>
+              <Pressable onPress={onUploadPhoto} style={{ backgroundColor: '#A78BFA', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Upload size={14} color="#FFF" />
+                <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>Upload Photo</Text>
+              </Pressable>
+              <Pressable onPress={onTakeSelfie} style={{ backgroundColor: '#A78BFA', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Camera size={14} color="#FFF" />
+                <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>Take Selfie</Text>
+              </Pressable>
+              {photo && (
+                <Pressable onPress={() => setDraft((d: any) => ({ ...d, photo_data: '', face_image_base64: '' }))} style={{ backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>Remove</Text>
+                </Pressable>
+              )}
+            </View>
+          )}
+
         </View>
       </View>
 
@@ -424,28 +444,44 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
               />
               <Text style={st.sideTitle}>Profile Score</Text>
               <Text style={st.sideSub}>{(completion.percentage || 0) >= 100 ? 'All complete!' : `${100 - (completion.percentage || 0)}% to go`}</Text>
-              <View style={st.idChip}>
-                <Text style={st.idChipText}>{saId}</Text>
-              </View>
+              
+              {role === 'college' ? (
+                <View style={{ width: '100%', marginTop: 16, borderTopWidth: 1, borderColor: C.border, paddingTop: 16, gap: 8 }}>
+                  <Text style={[st.sideHeading, { textAlign: 'left', marginBottom: 4 }]}>PROFILE COMPLETION</Text>
+                  <Text style={{ fontSize: 12, color: C.text2, marginBottom: 4 }}>Complete your profile to unlock features.</Text>
+                  {completion.items?.map((it: any) => (
+                    <View key={it.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      {it.done ? <CheckCircle2 size={16} color={C.green} /> : <View style={{ width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: C.text3, marginLeft: 1 }} />}
+                      <Text style={{ fontSize: 13, color: it.done ? C.text : C.text2, flex: 1 }}>{it.label}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <View style={st.idChip}>
+                  <Text style={st.idChipText}>{saId}</Text>
+                </View>
+              )}
             </View>
           </View>
 
           {/* Role-aware stats list */}
-          <View style={st.sideCard}>
-            <Text style={st.sideHeading}>{cfg.statsHeading}</Text>
-            <View style={{ marginTop: 10, gap: 4 }}>
-              {cfg.stats(stats).map((row, i, arr) => (
-                <StatRow
-                  key={row.label}
-                  Icon={row.Icon}
-                  label={row.label}
-                  value={row.value}
-                  tint={row.tint}
-                  last={i === arr.length - 1}
-                />
-              ))}
+          {role !== 'college' && (
+            <View style={st.sideCard}>
+              <Text style={st.sideHeading}>{cfg.statsHeading}</Text>
+              <View style={{ marginTop: 10, gap: 4 }}>
+                {cfg.stats(stats).map((row, i, arr) => (
+                  <StatRow
+                    key={row.label}
+                    Icon={row.Icon}
+                    label={row.label}
+                    value={row.value}
+                    tint={row.tint}
+                    last={i === arr.length - 1}
+                  />
+                ))}
+              </View>
             </View>
-          </View>
+          )}
 
           {/* Role-aware ID card */}
           <View style={st.sideCard}>
