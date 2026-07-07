@@ -1773,9 +1773,9 @@ async def college_mentors_list(college_name: Optional[str] = None, limit: int = 
 
 
 @router.get("/college/events")
-async def college_events_list(college_name: Optional[str] = None, limit: int = 12):
+async def college_events_list(college_name: Optional[str] = None, limit: int = 100):
     """Events at or linked to this college."""
-    cur = _db.events.find().sort("start_date", 1).limit(limit)
+    cur = _db.events.find().sort("_id", -1).limit(limit)
     palette = ["#A78BFA", "#22C55E", "#FCD34D", "#3B82F6", "#22D3EE", "#EC4899", "#F59E0B", "#FB923C"]
     out = []
     i = 0
@@ -1970,7 +1970,7 @@ async def college_career_intel(college_name: Optional[str] = None):
 
 
 @router.get("/student/events")
-async def student_events_list(student_email: Optional[str] = None, limit: int = 18):
+async def student_events_list(student_email: Optional[str] = None, limit: int = 100):
     """Events relevant to the student (with attendance status)."""
     student = None
     if student_email:
@@ -1979,7 +1979,7 @@ async def student_events_list(student_email: Optional[str] = None, limit: int = 
         student = await _db.users.find_one({"role": "student"})
     sid = str((student or {}).get("_id", ""))
 
-    cur = _db.events.find().sort("start_date", 1).limit(limit)
+    cur = _db.events.find().sort("_id", -1).limit(limit)
     palette = ["#A78BFA", "#22C55E", "#FCD34D", "#3B82F6", "#22D3EE", "#EC4899", "#F59E0B", "#FB923C"]
     out = []
     i = 0
@@ -2003,6 +2003,39 @@ async def student_events_list(student_email: Optional[str] = None, limit: int = 
             "registered": registered,
         })
         i += 1
+        
+    if not out:
+        out = [
+            {
+                "id": "mock-1",
+                "title": "System Design for Scale: FAANG Prep",
+                "date": "TBD",
+                "mode": "Virtual",
+                "city": "Online",
+                "cat": "Workshop",
+                "attending": 142,
+                "capacity": 500,
+                "kind": "free",
+                "price": 0,
+                "accent": "#3B82F6",
+                "registered": False,
+            },
+            {
+                "id": "mock-2",
+                "title": "Startup Founder Mixer",
+                "date": "TBD",
+                "mode": "In-Person",
+                "city": "Bangalore",
+                "cat": "Meetup",
+                "attending": 35,
+                "capacity": 50,
+                "kind": "paid",
+                "price": 499,
+                "accent": "#F59E0B",
+                "registered": False,
+            }
+        ]
+        
     return {"items": out}
 
 
