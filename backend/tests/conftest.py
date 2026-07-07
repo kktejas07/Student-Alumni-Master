@@ -1,6 +1,10 @@
 import os
 import pytest
 import requests
+from dotenv import load_dotenv
+from pathlib import Path
+load_dotenv(Path(__file__).parent.parent / ".env")
+
 
 BASE_URL = (
     os.environ.get("EXPO_BACKEND_URL")

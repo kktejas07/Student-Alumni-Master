@@ -47,6 +47,9 @@ import {
   normalizeRoadmapSkillScores,
   getImpactLabel,
 } from '@/src/lib/careerConstants';
+import { PredictionTimeline } from '@/src/views/web/PredictionTimeline';
+import { ReadinessEstimates } from '@/src/views/web/ReadinessEstimates';
+import { GoalSimulator } from '@/src/views/web/GoalSimulator';
 
 /* ────────── Design tokens ────────── */
 const C = {
@@ -712,6 +715,16 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
         </View>
       </LinearGradient>
 
+      {/* ──────── PREDICTIONS ──────── */}
+      <View style={{ flexDirection: isLarge ? 'row' : 'column', gap: 10 }}>
+        <View style={{ flex: 1 }}>
+          <PredictionTimeline data={careerIntel?.predictions ?? null} />
+        </View>
+        <View style={{ width: isLarge ? 260 : undefined }}>
+          <ReadinessEstimates data={careerIntel?.readiness_estimates ?? null} />
+        </View>
+      </View>
+
       {/* ──────── MAIN CONTENT: two columns ──────── */}
       <View style={{ flexDirection: isLarge ? 'row' : 'column', gap: 14, alignItems: 'stretch' }}>
 
@@ -782,6 +795,9 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
               <Text style={s.viewAllBtnText}>View All Actions</Text>
             </Pressable>
           </View>
+
+          {/* ── Goal Simulator ── */}
+          <GoalSimulator currentReadiness={readinessScore} />
         </View>
 
         {/* ── RIGHT: Career Journey ── */}

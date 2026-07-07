@@ -81,7 +81,11 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
     const mappedLive = liveRequests.map((b, idx) => {
       const dateVal = b.slot_start_iso || b.scheduled_at;
       const dateObj = dateVal ? new Date(dateVal) : new Date();
-      const daysAway = Math.max(0, Math.ceil((dateObj.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+      const startOfDateObj = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+      const today = new Date();
+      const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const diffDays = Math.round((startOfDateObj.getTime() - startOfToday.getTime()) / (1000 * 60 * 60 * 24));
+      const daysAway = Math.max(0, diffDays);
       return {
         id: b.id || `live-${idx}`,
         isLive: true,
