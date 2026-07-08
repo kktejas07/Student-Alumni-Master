@@ -8,8 +8,7 @@ import { Sparkles, Plus, Calendar, Users, ChevronDown, ChevronLeft, ChevronRight
 import { MC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
 import { MY_EVENTS as INITIAL_EVENTS, MentorEvent } from '../data';
-import { usePortalData, postPortal, putPortal, deletePortal } from '@/src/lib/portalApi';
-import { useToast } from '@/src/views/components';
+import { request } from '@/src/models/services/api';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -19,13 +18,11 @@ const MONTH_NAMES = [
 export function CreateEventView() {
   const { width } = useWindowDimensions();
   const stack = width < 1024;
-  const toast = useToast();
 
-  const { data, refresh } = usePortalData<{ items: MentorEvent[] }>('/mentor/events/me', { items: [] });
-  const events = data?.items || [];
-  
+  const [events, setEvents] = useState<MentorEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [subView, setSubView] = useState<'list' | 'create' | 'edit'>('list');
-  const [editingEventId, setEditingEventId] = useState<number | null>(null);
+  const [editingEventId, setEditingEventId] = useState<number | string | null>(null);
 
   // Form States
   const [eventType, setEventType] = useState<MentorEvent['type']>('webinar');
@@ -41,7 +38,6 @@ export function CreateEventView() {
   const [price, setPrice] = useState('');
   const [coverColor, setCoverColor] = useState('#6366F1');
   const [aiBusy, setAiBusy] = useState(false);
-  const [isPublishing, setIsPublishing] = useState(false);
 
   // Dropdown UI state controls
   const [showDurationDropdown, setShowDurationDropdown] = useState(false);
@@ -56,17 +52,6 @@ export function CreateEventView() {
 
   // Time Picker States
   const [showTimePicker, setShowTimePicker] = useState(false);
-
-  const isAnyDropdownOpen = showDurationDropdown || showPlatformDropdown || showVisibilityDropdown || showCalendar || showTimePicker || showYearDropdown;
-
-  const closeAllDropdowns = () => {
-    setShowDurationDropdown(false);
-    setShowPlatformDropdown(false);
-    setShowVisibilityDropdown(false);
-    setShowCalendar(false);
-    setShowTimePicker(false);
-    setShowYearDropdown(false);
-  };
 
   const timePresets = [
     '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
@@ -109,6 +94,51 @@ export function CreateEventView() {
       else if (eventType === 'spotlight') setCoverColor('#F59E0B');
     }
   }, [eventType, subView]);
+
+  const fetchEvents = async () => {
+    setIsLoading(true);
+    try {
+      const res = await request<{ items: any[] }>('/events/me/hosted');
+      const apiEvents: MentorEvent[] = (res.items || []).map(item => {
+        const dt = new Date(item.event_date_start || Date.now());
+        const dateStr = `${MONTH_NAMES[dt.getMonth()]} ${dt.getDate()}, ${dt.getFullYear()}`;
+        
+        let hours = dt.getHours();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        const mins = dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes();
+        const timeStr = `${hours < 10 ? '0'+hours : hours}:${mins} ${ampm}`;
+
+        return {
+          id: item.event_id,
+          title: item.title || '',
+          desc: item.description || '',
+          date: dateStr,
+          time: timeStr,
+          seats: item.capacity || 100,
+          registered: item.attendee_count || 0,
+          type: item.event_type || 'webinar',
+          platform: item.location_city || 'Google Meet',
+          duration: 60,
+          pricing: item.price_type || 'free',
+          price: item.price_amount || 0,
+          coverColor: item.image_url || '#6366F1',
+          status: item.status === 'completed' ? 'completed' : 'upcoming',
+          visibility: 'All Connections',
+        };
+      });
+      setEvents(apiEvents);
+    } catch (e) {
+      console.warn('Failed to fetch mentor events', e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
 
   // Statistics Calculation
   const totalEvents = events.length;
@@ -155,83 +185,61 @@ export function CreateEventView() {
   };
 
   const handlePublish = async () => {
-    if (isPublishing) return;
-    if (!title.trim()) { toast.error('Missing Title', 'Please enter an event title'); return; }
-    if (!date) { toast.error('Missing Date', 'Please select a date'); return; }
-    if (!time) { toast.error('Missing Time', 'Please select a time'); return; }
+    if (!title.trim()) { alert('Please enter an event title'); return; }
+    if (!date) { alert('Please select a date'); return; }
+    if (!time) { alert('Please select a time'); return; }
 
     const numSeats = parseInt(seats) || 100;
-    const ticketPrice = pricing === 'paid' ? (parseFloat(price) || 0) : null;
+    const ticketPrice = pricing === 'paid' ? (parseFloat(price) || 0) : undefined;
 
-    setIsPublishing(true);
-    if (subView === 'edit' && editingEventId !== null) {
-      try {
-        await putPortal(`/mentor/events/${editingEventId}`, {
-          body: {
-            title,
-            desc,
-            date,
-            time,
-            platform,
-            duration,
-            seats: numSeats,
-            visibility,
-            pricing,
-            price: ticketPrice,
-            coverColor,
-            type: eventType,
-          }
-        });
-        toast.success('Event Updated', 'Event changes saved successfully!');
-        refresh();
-        setSubView('list');
-        resetForm();
-      } catch (err: any) {
-        console.error('Update Error:', err);
-        toast.error('Update Failed', err?.message || 'Failed to update event. Please try again.');
-      } finally {
-        setIsPublishing(false);
+    // Handle "dd-mm-yyyy" logic vs standard formatted date
+    let parsedDate = new Date(`${date} ${time}`);
+    if (isNaN(parsedDate.getTime())) {
+      parsedDate = new Date();
+    }
+    const isoString = parsedDate.toISOString();
+
+    const payload = {
+      title: title.trim(),
+      description: desc.trim(),
+      event_type: eventType,
+      location_country: 'Online',
+      location_city: platform,
+      event_date_start: isoString,
+      event_date_end: isoString,
+      price_type: pricing,
+      price_amount: ticketPrice || 0,
+      currency: 'INR',
+      capacity: numSeats,
+      image_url: coverColor,
+    };
+
+    try {
+      if (subView === 'edit' && editingEventId !== null) {
+        // Edit mode
+        await request(`/events/${editingEventId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+        alert('Event updated successfully!');
+      } else {
+        // Create mode
+        await request('/events', { method: 'POST', body: JSON.stringify(payload) });
+        alert('Event published successfully!');
       }
-    } else {
-      // Create mode
-      try {
-        await postPortal('/mentor/events', {
-          body: {
-            title,
-            desc,
-            date,
-            time,
-            platform,
-            duration,
-            seats: numSeats,
-            visibility,
-            pricing,
-            price: ticketPrice,
-            coverColor,
-            type: eventType,
-          }
-        });
-        toast.success('Event Created', 'Event created and published successfully!');
-        refresh();
-        setSubView('list');
-        resetForm();
-      } catch (err: any) {
-        console.error('Publish Error:', err);
-        toast.error('Creation Failed', err?.message || 'Failed to publish event. Please try again.');
-      } finally {
-        setIsPublishing(false);
-      }
+      resetForm();
+      setSubView('list');
+      fetchEvents();
+    } catch (e: any) {
+      alert(e.message || 'Failed to save event');
     }
   };
 
-  const handleDelete = async (id: string | number) => {
-    try {
-      await deletePortal(`/mentor/events/${id}`);
-      toast.success('Event Deleted', 'Event removed successfully!');
-      refresh();
-    } catch (err: any) {
-      console.error('Delete Error:', err);
-      toast.error('Delete Failed', err?.message || 'Failed to delete event.');
+  const handleDelete = async (id: number | string) => {
+    if (confirm('Are you sure you want to delete this event?')) {
+      try {
+        await request(`/events/${id}`, { method: 'DELETE' });
+        fetchEvents();
+      } catch (e: any) {
+        alert(e.message || 'Failed to delete event');
+      }
     }
   };
 
@@ -484,7 +492,7 @@ export function CreateEventView() {
               </View>
 
               {/* Event Details */}
-              <View style={[s.formCard, { zIndex: (showCalendar || showTimePicker || showYearDropdown) ? 100 : 10, position: 'relative' }]}>
+              <View style={s.formCard}>
                 <View style={s.detailsHeader}>
                   <Text style={s.sectionHeader}>Event Details</Text>
                   <Pressable onPress={aiGenerate} style={s.aiBtn}>
@@ -545,9 +553,7 @@ export function CreateEventView() {
                     </View>
 
                     {showCalendar && (
-                      <>
-                        <Pressable style={s.fixedOverlay} onPress={closeAllDropdowns} />
-                        <View style={s.calPopover}>
+                      <View style={s.calPopover}>
                         <View style={s.calPopHeader}>
                           <Pressable onPress={handlePrevMonth} style={s.calNavBtn}>
                             <ChevronLeft size={15} color="#fff" />
@@ -556,40 +562,32 @@ export function CreateEventView() {
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                             <Text style={s.calMonthLabel}>{MONTH_NAMES[calMonth]}</Text>
                             
-                            <View style={{ position: 'relative', zIndex: 100 }}>
-                              <Pressable
-                                onPress={() => setShowYearDropdown(!showYearDropdown)}
-                                style={s.yearTrigger}
-                              >
-                                <Text style={s.yearTriggerText}>{calYear}</Text>
-                                <ChevronDown size={11} color={coverColor} />
-                              </Pressable>
+                            <Pressable
+                              onPress={() => setShowYearDropdown(!showYearDropdown)}
+                              style={s.yearTrigger}
+                            >
+                              <Text style={s.yearTriggerText}>{calYear}</Text>
+                              <ChevronDown size={11} color={coverColor} />
+                            </Pressable>
 
-                              {showYearDropdown && (
-                                <>
-                                  <Pressable style={s.fixedOverlay} onPress={() => setShowYearDropdown(false)} />
-                                  <View style={s.yearDropdown}>
-                                  <ScrollView style={{ maxHeight: 120 }} nestedScrollEnabled={true}>
-                                    {years.map((y) => (
-                                      <Pressable
-                                        key={y}
-                                        onPress={() => {
-                                          setCalYear(y);
-                                          setShowYearDropdown(false);
-                                        }}
-                                        style={({ hovered }: any) => [
-                                          s.dropdownItem,
-                                          y === calYear ? { backgroundColor: coverColor + '20' } : (hovered && { backgroundColor: 'rgba(255,255,255,0.05)' })
-                                        ]}
-                                      >
-                                        <Text style={[s.yearDropdownItemText, y === calYear && { color: coverColor, fontFamily: FONTS.bold }]}>{y}</Text>
-                                      </Pressable>
-                                    ))}
-                                  </ScrollView>
-                                </View>
-                                </>
-                              )}
-                            </View>
+                            {showYearDropdown && (
+                              <View style={s.yearDropdown}>
+                                <ScrollView style={{ maxHeight: 120 }} nestedScrollEnabled={true}>
+                                  {years.map((y) => (
+                                    <Pressable
+                                      key={y}
+                                      onPress={() => {
+                                        setCalYear(y);
+                                        setShowYearDropdown(false);
+                                      }}
+                                      style={[s.dropdownItem, y === calYear && { backgroundColor: coverColor + '20' }]}
+                                    >
+                                      <Text style={[s.yearDropdownItemText, y === calYear && { color: coverColor, fontFamily: FONTS.bold }]}>{y}</Text>
+                                    </Pressable>
+                                  ))}
+                                </ScrollView>
+                              </View>
+                            )}
                           </View>
 
                           <Pressable onPress={handleNextMonth} style={s.calNavBtn}>
@@ -615,9 +613,9 @@ export function CreateEventView() {
                               <Pressable
                                 key={`day-${day}`}
                                 onPress={() => handleDaySelect(day)}
-                                style={({ hovered }: any) => [
+                                style={[
                                   s.calDayCell,
-                                  isSelected ? { backgroundColor: coverColor } : (hovered && { backgroundColor: 'rgba(255,255,255,0.05)' })
+                                  isSelected && { backgroundColor: coverColor }
                                 ]}
                               >
                                 <Text style={[s.calDayText, isSelected && { color: MC.bg, fontFamily: FONTS.bold }]}>
@@ -628,7 +626,6 @@ export function CreateEventView() {
                           })}
                         </View>
                       </View>
-                      </>
                     )}
                   </View>
 
@@ -652,9 +649,7 @@ export function CreateEventView() {
                     </View>
 
                     {showTimePicker && (
-                      <>
-                        <Pressable style={s.fixedOverlay} onPress={closeAllDropdowns} />
-                        <View style={[s.calPopover, { right: 0, left: undefined, width: 180 }]}>
+                      <View style={[s.calPopover, { right: 0, left: undefined, width: 180 }]}>
                         <Text style={s.pickerTitle}>Select Time</Text>
                         <ScrollView style={{ maxHeight: 150 }} nestedScrollEnabled={true}>
                           {timePresets.map((t) => (
@@ -664,17 +659,13 @@ export function CreateEventView() {
                                 setTime(t);
                                 setShowTimePicker(false);
                               }}
-                              style={({ hovered }: any) => [
-                                s.dropdownItem,
-                                time === t ? { backgroundColor: coverColor + '20' } : (hovered && { backgroundColor: 'rgba(255,255,255,0.05)' })
-                              ]}
+                              style={[s.dropdownItem, time === t && { backgroundColor: coverColor + '20' }]}
                             >
                               <Text style={[s.dropdownItemText, time === t && { color: coverColor, fontFamily: FONTS.bold }]}>{t}</Text>
                             </Pressable>
                           ))}
                         </ScrollView>
                       </View>
-                      </>
                     )}
                   </View>
 
@@ -683,7 +674,7 @@ export function CreateEventView() {
               </View>
 
               {/* Settings Section */}
-              <View style={[s.formCard, { zIndex: (showDurationDropdown || showPlatformDropdown || showVisibilityDropdown) ? 100 : 9, position: 'relative' }]}>
+              <View style={s.formCard}>
                 <Text style={s.sectionHeader}>Settings</Text>
 
                 {/* Duration & Platform Row */}
@@ -702,9 +693,7 @@ export function CreateEventView() {
                       <ChevronDown size={14} color={coverColor} />
                     </Pressable>
                     {showDurationDropdown && (
-                      <>
-                        <Pressable style={s.fixedOverlay} onPress={closeAllDropdowns} />
-                        <View style={s.selectDropdown}>
+                      <View style={s.selectDropdown}>
                         {durationOptions.map((opt) => (
                           <Pressable
                             key={opt}
@@ -718,7 +707,6 @@ export function CreateEventView() {
                           </Pressable>
                         ))}
                       </View>
-                      </>
                     )}
                   </View>
 
@@ -736,9 +724,7 @@ export function CreateEventView() {
                       <ChevronDown size={14} color={coverColor} />
                     </Pressable>
                     {showPlatformDropdown && (
-                      <>
-                        <Pressable style={s.fixedOverlay} onPress={closeAllDropdowns} />
-                        <View style={s.selectDropdown}>
+                      <View style={s.selectDropdown}>
                         {platformOptions.map((opt) => (
                           <Pressable
                             key={opt}
@@ -752,7 +738,6 @@ export function CreateEventView() {
                           </Pressable>
                         ))}
                       </View>
-                      </>
                     )}
                   </View>
                 </View>
@@ -788,9 +773,7 @@ export function CreateEventView() {
                       <ChevronDown size={14} color={coverColor} />
                     </Pressable>
                     {showVisibilityDropdown && (
-                      <>
-                        <Pressable style={s.fixedOverlay} onPress={closeAllDropdowns} />
-                        <View style={s.selectDropdown}>
+                      <View style={s.selectDropdown}>
                         {visibilityOptions.map((opt) => (
                           <Pressable
                             key={opt}
@@ -804,7 +787,6 @@ export function CreateEventView() {
                           </Pressable>
                         ))}
                       </View>
-                      </>
                     )}
                   </View>
                 </View>
@@ -848,7 +830,7 @@ export function CreateEventView() {
               </View>
 
               {/* Cover Color Selector */}
-              <View style={[s.formCard, { zIndex: 8, position: 'relative' }]}>
+              <View style={s.formCard}>
                 <Text style={s.sectionHeader}>Cover Colour</Text>
                 <View style={s.colorsListRow}>
                   {colorsList.map((c) => {
@@ -874,9 +856,9 @@ export function CreateEventView() {
 
               {/* Publish & Cancel Actions */}
               <View style={s.bottomBtnRow}>
-                <Pressable disabled={isPublishing} onPress={handlePublish} style={[s.publishBtn, { backgroundColor: coverColor }, isPublishing && { opacity: 0.7 }]}>
+                <Pressable onPress={handlePublish} style={[s.publishBtn, { backgroundColor: coverColor }]}>
                   <Text style={s.publishBtnText}>
-                    {isPublishing ? 'Publishing...' : (subView === 'edit' ? 'Save Changes' : 'Publish Event')}
+                    {subView === 'edit' ? 'Save Changes' : 'Publish Event'}
                   </Text>
                 </Pressable>
                 <Pressable onPress={() => setSubView('list')} style={s.cancelBtn}>
@@ -1110,8 +1092,7 @@ const s = StyleSheet.create({
   selectDropdown: {
     position: 'absolute', top: 56, left: 0, right: 0,
     backgroundColor: '#0F172A', borderColor: MC.border2, borderWidth: 1, borderRadius: 10,
-    zIndex: 99999, overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 10
+    zIndex: 99999, overflow: 'hidden'
   },
   dropdownItem: { paddingVertical: 8, paddingHorizontal: 12, ...({ cursor: 'pointer' } as any) },
   dropdownItemText: { color: '#fff', fontFamily: FONTS.med, fontSize: 12.5 },
@@ -1144,33 +1125,30 @@ const s = StyleSheet.create({
   cancelBtn: { flex: 1, height: 40, borderRadius: 10, borderWidth: 1, borderColor: MC.border2, backgroundColor: 'rgba(255,255,255,0.02)', alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
   cancelBtnText: { color: MC.tealP, fontFamily: FONTS.bold, fontSize: 13 },
 
-  // Custom Popover Calendar Picker.
+  // Custom Popover Calendar Picker
   calPopover: {
     position: 'absolute', top: 62, left: 0, width: 250,
     backgroundColor: '#0F172A', borderColor: MC.border2, borderWidth: 1, borderRadius: 12,
-    padding: 12, zIndex: 99999,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 10
+    padding: 10, zIndex: 99999,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 8
   },
-  calPopHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
-    zIndex: 10, position: 'relative'
-  },
+  calPopHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   calNavBtn: { width: 22, height: 22, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', ...({ cursor: 'pointer' } as any) },
   calMonthLabel: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
   yearTrigger: { flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: 'rgba(255,255,255,0.04)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   yearTriggerText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11 },
   yearDropdown: {
-    position: 'absolute', top: 24, left: -20, width: 80, maxHeight: 150,
-    backgroundColor: '#0F172A', borderColor: MC.border2, borderWidth: 1, borderRadius: 8,
-    zIndex: 100000, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 11
+    position: 'absolute', top: 22, left: 20, width: 80, maxHeight: 120,
+    backgroundColor: '#1E293B', borderColor: MC.border, borderWidth: 1, borderRadius: 6,
+    zIndex: 100000, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 4
   },
-  yearDropdownItemText: { color: '#fff', fontFamily: FONTS.med, fontSize: 12.5, textAlign: 'center' },
+  yearDropdownItemText: { color: '#fff', fontFamily: FONTS.med, fontSize: 11 },
   calWeekdays: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 4 },
-  calWeekdayText: { color: '#94A3B8', fontFamily: FONTS.bold, fontSize: 10.5, width: 28, textAlign: 'center' },
+  calWeekdayText: { color: MC.dim, fontFamily: FONTS.bold, fontSize: 9, width: 28, textAlign: 'center' },
   calDaysGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start' },
   calDayCell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 4, marginVertical: 1, ...({ cursor: 'pointer' } as any) },
   calDayEmpty: { width: `${100 / 7}%`, aspectRatio: 1 },
-  calDayText: { color: '#F8FAFC', fontFamily: FONTS.med, fontSize: 12 },
+  calDayText: { color: '#fff', fontFamily: FONTS.med, fontSize: 10 },
   pickerTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12, marginBottom: 6, textAlign: 'center' },
 
   // Live Preview layout
@@ -1214,10 +1192,5 @@ const s = StyleSheet.create({
   tipsList: { gap: 8 },
   tipsItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   tipsDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#F59E0B' },
-  tipsText: { color: MC.muted, fontFamily: FONTS.med, fontSize: 11.5 },
-  fixedOverlay: {
-    position: Platform.OS === 'web' ? ('fixed' as any) : 'absolute',
-    top: -3000, bottom: -3000, left: -3000, right: -3000,
-    zIndex: 99990, ...({ cursor: 'default' } as any)
-  }
+  tipsText: { color: MC.muted, fontFamily: FONTS.med, fontSize: 11.5 }
 });

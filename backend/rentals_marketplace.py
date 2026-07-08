@@ -15,12 +15,11 @@ from __future__ import annotations
 import os, uuid, logging
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
-from pathlib import Path
 from bson import ObjectId
-from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Query
-from db import client as _mongo
-_db = _mongo[os.environ["DB_NAME"]]
+
+from core.db import db as _db
+
 logger = logging.getLogger("rentals_marketplace")
 router = APIRouter()
 
