@@ -1,3 +1,4 @@
+import { getBaseUrl } from '@/src/lib/env';
 /**
  * Smart Email Detect — per HTML spec (Welcome / Option B flow).
  *
@@ -23,7 +24,7 @@ import { AC, FONTS } from '@/src/views/auth/tokens';
 import { trackAuth } from '@/src/lib/authAnalytics';
 import { ROLE_META, type Role } from '@/src/views/auth/RoleCards';
 
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BASE = getBaseUrl();
 
 function GoogleG({ size = 18 }: { size?: number }) {
   return (

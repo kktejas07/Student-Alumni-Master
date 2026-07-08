@@ -39,7 +39,7 @@ const RAW_STUDENTS = [
     lastSession:{date:'Apr 29, 2026',notes:'Reviewed investor deck v3. Strong traction slide. Needs sharper problem framing on slide 2.'},
     progress:90, cgpa:8.2, linkedin:'linkedin.com/in/kabirdas', github:'github.com/kabirdas',
     joinedOn:'Feb 1, 2026', tags:['Startup','Pitch Prep'], messages:1 },
-  { id:4, name:'Sneha Kulkarni', avatar:'SK', color:'#3B82F6', college:'NIT Trichy',  branch:'B.Tech IT',  year:2026, saId:'SA-26-901553', status:'pending',
+  { id:4, name:'Sneha Kulkarni', avatar:'SK', color:'#3B82F6', college:'NIT Trichy',  branch:'B.Tech IT',  year:2026, saId:'SA-26-901553', status:'pending_sent',
     interests:['Software Engineering','UI/UX Design'], skills:['TypeScript','React','Figma'],
     goals:['Frontend Engineer at product co','Improve DSA'], sessionsTotal:2, sessionsCompleted:0,
     nextSession:null, lastSession:null, progress:10, cgpa:8.6,
@@ -130,9 +130,12 @@ export const REVIEWS = [
 ];
 
 export const statusMeta = (s: string) => ({
-  active:    { label:'Active',    color:'green' as const, },
-  pending:   { label:'Pending',   color:'amber' as const, },
-  completed: { label:'Completed', color:'blue'  as const, },
+  active:       { label:'Active',         color:'green' as const, },
+  pending:      { label:'Pending',        color:'amber' as const, },
+  pending_sent: { label:'Pending Invite', color:'amber' as const, },
+  completed:    { label:'Completed',      color:'blue'  as const, },
+  none:         { label:'Not Connected',  color:'gray'  as const, },
+  withdrawn:    { label:'Withdrawn',      color:'gray'  as const, },
 }[s] || { label: s, color: 'gray' as const });
 
 // ── Network — other mentors to connect with + discovery

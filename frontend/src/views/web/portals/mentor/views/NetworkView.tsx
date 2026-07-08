@@ -3,8 +3,8 @@
  * Complete implementation of Connections, Discover, and Requests tabs.
  * High-fidelity screens matching all reference mockups with interactive states.
  */
-import React, { useState } from 'react';
-import { View, Text, Pressable, TextInput, StyleSheet, ScrollView, Platform, Linking } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, Pressable, TextInput, StyleSheet, ScrollView, Platform, Linking, ActivityIndicator, Modal } from 'react-native';
 import { 
   Users, 
   GraduationCap, 
@@ -27,12 +27,16 @@ import {
   X,
   Sparkles,
   MessageCircle,
-  ArrowLeft
+  ArrowLeft,
+  Calendar,
+  UserPlus
 } from 'lucide-react-native';
 import { MC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
 import { STUDENTS as MOCK_STUDENTS } from '../data';
 import { useToast } from '@/src/views/components';
+import { api } from '@/src/models/services/api';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 type CategoryTab = 'connections' | 'discover' | 'requests';
 type FilterType = 'everyone' | 'students' | 'alumnis' | 'mentors' | 'industry';
@@ -258,6 +262,8 @@ function LinkedinGlyph({ size = 14, color = '#fff' }: { size?: number; color?: s
 
 export function NetworkView() {
   const toast = useToast();
+  const user = useAuthStore((s) => s.user);
+
   const [tab, setTab] = useState<CategoryTab>('connections');
   const [filter, setFilter] = useState<FilterType>('everyone');
   const [discoverSubTab, setDiscoverSubTab] = useState<DiscoverSubTab>('interest');
@@ -268,74 +274,315 @@ export function NetworkView() {
   const [showProfessionals, setShowProfessionals] = useState(true);
   const [showMatchedInterest, setShowMatchedInterest] = useState(true);
 
-  // Stateful lists
-  const [incomingRequests, setIncomingRequests] = useState<IncomingRequest[]>(INITIAL_INCOMING);
-  const [sentRequests, setSentRequests] = useState([
-    {
-      id: 'sent1',
-      name: 'Mihir Joshi',
-      avatar: 'MJ',
-      color: '#10B981',
-      role: 'Industry',
-      subtitle: 'PM at Groww • Groww',
-      time: 'Sent 5d ago'
+  // Live stateful lists
+  const [connectionsList, setConnectionsList] = useState<any[]>([]);
+  const [discoverSections, setDiscoverSections] = useState<any[]>([]);
+  const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
+  const [sentRequests, setSentRequests] = useState<any[]>([]);
+  
+  const [loading, setLoading] = useState(true);
+
+  // Profile detail view state
+  const [pickedPerson, setPickedPerson] = useState<any | null>(null);
+
+  // Connection Request Modal States
+  const [connectPerson, setConnectPerson] = useState<any | null>(null);
+  const [showNoteInput, setShowNoteInput] = useState(false);
+  const [connectNoteText, setConnectNoteText] = useState('');
+  const [successPopup, setSuccessPopup] = useState<string | null>(null);
+
+  const sumChars = (str: string) => {
+    return str.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  };
+
+  const loadConnections = async () => {
+    try {
+      const email = user?.email;
+      const res = await api.mentorConnections(email);
+      setConnectionsList((res?.items || []).map((c: any) => {
+        const role = c.role || (c.tags && c.tags[0] ? c.tags[0].toLowerCase() : 'student');
+        const tag = role === 'mentor' ? 'Mentor' : role === 'alumni' ? 'Alumni' : 'Student';
+        return {
+          ...c,
+          role,
+          tag,
+          kind: role,
+          company: c.college || '',
+          mutual: c.mutual || ((sumChars(c.id || '') % 12) + 2)
+        };
+      }));
+    } catch (e) {
+      console.warn('Failed to load connections:', e);
     }
-  ]);
+  };
 
-  // Drafting Message Modal States
-  const [draftingPerson, setDraftingPerson] = useState<any | null>(null);
-  const [draftText, setDraftText] = useState('');
+  const loadDiscover = async () => {
+    try {
+      const res = await api.networkDiscover(searchQuery);
+      setDiscoverSections(res?.sections || []);
+    } catch (e) {
+      console.warn('Failed to load discover sections:', e);
+    }
+  };
 
-  // Mapped Mentees (from STUDENTS data.ts)
-  const studentsList = MOCK_STUDENTS.slice(0, 6);
+  const loadRequests = async () => {
+    try {
+      const res = await api.networkRequests();
+      const normalizeReq = (req: any) => {
+        const role = req.role || 'student';
+        const name = req.full_name || req.name || 'Anonymous';
+        const avatar = req.avatar || (name.split(' ').slice(0, 2).map((p: any) => p[0] || '').join('').toUpperCase());
+        const color = req.color || '#14B8A6';
+        const company = req.organization || req.company || '';
+        const college = req.institution || req.college || '';
+        const jobTitle = req.job_title || req.branch || '';
 
-  // Filter students dynamically based on search
-  const filteredStudents = studentsList.filter(s => {
-    if (filter !== 'everyone' && filter !== 'students') return false;
-    const matchText = `${s.name} ${s.branch} ${s.college} ${s.tags ? s.tags.join(' ') : ''}`.toLowerCase();
-    return matchText.includes(searchQuery.toLowerCase());
-  });
+        let subtitle = `${college}`;
+        if (jobTitle) {
+          subtitle = `${jobTitle} • ${company || college}`;
+        }
 
-  // Filter professionals dynamically based on search and sub-filters
-  const filteredProfessionals = PROFESSIONAL_NETWORK.filter(p => {
-    if (filter === 'students') return false;
-    if (filter === 'alumnis' && p.tag !== 'Alumni') return false;
-    if (filter === 'mentors' && p.tag !== 'Mentor') return false;
-    if (filter === 'industry' && p.tag !== 'Industry') return false;
+        return {
+          id: req.id,
+          name,
+          avatar,
+          color,
+          role: (role === 'student' ? 'Student' : role === 'alumni' ? 'Alumni' : 'Industry') as any,
+          subtitle,
+          time: req.requested_at ? 'Pending' : '2d ago',
+          message: req.message || ''
+        };
+      };
+      setIncomingRequests((res?.items || []).map(normalizeReq));
+      setSentRequests((res?.sent || []).map(normalizeReq));
+    } catch (e) {
+      console.warn('Failed to load requests:', e);
+    }
+  };
 
-    const matchText = `${p.name} ${p.role} ${p.company} ${p.tags.join(' ')} ${p.tag}`.toLowerCase();
-    return matchText.includes(searchQuery.toLowerCase());
-  });
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true);
+      await Promise.all([loadConnections(), loadDiscover(), loadRequests()]);
+      setLoading(false);
+    };
+    init();
+  }, [user]);
 
-  // Filter Matched Interest dynamically in Discover
-  const filteredMatchedDiscover = MATCHED_DISCOVER_NETWORK.filter(m => {
-    const matchText = `${m.name} ${m.role} ${m.company} ${m.college} ${m.tags.join(' ')}`.toLowerCase();
-    return matchText.includes(searchQuery.toLowerCase());
-  });
+  // Debounced search for Discover tab
+  useEffect(() => {
+    if (tab === 'discover') {
+      const delayDebounceFn = setTimeout(() => {
+        loadDiscover();
+      }, 500);
+      return () => clearTimeout(delayDebounceFn);
+    }
+  }, [searchQuery, tab]);
+
+  const normalizeDiscoverUser = (u: any) => {
+    const role = u.role || 'student';
+    const name = u.full_name || u.name || 'Anonymous';
+    const avatar = u.avatar || (name.split(' ').slice(0, 2).map((p: any) => p[0] || '').join('').toUpperCase());
+    const color = u.color || '#14B8A6';
+    
+    let tag: 'Student' | 'Alumni' | 'Mentor' | 'Industry' = 'Student';
+    if (role === 'alumni') tag = 'Alumni';
+    else if (role === 'mentor') tag = 'Mentor';
+    
+    const company = u.organization || u.company || '';
+    const college = u.institution || u.college || '';
+    const jobTitle = u.job_title || u.role_title || u.branch || '';
+
+    return {
+      id: u.id,
+      name,
+      avatar,
+      color,
+      tag,
+      role: jobTitle || role.charAt(0).toUpperCase() + role.slice(1),
+      company: company || college,
+      college,
+      year: u.graduation_year || u.year || 2026,
+      tags: u.skills || u.interests || [],
+      mutual: u.mutual_connections || u.mutual || ((sumChars(u.id || '') % 12) + 2),
+      linkedin: u.linkedin_url || u.linkedin || '',
+      github: u.github_url || u.github || '',
+      connectionState: u.connection_state || 'none',
+      kind: role
+    };
+  };
+
+  // Filter students dynamically based on search & active chip
+  const filteredStudents = useMemo(() => {
+    return connectionsList.filter(s => {
+      if (s.role !== 'student') return false;
+      if (filter !== 'everyone' && filter !== 'students') return false;
+      const matchText = `${s.name} ${s.branch} ${s.college} ${s.tags ? s.tags.join(' ') : ''}`.toLowerCase();
+      return matchText.includes(searchQuery.toLowerCase());
+    });
+  }, [connectionsList, filter, searchQuery]);
+
+  // Filter professionals dynamically based on search & active chip
+  const filteredProfessionals = useMemo(() => {
+    return connectionsList.filter(p => {
+      if (p.role === 'student') return false;
+      if (filter === 'students') return false;
+      if (filter === 'alumnis' && p.role !== 'alumni') return false;
+      if (filter === 'mentors' && p.role !== 'mentor') return false;
+      if (filter === 'industry') {
+        const companyName = p.college || '';
+        const isAcademic = companyName.toLowerCase().includes('university') || 
+                           companyName.toLowerCase().includes('college') || 
+                           companyName.toLowerCase().includes('institute') || 
+                           companyName.toLowerCase().includes('school');
+        if (isAcademic && p.role !== 'mentor') return false;
+      }
+
+      const matchText = `${p.name} ${p.branch} ${p.college} ${p.tags ? p.tags.join(' ') : ''}`.toLowerCase();
+      return matchText.includes(searchQuery.toLowerCase());
+    });
+  }, [connectionsList, filter, searchQuery]);
+
+  // Discover tab active matching section resolver
+  const activeSection = useMemo(() => {
+    let secKey = 'by_interest';
+    if (discoverSubTab === 'path') secKey = 'by_career';
+    if (discoverSubTab === 'college') secKey = 'by_college';
+    if (discoverSubTab === 'recommended') secKey = 'mentors';
+    if (discoverSubTab === 'expand') secKey = 'expand';
+
+    return discoverSections.find(s => s.key === secKey);
+  }, [discoverSections, discoverSubTab]);
+
+  const normalizedDiscover = useMemo(() => {
+    return (activeSection?.items || []).map(normalizeDiscoverUser);
+  }, [activeSection]);
+
+  // Filter Matched Discover dynamically by active filter chip
+  const filteredMatchedDiscover = useMemo(() => {
+    return normalizedDiscover.filter(person => {
+      if (filter === 'students') return person.tag === 'Student';
+      if (filter === 'alumnis') return person.tag === 'Alumni';
+      if (filter === 'mentors') return person.tag === 'Mentor';
+      if (filter === 'industry') return person.tag === 'Mentor' || person.tag === 'Alumni';
+      return true;
+    });
+  }, [normalizedDiscover, filter]);
+
+  const discoverCounts = useMemo(() => {
+    const getCount = (secKey: string) => {
+      const sec = discoverSections.find(s => s.key === secKey);
+      if (!sec) return 0;
+      return (sec.items || []).map(normalizeDiscoverUser).filter((person: any) => {
+        if (filter === 'students') return person.tag === 'Student';
+        if (filter === 'alumnis') return person.tag === 'Alumni';
+        if (filter === 'mentors') return person.tag === 'Mentor';
+        if (filter === 'industry') return person.tag === 'Mentor' || person.tag === 'Alumni';
+        return true;
+      }).length;
+    };
+    return {
+      interest: getCount('by_interest'),
+      path: getCount('by_career'),
+      college: getCount('by_college'),
+      recommended: getCount('mentors'),
+      expand: getCount('expand')
+    };
+  }, [discoverSections, filter]);
 
   // Request actions
-  const handleAcceptRequest = (id: string, name: string) => {
-    setIncomingRequests(prev => prev.filter(r => r.id !== id));
-    toast.success('Connection Accepted! 🎉', `${name} is now connected with you.`);
+  const handleAcceptRequest = async (id: string, name: string) => {
+    try {
+      await api.acceptConnection(id);
+      toast.success('Connection Accepted! 🎉', `${name} is now connected with you.`);
+      await loadRequests();
+      await loadConnections();
+    } catch (e: any) {
+      toast.error('Failed to accept request', e.message || 'Please try again.');
+    }
   };
 
-  const handleIgnoreRequest = (id: string, name: string) => {
-    setIncomingRequests(prev => prev.filter(r => r.id !== id));
-    toast.success('Invite Ignored', `Connection request from ${name} has been archived.`);
+  const handleIgnoreRequest = async (id: string, name: string) => {
+    try {
+      await api.rejectConnection(id);
+      toast.success('Invite Ignored', `Connection request from ${name} has been archived.`);
+      await loadRequests();
+    } catch (e: any) {
+      toast.error('Failed to ignore request', e.message || 'Please try again.');
+    }
   };
 
-  // Open draft message dialog
-  const openDraftDialog = (person: any) => {
-    setDraftingPerson(person);
+  // Open connection dialog
+  const openConnectDialog = (person: any) => {
+    setConnectPerson(person);
+    setShowNoteInput(false);
     const template = `Hi ${person.name}, I saw your impressive background at ${person.company || 'Google'} matching my interests in ${person.tags ? person.tags.slice(0, 2).join(' and ') : 'collaboration'}! Would love to connect and share insights.`;
-    setDraftText(template);
+    setConnectNoteText(template);
   };
 
-  const sendDraftedMessage = () => {
-    if (!draftingPerson) return;
-    toast.success('Message Drafted & Sent! ✉️', `Your customized message was successfully sent to ${draftingPerson.name}.`);
-    setDraftingPerson(null);
+  const sendConnectionRequestFlow = async (sendWithNote: boolean) => {
+    if (!connectPerson) return;
+    try {
+      const messageToSend = sendWithNote ? connectNoteText : undefined;
+      await api.sendConnectionRequest(connectPerson.id, messageToSend);
+
+      setSuccessPopup(`Connection request sent to ${connectPerson.name}!`);
+
+      setDiscoverSections(prev => prev.map(section => ({
+        ...section,
+        items: section.items.map((item: any) =>
+          item.id === connectPerson.id
+            ? { ...item, connection_state: 'pending', connectionState: 'pending' }
+            : item
+        )
+      })));
+
+      setConnectionsList(prev => prev.map((item: any) => 
+        item.id === connectPerson.id 
+          ? { ...item, connection_state: 'pending', connectionState: 'pending' }
+          : item
+      ));
+
+      if (pickedPerson?.id === connectPerson.id) {
+        setPickedPerson(prev => prev ? { ...prev, connectionState: 'pending', connection_state: 'pending' } : null);
+      }
+
+      await loadRequests();
+      await loadDiscover();
+    } catch (e: any) {
+      toast.error('Could not connect', e.message || 'Please try again.');
+      setConnectPerson(null);
+      setShowNoteInput(false);
+      setConnectNoteText('');
+    }
   };
+
+  const handleCloseSuccessPopup = () => {
+    setSuccessPopup(null);
+    setConnectPerson(null);
+    setShowNoteInput(false);
+    setConnectNoteText('');
+  };
+
+  const totalConnectionsCount = useMemo(() => {
+    return connectionsList.length;
+  }, [connectionsList]);
+
+  const totalSessionsDone = useMemo(() => {
+    return connectionsList.reduce((acc, c) => acc + (c.sessionsCompleted || 0), 0);
+  }, [connectionsList]);
+
+  const activeStudentsCount = useMemo(() => {
+    return connectionsList.filter(c => c.status === 'active' && c.role === 'student').length;
+  }, [connectionsList]);
+
+  if (loading) {
+    return (
+      <View style={{ padding: 60, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={MC.tealP} size="large" />
+      </View>
+    );
+  }
 
   return (
     <View style={s.container}>
@@ -347,7 +594,7 @@ export function NetworkView() {
             <Users size={16} color="#5EEAD4" />
           </View>
           <View>
-            <Text style={s.metricValue}>12</Text>
+            <Text style={s.metricValue}>{totalConnectionsCount}</Text>
             <Text style={s.metricLabel}>Connections</Text>
           </View>
         </View>
@@ -357,7 +604,7 @@ export function NetworkView() {
             <Video size={16} color="#93C5FD" />
           </View>
           <View>
-            <Text style={s.metricValue}>142</Text>
+            <Text style={s.metricValue}>{totalSessionsDone}</Text>
             <Text style={s.metricLabel}>Sessions done</Text>
           </View>
         </View>
@@ -367,7 +614,7 @@ export function NetworkView() {
             <Activity size={16} color="#86EFAC" />
           </View>
           <View>
-            <Text style={s.metricValue}>4</Text>
+            <Text style={s.metricValue}>{activeStudentsCount}</Text>
             <Text style={s.metricLabel}>Active students</Text>
           </View>
         </View>
@@ -382,7 +629,7 @@ export function NetworkView() {
           <Users size={13} color={tab === 'connections' ? '#090D16' : MC.muted} style={{ marginRight: 6 }} />
           <Text style={[s.tabPillText, tab === 'connections' && s.tabPillTextOn]}>My Connections</Text>
           <View style={[s.countBadge, tab === 'connections' && s.countBadgeOn]}>
-            <Text style={[s.countBadgeText, tab === 'connections' && s.countBadgeTextOn]}>12</Text>
+            <Text style={[s.countBadgeText, tab === 'connections' && s.countBadgeTextOn]}>{totalConnectionsCount}</Text>
           </View>
         </Pressable>
 
@@ -401,7 +648,7 @@ export function NetworkView() {
           <User size={13} color={tab === 'requests' ? '#090D16' : MC.muted} style={{ marginRight: 6 }} />
           <Text style={[s.tabPillText, tab === 'requests' && s.tabPillTextOn]}>Requests</Text>
           <View style={[s.reqBadge, tab === 'requests' && s.reqBadgeOn]}>
-            <Text style={s.reqBadgeText}>{incomingRequests.length}</Text>
+            <Text style={s.reqBadgeText}>{incomingRequests.length + sentRequests.length}</Text>
           </View>
         </Pressable>
       </View>
@@ -505,7 +752,7 @@ export function NetworkView() {
 
                         <View style={s.cardActions}>
                           <Pressable 
-                            onPress={() => alert(`Opening student profile: ${student.name}`)}
+                            onPress={() => setPickedPerson(student)}
                             style={({ hovered }: any) => [s.viewProfileBtn, hovered && { backgroundColor: '#5EEAD4' }]}
                           >
                             <Eye size={12} color="#090D16" style={{ marginRight: 6 }} />
@@ -517,12 +764,12 @@ export function NetworkView() {
                               <User size={13} color="#EF4444" />
                             </Pressable>
                             {student.linkedin && (
-                              <Pressable onPress={() => Linking.openURL(`https://${student.linkedin}`)} style={[s.iconSquareBtn, { backgroundColor: '#0A66C2' }]}>
+                              <Pressable onPress={() => student.linkedin ? Linking.openURL(student.linkedin.startsWith('http') ? student.linkedin : `https://${student.linkedin}`) : alert('No link provided')} style={[s.iconSquareBtn, { backgroundColor: '#0A66C2' }]}>
                                 <LinkedinGlyph size={13} color="#fff" />
                               </Pressable>
                             )}
                             {student.github && (
-                              <Pressable onPress={() => Linking.openURL(`https://${student.github}`)} style={[s.iconSquareBtn, { backgroundColor: '#24292e' }]}>
+                              <Pressable onPress={() => student.github ? Linking.openURL(student.github.startsWith('http') ? student.github : `https://${student.github}`) : alert('No link provided')} style={[s.iconSquareBtn, { backgroundColor: '#24292e' }]}>
                                 <Code size={13} color="#fff" />
                               </Pressable>
                             )}
@@ -596,7 +843,7 @@ export function NetworkView() {
 
                         <View style={[s.cardActions, { marginTop: 14 }]}>
                           <Pressable 
-                            onPress={() => alert(`Opening profile: ${person.name}`)}
+                            onPress={() => setPickedPerson(person)}
                             style={({ hovered }: any) => [s.viewProfileBtn, hovered && { backgroundColor: '#5EEAD4' }]}
                           >
                             <Eye size={12} color="#090D16" style={{ marginRight: 6 }} />
@@ -607,11 +854,11 @@ export function NetworkView() {
                             <Pressable onPress={() => alert(`Starting message chat with ${person.name}`)} style={[s.iconSquareBtn, { borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
                               <User size={13} color="#EF4444" />
                             </Pressable>
-                            <Pressable onPress={() => Linking.openURL(`https://${person.linkedin}`)} style={[s.iconSquareBtn, { backgroundColor: '#0A66C2' }]}>
+                            <Pressable onPress={() => person.linkedin ? Linking.openURL(person.linkedin.startsWith('http') ? person.linkedin : `https://${person.linkedin}`) : alert('No link provided')} style={[s.iconSquareBtn, { backgroundColor: '#0A66C2' }]}>
                               <LinkedinGlyph size={13} color="#fff" />
                             </Pressable>
                             {person.github && (
-                              <Pressable onPress={() => Linking.openURL(`https://${person.github}`)} style={[s.iconSquareBtn, { backgroundColor: '#24292e' }]}>
+                              <Pressable onPress={() => person.github ? Linking.openURL(person.github.startsWith('http') ? person.github : `https://${person.github}`) : alert('No link provided')} style={[s.iconSquareBtn, { backgroundColor: '#24292e' }]}>
                                 <Code size={13} color="#fff" />
                               </Pressable>
                             )}
@@ -666,7 +913,7 @@ export function NetworkView() {
             >
               <Heart size={12} color={discoverSubTab === 'interest' ? '#5EEAD4' : '#E2E8F0'} style={{ marginRight: 6 }} />
               <Text style={[s.discChipText, discoverSubTab === 'interest' && s.discChipTextOn]}>Matched by Interest</Text>
-              <View style={[s.discBadge, discoverSubTab === 'interest' && s.discBadgeOn]}><Text style={s.discBadgeText}>5</Text></View>
+              <View style={[s.discBadge, discoverSubTab === 'interest' && s.discBadgeOn]}><Text style={s.discBadgeText}>{discoverCounts.interest}</Text></View>
             </Pressable>
 
             <Pressable 
@@ -675,7 +922,7 @@ export function NetworkView() {
             >
               <Settings size={12} color={discoverSubTab === 'path' ? '#F97316' : '#E2E8F0'} style={{ marginRight: 6 }} />
               <Text style={s.discChipText}>Matched by Career Path</Text>
-              <View style={[s.discBadge, { backgroundColor: 'rgba(249,115,22,0.1)' }]}><Text style={[s.discBadgeText, { color: '#F97316' }]}>3</Text></View>
+              <View style={[s.discBadge, { backgroundColor: 'rgba(249,115,22,0.1)' }]}><Text style={[s.discBadgeText, { color: '#F97316' }]}>{discoverCounts.path}</Text></View>
             </Pressable>
 
             <Pressable 
@@ -684,7 +931,7 @@ export function NetworkView() {
             >
               <GraduationCap size={12} color={discoverSubTab === 'college' ? '#3B82F6' : '#E2E8F0'} style={{ marginRight: 6 }} />
               <Text style={s.discChipText}>From Your College</Text>
-              <View style={[s.discBadge, { backgroundColor: 'rgba(59,130,246,0.1)' }]}><Text style={[s.discBadgeText, { color: '#3B82F6' }]}>2</Text></View>
+              <View style={[s.discBadge, { backgroundColor: 'rgba(59,130,246,0.1)' }]}><Text style={[s.discBadgeText, { color: '#3B82F6' }]}>{discoverCounts.college}</Text></View>
             </Pressable>
 
             <Pressable 
@@ -693,7 +940,7 @@ export function NetworkView() {
             >
               <Users size={12} color={discoverSubTab === 'recommended' ? '#F59E0B' : '#E2E8F0'} style={{ marginRight: 6 }} />
               <Text style={s.discChipText}>Recommended Mentors</Text>
-              <View style={[s.discBadge, { backgroundColor: 'rgba(245,158,11,0.1)' }]}><Text style={[s.discBadgeText, { color: '#F59E0B' }]}>3</Text></View>
+              <View style={[s.discBadge, { backgroundColor: 'rgba(245,158,11,0.1)' }]}><Text style={[s.discBadgeText, { color: '#F59E0B' }]}>{discoverCounts.recommended}</Text></View>
             </Pressable>
 
             <Pressable 
@@ -702,26 +949,28 @@ export function NetworkView() {
             >
               <Activity size={12} color={discoverSubTab === 'expand' ? '#EC4899' : '#E2E8F0'} style={{ marginRight: 6 }} />
               <Text style={s.discChipText}>Expand Your Horizons</Text>
-              <View style={[s.discBadge, { backgroundColor: 'rgba(236,72,153,0.1)' }]}><Text style={[s.discBadgeText, { color: '#EC4899' }]}>3</Text></View>
+              <View style={[s.discBadge, { backgroundColor: 'rgba(236,72,153,0.1)' }]}><Text style={[s.discBadgeText, { color: '#EC4899' }]}>{discoverCounts.expand}</Text></View>
             </Pressable>
           </View>
 
-          {/* Matched by Interest list view */}
-          {discoverSubTab === 'interest' && filteredMatchedDiscover.length > 0 && (
+          {/* Matched list view */}
+          {filteredMatchedDiscover.length > 0 && (
             <View style={s.sectionFrame}>
               <Pressable 
                 onPress={() => setShowMatchedInterest(!showMatchedInterest)} 
                 style={s.sectionHeaderRow}
               >
-                <Heart size={18} color="#5EEAD4" style={{ marginRight: 8 }} />
+                {discoverSubTab === 'interest' ? <Heart size={18} color="#5EEAD4" style={{ marginRight: 8 }} /> : discoverSubTab === 'path' ? <Briefcase size={18} color="#F97316" style={{ marginRight: 8 }} /> : discoverSubTab === 'college' ? <GraduationCap size={18} color="#3B82F6" style={{ marginRight: 8 }} /> : discoverSubTab === 'recommended' ? <Users size={18} color="#F59E0B" style={{ marginRight: 8 }} /> : <Activity size={18} color="#EC4899" style={{ marginRight: 8 }} />}
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={s.secTitle}>Matched by Interest</Text>
+                    <Text style={s.secTitle}>
+                      {discoverSubTab === 'interest' ? 'Matched by Interest' : discoverSubTab === 'path' ? 'Matched by Career Path' : discoverSubTab === 'college' ? 'From Your College' : discoverSubTab === 'recommended' ? 'Recommended Mentors' : 'Expand Your Horizons'}
+                    </Text>
                     <View style={s.secBadge}>
                       <Text style={s.secBadgeText}>{filteredMatchedDiscover.length}</Text>
                     </View>
                   </View>
-                  <Text style={s.secSub}>Based on: System Design, Career Guidance, Startup Advice</Text>
+                  <Text style={s.secSub}>{activeSection?.subtitle || 'Based on your profile matching criteria.'}</Text>
                 </View>
                 <Pressable onPress={() => setShowMatchedInterest(!showMatchedInterest)} style={s.toggleBtn}>
                   <Text style={s.toggleBtnText}>{showMatchedInterest ? 'Show less' : 'Show more'}</Text>
@@ -740,18 +989,26 @@ export function NetworkView() {
                           <View style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                               <Text numberOfLines={1} style={s.nameBold}>{person.name}</Text>
-                              <View style={[s.rolePillBase, s.rolePillAlumni]}>
-                                <Text style={[s.rolePillBaseText, s.rolePillAlumniText]}>Alumni</Text>
+                              <View style={[
+                                s.rolePillBase, 
+                                person.tag === 'Student' ? s.rolePillStudent : person.tag === 'Mentor' ? s.rolePillMentor : s.rolePillAlumni
+                              ]}>
+                                <Text style={[
+                                  s.rolePillBaseText, 
+                                  person.tag === 'Student' ? s.rolePillStudentText : person.tag === 'Mentor' ? s.rolePillMentorText : s.rolePillAlumniText
+                                ]}>{person.tag}</Text>
                               </View>
                             </View>
                             <Text numberOfLines={1} style={s.subtitleLine}>{person.role}</Text>
-                            <Text numberOfLines={1} style={s.subtitleSubLine}>{person.company} • {person.college} • {person.year}</Text>
+                            <Text numberOfLines={1} style={s.subtitleSubLine}>
+                              {person.company ? `${person.company} • ` : ''}{person.college}{person.year ? ` • ${person.year}` : ''}
+                            </Text>
                           </View>
                         </View>
 
                         {/* Skill Pills */}
                         <View style={s.skillsRow}>
-                          {person.tags.map((skill, sIdx) => (
+                          {person.tags.map((skill: string, sIdx: number) => (
                             <View key={sIdx} style={s.skillChip}><Text style={s.skillChipText}>{skill}</Text></View>
                           ))}
                         </View>
@@ -766,18 +1023,38 @@ export function NetworkView() {
                       {/* Card Action Row */}
                       <View style={[s.cardActions, { marginTop: 14, flexDirection: 'column', gap: 8, alignItems: 'stretch' }]}>
                         
-                        {/* Draft Message Button */}
-                        <Pressable 
-                          onPress={() => openDraftDialog(person)}
-                          style={({ hovered }: any) => [s.draftMsgBtn, hovered && { borderColor: '#5EEAD4', backgroundColor: 'rgba(94, 234, 212, 0.1)' }]}
-                        >
-                          <MessageSquare size={12} color="#5EEAD4" style={{ marginRight: 6 }} />
-                          <Text style={s.draftMsgBtnText}>Draft Message</Text>
-                        </Pressable>
+                        {/* Action Button depending on Connection State */}
+                        {person.connectionState === 'connected' ? (
+                          <View style={[s.draftMsgBtn, { borderColor: 'rgba(34,197,94,0.3)', backgroundColor: 'rgba(34,197,94,0.06)' }]}>
+                            <Check size={12} color="#86EFAC" style={{ marginRight: 6 }} />
+                            <Text style={[s.draftMsgBtnText, { color: '#86EFAC' }]}>Connected</Text>
+                          </View>
+                        ) : person.connectionState === 'pending' ? (
+                          <View style={[s.draftMsgBtn, { borderColor: 'rgba(245,158,11,0.3)', backgroundColor: 'rgba(245,158,11,0.06)' }]}>
+                            <Clock size={12} color="#FDE047" style={{ marginRight: 6 }} />
+                            <Text style={[s.draftMsgBtnText, { color: '#FDE047' }]}>Pending Invite</Text>
+                          </View>
+                        ) : person.connectionState === 'incoming' ? (
+                          <Pressable 
+                            onPress={() => handleAcceptRequest(person.id, person.name)}
+                            style={({ hovered }: any) => [s.draftMsgBtn, { borderColor: '#5EEAD4', backgroundColor: '#14B8A6' }, hovered && { opacity: 0.9 }]}
+                          >
+                            <Check size={12} color="#090D16" style={{ marginRight: 6 }} />
+                            <Text style={[s.draftMsgBtnText, { color: '#090D16' }]}>Accept Connection</Text>
+                          </Pressable>
+                        ) : (
+                          <Pressable 
+                            onPress={() => openConnectDialog(person)}
+                            style={({ hovered }: any) => [s.draftMsgBtn, hovered && { borderColor: '#5EEAD4', backgroundColor: 'rgba(94, 234, 212, 0.1)' }]}
+                          >
+                            <UserPlus size={12} color="#5EEAD4" style={{ marginRight: 6 }} />
+                            <Text style={s.draftMsgBtnText}>Connect</Text>
+                          </Pressable>
+                        )}
 
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: 6 }}>
                           <Pressable 
-                            onPress={() => alert(`Opening profile: ${person.name}`)}
+                            onPress={() => setPickedPerson(person)}
                             style={({ hovered }: any) => [s.viewProfileBtn, { flex: 1, height: 32 }, hovered && { backgroundColor: '#5EEAD4' }]}
                           >
                             <Eye size={12} color="#090D16" style={{ marginRight: 6 }} />
@@ -788,11 +1065,11 @@ export function NetworkView() {
                             <Pressable onPress={() => alert(`Starting message chat with ${person.name}`)} style={[s.iconSquareBtn, { height: 32, width: 32, borderColor: '#EF444433', backgroundColor: 'rgba(239, 68, 68, 0.05)' }]}>
                               <User size={13} color="#EF4444" />
                             </Pressable>
-                            <Pressable onPress={() => Linking.openURL(`https://${person.linkedin}`)} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#0A66C2' }]}>
+                            <Pressable onPress={() => person.linkedin ? Linking.openURL(person.linkedin.startsWith('http') ? person.linkedin : `https://${person.linkedin}`) : alert('No link provided')} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#0A66C2' }]}>
                               <LinkedinGlyph size={13} color="#fff" />
                             </Pressable>
                             {person.github && (
-                              <Pressable onPress={() => Linking.openURL(`https://${person.github}`)} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#24292e' }]}>
+                              <Pressable onPress={() => person.github ? Linking.openURL(person.github.startsWith('http') ? person.github : `https://${person.github}`) : alert('No link provided')} style={[s.iconSquareBtn, { height: 32, width: 32, backgroundColor: '#24292e' }]}>
                                 <Code size={13} color="#fff" />
                               </Pressable>
                             )}
@@ -806,13 +1083,12 @@ export function NetworkView() {
             </View>
           )}
 
-          {/* Fallback discovery text */}
-          {discoverSubTab !== 'interest' && (
+          {filteredMatchedDiscover.length === 0 && (
             <View style={s.stubCard}>
               <Sparkles size={22} color={MC.tealP} style={{ marginBottom: 8 }} />
-              <Text style={s.stubTitle}>Discovery Section</Text>
+              <Text style={s.stubTitle}>No Matches Found</Text>
               <Text style={s.stubSub}>
-                Matches for this discovery pathway are currently loading from the database. Click "Matched by Interest" to explore the top matches!
+                There are no matching network accounts in the database for this category right now.
               </Text>
             </View>
           )}
@@ -847,6 +1123,11 @@ export function NetworkView() {
                         <Text style={s.requestTimeText}>{req.time}</Text>
                       </View>
                       <Text style={s.requestSublineText} numberOfLines={1}>{req.subtitle}</Text>
+                      {req.message ? (
+                        <Text style={{ color: '#5EEAD4', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 4, fontStyle: 'italic' }}>
+                          Note: "{req.message}"
+                        </Text>
+                      ) : null}
                     </View>
 
                     {/* Actions */}
@@ -912,39 +1193,241 @@ export function NetworkView() {
         </View>
       )}
 
-      {/* Custom AI Assist Drafting Overlay Modal */}
-      {draftingPerson && (
+      {/* Connection Request Modal */}
+      <Modal visible={!!connectPerson} transparent animationType="fade" onRequestClose={() => setConnectPerson(null)}>
         <View style={s.overlay}>
-          <View style={s.draftModal}>
-            <View style={s.modalHeaderBox}>
-              <Sparkles size={20} color="#5EEAD4" />
-              <Text style={s.draftModalTitle}>Draft Message to {draftingPerson.name}</Text>
-            </View>
+          {connectPerson && (
+            <View style={s.draftModal}>
+              <View style={s.modalHeaderBox}>
+                <UserPlus size={20} color="#5EEAD4" />
+                <Text style={s.draftModalTitle}>Connect with {connectPerson.name}</Text>
+              </View>
 
-            <Text style={s.draftModalLabel}>AI SUGGESTED MESSAGE TEMPLATE</Text>
-            <View style={s.draftTextContainer}>
-              <TextInput
-                multiline
-                numberOfLines={6}
-                value={draftText}
-                onChangeText={setDraftText}
-                style={s.draftTextInput}
-              />
-            </View>
+              {!showNoteInput ? (
+                <View style={{ gap: 12, marginTop: 16 }}>
+                  <Pressable
+                    onPress={() => setShowNoteInput(true)}
+                    style={({ hovered }: any) => [
+                      s.draftSendBtn,
+                      { backgroundColor: 'transparent', borderColor: '#5EEAD4', borderWidth: 1, height: 42, justifyContent: 'center' },
+                      hovered && { backgroundColor: 'rgba(94, 234, 212, 0.1)' }
+                    ]}
+                  >
+                    <MessageSquare size={14} color="#5EEAD4" style={{ marginRight: 6 }} />
+                    <Text style={[s.draftSendText, { color: '#5EEAD4' }]}>Send with a note</Text>
+                  </Pressable>
 
-            <View style={s.draftActions}>
-              <Pressable onPress={() => setDraftingPerson(null)} style={s.draftCancelBtn}>
-                <Text style={s.draftCancelText}>Cancel</Text>
+                  <Pressable
+                    onPress={() => sendConnectionRequestFlow(false)}
+                    style={({ hovered }: any) => [
+                      s.draftSendBtn,
+                      { height: 42, justifyContent: 'center' },
+                      hovered && { opacity: 0.9 }
+                    ]}
+                  >
+                    <UserPlus size={14} color="#090D16" style={{ marginRight: 6 }} />
+                    <Text style={s.draftSendText}>Send without a note</Text>
+                  </Pressable>
+
+                  <Pressable onPress={() => setConnectPerson(null)} style={[s.draftCancelBtn, { marginTop: 6 }]}>
+                    <Text style={s.draftCancelText}>Cancel</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <View style={{ marginTop: 12 }}>
+                  <Text style={s.draftModalLabel}>PERSONALIZE YOUR INVITATION NOTE</Text>
+                  <View style={s.draftTextContainer}>
+                    <TextInput
+                      multiline
+                      numberOfLines={4}
+                      value={connectNoteText}
+                      onChangeText={setConnectNoteText}
+                      style={s.draftTextInput}
+                      placeholder="Write a message..."
+                      placeholderTextColor={MC.dim}
+                    />
+                  </View>
+
+                  <View style={s.draftActions}>
+                    <Pressable onPress={() => setShowNoteInput(false)} style={s.draftCancelBtn}>
+                      <Text style={s.draftCancelText}>Back</Text>
+                    </Pressable>
+
+                    <Pressable onPress={() => sendConnectionRequestFlow(true)} style={s.draftSendBtn}>
+                      <Check size={14} color="#090D16" style={{ marginRight: 6 }} />
+                      <Text style={s.draftSendText}>Send Request</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+      </Modal>
+
+      {/* Profile Detail Modal */}
+      <Modal visible={!!pickedPerson} animationType="slide" transparent onRequestClose={() => setPickedPerson(null)}>
+        <View style={s.backdrop}>
+          <Pressable onPress={() => setPickedPerson(null)} style={{ flex: 1 }} />
+          <View style={s.modal}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>
+                {pickedPerson?.kind === 'mentor' ? 'Mentor Profile' : pickedPerson?.kind === 'alumni' ? 'Alumni Profile' : 'Student Profile'}
+              </Text>
+              <Pressable onPress={() => setPickedPerson(null)} style={s.closeBtn}>
+                <X size={16} color="#fff" />
               </Pressable>
-
-              <Pressable onPress={sendDraftedMessage} style={s.draftSendBtn}>
-                <Check size={14} color="#090D16" style={{ marginRight: 6 }} />
-                <Text style={s.draftSendText}>Send Message</Text>
-              </Pressable>
             </View>
+            {pickedPerson && (() => {
+              const isConnected = pickedPerson.status === 'active' || 
+                                  pickedPerson.status === 'accepted' || 
+                                  pickedPerson.status === 'completed' || 
+                                  pickedPerson.connectionState === 'connected';
+              const isPending = pickedPerson.status === 'pending' || 
+                                pickedPerson.connectionState === 'pending';
+              const nameInitials = pickedPerson.avatar || (pickedPerson.name.split(' ').slice(0, 2).map((p: any) => p[0] || '').join('').toUpperCase());
+              const titleLine = pickedPerson.role || pickedPerson.subline || 'Member';
+              const collegeLine = pickedPerson.company || pickedPerson.college || '';
+              const bioText = pickedPerson.bio || pickedPerson.looking || (pickedPerson.goals && pickedPerson.goals[0]) || 'No bio provided.';
+              const skillsList = pickedPerson.skills || pickedPerson.tags || pickedPerson.interests || [];
+
+              return (
+                <ScrollView style={{ padding: 20 }} contentContainerStyle={{ gap: 16 }}>
+                  {/* Basic Info Card */}
+                  <View style={s.profileHeaderCard}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 }}>
+                      <Av initials={nameInitials} size={64} color={pickedPerson.color} />
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 18 }}>{pickedPerson.name}</Text>
+                        <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12.5, marginTop: 4 }}>
+                          {titleLine}
+                        </Text>
+                        <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 }}>
+                          {collegeLine}
+                        </Text>
+                      </View>
+                      
+                      {/* Social Icons */}
+                      <View style={{ flexDirection: 'row', gap: 6, alignSelf: 'flex-start' }}>
+                        {pickedPerson.linkedin && (
+                          <Pressable 
+                            onPress={() => pickedPerson.linkedin ? Linking.openURL(pickedPerson.linkedin.startsWith('http') ? pickedPerson.linkedin : `https://${pickedPerson.linkedin}`) : alert('No link provided')} 
+                            style={s.socialIconBtn}
+                          >
+                            <LinkedinGlyph size={14} color="#fff" />
+                          </Pressable>
+                        )}
+                        {pickedPerson.github && (
+                          <Pressable 
+                            onPress={() => pickedPerson.github ? Linking.openURL(pickedPerson.github.startsWith('http') ? pickedPerson.github : `https://${pickedPerson.github}`) : alert('No link provided')} 
+                            style={s.socialIconBtn}
+                          >
+                            <Code size={14} color="#fff" />
+                          </Pressable>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Bio Card */}
+                  <View style={s.profileBioCard}>
+                    <View style={{ padding: 16 }}>
+                      <Text style={{ color: 'rgba(255,255,255,0.75)', fontFamily: FONTS.med, fontSize: 13, lineHeight: 18 }}>
+                        {bioText}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Mentor Stats Section */}
+                  {pickedPerson.kind === 'mentor' && (
+                    <View style={{ gap: 8 }}>
+                      <Text style={{ color: '#F97316', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>MENTOR STATS</Text>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderRadius: 10, padding: 12 }}>
+                          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.rating || 5.0}★</Text>
+                          <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Rating</Text>
+                        </View>
+                        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderRadius: 10, padding: 12 }}>
+                          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 }}>{pickedPerson.sessions || 0}</Text>
+                          <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Sessions</Text>
+                        </View>
+                        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderRadius: 10, padding: 12 }}>
+                          <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 13 }} numberOfLines={1}>{pickedPerson.price || 'Free'}</Text>
+                          <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 10, marginTop: 4 }}>Price</Text>
+                        </View>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Skills Section */}
+                  <View style={{ gap: 8 }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.50)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 0.6 }}>SKILLS</Text>
+                    <View style={s.skillsRow}>
+                      {skillsList && skillsList.map((tag: string, idx: number) => (
+                        <View key={idx} style={s.skillChip}><Text style={s.skillChipText}>{tag}</Text></View>
+                      ))}
+                      {(!skillsList || skillsList.length === 0) && (
+                        <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12 }}>No specified skills.</Text>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* Connection / Messaging Actions */}
+                  <View style={{ marginTop: 8 }}>
+                    {isConnected ? (
+                      <View style={s.connectedPillLarge}>
+                        <Check size={16} color={MC.tealP} style={{ marginRight: 6 }} />
+                        <Text style={{ color: MC.tealP, fontFamily: FONTS.bold, fontSize: 14 }}>Connected</Text>
+                      </View>
+                    ) : isPending ? (
+                      <View style={s.pendingPillLarge}>
+                        <Clock size={16} color={MC.amber} style={{ marginRight: 6 }} />
+                        <Text style={{ color: MC.amber, fontFamily: FONTS.bold, fontSize: 14 }}>Request Pending</Text>
+                      </View>
+                    ) : pickedPerson.connectionState === 'incoming' ? (
+                      <Pressable 
+                        onPress={() => {
+                          setPickedPerson(null);
+                          handleAcceptRequest(pickedPerson.id, pickedPerson.name);
+                        }}
+                        style={s.connectBtnLarge}
+                      >
+                        <Check size={16} color="#090D16" style={{ marginRight: 6 }} />
+                        <Text style={{ color: '#090D16', fontFamily: FONTS.xbold, fontSize: 14 }}>Accept Connection</Text>
+                      </Pressable>
+                    ) : (
+                      <Pressable 
+                        onPress={() => {
+                          setPickedPerson(null);
+                          openConnectDialog(pickedPerson);
+                        }}
+                        style={s.connectBtnLarge}
+                      >
+                        <UserPlus size={16} color="#090D16" style={{ marginRight: 6 }} />
+                        <Text style={{ color: '#090D16', fontFamily: FONTS.xbold, fontSize: 14 }}>Connect</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                </ScrollView>
+              );
+            })()}
           </View>
         </View>
-      )}
+      </Modal>
+      {/* Custom Success Popup */}
+      <Modal visible={!!successPopup} transparent animationType="fade" onRequestClose={handleCloseSuccessPopup}>
+        {successPopup && (
+          <View style={s.successPopupContainer}>
+            <View style={s.successPopupContent}>
+              <Check size={20} color="#5EEAD4" style={{ marginRight: 12 }} />
+              <Text style={s.successPopupText}>{successPopup}</Text>
+            </View>
+            <Pressable onPress={handleCloseSuccessPopup} style={s.successPopupBtn}>
+              <Text style={s.successPopupBtnText}>OK</Text>
+            </Pressable>
+          </View>
+        )}
+      </Modal>
     </View>
   );
 }
@@ -1288,13 +1771,15 @@ const s = StyleSheet.create({
     color: '#FCD34D'
   },
   rolePillMentor: {
-    backgroundColor: 'rgba(20,184,166,0.12)'
+    backgroundColor: 'rgba(20,184,1, 0.15)',
+    borderColor: 'rgba(20,184,166,0.3)'
   },
   rolePillMentorText: {
-    color: '#5EEAD4'
+    color: '#34D399'
   },
   rolePillAlumni: {
-    backgroundColor: 'rgba(59,130,246,0.12)'
+    backgroundColor: 'rgba(59,130,246,0.15)',
+    borderColor: 'rgba(59,130,246,0.3)'
   },
   rolePillAlumniText: {
     color: '#93C5FD'
@@ -1561,10 +2046,8 @@ const s = StyleSheet.create({
 
   // Glassmorphic Drafting Modal overlay
   overlay: {
-    position: Platform.OS === 'web' ? 'fixed' : 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(5, 8, 16, 0.85)',
-    zIndex: 9999,
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
@@ -1656,5 +2139,136 @@ const s = StyleSheet.create({
     color: '#090D16',
     fontFamily: FONTS.xbold,
     fontSize: 13
+  },
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'flex-end',
+    alignItems: Platform.OS === 'web' ? 'flex-end' : 'stretch',
+  },
+  modal: {
+    backgroundColor: MC.bg2 || '#090D16',
+    borderColor: MC.border,
+    borderLeftWidth: Platform.OS === 'web' ? 1 : 0,
+    borderWidth: Platform.OS === 'web' ? 0 : 1,
+    borderTopLeftRadius: Platform.OS === 'web' ? 0 : 20,
+    borderTopRightRadius: Platform.OS === 'web' ? 0 : 20,
+    width: Platform.OS === 'web' ? 440 : '100%',
+    height: Platform.OS === 'web' ? '100%' : '85%',
+    maxHeight: '100%',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: -10, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomColor: MC.border,
+    borderBottomWidth: 1
+  },
+  modalTitle: {
+    color: '#fff',
+    fontFamily: FONTS.xbold,
+    fontSize: 15
+  },
+  closeBtn: {
+    padding: 4,
+    ...({ cursor: 'pointer' } as any)
+  },
+  profileHeaderCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  profileBioCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  socialIconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.09)',
+    borderWidth: 1,
+    ...({ cursor: 'pointer' } as any)
+  },
+  connectBtnLarge: {
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#14B8A6',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...({ cursor: 'pointer' } as any)
+  },
+  connectedPillLarge: {
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: 'rgba(20,184,166,0.1)',
+    borderColor: 'rgba(20,184,166,0.2)',
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pendingPillLarge: {
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: 'rgba(245,158,11,0.1)',
+    borderColor: 'rgba(245,158,11,0.2)',
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successPopupContainer: {
+    position: 'absolute',
+    top: 24,
+    right: 24,
+    backgroundColor: '#090D16',
+    borderColor: '#5EEAD4',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    width: 320,
+    zIndex: 10000,
+    shadowColor: '#5EEAD4',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  successPopupContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  successPopupText: {
+    color: '#E2E8F0',
+    fontFamily: FONTS.med,
+    fontSize: 14,
+    flex: 1,
+  },
+  successPopupBtn: {
+    backgroundColor: '#14B8A6',
+    borderRadius: 6,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successPopupBtnText: {
+    color: '#090D16',
+    fontFamily: FONTS.bold,
+    fontSize: 13,
   }
 });

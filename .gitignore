@@ -149,6 +149,8 @@ dump.rdb
 *.sqlite
 *.sqlite3
 *.db-journal
+.run.pids
+.run.pid
 
 # ── Seed / export data (regenerable, often huge)
 backend/seed_data_export/
@@ -183,8 +185,8 @@ frontend/\001*
 
 run.sh
 run.ps1
-run.sh
-run.sh
-run.ps1
-run.sh
-run.ps1
+
+# Scratch folder and local Node/Yarn runtimes
+scratch/
+node-local/
+yarn-local/

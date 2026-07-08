@@ -9,6 +9,7 @@ import { Globe, Users, Lock, FileUp, Download, Trash2, Plus, Award, Star } from 
 import { request } from '@/src/models/services/api';
 import { CertificatesCard } from '@/src/views/web/CertificatesCard';
 import { MaterialBadgeStack } from '@/src/views/components/MaterialBadgeChip';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 const VISIBILITY = [
   { key: 'public', icon: Globe, title: 'Public', desc: 'Anyone can find your profile.' },
@@ -39,6 +40,7 @@ export function ManageProfilePage({ draft, setDraft, badges, onCertChange, showT
 
   const [resumes, setResumes] = useState<any[]>([]);
   const [busy, setBusy] = useState(false);
+  const isCollege = useAuthStore.getState().user?.role === 'college';
 
   const loadResumes = async () => {
     try {
@@ -110,6 +112,8 @@ export function ManageProfilePage({ draft, setDraft, badges, onCertChange, showT
       </Card>
 
       {/* Resume & Documents */}
+      {!isCollege && (
+      <View nativeID="resume">
       <Card title="Resume & Documents" subtitle="PDF / Doc up to 5MB. The active one is shared with employers."
         action={<Pressable onPress={handleResumeUpload} disabled={busy} style={st.uploadBtn} testID="pf-resume-upload">{busy ? <ActivityIndicator size="small" color="#fff" /> : <FileUp size={13} color="#fff" />}<Text style={st.uploadBtnText}>{busy ? 'Uploading…' : 'Upload New'}</Text></Pressable>}>
         {resumes.length === 0 ? (
@@ -136,8 +140,11 @@ export function ManageProfilePage({ draft, setDraft, badges, onCertChange, showT
           </View>
         )}
       </Card>
+      </View>
+      )}
 
       {/* Profile Sections */}
+      <View nativeID="projects">
       <Card title="Profile Sections" subtitle="Toggle which sections appear on your public profile.">
         {SECTIONS.map((s) => (
           <ToggleRow
@@ -150,18 +157,25 @@ export function ManageProfilePage({ draft, setDraft, badges, onCertChange, showT
           />
         ))}
       </Card>
+      </View>
 
       {/* Certifications (reuse existing CertificatesCard) */}
-      <CertificatesCard onChanged={onCertChange} />
+      {!isCollege && (
+      <View nativeID="certifications">
+        <CertificatesCard onChanged={onCertChange} />
+      </View>
+      )}
 
       {/* Earned Badges */}
+      {!isCollege && (
       <Card title="Earned Badges" subtitle={`${badges.length} unlocked`}>
         {badges.length === 0 ? (
           <View style={st.empty}><Award size={28} color={C.text3} /><Text style={st.emptyText}>Earn badges by completing your profile and engaging with the platform.</Text></View>
         ) : (
-          <MaterialBadgeStack badges={badges} size="md" />
+          <MaterialBadgeStack badges={badges} size="sm" />
         )}
       </Card>
+      )}
     </View>
   );
 }

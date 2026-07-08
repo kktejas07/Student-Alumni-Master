@@ -9,7 +9,7 @@
  *   • Recent Activity (left) + Top Recruiters (right)
  */
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   GraduationCap, Users, Trophy, CalendarDays, Sparkles, ArrowRight,
@@ -48,26 +48,35 @@ export function DashboardView({
   onNavigate?: (id: CollegeNavId) => void;
 }) {
   const user = useAuthStore((state) => state.user);
-  const collegeName = user?.college_info?.institution_name || user?.school_info?.institution_name || '';
+  const collegeName = user?.institution || user?.college_info?.institution_name || user?.school_info?.institution_name || '';
 
-  const { data } = usePortalData<typeof COLLEGE_MOCK>(
+  const { data, loading } = usePortalData<typeof COLLEGE_MOCK>(
     collegeName
       ? `/admin/college-stats?college_name=${encodeURIComponent(collegeName)}`
       : '/admin/college-stats',
     COLLEGE_MOCK
   );
-  const COLLEGE = data!.college;
-  const KPIS = data!.kpis;
-  const DEPT_PLACEMENT = data!.deptPlacement;
-  const RECENT_ACTIVITY = data!.recentActivity;
-  const UPCOMING_EVENTS = data!.upcomingEvents;
-  const TOP_RECRUITERS = data!.topRecruiters;
 
   const { width } = useWindowDimensions();
   const stack = width < 1100;
 
   const [briefText, setBriefText] = React.useState<string>('');
   const [briefLoading, setBriefLoading] = React.useState<boolean>(false);
+
+  if (loading && data === COLLEGE_MOCK) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+        <ActivityIndicator size="large" color="#FCD34D" />
+      </View>
+    );
+  }
+
+  const COLLEGE = data!.college;
+  const KPIS = data!.kpis;
+  const DEPT_PLACEMENT = data!.deptPlacement;
+  const RECENT_ACTIVITY = data!.recentActivity;
+  const UPCOMING_EVENTS = data!.upcomingEvents;
+  const TOP_RECRUITERS = data!.topRecruiters;
 
   return (
     <View style={{ gap: 16 }}>

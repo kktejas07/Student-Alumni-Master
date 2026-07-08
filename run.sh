@@ -15,8 +15,8 @@ BACKEND_DIR="$ROOT/backend"
 FRONTEND_DIR="$ROOT/frontend"
 PID_FILE="$ROOT/.run.pids"
 
-# Prepend local Node.js if it exists (useful for Windows environments)
-if [[ -d "$ROOT/node-local" ]]; then
+# Prepend local Node.js if it exists and is complete (useful for Windows environments)
+if [[ -d "$ROOT/node-local" && -d "$ROOT/node-local/node_modules/npm" ]]; then
   export PATH="$ROOT/node-local:$PATH"
 fi
 
@@ -50,7 +50,7 @@ load_env() {
 
 # ── backend ───────────────────────────────────────────────────────────────────
 start_backend() {
-  info "Starting backend (FastAPI on :8000)…"
+  info "Starting backend (FastAPI on :8002)…"
 
   # Prefer python3.11 / python3.12 (requirements need >=3.10); fall back to python3
   PYTHON_CMD=""
@@ -95,21 +95,21 @@ start_backend() {
     else
       VENV_BIN="$BACKEND_DIR/venv/bin"
     fi
-    "$VENV_BIN/pip" install -q --upgrade pip
-    "$VENV_BIN/pip" install -q -r "$BACKEND_DIR/requirements.txt"
-    "$VENV_BIN/pip" install -q "uvicorn[standard]"
+    "$VENV_BIN/python" -m pip install -q --upgrade pip
+    "$VENV_BIN/python" -m pip install -q -r "$BACKEND_DIR/requirements.txt"
+    "$VENV_BIN/python" -m pip install -q "uvicorn[standard]"
     success "Dependencies installed."
   fi
 
   load_env
 
   cd "$BACKEND_DIR"
-  "$VENV_BIN/uvicorn" server:app \
-    --host 0.0.0.0 --port 8000 --reload \
+  "$VENV_BIN/python" -m uvicorn server:app \
+    --host 0.0.0.0 --port 8002 --reload \
     --log-level info &
   echo $! >> "$PID_FILE"
-  success "Backend started (PID $!) → http://localhost:8000"
-  success "API docs → http://localhost:8000/docs"
+  success "Backend started (PID $!) → http://localhost:8002"
+  success "API docs → http://localhost:8002/docs"
 }
 
 # ── frontend ──────────────────────────────────────────────────────────────────
@@ -124,7 +124,12 @@ start_frontend() {
   fi
 
   cd "$FRONTEND_DIR"
-  EXPO_PUBLIC_BACKEND_URL="http://localhost:8000" node_modules/.bin/expo start --web --port 8081 &
+  if [[ -f "node_modules/.bin/expo" ]]; then
+    EXPO_CMD="node_modules/.bin/expo"
+  else
+    EXPO_CMD="npx expo"
+  fi
+  EXPO_PUBLIC_BACKEND_URL="http://localhost:8002" $EXPO_CMD start --web --port 8081 &
   echo $! >> "$PID_FILE"
   success "Frontend started (PID $!) → http://localhost:8081"
 }

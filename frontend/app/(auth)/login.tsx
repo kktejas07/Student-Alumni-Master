@@ -1,19 +1,21 @@
+import { getBaseUrl } from '@/src/lib/env';
 /**
  * Auth Login screen using AuthShell + AuthControls + analytics tracking.
  */
-import React, { useState, useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet, Alert, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, Pressable, StyleSheet, Platform, TextInput } from 'react-native';
 import { useRouter, useLocalSearchParams, Link } from 'expo-router';
 import { ArrowLeft, Eye, EyeOff, Mail, Lock } from 'lucide-react-native';
 import Svg, { Path, G } from 'react-native-svg';
 import { AuthShell } from '@/src/views/auth/AuthShell';
-import { AuthInput, PrimaryButton, OutlineButton, StrengthMeter } from '@/src/views/auth/AuthControls';
+import { AuthInput, PrimaryButton, OutlineButton, PasswordRules } from '@/src/views/auth/AuthControls';
 import { ROLE_META, type Role } from '@/src/views/auth/RoleCards';
 import { AC, FONTS } from '@/src/views/auth/tokens';
 import { trackAuth, passwordStrength } from '@/src/lib/authAnalytics';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { initFirebaseAuth, signInWithGoogle, signInWithGitHub } from '@/src/lib/firebaseAuth';
 
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BASE = getBaseUrl();
 
 function GoogleG({ size = 18 }: { size?: number }) {
   return (
@@ -36,6 +38,14 @@ function LinkedInIn({ size = 18 }: { size?: number }) {
   );
 }
 
+function GitHubCat({ size = 18 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path fill="#fff" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+    </Svg>
+  );
+}
+
 export default function LoginScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ role?: Role; email?: string }>();
@@ -49,14 +59,24 @@ export default function LoginScreen() {
   const [emailError, setEmailError] = useState('');
   const [pwdError, setPwdError] = useState('');
   const [exists, setExists] = useState<boolean | null>(null);
-  const [oauthModal, setOauthModal] = useState<{ provider: 'google' | 'linkedin'; name: string; email: string } | null>(null);
-  const [oauthCfg, setOauthCfg] = useState<{ google_client_id: string; linkedin_client_id: string; redirect_uri: string; configured: boolean } | null>(null);
+  // Guard against double-submit within the same animation frame
+  const submittingRef = useRef(false);
+  const pwdRef = useRef<TextInput>(null);
+
+  const [oauthCfg, setOauthCfg] = useState<{ linkedin_client_id?: string; redirect_uri?: string; firebase?: { apiKey: string; authDomain: string; projectId: string; appId: string } | null } | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
         const res = await fetch(`${BASE}/api/auth/oauth-config`);
-        if (res.ok) setOauthCfg(await res.json());
+        if (res.ok) {
+          const cfg = await res.json();
+          setOauthCfg(cfg);
+          // Init Firebase Auth if configured
+          if (cfg.firebase?.apiKey) {
+            initFirebaseAuth(cfg.firebase);
+          }
+        }
       } catch {}
     })();
   }, []);
@@ -99,6 +119,11 @@ export default function LoginScreen() {
     // Hit /auth/check or /auth/me after a probe — for now, optimistic UX
     setExists(null);
   };
+  
+  const onEmailSubmit = () => {
+    onEmailBlur();
+    pwdRef.current?.focus();
+  };
 
   const onPasswordBlur = async () => {
     if (password) {
@@ -120,6 +145,9 @@ export default function LoginScreen() {
       setPwdError('Enter your password');
       return;
     }
+    // Prevent double-submit within same animation frame (before React re-renders the disabled button)
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     trackAuth({ event: 'login_attempt', email: e, role });
     try {
@@ -147,58 +175,30 @@ export default function LoginScreen() {
         return;
       }
       setUser(data.user);
+      // Fire token storage without awaiting — localStorage writes are synchronous on web.
+      // Navigation should not be blocked by this microtask overhead.
       setTokens(data.access_token, data.refresh_token);
       trackAuth({ event: 'login_success', email, role: data.user.role });
-      // Navigate based on role
+      // Stop loading BEFORE navigating so the component unmounts in a clean state,
+      // preventing a stale loading→false re-render from racing the navigation event queue.
+      setLoading(false);
+      submittingRef.current = false;
       const r = (data.user.role || '').toLowerCase();
-      if (r === 'admin') router.replace('/super-admin');
+      if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
       else if (r === 'mentor') router.replace('/mentor-portal');
       else if (r === 'college') router.replace('/college-portal');
       else if (r === 'alumni') router.replace('/alumni-portal');
       else router.replace('/student-portal');
+      return; // prevent finally from running setLoading again
     } catch (e: any) {
       trackAuth({ event: 'login_failure', email, reason: e?.message || 'Network error' });
       setPwdError('Network error — try again');
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
 
-  const onOAuth = async () => {
-    if (!oauthModal) return;
-    const { provider, name, email: oauthEmail } = oauthModal;
-    if (!oauthEmail || !name) return;
-    setLoading(true);
-    trackAuth({ event: 'oauth_attempt', extra: { provider } });
-    try {
-      const res = await fetch(`${BASE}/api/auth/${provider}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: oauthEmail, full_name: name, role }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        setPwdError(err?.detail || `${provider} sign-in failed`);
-        return;
-      }
-      const data = await res.json();
-      setUser(data.user);
-      setTokens(data.access_token, data.refresh_token);
-      trackAuth({ event: 'login_success', email: oauthEmail, role: data.user.role });
-      const r = (data.user.role || '').toLowerCase();
-      if (r === 'admin') router.replace('/super-admin');
-      else if (r === 'mentor') router.replace('/mentor-portal');
-      else if (r === 'college') router.replace('/college-portal');
-      else if (r === 'alumni') router.replace('/alumni-portal');
-      else router.replace('/student-portal');
-    } catch (e: any) {
-      trackAuth({ event: 'login_failure', email: oauthEmail, reason: e?.message || 'Network error' });
-      setPwdError('Network error — try again');
-    } finally {
-      setLoading(false);
-      setOauthModal(null);
-    }
-  };
 
   return (
     <AuthShell role={role}>
@@ -227,24 +227,73 @@ export default function LoginScreen() {
       {/* OAuth row */}
       <View style={s.oauthRow}>
         <View style={{ flex: 1 }}>
-          <OutlineButton label="Google" icon={<GoogleG size={16} />} onPress={() => {
-            if (oauthCfg?.google_client_id && Platform.OS === 'web') {
-              const state = `google_${Math.random().toString(36).slice(2)}`;
-              const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${oauthCfg.google_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&response_type=id_token&scope=openid%20email%20profile&state=${state}&nonce=${Math.random().toString(36)}`;
-              window.open(url, '_blank', 'width=600,height=700');
-            } else {
-              setOauthModal({ provider: 'google', name: '', email: '' });
+          <OutlineButton label="Google" testID="login-google" icon={<GoogleG size={16} />} onPress={async () => {
+            try {
+              if (oauthCfg?.firebase && Platform.OS === 'web') {
+                const result = await signInWithGoogle();
+                if (!result) return;
+                const res = await fetch(`${BASE}/api/auth/firebase`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id_token: result.idToken }),
+                });
+                if (!res.ok) throw new Error('Firebase auth failed');
+                const data = await res.json();
+                setUser(data.user);
+                setTokens(data.access_token, data.refresh_token);
+                trackAuth({ event: 'login_success', email: data.user.email, role: data.user.role });
+                const r = (data.user.role || '').toLowerCase();
+                if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
+                else if (r === 'mentor') router.replace('/mentor-portal');
+                else if (r === 'college') router.replace('/college-portal');
+                else if (r === 'alumni') router.replace('/alumni-portal');
+                else router.replace('/student-portal');
+              } else {
+                setPwdError('Google sign-in is not configured. Contact admin.');
+              }
+            } catch (e: any) {
+              setPwdError(e?.message || 'Google sign-in failed');
             }
           }} />
         </View>
         <View style={{ flex: 1 }}>
-          <OutlineButton label="LinkedIn" icon={<LinkedInIn size={16} />} onPress={() => {
+          <OutlineButton label="LinkedIn" testID="login-linkedin" icon={<LinkedInIn size={16} />} onPress={() => {
             if (oauthCfg?.linkedin_client_id && Platform.OS === 'web') {
               const state = `linkedin_${Math.random().toString(36).slice(2)}`;
-              const url = `https://www.linkedin.com/oauth/v2/authorization?client_id=${oauthCfg.linkedin_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&response_type=code&scope=openid%20email%20profile&state=${state}`;
+              const url = `https://www.linkedin.com/oauth/v2/authorization?client_id=${oauthCfg.linkedin_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri!)}&response_type=code&scope=openid%20email%20profile&state=${state}`;
               window.open(url, '_blank', 'width=600,height=700');
             } else {
-              setOauthModal({ provider: 'linkedin', name: '', email: '' });
+              setPwdError('LinkedIn sign-in is not configured. Contact admin.');
+            }
+          }} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <OutlineButton label="GitHub" testID="login-github" icon={<GitHubCat size={16} />} onPress={async () => {
+            try {
+              if (oauthCfg?.firebase && Platform.OS === 'web') {
+                const result = await signInWithGitHub();
+                if (!result) return;
+                const res = await fetch(`${BASE}/api/auth/firebase`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id_token: result.idToken }),
+                });
+                if (!res.ok) throw new Error('Firebase auth failed');
+                const data = await res.json();
+                setUser(data.user);
+                setTokens(data.access_token, data.refresh_token);
+                trackAuth({ event: 'login_success', email: data.user.email, role: data.user.role });
+                const r = (data.user.role || '').toLowerCase();
+                if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
+                else if (r === 'mentor') router.replace('/mentor-portal');
+                else if (r === 'college') router.replace('/college-portal');
+                else if (r === 'alumni') router.replace('/alumni-portal');
+                else router.replace('/student-portal');
+              } else {
+                setPwdError('GitHub sign-in is not configured. Contact admin.');
+              }
+            } catch (e: any) {
+              setPwdError(e?.message || 'GitHub sign-in failed');
             }
           }} />
         </View>
@@ -264,77 +313,50 @@ export default function LoginScreen() {
           placeholder="you@university.edu"
           keyboardType="email-address"
           error={emailError}
-          onSubmitEditing={onEmailBlur}
+          onSubmitEditing={onEmailSubmit}
+          blurOnSubmit={false}
+          autoFocus={true}
+          editable={!loading}
+          testID="login-email"
         />
 
         <AuthInput
+          ref={pwdRef}
           label="Password"
           value={password}
           onChangeText={(t) => { setPassword(t); setPwdError(''); }}
           placeholder="Enter your password"
           secureTextEntry={!showPwd}
           error={pwdError}
+          editable={!loading}
           rightSlot={
-            <Pressable onPress={() => setShowPwd((v) => !v)} style={{ paddingHorizontal: 6 }}>
+            <Pressable onPress={() => setShowPwd((v) => !v)} style={{ paddingHorizontal: 6 }} testID="login-show-password" accessibilityRole="button" accessibilityLabel={showPwd ? "Hide password" : "Show password"}>
               {showPwd ? <EyeOff size={16} color={AC.muted} /> : <Eye size={16} color={AC.muted} />}
             </Pressable>
           }
           onSubmitEditing={onLogin}
+          testID="login-password"
         />
         {password.length > 0 && (
-          <StrengthMeter score={strength.score} label={strength.label} tips={strength.tips} />
+          <PasswordRules checks={strength.checks} />
         )}
       </View>
 
       <View style={s.row}>
         <View />
-        <Pressable onPress={() => router.push('/(auth)/forgot-password')}>
+        <Pressable onPress={() => router.push('/(auth)/forgot-password')} testID="login-forgot-password">
           <Text style={s.forgot}>Forgot password?</Text>
         </Pressable>
       </View>
 
-      <PrimaryButton label="Sign in" onPress={onLogin} loading={loading} />
+      <PrimaryButton label="Sign in" onPress={onLogin} loading={loading} testID="login-submit" />
 
       <Text style={s.signup}>
         New to Student Alumni?{' '}
-        <Text style={s.signupLink} onPress={() => router.push('/get-started')}>Get started</Text>
+        <Text style={s.signupLink} onPress={() => router.push('/get-started')} testID="login-get-started">Get started</Text>
       </Text>
 
-      {/* OAuth Modal */}
-      {oauthModal && (
-        <View style={s.overlay}>
-          <View style={s.modal}>
-            <Text style={s.modalTitle}>Continue with {oauthModal.provider === 'google' ? 'Google' : 'LinkedIn'}</Text>
-            <Text style={s.modalSub}>Enter your details to continue</Text>
-            {!oauthCfg?.configured && (
-              <View style={{ marginBottom: 12, padding: 10, borderRadius: 8, backgroundColor: 'rgba(251,191,36,0.12)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.25)' }}>
-                <Text style={{ color: '#fbbf24', fontFamily: FONTS.med, fontSize: 11, textAlign: 'center' }}>
-                  OAuth not configured — enter details directly (development mode)
-                </Text>
-              </View>
-            )}
-            <AuthInput
-              label="Full Name"
-              value={oauthModal.name}
-              onChangeText={(t) => setOauthModal({ ...oauthModal, name: t })}
-              placeholder="John Doe"
-            />
-            <View style={{ height: 12 }} />
-            <AuthInput
-              label="Email"
-              value={oauthModal.email}
-              onChangeText={(t) => setOauthModal({ ...oauthModal, email: t })}
-              placeholder="you@example.com"
-              keyboardType="email-address"
-            />
-            <View style={{ height: 16 }} />
-            <PrimaryButton label="Continue" onPress={onOAuth} loading={loading} />
-            <Pressable onPress={() => setOauthModal(null)} style={{ marginTop: 12, alignItems: 'center' }}>
-              <Text style={{ color: AC.muted, fontFamily: FONTS.med, fontSize: 13 }}>Cancel</Text>
-            </Pressable>
-          </View>
-        </View>
-      )}
+      
     </AuthShell>
   );
 }
@@ -361,15 +383,4 @@ const s = StyleSheet.create({
   signup: { textAlign: 'center', color: AC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 18 },
   signupLink: { color: AC.primaryL, fontFamily: FONTS.bold, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
 
-  overlay: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center',
-    zIndex: 100,
-  },
-  modal: {
-    width: '90%', maxWidth: 400, backgroundColor: '#1a1a2e', borderRadius: 16,
-    padding: 24, borderWidth: 1, borderColor: 'rgba(124,58,237,0.3)',
-  },
-  modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 18, marginBottom: 4 },
-  modalSub: { color: AC.muted, fontFamily: FONTS.med, fontSize: 13, marginBottom: 20 },
 });

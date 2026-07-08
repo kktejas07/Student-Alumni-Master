@@ -5,7 +5,7 @@
  * Career AI, accessibility roles/labels, breathing pulse on status dot.
  */
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useRouter } from 'expo-router';
@@ -53,7 +53,7 @@ export function Sidebar({
   const fullName = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim();
   const name = fullName || STUDENT.name;
   const initials = (name.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
-  const photo = user?.photo_data || user?.face_image_base64;
+  const photo = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64;
   const ai: any = user?.alumni_info || {};
   const subTitle =
     [ai.current_role, ai.current_company].filter(Boolean).join(' @ ') ||
@@ -157,6 +157,7 @@ export function Sidebar({
         onPress={onLogout}
         style={s.logoutRow}
         accessibilityLabel="Log out of your alumni account"
+        testID="logout-button"
       >
         <LogOut size={14} color="#FCA5A5" />
         <Text style={s.logoutText}>Log out</Text>

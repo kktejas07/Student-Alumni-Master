@@ -15,8 +15,6 @@ from datetime import datetime, timezone, date, timedelta
 from typing import Any, Dict, List, Tuple
 
 import httpx
-from motor.motor_asyncio import AsyncIOMotorClient
-from dotenv import load_dotenv
 
 # Load backend .env so we get MONGO_URL + DB_NAME
 load_dotenv("/app/backend/.env")
@@ -45,7 +43,7 @@ async def get_audit_logs(db, user_id: str) -> List[Dict[str, Any]]:
 
 
 async def main():
-    mongo = AsyncIOMotorClient(MONGO_URL)
+    from db import client as mongo
     db = mongo[DB_NAME]
 
     async with httpx.AsyncClient(timeout=30.0) as http:

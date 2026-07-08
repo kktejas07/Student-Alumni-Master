@@ -2,7 +2,7 @@
  * Mentor Portal — Feedback view: High-fidelity redesign with detailed statistics,
  * interactive rating metrics, collapsible AI advice panels, and stateful reply drafts.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -19,9 +19,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MC, FONTS } from '../tokens';
 import { Av, StarRow, Badge } from '../atoms';
 import { useToast } from '@/src/views/components';
+import { api } from '@/src/models/services/api';
+import { useCurrentUser } from '@/src/lib/useCurrentUser';
 
 type Review = {
-  id: number;
+  id: string | number;
   student: string;
   avatar: string;
   color: string;
@@ -149,9 +151,34 @@ export function FeedbackView() {
   const toast = useToast();
   const { width } = useWindowDimensions();
   const stack = width < 980;
+  
+  const { id: mentorId } = useCurrentUser('mentor1@persona.demo');
 
   // Local stateful list of reviews
-  const [reviews, setReviews] = useState<Review[]>(INITIAL_REVIEWS);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    if (!mentorId) return;
+    api.mentorReviews(mentorId).then((res) => {
+      const mapped = (res.items || []).map((it: any) => ({
+        id: it.id,
+        student: it.student_name || 'Student',
+        avatar: it.student_name ? it.student_name.slice(0, 2).toUpperCase() : 'ST',
+        color: '#14B8A6',
+        topic: 'Session',
+        date: new Date(it.created_at).toLocaleDateString(),
+        rating: it.rating,
+        ratingText: it.rating.toFixed(1),
+        text: it.comment || '',
+        read: it.mentor_reply !== null,
+        reply: it.mentor_reply,
+        replyDate: it.mentor_reply_at ? new Date(it.mentor_reply_at).toLocaleDateString() : null,
+      }));
+      setReviews(mapped);
+      setStats(res.stats);
+    }).catch(e => console.error(e));
+  }, [mentorId]);
 
   // Accordion flags
   const [showImprovementPlan, setShowImprovementPlan] = useState(false);
@@ -161,7 +188,7 @@ export function FeedbackView() {
   const [activeFilter, setActiveFilter] = useState<'all' | '5' | '4' | '3_below' | 'unread' | 'unanswered'>('all');
 
   // Inline drafting/replying state
-  const [replyingId, setReplyingId] = useState<number | null>(null);
+  const [replyingId, setReplyingId] = useState<string | number | null>(null);
   const [replyText, setReplyText] = useState('');
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
 
@@ -193,7 +220,7 @@ export function FeedbackView() {
     }, 1200);
   };
 
-  const handleAiDraftReply = (reviewId: number) => {
+  const handleAiDraftReply = (reviewId: number | string) => {
     setIsGeneratingAi(true);
     setTimeout(() => {
       setIsGeneratingAi(false);
@@ -216,33 +243,38 @@ export function FeedbackView() {
     }, 800);
   };
 
-  const handleSendReply = (reviewId: number) => {
+  const handleSendReply = async (reviewId: string | number) => {
     if (!replyText.trim()) return;
 
-    setReviews(
-      reviews.map((r) => {
-        if (r.id === reviewId) {
-          return {
-            ...r,
-            reply: replyText,
-            replyDate: 'Today',
-            read: true, // Auto mark as read on reply
-          };
-        }
-        return r;
-      })
-    );
-    setReplyingId(null);
-    setReplyText('');
-    toast.success('Reply Sent', 'Your response has been published to the student portal.');
+    try {
+      await api.replyToReview(String(reviewId), replyText);
+      setReviews(
+        reviews.map((r) => {
+          if (r.id === reviewId) {
+            return {
+              ...r,
+              reply: replyText,
+              replyDate: new Date().toLocaleDateString(),
+              read: true,
+            };
+          }
+          return r;
+        })
+      );
+      setReplyingId(null);
+      setReplyText('');
+      toast.success('Reply Sent', 'Your response has been published to the student portal.');
+    } catch (e: any) {
+      toast.error('Failed to reply', e.message);
+    }
   };
 
-  const handleEditReply = (reviewId: number, currentReply: string) => {
+  const handleEditReply = (reviewId: string | number, currentReply: string) => {
     setReplyingId(reviewId);
     setReplyText(currentReply);
   };
 
-  const handleMarkAsRead = (reviewId: number) => {
+  const handleMarkAsRead = (reviewId: string | number) => {
     setReviews(
       reviews.map((r) => (r.id === reviewId ? { ...r, read: true } : r))
     );
@@ -305,32 +337,31 @@ export function FeedbackView() {
         {/* OVERALL RATING Card */}
         <View style={[s.card, { flex: 1, minWidth: 180 }]}>
           <Text style={s.cardKicker}>OVERALL RATING</Text>
-          <Text style={s.hugeValue}>4.4</Text>
+          <Text style={s.hugeValue}>{stats?.average ? stats.average.toFixed(1) : '0.0'}</Text>
           <View style={{ marginVertical: 4 }}>
-            <StarRow rating={4} size={15} />
+            <StarRow rating={stats?.average ? Math.round(stats.average) : 0} size={15} />
           </View>
-          <Text style={s.reviewsCountLabel}>7 reviews</Text>
+          <Text style={s.reviewsCountLabel}>{stats?.total || 0} reviews</Text>
         </View>
 
         {/* RATING BREAKDOWN Card */}
         <View style={[s.card, { flex: 1.5, minWidth: 260 }]}>
           <Text style={s.cardKicker}>RATING BREAKDOWN</Text>
           <View style={{ marginTop: 8, gap: 5 }}>
-            {[
-              { star: 5, count: 5, pct: 71 },
-              { star: 4, count: 2, pct: 29 },
-              { star: 3, count: 0, pct: 0 },
-              { star: 2, count: 0, pct: 0 },
-              { star: 1, count: 0, pct: 0 },
-            ].map((d) => (
-              <View key={d.star} style={s.breakdownRow}>
-                <Text style={s.starText}>{d.star} ★</Text>
-                <View style={s.progressBarTrack}>
-                  <View style={[s.progressBarFill, { width: `${d.pct}%` as any }]} />
+            {[5, 4, 3, 2, 1].map((star) => {
+              const count = stats?.distribution?.[String(star)] || 0;
+              const total = stats?.total || 1;
+              const pct = Math.round((count / total) * 100);
+              return (
+                <View key={star} style={s.breakdownRow}>
+                  <Text style={s.starText}>{star} ★</Text>
+                  <View style={s.progressBarTrack}>
+                    <View style={[s.progressBarFill, { width: `${pct}%` as any }]} />
+                  </View>
+                  <Text style={s.breakdownCountText}>{count}</Text>
                 </View>
-                <Text style={s.breakdownCountText}>{d.count}</Text>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </View>
 

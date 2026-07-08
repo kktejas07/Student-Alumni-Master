@@ -16,7 +16,7 @@
  *     dashboards we ship later)
  */
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform, Pressable, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useSidebarStore } from '@/src/viewmodels/stores/sidebarStore';
@@ -40,13 +40,12 @@ import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
 export type StudentNavId =
   | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'events'
   | 'financial' | 'deals' | 'wallet' | 'higher-ed' | 'rentals' | 'courses' | 'profile'
-  | 'my-bookings' | 'my-applications' | 'my-workshops';
+  | 'my-bookings' | 'my-workshops';
 
 export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: boolean }> = [
   { id: 'dashboard',       label: 'Dashboard',          Icon: LayoutDashboard },
   { id: 'career-ai',       label: 'Career AI',          Icon: Sparkles, spark: true },
   { id: 'internships',     label: 'Internships & Jobs', Icon: Briefcase },
-  { id: 'my-applications', label: 'My Applications',    Icon: FileText },
   { id: 'network',         label: 'Network',            Icon: Users },
   { id: 'my-bookings',     label: 'My Bookings',        Icon: CalendarCheck },
   { id: 'events',          label: 'Events',             Icon: Calendar },
@@ -69,11 +68,11 @@ export function Sidebar({
   const user = useAuthStore((u) => u.user) as any;
   const fullName: string = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || STUDENT.name;
   const initials: string = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
-  const photo = user?.photo_data || user?.face_image_base64;
+  const photo = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64;
   const gy = user?.graduation_year || (user?.school_info || {}).graduation_year;
   const yearLabel: string = (gy && Number(gy) === new Date().getFullYear()) ? 'Final Year'
     : (gy && Number(gy) === new Date().getFullYear() + 1) ? 'Pre-Final Year'
-    : (gy ? `Class of ${gy}` : STUDENT.year);
+    : (gy ? `Class of ${gy}` : user?.school_info?.class_or_year || user?.year || 'Student');
   const saId: string = user?.unique_id || STUDENT.saId;
 
   // Adaptive width: collapsed icon-rail on md, OR forced-collapsed via store toggle.
@@ -114,9 +113,7 @@ export function Sidebar({
       {/* Brand */}
       <FadeInView delay={20}>
         <View style={[s.brand, collapsed && { justifyContent: 'center' }]} nativeID="student-brand">
-          <LinearGradient colors={GRADS.brand as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.brandLogo}>
-            <Text style={s.brandLogoText}>SA</Text>
-          </LinearGradient>
+          <Image source={require('@/assets/images/sa-icon.png')} style={s.brandLogo} />
           {!collapsed && (
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={[s.brandTitle, { color: C.text }]}>Student Alumni</Text>
@@ -233,6 +230,7 @@ export function Sidebar({
         onPress={onLogout}
         style={[s.logoutRow, collapsed && { justifyContent: 'center', paddingHorizontal: 0 }]}
         accessibilityLabel="Log out of your account"
+        testID="logout-button"
         accessibilityHint="Signs you out and returns to the welcome screen"
       >
         <LogOut size={14} color={C.danger} />
@@ -253,7 +251,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
   },
-  brandLogo: { width: 32, height: 32, borderRadius: RADII.sm, alignItems: 'center', justifyContent: 'center' },
+  brandLogo: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   brandLogoText: { color: '#fff', fontFamily: TYPO.display800, fontSize: 12, letterSpacing: 0.5 },
   brandTitle: { fontFamily: TYPO.display700, fontSize: 14, letterSpacing: -0.3 },
   brandSub: { fontFamily: TYPO.body500, fontSize: 10.5 },

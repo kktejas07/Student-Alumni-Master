@@ -22,6 +22,7 @@ import Svg, {
   Circle, Path, Defs, LinearGradient as SvgLG, Stop, Line, G, Text as SvgText,
 } from 'react-native-svg';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 // ── NexusOS Tokens ───────────────────────────────────────────
 const T = {

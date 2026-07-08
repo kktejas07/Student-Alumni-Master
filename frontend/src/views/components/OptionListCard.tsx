@@ -64,11 +64,9 @@ export function OptionListCard({
                 <Pressable
                   key={opt.value}
                   onPress={() => onSelect(opt)}
-                  onMouseDown={(e: any) => {
-                    if (Platform.OS === 'web') {
-                      e.preventDefault();
-                    }
-                  }}
+                  {...({
+                    onMouseDown: Platform.OS === 'web' ? (e: any) => e.preventDefault() : undefined,
+                  } as any)}
                   style={({ hovered, pressed }: any) => [
                     styles.row,
                     hovered && !isSelected && { backgroundColor: `${primary}33` },
@@ -89,11 +87,9 @@ export function OptionListCard({
               <View style={styles.divider} />
               <Pressable
                 onPress={onSelectOther}
-                onMouseDown={(e: any) => {
-                  if (Platform.OS === 'web') {
-                    e.preventDefault();
-                  }
-                }}
+                {...({
+                  onMouseDown: Platform.OS === 'web' ? (e: any) => e.preventDefault() : undefined,
+                } as any)}
                 style={({ hovered, pressed }: any) => [
                   styles.row,
                   styles.otherRow,
@@ -124,6 +120,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(176,127,223,0.30)',
     ...(Platform.OS === 'web'
       ? ({
+          userSelect: 'none' as any,
           // Subtle inner gradient + purple outer glow per reference.
           backgroundImage: 'linear-gradient(180deg, #1A0E2E 0%, #0A0512 100%)' as any,
           boxShadow: '0px 16px 60px rgba(91,33,182,0.45), 0px 0px 0px 1px rgba(176,127,223,0.18) inset' as any,

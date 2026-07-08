@@ -10,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 
 import httpx
 
-BASE = "https://hiring-mvvm.preview.emergentagent.com/api"
+BASE = "http://localhost:8080/api"
 
 STUDENT_EMAIL = "realtime@studentalumni.in"
 STUDENT_PASS = "RealTime@2026"
@@ -18,7 +18,7 @@ ALUMNI_EMAIL = "alumni01@test.com"
 ALUMNI_PASS = "TestPass@123"
 
 MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
-DB_NAME = os.environ.get("DB_NAME", "career_platform")
+DB_NAME = os.environ.get("DB_NAME", "studentalumniadmin")
 
 results = []
 
@@ -61,7 +61,7 @@ def test_trending(student_token, alumni_token):
     record("student tier_filter==[Internship,Full-time,Contract]",
            isinstance(tier, list) and set(tier) == set(expected), f"tier={tier}")
 
-    valid_sources = {"RemoteOK", "ArbeitNow", "The Muse", "Remotive", "Jobicy", ""}
+    valid_sources = {"RemoteOK", "ArbeitNow", "The Muse", "Remotive", "Jobicy", "Himalayas", "HackerNews", ""}
     if items:
         bad = []
         for i, it in enumerate(items):

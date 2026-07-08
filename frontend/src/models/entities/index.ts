@@ -112,6 +112,8 @@ export interface User {
   bio?: string;
   face_image_base64?: string;
   photo_data?: string;
+  banner_data?: string;
+  college_logo_data?: string;
   onboarding_completed: boolean;
   created_at: string;
 }

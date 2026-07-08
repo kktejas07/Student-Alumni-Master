@@ -33,7 +33,6 @@ import { InternshipsView } from './views/InternshipsView';
 import { NetworkView } from './views/NetworkView';
 import { ProfileSettingsView } from './views/ProfileSettingsView';
 import { MyBookingsView } from './views/MyBookingsView';
-import { MyApplicationsView } from './views/MyApplicationsView';
 import { MyWorkshopsView } from './views/MyWorkshopsView';
 
 import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
@@ -122,12 +121,11 @@ function PortalShell() {
               scrollEventThrottle={16}
             >
               <EmbeddedShellContext.Provider value={true}>
-                <PromoBanner portal="student" />
+                {active !== 'internships' && <PromoBanner portal="student" />}
                 <RouteTransition deps={[active]}>
                   {active === 'dashboard'       && <DashboardView />}
                   {active === 'career-ai'       && <CareerAIView />}
                   {active === 'internships'     && <InternshipsView />}
-                  {active === 'my-applications' && <MyApplicationsView />}
                   {active === 'network'         && <NetworkView />}
                   {active === 'my-bookings'     && <MyBookingsView />}
                   {active === 'events'          && <EventsView />}

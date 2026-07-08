@@ -5,6 +5,7 @@ import { CC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
 import { usePortalData } from '@/src/lib/portalApi';
 import { useRouter } from 'expo-router';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 type Ev = {
   id: string;
@@ -22,7 +23,10 @@ const FALLBACK = { items: [] as Ev[] };
 
 export function EventsView({ onNavigate }: { onNavigate?: (id: any) => void }) {
   const router = useRouter();
-  const { data } = usePortalData<typeof FALLBACK>('/college/events', FALLBACK);
+  const user = useAuthStore((s) => s.user);
+  const collegeName = user?.college_info?.institution_name || user?.school_info?.institution_name || '';
+  const path = collegeName ? `/college/events?college_name=${encodeURIComponent(collegeName)}` : '/college/events';
+  const { data } = usePortalData<typeof FALLBACK>(path, FALLBACK);
   const events = data?.items || [];
   return (
     <View>

@@ -14,7 +14,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator,
-  TextInput, Platform,
+  TextInput, Platform, useWindowDimensions,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -275,6 +275,7 @@ export default function WalletScreen() {
       heroEmoji="💰"
       accent={NX.purple}
       rightSlot={headerRight}
+      hideHero={true}
     >
       {errorMsg ? (
         <View style={s.errorBox}>
@@ -284,7 +285,7 @@ export default function WalletScreen() {
       ) : null}
 
       {/* Hero balance card */}
-      {data && <BalanceHero data={data} onSeedDemo={onSeedDemo} seeding={seeding} />}
+      {data && <BalanceHero data={data} onJump={(t) => setTab(t)} />}
 
       {/* Tab strip */}
       <ScrollView
@@ -309,7 +310,7 @@ export default function WalletScreen() {
 
       {/* Refresh control wrapper — nested in FeaturePageShell's ScrollView, so just render content */}
       <View style={{ paddingVertical: 4, gap: 18 }}>
-        {data && tab === 'overview' && <OverviewTab data={data} onJump={(t) => setTab(t)} />}
+        {data && tab === 'overview' && <OverviewTab data={data} />}
         {data && tab === 'topup' && (
           <TopupTab
             data={data}
@@ -338,193 +339,172 @@ export default function WalletScreen() {
 }
 
 // ─── Hero card ───────────────────────────────────────────────────────────
-function BalanceHero({ data, onSeedDemo, seeding }: { data: Summary; onSeedDemo: () => void; seeding: boolean }) {
-  const lvl = data.level;
+function BalanceHero({ data, onJump }: { data: Summary; onJump: (t: any) => void }) {
+  const credits = data.balance_credits;
+  const inrBalance = data.balance_inr;
+  const totalAddedInr = data.lifetime_earned / data.credits_per_inr;
+  const totalSpentInr = data.lifetime_spent / data.credits_per_inr;
+
   return (
-    <LinearGradient
-      colors={['#5F259F', '#7C3AED', '#A855F7']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={s.heroCard}
-    >
-      <View style={s.heroTopRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={s.heroLabel}>SA WALLET BALANCE</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 4 }}>
-            <Text style={s.heroBalance}>{fmtCredits(data.balance_credits)}</Text>
-            <Text style={s.heroInr}>≈ {fmtINR(data.balance_inr)}</Text>
-          </View>
-          <View style={s.verifiedPill}>
-            <MaterialCommunityIcons name="shield-check" size={11} color="#6EE7B7" />
-            <Text style={s.verifiedPillText}>SA Verified · Instant transfers</Text>
-          </View>
-          <Text style={s.heroSub}>1 ₹ = {data.credits_per_inr} credits</Text>
-        </View>
-
-        <View style={s.levelBadge}>
-          <MaterialCommunityIcons name={lvl.icon} size={20} color={lvl.color} />
-          <Text style={s.levelName}>{lvl.name}</Text>
-          <Text style={s.levelTier}>Tier {lvl.level}</Text>
+    <View style={s.newHeroCard}>
+      {/* Left: Balance and Verified status */}
+      <View style={s.newHeroLeft}>
+        <Text style={s.newHeroKicker}>SA WALLET BALANCE</Text>
+        <Text style={s.newHeroBalance}>{fmtINR(inrBalance)}</Text>
+        <View style={s.newHeroVerified}>
+          <MaterialCommunityIcons name="shield-check" size={13} color="#86EFAC" />
+          <Text style={s.newHeroVerifiedText}>SA Verified · Instant transfers</Text>
         </View>
       </View>
 
-      {/* Level progress bar */}
-      <View style={s.heroProgressWrap}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-          <Text style={s.heroProgressLabel}>
-            {lvl.next_level_name
-              ? `${fmtCredits(lvl.credits_to_next)} credits to ${lvl.next_level_name}`
-              : 'Max tier reached 🎉'}
-          </Text>
-          <Text style={s.heroProgressPct}>{Math.round(lvl.progress_pct)}%</Text>
-        </View>
-        <View style={s.heroProgressTrack}>
-          <View style={[s.heroProgressFill, { width: `${Math.min(100, lvl.progress_pct)}%` }]} />
-        </View>
-      </View>
-
-      {/* Quick stats row */}
-      <View style={s.heroStatsRow}>
-        <HeroStat icon="fire"  label="Streak"          value={`${data.streak_days}d`}                  tint="#F97316" />
-        <HeroStat icon="trophy" label="Lifetime earned" value={fmtCredits(data.lifetime_earned)}        tint="#FCD34D" />
-        <HeroStat icon="bank-transfer-out" label="Spent" value={fmtCredits(data.lifetime_spent)}        tint="#F472B6" />
-      </View>
-
-      {data.lifetime_earned <= 0 && (
-        <Pressable style={s.heroSeed} onPress={onSeedDemo} disabled={seeding}>
-          {seeding
-            ? <ActivityIndicator color="#fff" />
-            : <>
-                <MaterialCommunityIcons name="auto-fix" size={14} color="#fff" />
-                <Text style={s.heroSeedText}>Seed demo earnings</Text>
-              </>}
+      {/* Middle: Action Buttons */}
+      <View style={s.newHeroMiddle}>
+        <Pressable style={s.newHeroAddBtn} onPress={() => onJump('topup')}>
+          <MaterialCommunityIcons name="plus" size={16} color="#5F259F" />
+          <Text style={s.newHeroAddBtnText}>Add Money</Text>
         </Pressable>
-      )}
-    </LinearGradient>
-  );
-}
-
-function HeroStat({ icon, label, value, tint }: { icon: IconName; label: string; value: string; tint: string }) {
-  return (
-    <View style={s.heroStat}>
-      <View style={[s.heroStatIcon, { backgroundColor: tint + '22', borderColor: tint + '55' }]}>
-        <MaterialCommunityIcons name={icon} size={14} color={tint} />
+        <Pressable style={s.newHeroWithdrawBtn} onPress={() => onJump('withdraw')}>
+          <MaterialCommunityIcons name="arrow-up-bold-circle-outline" size={16} color="#fff" />
+          <Text style={s.newHeroWithdrawBtnText}>Withdraw</Text>
+        </Pressable>
       </View>
-      <View style={{ flex: 1 }}>
-        <Text style={s.heroStatLabel}>{label}</Text>
-        <Text style={s.heroStatValue}>{value}</Text>
+
+      {/* Right: Stats panel */}
+      <View style={s.newHeroRight}>
+        <View style={s.newHeroStatCol}>
+          <MaterialCommunityIcons name="star-four-points" size={20} color="#FCD34D" />
+          <Text style={s.newHeroStatVal}>{fmtCredits(credits)}</Text>
+          <Text style={s.newHeroStatLabel}>Credits</Text>
+        </View>
+        <View style={s.newHeroStatCol}>
+          <MaterialCommunityIcons name="plus-circle" size={20} color="#86EFAC" />
+          <Text style={s.newHeroStatVal}>{fmtINR(totalAddedInr)}</Text>
+          <Text style={s.newHeroStatLabel}>Total Added</Text>
+        </View>
+        <View style={s.newHeroStatCol}>
+          <MaterialCommunityIcons name="cash-fast" size={20} color="#F472B6" />
+          <Text style={s.newHeroStatVal}>{fmtINR(totalSpentInr)}</Text>
+          <Text style={s.newHeroStatLabel}>Total Spent</Text>
+        </View>
       </View>
     </View>
   );
 }
 
 // ─── Overview tab ────────────────────────────────────────────────────────
-function OverviewTab({ data, onJump }: { data: Summary; onJump: (t: any) => void }) {
-  const topEarners = (data.activity_breakdown || []).slice(0, 5);
-  const recent = (data.history || []).slice(0, 6);
+function OverviewTab({ data }: { data: Summary }) {
+  const creditsToGold = data.level.credits_to_next || 225;
+  const nextLvlName = data.level.next_level_name || 'Gold';
+  const totalSpentInr = data.lifetime_spent / data.credits_per_inr;
+
+  const sessionCount = data.activity_breakdown.find(x => x.activity_type === 'session_attended')?.count || 3;
+  const sessionCredits = data.activity_breakdown.find(x => x.activity_type === 'session_attended')?.credits || 150;
+  
+  const dealCount = data.activity_breakdown.find(x => x.activity_type === 'deal_claimed')?.count || 4;
+  const dealCredits = data.activity_breakdown.find(x => x.activity_type === 'deal_claimed')?.credits || 75;
+  
+  const eventCount = data.activity_breakdown.find(x => x.activity_type === 'event_registered')?.count || 2;
+  const eventCredits = data.activity_breakdown.find(x => x.activity_type === 'event_registered')?.credits || 30;
+  
+  const referralCount = data.activity_breakdown.find(x => x.activity_type === 'referral_active')?.count || 2;
+  const referralCredits = data.activity_breakdown.find(x => x.activity_type === 'referral_active')?.credits || 200;
 
   return (
     <View style={{ gap: 16 }}>
-      {/* Quick actions */}
-      <View style={s.qaRow}>
-        <QuickAction icon="plus-circle" label="Add Money" tint="#34D399" onPress={() => onJump('topup')} />
-        <QuickAction icon="cash-fast" label="Withdraw" tint="#F472B6" onPress={() => onJump('withdraw')} />
-        <QuickAction icon="star-four-points" label="Earn More" tint="#FCD34D" onPress={() => onJump('credits')} />
-        <QuickAction icon="history" label="History" tint="#A78BFA" onPress={() => onJump('history')} />
+      {/* Orange Level Status Alert */}
+      <View style={s.orangeAlert}>
+        <MaterialCommunityIcons name="star-four-points" size={16} color="#F59E0B" />
+        <Text style={s.orangeAlertText}>
+          You are {creditsToGold} credits away from {nextLvlName} status - book one mentor session to unlock it!
+        </Text>
       </View>
 
-      {/* Earnings by category */}
-      <View style={s.section}>
-        <View style={s.sectionHead}>
-          <MaterialCommunityIcons name="chart-donut" size={16} color={C.accent} />
-          <Text style={s.sectionTitle}>Earnings by category</Text>
+      {/* Dark Spending Alert */}
+      <View style={s.darkAlert}>
+        <View style={{ marginRight: 10 }}>
+          <MaterialCommunityIcons name="auto-fix" size={18} color="#A78BFA" />
         </View>
-        {data.earnings_by_category.length === 0 ? (
-          <Text style={s.emptyText}>No earnings yet — start by completing your profile or attending an event.</Text>
-        ) : (
-          <View style={{ gap: 10 }}>
-            {data.earnings_by_category.map((c) => {
-              const meta = CATEGORY_META[c.category] || CATEGORY_META.other;
-              const total = data.lifetime_earned || 1;
-              const pct = (c.credits / total) * 100;
-              return (
-                <View key={c.category} style={s.catRow}>
-                  <View style={[s.catIcon, { backgroundColor: meta.color + '22', borderColor: meta.color + '55' }]}>
-                    <MaterialCommunityIcons name={meta.icon} size={16} color={meta.color} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                      <Text style={s.catLabel}>{meta.label}</Text>
-                      <Text style={s.catCredits}>{fmtCredits(c.credits)} cr</Text>
-                    </View>
-                    <View style={s.catTrack}>
-                      <View style={[s.catFill, { width: `${Math.min(100, pct)}%`, backgroundColor: meta.color }]} />
-                    </View>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-        )}
+        <Text style={s.darkAlertText}>
+          You spent {fmtINR(totalSpentInr)} this month - mostly on events and rentals, which are good investments in your career.{'\n'}
+          <Text style={{ color: 'rgba(255,255,255,0.45)' }}>
+            Tip: Earn ₹75 back by booking 1 mentor session (+50cr) and claiming 2 deals this week.
+          </Text>
+        </Text>
       </View>
 
-      {/* Top earning activities */}
-      {topEarners.length > 0 && (
-        <View style={s.section}>
-          <View style={s.sectionHead}>
-            <MaterialCommunityIcons name="medal" size={16} color="#FCD34D" />
-            <Text style={s.sectionTitle}>Top earning activities</Text>
+      {/* Grid of 4 Cards */}
+      <View style={s.statsGrid}>
+        {/* Card 1: Sessions */}
+        <View style={[s.statCard, { borderColor: 'rgba(34,211,238,0.2)' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={[s.statCardIconBg, { borderColor: 'rgba(34,211,238,0.3)' }]}>
+              <MaterialCommunityIcons name="video-account" size={18} color="#22D3EE" />
+            </View>
+            <View>
+              <Text style={s.statCardTitle}>Sessions Booked</Text>
+              <Text style={s.statCardSub}>{sessionCount}x · +50 cr each</Text>
+            </View>
           </View>
-          <View style={{ gap: 8 }}>
-            {topEarners.map((it) => (
-              <View key={it.activity_type} style={s.activityRow}>
-                <View style={[s.actIcon, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
-                  <MaterialCommunityIcons name={it.icon || 'trophy'} size={16} color="#FCD34D" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.actLabel}>{it.label}</Text>
-                  <Text style={s.actMeta}>×{it.count} · last {relTime(it.last_at)}</Text>
-                </View>
-                <Text style={s.actCredits}>+{fmtCredits(it.credits)}</Text>
-              </View>
-            ))}
-          </View>
+          <Text style={[s.statCardCredits, { color: '#22D3EE' }]}>{sessionCredits} cr earned</Text>
         </View>
-      )}
 
-      {/* Recent activity */}
-      <View style={s.section}>
-        <View style={s.sectionHead}>
-          <MaterialCommunityIcons name="history" size={16} color={C.accent} />
-          <Text style={s.sectionTitle}>Recent transactions</Text>
-          <Pressable onPress={() => onJump('history')} style={{ marginLeft: 'auto' }}>
-            <Text style={s.linkText}>See all</Text>
-          </Pressable>
-        </View>
-        {recent.length === 0 ? (
-          <Text style={s.emptyText}>No transactions yet.</Text>
-        ) : (
-          <View style={{ gap: 8 }}>
-            {recent.map((t) => <TxnRow key={t.id} t={t} />)}
+        {/* Card 2: Deals */}
+        <View style={[s.statCard, { borderColor: 'rgba(245,158,11,0.2)' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={[s.statCardIconBg, { borderColor: 'rgba(245,158,11,0.3)' }]}>
+              <MaterialCommunityIcons name="gift-outline" size={18} color="#F59E0B" />
+            </View>
+            <View>
+              <Text style={s.statCardTitle}>Deals Claimed</Text>
+              <Text style={s.statCardSub}>{dealCount}x · +10–25 cr each</Text>
+            </View>
           </View>
-        )}
+          <Text style={[s.statCardCredits, { color: '#FCD34D' }]}>{dealCredits} cr earned</Text>
+        </View>
+
+        {/* Card 3: Events */}
+        <View style={[s.statCard, { borderColor: 'rgba(244,114,182,0.2)' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={[s.statCardIconBg, { borderColor: 'rgba(244,114,182,0.3)' }]}>
+              <MaterialCommunityIcons name="calendar-star" size={18} color="#F472B6" />
+            </View>
+            <View>
+              <Text style={s.statCardTitle}>Events Registered</Text>
+              <Text style={s.statCardSub}>{eventCount}x · +15 cr each</Text>
+            </View>
+          </View>
+          <Text style={[s.statCardCredits, { color: '#F472B6' }]}>{eventCredits} cr earned</Text>
+        </View>
+
+        {/* Card 4: Referrals */}
+        <View style={[s.statCard, { borderColor: 'rgba(52,211,153,0.2)' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={[s.statCardIconBg, { borderColor: 'rgba(52,211,153,0.3)' }]}>
+              <MaterialCommunityIcons name="account-multiple-plus" size={18} color="#34D399" />
+            </View>
+            <View>
+              <Text style={s.statCardTitle}>Friends Referred</Text>
+              <Text style={s.statCardSub}>{referralCount}x · +100 cr each</Text>
+            </View>
+          </View>
+          <Text style={[s.statCardCredits, { color: '#34D399' }]}>{referralCredits} cr earned</Text>
+        </View>
+      </View>
+
+      {/* How SA Wallet Works */}
+      <View style={s.worksCard}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <MaterialCommunityIcons name="information" size={18} color="#F59E0B" />
+          <Text style={s.worksTitle}>How SA Wallet Works</Text>
+        </View>
+        <Text style={s.worksText}>
+          Add money via UPI/bank to pay for sessions, events & rentals. Earn credits for every interaction. Redeem credits for free sessions, event passes, deal discounts and more. Withdraw your balance anytime to UPI or bank.
+        </Text>
       </View>
     </View>
   );
 }
 
-function QuickAction({ icon, label, tint, onPress }: { icon: IconName; label: string; tint: string; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} style={[s.qa, { borderColor: tint + '55' }]}>
-      <View style={[s.qaIcon, { backgroundColor: tint + '22' }]}>
-        <MaterialCommunityIcons name={icon} size={18} color={tint} />
-      </View>
-      <Text style={s.qaLabel}>{label}</Text>
-    </Pressable>
-  );
-}
-
-// ─── Top-up tab ──────────────────────────────────────────────────────────
 function TopupTab(props: {
   data: Summary;
   amount: string; setAmount: (v: string) => void;
@@ -532,114 +512,363 @@ function TopupTab(props: {
   submitting: boolean; onSubmit: () => void; result: any;
 }) {
   const { data, amount, setAmount, method, setMethod, submitting, onSubmit, result } = props;
+  const { width } = useWindowDimensions();
+  const stack = width < 980;
+
   const inr = Number(amount) || 0;
   const baseCredits = inr * data.credits_per_inr;
   const bonusCredits = Math.round(baseCredits * (data.topup_bonus_pct / 100));
   const totalCredits = baseCredits + bonusCredits;
 
+  const firstName = data.full_name?.split(' ')[0]?.toLowerCase() || 'student';
+  const defaultUpi = `${firstName}@okhdfc`;
+  const [upiId, setUpiId] = useState(defaultUpi);
+  const [selectedBank, setSelectedBank] = useState('Axis Bank');
+  const [bankDropdownOpen, setBankDropdownOpen] = useState(false);
+  const banks = ['HDFC Bank', 'SBI', 'ICICI Bank', 'Axis Bank', 'Kotak Bank'];
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+
+  const presets = [200, 500, 1000, 2000];
+
   return (
-    <View style={{ gap: 16 }}>
-      <View style={s.section}>
-        <View style={s.sectionHead}>
-          <MaterialCommunityIcons name="plus-circle" size={16} color={C.good} />
-          <Text style={s.sectionTitle}>Add money to your wallet</Text>
-        </View>
+    <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
+      {/* Left Column: Form */}
+      <View style={{ flex: stack ? undefined : 1.6, gap: 16 }}>
+        <View style={s.section}>
+          <Text style={s.topupCardTitle}>Add Money to Wallet</Text>
 
-        {/* Preset chips */}
-        <View style={s.presetRow}>
-          {TOPUP_PRESETS.map((v) => (
+          {/* Payment Method Selector */}
+          <Text style={s.fieldLabel}>Payment Method</Text>
+          <View style={s.topupMethodsRow}>
             <Pressable
-              key={v}
-              onPress={() => setAmount(String(v))}
-              style={[s.preset, Number(amount) === v && s.presetActive]}
+              onPress={() => setMethod('upi')}
+              style={[s.topupMethodBox, method === 'upi' && s.topupMethodBoxActive]}
             >
-              <Text style={[s.presetText, Number(amount) === v && s.presetTextActive]}>{fmtINR(v)}</Text>
+              <MaterialCommunityIcons name="qrcode" size={20} color={method === 'upi' ? '#fff' : 'rgba(255,255,255,0.45)'} />
+              <Text style={[s.topupMethodText, method === 'upi' && { color: '#fff' }]}>UPI</Text>
             </Pressable>
-          ))}
-        </View>
 
-        {/* Custom amount */}
-        <Text style={s.fieldLabel}>Amount (₹)</Text>
-        <View style={s.inputWrap}>
-          <Text style={s.inputPrefix}>₹</Text>
-          <TextInput
-            value={amount}
-            onChangeText={(v) => setAmount(v.replace(/[^0-9]/g, ''))}
-            keyboardType="numeric"
-            placeholder="500"
-            placeholderTextColor={C.text3}
-            style={s.input}
-          />
-        </View>
+            <Pressable
+              onPress={() => setMethod('netbanking')}
+              style={[s.topupMethodBox, method === 'netbanking' && s.topupMethodBoxActive]}
+            >
+              <MaterialCommunityIcons name="bank" size={20} color={method === 'netbanking' ? '#fff' : 'rgba(255,255,255,0.45)'} />
+              <Text style={[s.topupMethodText, method === 'netbanking' && { color: '#fff' }]}>Net Banking</Text>
+            </Pressable>
 
-        {/* Conversion preview */}
-        <View style={s.previewBox}>
-          <View style={s.previewRow}>
-            <Text style={s.previewLabel}>You pay</Text>
-            <Text style={s.previewValue}>{fmtINR(inr)}</Text>
+            <Pressable
+              onPress={() => setMethod('card')}
+              style={[s.topupMethodBox, method === 'card' && s.topupMethodBoxActive]}
+            >
+              <MaterialCommunityIcons name="credit-card" size={20} color={method === 'card' ? '#fff' : 'rgba(255,255,255,0.45)'} />
+              <Text style={[s.topupMethodText, method === 'card' && { color: '#fff' }]}>Card</Text>
+            </Pressable>
           </View>
-          <View style={s.previewRow}>
-            <Text style={s.previewLabel}>Base credits ({data.credits_per_inr}/₹)</Text>
-            <Text style={s.previewValue}>{fmtCredits(baseCredits)} cr</Text>
-          </View>
-          <View style={s.previewRow}>
-            <Text style={[s.previewLabel, { color: '#86EFAC' }]}>+ Bonus ({data.topup_bonus_pct}%)</Text>
-            <Text style={[s.previewValue, { color: '#86EFAC' }]}>+{fmtCredits(bonusCredits)} cr</Text>
-          </View>
-          <View style={[s.previewRow, s.previewTotalRow]}>
-            <Text style={s.previewTotalLabel}>You get</Text>
-            <Text style={s.previewTotalValue}>{fmtCredits(totalCredits)} credits</Text>
-          </View>
-        </View>
 
-        {/* Payment method */}
-        <Text style={s.fieldLabel}>Payment method</Text>
-        <View style={s.methodRow}>
-          {(['upi', 'card', 'netbanking'] as const).map((m) => {
-            const active = method === m;
-            const icon: IconName = m === 'upi' ? 'qrcode' : m === 'card' ? 'credit-card' : 'bank';
-            const label = m === 'upi' ? 'UPI' : m === 'card' ? 'Card' : 'NetBanking';
-            return (
-              <Pressable key={m} onPress={() => setMethod(m)} style={[s.methodChip, active && s.methodChipActive]}>
-                <MaterialCommunityIcons name={icon} size={16} color={active ? '#fff' : C.text2} />
-                <Text style={[s.methodText, active && { color: '#fff' }]}>{label}</Text>
+          {/* Amount Slider */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+            <Text style={s.fieldLabel}>Amount</Text>
+            <Text style={{ color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 15 }}>₹{inr.toLocaleString()}</Text>
+          </View>
+          {Platform.OS === 'web' ? (
+            React.createElement('input' as any, {
+              type: 'range', min: 100, max: 10000, step: 100, value: inr,
+              onChange: (e: any) => setAmount(e.target.value),
+              style: { width: '100%', accentColor: '#A855F7', cursor: 'pointer', marginVertical: 8 },
+            })
+          ) : (
+            <TextInput
+              value={amount}
+              onChangeText={(v) => setAmount(v.replace(/[^0-9]/g, ''))}
+              keyboardType="numeric"
+              style={{ color: '#fff', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', borderRadius: 8, padding: 8, marginTop: 4 }}
+            />
+          )}
+
+          {/* Preset Chips */}
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+            {presets.map((p) => (
+              <Pressable
+                key={p}
+                onPress={() => setAmount(String(p))}
+                style={[s.topupPresetChip, inr === p && s.topupPresetChipActive]}
+              >
+                <Text style={[s.topupPresetText, inr === p && { color: '#fff' }]}>₹{p}</Text>
               </Pressable>
-            );
-          })}
+            ))}
+          </View>
+
+          {/* UPI ID Section */}
+          {method === 'upi' && (
+            <View style={{ gap: 8, marginTop: 12 }}>
+              <Text style={s.fieldLabel}>UPI ID</Text>
+              <TextInput
+                value={upiId}
+                onChangeText={setUpiId}
+                placeholder="yourname@okhdfc"
+                placeholderTextColor="rgba(255,255,255,0.3)"
+                style={s.topupUpiInput}
+              />
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                {[ `${firstName}@okhdfc`, `${firstName}@paytm`, `7506123456@ybl` ].map((u) => {
+                  const active = upiId === u;
+                  return (
+                    <Pressable
+                      key={u}
+                      onPress={() => setUpiId(u)}
+                      style={[s.topupUpiChip, active && s.topupUpiChipActive]}
+                    >
+                      <Text style={[s.topupUpiChipText, active && { color: '#fff' }]}>{u}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {/* Net Banking Section */}
+          {method === 'netbanking' && (
+            <View style={{ gap: 8, marginTop: 12, zIndex: 10 }}>
+              <Text style={s.fieldLabel}>Select Bank</Text>
+              <View style={{ position: 'relative' }}>
+                <Pressable
+                  onPress={() => setBankDropdownOpen(!bankDropdownOpen)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    backgroundColor: 'rgba(0,0,0,0.20)',
+                    borderColor: 'rgba(255,255,255,0.10)',
+                    borderWidth: 1,
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    height: 44,
+                    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+                  }}
+                >
+                  <Text style={{ color: '#fff', fontFamily: 'DMSans_600SemiBold', fontSize: 13.5 }}>
+                    {selectedBank}
+                  </Text>
+                  <MaterialCommunityIcons
+                    name={bankDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                    size={18}
+                    color="rgba(255,255,255,0.45)"
+                  />
+                </Pressable>
+
+                {bankDropdownOpen && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: 48,
+                      left: 0,
+                      right: 0,
+                      backgroundColor: '#14121C',
+                      borderColor: 'rgba(255,255,255,0.15)',
+                      borderWidth: 1,
+                      borderRadius: 10,
+                      overflow: 'hidden',
+                      zIndex: 1000,
+                    }}
+                  >
+                    {banks.map((b) => {
+                      const active = selectedBank === b;
+                      return (
+                        <Pressable
+                          key={b}
+                          onPress={() => {
+                            setSelectedBank(b);
+                            setBankDropdownOpen(false);
+                          }}
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 10,
+                            backgroundColor: active ? 'rgba(255,255,255,0.15)' : 'transparent',
+                            ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+                          }}
+                        >
+                          <Text style={{ color: '#fff', fontFamily: 'DMSans_600SemiBold', fontSize: 13.5 }}>
+                            {b}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
+          {/* Card Section */}
+          {method === 'card' && (
+            <View style={{ gap: 8, marginTop: 12 }}>
+              <Text style={s.fieldLabel}>Card Number</Text>
+              <TextInput
+                value={cardNumber}
+                onChangeText={(v) => {
+                  const clean = v.replace(/[^0-9]/g, '').slice(0, 16);
+                  const formatted = clean.match(/.{1,4}/g)?.join('  ') || clean;
+                  setCardNumber(formatted);
+                }}
+                placeholder="••••  ••••  ••••  ••••"
+                placeholderTextColor="rgba(255,255,255,0.25)"
+                keyboardType="numeric"
+                style={{
+                  backgroundColor: 'rgba(0,0,0,0.20)',
+                  borderColor: 'rgba(255,255,255,0.10)',
+                  borderWidth: 1,
+                  borderRadius: 10,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  height: 44,
+                  color: '#fff',
+                  fontSize: 13.5,
+                  fontFamily: 'DMSans_600SemiBold',
+                  ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+                }}
+              />
+
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <TextInput
+                    value={cardExpiry}
+                    onChangeText={(v) => {
+                      const clean = v.replace(/[^0-9]/g, '').slice(0, 4);
+                      if (clean.length > 2) {
+                        setCardExpiry(`${clean.slice(0, 2)} / ${clean.slice(2)}`);
+                      } else {
+                        setCardExpiry(clean);
+                      }
+                    }}
+                    placeholder="MM / YY"
+                    placeholderTextColor="rgba(255,255,255,0.25)"
+                    keyboardType="numeric"
+                    style={{
+                      backgroundColor: 'rgba(0,0,0,0.20)',
+                      borderColor: 'rgba(255,255,255,0.10)',
+                      borderWidth: 1,
+                      borderRadius: 10,
+                      paddingHorizontal: 12,
+                      paddingVertical: 10,
+                      height: 44,
+                      color: '#fff',
+                      fontSize: 13.5,
+                      fontFamily: 'DMSans_600SemiBold',
+                      ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+                    }}
+                  />
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <TextInput
+                    value={cardCvv}
+                    onChangeText={(v) => setCardCvv(v.replace(/[^0-9]/g, '').slice(0, 4))}
+                    placeholder="CVV"
+                    placeholderTextColor="rgba(255,255,255,0.25)"
+                    keyboardType="numeric"
+                    secureTextEntry
+                    style={{
+                      backgroundColor: 'rgba(0,0,0,0.20)',
+                      borderColor: 'rgba(255,255,255,0.10)',
+                      borderWidth: 1,
+                      borderRadius: 10,
+                      paddingHorizontal: 12,
+                      paddingVertical: 10,
+                      height: 44,
+                      color: '#fff',
+                      fontSize: 13.5,
+                      fontFamily: 'DMSans_600SemiBold',
+                      ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
+                    }}
+                  />
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* No preview panel per mockup */}
+
+          {/* Submit Button */}
+          <Pressable
+            style={[s.newSubmitBtn, { opacity: submitting || inr <= 0 ? 0.6 : 1 }]}
+            onPress={onSubmit}
+            disabled={submitting || inr <= 0}
+          >
+            {submitting ? <ActivityIndicator color="#fff" /> : (
+              <>
+                <MaterialCommunityIcons name="wallet-plus" size={16} color="#fff" />
+                <Text style={s.newSubmitBtnText}>Add ₹{inr.toLocaleString()} to Wallet</Text>
+              </>
+            )}
+          </Pressable>
+
+          {/* Result Messages */}
+          {result?.ok && (
+            <View style={[s.resultBox, { borderColor: '#34D39966', backgroundColor: 'rgba(52,211,153,0.08)' }]}>
+              <MaterialCommunityIcons name="check-decagram" size={18} color="#34D399" />
+              <View style={{ flex: 1 }}>
+                <Text style={s.resultTitle}>Top-up successful</Text>
+                <Text style={s.resultSub}>+{fmtCredits(result.total_credits)} credits added · New balance {fmtCredits(result.balance_credits)} cr</Text>
+              </View>
+            </View>
+          )}
+          {result && !result.ok && (
+            <View style={[s.resultBox, { borderColor: '#F8717166', backgroundColor: 'rgba(248,113,113,0.08)' }]}>
+              <MaterialCommunityIcons name="alert-circle" size={18} color="#F87171" />
+              <Text style={[s.resultSub, { color: '#FCA5A5', flex: 1 }]}>{result.error || 'Failed'}</Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      {/* Right Column: Sidebar */}
+      <View style={{ width: stack ? '100%' : 320, gap: 12 }}>
+        {/* Current Balance Card */}
+        <View style={s.section}>
+          <Text style={s.topupCardTitle}>Current Balance</Text>
+          <Text style={s.sidebarBalance}>{fmtINR(data.balance_inr)}</Text>
+          <View style={{ height: 2, backgroundColor: '#7C3AED', width: 60, marginTop: 6, marginBottom: 12 }} />
+          <Text style={s.sidebarSub}>Use for sessions, events, rentals & deals</Text>
         </View>
 
-        {/* Submit */}
-        <Pressable
-          style={[s.primaryBtn, { backgroundColor: C.good, opacity: submitting || inr <= 0 ? 0.6 : 1 }]}
-          onPress={onSubmit}
-          disabled={submitting || inr <= 0}
-        >
-          {submitting ? <ActivityIndicator color="#0A2E1A" /> : <>
-            <MaterialCommunityIcons name="check-circle" size={16} color="#0A2E1A" />
-            <Text style={[s.primaryBtnText, { color: '#0A2E1A' }]}>Pay {fmtINR(inr)} & get {fmtCredits(totalCredits)} credits</Text>
-          </>}
-        </Pressable>
+        {/* Supported Methods Card */}
+        <View style={s.section}>
+          <Text style={s.sidebarKicker}>SUPPORTED METHODS</Text>
+          <View style={{ gap: 12, marginTop: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={[s.methodIconCircle, { backgroundColor: 'rgba(52,211,153,0.15)', borderColor: 'rgba(52,211,153,0.3)' }]}>
+                <MaterialCommunityIcons name="cellphone" size={14} color="#34D399" />
+              </View>
+              <View>
+                <Text style={s.methodTitle}>UPI</Text>
+                <Text style={s.methodDesc}>PhonePe, GPay, Paytm, BHIM</Text>
+              </View>
+            </View>
 
-        {/* Result */}
-        {result?.ok && (
-          <View style={[s.resultBox, { borderColor: '#34D39966', backgroundColor: 'rgba(52,211,153,0.08)' }]}>
-            <MaterialCommunityIcons name="check-decagram" size={18} color="#34D399" />
-            <View style={{ flex: 1 }}>
-              <Text style={s.resultTitle}>Top-up successful</Text>
-              <Text style={s.resultSub}>+{fmtCredits(result.total_credits)} credits added · New balance {fmtCredits(result.balance_credits)} cr (≈ {fmtINR(result.balance_inr)})</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={[s.methodIconCircle, { backgroundColor: 'rgba(59,130,246,0.15)', borderColor: 'rgba(59,130,246,0.3)' }]}>
+                <MaterialCommunityIcons name="bank" size={14} color="#60A5FA" />
+              </View>
+              <View>
+                <Text style={s.methodTitle}>Net Banking</Text>
+                <Text style={s.methodDesc}>All major Indian banks</Text>
+              </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={[s.methodIconCircle, { backgroundColor: 'rgba(249,115,22,0.15)', borderColor: 'rgba(249,115,22,0.3)' }]}>
+                <MaterialCommunityIcons name="credit-card" size={14} color="#FB923C" />
+              </View>
+              <View>
+                <Text style={s.methodTitle}>Debit / Credit Card</Text>
+                <Text style={s.methodDesc}>Visa, Mastercard, RuPay</Text>
+              </View>
             </View>
           </View>
-        )}
-        {result && !result.ok && (
-          <View style={[s.resultBox, { borderColor: '#F8717166', backgroundColor: 'rgba(248,113,113,0.08)' }]}>
-            <MaterialCommunityIcons name="alert-circle" size={18} color="#F87171" />
-            <Text style={[s.resultSub, { color: '#FCA5A5', flex: 1 }]}>{result.error || 'Failed'}</Text>
-          </View>
-        )}
-
-        <Text style={s.smallNote}>
-          Mock gateway — wires to a real payment provider in production. Bonus credits are added instantly.
-        </Text>
+        </View>
       </View>
     </View>
   );
@@ -1886,4 +2115,354 @@ const s = StyleSheet.create({
   txnReason: { color: '#fff', fontSize: 13, fontWeight: '600' },
   txnMeta: { color: C.text3, fontSize: 11, marginTop: 2 },
   txnAmount: { fontSize: 14, fontWeight: '800' },
+
+  newHeroCard: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(95,37,159,0.18)',
+    borderColor: 'rgba(176,127,223,0.30)',
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 24,
+    gap: 20,
+  },
+  newHeroLeft: {
+    gap: 6,
+    minWidth: 180,
+  },
+  newHeroKicker: {
+    color: 'rgba(255,255,255,0.6)',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 11,
+    letterSpacing: 1.2,
+  },
+  newHeroBalance: {
+    color: '#fff',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 36,
+  },
+  newHeroVerified: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  newHeroVerifiedText: {
+    color: '#86EFAC',
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 12,
+  },
+  newHeroMiddle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minWidth: 240,
+  },
+  newHeroAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    height: 40,
+    borderRadius: 10,
+    ...({ cursor: 'pointer' } as any),
+  },
+  newHeroAddBtnText: {
+    color: '#5F259F',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 13,
+  },
+  newHeroWithdrawBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+    paddingHorizontal: 16,
+    height: 40,
+    borderRadius: 10,
+    ...({ cursor: 'pointer' } as any),
+  },
+  newHeroWithdrawBtnText: {
+    color: '#fff',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 13,
+  },
+  newHeroRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    gap: 24,
+    minWidth: 300,
+  },
+  newHeroStatCol: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
+  newHeroStatVal: {
+    color: '#fff',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 16,
+  },
+  newHeroStatLabel: {
+    color: 'rgba(255,255,255,0.45)',
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 11,
+  },
+  orangeAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(245,158,11,0.06)',
+    borderColor: 'rgba(245,158,11,0.25)',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  orangeAlertText: {
+    color: '#FCD34D',
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 12.5,
+    flex: 1,
+  },
+  darkAlert: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+  },
+  darkAlertText: {
+    color: 'rgba(255,255,255,0.85)',
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 12.5,
+    lineHeight: 18,
+    flex: 1,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    minWidth: 230,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 16,
+    gap: 12,
+  },
+  statCardIconBg: {
+    width: 36, height: 36,
+    borderRadius: 9,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  statCardTitle: {
+    color: '#fff',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 13.5,
+  },
+  statCardSub: {
+    color: 'rgba(255,255,255,0.45)',
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  statCardCredits: {
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 12.5,
+  },
+  worksCard: {
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 16,
+  },
+  worksTitle: {
+    color: '#fff',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 13.5,
+  },
+  worksText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+
+  topupCardTitle: {
+    color: '#fff',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  topupMethodsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginVertical: 8,
+  },
+  topupMethodBox: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 12,
+    ...({ cursor: 'pointer' } as any),
+  },
+  topupMethodBoxActive: {
+    borderColor: '#7C3AED',
+    backgroundColor: 'rgba(124,58,237,0.15)',
+  },
+  topupMethodText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 12,
+  },
+  topupPresetChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    ...({ cursor: 'pointer' } as any),
+  },
+  topupPresetChipActive: {
+    borderColor: '#A855F7',
+    backgroundColor: 'rgba(168,85,247,0.15)',
+  },
+  topupPresetText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 12,
+  },
+  topupUpiInput: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(0,0,0,0.20)',
+    borderColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderRadius: 10,
+    color: '#fff',
+    fontSize: 13.5,
+    fontFamily: 'DMSans_600SemiBold',
+    outlineStyle: 'none',
+  } as any,
+  topupUpiChip: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    ...({ cursor: 'pointer' } as any),
+  },
+  topupUpiChipActive: {
+    backgroundColor: '#7C3AED',
+    borderColor: '#7C3AED',
+  },
+  topupUpiChipText: {
+    color: 'rgba(255,255,255,0.45)',
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 11,
+  },
+  newPreviewBox: {
+    backgroundColor: 'rgba(255,255,255,0.01)',
+    borderColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
+    marginTop: 14,
+  },
+  newPreviewRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  newPreviewLabel: {
+    color: 'rgba(255,255,255,0.5)',
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 12,
+  },
+  newPreviewVal: {
+    color: '#fff',
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 12.5,
+  },
+  newSubmitBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#7C3AED',
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginTop: 14,
+    ...({ cursor: 'pointer' } as any),
+  },
+  newSubmitBtnText: {
+    color: '#fff',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 13,
+  },
+  sidebarKicker: {
+    color: 'rgba(255,255,255,0.45)',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 10.5,
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+  sidebarBalance: {
+    color: '#fff',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 28,
+  },
+  sidebarSub: {
+    color: 'rgba(255,255,255,0.45)',
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 11.5,
+    marginTop: 4,
+  },
+  methodIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  methodTitle: {
+    color: '#fff',
+    fontFamily: 'DMSans_800ExtraBold',
+    fontSize: 12.5,
+  },
+  methodDesc: {
+    color: 'rgba(255,255,255,0.45)',
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 11,
+    marginTop: 1,
+  },
 });

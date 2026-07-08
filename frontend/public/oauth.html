@@ -73,6 +73,15 @@
         });
         if (!res.ok) throw new Error('Google verification failed');
         data = await res.json();
+      } else if (code && state.startsWith('github_')) {
+        status.textContent = 'Verifying GitHub account...';
+        const res = await fetch(API_BASE + '/auth/github', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: code }),
+        });
+        if (!res.ok) throw new Error('GitHub verification failed');
+        data = await res.json();
       } else if (code) {
         status.textContent = 'Verifying LinkedIn account...';
         const res = await fetch(API_BASE + '/auth/linkedin', {
@@ -106,7 +115,8 @@
         localStorage.setItem('refresh_token', data.refresh_token || '');
         const role = (data.user?.role || '').toLowerCase();
         const routes = {
-          admin: '/super-admin', mentor: '/mentor-portal',
+          admin: '/super-admin', super_admin: '/super-admin',
+          mentor: '/mentor-portal',
           college: '/college-portal', alumni: '/alumni-portal',
         };
         window.location.href = routes[role] || '/student-portal';

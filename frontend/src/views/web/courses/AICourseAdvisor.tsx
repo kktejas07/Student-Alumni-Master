@@ -160,7 +160,8 @@ export default function AICourseAdvisor({
 
               {/* Slash chips */}
               <ScrollView horizontal showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 6, paddingHorizontal: 14, paddingBottom: 6 }}>
+                style={{ flexGrow: 0 }}
+                contentContainerStyle={{ gap: 6, paddingHorizontal: 14, paddingBottom: 6, alignItems: 'center' }}>
                 {SLASH_CHIPS.map((c) => (
                   <Pressable key={c.cmd}
                     onPress={() => send(c.cmd + ' ')}

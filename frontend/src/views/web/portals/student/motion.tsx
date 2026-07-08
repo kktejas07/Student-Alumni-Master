@@ -268,15 +268,17 @@ export function AnimatedRingFill({
   progress, height = 6, fillColors,
 }: { progress: number; height?: number; fillColors: readonly [string, string] }) {
   const v = useSharedValue(0);
-  useEffect(() => { v.value = withTiming(progress, { duration: 1200, easing: Easing.out(Easing.cubic) }); }, [progress, v]);
+  useEffect(() => { v.value = withTiming(progress || 0, { duration: 1200, easing: Easing.out(Easing.cubic) }); }, [progress, v]);
   const aStyle = useAnimatedStyle(() => ({ width: `${Math.min(100, Math.max(0, v.value))}%` as any }));
   return (
     <View style={{ height, borderRadius: height / 2, backgroundColor: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
-      <AnimatedLG
-        colors={fillColors as any}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-        style={[{ height: '100%', borderRadius: height / 2 }, aStyle]}
-      />
+      <Animated.View style={[{ height: '100%', borderRadius: height / 2, overflow: 'hidden' }, aStyle]}>
+        <LinearGradient
+          colors={fillColors as any}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+          style={{ height: '100%', width: '100%' }}
+        />
+      </Animated.View>
     </View>
   );
 }

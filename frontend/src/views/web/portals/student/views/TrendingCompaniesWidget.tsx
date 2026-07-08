@@ -1,8 +1,8 @@
 /**
  * TrendingCompaniesWidget — Material You styled widget on the Student
  * Dashboard. Reads from /api/jobs/trending-companies which aggregates from
- * the live cache populated by 5 free job APIs (RemoteOK / ArbeitNow /
- * The Muse / Remotive / Jobicy).
+ * the live cache populated by 11 free job APIs (RemoteOK / ArbeitNow /
+ * The Muse / Remotive / Jobicy / Himalayas / HackerNews / WeWorkRemotely / etc.).
  *
  * Year-tier aware on the backend — Year 1/2 only sees companies hiring
  * interns, final-year + alumni see full-time hirers too.

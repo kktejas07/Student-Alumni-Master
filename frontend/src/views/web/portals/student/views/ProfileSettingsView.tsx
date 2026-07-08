@@ -26,13 +26,14 @@ import {
   View, Text, Pressable, StyleSheet, ScrollView, Image, Platform,
   ActivityIndicator, useWindowDimensions,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   User, Settings as SettingsIcon, Bell, ShieldCheck, IdCard,
   CheckCircle2, GraduationCap, Award, ExternalLink, Sparkles,
   Briefcase, UsersRound, Eye, CalendarCheck, FileSearch,
   Star, IndianRupee, Building2, Plug,
 } from '../iconShims';
+import { Upload, Camera } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { ProfileInfoPage } from '@/src/views/web/profile/ProfileInfoPage';
@@ -140,7 +141,22 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
   const role: RoleKey = (props.roleOverride || (user?.role as RoleKey) || 'student');
   const cfg = ROLE_CFG[role] || ROLE_CFG.student;
 
-  const [tab, setTab] = useState<TabKey>('profile-info');
+  const { ptab, section } = useLocalSearchParams<{ ptab?: string, section?: string }>();
+  const [tab, setTab] = useState<TabKey>((ptab as TabKey) || 'profile-info');
+
+  useEffect(() => {
+    if (ptab && ptab !== tab) {
+      setTab(ptab as TabKey);
+    }
+  }, [ptab]);
+
+  useEffect(() => {
+    if (Platform.OS === 'web' && section) {
+      setTimeout(() => {
+        document.getElementById(section)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 500); // Wait for render
+    }
+  }, [section, tab]);
   const [draft, setDraft] = useState<any>(user || {});
   const [completion, setCompletion] = useState<{ percentage: number; items: any[] }>({ percentage: 0, items: [] });
   const [stats, setStats] = useState<any>({});
@@ -186,14 +202,30 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
 
   useEffect(() => { reload(); }, [reload]);
 
+  const draftPhoto = draft.photo_data || draft.face_image_base64;
+  useEffect(() => {
+    const userPhoto = user?.photo_data || user?.face_image_base64;
+    if (draftPhoto !== userPhoto) {
+      useAuthStore.getState().setPhotoOverride(draftPhoto || '');
+    } else {
+      useAuthStore.getState().setPhotoOverride(null);
+    }
+  }, [draftPhoto, user]);
+
+  useEffect(() => {
+    return () => {
+      useAuthStore.getState().setPhotoOverride(null);
+    };
+  }, []);
+
   // Track if draft changed vs last server snapshot
   const dirty = useMemo(() => {
     if (!user) return false;
     const watched = [
       'first_name','last_name','full_name','headline','bio','phone','city','state','location',
       'photo_data','face_image_base64','institution','branch','graduation_year','cgpa',
-      'interests','skills','linkedin_url','github_url','portfolio_url','profile_visibility',
-      'section_toggles','primary_skill','preferences',
+      'interests','skills','projects','linkedin_url','github_url','portfolio_url','profile_visibility',
+      'section_toggles','primary_skill','preferences','banner_data','college_logo_data'
     ];
     return watched.some((k) => JSON.stringify((draft as any)[k] ?? null) !== JSON.stringify((user as any)[k] ?? null));
   }, [draft, user]);
@@ -222,8 +254,8 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
       const watched = [
         'first_name','last_name','full_name','headline','bio','phone','city','state','location',
         'photo_data','face_image_base64','institution','branch','graduation_year','cgpa',
-        'interests','skills','linkedin_url','github_url','portfolio_url','profile_visibility',
-        'section_toggles','primary_skill','preferences',
+        'interests','skills','projects','linkedin_url','github_url','portfolio_url','profile_visibility',
+        'section_toggles','primary_skill','preferences','banner_data','college_logo_data'
       ];
       watched.forEach((k) => {
         if (JSON.stringify((draft as any)[k] ?? null) !== JSON.stringify((user as any)[k] ?? null)) {
@@ -304,6 +336,25 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
               </View>
             </View>
           </View>
+          
+          {role === 'college' && (
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 'auto' }}>
+              <Pressable onPress={onUploadPhoto} style={{ backgroundColor: '#A78BFA', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Upload size={14} color="#FFF" />
+                <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>Upload Photo</Text>
+              </Pressable>
+              <Pressable onPress={onTakeSelfie} style={{ backgroundColor: '#A78BFA', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Camera size={14} color="#FFF" />
+                <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>Take Selfie</Text>
+              </Pressable>
+              {photo && (
+                <Pressable onPress={() => setDraft((d: any) => ({ ...d, photo_data: '', face_image_base64: '' }))} style={{ backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>Remove</Text>
+                </Pressable>
+              )}
+            </View>
+          )}
+
         </View>
       </View>
 
@@ -368,7 +419,7 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
           {tab === 'security'      && <ComingSoon title="Security Centre"          sub="2FA, login history & active sessions land in Phase 2." />}
 
           {(tab === 'profile-info' || tab === 'manage' || tab === 'settings') && (
-            <View style={{ marginTop: 4 }}>
+            <View style={{ marginTop: 4, zIndex: 1, position: 'relative' }}>
               <FooterActions
                 dirty={dirty}
                 saving={saving}
@@ -393,28 +444,44 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
               />
               <Text style={st.sideTitle}>Profile Score</Text>
               <Text style={st.sideSub}>{(completion.percentage || 0) >= 100 ? 'All complete!' : `${100 - (completion.percentage || 0)}% to go`}</Text>
-              <View style={st.idChip}>
-                <Text style={st.idChipText}>{saId}</Text>
-              </View>
+              
+              {role === 'college' ? (
+                <View style={{ width: '100%', marginTop: 16, borderTopWidth: 1, borderColor: C.border, paddingTop: 16, gap: 8 }}>
+                  <Text style={[st.sideHeading, { textAlign: 'left', marginBottom: 4 }]}>PROFILE COMPLETION</Text>
+                  <Text style={{ fontSize: 12, color: C.text2, marginBottom: 4 }}>Complete your profile to unlock features.</Text>
+                  {completion.items?.map((it: any) => (
+                    <View key={it.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      {it.done ? <CheckCircle2 size={16} color={C.green} /> : <View style={{ width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: C.text3, marginLeft: 1 }} />}
+                      <Text style={{ fontSize: 13, color: it.done ? C.text : C.text2, flex: 1 }}>{it.label}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <View style={st.idChip}>
+                  <Text style={st.idChipText}>{saId}</Text>
+                </View>
+              )}
             </View>
           </View>
 
           {/* Role-aware stats list */}
-          <View style={st.sideCard}>
-            <Text style={st.sideHeading}>{cfg.statsHeading}</Text>
-            <View style={{ marginTop: 10, gap: 4 }}>
-              {cfg.stats(stats).map((row, i, arr) => (
-                <StatRow
-                  key={row.label}
-                  Icon={row.Icon}
-                  label={row.label}
-                  value={row.value}
-                  tint={row.tint}
-                  last={i === arr.length - 1}
-                />
-              ))}
+          {role !== 'college' && (
+            <View style={st.sideCard}>
+              <Text style={st.sideHeading}>{cfg.statsHeading}</Text>
+              <View style={{ marginTop: 10, gap: 4 }}>
+                {cfg.stats(stats).map((row, i, arr) => (
+                  <StatRow
+                    key={row.label}
+                    Icon={row.Icon}
+                    label={row.label}
+                    value={row.value}
+                    tint={row.tint}
+                    last={i === arr.length - 1}
+                  />
+                ))}
+              </View>
             </View>
-          </View>
+          )}
 
           {/* Role-aware ID card */}
           <View style={st.sideCard}>

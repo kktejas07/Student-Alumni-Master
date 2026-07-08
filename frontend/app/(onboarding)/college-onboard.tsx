@@ -13,9 +13,9 @@
  *
  * After Step 6 → /(onboarding)/member-id → /(auth)/email-verify → 2FA → Welcome Dashboard
  */
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, TextInput as RNTextInput } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   ArrowLeft, Building2, GraduationCap, Globe, MapPin, Calendar, Link2,
   Camera, Upload, Award, CheckCircle2, User as UserIcon, Mail, Phone,
@@ -93,10 +93,20 @@ function Stepper({ step }: { step: number }) {
 
 export default function CollegeOnboard() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ step?: string }>();
   const toast = useToast();
   const user = useAuthStore((u) => u.user);
   const refreshUser = useAuthStore((u) => u.refreshUser);
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(params.step ? parseInt(params.step, 10) : 0);
+
+  useEffect(() => {
+    if (params.step) {
+      const parsed = parseInt(params.step, 10);
+      if (!isNaN(parsed) && parsed >= 0 && parsed < TOTAL) {
+        setStep(parsed);
+      }
+    }
+  }, [params.step]);
 
   // Step 1
   const [name,          setName]          = useState('');
@@ -255,7 +265,7 @@ export default function CollegeOnboard() {
       await api.completeOnboarding(payload);
       await refreshUser();
       toast.success(`${badge.tier} institution status earned! 🎉`, 'Generating your Member ID…');
-      router.replace('/(onboarding)/member-id' as any);
+      router.push({ pathname: '/(onboarding)/member-id', params: { from: 'onboarding' } } as any);
     } catch (e: any) {
       toast.error('Setup failed', e?.message || 'Please try again.');
     }
@@ -274,13 +284,15 @@ export default function CollegeOnboard() {
     } catch { toast.error('Cover', 'Could not open gallery.'); }
   };
 
+  const userFirstName = (user?.full_name || contactName || 'there').split(' ')[0];
+
   const HEADS = [
     { title: 'Your Institution',       sub: 'Register your college or university on SA' },
     { title: 'Contact Person',         sub: 'Primary admin for your institution account' },
     { title: 'Features Needed',        sub: 'Select features you want to activate' },
     { title: 'Logo & Cover Photo',     sub: 'Upload your institution logo and cover photo' },
     { title: 'About Your Institution', sub: 'Write a brief description of your institution' },
-    { title: 'Welcome, there!',        sub: 'Based on your institution profile' },
+    { title: `Welcome, ${userFirstName}!`, sub: 'Based on your institution profile' },
   ];
   const head = HEADS[step];
   const ctaLabel =
@@ -520,7 +532,7 @@ export default function CollegeOnboard() {
                 <Award size={38} color="#FFF" />
                 <Text style={s.badgeTier}>{badge.tier} Status</Text>
               </View>
-              <Text style={s.greeting}>Welcome, there!</Text>
+              <Text style={s.greeting}>Welcome, {userFirstName}!</Text>
               <Text style={s.helper}>You've earned {badge.tier} status on Student Alumni.</Text>
               <View style={s.verifiedPill}>
                 <CheckCircle2 size={14} color="#60A5FA" />
@@ -552,7 +564,13 @@ export default function CollegeOnboard() {
 
       <View style={s.navRow}>
         <Pressable
-          onPress={step > 0 ? prev : () => router.back()}
+          onPress={step > 0 ? prev : () => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(auth)/referral-code');
+            }
+          }}
           style={s.backBtn}
           testID="college-onboard-back"
         >

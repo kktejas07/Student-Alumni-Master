@@ -1,9 +1,17 @@
 // metro.config.js
+// Polyfill Array.prototype.toReversed for Node <20 (used by metro-config internally)
+if (!Array.prototype.toReversed) {
+  Array.prototype.toReversed = function() {
+    return [...this].reverse();
+  };
+}
+
 const { getDefaultConfig } = require("expo/metro-config");
 const path = require('path');
 const { FileStore } = require('metro-cache');
 
 const config = getDefaultConfig(__dirname);
+config.resolver.useWatchman = false;
 
 // Use a stable on-disk store (shared across web/android)
 const root = process.env.METRO_CACHE_ROOT || path.join(__dirname, '.metro-cache');
@@ -13,7 +21,26 @@ config.cacheStores = [
 
 // Redirect .node.mjs → .js for @lexical/* packages so Metro does not
 // try to minify ESM-only entry-points that its transformer cannot handle.
+// Also redirect 'qrcode' to browser version to bypass Node-only pngjs during SSR.
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === 'qrcode') {
+    return {
+      filePath: require.resolve('qrcode/lib/browser.js'),
+      type: 'sourceFile',
+    };
+  }
+  if (moduleName === 'jspdf/dist/jspdf.es.min.js') {
+    return {
+      filePath: require.resolve('jspdf/dist/jspdf.es.min.js'),
+      type: 'sourceFile',
+    };
+  }
+  if (moduleName === 'lucide-react-native') {
+    return {
+      filePath: require.resolve('lucide-react-native'),
+      type: 'sourceFile',
+    };
+  }
   const resolved = context.resolveRequest(context, moduleName, platform);
   if (resolved?.filePath?.endsWith('.node.mjs')) {
     return { filePath: resolved.filePath.replace('.node.mjs', '.js'), type: 'sourceFile' };

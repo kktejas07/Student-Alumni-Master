@@ -10,8 +10,8 @@
  *
  * The widget displays the value in DD/MM/YYYY for users while storing ISO.
  */
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { View, Text, StyleSheet, TextInput, Keyboard } from 'react-native';
 import { Dropdown } from '@/src/views/web/Dropdown';
 
 export function DateOfBirthPicker({
@@ -20,6 +20,7 @@ export function DateOfBirthPicker({
   required = true,
   label = 'Date of Birth',
   helper,
+  editable = true,
 }: {
   /** ISO 8601 (YYYY-MM-DD) or empty string */
   value: string;
@@ -28,24 +29,36 @@ export function DateOfBirthPicker({
   required?: boolean;
   label?: string;
   helper?: string;
+  editable?: boolean;
 }) {
-  // Parse incoming ISO into discrete parts. Use blank string for unset parts
-  // so the dropdowns show their placeholder.
+  // Parse incoming ISO into discrete parts.
   const [d, setD] = useState<string>('');
   const [m, setM] = useState<string>('');
   const [y, setY] = useState<string>('');
 
+  const dayRef = useRef<TextInput>(null);
+  const monthRef = useRef<TextInput>(null);
+  const yearRef = useRef<TextInput>(null);
+
+  const lastEmitted = useRef<string>(value || '');
+
   useEffect(() => {
+    console.log('DateOfBirthPicker useEffect [value]:', value);
+    if (value === lastEmitted.current) {
+      return;
+    }
+    lastEmitted.current = value || '';
     if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
       const [yy, mm, dd] = value.split('-');
       setY(yy); setM(mm); setD(dd);
+    } else if (!value) {
+      setY(''); setM(''); setD('');
     }
   }, [value]);
 
   const currentYear = new Date().getFullYear();
 
-  // Year list — 100 years back through (current - minAge), so the youngest
-  // selectable date is exactly `minAge` years ago. Older years go back 100.
+  // Year list — 100 years back through (current - minAge)
   const years = useMemo(() => {
     const max = currentYear - minAge;
     const min = currentYear - 100;
@@ -72,7 +85,6 @@ export function DateOfBirthPicker({
       max = new Date(yearInt, monthInt, 0).getDate();
     } else if (m) {
       const monthInt = parseInt(m, 10);
-      // Use a non-leap year as default
       max = new Date(2023, monthInt, 0).getDate();
     }
     return Array.from({ length: max }, (_, i) => {
@@ -83,17 +95,23 @@ export function DateOfBirthPicker({
 
   // Whenever any part changes & all 3 are populated, emit ISO.
   useEffect(() => {
+    console.log('DateOfBirthPicker state [d, m, y]:', { d, m, y });
+    let iso = '';
     if (d && m && y) {
-      onChange(`${y}-${m}-${d}`);
-    } else {
-      onChange('');
+      if (/^\d{2}$/.test(d) && /^\d{2}$/.test(m) && /^\d{4}$/.test(y)) {
+        iso = `${y}-${m}-${d}`;
+      }
+    }
+    if (iso !== lastEmitted.current) {
+      lastEmitted.current = iso;
+      onChange(iso);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [d, m, y]);
 
   const completed = !!(d && m && y);
   const ageOk = useMemo(() => {
-    if (!completed) return true; // don't show age error until all 3 picked
+    if (!completed) return true;
     const dob = new Date(`${y}-${m}-${d}`);
     if (isNaN(dob.getTime())) return false;
     if (dob > new Date()) return false;
@@ -109,6 +127,115 @@ export function DateOfBirthPicker({
       ? `You must be at least ${minAge} years old to register.`
       : null;
 
+  // Text inputs typing logic with auto-advance
+  const handleDayChange = (val: string) => {
+    console.log('handleDayChange val =', val);
+    const clean = val.replace(/[^0-9]/g, '');
+    
+    if (clean.length === 0) {
+      setD('');
+      return;
+    }
+
+    if (clean.length === 1) {
+      if (/^[4-9]$/.test(clean)) {
+        // Since no day starts with 4-9, it's a single digit day (04-09).
+        // Auto-pad and auto-advance to Month.
+        setD('0' + clean);
+        monthRef.current?.focus();
+      } else {
+        // It's 0, 1, 2, or 3. Wait for the second digit.
+        setD(clean);
+      }
+    } else if (clean.length === 2) {
+      const num = parseInt(clean, 10);
+      if (num >= 1 && num <= 31) {
+        setD(clean);
+        monthRef.current?.focus();
+      } else {
+        if (clean === '00') {
+          // If they typed 00, keep it as '0' to allow typing a valid digit next
+          setD('0');
+        } else if (num > 31) {
+          // If they typed something like 32-99, ignore the second digit
+          setD(clean.slice(0, 1));
+        }
+      }
+    }
+  };
+
+  const handleDayBlur = () => {
+    console.log('handleDayBlur d =', d);
+    if (d && d.length === 1) {
+      if (d === '0') {
+        setD('');
+      } else {
+        setD(d.padStart(2, '0'));
+      }
+    }
+  };
+
+  const handleMonthChange = (val: string) => {
+    const clean = val.replace(/[^0-9a-zA-Z]/g, '');
+    
+    // Check if it's numeric
+    if (/^\d+$/.test(clean)) {
+      if (clean.length === 1) {
+        if (/^[2-9]$/.test(clean)) {
+          // Auto-pad 2-9 and focus Year (no month starts with 2-9)
+          setM('0' + clean);
+          yearRef.current?.focus();
+        } else {
+          // It's '0' or '1', wait for next digit
+          setM(clean);
+        }
+      } else if (clean.length === 2) {
+        const num = parseInt(clean, 10);
+        if (num >= 1 && num <= 12) {
+          setM(clean);
+          yearRef.current?.focus();
+        } else {
+          if (clean === '00') {
+            setM('0');
+          } else if (num > 12) {
+            setM(clean.slice(0, 1));
+          }
+        }
+      }
+    } else {
+      // It has letters, just set it and let handleMonthBlur resolve it, or check if they typed a full month name.
+      setM(clean);
+    }
+  };
+
+  const handleMonthBlur = () => {
+    if (/^\d+$/.test(m)) {
+      if (m === '0') {
+        setM('');
+      } else {
+        setM(m.padStart(2, '0'));
+      }
+    } else if (m) {
+      const found = months.find(opt => opt.label.toLowerCase().startsWith(m.toLowerCase()));
+      if (found) {
+        setM(found.value);
+        // Autofocus year after a month name is successfully auto-completed on blur
+        setTimeout(() => yearRef.current?.focus(), 50);
+      } else {
+        setM('');
+      }
+    }
+  };
+
+  const handleYearChange = (val: string) => {
+    const clean = val.replace(/[^0-9]/g, '');
+    setY(clean);
+    if (clean.length === 4) {
+      yearRef.current?.blur();
+      Keyboard.dismiss();
+    }
+  };
+
   return (
     <View style={styles.wrap}>
       <Text style={styles.label}>
@@ -120,10 +247,15 @@ export function DateOfBirthPicker({
             label="Day"
             value={d}
             options={days}
-            onChange={setD}
+            onChange={handleDayChange}
             placeholder="DD"
             allowOther={false}
             testID="dob-day"
+            editable={editable}
+            keyboardType="number-pad"
+            maxLength={2}
+            inputRef={dayRef}
+            onBlur={handleDayBlur}
           />
         </View>
         <View style={{ flex: 1.4 }}>
@@ -131,10 +263,15 @@ export function DateOfBirthPicker({
             label="Month"
             value={m}
             options={months}
-            onChange={setM}
+            onChange={handleMonthChange}
             placeholder="MM"
             allowOther={false}
             testID="dob-month"
+            editable={editable}
+            keyboardType="default"
+            maxLength={12}
+            inputRef={monthRef}
+            onBlur={handleMonthBlur}
           />
         </View>
         <View style={{ flex: 1 }}>
@@ -142,10 +279,14 @@ export function DateOfBirthPicker({
             label="Year"
             value={y}
             options={years}
-            onChange={setY}
+            onChange={handleYearChange}
             placeholder="YYYY"
             allowOther={false}
             testID="dob-year"
+            editable={editable}
+            keyboardType="number-pad"
+            maxLength={4}
+            inputRef={yearRef}
           />
         </View>
       </View>

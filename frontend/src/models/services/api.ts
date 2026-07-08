@@ -1,3 +1,4 @@
+import { getBaseUrl } from '@/src/lib/env';
 /**
  * MODEL LAYER - API Service
  * All HTTP communication is centralised here. No UI / state logic.
@@ -5,7 +6,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BASE_URL = getBaseUrl();
 
 const TOKEN_KEY = 'scd_access_token';
 const REFRESH_KEY = 'scd_refresh_token';
@@ -68,8 +69,8 @@ export async function request<T>(
   let token: string | null = null;
   if (auth) {
     token = await tokenStore.getAccess();
-    if (!token) {
-      // Short backoff, up to ~900 ms total
+    if (!token && Platform.OS !== 'web') {
+      // Short backoff, up to ~900 ms total (only on native)
       for (const ms of [120, 220, 280, 280]) {
         await new Promise((r) => setTimeout(r, ms));
         token = await tokenStore.getAccess();
@@ -100,24 +101,29 @@ export async function request<T>(
   // On 401, do a one-shot retry — gives AsyncStorage one more chance to
   // surface a token that was just persisted in the background.
   if (res.status === 401 && auth) {
-    await new Promise((r) => setTimeout(r, 350));
     const t2 = await tokenStore.getAccess();
     if (t2 && t2 !== token) {
-      const r2 = await fetch(`${BASE_URL}/api${path}`, {
-        method,
-        headers: { ...headers, Authorization: `Bearer ${t2}` },
-        body: body ? JSON.stringify(body) : undefined,
-      });
-      const t = await r2.text();
-      let d: any;
-      try { d = t ? JSON.parse(t) : {}; } catch { d = { raw: t }; }
-      if (r2.ok) return d as T;
-      // fall through to throw using r2's status
-      const detail2 = d?.detail;
-      const msg2 = typeof detail2 === 'string'
-        ? detail2
-        : detail2?.msg || `Request failed (${r2.status})`;
-      throw new Error(msg2);
+      if (Platform.OS !== 'web') {
+        await new Promise((r) => setTimeout(r, 350));
+      }
+      // Re-fetch token in case it changed during sleep
+      const t3 = await tokenStore.getAccess();
+      if (t3) {
+        const r2 = await fetch(`${BASE_URL}/api${path}`, {
+          method,
+          headers: { ...headers, Authorization: `Bearer ${t3}` },
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        const t = await r2.text();
+        let d: any;
+        try { d = t ? JSON.parse(t) : {}; } catch { d = { raw: t }; }
+        if (r2.ok) return d as T;
+        const detail2 = d?.detail;
+        const msg2 = typeof detail2 === 'string'
+          ? detail2
+          : detail2?.msg || `Request failed (${r2.status})`;
+        throw new Error(msg2);
+      }
     }
   }
 
@@ -182,6 +188,9 @@ export const api = {
 
   updateProfile: (payload: any) =>
     request<any>('/users/me', { method: 'PUT', body: payload }),
+
+  getPublicProfile: (userId: string) =>
+    request<any>(`/users/${userId}/public-profile`),
 
   // AI
   getCareerSuggestions: (additional_context?: string) =>
@@ -293,14 +302,27 @@ export const api = {
   postReview: (payload: { mentor_id: string; rating: number; comment?: string; booking_id?: string }) =>
     request<any>('/reviews', { method: 'POST', body: payload }),
   mentorReviews: (mentor_id: string) => request<any>(`/mentors/${mentor_id}/reviews`),
+  replyToReview: (review_id: string, reply: string) =>
+    request<any>(`/reviews/${review_id}/reply`, { method: 'POST', body: { reply } }),
+
+  // Bookings / Dev actions
+  markBookingCompleted: (booking_id: string) =>
+    request<any>(`/student/bookings/${booking_id}/complete`, { method: 'POST', body: {} }),
 
   // Notifications
   registerPushToken: (token: string, platform = 'unknown') =>
     request<any>('/notifications/register', { method: 'POST', body: { token, platform } }),
   notifications: () => request<any>('/notifications'),
   markNotificationsRead: (ids?: string[]) =>
-    request<any>('/notifications/mark-read', { method: 'POST', body: { ids } }),
-
+    request<any>('/notifications/mark-read', {
+      method: 'POST',
+      body: ids ? { ids } : {},
+    }),
+  dismissNotifications: (ids?: string[]) =>
+    request<any>('/notifications/dismiss', {
+      method: 'POST',
+      body: ids ? { ids } : {},
+    }),
   // Mentor portal: booking actions + session posting
   confirmBooking: (id: string) =>
     request<any>(`/bookings/${id}/confirm`, { method: 'POST', body: {} }),
@@ -314,9 +336,10 @@ export const api = {
     max_attendees: number;
   }) => request<any>('/mentor/sessions', { method: 'POST', body: payload }),
   myMentorSessions: () => request<any>('/mentor/sessions/me'),
-  mentorConnections: (email?: string) => request<any>(`/mentor/connections${email ? `?email=${encodeURIComponent(email)}` : ''}`),
-  acceptConnection: (otherId: string) => request<any>(`/network/accept/${otherId}`, { method: 'POST', body: {} }),
-  rejectConnection: (otherId: string) => request<any>(`/network/reject/${otherId}`, { method: 'POST', body: {} }),
+  mentorConnections: (email?: string, page: number = 1, per_page: number = 24) => request<any>(`/mentor/connections${email ? `?email=${encodeURIComponent(email)}&page=${page}&per_page=${per_page}` : `?page=${page}&per_page=${per_page}`}`),
+  acceptConnection: (otherId: string) => request<any>(`/network/accept/${otherId}`, { method: 'POST' }),
+  rejectConnection: (otherId: string) => request<any>(`/network/reject/${otherId}`, { method: 'POST' }),
+  withdrawConnection: (otherId: string) => request<any>(`/network/withdraw/${otherId}`, { method: 'POST' }),
   createMentorBooking: (payload: {
     student_id: string;
     slot_start_iso: string;
@@ -325,6 +348,14 @@ export const api = {
   }) => request<any>('/mentor/bookings', { method: 'POST', body: payload }),
   rescheduleBooking: (id: string, slotStartIso: string) =>
     request<any>(`/bookings/${id}/reschedule`, { method: 'POST', body: { slot_start_iso: slotStartIso } }),
+  networkDiscover: (q?: string) => request<any>(`/network/discover${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  networkConnections: () => request<any>('/network/connections'),
+  networkRequests: () => request<any>('/network/requests'),
+  sendConnectionRequest: (otherId: string, message?: string) =>
+    request<any>(`/network/connect/${encodeURIComponent(otherId)}`, {
+      method: 'POST',
+      body: message ? { message } : {},
+    }),
 };
 
 export { BASE_URL };

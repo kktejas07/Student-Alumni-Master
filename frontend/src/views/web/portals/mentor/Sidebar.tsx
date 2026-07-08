@@ -25,7 +25,6 @@ export const NAV_MAIN: (counts: { students: number; sessions: number; requests: 
   { id: 'ai-studio',    label: 'AI Studio',        Icon: Sparkles },
   { id: 'students',     label: 'My Connections',   Icon: Users,    count: students },
   { id: 'sessions',     label: 'Sessions',         Icon: Calendar, count: sessions },
-  { id: 'availability', label: 'Set Availability', Icon: Clock },
   { id: 'requests',     label: 'Session Requests', Icon: UserPlus, count: requests, alert: true },
   { id: 'network',      label: 'Network',          Icon: Network },
   { id: 'earnings',     label: 'Earnings',         Icon: Coins },
@@ -47,7 +46,7 @@ export function Sidebar({
   const user = useAuthStore((u) => u.user) as any;
   const fullName = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || MENTOR.name;
   const initials = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || MENTOR.avatar).toUpperCase();
-  const photo = user?.photo_data || user?.face_image_base64;
+  const photo = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64;
   const role = user?.mentor_info?.current_role || user?.mentor_info?.job_title || user?.current_role || user?.headline || MENTOR.role;
   const jobTitle = role;
   const company = user?.mentor_info?.current_company || user?.mentor_info?.organization || user?.current_company || MENTOR.company;
@@ -64,9 +63,7 @@ export function Sidebar({
         </Pressable>
         {!collapsed && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-            <LinearGradient colors={[MC.teal, MC.tealD] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.brandLogo}>
-              <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11, letterSpacing: -0.5 }}>SA</Text>
-            </LinearGradient>
+            <Image source={require('@/assets/images/sa-icon.png')} style={s.brandLogo} />
             <View style={{ minWidth: 0, flex: 1 }}>
               <Text style={s.brandTitle} numberOfLines={1}>Mentor Portal</Text>
               <Text style={s.brandSub} numberOfLines={1}>Student Alumni</Text>
@@ -135,7 +132,7 @@ export function Sidebar({
       <AgentKLauncher collapsed={collapsed} />
 
       {/* Main nav */}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: collapsed ? 4 : 6, paddingVertical: 4 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: collapsed ? 4 : 6, paddingVertical: 4 }} showsVerticalScrollIndicator={false}>
         {!collapsed && <Text style={s.kicker}>MAIN MENU</Text>}
         {items.map((n) => {
           const isActive = n.id === active;
@@ -171,6 +168,7 @@ export function Sidebar({
       {/* Logout */}
       <Pressable
         onPress={onLogout}
+        testID="logout-button"
         style={({ hovered }: any) => [s.logoutRow,
           { justifyContent: collapsed ? 'center' : 'flex-start', gap: collapsed ? 0 : 11, padding: collapsed ? 11 : 12 },
           hovered && { backgroundColor: 'rgba(239,68,68,0.10)' },
@@ -203,7 +201,7 @@ const s = StyleSheet.create({
     width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
     ...({ cursor: 'pointer' } as any),
   },
-  brandLogo: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  brandLogo: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
   brandTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
   brandSub: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 0.5 },
 

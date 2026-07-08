@@ -1,3 +1,4 @@
+import { getBaseUrl } from '@/src/lib/env';
 /**
  * Email OTP — per HTML spec screen "Email OTP".
  *
@@ -19,7 +20,7 @@ import { AuthInput, PrimaryButton } from '@/src/views/auth/AuthControls';
 import { AC, FONTS } from '@/src/views/auth/tokens';
 import { trackAuth } from '@/src/lib/authAnalytics';
 
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+const BASE = getBaseUrl();
 
 export default function EmailOTP() {
   const router = useRouter();
@@ -77,8 +78,9 @@ export default function EmailOTP() {
           autoCapitalize="none"
           error={error}
           onSubmitEditing={onSend}
+          testID="otp-email"
         />
-        <PrimaryButton label="Send OTP Code" onPress={onSend} loading={loading} />
+        <PrimaryButton label="Send OTP Code" onPress={onSend} loading={loading} testID="otp-send-code" />
       </View>
 
       <View style={s.footerRow}>

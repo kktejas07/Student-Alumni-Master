@@ -76,21 +76,17 @@ function parsePhone(value: string): { dial: string; local: string; country: Coun
   return { dial: '+91', local: v, country: COUNTRIES[0] };
 }
 
-export function PhoneInput({
-  label,
-  value,
-  onChangeText,
-  placeholder = '98765 43210',
-  testID,
-  helper,
-}: {
+export const PhoneInput = React.forwardRef<RNTextInput, {
   label?: string;
   value: string;
   onChangeText: (v: string) => void;
   placeholder?: string;
   testID?: string;
   helper?: string;
-}) {
+  onSubmitEditing?: () => void;
+  blurOnSubmit?: boolean;
+}>((props, ref) => {
+  const { label, value, onChangeText, placeholder = '98765 43210', testID, helper, onSubmitEditing, blurOnSubmit } = props;
   const parsed = parsePhone(value);
   const [country, setCountry] = useState<Country>(parsed.country);
   const [local, setLocal] = useState<string>(parsed.local);
@@ -118,18 +114,24 @@ export function PhoneInput({
       <View style={{ position: 'relative', zIndex: pickerOpen ? 999 : 40 }}>
         <View style={s.row}>
           <Pressable onPress={() => setPickerOpen((o) => !o)} style={s.cc} testID={`${testID || 'phone'}-cc`}>
-            <Text style={s.flag}>{country.flag}</Text>
-            <Text style={s.codeText}>{country.code}</Text>
-            <Text style={s.dial}>{country.dial}</Text>
+            <Text style={s.dial}>
+              <Text style={s.flag}>{country.flag}</Text>   {country.dial}
+            </Text>
             <ChevronDown size={14} color="rgba(255,255,255,0.5)" />
           </Pressable>
           <View style={s.num}>
             <RNTextInput
+              ref={ref}
               value={local}
               onChangeText={(n) => commit(country, n)}
               placeholder={placeholder}
               placeholderTextColor="rgba(255,255,255,0.32)"
               keyboardType="phone-pad"
+              autoComplete="tel"
+              textContentType="telephoneNumber"
+              autoCorrect={false}
+              onSubmitEditing={onSubmitEditing}
+              blurOnSubmit={blurOnSubmit}
               style={s.input}
               testID={testID}
             />
@@ -156,8 +158,9 @@ export function PhoneInput({
                   onPress={() => { commit(c, local); setPickerOpen(false); setSearch(''); }}
                   style={({ hovered }: any) => [s.item, hovered && s.itemHover]}
                 >
-                  <Text style={s.flag}>{c.flag}</Text>
-                  <Text style={s.itemName}>{c.name} ({c.code})</Text>
+                  <Text style={s.itemName}>
+                    <Text style={s.flag}>{c.flag}</Text>   {c.name} ({c.code})
+                  </Text>
                   <Text style={s.itemDial}>{c.dial}</Text>
                 </Pressable>
               ))}
@@ -168,7 +171,7 @@ export function PhoneInput({
       {helper ? <Text style={s.helper}>{helper}</Text> : null}
     </View>
   );
-}
+});
 
 const s = StyleSheet.create({
   label: {
@@ -179,19 +182,23 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', gap: 8 },
   cc: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: Platform.OS === 'ios' ? 13 : 11,
+    paddingHorizontal: 12, height: 48,
     backgroundColor: 'rgba(255,255,255,0.03)',
     borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderRadius: 12,
-    minWidth: 124,
+    minWidth: 100,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   codeText: { color: '#FFF', fontFamily: FONTS.med, fontSize: 14, marginLeft: 2, marginRight: 2 },
   flag: { fontSize: 16, color: '#FFF' },
-  dial: { color: '#FFF', fontFamily: FONTS.med, fontSize: 14 },
+  dial: {
+    color: '#FFF', fontFamily: FONTS.med, fontSize: 14,
+    transform: [{ translateY: -2 }],
+  },
   num: { flex: 1 },
   input: {
     color: '#FFF', fontFamily: FONTS.med, fontSize: 14,
-    paddingHorizontal: 14, paddingVertical: Platform.OS === 'ios' ? 13 : 11,
+    paddingHorizontal: 14, height: 48,
+    paddingVertical: 0,
     backgroundColor: 'rgba(255,255,255,0.03)',
     borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderRadius: 12,
     ...(Platform.OS === 'web' ? ({ outlineWidth: 0, outlineStyle: 'none' } as any) : {}),

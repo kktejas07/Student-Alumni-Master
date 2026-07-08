@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, Pressable, TextInput, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { Search, UserPlus, Check, MessageSquare } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
-import { usePortalData } from '@/src/lib/portalApi';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useToast } from '@/src/views/components';
 import { request } from '@/src/models/services/api';
@@ -11,22 +10,37 @@ import { request } from '@/src/models/services/api';
 import { AlumniPortalNavContext } from '../AlumniPortalRN';
 
 type Person = { id: string; name: string; initials: string; kind: 'alumni' | 'student' | 'mentor'; role: string; subline: string; college: string; batch: number; tags: string[]; color: string; connection_state?: 'connected' | 'pending' | 'none' };
-const FALLBACK = { items: [] as Person[] };
 
 const FILTERS = ['All', 'Alumni', 'Student', 'Mentor'];
+const PER_PAGE = 24;
 
 export function NetworkView() {
   const toast = useToast();
   const authUser = useAuthStore((sx) => sx.user);
-  const path = authUser?.email
-    ? `/student/network?student_email=${encodeURIComponent(authUser.email)}`
-    : '/student/network';
-  const { data } = usePortalData<typeof FALLBACK>(path, FALLBACK);
-  const PEOPLE = data?.items || [];
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
   const [filter, setFilter] = useState('All');
   const [q, setQ] = useState('');
-  const [conn, setConn] = useState<Set<string>>(new Set());
-  const [pending, setPending] = useState<Set<string>>(new Set());
+  const [conn, setConn] = useState<string[]>([]);
+  const [pending, setPending] = useState<string[]>([]);
+
+  const email = authUser?.email || '';
+  const fetchPage = useCallback(async (p: number) => {
+    setLoading(true);
+    try {
+      const path = email
+        ? `/student/network?student_email=${encodeURIComponent(email)}&page=${p}&per_page=${PER_PAGE}`
+        : `/student/network?page=${p}&per_page=${PER_PAGE}`;
+      const res = await request<any>(path);
+      setData(res);
+      setPages(res.pages || 1);
+    } catch { setData({ items: [] }); }
+    finally { setLoading(false); }
+  }, [email]);
+
+  useEffect(() => { fetchPage(1); }, [fetchPage]);
 
   const portalNav = React.useContext(AlumniPortalNavContext);
   React.useEffect(() => {
@@ -36,6 +50,7 @@ export function NetworkView() {
     }
   }, [portalNav?.searchQuery]);
 
+  const PEOPLE = data?.items || [];
   const list = PEOPLE.filter((p) => {
     if (filter !== 'All' && p.kind !== filter.toLowerCase()) return false;
     if (q && !(p.name + p.subline + p.college).toLowerCase().includes(q.toLowerCase())) return false;
@@ -43,16 +58,12 @@ export function NetworkView() {
   });
 
   const send = async (id: string) => {
-    setPending((p) => new Set(p).add(id));
+    setPending((p) => [...p, id]);
     try {
       await request(`/network/connect/${id}`, { method: 'POST' });
       toast.success('Connection Sent! ✉️', 'Your connection invite is permanently registered.');
     } catch (err: any) {
-      setPending((p) => {
-        const next = new Set(p);
-        next.delete(id);
-        return next;
-      });
+      setPending((p) => p.filter(x => x !== id));
       toast.error('Could not connect', err?.message || 'Please try again.');
     }
   };
@@ -71,42 +82,60 @@ export function NetworkView() {
         <View style={s.searchBox}><Search size={14} color={SC.dim} /><TextInput value={q} onChangeText={setQ} placeholder="Search" placeholderTextColor={SC.dim} style={s.searchInput} /></View>
       </View>
 
-      <View style={s.grid}>
-        {list.map((p) => {
-          const c = conn.has(p.id) || p.connection_state === 'connected';
-          const pn = pending.has(p.id) || p.connection_state === 'pending';
-          return (
-            <View key={p.id} style={[s.card, { flexGrow: 1, flexBasis: 300, maxWidth: 360, height: 195, justifyContent: 'space-between' }]}>
-              <View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <Av initials={p.initials} size={42} color={p.color} />
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text numberOfLines={1} style={s.name}>{p.name}</Text>
-                    <Text numberOfLines={1} style={s.meta}>{p.subline}</Text>
+      {loading ? (
+        <View style={{ paddingVertical: 60, alignItems: 'center' }}><ActivityIndicator size="large" color={SC.primary} /></View>
+      ) : (
+        <>
+          <View style={s.grid}>
+            {list.map((p) => {
+              const c = conn.includes(p.id) || p.connection_state === 'connected';
+              const pn = pending.includes(p.id) || p.connection_state === 'pending';
+              return (
+                <View key={p.id} style={[s.card, { flexGrow: 1, flexBasis: 300, maxWidth: 360, height: 195, justifyContent: 'space-between' }]}>
+                  <View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <Av initials={p.initials} size={42} color={p.color} />
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text numberOfLines={1} style={s.name}>{p.name}</Text>
+                        <Text numberOfLines={1} style={s.meta}>{p.subline}</Text>
+                      </View>
+                      <Badge
+                        label={p.kind === 'alumni' ? 'Alumni' : p.kind === 'mentor' ? 'Mentor' : 'Student'}
+                        color={p.kind === 'alumni' ? 'green' : p.kind === 'mentor' ? 'teal' : 'purple'}
+                      />
+                    </View>
+                    <Text numberOfLines={2} style={s.collegeMeta}>{p.college} · Batch {p.batch}</Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
+                      {(p.tags || []).slice(0, 3).map((t) => <View key={t} style={s.tag}><Text style={{ color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 10 }}>{t}</Text></View>)}
+                    </View>
                   </View>
-                  <Badge
-                    label={p.kind === 'alumni' ? 'Alumni' : p.kind === 'mentor' ? 'Mentor' : 'Student'}
-                    color={p.kind === 'alumni' ? 'green' : p.kind === 'mentor' ? 'teal' : 'purple'}
-                  />
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {c ? (
+                      <Pressable style={s.msgBtn}><MessageSquare size={13} color={SC.accentBright} /><Text style={s.msgText}>Message</Text></Pressable>
+                    ) : pn ? (
+                      <View style={s.pending}><Check size={13} color={SC.amber} /><Text style={{ color: SC.amber, fontFamily: FONTS.bold, fontSize: 11.5 }}>Pending</Text></View>
+                    ) : (
+                      <Pressable onPress={() => send(p.id)} style={s.connect}><UserPlus size={13} color="#fff" /><Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 }}>Connect</Text></Pressable>
+                    )}
+                  </View>
                 </View>
-                <Text numberOfLines={2} style={s.collegeMeta}>{p.college} · Batch {p.batch}</Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
-                  {(p.tags || []).slice(0, 3).map((t) => <View key={t} style={s.tag}><Text style={{ color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 10 }}>{t}</Text></View>)}
-                </View>
-              </View>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                {c ? (
-                  <Pressable style={s.msgBtn}><MessageSquare size={13} color={SC.accentBright} /><Text style={s.msgText}>Message</Text></Pressable>
-                ) : pn ? (
-                  <View style={s.pending}><Check size={13} color={SC.amber} /><Text style={{ color: SC.amber, fontFamily: FONTS.bold, fontSize: 11.5 }}>Pending</Text></View>
-                ) : (
-                  <Pressable onPress={() => send(p.id)} style={s.connect}><UserPlus size={13} color="#fff" /><Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11.5 }}>Connect</Text></Pressable>
-                )}
-              </View>
+              );
+            })}
+          </View>
+
+          {pages > 1 && (
+            <View style={s.pagination}>
+              <Pressable style={[s.pageBtn, page <= 1 && { opacity: 0.4 }]} onPress={() => page > 1 && fetchPage(page - 1)}>
+                <Text style={s.pageBtnText}>Prev</Text>
+              </Pressable>
+              <Text style={s.pageInfo}>{page} / {pages}</Text>
+              <Pressable style={[s.pageBtn, page >= pages && { opacity: 0.4 }]} onPress={() => page < pages && fetchPage(page + 1)}>
+                <Text style={s.pageBtnText}>Next</Text>
+              </Pressable>
             </View>
-          );
-        })}
-      </View>
+          )}
+        </>
+      )}
     </View>
   );
 }
@@ -127,4 +156,8 @@ const s = StyleSheet.create({
   pending: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 14, height: 30, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(245,158,11,0.40)', backgroundColor: 'rgba(245,158,11,0.10)' },
   msgBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 14, height: 30, borderRadius: 8, borderWidth: 1, borderColor: SC.border2, backgroundColor: SC.card },
   msgText: { color: SC.accentBright, fontFamily: FONTS.bold, fontSize: 11.5 },
+  pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 16, gap: 14 },
+  pageBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 14, paddingVertical: 7, backgroundColor: SC.card, borderRadius: 8, borderWidth: 1, borderColor: SC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
+  pageInfo: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12 },
 });

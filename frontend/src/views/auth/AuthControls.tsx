@@ -15,6 +15,9 @@ export function PrimaryButton({
   loading,
   icon,
   fullWidth = true,
+  testID,
+  accessibilityLabel,
+  accessibilityHint,
 }: {
   label: string;
   onPress?: () => void;
@@ -22,6 +25,9 @@ export function PrimaryButton({
   loading?: boolean;
   icon?: React.ReactNode;
   fullWidth?: boolean;
+  testID?: string;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }) {
   const inactive = disabled || loading;
   // Pull colours from RoleThemeContext (provided by AuthShell). Falls back to
@@ -30,6 +36,12 @@ export function PrimaryButton({
   return (
     <Pressable
       onPress={inactive ? undefined : onPress}
+      testID={testID}
+      accessible={true}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel || label}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled: inactive, busy: loading }}
       style={[btn.wrap, fullWidth ? { width: '100%' } : null, inactive && btn.disabled]}
     >
       <LinearGradient
@@ -59,9 +71,9 @@ const btn = StyleSheet.create({
 });
 
 // ─── Outline button ─────────────────────────────────────────────
-export function OutlineButton({ label, onPress, icon, disabled }: { label: string; onPress?: () => void; icon?: React.ReactNode; disabled?: boolean }) {
+export function OutlineButton({ label, onPress, icon, disabled, testID, accessibilityLabel, accessibilityHint }: { label: string; onPress?: () => void; icon?: React.ReactNode; disabled?: boolean; testID?: string; accessibilityLabel?: string; accessibilityHint?: string }) {
   return (
-    <Pressable onPress={disabled ? undefined : onPress} style={[ob.wrap, disabled && { opacity: 0.5 }]}>
+    <Pressable onPress={disabled ? undefined : onPress} style={[ob.wrap, disabled && { opacity: 0.5 }]} testID={testID} accessible={true} accessibilityRole="button" accessibilityLabel={accessibilityLabel || label} accessibilityHint={accessibilityHint} accessibilityState={{ disabled }}>
       {icon}
       <Text style={ob.text}>{label}</Text>
     </Pressable>
@@ -74,20 +86,7 @@ const ob = StyleSheet.create({
 });
 
 // ─── Text Input ─────────────────────────────────────────────────
-export function AuthInput({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  secureTextEntry,
-  keyboardType,
-  autoCapitalize,
-  hint,
-  error,
-  leftIcon,
-  rightSlot,
-  onSubmitEditing,
-}: {
+export const AuthInput = React.forwardRef<TextInput, {
   label?: string;
   value: string;
   onChangeText: (t: string) => void;
@@ -100,7 +99,20 @@ export function AuthInput({
   leftIcon?: React.ReactNode;
   rightSlot?: React.ReactNode;
   onSubmitEditing?: () => void;
-}) {
+  blurOnSubmit?: boolean;
+  editable?: boolean;
+  autoFocus?: boolean;
+  testID?: string;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+}>((props, ref) => {
+  const {
+    label, value, onChangeText, placeholder, secureTextEntry,
+    keyboardType, autoCapitalize, hint, error, leftIcon, rightSlot,
+    onSubmitEditing, blurOnSubmit, editable = true, autoFocus,
+    testID, accessibilityLabel, accessibilityHint
+  } = props;
+  
   const [focused, setFocused] = React.useState(false);
   const { primary } = useRoleTheme();
   const focusBg = primary ? `${primary}10` : 'rgba(124,58,237,0.06)';
@@ -110,6 +122,7 @@ export function AuthInput({
       <View style={[inp.row, focused && [inp.rowOn, { borderColor: primary, backgroundColor: focusBg }], error && inp.rowErr]}>
         {leftIcon ? <View style={{ marginRight: 10 }}>{leftIcon}</View> : null}
         <TextInput
+          ref={ref}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
@@ -121,14 +134,22 @@ export function AuthInput({
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           onSubmitEditing={onSubmitEditing}
-          style={inp.input}
+          blurOnSubmit={blurOnSubmit}
+          editable={editable}
+          autoFocus={autoFocus}
+          testID={testID}
+          accessible={true}
+          accessibilityLabel={accessibilityLabel || (typeof label === 'string' ? label : placeholder)}
+          accessibilityHint={accessibilityHint}
+          accessibilityState={{ disabled: !editable }}
+          style={[inp.input, !editable && { opacity: 0.6 }]}
         />
         {rightSlot}
       </View>
-      {error ? <Text style={inp.err}>{typeof error === 'string' ? error : (error as any)?.msg || (error as any)?.message || JSON.stringify(error)}</Text> : hint ? <Text style={inp.hint}>{hint}</Text> : null}
+      {error ? <Text style={inp.err} accessibilityLiveRegion="polite">{typeof error === 'string' ? error : (error as any)?.msg || (error as any)?.message || JSON.stringify(error)}</Text> : hint ? <Text style={inp.hint}>{hint}</Text> : null}
     </View>
   );
-}
+});
 
 const inp = StyleSheet.create({
   wrap: { width: '100%' },
@@ -141,28 +162,35 @@ const inp = StyleSheet.create({
   err: { color: AC.red, fontFamily: FONTS.bold, fontSize: 11.5, marginTop: 6 },
 });
 
-// ─── Password Strength meter ────────────────────────────────────
-export function StrengthMeter({ score, label, tips }: { score: number; label: string; tips: string[] }) {
-  const colors = ['#EF4444', '#F59E0B', '#FBBF24', '#22C55E', '#22C55E'];
+// ─── Password Rules — real-time checklist ────────────────────────
+export function PasswordRules({ checks }: { checks: { met: boolean; label: string; key: string }[] }) {
   return (
-    <View style={pm.wrap}>
-      <View style={pm.bars}>
-        {[0, 1, 2, 3].map((i) => (
-          <View key={i} style={[pm.bar, { backgroundColor: i < score ? colors[score] : 'rgba(255,255,255,0.08)' }]} />
-        ))}
-      </View>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
-        <Text style={[pm.label, { color: colors[Math.min(score, 4)] }]}>{label}</Text>
-        {tips.length > 0 && <Text numberOfLines={1} style={pm.tip}>{tips[0]}</Text>}
-      </View>
+    <View style={pr.wrap}>
+      {checks.map((c) => (
+        <View key={c.key} style={pr.row}>
+          <View style={[pr.dot, c.met ? pr.dotOk : pr.dotMiss]} />
+          <Text style={[pr.text, c.met ? pr.textOk : pr.textMiss]}>{c.label}</Text>
+        </View>
+      ))}
     </View>
   );
 }
 
-const pm = StyleSheet.create({
-  wrap: { marginTop: 10 },
-  bars: { flexDirection: 'row', gap: 6 },
-  bar: { flex: 1, height: 4, borderRadius: 3 },
-  label: { fontFamily: FONTS.bold, fontSize: 11.5 },
-  tip: { color: AC.dim, fontFamily: FONTS.med, fontSize: 11 },
+const pr = StyleSheet.create({
+  wrap: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    padding: 12,
+    gap: 7,
+    marginTop: 10,
+  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  dotOk: { backgroundColor: '#22C55E' },
+  dotMiss: { backgroundColor: 'rgba(255,255,255,0.12)' },
+  text: { fontFamily: FONTS.med, fontSize: 12 },
+  textOk: { color: '#22C55E' },
+  textMiss: { color: 'rgba(255,255,255,0.35)' },
 });

@@ -2,16 +2,16 @@
  * /financial — Scholarships, Startup Funding, Investors/VCs, Loans, Insurance.
  * Wired to /api/financial/* live backend.
  */
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, TextInput, Platform } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, TextInput, Platform, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import FeaturePageShell, { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { FAB } from '@/src/views/web/md3';
-import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
 import { request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useRouter } from 'expo-router';
+import FinancialCoach from '@/src/views/web/FinancialCoach';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 const Icon = (props: { name: IconName; size?: number; color?: string;
@@ -71,7 +71,36 @@ function rangeFmt(it: Item): string {
 }
 
 // Web-friendly slider (uses native range input on web; falls back to numeric input)
-function EmiSlider({ label, value, setValue, min, max, step, fmt }: any) {
+function EmiSlider({ label, value, setValue, min, max, step, fmt, prefix = '', suffix = '' }: any) {
+  const [typedValue, setTypedValue] = useState(String(value));
+
+  useEffect(() => {
+    setTypedValue(String(value));
+  }, [value]);
+
+  const handleTextChange = (text: string) => {
+    const cleaned = text.replace(/[^0-9.]/g, '');
+    setTypedValue(cleaned);
+    
+    const num = Number(cleaned);
+    if (!isNaN(num) && num >= 0) {
+      if (num >= min && num <= max) {
+        setValue(num);
+      }
+    }
+  };
+
+  const handleBlur = () => {
+    let num = Number(typedValue);
+    if (isNaN(num) || num < min) {
+      num = min;
+    } else if (num > max) {
+      num = max;
+    }
+    setValue(num);
+    setTypedValue(String(num));
+  };
+
   if (Platform.OS === 'web') {
     return (
       <View style={s.emiSliderWrap}>
@@ -79,20 +108,37 @@ function EmiSlider({ label, value, setValue, min, max, step, fmt }: any) {
           <Text style={s.emiSliderLabel}>{label}</Text>
           <Text style={s.emiSliderValue}>{fmt(value)}</Text>
         </View>
-        {React.createElement('input' as any, {
-          type: 'range', min, max, step, value,
-          onChange: (e: any) => setValue(Number(e.target.value)),
-          style: { width: '100%', accentColor: '#7C3AED' },
-        })}
+        <View style={{ flex: 1 }}>
+          {React.createElement('input' as any, {
+            type: 'range', min, max, step, value,
+            onChange: (e: any) => setValue(Number(e.target.value)),
+            style: { width: '100%', accentColor: '#7C3AED', cursor: 'pointer' },
+          })}
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', paddingHorizontal: 8, height: 28, marginTop: 6 }}>
+          {prefix ? <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginRight: 2 }}>{prefix}</Text> : null}
+          <TextInput
+            value={typedValue}
+            onChangeText={handleTextChange}
+            onBlur={handleBlur}
+            keyboardType="numeric"
+            placeholder={`Enter ${label.toLowerCase()}...`}
+            placeholderTextColor="rgba(255,255,255,0.3)"
+            style={{ color: '#fff', fontSize: 11.5, flex: 1, paddingVertical: 0, paddingHorizontal: 0, height: '100%', backgroundColor: 'transparent', outlineStyle: 'none', borderWidth: 0 } as any}
+          />
+          {suffix ? <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginLeft: 2 }}>{suffix}</Text> : null}
+        </View>
       </View>
     );
   }
+
   return (
     <View style={s.emiSliderWrap}>
       <Text style={s.emiSliderLabel}>{label} {fmt(value)}</Text>
       <TextInput
-        value={String(value)}
-        onChangeText={(v) => setValue(Number(v.replace(/[^0-9.]/g, '')) || min)}
+        value={typedValue}
+        onChangeText={handleTextChange}
+        onBlur={handleBlur}
         keyboardType="numeric"
         style={{ color: '#fff', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', borderRadius: 8, padding: 8, marginTop: 4 }}
       />
@@ -129,6 +175,48 @@ export default function FinancialPage() {
   const [emiTen, setEmiTen] = useState(120);
   const [emi, setEmi] = useState<any>(null);
   const [advisorChatOpen, setAdvisorChatOpen] = useState(false);
+  const [advisorOpen, setAdvisorOpen] = useState(false);
+
+  // Load financial profile on mount to pre-fill AI helper answers
+  useEffect(() => {
+    if (!initialized || !user) return;
+    let active = true;
+    async function fetchProfile() {
+      try {
+        const p = await request<any>('/financial/me/profile');
+        if (!active) return;
+        if (p) {
+          const loadedAnswers: Record<string, string> = {};
+          const keys = [
+            'cgpa', 'annual_family_income', 'course_level', 'institution_tier',
+            'loan_need', 'loan_repayment_capacity', 'has_collateral', 'cibil_range',
+            'startup_stage', 'startup_sector', 'funding_need', 'has_cofounder',
+            'age', 'coverage_type', 'insurance_budget'
+          ];
+          for (const key of keys) {
+            if (p[key] !== undefined && p[key] !== null) {
+              loadedAnswers[key] = String(p[key]);
+            }
+          }
+          setAiAnswers((prev) => {
+            const merged = { ...prev };
+            for (const key of Object.keys(loadedAnswers)) {
+              if (merged[key] === undefined || merged[key] === null || merged[key] === '') {
+                merged[key] = loadedAnswers[key];
+              }
+            }
+            return merged;
+          });
+        }
+      } catch (err) {
+        console.warn('Failed to load financial profile:', err);
+      }
+    }
+    fetchProfile();
+    return () => {
+      active = false;
+    };
+  }, [initialized, user]);
 
   const tabInfo = TABS.find(t => t.id === tab)!;
 
@@ -306,9 +394,9 @@ export default function FinancialPage() {
             <Text style={s.emiTitle}>EMI Calculator</Text>
           </View>
           <View style={s.emiGrid}>
-            <EmiSlider label="Loan Amount" value={emiAmt} setValue={setEmiAmt} min={50000} max={10000000} step={50000} fmt={(v) => `₹${(v/100000).toFixed(1)} L`} />
-            <EmiSlider label="Interest Rate" value={emiRate} setValue={setEmiRate} min={5} max={20} step={0.1} fmt={(v) => `${v.toFixed(2)}% p.a.`} />
-            <EmiSlider label="Tenure" value={emiTen} setValue={setEmiTen} min={12} max={240} step={6} fmt={(v) => `${v} mo (${(v/12).toFixed(1)} yrs)`} />
+            <EmiSlider label="Loan Amount" value={emiAmt} setValue={setEmiAmt} min={50000} max={10000000} step={50000} fmt={(v) => `₹${(v/100000).toFixed(1)} L`} prefix="₹" suffix="INR" />
+            <EmiSlider label="Interest Rate" value={emiRate} setValue={setEmiRate} min={5} max={20} step={0.1} fmt={(v) => `${v.toFixed(2)}% p.a.`} suffix="% p.a." />
+            <EmiSlider label="Tenure" value={emiTen} setValue={setEmiTen} min={12} max={240} step={6} fmt={(v) => `${v} mo (${(v/12).toFixed(1)} yrs)`} suffix="months" />
           </View>
           {emi && (
             <View style={s.emiSummary}>
@@ -412,105 +500,67 @@ export default function FinancialPage() {
       </View>
       )}
 
-      {/* EMI Calculator Widget */}
-      <View style={s.widgetCard}>
-        <View style={{ flex: 1, gap: 8, minWidth: 240 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <View style={s.widgetIcon}><Icon name="calculator-variant" size={20} color="#93C5FD" /></View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.widgetTitle}>AI EMI Calculator</Text>
-              <Text style={s.widgetSub}>Plan your monthly repayment and total interest instantly.</Text>
-            </View>
+
+
+      {/* Advisor + AI Chat CTAs */}
+      <View style={s.ctaRow}>
+        {/* Advisor card */}
+        <View style={[s.ctaCard, { borderColor: '#8B5CF655' }]}>
+          <View style={[s.iconBox, { backgroundColor: '#8B5CF622', borderColor: '#8B5CF655', width: 38, height: 38 }]}>
+            <MaterialCommunityIcons name="target" size={18} color="#8B5CF6" />
           </View>
-          <View style={{ gap: 6, marginTop: 4 }}>
-            <Slider label="Loan Amount" value="₹10,00,000" color="#3B82F6" />
-            <Slider label="Interest Rate" value="9.25% p.a." color="#14B8A6" />
-            <Slider label="Tenure" value="10 years" color="#8B5CF6" />
-          </View>
-          <View style={s.emiResult}>
-            <View>
-              <Text style={s.emiLabel}>MONTHLY EMI</Text>
-              <Text style={s.emiValue}>₹12,858</Text>
+          <Text style={s.ctaTitle}>Talk to a Student Advisor</Text>
+          <Text style={s.ctaSub}>Need personalised financial advice? Connect with our dedicated student advisors.</Text>
+          <Pressable
+            style={[s.ctaBtn, { backgroundColor: '#8B5CF6', borderRadius: 8 }]}
+            onPress={() => setAdvisorOpen(!advisorOpen)}
+          >
+            <Text style={s.ctaBtnText}>Connect with Advisor</Text>
+          </Pressable>
+          {advisorOpen && (
+            <View style={{ marginTop: 8, gap: 6 }}>
+              <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }} onPress={() => Linking.openURL('tel:+919876543210').catch(() => {})}>
+                <MaterialCommunityIcons name="phone" size={14} color="#8B5CF6" />
+                <Text style={{ color: '#8B5CF6', fontSize: 12.5, fontWeight: '600' }}>+919876543210</Text>
+              </Pressable>
+              <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }} onPress={() => Linking.openURL('mailto:advisor@studentalumni.in?subject=Help with financial').catch(() => {})}>
+                <MaterialCommunityIcons name="email" size={14} color="#8B5CF6" />
+                <Text style={{ color: '#8B5CF6', fontSize: 12.5, fontWeight: '600' }}>advisor@studentalumni.in</Text>
+              </Pressable>
+              <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, fontStyle: 'italic', marginTop: 4 }}>
+                Mon–Fri · 9am – 7pm IST · response within 4 hours
+              </Text>
             </View>
-            <View>
-              <Text style={s.emiLabel}>TOTAL INTEREST</Text>
-              <Text style={[s.emiValue, { color: '#F59E0B' }]}>₹5,42,960</Text>
-            </View>
-            <Pressable style={s.optimizeBtn}>
-              <LinearGradient
-                colors={['#7B3DBF', '#5F259F']}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                style={s.optimizeBtnGrad}
-              >
-                <Icon name="auto-fix" size={12} color="#fff" />
-                <Text style={s.optimizeText}>AI Loan Optimiser</Text>
-              </LinearGradient>
-            </Pressable>
+          )}
+        </View>
+
+        {/* AI card */}
+        <View style={[s.ctaCard, { borderColor: '#14B8A655' }]}>
+          <View style={[s.iconBox, { backgroundColor: '#14B8A622', borderColor: '#14B8A655', width: 38, height: 38 }]}>
+            <MaterialCommunityIcons name="auto-fix" size={18} color="#14B8A6" />
           </View>
+          <Text style={s.ctaTitle}>Ask the Financial AI</Text>
+          <Text style={s.ctaSub}>Got a question about financial products? Chat with our AI assistant 24x7.</Text>
+          <Pressable
+            style={[s.ctaBtn, { backgroundColor: '#14B8A6', borderRadius: 8 }]}
+            onPress={() => setAdvisorChatOpen(true)}
+          >
+            <Text style={[s.ctaBtnText, { color: '#0A2E1A' }]}>Chat with AI</Text>
+          </Pressable>
         </View>
       </View>
 
-      {/* Advisor + AI Chat CTAs */}
-      <View style={{ marginTop: 18 }}>
-        <AdvisorAIBlock
-          context="financial"
-          advisorTitle="Talk to a Student Advisor"
-          advisorDesc="Need personalised financial advice? Connect with our dedicated student advisors."
-          aiTitle="Ask the Financial AI"
-          aiDesc="Got a question about financial products? Chat with our AI assistant 24x7."
-          advisorAccent="#8B5CF6"
-          aiAccent="#14B8A6"
-          advisorIcon="target"
-          aiIcon="auto-fix"
-          aiOpen={advisorChatOpen}
-          setAiOpen={setAdvisorChatOpen}
-        />
-      </View>
+      {/* Floating Financial AI Coach (works same as Money Coach) */}
+      <FinancialCoach open={advisorChatOpen} setOpen={setAdvisorChatOpen} />
 
       {/* MD3 Floating Action Button — open AI chat */}
       <FAB icon="brain" label="Financial AI" color="#5F259F"
-            onPress={() => {
-              setAdvisorChatOpen(true);
-              if (Platform.OS === 'web') {
-                setTimeout(() => {
-                  try {
-                    const divs = document.querySelectorAll('div');
-                    let scrollEl = null;
-                    for (let i = 0; i < divs.length; i++) {
-                      const div = divs[i];
-                      const style = window.getComputedStyle(div);
-                      if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && div.scrollHeight > div.clientHeight) {
-                        scrollEl = div;
-                        break;
-                      }
-                    }
-                    if (scrollEl) {
-                      scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'smooth' });
-                    } else {
-                      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-                    }
-                  } catch {}
-                }, 150);
-              }
-            }} />
+            onPress={() => setAdvisorChatOpen(true)} />
     </FeaturePageShell>
   );
 }
 
-function Slider({ label, value, color }: { label: string; value: string; color: string }) {
-  return (
-    <View style={{ gap: 4 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Text style={s.sliderLabel}>{label}</Text>
-        <Text style={[s.sliderValue, { color }]}>{value}</Text>
-      </View>
-      <View style={s.sliderTrack}>
-        <View style={[s.sliderFill, { backgroundColor: color, width: '62%' }]} />
-        <View style={[s.sliderKnob, { backgroundColor: color, left: '60%' }]} />
-      </View>
-    </View>
-  );
-}
+
 
 function Stat({ label, value, sub, color, iconName }: any) {
   return (
@@ -555,7 +605,7 @@ const s = StyleSheet.create({
   bullet: { width: 6, height: 6, borderRadius: 3 },
   highlightText: { color: C.text2, fontFamily: 'DMSans_500Medium', fontSize: 12 },
 
-  applyBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 9, ...({ cursor: 'pointer' } as any) },
+  applyBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 9, marginTop: 'auto', ...({ cursor: 'pointer' } as any) },
   applyText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12, letterSpacing: 0.3 },
 
   // Match% badge + AI helper + meta pills

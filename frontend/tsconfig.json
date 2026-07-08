@@ -3,7 +3,7 @@
   "compilerOptions": {
     "strict": false,
     "skipLibCheck": true,
-    "types": ["node"],
+    "types": ["node", "jest"],
     "paths": {
       "@/*": [
         "./*"
@@ -15,10 +15,5 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
-  ],
-  "exclude": [
-    "**/__tests__/**",
-    "**/*.test.ts",
-    "**/*.test.tsx"
   ]
 }

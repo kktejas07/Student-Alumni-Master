@@ -179,6 +179,89 @@ async def _audit_log_many(user_id: str, source: str, entries: list,
         pass
 
 
+
+
+# ─── User serialization ────────────────────────────────────────────────
+def _safe_block(model_cls, value):
+    """Coerce a stored dict into a Pydantic model; return None on failure."""
+    if value is None:
+        return None
+    try:
+        return model_cls(**value).model_dump(exclude_none=False)
+    except Exception:
+        return None
+
+
+def serialize_user(user: dict) -> dict:
+    """Strip internal fields and decrypt at-rest sensitive data for API responses."""
+    if not user:
+        return None
+    # Late import to avoid circular dependency at module load time
+    from .models import SchoolInfo, StudentInfo, AlumniInfo, MentorInfo, CollegeInfo
+    return {
+        "id": str(user.get("_id")),
+        "email": user.get("email"),
+        "full_name": user.get("full_name"),
+        "role": user.get("role"),
+        "phone":        decrypt_value(user.get("phone")),
+        "unique_id": user.get("unique_id"),
+        "qr_code_base64": user.get("qr_code_base64"),
+        "school_info":  _safe_block(SchoolInfo,  user.get("school_info")),
+        "career_path":  user.get("career_path"),
+        "student_info": _safe_block(StudentInfo, user.get("student_info")),
+        "alumni_info":  _safe_block(AlumniInfo,  user.get("alumni_info")),
+        "mentor_info":  _safe_block(MentorInfo,  user.get("mentor_info")),
+        "college_info": _safe_block(CollegeInfo, user.get("college_info")),
+        "mentor_status": user.get("mentor_status"),
+        "interests": user.get("interests", []),
+        "skills": user.get("skills", []),
+        "bio": user.get("bio"),
+        "face_image_base64": user.get("face_image_base64"),
+        "onboarding_completed": user.get("onboarding_completed", False),
+        "two_fa_enabled": user.get("two_fa_enabled", False),
+        "dob":          decrypt_value(user.get("dob")),
+        "country_code": user.get("country_code"),
+        "postal_code":  decrypt_value(user.get("postal_code")),
+        "created_at": user.get("created_at"),
+        "first_name":     user.get("first_name"),
+        "last_name":      user.get("last_name"),
+        "headline":       user.get("headline"),
+        "photo_data":     user.get("photo_data") or user.get("face_image_base64") or user.get("oauth_picture"),
+        "banner_data":    user.get("banner_data"),
+        "college_logo_data": user.get("college_logo_data"),
+        "institution":    user.get("institution"),
+        "branch":         user.get("branch"),
+        "stream":         user.get("stream"),
+        "department":     user.get("department"),
+        "graduation_year": user.get("graduation_year"),
+        "cgpa":           user.get("cgpa"),
+        "location":       user.get("location"),
+        "city":           user.get("city"),
+        "state":          user.get("state"),
+        "linkedin_url":   user.get("linkedin_url"),
+        "github_url":     user.get("github_url"),
+        "portfolio_url":  user.get("portfolio_url"),
+        "primary_skill":  user.get("primary_skill"),
+        "profile_visibility": user.get("profile_visibility"),
+        "section_toggles": user.get("section_toggles"),
+        "badges":         [b for b in user.get("badges", []) if isinstance(b, dict)],
+        "projects":       user.get("projects"),
+        "preferences":    user.get("preferences"),
+        "is_verified":    user.get("is_verified"),
+        "ranking_tier":   user.get("ranking_tier"),
+    }
+
+
+def validate_student_class(school_info, age: Optional[int] = None) -> None:
+    """Per spec: students must be age 10+ AND in Class 11 (+1) or above."""
+    from fastapi import HTTPException
+    if age is not None and age < 10:
+        raise HTTPException(400, "Students must be at least 10 years old to register.")
+    cls = (school_info.class_or_year or "").strip().lower()
+    if cls.isdigit() and int(cls) < 11:
+        raise HTTPException(400, "Students must be in Class 11 (+1) or above.")
+
+
 __all__ = [
     'JWT_SECRET', 'JWT_ALGORITHM', 'ACCESS_TOKEN_EXPIRE_MINUTES', 'REFRESH_TOKEN_EXPIRE_DAYS',
     'encrypt_value', 'decrypt_value',
@@ -186,4 +269,5 @@ __all__ = [
     'create_access_token', 'create_refresh_token',
     'generate_unique_id', 'generate_qr_code',
     '_audit_log', '_audit_log_many',
+    'serialize_user', 'validate_student_class', '_safe_block',
 ]

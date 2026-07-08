@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { request } from '@/src/models/services/api';
+import { Layout } from '../../../theme';
 
 interface CoachMessage {
   role: 'user' | 'assistant';
@@ -20,8 +21,8 @@ interface CoachMessage {
 
 const SLASH_CHIPS = [
   { cmd: '/credit-plan', label: 'Build a credit plan', icon: 'star-four-points' as const },
-  { cmd: '/spend',       label: 'Where did money go?', icon: 'chart-donut'       as const },
-  { cmd: '/forecast',    label: 'Forecast end-of-month',icon: 'crystal-ball'     as const },
+  { cmd: '/spend',       label: 'Where did money go?', icon: 'cached'            as const },
+  { cmd: '/forecast',    label: 'Forecast end-of-month',icon: 'database'         as const },
   { cmd: '/cashback',    label: 'Find missed cashback', icon: 'sale'             as const },
   { cmd: '/save 5000',   label: 'Save ₹5,000',          icon: 'piggy-bank'       as const },
   { cmd: '/split 1000 4',label: 'Split ₹1,000 ÷ 4',     icon: 'account-multiple' as const },
@@ -114,7 +115,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
           onClick={() => setOpen(true)}
           style={{
             position: 'fixed',
-            bottom: '20px',
+            bottom: `${Layout.floatingOffset}px`,
             right: '20px',
             width: '56px',
             height: '56px',
@@ -169,7 +170,6 @@ export default function MoneyCoach({ initialCmd, onAction }: {
               }}
             >
               <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 style={{ flex: 1 }}>
                 
                 {/* Header */}
@@ -332,7 +332,8 @@ export default function MoneyCoach({ initialCmd, onAction }: {
 
                 {/* Chips */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 6, paddingHorizontal: 14, paddingBottom: 6 }}>
+                  style={{ flexGrow: 0 }}
+                  contentContainerStyle={{ gap: 6, paddingHorizontal: 14, paddingBottom: 6, alignItems: 'center' }}>
                   {SLASH_CHIPS.map((c) => (
                     <div key={c.cmd}
                       onClick={() => send(c.cmd)}
@@ -341,10 +342,10 @@ export default function MoneyCoach({ initialCmd, onAction }: {
                         flexDirection: 'row',
                         alignItems: 'center',
                         gap: '5px',
-                        padding: '6px 10px',
+                        padding: '6px 14px',
                         borderRadius: '999px',
-                        backgroundColor: 'rgba(167,139,250,0.10)',
-                        border: '1px solid rgba(167,139,250,0.30)',
+                        backgroundColor: 'rgba(255,255,255,0.05)',
+                        border: `1px solid ${C.border}`,
                         cursor: 'pointer',
                       }}
                     >
@@ -360,7 +361,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
                     value={input}
                     onChangeText={setInput}
                     onSubmitEditing={() => send()}
-                    placeholder="Ask about spend, credits, savings…"
+                    placeholder="Ask about spend, credits, savings..."
                     placeholderTextColor={C.text3}
                     style={s.input}
                     returnKeyType="send"
@@ -532,7 +533,8 @@ export default function MoneyCoach({ initialCmd, onAction }: {
               </ScrollView>
 
               <ScrollView horizontal showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 6, paddingHorizontal: 14, paddingBottom: 6 }}>
+                style={{ flexGrow: 0 }}
+                contentContainerStyle={{ gap: 6, paddingHorizontal: 14, paddingBottom: 6, alignItems: 'center' }}>
                 {SLASH_CHIPS.map((c) => (
                   <Pressable key={c.cmd}
                     onPress={() => send(c.cmd)}
@@ -548,7 +550,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
                   value={input}
                   onChangeText={setInput}
                   onSubmitEditing={() => send()}
-                  placeholder="Ask about spend, credits, savings…"
+                  placeholder="Ask about spend, credits, savings..."
                   placeholderTextColor={C.text3}
                   style={s.input}
                   returnKeyType="send"
@@ -567,7 +569,7 @@ export default function MoneyCoach({ initialCmd, onAction }: {
 }
 
 const s = StyleSheet.create({
-  bubble: { position: 'absolute', bottom: 20, right: 20,
+  bubble: { position: 'absolute', bottom: Layout.floatingOffset, right: 20,
     width: 56, height: 56, borderRadius: 999,
     backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center',
     boxShadow: '0 8px 28px rgba(124,58,237,0.55)' as any,
@@ -618,7 +620,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center' },
   planActionTitle: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 11.5 },
   planActionMeta: { color: C.text3, fontFamily: 'DMSans_600SemiBold', fontSize: 10 },
-  planActionBtn: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 999,
+  planActionBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
     backgroundColor: '#7C3AED', ...({ cursor: 'pointer' } as any) },
   planActionBtnText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 10 },
 
@@ -633,7 +635,7 @@ const s = StyleSheet.create({
   donutBarFill: { height: 6 },
 
   /* Generic action button */
-  actBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
+  actBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,
     backgroundColor: 'rgba(167,139,250,0.20)',
     borderColor: 'rgba(167,139,250,0.40)', borderWidth: 1,
     ...({ cursor: 'pointer' } as any) },
@@ -641,11 +643,11 @@ const s = StyleSheet.create({
 
   /* Slash chip */
   slashChip: { flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
-    backgroundColor: 'rgba(167,139,250,0.10)',
-    borderColor: 'rgba(167,139,250,0.30)', borderWidth: 1,
+    paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: C.border, borderWidth: 1,
     ...({ cursor: 'pointer' } as any) },
-  slashChipText: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold', fontSize: 10.5 },
+  slashChipText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 11 },
 
   /* Input */
   inputRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 14, paddingVertical: 12,

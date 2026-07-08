@@ -12,7 +12,7 @@ import { useRouter } from 'expo-router';
 const MODES = ['Online', 'In-person', 'Hybrid'];
 const CATEGORIES = ['Workshop', 'Hackathon', 'Career Fair', 'Talk', 'Networking'];
 
-export function CreateEventView() {
+export function CreateEventView({ onNavigate }: { onNavigate?: (id: any) => void }) {
   const user = useAuthStore((s) => s.user);
   const email = user?.email || 'college-high1@persona.demo';
   const initialCollegeName = user?.college_info?.institution_name || user?.school_info?.institution_name || 'IIT Bombay';
@@ -38,7 +38,13 @@ export function CreateEventView() {
           start_date: sd, capacity: parseInt(capacity, 10) || 100, price: parseInt(price, 10) || 0,
         },
       });
-      if (j.ok) setCreatedEvent({ ...j, title, category, mode });
+      // request() throws on HTTP errors — reaching here means the POST succeeded.
+      setCreatedEvent({ ...j, title, category, mode });
+      setTimeout(() => {
+        onNavigate?.('events');
+      }, 1500);
+    } catch {
+      // silent — keep form open so user can retry
     } finally { setCreating(false); }
   };
 

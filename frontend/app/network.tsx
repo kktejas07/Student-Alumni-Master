@@ -827,10 +827,28 @@ function ProfileDetailContent({ person, onClose, onConnect, onChat }: {
             <Text style={[styles.btnText, { color: '#F59E0B' }]}>Pending</Text>
           </View>
         ) : isMentor ? (
-          <Pressable onPress={onConnect} style={[styles.btn, styles.btnFlex, styles.btnGreen, { height: 38, borderRadius: 9 }]}>
-            <Calendar size={14} color="#fff" />
-            <Text style={[styles.btnAccentText, { fontSize: 13 }]}>Book Session</Text>
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: 8, flex: 1 }}>
+            <Pressable 
+              onPress={async () => {
+                try {
+                  await request(`/network/connect/${person.id}`, { method: 'POST' });
+                  showToast('Request sent');
+                  person.connection_state = 'pending';
+                  onClose();
+                } catch {
+                  showToast('Failed to connect');
+                }
+              }}
+              style={[styles.btn, styles.btnFlex, styles.btnAccent, { height: 38, borderRadius: 9 }]}
+            >
+              <UserPlus size={14} color="#fff" />
+              <Text style={[styles.btnAccentText, { fontSize: 13 }]}>Connect</Text>
+            </Pressable>
+            <Pressable onPress={onConnect} style={[styles.btn, styles.btnFlex, styles.btnGreen, { height: 38, borderRadius: 9 }]} testID={`net-book-${person.id}`}>
+              <Calendar size={14} color="#fff" />
+              <Text style={[styles.btnAccentText, { fontSize: 13 }]}>Book</Text>
+            </Pressable>
+          </View>
         ) : (
           <Pressable onPress={onConnect} style={[styles.btn, styles.btnFlex, styles.btnAccent, { height: 38, borderRadius: 9 }]}>
             <UserPlus size={14} color="#fff" />
@@ -1031,10 +1049,27 @@ function PersonCard({
                   <Text style={[styles.btnText, { color: '#F59E0B' }]}>Pending</Text>
                 </View>
               ) : isMentor ? (
-                <Pressable onPress={onConnect} style={[styles.btn, styles.btnFlex, styles.btnGreen]} testID={`net-book-${person.id}`}>
-                  <Calendar size={13} color="#fff" />
-                  <Text style={styles.btnAccentText}>Book Session</Text>
-                </Pressable>
+                <View style={{ flexDirection: 'row', gap: 6, flex: 1 }}>
+                  <Pressable 
+                    onPress={async () => {
+                      try {
+                        await request(`/network/connect/${person.id}`, { method: 'POST' });
+                        showToast('Request sent');
+                        person.connection_state = 'pending';
+                      } catch {
+                        showToast('Failed to connect');
+                      }
+                    }}
+                    style={[styles.btn, styles.btnFlex, styles.btnAccent]}
+                  >
+                    <UserPlus size={13} color="#fff" />
+                    <Text style={styles.btnAccentText}>Connect</Text>
+                  </Pressable>
+                  <Pressable onPress={onConnect} style={[styles.btn, styles.btnFlex, styles.btnGreen]} testID={`net-book-${person.id}`}>
+                    <Calendar size={13} color="#fff" />
+                    <Text style={styles.btnAccentText}>Book</Text>
+                  </Pressable>
+                </View>
               ) : (
                 <Pressable onPress={onConnect} style={[styles.btn, styles.btnFlex, styles.btnAccent]} testID={`net-connect-${person.id}`}>
                   <UserPlus size={13} color="#fff" />
