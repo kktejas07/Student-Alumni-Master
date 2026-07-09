@@ -9,6 +9,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 export function TopBar({
   title, query, setQuery, notifCount = 4, onBellPress, onAvatarPress,
+  demoMode = true, setDemoMode,
 }: {
   title: string;
   query: string;
@@ -16,6 +17,8 @@ export function TopBar({
   notifCount?: number;
   onBellPress?: () => void;
   onAvatarPress?: () => void;
+  demoMode?: boolean;
+  setDemoMode?: (val: boolean) => void;
 }) {
   const user = useAuthStore((u) => u.user) as any;
   const fullName = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || MENTOR.name;
@@ -36,6 +39,19 @@ export function TopBar({
           style={s.searchInput}
         />
       </View>
+      {setDemoMode && (
+        <Pressable
+          onPress={() => setDemoMode(!demoMode)}
+          style={({ hovered }: any) => [
+            s.demoToggle,
+            demoMode ? s.demoToggleActive : s.demoToggleInactive,
+            hovered && { opacity: 0.85 }
+          ]}
+        >
+          <View style={[s.demoIndicator, demoMode ? { backgroundColor: MC.amber } : { backgroundColor: MC.dim }]} />
+          <Text style={s.demoText}>{demoMode ? 'Demo Mode' : 'Live Mode'}</Text>
+        </Pressable>
+      )}
       <Pressable onPress={onBellPress} style={({ hovered }: any) => [s.iconBtn, hovered && { backgroundColor: 'rgba(20,184,166,0.10)' }]}>
         <Bell size={16} color={MC.muted} />
         {notifCount > 0 && (
@@ -82,5 +98,26 @@ const s = StyleSheet.create({
     minWidth: 14, height: 14, borderRadius: 7,
     backgroundColor: MC.red, borderColor: MC.bg, borderWidth: 1.5,
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3,
+  },
+  demoToggle: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, height: 32, borderRadius: 16,
+    borderWidth: 1,
+    marginRight: 6,
+    ...({ cursor: 'pointer' } as any),
+  },
+  demoToggleActive: {
+    backgroundColor: 'rgba(245,158,11,0.12)',
+    borderColor: 'rgba(245,158,11,0.3)',
+  },
+  demoToggleInactive: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  demoIndicator: {
+    width: 6, height: 6, borderRadius: 3,
+  },
+  demoText: {
+    color: '#fff', fontFamily: FONTS.bold, fontSize: 11.5,
   },
 });

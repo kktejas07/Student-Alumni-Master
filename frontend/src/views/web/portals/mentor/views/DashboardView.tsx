@@ -28,7 +28,11 @@ import { LiveStrip } from '@/src/views/web/LiveStrip';
 import { api, request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
-interface Props { onNav: (id: string) => void; }
+interface Props {
+  onNav: (id: string) => void;
+  demoMode?: boolean;
+  setDemoMode?: (val: boolean) => void;
+}
 
 interface MentorDashboardData {
   mentor: any;
@@ -47,7 +51,7 @@ const MENTOR_EMPTY: MentorDashboardData = {
   pendingRequests: 0,
 };
 
-export function DashboardView({ onNav }: Props) {
+export function DashboardView({ onNav, demoMode = true, setDemoMode }: Props) {
   const user = useAuthStore((s) => s.user);
   const dashPath = user?.email
     ? `/mentor/dashboard?mentor_email=${encodeURIComponent(user.email)}`
@@ -88,7 +92,13 @@ export function DashboardView({ onNav }: Props) {
 
   const TODAY_SESSIONS = data?.todaySessions || [];
   const STUDENTS = students;
-  const RATING_DIST = data?.ratingDist || [];
+  const RATING_DIST = demoMode ? (data?.ratingDist || []) : [
+    { stars: 5, pct: 0, count: 0 },
+    { stars: 4, pct: 0, count: 0 },
+    { stars: 3, pct: 0, count: 0 },
+    { stars: 2, pct: 0, count: 0 },
+    { stars: 1, pct: 0, count: 0 }
+  ];
 
   const { width } = useWindowDimensions();
   const isWide = width >= 1080;
@@ -102,10 +112,10 @@ export function DashboardView({ onNav }: Props) {
   }
 
   const STATS = [
-    { Icon: Calendar, label: 'Sessions Today', value: String(TODAY_SESSIONS.length), sub: TODAY_SESSIONS[0] ? 'Next at ' + TODAY_SESSIONS[0].time : 'No more today', subColor: MC.tealP },
-    { Icon: Users,    label: 'Total Students', value: String(STUDENTS.length),       sub: '↑ 2 this week',                  subColor: MC.green },
-    { Icon: Coins,    label: 'This Month',     value: data?.kpis?.find((k: any) => k.id === 'earnings')?.value || '₹28,500', sub: '↑ 12% vs last', subColor: MC.green },
-    { Icon: StarIcon, label: 'Rating',         value: String(liveMentor?.rating || '4.9'),                          sub: `${data?.kpis?.find((k: any) => k.id === 'rating')?.delta || '42 student reviews'}`,             subColor: MC.amber },
+    { Icon: Calendar, label: 'Sessions Today', value: String(TODAY_SESSIONS.length), sub: TODAY_SESSIONS[0] ? 'Next at ' + TODAY_SESSIONS[0].time : 'No more today', subColor: TODAY_SESSIONS[0] ? MC.tealP : MC.muted },
+    { Icon: Users,    label: 'Total Students', value: String(STUDENTS.length),       sub: demoMode ? '↑ 2 this week' : (STUDENTS.length > 0 ? `${STUDENTS.length} active connection${STUDENTS.length === 1 ? '' : 's'}` : 'No active students'), subColor: (demoMode || STUDENTS.length > 0) ? MC.green : MC.muted },
+    { Icon: Coins,    label: 'This Month',     value: demoMode ? (data?.kpis?.find((k: any) => k.id === 'earnings')?.value || '₹28,500') : '₹0', sub: demoMode ? '↑ 12% vs last' : 'Start mentoring to earn', subColor: demoMode ? MC.green : MC.muted },
+    { Icon: StarIcon, label: 'Rating',         value: demoMode ? String(liveMentor?.rating || '4.9') : '—',                          sub: demoMode ? `${data?.kpis?.find((k: any) => k.id === 'rating')?.delta || '42 student reviews'}` : 'No student reviews yet',             subColor: demoMode ? MC.amber : MC.muted },
   ];
 
   const upcoming = STUDENTS.filter((s) => s.nextSession).slice(0, 3);
@@ -114,13 +124,26 @@ export function DashboardView({ onNav }: Props) {
     <View style={[s.root, !isWide && { flexDirection: 'column' }]}>
       {/* ── Left column ─────────────────────────────── */}
       <View style={{ flex: 1, minWidth: 0 }}>
+        {demoMode && (
+          <View style={s.demoBadgeBanner}>
+            <Text style={s.demoBadgeText}>
+              Demo Mode · Sample data is displayed for demonstration purposes.{' '}
+              <Text 
+                onPress={() => setDemoMode?.(false)}
+                style={{ textDecorationLine: 'underline', color: '#fff', fontFamily: FONTS.bold }}
+              >
+                Switch to Live Mode
+              </Text>
+            </Text>
+          </View>
+        )}
         {/* LIVE counters */}
         <View style={{ marginBottom: 14 }}>
           <LiveStrip accent="#5EEAD4" keys={['mentors', 'bookings_today', 'bookings', 'courses']} />
         </View>
 
         {/* AI Daily Briefing */}
-        <AIDailyBriefing onNav={onNav} />
+        <AIDailyBriefing onNav={onNav} demoMode={demoMode} />
 
         {/* TIER BANNER — mentor */}
         {tier?.tier && (
@@ -239,19 +262,30 @@ export function DashboardView({ onNav }: Props) {
           style={s.widget}
         >
           <Text style={s.widgetKicker}>EARNINGS</Text>
-          <Text style={s.widgetBig}>₹28,500</Text>
+          <Text style={s.widgetBig}>{demoMode ? '₹28,500' : '₹0'}</Text>
           <View style={s.miniTrack}>
             <LinearGradient colors={[MC.teal, MC.tealD] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              style={{ height: '100%', width: '72%', borderRadius: 2 }} />
+              style={{ height: '100%', width: demoMode ? '72%' : '0%', borderRadius: 2 }} />
           </View>
           <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12, marginBottom: 12 }}>
-            This month · <Text style={{ color: MC.green, fontFamily: FONTS.bold }}>↑ 12%</Text>
+            {demoMode ? (
+              <>This month · <Text style={{ color: MC.green, fontFamily: FONTS.bold }}>↑ 12%</Text></>
+            ) : (
+              'Complete paid sessions to accumulate balance.'
+            )}
           </Text>
           <Pressable
             onPress={() => onNav('earnings')}
-            style={({ hovered }: any) => [s.withdrawBtn, hovered && { backgroundColor: 'rgba(20,184,166,0.10)' }]}
+            disabled={!demoMode}
+            style={({ hovered }: any) => [
+              s.withdrawBtn,
+              !demoMode && { borderColor: MC.border, opacity: 0.5 },
+              demoMode && hovered && { backgroundColor: 'rgba(20,184,166,0.10)' }
+            ]}
           >
-            <Text style={{ color: MC.tealP, fontFamily: FONTS.xbold, fontSize: 12 }}>Withdraw ₹6,000 →</Text>
+            <Text style={{ color: demoMode ? MC.tealP : MC.muted, fontFamily: FONTS.xbold, fontSize: 12 }}>
+              {demoMode ? 'Withdraw ₹6,000 →' : 'No balance available'}
+            </Text>
           </Pressable>
         </LinearGradient>
 
@@ -259,10 +293,12 @@ export function DashboardView({ onNav }: Props) {
         <View style={s.widgetCard}>
           <Text style={s.widgetKicker}>FEEDBACK SUMMARY</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 34 }}>{liveMentor?.rating || '0.0'}</Text>
+            <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 34 }}>{demoMode ? (liveMentor?.rating || '0.0') : '—'}</Text>
             <View>
-              <StarRow rating={Math.round(Number(liveMentor?.rating || 0))} size={14} />
-              <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 3 }}>{data?.kpis?.find((k: any) => k.id === 'rating')?.delta || '0 reviews'}</Text>
+              <StarRow rating={demoMode ? Math.round(Number(liveMentor?.rating || 0)) : 0} size={14} />
+              <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 3 }}>
+                {demoMode ? (data?.kpis?.find((k: any) => k.id === 'rating')?.delta || '0 reviews') : 'No reviews yet'}
+              </Text>
             </View>
           </View>
           {RATING_DIST.slice(0, 3).map((d) => (
@@ -275,8 +311,16 @@ export function DashboardView({ onNav }: Props) {
               <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 10, width: 12, textAlign: 'right' }}>{d.count}</Text>
             </View>
           ))}
-          <Pressable onPress={() => onNav('feedback')} style={({ hovered }: any) => [s.feedbackBtn, hovered && { backgroundColor: 'rgba(20,184,166,0.12)', borderColor: MC.border2 }]}>
-            <Text style={{ color: MC.tealP, fontFamily: FONTS.bold, fontSize: 12 }}>View all reviews →</Text>
+          <Pressable
+            onPress={() => demoMode && onNav('feedback')}
+            disabled={!demoMode}
+            style={({ hovered }: any) => [
+              s.feedbackBtn,
+              !demoMode && { opacity: 0.5 },
+              demoMode && hovered && { backgroundColor: 'rgba(20,184,166,0.12)', borderColor: MC.border2 }
+            ]}
+          >
+            <Text style={{ color: demoMode ? MC.tealP : MC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>View all reviews →</Text>
           </Pressable>
         </View>
 
@@ -302,13 +346,14 @@ export function DashboardView({ onNav }: Props) {
 }
 
 /** AI Daily Briefing card — prominent purple-tinted glass with CTA */
-function AIDailyBriefing({ onNav }: { onNav: (id: string) => void }) {
+function AIDailyBriefing({ onNav, demoMode = true }: { onNav: (id: string) => void; demoMode?: boolean }) {
   const user = useAuthStore((s) => s.user);
   const firstName = (user as any)?.first_name || (user?.full_name || '').split(' ')[0] || 'Mentor';
   const [briefText, setBriefText] = React.useState<string>('');
   const [briefLoading, setBriefLoading] = React.useState<boolean>(false);
 
   const generate = async () => {
+    if (!demoMode) return;
     try {
       setBriefLoading(true);
       const j = await request<any>('/ai/daily-brief', {
@@ -333,29 +378,44 @@ function AIDailyBriefing({ onNav }: { onNav: (id: string) => void }) {
         </View>
       </View>
       <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 16, lineHeight: 22, marginBottom: 8 }}>
-        {briefText ? 'Today\'s briefing' : `Good morning, ${firstName} ✨`}
+        {briefText ? 'Today\'s briefing' : (demoMode ? `Good morning, ${firstName} ✨` : 'AI Morning Summary')}
       </Text>
       <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18, marginBottom: 12 }}>
-        {briefText || (
-          <>
-            You have <Text style={{ color: MC.tealP, fontFamily: FONTS.bold }}>3 sessions today</Text>{' '}
-            starting at <Text style={{ color: MC.tealP, fontFamily: FONTS.bold }}>10:00 AM</Text>.{' '}
-            Tap <Text style={{ color: MC.tealP, fontFamily: FONTS.bold }}>Generate AI Brief</Text> for a personalized morning summary based on your tier, sessions and rating.
-          </>
+        {demoMode ? (
+          briefText || (
+            <>
+              You have <Text style={{ color: MC.tealP, fontFamily: FONTS.bold }}>3 sessions today</Text>{' '}
+              starting at <Text style={{ color: MC.tealP, fontFamily: FONTS.bold }}>10:00 AM</Text>.{' '}
+              Tap <Text style={{ color: MC.tealP, fontFamily: FONTS.bold }}>Generate AI Brief</Text> for a personalized morning summary based on your tier, sessions and rating.
+            </>
+          )
+        ) : (
+          'Welcome to your AI workspace! AI morning briefs will generate here once you have sessions scheduled. Keep your availability up-to-date to receive bookings.'
         )}
       </Text>
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         <Pressable
           onPress={generate}
-          disabled={briefLoading}
-          style={({ hovered }: any) => [s.briefingPrimary, hovered && { transform: [{ translateY: -1 }] }, briefLoading && { opacity: 0.6 }]}
+          disabled={briefLoading || !demoMode}
+          style={({ hovered }: any) => [
+            s.briefingPrimary,
+            !demoMode && { opacity: 0.5, cursor: 'default' },
+            demoMode && hovered && { transform: [{ translateY: -1 }] },
+            briefLoading && { opacity: 0.6 }
+          ]}
         >
           <Sparkles size={12} color={MC.bg} />
           <Text style={{ color: MC.bg, fontFamily: FONTS.xbold, fontSize: 11.5 }}>
-            {briefLoading ? 'Generating…' : (briefText ? 'Regenerate Brief' : 'Generate AI Brief')}
+            {briefLoading ? 'Generating…' : (briefText ? 'Regenerate Brief' : (demoMode ? 'Generate AI Brief' : 'Generate AI Brief (Requires active sessions)'))}
           </Text>
         </Pressable>
-        <Pressable onPress={() => onNav('sessions')} style={({ hovered }: any) => [s.briefingSecondary, hovered && { borderColor: MC.tealP }]}>
+        <Pressable
+          onPress={() => onNav('sessions')}
+          style={({ hovered }: any) => [
+            s.briefingSecondary,
+            demoMode && hovered && { borderColor: MC.tealP }
+          ]}
+        >
           <Text style={{ color: MC.tealP, fontFamily: FONTS.bold, fontSize: 11.5 }}>View Today's Schedule</Text>
           <ChevronRight size={12} color={MC.tealP} />
         </Pressable>
@@ -479,4 +539,20 @@ const s = StyleSheet.create({
     ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
   },
   upcomingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 7 },
+  demoBadgeBanner: {
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  demoBadgeText: {
+    color: '#FBBF24',
+    fontFamily: FONTS.bold,
+    fontSize: 12,
+    textAlign: 'center',
+  },
 });

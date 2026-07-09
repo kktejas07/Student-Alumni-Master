@@ -42,7 +42,13 @@ const TABS: { key: TabKey; label: string; Icon: any }[] = [
 const LANGUAGES = ['English', 'हिन्दी', 'Tamil', 'Telugu', 'Kannada', 'Marathi'];
 const TIMEZONES = ['Asia/Kolkata (IST)', 'Asia/Dubai (GST)', 'America/New_York (EST)', 'Europe/London (BST)', 'America/Los_Angeles (PST)', 'Asia/Singapore (SGT)'];
 
-export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey } = {}) {
+export function MentorProfileSettingsView({ 
+  initialTab, demoMode = true, setDemoMode 
+}: { 
+  initialTab?: TabKey;
+  demoMode?: boolean;
+  setDemoMode?: (val: boolean) => void;
+}) {
   const router = useRouter();
   const toast = useToast();
   const user = useAuthStore((u) => u.user);
@@ -1435,6 +1441,22 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
                   />
                 </View>
               </View>
+
+              {/* DEMO SANDBOX SETTINGS */}
+              {setDemoMode && (
+                <View style={st.formSectionCard}>
+                  <Text style={st.sectionTitle}>DEMO SANDBOX SETTINGS</Text>
+                  <View style={{ gap: 4 }}>
+                    <ToggleRow
+                      label="Enable Demo Mode"
+                      subtext="Display pre-populated mock/sample records in portal views to preview dashboard layouts"
+                      value={demoMode}
+                      onValueChange={setDemoMode}
+                      isLast
+                    />
+                  </View>
+                </View>
+              )}
 
             </View>
           )}
