@@ -3711,7 +3711,7 @@ async def create_booking(req: BookingRequest, user: dict = Depends(get_demo_user
         "slot_end_iso": req.slot_end_iso,
         "topic": req.topic,
         "notes": req.notes,
-        "status": "confirmed" if req.mentor_id.startswith("m") else "pending",
+        "status": "pending",
         "created_at": datetime.now(timezone.utc),
     }
     result = await db.bookings.insert_one(booking)

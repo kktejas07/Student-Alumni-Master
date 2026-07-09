@@ -59,12 +59,20 @@ const PAGE_TITLES: Record<NavId, string> = {
 
 export default function MentorPortalRN() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const logout = useAuthStore((st) => st.logout);
   const user = useAuthStore((st) => st.user) as any;
 
   const params = useLocalSearchParams();
   const [demoMode, setDemoMode] = useState(true);
   const [active, setActive] = useState<NavId>('dashboard');
+
+  useEffect(() => {
+    if (params.tab) {
+      setActive(params.tab as NavId);
+    }
+  }, [params.tab]);
+
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState('');
   const [showNotifs, setShowNotifs] = useState(false);
