@@ -1,34 +1,41 @@
 /**
  * College Admin Portal — top bar.
  */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet, Platform } from 'react-native';
-import { Search, Bell, Calendar as CalIcon, Plus, Inbox } from 'lucide-react-native';
+import { Search, Bell, Calendar as CalIcon, Inbox } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { CC, FONTS } from './tokens';
 import { HelpMenu } from '@/src/views/web/help/HelpMenu';
 import { Av } from './atoms';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { api } from '@/src/models/services/api';
 
 export function TopBar({
   title = 'Dashboard',
   onCalendarPress,
   onNotificationsPress,
   onProfilePress,
-  onAddPress,
 }: {
   title?: string;
   onCalendarPress?: () => void;
   onNotificationsPress?: () => void;
   onProfilePress?: () => void;
-  onAddPress?: () => void;
 }) {
   const router = useRouter();
   const user = useAuthStore((u) => u.user);
   const fullName = user?.full_name || '';
   const initials = fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('').toUpperCase() || 'CO';
   const photo = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64 || user?.college_info?.logo;
+  
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    api.notifications().then((r) => {
+      const items = r.notifications || r.items || [];
+      setUnreadCount(items.filter((n: any) => !n.read).length);
+    }).catch(() => {});
+  }, []);
   return (
     <View style={s.bar}>
       <Text style={s.title}>{title}</Text>
@@ -40,13 +47,7 @@ export function TopBar({
         <TextInput placeholder="Search…" placeholderTextColor={CC.dim} style={s.searchInput} />
       </View>
 
-      <Pressable
-        onPress={onNotificationsPress || (() => router.push('/notifications'))}
-        style={({ hovered }: any) => [s.iconBtn, hovered && { backgroundColor: CC.cardH }]}
-      >
-        <Inbox size={16} color={CC.muted} />
-        <View style={s.numPill}><Text style={s.numText}>5</Text></View>
-      </Pressable>
+
 
       <Pressable
         onPress={onCalendarPress || (() => {})}
@@ -60,18 +61,11 @@ export function TopBar({
         style={({ hovered }: any) => [s.iconBtn, hovered && { backgroundColor: CC.cardH }]}
       >
         <Bell size={16} color={CC.muted} />
-        <View style={[s.numPill, { backgroundColor: '#EF4444' }]}><Text style={s.numText}>3</Text></View>
+        {unreadCount > 0 && (
+          <View style={[s.numPill, { backgroundColor: '#EF4444' }]}><Text style={s.numText}>{unreadCount}</Text></View>
+        )}
       </Pressable>
 
-      <Pressable
-        onPress={onAddPress}
-        style={({ hovered }: any) => [s.addCta, hovered && { transform: [{ translateY: -1 }] }]}
-      >
-        <LinearGradient colors={['#6366F1', '#22D3EE'] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.addCtaInner}>
-          <Plus size={14} color="#fff" />
-          <Text style={s.addCtaText}>Add College</Text>
-        </LinearGradient>
-      </Pressable>
 
       <Pressable
         onPress={onProfilePress}

@@ -4,14 +4,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Award, MapPin, Globe, Phone, Mail, Building2 } from 'lucide-react-native';
 import { CC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
-import { useStore } from '@nanostores/react';
-import { authStore } from '@/src/models/services/api';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 export function ProfileView() {
   const { width } = useWindowDimensions();
   const stack = width < 980;
   
-  const user = useStore(authStore);
+  const user: any = useAuthStore((s) => s.user);
   const collegeName = user?.institution || "College Admin";
   const initials = collegeName.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase() || "C";
   const city = user?.city || "City";

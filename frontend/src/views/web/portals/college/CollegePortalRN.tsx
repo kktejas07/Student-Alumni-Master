@@ -28,12 +28,14 @@ import { ProfileView } from './views/ProfileView';
 // Shared role-aware comprehensive profile view (purple theme, identical to student).
 import { ProfileSettingsView as SharedProfileSettingsView } from '../student/views/ProfileSettingsView';
 import { CreateEventView } from './views/CreateEventView';
+import { CollegeNotificationsPanel } from './views/NotificationsPanel';
 import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 
 export function CollegePortalRN() {
   const router = useRouter();
   const logout = useAuthStore((sx) => sx.logout);
   const [active, setActive] = useState<CollegeNavId>('dashboard');
+  const [showNotifs, setShowNotifs] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   useAutoTour('college');
 
@@ -68,40 +70,52 @@ export function CollegePortalRN() {
       <GridOverlay />
 
       <Sidebar active={active} onNav={setActive} onLogout={onLogout} />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <TopBar
-          title={titleFor(active)}
-          onCalendarPress={() => setActive('events')}
-          onNotificationsPress={() => router.push('/notifications')}
-          onProfilePress={() => setActive('profile')}
-          onAddPress={() => router.push('/(onboarding)/college-onboard' as any)}
-        />
-        <ScrollView
-          ref={scrollRef}
-          style={[{ flex: 1 }, Platform.OS === 'web' && ({ scrollBehavior: 'smooth' } as any)]}
-          contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
-          showsVerticalScrollIndicator={false}
-        >
-          <PromoBanner portal="college" />
-          {active === 'dashboard'    && (
-            <DashboardView
-              onOpenProfile={() => setActive('profile')}
-              onNavigate={setActive}
-            />
-          )}
-          {active === 'students'     && <StudentsView />}
-          {active === 'alumni'       && <AlumniView />}
-          {active === 'mentors'      && <MentorsView />}
-          {active === 'events'       && <EventsView onNavigate={setActive} />}
-          {active === 'create-event' && <CreateEventView onNavigate={setActive} />}
-          {active === 'announcements'&& <AnnouncementsView />}
-          {active === 'analytics'    && <AnalyticsView />}
-          {active === 'ai-insights'  && <AIInsightsView />}
-          {active === 'career-intel' && <CareerIntelView />}
-          {active === 'placements'   && <PlacementsView />}
-          {active === 'profile'      && <SharedProfileSettingsView roleOverride="college" />}
-          <DashboardFooter portal="college" />
-        </ScrollView>
+      <View style={{ flex: 1, minWidth: 0, flexDirection: 'row' }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <TopBar
+            title={titleFor(active)}
+            onCalendarPress={() => setActive('events')}
+            onNotificationsPress={() => setShowNotifs(!showNotifs)}
+            onProfilePress={() => setActive('profile')}
+            onAddPress={() => router.push('/(onboarding)/college-onboard' as any)}
+          />
+          <ScrollView
+            ref={scrollRef}
+            style={[{ flex: 1 }, Platform.OS === 'web' && ({ scrollBehavior: 'smooth' } as any)]}
+            contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
+            showsVerticalScrollIndicator={false}
+          >
+            <PromoBanner portal="college" />
+            {active === 'dashboard'    && (
+              <DashboardView
+                onOpenProfile={() => setActive('profile')}
+                onNavigate={setActive}
+              />
+            )}
+            {active === 'students'     && <StudentsView />}
+            {active === 'alumni'       && <AlumniView />}
+            {active === 'mentors'      && <MentorsView />}
+            {active === 'events'       && <EventsView onNavigate={setActive} />}
+            {active === 'create-event' && <CreateEventView onNavigate={setActive} />}
+            {active === 'announcements'&& <AnnouncementsView />}
+            {active === 'analytics'    && <AnalyticsView />}
+            {active === 'ai-insights'  && <AIInsightsView />}
+            {active === 'career-intel' && <CareerIntelView />}
+            {active === 'placements'   && <PlacementsView />}
+            {active === 'profile'      && <SharedProfileSettingsView roleOverride="college" />}
+            <DashboardFooter portal="college" />
+          </ScrollView>
+        </View>
+        {showNotifs && (
+          <CollegeNotificationsPanel
+            onClose={() => setShowNotifs(false)}
+            onOpenSettings={() => {
+              setActive('profile');
+              setShowNotifs(false);
+            }}
+            onNavigate={setActive}
+          />
+        )}
       </View>
     </View>
   );
