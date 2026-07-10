@@ -2065,7 +2065,7 @@ async def college_events_list(college_name: Optional[str] = None, limit: int = 1
         count = await _db.events.count_documents(q)
         if count == 0:
             q = {}
-    cur = _db.events.find(q).sort("start_date", 1).limit(limit)
+    cur = _db.events.find(q).sort("_id", -1).limit(limit)
     palette = ["#A78BFA", "#22C55E", "#FCD34D", "#3B82F6", "#22D3EE", "#EC4899", "#F59E0B", "#FB923C"]
     out = []
     i = 0
@@ -2233,7 +2233,7 @@ def _nlp_categorize_event(title: str, desc: str, cat: str) -> str:
     return "workshop"
 
 @router.get("/student/events")
-async def student_events_list(student_email: Optional[str] = None, page: int = 1, per_page: int = 24):
+async def student_events_list(student_email: Optional[str] = None, page: int = 1, per_page: int = 100):
     """Events relevant to the student (with attendance status)."""
     student = None
     if student_email:
@@ -2248,7 +2248,7 @@ async def student_events_list(student_email: Optional[str] = None, page: int = 1
 
     total = await _db.events.count_documents({})
     skip = (page - 1) * per_page
-    cur = _db.events.find().sort("start_date", 1).skip(skip).limit(per_page)
+    cur = _db.events.find().sort("_id", -1).skip(skip).limit(per_page)
     events = [ev async for ev in cur]
     
     event_ids = [str(ev.get("_id")) for ev in events]
