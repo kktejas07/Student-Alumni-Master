@@ -58,7 +58,7 @@ import bcrypt
 import jwt
 import pyotp
 import qrcode
-from routers.career_ai import get_claude_chat
+from routers.career_ai import get_claude_chat, CAREER_PATH_SYSTEM_PROMPTS
 from bson import ObjectId
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response
 from starlette.middleware.cors import CORSMiddleware
