@@ -117,7 +117,7 @@ export default function NotificationsScreen() {
                     if (role === 'mentor') {
                       router.push('/mentor-portal?tab=requests');
                     } else {
-                      router.push('/(tabs)/profile');
+                      router.push('/(tabs)/profile' as any);
                     }
                   } else if (lowerType === 'connection_request' || lowerType === 'connection_accepted') {
                     if (role === 'mentor') {
@@ -129,7 +129,7 @@ export default function NotificationsScreen() {
                     if (role === 'mentor') {
                       router.push('/mentor-portal?tab=sessions');
                     } else {
-                      router.push('/(tabs)/profile');
+                      router.push('/(tabs)/profile' as any);
                     }
                   } else if (lowerType === 'event' && n.data?.event_id) {
                     router.push(`/event/${n.data.event_id}` as any);
@@ -137,14 +137,14 @@ export default function NotificationsScreen() {
                     if (role === 'mentor') {
                       router.push('/mentor-portal?tab=feedback');
                     } else {
-                      router.push('/(tabs)/profile');
+                      router.push('/(tabs)/profile' as any);
                     }
                   } else {
                     // Fallback
                     if (role === 'mentor') {
                       router.push('/mentor-portal');
                     } else {
-                      router.push('/(tabs)/profile');
+                      router.push('/(tabs)/profile' as any);
                     }
                   }
                 }}

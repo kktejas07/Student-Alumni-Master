@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./frontend",
+    "paths": {
+      "@/*": ["./*"]
+    },
+    "jsx": "react-native",
+    "strict": false,
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
+  },
+  "include": ["frontend/**/*.ts", "frontend/**/*.tsx"]
+}

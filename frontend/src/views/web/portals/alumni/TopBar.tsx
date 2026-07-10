@@ -81,7 +81,7 @@ export function TopBar({
       <HelpMenu portal="alumni" />
 
       <Pressable
-        onPress={onAvatarPress || (() => router.push('/(tabs)/profile'))}
+        onPress={onAvatarPress || (() => router.push('/(tabs)/profile' as any))}
         style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}
       >
         <Av initials={initials} size={36} color={SC.primary} photo={photo} />

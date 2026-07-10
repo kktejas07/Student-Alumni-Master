@@ -119,7 +119,7 @@ import time
 _t0_mongo = time.perf_counter()
 print("[DB TRACE] Mongo client created")
 mongo_url = os.environ.get('MONGO_URL', 'mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin')
-from db import client, db as _db_default
+from db import client, db as _db_default, fetch_users_with_mock_limit
 db = _db_default
 
 # JWT configuration
@@ -4025,7 +4025,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     my_interests = user.get("interests") or si.get("interests") or []
     my_skills = user.get("skills") or []
     my_cp = user.get("career_path")
-    my_inst = si.get("institution_name")
+    my_inst = si.get("institution_name") or user.get("institution") or user.get("college")
     # Existing connection state to mark cards
     rels = await db.connections.find(
         {"$or": [{"a": me_id}, {"b": me_id}]},
@@ -4047,8 +4047,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     if q:
         rx = {"$regex": re.escape(q), "$options": "i"}
         base_query["$or"] = [{"full_name": rx}, {"email": rx}]
-    candidates = await db.users.find(base_query, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).to_list(500)
-
+    candidates = await fetch_users_with_mock_limit(base_query, 500, mock_limit=10)
     cards = [_user_card(c) for c in candidates if str(c.get("_id") or c.get("id")) != me_id]
     # attach connection_state (none|pending|connected|incoming)
     for c in cards:
@@ -4067,16 +4066,13 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     by_skills.sort(key=lambda c: -_matches_count(my_skills, c.get("skills") or []))
 
     # Section: by_college
-    by_college = [c for c in cards if my_inst and c.get("institution") == my_inst]
+    by_college = [c for c in cards if my_inst and my_inst in [c.get("institution"), c.get("college"), (c.get("school_info") or {}).get("institution_name")]]
 
     # Section: mentors (approved)
     mentor_q = {"_id": {"$ne": user["_id"]}, "role": "mentor", "mentor_status": "approved"}
     if q:
         mentor_q["$or"] = [{"full_name": rx}, {"email": rx}]
-    approved_mentors = await db.users.find(
-        mentor_q,
-        {"password_hash": 0, "face_image_base64": 0},
-    ).sort("_id", -1).limit(100).to_list(100)
+    approved_mentors = await fetch_users_with_mock_limit(mentor_q, 100, mock_limit=5)
     mentor_cards = [_user_card(m) for m in approved_mentors if str(m.get("_id") or m.get("id")) != me_id]
     for m in mentor_cards:
         m["connection_state"] = state_by_user.get(m["id"], "none")
