@@ -94,6 +94,14 @@ async def get_claude_chat(session_id: str, system_message: str):
                     return "I've filtered the catalog and found **42 free courses** matching your skills! The top recommendation is 'Introduction to Data Structures by Stanford'. Would you like the link to enroll?"
                 elif "/tax" in clean_text.lower() or "/spend" in clean_text.lower() or "/credit-plan" in clean_text.lower():
                     return "Based on your recent wallet activity, you're doing great! To build your credit, try putting small recurring subscriptions on a student credit card and paying it off immediately. You are on track to save ₹5,000 this month."
+                elif clean_text.lower() in ("yes", "y", "sure", "ok", "okay", "please"):
+                    return "Great! I've sent the details to your registered email address and updated your dashboard. Is there anything else you'd like help with today?"
+                elif "apply" in clean_text.lower():
+                    return "Your application has been drafted! Please check your profile's 'Applications' tab to review and submit it. Good luck!"
+                elif "book" in clean_text.lower() or "tour" in clean_text.lower():
+                    return "Awesome! I've scheduled a tentative tour/session for you. You'll receive a calendar invite shortly with the exact timings."
+                elif clean_text.lower() in ("no", "n", "nope", "thanks", "thank you"):
+                    return "You're very welcome! Feel free to ask if you need anything else. Have a great day!"
                 else:
                     return f"This is a mock AI response to: '{clean_text}'. Please configure EMERGENT_LLM_KEY for real, intelligent AI responses."
             return '{"summary": "Mock summary", "milestones": [{"id": "m1", "title": "Mock Milestone", "timeframe": "0-3 months", "actions": [], "milestone_type": "profile"}], "recommended_skills": ["Python"], "recommended_courses": [], "mentor_traits": ["Helpful"], "target_role": "Software Engineer", "target_company_type": "Tech", "progress_pct": 10, "skill_scores": {"Technical Excellence": 80, "Professional Communication": 80, "Personal Brand": 80, "Leadership & Collaboration": 80, "Career Preparation": 80, "Industry Presence": 80}, "weekly_plan": [], "key_projects": [], "book_recommendations": []}'
