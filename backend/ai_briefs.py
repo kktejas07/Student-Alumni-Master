@@ -15,19 +15,21 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, Optional
 from uuid import uuid4
 
 from bson import ObjectId
+from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from tier_logic import compute_student_tier, compute_mentor_tier, compute_college_tier
 
-from core.db import db as _db
-
+load_dotenv(Path(__file__).parent / ".env")
 
 # Mongo
+from core.db import db as _db
 
 router = APIRouter()
 

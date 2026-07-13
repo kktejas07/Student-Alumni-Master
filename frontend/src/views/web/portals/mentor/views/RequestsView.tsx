@@ -115,6 +115,7 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
     return { score: 72, label: 'Fair fit' };
   };
 
+
   const stats = useMemo(() => {
     let pending = 0;
     let accepted = 0;

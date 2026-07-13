@@ -21,23 +21,9 @@ export function EventsView() {
   const [filter, setFilter] = useState('All');
   const [rsvpd, setRsvpd] = useState<Set<string>>(new Set());
 
-  const onRSVP = async (e: Ev) => {
-    // Navigate to event details to get QR code
-    router.push({
-      pathname: `/event/${e.id}` as any,
-      params: {
-        id: e.id,
-        title: e.title,
-        start_date: e.date,
-        venue: e.city || 'Online',
-        registration_deadline: e.date,
-        category: e.cat || 'Workshop',
-        organizer: 'Institution Partner',
-        image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=400',
-        url: '',
-        price: e.price !== undefined && e.price !== null ? String(e.price) : '',
-      }
-    });
+  const onRSVP = async (id: string) => {
+    setRsvpd((p) => new Set(p).add(id));
+    try { await postPortal(`/student/events/${id}/rsvp`); } catch {}
   };
 
   const list = EVENTS.filter((e) => {
@@ -95,7 +81,7 @@ export function EventsView() {
                     <Text style={s.ctaText}>Registered</Text>
                   </View>
                 ) : (
-                  <Pressable onPress={() => onRSVP(e)}>
+                  <Pressable onPress={() => onRSVP(e.id)}>
                     <LinearGradient
                       colors={[GRAD.from, GRAD.to]}
                       start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}

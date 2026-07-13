@@ -626,7 +626,7 @@ export default function NetworkScreen() {
         onRequestClose={() => setSelectedPerson(null)}
       >
         <Pressable style={styles.modalBackdrop} onPress={() => setSelectedPerson(null)}>
-          <Pressable style={[styles.modalPanel, { width: isMobile ? '100%' : 480 }]} onPress={(e) => e.stopPropagation()}>
+          <Pressable style={[styles.modalPanel, { width: isMobile ? '95%' : 540 }]} onPress={(e) => e.stopPropagation()}>
             {selectedPerson && (
               <ProfileDetailContent
                 person={selectedPerson}
@@ -1292,18 +1292,23 @@ const styles = StyleSheet.create({
 
   // ── Modal / Profile detail
   modalBackdrop: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.55)',
-    justifyContent: 'flex-end',
-    alignItems: Platform.OS === 'web' ? 'flex-end' : 'stretch',
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...(Platform.OS === 'web' && { backdropFilter: 'blur(8px)' } as any),
   },
   modalPanel: {
     backgroundColor: '#0C0818',
-    maxHeight: Platform.OS === 'web' ? '100%' : '92%',
-    height: Platform.OS === 'web' ? '100%' : 'auto',
-    borderTopLeftRadius: Platform.OS === 'web' ? 0 : 20,
-    borderTopRightRadius: Platform.OS === 'web' ? 0 : 20,
-    borderLeftWidth: Platform.OS === 'web' ? 1 : 0,
-    borderColor: 'rgba(255,255,255,0.08)',
+    maxHeight: '90%',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
   },
   modalClose: {
     width: 32, height: 32, borderRadius: 8,

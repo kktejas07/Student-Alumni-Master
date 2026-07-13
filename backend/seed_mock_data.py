@@ -585,6 +585,7 @@ async def upsert_user(email: str, password: str, full_name: str, role: str,
         "bio": extra.get("bio"),
         "face_image_base64": None,
         "onboarding_completed": True,
+        "is_mock": True,
         "created_at": NOW,
     }
     if "student_info" in extra:

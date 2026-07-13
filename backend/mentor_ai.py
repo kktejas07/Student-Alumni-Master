@@ -18,10 +18,12 @@ from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List
 
 from bson import ObjectId
+from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException
 
-from core.db import db as _db
+load_dotenv(Path(__file__).parent / ".env")
 
+from core.db import db as _db
 
 logger = logging.getLogger("mentor_ai")
 router = APIRouter()

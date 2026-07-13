@@ -122,12 +122,12 @@ export default function NotificationsScreen() {
                     if (user?.role === 'mentor') {
                       router.push('/mentor-portal?tab=requests');
                     } else {
-                      router.push('/(tabs)/profile');
+                      router.push('/(tabs)/profile' as any);
                     }
                   } else if (resolvedType === 'event' && n.data?.event_id) {
                     router.push(`/event/${n.data.event_id}` as any);
                   } else if (resolvedType === 'review' || (n.title || '').toLowerCase().includes('review')) {
-                    router.push('/(tabs)/profile');
+                    router.push('/(tabs)/profile' as any);
                   }
                 }}
               />

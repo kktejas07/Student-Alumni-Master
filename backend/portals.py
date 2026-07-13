@@ -56,8 +56,7 @@ from typing import Any, Dict, List, Optional
 
 from bson import ObjectId
 from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException, Query, Request, Body, Response, Depends
-from motor.motor_asyncio import AsyncIOMotorClient
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Body, Response
 from pydantic import BaseModel, Field
 import random
 import pytz
@@ -67,6 +66,12 @@ from pathlib import Path
 from core.deps import get_current_user
 from pydantic import BaseModel
 
+# Instantiate TTL Caches for high-traffic endpoints
+dashboard_cache = TTLCache(maxsize=100, ttl=60)
+network_cache = TTLCache(maxsize=100, ttl=60)
+intel_cache = TTLCache(maxsize=100, ttl=60)
+events_cache = TTLCache(maxsize=100, ttl=60)
+
 from tier_logic import (
     compute_student_tier,
     compute_mentor_tier,
@@ -74,6 +79,7 @@ from tier_logic import (
     student_suggestions_for_tier,
 )
 from core.db import db as _db
+from db import fetch_users_with_mock_limit
 
 router = APIRouter()
 
@@ -836,9 +842,15 @@ async def college_admin_stats(college_name: Optional[str] = None):
         ]).to_list(1)
         college_name = agg[0]["_id"] if agg else "St. Xavier's College"
 
-    students_cnt = await _db.users.count_documents({"role": "student", "school_info.institution_name": college_name})
-    alumni_cnt = await _db.users.count_documents({"role": "alumni", "school_info.institution_name": college_name})
-
+    college_query = {
+        "$or": [
+            {"school_info.institution_name": college_name},
+            {"institution": college_name},
+            {"college": college_name}
+        ]
+    }
+    students_cnt = await _db.users.count_documents({"role": "student", **college_query})
+    alumni_cnt = await _db.users.count_documents({"role": "alumni", **college_query})
     # Department breakdown
     dept_agg = await _db.users.aggregate([
         {"$match": {"role": "student", "school_info.institution_name": college_name, "school_info.branch_or_stream": {"$ne": None}}},
@@ -862,31 +874,52 @@ async def college_admin_stats(college_name: Optional[str] = None):
             {"dept": "Design",           "pct": 96, "placed":  43, "color": "#A78BFA"},
         ]
 
-    # Recent activity from bookings + events
+    # Recent activity from new students + events
     recent = []
-    rb_cur = _db.bookings.find().sort("created_at", -1).limit(3)
-    async for b in rb_cur:
+    
+    # New students/alumni joined
+    user_cur = _db.users.find({
+        "$or": [
+            {"school_info.institution_name": college_name},
+            {"institution": college_name},
+            {"college": college_name}
+        ],
+        "role": {"$in": ["student", "alumni"]}
+    }).sort("_id", -1).limit(4)
+    async for u in user_cur:
+        role_label = u.get("role", "user").capitalize()
         recent.append({
-            "id": _short_id(b.get("_id")),
-            "kind": "booking",
-            "text": f"Mentor session booked — {b.get('topic', 'Career')}",
-            "time": (b.get("created_at") or datetime.utcnow()).strftime("%b %d, %H:%M") if isinstance(b.get("created_at"), datetime) else "—",
-            "icon": "Briefcase",
+            "id": _short_id(u.get("_id")),
+            "kind": "user",
+            "text": f"New {role_label} joined — {u.get('full_name', 'Student')}",
+            "time": (u.get("created_at") or datetime.utcnow()).strftime("%b %d") if isinstance(u.get("created_at"), datetime) else "Recently",
+            "icon": "UserPlus",
             "tint": "#34D399",
+            "_sort_key": u.get("created_at") or datetime.min
         })
-    ev_cur = _db.events.find().sort("registration_deadline", -1).limit(3)
+
+    ev_cur = _db.events.find({"college_name": college_name}).sort("created_at", -1).limit(3)
     async for ev in ev_cur:
         recent.append({
             "id": _short_id(ev.get("_id")),
             "kind": "event",
-            "text": f"{ev.get('title', 'Event')} — {ev.get('category', 'Event')}",
-            "time": "Recently",
+            "text": f"Event created — {ev.get('title', 'Event')}",
+            "time": (ev.get("created_at") or datetime.utcnow()).strftime("%b %d") if isinstance(ev.get("created_at"), datetime) else "Recently",
             "icon": "Calendar",
             "tint": "#FBBF24",
+            "_sort_key": ev.get("created_at") or datetime.min
         })
+        
+    recent.sort(key=lambda x: x["_sort_key"], reverse=True)
+    for r in recent:
+        r.pop("_sort_key", None)
+    recent = recent[:5]
 
     # Upcoming events
-    upcoming_cur = _db.events.find({"start_date": {"$gte": datetime.now(timezone.utc)}}).sort("start_date", 1).limit(4)
+    upcoming_cur = _db.events.find({
+        "$or": [{"college_name": college_name}, {"college_name": None}],
+        "start_date": {"$gte": datetime.now(timezone.utc)}
+    }).sort("start_date", 1).limit(4)
     upcoming = []
     async for ev in upcoming_cur:
         sd = ev.get("start_date")
@@ -917,8 +950,23 @@ async def college_admin_stats(college_name: Optional[str] = None):
             "color": _color_for(r["_id"] or ""),
         })
 
+    # Calculate real placement rate (based on alumni with current employer)
+    placed_alumni_cnt = await _db.users.count_documents({
+        "role": "alumni",
+        "alumni_info.current_employer": {"$nin": [None, "", "—", "-"]},
+        **college_query
+    })
+    placement_pct_num = int((placed_alumni_cnt / alumni_cnt) * 100) if alumni_cnt > 0 else 0
+
+    # Events this month
+    now = datetime.now(timezone.utc)
+    start_of_month = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
+    events_this_month = await _db.events.count_documents({
+        "college_name": college_name,
+        "start_date": {"$gte": start_of_month}
+    })
+
     # Tier (Bronze/Silver/Gold/Platinum) — based on NAAC + students + placement + alumni
-    placement_pct_num = 94  # already used as static; will be aggregated below
     tier = await _college_tier_payload(college_name, students_cnt, alumni_cnt, float(placement_pct_num))
 
     return {
@@ -935,8 +983,8 @@ async def college_admin_stats(college_name: Optional[str] = None):
         "kpis": [
             {"id": "students",  "label": "Total Students",     "value": str(students_cnt),      "delta": "↑ this semester",        "color": "blue"},
             {"id": "alumni",    "label": "Alumni Network",     "value": str(alumni_cnt),        "delta": "growing",                 "color": "purple"},
-            {"id": "placement", "label": "Placement Rate",     "value": "94%",                  "delta": "↑ 4% YoY",                "color": "green"},
-            {"id": "events",    "label": "Events This Month",  "value": str(len(upcoming)),     "delta": f"{len(upcoming)} upcoming","color": "amber"},
+            {"id": "placement", "label": "Placement Rate",     "value": f"{placement_pct_num}%", "delta": f"from {alumni_cnt} alumni",  "color": "green"},
+            {"id": "events",    "label": "Events This Month",  "value": str(events_this_month),  "delta": f"{len(upcoming)} upcoming","color": "amber"},
         ],
         "deptPlacement": dept_placement,
         "recentActivity": recent[:6],
@@ -1763,7 +1811,15 @@ async def college_alumni_list(college_name: Optional[str] = None, limit: int = 3
         ]).to_list(1)
         college_name = agg[0]["_id"] if agg else None
 
-    cur = _db.users.find({"role": "alumni", "school_info.institution_name": college_name}).limit(limit)
+    college_query = {
+        "$or": [
+            {"school_info.institution_name": college_name},
+            {"institution": college_name},
+            {"college": college_name}
+        ]
+    } if college_name else {"school_info.institution_name": {"$ne": None}}
+    
+    cur = _db.users.find({"role": "alumni", **college_query}).limit(limit)
     out = []
     async for a in cur:
         ai = a.get("alumni_info") or {}
@@ -1779,7 +1835,57 @@ async def college_alumni_list(college_name: Optional[str] = None, limit: int = 3
             "city": si.get("city") or "—",
             "donor": is_donor,
             "color": _color_for(a.get("full_name", "")),
+            "skills": a.get("skills") or ai.get("interests") or [],
+            "linkedin_url": a.get("linkedin_url") or "",
+            "github_url": a.get("github_url") or "",
         })
+
+    if not out:
+        out = [
+            {
+                "id": "mock_alumni_1",
+                "name": "Ishaan Alumni",
+                "initials": "IA",
+                "batch": 2023,
+                "role": "SDE-2",
+                "company": "Amazon",
+                "city": "Bengaluru",
+                "donor": False,
+                "color": "#F59E0B",
+                "skills": ["AWS", "Node.js", "System Design"],
+                "linkedin_url": "https://linkedin.com",
+                "github_url": "https://github.com",
+            },
+            {
+                "id": "mock_alumni_2",
+                "name": "Riya Alumni",
+                "initials": "RA",
+                "batch": 2020,
+                "role": "Product Manager",
+                "company": "Google",
+                "city": "Hyderabad",
+                "donor": True,
+                "color": "#10B981",
+                "skills": ["Product Strategy", "Agile", "UX"],
+                "linkedin_url": "https://linkedin.com",
+                "github_url": "",
+            },
+            {
+                "id": "mock_alumni_3",
+                "name": "Aarav Test Alumni",
+                "initials": "AA",
+                "batch": 2022,
+                "role": "Data Scientist",
+                "company": "Microsoft",
+                "city": "Pune",
+                "donor": False,
+                "color": "#22D3EE",
+                "skills": ["Python", "Machine Learning", "SQL"],
+                "linkedin_url": "",
+                "github_url": "https://github.com",
+            }
+        ]
+
     return {"items": out, "college": college_name}
 
 
@@ -1817,7 +1923,13 @@ async def college_mentors_list(college_name: Optional[str] = None, limit: int = 
 @router.get("/college/events")
 async def college_events_list(college_name: Optional[str] = None, limit: int = 100):
     """Events at or linked to this college."""
-    cur = _db.events.find().sort("_id", -1).limit(limit)
+    q = {}
+    if college_name:
+        q = {"$or": [{"college_name": college_name}, {"organizer": college_name}]}
+        count = await _db.events.count_documents(q)
+        if count == 0:
+            q = {}
+    cur = _db.events.find(q).sort("_id", -1).limit(limit)
     palette = ["#A78BFA", "#22C55E", "#FCD34D", "#3B82F6", "#22D3EE", "#EC4899", "#F59E0B", "#FB923C"]
     out = []
     i = 0
@@ -1840,53 +1952,6 @@ async def college_events_list(college_name: Optional[str] = None, limit: int = 1
         })
         i += 1
     return {"items": out}
-
-
-from pydantic import BaseModel
-class AnnouncementCreate(BaseModel):
-    title: str
-    body: str
-    audience: Optional[str] = "all"
-    tag: Optional[str] = "general"
-
-@router.post("/college/announcements")
-async def create_college_announcement(
-    data: AnnouncementCreate,
-    user: dict = Depends(get_current_user)
-):
-    college_name = user.get("college_info", {}).get("institution_name") or user.get("school_info", {}).get("institution_name") or "Unknown College"
-    
-    announcement = {
-        "title": data.title,
-        "body": data.body,
-        "audience": data.audience,
-        "tag": data.tag,
-        "college_name": college_name,
-        "author": user.get("full_name", "Admin"),
-        "posted_at": datetime.now(timezone.utc),
-        "pinned": False,
-    }
-    res = await _db.announcements.insert_one(announcement)
-    
-    # Notify students
-    from backend.notifications import _log_inbox
-    students_cursor = _db.users.find({
-        "role": "student",
-        "$or": [
-            {"school_info.institution_name": college_name},
-            {"college_info.institution_name": college_name}
-        ]
-    }, {"_id": 1})
-    
-    async for student in students_cursor:
-        await _log_inbox(
-            _db, 
-            str(student["_id"]), 
-            title="New Announcement: " + data.title, 
-            body=data.body[:100] + ("..." if len(data.body) > 100 else ""), 
-            data={"type": "announcement", "announcement_id": str(res.inserted_id)}
-        )
-    return {"status": "ok", "id": str(res.inserted_id)}
 
 
 @router.get("/college/announcements")
@@ -2012,7 +2077,7 @@ async def college_career_intel(college_name: Optional[str] = None):
 
 
 @router.get("/student/events")
-async def student_events_list(student_email: Optional[str] = None, limit: int = 100):
+async def student_events_list(student_email: Optional[str] = None, page: int = 1, per_page: int = 100):
     """Events relevant to the student (with attendance status)."""
     student = None
     if student_email:
@@ -2021,7 +2086,31 @@ async def student_events_list(student_email: Optional[str] = None, limit: int = 
         student = await _db.users.find_one({"role": "student"})
     sid = str((student or {}).get("_id", ""))
 
-    cur = _db.events.find().sort("_id", -1).limit(limit)
+    cache_key = f"events_student_{sid}_p{page}"
+    if cache_key in events_cache:
+        return events_cache[cache_key]
+
+    total = await _db.events.count_documents({})
+    skip = (page - 1) * per_page
+    cur = _db.events.find().sort("_id", -1).skip(skip).limit(per_page)
+    events = [ev async for ev in cur]
+    
+    event_ids = [str(ev.get("_id")) for ev in events]
+    
+    # 1. Batch counts
+    pipeline = [
+        {"$match": {"event_id": {"$in": event_ids}}},
+        {"$group": {"_id": "$event_id", "count": {"$sum": 1}}}
+    ]
+    counts_map = {}
+    async for doc in _db.event_registrations.aggregate(pipeline):
+        counts_map[doc["_id"]] = doc["count"]
+        
+    # 2. Batch user registrations
+    user_regs = set()
+    if sid:
+        user_reg_docs = await _db.event_registrations.find({"student_id": sid, "event_id": {"$in": event_ids}}).to_list(len(event_ids))
+        user_regs = {doc["event_id"] for doc in user_reg_docs}
     palette = ["#A78BFA", "#22C55E", "#FCD34D", "#3B82F6", "#22D3EE", "#EC4899", "#F59E0B", "#FB923C"]
     out = []
     i = 0
@@ -2052,21 +2141,7 @@ async def student_events_list(student_email: Optional[str] = None, limit: int = 
                 "id": "mock-1",
                 "title": "System Design for Scale: FAANG Prep",
                 "date": "TBD",
-                "mode": "Virtual",
-                "city": "Online",
-                "cat": "Workshop",
-                "attending": 142,
-                "capacity": 500,
-                "kind": "free",
-                "price": 0,
-                "accent": "#3B82F6",
-                "registered": False,
-            },
-            {
-                "id": "mock-2",
-                "title": "Startup Founder Mixer",
-                "date": "TBD",
-                "mode": "In-Person",
+                "mode": "Online",
                 "city": "Bangalore",
                 "cat": "Meetup",
                 "attending": 35,
@@ -2077,8 +2152,12 @@ async def student_events_list(student_email: Optional[str] = None, limit: int = 
                 "registered": False,
             }
         ]
+        total = len(out)
         
-    return {"items": out}
+    payload = {"items": out, "total": total, "page": page, "per_page": per_page, "pages": max(1, (total + per_page - 1) // per_page)}
+    if sid:
+        events_cache[cache_key] = payload
+    return payload
 
 
 @router.get("/college/ai-insights")
@@ -2241,9 +2320,34 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     out = []
     me_id_str = str(user["_id"]) if user else ""
 
-    # Fetch Alumni (newest first)
-    al_cur = _db.users.find({"role": "alumni"}).sort("_id", -1).limit(limit)
-    async for a in al_cur:
+    # Fetch all connected/pending users from rel_map first so they are never omitted due to limit
+    connected_users = []
+    if rel_map:
+        connected_ids = []
+        for oid in rel_map.keys():
+            try:
+                connected_ids.append(ObjectId(oid))
+            except Exception:
+                pass
+        if connected_ids:
+            connected_users = await _db.users.find({"_id": {"$in": connected_ids}}, proj).to_list(len(connected_ids))
+
+    my_skills = user.get("skills", []) if user else []
+    my_college = ((user.get("school_info") or {}).get("institution_name") or user.get("institution") or user.get("college")) if user else None
+
+    # Fetch Alumni (ensuring connected ones are included first)
+    connected_alumni = [u for u in connected_users if u.get("role") == "alumni"]
+    seen_alumni = {str(u["_id"]) for u in connected_alumni}
+    alumni_query = {
+        "role": "alumni",
+        "_id": {"$nin": [ObjectId(i) for i in seen_alumni]}
+    }
+    # Match by Interest
+    if my_skills:
+        alumni_query["$or"] = [
+            {"alumni_info.interests": {"$in": my_skills}},
+            {"skills": {"$in": my_skills}}
+        ]
         other_id = str(a["_id"])
         if other_id == me_id_str:
             continue
@@ -2262,10 +2366,33 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "kind": "alumni",
             "connection_state": rel_map.get(other_id, "none"),
         })
-
-    # Fetch Students (newest first)
-    st_cur = _db.users.find({"role": "student"}).sort("_id", -1).limit(limit)
-    async for s in st_cur:
+    # Fetch Students (ensuring connected ones are included first)
+    connected_students = [u for u in connected_users if u.get("role") == "student"]
+    seen_students = {str(u["_id"]) for u in connected_students}
+    student_query = {
+        "role": "student",
+        "_id": {"$nin": [ObjectId(i) for i in seen_students]}
+    }
+    # Match by Interest
+    if my_skills:
+        student_query["$or"] = [
+            {"school_info.interests": {"$in": my_skills}},
+            {"skills": {"$in": my_skills}}
+        ]
+    # Filter by Same College
+    if my_college:
+        if "$or" not in student_query:
+            student_query["$or"] = []
+        student_query["$or"].extend([
+            {"school_info.institution_name": my_college},
+            {"institution": my_college},
+            {"college_name": my_college}
+        ])
+    
+    fetch_limit = max(0, limit - len(connected_students))
+    fetched_students = await fetch_users_with_mock_limit(student_query, fetch_limit, mock_limit=5, proj=proj)
+    student_users = connected_students + fetched_students
+    for s in student_users:
         other_id = str(s["_id"])
         if other_id == me_id_str:
             continue
@@ -2287,9 +2414,24 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "looking": s.get("bio") or "Looking for career guidance.",
         })
 
-    # Fetch Mentors (newest first)
-    me_cur = _db.users.find({"role": "mentor"}).sort("_id", -1).limit(limit)
-    async for m in me_cur:
+    # Fetch Mentors (ensuring connected ones are included first)
+    connected_mentors = [u for u in connected_users if u.get("role") == "mentor"]
+    seen_mentors = {str(u["_id"]) for u in connected_mentors}
+    mentor_query = {
+        "role": "mentor",
+        "mentor_status": "approved",
+        "_id": {"$nin": [ObjectId(i) for i in seen_mentors]}
+    }
+    # Match by Interest
+    if my_skills:
+        mentor_query["$or"] = [
+            {"mentor_info.interests": {"$in": my_skills}},
+            {"skills": {"$in": my_skills}}
+        ]
+    fetch_limit = max(0, limit - len(connected_mentors))
+    fetched_mentors = await fetch_users_with_mock_limit(mentor_query, fetch_limit, mock_limit=5, proj=proj)
+    mentor_users = connected_mentors + fetched_mentors
+    for m in mentor_users:
         other_id = str(m["_id"])
         if other_id == me_id_str:
             continue
@@ -2956,6 +3098,8 @@ async def mentor_connections(email: Optional[str] = None):
             else:
                 status = "completed"
 
+        # Determine status.
+        status = connection_status.get(uid, "active")
         # Skip if they are not accepted connections
         if status not in ("active", "accepted", "completed"):
             continue

@@ -25,10 +25,7 @@ from __future__ import annotations
 import os, asyncio, logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
-
 from core.db import db as _db
-
-
 _logger = logging.getLogger("workflow_automation")
 
 # ── Step registry (mirrors the one in portals.py for standalone execution) ──

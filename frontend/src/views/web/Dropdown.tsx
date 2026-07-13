@@ -230,6 +230,7 @@ export function Dropdown({
             <Pressable
               onPress={(e: any) => e?.stopPropagation?.()}
               style={s.cardWrap}
+              // @ts-ignore - React Native Web supports onKeyDown but types might not
               onKeyDown={(e: any) => {
                 if (Platform.OS === 'web' && e?.key === 'Escape') {
                   setOpen(false);

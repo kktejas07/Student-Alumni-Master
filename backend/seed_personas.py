@@ -645,6 +645,8 @@ async def main(reset: bool):
             overlay = u.get("_college_meta_overlay") or {}
             t = compute_college_tier(overlay.get("naac", "A"), 1000, float(overlay.get("placement_pct", 60)), 5000)
             u["tier"], u["tier_score"] = t["tier"], t["score"]
+            
+        u["is_mock"] = True
 
     if all_users:
         await _db.users.insert_many(all_users)

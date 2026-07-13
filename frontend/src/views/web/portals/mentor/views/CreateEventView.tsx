@@ -22,7 +22,7 @@ export function CreateEventView() {
   const [events, setEvents] = useState<MentorEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [subView, setSubView] = useState<'list' | 'create' | 'edit'>('list');
-  const [editingEventId, setEditingEventId] = useState<number | string | null>(null);
+  const [editingEventId, setEditingEventId] = useState<number | null>(null);
 
   // Form States
   const [eventType, setEventType] = useState<MentorEvent['type']>('webinar');
@@ -94,51 +94,6 @@ export function CreateEventView() {
       else if (eventType === 'spotlight') setCoverColor('#F59E0B');
     }
   }, [eventType, subView]);
-
-  const fetchEvents = async () => {
-    setIsLoading(true);
-    try {
-      const res = await request<{ items: any[] }>('/events/me/hosted');
-      const apiEvents: MentorEvent[] = (res.items || []).map(item => {
-        const dt = new Date(item.event_date_start || Date.now());
-        const dateStr = `${MONTH_NAMES[dt.getMonth()]} ${dt.getDate()}, ${dt.getFullYear()}`;
-        
-        let hours = dt.getHours();
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        hours = hours % 12;
-        hours = hours ? hours : 12;
-        const mins = dt.getMinutes() < 10 ? '0' + dt.getMinutes() : dt.getMinutes();
-        const timeStr = `${hours < 10 ? '0'+hours : hours}:${mins} ${ampm}`;
-
-        return {
-          id: item.event_id,
-          title: item.title || '',
-          desc: item.description || '',
-          date: dateStr,
-          time: timeStr,
-          seats: item.capacity || 100,
-          registered: item.attendee_count || 0,
-          type: item.event_type || 'webinar',
-          platform: item.location_city || 'Google Meet',
-          duration: 60,
-          pricing: item.price_type || 'free',
-          price: item.price_amount || 0,
-          coverColor: item.image_url || '#6366F1',
-          status: item.status === 'completed' ? 'completed' : 'upcoming',
-          visibility: 'All Connections',
-        };
-      });
-      setEvents(apiEvents);
-    } catch (e) {
-      console.warn('Failed to fetch mentor events', e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchEvents();
-  }, []);
 
   // Statistics Calculation
   const totalEvents = events.length;

@@ -62,7 +62,9 @@ from croniter import croniter
 from fastapi import APIRouter, Body, Header, HTTPException
 from pydantic import BaseModel, Field, field_validator
 import pytz
+from dotenv import load_dotenv
 
+load_dotenv(Path(__file__).parent / ".env")
 
 # Reuse the Agent K engine — plan + execute the run through the same
 # pipeline the manual /agent-k/run uses.
@@ -75,11 +77,10 @@ from agent_k import (  # noqa: E402
     TOOL_REGISTRY as _AK_TOOL_REGISTRY,
 )
 
-from core.db import db as _db
-
 log = logging.getLogger("agent-k.scheduled")
 log.setLevel(logging.INFO)
 
+from core.db import db as _db
 
 router = APIRouter(tags=["agent-k-scheduled"])
 

@@ -37,15 +37,18 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
+import asyncio
 from typing import Any, Dict, Optional, List
 
 from bson import ObjectId
+from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+load_dotenv(Path(__file__).parent / ".env")
+
 from core.db import db as _db
-
-
 router = APIRouter()
 
 

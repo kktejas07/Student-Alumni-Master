@@ -484,6 +484,11 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
           <Field label="First Name" half><TF value={draft.first_name || (draft.full_name||'').split(' ')[0] || ''} onChangeText={(v) => setField('first_name', v)} placeholder="Aarav" testID="pf-first-name" /></Field>
           <Field label="Last Name" half><TF value={draft.last_name || (draft.full_name||'').split(' ').slice(1).join(' ') || ''} onChangeText={(v) => setField('last_name', v)} placeholder="Sharma" testID="pf-last-name" /></Field>
         </View>
+        {isCollege && (
+          <Field label="College / Institution" hint="The name of your institution.">
+            <TF value={draft.institution || ''} onChangeText={(v) => setField('institution', v)} leftIcon={<Building2 size={14} color={C.text2} />} placeholder="e.g. IIT Bombay" testID="pf-college-name" />
+          </Field>
+        )}
         <Field label="Headline / Tagline" hint="Appears below your name on your public profile.">
           <TF value={draft.headline || ''} onChangeText={(v) => setField('headline', v.slice(0, 100))} placeholder="Aspiring AI Engineer · IIT Bombay '26" testID="pf-headline" />
         </Field>

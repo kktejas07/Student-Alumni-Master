@@ -26,6 +26,7 @@ from datetime import datetime, timezone, timedelta, date as _date
 from typing import Any, Dict, List, Optional, Tuple
 
 from bson import ObjectId
+from dotenv import load_dotenv
 from fastapi import APIRouter, Body, Depends, HTTPException
 
 from core.db import db as _db

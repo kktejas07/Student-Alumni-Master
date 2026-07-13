@@ -16,9 +16,6 @@ from fastapi import HTTPException, Header
 import jwt as _jwt
 import os
 from datetime import datetime
-
-# core.db cannot be imported at module load time (circular-import-safe pattern):
-# use a thin accessor so the singleton is fetched only on first real call.
 def _get_db():
     from core.db import db
     return db

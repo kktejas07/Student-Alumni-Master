@@ -33,6 +33,8 @@ from pathlib import Path
 
 from __future__ import annotations
 
+from __future__ import annotations
+
 
 async def _get_best_ai_key() -> tuple:
     """Returns (api_key, model_name, provider) from best available source.
@@ -70,9 +72,11 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
+from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Header, Body
 from pydantic import BaseModel
 
+from core.db import db as _db
 
 router = APIRouter(tags=["agent-k"])
 log = logging.getLogger("agent-k")
@@ -380,8 +384,6 @@ _TOOL_DISPATCH = {
 
 # ─── Auth helper (decodes JWT and loads user) ─────────────────────
 import jwt as _jwt
-
-from core.db import db as _db
 _JWT_SECRET = os.environ.get("JWT_SECRET", "")
 _JWT_ALG = os.environ.get("JWT_ALGORITHM", "HS256")
 

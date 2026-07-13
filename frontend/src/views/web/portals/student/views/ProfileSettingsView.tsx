@@ -288,8 +288,9 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
   // Header + sidebar derived
   const fullName = (draft.full_name || `${draft.first_name || ''} ${draft.last_name || ''}`).trim() || 'Student';
   const initials = (fullName.split(' ').slice(0, 2).map((s: string) => s[0] || '').join('') || '?').toUpperCase();
-  const headline = [draft.branch ? `B.Tech ${draft.branch}` : null, draft.institution].filter(Boolean).join(' · ') ||
-                    draft.headline || cfg.fallbackHeadline;
+  const headline = role === 'college' 
+    ? (draft.headline) 
+    : ([draft.branch ? `B.Tech ${draft.branch}` : null, draft.institution].filter(Boolean).join(' · ') || draft.headline || cfg.fallbackHeadline);
   const photo = draft.photo_data || draft.face_image_base64;
   const saId = draft.unique_id || user?.unique_id || '—';
 
@@ -318,7 +319,10 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={st.name}>{fullName}</Text>
-            <Text style={st.subline}>{headline}</Text>
+            {role === 'college' && !!draft.institution && (
+              <Text style={[st.subline, { color: '#E0E7FF', marginBottom: 6, marginTop: -2 }]}>{draft.institution}</Text>
+            )}
+            {!!headline && <Text style={st.subline}>{headline}</Text>}
             <View style={st.badgeRow}>
               {!!draft.cgpa && (
                 <View style={[st.headerBadge, { backgroundColor: 'rgba(245,158,11,0.16)', borderColor: 'rgba(245,158,11,0.45)' }]}>

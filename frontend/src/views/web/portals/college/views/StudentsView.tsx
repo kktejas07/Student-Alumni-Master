@@ -10,7 +10,8 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CC, FONTS } from '../tokens';
 import { Av, Badge } from '../atoms';
-import { usePortalData, postPortal } from '@/src/lib/portalApi';
+import { usePortalData, postPortal, putPortal } from '@/src/lib/portalApi';
+import { useToast } from '@/src/views/components';
 
 const DEPTS = ['CSE', 'ECE', 'ME', 'EEE', 'Civil', 'Chem', 'MBA'];
 const YEARS = ['1st', '2nd', '3rd', '4th', 'Final'];
@@ -101,7 +102,11 @@ export function StudentsView() {
   const [page, setPage] = useState(1);
 
   // Modal State
+  const toast = useToast();
+  const [confirmModal, setConfirmModal] = useState<{ visible: boolean; title: string; message: string; actionText: string; actionColor?: string; onConfirm: () => void } | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [nameVal, setNameVal] = useState('');
   const [emailVal, setEmailVal] = useState('');
   const [deptVal, setDeptVal] = useState('CSE');
@@ -126,22 +131,37 @@ export function StudentsView() {
     DeviceEventEmitter.emit('scrollCollegePortalToTop');
   }, [page, dept, year, status]);
 
-  const handleAddStudent = async () => {
+  const handleSaveStudent = async () => {
     if (isBusy || !nameVal.trim() || !emailVal.trim()) return;
     setSubmitting(true);
     try {
-      await postPortal('/college/students', {
-        body: {
-          name: nameVal,
-          email: emailVal,
-          dept: deptVal,
-          year: yearVal,
-          cgpa: parseFloat(cgpaVal) || 0.0,
-          attendance: parseInt(attendanceVal, 10) || 0,
-        }
-      });
-      // request() throws on error, so reaching here means success
+      if (editingStudent) {
+        await putPortal(`/college/students/${editingStudent.id}`, {
+          body: {
+            name: nameVal,
+            email: emailVal,
+            dept: deptVal,
+            year: yearVal,
+            cgpa: parseFloat(cgpaVal) || 0.0,
+            attendance: parseInt(attendanceVal, 10) || 0,
+          }
+        });
+        toast.success('Student Updated', 'The student record has been updated successfully.');
+      } else {
+        await postPortal('/college/students', {
+          body: {
+            name: nameVal,
+            email: emailVal,
+            dept: deptVal,
+            year: yearVal,
+            cgpa: parseFloat(cgpaVal) || 0.0,
+            attendance: parseInt(attendanceVal, 10) || 0,
+          }
+        });
+        toast.success('Student Added', 'The new student has been added to the roster.');
+      }
       setModalVisible(false);
+      setEditingStudent(null);
       setNameVal('');
       setEmailVal('');
       setDeptVal('CSE');
@@ -150,6 +170,7 @@ export function StudentsView() {
       setAttendanceVal('85');
       refresh();
     } catch {
+      toast.error('Error', 'Failed to save student.');
       // silent — keep modal open so user can retry
     } finally {
       setSubmitting(false);
@@ -183,22 +204,67 @@ export function StudentsView() {
 
   const doClear = async () => {
     if (isBusy) return;
-    if (Platform.OS === 'web' && !window.confirm("Are you sure you want to clear all students?")) return;
-    setClearing(true);
-    try {
-      const base = getBaseUrl();
-      const { tokenStore } = await import('@/src/models/services/api');
-      const token = await tokenStore.getAccess();
-      const resp = await fetch(`${base}/api/college/students/clear`, {
-        method: 'DELETE',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (resp.ok) {
-        refresh();
-      } else {
-        alert('Failed to clear students');
+    setConfirmModal({
+      visible: true,
+      title: 'Clear All Students',
+      message: 'Are you sure you want to clear all students? This action cannot be undone.',
+      actionText: 'Clear All',
+      actionColor: '#EF4444',
+      onConfirm: async () => {
+        setConfirmModal(null);
+        setClearing(true);
+        try {
+          const base = getBaseUrl();
+          const { tokenStore } = await import('@/src/models/services/api');
+          const token = await tokenStore.getAccess();
+          const resp = await fetch(`${base}/api/college/students/clear`, {
+            method: 'DELETE',
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
+          if (resp.ok) {
+            toast.success('Success', 'Cleared all students successfully');
+            refresh();
+          } else {
+            toast.error('Error', 'Failed to clear students');
+          }
+        } catch { toast.error('Error', 'Clear error'); } finally { setClearing(false); }
       }
-    } catch { alert('Clear error'); } finally { setClearing(false); }
+    });
+  };
+
+  const doBulkDelete = async () => {
+    if (isBusy || selectedIds.size === 0) return;
+    setConfirmModal({
+      visible: true,
+      title: 'Delete Selected',
+      message: `Are you sure you want to delete ${selectedIds.size} selected students?`,
+      actionText: 'Delete',
+      actionColor: '#EF4444',
+      onConfirm: async () => {
+        setConfirmModal(null);
+        setClearing(true);
+        try {
+          const base = getBaseUrl();
+          const { tokenStore } = await import('@/src/models/services/api');
+          const token = await tokenStore.getAccess();
+          const resp = await fetch(`${base}/api/college/students/bulk-delete`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify({ ids: Array.from(selectedIds) })
+          });
+          if (resp.ok) {
+            toast.success('Success', 'Deleted selected students successfully');
+            setSelectedIds(new Set());
+            refresh();
+          } else {
+            toast.error('Error', 'Failed to delete selected students');
+          }
+        } catch { toast.error('Error', 'Delete error'); } finally { setClearing(false); }
+      }
+    });
   };
 
   const doUpload = () => {
@@ -206,7 +272,7 @@ export function StudentsView() {
     if (Platform.OS !== 'web') return; // File picker only web for now
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.csv';
+    input.accept = '.csv, .xlsx';
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
@@ -223,11 +289,12 @@ export function StudentsView() {
           body: fd,
         });
         if (resp.ok) {
+          toast.success('Upload Successful', 'Student data has been securely added to your roster.');
           refresh();
         } else {
-          alert('Failed to upload CSV');
+          toast.error('Upload Failed', 'Could not process the uploaded file.');
         }
-      } catch { alert('Upload error'); } finally { setUploading(false); }
+      } catch { toast.error('Error', 'Upload error'); } finally { setUploading(false); }
     };
     input.click();
   };
@@ -243,6 +310,12 @@ export function StudentsView() {
             placeholderTextColor={CC.dim} style={s.searchInput} />
         </View>
         <View style={{ flex: 1 }} />
+        {selectedIds.size > 0 && (
+          <Pressable style={[s.clearBtn, { marginRight: 8 }]} onPress={doBulkDelete} disabled={isBusy}>
+            <MaterialCommunityIcons name="delete" size={14} color="#EF4444" />
+            <Text style={s.clearBtnText}>Delete Selected ({selectedIds.size})</Text>
+          </Pressable>
+        )}
         <Pressable style={s.clearBtn} onPress={doClear} disabled={isBusy}>
           <MaterialCommunityIcons name="delete" size={14} color="#EF4444" />
           <Text style={s.clearBtnText}>{clearing ? 'Clearing…' : 'Clear All'}</Text>
@@ -253,9 +326,18 @@ export function StudentsView() {
         </Pressable>
         <Pressable style={s.uploadBtn} onPress={doUpload} disabled={isBusy}>
           <MaterialCommunityIcons name="upload" size={14} color="#fff" />
-          <Text style={s.uploadBtnText}>{uploading ? 'Uploading…' : 'Upload CSV'}</Text>
+          <Text style={s.uploadBtnText}>{uploading ? 'Uploading…' : 'Upload CSV / XLSX'}</Text>
         </Pressable>
-        <Pressable style={s.cta} onPress={() => setModalVisible(true)} disabled={isBusy}>
+        <Pressable style={s.cta} onPress={() => {
+          setEditingStudent(null);
+          setNameVal('');
+          setEmailVal('');
+          setDeptVal('CSE');
+          setYearVal('1st');
+          setCgpaVal('8.0');
+          setAttendanceVal('85');
+          setModalVisible(true);
+        }} disabled={isBusy}>
           <MaterialCommunityIcons name="plus" size={14} color="#fff" />
           <Text style={s.ctaText}>Add Student</Text>
         </Pressable>
@@ -279,6 +361,22 @@ export function StudentsView() {
       {/* Table */}
       <View style={s.table}>
         <View style={s.tableHead}>
+          <Pressable
+            style={{ width: 32, alignItems: 'center', justifyContent: 'center' }}
+            onPress={() => {
+              if (selectedIds.size === list.length && list.length > 0) {
+                setSelectedIds(new Set());
+              } else {
+                setSelectedIds(new Set(list.map(s => s.id)));
+              }
+            }}>
+            <MaterialCommunityIcons
+              name={list.length > 0 && selectedIds.size === list.length ? "checkbox-marked" : "checkbox-blank-outline"}
+              size={18}
+              color={list.length > 0 && selectedIds.size === list.length ? CC.primary : CC.dim}
+            />
+          </Pressable>
+          <Text style={[s.th, { width: 40, textAlign: 'center' }]}>S.No</Text>
           <Text style={[s.th, { flex: 2 }]}>Student</Text>
           <Text style={[s.th, { flex: 1 }]}>Dept</Text>
           <Text style={[s.th, { flex: 1 }]}>Year</Text>
@@ -293,10 +391,26 @@ export function StudentsView() {
             <MaterialCommunityIcons name="account-search" size={28} color={CC.dim} />
             <Text style={s.emptyText}>No students match these filters</Text>
           </View>
-        ) : list.map((st) => {
+        ) : list.map((st, index) => {
           const b = statusBadge(st.status);
+          const sno = (page - 1) * 20 + index + 1;
           return (
             <View key={st.id} style={s.row}>
+              <Pressable
+                style={{ width: 32, alignItems: 'center', justifyContent: 'center' }}
+                onPress={() => {
+                  const newSet = new Set(selectedIds);
+                  if (newSet.has(st.id)) newSet.delete(st.id);
+                  else newSet.add(st.id);
+                  setSelectedIds(newSet);
+                }}>
+                <MaterialCommunityIcons
+                  name={selectedIds.has(st.id) ? "checkbox-marked" : "checkbox-blank-outline"}
+                  size={18}
+                  color={selectedIds.has(st.id) ? CC.primary : CC.dim}
+                />
+              </Pressable>
+              <Text style={[s.cell, { width: 40, textAlign: 'center', color: CC.dim }]}>{sno}</Text>
               <View style={[{ flex: 2, flexDirection: 'row',
                               alignItems: 'center', gap: 10 }]}>
                 <Av initials={st.initials} size={32} color={st.color} />
@@ -331,8 +445,17 @@ export function StudentsView() {
                   <Text style={s.unplaced}>—</Text>
                 )}
               </View>
-              <Pressable style={[{ width: 32, alignItems: 'center' }]}>
-                <MaterialCommunityIcons name="dots-horizontal"
+              <Pressable style={[{ width: 32, alignItems: 'center' }]} onPress={() => {
+                setEditingStudent(st);
+                setNameVal(st.name);
+                setEmailVal(st.email);
+                setDeptVal(st.dept);
+                setYearVal(st.year);
+                setCgpaVal(String(st.cgpa));
+                setAttendanceVal(String(st.attendance));
+                setModalVisible(true);
+              }}>
+                <MaterialCommunityIcons name="pencil"
                   size={16} color={CC.muted} />
               </Pressable>
             </View>
@@ -365,7 +488,7 @@ export function StudentsView() {
         <View style={mst.overlay}>
           <View style={mst.modal}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <Text style={mst.title}>Add New Student</Text>
+              <Text style={mst.title}>{editingStudent ? 'Edit Student' : 'Add New Student'}</Text>
               <Pressable onPress={() => setModalVisible(false)} style={{ padding: 4 }}>
                 <MaterialCommunityIcons name="close" size={16} color="#fff" />
               </Pressable>
@@ -443,15 +566,42 @@ export function StudentsView() {
               <Pressable style={mst.cancelBtn} onPress={() => setModalVisible(false)}>
                 <Text style={{ color: CC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>Cancel</Text>
               </Pressable>
-              <Pressable style={mst.submitBtn} onPress={handleAddStudent} disabled={submitting}>
+              <Pressable style={mst.submitBtn} onPress={handleSaveStudent} disabled={submitting}>
                 <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
-                  {submitting ? 'Adding…' : 'Add Student'}
+                  {submitting ? 'Saving…' : editingStudent ? 'Save Changes' : 'Add Student'}
                 </Text>
               </Pressable>
             </View>
           </View>
         </View>
       </Modal>
+
+      {/* Confirm Modal */}
+      {confirmModal && confirmModal.visible && (
+        <Modal transparent animationType="fade" visible={true} onRequestClose={() => setConfirmModal(null)}>
+          <View style={mst.overlay}>
+            <View style={[mst.modal, { maxWidth: 380, gap: 10 }]}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={mst.title}>{confirmModal.title}</Text>
+                <Pressable onPress={() => setConfirmModal(null)}>
+                  <MaterialCommunityIcons name="close" size={20} color={CC.dim} />
+                </Pressable>
+              </View>
+              <Text style={{ color: CC.muted, fontFamily: FONTS.med, fontSize: 13.5, marginBottom: 16, marginTop: 4, lineHeight: 20 }}>
+                {confirmModal.message}
+              </Text>
+              <View style={mst.actions}>
+                <Pressable onPress={() => setConfirmModal(null)} style={mst.cancelBtn}>
+                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 }}>Cancel</Text>
+                </Pressable>
+                <Pressable onPress={confirmModal.onConfirm} style={[mst.submitBtn, { backgroundColor: confirmModal.actionColor || CC.primary }]}>
+                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 }}>{confirmModal.actionText}</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }
