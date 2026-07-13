@@ -32,10 +32,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
 from bson import ObjectId
-from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-load_dotenv(Path(__file__).parent / ".env")
+
 
 from core.db import db as _db
 

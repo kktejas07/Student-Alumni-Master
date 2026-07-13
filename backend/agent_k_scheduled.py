@@ -62,9 +62,8 @@ from croniter import croniter
 from fastapi import APIRouter, Body, Header, HTTPException
 from pydantic import BaseModel, Field, field_validator
 import pytz
-from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).parent / ".env")
+
 
 # Reuse the Agent K engine — plan + execute the run through the same
 # pipeline the manual /agent-k/run uses.

@@ -19,11 +19,7 @@ from datetime import datetime, timezone, timedelta, time as dt_time
 from typing import Any, Dict, List, Optional
 
 from bson import ObjectId
-from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Query
-
-load_dotenv(Path(__file__).parent / ".env")
-
 from core.db import db as _db
 
 logger = logging.getLogger("wallet")
