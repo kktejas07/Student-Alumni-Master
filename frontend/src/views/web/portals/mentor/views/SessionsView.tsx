@@ -130,10 +130,10 @@ const formatLocalDate = (d: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-export function SessionsView() {
+export function SessionsView({ demoMode = true, setDemoMode }: { demoMode?: boolean; setDemoMode?: (val: boolean) => void }) {
   const [tab, setTab] = useState<TabId>('upcoming');
   const user = useAuthStore((s) => s.user);
-  const [students, setStudents] = useState(INITIAL_STUDENTS);
+  const [students, setStudents] = useState(demoMode ? INITIAL_STUDENTS : []);
   const [bookingsList, setBookingsList] = useState<any[]>([]);
   const [studentsMap, setStudentsMap] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
@@ -157,7 +157,7 @@ export function SessionsView() {
         sMap[c.id] = c;
       });
       setStudentsMap(sMap);
-      setStudents(conns.length > 0 ? conns : INITIAL_STUDENTS);
+      setStudents(conns.length > 0 ? conns : (demoMode ? INITIAL_STUDENTS : []));
       setConnPage(p);
       setConnPages(connRes.pages || 1);
 
@@ -172,7 +172,7 @@ export function SessionsView() {
 
   useEffect(() => {
     loadData(1);
-  }, [user]);
+  }, [user, demoMode]);
 
   // Availability specific states
   const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>(DEFAULT_AVAILABILITY);
@@ -463,7 +463,7 @@ export function SessionsView() {
   }, [bookingsList, students, studentsMap, now]);
 
   const past = useMemo(() => {
-    if (bookingsList.length === 0) {
+    if (demoMode && bookingsList.length === 0) {
       return [
         {
           student: students[2] || INITIAL_STUDENTS[2],
