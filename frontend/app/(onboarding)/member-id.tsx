@@ -7,7 +7,7 @@
  *   • Tier badge (defaults to Gold)
  *   • Copy ID / Save Card / Share actions
  *
- * After "Continue" → /(auth)/email-verify → /(auth)/two-fa-setup → /welcome-dashboard
+ * After "Continue" → /(onboarding)/generating-experience → portal (role-based)
  */
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
@@ -81,7 +81,7 @@ export default function MemberId() {
   };
 
   const onContinue = () =>
-    router.push({ pathname: '/(auth)/email-verify', params: { email: user?.email || '', next: 'onboard' } } as any);
+    router.replace('/(onboarding)/generating-experience' as any);
 
   return (
     <AuthShell role={role}>
@@ -91,7 +91,7 @@ export default function MemberId() {
             if (role === 'college') {
               router.replace({ pathname: '/(onboarding)/college-onboard', params: { step: '5' } } as any);
             } else if (role === 'student') {
-              router.replace({ pathname: '/(onboarding)/student-onboard', params: { step: '6' } } as any);
+              router.replace({ pathname: '/(onboarding)/student-onboard', params: { step: '7' } } as any);
             } else if (role === 'alumni') {
               router.replace({ pathname: '/(onboarding)/alumni-onboard', params: { step: '5' } } as any);
             } else if (role === 'mentor') {
@@ -171,7 +171,7 @@ export default function MemberId() {
         </View>
 
         <View style={{ width: '100%', marginTop: 18 }}>
-          <PrimaryButton label="Continue to Email Verification →" onPress={onContinue} />
+          <PrimaryButton label="Continue to Your Dashboard →" onPress={onContinue} />
         </View>
       </View>
     </AuthShell>
