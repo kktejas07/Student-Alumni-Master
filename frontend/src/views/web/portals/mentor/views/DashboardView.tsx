@@ -91,7 +91,7 @@ export function DashboardView({ onNav, demoMode = true, setDemoMode }: Props) {
   }, [user]);
 
   const TODAY_SESSIONS = data?.todaySessions || [];
-  const STUDENTS = students;
+  const STUDENTS = students.length > 0 ? students : (demoMode ? MOCK.STUDENTS : []);
   const RATING_DIST = demoMode ? (data?.ratingDist || []) : [
     { stars: 5, pct: 0, count: 0 },
     { stars: 4, pct: 0, count: 0 },

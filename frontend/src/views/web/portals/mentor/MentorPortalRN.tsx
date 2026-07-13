@@ -170,7 +170,7 @@ export default function MentorPortalRN() {
             {active === 'dashboard' && <DashboardView onNav={(id) => setActive(id as NavId)} demoMode={demoMode} setDemoMode={setDemoMode} />}
             {active === 'ai-studio' && <MentorAIStudioView />}
             {active === 'students'  && <ConnectionsView />}
-            {active === 'sessions'  && <SessionsView />}
+            {active === 'sessions'  && <SessionsView demoMode={demoMode} setDemoMode={setDemoMode} />}
             {active === 'requests'  && <RequestsView decisions={decisions} onSetDecision={(id, d) => setDecisions(prev => ({ ...prev, [id]: d }))} demoMode={demoMode} />}
             {active === 'network'   && <NetworkView />}
             {active === 'earnings'  && <EarningsView demoMode={demoMode} setDemoMode={setDemoMode} />}
