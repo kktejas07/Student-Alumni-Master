@@ -7672,7 +7672,18 @@ async def student_dashboard_summary(user: dict = Depends(get_current_user)):
         connections = sessions = applications = streak = 0
         try:
             connections = await db.connections.count_documents({
-                "$or": [{"from_id": uid}, {"to_id": uid}], "status": "accepted",
+                "$or": [
+                    {"from_id": uid},
+                    {"to_id": uid},
+                    {"a": uid},
+                    {"b": uid},
+                    {"mentor_id": uid},
+                    {"user_id": uid},
+                    {"student_id": uid},
+                    {"from_user": uid},
+                    {"to_user": uid}
+                ],
+                "status": {"$in": ["accepted", "active"]},
             })
         except Exception:
             pass
