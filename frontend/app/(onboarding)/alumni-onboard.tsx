@@ -264,7 +264,13 @@ export default function AlumniOnboard() {
           // If they picked "Become a Mentor" auto-flag wants_to_mentor
           wants_to_mentor:    nextChapter === 'become_mentor',
         },
-        career_path: 'job',
+        // ★ FIX: map "Next Chapter" selection to a real career_path
+        career_path: (
+          nextChapter === 'higher_education' ? 'higher_education' :
+          nextChapter === 'build_startup'    ? 'startup' :
+          nextChapter === 'build_business'   ? 'business' :
+          'job' // covers become_mentor, level_up_career, give_back, explore_options
+        ),
         interests:   domain,
         skills:      [...tech, ...biz, ...soft],
         bio:         bio || `${jobTitle || 'Alumnus'} at ${company || ''} — ${college || ''} class of ${gy}`,
