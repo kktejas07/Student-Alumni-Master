@@ -75,7 +75,8 @@ async def get_claude_chat(session_id: str, system_message: str):
                 return '{"summary": "Mock daily brief summary", "focus_areas": ["Communication", "Technical prep"], "action_items": [{"id": "a1", "title": "Mock action", "description": "Mock description", "completed": false}], "industry_news": [{"id": "n1", "headline": "Mock news", "summary": "Mock", "url": "https://example.com"}]}'
             if "chat" in self.sess_id.lower() or "financial" in self.sess_id.lower() or "stay" in self.sess_id.lower() or "rentals" in self.sess_id.lower() or "You are speaking with" in self.sys_msg:
                 user_text = getattr(msg, "text", str(msg))
-                clean_text = user_text.replace("[financial] ", "").replace("[career] ", "").strip()
+                import re
+                clean_text = re.sub(r"^\[.*?\]\s*", "", user_text).strip()
                 if "/scholarships" in clean_text.lower():
                     return "Here are some top scholarships for you:\n\n1. **Global Tech Leaders Scholarship** - $5,000 for Computer Science students.\n2. **Diversity in STEM Grant** - $3,500 (Deadline: Next month).\n3. **University Merit Award** - $2,000 based on GPA.\n\nReply with a scholarship name to learn more or apply!"
                 elif "/loans" in clean_text.lower():
@@ -105,7 +106,31 @@ async def get_claude_chat(session_id: str, system_message: str):
                 elif clean_text.lower() in ("no", "n", "nope", "thanks", "thank you"):
                     return "You're very welcome! Feel free to ask if you need anything else. Have a great day!"
                 else:
-                    return f"This is a mock AI response to: '{clean_text}'. Please configure EMERGENT_LLM_KEY for real, intelligent AI responses."
+                    try:
+                        import aiohttp
+                        import urllib.parse
+                        
+                        # Use a free, zero-config text generation API that works nicely within asyncio
+                        # and avoids the Windows multiprocessing crashes caused by g4f.
+                        system_encoded = urllib.parse.quote(self.sys_msg)
+                        prompt_encoded = urllib.parse.quote(clean_text)
+                        
+                        url = f"https://text.pollinations.ai/{prompt_encoded}?system={system_encoded}"
+                        
+                        async with aiohttp.ClientSession() as session:
+                            async with session.get(url, headers={"User-Agent": "Mozilla/5.0"}) as response:
+                                if response.status == 200:
+                                    ai_text = await response.text()
+                                    if ai_text and ai_text.strip():
+                                        # Remove pollinations.ai ad footer
+                                        ai_text = ai_text.split("🌸 **Ad** 🌸")[0]
+                                        ai_text = ai_text.split("**Support Pollinations.AI:**")[0]
+                                        ai_text = ai_text.split("---")[0]
+                                        return ai_text.strip()
+                        
+                        return f"I am currently operating in limited offline mode. I can only handle specific commands like /housing, /vehicle, or /loans."
+                    except Exception as e:
+                        return f"I am currently operating in limited offline mode. I can only handle specific commands like /housing, /vehicle, or /loans."
             return '{"summary": "Mock summary", "milestones": [{"id": "m1", "title": "Mock Milestone", "timeframe": "0-3 months", "actions": [], "milestone_type": "profile"}], "recommended_skills": ["Python"], "recommended_courses": [], "mentor_traits": ["Helpful"], "target_role": "Software Engineer", "target_company_type": "Tech", "progress_pct": 10, "skill_scores": {"Technical Excellence": 80, "Professional Communication": 80, "Personal Brand": 80, "Leadership & Collaboration": 80, "Career Preparation": 80, "Industry Presence": 80}, "weekly_plan": [], "key_projects": [], "book_recommendations": []}'
     if not os.environ.get("EMERGENT_LLM_KEY"):
         return DummyChat(system_message, session_id)
