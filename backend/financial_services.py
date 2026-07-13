@@ -51,10 +51,9 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from bson import ObjectId
-from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-load_dotenv(Path(__file__).parent / ".env")
+
 
 from db import client as _mongo
 _db = _mongo[os.environ["DB_NAME"]]
