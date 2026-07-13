@@ -15,9 +15,10 @@ export type Decision = 'pending' | 'accepted' | 'declined';
 export interface RequestsViewProps {
   decisions: Record<number, Decision>;
   onSetDecision: (id: number, d: Decision) => void;
+  demoMode?: boolean;
 }
 
-export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
+export function RequestsView({ decisions, onSetDecision, demoMode = true }: RequestsViewProps) {
   const [realBookings, setRealBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -58,7 +59,7 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
 
   const allRequests = useMemo(() => {
     // 1. Map mock requests
-    const mocks = SESSION_REQUESTS.map(req => {
+    const mocks = demoMode ? SESSION_REQUESTS.map(req => {
       const d = decisions[req.id] || 'pending';
       return {
         ...req,
@@ -66,7 +67,7 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
         status: d === 'accepted' ? 'confirmed' : d === 'declined' ? 'cancelled' : 'pending',
         isMock: true
       };
-    });
+    }) : [];
 
     // 2. Map real bookings
     const reals = realBookings.map(b => {
@@ -105,7 +106,7 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
     });
 
     return [...reals, ...mocks];
-  }, [realBookings, decisions]);
+  }, [realBookings, decisions, demoMode]);
 
   const aiScore = (topic: string) => {
     const k = topic.toLowerCase();
@@ -120,9 +121,13 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
     let accepted = 0;
     let declined = 0;
     for (const req of allRequests) {
-      if (req.status === 'pending') pending++;
-      else if (req.status === 'confirmed') accepted++;
-      else if (req.status === 'cancelled') declined++;
+      if (req.status === 'pending') {
+        pending++;
+      } else if (req.status === 'confirmed' || req.status === 'accepted' || req.status === 'completed') {
+        accepted++;
+      } else {
+        declined++;
+      }
     }
     return { pending, accepted, declined };
   }, [allRequests]);
@@ -188,7 +193,22 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
                 </View>
               ) : (
                 <View style={{ marginTop: 12, alignSelf: 'flex-start' }}>
-                  <Badge label={req.status === 'confirmed' ? 'Accepted ✓' : 'Declined'} color={req.status === 'confirmed' ? 'green' : 'red'} />
+                  <Badge 
+                    label={
+                      req.status === 'confirmed' || req.status === 'accepted'
+                        ? 'Accepted ✓'
+                        : req.status === 'completed'
+                        ? 'Completed ✓'
+                        : req.status === 'expired'
+                        ? 'Expired'
+                        : 'Declined'
+                    }
+                    color={
+                      req.status === 'confirmed' || req.status === 'accepted' || req.status === 'completed'
+                        ? 'green'
+                        : 'red'
+                    }
+                  />
                 </View>
               )}
             </View>
