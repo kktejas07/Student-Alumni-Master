@@ -2348,6 +2348,19 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             {"alumni_info.interests": {"$in": my_skills}},
             {"skills": {"$in": my_skills}}
         ]
+
+    fetch_limit = max(0, limit - len(connected_alumni))
+    fetched_alumni = await fetch_users_with_mock_limit(alumni_query, fetch_limit, mock_limit=5, proj=proj)
+    alumni_users = connected_alumni + fetched_alumni
+    
+    # Fallback if strict interest matching yielded nothing
+    if len(alumni_users) < 3:
+        fallback_query = {"role": "alumni", "_id": {"$nin": [ObjectId(i) for i in seen_alumni] + [a["_id"] for a in alumni_users]}}
+        fallback_limit = max(0, limit - len(alumni_users))
+        fetched_fallback = await fetch_users_with_mock_limit(fallback_query, fallback_limit, mock_limit=5, proj=proj)
+        alumni_users.extend(fetched_fallback)
+
+    for a in alumni_users:
         other_id = str(a["_id"])
         if other_id == me_id_str:
             continue

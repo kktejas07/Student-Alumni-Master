@@ -3738,52 +3738,7 @@ async def my_bookings(user: dict = Depends(get_current_user)):
     items = await db.bookings.find(query).sort("slot_start_iso", -1).to_list(100)
     
     # If no bookings exist in database for this user, auto-seed a few so they have interactive sessions
-    if not items:
-        try:
-            if user["role"] == "mentor":
-                # Find some students in DB
-                students = await db.users.find({"role": "student"}).to_list(3)
-                if students:
-                    for i, student in enumerate(students):
-                        slot_start = datetime.now(timezone.utc) + timedelta(days=i+2, hours=10)
-                        await db.bookings.insert_one({
-                            "student_id": str(student["_id"]),
-                            "student_name": student.get("full_name", "Student"),
-                            "mentor_id": user_id_str,
-                            "mentor_name": user.get("full_name", "Mentor"),
-                            "slot_start_iso": slot_start.isoformat(),
-                            "slot_end_iso": (slot_start + timedelta(minutes=45)).isoformat(),
-                            "scheduled_at": slot_start,
-                            "topic": ["System Design Mock Interview", "Research Career Paths Discussion", "Investor Pitch Feedback"][i % 3],
-                            "notes": f"Auto-seeded session #{i+1}",
-                            "status": "confirmed",
-                            "created_at": datetime.now(timezone.utc),
-                        })
-            else:
-                # Find some approved mentors in DB
-                mentors = await db.users.find({"role": "mentor", "mentor_status": "approved"}).to_list(3)
-                if not mentors:
-                    mentors = await db.users.find({"role": "mentor"}).to_list(3)
-                if mentors:
-                    for i, mentor in enumerate(mentors):
-                        slot_start = datetime.now(timezone.utc) + timedelta(days=i+2, hours=10)
-                        await db.bookings.insert_one({
-                            "student_id": user_id_str,
-                            "student_name": user.get("full_name", "Student"),
-                            "mentor_id": str(mentor["_id"]),
-                            "mentor_name": mentor.get("full_name", "Mentor"),
-                            "slot_start_iso": slot_start.isoformat(),
-                            "slot_end_iso": (slot_start + timedelta(minutes=45)).isoformat(),
-                            "scheduled_at": slot_start,
-                            "topic": ["System Design Mock Interview", "Research Career Paths Discussion", "Investor Pitch Feedback"][i % 3],
-                            "notes": f"Auto-seeded session #{i+1}",
-                            "status": "confirmed",
-                            "created_at": datetime.now(timezone.utc),
-                        })
-            # Re-fetch after inserting
-            items = await db.bookings.find(query).sort("slot_start_iso", -1).to_list(100)
-        except Exception as e:
-            print(f"Error auto-seeding bookings: {e}")
+    # (Disabled to allow manual requests testing)
 
     other_ids = set()
     for item in items:

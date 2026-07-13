@@ -63,7 +63,6 @@ export default function MentorPortalRN() {
   const logout = useAuthStore((st) => st.logout);
   const user = useAuthStore((st) => st.user) as any;
 
-  const params = useLocalSearchParams();
   const [demoMode, setDemoMode] = useState(true);
   const [active, setActive] = useState<NavId>('dashboard');
 
@@ -172,7 +171,7 @@ export default function MentorPortalRN() {
             {active === 'ai-studio' && <MentorAIStudioView />}
             {active === 'students'  && <ConnectionsView />}
             {active === 'sessions'  && <SessionsView />}
-            {active === 'requests'  && <RequestsView decisions={decisions} onSetDecision={(id, d) => setDecisions(prev => ({ ...prev, [id]: d }))} />}
+            {active === 'requests'  && <RequestsView decisions={decisions} onSetDecision={(id, d) => setDecisions(prev => ({ ...prev, [id]: d }))} demoMode={demoMode} />}
             {active === 'network'   && <NetworkView />}
             {active === 'earnings'  && <EarningsView demoMode={demoMode} setDemoMode={setDemoMode} />}
             {active === 'feedback'  && <FeedbackView demoMode={demoMode} setDemoMode={setDemoMode} />}
