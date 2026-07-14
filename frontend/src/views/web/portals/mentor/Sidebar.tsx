@@ -136,7 +136,7 @@ export function Sidebar({
         {!collapsed && <Text style={s.kicker}>MAIN MENU</Text>}
         {items.map((n) => {
           const isActive = active === n.id;
-          const tint = isActive ? '#fff' : n.locked ? MC.dim : MC.textSec;
+          const tint = isActive ? MC.tealP : n.locked ? MC.dim : MC.muted;
           return (
             <Pressable
               key={n.id}
