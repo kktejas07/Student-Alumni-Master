@@ -12,7 +12,7 @@ import { useRouter } from 'expo-router';
 import {
   LayoutDashboard, Sparkles, Briefcase, Users, Calendar, Wallet,
   Tag, CreditCard, GraduationCap, Home, User, ExternalLink, LogOut,
-  CalendarCheck, FileText, BookOpen,
+  CalendarCheck, FileText, BookOpen, Lock
 } from './iconShims';
 import { SC, FONTS } from './tokens';
 import { GRADS } from './gradients';
@@ -27,21 +27,21 @@ export type StudentNavId =
   | 'financial' | 'deals' | 'wallet' | 'higher-ed' | 'rentals' | 'courses' | 'profile'
   | 'my-bookings' | 'my-applications' | 'my-workshops';
 
-export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: boolean }> = [
+export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: boolean; locked?: boolean }> = [
   { id: 'dashboard',       label: 'Dashboard',          Icon: LayoutDashboard },
   { id: 'career-ai',       label: 'Alumni Tools',       Icon: Sparkles, spark: true },
   { id: 'internships',     label: 'Internships & Jobs', Icon: Briefcase },
   { id: 'my-applications', label: 'My Applications',    Icon: FileText },
-  { id: 'network',         label: 'Network',            Icon: Users },
-  { id: 'my-bookings',     label: 'My Bookings',        Icon: CalendarCheck },
-  { id: 'events',          label: 'Events',             Icon: Calendar },
+  { id: 'network',         label: 'Network',            Icon: Users, locked: true },
+  { id: 'my-bookings',     label: 'My Bookings',        Icon: CalendarCheck, locked: true },
+  { id: 'events',          label: 'Events',             Icon: Calendar, locked: true },
   { id: 'my-workshops',    label: 'My Workshops',       Icon: BookOpen },
   { id: 'courses',         label: 'Courses',            Icon: BookOpen },
-  { id: 'financial',       label: 'Financial',          Icon: Wallet },
-  { id: 'deals',           label: 'Deals & Offers',     Icon: Tag },
-  { id: 'wallet',          label: 'SA Wallet',          Icon: CreditCard },
+  { id: 'financial',       label: 'Financial',          Icon: Wallet, locked: true },
+  { id: 'deals',           label: 'Deals & Offers',     Icon: Tag, locked: true },
+  { id: 'wallet',          label: 'SA Wallet',          Icon: CreditCard, locked: true },
   { id: 'higher-ed',       label: 'Higher Education',   Icon: GraduationCap },
-  { id: 'rentals',         label: 'Rentals',            Icon: Home },
+  { id: 'rentals',         label: 'Rentals',            Icon: Home, locked: true },
   { id: 'profile',         label: 'Profile',            Icon: User },
 ];
 
@@ -118,12 +118,14 @@ export function Sidebar({
         accessibilityRole={Platform.OS === 'web' ? ('navigation' as any) : undefined}
         accessibilityLabel="Primary alumni navigation"
       >
-        {NAV.map(({ id, label, Icon, spark }, i) => {
+        {NAV.map(({ id, label, Icon, spark, locked }, i) => {
           const isActive = id === active;
           return (
             <FadeInView key={id} delay={150 + i * 35} distance={8}>
               <PressScale
-                onPress={() => onNav(id)}
+                onPress={() => {
+                  if (!locked) onNav(id);
+                }}
                 accessibilityRole="tab"
                 accessibilityLabel={label}
                 accessibilityState={{ selected: isActive }}
@@ -138,12 +140,22 @@ export function Sidebar({
                   >
                     {spark ? <SparkIcon Icon={Icon} size={16} color="#fff" /> : <Icon size={16} color="#fff" />}
                     <Text style={[s.navLabel, s.navLabelActive]} numberOfLines={1}>{label}</Text>
-                    <View style={s.activeDot} />
+                    {locked && (
+                      <View style={{ marginLeft: 'auto' }}>
+                        <Lock size={14} color="#fff" />
+                      </View>
+                    )}
+                    {!locked && <View style={s.activeDot} />}
                   </LinearGradient>
                 ) : (
-                  <View style={s.navItem}>
+                  <View style={[s.navItem, locked && { opacity: 0.6 }]}>
                     {spark ? <SparkIcon Icon={Icon} size={16} color={SC.muted} /> : <Icon size={16} color={SC.muted} />}
                     <Text style={s.navLabel} numberOfLines={1}>{label}</Text>
+                    {locked && (
+                      <View style={{ marginLeft: 'auto' }}>
+                        <Lock size={14} color={SC.muted} />
+                      </View>
+                    )}
                   </View>
                 )}
               </PressScale>

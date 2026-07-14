@@ -4,3 +4,4 @@
  * differs (purple → orange) at the consumer-style level.
  */
 export * from '../student/iconShims';
+export const Lock            = make('lock-outline');
