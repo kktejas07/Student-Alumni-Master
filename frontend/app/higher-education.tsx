@@ -283,21 +283,23 @@ export default function HigherEducationScreen() {
             <View style={s.grid}>
               {scholarships.map((sch) => (
                 <View key={sch.id} style={[s.card, { borderColor: '#10B98155' }]}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <View style={[s.pill, { backgroundColor: 'rgba(16,185,129,0.15)' }]}>
-                      <Text style={[s.pillText, { color: '#34D399' }]}>{sch.degree_levels.join('/')}</Text>
+                  <View style={{ flex: 1, gap: 10 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                      <View style={[s.pill, { backgroundColor: 'rgba(16,185,129,0.15)' }]}>
+                        <Text style={[s.pillText, { color: '#34D399' }]}>{sch.degree_levels.join('/')}</Text>
+                      </View>
+                      <View style={[s.pill, { backgroundColor: 'rgba(124,58,237,0.20)' }]}>
+                        <Text style={[s.pillText, { color: '#C4B5FD' }]}>{sch.country}</Text>
+                      </View>
                     </View>
-                    <View style={[s.pill, { backgroundColor: 'rgba(124,58,237,0.20)' }]}>
-                      <Text style={[s.pillText, { color: '#C4B5FD' }]}>{sch.country}</Text>
+                    <Text style={s.cardTitle}>{sch.name}</Text>
+                    <Text style={s.cardSub}>{sch.funder}</Text>
+                    <View style={s.statsGrid}>
+                      <Stat label="Award" value={fmtINR(sch.award_inr)} good />
+                      <Stat label="Coverage" value={sch.coverage.length > 22 ? sch.coverage.slice(0, 22) + '…' : sch.coverage} />
+                      <Stat label="Deadline" value={new Date(sch.deadline).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })} />
+                      <Stat label="Eligibility" value={sch.eligibility.length > 22 ? sch.eligibility.slice(0, 22) + '…' : sch.eligibility} />
                     </View>
-                  </View>
-                  <Text style={s.cardTitle}>{sch.name}</Text>
-                  <Text style={s.cardSub}>{sch.funder}</Text>
-                  <View style={s.statsGrid}>
-                    <Stat label="Award" value={fmtINR(sch.award_inr)} good />
-                    <Stat label="Coverage" value={sch.coverage.length > 22 ? sch.coverage.slice(0, 22) + '…' : sch.coverage} />
-                    <Stat label="Deadline" value={new Date(sch.deadline).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })} />
-                    <Stat label="Eligibility" value={sch.eligibility.length > 22 ? sch.eligibility.slice(0, 22) + '…' : sch.eligibility} />
                   </View>
                   <Pressable style={[s.applyBtn, { backgroundColor: '#10B981' }]} onPress={() => Linking.openURL(sch.url)}>
                     <Text style={s.applyBtnText}>Apply →</Text>
@@ -445,81 +447,85 @@ function ProgrammeCard({
   const overflow = (p.tags || []).length - tags.length;
   return (
     <View style={[s.card, selected && { borderColor: themeColor, borderWidth: 2 }]}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <View style={{ flexDirection: 'row', gap: 6 }}>
-          <View style={[s.pill, { backgroundColor: 'rgba(59,130,246,0.20)' }]}>
-            <Text style={[s.pillText, { color: '#93C5FD' }]}>{p.degree}</Text>
-          </View>
-          <View style={[s.pill, { backgroundColor: 'rgba(16,185,129,0.20)' }]}>
-            <Text style={[s.pillText, { color: '#86EFAC' }]}>{p.country}</Text>
-          </View>
-        </View>
-        <View style={[s.matchPill, { backgroundColor: tier.bg }]}>
-          <MaterialCommunityIcons name="sparkles" size={11} color={tier.fg} />
-          <Text style={[s.matchText, { color: tier.fg }]}>{p.match}% match</Text>
-        </View>
-      </View>
- 
-      <Text style={s.cardTitle} numberOfLines={2}>{p.name}</Text>
-      <Text style={s.cardSub}>{p.institution}</Text>
- 
-      <View style={s.statsGrid}>
-        <Stat label="Duration" value={p.duration} />
-        <Stat label="Fee" value={p.fee} good={p.fee.toLowerCase().includes('funded') || p.fee_amount === 0} />
-        <Stat label="Mode" value={p.mode} />
-        <Stat label="Intake" value={p.intake} />
-      </View>
- 
-      {tags.length > 0 && (
-        <View style={s.tagRow}>
-          {tags.map((t) => {
-            const m = TAG_META[t]; if (!m) return null;
-            return (
-              <View key={t} style={[s.tagPill, { backgroundColor: m.color + '22', borderColor: m.color + '66' }]}>
-                <MaterialCommunityIcons name={m.icon} size={10} color={m.color} />
-                <Text style={[s.tagText, { color: m.color }]}>{m.label}</Text>
-              </View>
-            );
-          })}
-          {overflow > 0 && (
-            <View style={[s.tagPill, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: C.border }]}>
-              <Text style={[s.tagText, { color: C.text2 }]}>+{overflow}</Text>
+      <View style={{ flex: 1, gap: 10 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View style={{ flexDirection: 'row', gap: 6 }}>
+            <View style={[s.pill, { backgroundColor: 'rgba(59,130,246,0.20)' }]}>
+              <Text style={[s.pillText, { color: '#93C5FD' }]}>{p.degree}</Text>
             </View>
-          )}
+            <View style={[s.pill, { backgroundColor: 'rgba(16,185,129,0.20)' }]}>
+              <Text style={[s.pillText, { color: '#86EFAC' }]}>{p.country}</Text>
+            </View>
+          </View>
+          <View style={[s.matchPill, { backgroundColor: tier.bg }]}>
+            <MaterialCommunityIcons name="sparkles" size={11} color={tier.fg} />
+            <Text style={[s.matchText, { color: tier.fg }]}>{p.match}% match</Text>
+          </View>
         </View>
-      )}
- 
-      <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-        {appId ? (
-          <Pressable
-            style={[s.applyBtn, { flex: 1, backgroundColor: 'rgba(52,211,153,0.15)', borderColor: '#34D399', borderWidth: 1 }]}
-            onPress={() => router.push(`/applications/${appId}` as any)}
-          >
-            <Text style={[s.applyBtnText, { color: '#34D399' }]}>Applied ✓</Text>
-          </Pressable>
-        ) : (
-          <Pressable style={[s.applyBtn, { flex: 1, backgroundColor: activeTabColor }]} onPress={onApply}>
-            <Text style={s.applyBtnText}>Apply →</Text>
-          </Pressable>
+   
+        <Text style={s.cardTitle} numberOfLines={2}>{p.name}</Text>
+        <Text style={s.cardSub}>{p.institution}</Text>
+   
+        <View style={s.statsGrid}>
+          <Stat label="Duration" value={p.duration} />
+          <Stat label="Fee" value={p.fee} good={p.fee.toLowerCase().includes('funded') || p.fee_amount === 0} />
+          <Stat label="Mode" value={p.mode} />
+          <Stat label="Intake" value={p.intake} />
+        </View>
+   
+        {tags.length > 0 && (
+          <View style={s.tagRow}>
+            {tags.map((t) => {
+              const m = TAG_META[t]; if (!m) return null;
+              return (
+                <View key={t} style={[s.tagPill, { backgroundColor: m.color + '22', borderColor: m.color + '66' }]}>
+                  <MaterialCommunityIcons name={m.icon} size={10} color={m.color} />
+                  <Text style={[s.tagText, { color: m.color }]}>{m.label}</Text>
+                </View>
+              );
+            })}
+            {overflow > 0 && (
+              <View style={[s.tagPill, { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: C.border }]}>
+                <Text style={[s.tagText, { color: C.text2 }]}>+{overflow}</Text>
+              </View>
+            )}
+          </View>
         )}
-        <Pressable style={s.detailsBtn} onPress={onDetails}>
-          <Text style={s.detailsBtnText}>Eligibility</Text>
-        </Pressable>
       </View>
+ 
+      <View style={{ gap: 6, marginTop: 8 }}>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {appId ? (
+            <Pressable
+              style={[s.applyBtn, { flex: 1, backgroundColor: 'rgba(52,211,153,0.15)', borderColor: '#34D399', borderWidth: 1 }]}
+              onPress={() => router.push(`/applications/${appId}` as any)}
+            >
+              <Text style={[s.applyBtnText, { color: '#34D399' }]}>Applied ✓</Text>
+            </Pressable>
+          ) : (
+            <Pressable style={[s.applyBtn, { flex: 1, backgroundColor: activeTabColor }]} onPress={onApply}>
+              <Text style={s.applyBtnText}>Apply →</Text>
+            </Pressable>
+          )}
+          <Pressable style={s.detailsBtn} onPress={onDetails}>
+            <Text style={s.detailsBtnText}>Eligibility</Text>
+          </Pressable>
+        </View>
 
-      <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
-        <Pressable style={[s.draftBtn, { backgroundColor: themeColor + '1a', borderColor: themeColor + '66' }]} onPress={onDraftSOP}>
-          <MaterialCommunityIcons name="file-document-edit" size={12} color={themeColor} />
-          <Text style={[s.draftBtnText, { color: themeColor }]}>Draft SOP</Text>
-        </Pressable>
-        <Pressable style={[s.draftBtn, { backgroundColor: themeColor + '1a', borderColor: themeColor + '66' }]} onPress={onCoverLetter}>
-          <MaterialCommunityIcons name="email-edit" size={12} color={themeColor} />
-          <Text style={[s.draftBtnText, { color: themeColor }]}>Cover letter</Text>
-        </Pressable>
-        <Pressable style={[s.compareChk, selected && { borderColor: themeColor + '8c' }]} onPress={onCompareToggle}>
-          <MaterialCommunityIcons name={selected ? 'checkbox-marked' : 'checkbox-blank-outline'} size={14} color={selected ? themeColor : C.text3} />
-          <Text style={[s.compareChkText, selected && { color: themeColor }]}>Compare</Text>
-        </Pressable>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Pressable style={[s.draftBtn, { backgroundColor: themeColor + '1a', borderColor: themeColor + '66' }]} onPress={onDraftSOP}>
+            <MaterialCommunityIcons name="file-document-edit" size={12} color={themeColor} />
+            <Text style={[s.draftBtnText, { color: themeColor }]}>Draft SOP</Text>
+          </Pressable>
+          <Pressable style={[s.draftBtn, { backgroundColor: themeColor + '1a', borderColor: themeColor + '66' }]} onPress={onCoverLetter}>
+            <MaterialCommunityIcons name="email-edit" size={12} color={themeColor} />
+            <Text style={[s.draftBtnText, { color: themeColor }]}>Cover letter</Text>
+          </Pressable>
+          <Pressable style={[s.compareChk, selected && { borderColor: themeColor + '8c' }]} onPress={onCompareToggle}>
+            <MaterialCommunityIcons name={selected ? 'checkbox-marked' : 'checkbox-blank-outline'} size={14} color={selected ? themeColor : C.text3} />
+            <Text style={[s.compareChkText, selected && { color: themeColor }]}>Compare</Text>
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -735,7 +741,7 @@ function AIToolsModal({
           </View>
 
           {/* Tool switcher */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingBottom: 8 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingBottom: 8, alignItems: 'center' }} style={{ flexGrow: 0 }}>
             {(['sop','cv','cover','lor','elig','profile'] as ToolType[]).map((t) => (
               <Pressable key={t}
                 style={[s.toolChip, tool.type === t && { backgroundColor: activeTabColor, borderColor: activeTabBorder }]}
@@ -968,7 +974,7 @@ const s = StyleSheet.create({
     borderColor: C.border, borderWidth: 1,
   },
   toolChip: {
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderColor: C.border, borderWidth: 1,
   },

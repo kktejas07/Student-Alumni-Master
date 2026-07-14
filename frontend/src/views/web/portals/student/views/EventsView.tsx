@@ -13,17 +13,22 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 type Ev = { id: string; title: string; date: string; mode: string; city: string; cat: string; attending: number; capacity: number; kind: string; price?: number; accent: string; registered: boolean; description?: string; tags?: string[]; spotsLeft?: number; };
 const FALLBACK = { items: [] as Ev[] };
 
-const FILTERS = ['All', 'Hackathon', 'Codethon', 'Workshop', 'Tech Talk', 'Training', 'Founder Talk', 'Meetup', 'Fest'];
+const FILTERS = ['All', 'Hackathon', 'Codethon', 'Workshop', 'Tech Talk', 'Training', 'Founder Talk', 'Meetup', 'Fest', 'Webinar', 'Panel', 'Q&A', 'Interview', 'Spotlight'];
 
 const CATEGORY_MAP: Record<string, string[]> = {
   'hackathon': ['hackathon', 'codethon'],
   'codethon': ['hackathon', 'codethon'],
   'workshop': ['workshop', 'training'],
-  'tech talk': ['talk', 'workshop'],
+  'tech talk': ['tech talk', 'tech_talk', 'workshop'],
   'training': ['workshop', 'training'],
-  'founder talk': ['startup', 'talk'],
-  'meetup': ['networking'],
+  'founder talk': ['founder talk', 'founder_talk', 'spotlight'],
+  'meetup': ['meetup', 'networking'],
   'fest': ['fest'],
+  'webinar': ['webinar', 'online'],
+  'panel': ['panel', 'panel discussion'],
+  'q&a': ['q&a', 'qa', 'q&a session'],
+  'interview': ['interview', 'mock interview'],
+  'spotlight': ['spotlight', 'founder talk', 'founder_talk'],
 };
 
 const catColorMap: Record<string, any> = {
@@ -159,6 +164,7 @@ export function EventsView() {
       const res = await request<any>(`/student/events?page=${p}&per_page=24`);
       setEventsData(res);
       setEventsPages(res.pages || 1);
+      setEventsPage(p);
     } catch { setEventsData({ items: [] }); }
     finally { setEventsLoading(false); }
   }, []);
@@ -207,7 +213,7 @@ export function EventsView() {
     <View>
       <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
         {FILTERS.map((f) => (
-          <Pressable key={f} onPress={() => setFilter(f)} style={[s.chip, filter === f && s.chipOn]}>
+          <Pressable key={f} onPress={() => { setFilter(f); fetchEvents(1); }} style={[s.chip, filter === f && s.chipOn]}>
             <Text style={{ color: filter === f ? '#fff' : SC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>{f}</Text>
           </Pressable>
         ))}
@@ -307,7 +313,7 @@ export function EventsView() {
               </View>
 
               {/* Divider */}
-              <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginVertical: 4 }} />
+              <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginVertical: 4, marginTop: 'auto' }} />
 
               {/* Card Footer: Spots left & Register Button */}
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>

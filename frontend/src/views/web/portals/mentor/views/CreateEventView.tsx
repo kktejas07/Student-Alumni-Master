@@ -8,7 +8,7 @@ import { Sparkles, Plus, Calendar, Users, ChevronDown, ChevronLeft, ChevronRight
 import { MC, FONTS } from '../tokens';
 import { Badge } from '../atoms';
 import { MY_EVENTS as INITIAL_EVENTS, MentorEvent } from '../data';
-import { usePortalData, postPortal } from '@/src/lib/portalApi';
+import { usePortalData, postPortal, putPortal, deletePortal } from '@/src/lib/portalApi';
 import { useToast } from '@/src/views/components';
 
 const MONTH_NAMES = [
@@ -41,6 +41,7 @@ export function CreateEventView() {
   const [price, setPrice] = useState('');
   const [coverColor, setCoverColor] = useState('#6366F1');
   const [aiBusy, setAiBusy] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   // Dropdown UI state controls
   const [showDurationDropdown, setShowDurationDropdown] = useState(false);
@@ -154,17 +155,43 @@ export function CreateEventView() {
   };
 
   const handlePublish = async () => {
+    if (isPublishing) return;
     if (!title.trim()) { toast.error('Missing Title', 'Please enter an event title'); return; }
     if (!date) { toast.error('Missing Date', 'Please select a date'); return; }
     if (!time) { toast.error('Missing Time', 'Please select a time'); return; }
 
     const numSeats = parseInt(seats) || 100;
-    const ticketPrice = pricing === 'paid' ? (parseFloat(price) || 0) : undefined;
+    const ticketPrice = pricing === 'paid' ? (parseFloat(price) || 0) : null;
 
+    setIsPublishing(true);
     if (subView === 'edit' && editingEventId !== null) {
-      toast.info('Coming Soon', 'Edit functionality not fully integrated yet.');
-      setSubView('list');
-      setEditingEventId(null);
+      try {
+        await putPortal(`/mentor/events/${editingEventId}`, {
+          body: {
+            title,
+            desc,
+            date,
+            time,
+            platform,
+            duration,
+            seats: numSeats,
+            visibility,
+            pricing,
+            price: ticketPrice,
+            coverColor,
+            type: eventType,
+          }
+        });
+        toast.success('Event Updated', 'Event changes saved successfully!');
+        refresh();
+        setSubView('list');
+        resetForm();
+      } catch (err: any) {
+        console.error('Update Error:', err);
+        toast.error('Update Failed', err?.message || 'Failed to update event. Please try again.');
+      } finally {
+        setIsPublishing(false);
+      }
     } else {
       // Create mode
       try {
@@ -188,14 +215,24 @@ export function CreateEventView() {
         refresh();
         setSubView('list');
         resetForm();
-      } catch (err) {
-        toast.error('Creation Failed', 'Failed to publish event. Please try again.');
+      } catch (err: any) {
+        console.error('Publish Error:', err);
+        toast.error('Creation Failed', err?.message || 'Failed to publish event. Please try again.');
+      } finally {
+        setIsPublishing(false);
       }
     }
   };
 
-  const handleDelete = (id: number) => {
-    toast.info('Coming Soon', 'Delete functionality requires backend support.');
+  const handleDelete = async (id: string | number) => {
+    try {
+      await deletePortal(`/mentor/events/${id}`);
+      toast.success('Event Deleted', 'Event removed successfully!');
+      refresh();
+    } catch (err: any) {
+      console.error('Delete Error:', err);
+      toast.error('Delete Failed', err?.message || 'Failed to delete event.');
+    }
   };
 
   const handleEditClick = (event: MentorEvent) => {
@@ -837,9 +874,9 @@ export function CreateEventView() {
 
               {/* Publish & Cancel Actions */}
               <View style={s.bottomBtnRow}>
-                <Pressable onPress={handlePublish} style={[s.publishBtn, { backgroundColor: coverColor }]}>
+                <Pressable disabled={isPublishing} onPress={handlePublish} style={[s.publishBtn, { backgroundColor: coverColor }, isPublishing && { opacity: 0.7 }]}>
                   <Text style={s.publishBtnText}>
-                    {subView === 'edit' ? 'Save Changes' : 'Publish Event'}
+                    {isPublishing ? 'Publishing...' : (subView === 'edit' ? 'Save Changes' : 'Publish Event')}
                   </Text>
                 </Pressable>
                 <Pressable onPress={() => setSubView('list')} style={s.cancelBtn}>
@@ -1181,6 +1218,6 @@ const s = StyleSheet.create({
   fixedOverlay: {
     position: Platform.OS === 'web' ? ('fixed' as any) : 'absolute',
     top: -3000, bottom: -3000, left: -3000, right: -3000,
-    zIndex: 99990, cursor: 'default'
+    zIndex: 99990, ...({ cursor: 'default' } as any)
   }
 });

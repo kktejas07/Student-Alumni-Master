@@ -25,6 +25,7 @@ export function EventsView() {
       const res = await request<any>(`/student/events?page=${p}&per_page=${PER_PAGE}`);
       setData(res);
       setPages(res.pages || 1);
+      setPage(p);
     } catch { setData({ items: [] }); }
     finally { setLoading(false); }
   }, []);

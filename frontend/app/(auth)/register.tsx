@@ -2,8 +2,8 @@ import { getBaseUrl } from '@/src/lib/env';
 /**
  * Register — New design with role context, password strength, and analytics.
  */
-import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, Pressable, StyleSheet, Platform, TextInput } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -37,6 +37,12 @@ export default function RegisterScreen() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const setUser = useAuthStore((s) => s.setUser);
   const setTokens = useAuthStore((s) => s.setTokens);
+  // Guard against double-submit within the same animation frame
+  const submittingRef = useRef(false);
+  const lastNameRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const phoneRef = useRef<TextInput>(null);
+  const pwdRef = useRef<TextInput>(null);
 
   // Min age varies by role: students 13+, others 18+
   const minAge = role === 'student' ? 13 : 18;
@@ -70,6 +76,9 @@ export default function RegisterScreen() {
 
     const fullName = `${firstName.trim()} ${lastName.trim()}`;
 
+    // Prevent double-submit within same animation frame
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     trackAuth({ event: 'register_attempt', email, role });
     try {
@@ -110,6 +119,9 @@ export default function RegisterScreen() {
         } else {
           setErrors({ email: reason });
         }
+        // Stop loading immediately — do not rely on finally to avoid batching delays
+        setLoading(false);
+        submittingRef.current = false;
         return;
       }
       const data = await res.json();
@@ -122,6 +134,7 @@ export default function RegisterScreen() {
       trackAuth({ event: 'register_failure', email, reason: e?.message || 'Network error' });
       setErrors({ email: 'Network error — try again' });
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
@@ -143,7 +156,7 @@ export default function RegisterScreen() {
       ) : (
         <>
           <View style={s.head}>
-            <Pressable onPress={() => setShowPicker(true)} style={s.roleStripe}>
+            <Pressable onPress={() => setShowPicker(true)} style={s.roleStripe} testID="register-role-selector" accessible={true} accessibilityRole="button" accessibilityLabel="Change role">
               <Text style={s.roleEmoji}>{ROLE_META[role].emoji}</Text>
               <Text style={s.roleText}>Joining as {ROLE_META[role].label}</Text>
               <Text style={[s.roleText, { color: AC.muted, fontSize: 11 }]}> · change</Text>
@@ -155,18 +168,19 @@ export default function RegisterScreen() {
           <View style={{ gap: 14 }}>
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <View style={{ flex: 1 }}>
-                <AuthInput label="First name" value={firstName} onChangeText={(t) => { setFirstName(t); setErrors((p) => ({ ...p, firstName: '' })); }} placeholder="e.g. Aryan" autoCapitalize="words" error={errors.firstName} />
+                <AuthInput label="First name" value={firstName} onChangeText={(t) => { setFirstName(t); setErrors((p) => ({ ...p, firstName: '' })); }} placeholder="e.g. Aryan" autoCapitalize="words" error={errors.firstName} autoFocus={true} editable={!loading} onSubmitEditing={() => lastNameRef.current?.focus()} blurOnSubmit={false} testID="register-first-name" />
               </View>
               <View style={{ flex: 1 }}>
-                <AuthInput label="Last name" value={lastName} onChangeText={(t) => { setLastName(t); setErrors((p) => ({ ...p, lastName: '' })); }} placeholder="e.g. Kapoor" autoCapitalize="words" error={errors.lastName} />
+                <AuthInput ref={lastNameRef} label="Last name" value={lastName} onChangeText={(t) => { setLastName(t); setErrors((p) => ({ ...p, lastName: '' })); }} placeholder="e.g. Kapoor" autoCapitalize="words" error={errors.lastName} editable={!loading} onSubmitEditing={() => emailRef.current?.focus()} blurOnSubmit={false} testID="register-last-name" />
               </View>
             </View>
-            <AuthInput label="Email" value={email} onChangeText={(t) => { setEmail(t); setErrors((p) => ({ ...p, email: '' })); }} placeholder="you@university.edu" keyboardType="email-address" error={errors.email} />
+            <AuthInput ref={emailRef} label="Email" value={email} onChangeText={(t) => { setEmail(t); setErrors((p) => ({ ...p, email: '' })); }} placeholder="you@university.edu" keyboardType="email-address" error={errors.email} editable={!loading} onSubmitEditing={() => phoneRef.current?.focus()} blurOnSubmit={false} testID="register-email" />
 
             {/* Personal Information — phone (with country code) + DOB (mandatory) */}
             <View style={{ zIndex: 10, position: 'relative' }}>
               <Text style={s.fieldLabel}>Phone Number<Text style={{ color: '#EF4444' }}> *</Text></Text>
               <PhoneInput
+                ref={phoneRef}
                 value={phone}
                 onChangeText={(v) => {
                   setPhone(v);
@@ -184,6 +198,9 @@ export default function RegisterScreen() {
                   }
                 }}
                 placeholder="98765 43210"
+                onSubmitEditing={() => pwdRef.current?.focus()}
+                blurOnSubmit={false}
+                testID="register-phone"
               />
               {errors.phone ? <Text style={s.fieldErr}>{errors.phone}</Text> : null}
             </View>
@@ -193,21 +210,23 @@ export default function RegisterScreen() {
               onChange={(iso) => { setDob(iso); setErrors((p) => ({ ...p, dob: '' })); }}
               minAge={minAge}
               required
-              editable={role === 'college'}
               helper={`You must be at least ${minAge} years old to register as a ${ROLE_META[role].label.toLowerCase()}.`}
             />
             {errors.dob ? <Text style={s.fieldErr}>{errors.dob}</Text> : null}
 
             <AuthInput
+              ref={pwdRef}
               label="Password"
               value={pwd}
               onChangeText={(t) => { setPwd(t); setErrors((p) => ({ ...p, pwd: '' })); }}
               placeholder="Min 8 characters"
               secureTextEntry={!showPwd}
               error={errors.pwd}
+              editable={!loading}
+              testID="register-password"
               rightSlot={
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Pressable onPress={() => setShowPwd((v) => !v)} style={{ paddingHorizontal: 6 }}>
+                  <Pressable onPress={() => setShowPwd((v) => !v)} style={{ paddingHorizontal: 6 }} testID="register-show-password" accessible={true} accessibilityRole="button" accessibilityLabel={showPwd ? "Hide password" : "Show password"}>
                     {showPwd ? <EyeOff size={16} color={AC.muted} /> : <Eye size={16} color={AC.muted} />}
                   </Pressable>
                   <Pressable
@@ -226,18 +245,22 @@ export default function RegisterScreen() {
                       setPwd(p); setShowPwd(true); setErrors((e) => ({ ...e, pwd: '' }));
                     }}
                     style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(124,58,237,0.28)' }}
+                    testID="register-generate-password"
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel="Generate strong password"
                   >
                     <Text style={{ color: '#FFF', fontFamily: 'DMSans_700Bold', fontSize: 11 }}>Generate</Text>
                   </Pressable>
                 </View>
               }
-              onSubmitEditing={onPwdBlur}
+              onSubmitEditing={() => onSubmit()}
             />
             {pwd.length > 0 && <PasswordRules checks={strength.checks} />}
           </View>
 
           <View style={{ height: 18 }} />
-          <PrimaryButton label="Create account" onPress={onSubmit} loading={loading} />
+          <PrimaryButton label="Create account" onPress={onSubmit} loading={loading} testID="register-submit" />
 
           <Text style={s.terms}>
             By creating an account you agree to our{' '}
@@ -246,7 +269,7 @@ export default function RegisterScreen() {
 
           <Text style={s.signin}>
             Have an account?{' '}
-            <Text style={s.signinLink} onPress={() => router.replace('/(auth)/login')}>Sign in</Text>
+            <Text style={s.signinLink} onPress={() => router.replace('/(auth)/login')} testID="register-signin-link">Sign in</Text>
           </Text>
         </>
       )}

@@ -388,9 +388,7 @@ function Navbar({ isDesktop, router }: { isDesktop: boolean; router: ReturnType<
     <View style={barStyle}>
       <View style={[nav.inner, { maxWidth: 1280 }]}>
         <Pressable onPress={() => router.push('/')} style={nav.brand}>
-          <View style={nav.logoGlow}>
-            <Image source={require('@/assets/images/sa-icon.png')} style={{ width: 28, height: 28 }} resizeMode="contain" />
-          </View>
+          <Image source={require('@/assets/images/sa-icon.png')} style={{ width: 32, height: 32 }} resizeMode="contain" />
           <Text style={nav.brandText}>StudentAlumni</Text>
         </Pressable>
         {isDesktop && (
@@ -901,9 +899,9 @@ function Footer({ isDesktop }: { isDesktop: boolean }) {
       <View style={[footer.inner, { maxWidth: 1280 }]}>
         <View style={{ flexDirection: isDesktop ? 'row' : 'column', gap: 40 }}>
           <View style={{ flex: isDesktop ? 1.4 : undefined, gap: 12 }}>
-            <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Pressable style={nav.brand}>
               <Image source={require('@/assets/images/sa-icon.png')} style={{ width: 32, height: 32 }} resizeMode="contain" />
-              <Text style={{ fontFamily: TYPO.display700, fontSize: 17, color: '#fff', letterSpacing: -0.3 }}>StudentAlumni</Text>
+              <Text style={nav.brandText}>StudentAlumni</Text>
             </Pressable>
             <Text style={footer.tag}>The private career network for India's top students and alumni. Built mobile-first, AI-native, and student-owned.</Text>
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 6 }}>

@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════════════════════════
-# Dependabot — Automated dependency updates
+# Dependabot — Automated dependency updates SA
 # ═══════════════════════════════════════════════════════════════════════
 # - Groups updates intelligently to reduce PR noise
 # - Security updates only for production deps
@@ -97,3 +97,4 @@ updates:
     labels:
       - "dependencies"
       - "ci"
+

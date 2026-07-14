@@ -337,9 +337,9 @@ export const api = {
   }) => request<any>('/mentor/sessions', { method: 'POST', body: payload }),
   myMentorSessions: () => request<any>('/mentor/sessions/me'),
   mentorConnections: (email?: string, page: number = 1, per_page: number = 24) => request<any>(`/mentor/connections${email ? `?email=${encodeURIComponent(email)}&page=${page}&per_page=${per_page}` : `?page=${page}&per_page=${per_page}`}`),
-  acceptConnection: (otherId: string) => request<any>(`/network/accept/${otherId}`, { method: 'POST', body: {} }),
-  rejectConnection: (otherId: string) => request<any>(`/network/reject/${otherId}`, { method: 'POST', body: {} }),
-  withdrawConnection: (otherId: string) => request<any>(`/network/withdraw/${otherId}`, { method: 'POST', body: {} }),
+  acceptConnection: (otherId: string) => request<any>(`/network/accept/${otherId}`, { method: 'POST' }),
+  rejectConnection: (otherId: string) => request<any>(`/network/reject/${otherId}`, { method: 'POST' }),
+  withdrawConnection: (otherId: string) => request<any>(`/network/withdraw/${otherId}`, { method: 'POST' }),
   createMentorBooking: (payload: {
     student_id: string;
     slot_start_iso: string;
@@ -349,9 +349,10 @@ export const api = {
   rescheduleBooking: (id: string, slotStartIso: string) =>
     request<any>(`/bookings/${id}/reschedule`, { method: 'POST', body: { slot_start_iso: slotStartIso } }),
   networkDiscover: (q?: string) => request<any>(`/network/discover${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  networkConnections: () => request<any>('/network/connections'),
   networkRequests: () => request<any>('/network/requests'),
   sendConnectionRequest: (otherId: string, message?: string) =>
-    request<any>(`/network/connect/${otherId}`, {
+    request<any>(`/network/connect/${encodeURIComponent(otherId)}`, {
       method: 'POST',
       body: message ? { message } : {},
     }),

@@ -54,6 +54,7 @@ const PAGE_TITLES: Record<NavId, string> = {
   feedback:     'Feedback',
   event:        'Create Event',
   profile:      'Profile',
+  availability: 'Availability',
 };
 
 export default function MentorPortalRN() {

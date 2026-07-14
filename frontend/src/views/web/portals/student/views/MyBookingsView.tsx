@@ -305,7 +305,7 @@ const s = StyleSheet.create({
   inputContainer: { gap: 6, marginBottom: 20 },
   inputLabel: { color: SC.muted, fontFamily: FONTS.med, fontSize: 11.5, letterSpacing: 0.5 },
   textInputWrapper: { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: SC.border, borderWidth: 1, borderRadius: 10, padding: 12 },
-  textArea: { color: '#fff', fontFamily: FONTS.med, fontSize: 13, backgroundColor: 'transparent', borderWidth: 0, outline: 'none', resize: 'none' },
+  textArea: { color: '#fff', fontFamily: FONTS.med, fontSize: 13, backgroundColor: 'transparent', borderWidth: 0, ...({ outline: 'none', resize: 'none' } as any) },
   submitBtn: { height: 42, backgroundColor: SC.accent, borderRadius: 10, alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   submitBtnText: { color: '#000', fontFamily: FONTS.bold, fontSize: 14 },
 });

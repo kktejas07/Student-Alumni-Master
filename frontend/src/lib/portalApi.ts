@@ -27,6 +27,10 @@ export async function patchPortal<T = any>(path: string, opts?: { body?: any }):
   return request<T>(path, { method: 'PATCH', body: opts?.body });
 }
 
+export async function putPortal<T = any>(path: string, opts?: { body?: any }): Promise<T> {
+  return request<T>(path, { method: 'PUT', body: opts?.body });
+}
+
 export async function deletePortal<T = any>(path: string): Promise<T> {
   return request<T>(path, { method: 'DELETE' });
 }

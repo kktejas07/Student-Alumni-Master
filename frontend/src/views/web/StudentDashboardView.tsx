@@ -371,10 +371,6 @@ function HeroCard({ isWide }: { isWide: boolean }) {
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-      {/* Decorative orbs */}
-      <View pointerEvents="none" style={[styles.heroOrb, { width: 300, height: 300, top: -80, right: -40, backgroundColor: 'rgba(176,127,223,0.18)' }]} />
-      <View pointerEvents="none" style={[styles.heroOrb, { width: 180, height: 180, bottom: -40, left: 20, backgroundColor: 'rgba(95,37,159,0.22)' }]} />
-
       <View style={[styles.heroBody, !isWide && { flexDirection: 'column', gap: 24 }]}>
         {/* Left side */}
         <View style={{ flex: 1, minWidth: 0 }}>

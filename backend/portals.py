@@ -2188,6 +2188,26 @@ async def college_career_intel(college_name: Optional[str] = None):
     return {"skill_gaps": skill_gaps, "hiring_intent": hiring_intent, "roles_in_demand": roles_in_demand}
 
 
+def _nlp_categorize_event(title: str, desc: str, cat: str) -> str:
+    text = f"{title or ''} {desc or ''} {cat or ''}".lower()
+    
+    if "hackathon" in text or "hack " in text: return "hackathon"
+    if "codethon" in text or "code " in text or "competitive" in text: return "codethon"
+    if "workshop" in text or "hands-on" in text or "handson" in text: return "workshop"
+    if "training" in text or "course" in text: return "training"
+    if "founder" in text or "startup" in text or "ceo" in text: return "founder talk"
+    if "webinar" in text or "online session" in text: return "webinar"
+    if "panel" in text or "discussion" in text: return "panel"
+    if "q&a" in text or "qa " in text or "ama " in text: return "q&a"
+    if "interview" in text or "mock" in text: return "interview"
+    if "spotlight" in text: return "spotlight"
+    if "meetup" in text or "network" in text: return "meetup"
+    if "fest" in text or "festival" in text or "cultural" in text: return "fest"
+    if "tech talk" in text or "speaker" in text or "tech" in text: return "tech talk"
+    
+    # Strict fallback to guarantee frontend filter compatibility
+    return "workshop"
+
 @router.get("/student/events")
 async def student_events_list(student_email: Optional[str] = None, page: int = 1, per_page: int = 24):
     """Events relevant to the student (with attendance status)."""
@@ -2235,13 +2255,15 @@ async def student_events_list(student_email: Optional[str] = None, page: int = 1
         regs = counts_map.get(ev_id_str, 0)
         registered = ev_id_str in user_regs
         
+        nlp_cat = _nlp_categorize_event(ev.get("title"), ev.get("description"), ev.get("category"))
+        
         out.append({
             "id": _short_id(ev.get("_id")),
             "title": ev.get("title", "Event"),
             "date": date_str,
             "mode": ev.get("mode") or "Online",
             "city": ev.get("venue") or "Online",
-            "cat": ev.get("category", "Workshop"),
+            "cat": nlp_cat,
             "attending": regs,
             "capacity": ev.get("capacity") or 500,
             "kind": "paid" if ev.get("price") else "free",
@@ -2417,7 +2439,10 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             if status == "accepted":
                 rel_map[other] = "connected"
             elif status == "pending":
-                rel_map[other] = "pending"
+                if r.get("b") == me_id:
+                    rel_map[other] = "incoming"
+                else:
+                    rel_map[other] = "pending"
 
     out = []
     me_id_str = str(user["_id"]) if user else ""
@@ -2435,14 +2460,29 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
         if connected_ids:
             connected_users = await _db.users.find({"_id": {"$in": connected_ids}}, proj).to_list(len(connected_ids))
 
+    my_skills = user.get("skills", []) if user else []
+    my_college = user.get("school_info", {}).get("institution_name") if user else None
+
     # Fetch Alumni (ensuring connected ones are included first)
     connected_alumni = [u for u in connected_users if u.get("role") == "alumni"]
     seen_alumni = {str(u["_id"]) for u in connected_alumni}
-    al_cur = _db.users.find({
+    alumni_query = {
         "role": "alumni",
         "_id": {"$nin": [ObjectId(i) for i in seen_alumni]}
-    }, proj).sort("_id", -1).limit(max(0, limit - len(connected_alumni)))
+    }
+    # Match by Interest
+    if my_skills:
+        alumni_query["$or"] = [
+            {"alumni_info.interests": {"$in": my_skills}},
+            {"skills": {"$in": my_skills}}
+        ]
+    al_cur = _db.users.find(alumni_query, proj).sort("_id", -1).limit(max(0, limit - len(connected_alumni)))
     alumni_users = connected_alumni + [a async for a in al_cur]
+    # Fallback if strict interest matching yielded nothing
+    if len(alumni_users) < 3:
+        fallback_cur = _db.users.find({"role": "alumni", "_id": {"$nin": [ObjectId(i) for i in seen_alumni] + [a["_id"] for a in alumni_users]}}, proj).sort("_id", -1).limit(max(0, limit - len(alumni_users)))
+        alumni_users.extend([a async for a in fallback_cur])
+
     for a in alumni_users:
         other_id = str(a["_id"])
         if other_id == me_id_str:
@@ -2468,11 +2508,20 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     # Fetch Students (ensuring connected ones are included first)
     connected_students = [u for u in connected_users if u.get("role") == "student"]
     seen_students = {str(u["_id"]) for u in connected_students}
-    st_cur = _db.users.find({
+    student_query = {
         "role": "student",
         "_id": {"$nin": [ObjectId(i) for i in seen_students]}
-    }, proj).sort("_id", -1).limit(max(0, limit - len(connected_students)))
+    }
+    # From Your College
+    if my_college:
+        student_query["school_info.institution_name"] = my_college
+    st_cur = _db.users.find(student_query, proj).sort("_id", -1).limit(max(0, limit - len(connected_students)))
     student_users = connected_students + [s async for s in st_cur]
+    # Fallback if strict college matching yielded nothing
+    if len(student_users) < 3:
+        fallback_cur = _db.users.find({"role": "student", "_id": {"$nin": [ObjectId(i) for i in seen_students] + [s["_id"] for s in student_users]}}, proj).sort("_id", -1).limit(max(0, limit - len(student_users)))
+        student_users.extend([s async for s in fallback_cur])
+    
     for s in student_users:
         other_id = str(s["_id"])
         if other_id == me_id_str:
@@ -3308,11 +3357,21 @@ async def my_mentor_events(email: Optional[str] = None):
         mentor = await _db.users.find_one({"role": "mentor"})
     
     sid = str((mentor or {}).get("_id", ""))
-    cur = _db.events.find({"mentor_id": sid}).sort("created_at", -1)
+    cur = await _db.events.find({"mentor_id": sid}).sort("created_at", -1).to_list(1000)
     
+    event_ids = [str(e["_id"]) for e in cur]
+    regs_counts = {}
+    if event_ids:
+        agg = await _db.event_registrations.aggregate([
+            {"$match": {"event_id": {"$in": event_ids}}},
+            {"$group": {"_id": "$event_id", "count": {"$sum": 1}}}
+        ]).to_list(None)
+        for r in agg:
+            regs_counts[r["_id"]] = r["count"]
+            
     out = []
-    async for e in cur:
-        regs = await _db.event_registrations.count_documents({"event_id": str(e.get("_id"))})
+    for e in cur:
+        regs = regs_counts.get(str(e.get("_id")), 0)
         out.append({
             "id": str(e["_id"]),
             "title": e.get("title"),
@@ -3331,3 +3390,62 @@ async def my_mentor_events(email: Optional[str] = None):
             "registered": regs,
         })
     return {"items": out}
+
+@router.put("/mentor/events/{event_id}")
+async def update_mentor_event(event_id: str, ev: MentorEventCreate, email: Optional[str] = None):
+    try:
+        obj_id = ObjectId(event_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid event ID")
+        
+    mentor = await _db.users.find_one({"email": email, "role": "mentor"}) if email else None
+    if not mentor:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    existing = await _db.events.find_one({"_id": obj_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if str(existing.get("mentor_id")) != str(mentor["_id"]):
+        raise HTTPException(status_code=403, detail="Not your event")
+        
+    doc = {
+        "title": ev.title,
+        "description": ev.desc,
+        "date_str": ev.date,
+        "time_str": ev.time,
+        "mode": ev.platform,
+        "duration": ev.duration,
+        "capacity": ev.seats,
+        "visibility": ev.visibility,
+        "price": ev.price,
+        "category": ev.type,
+        "coverColor": ev.coverColor,
+        "updated_at": datetime.utcnow()
+    }
+    
+    res = await _db.events.update_one({"_id": obj_id}, {"$set": doc})
+    return {"ok": True}
+
+@router.delete("/mentor/events/{event_id}")
+async def delete_mentor_event(event_id: str, email: Optional[str] = None):
+    try:
+        obj_id = ObjectId(event_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid event ID")
+        
+    mentor = await _db.users.find_one({"email": email, "role": "mentor"}) if email else None
+    if not mentor:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    existing = await _db.events.find_one({"_id": obj_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if str(existing.get("mentor_id")) != str(mentor["_id"]):
+        raise HTTPException(status_code=403, detail="Not your event")
+        
+    res = await _db.events.delete_one({"_id": obj_id})
+    
+    # Clean up orphaned event registrations
+    await _db.event_registrations.delete_many({"event_id": event_id})
+        
+    return {"ok": True}
