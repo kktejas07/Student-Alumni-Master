@@ -114,7 +114,6 @@ async def get_claude_chat(session_id: str, system_message: str):
                         # and avoids the Windows multiprocessing crashes caused by g4f.
                         system_encoded = urllib.parse.quote(self.sys_msg)
                         prompt_encoded = urllib.parse.quote(clean_text)
-                        
                         url = f"https://text.pollinations.ai/{prompt_encoded}?system={system_encoded}"
                         
                         async with aiohttp.ClientSession() as session:

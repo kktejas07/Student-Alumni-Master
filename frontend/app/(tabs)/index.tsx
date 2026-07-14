@@ -37,7 +37,7 @@ export default function HomeTab() {
             userName={fullName}
             notifCount={2}
             onOpenNotifications={() => router.push('/notifications')}
-            onOpenProfile={() => router.push('/profile')}
+            onOpenProfile={() => router.push('/profile' as any)}
             onActionPress={(id) => {
               if (id === 'create-event') router.push('/courses');
               else if (id === 'earnings')  router.push('/deals');
@@ -49,7 +49,7 @@ export default function HomeTab() {
             collegeName={fullName ? `${fullName} Admin` : 'College Admin'}
             notifCount={4}
             onOpenNotifications={() => router.push('/notifications')}
-            onOpenProfile={() => router.push('/profile')}
+            onOpenProfile={() => router.push('/profile' as any)}
             onActionPress={(id) => {
               if (id === 'announce')   router.push('/notifications');
               else if (id === 'new-event') router.push('/deals');
@@ -62,7 +62,7 @@ export default function HomeTab() {
             userName={fullName}
             notifCount={3}
             onOpenNotifications={() => router.push('/notifications')}
-            onOpenProfile={() => router.push('/profile')}
+            onOpenProfile={() => router.push('/profile' as any)}
             onActionPress={(id) => {
               switch (id) {
                 case 'alumni':     router.push('/network'); break;
@@ -72,7 +72,7 @@ export default function HomeTab() {
                 case 'announce':   router.push('/notifications');  break;
                 case 'leaderboard':router.push('/network'); break;
                 case 'resources':  router.push('/courses'); break;
-                case 'settings':   router.push('/profile');        break;
+                case 'settings':   router.push('/profile' as any);        break;
               }
             }}
           />

@@ -79,7 +79,7 @@ from tier_logic import (
 load_dotenv(Path(__file__).parent / '.env')
 
 # Mongo connection (reuse singleton from db.py)
-from db import db as _db
+from db import db as _db, fetch_users_with_mock_limit
 
 router = APIRouter()
 
@@ -1092,9 +1092,15 @@ async def college_admin_stats(college_name: Optional[str] = None):
         ]).to_list(1)
         college_name = agg[0]["_id"] if agg else "St. Xavier's College"
 
-    students_cnt = await _db.users.count_documents({"role": "student", "school_info.institution_name": college_name})
-    alumni_cnt = await _db.users.count_documents({"role": "alumni", "school_info.institution_name": college_name})
-
+    college_query = {
+        "$or": [
+            {"school_info.institution_name": college_name},
+            {"institution": college_name},
+            {"college": college_name}
+        ]
+    }
+    students_cnt = await _db.users.count_documents({"role": "student", **college_query})
+    alumni_cnt = await _db.users.count_documents({"role": "alumni", **college_query})
     # Department breakdown
     dept_agg = await _db.users.aggregate([
         {"$match": {"role": "student", "school_info.institution_name": college_name, "school_info.branch_or_stream": {"$ne": None}}},
@@ -1118,31 +1124,52 @@ async def college_admin_stats(college_name: Optional[str] = None):
             {"dept": "Design",           "pct": 96, "placed":  43, "color": "#A78BFA"},
         ]
 
-    # Recent activity from bookings + events
+    # Recent activity from new students + events
     recent = []
-    rb_cur = _db.bookings.find().sort("created_at", -1).limit(3)
-    async for b in rb_cur:
+    
+    # New students/alumni joined
+    user_cur = _db.users.find({
+        "$or": [
+            {"school_info.institution_name": college_name},
+            {"institution": college_name},
+            {"college": college_name}
+        ],
+        "role": {"$in": ["student", "alumni"]}
+    }).sort("_id", -1).limit(4)
+    async for u in user_cur:
+        role_label = u.get("role", "user").capitalize()
         recent.append({
-            "id": _short_id(b.get("_id")),
-            "kind": "booking",
-            "text": f"Mentor session booked — {b.get('topic', 'Career')}",
-            "time": (b.get("created_at") or datetime.utcnow()).strftime("%b %d, %H:%M") if isinstance(b.get("created_at"), datetime) else "—",
-            "icon": "Briefcase",
+            "id": _short_id(u.get("_id")),
+            "kind": "user",
+            "text": f"New {role_label} joined — {u.get('full_name', 'Student')}",
+            "time": (u.get("created_at") or datetime.utcnow()).strftime("%b %d") if isinstance(u.get("created_at"), datetime) else "Recently",
+            "icon": "UserPlus",
             "tint": "#34D399",
+            "_sort_key": u.get("created_at") or datetime.min
         })
-    ev_cur = _db.events.find().sort("registration_deadline", -1).limit(3)
+
+    ev_cur = _db.events.find({"college_name": college_name}).sort("created_at", -1).limit(3)
     async for ev in ev_cur:
         recent.append({
             "id": _short_id(ev.get("_id")),
             "kind": "event",
-            "text": f"{ev.get('title', 'Event')} — {ev.get('category', 'Event')}",
-            "time": "Recently",
+            "text": f"Event created — {ev.get('title', 'Event')}",
+            "time": (ev.get("created_at") or datetime.utcnow()).strftime("%b %d") if isinstance(ev.get("created_at"), datetime) else "Recently",
             "icon": "Calendar",
             "tint": "#FBBF24",
+            "_sort_key": ev.get("created_at") or datetime.min
         })
+        
+    recent.sort(key=lambda x: x["_sort_key"], reverse=True)
+    for r in recent:
+        r.pop("_sort_key", None)
+    recent = recent[:5]
 
     # Upcoming events
-    upcoming_cur = _db.events.find({"start_date": {"$gte": datetime.now(timezone.utc)}}).sort("start_date", 1).limit(4)
+    upcoming_cur = _db.events.find({
+        "$or": [{"college_name": college_name}, {"college_name": None}],
+        "start_date": {"$gte": datetime.now(timezone.utc)}
+    }).sort("start_date", 1).limit(4)
     upcoming = []
     async for ev in upcoming_cur:
         sd = ev.get("start_date")
@@ -1173,8 +1200,23 @@ async def college_admin_stats(college_name: Optional[str] = None):
             "color": _color_for(r["_id"] or ""),
         })
 
+    # Calculate real placement rate (based on alumni with current employer)
+    placed_alumni_cnt = await _db.users.count_documents({
+        "role": "alumni",
+        "alumni_info.current_employer": {"$nin": [None, "", "—", "-"]},
+        **college_query
+    })
+    placement_pct_num = int((placed_alumni_cnt / alumni_cnt) * 100) if alumni_cnt > 0 else 0
+
+    # Events this month
+    now = datetime.now(timezone.utc)
+    start_of_month = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
+    events_this_month = await _db.events.count_documents({
+        "college_name": college_name,
+        "start_date": {"$gte": start_of_month}
+    })
+
     # Tier (Bronze/Silver/Gold/Platinum) — based on NAAC + students + placement + alumni
-    placement_pct_num = 94  # already used as static; will be aggregated below
     tier = await _college_tier_payload(college_name, students_cnt, alumni_cnt, float(placement_pct_num))
 
     return {
@@ -1191,8 +1233,8 @@ async def college_admin_stats(college_name: Optional[str] = None):
         "kpis": [
             {"id": "students",  "label": "Total Students",     "value": str(students_cnt),      "delta": "↑ this semester",        "color": "blue"},
             {"id": "alumni",    "label": "Alumni Network",     "value": str(alumni_cnt),        "delta": "growing",                 "color": "purple"},
-            {"id": "placement", "label": "Placement Rate",     "value": "94%",                  "delta": "↑ 4% YoY",                "color": "green"},
-            {"id": "events",    "label": "Events This Month",  "value": str(len(upcoming)),     "delta": f"{len(upcoming)} upcoming","color": "amber"},
+            {"id": "placement", "label": "Placement Rate",     "value": f"{placement_pct_num}%", "delta": f"from {alumni_cnt} alumni",  "color": "green"},
+            {"id": "events",    "label": "Events This Month",  "value": str(events_this_month),  "delta": f"{len(upcoming)} upcoming","color": "amber"},
         ],
         "deptPlacement": dept_placement,
         "recentActivity": recent[:6],
@@ -2019,7 +2061,15 @@ async def college_alumni_list(college_name: Optional[str] = None, limit: int = 3
         ]).to_list(1)
         college_name = agg[0]["_id"] if agg else None
 
-    cur = _db.users.find({"role": "alumni", "school_info.institution_name": college_name}).limit(limit)
+    college_query = {
+        "$or": [
+            {"school_info.institution_name": college_name},
+            {"institution": college_name},
+            {"college": college_name}
+        ]
+    } if college_name else {"school_info.institution_name": {"$ne": None}}
+    
+    cur = _db.users.find({"role": "alumni", **college_query}).limit(limit)
     out = []
     async for a in cur:
         ai = a.get("alumni_info") or {}
@@ -2035,7 +2085,57 @@ async def college_alumni_list(college_name: Optional[str] = None, limit: int = 3
             "city": si.get("city") or "—",
             "donor": is_donor,
             "color": _color_for(a.get("full_name", "")),
+            "skills": a.get("skills") or ai.get("interests") or [],
+            "linkedin_url": a.get("linkedin_url") or "",
+            "github_url": a.get("github_url") or "",
         })
+
+    if not out:
+        out = [
+            {
+                "id": "mock_alumni_1",
+                "name": "Ishaan Alumni",
+                "initials": "IA",
+                "batch": 2023,
+                "role": "SDE-2",
+                "company": "Amazon",
+                "city": "Bengaluru",
+                "donor": False,
+                "color": "#F59E0B",
+                "skills": ["AWS", "Node.js", "System Design"],
+                "linkedin_url": "https://linkedin.com",
+                "github_url": "https://github.com",
+            },
+            {
+                "id": "mock_alumni_2",
+                "name": "Riya Alumni",
+                "initials": "RA",
+                "batch": 2020,
+                "role": "Product Manager",
+                "company": "Google",
+                "city": "Hyderabad",
+                "donor": True,
+                "color": "#10B981",
+                "skills": ["Product Strategy", "Agile", "UX"],
+                "linkedin_url": "https://linkedin.com",
+                "github_url": "",
+            },
+            {
+                "id": "mock_alumni_3",
+                "name": "Aarav Test Alumni",
+                "initials": "AA",
+                "batch": 2022,
+                "role": "Data Scientist",
+                "company": "Microsoft",
+                "city": "Pune",
+                "donor": False,
+                "color": "#22D3EE",
+                "skills": ["Python", "Machine Learning", "SQL"],
+                "linkedin_url": "",
+                "github_url": "https://github.com",
+            }
+        ]
+
     return {"items": out, "college": college_name}
 
 
@@ -2079,7 +2179,7 @@ async def college_events_list(college_name: Optional[str] = None, limit: int = 1
         count = await _db.events.count_documents(q)
         if count == 0:
             q = {}
-    cur = _db.events.find(q).sort("start_date", 1).limit(limit)
+    cur = _db.events.find(q).sort("_id", -1).limit(limit)
     palette = ["#A78BFA", "#22C55E", "#FCD34D", "#3B82F6", "#22D3EE", "#EC4899", "#F59E0B", "#FB923C"]
     out = []
     i = 0
@@ -2247,7 +2347,7 @@ def _nlp_categorize_event(title: str, desc: str, cat: str) -> str:
     return "workshop"
 
 @router.get("/student/events")
-async def student_events_list(student_email: Optional[str] = None, page: int = 1, per_page: int = 24):
+async def student_events_list(student_email: Optional[str] = None, page: int = 1, per_page: int = 100):
     """Events relevant to the student (with attendance status)."""
     student = None
     if student_email:
@@ -2262,7 +2362,7 @@ async def student_events_list(student_email: Optional[str] = None, page: int = 1
 
     total = await _db.events.count_documents({})
     skip = (page - 1) * per_page
-    cur = _db.events.find().sort("start_date", 1).skip(skip).limit(per_page)
+    cur = _db.events.find().sort("_id", -1).skip(skip).limit(per_page)
     events = [ev async for ev in cur]
     
     event_ids = [str(ev.get("_id")) for ev in events]
@@ -2499,7 +2599,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             connected_users = await _db.users.find({"_id": {"$in": connected_ids}}, proj).to_list(len(connected_ids))
 
     my_skills = user.get("skills", []) if user else []
-    my_college = user.get("school_info", {}).get("institution_name") if user else None
+    my_college = ((user.get("school_info") or {}).get("institution_name") or user.get("institution") or user.get("college")) if user else None
 
     # Fetch Alumni (ensuring connected ones are included first)
     connected_alumni = [u for u in connected_users if u.get("role") == "alumni"]
@@ -2514,12 +2614,16 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             {"alumni_info.interests": {"$in": my_skills}},
             {"skills": {"$in": my_skills}}
         ]
-    al_cur = _db.users.find(alumni_query, proj).sort("_id", -1).limit(max(0, limit - len(connected_alumni)))
-    alumni_users = connected_alumni + [a async for a in al_cur]
+    fetch_limit = max(0, limit - len(connected_alumni))
+    fetched_alumni = await fetch_users_with_mock_limit(alumni_query, fetch_limit, mock_limit=5, proj=proj)
+    alumni_users = connected_alumni + fetched_alumni
+    
     # Fallback if strict interest matching yielded nothing
     if len(alumni_users) < 3:
-        fallback_cur = _db.users.find({"role": "alumni", "_id": {"$nin": [ObjectId(i) for i in seen_alumni] + [a["_id"] for a in alumni_users]}}, proj).sort("_id", -1).limit(max(0, limit - len(alumni_users)))
-        alumni_users.extend([a async for a in fallback_cur])
+        fallback_query = {"role": "alumni", "_id": {"$nin": [ObjectId(i) for i in seen_alumni] + [a["_id"] for a in alumni_users]}}
+        fallback_limit = max(0, limit - len(alumni_users))
+        fetched_fallback = await fetch_users_with_mock_limit(fallback_query, fallback_limit, mock_limit=5, proj=proj)
+        alumni_users.extend(fetched_fallback)
 
     for a in alumni_users:
         other_id = str(a["_id"])
@@ -2552,13 +2656,21 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     }
     # From Your College
     if my_college:
-        student_query["school_info.institution_name"] = my_college
-    st_cur = _db.users.find(student_query, proj).sort("_id", -1).limit(max(0, limit - len(connected_students)))
-    student_users = connected_students + [s async for s in st_cur]
+        student_query["$or"] = [
+            {"school_info.institution_name": my_college},
+            {"institution": my_college},
+            {"college": my_college}
+        ]
+    fetch_limit = max(0, limit - len(connected_students))
+    fetched_students = await fetch_users_with_mock_limit(student_query, fetch_limit, mock_limit=5, proj=proj)
+    student_users = connected_students + fetched_students
+    
     # Fallback if strict college matching yielded nothing
     if len(student_users) < 3:
-        fallback_cur = _db.users.find({"role": "student", "_id": {"$nin": [ObjectId(i) for i in seen_students] + [s["_id"] for s in student_users]}}, proj).sort("_id", -1).limit(max(0, limit - len(student_users)))
-        student_users.extend([s async for s in fallback_cur])
+        fallback_query = {"role": "student", "_id": {"$nin": [ObjectId(i) for i in seen_students] + [s["_id"] for s in student_users]}}
+        fallback_limit = max(0, limit - len(student_users))
+        fetched_fallback = await fetch_users_with_mock_limit(fallback_query, fallback_limit, mock_limit=5, proj=proj)
+        student_users.extend(fetched_fallback)
     
     for s in student_users:
         other_id = str(s["_id"])
@@ -2587,11 +2699,13 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     # Fetch Mentors (ensuring connected ones are included first)
     connected_mentors = [u for u in connected_users if u.get("role") == "mentor"]
     seen_mentors = {str(u["_id"]) for u in connected_mentors}
-    me_cur = _db.users.find({
+    mentor_query = {
         "role": "mentor",
         "_id": {"$nin": [ObjectId(i) for i in seen_mentors]}
-    }, proj).sort("_id", -1).limit(max(0, limit - len(connected_mentors)))
-    mentor_users = connected_mentors + [m async for m in me_cur]
+    }
+    fetch_limit = max(0, limit - len(connected_mentors))
+    fetched_mentors = await fetch_users_with_mock_limit(mentor_query, fetch_limit, mock_limit=5, proj=proj)
+    mentor_users = connected_mentors + fetched_mentors
     for m in mentor_users:
         other_id = str(m["_id"])
         if other_id == me_id_str:
