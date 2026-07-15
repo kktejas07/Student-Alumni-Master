@@ -3763,8 +3763,6 @@ async def list_mentors(career_path: Optional[str] = None, limit: int = 20):
     sample = await db.sample_mentors.find(sample_q, {"_id": 0}).limit(limit).to_list(limit)
     return {"mentors": real + sample}
 
->>>>>>> 8e92791b (Save local progress before merge)
-
 def _path_to_mentor_cat(path: str) -> str:
     """Map career_path → mentor category for matching logic.
     Per spec: 4 distinct categories — startup and business are now separate."""
