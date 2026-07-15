@@ -1978,8 +1978,12 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
           {sessionTotal > 5 && !showAllSessions && (
             <Pressable
               onPress={async () => {
-                const r = await request<any>('/admin/security/sessions?all=true');
-                if (r?.sessions) { setSessions(r.sessions); setShowAllSessions(true); }
+                try {
+                  const r = await request<any>('/admin/security/sessions?all=true');
+                  if (r?.sessions) { setSessions(r.sessions); setShowAllSessions(true); }
+                } catch (e: any) {
+                  console.error('Failed to load all sessions', e);
+                }
               }}
               style={[s.linkBtn, { alignSelf: 'center', marginTop: 8 }]}
             >
@@ -1989,8 +1993,12 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
           {showAllSessions && (
             <Pressable
               onPress={async () => {
-                const r = await request<any>('/admin/security/sessions');
-                if (r?.sessions) { setSessions(r.sessions); setShowAllSessions(false); }
+                try {
+                  const r = await request<any>('/admin/security/sessions');
+                  if (r?.sessions) { setSessions(r.sessions); setShowAllSessions(false); }
+                } catch (e: any) {
+                  console.error('Failed to load sessions', e);
+                }
               }}
               style={[s.linkBtn, { alignSelf: 'center', marginTop: 8 }]}
             >
