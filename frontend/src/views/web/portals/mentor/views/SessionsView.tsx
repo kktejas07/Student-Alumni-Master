@@ -130,10 +130,10 @@ const formatLocalDate = (d: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-export function SessionsView() {
+export function SessionsView({ demoMode = true, setDemoMode }: { demoMode?: boolean; setDemoMode?: (val: boolean) => void }) {
   const [tab, setTab] = useState<TabId>('upcoming');
   const user = useAuthStore((s) => s.user);
-  const [students, setStudents] = useState(INITIAL_STUDENTS);
+  const [students, setStudents] = useState(demoMode ? INITIAL_STUDENTS : []);
   const [bookingsList, setBookingsList] = useState<any[]>([]);
   const [studentsMap, setStudentsMap] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
@@ -157,7 +157,7 @@ export function SessionsView() {
         sMap[c.id] = c;
       });
       setStudentsMap(sMap);
-      setStudents(conns.length > 0 ? conns : INITIAL_STUDENTS);
+      setStudents(conns.length > 0 ? conns : (demoMode ? INITIAL_STUDENTS : []));
       setConnPage(p);
       setConnPages(connRes.pages || 1);
 
@@ -172,7 +172,7 @@ export function SessionsView() {
 
   useEffect(() => {
     loadData(1);
-  }, [user]);
+  }, [user, demoMode]);
 
   // Availability specific states
   const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>(DEFAULT_AVAILABILITY);
@@ -393,10 +393,8 @@ export function SessionsView() {
   const now = useMemo(() => new Date(), [tab, bookingsList]);
 
   const upcoming = useMemo(() => {
-    if (bookingsList.length === 0) {
-      return students.filter((s) => s.nextSession).map((s) => ({ ...s.nextSession!, student: s }));
-    }
-    return bookingsList
+    // 1. Get upcoming bookings from the bookingsList
+    const bookingsUpcoming = bookingsList
       .filter((b) => {
         const schedDate = new Date(b.scheduled_at || b.slot_start_iso);
         return schedDate > now && b.status !== 'cancelled' && b.status !== 'completed';
@@ -429,12 +427,43 @@ export function SessionsView() {
           student: studentProfile,
           _rawDate: schedDate,
         };
-      })
-      .sort((a, b) => (isNaN(a._rawDate.getTime()) ? 0 : a._rawDate.getTime()) - (isNaN(b._rawDate.getTime()) ? 0 : b._rawDate.getTime()));
+      });
+
+    // 2. Identify students from connections who have a nextSession but no upcoming booking in bookingsUpcoming
+    const bookedStudentIds = new Set(bookingsUpcoming.map((b) => String(b.student.id)));
+    const fallbackUpcoming = students
+      .filter((s) => s.nextSession && !bookedStudentIds.has(String(s.id)))
+      .map((s) => {
+        let parsedDate: Date;
+        try {
+          parsedDate = new Date(`${s.nextSession.date} ${s.nextSession.time}`);
+        } catch {
+          parsedDate = new Date();
+        }
+        return {
+          id: `fallback-${s.id}`,
+          date: s.nextSession.date,
+          time: s.nextSession.time,
+          topic: s.nextSession.topic || 'Mentorship Session',
+          daysAway: s.nextSession.daysAway,
+          student: s,
+          _rawDate: parsedDate,
+        };
+      });
+
+    // 3. Combine and sort
+    const allUpcoming = [...bookingsUpcoming, ...fallbackUpcoming];
+    allUpcoming.sort((a, b) => {
+      const timeA = a._rawDate instanceof Date && !isNaN(a._rawDate.getTime()) ? a._rawDate.getTime() : 0;
+      const timeB = b._rawDate instanceof Date && !isNaN(b._rawDate.getTime()) ? b._rawDate.getTime() : 0;
+      return timeA - timeB;
+    });
+
+    return allUpcoming;
   }, [bookingsList, students, studentsMap, now]);
 
   const past = useMemo(() => {
-    if (bookingsList.length === 0) {
+    if (demoMode && bookingsList.length === 0) {
       return [
         {
           student: students[2] || INITIAL_STUDENTS[2],
@@ -544,7 +573,16 @@ export function SessionsView() {
       const d = new Date(year, month, day, hours, minutes, 0);
       const slot_start_iso = d.toISOString();
 
-      await api.rescheduleBooking(reschedulingSession.id, slot_start_iso);
+      if (reschedulingSession.id.startsWith('fallback-')) {
+        await api.createMentorBooking({
+          student_id: reschedulingSession.student.id,
+          slot_start_iso,
+          topic: reschedulingSession.topic,
+          notes: 'Rescheduled fallback session'
+        });
+      } else {
+        await api.rescheduleBooking(reschedulingSession.id, slot_start_iso);
+      }
       await loadData();
     } catch (e: any) {
       console.error(e);

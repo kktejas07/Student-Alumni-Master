@@ -16,7 +16,6 @@ Endpoints:
   GET  /api/auth/events            — recent events for current user (auth required)
 """
 from __future__ import annotations
-from pydantic import BaseModel
 import os
 import hashlib
 from datetime import datetime, timezone, timedelta
@@ -26,11 +25,11 @@ from pathlib import Path
 from bson import ObjectId
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
 
 load_dotenv(Path(__file__).parent / '.env')
 
-from db import client as _mongo
-_db = _mongo[os.environ['DB_NAME']]
+from core.db import db as _db
 
 router = APIRouter(tags=["auth-analytics"])
 

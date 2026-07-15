@@ -147,7 +147,7 @@ const MOCK_MONTHLY_TREND = [
   { month: 'Apr', score: 4.9, label: '4.9', isCurrent: true },
 ];
 
-export function FeedbackView() {
+export function FeedbackView({ demoMode = true, setDemoMode }: { demoMode?: boolean; setDemoMode?: (val: boolean) => void }) {
   const toast = useToast();
   const { width } = useWindowDimensions();
   const stack = width < 980;
@@ -193,11 +193,14 @@ export function FeedbackView() {
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
 
   // Dynamic status counters
-  const unreadCount = reviews.filter((r) => !r.read).length;
-  const unansweredCount = reviews.filter((r) => r.reply === null).length;
+  const displayReviews = demoMode ? reviews : [];
+  const displayStats = demoMode ? stats : { average: 0, total: 0, distribution: { '5': 0, '4': 0, '3': 0, '2': 0, '1': 0 } };
+
+  const unreadCount = displayReviews.filter((r) => !r.read).length;
+  const unansweredCount = displayReviews.filter((r) => r.reply === null).length;
 
   // Filter handlers
-  const filteredReviews = reviews.filter((r) => {
+  const filteredReviews = displayReviews.filter((r) => {
     if (activeFilter === 'all') return true;
     if (activeFilter === '5') return r.rating === 5;
     if (activeFilter === '4') return r.rating === 4;
@@ -282,6 +285,19 @@ export function FeedbackView() {
 
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 16 }} showsVerticalScrollIndicator={false}>
+      {demoMode && (
+        <View style={s.demoBadgeBanner}>
+          <Text style={s.demoBadgeText}>
+            Demo Mode · Sample data is displayed for demonstration purposes.{' '}
+            <Text 
+              onPress={() => setDemoMode?.(false)}
+              style={{ textDecorationLine: 'underline', color: '#fff', fontFamily: FONTS.bold }}
+            >
+              Switch to Live Mode
+            </Text>
+          </Text>
+        </View>
+      )}
       {/* Header section */}
       <View style={s.headerRow}>
         <View>
@@ -294,31 +310,37 @@ export function FeedbackView() {
       <View style={s.aiActionsRow}>
         <Pressable 
           onPress={handleAnalyzeReviews}
-          style={s.analyzeBtn}
+          disabled={!demoMode}
+          style={[s.analyzeBtn, !demoMode && { opacity: 0.5 }]}
         >
           {isAnalyzing ? (
             <ActivityIndicator size="small" color="#FCD34D" />
           ) : (
             <>
               <Sparkles size={13} color="#FCD34D" />
-              <Text style={s.analyzeBtnText}>Analyze All Reviews</Text>
+              <Text style={s.analyzeBtnText}>{demoMode ? 'Analyze All Reviews' : 'AI Analysis (Requires 3+ reviews)'}</Text>
             </>
           )}
         </Pressable>
 
         <Pressable 
-          onPress={() => setShowImprovementPlan(!showImprovementPlan)}
-          style={[s.accordionTrigger, showImprovementPlan && s.accordionTriggerActive]}
+          onPress={() => demoMode && setShowImprovementPlan(!showImprovementPlan)}
+          disabled={!demoMode}
+          style={[
+            s.accordionTrigger,
+            showImprovementPlan && s.accordionTriggerActive,
+            !demoMode && { opacity: 0.5 }
+          ]}
         >
           <Sparkles size={13} color={showImprovementPlan ? '#fff' : '#F59E0B'} />
           <Text style={[s.accordionTriggerText, showImprovementPlan && s.accordionTriggerTextActive]}>
-            AI: How do I reach 5.0?
+            {demoMode ? 'AI: How do I reach 5.0?' : 'AI Guidance (Requires 3+ reviews)'}
           </Text>
         </Pressable>
       </View>
 
       {/* Collapsible improvement plan drawer */}
-      {showImprovementPlan && (
+      {showImprovementPlan && demoMode && (
         <View style={s.accordionBody}>
           <Text style={s.accordionBullet}>
             1. Reserve last 10 minutes for student questions — 2 reviews mention sessions feeling rushed.
@@ -337,11 +359,11 @@ export function FeedbackView() {
         {/* OVERALL RATING Card */}
         <View style={[s.card, { flex: 1, minWidth: 180 }]}>
           <Text style={s.cardKicker}>OVERALL RATING</Text>
-          <Text style={s.hugeValue}>{stats?.average ? stats.average.toFixed(1) : '0.0'}</Text>
+          <Text style={s.hugeValue}>{demoMode && displayStats?.average ? displayStats.average.toFixed(1) : '—'}</Text>
           <View style={{ marginVertical: 4 }}>
-            <StarRow rating={stats?.average ? Math.round(stats.average) : 0} size={15} />
+            <StarRow rating={demoMode && displayStats?.average ? Math.round(displayStats.average) : 0} size={15} />
           </View>
-          <Text style={s.reviewsCountLabel}>{stats?.total || 0} reviews</Text>
+          <Text style={s.reviewsCountLabel}>{demoMode && displayStats?.total ? displayStats.total : 0} reviews</Text>
         </View>
 
         {/* RATING BREAKDOWN Card */}
@@ -349,9 +371,9 @@ export function FeedbackView() {
           <Text style={s.cardKicker}>RATING BREAKDOWN</Text>
           <View style={{ marginTop: 8, gap: 5 }}>
             {[5, 4, 3, 2, 1].map((star) => {
-              const count = stats?.distribution?.[String(star)] || 0;
-              const total = stats?.total || 1;
-              const pct = Math.round((count / total) * 100);
+              const count = demoMode ? (displayStats?.distribution?.[String(star)] || 0) : 0;
+              const total = demoMode ? (displayStats?.total || 1) : 1;
+              const pct = demoMode ? Math.round((count / total) * 100) : 0;
               return (
                 <View key={star} style={s.breakdownRow}>
                   <Text style={s.starText}>{star} ★</Text>
@@ -369,34 +391,42 @@ export function FeedbackView() {
         <View style={[s.card, { flex: 2, minWidth: 320 }]}>
           <View style={s.trendHeader}>
             <Text style={s.cardKicker}>RATING TREND</Text>
-            <Text style={s.growthLabel}>Trending up · Best: Mar 2026</Text>
+            <Text style={s.growthLabel}>{demoMode ? 'Trending up · Best: Mar 2026' : 'No trend data'}</Text>
           </View>
           
-          <View style={s.customChartContainer}>
-            {MOCK_MONTHLY_TREND.map((c) => {
-              const isApr = c.month === 'Apr';
-              const maxVal = 5.0;
-              const barHeight = Math.round((c.score / maxVal) * 55);
-              
-              return (
-                <View key={c.month} style={s.chartBarColumn}>
-                  <Text style={[s.chartBarLabel, isApr && s.chartBarLabelActive]}>
-                    {c.label}
-                  </Text>
-                  <View 
-                    style={[
-                      s.chartBarTrack, 
-                      { height: barHeight },
-                      isApr ? s.chartBarActive : s.chartBarInactive
-                    ]} 
-                  />
-                  <Text style={[s.chartBarMonth, isApr && s.chartBarMonthActive]}>
-                    {c.month}
-                  </Text>
-                </View>
-              );
-            })}
-          </View>
+          {demoMode ? (
+            <View style={s.customChartContainer}>
+              {MOCK_MONTHLY_TREND.map((c) => {
+                const isApr = c.month === 'Apr';
+                const maxVal = 5.0;
+                const barHeight = Math.round((c.score / maxVal) * 55);
+                
+                return (
+                  <View key={c.month} style={s.chartBarColumn}>
+                    <Text style={[s.chartBarLabel, isApr && s.chartBarLabelActive]}>
+                      {c.label}
+                    </Text>
+                    <View 
+                      style={[
+                        s.chartBarTrack, 
+                        { height: barHeight },
+                        isApr ? s.chartBarActive : s.chartBarInactive
+                      ]} 
+                    />
+                    <Text style={[s.chartBarMonth, isApr && s.chartBarMonthActive]}>
+                      {c.month}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          ) : (
+            <View style={[s.customChartContainer, { alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderStyle: 'dashed', borderColor: MC.border, borderRadius: 10, height: 70, marginTop: 10 }]}>
+              <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', paddingHorizontal: 20 }}>
+                No trend data yet. Complete sessions to generate feedback history.
+              </Text>
+            </View>
+          )}
         </View>
       </View>
 
@@ -419,7 +449,7 @@ export function FeedbackView() {
         {/* Filter Selection Pills */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterScroll}>
           {[
-            { id: 'all', label: `All (${reviews.length})` },
+            { id: 'all', label: `All (${displayReviews.length})` },
             { id: '5', label: '5 ★' },
             { id: '4', label: '4 ★' },
             { id: '3_below', label: '3 ★ & below' },
@@ -430,8 +460,13 @@ export function FeedbackView() {
             return (
               <Pressable
                 key={item.id}
-                onPress={() => setActiveFilter(item.id as any)}
-                style={[s.filterPill, active && s.filterPillActive]}
+                onPress={() => demoMode && setActiveFilter(item.id as any)}
+                disabled={!demoMode}
+                style={[
+                  s.filterPill, 
+                  active && s.filterPillActive,
+                  !demoMode && { opacity: 0.5, cursor: 'default' }
+                ]}
               >
                 <Text style={[s.filterPillText, active && s.filterPillTextActive]}>{item.label}</Text>
               </Pressable>
@@ -442,42 +477,43 @@ export function FeedbackView() {
 
       {/* Reviews list */}
       <View style={{ gap: 12 }}>
-        {filteredReviews.map((r) => {
-          const isDrafting = replyingId === r.id;
-          return (
-            <View 
-              key={r.id} 
-              style={[
-                s.reviewCard, 
-                !r.read && { borderColor: 'rgba(20,184,166,0.35)', backgroundColor: 'rgba(20,184,166,0.02)' }
-              ]}
-              onStartShouldSetResponder={() => {
-                if (!r.read) handleMarkAsRead(r.id);
-                return false;
-              }}
-            >
-              {/* Header: Avatar, Info, Stars */}
-              <View style={s.reviewCardHeader}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
-                  <Av initials={r.avatar} size={42} color={r.color} />
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <Text style={s.studentName}>{r.student}</Text>
-                      {!r.read && (
-                        <View style={s.newDotBadge}>
-                          <Text style={s.newDotBadgeText}>New</Text>
-                        </View>
-                      )}
+        {demoMode ? (
+          filteredReviews.map((r) => {
+            const isDrafting = replyingId === r.id;
+            return (
+              <View 
+                key={r.id} 
+                style={[
+                  s.reviewCard, 
+                  !r.read && { borderColor: 'rgba(20,184,166,0.35)', backgroundColor: 'rgba(20,184,166,0.02)' }
+                ]}
+                onStartShouldSetResponder={() => {
+                  if (!r.read) handleMarkAsRead(r.id);
+                  return false;
+                }}
+              >
+                {/* Header: Avatar, Info, Stars */}
+                <View style={s.reviewCardHeader}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                    <Av initials={r.avatar} size={42} color={r.color} />
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={s.studentName}>{r.student}</Text>
+                        {!r.read && (
+                          <View style={s.newDotBadge}>
+                            <Text style={s.newDotBadgeText}>New</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={s.sessionDetails}>{r.topic} · {r.date}</Text>
                     </View>
-                    <Text style={s.sessionDetails}>{r.topic} · {r.date}</Text>
                   </View>
-                </View>
-                
-                {/* Rating display */}
-                <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                  <StarRow rating={r.rating} size={14} />
-                  <Text style={s.starsTextDisplay}>{r.ratingText}</Text>
-                </View>
+                  
+                  {/* Rating display */}
+                  <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                    <StarRow rating={r.rating} size={14} />
+                    <Text style={s.starsTextDisplay}>{r.ratingText}</Text>
+                  </View>
               </View>
 
               {/* Review Text */}
@@ -560,13 +596,22 @@ export function FeedbackView() {
               )}
             </View>
           );
-        })}
+        })
+      ) : (
+        <View style={[s.card, { alignItems: 'center', paddingVertical: 40 }]}>
+          <Star size={48} color={MC.dim} style={{ marginBottom: 12 }} />
+          <Text style={[s.cardTitle, { marginBottom: 4 }]}>No student reviews yet</Text>
+          <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 13, textAlign: 'center', paddingHorizontal: 20 }}>
+            Reviews and student feedback will appear here after you conduct mentoring sessions.
+          </Text>
+        </View>
+      )}
 
-        {filteredReviews.length === 0 && (
-          <View style={s.emptyStateBox}>
-            <Text style={s.emptyStateText}>No reviews match the selected filter.</Text>
-          </View>
-        )}
+      {demoMode && filteredReviews.length === 0 && (
+        <View style={s.emptyStateBox}>
+          <Text style={s.emptyStateText}>No reviews match the selected filter.</Text>
+        </View>
+      )}
       </View>
     </ScrollView>
   );
@@ -1001,5 +1046,21 @@ const s = StyleSheet.create({
     color: MC.muted,
     fontFamily: FONTS.med,
     fontSize: 13.5,
+  },
+  demoBadgeBanner: {
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  demoBadgeText: {
+    color: '#FBBF24',
+    fontFamily: FONTS.bold,
+    fontSize: 12,
+    textAlign: 'center',
   },
 });
