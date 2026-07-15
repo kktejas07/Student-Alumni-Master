@@ -16,7 +16,8 @@ async def fetch_users_with_mock_limit(base_query: Dict[str, Any], limit: int, mo
         proj = {"password_hash": 0, "face_image_base64": 0}
         
     real_query = {**base_query, "is_mock": {"$ne": True}}
-    real_candidates = await db.users.find(real_query, proj).sort("_id", -1).to_list(limit)
+    # Removed .sort("_id", -1) to prevent 524 timeouts on DBs missing the is_mock index
+    real_candidates = await db.users.find(real_query, proj).to_list(limit)
     
     rem_limit = limit - len(real_candidates)
     if rem_limit > 0:

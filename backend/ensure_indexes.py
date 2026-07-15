@@ -25,6 +25,8 @@ async def main():
     await safe_create(db.users, "email")
     await safe_create(db.users, "role")
     await safe_create(db.users, [("role", 1), ("mentor_status", 1)])
+    await safe_create(db.users, "is_mock")
+    await safe_create(db.users, [("is_mock", 1), ("_id", -1)])
     
     # Bookings
     logger.info("Creating indexes for bookings collection...")
