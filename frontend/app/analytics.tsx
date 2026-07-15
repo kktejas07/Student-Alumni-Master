@@ -48,10 +48,16 @@ export default function AnalyticsScreen() {
 
   useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
 
-  if (loading && !data) {
+  if (!data) {
     return (
       <SafeAreaView style={styles.safe}>
-        <View style={styles.center}><ActivityIndicator size="large" color={C.brandPurple} /></View>
+        <View style={styles.center}>
+          {loading ? (
+            <ActivityIndicator size="large" color={C.brandPurple} />
+          ) : (
+            <Text style={{ color: C.white }}>Failed to load analytics data.</Text>
+          )}
+        </View>
       </SafeAreaView>
     );
   }

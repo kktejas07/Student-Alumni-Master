@@ -472,11 +472,17 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   ]);
 
   /* ── Loading state ── */
-  if (loading && !roadmap.milestones) {
+  if (!roadmap.milestones) {
     return (
       <View style={[embedded ? s.embeddedShell : s.shell, { alignItems: 'center', justifyContent: 'center', gap: 14 }]}>
-        <ActivityIndicator size="large" color={C.purpleL} />
-        <Text style={{ color: C.text2, fontFamily: FT.med, fontSize: 15 }}>Generating your roadmap…</Text>
+        {loading ? (
+          <>
+            <ActivityIndicator size="large" color={C.purpleL} />
+            <Text style={{ color: C.text2, fontFamily: FT.med, fontSize: 15 }}>Generating your roadmap…</Text>
+          </>
+        ) : (
+          <Text style={{ color: C.text2, fontFamily: FT.med, fontSize: 15 }}>Failed to load career roadmap.</Text>
+        )}
       </View>
     );
   }
