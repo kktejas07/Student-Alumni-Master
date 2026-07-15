@@ -9,7 +9,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import {
   Menu, LayoutDashboard, Users, Calendar, UserPlus, Network, Coins,
   Star as StarIcon, Plus, User as UserIcon, QrCode, ExternalLink, LogOut,
-  Clock, Sparkles, Lock,
+  Clock, Sparkles,
 } from 'lucide-react-native';
 import { MC, FONTS } from './tokens';
 import { MENTOR } from './data';
@@ -18,18 +18,18 @@ import { router } from 'expo-router';
 
 export type NavId = 'dashboard'|'students'|'sessions'|'requests'|'network'|'earnings'|'feedback'|'event'|'availability'|'profile'|'ai-studio';
 
-export interface NavSpec { id: NavId; label: string; Icon: any; count?: number; alert?: boolean; locked?: boolean }
+export interface NavSpec { id: NavId; label: string; Icon: any; count?: number; alert?: boolean }
 
 export const NAV_MAIN: (counts: { students: number; sessions: number; requests: number }) => NavSpec[] = ({ students, sessions, requests }) => [
   { id: 'dashboard',    label: 'Dashboard',        Icon: LayoutDashboard },
   { id: 'ai-studio',    label: 'AI Studio',        Icon: Sparkles },
   { id: 'students',     label: 'My Connections',   Icon: Users,    count: students },
   { id: 'sessions',     label: 'Sessions',         Icon: Calendar, count: sessions },
-  { id: 'requests',     label: 'Session Requests', Icon: UserPlus, count: requests, alert: true, locked: true },
-  { id: 'network',      label: 'Network',          Icon: Network, locked: true },
-  { id: 'earnings',     label: 'Earnings',         Icon: Coins, locked: true },
-  { id: 'feedback',     label: 'Feedback',         Icon: StarIcon, locked: true },
-  { id: 'event',        label: 'Create Event',     Icon: Plus, locked: true },
+  { id: 'requests',     label: 'Session Requests', Icon: UserPlus, count: requests, alert: true },
+  { id: 'network',      label: 'Network',          Icon: Network },
+  { id: 'earnings',     label: 'Earnings',         Icon: Coins },
+  { id: 'feedback',     label: 'Feedback',         Icon: StarIcon },
+  { id: 'event',        label: 'Create Event',     Icon: Plus },
   { id: 'profile',      label: 'Profile',          Icon: UserIcon },
 ];
 
@@ -136,26 +136,17 @@ export function Sidebar({
         {!collapsed && <Text style={s.kicker}>MAIN MENU</Text>}
         {items.map((n) => {
           const isActive = active === n.id;
-          const tint = isActive ? MC.tealP : n.locked ? MC.dim : MC.muted;
+          const tint = isActive ? MC.tealP : MC.muted;
           return (
             <Pressable
               key={n.id}
-              onPress={() => {
-                if (!n.locked) onNav(n.id);
-              }}
+              onPress={() => onNav(n.id)}
+              nativeID={`mentor-nav-${n.id}`}
               style={({ hovered }: any) => [
-                {
-                  flexDirection: 'row', alignItems: 'center',
-                  paddingVertical: 10, paddingHorizontal: collapsed ? 0 : 12,
-                  justifyContent: collapsed ? 'center' : 'flex-start',
-                  gap: collapsed ? 0 : 12,
-                  marginHorizontal: collapsed ? 0 : 6,
-                  borderRadius: 6,
-                  marginBottom: 2,
-                },
-                isActive && { backgroundColor: MC.teal },
-                hovered && !isActive && !n.locked && { backgroundColor: 'rgba(255,255,255,0.03)' },
-                n.locked && { opacity: 0.5 }
+                s.navRow,
+                { padding: collapsed ? 9 : 11, justifyContent: collapsed ? 'center' : 'flex-start', gap: collapsed ? 0 : 11 },
+                isActive && { backgroundColor: 'rgba(20,184,166,0.12)' },
+                hovered && !isActive && { backgroundColor: 'rgba(255,255,255,0.04)' },
               ]}
             >
               <n.Icon size={16} color={tint} />
@@ -164,10 +155,7 @@ export function Sidebar({
                   {n.label}
                 </Text>
               )}
-              {!collapsed && n.locked && (
-                <Lock size={12} color={MC.dim} style={{ marginLeft: 'auto' }} />
-              )}
-              {!collapsed && !n.locked && !!n.count && (
+              {!collapsed && !!n.count && (
                 <View style={[s.countPill, n.alert ? s.countPillAlert : null]}>
                   <Text style={{ color: n.alert ? '#FCD34D' : MC.tealP, fontFamily: FONTS.xbold, fontSize: 10 }}>{n.count}</Text>
                 </View>
