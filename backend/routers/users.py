@@ -2417,7 +2417,7 @@ async def ai_career_roadmap(
         bookings_count = await db.bookings.count_documents({"student_id": uid_str})
     except Exception:
         bookings_count = 0
-    profile_comp_data = _compute_profile_completion(user)
+    profile_comp_data = compute_profile_completion(user)
     profile_pct_for_prompt = profile_comp_data["percentage"]
     project_titles = ", ".join(p.get("title", "") for p in projects[:5] if p.get("title"))
     cert_names = ", ".join(c.get("title", c.get("name", "")) for c in certs[:5] if c.get("title") or c.get("name"))

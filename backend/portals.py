@@ -424,8 +424,8 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
             "skills": m.get("skills") or ["System Design", "Career Strategy"],
         })
 
-    from server import _compute_profile_completion
-    comp_data = _compute_profile_completion(student or {})
+    from services.profile_service import compute_profile_completion
+    comp_data = compute_profile_completion(student or {})
     career_score = comp_data["percentage"]
     
     prog_profile = (career_score / 100.0) * 30
