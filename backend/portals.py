@@ -357,7 +357,7 @@ async def mentor_dashboard(mentor_email: Optional[str] = None):
 
 # ─── 2. STUDENT DASHBOARD ────────────────────────────────────────
 @router.get("/student/dashboard")
-async def student_dashboard(student_email: Optional[str] = None):
+async def student_dashboard(request: Request, student_email: Optional[str] = None):
     """Student dashboard — all independent DB queries run in parallel via asyncio.gather."""
     import asyncio
     import time
@@ -368,8 +368,23 @@ async def student_dashboard(student_email: Optional[str] = None):
 
     # ── Profile lookup ──────────────────────────────────────────────
     student = None
+    if not student_email:
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer "):
+            try:
+                import jwt
+                from core.security import JWT_SECRET, JWT_ALGORITHM
+                from bson import ObjectId
+                payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
+                if "sub" in payload:
+                    me = await _db.users.find_one({"_id": ObjectId(payload["sub"])})
+                    if me:
+                        student_email = me.get("email")
+            except Exception:
+                pass
+
     if student_email:
-        student = await _db.users.find_one({"email": student_email, "role": "student"}, {"resume_documents": 0})
+        student = await _db.users.find_one({"email": student_email}, {"resume_documents": 0})
     if not student and not student_email:
         student = await _db.users.find_one({"role": "student", "onboarding_completed": True}, {"resume_documents": 0})
         if not student:
@@ -548,17 +563,16 @@ async def student_dashboard(student_email: Optional[str] = None):
              "url": "", "tags": ["Networking", "Alumni"]},
         ]
 
-    skills = student.get("skills", []) if student else []
-    career_score = min(100, 40 + len(skills) * 5 + (10 if student and student.get("face_image_base64") else 0))
+    from server import _compute_profile_completion
+    comp_data = _compute_profile_completion(student or {})
+    career_score = comp_data["percentage"]
+    
     prog_profile = (career_score / 100.0) * 30
     prog_mentors = (min(3, completed_sessions) / 3.0) * 30
     prog_interns  = (min(5, apps_count) / 5.0) * 40
     progress_pct  = int(prog_profile + prog_mentors + prog_interns)
 
-    missing_profile = []
-    if not (student and student.get("skills")):   missing_profile.append("Skills")
-    if not (student and student.get("projects")):  missing_profile.append("Projects")
-    if not (student and student.get("resume_url")): missing_profile.append("Resume")
+    missing_profile = [i["label"] for i in comp_data["items"] if not i["done"]]
 
     payload = {
         "student": {
@@ -2550,7 +2564,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     rel_map = {}
     if user:
         me_id = str(user["_id"])
-        cache_key = f"network_student_{me_id}"
+        cache_key = f"network_student_{me_id}_p{page}_l{limit}_pp{per_page}"
         if cache_key in network_cache:
             return network_cache[cache_key]
         

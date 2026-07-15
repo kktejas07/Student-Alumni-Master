@@ -449,7 +449,7 @@ export function DashboardView() {
                 </View>
                 <Pressable
                   onPress={() => router.push({
-                    pathname: '/mentor/' + m.id,
+                    pathname: '/mentor/[id]',
                     params: {
                       id: m.id,
                       name: m.name,

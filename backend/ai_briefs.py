@@ -60,6 +60,22 @@ STUDENT CONTEXT:
 """.strip()
 
 
+def _alumni_prompt(user: Dict[str, Any]) -> str:
+    si = user.get("school_info") or {}
+    tier = user.get("tier", "Bronze")
+    return f"""
+You are an AI assistant for an alumni. Write a sharp 4-sentence briefing.
+Reference their tier, college, and graduation year. Suggest ONE action to engage with their alma mater today.
+Under 80 words. No emojis.
+
+ALUMNI CONTEXT:
+- Name: {user.get('full_name', 'Alumni')}
+- Tier: {tier} ({user.get('tier_score', 0)}/100)
+- College: {si.get('institution_name', '—')}
+- Graduation: {si.get('graduation_year', '—')}
+""".strip()
+
+
 def _mentor_prompt(user: Dict[str, Any]) -> str:
     mi = user.get("mentor_info") or {}
     tier = user.get("tier", "Bronze")
@@ -94,8 +110,8 @@ COLLEGE CONTEXT:
 @router.post("/ai/daily-brief")
 async def daily_brief(req: BriefRequest):
     role = (req.role or "").lower()
-    if role not in ("student", "mentor", "college"):
-        raise HTTPException(400, "role must be student | mentor | college")
+    if role not in ("student", "mentor", "college", "alumni"):
+        raise HTTPException(400, "role must be student | mentor | college | alumni")
 
     # Resolve user
     q: Dict[str, Any] = {"role": role}
@@ -110,7 +126,7 @@ async def daily_brief(req: BriefRequest):
     # Compute tier on-the-fly if not persisted
     if not user.get("tier"):
         try:
-            if role == "student":
+            if role in ("student", "alumni"):
                 si = (user or {}).get("school_info") or {}
                 cname = si.get("institution_name")
                 naac = None
@@ -136,6 +152,9 @@ async def daily_brief(req: BriefRequest):
     if role == "student":
         system = "You are a concise career coach for Indian students."
         prompt = _student_prompt(user)
+    elif role == "alumni":
+        system = "You are an AI assistant for alumni."
+        prompt = _alumni_prompt(user)
     elif role == "mentor":
         system = "You are an AI assistant for career mentors."
         prompt = _mentor_prompt(user)
@@ -163,7 +182,10 @@ async def daily_brief(req: BriefRequest):
         reply = await chat.send_message(UserMessage(text=prompt))
         text = (reply or "").strip()
     except Exception as e:
-        raise HTTPException(502, f"LLM call failed: {e}")
+        err_msg = str(e)
+        if "AuthenticationError" in err_msg or "invalid x-api-key" in err_msg:
+            raise HTTPException(502, "LLM Authentication Error: Invalid or missing API key.")
+        raise HTTPException(502, f"LLM call failed: {err_msg}")
 
     out = {
         "brief": text,
