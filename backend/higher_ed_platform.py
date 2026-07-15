@@ -690,9 +690,9 @@ Format:
 @router.post("/he/ai/eligibility")
 async def ai_eligibility(body: Dict[str, Any], user: dict = Depends(_auth())):
     pid = (body or {}).get("programme_id")
-    prog = next((p for p in _seed_programmes() if p['id'] == pid), None)
+    prog = next((p for p in _seed_programmes() if p['id'] == pid), None) if pid else None
     if not prog:
-        raise HTTPException(404, "Programme not found")
+        return {"content": "Please select a specific programme from the Search tab to check your eligibility. Click the 'Eligibility' button directly on a programme card.", "programme_id": pid}
     profile = user.get('he_profile') or {}
     cgpa = profile.get('cgpa') or 8.6
     system = "You are an admissions counsellor. Speak in concrete numbers and specific gaps. 200-300 words."

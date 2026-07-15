@@ -344,17 +344,38 @@ async def mentor_dashboard(mentor_email: Optional[str] = None):
 
 # ─── 2. STUDENT DASHBOARD ────────────────────────────────────────
 @router.get("/student/dashboard")
-async def student_dashboard(student_email: Optional[str] = None):
-    """Real student dashboard. Uses `student_email` query param if provided
-    (frontend passes the logged-in user's email); otherwise falls back to
-    any onboarded student in the DB for unauthenticated public preview."""
+async def student_dashboard(request: Request, student_email: Optional[str] = None):
+    """Student dashboard — all independent DB queries run in parallel via asyncio.gather."""
+    import asyncio
+    import time
+    _t0 = time.perf_counter()
+    def _ms():
+        return f"{(time.perf_counter() - _t0) * 1000:.1f}ms"
+    print(f"[DASHBOARD] REQUEST_RECEIVED", flush=True)
+
+    # ── Profile lookup ──────────────────────────────────────────────
     student = None
+    if not student_email:
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer "):
+            try:
+                import jwt
+                from core.security import JWT_SECRET, JWT_ALGORITHM
+                from bson import ObjectId
+                payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
+                if "sub" in payload:
+                    me = await _db.users.find_one({"_id": ObjectId(payload["sub"])})
+                    if me:
+                        student_email = me.get("email")
+            except Exception:
+                pass
+
     if student_email:
-        student = await _db.users.find_one({"email": student_email, "role": "student"})
-    if not student:
-        student = await _db.users.find_one({"role": "student", "onboarding_completed": True})
-    if not student:
-        student = await _db.users.find_one({"role": "student"})
+        student = await _db.users.find_one({"email": student_email, "role": "student"}, {"resume_documents": 0})
+    if not student and not student_email:
+        student = await _db.users.find_one({"role": "student", "onboarding_completed": True}, {"resume_documents": 0})
+        if not student:
+            student = await _db.users.find_one({"role": "student"}, {"resume_documents": 0})
 
     sid = str((student or {}).get("_id", ""))
     name = (student or {}).get("full_name") or "Student"
@@ -403,45 +424,16 @@ async def student_dashboard(student_email: Optional[str] = None):
             "skills": m.get("skills") or ["System Design", "Career Strategy"],
         })
 
-    # Upcoming events
-    upcoming_cur = _db.events.find({
-        "start_date": {"$gte": datetime.now(timezone.utc)},
-    }).sort("start_date", 1).limit(3)
-    upcoming = []
-    palette = ["#A78BFA", "#34D399", "#FCD34D", "#22D3EE"]
-    i = 0
-    async for ev in upcoming_cur:
-        sd = ev.get("start_date")
-        date_str = sd.strftime("%b %d") if isinstance(sd, datetime) else "TBD"
-        full_date_str = sd.strftime("%B %d, %Y at %I:%M %p") if isinstance(sd, datetime) else date_str
-        rd = ev.get("registration_deadline")
-        deadline_str = rd.strftime("%b %d, %Y") if isinstance(rd, datetime) else date_str
-        is_paid = bool(ev.get("price"))
-        upcoming.append({
-            "id": _short_id(ev.get("_id")),
-            "title": ev.get("title", "Event"),
-            "date": date_str,
-            "mode": ev.get("mode") or "Online",
-            "kind": "paid" if is_paid else "free",
-            "price": ev.get("price"),
-            "accent": palette[i % len(palette)],
-            "start_date": full_date_str,
-            "venue": ev.get("venue") or ev.get("location") or "Online",
-            "registration_deadline": deadline_str,
-            "category": ev.get("category") or "Workshop",
-            "organizer": ev.get("organizer") or "Student Alumni Association",
-            "image": ev.get("image_url") or ev.get("cover_image") or "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=400",
-            "url": ev.get("external_url") or "",
-            "tags": ev.get("tags") or ["Networking", "Career Development"],
-        })
-        i += 1
+    from server import _compute_profile_completion
+    comp_data = _compute_profile_completion(student or {})
+    career_score = comp_data["percentage"]
+    
+    prog_profile = (career_score / 100.0) * 30
+    prog_mentors = (min(3, completed_sessions) / 3.0) * 30
+    prog_interns  = (min(5, apps_count) / 5.0) * 40
+    progress_pct  = int(prog_profile + prog_mentors + prog_interns)
 
-    # Career Score (rough computation)
-    skills = student.get("skills", []) if student else []
-    career_score = min(100, 40 + len(skills) * 5 + (10 if student and student.get("face_image_base64") else 0))
-
-    # Compute tier (Bronze/Silver/Gold/Platinum)
-    tier = await _student_tier_payload(student or {})
+    missing_profile = [i["label"] for i in comp_data["items"] if not i["done"]]
 
     return {
         "student": {
@@ -2306,6 +2298,9 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     rel_map = {}
     if user:
         me_id = str(user["_id"])
+        cache_key = f"network_student_{me_id}_p{page}_l{limit}_pp{per_page}"
+        if cache_key in network_cache:
+            return network_cache[cache_key]
         rels = await _db.connections.find({
             "$or": [{"a": me_id}, {"b": me_id}]
         }).to_list(1000)

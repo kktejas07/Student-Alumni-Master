@@ -478,7 +478,7 @@ export function NetworkView() {
 
   const viewMentor = (m: any) => {
     router.push({
-      pathname: `/mentor/${m.id}`,
+      pathname: '/mentor/[id]',
       params: {
         id: m.id,
         name: m.name,

@@ -773,7 +773,7 @@ async def complete_onboarding(req: OnboardingRequest, user: dict = Depends(get_c
 
     # ---- Generate unique ID + QR code (idempotent — only on first onboarding) ----
     unique_id = user.get("unique_id") or generate_unique_id(role)
-    qr_payload = f"SA-USER:{unique_id}|{user['email']}|{role}"
+    qr_payload = f"https://studentalumni.app/verify/{unique_id.split('-')[-1]}"
     qr_code = generate_qr_code(qr_payload)
 
     # ---- Build update document ----

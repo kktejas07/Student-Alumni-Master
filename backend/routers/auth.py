@@ -1035,7 +1035,7 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
     res = await db.users.insert_one(user_doc)
     user_doc["_id"] = res.inserted_id
     user_doc["qr_code_base64"] = generate_qr_code(
-        f"SA-USER:{user_doc['unique_id']}|{email}|{user_doc['role']}"
+        f"https://studentalumni.app/verify/{user_doc['unique_id'].split('-')[-1]}"
     )
     await db.users.update_one(
         {"_id": res.inserted_id},
