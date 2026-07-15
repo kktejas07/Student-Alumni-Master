@@ -17,7 +17,7 @@ import { StudentPortalNavContext } from '../StudentPortalNavContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Sparkles, Briefcase, BookOpen, Users, TrendingUp, Calendar, MapPin,
-  Star, ArrowRight, Check, ExternalLink,
+  Star, ArrowRight, Check, ExternalLink, Bookmark, MessageSquare, GraduationCap, IndianRupee,
 } from '../iconShims';
 import { SC, FONTS, useColors, PALETTE, TYPO } from '../tokens';
 import { GRADS } from '../gradients';
@@ -31,8 +31,7 @@ import {
 } from './NexusComponents';
 import type { KpiSpark, KpiRing, AreaPoint, ActivityItem } from './NexusComponents';
 import { usePortalData } from '@/src/lib/portalApi';
-import { TierBadge } from '@/src/views/web/TierBadge';
-import { LiveStrip } from '@/src/views/web/LiveStrip';
+
 import { TrendingCompaniesWidget } from './TrendingCompaniesWidget';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
@@ -74,24 +73,29 @@ export function DashboardView() {
   const RECOMMENDED_MENTORS = data!.recommendedMentors;
   const UPCOMING_EVENTS = data!.upcomingEvents;
   const PROFILE_COMPLETION = data!.profileCompletion;
+  const JOBS_DATA = [
+    { id: 1, role: 'Software Engineer Intern', company: 'Google', location: 'Hyderabad, India', salary: '₹12 LPA', type: 'Internship', logo: 'G', logoColor: '#4285F4', bg: '#fff', match: 98 },
+    { id: 2, role: 'Frontend Developer Intern', company: 'Microsoft', location: 'Remote', salary: '₹10 LPA', type: 'Internship', logo: 'M', logoColor: '#F25022', bg: '#fff', match: 95 },
+    { id: 3, role: 'QA Engineer Intern', company: 'Amazon', location: 'Bangalore, India', salary: '₹8 LPA', type: 'Internship', logo: 'a', logoColor: '#FF9900', bg: '#fff', match: 92 },
+    { id: 4, role: 'Backend Developer Intern', company: 'Oracle', location: 'Pune, India', salary: '₹9 LPA', type: 'Internship', logo: 'O', logoColor: '#F80000', bg: '#fff', match: 89 },
+    { id: 5, role: 'UI/UX Intern', company: 'Adobe', location: 'Remote', salary: '₹7 LPA', type: 'Internship', logo: 'A', logoColor: '#FF0000', bg: '#fff', match: 87 },
+  ];
 
-  const [briefText, setBriefText] = React.useState<string>('');
-  const [briefLoading, setBriefLoading] = React.useState<boolean>(false);
-  const [briefProvider, setBriefProvider] = React.useState<string>('');
+  const COURSES_DATA = [
+    { id: 1, title: 'React - The Complete Guide', provider: 'Udemy', hours: '38 hours', level: 'Advanced', rating: '4.7', learners: '12.4k learners', logo: 'React', logoColor: '#61DAFB', bg: 'rgba(97, 218, 251, 0.1)' },
+    { id: 2, title: 'Python for Data Science', provider: 'Coursera', hours: '24 hours', level: 'Intermediate', rating: '4.6', learners: '8.7k learners', logo: 'Python', logoColor: '#3776AB', bg: 'rgba(55, 118, 171, 0.1)' },
+    { id: 3, title: 'AWS Certified Solutions Architect', provider: 'AWS Training', hours: '40 hours', level: 'Advanced', rating: '4.8', learners: '6.2k learners', logo: 'AWS', logoColor: '#FF9900', bg: 'rgba(255, 153, 0, 0.1)' },
+    { id: 4, title: 'SQL - Interview Preparation', provider: 'Great Learning', hours: '18 hours', level: 'Beginner', rating: '4.5', learners: '5.1k learners', logo: 'SQL', logoColor: '#00758F', bg: 'rgba(0, 117, 143, 0.1)' },
+    { id: 5, title: 'Playwright Automation Testing', provider: 'Udemy', hours: '20 hours', level: 'Intermediate', rating: '4.6', learners: '4.3k learners', logo: 'Play', logoColor: '#2EAD33', bg: 'rgba(46, 173, 51, 0.1)' },
+  ];
 
-  React.useEffect(() => {
-    // Auto-generate AI brief on mount
-    const fetchBrief = async () => {
-      try {
-        setBriefLoading(true);
-        const j = await request<any>('/ai/daily-brief', { method: 'POST', body: { force: false } });
-        setBriefText(j?.brief || j?.detail || 'Could not generate brief.');
-        setBriefProvider(j?.provider_label || '');
-      } catch (e: any) { setBriefText('Error: ' + (e?.message || 'unknown')); }
-      finally { setBriefLoading(false); }
-    };
-    fetchBrief();
-  }, []);
+  const MENTORS_DATA = [
+    { id: 1, name: 'Rahul Sharma', role: 'Senior SDE @ Google', rating: '4.9 (128)', sessions: '24 sessions', initials: 'RS', color: '#7B3DBF' },
+    { id: 2, name: 'Priya Mehta', role: 'Product Manager @ Microsoft', rating: '4.8 (96)', sessions: '18 sessions', initials: 'PM', color: '#EC4899' },
+    { id: 3, name: 'Arjun Verma', role: 'Data Scientist @ Amazon', rating: '4.7 (87)', sessions: '16 sessions', initials: 'AV', color: '#22C55E' },
+    { id: 4, name: 'Sneha Iyer', role: 'UX Designer @ Adobe', rating: '4.8 (74)', sessions: '14 sessions', initials: 'SI', color: '#F59E0B' },
+    { id: 5, name: 'Vikram Singh', role: 'Cloud Architect @ AWS', rating: '4.9 (105)', sessions: '20 sessions', initials: 'VS', color: '#3B82F6' },
+  ];
 
   const { width } = useWindowDimensions();
   const stack = width < 1100;
@@ -177,16 +181,10 @@ export function DashboardView() {
       style={[
         { gap: 16, position: 'relative' },
         Platform.OS === 'web' ? ({
-          // Aurora baked into the wrapper background so it's never
-          // clipped by an outer overflow:hidden. We use multiple
-          // radial gradients to create the lavender / magenta /
-          // purple blobs that the glass cards refract.
           backgroundImage:
             'radial-gradient(900px 720px at 12% 6%,  rgba(167,139,250,0.55) 0%, rgba(167,139,250,0) 60%),' +
             'radial-gradient(900px 720px at 95% 10%, rgba(236, 72,153,0.40) 0%, rgba(236, 72,153,0) 65%),' +
             'radial-gradient(1100px 900px at 60% 110%, rgba(123, 61,191,0.58) 0%, rgba(123, 61,191,0) 70%)',
-          // Negative margins so the gradient bleeds into the
-          // surrounding canvas (cancels the parent's padding).
           marginHorizontal: -24,
           marginTop: -16,
           marginBottom: -16,
@@ -197,131 +195,243 @@ export function DashboardView() {
         } as any) : null,
       ]}
     >
-      {/* Aurora — native fallback (web bakes it into the bg above). */}
       {Platform.OS !== 'web' && <Aurora intensity="strong" />}
 
-      {/* AI Daily Brief banner — shimmer aura behind hero icon */}
-      <FadeInView delay={20}>
-      <View style={[s.briefRow, glassStyle()]}>
-        <View style={[s.briefIcon, { backgroundColor: C.cardH }]}>
-          <ShimmerGradient colors={GRADS.brandGlow} duration={4200} />
-          <SparkIcon Icon={Sparkles} size={18} color={C.accentBright} />
+      {/* ── KPI Metrics Cards at the top ── */}
+      <View style={s.kpiRow}>
+        {/* Profile Strength Card */}
+        <View style={[glassStyle(), s.kpiCardMockup]}>
+          <View style={s.kpiCardLeft}>
+            <Text style={[s.kpiTitleText, { color: '#C084FC' }]}>Profile Strength</Text>
+            <Text style={s.kpiValText}>92%</Text>
+            <Text style={s.kpiSubText}>Keep going!</Text>
+          </View>
+          <View style={s.kpiCardRight}>
+            <View style={s.progressRingOuter}>
+              <View style={s.progressRingFill} />
+              <View style={s.progressRingInner} />
+            </View>
+          </View>
         </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={[s.briefTitle, { color: C.text }]}>AI Daily Brief</Text>
-          <Text style={[s.briefSub, { color: C.muted }]}>{briefText || 'Your personalised morning summary'}</Text>
-          {!!briefProvider && !!briefText && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
-              <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999,
-                             backgroundColor: 'rgba(167,139,250,0.16)',
-                             borderColor: 'rgba(167,139,250,0.45)', borderWidth: 1 }}>
-                <Text style={{ color: '#C4B5FD', fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.4 }}>
-                  ⚡ Powered by {briefProvider}
-                </Text>
+
+        {/* Applications Card */}
+        <View style={[glassStyle(), s.kpiCardMockup]}>
+          <View style={s.kpiCardLeft}>
+            <Text style={[s.kpiTitleText, { color: '#818CF8' }]}>Applications</Text>
+            <Text style={s.kpiValText}>16</Text>
+            <Text style={s.kpiSubText}>2 new updates</Text>
+          </View>
+          <View style={s.kpiCardRight}>
+            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(99, 102, 241, 0.15)', borderColor: 'rgba(99, 102, 241, 0.3)' }]}>
+              <Briefcase size={15} color="#818CF8" />
+            </View>
+          </View>
+        </View>
+
+        {/* Network Card */}
+        <View style={[glassStyle(), s.kpiCardMockup]}>
+          <View style={s.kpiCardLeft}>
+            <Text style={[s.kpiTitleText, { color: '#C084FC' }]}>Network</Text>
+            <Text style={s.kpiValText}>128</Text>
+            <Text style={s.kpiSubText}>Connections</Text>
+          </View>
+          <View style={s.kpiCardRight}>
+            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(192, 132, 252, 0.15)', borderColor: 'rgba(192, 132, 252, 0.3)' }]}>
+              <Users size={15} color="#C084FC" />
+            </View>
+          </View>
+        </View>
+
+        {/* Events Card */}
+        <View style={[glassStyle(), s.kpiCardMockup]}>
+          <View style={s.kpiCardLeft}>
+            <Text style={[s.kpiTitleText, { color: '#F87171' }]}>Events</Text>
+            <Text style={s.kpiValText}>7</Text>
+            <Text style={s.kpiSubText}>Upcoming</Text>
+          </View>
+          <View style={s.kpiCardRight}>
+            <View style={[s.kpiIconBox, { backgroundColor: 'rgba(248, 113, 113, 0.15)', borderColor: 'rgba(248, 113, 113, 0.3)' }]}>
+              <Calendar size={15} color="#F87171" />
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* ─── Jobs, Courses, and Mentors Sections ─── */}
+      <View style={{ flexDirection: 'column', gap: 20 }}>
+        {/* Jobs Section */}
+        <View style={[glassStyle(), s.mockupSection, { borderColor: 'rgba(139, 92, 246, 0.25)' }]}>
+          <View style={s.sectionHeader}>
+            <View style={s.sectionHeaderTitle}>
+              <View style={[s.sectionIconBox, { backgroundColor: 'rgba(139, 92, 246, 0.2)' }]}>
+                <Briefcase size={16} color="#A78BFA" />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={s.sectionTitleText}>Jobs</Text>
+                <Text style={s.sectionDescText}>Find the right job opportunities and kickstart your career.</Text>
               </View>
             </View>
-          )}
-        </View>
-        {!briefText && !briefLoading && (
-          <PressScale
-            style={[s.briefCta, briefLoading && { opacity: 0.6 }]}
-            disabled={briefLoading}
-            onPress={async () => {
-              try {
-                setBriefLoading(true);
-                const j = await request<any>('/ai/daily-brief', {
-                  method: 'POST',
-                  body: { force: false },
-                });
-                setBriefText(j?.brief || j?.detail || 'Could not generate brief.');
-                setBriefProvider(j?.provider_label || '');
-              } catch (e: any) { setBriefText('Error: ' + (e?.message || 'unknown')); }
-              finally { setBriefLoading(false); }
-            }}
-          >
-            <LinearGradient
-              colors={[GRAD.from, GRAD.to]}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-              style={s.gradCta}
+            <Pressable 
+              onPress={() => portalNav?.navigate('internships')}
+              style={s.seeAllBtnPurple}
             >
-              <Text style={s.ctaText}>{briefLoading ? 'Generating...' : 'Generate'}</Text>
-            </LinearGradient>
-          </PressScale>
-        )}
-      </View>
-      </FadeInView>
-
-      {/* LIVE-COUNTERS strip — refreshes every 15s to demo auto-refresh */}
-      <LiveStrip accent="#22C55E" keys={['users', 'bookings', 'applications', 'workshops']} />
-
-      {/* TIER BANNER — glowing badge + score + tier-driven suggestions */}
-      {STUDENT.tier && (
-        <View style={[s.tierCard, glassStyle()]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-            <TierBadge tier={STUDENT.tier.tier} size="lg" />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={s.tierKicker}>YOUR TIER · BASED ON COLLEGE • SKILLS • PROFILE</Text>
-              <Text style={s.tierTitle}>
-                {STUDENT.tier.tier} <Text style={s.tierScore}>· {STUDENT.tier.score}/100</Text>
-              </Text>
-              <Text style={s.tierSub}>
-                {STUDENT.tier.tier === 'Platinum' && 'You unlock FAANG, OpenAI & Stripe-level opportunities.'}
-                {STUDENT.tier.tier === 'Gold' && 'Top Indian tech & senior roles are pinned for you.'}
-                {STUDENT.tier.tier === 'Silver' && 'Solid foundation — keep building your stack to reach Gold.'}
-                {STUDENT.tier.tier === 'Bronze' && 'Build your portfolio — first projects unlock Silver tier.'}
-              </Text>
-            </View>
+              <Text style={s.seeAllBtnText}>View all Jobs</Text>
+              <ArrowRight size={12} color="#fff" style={{ marginLeft: 6 }} />
+            </Pressable>
           </View>
-
-          {/* Tier suggestions row */}
-          {STUDENT.tier.suggestions && (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-              {(STUDENT.tier.suggestions.skills || []).slice(0, 3).map((skill: string) => (
-                <View key={skill} style={s.tierChip}>
-                  <Sparkles size={10} color={STUDENT.tier.visuals?.glow || '#A78BFA'} />
-                  <Text style={[s.tierChipText, { color: STUDENT.tier.visuals?.glow || '#A78BFA' }]}>{skill}</Text>
+          
+          <View style={s.sectionList}>
+            {JOBS_DATA.map((item, idx) => (
+              <React.Fragment key={item.id}>
+                {idx > 0 && <View style={s.divider} />}
+                <View style={s.sectionItem}>
+                  <View style={[s.companyLogoShim, { backgroundColor: item.bg }]}>
+                    <Text style={[s.companyLogoShimText, { color: item.logoColor }]}>{item.logo}</Text>
+                  </View>
+                  <View style={{ flex: 2, minWidth: 0 }}>
+                    <Text numberOfLines={1} style={s.itemMainText}>{item.role}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
+                      <Text style={s.itemSubText}>{item.company} · {item.type}</Text>
+                      <View style={[s.matchPill, { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }]}><Text style={[s.matchPillText, { fontSize: 9.5 }]}>✦ {item.match}% match</Text></View>
+                    </View>
+                  </View>
+                  <View style={{ flex: 1.5, minWidth: 0 }}>
+                    <View style={s.metaTextRow}>
+                      <MapPin size={10} color={SC.muted} />
+                      <Text numberOfLines={1} style={s.metaText}>{item.location}</Text>
+                    </View>
+                    <View style={[s.metaTextRow, { marginTop: 2 }]}>
+                      <IndianRupee size={10} color={SC.muted} />
+                      <Text style={s.metaText}>{item.salary}</Text>
+                    </View>
+                  </View>
+                  <View style={s.itemActionCol}>
+                    <Pressable style={s.bookmarkBtn}>
+                      <Bookmark size={14} color="#A78BFA" />
+                    </Pressable>
+                    <Pressable 
+                      onPress={() => portalNav?.navigate('internships', { q: item.company })}
+                      style={s.applyBtn}
+                    >
+                      <Text style={s.applyBtnText}>Apply</Text>
+                    </Pressable>
+                  </View>
                 </View>
-              ))}
+              </React.Fragment>
+            ))}
+          </View>
+        </View>
+
+        {/* Courses Section */}
+        <View style={[glassStyle(), s.mockupSection, { borderColor: 'rgba(59, 130, 246, 0.25)' }]}>
+          <View style={s.sectionHeader}>
+            <View style={s.sectionHeaderTitle}>
+              <View style={[s.sectionIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.2)' }]}>
+                <BookOpen size={16} color="#60A5FA" />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={s.sectionTitleText}>Courses</Text>
+                <Text style={s.sectionDescText}>Discover expert-led courses to enhance your skills and grow.</Text>
+              </View>
             </View>
-          )}
-        </View>
-      )}
-
-      {/* AI Career Assistant Roadmap */}
-      <View style={[s.roadmapCard, glassStyle()]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-          <IconBox size={28}><Sparkles size={13} color={GRAD.from} /></IconBox>
-          <SectionLabel>AI CAREER ASSISTANT · PERSONALISED ROADMAP</SectionLabel>
-        </View>
-        <Text style={s.roadmapTitle}>You’re {STUDENT.career.progressPct}% toward your goal:</Text>
-        <Text style={s.roadmapGoal}>{STUDENT.career.goal}</Text>
-
-        <View style={{ marginTop: 14 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-            <Text style={s.progLabel}>Career Progress</Text>
-            <Text style={s.progPct}>{STUDENT.career.progressPct}%</Text>
-          </View>
-          <View style={s.progTrack}>
-            <AnimatedRingFill progress={STUDENT.career.progressPct} height={6} fillColors={GRADS.brandSoft} />
-          </View>
-        </View>
-
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
-          <Pressable onPress={() => portalNav?.navigate('career-ai')}>
-            <LinearGradient
-              colors={[GRAD.from, GRAD.to]}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-              style={s.primaryCta}
+            <Pressable 
+              onPress={() => portalNav?.navigate('courses')}
+              style={s.seeAllBtnBlue}
             >
-              <Text style={s.primaryCtaText}>View Full Roadmap →</Text>
-            </LinearGradient>
-          </Pressable>
-          <Pressable
-            style={({ hovered }: any) => [s.secCta, hovered && { backgroundColor: SC.cardH }]}
-            onPress={() => portalNav?.navigate('internships')}
-          >
-            <Text style={s.secCtaText}>Browse Internships</Text>
-          </Pressable>
+              <Text style={s.seeAllBtnText}>View all Courses</Text>
+              <ArrowRight size={12} color="#fff" style={{ marginLeft: 6 }} />
+            </Pressable>
+          </View>
+          
+          <View style={s.sectionList}>
+            {COURSES_DATA.map((item, idx) => (
+              <React.Fragment key={item.id}>
+                {idx > 0 && <View style={s.divider} />}
+                <View style={s.sectionItem}>
+                  <View style={[s.companyLogoShim, { backgroundColor: item.bg }]}>
+                    <Text style={[s.companyLogoShimText, { color: item.logoColor, fontSize: 11 }]}>{item.logo}</Text>
+                  </View>
+                  <View style={{ flex: 2, minWidth: 0 }}>
+                    <Text numberOfLines={1} style={s.itemMainText}>{item.title}</Text>
+                    <Text numberOfLines={1} style={s.itemSubText}>{item.provider} · {item.hours} · {item.level}</Text>
+                  </View>
+                  <View style={{ flex: 1.5, minWidth: 0 }}>
+                    <View style={s.metaTextRow}>
+                      <Star size={10} color="#F59E0B" fill="#F59E0B" />
+                      <Text style={[s.metaText, { color: '#F59E0B', fontFamily: FONTS.bold }]}>{item.rating}</Text>
+                    </View>
+                    <Text style={[s.metaText, { marginTop: 2 }]}>{item.learners}</Text>
+                  </View>
+                  <View style={s.itemActionCol}>
+                    <Pressable 
+                      onPress={() => portalNav?.navigate('courses')}
+                      style={s.continueBtn}
+                    >
+                      <Text style={s.continueBtnText}>Continue</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </React.Fragment>
+            ))}
+          </View>
+        </View>
+
+        {/* Mentors Section */}
+        <View style={[glassStyle(), s.mockupSection, { borderColor: 'rgba(16, 185, 129, 0.25)' }]}>
+          <View style={s.sectionHeader}>
+            <View style={s.sectionHeaderTitle}>
+              <View style={[s.sectionIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
+                <Users size={16} color="#34D399" />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={s.sectionTitleText}>Mentors</Text>
+                <Text style={s.sectionDescText}>Connect with experienced mentors and get guidance.</Text>
+              </View>
+            </View>
+            <Pressable 
+              onPress={() => portalNav?.navigate('network')}
+              style={s.seeAllBtnGreen}
+            >
+              <Text style={s.seeAllBtnText}>View all Mentors</Text>
+              <ArrowRight size={12} color="#fff" style={{ marginLeft: 6 }} />
+            </Pressable>
+          </View>
+          
+          <View style={s.sectionList}>
+            {MENTORS_DATA.map((item, idx) => (
+              <React.Fragment key={item.id}>
+                {idx > 0 && <View style={s.divider} />}
+                <View style={s.sectionItem}>
+                  <Av initials={item.initials} size={36} color={item.color} />
+                  <View style={{ flex: 2, minWidth: 0, marginLeft: 12 }}>
+                    <Text numberOfLines={1} style={s.itemMainText}>{item.name}</Text>
+                    <Text numberOfLines={1} style={s.itemSubText}>{item.role}</Text>
+                  </View>
+                  <View style={{ flex: 1.5, minWidth: 0 }}>
+                    <View style={s.metaTextRow}>
+                      <Star size={10} color="#F59E0B" fill="#F59E0B" />
+                      <Text style={[s.metaText, { color: '#F59E0B', fontFamily: FONTS.bold }]}>{item.rating}</Text>
+                    </View>
+                    <Text style={[s.metaText, { marginTop: 2 }]}>{item.sessions}</Text>
+                  </View>
+                  <View style={s.itemActionCol}>
+                    <Pressable 
+                      onPress={() => portalNav?.navigate('network')}
+                      style={s.bookSessionBtn}
+                    >
+                      <Text style={s.bookSessionBtnText}>Book Session</Text>
+                    </Pressable>
+                    <Pressable 
+                      onPress={() => portalNav?.navigate('network')}
+                      style={s.chatBtn}
+                    >
+                      <MessageSquare size={13} color={SC.muted} />
+                    </Pressable>
+                  </View>
+                </View>
+              </React.Fragment>
+            ))}
+          </View>
         </View>
       </View>
 
@@ -685,4 +795,277 @@ const s = StyleSheet.create({
   missingText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 10.5 },
   completeCta: { paddingHorizontal: 18, height: 40, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}) },
   completeCtaText: { color: SC.primaryD, fontFamily: FONTS.xbold, fontSize: 12.5 },
+  kpiRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 12,
+  },
+  kpiCardMockup: {
+    flex: 1,
+    minWidth: 200,
+    borderRadius: 12,
+    padding: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: SC.glassBg,
+    borderColor: SC.glassBorder,
+    borderWidth: 1,
+    ...(Platform.OS === 'web' ? ({
+      backdropFilter: 'blur(18px) saturate(140%)',
+      WebkitBackdropFilter: 'blur(18px) saturate(140%)',
+      boxShadow: SC.glassShadow,
+    } as any) : {}),
+  },
+  kpiCardLeft: {
+    flex: 1,
+  },
+  kpiCardRight: {
+    marginLeft: 8,
+  },
+  kpiTitleText: {
+    fontFamily: FONTS.bold,
+    fontSize: 10.5,
+    letterSpacing: 0.2,
+  },
+  kpiValText: {
+    color: '#fff',
+    fontFamily: FONTS.xbold,
+    fontSize: 22,
+    marginTop: 4,
+    letterSpacing: -0.4,
+  },
+  kpiSubText: {
+    color: SC.muted,
+    fontFamily: FONTS.med,
+    fontSize: 11,
+    marginTop: 2,
+  },
+  kpiIconBox: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  progressRingOuter: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 3,
+    borderColor: 'rgba(192, 132, 252, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progressRingFill: {
+    position: 'absolute',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 3,
+    borderColor: '#C084FC',
+    borderLeftColor: 'transparent',
+    borderBottomColor: 'transparent',
+  },
+  progressRingInner: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'transparent',
+  },
+  mockupSection: {
+    backgroundColor: 'rgba(10, 8, 22, 0.65)',
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 20,
+    ...(Platform.OS === 'web' ? ({
+      backdropFilter: 'blur(18px) saturate(140%)',
+      WebkitBackdropFilter: 'blur(18px) saturate(140%)',
+      boxShadow: SC.glassShadow,
+    } as any) : {}),
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 18,
+  },
+  sectionHeaderTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    marginRight: 16,
+  },
+  sectionIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionTitleText: {
+    color: '#fff',
+    fontFamily: FONTS.xbold,
+    fontSize: 18,
+    letterSpacing: -0.3,
+  },
+  sectionDescText: {
+    color: SC.muted,
+    fontFamily: FONTS.med,
+    fontSize: 11.5,
+    marginTop: 2,
+  },
+  seeAllBtnPurple: {
+    backgroundColor: '#6D28D9',
+    paddingHorizontal: 14,
+    height: 34,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+  },
+  seeAllBtnBlue: {
+    backgroundColor: '#2563EB',
+    paddingHorizontal: 14,
+    height: 34,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+  },
+  seeAllBtnGreen: {
+    backgroundColor: '#059669',
+    paddingHorizontal: 14,
+    height: 34,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+  },
+  seeAllBtnText: {
+    color: '#fff',
+    fontFamily: FONTS.bold,
+    fontSize: 11.5,
+  },
+  sectionList: {
+    gap: 0,
+  },
+  sectionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  companyLogoShim: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  companyLogoShimText: {
+    fontFamily: FONTS.xbold,
+    fontSize: 16,
+  },
+  itemMainText: {
+    color: '#fff',
+    fontFamily: FONTS.bold,
+    fontSize: 13.5,
+  },
+  itemSubText: {
+    color: SC.muted,
+    fontFamily: FONTS.med,
+    fontSize: 11.5,
+    marginTop: 2,
+  },
+  metaTextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  metaText: {
+    color: SC.muted,
+    fontFamily: FONTS.med,
+    fontSize: 11.5,
+  },
+  itemActionCol: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  bookmarkBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+  },
+  applyBtn: {
+    backgroundColor: '#6D28D9',
+    width: 76,
+    height: 34,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+  },
+  applyBtnText: {
+    color: '#fff',
+    fontFamily: FONTS.bold,
+    fontSize: 12,
+  },
+  continueBtn: {
+    backgroundColor: '#2563EB',
+    width: 76,
+    height: 34,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+  },
+  continueBtnText: {
+    color: '#fff',
+    fontFamily: FONTS.bold,
+    fontSize: 12,
+  },
+  bookSessionBtn: {
+    borderColor: '#10B981',
+    borderWidth: 1,
+    width: 105,
+    height: 34,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.05)',
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+  },
+  bookSessionBtnText: {
+    color: '#34D399',
+    fontFamily: FONTS.bold,
+    fontSize: 11.5,
+  },
+  chatBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    marginVertical: 2,
+  },
 });
