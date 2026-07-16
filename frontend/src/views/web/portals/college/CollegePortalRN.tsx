@@ -49,8 +49,8 @@ export function CollegePortalRN() {
   }, []);
 
   const onLogout = async () => {
-    try { await logout(); } catch {}
     router.replace('/welcome');
+    try { await logout(); } catch {}
   };
 
   const titleFor = (id: CollegeNavId) => NAV.find((n) => n.id === id)?.label || 'Dashboard';

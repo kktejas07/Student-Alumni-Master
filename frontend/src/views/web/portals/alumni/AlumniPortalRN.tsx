@@ -58,8 +58,8 @@ export function AlumniPortalRN() {
   }, [tab]);
 
   const onLogout = async () => {
-    try { await logout(); } catch {}
     router.replace('/welcome');
+    try { await logout(); } catch {}
   };
 
   const handleNav = (id: StudentNavId, params?: { q?: string }) => {
