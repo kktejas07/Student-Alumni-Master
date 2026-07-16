@@ -39,8 +39,8 @@ export function SuperAdminPortalRN() {
   useAutoTour('super_admin');
 
   const onLogout = async () => {
-    try { await logout(); } catch {}
     router.replace('/welcome');
+    try { await logout(); } catch {}
   };
 
   const titleFor = (id: SuperAdminNavId) => NAV.find((n) => n.id === id)?.label || 'Overview';
