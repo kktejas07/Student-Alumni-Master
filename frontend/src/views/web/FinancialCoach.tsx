@@ -49,11 +49,13 @@ export default function FinancialCoach({ open, setOpen }: {
 
   // Autofocus input when modal opens
   useEffect(() => {
+    let t: ReturnType<typeof setTimeout>;
     if (open) {
-      setTimeout(() => {
+      t = setTimeout(() => {
         inputRef.current?.focus();
       }, 150);
     }
+    return () => clearTimeout(t);
   }, [open]);
 
   const send = async (msg?: string) => {
