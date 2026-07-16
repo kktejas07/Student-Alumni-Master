@@ -152,9 +152,10 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
 
   useEffect(() => {
     if (Platform.OS === 'web' && section) {
-      setTimeout(() => {
+      const t = setTimeout(() => {
         document.getElementById(section)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 500); // Wait for render
+      return () => clearTimeout(t);
     }
   }, [section, tab]);
   const [draft, setDraft] = useState<any>(user || {});

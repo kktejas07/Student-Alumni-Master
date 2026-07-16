@@ -46,14 +46,16 @@ export default function MoneyCoach({ initialCmd, onAction }: {
 
   // Welcome
   useEffect(() => {
+    let t: ReturnType<typeof setTimeout>;
     if (open && messages.length === 0) {
       setMessages([{
         role: 'assistant',
         text: "Hi! I'm your Money Coach 🪙 Try /credit-plan for the fastest path to next tier, /spend for a 30-day breakdown, or /save 5000 for a plan.",
       }]);
       // If launched with a pre-typed command, auto-send it
-      if (initialCmd) setTimeout(() => send(initialCmd), 400);
+      if (initialCmd) t = setTimeout(() => send(initialCmd), 400);
     }
+    return () => clearTimeout(t);
   }, [open]);
 
   // Auto-open when initialCmd set externally
@@ -64,16 +66,20 @@ export default function MoneyCoach({ initialCmd, onAction }: {
   // Listen for global events (CTAs from elsewhere can ping-open the coach)
   useEffect(() => {
     if (Platform.OS !== 'web') return;
+    let pendingTimer: ReturnType<typeof setTimeout>;
     const handler = (e: any) => {
       const cmd = e?.detail?.cmd;
       setOpen(true);
       if (cmd) {
         setMessages([]);  // reset chat
-        setTimeout(() => send(cmd), 350);
+        pendingTimer = setTimeout(() => send(cmd), 350);
       }
     };
     window.addEventListener('open-money-coach', handler);
-    return () => window.removeEventListener('open-money-coach', handler);
+    return () => {
+      window.removeEventListener('open-money-coach', handler);
+      clearTimeout(pendingTimer);
+    };
   }, []);
 
   const send = async (msg?: string) => {
