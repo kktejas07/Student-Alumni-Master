@@ -396,6 +396,8 @@ export function SessionsView({ demoMode = true, setDemoMode }: { demoMode?: bool
     // 1. Get upcoming bookings from the bookingsList
     const bookingsUpcoming = bookingsList
       .filter((b) => {
+        const isAutoSeeded = (b.notes && b.notes.includes("Auto-seeded")) || (b.topic && b.topic.includes("Auto-seeded")) || !b._user_created;
+        if (!demoMode && isAutoSeeded) return false;
         const schedDate = new Date(b.scheduled_at || b.slot_start_iso);
         return schedDate > now && b.status !== 'cancelled' && b.status !== 'completed';
       })
@@ -493,6 +495,8 @@ export function SessionsView({ demoMode = true, setDemoMode }: { demoMode?: bool
     }
     return bookingsList
       .filter((b) => {
+        const isAutoSeeded = (b.notes && b.notes.includes("Auto-seeded")) || (b.topic && b.topic.includes("Auto-seeded")) || !b._user_created;
+        if (!demoMode && isAutoSeeded) return false;
         const schedDate = new Date(b.scheduled_at || b.slot_start_iso);
         return schedDate <= now || b.status === 'completed';
       })
@@ -922,32 +926,34 @@ export function SessionsView({ demoMode = true, setDemoMode }: { demoMode?: bool
           return (
             <View key={i} style={s.cardFrame}>
               {/* Profile Bar */}
-              <View style={s.cardHeaderRow}>
-                <Av initials={p.student.avatar} size={48} color={p.student.color} />
-                <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Text style={s.studentName}>{p.student.name}</Text>
-                    <View style={s.countBadge}>
-                      <Text style={s.countBadgeText}>{p.sessionsCount} sessions</Text>
+              {demoMode && (
+                <View style={s.cardHeaderRow}>
+                  <Av initials={p.student.avatar} size={48} color={p.student.color} />
+                  <View style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={s.studentName}>{p.student.name}</Text>
+                      <View style={s.countBadge}>
+                        <Text style={s.countBadgeText}>{p.sessionsCount} sessions</Text>
+                      </View>
                     </View>
+                    <Text style={s.studentSub}>{p.student.branch} - {p.student.college}</Text>
                   </View>
-                  <Text style={s.studentSub}>{p.student.branch} - {p.student.college}</Text>
+                  
+                  {/* Socials / External links */}
+                  <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+                    {p.student.linkedin && (
+                      <Pressable onPress={() => Linking.openURL(`https://${p.student.linkedin}`)} style={[s.socialIconCircle, { backgroundColor: '#0A66C2' }]}>
+                        <LinkedinGlyph size={15} color="#fff" />
+                      </Pressable>
+                    )}
+                    {p.student.github && (
+                      <Pressable onPress={() => Linking.openURL(`https://${p.student.github}`)} style={[s.socialIconCircle, { backgroundColor: '#24292e' }]}>
+                        <Code size={15} color="#fff" />
+                      </Pressable>
+                    )}
+                  </View>
                 </View>
-                
-                {/* Socials / External links */}
-                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
-                  {p.student.linkedin && (
-                    <Pressable onPress={() => Linking.openURL(`https://${p.student.linkedin}`)} style={[s.socialIconCircle, { backgroundColor: '#0A66C2' }]}>
-                      <LinkedinGlyph size={15} color="#fff" />
-                    </Pressable>
-                  )}
-                  {p.student.github && (
-                    <Pressable onPress={() => Linking.openURL(`https://${p.student.github}`)} style={[s.socialIconCircle, { backgroundColor: '#24292e' }]}>
-                      <Code size={15} color="#fff" />
-                    </Pressable>
-                  )}
-                </View>
-              </View>
+              )}
 
               {/* Date Row */}
               <View style={s.pastDateRow}>

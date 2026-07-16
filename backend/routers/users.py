@@ -1,26 +1,34 @@
 import io
+import asyncio
 import os
 import random
 import re
+import uuid
+import logging
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Any, Dict
 
 import qrcode
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, Form, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, Form, UploadFile, File, Body
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from bson import ObjectId
 
+from emergentintegrations.llm.chat import LlmChat, UserMessage
+logger = logging.getLogger("users_router")
+
 from core.db import db
 from core.security import (
     hash_password, verify_password, create_access_token, _audit_log, _audit_log_many,
-    serialize_user, validate_student_class,
+    serialize_user, validate_student_class, _ENC_PREFIX, generate_unique_id, generate_qr_code,
 )
 from core.deps import get_current_user
 from core.models import UserRole, UserResponse, SchoolInfo, MentorInfo, AlumniInfo, StudentInfo, CareerPath, EducationLevel, CollegeInfo
-from personalization import build_personalized_dashboard, track_module_click
+from personalization import build_personalized_dashboard, track_module_click, transition_to_alumni
 from services.career_intelligence_service import compute_full_intelligence, invalidate_intel_cache
 from services.profile_service import compute_profile_completion
+from core.roadmap_engine import evaluate_roadmap_milestones
+from badges import compute_badges, get_tier_theme
 
 
 class OnboardingRequest(BaseModel):
@@ -845,7 +853,7 @@ async def get_my_audit_logs(
     """
     uid = str(user["_id"])
     total = await db.audit_logs.count_documents({"user_id": uid})
-    cursor = db.audit_logs.find({"user_id": uid}).sort("ts", -1).skip(int(skip)).limit(min(int(limit), 500))
+    cursor = db.audit_logs.find({"user_id": uid}).sort("ts", -1).allow_disk_use(True).skip(int(skip)).limit(min(int(limit), 500))
     items = []
     async for doc in cursor:
         items.append({
@@ -1376,9 +1384,9 @@ async def change_my_password(payload: dict, user: dict = Depends(get_current_use
     new_pw = payload.get("new_password") or ""
     if len(new_pw) < 8:
         raise HTTPException(400, "Password must be at least 8 characters")
-    if not bcrypt.checkpw(cur_pw.encode("utf-8"), user.get("password_hash", "").encode("utf-8")):
+    if not verify_password(cur_pw, user.get("password_hash", "")):
         raise HTTPException(400, "Current password is incorrect")
-    new_hash = bcrypt.hashpw(new_pw.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    new_hash = hash_password(new_pw)
     await db.users.update_one(
         {"_id": user["_id"]},
         {"$set": {"password_hash": new_hash, "updated_at": datetime.now(timezone.utc)}},
@@ -1618,10 +1626,20 @@ async def admin_approvals(
     _require_admin(user)
     if status not in ("pending", "approved", "rejected"):
         status = "pending"
-    items = await db.users.find(
+    cursor = db.users.find(
         {"role": "mentor", "mentor_status": status},
         {"password_hash": 0, "face_image_base64": 0},
-    ).sort("created_at", -1).limit(100).to_list(100)
+    )
+    items = await cursor.to_list(1000)
+    def get_created_at(x):
+        dt = x.get("created_at")
+        if dt is None:
+            return datetime.min.replace(tzinfo=timezone.utc)
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt
+    items.sort(key=get_created_at, reverse=True)
+    items = items[:100]
     counts = {
         s: await db.users.count_documents({"role": "mentor", "mentor_status": s})
         for s in ("pending", "approved", "rejected")
@@ -1671,7 +1689,7 @@ async def admin_users_list(
         ]
     items = await db.users.find(
         query, {"password_hash": 0, "face_image_base64": 0},
-    ).sort("created_at", -1).limit(limit).to_list(limit)
+    ).sort("created_at", -1).allow_disk_use(True).limit(limit).to_list(limit)
     out = []
     for u in items:
         mp = u.get("mentor_profile") or {}
@@ -1771,7 +1789,7 @@ async def admin_users_directory_list(
     total = await db.users.count_documents(query)
     items = await db.users.find(
         query, {"password_hash": 0, "face_image_base64": 0},
-    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    ).sort("created_at", -1).allow_disk_use(True).skip(skip).limit(limit).to_list(limit)
     out = []
     for u in items:
         mp = u.get("mentor_profile") or {}
@@ -2417,7 +2435,7 @@ async def ai_career_roadmap(
         bookings_count = await db.bookings.count_documents({"student_id": uid_str})
     except Exception:
         bookings_count = 0
-    profile_comp_data = _compute_profile_completion(user)
+    profile_comp_data = compute_profile_completion(user)
     profile_pct_for_prompt = profile_comp_data["percentage"]
     project_titles = ", ".join(p.get("title", "") for p in projects[:5] if p.get("title"))
     cert_names = ", ".join(c.get("title", c.get("name", "")) for c in certs[:5] if c.get("title") or c.get("name"))
@@ -2610,7 +2628,7 @@ async def complete_roadmap_milestone(
 
 @router.post("/ai/daily-brief")
 async def ai_daily_brief(
-    body: Dict[str, Any] = None,
+    body: Dict[str, Any] = Body(None),
     user: dict = Depends(get_current_user),
 ):
     """
@@ -3016,7 +3034,7 @@ async def list_mentors(career_path: Optional[str] = None, limit: int = 20):
     if career_path:
         user_q["mentor_info.category"] = _path_to_mentor_cat(career_path)
         sample_q["expertise"] = career_path
-    real = await db.users.find(user_q, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).limit(limit).to_list(limit)
+    real = await db.users.find(user_q, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).allow_disk_use(True).limit(limit).to_list(limit)
     for m in real:
         m["id"] = str(m["_id"])
         m.pop("_id", None)
@@ -3327,7 +3345,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     if q:
         rx = {"$regex": re.escape(q), "$options": "i"}
         base_query["$or"] = [{"full_name": rx}, {"email": rx}]
-    candidates = await db.users.find(base_query, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).to_list(500)
+    candidates = await db.users.find(base_query, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).allow_disk_use(True).to_list(500)
 
     cards = [_user_card(c) for c in candidates if str(c.get("_id") or c.get("id")) != me_id]
     # attach connection_state (none|pending|connected|incoming)
@@ -3713,6 +3731,7 @@ async def create_booking(req: BookingRequest, user: dict = Depends(get_demo_user
         "notes": req.notes,
         "status": "pending",
         "created_at": datetime.now(timezone.utc),
+        "_user_created": True,
     }
     result = await db.bookings.insert_one(booking)
     booking["id"] = str(result.inserted_id)
@@ -3810,6 +3829,7 @@ async def my_bookings(user: dict = Depends(get_current_user)):
             "duration_minutes": item.get("duration_minutes", 45),
             "amount_paid": item.get("amount_paid"),
             "status": status,
+            "_user_created": item.get("_user_created", False),
         }
         out.append(doc)
     return {"bookings": out}
@@ -3848,6 +3868,7 @@ async def create_mentor_booking(req: MentorBookingCreateRequest, user: dict = De
         "duration_minutes": 45,
         "status": "confirmed",
         "created_at": datetime.now(timezone.utc),
+        "_user_created": True,
     }
 
     result = await db.bookings.insert_one(booking)

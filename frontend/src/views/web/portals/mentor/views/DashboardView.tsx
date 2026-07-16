@@ -91,7 +91,11 @@ export function DashboardView({ onNav, demoMode = true, setDemoMode }: Props) {
     loadDashboardConnections();
   }, [user]);
 
-  const TODAY_SESSIONS = data?.todaySessions || [];
+  const TODAY_SESSIONS = (data?.todaySessions || []).filter((s: any) => {
+    const isAutoSeeded = (s.notes && s.notes.includes("Auto-seeded")) || (s.topic && s.topic.includes("Auto-seeded"));
+    if (!demoMode && isAutoSeeded) return false;
+    return true;
+  });
   const STUDENTS = students.length > 0 ? students : (demoMode ? MOCK.STUDENTS : []);
   const RATING_DIST = demoMode ? (data?.ratingDist || []) : [
     { stars: 5, pct: 0, count: 0 },

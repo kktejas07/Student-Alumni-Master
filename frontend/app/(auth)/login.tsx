@@ -350,7 +350,7 @@ export default function LoginScreen() {
 
       <View style={s.row}>
         <View />
-        <Pressable onPress={() => router.push('/(auth)/forgot-password')} testID="login-forgot-password">
+        <Pressable onPress={() => router.push('/forgot-password')} testID="login-forgot-password">
           <Text style={s.forgot}>Forgot password?</Text>
         </Pressable>
       </View>

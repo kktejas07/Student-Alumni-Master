@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from emergentintegrations.llm.chat import UserMessage
 
 from db import db
 from services.career_intelligence_service import (

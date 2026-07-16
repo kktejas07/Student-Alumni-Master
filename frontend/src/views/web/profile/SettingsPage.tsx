@@ -3,11 +3,13 @@
  * Sections: Notifications, Privacy, Suggestions/AI, App Preferences, Account.
  */
 import { useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import { Card, ToggleRow, SF, C } from './primitives';
 import { Sun, Moon, Monitor, Lock, ShieldCheck, Download as DownloadIcon, Trash2, Eye, EyeOff } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { TF, Field } from './primitives';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { useRouter } from 'expo-router';
 
 const LANGS = ['English', 'हिन्दी', 'Tamil', 'Telugu', 'Kannada', 'Marathi'];
 const TZS = ['Asia/Kolkata', 'Asia/Dubai', 'America/New_York', 'Europe/London', 'America/Los_Angeles', 'Asia/Singapore'];
@@ -31,6 +33,8 @@ interface Props {
 }
 
 export function SettingsPage({ draft, setDraft, showToast, section = 'all' }: Props) {
+  const router = useRouter();
+  const logout = useAuthStore((s) => s.logout);
   const prefs = defaultPrefs(draft.preferences);
   const setPref = (path: [string, string], v: any) => setDraft((d: any) => ({ ...d, preferences: { ...defaultPrefs(d.preferences), [path[0]]: { ...defaultPrefs(d.preferences)[path[0]], [path[1]]: v } } }));
 
@@ -114,6 +118,24 @@ export function SettingsPage({ draft, setDraft, showToast, section = 'all' }: Pr
               <Pressable onPress={() => setShowPw((s) => !s)} style={st.iconBtn} testID="set-pw-toggle">{showPw ? <EyeOff size={14} color={C.text2} /> : <Eye size={14} color={C.text2} />}</Pressable>
               <Pressable onPress={handleChangePassword} disabled={pwBusy || !pwOld || !pwNew} style={[st.btnAccent, (pwBusy || !pwOld || !pwNew) && { opacity: 0.5 }]} testID="set-pw-save"><Lock size={13} color="#fff" /><Text style={st.btnAccentText}>{pwBusy ? 'Saving…' : 'Update'}</Text></Pressable>
             </View>
+            <View style={{ marginTop: 6, flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={st.itemDesc}>Forgot current password? </Text>
+              <Pressable
+                onPress={async () => {
+                  const email = draft.email || '';
+                  try {
+                    await logout();
+                    router.replace(`/forgot-password?email=${encodeURIComponent(email)}` as any);
+                  } catch (e: any) {
+                    showToast('Failed to sign out to reset password.');
+                  }
+                }}
+                style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}
+                testID="settings-forgot-pw-link"
+              >
+                <Text style={{ color: '#A78BFA', fontFamily: 'DMSans_700Bold', fontSize: 11.5 }}>Reset via email</Text>
+              </Pressable>
+            </View>
           </Field>
           <View style={st.row}>
             <View style={{ flex: 1 }}>
@@ -136,6 +158,26 @@ export function SettingsPage({ draft, setDraft, showToast, section = 'all' }: Pr
               <Text style={st.itemDesc}>Permanently remove your account & data.</Text>
             </View>
             <Pressable onPress={() => showToast('Account deletion is irreversible — contact support')} style={st.btnDanger}><Trash2 size={13} color="#fff" /><Text style={st.btnDangerText}>Delete</Text></Pressable>
+          </View>
+          <View style={st.row}>
+            <View style={{ flex: 1 }}>
+              <Text style={st.itemTitle}>Sign Out</Text>
+              <Text style={st.itemDesc}>Log out of your account on this device.</Text>
+            </View>
+            <Pressable
+              onPress={async () => {
+                try {
+                  await logout();
+                  router.replace('/welcome');
+                } catch (e: any) {
+                  showToast(e?.message || 'Failed to log out');
+                }
+              }}
+              style={st.btnDanger}
+              testID="settings-logout"
+            >
+              <Text style={st.btnDangerText}>Sign Out</Text>
+            </Pressable>
           </View>
         </View>
       </Card>
