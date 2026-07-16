@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator, Platform } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator, Platform, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Calendar as CalIcon, MapPin, Users as UsersIcon, Check, Award, ArrowRight, Globe2, Sparkles } from '../iconShims';
 import { SC, FONTS } from '../tokens';
@@ -147,6 +147,111 @@ const enrichEvent = (e: Ev) => {
   };
 };
 
+interface DropdownSelectProps {
+  label: string;
+  value: string;
+  options: { id: string; label: string }[];
+  onSelect: (id: string) => void;
+}
+
+export function DropdownSelect({ label, value, options, onSelect }: DropdownSelectProps) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<any>(null);
+
+  const selectedOption = options.find((o) => o.id === value) || options[0];
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const handleClick = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    if (open) {
+      setTimeout(() => document.addEventListener('mousedown', handleClick), 0);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+    };
+  }, [open]);
+
+  return (
+    <View ref={wrapRef} style={{ position: 'relative', minWidth: 160, zIndex: open ? 9999 : 1 }}>
+      <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, fontFamily: FONTS.bold, textTransform: 'uppercase', marginBottom: 4, letterSpacing: 0.5 }}>
+        {label}
+      </Text>
+      <Pressable
+        onPress={() => setOpen((o) => !o)}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          height: 38,
+          paddingHorizontal: 12,
+          borderRadius: 8,
+          backgroundColor: 'rgba(255,255,255,0.03)',
+          borderWidth: 1,
+          borderColor: open ? '#8B5CF6' : 'rgba(255,255,255,0.08)',
+          // @ts-ignore
+          cursor: 'pointer',
+        }}
+      >
+        <Text style={{ color: '#fff', fontSize: 12, fontFamily: FONTS.med }}>
+          {selectedOption?.label}
+        </Text>
+        <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={15} color="rgba(255,255,255,0.6)" />
+      </Pressable>
+      
+      {open && (
+        <View
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            marginTop: 4,
+            backgroundColor: '#13091F',
+            borderColor: 'rgba(255,255,255,0.09)',
+            borderWidth: 1,
+            borderRadius: 8,
+            overflow: 'hidden',
+            // @ts-ignore
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          }}
+        >
+          <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }}>
+            {options.map((opt) => {
+              const isSel = opt.id === value;
+              return (
+                <Pressable
+                  key={opt.id}
+                  onPress={() => {
+                    onSelect(opt.id);
+                    setOpen(false);
+                  }}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    backgroundColor: isSel ? 'rgba(139, 92, 246, 0.12)' : 'transparent',
+                    borderBottomWidth: 1,
+                    borderBottomColor: 'rgba(255,255,255,0.04)',
+                    // @ts-ignore
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Text style={{ color: isSel ? '#A78BFA' : '#fff', fontSize: 12, fontFamily: isSel ? FONTS.bold : FONTS.med }}>
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
+    </View>
+  );
+}
+
 export function EventsView() {
   const [eventsData, setEventsData] = useState<any>(null);
   const [eventsLoading, setEventsLoading] = useState(true);
@@ -157,17 +262,27 @@ export function EventsView() {
   const [rsvpd, setRsvpd] = useState<Set<string>>(new Set());
   const [recs, setRecs] = useState<any[]>([]);
   const [myEvents, setMyEvents] = useState<any[]>([]);
+  const [sortBy, setSortBy] = useState<'upcoming' | 'ongoing' | 'recently_created' | 'ended' | 'none'>('upcoming');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const SORT_OPTIONS = [
+    { id: 'upcoming', label: 'Upcoming' },
+    { id: 'ongoing', label: 'Ongoing' },
+    { id: 'recently_created', label: 'Recently Created' },
+    { id: 'ended', label: 'Ended' },
+    { id: 'none', label: 'None' }
+  ];
 
   const fetchEvents = useCallback(async (p: number) => {
     setEventsLoading(true);
     try {
-      const res = await request<any>(`/student/events?page=${p}&per_page=24`);
+      const res = await request<any>(`/student/events?page=${p}&per_page=24&sort_by=${sortBy}`);
       setEventsData(res);
       setEventsPages(res.pages || 1);
       setEventsPage(p);
     } catch { setEventsData({ items: [] }); }
     finally { setEventsLoading(false); }
-  }, []);
+  }, [sortBy]);
 
   useEffect(() => { fetchEvents(1); }, [fetchEvents]);
 
@@ -180,43 +295,64 @@ export function EventsView() {
       .catch(() => {});
   }, []);
 
-  const mapNewToOld = (e: any): Ev => ({
-    id: e.event_id,
-    title: e.title,
-    date: e.event_date_start ? new Date(e.event_date_start).toLocaleDateString() : 'TBD',
-    mode: e.event_mode || 'Onsite',
-    city: e.location_city || 'TBD',
-    cat: e.event_type || 'meetup',
-    attending: e.attendee_count || 0,
-    capacity: e.capacity || 0,
-    kind: e.price_type === 'free' ? 'free' : 'paid',
-    price: e.price_amount,
-    accent: e.tint || SC.primary,
-    registered: e.rsvp_status === 'registered' || e.rsvp_status === 'waitlisted'
-  });
-
   const onRSVP = async (id: string) => {
     setRsvpd((p) => new Set(p).add(id));
     try { await postPortal(`/student/events/${id}/rsvp`); } catch {}
   };
 
-  const list = EVENTS.map(enrichEvent).filter((e) => {
-    if (filter === 'All') return true;
-    const key = filter.toLowerCase();
-    const allowedCats = CATEGORY_MAP[key] || [key];
-    return allowedCats.includes(e.cat?.toLowerCase());
-  });
-
-
+  const processedList = EVENTS.map(enrichEvent)
+    .filter((e) => {
+      if (filter === 'All') return true;
+      const key = filter.toLowerCase();
+      const allowedCats = CATEGORY_MAP[key] || [key];
+      return allowedCats.includes(e.cat?.toLowerCase());
+    })
+    .filter((e) => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        e.title.toLowerCase().includes(q) ||
+        (e.description && e.description.toLowerCase().includes(q)) ||
+        (e.city && e.city.toLowerCase().includes(q))
+      );
+    });
 
   return (
     <View>
-      <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-        {FILTERS.map((f) => (
-          <Pressable key={f} onPress={() => { setFilter(f); fetchEvents(1); }} style={[s.chip, filter === f && s.chipOn]}>
-            <Text style={{ color: filter === f ? '#fff' : SC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>{f}</Text>
+      {/* Search Input */}
+      <View style={s.searchWrap}>
+        <MaterialCommunityIcons name="magnify" size={18} color="rgba(255,255,255,0.45)" style={{ marginRight: 8 }} />
+        <TextInput
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Search events by title, description, or city..."
+          placeholderTextColor="rgba(255,255,255,0.35)"
+          style={s.searchInput}
+        />
+        {!!searchQuery && (
+          <Pressable onPress={() => setSearchQuery('')} style={{ padding: 4 }}>
+            <MaterialCommunityIcons name="close-circle" size={16} color="rgba(255,255,255,0.4)" />
           </Pressable>
-        ))}
+        )}
+      </View>
+
+      {/* Dropdown Filters Row */}
+      <View style={{ flexDirection: 'row', gap: 12, marginBottom: 18, zIndex: 99 }}>
+        <DropdownSelect
+          label="Event Type"
+          value={filter}
+          options={FILTERS.map((f) => ({ id: f, label: f }))}
+          onSelect={(val) => {
+            setFilter(val);
+            fetchEvents(1);
+          }}
+        />
+        <DropdownSelect
+          label="Sort By"
+          value={sortBy}
+          options={SORT_OPTIONS}
+          onSelect={(val) => setSortBy(val as any)}
+        />
       </View>
 
       <Pressable style={s.aiBtn}>
@@ -232,10 +368,20 @@ export function EventsView() {
 
       {eventsLoading ? (
         <View style={{ paddingVertical: 60, alignItems: 'center' }}><ActivityIndicator size="large" color={SC.primary} /></View>
+      ) : processedList.length === 0 ? (
+        <View style={{ paddingVertical: 80, alignItems: 'center', justifyContent: 'center' }}>
+          <MaterialCommunityIcons name="calendar-search" size={48} color="rgba(255,255,255,0.15)" />
+          <Text style={{ color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.bold, fontSize: 14, marginTop: 12 }}>
+            No events found
+          </Text>
+          <Text style={{ color: 'rgba(255,255,255,0.3)', fontFamily: FONTS.med, fontSize: 12, marginTop: 4 }}>
+            Try adjusting your search query or category filters
+          </Text>
+        </View>
       ) : (
         <>
           <View style={s.grid}>
-            {list.map((e, idx) => {
+            {processedList.map((e, idx) => {
           const isReg = e.registered || rsvpd.has(e.id);
           const spotsColor = e.spotsLeft <= 5 ? '#EF4444' // red
                            : e.spotsLeft <= 50 ? '#F59E0B' // orange/yellow
@@ -478,4 +624,41 @@ const s = StyleSheet.create({
   pageBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   pageBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12 },
   pageInfo: { color: SC.muted, fontFamily: FONTS.med, fontSize: 12 },
+  sortChip: {
+    paddingHorizontal: 12,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.04)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 4,
+    // @ts-ignore
+    cursor: 'pointer',
+  },
+  sortChipOn: {
+    backgroundColor: 'rgba(139, 92, 246, 0.25)',
+    borderColor: '#8B5CF6',
+  },
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: 12,
+    marginBottom: 16,
+  },
+  searchInput: {
+    flex: 1,
+    color: '#fff',
+    fontFamily: FONTS.med,
+    fontSize: 13,
+    paddingVertical: 0,
+    // @ts-ignore
+    outlineStyle: 'none',
+  },
 });

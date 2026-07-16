@@ -294,9 +294,15 @@ export function ProfileSettingsView(props: { roleOverride?: RoleKey } = {}) {
   const photo = draft.photo_data || draft.face_image_base64;
   const saId = draft.unique_id || user?.unique_id || '—';
 
-  if (loading && !user) {
+  if (!user) {
     return (
-      <View style={st.loaderWrap}><ActivityIndicator size="large" color={C.purple} /></View>
+      <View style={st.loaderWrap}>
+        {loading ? (
+          <ActivityIndicator size="large" color={C.purple} />
+        ) : (
+          <Text style={{ color: '#fff' }}>Failed to load profile settings.</Text>
+        )}
+      </View>
     );
   }
 

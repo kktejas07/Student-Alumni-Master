@@ -110,7 +110,7 @@ export default function QuickSetup() {
       try {
         const [o, c] = await Promise.all([
           fetch(`${BASE}/api/mentors/suggestions`).then((r) => r.ok ? r.json() : null).catch(() => null),
-          fetch(`${BASE}/api/courses`).then((r) => r.ok ? r.json() : null).catch(() => null),
+          fetch(`${BASE}/api/catalog/courses`).then((r) => r.ok ? r.json() : null).catch(() => null),
         ]);
         if (o?.organizations?.length) setOrgs(o.organizations);
         if (o?.job_titles?.length)    setRoleSuggestions(o.job_titles);

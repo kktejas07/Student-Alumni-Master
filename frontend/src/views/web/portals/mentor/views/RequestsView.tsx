@@ -2,43 +2,111 @@
  * Mentor Portal — Session Requests view.
  * Each card has student info, topic, date, AI fit-score and Accept/Decline.
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { Sparkles, Check, X } from 'lucide-react-native';
 import { MC, FONTS } from '../tokens';
 import { Av, Badge, Countdown } from '../atoms';
 import { SESSION_REQUESTS } from '../data';
 import { api } from '@/src/models/services/api';
-import { useToast } from '@/src/views/components';
 
 export type Decision = 'pending' | 'accepted' | 'declined';
 
 export interface RequestsViewProps {
   decisions: Record<number, Decision>;
   onSetDecision: (id: number, d: Decision) => void;
+  demoMode?: boolean;
 }
 
-export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
-  const [liveRequests, setLiveRequests] = useState<any[]>([]);
+export function RequestsView({ decisions, onSetDecision, demoMode = true }: RequestsViewProps) {
+  const [realBookings, setRealBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [actioningIds, setActioningIds] = useState<Set<string>>(new Set());
-  const toast = useToast();
 
-  const loadLiveRequests = async () => {
+  const fetchBookings = async () => {
     try {
       const res = await api.myBookings();
-      const bookings = res?.bookings || [];
-      setLiveRequests(bookings);
+      if (res && res.bookings) {
+        setRealBookings(res.bookings);
+      }
     } catch (e) {
-      console.warn('Failed to load live requests.', e);
+      console.warn(e);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadLiveRequests();
+    fetchBookings();
   }, []);
+
+  const handleDecision = async (req: any, decision: 'accepted' | 'declined') => {
+    if (req.isMock) {
+      onSetDecision(req.id, decision);
+    } else {
+      try {
+        if (decision === 'accepted') {
+          await api.confirmBooking(req.id);
+          setRealBookings(prev => prev.map(b => b.id === req.id ? { ...b, status: 'confirmed' } : b));
+        } else {
+          await api.declineBooking(req.id);
+          setRealBookings(prev => prev.map(b => b.id === req.id ? { ...b, status: 'cancelled' } : b));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  const allRequests = useMemo(() => {
+    // 1. Map mock requests
+    const mocks = demoMode ? SESSION_REQUESTS.map(req => {
+      const d = decisions[req.id] || 'pending';
+      return {
+        ...req,
+        id: req.id,
+        status: d === 'accepted' ? 'confirmed' : d === 'declined' ? 'cancelled' : 'pending',
+        isMock: true
+      };
+    }) : [];
+
+    // 2. Map real bookings
+    const reals = realBookings.map(b => {
+      const initials = (b.student_name || 'Student')
+        .split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .substring(0, 2)
+        .toUpperCase();
+      
+      let timeStr = b.slot_start_iso;
+      let daysAway = 0;
+      try {
+        const d = new Date(b.slot_start_iso);
+        timeStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) + 
+                  ' · ' + 
+                  d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+        daysAway = Math.max(0, Math.ceil((d.getTime() - Date.now()) / 86400000));
+      } catch (err) {}
+
+      return {
+        id: b.id,
+        studentName: b.student_name || 'Student',
+        avatar: initials,
+        color: '#8B5CF6',
+        college: 'IIT Bombay',
+        branch: 'B.Tech CS',
+        year: 2026,
+        topic: b.topic || 'Mentorship session',
+        time: timeStr,
+        daysAway,
+        type: 'free' as const,
+        status: b.status || 'pending',
+        isMock: false
+      };
+    });
+
+    return [...reals, ...mocks];
+  }, [realBookings, decisions, demoMode]);
 
   const aiScore = (topic: string) => {
     const k = topic.toLowerCase();
@@ -48,91 +116,27 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
     return { score: 72, label: 'Fair fit' };
   };
 
-  const handleLiveDecision = async (bookingId: string, type: 'accept' | 'decline') => {
-    const actionKey = `${type}-${bookingId}`;
-    setActioningIds((prev) => {
-      const next = new Set(prev);
-      next.add(actionKey);
-      return next;
-    });
-    try {
-      if (type === 'accept') {
-        await api.confirmBooking(bookingId);
-        toast.success('Accepted', 'The session request has been confirmed.');
-      } else {
-        await api.declineBooking(bookingId);
-        toast.success('Declined', 'The session request has been declined.');
-      }
-      await loadLiveRequests();
-    } catch (e: any) {
-      console.error('Failed to update booking status.', e);
-      toast.error('Error', e.message || 'Failed to update booking status.');
-    } finally {
-      setActioningIds((prev) => {
-        const next = new Set(prev);
-        next.delete(actionKey);
-        return next;
-      });
-    }
-  };
-
-  // Combine static and live requests.
-  const allRequests = useMemo(() => {
-    const mappedLive = liveRequests.map((b, idx) => {
-      const dateVal = b.slot_start_iso || b.scheduled_at;
-      const dateObj = dateVal ? new Date(dateVal) : new Date();
-      const startOfDateObj = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
-      const today = new Date();
-      const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const diffDays = Math.round((startOfDateObj.getTime() - startOfToday.getTime()) / (1000 * 60 * 60 * 24));
-      const daysAway = Math.max(0, diffDays);
-      return {
-        id: b.id || `live-${idx}`,
-        isLive: true,
-        studentName: b.student_name || 'Student',
-        avatar: (b.student_name || 'ST').split(' ').slice(0, 2).map((p: string) => p[0] || '').join('').toUpperCase(),
-        photo: b.student_photo ? (b.student_photo.startsWith('data:') ? b.student_photo : `data:image/jpeg;base64,${b.student_photo}`) : '',
-        color: MC.teal,
-        college: 'Student-Alumni Platform',
-        branch: 'Mentee',
-        year: dateObj.getFullYear(),
-        topic: b.topic || 'Mentorship Session',
-        time: dateObj.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }),
-        daysAway,
-        type: 'free',
-        status: b.status,
-        dateObj,
-      };
-    });
-
-    // Sort requests chronologically by date ascending (earliest first).
-    // Show pending requests before resolved ones.
-    mappedLive.sort((a, b) => {
-      const aPending = a.status === 'pending' ? 0 : 1;
-      const bPending = b.status === 'pending' ? 0 : 1;
-      if (aPending !== bPending) return aPending - bPending;
-
-      const t1 = a.dateObj.getTime();
-      const t2 = b.dateObj.getTime();
-      if (isNaN(t1)) return 1;
-      if (isNaN(t2)) return -1;
-      return t1 - t2;
-    });
-
-    return mappedLive;
-  }, [liveRequests]);
 
   const stats = useMemo(() => {
-    const pending = allRequests.filter((r) => r.status === 'pending').length;
-    const accepted = allRequests.filter((r) => r.status === 'confirmed' || r.status === 'accepted').length;
-    const declined = allRequests.filter((r) => r.status === 'cancelled' || r.status === 'declined').length;
-    return { accepted, declined, pending };
+    let pending = 0;
+    let accepted = 0;
+    let declined = 0;
+    for (const req of allRequests) {
+      if (req.status === 'pending') {
+        pending++;
+      } else if (req.status === 'confirmed' || req.status === 'accepted' || req.status === 'completed') {
+        accepted++;
+      } else {
+        declined++;
+      }
+    }
+    return { pending, accepted, declined };
   }, [allRequests]);
 
   if (loading) {
     return (
-      <View style={{ padding: 40, alignItems: 'center' }}>
-        <ActivityIndicator color={MC.tealP} size="large" />
+      <View style={{ padding: 40, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color={MC.tealP} />
       </View>
     );
   }
@@ -155,16 +159,14 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
       <View style={{ gap: 12 }}>
         {allRequests.map((req) => {
           const ai = aiScore(req.topic);
-          const isPending = req.status === 'pending';
-
           return (
             <View key={req.id} style={s.card}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Av initials={req.avatar} size={48} color={req.color} photo={req.photo} />
+                <Av initials={req.avatar} size={48} color={req.color} />
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 14 }}>{req.studentName}</Text>
-                    <Badge label={req.type === 'paid' ? `Paid ₹${(req as any).amount}` : 'Free'} color={req.type === 'paid' ? 'green' : 'teal'} />
+                    <Badge label={req.type === 'paid' ? `Paid ₹${req.amount}` : 'Free'} color={req.type === 'paid' ? 'green' : 'teal'} />
                   </View>
                   <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12, marginTop: 2 }}>{req.college} · {req.branch} · {req.year}</Text>
                   <Text style={{ color: '#fff', fontFamily: FONTS.med, fontSize: 13, marginTop: 6 }}>“{req.topic}”</Text>
@@ -184,55 +186,29 @@ export function RequestsView({ decisions, onSetDecision }: RequestsViewProps) {
                 </View>
               </View>
 
-              {/* Actions. */}
-              {isPending ? (
+              {/* Actions */}
+              {req.status === 'pending' ? (
                 <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-                  <Pressable
-                    disabled={actioningIds.has(`accept-${req.id}`) || actioningIds.has(`decline-${req.id}`)}
-                    onPress={() => {
-                      if (req.isLive) {
-                        handleLiveDecision(String(req.id), 'accept');
-                      } else {
-                        onSetDecision(Number(req.id), 'accepted');
-                      }
-                    }}
-                    style={[
-                      s.acceptBtn,
-                      actioningIds.has(`accept-${req.id}`) ? { opacity: 0.6 } : undefined,
-                      actioningIds.has(`decline-${req.id}`) ? { opacity: 0.3 } : undefined
-                    ]}
-                  >
-                    <Check size={14} color={MC.bg} />
-                    <Text style={{ color: MC.bg, fontFamily: FONTS.xbold, fontSize: 12 }}>
-                      {actioningIds.has(`accept-${req.id}`) ? 'Processing...' : 'Accept'}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    disabled={actioningIds.has(`accept-${req.id}`) || actioningIds.has(`decline-${req.id}`)}
-                    onPress={() => {
-                      if (req.isLive) {
-                        handleLiveDecision(String(req.id), 'decline');
-                      } else {
-                        onSetDecision(Number(req.id), 'declined');
-                      }
-                    }}
-                    style={[
-                      s.declineBtn,
-                      actioningIds.has(`decline-${req.id}`) ? { opacity: 0.6 } : undefined,
-                      actioningIds.has(`accept-${req.id}`) ? { opacity: 0.3 } : undefined
-                    ]}
-                  >
-                    <X size={14} color={MC.red} />
-                    <Text style={{ color: MC.red, fontFamily: FONTS.bold, fontSize: 12 }}>
-                      {actioningIds.has(`decline-${req.id}`) ? 'Processing...' : 'Decline'}
-                    </Text>
-                  </Pressable>
+                  <Pressable onPress={() => handleDecision(req, 'accepted')} style={s.acceptBtn}><Check size={14} color={MC.bg} /><Text style={{ color: MC.bg, fontFamily: FONTS.xbold, fontSize: 12 }}>Accept</Text></Pressable>
+                  <Pressable onPress={() => handleDecision(req, 'declined')} style={s.declineBtn}><X size={14} color={MC.red} /><Text style={{ color: MC.red, fontFamily: FONTS.bold, fontSize: 12 }}>Decline</Text></Pressable>
                 </View>
               ) : (
                 <View style={{ marginTop: 12, alignSelf: 'flex-start' }}>
-                  <Badge
-                    label={req.status === 'confirmed' || req.status === 'accepted' ? 'Accepted ✓' : 'Declined'}
-                    color={req.status === 'confirmed' || req.status === 'accepted' ? 'green' : 'red'}
+                  <Badge 
+                    label={
+                      req.status === 'confirmed' || req.status === 'accepted'
+                        ? 'Accepted ✓'
+                        : req.status === 'completed'
+                        ? 'Completed ✓'
+                        : req.status === 'expired'
+                        ? 'Expired'
+                        : 'Declined'
+                    }
+                    color={
+                      req.status === 'confirmed' || req.status === 'accepted' || req.status === 'completed'
+                        ? 'green'
+                        : 'red'
+                    }
                   />
                 </View>
               )}

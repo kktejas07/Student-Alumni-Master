@@ -29,7 +29,7 @@ export type StudentNavId =
 
 export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: boolean }> = [
   { id: 'dashboard',       label: 'Dashboard',          Icon: LayoutDashboard },
-  { id: 'career-ai',       label: 'Alumni Tools',       Icon: Sparkles, spark: true },
+  { id: 'career-ai',       label: 'Career AI',          Icon: Sparkles, spark: true },
   { id: 'internships',     label: 'Internships & Jobs', Icon: Briefcase },
   { id: 'my-applications', label: 'My Applications',    Icon: FileText },
   { id: 'network',         label: 'Network',            Icon: Users },
