@@ -435,6 +435,9 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
 
     missing_profile = [i["label"] for i in comp_data["items"] if not i["done"]]
 
+    # Compute tier (Bronze/Silver/Gold/Platinum)
+    tier = await _student_tier_payload(student or {})
+
     return {
         "student": {
             "id": sid,
@@ -767,7 +770,7 @@ async def student_intelligence(student_email: Optional[str] = None):
         return {"value": f"{abs(pct):.1f}%", "positive": pct >= 0}
 
     skills = student.get("skills", []) if student else []
-    profile_completion_pct = min(100, 40 + len(skills) * 5 + (10 if student and student.get("face_image_base64") else 0))
+    profile_completion_pct = min(100, 40 + len(skills) * 5 + (10 if student and student.get("photo_data") else 0))
 
     return {
         "kpis": {
@@ -2440,6 +2443,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
 
     out = []
     me_id_str = str(user["_id"]) if user else ""
+    proj = {"email": 1, "full_name": 1, "role": 1, "school_info": 1, "alumni_info": 1, "bio": 1, "photo_data": 1, "skills": 1, "mentor_profile": 1, "mentor_info": 1}
 
     # Fetch all connected/pending users from rel_map first so they are never omitted due to limit
     connected_users = []
@@ -2499,6 +2503,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "color": _color_for(a.get("full_name", "")),
             "kind": "alumni",
             "connection_state": rel_map.get(other_id, "none"),
+            "photo_data": a.get("photo_data"),
         })
     # Fetch Students (ensuring connected ones are included first)
     connected_students = [u for u in connected_users if u.get("role") == "student"]
@@ -2546,6 +2551,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "branch": si.get("branch_or_stream") or "CSE",
             "year": si.get("class_or_year") or "Y3",
             "looking": s.get("bio") or "Looking for career guidance.",
+            "photo_data": s.get("photo_data"),
         })
 
     # Fetch Mentors (ensuring connected ones are included first)
@@ -2587,6 +2593,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
             "job_title": mi.get("job_title") or "Mentor",
             "rating": mi.get("rating") or 5.0,
             "sessions": mi.get("sessions") or 0,
+            "photo_data": m.get("photo_data"),
         })
 
     return {"items": out}

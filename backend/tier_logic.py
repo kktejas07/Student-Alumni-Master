@@ -81,7 +81,7 @@ def compute_student_tier(student: Dict[str, Any], college_naac: Optional[str] = 
 
     # 4. Profile completion
     profile_pts = 0
-    if student.get("face_image_base64"): profile_pts += 6
+    if student.get("photo_data"): profile_pts += 6
     if student.get("github_url"): profile_pts += 5
     if (student.get("projects") or []): profile_pts += 5
     if student.get("phone"): profile_pts += 2
