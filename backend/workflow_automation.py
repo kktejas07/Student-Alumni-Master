@@ -22,16 +22,13 @@ Supported event types:
 """
 
 from __future__ import annotations
-from pathlib import Path
 import os, asyncio, logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
-from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).parent / ".env")
+from core.db import db as _db
 
-from db import client as _mongo
-_db = _mongo[os.environ["DB_NAME"]]
+
 _logger = logging.getLogger("workflow_automation")
 
 # ── Step registry (mirrors the one in portals.py for standalone execution) ──

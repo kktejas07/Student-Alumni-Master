@@ -343,28 +343,23 @@ export default function EventsScreen() {
   };
 
   const handleRegister = async (ev: EventItem, useCredits = false) => {
-    try {
-      const r = await request<any>(`/events/${ev.event_id}/rsvp`, {
-        method: 'POST', body: { use_credits: useCredits },
-      });
-      const status: 'registered' | 'waitlisted' = r.status;
-      const upd = (arr: EventItem[]) => arr.map((it) =>
-        it.event_id === ev.event_id ? { ...it, rsvp_status: status, attendee_count: (it.attendee_count || 0) + (status === 'registered' ? 1 : 0) } : it
-      );
-      setFeatured(upd); setMore(upd); setAiRecs(upd);
-      if (status === 'waitlisted') {
-        showToast(`Event full — added to waitlist (#${r.waitlist_position})`);
-      } else {
-        showToast(`✓ Registered! Confirmation: ${r.confirmation_id}`);
+    // Redirect to the dedicated event registration page to get the QR code
+    router.push({
+      pathname: `/event/${ev.event_id}` as any,
+      params: {
+        id: ev.event_id,
+        title: ev.title,
+        start_date: ev.event_date_start,
+        venue: ev.location_city || 'Online',
+        registration_deadline: ev.event_date_start,
+        category: ev.event_type || 'Workshop',
+        organizer: ev.organizer_name || 'Institution Partner',
+        image: ev.image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=400',
+        url: ev.registration_url || '',
+        tags: ev.topic_keywords ? ev.topic_keywords.join(',') : '',
+        price: ev.price_amount !== undefined && ev.price_amount !== null ? String(ev.price_amount) : '',
       }
-      // Update detail panel
-      if (selected?.event_id === ev.event_id) {
-        setSelected({ ...selected, rsvp_status: status });
-      }
-      loadRegistered();
-    } catch (err: any) {
-      if (!handleAuthErr(err)) showToast(err?.message || 'Could not register');
-    }
+    });
   };
 
   const handleCancelRsvp = async (ev: EventItem) => {

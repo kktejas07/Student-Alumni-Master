@@ -42,7 +42,6 @@ Endpoints (all under /api):
 """
 from __future__ import annotations
 
-from pathlib import Path
 import os
 import math
 import hashlib
@@ -51,13 +50,10 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from bson import ObjectId
-from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-load_dotenv(Path(__file__).parent / ".env")
+from core.db import db as _db
 
-from db import client as _mongo
-_db = _mongo[os.environ["DB_NAME"]]
 
 logger = logging.getLogger("financial_services")
 router = APIRouter()
