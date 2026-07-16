@@ -129,7 +129,6 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernetes ingress requirement)
 
 
-
 @app.on_event("startup")
 async def verify_mongo_connection():
     """Warm the Mongo connection pool before any requests are served.
@@ -261,20 +260,392 @@ async def _audit_log_many(user_id: str, source: str, entries: list,
 
 
 # ----------------------------------------------------------------------------
-# Type Definitions & Shared Models
+# Type Definitions
 # ----------------------------------------------------------------------------
-from core.models import (
-    UserRole, CareerPath, EducationLevel, MentorCategory, MentorStatus,
-    SchoolInfo, MentorInfo, CollegeInfo, AlumniInfo, StudentInfo,
-    UserResponse, AuthResponse
-)
+# UserRole: 3 primary user types + admin/college (managed roles)
+UserRole = Literal["student", "alumni", "mentor", "college", "admin", "super_admin"]
+
+# CareerPath: Drives all personalization on the platform
+CareerPath = Literal["job", "higher_education", "startup", "business"]
+
+# EducationLevel: Used for content segmentation per spec
+# (+1=Class 11, +2=Class 12, btech=undergrad, masters=postgrad, phd=research)
+EducationLevel = Literal["plus_one", "plus_two", "btech", "bachelors", "masters", "phd", "other"]
+
+# MentorCategory: Per spec — 4 distinct categories (split startup vs business)
+# MentorCategory: 10-category taxonomy organized by function.
+# Tech & Engineering: it_software, engineering_manager
+# Talent & People:    tech_recruiter, hr_mentor
+# Career Development: career_coach, higher_education
+# Entrepreneurship:   startup_mentor, startup_advisor
+# Business:           business_mentor, industry_advisor
+MentorCategory = Literal[
+    "it_software", "engineering_manager",
+    "tech_recruiter", "hr_mentor",
+    "career_coach", "higher_education",
+    "startup_mentor", "startup_advisor",
+    "business_mentor", "industry_advisor",
+    # Per Mentor Onboarding spec — 10 archetype tiles. Below are the 3 new
+    # archetype slugs that don't map cleanly to legacy values above.
+    "interview_prep",       # Mock interviews, DSA, system design rounds
+    "creative_design",      # UX/UI, branding, creative careers & portfolios
+    "life_wellness",        # Work-life balance, mental health & mindfulness
+    # Backward-compat aliases (read-only — old data may still have these)
+    "startup", "business", "education", "startup_business",
+]
+
+# MentorStatus: Mentors are reviewed by admins before being visible to students
+MentorStatus = Literal["pending", "approved", "rejected"]
 
 
+# ----------------------------------------------------------------------------
+# Pydantic Models — Request / Response payloads
+# ----------------------------------------------------------------------------
+class SchoolInfo(BaseModel):
+    """Institution / education info common to all roles."""
+    institution_name: str
+    institution_type: Literal["school", "college", "university"] = "college"
+    # Made optional — in the new onboarding flow we collect graduation_year +
+    # branch_or_stream instead, and this field is derived downstream when needed.
+    class_or_year: Optional[str] = None
+    branch_or_stream: Optional[str] = None
+    board_or_university: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    country: str = "India"
+    graduation_year: Optional[int] = None  # Required for alumni
+
+
+class MentorInfo(BaseModel):
+    """Mentor-specific fields per spec — requires admin approval."""
+    category: MentorCategory  # Primary archetype (derived from categories[0] if multi-select used)
+    organization: str  # Mandatory: company / institution name
+    job_title: str  # Mandatory: designation
+    linkedin_url: Optional[str] = None  # Recommended for credibility
+    years_of_experience: Optional[int] = None
+    bio: Optional[str] = None
+    # Per HTML spec — 1:1 session price in INR (revenue-critical).
+    # Suggested chips: 499 / 799 / 999 / 1499; free custom values allowed.
+    session_price_inr: Optional[int] = None
+    # Per Mentor Onboarding 8-step wizard (Step 2: "Mentorship Archetype")
+    # — multi-select tile grid; mentor can pick all that apply.
+    categories: Optional[List[MentorCategory]] = None
+    # Step 3: Education Background (single select; same taxonomy as students)
+    education_level: Optional[str] = None
+    # Step 4: "Your Expertise" — chip multi-select (free-form skill labels)
+    expertise: Optional[List[str]] = None
+    # Step 5: Availability — list of weekly recurring slot keys
+    # e.g. ["mon_18_19", "sat_10_12"] — see frontend AVAILABILITY_SLOTS map.
+    availability: Optional[List[str]] = None
+    # Step 6: Profile photo (base64) — also stored on user.face_image_base64
+    profile_photo: Optional[str] = None
+    # Step 7: College & Batch (institution name + graduation year)
+    college: Optional[str] = None
+    college_batch: Optional[int] = None  # graduation year
+
+
+class CollegeInfo(BaseModel):
+    """College / Institution-specific fields per College 6-step Onboarding spec."""
+    institution_name: str
+    institution_type: Optional[Literal["school", "college", "university", "institute"]] = "university"
+    affiliated_university: Optional[str] = None  # e.g. "Delhi University" (for affiliated colleges)
+    official_website: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    country: str = "India"
+    # Optional admin contact details the college can fill later
+    accreditation: Optional[str] = None  # e.g. "NAAC A+", "NBA"
+    year_established: Optional[int] = None
+    # Step 1 — National Ranking Tier (single-select chip)
+    # Slugs: top_50 / top_51_200 / top_201_500 / not_ranked
+    ranking_tier: Optional[str] = None
+    # Step 1 — Accreditations & Rankings (multi-select chips — see frontend ACCRED list)
+    accreditations: Optional[List[str]] = None
+    # Step 2 — Contact Person (primary admin)
+    contact_name: Optional[str] = None
+    contact_designation: Optional[str] = None  # e.g. "TPO", "Dean Students", "Principal"
+    contact_official_email: Optional[str] = None  # MUST end in .ac.in / .edu (validated client-side)
+    contact_phone: Optional[str] = None
+    # Step 3 — Features Needed (multi-select tile keys — see frontend FEATURES list)
+    # Possible values: student_placement, alumni_network, mentor_connections,
+    #                  industry_tieups, event_management, job_portal
+    features_needed: Optional[List[str]] = None
+    # Step 4 — Logo & Cover Photo (base64)
+    logo: Optional[str] = None
+    cover_photo: Optional[str] = None
+    # Step 5 — Bio + writing style
+    bio: Optional[str] = None
+    writing_style: Optional[str] = None
+
+
+class AlumniInfo(BaseModel):
+    """Alumni-specific fields per Alumni 6-step Onboarding Wizard spec."""
+    graduation_year: int
+    university: str
+    current_employer: Optional[str] = None
+    current_role: Optional[str] = None
+    employment_status: Literal["employed", "self_employed", "studying", "between_jobs"] = "employed"
+    # Per spec — LinkedIn highly recommended for alumni
+    linkedin_url: Optional[str] = None
+    # Per spec — alumni may opt-in as mentors with a category
+    wants_to_mentor: bool = False
+    mentor_category: Optional[MentorCategory] = None
+    mentor_categories: Optional[List[MentorCategory]] = None    # multi-select archetypes
+    # Step 1 — Your Career Now: years of experience (auto-derived from grad year if blank)
+    years_of_experience: Optional[int] = None
+    # Step 2 — Interests & Skills: 4 multi-select chip groups
+    domain_expertise: Optional[List[str]] = None  # e.g. Software Engineering, Product, Finance
+    tech_skills: Optional[List[str]] = None       # Python, React, ML/AI, …
+    business_skills: Optional[List[str]] = None   # Excel, Financial Modelling, Sales, …
+    soft_skills: Optional[List[str]] = None       # Communication, Leadership, …
+    # Step 3 — Your Next Chapter: single-select from 6 paths
+    # Slugs: become_mentor / level_up_career / build_startup / higher_education / explore_options / give_back
+    next_chapter: Optional[str] = None
+    # Step 4 — Profile Photo (base64; also stored on user.face_image_base64)
+    profile_photo: Optional[str] = None
+    # Step 5 — Bio + writing style chip
+    bio: Optional[str] = None
+    writing_style: Optional[str] = None  # Friendly & warm / Professional / Inspiring / Concise / Detailed
+
+
+class StudentInfo(BaseModel):
+    """Student-specific fields per spec."""
+    age: Optional[int] = None  # Minimum age 10+ per spec (collected during onboarding)
+    education_level: Optional[EducationLevel] = None
+    career_interests: List[str] = Field(default_factory=list)
+    # Per spec — specific aspiration (e.g. "Software Developer", "Web Developer")
+    # Used directly in AI roadmap prompts to drive interest-based filtering
+    career_goal: Optional[str] = None
+    # Per HTML spec — Academic GPA (0.0–10.0 CGPA scale or 0.0–4.0 if GPA).
+    # Used by college dashboards and AI recommendations for scholarship matching.
+    cgpa: Optional[float] = None
 
 
 # ----- Auth payloads -----
+class RegisterRequest(BaseModel):
+    """Initial registration. Role-specific fields collected in onboarding step."""
+    email: EmailStr
+    password: str
+    full_name: str
+    role: UserRole
+    phone: Optional[str] = None
+    # Per spec — Date of Birth is mandatory at registration. ISO 8601 (YYYY-MM-DD).
+    # Backend enforces minimum age of 18 unless the role is 'student' (>=13).
+    dob: Optional[str] = None
+    # Country alpha-2 code for phone/postal code validation context.
+    country_code: Optional[str] = None
+    # Postal / PIN code (validated per country at the frontend; stored verbatim).
+    postal_code: Optional[str] = None
+
+    @field_validator("password")
+    @classmethod
+    def _password_strength(cls, v):
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one digit")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
+            raise ValueError("Password must contain at least one special character (!@#$%^&*...)")
+        return v
+
+    @field_validator("dob")
+    @classmethod
+    def _dob_valid(cls, v):
+        if not v:
+            return v  # mandatory enforcement happens in the route (role-aware)
+        from datetime import date as _date
+        try:
+            d = _date.fromisoformat(v)
+        except Exception:
+            raise ValueError("Date of birth must be in YYYY-MM-DD format")
+        today = _date.today()
+        if d > today:
+            raise ValueError("Date of birth cannot be in the future")
+        # Min age guard — 13 absolute floor; route can re-enforce 18 by role.
+        age = today.year - d.year - ((today.month, today.day) < (d.month, d.day))
+        if age < 13:
+            raise ValueError("You must be at least 13 years old to register")
+        return v
 
 
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class VerifyResetOtpRequest(BaseModel):
+    email: EmailStr
+    otp: str
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str
+
+
+class OnboardingRequest(BaseModel):
+    """Unified onboarding payload — only the fields relevant to the user's role
+    are validated. Field validation by role is enforced in the handler."""
+    school_info: SchoolInfo
+    career_path: Optional[CareerPath] = None  # Required for student/alumni
+    student_info: Optional[StudentInfo] = None  # Required if role=student
+    alumni_info: Optional[AlumniInfo] = None  # Required if role=alumni
+    mentor_info: Optional[MentorInfo] = None  # Required if role=mentor
+    college_info: Optional[CollegeInfo] = None  # Required if role=college (per spec)
+    interests: List[str] = Field(default_factory=list)
+    skills: List[str] = Field(default_factory=list)
+    bio: Optional[str] = None
+    face_image_base64: Optional[str] = None  # Profile photo (base64-encoded)
+    # Per HTML spec — collect phone number during onboarding for all roles.
+    # Stored at the root user level (not role-specific).
+    phone: Optional[str] = None
+
+
+class UserResponse(BaseModel):
+    """Public user payload — never includes password_hash."""
+    id: str
+    email: EmailStr
+    full_name: str
+    role: UserRole
+    phone: Optional[str] = None
+    unique_id: Optional[str] = None
+    qr_code_base64: Optional[str] = None
+    school_info: Optional[SchoolInfo] = None
+    career_path: Optional[CareerPath] = None
+    student_info: Optional[StudentInfo] = None
+    alumni_info: Optional[AlumniInfo] = None
+    mentor_info: Optional[MentorInfo] = None
+    college_info: Optional[CollegeInfo] = None
+    mentor_status: Optional[MentorStatus] = None  # Only set for mentors
+    interests: List[str] = []
+    skills: List[str] = []
+    bio: Optional[str] = None
+    face_image_base64: Optional[str] = None
+    onboarding_completed: bool = False
+    two_fa_enabled: bool = False
+    dob: Optional[str] = None  # ISO 8601 (YYYY-MM-DD)
+    country_code: Optional[str] = None
+    postal_code: Optional[str] = None
+    created_at: datetime
+    # Phase-4 SA Profile Web fields (set via PUT /users/me — must round-trip)
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    headline: Optional[str] = None
+    photo_data: Optional[str] = None
+    banner_data: Optional[str] = None
+    college_logo_data: Optional[str] = None
+    institution: Optional[str] = None
+    branch: Optional[str] = None
+    stream: Optional[str] = None
+    department: Optional[str] = None
+    graduation_year: Optional[int] = None
+    cgpa: Optional[float] = None
+    location: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    github_url: Optional[str] = None
+    portfolio_url: Optional[str] = None
+    primary_skill: Optional[str] = None
+    profile_visibility: Optional[str] = None
+    section_toggles: Optional[Dict[str, Any]] = None
+    projects: Optional[List[Dict[str, Any]]] = None
+    preferences: Optional[Dict[str, Any]] = None
+    is_verified: Optional[bool] = None
+    ranking_tier: Optional[str] = None
+    badges: List[Dict[str, Any]] = []
+
+
+class AuthResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    user: UserResponse
+
+
+class TwoFAChallengeResponse(BaseModel):
+    """Returned by /auth/login when 2FA is enabled — client must call /auth/2fa/verify."""
+    requires_2fa: bool = True
+    challenge_id: str
+    methods: List[str] = ["totp"]
+    user_email: str  # show on challenge screen for context
+
+
+class TwoFASetupRequest(BaseModel):
+    pass  # auth-only
+
+
+class TwoFASetupResponse(BaseModel):
+    secret: str
+    otpauth_uri: str
+    qr_code_base64: str  # PNG, base64-encoded
+
+
+class TwoFAEnableRequest(BaseModel):
+    code: str  # 6-digit TOTP code from authenticator app
+
+
+class TwoFAEnableResponse(BaseModel):
+    enabled: bool = True
+    backup_codes: List[str]  # show ONCE
+
+
+class TwoFAVerifyRequest(BaseModel):
+    challenge_id: str
+    code: str  # 6-digit TOTP or 10-char backup code
+
+
+class TwoFADisableRequest(BaseModel):
+    password: str
+    code: str
+
+
+# ----- AI payloads -----
+class CareerSuggestionRequest(BaseModel):
+    additional_context: Optional[str] = None
+    session_id: Optional[str] = None
+
+
+class ChatRequest(BaseModel):
+    message: str
+    session_id: Optional[str] = None
+
+
+class ChatResponse(BaseModel):
+    session_id: str
+    message: str
+
+
+# ----- Booking payloads -----
+class BookingRequest(BaseModel):
+    """Student books a mentor for a 1:1 session."""
+    mentor_id: str
+    slot_start_iso: str  # ISO datetime string
+    slot_end_iso: str
+    topic: str
+    notes: Optional[str] = None
+
+
+class ConnectRequestIn(BaseModel):
+    message: Optional[str] = None
+
+
+class MentorBookingCreateRequest(BaseModel):
+    """Mentor schedules a booking with a student."""
+    student_id: str
+    slot_start_iso: str  # ISO datetime string
+    topic: str
+    notes: Optional[str] = None
+
+
+class RescheduleRequest(BaseModel):
+    """Request payload to reschedule a session."""
+    slot_start_iso: str  # ISO datetime string
 
 
 
@@ -519,11 +890,15 @@ def validate_student_class(school_info: SchoolInfo, age: Optional[int] = None) -
 
 
 # ----------------------------------------------------------------------------
-# Backward-compat re-exports — imported by legacy code & other modules.
-# The canonical implementations now live in core/security.py and core/deps.py.
+# Auth Endpoints
 # ----------------------------------------------------------------------------
-from core.security import serialize_user, validate_student_class, _safe_block  # noqa: F401
-from core.deps import get_current_user  # noqa: F401
+@api_router.post("/auth/register", response_model=AuthResponse)
+@limiter.limit("10/minute")
+async def register(request: Request, req: RegisterRequest):
+    """Register a new user. Role is captured upfront — onboarding collects role-specific fields."""
+    email = req.email.lower().strip()
+    if await db.users.find_one({"email": email}, {"_id": 1}):
+        raise HTTPException(400, "Email already registered")
 
     user_doc = {
         "email": email,
@@ -7127,18 +7502,6 @@ api_router.include_router(college_router)
 from auth_analytics import router as auth_analytics_router
 api_router.include_router(auth_analytics_router)
 
-from routers.analytics import router as analytics_router
-api_router.include_router(analytics_router)
-
-from routers.integrations import router as integrations_router
-api_router.include_router(integrations_router)
-
-from routers.reviews import router as reviews_router
-api_router.include_router(reviews_router)
-
-from routers.notifications import router as notifications_router
-api_router.include_router(notifications_router)
-
 # AI Daily Brief (on-demand Claude integration)
 from ai_briefs import router as ai_briefs_router
 api_router.include_router(ai_briefs_router)
@@ -7183,12 +7546,6 @@ app.include_router(tour_router)
 from routers.promotions import router as promotions_router
 app.include_router(promotions_router)
 
-from routers.auth import router as auth_router
-api_router.include_router(auth_router)
-
-from routers.users import router as users_router
-api_router.include_router(users_router)
-
 app.include_router(api_router)
 
 # ── CORS — origins configurable via env for production deployments ──
@@ -7214,6 +7571,7 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["Content-Length", "X-Request-Id"],
 )
+
 
 # ── Health-check endpoints (used by Dokploy / Docker / load-balancers) ──
 @app.get("/api/health")
