@@ -347,7 +347,7 @@ export default function LandingPageFinTax360() {
       <AnimatedAurora intensity="normal" />
       <GridOverlay />
       <FloatingParticles />
-      <ScrollView showsVerticalScrollIndicator={false} stickyHeaderIndices={[0]} contentContainerStyle={{ paddingBottom: 0 }}>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} stickyHeaderIndices={[0]} contentContainerStyle={{ paddingBottom: 20 }}>
         <Navbar isDesktop={isDesktop} router={router} />
         <HeroSection isDesktop={isDesktop} isTablet={isTablet} router={router} />
         <TrustStrip isDesktop={isDesktop} />
@@ -358,8 +358,8 @@ export default function LandingPageFinTax360() {
         <AIShowcase isDesktop={isDesktop} router={router} />
         <Testimonials isDesktop={isDesktop} />
         <CTABanner router={router} />
-        <Footer isDesktop={isDesktop} />
       </ScrollView>
+      <Footer isDesktop={isDesktop} />
       <AiCopilotFab onPress={() => router.push('/login')} label="Try Agent K" />
     </View>
   );

@@ -1,18 +1,19 @@
 /**
  * Super Admin Portal — Overview/Dashboard view (true RN port).
  */
-import React from 'react';
-import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, Image, TextInput } from 'react-native';
 import {
   Building2, GraduationCap, UserCheck, Users, CreditCard, Calendar,
   CheckCircle, BarChart3, Sparkles, AlertTriangle, FileText, Eye,
+  Image as ImageIcon, Link, Save, X, Upload,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SAC, FONTS } from '../tokens';
 import { Av } from '../atoms';
 import { GRAD, GradientButton, SecondaryButton, KpiTile, IconBox } from '../applekit';
 import * as MOCK from '../data';
-import { usePortalData } from '@/src/lib/portalApi';
+import { usePortalData, postPortal, fetchPortal } from '@/src/lib/portalApi';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
@@ -48,10 +49,176 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
   const stack = width < 1100;
   const maxEnroll = Math.max(...MONTHLY_ENROLLMENTS.map((m) => m.value));
 
+  // ── Ad Manager state ─────────────────────────────────────────────────
+  const [currentAd, setCurrentAd] = useState<any>(null);
+  const [showAdEditor, setShowAdEditor] = useState(false);
+  const [adLabel, setAdLabel] = useState('');
+  const [adImage, setAdImage] = useState('');
+  const [adUrl, setAdUrl] = useState('');
+  const [adSaving, setAdSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetchPortal<{ ad: any }>('/ad/image')
+      .then((res) => { setCurrentAd(res.ad); })
+      .catch(() => {});
+  }, []);
+
+  const handleFileSelect = (e: any) => {
+    const file = e.target?.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setAdImage(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveAd = async () => {
+    if (!adLabel.trim() || !adImage || !adUrl.trim()) return;
+    setAdSaving(true);
+    try {
+      await postPortal('/admin/ad/image', {
+        body: { label: adLabel, image_url: adImage, redirect_url: adUrl },
+      });
+      setCurrentAd({ label: adLabel, image_url: adImage, redirect_url: adUrl });
+      setShowAdEditor(false);
+    } catch (e: any) {
+      console.error('Failed to save ad', e);
+    } finally {
+      setAdSaving(false);
+    }
+  };
+
+  const openEditor = () => {
+    if (currentAd) {
+      setAdLabel(currentAd.label || '');
+      setAdImage(currentAd.image_url || '');
+      setAdUrl(currentAd.redirect_url || '');
+    } else {
+      setAdLabel('');
+      setAdImage('');
+      setAdUrl('');
+    }
+    setShowAdEditor(true);
+  };
+
   return (
     <View style={{ gap: 16 }}>
       {/* Live counters */}
       <LiveStrip accent={GRAD.to} keys={['users', 'students', 'mentors', 'colleges', 'bookings']} />
+
+      {/* Ad Manager — only visible to SuperAdmin */}
+      <View style={s.adManagerWrap}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <ImageIcon size={14} color={SAC.accentBright} />
+            <Text style={s.adManagerTitle}>Advertisement Board</Text>
+          </View>
+          <Pressable onPress={openEditor} style={s.adEditBtn}>
+            <Text style={s.adEditBtnText}>{currentAd ? 'Edit Ad' : 'Set Ad'}</Text>
+          </Pressable>
+        </View>
+        {currentAd ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 }}>
+            <Image
+              source={{ uri: currentAd.image_url }}
+              style={{ width: 60, height: 40, borderRadius: 6 }}
+              resizeMode="cover"
+            />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }} numberOfLines={1}>
+                {currentAd.label}
+              </Text>
+              <Text style={{ color: SAC.muted, fontSize: 10 }} numberOfLines={1}>
+                {currentAd.redirect_url}
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <Text style={{ color: SAC.dim, fontSize: 11, marginTop: 6 }}>
+            No advertisement set yet. Click "Set Ad" to add one.
+          </Text>
+        )}
+      </View>
+
+      {/* Ad Editor Modal */}
+      {showAdEditor && (
+        <View style={s.adEditorOverlay}>
+          <View style={s.adEditorModal}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <Text style={s.adEditorTitle}>{currentAd ? 'Edit Advertisement' : 'New Advertisement'}</Text>
+              <Pressable onPress={() => setShowAdEditor(false)}><X size={18} color={SAC.muted} /></Pressable>
+            </View>
+
+            <Text style={s.adFieldLabel}>Label / Title</Text>
+            <TextInput
+              style={s.adFieldInput}
+              value={adLabel}
+              onChangeText={setAdLabel}
+              placeholder="e.g. EBS 2026"
+              placeholderTextColor={SAC.dim}
+            />
+
+            <Text style={s.adFieldLabel}>Redirect URL</Text>
+            <TextInput
+              style={s.adFieldInput}
+              value={adUrl}
+              onChangeText={setAdUrl}
+              placeholder="https://events.forgetechno.com/"
+              placeholderTextColor={SAC.dim}
+              autoCapitalize="none"
+            />
+
+            <Text style={s.adFieldLabel}>Image</Text>
+            {Platform.OS === 'web' ? (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  style={{ display: 'none' }}
+                />
+                <Pressable
+                  onPress={() => fileInputRef.current?.click()}
+                  style={s.adFilePicker}
+                >
+                  <Upload size={14} color={SAC.accentBright} />
+                  <Text style={{ color: SAC.accentBright, fontFamily: FONTS.bold, fontSize: 12 }}>
+                    {adImage ? 'Change Image' : 'Choose Image'}
+                  </Text>
+                </Pressable>
+              </>
+            ) : (
+              <TextInput
+                style={[s.adFieldInput, { fontSize: 10 }]}
+                value={adImage}
+                onChangeText={setAdImage}
+                placeholder="Paste image URL"
+                placeholderTextColor={SAC.dim}
+              />
+            )}
+            {adImage ? (
+              <View style={{ marginTop: 8 }}>
+                <Image source={{ uri: adImage }} style={{ width: '100%', height: 100, borderRadius: 8 }} resizeMode="cover" />
+              </View>
+            ) : null}
+
+            <Pressable
+              onPress={handleSaveAd}
+              disabled={adSaving || !adLabel.trim() || !adImage || !adUrl.trim()}
+              style={[s.adSaveBtn, (adSaving || !adLabel.trim() || !adImage || !adUrl.trim()) && { opacity: 0.5 }]}
+            >
+              <Save size={14} color="#fff" />
+              <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
+                {adSaving ? 'Saving...' : 'Save Advertisement'}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
 
       {/* Hero */}
       <View style={s.hero}>
@@ -218,4 +385,47 @@ const s = StyleSheet.create({
 
   barValue: { fontFamily: FONTS.bold, fontSize: 10 },
   barMonth: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5 },
+
+  // Ad Manager
+  adManagerWrap: {
+    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1,
+    borderRadius: 14, padding: 14,
+  },
+  adManagerTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13 },
+  adEditBtn: {
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
+    backgroundColor: SAC.primary,
+  },
+  adEditBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11 },
+
+  adEditorOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1000,
+    justifyContent: 'center', alignItems: 'center',
+    ...(Platform.OS === 'web' ? { position: 'fixed' } as any : {}),
+  },
+  adEditorModal: {
+    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1,
+    borderRadius: 16, padding: 20, width: '90%', maxWidth: 420,
+    gap: 8,
+  },
+  adEditorTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
+  adFieldLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11, marginTop: 6 },
+  adFieldInput: {
+    backgroundColor: SAC.bg2, borderColor: SAC.border, borderWidth: 1,
+    borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
+    color: '#fff', fontFamily: FONTS.med, fontSize: 13,
+  },
+  adFilePicker: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: SAC.bg2, borderColor: SAC.border, borderWidth: 1,
+    borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+  },
+  adSaveBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center',
+    backgroundColor: SAC.accent, borderRadius: 10,
+    paddingVertical: 12, marginTop: 14,
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+  },
 });

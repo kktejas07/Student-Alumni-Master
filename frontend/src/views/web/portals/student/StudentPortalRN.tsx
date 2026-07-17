@@ -149,9 +149,9 @@ function PortalShell() {
                   {active === 'rentals'         && <RentalsPage />}
                   {active === 'profile'         && <ProfileSettingsView />}
                 </RouteTransition>
-                <DashboardFooter portal="student" />
               </EmbeddedShellContext.Provider>
             </ScrollView>
+            <DashboardFooter portal="student" />
           </StudentPortalNavContext.Provider>
 
           {/* Global AI Copilot FAB — visible on every Student screen */}

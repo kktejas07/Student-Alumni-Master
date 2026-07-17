@@ -167,8 +167,8 @@ export default function MentorPortalRN() {
             {active === 'feedback'  && <FeedbackView />}
             {active === 'event'     && <CreateEventView />}
             {active === 'profile'   && <MentorProfileSettingsView initialTab={profileTab} />}
-            <DashboardFooter portal="mentor" />
           </ScrollView>
+          <DashboardFooter portal="mentor" />
         </View>
         {showNotifs && (
           <NotificationsPanel
