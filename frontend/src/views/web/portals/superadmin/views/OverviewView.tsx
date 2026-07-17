@@ -73,8 +73,6 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
       setAdImage(ev.target?.result as string);
     };
     reader.readAsDataURL(file);
-    // Reset so same file can be re-selected
-    if (e.target) e.target.value = '';
   };
 
   const saveToBackend = async (updatedAds: any[]) => {
@@ -83,17 +81,20 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
   };
 
   const handleSave = async (stayOpen: boolean) => {
-    if (!adLabel.trim() || !adImage || !adUrl.trim()) return;
+    const label = adLabel.trim();
+    const url = adUrl.trim();
+    if (!label || !adImage || !url) return;
     setAdSaving(true);
     try {
-      const item = { label: adLabel.trim(), image_url: adImage, redirect_url: adUrl.trim() };
+      const item = { label, image_url: adImage, redirect_url: url };
       let updated = [...ads];
       if (editingIndex !== null) {
         updated[editingIndex] = item;
       } else {
         updated.push(item);
       }
-      await saveToBackend(updated);
+      await postPortal('/admin/ad/image', { body: { items: updated } });
+      setAds(updated);
       if (stayOpen) {
         setEditingIndex(null);
         setAdLabel('');
@@ -212,18 +213,18 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
             ) : null}
 
             {editingIndex !== null ? (
-              <Pressable onPress={() => { if (!adSaving && adLabel.trim() && adImage && adUrl.trim()) handleSave(false); }}
+              <Pressable onPress={() => { if (adLabel.trim() && adImage && adUrl.trim() && !adSaving) handleSave(false); }}
                 style={[s.adSaveBtn, (!adLabel.trim() || !adImage || !adUrl.trim()) && { opacity: 0.4 }]}>
                 <Save size={14} color="#fff" />
                 <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>{adSaving ? 'Saving...' : 'Save'}</Text>
               </Pressable>
             ) : (
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
-                <Pressable onPress={() => { if (!adSaving && adLabel.trim() && adImage && adUrl.trim()) handleSave(true); }}
+                <Pressable onPress={() => { if (adLabel.trim() && adImage && adUrl.trim() && !adSaving) handleSave(true); }}
                   style={[s.adMoreBtn, (!adLabel.trim() || !adImage || !adUrl.trim()) && { opacity: 0.4 }]}>
                   <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>{adSaving ? '...' : '+ Add More'}</Text>
                 </Pressable>
-                <Pressable onPress={() => { if (!adSaving && adLabel.trim() && adImage && adUrl.trim()) handleSave(false); }}
+                <Pressable onPress={() => { if (adLabel.trim() && adImage && adUrl.trim() && !adSaving) handleSave(false); }}
                   style={[s.adSaveBtn, (!adLabel.trim() || !adImage || !adUrl.trim()) && { opacity: 0.4 }]}>
                   <Save size={14} color="#fff" />
                   <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>{adSaving ? 'Saving...' : 'Save'}</Text>
