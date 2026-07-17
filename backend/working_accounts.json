@@ -1,0 +1,79 @@
+[
+  {
+    "email": "student01@test.com",
+    "password": "TestPass@123",
+    "role": "student",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ",
+    "name": "Aarav Student"
+  },
+  {
+    "email": "student03@test.com",
+    "password": "TestPass@123",
+    "role": "student",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ",
+    "name": "Aditya Student"
+  },
+  {
+    "email": "student04@test.com",
+    "password": "TestPass@123",
+    "role": "student",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ",
+    "name": "Vihaan Student"
+  },
+  {
+    "email": "mentor01@test.com",
+    "password": "TestPass@123",
+    "role": "mentor",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ",
+    "name": "Priya Mentor1"
+  },
+  {
+    "email": "mentor02@test.com",
+    "password": "TestPass@123",
+    "role": "mentor",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ",
+    "name": "Arjun Mentor2"
+  },
+  {
+    "email": "admin@careerpath.app",
+    "password": "Admin@12345",
+    "role": "admin",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ",
+    "name": "Platform Admin"
+  },
+  {
+    "email": "alumni01@test.com",
+    "password": "TestPass@123",
+    "role": "alumni",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ",
+    "name": "Priyaa Alumni"
+  },
+  {
+    "email": "alumni02@test.com",
+    "password": "TestPass@123",
+    "role": "alumni",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ",
+    "name": "Reyansh Alumni"
+  },
+  {
+    "email": "alumni03@test.com",
+    "password": "TestPass@123",
+    "role": "alumni",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ",
+    "name": "Krishna Alumni"
+  },
+  {
+    "email": "iitb@university.in",
+    "password": "TestPass@123",
+    "role": "college",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ",
+    "name": "IIT Bombay"
+  },
+  {
+    "email": "stanford@university.in",
+    "password": "TestPass@123",
+    "role": "college",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ",
+    "name": "Stanford University"
+  }
+]
