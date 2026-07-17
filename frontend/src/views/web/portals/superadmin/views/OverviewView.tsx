@@ -76,23 +76,36 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
     reader.readAsDataURL(file);
   };
 
-  const handleSaveAd = async () => {
+  const handleAddMore = () => {
     if (!adLabel.trim() || !adImage || !adUrl.trim()) return;
+    const item = { label: adLabel.trim(), image_url: adImage, redirect_url: adUrl.trim() };
+    setAds((prev) => [...prev, item]);
+    setAdLabel('');
+    setAdImage('');
+    setAdUrl('');
+  };
+
+  const handleSaveAll = async () => {
+    if (!adLabel.trim() && !adImage && !adUrl.trim()) {
+      // Nothing pending — just close
+      setShowAdEditor(false);
+      setEditingIndex(null);
+      return;
+    }
     setAdSaving(true);
     try {
-      let newAds = [...ads];
-      const item = { label: adLabel.trim(), image_url: adImage, redirect_url: adUrl.trim() };
+      let finalAds = [...ads];
       if (editingIndex !== null) {
-        newAds[editingIndex] = item;
-      } else {
-        newAds.push(item);
+        finalAds[editingIndex] = { label: adLabel.trim(), image_url: adImage, redirect_url: adUrl.trim() };
+      } else if (adLabel.trim() && adImage && adUrl.trim()) {
+        finalAds.push({ label: adLabel.trim(), image_url: adImage, redirect_url: adUrl.trim() });
       }
-      await postPortal('/admin/ad/image', { body: { items: newAds } });
-      setAds(newAds);
+      await postPortal('/admin/ad/image', { body: { items: finalAds } });
+      setAds(finalAds);
       setShowAdEditor(false);
       setEditingIndex(null);
     } catch (e: any) {
-      console.error('Failed to save ad', e);
+      console.error('Failed to save ads', e);
     } finally {
       setAdSaving(false);
     }
@@ -236,16 +249,38 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
               </View>
             ) : null}
 
-            <Pressable
-              onPress={handleSaveAd}
-              disabled={adSaving || !adLabel.trim() || !adImage || !adUrl.trim()}
-              style={[s.adSaveBtn, (adSaving || !adLabel.trim() || !adImage || !adUrl.trim()) && { opacity: 0.5 }]}
-            >
-              <Save size={14} color="#fff" />
-              <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
-                {adSaving ? 'Saving...' : 'Save'}
-              </Text>
-            </Pressable>
+            {editingIndex !== null ? (
+              <Pressable
+                onPress={handleSaveAll}
+                disabled={adSaving || !adLabel.trim() || !adImage || !adUrl.trim()}
+                style={[s.adSaveBtn, (adSaving || !adLabel.trim() || !adImage || !adUrl.trim()) && { opacity: 0.5 }]}
+              >
+                <Save size={14} color="#fff" />
+                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
+                  {adSaving ? 'Saving...' : 'Save'}
+                </Text>
+              </Pressable>
+            ) : (
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
+                <Pressable
+                  onPress={handleAddMore}
+                  disabled={!adLabel.trim() || !adImage || !adUrl.trim()}
+                  style={[s.adMoreBtn, (!adLabel.trim() || !adImage || !adUrl.trim()) && { opacity: 0.5 }]}
+                >
+                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>+ Add More</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleSaveAll}
+                  disabled={adSaving}
+                  style={[s.adSaveBtn, !adLabel.trim() && !adImage && !adUrl.trim() ? { flex: 1 } : { flex: 1 }, adSaving && { opacity: 0.5 }]}
+                >
+                  <Save size={14} color="#fff" />
+                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
+                    {adSaving ? 'Saving...' : 'Save All'}
+                  </Text>
+                </Pressable>
+              </View>
+            )}
           </View>
         </View>
       )}
@@ -427,15 +462,21 @@ const s = StyleSheet.create({
     backgroundColor: SAC.primary,
   },
   adEditBtnText: { color: '#fff', fontFamily: FONTS.bold, fontSize: 11 },
+  adMoreBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center',
+    backgroundColor: SAC.cardSolid, borderRadius: 10,
+    paddingVertical: 12,
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
+  },
 
   adEditorOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1000,
+    backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 1000,
     justifyContent: 'center', alignItems: 'center',
     ...(Platform.OS === 'web' ? { position: 'fixed' } as any : {}),
   },
   adEditorModal: {
-    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1,
+    backgroundColor: SAC.bg2, borderColor: SAC.border, borderWidth: 1,
     borderRadius: 16, padding: 20, width: '90%', maxWidth: 420,
     gap: 8,
   },
