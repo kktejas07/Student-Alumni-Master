@@ -58,7 +58,6 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
   const [adUrl, setAdUrl] = useState('');
   const [adSaving, setAdSaving] = useState(false);
   const [newDrafts, setNewDrafts] = useState<any[]>([]);
-  const [pickKey, setPickKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -85,7 +84,8 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
     setAdLabel('');
     setAdImage('');
     setAdUrl('');
-    setPickKey((k) => k + 1);
+    // Clear the file input so the same file can be re-selected
+    if (fileInputRef.current) { fileInputRef.current.value = ''; }
   };
 
   const handleSaveAll = async () => {
@@ -123,7 +123,6 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
     setAdImage('');
     setAdUrl('');
     setNewDrafts([]);
-    setPickKey(0);
     setShowAdEditor(true);
   };
 
@@ -131,7 +130,6 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
     setShowAdEditor(false);
     setEditingIndex(null);
     setNewDrafts([]);
-    setPickKey(0);
   };
 
   const openEdit = (i: number) => {
@@ -233,7 +231,6 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
             {Platform.OS === 'web' ? (
               <>
                 <input
-                  key={pickKey}
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
@@ -296,8 +293,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
                   <Pressable
                     onPress={handleAddMore}
-                    disabled={!adLabel.trim() || !adImage || !adUrl.trim()}
-                    style={[s.adMoreBtn, (!adLabel.trim() || !adImage || !adUrl.trim()) && { opacity: 0.5 }]}
+                    style={s.adMoreBtn}
                   >
                     <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>+ Add More</Text>
                   </Pressable>
