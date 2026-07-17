@@ -611,14 +611,9 @@ class TwoFADisableRequest(BaseModel):
 
 
 # ----- AI payloads -----
-<<<<<<< HEAD
-=======
 class CareerSuggestionRequest(BaseModel):
     additional_context: Optional[str] = None
     session_id: Optional[str] = None
-
-
->>>>>>> f43338b96b11148823a6d101d3fbe06602aa9ec6
 class ChatRequest(BaseModel):
     message: str
     session_id: Optional[str] = None
@@ -750,10 +745,7 @@ def serialize_user(user: dict) -> dict:
         "interests": user.get("interests", []),
         "skills": user.get("skills", []),
         "bio": user.get("bio"),
-<<<<<<< HEAD
         "face_image_base64": user.get("face_image_base64"),
-=======
->>>>>>> f43338b96b11148823a6d101d3fbe06602aa9ec6
         "onboarding_completed": user.get("onboarding_completed", False),
         "two_fa_enabled": user.get("two_fa_enabled", False),
         # Phase A — DOB / country / postal — exposed on every user response.
@@ -804,12 +796,6 @@ async def get_current_user(request: Request) -> dict:
         if payload.get("type") != "access":
             raise HTTPException(401, "Invalid token type")
         print(f'[AUTH TRACE] DB_QUERY_START | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
-<<<<<<< HEAD
-        user = await db.users.find_one({"_id": ObjectId(payload["sub"])}, {"resume_documents": 0})
-        print(f'[AUTH TRACE] DB_QUERY_END | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
-        if not user:
-            raise HTTPException(401, "User not found")
-=======
         user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
         print(f'[AUTH TRACE] DB_QUERY_END | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
         if not user:
@@ -889,8 +875,6 @@ async def get_current_user(request: Request) -> dict:
         # Remove large binary fields from response to match legacy behavior
         if "resume_documents" in user:
             del user["resume_documents"]
-            
->>>>>>> f43338b96b11148823a6d101d3fbe06602aa9ec6
         return user
     except jwt.ExpiredSignatureError:
         raise HTTPException(401, "Token expired")
@@ -918,7 +902,7 @@ async def register(request: Request, req: RegisterRequest):
     email = req.email.lower().strip()
     if await db.users.find_one({"email": email}, {"_id": 1}):
         raise HTTPException(400, "Email already registered")
-<<<<<<< HEAD
+
 
     user_doc = {
         "email": email,
@@ -4309,8 +4293,6 @@ async def student_dashboard_summary(user: dict = Depends(get_current_user)):
 
 
 
-=======
->>>>>>> f43338b96b11148823a6d101d3fbe06602aa9ec6
 
     user_doc = {
         "email": email,
