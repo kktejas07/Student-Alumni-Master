@@ -3723,12 +3723,24 @@ async def update_my_preferences(updates: dict, user: dict = Depends(get_current_
 
 @api_router.get("/ad/image")
 async def get_ad_images():
-    """Return all active advertisements as an array."""
+    """Return all active advertisements as an array.
+    Supports both legacy format (flat label/image_url/redirect_url fields)
+    and new format (items array).
+    """
     doc = await db.site_config.find_one({"_key": "advertisement"})
-    if not doc or not doc.get("items"):
+    if not doc:
         return {"ads": []}
-    items = doc.get("items", [])
-    return {"ads": items}
+    # New format: { items: [...] }
+    if doc.get("items") and isinstance(doc["items"], list):
+        return {"ads": doc["items"]}
+    # Legacy format: { label, image_url, redirect_url }
+    if doc.get("image_url"):
+        return {"ads": [{
+            "label": doc.get("label", ""),
+            "image_url": doc.get("image_url", ""),
+            "redirect_url": doc.get("redirect_url", ""),
+        }]}
+    return {"ads": []}
 
 
 @api_router.post("/admin/ad/image")

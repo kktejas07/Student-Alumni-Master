@@ -57,7 +57,6 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
   const [adImage, setAdImage] = useState('');
   const [adUrl, setAdUrl] = useState('');
   const [adSaving, setAdSaving] = useState(false);
-  const [newDrafts, setNewDrafts] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -71,47 +70,41 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      setAdImage(dataUrl);
+      setAdImage(ev.target?.result as string);
     };
     reader.readAsDataURL(file);
+    // Reset so same file can be re-selected
+    if (e.target) e.target.value = '';
   };
 
-  const handleAddMore = () => {
+  const saveToBackend = async (updatedAds: any[]) => {
+    await postPortal('/admin/ad/image', { body: { items: updatedAds } });
+    setAds(updatedAds);
+  };
+
+  const handleSave = async (stayOpen: boolean) => {
     if (!adLabel.trim() || !adImage || !adUrl.trim()) return;
-    const item = { label: adLabel.trim(), image_url: adImage, redirect_url: adUrl.trim() };
-    setNewDrafts((prev) => [...prev, item]);
-    setAdLabel('');
-    setAdImage('');
-    setAdUrl('');
-    // Clear the file input so the same file can be re-selected
-    if (fileInputRef.current) { fileInputRef.current.value = ''; }
-  };
-
-  const handleSaveAll = async () => {
-    const pendingItem = (adLabel.trim() && adImage && adUrl.trim())
-      ? { label: adLabel.trim(), image_url: adImage, redirect_url: adUrl.trim() }
-      : null;
-    if (!newDrafts.length && !pendingItem && editingIndex === null) {
-      setShowAdEditor(false);
-      return;
-    }
     setAdSaving(true);
     try {
-      let finalAds = [...ads];
+      const item = { label: adLabel.trim(), image_url: adImage, redirect_url: adUrl.trim() };
+      let updated = [...ads];
       if (editingIndex !== null) {
-        finalAds[editingIndex] = pendingItem!;
+        updated[editingIndex] = item;
       } else {
-        finalAds.push(...newDrafts);
-        if (pendingItem) finalAds.push(pendingItem);
+        updated.push(item);
       }
-      await postPortal('/admin/ad/image', { body: { items: finalAds } });
-      setAds(finalAds);
-      setShowAdEditor(false);
-      setEditingIndex(null);
-      setNewDrafts([]);
+      await saveToBackend(updated);
+      if (stayOpen) {
+        setEditingIndex(null);
+        setAdLabel('');
+        setAdImage('');
+        setAdUrl('');
+      } else {
+        setShowAdEditor(false);
+        setEditingIndex(null);
+      }
     } catch (e: any) {
-      console.error('Failed to save ads', e);
+      console.error('Failed to save ad', e);
     } finally {
       setAdSaving(false);
     }
@@ -122,14 +115,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
     setAdLabel('');
     setAdImage('');
     setAdUrl('');
-    setNewDrafts([]);
     setShowAdEditor(true);
-  };
-
-  const closeEditor = () => {
-    setShowAdEditor(false);
-    setEditingIndex(null);
-    setNewDrafts([]);
   };
 
   const openEdit = (i: number) => {
@@ -141,10 +127,9 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
   };
 
   const deleteAd = async (i: number) => {
-    const newAds = ads.filter((_, idx) => idx !== i);
+    const updated = ads.filter((_, idx) => idx !== i);
     try {
-      await postPortal('/admin/ad/image', { body: { items: newAds } });
-      setAds(newAds);
+      await saveToBackend(updated);
     } catch (e: any) {
       console.error('Failed to delete ad', e);
     }
@@ -155,7 +140,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
       {/* Live counters */}
       <LiveStrip accent={GRAD.to} keys={['users', 'students', 'mentors', 'colleges', 'bookings']} />
 
-      {/* Ad Manager — only visible to SuperAdmin */}
+      {/* Ad Manager */}
       <View style={s.adManagerWrap}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -176,12 +161,8 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
                   resizeMode="cover"
                 />
                 <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }} numberOfLines={1}>
-                    {ad.label}
-                  </Text>
-                  <Text style={{ color: SAC.muted, fontSize: 10 }} numberOfLines={1}>
-                    {ad.redirect_url}
-                  </Text>
+                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }} numberOfLines={1}>{ad.label}</Text>
+                  <Text style={{ color: SAC.muted, fontSize: 10 }} numberOfLines={1}>{ad.redirect_url}</Text>
                 </View>
                 <Pressable onPress={() => openEdit(i)} style={{ padding: 6 }}>
                   <Text style={{ color: SAC.accentBright, fontSize: 11, fontFamily: FONTS.bold }}>Edit</Text>
@@ -205,110 +186,51 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
           <View style={s.adEditorModal}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <Text style={s.adEditorTitle}>{editingIndex !== null ? 'Edit Ad' : 'New Ad'}</Text>
-              <Pressable onPress={closeEditor}><X size={18} color={SAC.muted} /></Pressable>
+              <Pressable onPress={() => { setShowAdEditor(false); setEditingIndex(null); }}><X size={18} color={SAC.muted} /></Pressable>
             </View>
 
             <Text style={s.adFieldLabel}>Label / Title</Text>
-            <TextInput
-              style={s.adFieldInput}
-              value={adLabel}
-              onChangeText={setAdLabel}
-              placeholder="e.g. EBS 2026"
-              placeholderTextColor={SAC.dim}
-            />
+            <TextInput style={s.adFieldInput} value={adLabel} onChangeText={setAdLabel} placeholder="e.g. EBS 2026" placeholderTextColor={SAC.dim} />
 
             <Text style={s.adFieldLabel}>Redirect URL</Text>
-            <TextInput
-              style={s.adFieldInput}
-              value={adUrl}
-              onChangeText={setAdUrl}
-              placeholder="https://events.forgetechno.com/"
-              placeholderTextColor={SAC.dim}
-              autoCapitalize="none"
-            />
+            <TextInput style={s.adFieldInput} value={adUrl} onChangeText={setAdUrl} placeholder="https://events.forgetechno.com/" placeholderTextColor={SAC.dim} autoCapitalize="none" />
 
             <Text style={s.adFieldLabel}>Image</Text>
             {Platform.OS === 'web' ? (
               <>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileSelect}
-                  style={{ display: 'none' }}
-                />
-                <Pressable
-                  onPress={() => fileInputRef.current?.click()}
-                  style={s.adFilePicker}
-                >
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} style={{ display: 'none' }} />
+                <Pressable onPress={() => fileInputRef.current?.click()} style={s.adFilePicker}>
                   <Upload size={14} color={SAC.accentBright} />
-                  <Text style={{ color: SAC.accentBright, fontFamily: FONTS.bold, fontSize: 12 }}>
-                    {adImage ? 'Change Image' : 'Choose Image'}
-                  </Text>
+                  <Text style={{ color: SAC.accentBright, fontFamily: FONTS.bold, fontSize: 12 }}>{adImage ? 'Change Image' : 'Choose Image'}</Text>
                 </Pressable>
               </>
             ) : (
-              <TextInput
-                style={[s.adFieldInput, { fontSize: 10 }]}
-                value={adImage}
-                onChangeText={setAdImage}
-                placeholder="Paste image URL"
-                placeholderTextColor={SAC.dim}
-              />
+              <TextInput style={[s.adFieldInput, { fontSize: 10 }]} value={adImage} onChangeText={setAdImage} placeholder="Paste image URL" placeholderTextColor={SAC.dim} />
             )}
             {adImage ? (
-              <View style={{ marginTop: 8 }}>
-                <Image source={{ uri: adImage }} style={{ width: '100%', height: 100, borderRadius: 8 }} resizeMode="cover" />
-              </View>
+              <Image source={{ uri: adImage }} style={{ width: '100%', height: 100, borderRadius: 8, marginTop: 8 }} resizeMode="cover" />
             ) : null}
 
             {editingIndex !== null ? (
-              <View style={{ marginTop: 14 }}>
-                <Pressable
-                  onPress={handleSaveAll}
-                  disabled={adSaving || !adLabel.trim() || !adImage || !adUrl.trim()}
-                  style={[s.adSaveBtn, (adSaving || !adLabel.trim() || !adImage || !adUrl.trim()) && { opacity: 0.5 }]}
-                >
+              // Editing existing ad — show single Save button
+              <Pressable onPress={() => handleSave(false)} disabled={adSaving || !adLabel.trim() || !adImage || !adUrl.trim()}
+                style={[s.adSaveBtn, (adSaving || !adLabel.trim() || !adImage || !adUrl.trim()) && { opacity: 0.5 }]}>
+                <Save size={14} color="#fff" />
+                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>{adSaving ? 'Saving...' : 'Save'}</Text>
+              </Pressable>
+            ) : (
+              // Adding new — two buttons: Save & Add Another, Save & Close
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
+                <Pressable onPress={() => handleSave(true)} disabled={adSaving || !adLabel.trim() || !adImage || !adUrl.trim()}
+                  style={[s.adMoreBtn, (adSaving || !adLabel.trim() || !adImage || !adUrl.trim()) && { opacity: 0.5 }]}>
+                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>{adSaving ? '...' : '+ Add More'}</Text>
+                </Pressable>
+                <Pressable onPress={() => handleSave(false)} disabled={adSaving || !adLabel.trim() || !adImage || !adUrl.trim()}
+                  style={[s.adSaveBtn, (adSaving || !adLabel.trim() || !adImage || !adUrl.trim()) && { opacity: 0.5 }]}>
                   <Save size={14} color="#fff" />
-                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
-                    {adSaving ? 'Saving...' : 'Save'}
-                  </Text>
+                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>{adSaving ? 'Saving...' : 'Save'}</Text>
                 </Pressable>
               </View>
-            ) : (
-              <>
-                {/* Draft list — shows ads added this session */}
-                {newDrafts.length > 0 && (
-                  <View style={{ maxHeight: 120, gap: 4, marginTop: 8, padding: 8, backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 8 }}>
-                    <Text style={{ color: SAC.muted, fontSize: 10, fontFamily: FONTS.bold }}>Added ({newDrafts.length})</Text>
-                    {newDrafts.map((a, i) => (
-                      <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Image source={{ uri: a.image_url }} style={{ width: 28, height: 18, borderRadius: 4 }} resizeMode="cover" />
-                        <Text style={{ color: '#fff', fontSize: 10, flex: 1 }} numberOfLines={1}>{a.label}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
-                  <Pressable
-                    onPress={handleAddMore}
-                    style={s.adMoreBtn}
-                  >
-                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>+ Add More</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={handleSaveAll}
-                    disabled={adSaving}
-                    style={[s.adSaveBtn, adSaving && { opacity: 0.5 }]}
-                  >
-                    <Save size={14} color="#fff" />
-                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
-                      {adSaving ? 'Saving...' : `Save All${newDrafts.length > 0 ? ` (${ads.length + newDrafts.length})` : ''}`}
-                    </Text>
-                  </Pressable>
-                </View>
-              </>
             )}
           </View>
         </View>
