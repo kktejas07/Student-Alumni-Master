@@ -58,6 +58,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
   const [adUrl, setAdUrl] = useState('');
   const [adSaving, setAdSaving] = useState(false);
   const [newDrafts, setNewDrafts] = useState<any[]>([]);
+  const [pickKey, setPickKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -84,7 +85,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
     setAdLabel('');
     setAdImage('');
     setAdUrl('');
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    setPickKey((k) => k + 1);
   };
 
   const handleSaveAll = async () => {
@@ -122,6 +123,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
     setAdImage('');
     setAdUrl('');
     setNewDrafts([]);
+    setPickKey(0);
     setShowAdEditor(true);
   };
 
@@ -129,6 +131,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
     setShowAdEditor(false);
     setEditingIndex(null);
     setNewDrafts([]);
+    setPickKey(0);
   };
 
   const openEdit = (i: number) => {
@@ -230,6 +233,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
             {Platform.OS === 'web' ? (
               <>
                 <input
+                  key={pickKey}
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
@@ -262,16 +266,18 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
             ) : null}
 
             {editingIndex !== null ? (
-              <Pressable
-                onPress={handleSaveAll}
-                disabled={adSaving || !adLabel.trim() || !adImage || !adUrl.trim()}
-                style={[s.adSaveBtn, (adSaving || !adLabel.trim() || !adImage || !adUrl.trim()) && { opacity: 0.5 }]}
-              >
-                <Save size={14} color="#fff" />
-                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
-                  {adSaving ? 'Saving...' : 'Save'}
-                </Text>
-              </Pressable>
+              <View style={{ marginTop: 14 }}>
+                <Pressable
+                  onPress={handleSaveAll}
+                  disabled={adSaving || !adLabel.trim() || !adImage || !adUrl.trim()}
+                  style={[s.adSaveBtn, (adSaving || !adLabel.trim() || !adImage || !adUrl.trim()) && { opacity: 0.5 }]}
+                >
+                  <Save size={14} color="#fff" />
+                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
+                    {adSaving ? 'Saving...' : 'Save'}
+                  </Text>
+                </Pressable>
+              </View>
             ) : (
               <>
                 {/* Draft list — shows ads added this session */}
@@ -521,9 +527,9 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   adSaveBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center',
+    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center',
     backgroundColor: SAC.accent, borderRadius: 10,
-    paddingVertical: 12, marginTop: 14,
+    paddingVertical: 12,
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
 });
