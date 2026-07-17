@@ -100,8 +100,8 @@ export function CollegePortalRN() {
           {active === 'career-intel' && <CareerIntelView />}
           {active === 'placements'   && <PlacementsView />}
           {active === 'profile'      && <SharedProfileSettingsView roleOverride="college" />}
-          <DashboardFooter portal="college" />
         </ScrollView>
+        <DashboardFooter portal="college" />
       </View>
     </View>
   );

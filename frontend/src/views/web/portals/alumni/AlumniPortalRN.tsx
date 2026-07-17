@@ -115,8 +115,8 @@ export function AlumniPortalRN() {
             {active === 'rentals'         && <RentalsPage />}
             {active === 'profile'         && <ProfileSettingsView />}
           </EmbeddedShellContext.Provider>
-          <DashboardFooter portal="alumni" />
         </ScrollView>
+        <DashboardFooter portal="alumni" />
         </AlumniPortalNavContext.Provider>
       </View>
     </View>

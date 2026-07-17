@@ -27,6 +27,7 @@ import { TierBadge } from '@/src/views/web/TierBadge';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
 import { api, request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { AdBanner } from '@/src/views/web/components/AdBanner';
 
 interface Props { onNav: (id: string) => void; }
 
@@ -107,6 +108,9 @@ export function DashboardView({ onNav }: Props) {
         <View style={{ marginBottom: 14 }}>
           <LiveStrip accent="#5EEAD4" keys={['mentors', 'bookings_today', 'bookings', 'courses']} />
         </View>
+
+        {/* Ad Banner */}
+        <AdBanner />
 
         {/* AI Daily Briefing */}
         <AIDailyBriefing onNav={onNav} />
