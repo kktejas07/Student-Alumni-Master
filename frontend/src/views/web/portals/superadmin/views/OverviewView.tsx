@@ -50,8 +50,9 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
   const maxEnroll = Math.max(...MONTHLY_ENROLLMENTS.map((m) => m.value));
 
   // ── Ad Manager state ─────────────────────────────────────────────────
-  const [currentAd, setCurrentAd] = useState<any>(null);
+  const [ads, setAds] = useState<any[]>([]);
   const [showAdEditor, setShowAdEditor] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [adLabel, setAdLabel] = useState('');
   const [adImage, setAdImage] = useState('');
   const [adUrl, setAdUrl] = useState('');
@@ -59,8 +60,8 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetchPortal<{ ad: any }>('/ad/image')
-      .then((res) => { setCurrentAd(res.ad); })
+    fetchPortal<{ ads: any[] }>('/ad/image')
+      .then((res) => { setAds(res.ads || []); })
       .catch(() => {});
   }, []);
 
@@ -79,11 +80,17 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
     if (!adLabel.trim() || !adImage || !adUrl.trim()) return;
     setAdSaving(true);
     try {
-      await postPortal('/admin/ad/image', {
-        body: { label: adLabel, image_url: adImage, redirect_url: adUrl },
-      });
-      setCurrentAd({ label: adLabel, image_url: adImage, redirect_url: adUrl });
+      let newAds = [...ads];
+      const item = { label: adLabel.trim(), image_url: adImage, redirect_url: adUrl.trim() };
+      if (editingIndex !== null) {
+        newAds[editingIndex] = item;
+      } else {
+        newAds.push(item);
+      }
+      await postPortal('/admin/ad/image', { body: { items: newAds } });
+      setAds(newAds);
       setShowAdEditor(false);
+      setEditingIndex(null);
     } catch (e: any) {
       console.error('Failed to save ad', e);
     } finally {
@@ -91,17 +98,30 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
     }
   };
 
-  const openEditor = () => {
-    if (currentAd) {
-      setAdLabel(currentAd.label || '');
-      setAdImage(currentAd.image_url || '');
-      setAdUrl(currentAd.redirect_url || '');
-    } else {
-      setAdLabel('');
-      setAdImage('');
-      setAdUrl('');
-    }
+  const openAdd = () => {
+    setEditingIndex(null);
+    setAdLabel('');
+    setAdImage('');
+    setAdUrl('');
     setShowAdEditor(true);
+  };
+
+  const openEdit = (i: number) => {
+    setEditingIndex(i);
+    setAdLabel(ads[i].label || '');
+    setAdImage(ads[i].image_url || '');
+    setAdUrl(ads[i].redirect_url || '');
+    setShowAdEditor(true);
+  };
+
+  const deleteAd = async (i: number) => {
+    const newAds = ads.filter((_, idx) => idx !== i);
+    try {
+      await postPortal('/admin/ad/image', { body: { items: newAds } });
+      setAds(newAds);
+    } catch (e: any) {
+      console.error('Failed to delete ad', e);
+    }
   };
 
   return (
@@ -114,31 +134,41 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <ImageIcon size={14} color={SAC.accentBright} />
-            <Text style={s.adManagerTitle}>Advertisement Board</Text>
+            <Text style={s.adManagerTitle}>Advertisement Board ({ads.length})</Text>
           </View>
-          <Pressable onPress={openEditor} style={s.adEditBtn}>
-            <Text style={s.adEditBtnText}>{currentAd ? 'Edit Ad' : 'Set Ad'}</Text>
+          <Pressable onPress={openAdd} style={s.adEditBtn}>
+            <Text style={s.adEditBtnText}>+ Add Ad</Text>
           </Pressable>
         </View>
-        {currentAd ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 }}>
-            <Image
-              source={{ uri: currentAd.image_url }}
-              style={{ width: 60, height: 40, borderRadius: 6 }}
-              resizeMode="cover"
-            />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }} numberOfLines={1}>
-                {currentAd.label}
-              </Text>
-              <Text style={{ color: SAC.muted, fontSize: 10 }} numberOfLines={1}>
-                {currentAd.redirect_url}
-              </Text>
-            </View>
+        {ads.length > 0 ? (
+          <View style={{ gap: 8, marginTop: 8 }}>
+            {ads.map((ad, i) => (
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Image
+                  source={{ uri: ad.image_url }}
+                  style={{ width: 60, height: 40, borderRadius: 6 }}
+                  resizeMode="cover"
+                />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }} numberOfLines={1}>
+                    {ad.label}
+                  </Text>
+                  <Text style={{ color: SAC.muted, fontSize: 10 }} numberOfLines={1}>
+                    {ad.redirect_url}
+                  </Text>
+                </View>
+                <Pressable onPress={() => openEdit(i)} style={{ padding: 6 }}>
+                  <Text style={{ color: SAC.accentBright, fontSize: 11, fontFamily: FONTS.bold }}>Edit</Text>
+                </Pressable>
+                <Pressable onPress={() => deleteAd(i)} style={{ padding: 6 }}>
+                  <X size={14} color="#FCA5A5" />
+                </Pressable>
+              </View>
+            ))}
           </View>
         ) : (
           <Text style={{ color: SAC.dim, fontSize: 11, marginTop: 6 }}>
-            No advertisement set yet. Click "Set Ad" to add one.
+            No advertisements yet. Click "+ Add Ad" to add one.
           </Text>
         )}
       </View>
@@ -148,7 +178,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
         <View style={s.adEditorOverlay}>
           <View style={s.adEditorModal}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <Text style={s.adEditorTitle}>{currentAd ? 'Edit Advertisement' : 'New Advertisement'}</Text>
+              <Text style={s.adEditorTitle}>{editingIndex !== null ? 'Edit Ad' : 'New Ad'}</Text>
               <Pressable onPress={() => setShowAdEditor(false)}><X size={18} color={SAC.muted} /></Pressable>
             </View>
 
@@ -213,7 +243,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
             >
               <Save size={14} color="#fff" />
               <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
-                {adSaving ? 'Saving...' : 'Save Advertisement'}
+                {adSaving ? 'Saving...' : 'Save'}
               </Text>
             </Pressable>
           </View>
