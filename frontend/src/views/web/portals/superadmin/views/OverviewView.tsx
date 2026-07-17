@@ -57,6 +57,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
   const [adImage, setAdImage] = useState('');
   const [adUrl, setAdUrl] = useState('');
   const [adSaving, setAdSaving] = useState(false);
+  const [newDrafts, setNewDrafts] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -79,31 +80,35 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
   const handleAddMore = () => {
     if (!adLabel.trim() || !adImage || !adUrl.trim()) return;
     const item = { label: adLabel.trim(), image_url: adImage, redirect_url: adUrl.trim() };
-    setAds((prev) => [...prev, item]);
+    setNewDrafts((prev) => [...prev, item]);
     setAdLabel('');
     setAdImage('');
     setAdUrl('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSaveAll = async () => {
-    if (!adLabel.trim() && !adImage && !adUrl.trim()) {
-      // Nothing pending — just close
+    const pendingItem = (adLabel.trim() && adImage && adUrl.trim())
+      ? { label: adLabel.trim(), image_url: adImage, redirect_url: adUrl.trim() }
+      : null;
+    if (!newDrafts.length && !pendingItem && editingIndex === null) {
       setShowAdEditor(false);
-      setEditingIndex(null);
       return;
     }
     setAdSaving(true);
     try {
       let finalAds = [...ads];
       if (editingIndex !== null) {
-        finalAds[editingIndex] = { label: adLabel.trim(), image_url: adImage, redirect_url: adUrl.trim() };
-      } else if (adLabel.trim() && adImage && adUrl.trim()) {
-        finalAds.push({ label: adLabel.trim(), image_url: adImage, redirect_url: adUrl.trim() });
+        finalAds[editingIndex] = pendingItem!;
+      } else {
+        finalAds.push(...newDrafts);
+        if (pendingItem) finalAds.push(pendingItem);
       }
       await postPortal('/admin/ad/image', { body: { items: finalAds } });
       setAds(finalAds);
       setShowAdEditor(false);
       setEditingIndex(null);
+      setNewDrafts([]);
     } catch (e: any) {
       console.error('Failed to save ads', e);
     } finally {
@@ -116,7 +121,14 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
     setAdLabel('');
     setAdImage('');
     setAdUrl('');
+    setNewDrafts([]);
     setShowAdEditor(true);
+  };
+
+  const closeEditor = () => {
+    setShowAdEditor(false);
+    setEditingIndex(null);
+    setNewDrafts([]);
   };
 
   const openEdit = (i: number) => {
@@ -192,7 +204,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
           <View style={s.adEditorModal}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <Text style={s.adEditorTitle}>{editingIndex !== null ? 'Edit Ad' : 'New Ad'}</Text>
-              <Pressable onPress={() => setShowAdEditor(false)}><X size={18} color={SAC.muted} /></Pressable>
+              <Pressable onPress={closeEditor}><X size={18} color={SAC.muted} /></Pressable>
             </View>
 
             <Text style={s.adFieldLabel}>Label / Title</Text>
@@ -261,25 +273,40 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
                 </Text>
               </Pressable>
             ) : (
-              <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
-                <Pressable
-                  onPress={handleAddMore}
-                  disabled={!adLabel.trim() || !adImage || !adUrl.trim()}
-                  style={[s.adMoreBtn, (!adLabel.trim() || !adImage || !adUrl.trim()) && { opacity: 0.5 }]}
-                >
-                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>+ Add More</Text>
-                </Pressable>
-                <Pressable
-                  onPress={handleSaveAll}
-                  disabled={adSaving}
-                  style={[s.adSaveBtn, !adLabel.trim() && !adImage && !adUrl.trim() ? { flex: 1 } : { flex: 1 }, adSaving && { opacity: 0.5 }]}
-                >
-                  <Save size={14} color="#fff" />
-                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
-                    {adSaving ? 'Saving...' : 'Save All'}
-                  </Text>
-                </Pressable>
-              </View>
+              <>
+                {/* Draft list — shows ads added this session */}
+                {newDrafts.length > 0 && (
+                  <View style={{ maxHeight: 120, gap: 4, marginTop: 8, padding: 8, backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 8 }}>
+                    <Text style={{ color: SAC.muted, fontSize: 10, fontFamily: FONTS.bold }}>Added ({newDrafts.length})</Text>
+                    {newDrafts.map((a, i) => (
+                      <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Image source={{ uri: a.image_url }} style={{ width: 28, height: 18, borderRadius: 4 }} resizeMode="cover" />
+                        <Text style={{ color: '#fff', fontSize: 10, flex: 1 }} numberOfLines={1}>{a.label}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
+                  <Pressable
+                    onPress={handleAddMore}
+                    disabled={!adLabel.trim() || !adImage || !adUrl.trim()}
+                    style={[s.adMoreBtn, (!adLabel.trim() || !adImage || !adUrl.trim()) && { opacity: 0.5 }]}
+                  >
+                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>+ Add More</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={handleSaveAll}
+                    disabled={adSaving}
+                    style={[s.adSaveBtn, adSaving && { opacity: 0.5 }]}
+                  >
+                    <Save size={14} color="#fff" />
+                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
+                      {adSaving ? 'Saving...' : `Save All${newDrafts.length > 0 ? ` (${ads.length + newDrafts.length})` : ''}`}
+                    </Text>
+                  </Pressable>
+                </View>
+              </>
             )}
           </View>
         </View>
