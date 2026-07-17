@@ -36,6 +36,7 @@ import { TrendingCompaniesWidget } from './TrendingCompaniesWidget';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
+import { AdBanner } from '@/src/views/web/components/AdBanner';
 
 const KPI_ICONS = { matches: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp } as const;
 

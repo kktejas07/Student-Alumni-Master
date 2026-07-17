@@ -25,6 +25,7 @@ import { usePortalData } from '@/src/lib/portalApi';
 import { TierBadge } from '@/src/views/web/TierBadge';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
 import { request } from '@/src/models/services/api';
+import { AdBanner } from '@/src/views/web/components/AdBanner';
 
 const KPI_ICONS = { matches: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp } as const;
 
@@ -67,6 +68,9 @@ export function DashboardView({
 
   return (
     <View style={{ gap: 16 }}>
+      {/* Ad Banner */}
+      <AdBanner />
+
       {/* AI Daily Brief banner */}
       <View style={s.briefRow}>
         <View style={s.briefIcon}><Sparkles size={18} color={SC.accentBright} /></View>

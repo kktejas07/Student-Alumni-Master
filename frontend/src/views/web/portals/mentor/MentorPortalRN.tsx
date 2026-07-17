@@ -179,6 +179,7 @@ export default function MentorPortalRN() {
             {active === 'profile'   && <MentorProfileSettingsView initialTab={profileTab} demoMode={demoMode} setDemoMode={setDemoMode} />}
             <DashboardFooter portal="mentor" />
           </ScrollView>
+          <DashboardFooter portal="mentor" />
         </View>
         {showNotifs && (
           <NotificationsPanel

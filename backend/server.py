@@ -7504,6 +7504,53 @@ async def update_my_preferences(updates: dict, user: dict = Depends(get_current_
     return {"preferences": current}
 
 
+# ── Advertisement / Ad Board endpoints ────────────────────────────────────
+# SuperAdmin can set an advertisement (label + image + redirect URL) that
+# appears at the bottom of every portal sidebar. All users (no auth) can
+# fetch the active ad to display it.
+
+@api_router.get("/ad/image")
+async def get_ad_image():
+    """Return the current active advertisement, or null if none set."""
+    doc = await db.site_config.find_one({"_key": "advertisement"})
+    if not doc:
+        return {"ad": None}
+    return {
+        "ad": {
+            "label": doc.get("label", ""),
+            "image_url": doc.get("image_url", ""),
+            "redirect_url": doc.get("redirect_url", ""),
+            "updated_at": doc.get("updated_at", ""),
+        }
+    }
+
+
+@api_router.post("/admin/ad/image")
+async def set_ad_image(payload: dict, user: dict = Depends(get_current_user)):
+    """Set the advertisement (admin only). Body: { label, image_url, redirect_url }."""
+    role = (user.get("role") or "").lower()
+    if role not in ("admin", "superadmin", "super_admin"):
+        raise HTTPException(403, "Only admins can set the advertisement")
+    label = (payload.get("label") or "").strip()
+    image_url = (payload.get("image_url") or "").strip()
+    redirect_url = (payload.get("redirect_url") or "").strip()
+    if not label or not image_url or not redirect_url:
+        raise HTTPException(400, "label, image_url, and redirect_url are required")
+    await db.site_config.update_one(
+        {"_key": "advertisement"},
+        {"$set": {
+            "_key": "advertisement",
+            "label": label,
+            "image_url": image_url,
+            "redirect_url": redirect_url,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "updated_by": str(user.get("_id")),
+        }},
+        upsert=True,
+    )
+    return {"status": "ok", "label": label, "image_url": image_url, "redirect_url": redirect_url}
+
+
 @api_router.post("/users/me/password")
 async def change_my_password(payload: dict, user: dict = Depends(get_current_user)):
     """Change password. Body: { current_password, new_password }"""
