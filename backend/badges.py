@@ -523,7 +523,7 @@ async def _compute_universal_badges(db, user: dict) -> List[dict]:
             "id": "linkedin_linked", "category": "verification", "tier": "verified",
             "label": "LinkedIn Linked", "icon": "Linkedin", "hint": "LinkedIn profile connected",
         })
-    if user.get("face_verified") or user.get("face_image_base64"):
+    if user.get("face_verified"):
         out.append({
             "id": "face_verified", "category": "verification", "tier": "verified",
             "label": "Face Verified", "icon": "ScanFace", "hint": "Face capture completed",

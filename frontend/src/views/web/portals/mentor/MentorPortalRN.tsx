@@ -127,8 +127,8 @@ export default function MentorPortalRN() {
   const [decisions, setDecisions] = useState<Record<number, 'pending' | 'accepted' | 'declined'>>({});
 
   const onLogout = async () => {
-    try { await logout(); } catch {}
     router.replace('/welcome');
+    try { await logout(); } catch {}
   };
 
   return (
@@ -179,6 +179,7 @@ export default function MentorPortalRN() {
             {active === 'profile'   && <MentorProfileSettingsView initialTab={profileTab} demoMode={demoMode} setDemoMode={setDemoMode} />}
             <DashboardFooter portal="mentor" />
           </ScrollView>
+          <DashboardFooter portal="mentor" />
         </View>
         {showNotifs && (
           <NotificationsPanel

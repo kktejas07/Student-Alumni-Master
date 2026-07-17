@@ -10,7 +10,7 @@
  *   • Upcoming Events row
  *   • Profile completion CTA
  */
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StudentPortalNavContext } from '../StudentPortalNavContext';
@@ -36,6 +36,7 @@ import { TrendingCompaniesWidget } from './TrendingCompaniesWidget';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
+import { AdBanner } from '@/src/views/web/components/AdBanner';
 
 const KPI_ICONS = { matches: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp } as const;
 
@@ -54,6 +55,7 @@ export function DashboardView() {
   const router = useRouter();
   const toast = useToast();
   const portalNav = useContext(StudentPortalNavContext);
+  const [activeTab, setActiveTab] = useState<'opportunities' | 'intelligence'>('opportunities');
   // Authenticated user — drives per-user dashboard data.
   const authUser = useAuthStore((u) => u.user);
   const dashPath = authUser?.email
@@ -67,6 +69,8 @@ export function DashboardView() {
   const { data: intel } = usePortalData<any>(intelPath, null as any, 60_000);
   // Live counters polled every 15s so users can SEE auto-refresh working
   const { data: live } = usePortalData<any>('/live/counters', null as any, 15_000);
+  // Fetch actual live jobs from /api/jobs/feed (limit 5)
+  const { data: jobsFeed } = usePortalData<any>('/jobs/feed?page=1&per_page=5', null as any);
   const STUDENT = data!.student;
   const KPIS = data!.kpis;
   const TOP_MATCHES = data!.topMatches;
@@ -80,6 +84,7 @@ export function DashboardView() {
     { id: 4, role: 'Backend Developer Intern', company: 'Oracle', location: 'Pune, India', salary: '₹9 LPA', type: 'Internship', logo: 'O', logoColor: '#F80000', bg: '#fff', match: 89 },
     { id: 5, role: 'UI/UX Intern', company: 'Adobe', location: 'Remote', salary: '₹7 LPA', type: 'Internship', logo: 'A', logoColor: '#FF0000', bg: '#fff', match: 87 },
   ];
+  const displayJobs = jobsFeed?.items?.length ? jobsFeed.items : JOBS_DATA;
 
   const COURSES_DATA = [
     { id: 1, title: 'React - The Complete Guide', provider: 'Udemy', hours: '38 hours', level: 'Advanced', rating: '4.7', learners: '12.4k learners', logo: 'React', logoColor: '#61DAFB', bg: 'rgba(97, 218, 251, 0.1)' },
@@ -257,8 +262,26 @@ export function DashboardView() {
         </View>
       </View>
 
-      {/* ─── Jobs, Courses, and Mentors Sections ─── */}
-      <View style={{ flexDirection: 'column', gap: 20 }}>
+      {/* ── Tab Switcher (Opportunities vs Intelligence Center) ── */}
+      <View style={s.tabContainer}>
+        <Pressable
+          style={[s.tabButton, activeTab === 'opportunities' && s.tabButtonActive]}
+          onPress={() => setActiveTab('opportunities')}
+        >
+          <Briefcase size={14} color={activeTab === 'opportunities' ? '#fff' : SC.muted} />
+          <Text style={[s.tabText, activeTab === 'opportunities' && s.tabTextActive]}>Opportunities</Text>
+        </Pressable>
+        <Pressable
+          style={[s.tabButton, activeTab === 'intelligence' && s.tabButtonActive]}
+          onPress={() => setActiveTab('intelligence')}
+        >
+          <TrendingUp size={14} color={activeTab === 'intelligence' ? '#fff' : SC.muted} />
+          <Text style={[s.tabText, activeTab === 'intelligence' && s.tabTextActive]}>Intelligence Center</Text>
+        </Pressable>
+      </View>
+
+      {activeTab === 'opportunities' && (
+        <View style={{ flexDirection: 'column', gap: 20 }}>
         {/* Jobs Section */}
         <View style={[glassStyle(), s.mockupSection, { borderColor: 'rgba(139, 92, 246, 0.25)' }]}>
           <View style={s.sectionHeader}>
@@ -281,44 +304,56 @@ export function DashboardView() {
           </View>
           
           <View style={s.sectionList}>
-            {JOBS_DATA.map((item, idx) => (
-              <React.Fragment key={item.id}>
-                {idx > 0 && <View style={s.divider} />}
-                <View style={s.sectionItem}>
-                  <View style={[s.companyLogoShim, { backgroundColor: item.bg }]}>
-                    <Text style={[s.companyLogoShimText, { color: item.logoColor }]}>{item.logo}</Text>
-                  </View>
-                  <View style={{ flex: 2, minWidth: 0 }}>
-                    <Text numberOfLines={1} style={s.itemMainText}>{item.role}</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
-                      <Text style={s.itemSubText}>{item.company} · {item.type}</Text>
-                      <View style={[s.matchPill, { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }]}><Text style={[s.matchPillText, { fontSize: 9.5 }]}>✦ {item.match}% match</Text></View>
+            {displayJobs.map((item, idx) => {
+              const jobId = item.job_id || String(item.id);
+              const role = item.role || item.title || 'Intern';
+              const company = item.company || '—';
+              const jobType = item.type || item.job_type || 'Internship';
+              const location = item.location || 'Remote';
+              const matchPct = item.match || getStableMockData(jobId, company, jobType).matchPct;
+              const salary = formatSalary(item) || getStableMockData(jobId, company, jobType).fallbackSalary;
+              const initials = (company || '?')[0].toUpperCase();
+              const logoColor = item.logoColor || '#fff';
+              const logoBg = item.bg || pickColor(company);
+              return (
+                <React.Fragment key={jobId}>
+                  {idx > 0 && <View style={s.divider} />}
+                  <View style={s.sectionItem}>
+                    <View style={[s.companyLogoShim, { backgroundColor: logoBg }]}>
+                      <Text style={[s.companyLogoShimText, { color: logoColor }]}>{initials}</Text>
+                    </View>
+                    <View style={{ flex: 2, minWidth: 0 }}>
+                      <Text numberOfLines={1} style={s.itemMainText}>{role}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
+                        <Text style={s.itemSubText}>{company} · {jobType}</Text>
+                        <View style={[s.matchPill, { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }]}><Text style={[s.matchPillText, { fontSize: 9.5 }]}>✦ {matchPct}% match</Text></View>
+                      </View>
+                    </View>
+                    <View style={{ flex: 1.5, minWidth: 0 }}>
+                      <View style={s.metaTextRow}>
+                        <MapPin size={10} color={SC.muted} />
+                        <Text numberOfLines={1} style={s.metaText}>{location}</Text>
+                      </View>
+                      <View style={[s.metaTextRow, { marginTop: 2 }]}>
+                        <IndianRupee size={10} color={SC.muted} />
+                        <Text style={s.metaText}>{salary}</Text>
+                      </View>
+                    </View>
+                    <View style={s.itemActionCol}>
+                      <Pressable style={s.bookmarkBtn}>
+                        <Bookmark size={14} color="#A78BFA" />
+                      </Pressable>
+                      <Pressable 
+                        onPress={() => portalNav?.navigate('internships', { q: company })}
+                        style={s.applyBtn}
+                      >
+                        <Text style={s.applyBtnText}>Apply</Text>
+                      </Pressable>
                     </View>
                   </View>
-                  <View style={{ flex: 1.5, minWidth: 0 }}>
-                    <View style={s.metaTextRow}>
-                      <MapPin size={10} color={SC.muted} />
-                      <Text numberOfLines={1} style={s.metaText}>{item.location}</Text>
-                    </View>
-                    <View style={[s.metaTextRow, { marginTop: 2 }]}>
-                      <IndianRupee size={10} color={SC.muted} />
-                      <Text style={s.metaText}>{item.salary}</Text>
-                    </View>
-                  </View>
-                  <View style={s.itemActionCol}>
-                    <Pressable style={s.bookmarkBtn}>
-                      <Bookmark size={14} color="#A78BFA" />
-                    </Pressable>
-                    <Pressable 
-                      onPress={() => portalNav?.navigate('internships', { q: item.company })}
-                      style={s.applyBtn}
-                    >
-                      <Text style={s.applyBtnText}>Apply</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              </React.Fragment>
-            ))}
+                </React.Fragment>
+              );
+            })}
           </View>
         </View>
 
@@ -434,12 +469,14 @@ export function DashboardView() {
           </View>
         </View>
       </View>
+      )}
 
       {/* ── NexusOS Intelligence Center ─────────────────────────
           Sparkline KPI tiles + Audience growth area chart + Activity stream.
           Mock arrays for now; backend wiring is the next pass. */}
-      <View style={s.nxFrame}>
-        <NxPageHeader
+      {activeTab === 'intelligence' && (
+        <View style={s.nxFrame}>
+          <NxPageHeader
           title="Intelligence Center"
           subtitle="Real-time signals across applications, profile views and momentum."
           statusLabel="Live"
@@ -484,9 +521,12 @@ export function DashboardView() {
           />
         </View>
       </View>
+      )}
 
-      {/* Legacy 4 KPI tiles — staggered fade-in for visual rhythm */}
-      <Stagger gap={70} baseDelay={120}>
+      {activeTab === 'opportunities' && (
+        <>
+          {/* Legacy 4 KPI tiles — staggered fade-in for visual rhythm */}
+          <Stagger gap={70} baseDelay={120}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           {KPIS.map((k) => {
             const Icon = KPI_ICONS[k.id as keyof typeof KPI_ICONS];
@@ -628,6 +668,7 @@ export function DashboardView() {
         </View>
       </View>
 
+
       {/* Profile completion CTA */}
       <LinearGradient
         colors={[SC.primary, SC.primaryD] as any}
@@ -650,6 +691,8 @@ export function DashboardView() {
           <Text style={s.completeCtaText}>Complete Profile →</Text>
         </Pressable>
       </LinearGradient>
+      </>
+      )}
     </View>
   );
 }
@@ -1068,4 +1111,82 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
     marginVertical: 2,
   },
+  tabContainer: {
+    flexDirection: 'row',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 4,
+    marginBottom: 8,
+    gap: 4,
+  },
+  tabButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    ...(Platform.OS === 'web' ? ({
+      cursor: 'pointer',
+      transitionDuration: '180ms',
+    } as any) : {}),
+  },
+  tabButtonActive: {
+    backgroundColor: 'rgba(123, 61, 191, 0.25)',
+    borderColor: 'rgba(123, 61, 191, 0.4)',
+  },
+  tabText: {
+    color: SC.muted,
+    fontFamily: FONTS.bold,
+    fontSize: 13,
+  },
+  tabTextActive: {
+    color: '#fff',
+  },
 });
+
+/* ── Helpers ── */
+function formatSalary(j: any): string {
+  if (j.salary) return j.salary;
+  if (j.salary_min || j.salary_max) {
+    const cur = j.currency || 'USD';
+    const sym = cur === 'INR' ? '₹' : cur === 'EUR' ? '€' : '$';
+    const shortMoney = (n: number) => {
+      if (n >= 1_000_000) return `${(n/1_000_000).toFixed(1)}M`;
+      if (n >= 1_000) return `${(n/1_000).toFixed(0)}K`;
+      return String(n);
+    };
+    if (j.salary_min && j.salary_max) return `${sym}${shortMoney(j.salary_min)}–${sym}${shortMoney(j.salary_max)}/yr`;
+    if (j.salary_min) return `${sym}${shortMoney(j.salary_min)}+/yr`;
+  }
+  return '';
+}
+
+function pickColor(seed: string): string {
+  const COLOR_PALETTE = ['#F59E0B', '#3B82F6', '#10B981', '#A78BFA', '#EC4899', '#F97316', '#06B6D4', '#84CC16'];
+  let h = 0; for (const c of seed) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return COLOR_PALETTE[h % COLOR_PALETTE.length];
+}
+
+function getStableMockData(jobId: string, company: string, jobType: string) {
+  let hash = 0;
+  const str = jobId || company || 'default';
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
+  }
+  const matchPct = 82 + (hash % 16);
+  let fallbackSalary = '';
+  if (jobType === 'Internship') {
+    const salaries = ['₹35,000/mo', '₹60,000/mo', '₹85,000/mo', '₹1,20,000/mo'];
+    fallbackSalary = salaries[hash % salaries.length];
+  } else {
+    const salaries = ['₹8-12 LPA', '₹14-18 LPA', '₹22-28 LPA', '₹32-38 LPA'];
+    fallbackSalary = salaries[hash % salaries.length];
+  }
+  return { matchPct, fallbackSalary };
+}

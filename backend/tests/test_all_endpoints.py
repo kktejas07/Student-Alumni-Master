@@ -17,8 +17,41 @@ from datetime import datetime, timedelta
 # kept here only for backward compat with any local overrides.
 # ─────────────────────────────────────────────────────────────
 
-# client, auth_client, admin_client, and anyio_backend are all
-# provided by tests/conftest.py — no need to redefine them here.
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
+
+@pytest.fixture
+async def client():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        yield ac
+
+@pytest.fixture
+async def auth_client(client):
+    """Register + login a test user and return client with token"""
+    test_user = {
+        "email": f"test_{datetime.now().timestamp()}@test.com",
+        "password": "Test@123!pass",
+        "full_name": "Test User",
+        "role": "student"
+    }
+    resp = await client.post("/api/auth/register", json=test_user)
+    if resp.status_code == 200:
+        token = resp.json().get("access_token")
+        client.headers = {"Authorization": f"Bearer {token}"}
+    return client
+
+@pytest.fixture
+async def admin_client(client):
+    """Login as admin and return client with admin token"""
+    resp = await client.post("/api/auth/login", json={
+        "email": "admin@careerpath.app",
+        "password": "Admin@12345"
+    })
+    if resp.status_code == 200:
+        token = resp.json().get("access_token")
+        client.headers = {"Authorization": f"Bearer {token}"}
+    return client
 
 
 # ╔═══════════════════════════════════════════════════════════╗
@@ -121,7 +154,7 @@ class TestAuthEndpoints:
         resp = await client.post("/api/auth/google", json={
             "id_token": "test_invalid_token",
             "email": "google_user@test.com",
-            "name": "Google User"
+            "full_name": "Google User"
         })
         # Should either succeed or give 400/401 (not 500)
         assert resp.status_code not in [500, 502, 503]
@@ -167,7 +200,7 @@ class TestUserProfileEndpoints:
     async def test_01_update_profile(self, auth_client):
         """PUT /api/users/me - Update user profile"""
         resp = await auth_client.put("/api/users/me", json={
-            "name": "Updated Name",
+            "full_name": "Updated Name",
             "bio": "This is a test bio",
             "phone": "+1234567890"
         })

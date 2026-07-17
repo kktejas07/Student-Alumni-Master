@@ -24,6 +24,7 @@ import { TierBadge } from '@/src/views/web/TierBadge';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
 import type { CollegeNavId } from '../Sidebar';
+import { AdBanner } from '@/src/views/web/components/AdBanner';
 
 const KPI_ICONS = { students: GraduationCap, alumni: Users, placement: Trophy, events: CalendarDays } as const;
 
@@ -110,6 +111,9 @@ export function DashboardView({
           return <KpiCard key={k.id} Icon={Icon} label={k.label} value={k.value} delta={k.delta} color={k.color} />;
         })}
       </View>
+
+      {/* Ad Banner */}
+      <AdBanner />
 
       {/* AI Daily Briefing */}
       <View style={s.briefCard}>

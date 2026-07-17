@@ -58,8 +58,8 @@ export function AlumniPortalRN() {
   }, [tab]);
 
   const onLogout = async () => {
-    try { await logout(); } catch {}
     router.replace('/welcome');
+    try { await logout(); } catch {}
   };
 
   const handleNav = (id: StudentNavId, params?: { q?: string }) => {
@@ -116,8 +116,8 @@ export function AlumniPortalRN() {
             {active === 'rentals'         && <RentalsPage />}
             {active === 'profile'         && <ProfileSettingsView />}
           </EmbeddedShellContext.Provider>
-          <DashboardFooter portal="alumni" />
         </ScrollView>
+        <DashboardFooter portal="alumni" />
         </AlumniPortalNavContext.Provider>
       </View>
     </View>

@@ -78,8 +78,8 @@ function PortalShell() {
   }, [tab]);
 
   const onLogout = async () => {
-    try { await logout(); } catch {}
     router.replace('/welcome');
+    try { await logout(); } catch {}
   };
   const handleNav = (id: StudentNavId, params?: { q?: string }) => {
     setActive(id);
@@ -138,9 +138,9 @@ function PortalShell() {
                   {active === 'rentals'         && <RentalsPage />}
                   {active === 'profile'         && <ProfileSettingsView />}
                 </RouteTransition>
-                <DashboardFooter portal="student" />
               </EmbeddedShellContext.Provider>
             </ScrollView>
+            <DashboardFooter portal="student" />
           </StudentPortalNavContext.Provider>
 
           {/* Global AI Copilot FAB — visible on every Student screen */}
