@@ -2397,6 +2397,22 @@ async def oauth_config(response: Response):
     creds = await _get_oauth_creds()
     raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
     frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
+
+    # Read feature flags from platform_controls to determine which providers are enabled
+    enabled = {"google": False, "linkedin": False, "github": False}
+    try:
+        doc = await db.platform_controls.find_one({"_id": "singleton"})
+        if doc:
+            for flag in doc.get("feature_flags") or []:
+                if flag["key"] == "enable_google_login":
+                    enabled["google"] = bool(flag.get("value", False))
+                elif flag["key"] == "enable_linkedin_login":
+                    enabled["linkedin"] = bool(flag.get("value", False))
+                elif flag["key"] == "enable_github_login":
+                    enabled["github"] = bool(flag.get("value", False))
+    except Exception:
+        pass
+
     return {
         "google_client_id": creds.get("google_oauth_client_id", ""),
         "linkedin_client_id": creds.get("linkedin_oauth_client_id", ""),
@@ -2409,6 +2425,7 @@ async def oauth_config(response: Response):
         } if creds.get("firebase_api_key") else None,
         "redirect_uri": f"{frontend_url}/oauth.html",
         "configured": bool(creds.get("google_oauth_client_id")) or bool(creds.get("linkedin_oauth_client_id")) or bool(creds.get("github_oauth_client_id")),
+        "enabled_providers": enabled,
     }
 
 
@@ -3718,50 +3735,57 @@ async def update_my_preferences(updates: dict, user: dict = Depends(get_current_
 
 
 # ── Advertisement / Ad Board endpoints ────────────────────────────────────
-# SuperAdmin can set an advertisement (label + image + redirect URL) that
-# appears at the bottom of every portal sidebar. All users (no auth) can
-# fetch the active ad to display it.
+# SuperAdmin can manage multiple ads that auto-rotate in a carousel on
+# user dashboards. Each ad has a label, image, and redirect URL.
 
 @api_router.get("/ad/image")
-async def get_ad_image():
-    """Return the current active advertisement, or null if none set."""
+async def get_ad_images():
+    """Return all active advertisements as an array.
+    Supports both legacy format (flat label/image_url/redirect_url fields)
+    and new format (items array).
+    """
     doc = await db.site_config.find_one({"_key": "advertisement"})
     if not doc:
-        return {"ad": None}
-    return {
-        "ad": {
+        return {"ads": []}
+    # New format: { items: [...] }
+    if doc.get("items") and isinstance(doc["items"], list):
+        return {"ads": doc["items"]}
+    # Legacy format: { label, image_url, redirect_url }
+    if doc.get("image_url"):
+        return {"ads": [{
             "label": doc.get("label", ""),
             "image_url": doc.get("image_url", ""),
             "redirect_url": doc.get("redirect_url", ""),
-            "updated_at": doc.get("updated_at", ""),
-        }
-    }
+        }]}
+    return {"ads": []}
 
 
 @api_router.post("/admin/ad/image")
-async def set_ad_image(payload: dict, user: dict = Depends(get_current_user)):
-    """Set the advertisement (admin only). Body: { label, image_url, redirect_url }."""
+async def set_ad_images(payload: dict, user: dict = Depends(get_current_user)):
+    """Save all ads at once (admin only). Body: { items: [{ label, image_url, redirect_url }] }."""
     role = (user.get("role") or "").lower()
     if role not in ("admin", "superadmin", "super_admin"):
-        raise HTTPException(403, "Only admins can set the advertisement")
-    label = (payload.get("label") or "").strip()
-    image_url = (payload.get("image_url") or "").strip()
-    redirect_url = (payload.get("redirect_url") or "").strip()
-    if not label or not image_url or not redirect_url:
-        raise HTTPException(400, "label, image_url, and redirect_url are required")
+        raise HTTPException(403, "Only admins can set advertisements")
+    items = payload.get("items", [])
+    if not isinstance(items, list) or len(items) == 0:
+        raise HTTPException(400, "items must be a non-empty array")
+    for i, item in enumerate(items):
+        if not item.get("label") or not item.get("image_url") or not item.get("redirect_url"):
+            raise HTTPException(400, f"Item {i} is missing label, image_url, or redirect_url")
+        item["label"] = item["label"].strip()
+        item["image_url"] = item["image_url"].strip()
+        item["redirect_url"] = item["redirect_url"].strip()
     await db.site_config.update_one(
         {"_key": "advertisement"},
         {"$set": {
             "_key": "advertisement",
-            "label": label,
-            "image_url": image_url,
-            "redirect_url": redirect_url,
+            "items": items,
             "updated_at": datetime.now(timezone.utc).isoformat(),
             "updated_by": str(user.get("_id")),
         }},
         upsert=True,
     )
-    return {"status": "ok", "label": label, "image_url": image_url, "redirect_url": redirect_url}
+    return {"status": "ok", "count": len(items)}
 
 
 @api_router.post("/users/me/password")

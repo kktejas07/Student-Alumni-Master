@@ -787,6 +787,9 @@ DEFAULT_PLATFORM_CONTROLS = {
         {"key": "event_rsvp",           "label": "Event RSVP",           "description": "Allow students to RSVP for events",           "value": True},
         {"key": "career_tracker",      "label": "Career Tracker",       "description": "Enable alumni career tracking module",        "value": True},
         {"key": "newsletter",           "label": "Newsletter",            "description": "Send weekly newsletter to all users",           "value": True},
+        {"key": "enable_google_login",   "label": "Enable Google Login",   "description": "Show Google sign-in button on login page",   "value": False},
+        {"key": "enable_linkedin_login", "label": "Enable LinkedIn Login", "description": "Show LinkedIn sign-in button on login page", "value": False},
+        {"key": "enable_github_login",   "label": "Enable GitHub Login",   "description": "Show GitHub sign-in button on login page",   "value": False},
     ],
     "system_settings": [
         {"key": "session_timeout",  "label": "Session Timeout",   "value": "30 minutes"},
