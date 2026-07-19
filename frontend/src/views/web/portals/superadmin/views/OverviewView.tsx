@@ -57,6 +57,8 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
   const [adImage, setAdImage] = useState('');
   const [adUrl, setAdUrl] = useState('');
   const [adSaving, setAdSaving] = useState(false);
+  const [adError, setAdError] = useState('');
+  const [imageLoading, setImageLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -68,9 +70,16 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
   const handleFileSelect = (e: any) => {
     const file = e.target?.files?.[0];
     if (!file) return;
+    setImageLoading(true);
+    setAdError('');
     const reader = new FileReader();
     reader.onload = (ev) => {
       setAdImage(ev.target?.result as string);
+      setImageLoading(false);
+    };
+    reader.onerror = () => {
+      setAdError('Failed to read image file');
+      setImageLoading(false);
     };
     reader.readAsDataURL(file);
   };
@@ -80,11 +89,21 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
     setAds(updatedAds);
   };
 
+  const resetFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleSave = async (stayOpen: boolean) => {
     const label = adLabel.trim();
     const url = adUrl.trim();
-    if (!label || !adImage || !url) return;
+    if (!label || !adImage || !url) {
+      setAdError('Please fill in all fields (label, image, and URL)');
+      return;
+    }
     setAdSaving(true);
+    setAdError('');
     try {
       const item = { label, image_url: adImage, redirect_url: url };
       let updated = [...ads];
@@ -95,6 +114,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
       }
       await postPortal('/admin/ad/image', { body: { items: updated } });
       setAds(updated);
+      resetFileInput();
       if (stayOpen) {
         setEditingIndex(null);
         setAdLabel('');
@@ -105,7 +125,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
         setEditingIndex(null);
       }
     } catch (e: any) {
-      console.error('Failed to save ad', e);
+      setAdError(e?.message || 'Failed to save ad — check console for details');
     } finally {
       setAdSaving(false);
     }
@@ -116,6 +136,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
     setAdLabel('');
     setAdImage('');
     setAdUrl('');
+    setAdError('');
     setShowAdEditor(true);
   };
 
@@ -124,6 +145,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
     setAdLabel(ads[i].label || '');
     setAdImage(ads[i].image_url || '');
     setAdUrl(ads[i].redirect_url || '');
+    setAdError('');
     setShowAdEditor(true);
   };
 
@@ -187,45 +209,54 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
           <View style={s.adEditorModal}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <Text style={s.adEditorTitle}>{editingIndex !== null ? 'Edit Ad' : 'New Ad'}</Text>
-              <Pressable onPress={() => { setShowAdEditor(false); setEditingIndex(null); }}><X size={18} color={SAC.muted} /></Pressable>
+              <Pressable onPress={() => { setShowAdEditor(false); setEditingIndex(null); setAdError(''); }}><X size={18} color={SAC.muted} /></Pressable>
             </View>
 
+            {adError ? (
+              <Text style={{ color: '#FCA5A5', fontFamily: FONTS.med, fontSize: 11, marginTop: 4 }}>{adError}</Text>
+            ) : null}
+
             <Text style={s.adFieldLabel}>Label / Title</Text>
-            <TextInput style={s.adFieldInput} value={adLabel} onChangeText={setAdLabel} placeholder="e.g. EBS 2026" placeholderTextColor={SAC.dim} />
+            <TextInput style={s.adFieldInput} value={adLabel} onChangeText={(t) => { setAdLabel(t); setAdError(''); }} placeholder="e.g. EBS 2026" placeholderTextColor={SAC.dim} />
 
             <Text style={s.adFieldLabel}>Redirect URL</Text>
-            <TextInput style={s.adFieldInput} value={adUrl} onChangeText={setAdUrl} placeholder="https://events.forgetechno.com/" placeholderTextColor={SAC.dim} autoCapitalize="none" />
+            <TextInput style={s.adFieldInput} value={adUrl} onChangeText={(t) => { setAdUrl(t); setAdError(''); }} placeholder="https://events.forgetechno.com/" placeholderTextColor={SAC.dim} autoCapitalize="none" />
 
             <Text style={s.adFieldLabel}>Image</Text>
             {Platform.OS === 'web' ? (
               <>
                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} style={{ display: 'none' }} />
-                <Pressable onPress={() => fileInputRef.current?.click()} style={s.adFilePicker}>
+                <Pressable onPress={() => { resetFileInput(); fileInputRef.current?.click(); }} style={s.adFilePicker}>
                   <Upload size={14} color={SAC.accentBright} />
-                  <Text style={{ color: SAC.accentBright, fontFamily: FONTS.bold, fontSize: 12 }}>{adImage ? 'Change Image' : 'Choose Image'}</Text>
+                  <Text style={{ color: SAC.accentBright, fontFamily: FONTS.bold, fontSize: 12 }}>
+                    {imageLoading ? 'Loading image...' : adImage ? 'Change Image' : 'Choose Image'}
+                  </Text>
                 </Pressable>
               </>
             ) : (
-              <TextInput style={[s.adFieldInput, { fontSize: 10 }]} value={adImage} onChangeText={setAdImage} placeholder="Paste image URL" placeholderTextColor={SAC.dim} />
+              <TextInput style={[s.adFieldInput, { fontSize: 10 }]} value={adImage} onChangeText={(t) => { setAdImage(t); setAdError(''); }} placeholder="Paste image URL" placeholderTextColor={SAC.dim} />
+            )}
+            {imageLoading && (
+              <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 4 }}>Reading image file...</Text>
             )}
             {adImage ? (
               <Image source={{ uri: adImage }} style={{ width: '100%', height: 100, borderRadius: 8, marginTop: 8 }} resizeMode="cover" />
             ) : null}
 
             {editingIndex !== null ? (
-              <Pressable onPress={() => { if (adLabel.trim() && adImage && adUrl.trim() && !adSaving) handleSave(false); }}
-                style={[s.adSaveBtn, (!adLabel.trim() || !adImage || !adUrl.trim()) && { opacity: 0.4 }]}>
+              <Pressable onPress={() => { if (adLabel.trim() && adImage && adUrl.trim() && !adSaving && !imageLoading) handleSave(false); }}
+                style={[s.adSaveBtn, (!adLabel.trim() || !adImage || !adUrl.trim() || adSaving || imageLoading) && { opacity: 0.4 }]}>
                 <Save size={14} color="#fff" />
                 <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>{adSaving ? 'Saving...' : 'Save'}</Text>
               </Pressable>
             ) : (
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
-                <Pressable onPress={() => { if (adLabel.trim() && adImage && adUrl.trim() && !adSaving) handleSave(true); }}
-                  style={[s.adMoreBtn, (!adLabel.trim() || !adImage || !adUrl.trim()) && { opacity: 0.4 }]}>
-                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>{adSaving ? '...' : '+ Add More'}</Text>
+                <Pressable onPress={() => { if (adLabel.trim() && adImage && adUrl.trim() && !adSaving && !imageLoading) handleSave(true); }}
+                  style={[s.adMoreBtn, (!adLabel.trim() || !adImage || !adUrl.trim() || adSaving || imageLoading) && { opacity: 0.4 }]}>
+                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>{adSaving ? 'Saving...' : '+ Add More'}</Text>
                 </Pressable>
-                <Pressable onPress={() => { if (adLabel.trim() && adImage && adUrl.trim() && !adSaving) handleSave(false); }}
-                  style={[s.adSaveBtn, (!adLabel.trim() || !adImage || !adUrl.trim()) && { opacity: 0.4 }]}>
+                <Pressable onPress={() => { if (adLabel.trim() && adImage && adUrl.trim() && !adSaving && !imageLoading) handleSave(false); }}
+                  style={[s.adSaveBtn, (!adLabel.trim() || !adImage || !adUrl.trim() || adSaving || imageLoading) && { opacity: 0.4 }]}>
                   <Save size={14} color="#fff" />
                   <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>{adSaving ? 'Saving...' : 'Save'}</Text>
                 </Pressable>

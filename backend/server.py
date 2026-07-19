@@ -2397,6 +2397,22 @@ async def oauth_config(response: Response):
     creds = await _get_oauth_creds()
     raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
     frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
+
+    # Read feature flags from platform_controls to determine which providers are enabled
+    enabled = {"google": False, "linkedin": False, "github": False}
+    try:
+        doc = await db.platform_controls.find_one({"_id": "singleton"})
+        if doc:
+            for flag in doc.get("feature_flags") or []:
+                if flag["key"] == "enable_google_login":
+                    enabled["google"] = bool(flag.get("value", False))
+                elif flag["key"] == "enable_linkedin_login":
+                    enabled["linkedin"] = bool(flag.get("value", False))
+                elif flag["key"] == "enable_github_login":
+                    enabled["github"] = bool(flag.get("value", False))
+    except Exception:
+        pass
+
     return {
         "google_client_id": creds.get("google_oauth_client_id", ""),
         "linkedin_client_id": creds.get("linkedin_oauth_client_id", ""),
@@ -2409,6 +2425,7 @@ async def oauth_config(response: Response):
         } if creds.get("firebase_api_key") else None,
         "redirect_uri": f"{frontend_url}/oauth.html",
         "configured": bool(creds.get("google_oauth_client_id")) or bool(creds.get("linkedin_oauth_client_id")) or bool(creds.get("github_oauth_client_id")),
+        "enabled_providers": enabled,
     }
 
 
