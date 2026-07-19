@@ -38,6 +38,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
 import { AdBanner } from '@/src/views/web/components/AdBanner';
+import { PartnerCards } from '@/src/views/web/components/PartnerCards';
 
 const KPI_ICONS = { matches: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp } as const;
 
@@ -203,6 +204,7 @@ export function DashboardView() {
 
       {/* Ad Banner */}
       <AdBanner />
+      <PartnerCards />
 
       {/* AI Daily Brief banner — shimmer aura behind hero icon */}
       <FadeInView delay={20}>

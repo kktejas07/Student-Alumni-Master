@@ -266,6 +266,9 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
         </View>
       )}
 
+      {/* Partner Websites */}
+      <PartnerWebsitesSection />
+
       {/* Hero */}
       <View style={s.hero}>
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -392,6 +395,145 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
           </View>
         </View>
       </View>
+    </View>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Partner Websites Section — manage 3 website cards shown below ad banner
+// ═══════════════════════════════════════════════════════════════════════
+function PartnerWebsitesSection() {
+  const [items, setItems] = useState<any[]>([
+    { name: '', logo: '', referral_id: '', url: '' },
+    { name: '', logo: '', referral_id: '', url: '' },
+    { name: '', logo: '', referral_id: '', url: '' },
+  ]);
+  const [saving, setSaving] = useState(false);
+  const [pErr, setPErr] = useState('');
+  const [logoLoading, setLogoLoading] = useState(false);
+  const logoFileRefs = useRef<(HTMLInputElement | null)[]>([null, null, null]);
+
+  const load = async () => {
+    try {
+      const res = await fetchPortal<{ items: any[] }>('/partner-websites');
+      if (res?.items?.length === 3) setItems(res.items);
+    } catch {}
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const updateItem = (idx: number, field: string, value: string) => {
+    const next = [...items];
+    next[idx] = { ...next[idx], [field]: value };
+    setItems(next);
+    setPErr('');
+  };
+
+  const handleLogoSelect = (idx: number, e: any) => {
+    const file = e.target?.files?.[0];
+    if (!file) return;
+    setLogoLoading(true);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      updateItem(idx, 'logo', ev.target?.result as string);
+      setLogoLoading(false);
+    };
+    reader.onerror = () => setLogoLoading(false);
+    reader.readAsDataURL(file);
+  };
+
+  const resetLogoInput = (idx: number) => {
+    if (logoFileRefs.current[idx]) {
+      logoFileRefs.current[idx]!.value = '';
+    }
+  };
+
+  const save = async () => {
+    for (const it of items) {
+      if (it.name && (!it.logo || !it.url)) {
+        setPErr(`"${it.name}" is missing logo or URL`);
+        return;
+      }
+    }
+    setSaving(true);
+    try {
+      await postPortal('/admin/partner-websites', { body: { items } });
+      setPErr('');
+    } catch {
+      setPErr('Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <View style={s.adManagerWrap}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <Link size={14} color={SAC.accentBright} />
+        <Text style={s.adManagerTitle}>Partner Websites ({items.filter((i) => i.name).length}/3)</Text>
+      </View>
+      {pErr ? (
+        <Text style={{ color: '#FCA5A5', fontFamily: FONTS.med, fontSize: 11, marginBottom: 8 }}>{pErr}</Text>
+      ) : null}
+      {items.map((item, idx) => (
+        <View key={idx} style={{ marginBottom: 12, padding: 12, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 10, borderWidth: 1, borderColor: SAC.border }}>
+          <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 1, marginBottom: 8, textTransform: 'uppercase' }}>Slot {idx + 1}</Text>
+          <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+            <View style={{ alignItems: 'center', gap: 4 }}>
+              {item.logo ? (
+                <>
+                  <Image source={{ uri: item.logo }} style={{ width: 44, height: 44, borderRadius: 8 }} resizeMode="contain" />
+                  <Pressable onPress={() => { resetLogoInput(idx); logoFileRefs.current[idx]?.click(); }} style={{ paddingHorizontal: 4, paddingVertical: 2 }}>
+                    <Text style={{ color: SAC.accentBright, fontSize: 9, fontFamily: FONTS.bold }}>Change</Text>
+                  </Pressable>
+                </>
+              ) : null}
+              {Platform.OS === 'web' ? (
+                <input
+                  ref={(el) => { logoFileRefs.current[idx] = el; }}
+                  type="file" accept="image/*"
+                  onChange={(e) => handleLogoSelect(idx, e)}
+                  style={{ display: 'none' }}
+                />
+              ) : null}
+            </View>
+            <View style={{ flex: 1, gap: 6 }}>
+              <TextInput
+                style={[s.adFieldInput, { paddingVertical: 6, fontSize: 12 }]}
+                value={item.name} onChangeText={(t) => updateItem(idx, 'name', t)}
+                placeholder="Website name" placeholderTextColor={SAC.dim}
+              />
+              {!item.logo && Platform.OS === 'web' ? (
+                <Pressable onPress={() => { resetLogoInput(idx); logoFileRefs.current[idx]?.click(); }}
+                  style={[s.adFilePicker, { paddingVertical: 8 }]}>
+                  <Upload size={12} color={SAC.accentBright} />
+                  <Text style={{ color: SAC.accentBright, fontFamily: FONTS.bold, fontSize: 11 }}>
+                    {logoLoading ? 'Loading...' : 'Upload Logo'}
+                  </Text>
+                </Pressable>
+              ) : null}
+              {logoLoading && (
+                <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 10 }}>Reading image file...</Text>
+              )}
+              <TextInput
+                style={[s.adFieldInput, { paddingVertical: 6, fontSize: 12 }]}
+                value={item.referral_id} onChangeText={(t) => updateItem(idx, 'referral_id', t)}
+                placeholder="Referral ID (optional)" placeholderTextColor={SAC.dim} autoCapitalize="none"
+              />
+              <TextInput
+                style={[s.adFieldInput, { paddingVertical: 6, fontSize: 12 }]}
+                value={item.url} onChangeText={(t) => updateItem(idx, 'url', t)}
+                placeholder="Website URL (https://...)" placeholderTextColor={SAC.dim} autoCapitalize="none"
+              />
+            </View>
+          </View>
+        </View>
+      ))}
+      <Pressable onPress={save} disabled={saving}
+        style={[s.adSaveBtn, saving && { opacity: 0.4 }]}>
+        <Save size={14} color="#fff" />
+        <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>{saving ? 'Saving...' : 'Save Partner Websites'}</Text>
+      </Pressable>
     </View>
   );
 }

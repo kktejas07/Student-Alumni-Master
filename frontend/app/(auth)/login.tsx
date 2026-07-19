@@ -13,7 +13,7 @@ import { ROLE_META, type Role } from '@/src/views/auth/RoleCards';
 import { AC, FONTS } from '@/src/views/auth/tokens';
 import { trackAuth, passwordStrength } from '@/src/lib/authAnalytics';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { initFirebaseAuth, signInWithGoogle, signInWithGitHub } from '@/src/lib/firebaseAuth';
+import { initFirebaseAuth, signInWithGoogleRedirect, signInWithGitHubRedirect, handleRedirectResult } from '@/src/lib/firebaseAuth';
 
 const BASE = getBaseUrl();
 
@@ -77,9 +77,13 @@ export default function LoginScreen() {
         if (res.ok) {
           const cfg = await res.json();
           setOauthCfg(cfg);
-          // Init Firebase Auth if configured
           if (cfg.firebase?.apiKey) {
-            initFirebaseAuth(cfg.firebase);
+            await initFirebaseAuth(cfg.firebase);
+            // Check for redirect result (user returning from Google/GitHub OAuth)
+            const redirectResult = await handleRedirectResult();
+            if (redirectResult?.idToken) {
+              await completeFirebaseLogin(redirectResult);
+            }
           }
         }
       } catch {}
@@ -137,6 +141,33 @@ export default function LoginScreen() {
     }
   };
 
+  const navigateByRole = (role: string) => {
+    const r = role.toLowerCase();
+    if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
+    else if (r === 'mentor') router.replace('/mentor-portal');
+    else if (r === 'college') router.replace('/college-portal');
+    else if (r === 'alumni') router.replace('/alumni-portal');
+    else router.replace('/student-portal');
+  };
+
+  const completeFirebaseLogin = async (result: { idToken: string; email?: string; name?: string; picture?: string }) => {
+    try {
+      const res = await fetch(`${BASE}/api/auth/firebase`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_token: result.idToken }),
+      });
+      if (!res.ok) throw new Error('Firebase auth failed');
+      const data = await res.json();
+      setUser(data.user);
+      setTokens(data.access_token, data.refresh_token);
+      trackAuth({ event: 'login_success', email: data.user.email, role: data.user.role });
+      navigateByRole(data.user.role);
+    } catch (e: any) {
+      setPwdError(e?.message || 'Firebase sign-in failed');
+    }
+  };
+
   const onLogin = async (overrideEmail?: string, overridePwd?: string) => {
     // Defensive: callers like `onPress={onLogin}` pass the gesture event as 1st arg.
     const e = String(typeof overrideEmail === 'string' ? overrideEmail : (email || '')).trim();
@@ -188,12 +219,7 @@ export default function LoginScreen() {
       // preventing a stale loading→false re-render from racing the navigation event queue.
       setLoading(false);
       submittingRef.current = false;
-      const r = (data.user.role || '').toLowerCase();
-      if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
-      else if (r === 'mentor') router.replace('/mentor-portal');
-      else if (r === 'college') router.replace('/college-portal');
-      else if (r === 'alumni') router.replace('/alumni-portal');
-      else router.replace('/student-portal');
+      navigateByRole(data.user.role);
       return; // prevent finally from running setLoading again
     } catch (e: any) {
       trackAuth({ event: 'login_failure', email, reason: e?.message || 'Network error' });
@@ -238,24 +264,7 @@ export default function LoginScreen() {
                 <OutlineButton label="Google" testID="login-google" icon={<GoogleG size={16} />} onPress={async () => {
                   try {
                     if (oauthCfg?.firebase && Platform.OS === 'web') {
-                      const result = await signInWithGoogle();
-                      if (!result) return;
-                      const res = await fetch(`${BASE}/api/auth/firebase`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id_token: result.idToken }),
-                      });
-                      if (!res.ok) throw new Error('Firebase auth failed');
-                      const data = await res.json();
-                      setUser(data.user);
-                      setTokens(data.access_token, data.refresh_token);
-                      trackAuth({ event: 'login_success', email: data.user.email, role: data.user.role });
-                      const r = (data.user.role || '').toLowerCase();
-                      if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
-                      else if (r === 'mentor') router.replace('/mentor-portal');
-                      else if (r === 'college') router.replace('/college-portal');
-                      else if (r === 'alumni') router.replace('/alumni-portal');
-                      else router.replace('/student-portal');
+                      await signInWithGoogleRedirect();
                     } else {
                       setPwdError('Google sign-in is not configured. Contact admin.');
                     }
@@ -283,24 +292,7 @@ export default function LoginScreen() {
                 <OutlineButton label="GitHub" testID="login-github" icon={<GitHubCat size={16} />} onPress={async () => {
                   try {
                     if (oauthCfg?.firebase && Platform.OS === 'web') {
-                      const result = await signInWithGitHub();
-                      if (!result) return;
-                      const res = await fetch(`${BASE}/api/auth/firebase`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id_token: result.idToken }),
-                      });
-                      if (!res.ok) throw new Error('Firebase auth failed');
-                      const data = await res.json();
-                      setUser(data.user);
-                      setTokens(data.access_token, data.refresh_token);
-                      trackAuth({ event: 'login_success', email: data.user.email, role: data.user.role });
-                      const r = (data.user.role || '').toLowerCase();
-                      if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
-                      else if (r === 'mentor') router.replace('/mentor-portal');
-                      else if (r === 'college') router.replace('/college-portal');
-                      else if (r === 'alumni') router.replace('/alumni-portal');
-                      else router.replace('/student-portal');
+                      await signInWithGitHubRedirect();
                     } else {
                       setPwdError('GitHub sign-in is not configured. Contact admin.');
                     }
