@@ -100,8 +100,12 @@ from reviews import (
 )
 from notifications import (
     register_push_token, deregister_push_token, send_push, list_inbox,
-    mark_inbox_read, unread_count, notify_booking_created, notify_booking_confirmed,
-    notify_event_registered, notify_mentor_approved, notify_review_received,
+    mark_inbox_read, unread_count,
+    notify_booking_created, notify_booking_confirmed, notify_booking_cancelled,
+    notify_booking_rescheduled,
+    notify_mentor_approved, notify_mentor_rejected, notify_review_received,
+    notify_connection_request, notify_connection_accepted,
+    notify_event_registered,
 )
 
 # ----------------------------------------------------------------------------
@@ -926,12 +930,10 @@ async def forgot_password(request: Request, req: ForgotPasswordRequest):
         {"$set": {"reset_otp_hash": otp_hash, "reset_otp_expires": expires}, "$unset": {"reset_otp": ""}}
     )
     
-    body = f"<p>Your password reset code is: <strong>{otp}</strong></p><p>This code will expire in 15 minutes.</p>"
-    
-    # We await the email send but don't strictly fail the request if the email config is missing, 
-    # though practically the user won't get the email.
     import asyncio
-    asyncio.create_task(send_email(email, "Password Reset Code", body))
+    from core.email_templates import preview_template
+    preview = preview_template("password_reset", {"otp": otp})
+    asyncio.create_task(send_email(email, preview["subject"], preview["html"]))
     
     return {"success": True}
 
@@ -3788,6 +3790,155 @@ async def set_ad_images(payload: dict, user: dict = Depends(get_current_user)):
     return {"status": "ok", "count": len(items)}
 
 
+# ── Partner Websites endpoints ─────────────────────────────────────────
+# SuperAdmin can manage 3 partner website cards, shown below the ad banner.
+
+PARTNER_WEBSITES_KEY = "partner_websites"
+DEFAULT_PARTNER_WEBSITES = [
+    {"name": "", "logo": "", "referral_id": "", "url": ""},
+    {"name": "", "logo": "", "referral_id": "", "url": ""},
+    {"name": "", "logo": "", "referral_id": "", "url": ""},
+]
+
+
+@api_router.get("/partner-websites")
+async def get_partner_websites():
+    """Public — returns the 3 partner website cards."""
+    doc = await db.site_config.find_one({"_key": PARTNER_WEBSITES_KEY})
+    if not doc or not doc.get("items"):
+        return {"items": []}
+    return {"items": doc["items"]}
+
+
+@api_router.post("/admin/partner-websites")
+async def set_partner_websites(payload: dict, user: dict = Depends(get_current_user)):
+    """Admin only — save all 3 partner website cards."""
+    role = (user.get("role") or "").lower()
+    if role not in ("admin", "superadmin", "super_admin"):
+        raise HTTPException(403, "Only admins can set partner websites")
+    items = payload.get("items", [])
+    if not isinstance(items, list) or len(items) > 3:
+        raise HTTPException(400, "items must be an array of up to 3 entries")
+    for item in items:
+        item["name"] = (item.get("name") or "").strip()
+        item["logo"] = (item.get("logo") or "").strip()
+        item["referral_id"] = (item.get("referral_id") or "").strip()
+        item["url"] = (item.get("url") or "").strip()
+    # Pad to exactly 3 with empty slots
+    while len(items) < 3:
+        items.append({"name": "", "logo": "", "referral_id": "", "url": ""})
+    await db.site_config.update_one(
+        {"_key": PARTNER_WEBSITES_KEY},
+        {"$set": {
+            "_key": PARTNER_WEBSITES_KEY,
+            "items": items,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "updated_by": str(user.get("_id")),
+        }},
+        upsert=True,
+    )
+    return {"status": "ok", "count": len(items)}
+
+
+# ── Email Settings endpoints ────────────────────────────────────────────
+# SuperAdmin can configure email provider (Postal / SMTP / Gmail).
+
+EMAIL_SETTINGS_KEY = "email_settings"
+
+@api_router.get("/admin/email-settings")
+async def get_email_settings(user: dict = Depends(get_current_user)):
+    role = (user.get("role") or "").lower()
+    if role not in ("admin", "superadmin", "super_admin"):
+        raise HTTPException(403, "Only admins can view email settings")
+    doc = await db.site_config.find_one({"_key": EMAIL_SETTINGS_KEY})
+    if not doc:
+        return {"settings": {}}
+    settings = doc.get("settings", {})
+    # Mask secrets for the response
+    masked = dict(settings)
+    if masked.get("postal_api_key"):
+        masked["postal_api_key"] = masked["postal_api_key"][:8] + "..." if len(masked["postal_api_key"]) > 8 else "***"
+    if masked.get("smtp_password"):
+        masked["smtp_password"] = "***"
+    return {"settings": masked}
+
+
+@api_router.post("/admin/email-settings")
+async def set_email_settings(payload: dict, user: dict = Depends(get_current_user)):
+    role = (user.get("role") or "").lower()
+    if role not in ("admin", "superadmin", "super_admin"):
+        raise HTTPException(403, "Only admins can set email settings")
+    settings = payload.get("settings", {})
+    provider = (settings.get("provider") or "").strip().lower()
+    if provider and provider not in ("postal", "smtp", "gmail"):
+        raise HTTPException(400, "provider must be postal, smtp, or gmail")
+
+    # Merge with existing to preserve masked secrets that weren't re-sent
+    existing = await db.site_config.find_one({"_key": EMAIL_SETTINGS_KEY})
+    existing_settings = existing.get("settings", {}) if existing else {}
+
+    if provider == "postal":
+        # If the incoming api_key is masked, keep the old one
+        if settings.get("postal_api_key", "").endswith("..."):
+            settings["postal_api_key"] = existing_settings.get("postal_api_key", "")
+    elif provider == "smtp":
+        if settings.get("smtp_password") == "***":
+            settings["smtp_password"] = existing_settings.get("smtp_password", "")
+
+    settings["provider"] = provider
+    await db.site_config.update_one(
+        {"_key": EMAIL_SETTINGS_KEY},
+        {"$set": {
+            "_key": EMAIL_SETTINGS_KEY,
+            "settings": settings,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "updated_by": str(user.get("_id")),
+        }},
+        upsert=True,
+    )
+    return {"status": "ok"}
+
+
+@api_router.post("/admin/email-settings/test")
+async def test_email_settings(payload: dict, user: dict = Depends(get_current_user)):
+    role = (user.get("role") or "").lower()
+    if role not in ("admin", "superadmin", "super_admin"):
+        raise HTTPException(403, "Only admins can test email settings")
+    to_email = (payload.get("to_email") or "").strip()
+    if not to_email:
+        raise HTTPException(400, "to_email is required")
+    from core.email import send_email
+    from core.email_templates import preview_template
+    preview = preview_template("test")
+    success = await send_email(to_email, preview["subject"], preview["html"])
+    if success:
+        return {"status": "ok", "message": f"Test email sent to {to_email}"}
+    else:
+        raise HTTPException(500, "Failed to send test email. Check your email provider settings.")
+
+
+@api_router.get("/admin/email-templates")
+async def list_email_templates(user: dict = Depends(get_current_user)):
+    role = (user.get("role") or "").lower()
+    if role not in ("admin", "superadmin", "super_admin"):
+        raise HTTPException(403, "Only admins can view email templates")
+    from core.email_templates import get_template_list
+    return {"templates": get_template_list()}
+
+
+@api_router.post("/admin/email-templates/preview")
+async def preview_email_template(payload: dict, user: dict = Depends(get_current_user)):
+    role = (user.get("role") or "").lower()
+    if role not in ("admin", "superadmin", "super_admin"):
+        raise HTTPException(403, "Only admins can preview email templates")
+    template_name = (payload.get("template") or "").strip()
+    if not template_name:
+        raise HTTPException(400, "template is required")
+    from core.email_templates import preview_template
+    result = preview_template(template_name, payload.get("data"))
+    return result
+
+
 @api_router.post("/users/me/password")
 async def change_my_password(payload: dict, user: dict = Depends(get_current_user)):
     """Change password. Body: { current_password, new_password }"""
@@ -3839,17 +3990,13 @@ async def approve_mentor(mentor_id: str, user: dict = Depends(get_current_user))
     )
     if res.matched_count == 0:
         raise HTTPException(404, "Mentor not found")
-    # Notify the mentor
+    # Notify the mentor via push + email
     try:
-        await db.notifications.insert_one({
-            "id": str(ObjectId()),
-            "user_id": mentor_id,
-            "type": "mentor_approved",
-            "title": "Application approved \U0001f389",
-            "body": "Your mentor application has been approved. You can now host sessions.",
-            "read": False,
-            "created_at": datetime.now(timezone.utc),
-        })
+        mentor_doc = await db.users.find_one({"_id": ObjectId(mentor_id)}, {"full_name": 1})
+        mentor_name = (mentor_doc.get("full_name") or "") if mentor_doc else ""
+        await notify_mentor_approved(
+            db, mentor_id=mentor_id, mentor_name=mentor_name,
+        )
     except Exception:
         pass
     return {"status": "approved", "id": mentor_id}
@@ -3876,15 +4023,11 @@ async def reject_mentor(
     if res.matched_count == 0:
         raise HTTPException(404, "Mentor not found")
     try:
-        await db.notifications.insert_one({
-            "id": str(ObjectId()),
-            "user_id": mentor_id,
-            "type": "mentor_rejected",
-            "title": "Application not approved",
-            "body": reason or "Your application was not approved at this time.",
-            "read": False,
-            "created_at": datetime.now(timezone.utc),
-        })
+        mentor_doc = await db.users.find_one({"_id": ObjectId(mentor_id)}, {"full_name": 1})
+        mentor_name = (mentor_doc.get("full_name") or "") if mentor_doc else ""
+        await notify_mentor_rejected(
+            db, mentor_id=mentor_id, mentor_name=mentor_name, reason=reason or "",
+        )
     except Exception:
         pass
     return {"status": "rejected", "id": mentor_id, "reason": reason}
@@ -5965,20 +6108,13 @@ async def send_connection_request(other_id: str, req: Optional[ConnectRequestIn]
         
     await db.connections.insert_one(connection_doc)
     
-    # Notify recipient
+    # Notify recipient via push + email
     try:
-        notif_body = f"{user.get('full_name') or 'A user'} wants to connect with you."
-        if req and req.message:
-            notif_body += f" Note: \"{req.message}\""
-        await db.notifications.insert_one({
-            "id": str(ObjectId()),
-            "user_id": other_id,
-            "type": "connection_request",
-            "title": "New connection request",
-            "body": notif_body,
-            "read": False,
-            "created_at": datetime.utcnow(),
-        })
+        await notify_connection_request(
+            db, user_id=other_id,
+            requester_name=user.get("full_name") or "A user",
+            message=(req.message if req and req.message else ""),
+        )
     except Exception:
         pass
     return {"action": "pending"}
@@ -6009,15 +6145,10 @@ async def accept_connection(other_id: str, user: dict = Depends(get_current_user
     )
 
     try:
-        await db.notifications.insert_one({
-            "id": str(ObjectId()),
-            "user_id": other_id,
-            "type": "connection_accepted",
-            "title": "Connection accepted",
-            "body": f"{user.get('full_name') or 'A user'} accepted your request.",
-            "read": False,
-            "created_at": datetime.utcnow(),
-        })
+        await notify_connection_accepted(
+            db, other_id=other_id,
+            accepter_name=user.get("full_name") or "A user",
+        )
     except Exception:
         pass
     return {"action": "accepted"}
@@ -6373,18 +6504,16 @@ async def reschedule_booking(booking_id: str, req: RescheduleRequest, user: dict
         "rescheduled_at": datetime.now(timezone.utc),
     }})
 
-    # Notify the other party
+    # Notify the other party via push + email
     other_party_id = booking.get("student_id") if user["role"] == "mentor" else booking.get("mentor_id")
+    old_time = booking.get("slot_start_iso", "")
     try:
-        await db.notifications.insert_one({
-            "user_id": other_party_id,
-            "title": "Session rescheduled",
-            "message": f"{user.get('full_name')} rescheduled the session on '{booking.get('topic')}' to {req.slot_start_iso}.",
-            "type": "booking_rescheduled",
-            "booking_id": booking_id,
-            "read": False,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        })
+        await notify_booking_rescheduled(
+            db, user_id=other_party_id,
+            other_name=user.get("full_name") or "The other party",
+            old_time=old_time,
+            new_time=req.slot_start_iso,
+        )
     except Exception:
         pass
 
@@ -6425,17 +6554,13 @@ async def confirm_booking(booking_id: str, user: dict = Depends(get_current_user
     if user["role"] != "mentor":
         raise HTTPException(403, "Only mentors can confirm bookings")
     b = await _update_booking_status(booking_id, str(user["_id"]), "confirmed")
-    # Best-effort notification to student
+    # Best-effort notification to student via push + email
     try:
-        await db.notifications.insert_one({
-            "user_id": b.get("student_id"),
-            "title": "Session confirmed",
-            "message": f"{user.get('full_name')} confirmed your session on {b.get('topic') or 'mentorship'}.",
-            "type": "booking_confirmed",
-            "booking_id": booking_id,
-            "read": False,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        })
+        await notify_booking_confirmed(
+            db, student_id=b.get("student_id"),
+            mentor_name=user.get("full_name") or "Your mentor",
+            when=b.get("slot_start_iso") or "",
+        )
     except Exception:
         pass
     return {"ok": True, "booking": b}
@@ -6448,15 +6573,12 @@ async def decline_booking(booking_id: str, user: dict = Depends(get_current_user
         raise HTTPException(403, "Only mentors can decline bookings")
     b = await _update_booking_status(booking_id, str(user["_id"]), "cancelled")
     try:
-        await db.notifications.insert_one({
-            "user_id": b.get("student_id"),
-            "title": "Session declined",
-            "message": f"{user.get('full_name')} couldn't make this session — please book another slot.",
-            "type": "booking_cancelled",
-            "booking_id": booking_id,
-            "read": False,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        })
+        await notify_booking_cancelled(
+            db, student_id=b.get("student_id"),
+            mentor_name=user.get("full_name") or "Your mentor",
+            reason="Schedule conflict",
+            topic=b.get("topic") or "mentorship",
+        )
     except Exception:
         pass
     return {"ok": True, "booking": b}
@@ -6538,6 +6660,15 @@ async def register_event(event_id: str, user: dict = Depends(get_current_user)):
         "status": "registered",
     }
     await db.event_registrations.insert_one(registration.copy())
+    # Notify user via push + email
+    try:
+        await notify_event_registered(
+            db, user_id=str(user["_id"]),
+            event_title=event["title"],
+            event_date=event.get("date", ""),
+        )
+    except Exception:
+        pass
     return registration
 
 
