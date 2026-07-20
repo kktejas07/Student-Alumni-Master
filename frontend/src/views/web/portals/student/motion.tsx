@@ -283,6 +283,231 @@ export function AnimatedRingFill({
   );
 }
 
+/* ─── useInView — cheap visibility flag for gating expensive effects     ── */
+/* (e.g. don't start a count-up animation until the element is on-screen) */
+export function useInView(threshold = 0.25): [React.RefObject<any>, boolean] {
+  const ref = useRef<any>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const canObserve = Platform.OS === 'web' && typeof window !== 'undefined' && 'IntersectionObserver' in window;
+    if (!canObserve) { setInView(true); return; }
+    const node = ref.current;
+    if (!node) return;
+    const io = new (window as any).IntersectionObserver(
+      (entries: any[]) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) { setInView(true); io.unobserve(entry.target); }
+        });
+      },
+      { threshold },
+    );
+    io.observe(node);
+    return () => io.disconnect();
+  }, [threshold]);
+  return [ref, inView];
+}
+
+/* ─── RevealOnScroll — IntersectionObserver-driven fade+slide (web);    ─── */
+/* ─── mount-based fallback on native / no-IO environments.              ─── */
+export function RevealOnScroll({
+  children, delay = 0, distance = 28, duration = 700, threshold = 0.18, once = true, style,
+}: {
+  children: React.ReactNode; delay?: number; distance?: number; duration?: number;
+  threshold?: number; once?: boolean; style?: ViewStyle;
+}) {
+  const reduced = useReducedMotion();
+  const v = useSharedValue(reduced ? 1 : 0);
+  const ref = useRef<any>(null);
+
+  useEffect(() => {
+    if (reduced) { v.value = 1; return; }
+    const canObserve = Platform.OS === 'web' && typeof window !== 'undefined' && 'IntersectionObserver' in window;
+    if (!canObserve) {
+      v.value = withDelay(delay, withTiming(1, { duration, easing: Easing.out(Easing.cubic) }));
+      return;
+    }
+    const node = ref.current;
+    if (!node) return;
+    const io = new (window as any).IntersectionObserver(
+      (entries: any[]) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            v.value = withDelay(delay, withTiming(1, { duration, easing: Easing.out(Easing.cubic) }));
+            if (once) io.unobserve(entry.target);
+          } else if (!once) {
+            v.value = withTiming(0, { duration: duration * 0.5 });
+          }
+        });
+      },
+      { threshold, rootMargin: '0px 0px -6% 0px' },
+    );
+    io.observe(node);
+    return () => io.disconnect();
+  }, [delay, duration, threshold, once, reduced, v]);
+
+  const aStyle = useAnimatedStyle(() => ({
+    opacity: v.value,
+    transform: [{ translateY: interpolate(v.value, [0, 1], [distance, 0]) }],
+  }));
+
+  return <Animated.View ref={ref} style={[aStyle, style]}>{children}</Animated.View>;
+}
+
+/* ─── RevealStagger — children reveal in sequence as the group scrolls in ── */
+export function RevealStagger({
+  children, gap = 90, baseDelay = 0, distance = 24, style, itemStyle,
+}: { children: React.ReactNode; gap?: number; baseDelay?: number; distance?: number; style?: ViewStyle; itemStyle?: ViewStyle }) {
+  const arr = React.Children.toArray(children);
+  return (
+    <View style={style}>
+      {arr.map((c, i) => (
+        <RevealOnScroll key={i} delay={baseDelay + i * gap} distance={distance} style={itemStyle}>{c as any}</RevealOnScroll>
+      ))}
+    </View>
+  );
+}
+
+/* ─── MagneticButton — cursor-attraction hover (web); PressScale fallback ── */
+export function MagneticButton({
+  children, onPress, style, strength = 16, scaleOnHover = 1.035,
+  accessibilityLabel, accessibilityRole = 'button',
+}: {
+  children: React.ReactNode; onPress?: () => void; style?: any; strength?: number; scaleOnHover?: number;
+  accessibilityLabel?: string; accessibilityRole?: 'button' | 'link';
+}) {
+  const tx = useSharedValue(0);
+  const ty = useSharedValue(0);
+  const scale = useSharedValue(1);
+  const aStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: tx.value }, { translateY: ty.value }, { scale: scale.value }],
+  }));
+
+  if (Platform.OS !== 'web') {
+    return <PressScale onPress={onPress} style={style} accessibilityLabel={accessibilityLabel}>{children}</PressScale>;
+  }
+
+  return (
+    <Animated.View
+      style={aStyle}
+      // @ts-ignore — web-only pointer events
+      onMouseMove={(e: any) => {
+        const r = e.currentTarget.getBoundingClientRect?.();
+        if (!r) return;
+        const px = (e.clientX - r.left) / r.width - 0.5;
+        const py = (e.clientY - r.top) / r.height - 0.5;
+        tx.value = withSpring(px * strength, { damping: 14, stiffness: 180 });
+        ty.value = withSpring(py * strength, { damping: 14, stiffness: 180 });
+      }}
+      // @ts-ignore
+      onMouseEnter={() => { scale.value = withSpring(scaleOnHover, { damping: 12, stiffness: 200 }); }}
+      // @ts-ignore
+      onMouseLeave={() => {
+        tx.value = withSpring(0, { damping: 12, stiffness: 180 });
+        ty.value = withSpring(0, { damping: 12, stiffness: 180 });
+        scale.value = withSpring(1, { damping: 12, stiffness: 200 });
+      }}
+    >
+      <Pressable
+        onPress={onPress}
+        accessibilityRole={accessibilityRole as any}
+        accessibilityLabel={accessibilityLabel}
+        onPressIn={() => { scale.value = withSpring(scaleOnHover * 0.96, { damping: 14, stiffness: 260 }); }}
+        onPressOut={() => { scale.value = withSpring(scaleOnHover, { damping: 12, stiffness: 220 }); }}
+        style={style}
+      >
+        {children}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+/* ─── CursorSpotlight — soft radial glow that follows the pointer (web) ─── */
+/* Purely decorative ambient light layer; no-op on native / touch.        */
+export function CursorSpotlight({ color = 'rgba(139,92,246,0.10)', size = 640 }: { color?: string; size?: number }) {
+  const x = useSharedValue(-9999);
+  const y = useSharedValue(-9999);
+  const reduced = useReducedMotion();
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || reduced || typeof window === 'undefined') return;
+    const handler = (e: any) => {
+      x.value = e.clientX;
+      y.value = e.clientY;
+    };
+    window.addEventListener('pointermove', handler, { passive: true });
+    return () => window.removeEventListener('pointermove', handler);
+  }, [reduced, x, y]);
+
+  const aStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: x.value - size / 2 }, { translateY: y.value - size / 2 }],
+  }));
+
+  if (Platform.OS !== 'web' || reduced) return null;
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        aStyle,
+        {
+          position: 'fixed' as any,
+          top: 0, left: 0,
+          width: size, height: size,
+          borderRadius: size / 2,
+          zIndex: 1,
+          // @ts-ignore — web-only
+          background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
+          mixBlendMode: 'screen' as any,
+        },
+      ]}
+    />
+  );
+}
+
+/* ─── SplitHeadline — word-by-word fade+rise reveal for hero-scale text ── */
+export function SplitHeadline({
+  text, style, wordStyle, baseDelay = 100, gap = 55,
+}: { text: string; style?: TextStyle | TextStyle[]; wordStyle?: TextStyle | TextStyle[]; baseDelay?: number; gap?: number }) {
+  const reduced = useReducedMotion();
+  const lines = text.split('\n');
+  let wordIndex = 0;
+  return (
+    <Text style={style}>
+      {lines.map((line, li) => (
+        <React.Fragment key={li}>
+          {line.split(' ').map((word, wi) => {
+            const idx = wordIndex++;
+            return (
+              <React.Fragment key={wi}>
+                <RevealWord delay={reduced ? 0 : baseDelay + idx * gap} style={wordStyle}>{word}</RevealWord>
+                {wi < line.split(' ').length - 1 ? ' ' : ''}
+              </React.Fragment>
+            );
+          })}
+          {li < lines.length - 1 ? '\n' : ''}
+        </React.Fragment>
+      ))}
+    </Text>
+  );
+}
+
+function RevealWord({ children, delay, style }: { children: React.ReactNode; delay: number; style?: TextStyle | TextStyle[] }) {
+  const reduced = useReducedMotion();
+  const v = useSharedValue(reduced ? 1 : 0);
+  useEffect(() => {
+    v.value = withDelay(delay, withTiming(1, { duration: 560, easing: Easing.out(Easing.cubic) }));
+  }, [delay, v]);
+  const aStyle = useAnimatedStyle(() => ({
+    opacity: v.value,
+    transform: [
+      { translateY: interpolate(v.value, [0, 1], [18, 0]) },
+      { rotateX: `${interpolate(v.value, [0, 1], [35, 0])}deg` },
+    ],
+  }));
+  // @ts-ignore — Animated.Text supports nested Text style inheritance on web
+  return <Animated.Text style={[aStyle, style]}>{children}</Animated.Text>;
+}
+
 /* ─── Re-export the animated LinearGradient for ad-hoc usage ──────────── */
 export { AnimatedLG };
 
