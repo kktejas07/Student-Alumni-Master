@@ -428,6 +428,8 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
     comp_data = compute_profile_completion(student or {})
     career_score = comp_data["percentage"]
     
+    upcoming = []
+    
     completed_sessions = my_bookings
     apps_count = await _db.applications.count_documents({"student_id": sid}) if sid else 0
     prog_profile = (career_score / 100.0) * 30
@@ -2417,7 +2419,7 @@ async def student_wallet(student_email: Optional[str] = None):
 
 
 @router.get("/student/network")
-async def student_network(student_email: Optional[str] = None, email: Optional[str] = None, limit: int = 60):
+async def student_network(student_email: Optional[str] = None, email: Optional[str] = None, page: int = 1, per_page: int = 24, limit: int = 60):
     """Mixed alumni + student + mentor network for the Network tab."""
     user = None
     u_email = email or student_email
