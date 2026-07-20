@@ -7508,7 +7508,7 @@ from routers.promotions import router as promotions_router
 app.include_router(promotions_router)
 
 # ── Serve email logo via API router ────────────────────────────────────────────
-_LOGO_PATH = os.path.join(os.path.dirname(__file__), "..", "frontend", "assets", "images", "sa-icon.png")
+_LOGO_PATH = os.path.join(os.path.dirname(__file__), "static", "sa-icon.png")
 _LOGO_CACHE: bytes | None = None
 _LOGO_MTIME: float = 0
 
