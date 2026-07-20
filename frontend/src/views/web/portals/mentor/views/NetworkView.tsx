@@ -260,7 +260,7 @@ function LinkedinGlyph({ size = 14, color = '#fff' }: { size?: number; color?: s
   );
 }
 
-export function NetworkView() {
+export function NetworkView({ demoMode = true }: { demoMode?: boolean }) {
   const toast = useToast();
   const user = useAuthStore((s) => s.user);
 
@@ -307,18 +307,23 @@ export function NetworkView() {
           item.status !== 'declined' &&
           item.status !== 'rejected'
       );
-      setConnectionsList(connectedItems.map((c: any) => {
-        const role = c.role || (c.tags && c.tags[0] ? c.tags[0].toLowerCase() : 'student');
-        const tag = role === 'mentor' ? 'Mentor' : role === 'alumni' ? 'Alumni' : 'Student';
-        return {
-          ...c,
-          role,
-          tag,
-          kind: role,
-          company: c.college || '',
-          mutual: c.mutual || ((sumChars(c.id || '') % 12) + 2)
-        };
-      }));
+      if (!demoMode) {
+        setConnectionsList([]);
+      } else {
+        const mapped = connectedItems.map((c: any) => {
+          const role = c.role || (c.tags && c.tags[0] ? c.tags[0].toLowerCase() : 'student');
+          const tag = role === 'mentor' ? 'Mentor' : role === 'alumni' ? 'Alumni' : 'Student';
+          return {
+            ...c,
+            role,
+            tag,
+            kind: role,
+            company: c.college || '',
+            mutual: c.mutual || ((sumChars(c.id || '') % 12) + 2)
+          };
+        });
+        setConnectionsList(mapped.length > 0 ? mapped : PROFESSIONALS);
+      }
     } catch (e) {
       console.warn('Failed to load connections:', e);
     }
@@ -327,7 +332,11 @@ export function NetworkView() {
   const loadDiscover = async () => {
     try {
       const res = await api.networkDiscover(searchQuery);
-      setDiscoverSections(res?.sections || []);
+      if (!demoMode) {
+        setDiscoverSections([]);
+      } else {
+        setDiscoverSections((res?.sections || []).length > 0 ? res.sections : DISCOVER_SECTIONS);
+      }
     } catch (e) {
       console.warn('Failed to load discover sections:', e);
     }
@@ -361,8 +370,15 @@ export function NetworkView() {
           message: req.message || ''
         };
       };
-      setIncomingRequests((res?.items || []).map(normalizeReq));
-      setSentRequests((res?.sent || []).map(normalizeReq));
+      if (!demoMode) {
+        setIncomingRequests([]);
+        setSentRequests([]);
+      } else {
+        const inc = (res?.items || []).map(normalizeReq);
+        const snt = (res?.sent || []).map(normalizeReq);
+        setIncomingRequests(inc.length > 0 ? inc : INITIAL_INCOMING);
+        setSentRequests(snt.length > 0 ? snt : INITIAL_SENT);
+      }
     } catch (e) {
       console.warn('Failed to load requests:', e);
     }
@@ -501,6 +517,11 @@ export function NetworkView() {
   // Request actions
   const handleAcceptRequest = async (id: string, name: string) => {
     try {
+      if (demoMode && String(id).startsWith('inc')) {
+        toast.success('Connection Accepted! 🎉', `${name} is now connected with you.`);
+        setIncomingRequests(prev => prev.filter(req => req.id !== id));
+        return;
+      }
       await api.acceptConnection(id);
       toast.success('Connection Accepted! 🎉', `${name} is now connected with you.`);
       setDiscoverSections(prev => prev.map(section => ({
@@ -521,6 +542,11 @@ export function NetworkView() {
 
   const handleIgnoreRequest = async (id: string, name: string) => {
     try {
+      if (demoMode && String(id).startsWith('inc')) {
+        toast.success('Invite Ignored', `Connection request from ${name} has been archived.`);
+        setIncomingRequests(prev => prev.filter(req => req.id !== id));
+        return;
+      }
       await api.rejectConnection(id);
       toast.success('Invite Ignored', `Connection request from ${name} has been archived.`);
       await loadRequests();
@@ -540,6 +566,29 @@ export function NetworkView() {
   const sendConnectionRequestFlow = async (sendWithNote: boolean) => {
     if (!connectPerson) return;
     try {
+      if (demoMode && (String(connectPerson.id).startsWith('p') || String(connectPerson.id).startsWith('m') || String(connectPerson.id).startsWith('al'))) {
+        setSuccessPopup(`Connection request sent to ${connectPerson.name}!`);
+        setDiscoverSections(prev => prev.map(section => ({
+          ...section,
+          items: section.items.map((item: any) =>
+            item.id === connectPerson.id
+              ? { ...item, connection_state: 'pending', connectionState: 'pending' }
+              : item
+          )
+        })));
+        setConnectionsList(prev => prev.map((item: any) => 
+          item.id === connectPerson.id 
+            ? { ...item, connection_state: 'pending', connectionState: 'pending' }
+            : item
+        ));
+        if (pickedPerson?.id === connectPerson.id) {
+          setPickedPerson({ ...pickedPerson, connection_state: 'pending', connectionState: 'pending' });
+        }
+        setConnectPerson(null);
+        setTimeout(() => setSuccessPopup(null), 3000);
+        return;
+      }
+
       const messageToSend = sendWithNote ? connectNoteText : undefined;
       await api.sendConnectionRequest(connectPerson.id, messageToSend);
 
@@ -564,10 +613,12 @@ export function NetworkView() {
         setPickedPerson(prev => prev ? { ...prev, connectionState: 'pending', connection_state: 'pending' } : null);
       }
 
+      setConnectPerson(null);
+      setTimeout(() => setSuccessPopup(null), 3000);
       await loadRequests();
       await loadDiscover();
     } catch (e: any) {
-      toast.error('Could not connect', e.message || 'Please try again.');
+      toast.error('Failed to send request', e.message || 'Please try again.');
       setConnectPerson(null);
       setShowNoteInput(false);
       setConnectNoteText('');

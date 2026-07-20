@@ -70,7 +70,11 @@ export function RequestsView({ decisions, onSetDecision, demoMode = true }: Requ
     }) : [];
 
     // 2. Map real bookings
-    const reals = realBookings.map(b => {
+    const reals = !demoMode ? [] : realBookings.filter(b => {
+      const isAutoSeeded = (b.notes && b.notes.includes("Auto-seeded")) || (b.topic && b.topic.includes("Auto-seeded")) || !b._user_created;
+      if (!demoMode && isAutoSeeded) return false;
+      return true;
+    }).map(b => {
       const initials = (b.student_name || 'Student')
         .split(' ')
         .map((n: string) => n[0])

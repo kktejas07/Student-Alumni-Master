@@ -462,7 +462,7 @@ export function SessionsView({ demoMode = true, setDemoMode }: { demoMode?: bool
     });
 
     return allUpcoming;
-  }, [bookingsList, students, studentsMap, now]);
+  }, [bookingsList, students, studentsMap, now, demoMode]);
 
   const past = useMemo(() => {
     if (demoMode && bookingsList.length === 0) {
@@ -525,7 +525,7 @@ export function SessionsView({ demoMode = true, setDemoMode }: { demoMode?: bool
         };
       })
       .sort((a, b) => (isNaN(b._rawDate.getTime()) ? 0 : b._rawDate.getTime()) - (isNaN(a._rawDate.getTime()) ? 0 : a._rawDate.getTime()));
-  }, [bookingsList, students, studentsMap, now]);
+  }, [bookingsList, students, studentsMap, now, demoMode]);
 
   const handlePrevMonth = () => {
     if (calMonth === 0) {
