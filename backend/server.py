@@ -907,6 +907,149 @@ async def check_email(request: Request, req: CheckEmailRequest):
     }
 
 
+class SendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
+@api_router.post("/auth/send-verification")
+@limiter.limit("3/minute")
+async def send_verification_email(request: Request, req: SendVerificationRequest):
+    email = req.email.lower().strip()
+    user = await db.users.find_one({"email": email})
+    if not user:
+        return {"success": True}
+
+    import secrets
+    from datetime import datetime, timedelta
+    from core.email import send_email
+    from core.email_templates import preview_template
+
+    verify_token = secrets.token_urlsafe(32)
+    expires = datetime.utcnow() + timedelta(minutes=30)
+
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {
+            "$set": {
+                "verify_token": verify_token,
+                "verify_token_expires": expires,
+            }
+        },
+    )
+
+    frontend_url = (os.environ.get("FRONTEND_URL") or "http://localhost:8081").rstrip("/")
+    verify_link = f"{frontend_url}/verify-email?token={verify_token}"
+
+    import asyncio
+    preview = preview_template("email_verification", {
+        "name": user.get("full_name", ""),
+        "verify_link": verify_link,
+    })
+    asyncio.create_task(send_email(email, preview["subject"], preview["html"]))
+
+    return {"success": True}
+
+
+class VerifyEmailRequest(BaseModel):
+    email: EmailStr
+    otp: str
+
+
+@api_router.post("/auth/verify-email")
+@limiter.limit("10/minute")
+async def verify_email(request: Request, req: VerifyEmailRequest):
+    email = req.email.lower().strip()
+    user = await db.users.find_one({"email": email})
+    if not user:
+        raise HTTPException(400, "Invalid email or OTP")
+
+    import hashlib
+    from datetime import datetime
+
+    stored_hash = user.get("verify_otp_hash")
+    expires = user.get("verify_otp_expires")
+
+    if not stored_hash or not expires:
+        raise HTTPException(400, "No verification code sent. Request a new one.")
+
+    if isinstance(expires, datetime) and expires < datetime.utcnow():
+        raise HTTPException(400, "Verification code has expired. Request a new one.")
+
+    if hashlib.sha256(req.otp.encode()).hexdigest() != stored_hash:
+        raise HTTPException(400, "Invalid verification code.")
+
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {
+            "$set": {"email_verified": True, "verified_at": datetime.utcnow()},
+            "$unset": {"verify_otp_hash": "", "verify_otp_expires": "", "verify_token": ""},
+        },
+    )
+
+    return {"success": True, "message": "Email verified successfully"}
+
+
+class VerifyLinkRequest(BaseModel):
+    token: str
+
+
+@api_router.post("/auth/verify-link")
+async def verify_email_link(req: VerifyLinkRequest):
+    from datetime import datetime
+
+    token = req.token.strip()
+    if not token:
+        raise HTTPException(400, "Missing verification token.")
+
+    user = await db.users.find_one({"verify_token": token})
+    if not user:
+        raise HTTPException(400, "Invalid or expired verification link.")
+
+    expires = user.get("verify_token_expires")
+    if isinstance(expires, datetime) and expires < datetime.utcnow():
+        raise HTTPException(400, "Verification link has expired. Request a new one.")
+
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {
+            "$set": {"email_verified": True, "verified_at": datetime.utcnow()},
+            "$unset": {"verify_token": "", "verify_token_expires": ""},
+        },
+    )
+
+    return {"success": True, "message": "Email verified successfully"}
+
+
+@api_router.get("/verify-email")
+async def verify_email_link_get(token: str = ""):
+    from datetime import datetime
+
+    if not token:
+        html = "<html><body style='background:#080B12;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh'><div style='text-align:center'><h2 style='color:#f43f5e'>Invalid Link</h2><p style='color:#94A3B8'>No verification token provided.</p></div></body></html>"
+        return HTMLResponse(content=html, status_code=400)
+
+    user = await db.users.find_one({"verify_token": token})
+    if not user:
+        html = "<html><body style='background:#080B12;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh'><div style='text-align:center'><h2 style='color:#f43f5e'>Invalid or Expired</h2><p style='color:#94A3B8'>This verification link is invalid or has expired.</p></div></body></html>"
+        return HTMLResponse(content=html, status_code=400)
+
+    expires = user.get("verify_token_expires")
+    if isinstance(expires, datetime) and expires < datetime.utcnow():
+        html = "<html><body style='background:#080B12;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh'><div style='text-align:center'><h2 style='color:#f43f5e'>Link Expired</h2><p style='color:#94A3B8'>This verification link has expired. Request a new one from the app.</p></div></body></html>"
+        return HTMLResponse(content=html, status_code=400)
+
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {
+            "$set": {"email_verified": True, "verified_at": datetime.utcnow()},
+            "$unset": {"verify_token": "", "verify_token_expires": ""},
+        },
+    )
+
+    html = """<html><body style='background:#080B12;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh'><div style='text-align:center'><div style='width:80px;height:80px;border-radius:50%;background:rgba(16,185,129,0.2);border:2px solid rgba(52,211,153,0.5);display:flex;align-items:center;justify-content:center;margin:0 auto 16px'><svg width='36' height='36' viewBox='0 0 24 24' fill='none' stroke='#34D399' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg></div><h2 style='color:#34D399'>Email Verified!</h2><p style='color:#94A3B8'>Your email has been verified successfully. You can close this tab and return to the app.</p></div></body></html>"""
+    return HTMLResponse(content=html)
+
+
 @api_router.post("/auth/forgot-password")
 @limiter.limit("5/minute")
 async def forgot_password(request: Request, req: ForgotPasswordRequest):
@@ -7363,6 +7506,26 @@ app.include_router(tour_router)
 # Phase C — promotional banners (cross-portal)
 from routers.promotions import router as promotions_router
 app.include_router(promotions_router)
+
+# ── Serve email logo via API router ────────────────────────────────────────────
+_LOGO_PATH = os.path.join(os.path.dirname(__file__), "..", "frontend", "assets", "images", "sa-icon.png")
+_LOGO_CACHE: bytes | None = None
+_LOGO_MTIME: float = 0
+
+
+@api_router.get("/static/sa-icon.png")
+async def _serve_logo():
+    global _LOGO_CACHE, _LOGO_MTIME
+    try:
+        mtime = os.path.getmtime(_LOGO_PATH)
+        if _LOGO_CACHE is None or mtime != _LOGO_MTIME:
+            with open(_LOGO_PATH, "rb") as f:
+                _LOGO_CACHE = f.read()
+            _LOGO_MTIME = mtime
+        return Response(content=_LOGO_CACHE, media_type="image/png")
+    except Exception:
+        return PlainTextResponse("Logo not found", status_code=404)
+
 
 app.include_router(api_router)
 

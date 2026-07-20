@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Colors as C } from '@/src/theme';
 import { useRoleTheme } from '@/src/views/auth/RoleTheme';
+import { Check, Mail, MessageSquare, Smartphone } from 'lucide-react-native';
 
 // ─── Field ───────────────────────────────────────────────────────────────────
 export function WebField({
@@ -186,17 +187,20 @@ export function WebSectionLabel({ children }: { children: ReactNode }) {
 }
 
 // ─── Selectable option row (for role selection / 2fa method) ─────────────────
+const METHOD_ICON_MAP: Record<string, any> = { Smartphone, MessageSquare, Mail };
+
 export function WebOptionRow({
-  selected, onPress, emoji, title, subtitle, recommended, testID,
+  selected, onPress, icon, title, subtitle, recommended, testID,
 }: {
   selected: boolean;
   onPress: () => void;
-  emoji: string;
+  icon: string;
   title: string;
   subtitle?: string;
   recommended?: boolean;
   testID?: string;
 }) {
+  const IconComp = METHOD_ICON_MAP[icon];
   return (
     <Pressable
       onPress={onPress}
@@ -214,7 +218,7 @@ export function WebOptionRow({
           selected && { backgroundColor: 'rgba(124,58,237,0.28)', borderColor: 'rgba(196,181,253,0.45)' },
         ]}
       >
-        <Text style={{ fontSize: 18 }}>{emoji}</Text>
+        {IconComp ? <IconComp size={18} color="#FFFFFF" /> : null}
       </View>
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -233,7 +237,7 @@ export function WebOptionRow({
           selected && { borderColor: '#7C3AED', backgroundColor: '#7C3AED' },
         ]}
       >
-        {selected && <Text style={{ color: '#FFF', fontSize: 11 }}>✓</Text>}
+        {selected && <Check size={11} color="#FFFFFF" />}
       </View>
     </Pressable>
   );
