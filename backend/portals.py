@@ -428,6 +428,8 @@ async def student_dashboard(request: Request, student_email: Optional[str] = Non
     comp_data = compute_profile_completion(student or {})
     career_score = comp_data["percentage"]
     
+    completed_sessions = my_bookings
+    apps_count = await _db.applications.count_documents({"student_id": sid}) if sid else 0
     prog_profile = (career_score / 100.0) * 30
     prog_mentors = (min(3, completed_sessions) / 3.0) * 30
     prog_interns  = (min(5, apps_count) / 5.0) * 40
