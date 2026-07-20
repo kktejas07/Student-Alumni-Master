@@ -15,7 +15,7 @@ import { getBaseUrl } from '@/src/lib/env';
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, TextInput as RNTextInput } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Camera, Upload, GraduationCap, BriefcaseBusiness, BookOpen, Award, Sparkles, Code, CheckCircle2, Check } from 'lucide-react-native';
+import { ArrowLeft, Camera, Upload, GraduationCap, BriefcaseBusiness, BookOpen, Award, Sparkles, Code, CheckCircle2, Check, Plus } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { AuthShell } from '@/src/views/auth/AuthShell';
 import { AuthInput, PrimaryButton } from '@/src/views/auth/AuthControls';
@@ -43,10 +43,35 @@ const EDU_LEVELS = [
   { id: 'phd',         label: 'PhD / Doctorate',    icon: Award },
   { id: 'bootcamp',    label: 'Self-taught / Bootcamp', icon: Code },
 ];
-const INTERESTS  = ['Software Engineering', 'Product Management', 'Data Science', 'UI/UX Design', 'Finance & Banking', 'Consulting', 'Entrepreneurship', 'Research'];
-const TECH       = ['Python', 'JavaScript', 'React', 'Node.js', 'ML / AI', 'Cloud (AWS/GCP)', 'DevOps', 'Flutter', 'Figma', 'SQL'];
-const BUSINESS   = ['Excel / Sheets', 'PowerPoint', 'Financial Modelling', 'Market Research', 'Product Strategy', 'Operations', 'Sales', 'Marketing'];
-const SOFT       = ['Communication', 'Leadership', 'Problem Solving', 'Time Management', 'Teamwork', 'Critical Thinking', 'Adaptability'];
+const INTERESTS_BY_EDU: Record<string, string[]> = {
+  diploma:  ['Web Development', 'Mobile Apps', 'IT Support', 'Networking', 'Design', 'Accounting', 'Hospitality', 'Retail'],
+  btech:    ['Software Engineering', 'Product Management', 'Data Science', 'UI/UX Design', 'Finance & Banking', 'Consulting', 'Entrepreneurship', 'Research'],
+  masters:  ['Machine Learning', 'Computer Vision', 'Robotics', 'Bioinformatics', 'Quantitative Finance', 'Management', 'Academia', 'Consulting'],
+  mba:      ['Investment Banking', 'Consulting', 'Product Management', 'Marketing', 'Operations', 'Strategy', 'Private Equity', 'Entrepreneurship'],
+  phd:      ['Research & Development', 'Academia', 'Data Science', 'Deep Tech', 'Biotech', 'Quantum Computing', 'Policy', 'Consulting'],
+  bootcamp: ['Web / Mobile Dev', 'Data Science', 'UI/UX Design', 'DevOps', 'Blockchain', 'Cloud Computing', 'Cybersecurity', 'Freelancing'],
+};
+const TECH_BY_EDU: Record<string, string[]> = {
+  diploma:  ['HTML / CSS', 'JavaScript', 'Python', 'SQL', 'Networking Basics', 'MS Office', 'AutoCAD', 'Tally'],
+  btech:    ['Python', 'JavaScript', 'React', 'Node.js', 'ML / AI', 'Cloud (AWS/GCP)', 'DevOps', 'Flutter', 'Figma', 'SQL'],
+  masters:  ['Python', 'PyTorch / TensorFlow', 'R', 'SQL', 'Spark', 'Docker', 'Kubernetes', 'MATLAB', 'C++', 'Julia'],
+  mba:      ['Excel / Sheets', 'PowerPoint', 'SQL', 'Tableau', 'Python', 'R', 'CRM Tools', 'ERP Systems'],
+  phd:      ['Python', 'R', 'LaTeX', 'MATLAB', 'C++', 'Spark', 'PyTorch', 'Julia', 'Stata', 'Maple'],
+  bootcamp: ['JavaScript', 'Python', 'React', 'Node.js', 'AWS', 'Docker', 'MongoDB', 'PostgreSQL', 'TypeScript', 'Git'],
+};
+const BUSINESS_BY_EDU: Record<string, string[]> = {
+  diploma:  ['MS Office', 'Communication', 'Customer Service', 'Inventory Mgmt', 'Bookkeeping'],
+  btech:    ['Excel / Sheets', 'PowerPoint', 'Financial Modelling', 'Market Research', 'Product Strategy', 'Operations', 'Sales', 'Marketing'],
+  masters:  ['Data Analysis', 'Project Management', 'Grant Writing', 'IP & Patents', 'Team Leadership', 'Technical Writing'],
+  mba:      ['Financial Modelling', 'Market Sizing', 'M&A', 'Pitch Decks', 'Negotiation', 'P&L Management', 'Strategy', 'Consulting Frameworks'],
+  phd:      ['Grant Writing', 'Research Ethics', 'Publishing', 'Team Management', 'Data Analysis', 'IP Management'],
+  bootcamp: ['Product Strategy', 'Growth Marketing', 'Pitch Decks', 'Freelance Ops', 'Client Management', 'Personal Branding'],
+};
+const SOFT = ['Communication', 'Leadership', 'Problem Solving', 'Time Management', 'Teamwork', 'Critical Thinking', 'Adaptability'];
+
+function getInterests(edu: string): string[] { return INTERESTS_BY_EDU[edu] || INTERESTS_BY_EDU.btech; }
+function getTech(edu: string): string[] { return TECH_BY_EDU[edu] || TECH_BY_EDU.btech; }
+function getBusiness(edu: string): string[] { return BUSINESS_BY_EDU[edu] || BUSINESS_BY_EDU.btech; }
 const GOALS = [
   { id: 'top_internship', label: 'Crack a top internship' },
   { id: 'faang',          label: 'Get a FAANG job' },
@@ -115,6 +140,7 @@ export default function StudentOnboard() {
   const [tech, setTech]   = useState<string[]>([]);
   const [biz, setBiz]     = useState<string[]>([]);
   const [soft, setSoft]   = useState<string[]>([]);
+  const [otherSkill, setOtherSkill] = useState('');
 
   // ---- Step 4: Goal ----
   const [goal, setGoal] = useState('');
@@ -224,7 +250,7 @@ export default function StudentOnboard() {
       };
       await api.completeOnboarding(payload);
       await refreshUser();
-      toast.success(`${badge.tier} badge earned! 🎉`, 'Taking you to your Member ID…');
+      toast.success(`${badge.tier} badge earned!`, 'Taking you to your Member ID...');
       router.push({ pathname: '/(onboarding)/member-id', params: { from: 'onboarding' } } as any);
     } catch (e: any) {
       toast.error('Setup failed', e?.message || 'Please try again.');
@@ -326,13 +352,46 @@ export default function StudentOnboard() {
           {step === 2 && (
             <>
               <Text style={s.section}>Interests</Text>
-              <View style={s.chipRow}>{INTERESTS.map((x) => (<DarkChip key={x} label={x} active={ints.includes(x)} onPress={() => setInts((a) => toggle(a, x))} />))}</View>
+              <View style={s.chipRow}>{getInterests(edu).map((x) => (<DarkChip key={x} label={x} active={ints.includes(x)} onPress={() => setInts((a) => toggle(a, x))} />))}</View>
               <Text style={s.section}>Tech</Text>
-              <View style={s.chipRow}>{TECH.map((x) => (<DarkChip key={x} label={x} active={tech.includes(x)} onPress={() => setTech((a) => toggle(a, x))} />))}</View>
+              <View style={s.chipRow}>{getTech(edu).map((x) => (<DarkChip key={x} label={x} active={tech.includes(x)} onPress={() => setTech((a) => toggle(a, x))} />))}</View>
               <Text style={s.section}>Business</Text>
-              <View style={s.chipRow}>{BUSINESS.map((x) => (<DarkChip key={x} label={x} active={biz.includes(x)} onPress={() => setBiz((a) => toggle(a, x))} />))}</View>
+              <View style={s.chipRow}>{getBusiness(edu).map((x) => (<DarkChip key={x} label={x} active={biz.includes(x)} onPress={() => setBiz((a) => toggle(a, x))} />))}</View>
               <Text style={s.section}>Soft Skills</Text>
               <View style={s.chipRow}>{SOFT.map((x) => (<DarkChip key={x} label={x} active={soft.includes(x)} onPress={() => setSoft((a) => toggle(a, x))} />))}</View>
+              <Text style={s.section}>Others</Text>
+              <View style={{ marginTop: 4 }}>
+                <View style={{
+                  flexDirection: 'row', alignItems: 'center', gap: 8,
+                  backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.08)', borderRadius: 10,
+                  paddingHorizontal: 12, paddingVertical: 8,
+                }}>
+                  <RNTextInput
+                    value={otherSkill}
+                    onChangeText={(t) => setOtherSkill(t)}
+                    placeholder="Add a custom skill or interest..."
+                    placeholderTextColor="rgba(255,255,255,0.3)"
+                    style={{ flex: 1, color: '#fff', fontFamily: 'DMSans_400Regular', fontSize: 13, outline: 'none' as any }}
+                    onSubmitEditing={() => {
+                      if (otherSkill.trim()) {
+                        const val = otherSkill.trim();
+                        if (!ints.includes(val)) setInts((a) => [...a, val]);
+                        setOtherSkill('');
+                      }
+                    }}
+                  />
+                  <Pressable onPress={() => {
+                    if (otherSkill.trim()) {
+                      const val = otherSkill.trim();
+                      if (!ints.includes(val)) setInts((a) => [...a, val]);
+                      setOtherSkill('');
+                    }
+                  }} style={{ padding: 4 }}>
+                    <Plus size={16} color="rgba(255,255,255,0.5)" />
+                  </Pressable>
+                </View>
+              </View>
             </>
           )}
 
@@ -399,7 +458,7 @@ export default function StudentOnboard() {
               <Text style={s.helper}>Keep it genuine — 2–3 sentences work best.</Text>
               <Text style={s.section}>Writing Style</Text>
               <View style={s.chipRow}>{STYLES.map((x) => (<DarkChip key={x} label={x} active={style === x} onPress={() => handleStylePress(x)} />))}</View>
-              {generatingBio && <Text style={s.generatingText}>✨ Generating your bio…</Text>}
+              {generatingBio && <Text style={s.generatingText}>Generating your bio...</Text>}
             </>
           )}
 

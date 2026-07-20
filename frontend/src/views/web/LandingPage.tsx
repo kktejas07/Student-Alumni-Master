@@ -174,8 +174,12 @@ function Navbar({ router, desk }: { router: any; desk: boolean }) {
         </Pressable>
         {desk && (
           <View style={nb.lk}>
-            {['Platform', 'For Students', 'For Alumni', 'Pricing'].map((l, i) => (
-              <Pressable key={l} style={({ hovered }: any) => [nb.lkI, hovered && { backgroundColor: C.primaryS }]}>
+            {['Platform', 'For Students', 'For Alumni'].map((l, i) => (
+              <Pressable key={l} onPress={() => {
+                if (l === 'Platform') router.push('/platform');
+                else if (l === 'For Students') router.push('/get-started');
+                else if (l === 'For Alumni') router.push('/alumni-portal');
+              }} style={({ hovered }: any) => [nb.lkI, hovered && { backgroundColor: C.primaryS }]}>
                 <Text style={[nb.lkT, { color: i === 0 ? C.primary : C.text2 }]}>{l}</Text>
               </Pressable>
             ))}
@@ -860,13 +864,7 @@ function FooterSection() {
             </View>
           </View>
         </View>
-        {/* Links */}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 32, justifyContent: 'space-between' }}>
-          <FC h="Platform" l={['Features', 'Agent K', 'Mentors', 'Events', 'Internships']} />
-          <FC h="Company" l={['About', 'Careers', 'Blog', 'Press', 'Contact']} />
-          <FC h="Legal" l={['Privacy', 'Terms', 'Cookies', 'Refunds']} />
-          <FC h="Resources" l={['Help Center', 'Guides', 'API Docs', 'Status']} />
-        </View>
+
         {/* Animated divider */}
         <View style={{ height: 1, backgroundColor: C.border, position: 'relative', overflow: 'hidden' }}>
           <View style={{ position: 'absolute', top: 0, left: '-50%', width: '100%', height: 1, ...(Platform.OS === 'web' ? { background: 'linear-gradient(90deg,transparent,#8B5CF6,transparent)', animationName: 'saMarquee', animationDuration: '3s', animationIterationCount: 'infinite' } : { backgroundColor: C.primary }) } as any} />
@@ -876,19 +874,6 @@ function FooterSection() {
           <Text style={{ color: C.text3, fontFamily: TYPO.body400, fontSize: 11 }}>Built for India's next generation of leaders.</Text>
         </View>
       </View>
-    </View>
-  );
-}
-
-function FC({ h, l }: { h: string; l: string[] }) {
-  return (
-    <View style={{ gap: 8, minWidth: 110 }}>
-      <Text style={{ color: C.text3, fontFamily: TYPO.body700, fontSize: 9.5, letterSpacing: 1.5, textTransform: 'uppercase' }}>{h}</Text>
-      {l.map(s => (
-        <Pressable key={s} style={({ hovered }: any) => [{ paddingVertical: 2 }, hovered && {}]}>
-          <Text style={{ color: C.text2, fontFamily: TYPO.body500, fontSize: 11.5, ...(Platform.OS === 'web' ? { transition: 'color 0.15s ease' } : {}) } as any}>{s}</Text>
-        </Pressable>
-      ))}
     </View>
   );
 }

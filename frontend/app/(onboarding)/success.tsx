@@ -18,7 +18,7 @@ export default function OnboardingSuccess() {
     <OnboardingShell
       step={4}
       stepBarSteps={STEPS}
-      kicker="You're all set! 🎉"
+      kicker="You're all set!"
       title={
         <>
           Welcome to{'\n'}

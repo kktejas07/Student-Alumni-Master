@@ -102,11 +102,20 @@ EMAIL_TEMPLATES = {
 }
 
 
-def base_html(content: str, preview_text: str = "") -> str:
+def _get_logo_url() -> str:
+    import os
+    be = os.environ.get("BACKEND_URL") or ""
+    if be:
+        return be.rstrip("/") + "/api/static/sa-icon.png"
+    return BRAND["logo_url"]
+
+
+def base_html(content: str, preview_text: str = "", logo_url: str = "") -> str:
     pspan = ""
     if preview_text:
         bg = BRAND["bg"]
         pspan = f"""<span class="sg-text" style="display:none;font-size:1px;color:{bg};line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">{preview_text}</span>"""
+    logo = logo_url or _get_logo_url()
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -161,7 +170,7 @@ def base_html(content: str, preview_text: str = "") -> str:
     <tr><td align="center">
       <table class="container" cellpadding="0" cellspacing="0" role="presentation">
         <tr><td class="header">
-          <img src="{BRAND["logo_url"]}" alt="{BRAND["name"]}" class="header-logo" width="44" height="44" />
+          <img src="{logo}" alt="{BRAND["name"]}" class="header-logo" width="44" height="44" />
           <div class="header-name">{BRAND["name"]}<span>.</span></div>
         </td></tr>
         <tr><td><div class="divider"></div></td></tr>
@@ -224,17 +233,18 @@ def _render_password_reset(data: dict) -> tuple:
 
 
 def _render_email_verification(data: dict) -> tuple:
-    otp = data.get("otp", "000000")
     name = data.get("name", "there")
+    verify_link = data.get("verify_link", "")
     return (
         "Verify your email — StudentAlumni",
         f"""
         <h1>Welcome, {name}!</h1>
         <p>Thanks for joining {BRAND["name"]}. Please verify your email address to get started.</p>
-        <div style="text-align:center;margin:16px 0;">
-          <div class="code">{otp}</div>
+        <div style="text-align:center;margin:24px 0;">
+          <a href="{verify_link}" class="btn btn-primary">Verify my email</a>
         </div>
-        <p>Enter this code on the verification screen. It expires in <strong>30 minutes</strong>.</p>
+        <p>Click the button above to verify your account. The link expires in <strong>30 minutes</strong>.</p>
+        <p style="margin-top:12px;font-size:12px;color:{BRAND["text3"]};">If you did not create this account, you can safely ignore this email.</p>
         """
     )
 
@@ -515,7 +525,7 @@ def preview_template(template_name: str, sample_data: Optional[dict] = None) -> 
     default_sample = {
         "test": {"sent_at": "Jul 19, 2026 10:30 AM", "provider": "Postal"},
         "password_reset": {"otp": "482916"},
-        "email_verification": {"otp": "731584", "name": "Priya"},
+        "email_verification": {"name": "Priya", "verify_link": "https://studentalumni.ai/verify-email?token=sampletok123"},
         "welcome": {"name": "Priya Sharma", "role": "student"},
         "mentor_approved": {"name": "Rahul Verma"},
         "mentor_rejected": {"name": "Rahul Verma", "reason": "Insufficient industry experience in the selected domain."},

@@ -3,60 +3,66 @@
  */
 import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Sparkles, BookOpen, Handshake, Briefcase, Tag, Landmark, GraduationCap, MessageSquare, Trophy, Calendar, DollarSign, BarChart3, Star, Shield } from 'lucide-react-native';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { OnboardingShell } from '@/src/views/web/OnboardingShell';
+
+const ICON_MAP: Record<string, React.ComponentType<{ size?: number; color?: string }>> = {
+  Sparkles, BookOpen, Handshake, Briefcase, Tag, Landmark, GraduationCap,
+  MessageSquare, Trophy, Calendar, DollarSign, BarChart3, Star, Shield,
+};
 
 const ROLE_CONTENT: Record<string, {
   highlight: string;
   subtitle: string;
-  perks: { emoji: string; title: string; desc: string }[];
+  perks: { icon: string; title: string; desc: string }[];
 }> = {
   student: {
     highlight: 'career profile',
     subtitle: "A few quick steps and we'll generate your unique ID, QR badge, and a personalized AI roadmap.",
     perks: [
-      { emoji: '✨', title: 'AI Career Roadmap', desc: 'Personalized path based on your goals' },
-      { emoji: '📚', title: 'Free + Paid Courses', desc: 'From edX, Coursera, MIT and more' },
-      { emoji: '🤝', title: 'Mentors & Alumni', desc: 'Network with people in your field' },
-      { emoji: '💼', title: 'Internships & Jobs', desc: 'Discover global opportunities' },
-      { emoji: '🏷️', title: 'Student Deals', desc: 'Exclusive coupons on top brands' },
-      { emoji: '🏛️', title: 'Resources', desc: 'Insurance, housing, education loans' },
+      { icon: 'Sparkles', title: 'AI Career Roadmap', desc: 'Personalized path based on your goals' },
+      { icon: 'BookOpen', title: 'Free + Paid Courses', desc: 'From edX, Coursera, MIT and more' },
+      { icon: 'Handshake', title: 'Mentors & Alumni', desc: 'Network with people in your field' },
+      { icon: 'Briefcase', title: 'Internships & Jobs', desc: 'Discover global opportunities' },
+      { icon: 'Tag', title: 'Student Deals', desc: 'Exclusive coupons on top brands' },
+      { icon: 'Landmark', title: 'Resources', desc: 'Insurance, housing, education loans' },
     ],
   },
   alumni: {
     highlight: 'alumni profile',
     subtitle: "A few quick steps and we'll connect you with juniors, peers, and mentorship opportunities.",
     perks: [
-      { emoji: '🤝', title: 'Reconnect with Peers', desc: 'Find batchmates from your campus' },
-      { emoji: '🎓', title: 'Mentor Juniors', desc: 'Pay it forward with your experience' },
-      { emoji: '💼', title: 'Refer Talent', desc: 'Hire from your alma mater' },
-      { emoji: '💬', title: 'Knowledge Rooms', desc: 'Share insights with the community' },
-      { emoji: '🏆', title: 'Showcase Work', desc: 'Get featured for your achievements' },
-      { emoji: '🏷️', title: 'Alumni Perks', desc: 'Exclusive deals just for graduates' },
+      { icon: 'Handshake', title: 'Reconnect with Peers', desc: 'Find batchmates from your campus' },
+      { icon: 'GraduationCap', title: 'Mentor Juniors', desc: 'Pay it forward with your experience' },
+      { icon: 'Briefcase', title: 'Refer Talent', desc: 'Hire from your alma mater' },
+      { icon: 'MessageSquare', title: 'Knowledge Rooms', desc: 'Share insights with the community' },
+      { icon: 'Trophy', title: 'Showcase Work', desc: 'Get featured for your achievements' },
+      { icon: 'Tag', title: 'Alumni Perks', desc: 'Exclusive deals just for graduates' },
     ],
   },
   mentor: {
     highlight: 'mentor portal',
     subtitle: 'Set up your mentor profile, post sessions, and start earning while shaping student careers.',
     perks: [
-      { emoji: '📅', title: 'Post Sessions', desc: 'Open 1:1 or group slots students can book' },
-      { emoji: '💰', title: 'Earn from Sessions', desc: 'Set your rate, get paid per booking' },
-      { emoji: '📊', title: 'Mentor Analytics', desc: 'Track sessions, hours, ratings & growth' },
-      { emoji: '⭐', title: 'Build Reputation', desc: 'Collect verified reviews from students' },
-      { emoji: '💬', title: 'Knowledge Rooms', desc: 'Host live discussions with cohorts' },
-      { emoji: '🛡️', title: 'Verified Profile', desc: 'Stand out with your face-verified badge' },
+      { icon: 'Calendar', title: 'Post Sessions', desc: 'Open 1:1 or group slots students can book' },
+      { icon: 'DollarSign', title: 'Earn from Sessions', desc: 'Set your rate, get paid per booking' },
+      { icon: 'BarChart3', title: 'Mentor Analytics', desc: 'Track sessions, hours, ratings & growth' },
+      { icon: 'Star', title: 'Build Reputation', desc: 'Collect verified reviews from students' },
+      { icon: 'MessageSquare', title: 'Knowledge Rooms', desc: 'Host live discussions with cohorts' },
+      { icon: 'Shield', title: 'Verified Profile', desc: 'Stand out with your face-verified badge' },
     ],
   },
   college: {
     highlight: 'institution dashboard',
     subtitle: 'Onboard your students, run events with QR check-in, and access tenant-wide analytics.',
     perks: [
-      { emoji: '🤝', title: 'Manage Students', desc: 'Bulk-add, verify, and roster control' },
-      { emoji: '📅', title: 'Run Events', desc: 'QR-based registration & attendance' },
-      { emoji: '📊', title: 'Tenant Analytics', desc: 'Engagement, placements, outcomes' },
-      { emoji: '🎓', title: 'Alumni Engine', desc: 'Re-engage your alumni network' },
-      { emoji: '💼', title: 'Recruiter Hub', desc: 'Connect with hiring partners' },
-      { emoji: '🛡️', title: 'Verified Tenant', desc: 'Officially recognised college badge' },
+      { icon: 'Handshake', title: 'Manage Students', desc: 'Bulk-add, verify, and roster control' },
+      { icon: 'Calendar', title: 'Run Events', desc: 'QR-based registration & attendance' },
+      { icon: 'BarChart3', title: 'Tenant Analytics', desc: 'Engagement, placements, outcomes' },
+      { icon: 'GraduationCap', title: 'Alumni Engine', desc: 'Re-engage your alumni network' },
+      { icon: 'Briefcase', title: 'Recruiter Hub', desc: 'Connect with hiring partners' },
+      { icon: 'Shield', title: 'Verified Tenant', desc: 'Officially recognised college badge' },
     ],
   },
 };
@@ -74,7 +80,7 @@ export default function RoleInfo() {
     <OnboardingShell
       step={0}
       stepBarSteps={STEPS}
-      kicker={firstName ? `Welcome, ${firstName} 👋` : 'Welcome 👋'}
+      kicker={firstName ? `Welcome, ${firstName}` : 'Welcome'}
       title={
         <>
           Let's set up your{' '}
@@ -88,15 +94,17 @@ export default function RoleInfo() {
       showBack={false}
     >
       <View style={styles.grid}>
-        {content.perks.map((p) => (
+        {content.perks.map((p) => {
+          const IconComp = ICON_MAP[p.icon];
+          return (
           <View key={p.title} style={styles.tile}>
             <View style={styles.tileIcon}>
-              <Text style={{ fontSize: 22 }}>{p.emoji}</Text>
+              {IconComp && <IconComp size={22} color="#C4B5FD" />}
             </View>
             <Text style={styles.tileTitle}>{p.title}</Text>
             <Text style={styles.tileDesc} numberOfLines={2}>{p.desc}</Text>
           </View>
-        ))}
+        );})}
       </View>
     </OnboardingShell>
   );
