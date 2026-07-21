@@ -203,6 +203,78 @@ async def cancel_booking(booking_id: str):
         raise HTTPException(404, "Booking not found")
 
 
+@router.post("/student/bookings/{booking_id}/complete")
+async def complete_booking(booking_id: str):
+    q: Dict[str, Any] = {}
+    matched_in_bookings = False
+    matched_in_sessions = False
+
+    is_oid = False
+    try:
+        if len(booking_id) == 24:
+            booking_oid = ObjectId(booking_id)
+            is_oid = True
+            if await _db.bookings.find_one({"_id": booking_oid}):
+                q = {"_id": booking_oid}
+                matched_in_bookings = True
+            elif await _db.sessions.find_one({"_id": booking_oid}):
+                q = {"_id": booking_oid}
+                matched_in_sessions = True
+    except Exception:
+        pass
+
+    if not is_oid or (not matched_in_bookings and not matched_in_sessions):
+        import re
+        booking_rx = f"{re.escape(booking_id)}$"
+
+        bookings_matches = []
+        async for b in _db.bookings.find({
+            "$expr": {
+                "$regexMatch": {
+                    "input": {"$toString": "$_id"},
+                    "regex": booking_rx,
+                    "options": "i"
+                }
+            }
+        }, {"_id": 1}):
+            bookings_matches.append(b)
+
+        sessions_matches = []
+        async for s in _db.sessions.find({
+            "$expr": {
+                "$regexMatch": {
+                    "input": {"$toString": "$_id"},
+                    "regex": booking_rx,
+                    "options": "i"
+                }
+            }
+        }, {"_id": 1}):
+            sessions_matches.append(s)
+
+        total_matches = len(bookings_matches) + len(sessions_matches)
+        if total_matches > 1:
+            raise HTTPException(400, "Ambiguous booking ID")
+        elif len(bookings_matches) == 1:
+            q = {"_id": bookings_matches[0]["_id"]}
+            matched_in_bookings = True
+        elif len(sessions_matches) == 1:
+            q = {"_id": sessions_matches[0]["_id"]}
+            matched_in_sessions = True
+
+    if matched_in_bookings:
+        res = await _db.bookings.update_one(q, {"$set": {"status": "completed", "completed_at": _now()}})
+        if res.modified_count == 0:
+            raise HTTPException(404, "Booking not found")
+        return {"ok": True, "completed": True}
+    elif matched_in_sessions:
+        res = await _db.sessions.update_one(q, {"$set": {"status": "completed", "completed_at": _now()}})
+        if res.modified_count == 0:
+            raise HTTPException(404, "Session not found")
+        return {"ok": True, "completed": True}
+    else:
+        raise HTTPException(404, "Booking not found")
+
+
 @router.get("/student/my-bookings")
 async def my_bookings(email: Optional[str] = None, status: Optional[str] = None):
     student = await _resolve_user("student", email)
