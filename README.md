@@ -1,8 +1,154 @@
-# Student Alumni - Deployment Guide
+# Student Alumni Platform
 
-Complete guide for deploying the Student Alumni platform using **Dokploy** with **Docker Swarm** and **Traefik**.
+A full-stack platform connecting students and alumni — built with **FastAPI** (Python 3.12) and **Expo React Native** (TypeScript).
 
 ---
+
+## 🛠️ Development Setup
+
+> **From a clean clone to a running server in under 5 minutes.**
+
+### Prerequisites
+
+| Tool | Version | Notes |
+|------|---------|-------|
+| Python | 3.12+ | `python3 --version` |
+| Node.js | 18+ | `node --version` |
+| npm | 9+ | bundled with Node |
+| Git | any | — |
+
+> A running **MongoDB** instance is required. [MongoDB Atlas free tier](https://www.mongodb.com/atlas) works perfectly for development.
+
+---
+
+### Option A — One-command setup (recommended)
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/kktejas07/Student-Alumni-Master.git
+cd Student-Alumni-Master
+
+# 2. Create the virtual environment + install all dependencies
+make setup          # creates backend/.venv and installs requirements.txt
+                    # also copies backend/.env.example → backend/.env
+
+# 3. Fill in your secrets
+nano backend/.env   # set MONGO_URL, JWT_SECRET, FERNET_KEY at minimum
+
+# 4. Start the backend
+make backend        # FastAPI on http://localhost:8080
+                    # Swagger UI → http://localhost:8080/docs
+
+# 5. (Separate terminal) Start the frontend
+make frontend       # Expo web on http://localhost:8081
+```
+
+---
+
+### Option B — Manual setup
+
+```bash
+# Clone
+git clone https://github.com/kktejas07/Student-Alumni-Master.git
+cd Student-Alumni-Master/backend
+
+# Create virtual environment (standardized name: .venv)
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+
+# Install dependencies
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# Configure environment
+cp .env.example .env
+# Edit .env and set MONGO_URL, JWT_SECRET, FERNET_KEY
+
+# Start the server
+uvicorn server:app --host 0.0.0.0 --port 8080 --reload
+# → http://localhost:8080/docs
+```
+
+---
+
+### Environment Variables
+
+Copy `backend/.env.example` to `backend/.env` and fill in:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `MONGO_URL` | ✅ | MongoDB connection string |
+| `DB_NAME` | ✅ | Database name (default: `studentalumni`) |
+| `JWT_SECRET` | ✅ | 32+ random chars. Generate: `python -c "import secrets; print(secrets.token_hex(32))"` |
+| `FERNET_KEY` | ✅ | AES key for PII encryption. Generate: `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
+| `ALLOWED_ORIGINS` | ✅ | Comma-separated CORS origins (e.g. `http://localhost:8081`) |
+| `ADMIN_EMAIL` | ✅ | Seeded admin email |
+| `ADMIN_PASSWORD` | ✅ | Seeded admin password |
+| `SMTP_HOST` | optional | For OTP/forgot-password emails |
+| `OPENAI_API_KEY` | optional | For AI features |
+
+---
+
+### Running Tests
+
+```bash
+# Backend (requires the server to be running on :8080)
+make test
+
+# Frontend
+make test-frontend
+
+# With dev tools installed (make setup-dev first):
+make lint      # flake8
+make format    # black + isort
+```
+
+---
+
+### All `make` targets
+
+```
+make help           # list all targets
+make setup          # create .venv + install runtime deps
+make setup-dev      # also install test/lint tools
+make backend        # start FastAPI (hot-reload, port 8080)
+make frontend       # start Expo web (port 8081)
+make test           # run pytest
+make lint           # flake8
+make format         # black + isort
+make docker-up      # full stack via docker compose
+make clean          # remove .venv + __pycache__
+```
+
+---
+
+### Project Structure
+
+```
+Student-Alumni-Master/
+├── backend/
+│   ├── .env.example          ← copy to .env, fill in secrets
+│   ├── requirements.txt      ← runtime Python dependencies
+│   ├── requirements-dev.txt  ← dev/test tools (black, pytest, etc.)
+│   ├── server.py             ← FastAPI application entry point
+│   ├── routers/              ← modular route handlers
+│   ├── core/                 ← shared DB, security, models
+│   ├── services/             ← business logic services
+│   └── tests/                ← pytest test suite
+├── frontend/
+│   ├── app/                  ← Expo Router pages
+│   ├── src/views/            ← reusable UI components
+│   └── src/lib/              ← API helpers
+├── Makefile                  ← one-command dev workflow
+├── run.sh                    ← alternative bash dev runner
+└── docker-compose.yml        ← local Docker stack
+```
+
+---
+
+## 🚀 Deployment Guide
+
+
 
 ## 📁 Project Structure
 
