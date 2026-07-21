@@ -33,7 +33,7 @@ from typing import List, Literal, Optional
 from bson import ObjectId
 from bson.errors import InvalidId
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 from core.db import db
 from core.deps import get_current_user
@@ -89,7 +89,8 @@ class PromoIn(BaseModel):
     display_order: int = 100
     image_url: Optional[str] = Field(None, max_length=2_700_000)  # ~2 MB base64
 
-    @validator("audience")
+    @field_validator("audience", mode="before")
+    @classmethod
     def _dedup_audience(cls, v):
         return list(dict.fromkeys(v)) or ["all"]
 

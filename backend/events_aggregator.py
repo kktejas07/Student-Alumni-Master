@@ -527,7 +527,7 @@ async def events_search(
     institution_tier: Optional[str] = Query(None, description="comma-separated tiers: top_tier,tier_one,tier_two,regional"),
     event_mode: Optional[str] = Query(None, description="virtual|in_person|hybrid|all"),
     topic: Optional[str] = Query(None, description="comma-separated topics"),
-    price_type: Optional[str] = Query(None, regex="^(free|paid|all)?$"),
+    price_type: Optional[str] = Query(None, pattern="^(free|paid|all)?$"),
     date_range_start: Optional[str] = Query(None),
     date_range_end: Optional[str] = Query(None),
     q: Optional[str] = Query(None),
