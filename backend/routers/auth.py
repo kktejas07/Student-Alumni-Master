@@ -1035,7 +1035,7 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
     res = await db.users.insert_one(user_doc)
     user_doc["_id"] = res.inserted_id
     user_doc["qr_code_base64"] = generate_qr_code(
-        f"SA-USER:{user_doc['unique_id']}|{email}|{user_doc['role']}"
+        f"https://studentalumni.app/verify/{user_doc['unique_id'].split('-')[-1]}"
     )
     await db.users.update_one(
         {"_id": res.inserted_id},
@@ -1050,11 +1050,10 @@ async def _get_oauth_creds() -> dict:
     db_settings = {s["key"]: s.get("value", "") for s in (doc.get("system_settings") or [])} if doc else {}
     # Merge with defaults so new fields (like firebase_*) are included even before admin sets them
     try:
-        from routers.admin.settings import DEFAULT_PLATFORM_CONTROLS
         for s in DEFAULT_PLATFORM_CONTROLS.get("system_settings") or []:
             if s["key"] not in db_settings:
                 db_settings[s["key"]] = s.get("value", "")
-    except Exception:
+    except ImportError:
         pass
     return db_settings
 

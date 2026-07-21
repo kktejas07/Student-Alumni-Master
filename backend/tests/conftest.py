@@ -41,15 +41,7 @@ async def client():
     """
     try:
         from httpx import AsyncClient, ASGITransport
-        # Disable slowapi rate limiting during test executions
-        try:
-            import routers.auth
-            routers.auth.limiter.enabled = False
-        except Exception:
-            pass
         from server import app
-        if hasattr(app.state, "limiter"):
-            app.state.limiter.enabled = False
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
             yield ac
     except Exception:

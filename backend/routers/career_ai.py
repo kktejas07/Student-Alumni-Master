@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from emergentintegrations.llm.chat import UserMessage
 
 from db import db
 from services.career_intelligence_service import (
@@ -72,6 +71,8 @@ async def get_claude_chat(session_id: str, system_message: str):
                     ],
                     "suggestion": "Your trajectory is solid — focus this week on shipping one polished portfolio piece."
                 }"""
+            if "daily" in self.sess_id.lower():
+                return '{"summary": "Mock daily brief summary", "focus_areas": ["Communication", "Technical prep"], "action_items": [{"id": "a1", "title": "Mock action", "description": "Mock description", "completed": false}], "industry_news": [{"id": "n1", "headline": "Mock news", "summary": "Mock", "url": "https://example.com"}]}'
             if "chat" in self.sess_id.lower() or "financial" in self.sess_id.lower() or "stay" in self.sess_id.lower() or "rentals" in self.sess_id.lower() or "You are speaking with" in self.sys_msg:
                 user_text = getattr(msg, "text", str(msg))
                 import re
@@ -113,7 +114,6 @@ async def get_claude_chat(session_id: str, system_message: str):
                         # and avoids the Windows multiprocessing crashes caused by g4f.
                         system_encoded = urllib.parse.quote(self.sys_msg)
                         prompt_encoded = urllib.parse.quote(clean_text)
-                        
                         url = f"https://text.pollinations.ai/{prompt_encoded}?system={system_encoded}"
                         
                         async with aiohttp.ClientSession() as session:
@@ -313,8 +313,8 @@ async def ai_career_roadmap(
     """Generate (or return cached) a personalised 12-week career roadmap.
     Cache is invalidated after 7 days or when the student's career goal changes.
     """
-    if user.get("role") not in ("student",):
-        raise HTTPException(403, "Career roadmap is available to students only")
+    if user.get("role") not in ("student", "alumni"):
+        raise HTTPException(403, "Career roadmap is available to students and alumni only")
 
     import time as _time
     _t0 = _time.perf_counter()

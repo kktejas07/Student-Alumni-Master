@@ -25,7 +25,7 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
-export function ConnectionsView({ demoMode = true }: { demoMode?: boolean }) {
+export function ConnectionsView() {
   const { width } = useWindowDimensions();
   const isLarge = width >= 1024;
   const user = useAuthStore((s) => s.user);
@@ -51,11 +51,7 @@ export function ConnectionsView({ demoMode = true }: { demoMode?: boolean }) {
           item.status !== 'declined' &&
           item.status !== 'rejected'
       );
-      if (!demoMode) {
-        setStudentsList(connectedItems);
-      } else {
-        setStudentsList(connectedItems.length > 0 ? connectedItems : STUDENTS);
-      }
+      setStudentsList(connectedItems);
       setPages(res.pages || 1);
       setPage(p);
       if (picked) {

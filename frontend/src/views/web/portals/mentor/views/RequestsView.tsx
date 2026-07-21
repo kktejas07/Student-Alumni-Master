@@ -70,11 +70,7 @@ export function RequestsView({ decisions, onSetDecision, demoMode = true }: Requ
     }) : [];
 
     // 2. Map real bookings
-    const reals = !demoMode ? [] : realBookings.filter(b => {
-      const isAutoSeeded = (b.notes && b.notes.includes("Auto-seeded")) || (b.topic && b.topic.includes("Auto-seeded")) || !b._user_created;
-      if (!demoMode && isAutoSeeded) return false;
-      return true;
-    }).map(b => {
+    const reals = realBookings.map(b => {
       const initials = (b.student_name || 'Student')
         .split(' ')
         .map((n: string) => n[0])
@@ -119,6 +115,7 @@ export function RequestsView({ decisions, onSetDecision, demoMode = true }: Requ
     if (k.includes('career')) return { score: 84, label: 'Good fit' };
     return { score: 72, label: 'Fair fit' };
   };
+
 
   const stats = useMemo(() => {
     let pending = 0;

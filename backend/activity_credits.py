@@ -19,7 +19,6 @@ Endpoints (all under /api):
 """
 from __future__ import annotations
 
-from pathlib import Path
 import os
 import logging
 import uuid
@@ -30,10 +29,7 @@ from bson import ObjectId
 from dotenv import load_dotenv
 from fastapi import APIRouter, Body, Depends, HTTPException
 
-load_dotenv(Path(__file__).parent / ".env")
-
-from db import client as _mongo
-_db = _mongo[os.environ["DB_NAME"]]
+from core.db import db as _db
 
 logger = logging.getLogger("activity_credits")
 router = APIRouter()

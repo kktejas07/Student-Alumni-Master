@@ -42,7 +42,6 @@ Endpoints (all under /api):
 """
 from __future__ import annotations
 
-from pathlib import Path
 import os
 import math
 import hashlib
@@ -55,8 +54,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 
 
-from db import client as _mongo
-_db = _mongo[os.environ["DB_NAME"]]
+from core.db import db as _db
 
 logger = logging.getLogger("financial_services")
 router = APIRouter()

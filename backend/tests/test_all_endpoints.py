@@ -13,7 +13,8 @@ import asyncio
 from datetime import datetime, timedelta
 
 # ─────────────────────────────────────────────────────────────
-# FIXTURES
+# FIXTURES — shared versions live in conftest.py; these are
+# kept here only for backward compat with any local overrides.
 # ─────────────────────────────────────────────────────────────
 
 # Add pytest-asyncio marker for all async tests

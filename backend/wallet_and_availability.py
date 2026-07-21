@@ -13,20 +13,14 @@ Endpoints (all under /api):
 """
 from __future__ import annotations
 
-from pathlib import Path
 import os
 import logging
 from datetime import datetime, timezone, timedelta, time as dt_time
 from typing import Any, Dict, List, Optional
 
 from bson import ObjectId
-from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Query
-
-load_dotenv(Path(__file__).parent / ".env")
-
-from db import client as _mongo
-_db = _mongo[os.environ["DB_NAME"]]
+from core.db import db as _db
 
 logger = logging.getLogger("wallet")
 router = APIRouter()
@@ -146,7 +140,7 @@ async def wallet_credit(body: Dict[str, Any], user: dict = Depends(_get_current_
     reason = (body or {}).get("reason") or "Bonus"
     if amount <= 0:
         raise HTTPException(400, "amount must be positive")
-    if (user.get("role") not in ("admin", "super_admin")) and amount > 100:
+    if (user.get("role") != "admin") and amount > 100:
         raise HTTPException(403, "Only admin can credit > 100 credits in one call")
 
     state = await _wallet_state(str(user["_id"]))
@@ -327,7 +321,7 @@ async def seed_mentor_demo(user: dict = Depends(_get_current_user_dependency()))
     `connections` records + minimal `career_roadmaps` + `sessions` so the
     Mentor AI Studio shows real Mentee Pulse / Skill Gaps / Impact.
     """
-    if user.get("role") not in ("admin", "super_admin", "mentor", "alumni"):
+    if user.get("role") not in ("admin", "mentor", "alumni"):
         # Loosen — let any authenticated test user trigger seeding for QA
         pass
 

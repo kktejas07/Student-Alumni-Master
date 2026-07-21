@@ -36,7 +36,7 @@ import { EmptyState, SuccessBurst } from '../EmptyState';
 import { SkeletonList } from '../motion';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
-import { StudentPortalNavContext } from '../StudentPortalRN';
+import { StudentPortalNavContext } from '../StudentPortalNavContext';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 type Job = {

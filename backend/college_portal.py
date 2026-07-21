@@ -16,13 +16,11 @@ import random
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 from pathlib import Path
-from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile, File
 from pydantic import BaseModel
 import csv
 import io
-from db import client as _mongo
-_db = _mongo[os.environ["DB_NAME"]]
+from core.db import db as _db
 logger = logging.getLogger("college_portal")
 router = APIRouter()
 
