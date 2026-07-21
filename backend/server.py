@@ -9230,41 +9230,7 @@ async def list_internships(career_path: Optional[str] = None, limit: int = 20):
 
 
 # ─── Opportunities (Phase 3) — unified Jobs + Internships flow ─────────
-def _match_score(opp: dict, user: dict) -> int:
-    """0-100 match score from user interests + career_path vs opp.match_signals."""
-    if not opp:
-        return 0
-    sig = [s.lower() for s in (opp.get("match_signals") or [])]
-    sig += [s.lower() for s in (opp.get("skills") or [])]
-    sig += [(opp.get("domain") or "").lower()]
-    sig = [s for s in sig if s]
-    user_signals = []
-    cp = (user.get("career_path") or "").lower()
-    if cp:
-        user_signals.append(cp)
-        # career_path keys → human-readable mapping
-        if cp == "job":               user_signals.append("software engineering")
-        if cp == "higher_education":  user_signals.append("research")
-        if cp == "startup":           user_signals.append("startup")
-        if cp == "business":          user_signals.append("business")
-    interests = user.get("interests") or (user.get("school_info") or {}).get("interests") or []
-    user_signals += [str(i).lower() for i in interests]
-    si = (user.get("school_info") or {})
-    branch = (si.get("branch_or_stream") or "").lower()
-    if branch:
-        user_signals.append(branch)
-        if "cse" in branch or "computer" in branch:
-            user_signals.append("software engineering")
-            user_signals.append("engineering")
-    if not user_signals:
-        return 50  # neutral score for new users
-    # Count overlapping signals
-    matches = sum(1 for s in sig if any(u in s or s in u for u in user_signals))
-    score = min(100, int(40 + matches * 18))
-    # Boost for matching career path explicitly
-    if cp and cp in (opp.get("career_paths") or []):
-        score = min(100, score + 12)
-    return score
+from services.recommendation_engine import calculate_match_score as _match_score
 
 
 @api_router.get("/opportunities")
