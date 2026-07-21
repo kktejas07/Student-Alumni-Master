@@ -539,7 +539,7 @@ async def jobs_feed(
         all_items.append(it)
         
     # Sort by match score descending, then posted date
-    all_items.sort(key=lambda x: (x["match_score"], x.get("posted_date") or ""), reverse=True)
+    all_items.sort(key=lambda x: (x["match_score"], str(x.get("posted_date") or "")), reverse=True)
     
     skip = (page - 1) * per_page
     items = all_items[skip : skip + per_page]
