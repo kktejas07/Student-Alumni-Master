@@ -2,8 +2,11 @@ import io
 import os
 import random
 import re
+import logging
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Any, Dict
+
+logger = logging.getLogger(__name__)
 
 import qrcode
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, Form, UploadFile, File
@@ -14,7 +17,8 @@ from bson import ObjectId
 from core.db import db
 from core.security import (
     hash_password, verify_password, create_access_token, _audit_log, _audit_log_many,
-    serialize_user, validate_student_class,
+    serialize_user, validate_student_class, generate_unique_id, generate_qr_code,
+    encrypt_value, decrypt_value
 )
 from core.deps import get_current_user
 from core.models import UserRole, UserResponse, SchoolInfo, MentorInfo, AlumniInfo, StudentInfo, CareerPath, EducationLevel, CollegeInfo
