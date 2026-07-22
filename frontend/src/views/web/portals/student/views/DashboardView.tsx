@@ -11,7 +11,7 @@
  *   • Profile completion CTA
  */
 import React, { useContext, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, ActivityIndicator, Linking } from 'react-native';
+import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, ActivityIndicator, Linking, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StudentPortalNavContext } from '../StudentPortalNavContext';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -91,6 +91,8 @@ export function DashboardView() {
   const [appliedJobIds, setAppliedJobIds] = useState<Record<string, boolean>>({});
   const [savedJobIds, setSavedJobIds] = useState<Record<string, boolean>>({});
 
+  const [applyModalJob, setApplyModalJob] = useState<any>(null);
+
   const handleApplyJob = async (item: any) => {
     const jobId = item.job_id || String(item.id);
     const company = item.company || '—';
@@ -103,38 +105,28 @@ export function DashboardView() {
     }
 
     const applyUrl = item.source_urls?.[0] || item.url || item.apply_url || '';
+    if (!applyUrl) { toast.warning('No apply link', 'This job did not include an apply URL.'); return; }
 
-    setAppliedJobIds((prev) => ({ ...prev, [jobId]: true }));
-
-    try {
-      await request('/jobs/track-apply', {
-        method: 'POST',
-        body: { job_id: jobId, source_url: applyUrl },
-      });
-    } catch (err) {
+    if (Platform.OS === 'web') {
       try {
-        await request(`/student/internships/${jobId}/apply`, {
-          method: 'POST',
-          body: { cover_note: 'Applied from dashboard.' },
-        });
-      } catch (e) {
-        // ignore
-      }
-    }
-
-    if (applyUrl) {
-      if (Platform.OS === 'web') {
-        try {
-          window.open(applyUrl, '_blank');
-        } catch (e) {
-          // ignore
+        const win = window.open(applyUrl, '_blank');
+        if (win) {
+          setApplyModalJob(item);
+        } else {
+          toast.error('Popup Blocked', 'Please allow popups in your browser to proceed.');
         }
-      } else {
-        Linking.openURL(applyUrl).catch(() => {});
+      } catch (e: any) {
+        toast.error('Could not open page', e?.message || 'Please try again.');
       }
+    } else {
+      Linking.openURL(applyUrl)
+        .then(() => {
+          setApplyModalJob(item);
+        })
+        .catch((err) => {
+          toast.error('Could not open link', err?.message || 'No app available to open this link.');
+        });
     }
-
-    toast.success('Application Tracked! 🎉', `Applied to ${title} at ${company}.`);
   };
 
   const handleSaveJob = async (item: any) => {
@@ -779,6 +771,98 @@ export function DashboardView() {
       </LinearGradient>
       </>
       )}
+
+      {/* Did you apply modal? */}
+      <Modal
+        visible={applyModalJob !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setApplyModalJob(null)}
+      >
+        <View style={s.modalBg}>
+          <GlassCard radius={16} padding={22} style={s.modalCard}>
+            <View style={s.modalHeader}>
+              <View style={s.modalIconDisc}>
+                <Briefcase size={18} color="#FCD34D" />
+              </View>
+              <Text style={s.modalTitle}>Applying to External Job?</Text>
+            </View>
+            <Text style={s.modalText}>
+              We redirected you to the recruiter's page for{" "}
+              <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>
+                {applyModalJob?.role || applyModalJob?.title || 'the role'}
+              </Text>{" "}
+              at{" "}
+              <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>
+                {applyModalJob?.company || 'the company'}
+              </Text>.
+            </Text>
+            <Text style={s.modalSubtext}>
+              Once you finish submitting your details on their platform, confirm it here to track its progress in your dashboard!
+            </Text>
+
+            <View style={s.modalBtnRow}>
+              <Pressable
+                onPress={() => setApplyModalJob(null)}
+                style={({ hovered }: any) => [
+                  s.modalCancelBtn,
+                  hovered && { backgroundColor: 'rgba(255,255,255,0.06)' }
+                ]}
+              >
+                <Text style={s.modalCancelTxt}>Cancel</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={async () => {
+                  if (!applyModalJob) return;
+                  const job = applyModalJob;
+                  const jobId = job.job_id || String(job.id);
+                  setApplyModalJob(null);
+                  try {
+                    await request(`/student/internships/${jobId}/apply`, {
+                      method: 'POST',
+                      body: {
+                        student_email: authUser?.email || undefined,
+                        cover_note: 'Applied via external redirection link.'
+                      }
+                    });
+                    toast.success(
+                      'Application Tracked! 🎉',
+                      `Successfully added ${job.role || job.title} at ${job.company} to your My Applications dashboard.`
+                    );
+                    
+                    setAppliedJobIds((prev) => ({ ...prev, [jobId]: true }));
+                  } catch (err: any) {
+                    try {
+                      await request('/jobs/track-apply', {
+                        method: 'POST',
+                        body: { job_id: jobId, source_url: job.source_urls?.[0] || job.url || job.apply_url || '' },
+                      });
+                      toast.success(
+                        'Application Tracked! 🎉',
+                        `Successfully added ${job.role || job.title} at ${job.company} to your My Applications dashboard.`
+                      );
+                      
+                      setAppliedJobIds((prev) => ({ ...prev, [jobId]: true }));
+                    } catch (e: any) {
+                      toast.error('Could not track application', e.message);
+                    }
+                  }
+                }}
+              >
+                <LinearGradient
+                  colors={[GRAD.from, GRAD.to]}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                  style={s.modalConfirmBtn}
+                >
+                  <Text style={s.modalConfirmTxt}>Yes, I've Applied</Text>
+                </LinearGradient>
+              </Pressable>
+            </View>
+          </GlassCard>
+        </View>
+      </Modal>
+
     </View>
   );
 }
@@ -1274,5 +1358,21 @@ function getStableMockData(jobId: string, company: string, jobType: string) {
     const salaries = ['₹8-12 LPA', '₹14-18 LPA', '₹22-28 LPA', '₹32-38 LPA'];
     fallbackSalary = salaries[hash % salaries.length];
   }
-  return { matchPct, fallbackSalary };
+    return { matchPct, fallbackSalary };
 }
+
+  // Inject modal styles directly into s
+  Object.assign(s, StyleSheet.create({
+    modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 99999 },
+    modalCard: { width: '100%', maxWidth: 480, backgroundColor: '#111827', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 16, padding: 22 },
+    modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+    modalIconDisc: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(124,58,237,0.16)', borderColor: 'rgba(124,58,237,0.40)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+    modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.3 },
+    modalText: { color: SC.muted, fontFamily: FONTS.med, fontSize: 13, lineHeight: 18, marginBottom: 12 },
+    modalSubtext: { color: SC.dim, fontFamily: FONTS.med, fontSize: 12, lineHeight: 16, marginBottom: 20 },
+    modalBtnRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
+    modalCancelBtn: { paddingHorizontal: 16, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' },
+    modalCancelTxt: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 12.5 },
+    modalConfirmBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 18, height: 36, borderRadius: 10 },
+    modalConfirmTxt: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  }));
