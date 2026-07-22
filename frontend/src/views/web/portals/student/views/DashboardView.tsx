@@ -11,13 +11,13 @@
  *   • Profile completion CTA
  */
 import React, { useContext, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, ActivityIndicator, Linking, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StudentPortalNavContext } from '../StudentPortalNavContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Sparkles, Briefcase, BookOpen, Users, TrendingUp, Calendar, MapPin,
-  Star, ArrowRight, Check, ExternalLink, Bookmark, MessageSquare, GraduationCap, IndianRupee,
+  Star, ArrowRight, Check, ExternalLink, Bookmark, BookmarkCheck, MessageSquare, GraduationCap, IndianRupee,
 } from '../iconShims';
 import { SC, FONTS, useColors, PALETTE, TYPO } from '../tokens';
 import { GRADS } from '../gradients';
@@ -38,7 +38,7 @@ import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
 import { AdBanner } from '@/src/views/web/components/AdBanner';
 
-const KPI_ICONS = { matches: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp } as const;
+const KPI_ICONS = { matches: Briefcase, applications: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp, events: Calendar } as const;
 
 const STUDENT_MOCK = {
   student: MOCK.STUDENT,
@@ -77,7 +77,75 @@ export function DashboardView() {
   const RECOMMENDED_MENTORS = data!.recommendedMentors;
   const UPCOMING_EVENTS = data!.upcomingEvents;
   const PROFILE_COMPLETION = data!.profileCompletion;
+  const stats = (data as any)?.stats || {
+    profile_strength: (data as any)?.profileCompletion?.score ?? 92,
+    profile_subtext: ((data as any)?.profileCompletion?.score ?? 92) >= 100 ? "All set!" : "Keep going!",
+    applications: 16,
+    applications_subtext: "2 new updates",
+    network: 128,
+    network_subtext: "Connections",
+    events: 7,
+    events_subtext: "Upcoming",
+  };
   const displayJobs = jobsFeed?.items || [];
+  const [appliedJobIds, setAppliedJobIds] = useState<Record<string, boolean>>({});
+  const [savedJobIds, setSavedJobIds] = useState<Record<string, boolean>>({});
+
+  const [applyModalJob, setApplyModalJob] = useState<any>(null);
+
+  const handleApplyJob = async (item: any) => {
+    const jobId = item.job_id || String(item.id);
+    const company = item.company || '—';
+    const title = item.role || item.title || 'Role';
+    const isApplied = item.applied || appliedJobIds[jobId];
+
+    if (isApplied) {
+      toast.info('Already Applied', `You have already applied for ${title} at ${company}.`);
+      return;
+    }
+
+    const applyUrl = item.source_urls?.[0] || item.url || item.apply_url || '';
+    if (!applyUrl) { toast.warning('No apply link', 'This job did not include an apply URL.'); return; }
+
+    if (Platform.OS === 'web') {
+      try {
+        const win = window.open(applyUrl, '_blank');
+        if (win) {
+          setApplyModalJob(item);
+        } else {
+          toast.error('Popup Blocked', 'Please allow popups in your browser to proceed.');
+        }
+      } catch (e: any) {
+        toast.error('Could not open page', e?.message || 'Please try again.');
+      }
+    } else {
+      Linking.openURL(applyUrl)
+        .then(() => {
+          setApplyModalJob(item);
+        })
+        .catch((err) => {
+          toast.error('Could not open link', err?.message || 'No app available to open this link.');
+        });
+    }
+  };
+
+  const handleSaveJob = async (item: any) => {
+    const jobId = item.job_id || String(item.id);
+    const isSaved = item.saved || savedJobIds[jobId];
+    const endpoint = isSaved ? '/jobs/unsave' : '/jobs/save';
+
+    setSavedJobIds((prev) => ({ ...prev, [jobId]: !isSaved }));
+
+    try {
+      await request(endpoint, {
+        method: 'POST',
+        body: { job_id: jobId },
+      });
+      toast.success(isSaved ? 'Removed' : 'Saved! 🔖', isSaved ? 'Removed from saved jobs.' : 'Saved to your bookmarks.');
+    } catch (e: any) {
+      toast.error('Error', e?.message || 'Failed to update saved status');
+    }
+  };
 
   const COURSES_DATA = [
     { id: 1, title: 'React - The Complete Guide', provider: 'Udemy', hours: '38 hours', level: 'Advanced', rating: '4.7', learners: '12.4k learners', logo: 'React', logoColor: '#61DAFB', bg: 'rgba(97, 218, 251, 0.1)' },
@@ -201,8 +269,8 @@ export function DashboardView() {
         <View style={[glassStyle(), s.kpiCardMockup]}>
           <View style={s.kpiCardLeft}>
             <Text style={[s.kpiTitleText, { color: '#C084FC' }]}>Profile Strength</Text>
-            <Text style={s.kpiValText}>92%</Text>
-            <Text style={s.kpiSubText}>Keep going!</Text>
+            <Text style={s.kpiValText}>{stats.profile_strength}%</Text>
+            <Text style={s.kpiSubText}>{stats.profile_subtext}</Text>
           </View>
           <View style={s.kpiCardRight}>
             <View style={s.progressRingOuter}>
@@ -216,8 +284,8 @@ export function DashboardView() {
         <View style={[glassStyle(), s.kpiCardMockup]}>
           <View style={s.kpiCardLeft}>
             <Text style={[s.kpiTitleText, { color: '#818CF8' }]}>Applications</Text>
-            <Text style={s.kpiValText}>16</Text>
-            <Text style={s.kpiSubText}>2 new updates</Text>
+            <Text style={s.kpiValText}>{stats.applications}</Text>
+            <Text style={s.kpiSubText}>{stats.applications_subtext}</Text>
           </View>
           <View style={s.kpiCardRight}>
             <View style={[s.kpiIconBox, { backgroundColor: 'rgba(99, 102, 241, 0.15)', borderColor: 'rgba(99, 102, 241, 0.3)' }]}>
@@ -230,8 +298,8 @@ export function DashboardView() {
         <View style={[glassStyle(), s.kpiCardMockup]}>
           <View style={s.kpiCardLeft}>
             <Text style={[s.kpiTitleText, { color: '#C084FC' }]}>Network</Text>
-            <Text style={s.kpiValText}>128</Text>
-            <Text style={s.kpiSubText}>Connections</Text>
+            <Text style={s.kpiValText}>{stats.network}</Text>
+            <Text style={s.kpiSubText}>{stats.network_subtext}</Text>
           </View>
           <View style={s.kpiCardRight}>
             <View style={[s.kpiIconBox, { backgroundColor: 'rgba(192, 132, 252, 0.15)', borderColor: 'rgba(192, 132, 252, 0.3)' }]}>
@@ -244,8 +312,8 @@ export function DashboardView() {
         <View style={[glassStyle(), s.kpiCardMockup]}>
           <View style={s.kpiCardLeft}>
             <Text style={[s.kpiTitleText, { color: '#F87171' }]}>Events</Text>
-            <Text style={s.kpiValText}>7</Text>
-            <Text style={s.kpiSubText}>Upcoming</Text>
+            <Text style={s.kpiValText}>{stats.events}</Text>
+            <Text style={s.kpiSubText}>{stats.events_subtext}</Text>
           </View>
           <View style={s.kpiCardRight}>
             <View style={[s.kpiIconBox, { backgroundColor: 'rgba(248, 113, 113, 0.15)', borderColor: 'rgba(248, 113, 113, 0.3)' }]}>
@@ -313,6 +381,8 @@ export function DashboardView() {
                 const initials = (company || '?')[0].toUpperCase();
                 const logoColor = item.logoColor || '#fff';
                 const logoBg = item.bg || pickColor(company);
+                const isApplied = item.applied || appliedJobIds[jobId];
+                const isSaved = item.saved || savedJobIds[jobId];
                 return (
                   <React.Fragment key={jobId}>
                     {idx > 0 && <View style={s.divider} />}
@@ -341,14 +411,20 @@ export function DashboardView() {
                         </View>
                       </View>
                       <View style={s.itemActionCol}>
-                        <Pressable style={s.bookmarkBtn}>
-                          <Bookmark size={14} color="#A78BFA" />
+                        <Pressable onPress={() => handleSaveJob(item)} style={s.bookmarkBtn}>
+                          {isSaved ? (
+                            <BookmarkCheck size={14} color="#A78BFA" />
+                          ) : (
+                            <Bookmark size={14} color="#A78BFA" />
+                          )}
                         </Pressable>
                         <Pressable 
-                          onPress={() => portalNav?.navigate('internships', { q: company })}
-                          style={s.applyBtn}
+                          onPress={() => handleApplyJob(item)}
+                          style={[s.applyBtn, isApplied && { backgroundColor: 'rgba(16, 185, 129, 0.2)', borderColor: 'rgba(16, 185, 129, 0.4)' }]}
                         >
-                          <Text style={s.applyBtnText}>Apply</Text>
+                          <Text style={[s.applyBtnText, isApplied && { color: '#34D399' }]}>
+                            {isApplied ? 'Applied' : 'Apply'}
+                          </Text>
                         </Pressable>
                       </View>
                     </View>
@@ -531,7 +607,7 @@ export function DashboardView() {
           <Stagger gap={70} baseDelay={120}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           {KPIS.map((k) => {
-            const Icon = KPI_ICONS[k.id as keyof typeof KPI_ICONS];
+            const Icon = KPI_ICONS[k.id as keyof typeof KPI_ICONS] || Briefcase;
             return <KpiCard key={k.id} Icon={Icon} label={k.label} value={k.value} delta={k.delta} color={k.color} />;
           })}
         </View>
@@ -695,6 +771,98 @@ export function DashboardView() {
       </LinearGradient>
       </>
       )}
+
+      {/* Did you apply modal? */}
+      <Modal
+        visible={applyModalJob !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setApplyModalJob(null)}
+      >
+        <View style={s.modalBg}>
+          <GlassCard radius={16} padding={22} style={s.modalCard}>
+            <View style={s.modalHeader}>
+              <View style={s.modalIconDisc}>
+                <Briefcase size={18} color="#FCD34D" />
+              </View>
+              <Text style={s.modalTitle}>Applying to External Job?</Text>
+            </View>
+            <Text style={s.modalText}>
+              We redirected you to the recruiter's page for{" "}
+              <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>
+                {applyModalJob?.role || applyModalJob?.title || 'the role'}
+              </Text>{" "}
+              at{" "}
+              <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>
+                {applyModalJob?.company || 'the company'}
+              </Text>.
+            </Text>
+            <Text style={s.modalSubtext}>
+              Once you finish submitting your details on their platform, confirm it here to track its progress in your dashboard!
+            </Text>
+
+            <View style={s.modalBtnRow}>
+              <Pressable
+                onPress={() => setApplyModalJob(null)}
+                style={({ hovered }: any) => [
+                  s.modalCancelBtn,
+                  hovered && { backgroundColor: 'rgba(255,255,255,0.06)' }
+                ]}
+              >
+                <Text style={s.modalCancelTxt}>Cancel</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={async () => {
+                  if (!applyModalJob) return;
+                  const job = applyModalJob;
+                  const jobId = job.job_id || String(job.id);
+                  setApplyModalJob(null);
+                  try {
+                    await request(`/student/internships/${jobId}/apply`, {
+                      method: 'POST',
+                      body: {
+                        student_email: authUser?.email || undefined,
+                        cover_note: 'Applied via external redirection link.'
+                      }
+                    });
+                    toast.success(
+                      'Application Tracked! 🎉',
+                      `Successfully added ${job.role || job.title} at ${job.company} to your My Applications dashboard.`
+                    );
+                    
+                    setAppliedJobIds((prev) => ({ ...prev, [jobId]: true }));
+                  } catch (err: any) {
+                    try {
+                      await request('/jobs/track-apply', {
+                        method: 'POST',
+                        body: { job_id: jobId, source_url: job.source_urls?.[0] || job.url || job.apply_url || '' },
+                      });
+                      toast.success(
+                        'Application Tracked! 🎉',
+                        `Successfully added ${job.role || job.title} at ${job.company} to your My Applications dashboard.`
+                      );
+                      
+                      setAppliedJobIds((prev) => ({ ...prev, [jobId]: true }));
+                    } catch (e: any) {
+                      toast.error('Could not track application', e.message);
+                    }
+                  }
+                }}
+              >
+                <LinearGradient
+                  colors={[GRAD.from, GRAD.to]}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                  style={s.modalConfirmBtn}
+                >
+                  <Text style={s.modalConfirmTxt}>Yes, I've Applied</Text>
+                </LinearGradient>
+              </Pressable>
+            </View>
+          </GlassCard>
+        </View>
+      </Modal>
+
     </View>
   );
 }
@@ -1190,5 +1358,21 @@ function getStableMockData(jobId: string, company: string, jobType: string) {
     const salaries = ['₹8-12 LPA', '₹14-18 LPA', '₹22-28 LPA', '₹32-38 LPA'];
     fallbackSalary = salaries[hash % salaries.length];
   }
-  return { matchPct, fallbackSalary };
+    return { matchPct, fallbackSalary };
 }
+
+  // Inject modal styles directly into s
+  Object.assign(s, StyleSheet.create({
+    modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 99999 },
+    modalCard: { width: '100%', maxWidth: 480, backgroundColor: '#111827', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 16, padding: 22 },
+    modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+    modalIconDisc: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(124,58,237,0.16)', borderColor: 'rgba(124,58,237,0.40)', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+    modalTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 17, letterSpacing: -0.3 },
+    modalText: { color: SC.muted, fontFamily: FONTS.med, fontSize: 13, lineHeight: 18, marginBottom: 12 },
+    modalSubtext: { color: SC.dim, fontFamily: FONTS.med, fontSize: 12, lineHeight: 16, marginBottom: 20 },
+    modalBtnRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
+    modalCancelBtn: { paddingHorizontal: 16, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' },
+    modalCancelTxt: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 12.5 },
+    modalConfirmBtn: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 18, height: 36, borderRadius: 10 },
+    modalConfirmTxt: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12.5 },
+  }));
