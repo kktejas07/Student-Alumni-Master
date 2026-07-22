@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { AlertTriangle, ArrowLeft, Check, Copy, Download, Mail, Shield, ShieldCheck } from 'lucide-react-native';
+import { ArrowLeft, Copy, Download, ShieldCheck } from 'lucide-react-native';
 import { useToast } from '@/src/views/components';
 import { AuthShell } from '@/src/views/auth/AuthShell';
 import {
@@ -28,10 +28,10 @@ const IS_WEB = Platform.OS === 'web';
 type Method = 'authenticator' | 'sms' | 'email';
 type Step = 0 | 1 | 2 | 3 | 4;
 
-const METHODS: { id: Method; icon: string; title: string; sub: string; rec?: boolean }[] = [
-  { id: 'authenticator', icon: 'Smartphone', title: 'Authenticator App', sub: 'Google Authenticator, Authy, etc.', rec: true },
-  { id: 'sms',           icon: 'MessageSquare', title: 'SMS / WhatsApp',    sub: 'Send code to your mobile number' },
-  { id: 'email',         icon: 'Mail', title: 'Email OTP',         sub: 'Send code to your verified email' },
+const METHODS: { id: Method; emoji: string; title: string; sub: string; rec?: boolean }[] = [
+  { id: 'authenticator', emoji: '📱', title: 'Authenticator App', sub: 'Google Authenticator, Authy, etc.', rec: true },
+  { id: 'sms',           emoji: '💬', title: 'SMS / WhatsApp',    sub: 'Send code to your mobile number' },
+  { id: 'email',         emoji: '📧', title: 'Email OTP',         sub: 'Send code to your verified email' },
 ];
 
 const BACKUP_CODES = ['8F2K-4X9P', '3J7N-2M1Q', '6R4H-8T5W', '1Y3C-9L6E', '5B8D-7A2V', '4G6F-1N3K'];
@@ -92,7 +92,7 @@ export default function TwoFASetup() {
         <View>
           <View style={{ alignItems: 'center', marginBottom: 18 }}>
             <View style={styles.heroIcon}>
-              <Shield size={32} color="#7C3AED" />
+              <Text style={{ fontSize: 32 }}>🛡️</Text>
             </View>
           </View>
           <Text style={styles.h1}>Two-Factor Authentication</Text>
@@ -101,7 +101,7 @@ export default function TwoFASetup() {
             {METHODS.map((m) => (
               <WebOptionRow
                 key={m.id}
-                icon={m.icon}
+                emoji={m.emoji}
                 title={m.title}
                 subtitle={m.sub}
                 recommended={m.rec}
@@ -120,7 +120,7 @@ export default function TwoFASetup() {
       {/* STEP 1 — Setup */}
       {step === 1 && method === 'authenticator' && (
         <View>
-          <Text style={styles.h2}>Scan QR Code</Text>
+          <Text style={styles.h2}>Scan QR Code 📱</Text>
           <Text style={styles.sub}>Open your authenticator app and scan this code, or enter the key manually.</Text>
           <View style={{ alignItems: 'center', marginBottom: 16 }}>
             <View style={styles.qrFrame}>
@@ -140,9 +140,9 @@ export default function TwoFASetup() {
 
       {step === 1 && method === 'sms' && (
         <View>
-          <Text style={styles.h2}>Add your number</Text>
+          <Text style={styles.h2}>Add your number 💬</Text>
           <Text style={styles.sub}>We'll send you a verification code via SMS or WhatsApp.</Text>
-          <WebField label="Country code" value="IN +91" onChangeText={() => {}} />
+          <WebField label="Country code" value="🇮🇳 +91" onChangeText={() => {}} />
           <WebField label="Mobile number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="98765 43210" />
           <WebPrimaryBtn label="Send code" onPress={onContinue} testID="twofa-sms-send-btn" />
         </View>
@@ -150,15 +150,15 @@ export default function TwoFASetup() {
 
       {step === 1 && method === 'email' && (
         <View>
-          <Text style={styles.h2}>Email verification</Text>
+          <Text style={styles.h2}>Email verification 📧</Text>
           <Text style={styles.sub}>We'll send a 6-digit code to your verified email whenever you log in.</Text>
           <View style={styles.verifiedEmailCard}>
             <Text style={styles.verifiedEmailLabel}>VERIFIED EMAIL</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <Mail size={18} color="#FFFFFF" />
+              <Text style={{ fontSize: 18 }}>✉️</Text>
               <Text style={styles.verifiedEmailVal}>rahul@alumni.edu</Text>
               <View style={styles.smallBadge}>
-                <Text style={styles.smallBadgeText}>Verified</Text>
+                <Text style={styles.smallBadgeText}>✓ Verified</Text>
               </View>
             </View>
           </View>
@@ -169,7 +169,7 @@ export default function TwoFASetup() {
       {/* STEP 2 — Verify */}
       {step === 2 && (
         <View>
-          <Text style={styles.h2}>Enter verification code</Text>
+          <Text style={styles.h2}>Enter verification code 🔢</Text>
           <Text style={styles.sub}>
             {method === 'authenticator'
               ? 'Enter the 6-digit code from your authenticator app.'
@@ -179,10 +179,7 @@ export default function TwoFASetup() {
           </Text>
           <OTPInput value={otp} onChange={setOtp} state={otpState} />
           {otpState === 'success' && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 12 }}>
-              <Check size={14} color="#34D399" />
-              <Text style={[styles.otpSuccess, { marginBottom: 0 }]}>Code verified!</Text>
-            </View>
+            <Text style={styles.otpSuccess}>✓ Code verified!</Text>
           )}
           <WebPrimaryBtn label="Verify & enable" onPress={verifyOTP} testID="twofa-verify-btn" />
         </View>
@@ -191,7 +188,7 @@ export default function TwoFASetup() {
       {/* STEP 3 — Backup codes */}
       {step === 3 && (
         <View>
-          <Text style={styles.h2}>Save backup codes</Text>
+          <Text style={styles.h2}>Save backup codes 📋</Text>
           <Text style={styles.sub}>Keep these somewhere safe. Each code can only be used once if you lose access to your 2FA device.</Text>
           <View style={styles.codesGrid}>
             {BACKUP_CODES.map((code, i) => (
@@ -217,7 +214,7 @@ export default function TwoFASetup() {
             </Pressable>
           </View>
           <View style={styles.warnBox}>
-            <AlertTriangle size={16} color="#FCD34D" />
+            <Text style={{ fontSize: 16 }}>⚠️</Text>
             <Text style={styles.warnText}>Store these codes securely. They won't be shown again.</Text>
           </View>
           <WebPrimaryBtn label="I've saved my codes →" onPress={onContinue} testID="twofa-saved-btn" />
@@ -230,7 +227,7 @@ export default function TwoFASetup() {
           <View style={styles.successRing}>
             <ShieldCheck size={36} color="#34D399" />
           </View>
-          <Text style={[styles.h2, { textAlign: 'center', marginTop: 4 }]}>2FA Enabled!</Text>
+          <Text style={[styles.h2, { textAlign: 'center', marginTop: 4 }]}>2FA Enabled! 🎉</Text>
           <Text style={[styles.sub, { textAlign: 'center', maxWidth: 320 }]}>
             Your account is now protected with two-factor authentication via{' '}
             <Text style={{ color: '#FFFFFF', fontFamily: 'DMSans_700Bold' }}>
@@ -238,8 +235,7 @@ export default function TwoFASetup() {
             </Text>.
           </Text>
           <View style={[styles.smallBadge, { marginTop: 4, marginBottom: 22 }]}>
-            <ShieldCheck size={12} color="#86EFAC" />
-            <Text style={styles.smallBadgeText}>Account Secured</Text>
+            <Text style={styles.smallBadgeText}>🛡️  Account Secured</Text>
           </View>
 
           <View style={styles.summaryCard}>

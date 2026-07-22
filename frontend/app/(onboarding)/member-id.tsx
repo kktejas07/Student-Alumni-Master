@@ -68,7 +68,7 @@ export default function MemberId() {
 
   const onShare = async () => {
     try {
-      const text = `I'm an SA member!\nMember ID: ${uid}\nVerify: https://studentalumni.app/verify/${uid.split('-').pop()}`;
+      const text = `I'm an SA member! 🎓\nMember ID: ${uid}\nVerify: https://studentalumni.app/verify/${uid.split('-').pop()}`;
       if (Platform.OS === 'web' && (navigator as any).share) {
         await (navigator as any).share({ title: 'My SA Member ID', text });
         return;

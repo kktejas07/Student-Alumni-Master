@@ -104,8 +104,6 @@ start_backend() {
   load_env
 
   cd "$BACKEND_DIR"
-  BACKEND_URL="${BACKEND_URL:-http://localhost:8002}" \
-  FRONTEND_URL="${FRONTEND_URL:-http://localhost:8081}" \
   "$VENV_BIN/python" -m uvicorn server:app \
     --host 0.0.0.0 --port 8002 --reload \
     --log-level info &

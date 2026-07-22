@@ -13,7 +13,7 @@ import { getBaseUrl } from '@/src/lib/env';
  * Reuses AuthShell + AuthControls + ROLE_META tokens for consistency with the
  * rest of the auth flow. No backend schema changes other than /auth/check-email.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Svg, { Path, G } from 'react-native-svg';
@@ -48,19 +48,6 @@ export default function EmailDetect() {
   const router = useRouter();
   const params = useLocalSearchParams<{ role?: Role; email?: string }>();
   const role: Role | undefined = params.role as Role;
-
-  const [oauthCfg, setOauthCfg] = useState<{
-    enabled_providers?: { google: boolean; linkedin: boolean; github: boolean };
-  } | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`${BASE}/api/auth/oauth-config`);
-        if (res.ok) setOauthCfg(await res.json());
-      } catch {}
-    })();
-  }, []);
 
   const [email, setEmail] = useState(params.email || '');
   const [loading, setLoading] = useState(false);
@@ -126,6 +113,13 @@ export default function EmailDetect() {
     router.push({ pathname: '/(auth)/email-otp', params: { email } });
   };
 
+  const onOAuth = (provider: 'google' | 'linkedin') => {
+    trackAuth({ event: 'oauth_attempt', role, extra: { provider } });
+    // NOTE: OAuth client IDs must be configured before production. For now this
+    // is a placeholder; provider selection is captured in analytics.
+    setError(`${provider === 'google' ? 'Google' : 'LinkedIn'} sign-in is coming soon.`);
+  };
+
   return (
     <AuthShell role={role}>
       <Pressable onPress={() => router.back()} style={s.back}>
@@ -158,33 +152,20 @@ export default function EmailDetect() {
         <PrimaryButton label="Continue" onPress={onContinue} loading={loading} />
       </View>
 
-      {oauthCfg?.enabled_providers && (oauthCfg.enabled_providers.linkedin || oauthCfg.enabled_providers.google) && (
-        <>
-          <View style={s.divider}>
-            <View style={s.line} />
-            <Text style={s.dividerText}>or sign in with</Text>
-            <View style={s.line} />
-          </View>
-          <View style={s.oauthRow}>
-            {oauthCfg.enabled_providers.linkedin && (
-              <View style={{ flex: 1 }}>
-                <OutlineButton label="LinkedIn" icon={<LinkedInIn size={16} />} onPress={() => {
-                  trackAuth({ event: 'oauth_attempt', role, extra: { provider: 'linkedin' } });
-                  router.push({ pathname: '/(auth)/login', params: { role, email } });
-                }} />
-              </View>
-            )}
-            {oauthCfg.enabled_providers.google && (
-              <View style={{ flex: 1 }}>
-                <OutlineButton label="Google" icon={<GoogleG size={16} />} onPress={() => {
-                  trackAuth({ event: 'oauth_attempt', role, extra: { provider: 'google' } });
-                  router.push({ pathname: '/(auth)/login', params: { role, email } });
-                }} />
-              </View>
-            )}
-          </View>
-        </>
-      )}
+      <View style={s.divider}>
+        <View style={s.line} />
+        <Text style={s.dividerText}>or sign in with</Text>
+        <View style={s.line} />
+      </View>
+
+      <View style={s.oauthRow}>
+        <View style={{ flex: 1 }}>
+          <OutlineButton label="LinkedIn" icon={<LinkedInIn size={16} />} onPress={() => onOAuth('linkedin')} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <OutlineButton label="Google" icon={<GoogleG size={16} />} onPress={() => onOAuth('google')} />
+        </View>
+      </View>
 
       <View style={{ marginTop: 10 }}>
         <OutlineButton label="Sign in with Email OTP" icon={<Mail size={16} color={AC.muted} />} onPress={onOtpSignin} />

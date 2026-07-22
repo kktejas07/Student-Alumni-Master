@@ -244,7 +244,7 @@ export default function SchoolInfoScreen() {
       {isInter && (
         <DarkInfoCard tone="warning">
           <Text style={styles.warnText}>
-            Students must be in Class 11 (+1) or Class 12 (+2) to register.
+            {'⚠️'}  Students must be in Class 11 (+1) or Class 12 (+2) to register.
           </Text>
         </DarkInfoCard>
       )}
@@ -445,7 +445,7 @@ export default function SchoolInfoScreen() {
             </View>
           </View>
           <Text style={styles.hint}>
-            Manual mode — fill in the address yourself.
+            {'✏️'}  Manual mode — fill in the address yourself.
           </Text>
         </>
       ) : (
@@ -462,7 +462,7 @@ export default function SchoolInfoScreen() {
                   || 'City & state will appear here'}
               </Text>
               <Text style={styles.hint}>
-                Auto-filled from the institution. Toggle “Edit manually” to override.
+                {'✨'}  Auto-filled from the institution. Toggle “Edit manually” to override.
               </Text>
             </>
           ) : (

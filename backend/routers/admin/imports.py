@@ -951,24 +951,9 @@ async def list_users(
         ]
     total = await _db.users.count_documents(match)
     # Sort newest first — created_at desc, falling back to _id desc
-    cursor = _db.users.find(match)
-    all_users = await cursor.to_list(10000)
-    def get_created_at(x):
-        dt = x.get("created_at")
-        if dt is None:
-            return datetime.min.replace(tzinfo=timezone.utc)
-        if isinstance(dt, str):
-            try:
-                dt = datetime.fromisoformat(dt)
-            except Exception:
-                return datetime.min.replace(tzinfo=timezone.utc)
-        if dt.tzinfo is None:
-            return dt.replace(tzinfo=timezone.utc)
-        return dt
-    all_users.sort(key=lambda u: (get_created_at(u), str(u.get("_id", ""))), reverse=True)
-    raw_items = all_users[offset : offset + limit]
+    cur = _db.users.find(match).sort([("created_at", -1), ("_id", -1)]).skip(offset).limit(limit)
     items = []
-    for u in raw_items:
+    async for u in cur:
         # Derive 2 tags from category + degree/headline keywords
         tags: List[str] = []
         cat = u.get("category") or u.get("role") or "student"

@@ -224,7 +224,7 @@ export default function RoleDetailsScreen() {
         <>
           <DarkInfoCard tone="info">
             <Text style={styles.infoText}>
-              Mentor accounts are reviewed by our team for quality. You'll be notified once approved (24–48 hours).
+              📝 Mentor accounts are reviewed by our team for quality. You'll be notified once approved (24–48 hours).
             </Text>
           </DarkInfoCard>
           <Text style={styles.section}>Mentorship Archetype</Text>

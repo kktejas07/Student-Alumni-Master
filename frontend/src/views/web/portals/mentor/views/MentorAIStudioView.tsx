@@ -59,7 +59,7 @@ const RESOURCES = [
   'Mock Interview Videos',
 ];
 
-export function MentorAIStudioView({ demoMode = true }: { demoMode?: boolean }) {
+export function MentorAIStudioView() {
   const [pulse, setPulse] = useState<Mentee[]>([]);
   const [gaps, setGaps] = useState<SkillGap[]>([]);
   const [impact, setImpact] = useState<Impact | null>(null);
@@ -88,13 +88,6 @@ export function MentorAIStudioView({ demoMode = true }: { demoMode?: boolean }) 
         request('/mentor/ai-studio/impact'),
         request('/bookings/me').catch(() => ({ bookings: [] })),
       ]);
-      if (!demoMode) {
-        setPulse([]);
-        setGaps([]);
-        setImpact({ mentees_total: 0, sessions_last_30d: 0, milestones_completed_total: 0, badges_earned_total: 0, avg_mentee_progress_pct: 0 });
-        setUpcoming([]);
-        return;
-      }
       setPulse(a.items || []);
       setGaps(b.items || []);
       setImpact(c || null);
@@ -114,7 +107,7 @@ export function MentorAIStudioView({ demoMode = true }: { demoMode?: boolean }) 
     } catch (e: any) {
       console.warn('Mentor AI load failed', e?.message);
     } finally { setLoading(false); }
-  }, [demoMode]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
