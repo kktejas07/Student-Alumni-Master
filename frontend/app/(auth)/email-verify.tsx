@@ -1,11 +1,3 @@
-/**
- * Email Verification screen — web (centered glass card) + native (full screen).
- *
- * States:
- *   0 = pending         — show "we sent a link to user@email" + status / timer
- *   1 = verifying       — spinner with "Verifying your email…"
- *   2 = verified        — success ✓ + CTA to set up 2FA / skip
- */
 import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Animated, Easing,
@@ -13,13 +5,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, ShieldCheck } from 'lucide-react-native';
+import { ArrowLeft, ShieldCheck, Mail, Send, Clock, ExternalLink } from 'lucide-react-native';
 import { useToast } from '@/src/views/components';
 import { AuthWebShell } from '@/src/views/web/AuthWebShell';
 import { WebPrimaryBtn, WebGhostBtn } from '@/src/views/web/AuthWebControls';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { getBaseUrl } from '@/src/lib/env';
 
 const IS_WEB = Platform.OS === 'web';
+const BASE = getBaseUrl();
 
 export default function EmailVerify() {
   const router = useRouter();
@@ -27,10 +21,12 @@ export default function EmailVerify() {
   const email = params.email || 'rahul@alumni.edu';
   const toast = useToast();
   const role = useAuthStore((u) => u.user?.role) as any;
+  const user = useAuthStore((u) => u.user);
 
-  const [step, setStep] = useState<0 | 1 | 2>(0);
   const [resending, setResending] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
+  const [verified, setVerified] = useState(user?.email_verified || false);
+  const [polling, setPolling] = useState(false);
 
   useEffect(() => {
     if (resendTimer > 0) {
@@ -39,25 +35,56 @@ export default function EmailVerify() {
     }
   }, [resendTimer]);
 
-  const verify = () => {
-    setStep(1);
-    setTimeout(() => {
-      setStep(2);
-      toast.success('Email verified', 'Your account is now fully active.');
-    }, 1300);
-  };
+  useEffect(() => {
+    fetch(`${BASE}/api/auth/send-verification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    }).catch(() => {});
+  }, []);
 
-  const resend = () => {
+  // Poll /auth/me to check email_verified status
+  useEffect(() => {
+    if (verified) return;
+    setPolling(true);
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${BASE}/api/auth/me`, {
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.user?.email_verified || data?.email_verified) {
+            setVerified(true);
+            setPolling(false);
+            clearInterval(interval);
+            toast.success('Email verified', 'Your account is now fully active.');
+          }
+        }
+      } catch {}
+    }, 3000);
+    return () => {
+      clearInterval(interval);
+      setPolling(false);
+    };
+  }, [verified]);
+
+  const resend = async () => {
     setResending(true);
-    setTimeout(() => {
-      setResending(false);
-      setResendTimer(60);
-      toast.info('Verification email resent', `New link sent to ${email}`);
-    }, 1000);
+    try {
+      await fetch(`${BASE}/api/auth/send-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+    } catch {}
+    setResending(false);
+    setResendTimer(60);
+    toast.info('Verification email resent', `Check ${email} for the verification link.`);
   };
 
   const skipToDashboard = () => {
-    // Per spec — go through Welcome Dashboard transition before landing on portal
     router.replace('/(onboarding)/welcome-dashboard' as any);
   };
 
@@ -67,17 +94,15 @@ export default function EmailVerify() {
 
   const Body = (
     <View>
-      {step === 0 && <PendingView email={email} onVerify={verify} onResend={resend} onChangeEmail={() => router.back()} resending={resending} resendTimer={resendTimer} />}
-      {step === 1 && <VerifyingView />}
-      {step === 2 && <DoneView onSetup2FA={goSetup2FA} onSkip={skipToDashboard} />}
+      {!verified && <PendingView email={email} onResend={resend} resending={resending} resendTimer={resendTimer} polling={polling} />}
+      {verified && <DoneView onSetup2FA={goSetup2FA} onSkip={skipToDashboard} />}
     </View>
   );
 
-  // ─── Web ─────────────────────────────────────────────────────────────────
   if (IS_WEB) {
     return (
       <AuthWebShell variant="center" cardMaxWidth={460} role={role}>
-        {step === 0 && (
+        {!verified && (
           <Pressable
             onPress={() => router.back()}
             style={({ hovered }: any) => [styles.back, hovered && { opacity: 1 }]}
@@ -92,11 +117,10 @@ export default function EmailVerify() {
     );
   }
 
-  // ─── Native ──────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={nativeStyles.safe} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={nativeStyles.container}>
-        {step === 0 && (
+        {!verified && (
           <Pressable onPress={() => router.back()} style={nativeStyles.backNative} testID="verify-back">
             <ArrowLeft size={22} color="rgba(255,255,255,0.85)" />
           </Pressable>
@@ -107,14 +131,11 @@ export default function EmailVerify() {
   );
 }
 
-// ─── State views ─────────────────────────────────────────────────────────────
-
 function PendingView({
-  email, onVerify, onResend, onChangeEmail, resending, resendTimer,
+  email, onResend, resending, resendTimer, polling,
 }: {
-  email: string; onVerify: () => void; onResend: () => void; onChangeEmail: () => void; resending: boolean; resendTimer: number;
+  email: string; onResend: () => void; resending: boolean; resendTimer: number; polling: boolean;
 }) {
-  // "Float" animation on email icon
   const floatY = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.loop(
@@ -129,7 +150,7 @@ function PendingView({
     <View>
       <View style={{ alignItems: 'center', marginBottom: 24 }}>
         <Animated.View style={[styles.iconHero, { transform: [{ translateY: floatY }] }]}>
-          <Text style={{ fontSize: 44 }}>📧</Text>
+          <Mail size={36} color="#C4B5FD" />
         </Animated.View>
       </View>
       <Text style={styles.h1}>Verify your email address</Text>
@@ -138,16 +159,15 @@ function PendingView({
         <Text style={styles.emailHi}>{email}</Text>
       </Text>
 
-      {/* Status card */}
       <View style={styles.statusCard}>
         {[
-          { emoji: '📤', label: 'Email sent',   value: '2 minutes ago',    color: 'rgba(255,255,255,0.6)' },
-          { emoji: '⏳', label: 'Link expires', value: 'In 23 minutes',    color: '#FCD34D' },
-          { emoji: '🔒', label: 'Secure',       value: 'One-time use link', color: '#86EFAC' },
+          { icon: Send,     label: 'Email sent',   value: 'Link sent',            color: 'rgba(255,255,255,0.6)' },
+          { icon: ExternalLink, label: 'Click link', value: 'Verifies instantly', color: '#86EFAC' },
+          { icon: Clock,    label: 'Link expires', value: 'In 30 minutes',        color: '#FCD34D' },
         ].map((row, i, arr) => (
           <View key={row.label} style={[styles.statusRow, i < arr.length - 1 && styles.statusRowDivider]}>
             <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
-              <Text style={{ fontSize: 17 }}>{row.emoji}</Text>
+              <row.icon size={15} color="rgba(255,255,255,0.4)" />
               <Text style={styles.statusLabel}>{row.label}</Text>
             </View>
             <Text style={[styles.statusVal, { color: row.color }]}>{row.value}</Text>
@@ -155,47 +175,34 @@ function PendingView({
         ))}
       </View>
 
-      {/* Progress timer */}
-      <View style={{ marginBottom: 22 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-          <Text style={styles.timerLabel}>Time remaining</Text>
-          <Text style={styles.timerVal}>23 min</Text>
+      {polling && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 18 }}>
+          <ActivityIndicator size="small" color="#A78BFA" />
+          <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>Waiting for verification...</Text>
         </View>
-        <View style={styles.timerTrack}>
-          <View style={styles.timerFill} />
-        </View>
+      )}
+
+      <WebGhostBtn
+        label={resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend verification link'}
+        disabled={resendTimer > 0 || resending}
+        loading={resending}
+        onPress={onResend}
+        testID="verify-resend"
+      />
+
+      <View style={{ alignItems: 'center', marginTop: 20 }}>
+        <Text style={styles.changeEmailText}>
+          Didn't receive it? Check your spam folder or{' '}
+          <Pressable onPress={onResend} style={({ hovered }: any) => [{ opacity: hovered ? 1 : 0.85 }]}>
+            <Text style={styles.changeEmailLink}>resend</Text>
+          </Pressable>
+        </Text>
       </View>
-
-      <WebPrimaryBtn label="I've verified my email →" onPress={onVerify} testID="verify-email" />
-      <View style={{ height: 10 }} />
-      <WebGhostBtn label={resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend verification email"} disabled={resendTimer > 0 || resending} loading={resending} onPress={onResend} testID="verify-resend" />
-
-      <View style={{ alignItems: 'center', marginTop: 16 }}>
-        <Pressable
-          onPress={onChangeEmail}
-          style={({ hovered }: any) => [{ opacity: hovered ? 1 : 0.85 }]}
-        >
-          <Text style={styles.changeEmailText}>
-            Wrong email? <Text style={styles.changeEmailLink}>Change email</Text>
-          </Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-}
-
-function VerifyingView() {
-  return (
-    <View style={{ alignItems: 'center', paddingVertical: 60 }}>
-      <ActivityIndicator size="large" color="#A78BFA" />
-      <Text style={[styles.h1, { marginTop: 22, fontSize: 17 }]}>Verifying your email…</Text>
-      <Text style={[styles.sub, { textAlign: 'center', marginTop: 4 }]}>This will only take a moment.</Text>
     </View>
   );
 }
 
 function DoneView({ onSetup2FA, onSkip }: { onSetup2FA: () => void; onSkip: () => void }) {
-  // Pulse animation on success ring
   const scale = useRef(new Animated.Value(0.6)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -208,9 +215,9 @@ function DoneView({ onSetup2FA, onSkip }: { onSetup2FA: () => void; onSkip: () =
   return (
     <View style={{ alignItems: 'center', paddingVertical: 6 }}>
       <Animated.View style={[styles.successRing, { transform: [{ scale }], opacity }]}>
-        <Text style={{ fontSize: 38, color: '#34D399' }}>✓</Text>
+        <ShieldCheck size={40} color="#34D399" />
       </Animated.View>
-      <Text style={[styles.h1, { textAlign: 'center', marginTop: 6 }]}>Email verified! 🎉</Text>
+      <Text style={[styles.h1, { textAlign: 'center', marginTop: 6 }]}>Email verified!</Text>
       <Text style={[styles.sub, { textAlign: 'center', marginBottom: 18 }]}>
         Your email address has been confirmed. Your account is now fully active.
       </Text>
@@ -228,7 +235,6 @@ function DoneView({ onSetup2FA, onSkip }: { onSetup2FA: () => void; onSkip: () =
   );
 }
 
-// ─── styles ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   back: {
     flexDirection: 'row',
@@ -266,7 +272,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   emailHi: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold' },
-
   statusCard: {
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderColor: 'rgba(255,255,255,0.08)',
@@ -285,15 +290,8 @@ const styles = StyleSheet.create({
   statusRowDivider: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   statusLabel: { color: 'rgba(255,255,255,0.6)', fontFamily: 'DMSans_500Medium', fontSize: 13 },
   statusVal: { fontFamily: 'DMSans_700Bold', fontSize: 12 },
-
-  timerLabel: { fontSize: 11, color: 'rgba(255,255,255,0.42)', fontFamily: 'DMSans_600SemiBold' },
-  timerVal: { fontSize: 11, color: '#FCD34D', fontFamily: 'DMSans_700Bold' },
-  timerTrack: { height: 4, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 2 },
-  timerFill: { width: '77%', height: '100%', borderRadius: 2, backgroundColor: '#FCD34D' },
-
-  changeEmailText: { color: 'rgba(255,255,255,0.4)', fontFamily: 'DMSans_400Regular', fontSize: 13 },
+  changeEmailText: { color: 'rgba(255,255,255,0.4)', fontFamily: 'DMSans_400Regular', fontSize: 13, textAlign: 'center' },
   changeEmailLink: { color: '#C4B5FD', fontFamily: 'DMSans_700Bold' },
-
   successRing: {
     width: 88, height: 88, borderRadius: 44,
     backgroundColor: 'rgba(16,185,129,0.18)',

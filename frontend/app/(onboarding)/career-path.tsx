@@ -5,17 +5,22 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Briefcase, GraduationCap, Rocket, TrendingUp } from 'lucide-react-native';
 import { useToast } from '@/src/views/components';
 import { useOnboardingStore } from '@/src/viewmodels/stores/onboardingStore';
 import type { CareerPath } from '@/src/models/entities';
 import { OnboardingShell, DarkChip } from '@/src/views/web/OnboardingShell';
 import { WebField } from '@/src/views/web/AuthWebControls';
 
-const PATHS: { id: CareerPath; emoji: string; title: string; desc: string }[] = [
-  { id: 'job', emoji: '💼', title: 'Job', desc: 'Land a great role in industry — tech, finance, design and more.' },
-  { id: 'higher_education', emoji: '🎓', title: 'Higher Education', desc: 'Pursue Masters, PhD, or research at top global universities.' },
-  { id: 'startup', emoji: '🚀', title: 'Startup', desc: 'Build your own product, find a co-founder, ship and raise funding.' },
-  { id: 'business', emoji: '📈', title: 'Business', desc: 'Lead in corporate, family business or modernize legacy operations.' },
+const PATH_ICONS: Record<string, React.ComponentType<{ size?: number; color?: string }>> = {
+  Briefcase, GraduationCap, Rocket, TrendingUp,
+};
+
+const PATHS: { id: CareerPath; icon: string; title: string; desc: string }[] = [
+  { id: 'job', icon: 'Briefcase', title: 'Job', desc: 'Land a great role in industry — tech, finance, design and more.' },
+  { id: 'higher_education', icon: 'GraduationCap', title: 'Higher Education', desc: 'Pursue Masters, PhD, or research at top global universities.' },
+  { id: 'startup', icon: 'Rocket', title: 'Startup', desc: 'Build your own product, find a co-founder, ship and raise funding.' },
+  { id: 'business', icon: 'TrendingUp', title: 'Business', desc: 'Lead in corporate, family business or modernize legacy operations.' },
 ];
 const SUGGESTED_INTERESTS = ['AI/ML', 'Web Dev', 'Mobile Dev', 'Data Science', 'Cybersecurity', 'Product', 'Marketing', 'Finance', 'Design', 'Robotics', 'Biotech', 'Climate', 'EdTech', 'FinTech', 'Gaming'];
 const STEPS = ['Welcome', 'School', 'Details', 'Photo', 'Done'];
@@ -75,7 +80,7 @@ export default function CareerPathScreen() {
                 pressed && { transform: [{ scale: 0.99 }] },
               ]}
             >
-              <Text style={{ fontSize: 28 }}>{p.emoji}</Text>
+              {(() => { const PIcon = PATH_ICONS[p.icon]; return PIcon ? <PIcon size={28} color="#C4B5FD" /> : null; })()}
               <Text style={[styles.pathTitle, active && { color: '#FFFFFF' }]}>{p.title}</Text>
               <Text style={styles.pathDesc} numberOfLines={3}>{p.desc}</Text>
             </Pressable>

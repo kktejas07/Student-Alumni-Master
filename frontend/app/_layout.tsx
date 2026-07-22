@@ -22,7 +22,7 @@ import {
   Manrope_700Bold,
   Manrope_800ExtraBold,
 } from '@expo-google-fonts/manrope';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
@@ -71,28 +71,32 @@ const SAPaperTheme = {
 };
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
-    DMSans_400Regular,
-    DMSans_500Medium,
-    DMSans_600SemiBold,
-    DMSans_700Bold,
-    DMSans_800ExtraBold,
-    // FinTax360 / Student-portal glass theme typography
-    Outfit_400Regular,
-    Outfit_500Medium,
-    Outfit_600SemiBold,
-    Outfit_700Bold,
-    Outfit_800ExtraBold,
-    PlusJakartaSans_400Regular: Manrope_400Regular,
-    PlusJakartaSans_500Medium: Manrope_500Medium,
-    PlusJakartaSans_600SemiBold: Manrope_600SemiBold,
-    PlusJakartaSans_700Bold: Manrope_700Bold,
-    PlusJakartaSans_800ExtraBold: Manrope_800ExtraBold,
-    JetBrainsMono_400Regular: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    JetBrainsMono_500Medium: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    JetBrainsMono_600SemiBold: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    JetBrainsMono_700Bold: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
+  const [fontsLoaded, fontError] = useFonts(
+    Platform.OS === 'web'
+      ? {}
+      : {
+          DMSans_400Regular,
+          DMSans_500Medium,
+          DMSans_600SemiBold,
+          DMSans_700Bold,
+          DMSans_800ExtraBold,
+          // FinTax360 / Student-portal glass theme typography
+          Outfit_400Regular,
+          Outfit_500Medium,
+          Outfit_600SemiBold,
+          Outfit_700Bold,
+          Outfit_800ExtraBold,
+          PlusJakartaSans_400Regular: Manrope_400Regular,
+          PlusJakartaSans_500Medium: Manrope_500Medium,
+          PlusJakartaSans_600SemiBold: Manrope_600SemiBold,
+          PlusJakartaSans_700Bold: Manrope_700Bold,
+          PlusJakartaSans_800ExtraBold: Manrope_800ExtraBold,
+          JetBrainsMono_400Regular: require('../assets/fonts/SpaceMono-Regular.ttf'),
+          JetBrainsMono_500Medium: require('../assets/fonts/SpaceMono-Regular.ttf'),
+          JetBrainsMono_600SemiBold: require('../assets/fonts/SpaceMono-Regular.ttf'),
+          JetBrainsMono_700Bold: require('../assets/fonts/SpaceMono-Regular.ttf'),
+        }
+  );
 
   useEffect(() => {
     if (__DEV__ && typeof window !== 'undefined') {

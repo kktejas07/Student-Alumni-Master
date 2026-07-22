@@ -6,7 +6,7 @@
  */
 import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform, TextInput } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Mail, Lock, Check, Eye, EyeOff } from 'lucide-react-native';
 import { AuthShell } from '@/src/views/auth/AuthShell';
 import { AuthInput, PrimaryButton, PasswordRules } from '@/src/views/auth/AuthControls';
@@ -17,8 +17,9 @@ import { getBaseUrl } from '@/src/lib/env';
 
 export default function ForgotPassword() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ email?: string }>();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(params.email || '');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [pwd, setPwd] = useState('');
   const [pwd2, setPwd2] = useState('');

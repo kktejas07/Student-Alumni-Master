@@ -53,6 +53,7 @@ export function MentorProfileSettingsView({
   const toast = useToast();
   const user = useAuthStore((u) => u.user);
   const refreshUser = useAuthStore((u) => u.refreshUser);
+  const logout = useAuthStore((u) => u.logout);
   
   const { width: winW } = useWindowDimensions();
   const stack = winW < 1100;
@@ -1420,7 +1421,6 @@ export function MentorProfileSettingsView({
                     subtext="Permanently delete your account and all data"
                     btnText="Delete"
                     isDelete
-                    isLast
                     onPress={() => {
                       if (Platform.OS === 'web') {
                         const confirmDelete = window.confirm("Are you sure you want to permanently delete your account and all data? This action is irreversible.");
@@ -1436,6 +1436,20 @@ export function MentorProfileSettingsView({
                             { text: "Delete", style: "destructive", onPress: () => toast.error('Account Action', 'Account deletion request submitted. Please check email to confirm.') }
                           ]
                         );
+                      }
+                    }}
+                  />
+                  <AccountActionRow
+                    title="Sign Out"
+                    subtext="Log out of your account on this device"
+                    btnText="Sign Out"
+                    isLast
+                    onPress={async () => {
+                      try {
+                        await logout();
+                        router.replace('/welcome');
+                      } catch (e: any) {
+                        toast.error('Logout Failed', e?.message || 'Please try again.');
                       }
                     }}
                   />
@@ -1519,6 +1533,25 @@ export function MentorProfileSettingsView({
                       <Text style={st.updatePasswordBtnText}>Update Password</Text>
                     </Pressable>
                   </View>
+                </View>
+
+                <View style={{ marginTop: 14, flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ color: 'rgba(255,255,255,0.45)', fontFamily: FONTS.med, fontSize: 11.5 }}>Forgot current password? </Text>
+                  <Pressable
+                    onPress={async () => {
+                      const email = user?.email || '';
+                      try {
+                        await logout();
+                        router.replace(`/forgot-password?email=${encodeURIComponent(email)}` as any);
+                      } catch (e) {
+                        toast.error('Error', 'Failed to sign out to reset password.');
+                      }
+                    }}
+                    style={Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}
+                    testID="mentor-forgot-pw-link"
+                  >
+                    <Text style={{ color: MC.tealP, fontFamily: FONTS.bold, fontSize: 11.5 }}>Reset via email</Text>
+                  </Pressable>
                 </View>
               </View>
 

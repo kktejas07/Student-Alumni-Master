@@ -61,7 +61,9 @@
       const code = params.get('code');
       const state = params.get('state') || hashParams.get('state') || '';
 
-      const API_BASE = 'https://studentalumni.ai/api';
+      const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:8000/api'
+        : 'https://studentalumni.ai/api';
       let data;
 
       if (idToken) {
