@@ -43,6 +43,8 @@ interface Props {
   inputRef?: React.RefObject<any>;
   onFocus?: () => void;
   onBlur?: () => void;
+  /** Render the options inline directly below the trigger instead of in a modal pop up */
+  inline?: boolean;
 }
 
 const OTHER_VALUE = '__other__';
@@ -51,6 +53,7 @@ export function Dropdown({
   label, required, optional, value, options, onChange,
   placeholder = 'Select…', testID, allowOther = true, overlayHeader,
   editable, keyboardType = 'default', maxLength, inputRef, onFocus, onBlur,
+  inline,
 }: Props) {
   const { primary } = useRoleTheme();
   const [open, setOpen] = useState(false);
@@ -209,7 +212,7 @@ export function Dropdown({
         </View>
       ) : (
         <Pressable
-          onPress={() => setOpen(true)}
+          onPress={() => setOpen(!open)}
           testID={testID}
           style={({ hovered, pressed }: any) => [
             s.triggerRow,
@@ -223,20 +226,17 @@ export function Dropdown({
         </Pressable>
       )}
 
-      {/* Modal overlay — backdrop click closes; positioned-centred card */}
+      {/* Modal overlay or Inline dropdown */}
       {open && (
-        <Modal transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-          <Pressable style={s.backdrop} onPress={() => setOpen(false)}>
-            <Pressable
-              onPress={(e: any) => e?.stopPropagation?.()}
-              style={s.cardWrap}
-              // @ts-ignore - React Native Web supports onKeyDown but types might not
-              onKeyDown={(e: any) => {
-                if (Platform.OS === 'web' && e?.key === 'Escape') {
-                  setOpen(false);
-                }
-              }}
-            >
+        inline ? (
+          <>
+            {Platform.OS === 'web' && (
+              <Pressable
+                style={{ position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 9 }}
+                onPress={() => setOpen(false)}
+              />
+            )}
+            <View style={{ marginTop: 6, zIndex: 10, position: 'relative' }}>
               <OptionListCard
                 headerLabel={overlayHeader || label.toUpperCase()}
                 options={filteredOptions}
@@ -245,9 +245,33 @@ export function Dropdown({
                 showOther={allowOther}
                 onSelectOther={() => { setOpen(false); setManualMode(true); setManualText(''); onChange(''); }}
               />
+            </View>
+          </>
+        ) : (
+          <Modal transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+            <Pressable style={s.backdrop} onPress={() => setOpen(false)}>
+              <Pressable
+                onPress={(e: any) => e?.stopPropagation?.()}
+                style={s.cardWrap}
+                // @ts-ignore - React Native Web supports onKeyDown but types might not
+                onKeyDown={(e: any) => {
+                  if (Platform.OS === 'web' && e?.key === 'Escape') {
+                    setOpen(false);
+                  }
+                }}
+              >
+                <OptionListCard
+                  headerLabel={overlayHeader || label.toUpperCase()}
+                  options={filteredOptions}
+                  selectedValue={value}
+                  onSelect={(opt) => { onChange(opt.value); setManualMode(false); setOpen(false); }}
+                  showOther={allowOther}
+                  onSelectOther={() => { setOpen(false); setManualMode(true); setManualText(''); onChange(''); }}
+                />
+              </Pressable>
             </Pressable>
-          </Pressable>
-        </Modal>
+          </Modal>
+        )
       )}
     </View>
   );

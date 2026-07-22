@@ -24,7 +24,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   ArrowLeft, Camera, Upload, GraduationCap, BriefcaseBusiness,
-  Award, Code, CheckCircle2, Check,
+  Award, Code, CheckCircle2, Check, BookOpen, Rocket, TrendingUp,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { AuthShell } from '@/src/views/auth/AuthShell';
@@ -40,17 +40,18 @@ import { Dropdown } from '@/src/views/web/Dropdown';
 import { WebcamModal } from '@/src/views/components/WebcamModal';
 import { OnboardingProgressBar } from '@/src/views/components/onboarding/OnboardingProgressBar';
 
-const TOTAL = 8; // 0-indexed steps 0–7 = 8 steps
+const TOTAL = 5; // 0-indexed steps 0–4 = 5 steps
 const CURRENT_YEAR = new Date().getFullYear();
 const GRAD_YEARS = Array.from({ length: 9 }, (_, i) => String(CURRENT_YEAR + i));
 
 // ─── Step labels for the progress bar ────────────────────────────────────────
-const STEP_LABELS = ['College', 'Education', 'Career Path', 'Goal', 'Interests', 'Skills', 'Profile', 'Badge'];
+const STEP_LABELS = ['Education', 'College', 'Career Path', 'Profile', 'Badge'];
 // Estimated seconds per step (for "~N min left" label)
-const STEP_SECS = [90, 20, 25, 15, 30, 30, 60, 20];
+const STEP_SECS = [90, 20, 25, 60, 20];
 
 // ─── Step 1: Education ───────────────────────────────────────────────────────
 const EDU_LEVELS = [
+  { id: 'high_school', label: 'High School',        icon: BookOpen },
   { id: 'diploma',  label: 'Diploma / ITI',        icon: Award },
   { id: 'btech',    label: "Bachelor's Degree",     icon: GraduationCap },
   { id: 'masters',  label: "Master's Degree",       icon: GraduationCap },
@@ -62,70 +63,36 @@ const EDU_LEVELS = [
 // ─── Step 2: Career Path ★ NEW ────────────────────────────────────────────────
 type CareerPathId = 'job' | 'higher_education' | 'startup' | 'business';
 const CAREER_PATHS: {
-  id: CareerPathId; emoji: string; title: string; desc: string; unlocks: string[];
+  id: CareerPathId; icon: any; title: string; desc: string; unlocks: string[];
 }[] = [
   {
     id: 'job',
-    emoji: '💼',
+    icon: BriefcaseBusiness,
     title: 'Get a Job',
     desc: 'Prepare for internships and full-time opportunities.',
     unlocks: ['Job recommendations', 'Resume guidance', 'Interview preparation'],
   },
   {
     id: 'higher_education',
-    emoji: '🎓',
+    icon: GraduationCap,
     title: 'Higher Education',
     desc: 'Prepare for Masters, MS, MBA or Research.',
     unlocks: ['University recommendations', 'Scholarships', 'Admission guidance'],
   },
   {
     id: 'startup',
-    emoji: '🚀',
+    icon: Rocket,
     title: 'Build a Startup',
     desc: 'Learn entrepreneurship and build products.',
     unlocks: ['Startup mentors', 'Incubator opportunities', 'Founder resources'],
   },
   {
     id: 'business',
-    emoji: '📈',
+    icon: TrendingUp,
     title: 'Business Leadership',
     desc: 'Develop leadership and management skills.',
     unlocks: ['Leadership programs', 'MBA resources', 'Business mentors'],
   },
-];
-
-// ─── Step 3: Career Goal ─────────────────────────────────────────────────────
-const GOALS = [
-  { id: 'top_internship', label: 'Crack a top internship' },
-  { id: 'faang',          label: 'Get a FAANG job' },
-  { id: 'startup',        label: 'Build my own startup' },
-  { id: 'mba_ms',         label: 'Crack MBA / MS admissions' },
-  { id: 'mentor',         label: 'Find a mentor' },
-  { id: 'explore',        label: 'Explore career options' },
-];
-
-// ─── Step 4: Interests ───────────────────────────────────────────────────────
-const INTERESTS = [
-  'Software Engineering', 'Product Management', 'Data Science', 'UI/UX Design',
-  'Finance & Banking', 'Consulting', 'Entrepreneurship', 'Research',
-];
-const TECH_INTERESTS = [
-  'AI / Machine Learning', 'Web Development', 'Mobile Dev', 'Cloud & DevOps',
-  'Cybersecurity', 'Blockchain', 'Robotics', 'Game Dev',
-];
-
-// ─── Step 5: Skills ──────────────────────────────────────────────────────────
-const TECH_SKILLS = [
-  'Python', 'JavaScript', 'React', 'Node.js', 'ML / AI',
-  'Cloud (AWS/GCP)', 'DevOps', 'Flutter', 'Figma', 'SQL',
-];
-const BUSINESS_SKILLS = [
-  'Excel / Sheets', 'PowerPoint', 'Financial Modelling', 'Market Research',
-  'Product Strategy', 'Operations', 'Sales', 'Marketing',
-];
-const SOFT_SKILLS = [
-  'Communication', 'Leadership', 'Problem Solving',
-  'Time Management', 'Teamwork', 'Critical Thinking', 'Adaptability',
 ];
 
 // ─── Step 6: Bio writing styles ──────────────────────────────────────────────
@@ -182,6 +149,7 @@ export default function StudentOnboard() {
   const [college, setCollege]   = useState('');
   const [gradYear, setGradYear] = useState('');
   const [cgpa, setCgpa]         = useState('');
+  const [stream, setStream]     = useState('');
   const [name, setName]         = useState(user?.full_name || '');
   const [phone, setPhone]       = useState(user?.phone || '');
   const [city, setCity]         = useState('');
@@ -194,17 +162,7 @@ export default function StudentOnboard() {
   const [careerPath, setCareerPath] = useState<CareerPathId | ''>('');
   const [pathFeedback, setPathFeedback] = useState(false);
 
-  // ── Step 3: Career Goal ──
-  const [goal, setGoal] = useState('');
-
-  // ── Step 4: Interests ──
-  const [ints, setInts]   = useState<string[]>([]);
-  const [techInts, setTechInts] = useState<string[]>([]);
-
-  // ── Step 5: Skills ──
-  const [tech, setTech]   = useState<string[]>([]);
-  const [biz, setBiz]     = useState<string[]>([]);
-  const [soft, setSoft]   = useState<string[]>([]);
+  // (Career Goal state removed)
 
   // ── Step 6: Photo + Bio ──
   const [photo, setPhoto]             = useState<string>('');
@@ -232,9 +190,6 @@ export default function StudentOnboard() {
         existing_bio: bio || undefined,
         institution: college,
         education_level: edu,
-        career_goal: goal,
-        interests: [...ints, ...techInts],
-        skills: [...tech, ...biz, ...soft],
       });
       if (res?.bio) setBio(res.bio.slice(0, 300));
     } catch {
@@ -244,10 +199,6 @@ export default function StudentOnboard() {
     }
   };
 
-  // ── Step 7: Badge (client-side preview) ──
-  const totalSkills = tech.length + biz.length + soft.length;
-  const totalInterests = ints.length + techInts.length;
-
   const badge = useMemo(() => {
     let score = 0;
     if (college) score += 1;
@@ -256,9 +207,6 @@ export default function StudentOnboard() {
     else if (cgpa) score += 1;
     if (edu) score += 1;
     if (careerPath) score += 1;
-    if (totalInterests >= 3) score += 1;
-    if (totalSkills >= 3) score += 1;
-    if (goal) score += 1;
     if (photo) score += 1;
     if (bio.length > 40) score += 1;
     const tier =
@@ -266,22 +214,19 @@ export default function StudentOnboard() {
       score >= 8  ? 'Gold' :
       score >= 5  ? 'Silver' : 'Bronze';
     return { score, tier };
-  }, [college, gradYear, cgpa, edu, careerPath, totalInterests, totalSkills, goal, photo, bio]);
+  }, [college, gradYear, cgpa, edu, careerPath, photo, bio]);
 
   const next = () => setStep((st) => Math.min(st + 1, TOTAL - 1));
   const prev = () => setStep((st) => Math.max(st - 1, 0));
 
   const validateStep = (): string | null => {
-    if (step === 0) {
-      if (!college) return 'Select your college or university so we can connect you with alumni.';
-      if (!gradYear) return 'Select your graduation year to tailor your timeline.';
-      if (!name.trim()) return 'Enter your full name so mentors know who you are.';
-      if (phone.replace(/\D/g, '').length < 10) return 'Enter a 10-digit phone number for account verification.';
+    if (step === 0 && !edu) return 'Pick your education level to get the right recommendations.';
+    if (step === 1) {
+      if (!college) return edu === 'high_school' ? 'Enter your school name.' : 'Select your college or university so we can connect you with alumni.';
+      if (edu === 'high_school' && !stream) return 'Select your stream.';
+      if (edu !== 'high_school' && !gradYear) return 'Select your graduation year to tailor your timeline.';
     }
-    if (step === 1 && !edu) return 'Pick your education level to get the right recommendations.';
     if (step === 2 && !careerPath) return 'Choose a career path to personalize your dashboard.';
-    if (step === 3 && !goal) return 'Select your primary goal so we can match you with mentors.';
-    if (step === 4 && ints.length + techInts.length === 0) return 'Select at least one interest to improve recommendations.';
     return null;
   };
 
@@ -302,9 +247,10 @@ export default function StudentOnboard() {
       const payload: any = {
         school_info: {
           country: 'India',
-          institution_type: 'college',
+          institution_type: edu === 'high_school' ? 'school' : 'college',
           institution_name: college,
-          graduation_year: parseInt(gradYear, 10) || undefined,
+          graduation_year: edu === 'high_school' ? undefined : parseInt(gradYear, 10) || undefined,
+          stream: edu === 'high_school' ? stream : undefined,
           city: city || undefined,
           state: stateName || undefined,
         },
@@ -312,13 +258,12 @@ export default function StudentOnboard() {
         student_info: {
           age: 20,
           education_level: edu || 'btech',
-          career_interests: [...ints, ...techInts],
+          career_interests: [],
           cgpa: cgpa.trim() ? parseFloat(cgpa) : undefined,
-          career_goal: goal,
         },
-        interests: [...ints, ...techInts],
-        skills: [...tech, ...biz, ...soft],
-        bio: bio || `${name} — ${edu || 'Student'} aspiring ${goal || 'career'}`,
+        interests: [],
+        skills: [],
+        bio: bio || `${name} — ${edu || 'Student'}`,
         face_image_base64: photo || pendingPhoto || undefined,
         phone,
       };
@@ -362,28 +307,16 @@ export default function StudentOnboard() {
   // ─── Step heading copy ────────────────────────────────────────────────────
   const HEADS = [
     {
-      title: `Welcome, ${name.split(' ')[0] || 'there'} 👋`,
-      sub: 'We connect you with alumni, events, and peers from your institution.',
+      title: `Welcome, ${name.split(' ')[0] || 'there'} 👋\nWhat level are you at?`,
+      sub: 'This helps us recommend the most relevant opportunities.',
     },
     {
-      title: 'What level are you at?',
-      sub: 'This helps us recommend the most relevant opportunities.',
+      title: 'College & Contact Info',
+      sub: 'We connect you with alumni, events, and peers from your institution.',
     },
     {
       title: "What's your big picture?",
       sub: 'This determines how your dashboard is personalized.',
-    },
-    {
-      title: 'What are you aiming for?',
-      sub: 'This helps us connect you with the right mentors and resources.',
-    },
-    {
-      title: 'What are you interested in learning?',
-      sub: "We'll recommend courses, mentors and events.",
-    },
-    {
-      title: 'What skills do you already have?',
-      sub: 'Our AI avoids recommending skills you already know.',
     },
     {
       title: 'Put a face to your name',
@@ -410,48 +343,39 @@ export default function StudentOnboard() {
           <Text style={s.title}>{head.title}</Text>
           <Text style={s.sub}>{head.sub}</Text>
 
-          <ScrollView style={{ maxHeight: 460 }} showsVerticalScrollIndicator={false}>
+          <View style={[s.previewCard, { marginBottom: 16, marginTop: 8 }]}>
+            <Text style={s.previewTitle}>LIVE PROFILE PREVIEW</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 12, columnGap: 24 }}>
+              <View style={[s.previewRow, { flex: 1, minWidth: 120 }]}>
+                <Text style={s.previewLabel}>Name</Text>
+                <Text style={s.previewVal}>{name || 'New Student'}</Text>
+              </View>
+              <View style={[s.previewRow, { flex: 1, minWidth: 120 }]}>
+                <Text style={s.previewLabel}>College</Text>
+                <Text style={s.previewVal} numberOfLines={1}>{college || 'Not picked yet'}</Text>
+              </View>
+              <View style={[s.previewRow, { flex: 1, minWidth: 120 }]}>
+                <Text style={s.previewLabel}>Education</Text>
+                <Text style={s.previewVal}>{EDU_LEVELS.find(e => e.id === edu)?.label || 'Not picked yet'}</Text>
+              </View>
+              <View style={[s.previewRow, { flex: 1, minWidth: 120 }]}>
+                <Text style={s.previewLabel}>Career Path</Text>
+                <Text style={s.previewVal}>{CAREER_PATHS.find(p => p.id === careerPath)?.title || 'Not picked yet'}</Text>
+              </View>
+              <View style={[s.previewRow, { flex: 1, minWidth: 120 }]}>
+                <Text style={s.previewLabel}>Badge Tier</Text>
+                <Text style={s.previewVal}>{badge.tier} Member</Text>
+              </View>
+              {/* Invisible spacer to fix flex: 1 alignment on the last row */}
+              <View style={{ flex: 1, minWidth: 120 }} />
+            </View>
+          </View>
+
+          <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <View style={{ paddingVertical: 6, gap: 12 }}>
 
-          {/* ══════════════════ STEP 0: College ══════════════════ */}
+          {/* ══════════════════ STEP 0: Education ══════════════════ */}
           {step === 0 && (
-            <>
-              <Text style={s.section}>College / University *</Text>
-              <InstitutionAutocomplete
-                value={college}
-                onChangeText={setCollege}
-                onSelect={(pick) => {
-                  setCollege(pick.name);
-                  if (!city && pick.city) setCity(pick.city);
-                  if (!stateName && pick.state) setState2(pick.state);
-                }}
-                type="college"
-                placeholder="Search your institution…"
-              />
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <View style={{ flex: 1 }}>
-                  <Dropdown
-                    label="Graduation Year"
-                    required
-                    value={gradYear}
-                    options={GRAD_YEARS.map((y) => ({ value: y, label: y }))}
-                    onChange={setGradYear}
-                    placeholder="Select year"
-                    testID="grad-year-dropdown"
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <AuthInput label="CGPA" value={cgpa} onChangeText={setCgpa} placeholder="8.5" keyboardType="decimal-pad" />
-                </View>
-              </View>
-              <AuthInput label="Full Name *" value={name} onChangeText={setName} placeholder="e.g. Arjun Sharma" autoCapitalize="words" />
-              <AuthInput label="Email Address" value={user?.email || ''} onChangeText={() => {}} placeholder="you@college.edu" />
-              <PhoneInput label="Phone Number *" value={phone} onChangeText={setPhone} />
-            </>
-          )}
-
-          {/* ══════════════════ STEP 1: Education ══════════════════ */}
-          {step === 1 && (
             <View style={s.cardGrid}>
               {EDU_LEVELS.map((e) => {
                 const Icon = e.icon;
@@ -465,6 +389,61 @@ export default function StudentOnboard() {
                 );
               })}
             </View>
+          )}
+
+          {/* ══════════════════ STEP 1: College ══════════════════ */}
+          {step === 1 && (
+            <>
+              <Text style={s.section}>{edu === 'high_school' ? 'School Name *' : 'College / University *'}</Text>
+              <InstitutionAutocomplete
+                value={college}
+                onChangeText={setCollege}
+                onSelect={(pick) => {
+                  setCollege(pick.name);
+                  if (!city && pick.city) setCity(pick.city);
+                  if (!stateName && pick.state) setState2(pick.state);
+                }}
+                type={edu === 'high_school' ? 'school' : 'college'}
+                placeholder={edu === 'high_school' ? 'Search your school…' : 'Search your institution…'}
+              />
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  {edu === 'high_school' ? (
+                    <Dropdown
+                      label="Stream"
+                      required
+                      value={stream}
+                      options={[
+                        { value: 'MPC', label: 'MPC' },
+                        { value: 'BiPC', label: 'BiPC' },
+                        { value: 'MBiPC', label: 'MBiPC' },
+                        { value: 'MEC', label: 'MEC' },
+                        { value: 'HEC', label: 'HEC' },
+                        { value: 'CEC', label: 'CEC' }
+                      ]}
+                      onChange={setStream}
+                      placeholder="Select stream"
+                      testID="stream-dropdown"
+                      allowOther={false}
+                      inline={true}
+                    />
+                  ) : (
+                    <Dropdown
+                      label="Graduation Year"
+                      required
+                      value={gradYear}
+                      options={GRAD_YEARS.map((y) => ({ value: y, label: y }))}
+                      onChange={setGradYear}
+                      placeholder="Select year"
+                      testID="grad-year-dropdown"
+                    />
+                  )}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <AuthInput label={edu === 'high_school' ? 'Percentage/CGPA' : 'CGPA'} value={cgpa} onChangeText={setCgpa} placeholder={edu === 'high_school' ? '95' : '8.5'} keyboardType="decimal-pad" />
+                </View>
+              </View>
+            </>
           )}
 
           {/* ══════════════════ STEP 2: Career Path ★ NEW ══════════════════ */}
@@ -484,7 +463,9 @@ export default function StudentOnboard() {
                     testID={`career-path-${p.id}`}
                   >
                     <View style={s.pathTileTop}>
-                      <Text style={s.pathEmoji}>{p.emoji}</Text>
+                      <View style={{ marginTop: 2, marginRight: 2 }}>
+                        <p.icon size={24} color={active ? '#B07FDF' : 'rgba(255,255,255,0.7)'} />
+                      </View>
                       <View style={{ flex: 1 }}>
                         <Text style={[s.pathTitle, active && s.pathTitleActive]}>{p.title}</Text>
                         <Text style={s.pathDesc}>{p.desc}</Text>
@@ -507,80 +488,8 @@ export default function StudentOnboard() {
             </View>
           )}
 
-          {/* ══════════════════ STEP 3: Career Goal ══════════════════ */}
+          {/* ══════════════════ STEP 3: Photo + Bio ══════════════════ */}
           {step === 3 && (
-            <View style={{ gap: 10 }}>
-              {GOALS.map((g) => {
-                const active = goal === g.id;
-                return (
-                  <Pressable key={g.id} style={[s.optRow, active && s.optRowActive]} onPress={() => setGoal(g.id)}>
-                    <View style={[s.radio, active && s.radioActive]}>
-                      {active && <View style={s.radioDot} />}
-                    </View>
-                    <Text style={[s.optLabel, active && s.optLabelActive]}>{g.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
-
-          {/* ══════════════════ STEP 4: Interests ══════════════════ */}
-          {step === 4 && (
-            <>
-              <Text style={s.section}>Domain Interests</Text>
-              <Text style={s.helper}>Pick areas you're curious about. No pressure — you can change these later.</Text>
-              <View style={s.chipRow}>
-                {INTERESTS.map((x) => (
-                  <DarkChip key={x} label={x} active={ints.includes(x)} onPress={() => setInts((a) => toggle(a, x))} />
-                ))}
-              </View>
-
-              <Text style={s.section}>Tech Areas</Text>
-              <View style={s.chipRow}>
-                {TECH_INTERESTS.map((x) => (
-                  <DarkChip key={x} label={x} active={techInts.includes(x)} onPress={() => setTechInts((a) => toggle(a, x))} />
-                ))}
-              </View>
-
-              {(ints.length + techInts.length) > 0 && (
-                <Text style={s.feedbackText}>
-                  {ints.length + techInts.length} interest{ints.length + techInts.length !== 1 ? 's' : ''} selected ✓
-                </Text>
-              )}
-            </>
-          )}
-
-          {/* ══════════════════ STEP 5: Skills ══════════════════ */}
-          {step === 5 && (
-            <>
-              <Text style={s.section}>Tech Skills</Text>
-              <View style={s.chipRow}>
-                {TECH_SKILLS.map((x) => (
-                  <DarkChip key={x} label={x} active={tech.includes(x)} onPress={() => setTech((a) => toggle(a, x))} />
-                ))}
-              </View>
-              <Text style={s.section}>Business Skills</Text>
-              <View style={s.chipRow}>
-                {BUSINESS_SKILLS.map((x) => (
-                  <DarkChip key={x} label={x} active={biz.includes(x)} onPress={() => setBiz((a) => toggle(a, x))} />
-                ))}
-              </View>
-              <Text style={s.section}>Soft Skills</Text>
-              <View style={s.chipRow}>
-                {SOFT_SKILLS.map((x) => (
-                  <DarkChip key={x} label={x} active={soft.includes(x)} onPress={() => setSoft((a) => toggle(a, x))} />
-                ))}
-              </View>
-              {totalSkills >= 2 && (
-                <Text style={s.feedbackText}>
-                  🎯 Nice! {totalSkills} skills added. Your AI roadmap will skip the basics you've mastered.
-                </Text>
-              )}
-            </>
-          )}
-
-          {/* ══════════════════ STEP 6: Photo + Bio ══════════════════ */}
-          {step === 6 && (
             <>
               {/* Photo */}
               <View style={{ alignItems: 'center', gap: 14, marginBottom: 8 }}>
@@ -647,8 +556,8 @@ export default function StudentOnboard() {
             </>
           )}
 
-          {/* ══════════════════ STEP 7: Badge + Review ══════════════════ */}
-          {step === 7 && (
+          {/* ══════════════════ STEP 4: Badge & Review ══════════════════ */}
+          {step === 4 && (
             <View style={{ alignItems: 'center', gap: 14 }}>
               {/* Badge visual */}
               <View style={[
@@ -676,9 +585,6 @@ export default function StudentOnboard() {
                   { label: 'College',       value: college || '—' },
                   { label: 'Education',     value: EDU_LEVELS.find(e => e.id === edu)?.label || '—' },
                   { label: 'Career Path',   value: CAREER_PATHS.find(p => p.id === careerPath)?.title || '—' },
-                  { label: 'Career Goal',   value: GOALS.find(g => g.id === goal)?.label || '—' },
-                  { label: 'Top Interests', value: [...ints, ...techInts].slice(0, 3).join(', ') || 'None selected' },
-                  { label: 'Skills Count',  value: `${totalSkills} added` },
                   { label: 'Badge Level',   value: `${badge.tier} (${badge.score} pts)` },
                 ].map((row) => (
                   <View key={row.label} style={s.reviewRow}>
@@ -703,31 +609,7 @@ export default function StudentOnboard() {
       </ScrollView>
         </Animated.View>
 
-        {isDesktop && (
-          <View style={s.previewCard}>
-            <Text style={s.previewTitle}>LIVE PROFILE PREVIEW</Text>
-            <View style={s.previewRow}>
-              <Text style={s.previewLabel}>Name</Text>
-              <Text style={s.previewVal}>{name || 'New Student'}</Text>
-            </View>
-            <View style={s.previewRow}>
-              <Text style={s.previewLabel}>College</Text>
-              <Text style={s.previewVal}>{college || 'Not picked yet'}</Text>
-            </View>
-            <View style={s.previewRow}>
-              <Text style={s.previewLabel}>Education</Text>
-              <Text style={s.previewVal}>{EDU_LEVELS.find(e => e.id === edu)?.label || 'Not picked yet'}</Text>
-            </View>
-            <View style={s.previewRow}>
-              <Text style={s.previewLabel}>Career Path</Text>
-              <Text style={s.previewVal}>{CAREER_PATHS.find(p => p.id === careerPath)?.title || 'Not picked yet'}</Text>
-            </View>
-            <View style={s.previewRow}>
-              <Text style={s.previewLabel}>Badge Tier</Text>
-              <Text style={s.previewVal}>{badge.tier} Member</Text>
-            </View>
-          </View>
-        )}
+
       </View>
 
       {validationNotice && (
@@ -918,9 +800,9 @@ const s = StyleSheet.create({
     color: '#C4B5FD', fontFamily: FONTS.med, fontSize: 12.5,
   },
   previewCard: {
-    width: 250, padding: 16, borderRadius: 16,
+    width: '100%', padding: 16, borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)',
-    alignSelf: 'flex-start', gap: 12,
+    alignSelf: 'stretch', gap: 12,
   },
   previewTitle: {
     color: '#A78BFA', fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 1,
