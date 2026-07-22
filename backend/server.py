@@ -1,6 +1,5 @@
 """
 Student Alumni Platform - Backend
-==================================
 A FastAPI + MongoDB backend for a student career development platform.
 
 ARCHITECTURE:

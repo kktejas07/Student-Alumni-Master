@@ -44,6 +44,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 load_dotenv(Path(__file__).parent / ".env")
 
 from core.db import db as _db
+from services.recommendation_engine import calculate_match_score
 
 logger = logging.getLogger("jobs_feed")
 router = APIRouter()
@@ -525,13 +526,23 @@ async def jobs_feed(
         ]
 
     total = await _db.jobs_cache.count_documents(q_match)
+    # Fetch up to 1000 items to score and sort in memory
+    cur = _db.jobs_cache.find(q_match).sort([("posted_date", -1), ("cached_at", -1)])
+    all_docs = await cur.to_list(length=1000)
+    
+    all_items = []
+    for d in all_docs:
+        it = _serialize(d)
+        score = calculate_match_score(it, user)
+        it["match_score"] = score
+        it["is_recommended"] = score >= 65
+        all_items.append(it)
+        
+    # Sort by match score descending, then posted date
+    all_items.sort(key=lambda x: (x["match_score"], str(x.get("posted_date") or "")), reverse=True)
+    
     skip = (page - 1) * per_page
-    cur = (
-        _db.jobs_cache.find(q_match)
-        .sort([("posted_date", -1), ("cached_at", -1)])
-        .skip(skip).limit(per_page)
-    )
-    items = [_serialize(d) async for d in cur]
+    items = all_items[skip : skip + per_page]
 
     # Mark saved/applied state
     saved_ids = set((user or {}).get("saved_jobs") or [])

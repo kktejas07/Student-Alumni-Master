@@ -11,7 +11,7 @@
  *   • Profile completion CTA
  */
 import React, { useContext, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StudentPortalNavContext } from '../StudentPortalNavContext';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -70,21 +70,14 @@ export function DashboardView() {
   // Live counters polled every 15s so users can SEE auto-refresh working
   const { data: live } = usePortalData<any>('/live/counters', null as any, 15_000);
   // Fetch actual live jobs from /api/jobs/feed (limit 5)
-  const { data: jobsFeed } = usePortalData<any>('/jobs/feed?page=1&per_page=5', null as any);
+  const { data: jobsFeed, loading: jobsLoading } = usePortalData<any>('/jobs/feed?page=1&per_page=5', null as any);
   const STUDENT = data!.student;
   const KPIS = data!.kpis;
   const TOP_MATCHES = data!.topMatches;
   const RECOMMENDED_MENTORS = data!.recommendedMentors;
   const UPCOMING_EVENTS = data!.upcomingEvents;
   const PROFILE_COMPLETION = data!.profileCompletion;
-  const JOBS_DATA = [
-    { id: 1, role: 'Software Engineer Intern', company: 'Google', location: 'Hyderabad, India', salary: '₹12 LPA', type: 'Internship', logo: 'G', logoColor: '#4285F4', bg: '#fff', match: 98 },
-    { id: 2, role: 'Frontend Developer Intern', company: 'Microsoft', location: 'Remote', salary: '₹10 LPA', type: 'Internship', logo: 'M', logoColor: '#F25022', bg: '#fff', match: 95 },
-    { id: 3, role: 'QA Engineer Intern', company: 'Amazon', location: 'Bangalore, India', salary: '₹8 LPA', type: 'Internship', logo: 'a', logoColor: '#FF9900', bg: '#fff', match: 92 },
-    { id: 4, role: 'Backend Developer Intern', company: 'Oracle', location: 'Pune, India', salary: '₹9 LPA', type: 'Internship', logo: 'O', logoColor: '#F80000', bg: '#fff', match: 89 },
-    { id: 5, role: 'UI/UX Intern', company: 'Adobe', location: 'Remote', salary: '₹7 LPA', type: 'Internship', logo: 'A', logoColor: '#FF0000', bg: '#fff', match: 87 },
-  ];
-  const displayJobs = jobsFeed?.items?.length ? jobsFeed.items : JOBS_DATA;
+  const displayJobs = jobsFeed?.items || [];
 
   const COURSES_DATA = [
     { id: 1, title: 'React - The Complete Guide', provider: 'Udemy', hours: '38 hours', level: 'Advanced', rating: '4.7', learners: '12.4k learners', logo: 'React', logoColor: '#61DAFB', bg: 'rgba(97, 218, 251, 0.1)' },
@@ -304,56 +297,65 @@ export function DashboardView() {
           </View>
           
           <View style={s.sectionList}>
-            {displayJobs.map((item, idx) => {
-              const jobId = item.job_id || String(item.id);
-              const role = item.role || item.title || 'Intern';
-              const company = item.company || '—';
-              const jobType = item.type || item.job_type || 'Internship';
-              const location = item.location || 'Remote';
-              const matchPct = item.match || getStableMockData(jobId, company, jobType).matchPct;
-              const salary = formatSalary(item) || getStableMockData(jobId, company, jobType).fallbackSalary;
-              const initials = (company || '?')[0].toUpperCase();
-              const logoColor = item.logoColor || '#fff';
-              const logoBg = item.bg || pickColor(company);
-              return (
-                <React.Fragment key={jobId}>
-                  {idx > 0 && <View style={s.divider} />}
-                  <View style={s.sectionItem}>
-                    <View style={[s.companyLogoShim, { backgroundColor: logoBg }]}>
-                      <Text style={[s.companyLogoShimText, { color: logoColor }]}>{initials}</Text>
-                    </View>
-                    <View style={{ flex: 2, minWidth: 0 }}>
-                      <Text numberOfLines={1} style={s.itemMainText}>{role}</Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
-                        <Text style={s.itemSubText}>{company} · {jobType}</Text>
-                        <View style={[s.matchPill, { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }]}><Text style={[s.matchPillText, { fontSize: 9.5 }]}>✦ {matchPct}% match</Text></View>
+            {jobsLoading && !displayJobs.length ? (
+              <View style={{ padding: 20, alignItems: 'center' }}>
+                <ActivityIndicator size="small" color="#A78BFA" />
+              </View>
+            ) : (
+              displayJobs.map((item: any, idx: number) => {
+                const jobId = item.job_id || String(item.id);
+                const role = item.role || item.title || 'Intern';
+                const company = item.company || '—';
+                const jobType = item.type || item.job_type || 'Internship';
+                const location = item.location || 'Remote';
+                const matchPct = item.match_score !== undefined ? item.match_score : (item.match || getStableMockData(jobId, company, jobType).matchPct);
+                const salary = formatSalary(item) || getStableMockData(jobId, company, jobType).fallbackSalary;
+                const initials = (company || '?')[0].toUpperCase();
+                const logoColor = item.logoColor || '#fff';
+                const logoBg = item.bg || pickColor(company);
+                return (
+                  <React.Fragment key={jobId}>
+                    {idx > 0 && <View style={s.divider} />}
+                    <View style={s.sectionItem}>
+                      <View style={[s.companyLogoShim, { backgroundColor: logoBg }]}>
+                        <Text style={[s.companyLogoShimText, { color: logoColor }]}>{initials}</Text>
+                      </View>
+                      <View style={{ flex: 2, minWidth: 0 }}>
+                        <Text numberOfLines={1} style={s.itemMainText}>{role}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
+                          <Text style={s.itemSubText}>{company} · {jobType}</Text>
+                          {item.is_recommended && (
+                            <View style={[s.matchPill, { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4, backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.3)' }]}><Text style={[s.matchPillText, { fontSize: 9.5, color: '#FCA5A5' }]}>🔥 Recommended</Text></View>
+                          )}
+                          <View style={[s.matchPill, { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }]}><Text style={[s.matchPillText, { fontSize: 9.5 }]}>✦ {matchPct}% match</Text></View>
+                        </View>
+                      </View>
+                      <View style={{ flex: 1.5, minWidth: 0 }}>
+                        <View style={s.metaTextRow}>
+                          <MapPin size={10} color={SC.muted} />
+                          <Text numberOfLines={1} style={s.metaText}>{location}</Text>
+                        </View>
+                        <View style={[s.metaTextRow, { marginTop: 2 }]}>
+                          <IndianRupee size={10} color={SC.muted} />
+                          <Text style={s.metaText}>{salary}</Text>
+                        </View>
+                      </View>
+                      <View style={s.itemActionCol}>
+                        <Pressable style={s.bookmarkBtn}>
+                          <Bookmark size={14} color="#A78BFA" />
+                        </Pressable>
+                        <Pressable 
+                          onPress={() => portalNav?.navigate('internships', { q: company })}
+                          style={s.applyBtn}
+                        >
+                          <Text style={s.applyBtnText}>Apply</Text>
+                        </Pressable>
                       </View>
                     </View>
-                    <View style={{ flex: 1.5, minWidth: 0 }}>
-                      <View style={s.metaTextRow}>
-                        <MapPin size={10} color={SC.muted} />
-                        <Text numberOfLines={1} style={s.metaText}>{location}</Text>
-                      </View>
-                      <View style={[s.metaTextRow, { marginTop: 2 }]}>
-                        <IndianRupee size={10} color={SC.muted} />
-                        <Text style={s.metaText}>{salary}</Text>
-                      </View>
-                    </View>
-                    <View style={s.itemActionCol}>
-                      <Pressable style={s.bookmarkBtn}>
-                        <Bookmark size={14} color="#A78BFA" />
-                      </Pressable>
-                      <Pressable 
-                        onPress={() => portalNav?.navigate('internships', { q: company })}
-                        style={s.applyBtn}
-                      >
-                        <Text style={s.applyBtnText}>Apply</Text>
-                      </Pressable>
-                    </View>
-                  </View>
-                </React.Fragment>
-              );
-            })}
+                  </React.Fragment>
+                );
+              })
+            )}
           </View>
         </View>
 
