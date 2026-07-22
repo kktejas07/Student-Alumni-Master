@@ -77,6 +77,16 @@ export function DashboardView() {
   const RECOMMENDED_MENTORS = data!.recommendedMentors;
   const UPCOMING_EVENTS = data!.upcomingEvents;
   const PROFILE_COMPLETION = data!.profileCompletion;
+  const stats = (data as any)?.stats || {
+    profile_strength: (data as any)?.profileCompletion?.score ?? 92,
+    profile_subtext: ((data as any)?.profileCompletion?.score ?? 92) >= 100 ? "All set!" : "Keep going!",
+    applications: 16,
+    applications_subtext: "2 new updates",
+    network: 128,
+    network_subtext: "Connections",
+    events: 7,
+    events_subtext: "Upcoming",
+  };
   const displayJobs = jobsFeed?.items || [];
 
   const COURSES_DATA = [
@@ -201,8 +211,8 @@ export function DashboardView() {
         <View style={[glassStyle(), s.kpiCardMockup]}>
           <View style={s.kpiCardLeft}>
             <Text style={[s.kpiTitleText, { color: '#C084FC' }]}>Profile Strength</Text>
-            <Text style={s.kpiValText}>92%</Text>
-            <Text style={s.kpiSubText}>Keep going!</Text>
+            <Text style={s.kpiValText}>{stats.profile_strength}%</Text>
+            <Text style={s.kpiSubText}>{stats.profile_subtext}</Text>
           </View>
           <View style={s.kpiCardRight}>
             <View style={s.progressRingOuter}>
@@ -216,8 +226,8 @@ export function DashboardView() {
         <View style={[glassStyle(), s.kpiCardMockup]}>
           <View style={s.kpiCardLeft}>
             <Text style={[s.kpiTitleText, { color: '#818CF8' }]}>Applications</Text>
-            <Text style={s.kpiValText}>16</Text>
-            <Text style={s.kpiSubText}>2 new updates</Text>
+            <Text style={s.kpiValText}>{stats.applications}</Text>
+            <Text style={s.kpiSubText}>{stats.applications_subtext}</Text>
           </View>
           <View style={s.kpiCardRight}>
             <View style={[s.kpiIconBox, { backgroundColor: 'rgba(99, 102, 241, 0.15)', borderColor: 'rgba(99, 102, 241, 0.3)' }]}>
@@ -230,8 +240,8 @@ export function DashboardView() {
         <View style={[glassStyle(), s.kpiCardMockup]}>
           <View style={s.kpiCardLeft}>
             <Text style={[s.kpiTitleText, { color: '#C084FC' }]}>Network</Text>
-            <Text style={s.kpiValText}>128</Text>
-            <Text style={s.kpiSubText}>Connections</Text>
+            <Text style={s.kpiValText}>{stats.network}</Text>
+            <Text style={s.kpiSubText}>{stats.network_subtext}</Text>
           </View>
           <View style={s.kpiCardRight}>
             <View style={[s.kpiIconBox, { backgroundColor: 'rgba(192, 132, 252, 0.15)', borderColor: 'rgba(192, 132, 252, 0.3)' }]}>
@@ -244,8 +254,8 @@ export function DashboardView() {
         <View style={[glassStyle(), s.kpiCardMockup]}>
           <View style={s.kpiCardLeft}>
             <Text style={[s.kpiTitleText, { color: '#F87171' }]}>Events</Text>
-            <Text style={s.kpiValText}>7</Text>
-            <Text style={s.kpiSubText}>Upcoming</Text>
+            <Text style={s.kpiValText}>{stats.events}</Text>
+            <Text style={s.kpiSubText}>{stats.events_subtext}</Text>
           </View>
           <View style={s.kpiCardRight}>
             <View style={[s.kpiIconBox, { backgroundColor: 'rgba(248, 113, 113, 0.15)', borderColor: 'rgba(248, 113, 113, 0.3)' }]}>
