@@ -38,7 +38,7 @@ import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
 import { AdBanner } from '@/src/views/web/components/AdBanner';
 
-const KPI_ICONS = { matches: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp } as const;
+const KPI_ICONS = { matches: Briefcase, applications: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp, events: Calendar } as const;
 
 const STUDENT_MOCK = {
   student: MOCK.STUDENT,
@@ -541,7 +541,7 @@ export function DashboardView() {
           <Stagger gap={70} baseDelay={120}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           {KPIS.map((k) => {
-            const Icon = KPI_ICONS[k.id as keyof typeof KPI_ICONS];
+            const Icon = KPI_ICONS[k.id as keyof typeof KPI_ICONS] || Briefcase;
             return <KpiCard key={k.id} Icon={Icon} label={k.label} value={k.value} delta={k.delta} color={k.color} />;
           })}
         </View>
