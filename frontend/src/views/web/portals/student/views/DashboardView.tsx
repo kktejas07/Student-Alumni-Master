@@ -11,13 +11,13 @@
  *   • Profile completion CTA
  */
 import React, { useContext, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, ActivityIndicator, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StudentPortalNavContext } from '../StudentPortalNavContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Sparkles, Briefcase, BookOpen, Users, TrendingUp, Calendar, MapPin,
-  Star, ArrowRight, Check, ExternalLink, Bookmark, MessageSquare, GraduationCap, IndianRupee,
+  Star, ArrowRight, Check, ExternalLink, Bookmark, BookmarkCheck, MessageSquare, GraduationCap, IndianRupee,
 } from '../iconShims';
 import { SC, FONTS, useColors, PALETTE, TYPO } from '../tokens';
 import { GRADS } from '../gradients';
@@ -88,6 +88,72 @@ export function DashboardView() {
     events_subtext: "Upcoming",
   };
   const displayJobs = jobsFeed?.items || [];
+  const [appliedJobIds, setAppliedJobIds] = useState<Record<string, boolean>>({});
+  const [savedJobIds, setSavedJobIds] = useState<Record<string, boolean>>({});
+
+  const handleApplyJob = async (item: any) => {
+    const jobId = item.job_id || String(item.id);
+    const company = item.company || '—';
+    const title = item.role || item.title || 'Role';
+    const isApplied = item.applied || appliedJobIds[jobId];
+
+    if (isApplied) {
+      toast.info('Already Applied', `You have already applied for ${title} at ${company}.`);
+      return;
+    }
+
+    const applyUrl = item.source_urls?.[0] || item.url || item.apply_url || '';
+
+    setAppliedJobIds((prev) => ({ ...prev, [jobId]: true }));
+
+    try {
+      await request('/jobs/track-apply', {
+        method: 'POST',
+        body: { job_id: jobId, source_url: applyUrl },
+      });
+    } catch (err) {
+      try {
+        await request(`/student/internships/${jobId}/apply`, {
+          method: 'POST',
+          body: { cover_note: 'Applied from dashboard.' },
+        });
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    if (applyUrl) {
+      if (Platform.OS === 'web') {
+        try {
+          window.open(applyUrl, '_blank');
+        } catch (e) {
+          // ignore
+        }
+      } else {
+        Linking.openURL(applyUrl).catch(() => {});
+      }
+    }
+
+    toast.success('Application Tracked! 🎉', `Applied to ${title} at ${company}.`);
+  };
+
+  const handleSaveJob = async (item: any) => {
+    const jobId = item.job_id || String(item.id);
+    const isSaved = item.saved || savedJobIds[jobId];
+    const endpoint = isSaved ? '/jobs/unsave' : '/jobs/save';
+
+    setSavedJobIds((prev) => ({ ...prev, [jobId]: !isSaved }));
+
+    try {
+      await request(endpoint, {
+        method: 'POST',
+        body: { job_id: jobId },
+      });
+      toast.success(isSaved ? 'Removed' : 'Saved! 🔖', isSaved ? 'Removed from saved jobs.' : 'Saved to your bookmarks.');
+    } catch (e: any) {
+      toast.error('Error', e?.message || 'Failed to update saved status');
+    }
+  };
 
   const COURSES_DATA = [
     { id: 1, title: 'React - The Complete Guide', provider: 'Udemy', hours: '38 hours', level: 'Advanced', rating: '4.7', learners: '12.4k learners', logo: 'React', logoColor: '#61DAFB', bg: 'rgba(97, 218, 251, 0.1)' },
@@ -323,6 +389,8 @@ export function DashboardView() {
                 const initials = (company || '?')[0].toUpperCase();
                 const logoColor = item.logoColor || '#fff';
                 const logoBg = item.bg || pickColor(company);
+                const isApplied = item.applied || appliedJobIds[jobId];
+                const isSaved = item.saved || savedJobIds[jobId];
                 return (
                   <React.Fragment key={jobId}>
                     {idx > 0 && <View style={s.divider} />}
@@ -351,14 +419,20 @@ export function DashboardView() {
                         </View>
                       </View>
                       <View style={s.itemActionCol}>
-                        <Pressable style={s.bookmarkBtn}>
-                          <Bookmark size={14} color="#A78BFA" />
+                        <Pressable onPress={() => handleSaveJob(item)} style={s.bookmarkBtn}>
+                          {isSaved ? (
+                            <BookmarkCheck size={14} color="#A78BFA" />
+                          ) : (
+                            <Bookmark size={14} color="#A78BFA" />
+                          )}
                         </Pressable>
                         <Pressable 
-                          onPress={() => portalNav?.navigate('internships', { q: company })}
-                          style={s.applyBtn}
+                          onPress={() => handleApplyJob(item)}
+                          style={[s.applyBtn, isApplied && { backgroundColor: 'rgba(16, 185, 129, 0.2)', borderColor: 'rgba(16, 185, 129, 0.4)' }]}
                         >
-                          <Text style={s.applyBtnText}>Apply</Text>
+                          <Text style={[s.applyBtnText, isApplied && { color: '#34D399' }]}>
+                            {isApplied ? 'Applied' : 'Apply'}
+                          </Text>
                         </Pressable>
                       </View>
                     </View>
