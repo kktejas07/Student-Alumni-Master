@@ -62,11 +62,14 @@ export default function Index() {
     if (!initialized || hasSeenIntro === null) return;
     const delay = IS_WEB ? 1400 : 2000;
     const t = setTimeout(() => {
-      // Authed users go straight to their home.
+      // Web default: always show the /welcome landing page on initial app load.
+      if (IS_WEB) {
+        router.replace('/welcome');
+        return;
+      }
+      // Authed users on native go straight to their home.
       if (user) {
         if (!user.onboarding_completed) {
-          // Route to role-specific spec-compliant wizard instead of the legacy
-          // /role-info → /school-info → /role-details linear chain.
           const dest =
             user.role === 'student' ? '/(onboarding)/student-onboard' :
             user.role === 'mentor'  ? '/(onboarding)/mentor-onboard'  :
@@ -74,17 +77,13 @@ export default function Index() {
             user.role === 'college' ? '/(onboarding)/college-onboard' :
             '/(onboarding)/role-info';
           router.replace(dest as any);
-        } else if (IS_WEB) {
-          router.replace('/platform');
         } else {
           router.replace('/(tabs)');
         }
         return;
       }
-      // Unauthed: web → landing, native → intro (first time) or login.
-      if (IS_WEB) {
-        router.replace('/welcome');
-      } else if (!hasSeenIntro) {
+      // Unauthed native: intro (first time) or login.
+      if (!hasSeenIntro) {
         router.replace('/intro');
       } else {
         router.replace('/(auth)/login');
