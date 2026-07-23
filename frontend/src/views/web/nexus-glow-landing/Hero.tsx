@@ -1,8 +1,11 @@
 import { motion } from "framer-motion";
 import { ArrowUpRight, Sparkles } from "lucide-react";
+import { useRouter } from "expo-router";
 import { AgentK3D } from "./AgentK3D";
 
 export function Hero() {
+  const router = useRouter();
+
   return (
     <section className="relative overflow-hidden pt-40 pb-24 md:pt-48 md:pb-32 flex flex-col items-center">
       <div className="mx-auto max-w-7xl px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
@@ -47,19 +50,13 @@ export function Hero() {
             transition={{ duration: 0.9, delay: 0.4 }}
             className="mt-10 flex flex-wrap items-center justify-center lg:justify-start gap-4"
           >
-            <a
-              href="#"
-              className="group inline-flex items-center gap-2 rounded-lg bg-primary px-8 py-4 text-sm font-bold text-primary-foreground transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+            <button
+              onClick={() => router.push('/(auth)/login')}
+              className="group inline-flex items-center gap-2 rounded-lg bg-primary px-8 py-4 text-sm font-bold text-primary-foreground transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] cursor-pointer"
             >
               Start now
               <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-            </a>
-            <a
-              href="#"
-              className="inline-flex items-center gap-2 rounded-lg border border-white/20 bg-white/5 backdrop-blur px-8 py-4 text-sm font-bold text-white hover:bg-white/10 transition-all"
-            >
-              View demo
-            </a>
+            </button>
           </motion.div>
         </div>
 
