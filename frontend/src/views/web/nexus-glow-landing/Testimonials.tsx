@@ -36,7 +36,7 @@ const reviews = [
 
 export function Testimonials() {
   return (
-    <section className="relative py-32 overflow-hidden">
+    <section id="collaborations" className="relative py-32 overflow-hidden">
       <div className="mx-auto max-w-7xl px-6">
         <div className="max-w-2xl text-center mx-auto mb-20">
           <motion.div

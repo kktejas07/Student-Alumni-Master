@@ -44,12 +44,20 @@ export function Navbar() {
           <nav className="hidden md:flex items-center gap-1 bg-[#121214] border border-white/5 rounded-full px-2 py-1.5">
             {links.map((l) => {
               const isActive = active === l;
+              const targetId = l.toLowerCase().replace(" ", "-");
               return (
                 <a
                   key={l}
-                  href={`#${l.toLowerCase().replace(" ", "-")}`}
-                  onClick={() => setActive(l)}
-                  className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-200
+                  href={`#${targetId}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setActive(l);
+                    const elem = document.getElementById(targetId);
+                    if (elem) {
+                      elem.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }
+                  }}
+                  className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer
                     ${
                       isActive
                         ? "text-white bg-white/10"
