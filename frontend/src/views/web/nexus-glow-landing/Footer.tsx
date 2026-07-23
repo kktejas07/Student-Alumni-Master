@@ -20,9 +20,11 @@ export function Footer() {
           {/* Brand column */}
           <div className="col-span-2">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 border border-primary/20 text-primary text-base font-black shadow-[0_0_10px_rgba(255,255,255,0.2)]">
-                ✳
-              </div>
+              <img
+                src="/sa-icon.png"
+                alt="StudentAlumni Logo"
+                className="h-8 w-8 rounded-lg object-contain shrink-0 shadow-[0_0_10px_rgba(255,255,255,0.2)]"
+              />
               <span className="text-lg font-black tracking-tight text-white">
                 StudentAlumni
               </span>
