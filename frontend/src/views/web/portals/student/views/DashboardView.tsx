@@ -71,6 +71,8 @@ export function DashboardView() {
   const { data: live } = usePortalData<any>('/live/counters', null as any, 15_000);
   // Fetch actual live jobs from /api/jobs/feed (limit 5)
   const { data: jobsFeed, loading: jobsLoading } = usePortalData<any>('/jobs/feed?page=1&per_page=5', null as any);
+  // Fetch live courses
+  const { data: coursesFeed } = usePortalData<any>('/courses/list?page=1&per_page=5', null as any);
   const STUDENT = data!.student;
   const KPIS = data!.kpis;
   const TOP_MATCHES = data!.topMatches;
@@ -154,6 +156,31 @@ export function DashboardView() {
     { id: 4, title: 'SQL - Interview Preparation', provider: 'Great Learning', hours: '18 hours', level: 'Beginner', rating: '4.5', learners: '5.1k learners', logo: 'SQL', logoColor: '#00758F', bg: 'rgba(0, 117, 143, 0.1)' },
     { id: 5, title: 'Playwright Automation Testing', provider: 'Udemy', hours: '20 hours', level: 'Intermediate', rating: '4.6', learners: '4.3k learners', logo: 'Play', logoColor: '#2EAD33', bg: 'rgba(46, 173, 51, 0.1)' },
   ];
+
+  const displayCourses = React.useMemo(() => {
+    if (coursesFeed?.courses && coursesFeed.courses.length > 0) {
+      return coursesFeed.courses.slice(0, 5).map((c: any, idx: number) => {
+        const title = c.title || 'Course';
+        const providerName = c.provider?.name || c.provider || 'Provider';
+        const shortName = title.split(' ')[0].substring(0, 4);
+        const seed = title + providerName;
+        return {
+          id: c.id || c._id || idx,
+          title: title,
+          provider: providerName,
+          hours: c.duration_hours ? `${c.duration_hours} hours` : 'Flexible',
+          level: c.level || 'All Levels',
+          rating: c.rating || '4.5',
+          learners: c.enrolled_count ? `${(c.enrolled_count / 1000).toFixed(1)}k learners` : '1.2k learners',
+          logo: c.logo || shortName,
+          logoColor: pickColor(seed + 'fg'),
+          bg: pickColor(seed + 'bg') + '22',
+        };
+      });
+    }
+    return COURSES_DATA;
+  }, [coursesFeed]);
+
 
   const MENTORS_DATA = [
     { id: 1, name: 'Rahul Sharma', role: 'Senior SDE @ Google', rating: '4.9 (128)', sessions: '24 sessions', initials: 'RS', color: '#7B3DBF' },
@@ -457,7 +484,7 @@ export function DashboardView() {
           </View>
           
           <View style={s.sectionList}>
-            {COURSES_DATA.map((item, idx) => (
+            {displayCourses.map((item: any, idx: number) => (
               <React.Fragment key={item.id}>
                 {idx > 0 && <View style={s.divider} />}
                 <View style={s.sectionItem}>
@@ -477,7 +504,7 @@ export function DashboardView() {
                   </View>
                   <View style={s.itemActionCol}>
                     <Pressable 
-                      onPress={() => portalNav?.navigate('courses')}
+                      onPress={() => portalNav?.navigate('courses', { q: item.title })}
                       style={s.continueBtn}
                     >
                       <Text style={s.continueBtnText}>Continue</Text>
