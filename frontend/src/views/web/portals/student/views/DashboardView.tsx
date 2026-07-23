@@ -37,7 +37,6 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
 import { AdBanner } from '@/src/views/web/components/AdBanner';
-import CourseDetailDrawer from '@/src/views/web/courses/CourseDetailDrawer';
 
 const KPI_ICONS = { matches: Briefcase, applications: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp, events: Calendar } as const;
 
@@ -95,7 +94,6 @@ export function DashboardView() {
   const [savedJobIds, setSavedJobIds] = useState<Record<string, boolean>>({});
 
   const [applyModalJob, setApplyModalJob] = useState<any>(null);
-  const [detailCourse, setDetailCourse] = useState<any>(null);
 
   const handleApplyJob = async (item: any) => {
     const jobId = item.job_id || String(item.id);
@@ -504,7 +502,7 @@ export function DashboardView() {
                   </View>
                   <View style={s.itemActionCol}>
                     <Pressable 
-                      onPress={() => setDetailCourse(item._raw)}
+                      onPress={() => portalNav?.navigate('courses', { detailCourse: item._raw })}
                       style={s.continueBtn}
                     >
                       <Text style={s.continueBtnText}>Continue</Text>
@@ -890,8 +888,6 @@ export function DashboardView() {
           </GlassCard>
         </View>
       </Modal>
-
-      <CourseDetailDrawer course={detailCourse} onClose={() => setDetailCourse(null)} />
 
     </View>
   );
