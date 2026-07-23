@@ -517,7 +517,7 @@ function TrustStrip({ isDesktop }: { isDesktop: boolean }) {
   const logos = ['Google', 'Microsoft', 'Amazon', 'Flipkart', 'Razorpay', 'Zerodha', 'Swiggy', 'Razorpay'];
 
   return (
-    <View ref={ref as any} style={{ paddingVertical: 40, borderTopWidth: 1, borderTopColor: PALETTE.glassBorder, borderBottomWidth: 1, borderBottomColor: PALETTE.glassBorder, overflow: 'hidden', opacity: visible ? 1 : 0, transform: [{ translateY: visible ? 0 : 20 }], transition: 'opacity 0.6s ease, transform 0.6s ease' }}>
+    <View ref={ref as any} style={{ paddingVertical: 40, borderTopWidth: 1, borderTopColor: PALETTE.glassBorder, borderBottomWidth: 1, borderBottomColor: PALETTE.glassBorder, overflow: 'hidden', opacity: visible ? 1 : 0, transform: [{ translateY: visible ? 0 : 20 }], transition: 'opacity 0.6s ease, transform 0.6s ease' } as any}>
       <View style={{ maxWidth: 1280, alignSelf: 'center', paddingHorizontal: 20 }}>
         <Text style={{ textAlign: 'center', fontFamily: TYPO.body500, fontSize: 12, color: 'rgba(255,255,255,0.35)', letterSpacing: 2, textTransform: 'uppercase' as any, marginBottom: 20 }}>
           Trusted by students at
@@ -527,7 +527,7 @@ function TrustStrip({ isDesktop }: { isDesktop: boolean }) {
         <View style={{ overflow: 'hidden' } as any}>
           <View style={{ display: 'flex', flexDirection: 'row', gap: 60, animation: 'marquee 30s linear infinite', width: 'fit-content' as any } as any}>
             {[...logos, ...logos].map((name, i) => (
-              <Text key={`${name}-${i}`} style={{ fontFamily: TYPO.display700, fontSize: 18, color: 'rgba(255,255,255,0.20)', whiteSpace: 'nowrap' as any, letterSpacing: -0.3 }}>{name}</Text>
+              <Text key={`${name}-${i}`} style={{ fontFamily: TYPO.display700, fontSize: 18, color: 'rgba(255,255,255,0.20)', whiteSpace: 'nowrap', letterSpacing: -0.3 } as any}>{name}</Text>
             ))}
           </View>
         </View>
@@ -561,7 +561,7 @@ function FeaturePillars({ isDesktop, isTablet }: { isDesktop: boolean; isTablet:
   const cardW = `${100 / cols}%` as any;
 
   return (
-    <View ref={sectionRef as any} style={{ paddingHorizontal: 20, marginTop: 80, marginBottom: 20, opacity: sectionVisible ? 1 : 0, transform: [{ translateY: sectionVisible ? 0 : 30 }], transition: 'opacity 0.7s ease, transform 0.7s ease' }}>
+    <View ref={sectionRef as any} style={{ paddingHorizontal: 20, marginTop: 80, marginBottom: 20, opacity: sectionVisible ? 1 : 0, transform: [{ translateY: sectionVisible ? 0 : 30 }], transition: 'opacity 0.7s ease, transform 0.7s ease' } as any}>
       <View style={{ maxWidth: 1280, width: '100%', alignSelf: 'center' }}>
         <View style={{ alignItems: 'center', maxWidth: 720, alignSelf: 'center' }}>
           <Kicker color="rgba(167,139,250,0.85)">Everything in one place</Kicker>
@@ -596,8 +596,8 @@ function FeatureCard({ feature: f, index: idx, cardW, gap }: {
   };
 
   return (
-    <View ref={ref as any} style={{ width: cardW, padding: gap / 2, opacity: visible ? 1 : 0, transform: [{ translateY: visible ? 0 : 30 }], transition: `opacity 0.5s ease ${idx * 80}ms, transform 0.5s ease ${idx * 80}ms` }}>
-      <View onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} style={cardStyle}>
+    <View ref={ref as any} style={{ width: cardW, padding: gap / 2, opacity: visible ? 1 : 0, transform: [{ translateY: visible ? 0 : 30 }], transition: `opacity 0.5s ease ${idx * 80}ms, transform 0.5s ease ${idx * 80}ms` } as any}>
+      <View onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} style={cardStyle} {...{} as any}>
         <View pointerEvents="none" style={{ position: 'absolute', top: -50, right: -50, width: 150, height: 150, borderRadius: 9999, backgroundColor: f.tone, opacity: hovered ? 0.15 : 0.08, filter: 'blur(50px)', transition: 'opacity 0.3s ease' } as any} />
         <View style={{ marginBottom: 4 }}>
           <Feature3DIcon color={f.tone} icon={<Icon size={20} color={f.tone} />} />
@@ -622,7 +622,7 @@ const STEPS = [
 function HowItWorks({ isDesktop }: { isDesktop: boolean }) {
   const { ref: sectionRef, visible: sectionVisible } = useScrollReveal(0.1);
   return (
-    <View ref={sectionRef as any} style={{ paddingHorizontal: 20, marginTop: 80, marginBottom: 20, opacity: sectionVisible ? 1 : 0, transform: [{ translateY: sectionVisible ? 0 : 30 }], transition: 'opacity 0.7s ease, transform 0.7s ease' }}>
+    <View ref={sectionRef as any} style={{ paddingHorizontal: 20, marginTop: 80, marginBottom: 20, opacity: sectionVisible ? 1 : 0, transform: [{ translateY: sectionVisible ? 0 : 30 }], transition: 'opacity 0.7s ease, transform 0.7s ease' } as any}>
       <View style={{ maxWidth: 1280, width: '100%', alignSelf: 'center' }}>
         <View style={{ alignItems: 'center', maxWidth: 720, alignSelf: 'center' }}>
           <Kicker color="rgba(167,139,250,0.85)">How it works</Kicker>
@@ -656,8 +656,8 @@ function StepCard({ step: s, index: idx, isDesktop, isLast }: {
   };
 
   return (
-    <View ref={ref as any} style={{ flex: isDesktop ? 1 : undefined, flexDirection: 'row', alignItems: 'flex-start', opacity: visible ? 1 : 0, transform: [{ translateY: visible ? 0 : 30 }], transition: `opacity 0.5s ease ${idx * 150}ms, transform 0.5s ease ${idx * 150}ms` }}>
-      <View onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} style={cardStyle}>
+    <View ref={ref as any} style={{ flex: isDesktop ? 1 : undefined, flexDirection: 'row', alignItems: 'flex-start', opacity: visible ? 1 : 0, transform: [{ translateY: visible ? 0 : 30 }], transition: `opacity 0.5s ease ${idx * 150}ms, transform 0.5s ease ${idx * 150}ms` } as any}>
+      <View onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} style={cardStyle} {...{} as any}>
         <Text style={{ position: 'absolute', top: -10, right: 10, fontFamily: TYPO.display800, fontSize: 100, color: s.color, opacity: 0.06, letterSpacing: -4 } as any}>{s.n}</Text>
         <View style={{ alignItems: 'center', marginBottom: 8 }}>
           <Step3DIllustration number={s.n} color={s.color} />
@@ -689,7 +689,7 @@ function StatsStrip({ isDesktop }: { isDesktop: boolean }) {
   };
 
   return (
-    <View ref={ref as any} style={{ paddingHorizontal: 20, marginTop: 40, opacity: visible ? 1 : 0, transform: [{ translateY: visible ? 0 : 30 }], transition: 'opacity 0.7s ease, transform 0.7s ease' }}>
+    <View ref={ref as any} style={{ paddingHorizontal: 20, marginTop: 40, opacity: visible ? 1 : 0, transform: [{ translateY: visible ? 0 : 30 }], transition: 'opacity 0.7s ease, transform 0.7s ease' } as any}>
       <View style={{ maxWidth: 1280, width: '100%', alignSelf: 'center' }}>
         <View style={containerStyle}>
           <View pointerEvents="none" style={{ position: 'absolute', top: -80, left: '50%', width: 400, height: 400, borderRadius: 9999, backgroundColor: PALETTE.violet, opacity: 0.08, filter: 'blur(100px)' } as any} />
@@ -738,7 +738,7 @@ function AIShowcase({ isDesktop, router }: { isDesktop: boolean; router: ReturnT
   };
 
   return (
-    <View ref={ref as any} style={{ paddingHorizontal: 20, marginTop: 80, marginBottom: 20, opacity: visible ? 1 : 0, transform: [{ translateY: visible ? 0 : 30 }], transition: 'opacity 0.7s ease, transform 0.7s ease' }}>
+    <View ref={ref as any} style={{ paddingHorizontal: 20, marginTop: 80, marginBottom: 20, opacity: visible ? 1 : 0, transform: [{ translateY: visible ? 0 : 30 }], transition: 'opacity 0.7s ease, transform 0.7s ease' } as any}>
       <View style={{ maxWidth: 1280, width: '100%', alignSelf: 'center' }}>
         <View style={{ alignItems: 'center', maxWidth: 720, alignSelf: 'center' }}>
           <Kicker color="rgba(167,139,250,0.85)">Powered by AI</Kicker>
@@ -798,7 +798,7 @@ const TESTIMONIALS = [
 function Testimonials({ isDesktop }: { isDesktop: boolean }) {
   const { ref: sectionRef, visible: sectionVisible } = useScrollReveal(0.1);
   return (
-    <View ref={sectionRef as any} style={{ paddingHorizontal: 20, marginTop: 80, marginBottom: 20, opacity: sectionVisible ? 1 : 0, transform: [{ translateY: sectionVisible ? 0 : 30 }], transition: 'opacity 0.7s ease, transform 0.7s ease' }}>
+    <View ref={sectionRef as any} style={{ paddingHorizontal: 20, marginTop: 80, marginBottom: 20, opacity: sectionVisible ? 1 : 0, transform: [{ translateY: sectionVisible ? 0 : 30 }], transition: 'opacity 0.7s ease, transform 0.7s ease' } as any}>
       <View style={{ maxWidth: 1280, width: '100%', alignSelf: 'center' }}>
         <View style={{ alignItems: 'center', maxWidth: 720, alignSelf: 'center' }}>
           <Kicker color="rgba(167,139,250,0.85)">What students say</Kicker>
@@ -830,8 +830,8 @@ function TestimonialCard({ testimonial: t, index: idx, isDesktop }: {
     boxShadow: hovered ? `0 20px 50px rgba(0,0,0,0.3), 0 0 20px ${t.tone}15` : PALETTE.glassShadow,
   };
   return (
-    <View ref={ref as any} style={{ flex: isDesktop ? 1 : undefined, opacity: visible ? 1 : 0, transform: [{ translateY: visible ? 0 : 30 }], transition: `opacity 0.5s ease ${idx * 100}ms, transform 0.5s ease ${idx * 100}ms` }}>
-      <View onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} style={cardStyle}>
+    <View ref={ref as any} style={{ flex: isDesktop ? 1 : undefined, opacity: visible ? 1 : 0, transform: [{ translateY: visible ? 0 : 30 }], transition: `opacity 0.5s ease ${idx * 100}ms, transform 0.5s ease ${idx * 100}ms` } as any}>
+      <View onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} style={cardStyle} {...{} as any}>
         <View pointerEvents="none" style={{ position: 'absolute', top: -40, right: -40, width: 120, height: 120, borderRadius: 9999, backgroundColor: t.tone, opacity: 0.10, filter: 'blur(40px)' } as any} />
         <View style={{ flexDirection: 'row', gap: 3 }}>
           {[0, 1, 2, 3, 4].map((i) => <Star key={i} size={14} color="#FBBF24" fill="#FBBF24" />)}
@@ -864,7 +864,7 @@ function CTABanner({ router }: { router: ReturnType<typeof useRouter> }) {
     animation: 'pulseGlow 4s ease-in-out infinite',
   };
   return (
-    <View ref={ref as any} style={{ paddingHorizontal: 20, marginTop: 80, marginBottom: 80, opacity: visible ? 1 : 0, transform: [{ translateY: visible ? 0 : 30 }], transition: 'opacity 0.7s ease, transform 0.7s ease' }}>
+    <View ref={ref as any} style={{ paddingHorizontal: 20, marginTop: 80, marginBottom: 80, opacity: visible ? 1 : 0, transform: [{ translateY: visible ? 0 : 30 }], transition: 'opacity 0.7s ease, transform 0.7s ease' } as any}>
       <View style={{ maxWidth: 1280, width: '100%', alignSelf: 'center' }}>
         <View style={bannerStyle}>
           <View pointerEvents="none" style={{ position: 'absolute', top: -100, left: '30%', width: 300, height: 300, borderRadius: 9999, backgroundColor: PALETTE.violet, opacity: 0.12, filter: 'blur(80px)' } as any} />
@@ -973,7 +973,7 @@ const hero = StyleSheet.create({
   pillText: { color: 'rgba(255,255,255,0.85)', fontFamily: TYPO.body500, fontSize: 12 },
   pillLink: { color: PALETTE.violet, fontFamily: TYPO.body700, fontSize: 12 },
   headline: { color: '#fff', fontFamily: TYPO.display800, textAlign: 'center', letterSpacing: -3 },
-  headlineGradient: { color: PALETTE.violet, backgroundImage: `linear-gradient(120deg, ${PALETTE.violet}, #22D3EE, #EC4899, ${PALETTE.violet})`, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent', backgroundSize: '200% auto', animation: 'gradientShift 4s ease infinite' },
+  headlineGradient: { color: 'transparent', backgroundImage: `linear-gradient(120deg, ${PALETTE.violet}, #22D3EE, #EC4899, ${PALETTE.violet})`, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundSize: '200% auto', animation: 'gradientShift 4s ease infinite' } as any,
   sub: { color: 'rgba(255,255,255,0.70)', fontFamily: TYPO.body500, textAlign: 'center', marginTop: 24, lineHeight: 28 },
   ctaRow: { flexDirection: 'row', gap: 14, marginTop: 36, flexWrap: 'wrap', justifyContent: 'center' },
   ctaPrimary: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12, boxShadow: '0 8px 32px rgba(139,92,246,0.40)' },

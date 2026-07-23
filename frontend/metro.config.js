@@ -29,6 +29,24 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       type: 'sourceFile',
     };
   }
+  if (moduleName === 'three') {
+    return {
+      filePath: path.join(__dirname, 'node_modules', 'three', 'build', 'three.cjs'),
+      type: 'sourceFile',
+    };
+  }
+  if (moduleName === 'framer-motion') {
+    return {
+      filePath: path.join(__dirname, 'node_modules', 'framer-motion', 'dist', 'cjs', 'index.js'),
+      type: 'sourceFile',
+    };
+  }
+  if (moduleName === 'lucide-react') {
+    return {
+      filePath: path.join(__dirname, 'node_modules', 'lucide-react', 'dist', 'cjs', 'lucide-react.js'),
+      type: 'sourceFile',
+    };
+  }
   if (moduleName === 'jspdf/dist/jspdf.es.min.js') {
     return {
       filePath: require.resolve('jspdf/dist/jspdf.es.min.js'),
