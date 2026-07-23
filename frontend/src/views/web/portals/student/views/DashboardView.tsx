@@ -72,7 +72,7 @@ export function DashboardView() {
   // Fetch actual live jobs from /api/jobs/feed (limit 5)
   const { data: jobsFeed, loading: jobsLoading } = usePortalData<any>('/jobs/feed?page=1&per_page=5', null as any);
   // Fetch live courses
-  const { data: coursesFeed } = usePortalData<any>('/courses/list?page=1&per_page=5', null as any);
+  const { data: coursesFeed, loading: coursesLoading } = usePortalData<any>('/courses/list?page=1&per_page=5', null as any);
   const STUDENT = data!.student;
   const KPIS = data!.kpis;
   const TOP_MATCHES = data!.topMatches;
@@ -149,14 +149,6 @@ export function DashboardView() {
     }
   };
 
-  const COURSES_DATA = [
-    { id: 1, title: 'React - The Complete Guide', provider: 'Udemy', hours: '38 hours', level: 'Advanced', rating: '4.7', learners: '12.4k learners', logo: 'React', logoColor: '#61DAFB', bg: 'rgba(97, 218, 251, 0.1)' },
-    { id: 2, title: 'Python for Data Science', provider: 'Coursera', hours: '24 hours', level: 'Intermediate', rating: '4.6', learners: '8.7k learners', logo: 'Python', logoColor: '#3776AB', bg: 'rgba(55, 118, 171, 0.1)' },
-    { id: 3, title: 'AWS Certified Solutions Architect', provider: 'AWS Training', hours: '40 hours', level: 'Advanced', rating: '4.8', learners: '6.2k learners', logo: 'AWS', logoColor: '#FF9900', bg: 'rgba(255, 153, 0, 0.1)' },
-    { id: 4, title: 'SQL - Interview Preparation', provider: 'Great Learning', hours: '18 hours', level: 'Beginner', rating: '4.5', learners: '5.1k learners', logo: 'SQL', logoColor: '#00758F', bg: 'rgba(0, 117, 143, 0.1)' },
-    { id: 5, title: 'Playwright Automation Testing', provider: 'Udemy', hours: '20 hours', level: 'Intermediate', rating: '4.6', learners: '4.3k learners', logo: 'Play', logoColor: '#2EAD33', bg: 'rgba(46, 173, 51, 0.1)' },
-  ];
-
   const displayCourses = React.useMemo(() => {
     if (coursesFeed?.courses && coursesFeed.courses.length > 0) {
       return coursesFeed.courses.slice(0, 5).map((c: any, idx: number) => {
@@ -178,7 +170,7 @@ export function DashboardView() {
         };
       });
     }
-    return COURSES_DATA;
+    return [];
   }, [coursesFeed]);
 
 
@@ -484,9 +476,14 @@ export function DashboardView() {
           </View>
           
           <View style={s.sectionList}>
-            {displayCourses.map((item: any, idx: number) => (
-              <React.Fragment key={item.id}>
-                {idx > 0 && <View style={s.divider} />}
+            {coursesLoading && !displayCourses.length ? (
+              <View style={{ padding: 20, alignItems: 'center' }}>
+                <ActivityIndicator size="small" color="#60A5FA" />
+              </View>
+            ) : (
+              displayCourses.map((item: any, idx: number) => (
+                <React.Fragment key={item.id}>
+                  {idx > 0 && <View style={s.divider} />}
                 <View style={s.sectionItem}>
                   <View style={[s.companyLogoShim, { backgroundColor: item.bg }]}>
                     <Text style={[s.companyLogoShimText, { color: item.logoColor, fontSize: 11 }]}>{item.logo}</Text>
@@ -512,7 +509,8 @@ export function DashboardView() {
                   </View>
                 </View>
               </React.Fragment>
-            ))}
+              ))
+            )}
           </View>
         </View>
 
