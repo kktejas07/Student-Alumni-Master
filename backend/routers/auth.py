@@ -1050,10 +1050,11 @@ async def _get_oauth_creds() -> dict:
     db_settings = {s["key"]: s.get("value", "") for s in (doc.get("system_settings") or [])} if doc else {}
     # Merge with defaults so new fields (like firebase_*) are included even before admin sets them
     try:
+        from routers.admin.settings import DEFAULT_PLATFORM_CONTROLS
         for s in DEFAULT_PLATFORM_CONTROLS.get("system_settings") or []:
             if s["key"] not in db_settings:
                 db_settings[s["key"]] = s.get("value", "")
-    except ImportError:
+    except Exception:
         pass
     return db_settings
 

@@ -1,7 +1,10 @@
 import { motion } from "framer-motion";
 import { ArrowUpRight, Zap } from "lucide-react";
+import { useRouter } from "expo-router";
 
 export function CTA() {
+  const router = useRouter();
+
   return (
     <section className="relative py-32 px-6">
       <div className="mx-auto max-w-7xl">
@@ -42,15 +45,15 @@ export function CTA() {
             </p>
             
             <div className="mt-12 flex justify-center w-full">
-              <a 
-                href="#" 
-                className="group relative inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground px-8 py-4 text-base font-bold transition-all hover:scale-105 hover:bg-primary/90 w-full sm:w-auto overflow-hidden"
+              <button 
+                onClick={() => router.push('/(auth)/email-detect')}
+                className="group relative inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground px-8 py-4 text-base font-bold transition-all hover:scale-105 hover:bg-primary/90 w-full sm:w-auto overflow-hidden cursor-pointer"
               >
                 {/* Shine effect on hover */}
                 <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite]" />
                 <span className="relative">Create your free account</span>
                 <ArrowUpRight className="relative h-5 w-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-              </a>
+              </button>
             </div>
             
             <p className="mt-8 text-[12px] font-bold text-gray-500 uppercase tracking-widest">

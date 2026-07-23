@@ -1,7 +1,9 @@
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
 import { useState } from "react";
+import { useRouter } from "expo-router";
 
 export function Navbar() {
+  const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState("Agent K");
   const { scrollY } = useScroll();
@@ -61,10 +63,16 @@ export function Navbar() {
 
           {/* CTA buttons */}
           <div className="flex items-center gap-4">
-            <button className="hidden sm:inline-flex text-xs font-semibold text-gray-400 hover:text-white transition-colors duration-200">
+            <button 
+              onClick={() => router.push('/(auth)/login')}
+              className="hidden sm:inline-flex text-xs font-semibold text-gray-400 hover:text-white transition-colors duration-200 cursor-pointer"
+            >
               Sign in
             </button>
-            <button className="group relative overflow-hidden rounded-full bg-primary px-5 py-2 text-xs font-bold text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)]">
+            <button 
+              onClick={() => router.push('/(auth)/email-detect')}
+              className="group relative overflow-hidden rounded-full bg-primary px-5 py-2 text-xs font-bold text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] cursor-pointer"
+            >
               Get Started
             </button>
           </div>
