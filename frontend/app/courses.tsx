@@ -98,7 +98,7 @@ export default function CoursesPage() {
 
   useEffect(() => {
     if (studentNav?.detailCourse) {
-      setDetailCourse(studentNav.detailCourse);
+      setEnrollFor(studentNav.detailCourse);
       studentNav.setDetailCourse?.(null);
     }
   }, [studentNav?.detailCourse]);
