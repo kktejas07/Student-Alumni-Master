@@ -23,7 +23,7 @@ import { SC, FONTS, useColors, PALETTE, TYPO } from '../tokens';
 import { GRADS } from '../gradients';
 import { GRAD, IconBox, SectionLabel } from '../portalkit';
 import { GlassCard, glassStyle } from '../glass';
-import { FadeInView, Stagger, PressScale, SparkIcon, ShimmerGradient, AnimatedRingFill } from '../motion';
+import { FadeInView, Stagger, PressScale, SparkIcon, ShimmerGradient, AnimatedRingFill, SkeletonList } from '../motion';
 import { Av, Badge, KpiCard } from '../atoms';
 import * as MOCK from '../data';
 import {
@@ -385,8 +385,8 @@ export function DashboardView() {
           
           <View style={s.sectionList}>
             {jobsLoading && !displayJobs.length ? (
-              <View style={{ padding: 20, alignItems: 'center' }}>
-                <ActivityIndicator size="small" color="#A78BFA" />
+              <View style={{ paddingVertical: 14 }}>
+                <SkeletonList n={3} kind="job" />
               </View>
             ) : (
               displayJobs.map((item: any, idx: number) => {
@@ -477,8 +477,8 @@ export function DashboardView() {
           
           <View style={s.sectionList}>
             {coursesLoading && !displayCourses.length ? (
-              <View style={{ padding: 20, alignItems: 'center' }}>
-                <ActivityIndicator size="small" color="#60A5FA" />
+              <View style={{ paddingVertical: 14 }}>
+                <SkeletonList n={3} kind="list" />
               </View>
             ) : (
               displayCourses.map((item: any, idx: number) => (
