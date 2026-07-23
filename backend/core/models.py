@@ -12,7 +12,7 @@ UserRole = Literal["student", "alumni", "mentor", "college", "admin", "super_adm
 CareerPath = Literal["job", "higher_education", "startup", "business"]
 
 # EducationLevel: Used for content segmentation per spec
-EducationLevel = Literal["plus_one", "plus_two", "btech", "bachelors", "masters", "phd", "other"]
+EducationLevel = Literal["plus_one", "plus_two", "high_school", "diploma", "btech", "bachelors", "masters", "mba", "phd", "bootcamp", "other"]
 
 # MentorCategory: 10-category taxonomy organized by function.
 MentorCategory = Literal[
