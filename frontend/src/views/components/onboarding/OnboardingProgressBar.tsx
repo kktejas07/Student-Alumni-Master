@@ -131,36 +131,32 @@ export const OnboardingProgressBar: React.FC<OnboardingProgressBarProps> = ({
         <Animated.View style={[s.barFill, { width: barWidth }]} />
       </View>
 
-      {/* Below: Scrollable Labels */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={s.labelsScrollContent}
-        style={s.labelsScroll}
-      >
+      {/* Below: Labels */}
+      <View style={s.labelsContainer}>
         <Animated.View style={[s.labelsRow, { opacity: labelOpacityAnim }]}>
           {labels.map((label, i) => {
             const isCompleted = i < currentStep;
             const isCurrent = i === currentStep;
 
             return (
-              <View key={`${label}-${i}`} style={s.labelItem}>
-                <Text
-                  style={[
-                    s.labelBase,
-                    isCompleted && s.labelCompleted,
-                    isCurrent && s.labelCurrent,
-                  ]}
-                >
-                  {isCompleted ? '✓ ' : ''}
-                  {label}
-                </Text>
-                {i < labels.length - 1 && <Text style={s.labelSeparator}> · </Text>}
-              </View>
+              <React.Fragment key={`${label}-${i}`}>
+                <View style={s.labelItem}>
+                  <Text
+                    style={[
+                      s.labelBase,
+                      isCompleted && s.labelCompleted,
+                      isCurrent && s.labelCurrent,
+                    ]}
+                  >
+                    {isCompleted ? '✓ ' : ''}
+                    {label}
+                  </Text>
+                </View>
+              </React.Fragment>
             );
           })}
         </Animated.View>
-      </ScrollView>
+      </View>
     </View>
   );
 };
@@ -203,15 +199,14 @@ const s = StyleSheet.create({
       ? ({ transition: 'width 0.38s cubic-bezier(0.16, 1, 0.3, 1)' } as any)
       : {}),
   },
-  labelsScroll: {
-    flexGrow: 0,
-  },
-  labelsScrollContent: {
-    alignItems: 'center',
+  labelsContainer: {
+    width: '100%',
   },
   labelsRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
     paddingVertical: 2,
   },
   labelItem: {
