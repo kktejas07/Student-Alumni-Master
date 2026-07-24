@@ -480,25 +480,7 @@ export function AgentK3D() {
       {/* Three.js canvas mount */}
       <div ref={mountRef} className="w-full h-full cursor-pointer" />
 
-      {/* ── "Agent K" name badge ── */}
-      <div className="absolute bottom-16 left-1/2 -translate-x-1/2 pointer-events-none flex flex-col items-center gap-1.5">
-        {/* glowing pill name tag */}
-        <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 backdrop-blur-sm border border-indigo-200/60 shadow-[0_4px_20px_rgba(139,92,246,0.3)]">
-          {/* animated dot */}
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fuchsia-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-gradient-to-r from-indigo-500 to-fuchsia-500"></span>
-          </span>
-          <span className="text-sm font-black tracking-tight bg-gradient-to-r from-indigo-600 via-fuchsia-500 to-violet-600 bg-clip-text text-transparent">
-            Agent K
-          </span>
-          <span className="text-[10px] font-semibold text-indigo-400/80 tracking-wide">AI • ONLINE</span>
-        </div>
-        {/* subtitle */}
-        <span className="text-[10px] font-semibold text-indigo-400/60 tracking-widest uppercase">
-          Your Career Companion
-        </span>
-      </div>
+
 
       {/* Greeting speech bubble */}
       <div

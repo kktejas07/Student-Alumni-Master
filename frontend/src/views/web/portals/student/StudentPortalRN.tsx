@@ -66,6 +66,7 @@ function PortalShell() {
   const logout = useAuthStore((sx) => sx.logout);
   const [active, setActive] = useState<StudentNavId>((tab as StudentNavId) || 'dashboard');
   const [searchQuery, setSearchQuery] = useState('');
+  const [detailCourse, setDetailCourse] = useState<any>(null);
   const [scrolled, setScrolled] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   // Phase B — auto-launch the Student portal tour on first visit
@@ -81,10 +82,13 @@ function PortalShell() {
     router.replace('/welcome');
     try { await logout(); } catch {}
   };
-  const handleNav = (id: StudentNavId, params?: { q?: string }) => {
+  const handleNav = (id: StudentNavId, params?: { q?: string; detailCourse?: any }) => {
     setActive(id);
     if (params && typeof params.q === 'string') {
       setSearchQuery(params.q);
+    }
+    if (params && params.detailCourse) {
+      setDetailCourse(params.detailCourse);
     }
   };
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -111,7 +115,7 @@ function PortalShell() {
       <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0, flexDirection: 'row' }}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <StudentPortalNavContext.Provider value={{ navigate: handleNav, searchQuery, setSearchQuery }}>
+          <StudentPortalNavContext.Provider value={{ navigate: handleNav, searchQuery, setSearchQuery, detailCourse, setDetailCourse }}>
             <TopBar scrolled={scrolled} activeView={active} onAvatarPress={() => handleNav('profile')} onBellPress={() => setShowNotifs(!showNotifs)} />
             <ScrollView
               style={{ flex: 1 }}

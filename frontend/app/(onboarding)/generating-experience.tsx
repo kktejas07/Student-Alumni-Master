@@ -19,14 +19,15 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { api } from '@/src/models/services/api';
 import { FONTS } from '@/src/views/auth/tokens';
 import { AuthShell } from '@/src/views/auth/AuthShell';
+import { User, Compass, Users, BookOpen, Target } from 'lucide-react-native';
 
 // Animation beat timings (ms)
 const BEATS = [
-  { delay: 0,    icon: '👤', text: 'Analyzing your profile…' },
-  { delay: 800,  icon: '🧭', text: 'placeholder' }, // filled dynamically with career_path
-  { delay: 1700, icon: '🤝', text: 'Finding mentors for your goals…' },
-  { delay: 2500, icon: '📚', text: 'Personalizing courses and opportunities…' },
-  { delay: 3300, icon: '🎯', text: 'Your dashboard is ready.' },
+  { delay: 0,    icon: User, text: 'Analyzing your profile…' },
+  { delay: 800,  icon: Compass, text: 'placeholder' }, // filled dynamically with career_path
+  { delay: 1700, icon: Users, text: 'Finding mentors for your goals…' },
+  { delay: 2500, icon: BookOpen, text: 'Personalizing courses and opportunities…' },
+  { delay: 3300, icon: Target, text: 'Your dashboard is ready.' },
 ];
 
 const TOTAL_DURATION = 4500; // ms before navigation fires
@@ -138,9 +139,9 @@ export default function GeneratingExperience() {
                   s.iconBubble,
                   { backgroundColor: bg, borderColor: border },
                 ]}>
-                  <Animated.Text style={[s.iconEmoji, { opacity: iconAnims[i].interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) }]}>
-                    {beat.icon}
-                  </Animated.Text>
+                  <Animated.View style={[{ opacity: iconAnims[i].interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) }]}>
+                    <beat.icon size={20} color="#FFF" />
+                  </Animated.View>
                 </Animated.View>
                 {i < BEATS.length - 1 && (
                   <Animated.View style={[
@@ -172,7 +173,9 @@ export default function GeneratingExperience() {
                 },
               ]}
             >
-              <Text style={s.beatIcon}>{BEATS[i].icon}</Text>
+              <View style={s.beatIconWrap}>
+                {React.createElement(BEATS[i].icon as any, { size: 16, color: i === activeBeat ? '#FFF' : 'rgba(255,255,255,0.5)' })}
+              </View>
               <Text style={[
                 s.beatText,
                 i === activeBeat && s.beatTextActive,

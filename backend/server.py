@@ -39,7 +39,7 @@ if sys.platform == "win32" and not getattr(socket, "_ipv4_patched", False):
         return _original_getaddrinfo(host, port, family, type, proto, flags)
 
     socket.getaddrinfo = _ipv4_getaddrinfo
-    socket._ipv4_patched = True
+    socket._ipv4_patched = True  # type: ignore[attr-defined]
 # ---------------------------------------------------------------------
 import re
 import uuid
@@ -229,7 +229,7 @@ async def _lifespan(application):
 
 app = FastAPI(title="Student Alumni Platform API", lifespan=_lifespan)
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernetes ingress requirement)
 
 
@@ -318,7 +318,7 @@ async def _audit_log(user_id: str, field: str, old_value, new_value, *,
             "new_value": new_value if new_value is not None else None,
             "source": source,
             "validation_status": validation_status,
-            "is_manual_entry": bool(is_manual_entry),
+            "is_manual_entry": is_manual_entry,
             "ts": datetime.now(timezone.utc),
         })
     except Exception:
@@ -806,7 +806,7 @@ def _safe_block(model_cls, value):
         return None
 
 
-def serialize_user(user: dict) -> dict:
+def serialize_user(user: dict) -> dict | None:
     """Strip internal fields (_id, password_hash) from user dict before sending to client.
     Decrypts at-rest fields (phone / dob / postal_code) on the way out.
     """
@@ -1056,8 +1056,8 @@ async def student_dashboard_summary(user: dict = Depends(get_current_user)):
             pass
         # streak from user stats
         try:
-            from datetime import datetime as _dt2, timedelta as _td2
-            today2 = _dt2.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+            from datetime import datetime as _dt2, timedelta as _td2, timezone as _tz2
+            today2 = _dt2.now(_tz2.utc).replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
             thirty_ago = today2 - _td2(days=30)
             streak_days = set()
             async for ev in db.activity_events.find({"user_id": uid, "ts": {"$gte": thirty_ago}}, {"ts": 1}):
@@ -1113,7 +1113,12 @@ async def student_dashboard_summary(user: dict = Depends(get_current_user)):
         # Mentors (approved only, real users first)
         mentor_q = {"role": "mentor", "mentor_status": "approved"}
         if career_path:
-            mentor_q["mentor_info.category"] = _path_to_mentor_cat(career_path)
+            mentor_q["mentor_info.category"] = {
+                "job": "it_software",
+                "higher_education": "higher_education",
+                "startup": "startup",
+                "business": "business",
+            }.get(career_path, "it_software")
         mentors_raw = await db.users.find(mentor_q, {"password_hash": 0}).limit(4).to_list(4)
         mentors = []
         for m in mentors_raw:
@@ -1131,9 +1136,9 @@ async def student_dashboard_summary(user: dict = Depends(get_current_user)):
                 "photo_url": m.get("face_image_base64", "") or m.get("photo_url", ""),
             })
         # Events
-        from datetime import datetime as _dt3
+        from datetime import datetime as _dt3, timezone as _tz3
         events = await db.events.find(
-            {"start_date": {"$gte": _dt3.utcnow()}},
+            {"start_date": {"$gte": _dt3.now(_tz3.utc).replace(tzinfo=None)}},  
             {"_id": 0, "title": 1, "date_str": 1, "time_str": 1, "mode": 1, "category": 1, "coverColor": 1, "capacity": 1, "mentor_id": 1}
         ).sort("start_date", 1).limit(4).to_list(4)
         return {"internships": internships, "mentors": mentors, "events": events}
@@ -1206,8 +1211,8 @@ async def student_dashboard_summary(user: dict = Depends(get_current_user)):
 
             # Profile views from student/intelligence KPIs
             # Pull directly from db.analytics_events to get profile view count
-            from datetime import datetime as _dti, timedelta as _tdi
-            thirty_ago = _dti.utcnow() - _tdi(days=30)
+            from datetime import datetime as _dti, timedelta as _tdi, timezone as _tzi
+            thirty_ago = _dti.now(_tzi.utc).replace(tzinfo=None) - _tdi(days=30)
             profile_views = 0
             try:
                 profile_views = await db.analytics_events.count_documents({
@@ -1235,7 +1240,7 @@ async def student_dashboard_summary(user: dict = Depends(get_current_user)):
                         if rt and (latest_resume_ts is None or rt > latest_resume_ts):
                             latest_resume_ts = rt
                     if latest_resume_ts:
-                        delta = _dti.utcnow() - latest_resume_ts
+                        delta = _dti.now(_tzi.utc).replace(tzinfo=None) - latest_resume_ts
                         days_old = delta.days
                         if days_old > 30:
                             insights.append({
@@ -1365,8 +1370,8 @@ async def student_dashboard_summary(user: dict = Depends(get_current_user)):
     # ── 9. Yesterday's Activity Wins ────────────────────────────────────────
     async def _get_yesterday_wins():
         try:
-            from datetime import datetime as _dty, timedelta as _tdy
-            yesterday_start = _dty.utcnow() - _tdy(hours=24)
+            from datetime import datetime as _dty, timedelta as _tdy, timezone as _tzy
+            yesterday_start = _dty.now(_tzy.utc).replace(tzinfo=None) - _tdy(hours=24)
             events = await db.activity_events.find(
                 {"user_id": uid, "ts": {"$gte": yesterday_start}},
                 {"title": 1, "sub": 1, "icon": 1, "tint": 1}
@@ -1434,32 +1439,60 @@ async def student_dashboard_summary(user: dict = Depends(get_current_user)):
 # fetch the active ad to display it.
 
 @api_router.get("/ad/image")
-async def get_ad_image():
-    """Return the current active advertisement, or null if none set."""
+async def get_ad_images():
+    """Return all active advertisements as an array.
+    Supports both legacy format (flat label/image_url/redirect_url fields)
+    and new format (items array).
+    """
     doc = await db.site_config.find_one({"_key": "advertisement"})
     if not doc:
-        return {"ad": None}
-    return {
-        "ad": {
+        return {"ads": []}
+    # New format: { items: [...] }
+    if doc.get("items") and isinstance(doc["items"], list):
+        return {"ads": doc["items"]}
+    # Legacy format: { label, image_url, redirect_url }
+    if doc.get("image_url"):
+        return {"ads": [{
             "label": doc.get("label", ""),
             "image_url": doc.get("image_url", ""),
             "redirect_url": doc.get("redirect_url", ""),
-            "updated_at": doc.get("updated_at", ""),
-        }
-    }
+        }]}
+    return {"ads": []}
 
 
 @api_router.post("/admin/ad/image")
-async def set_ad_image(payload: dict, user: dict = Depends(get_current_user)):
-    """Set the advertisement (admin only). Body: { label, image_url, redirect_url }."""
+async def set_ad_images(payload: dict, user: dict = Depends(get_current_user)):
+    """Save all ads at once (admin only). Body: { items: [{ label, image_url, redirect_url }] }.
+    Also accepts legacy single-ad format: { label, image_url, redirect_url }."""
     role = (user.get("role") or "").lower()
     if role not in ("admin", "superadmin", "super_admin"):
-        raise HTTPException(403, "Only admins can set the advertisement")
+        raise HTTPException(403, "Only admins can set advertisements")
+    # Support new items array format
+    items = payload.get("items")
+    if items is not None:
+        if not isinstance(items, list) or len(items) == 0:
+            raise HTTPException(400, "items must be a non-empty array")
+        for item in items:
+            item["label"] = (item.get("label") or "").strip()
+            item["image_url"] = (item.get("image_url") or "").strip()
+            item["redirect_url"] = (item.get("redirect_url") or "").strip()
+        await db.site_config.update_one(
+            {"_key": "advertisement"},
+            {"$set": {
+                "_key": "advertisement",
+                "items": items,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "updated_by": str(user.get("_id")),
+            }},
+            upsert=True,
+        )
+        return {"status": "ok", "items": items}
+    # Legacy single-ad format
     label = (payload.get("label") or "").strip()
     image_url = (payload.get("image_url") or "").strip()
     redirect_url = (payload.get("redirect_url") or "").strip()
     if not label or not image_url or not redirect_url:
-        raise HTTPException(400, "label, image_url, and redirect_url are required")
+        raise HTTPException(400, "items array or (label, image_url, redirect_url) are required")
     await db.site_config.update_one(
         {"_key": "advertisement"},
         {"$set": {
@@ -1473,6 +1506,7 @@ async def set_ad_image(payload: dict, user: dict = Depends(get_current_user)):
         upsert=True,
     )
     return {"status": "ok", "label": label, "image_url": image_url, "redirect_url": redirect_url}
+
 
 
 # ----------------------------------------------------------------------------
@@ -1504,7 +1538,7 @@ async def analytics_college_endpoint(user: dict = Depends(get_current_user),
                                       institution_name: Optional[str] = None):
     if user["role"] not in ("college", "admin", "super_admin"):
         raise HTTPException(403, "College / admin access required")
-    inst = institution_name or (user.get("school_info") or {}).get("institution_name") or user.get("full_name")
+    inst = institution_name or (user.get("school_info") or {}).get("institution_name") or user.get("full_name") or ""
     return await college_analytics(db, inst)
 
 

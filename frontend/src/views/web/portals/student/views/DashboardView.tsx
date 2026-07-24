@@ -23,7 +23,7 @@ import { SC, FONTS, useColors, PALETTE, TYPO } from '../tokens';
 import { GRADS } from '../gradients';
 import { GRAD, IconBox, SectionLabel } from '../portalkit';
 import { GlassCard, glassStyle } from '../glass';
-import { FadeInView, Stagger, PressScale, SparkIcon, ShimmerGradient, AnimatedRingFill } from '../motion';
+import { FadeInView, Stagger, PressScale, SparkIcon, ShimmerGradient, AnimatedRingFill, SkeletonList } from '../motion';
 import { Av, Badge, KpiCard } from '../atoms';
 import * as MOCK from '../data';
 import {
@@ -37,6 +37,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
 import { AdBanner } from '@/src/views/web/components/AdBanner';
+import { PartnerCards } from '@/src/views/web/components/PartnerCards';
 
 const KPI_ICONS = { matches: Briefcase, applications: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp, events: Calendar } as const;
 
@@ -71,6 +72,8 @@ export function DashboardView() {
   const { data: live } = usePortalData<any>('/live/counters', null as any, 15_000);
   // Fetch actual live jobs from /api/jobs/feed (limit 5)
   const { data: jobsFeed, loading: jobsLoading } = usePortalData<any>('/jobs/feed?page=1&per_page=5', null as any);
+  // Fetch live courses
+  const { data: coursesFeed, loading: coursesLoading } = usePortalData<any>('/courses/list?page=1&per_page=5', null as any);
   const STUDENT = data!.student;
   const KPIS = data!.kpis;
   const TOP_MATCHES = data!.topMatches;
@@ -147,13 +150,31 @@ export function DashboardView() {
     }
   };
 
-  const COURSES_DATA = [
-    { id: 1, title: 'React - The Complete Guide', provider: 'Udemy', hours: '38 hours', level: 'Advanced', rating: '4.7', learners: '12.4k learners', logo: 'React', logoColor: '#61DAFB', bg: 'rgba(97, 218, 251, 0.1)' },
-    { id: 2, title: 'Python for Data Science', provider: 'Coursera', hours: '24 hours', level: 'Intermediate', rating: '4.6', learners: '8.7k learners', logo: 'Python', logoColor: '#3776AB', bg: 'rgba(55, 118, 171, 0.1)' },
-    { id: 3, title: 'AWS Certified Solutions Architect', provider: 'AWS Training', hours: '40 hours', level: 'Advanced', rating: '4.8', learners: '6.2k learners', logo: 'AWS', logoColor: '#FF9900', bg: 'rgba(255, 153, 0, 0.1)' },
-    { id: 4, title: 'SQL - Interview Preparation', provider: 'Great Learning', hours: '18 hours', level: 'Beginner', rating: '4.5', learners: '5.1k learners', logo: 'SQL', logoColor: '#00758F', bg: 'rgba(0, 117, 143, 0.1)' },
-    { id: 5, title: 'Playwright Automation Testing', provider: 'Udemy', hours: '20 hours', level: 'Intermediate', rating: '4.6', learners: '4.3k learners', logo: 'Play', logoColor: '#2EAD33', bg: 'rgba(46, 173, 51, 0.1)' },
-  ];
+  const displayCourses = React.useMemo(() => {
+    if (coursesFeed?.courses && coursesFeed.courses.length > 0) {
+      return coursesFeed.courses.slice(0, 5).map((c: any, idx: number) => {
+        const title = c.title || 'Course';
+        const providerName = c.provider?.name || c.provider || 'Provider';
+        const shortName = title.split(' ')[0].substring(0, 4);
+        const seed = title + providerName;
+        return {
+          id: c.id || c._id || idx,
+          title: title,
+          provider: providerName,
+          hours: c.duration_hours ? `${c.duration_hours} hours` : 'Flexible',
+          level: c.level || 'All Levels',
+          rating: c.rating || '4.5',
+          learners: c.enrolled_count ? `${(c.enrolled_count / 1000).toFixed(1)}k learners` : '1.2k learners',
+          logo: c.logo || shortName,
+          logoColor: pickColor(seed + 'fg'),
+          bg: pickColor(seed + 'bg') + '22',
+          _raw: c,
+        };
+      });
+    }
+    return [];
+  }, [coursesFeed]);
+
 
   const MENTORS_DATA = [
     { id: 1, name: 'Rahul Sharma', role: 'Senior SDE @ Google', rating: '4.9 (128)', sessions: '24 sessions', initials: 'RS', color: '#7B3DBF' },
@@ -263,6 +284,11 @@ export function DashboardView() {
     >
       {Platform.OS !== 'web' && <Aurora intensity="strong" />}
 
+      {/* Ad Banner — rotating carousel from /ad/image */}
+      <AdBanner />
+      {/* Partner cards row — from /partner-websites */}
+      <PartnerCards />
+
       {/* ── KPI Metrics Cards at the top ── */}
       <View style={s.kpiRow}>
         {/* Profile Strength Card */}
@@ -366,8 +392,8 @@ export function DashboardView() {
           
           <View style={s.sectionList}>
             {jobsLoading && !displayJobs.length ? (
-              <View style={{ padding: 20, alignItems: 'center' }}>
-                <ActivityIndicator size="small" color="#A78BFA" />
+              <View style={{ paddingVertical: 14 }}>
+                <SkeletonList n={3} kind="job" />
               </View>
             ) : (
               displayJobs.map((item: any, idx: number) => {
@@ -457,9 +483,14 @@ export function DashboardView() {
           </View>
           
           <View style={s.sectionList}>
-            {COURSES_DATA.map((item, idx) => (
-              <React.Fragment key={item.id}>
-                {idx > 0 && <View style={s.divider} />}
+            {coursesLoading && !displayCourses.length ? (
+              <View style={{ paddingVertical: 14 }}>
+                <SkeletonList n={3} kind="list" />
+              </View>
+            ) : (
+              displayCourses.map((item: any, idx: number) => (
+                <React.Fragment key={item.id}>
+                  {idx > 0 && <View style={s.divider} />}
                 <View style={s.sectionItem}>
                   <View style={[s.companyLogoShim, { backgroundColor: item.bg }]}>
                     <Text style={[s.companyLogoShimText, { color: item.logoColor, fontSize: 11 }]}>{item.logo}</Text>
@@ -477,7 +508,7 @@ export function DashboardView() {
                   </View>
                   <View style={s.itemActionCol}>
                     <Pressable 
-                      onPress={() => portalNav?.navigate('courses')}
+                      onPress={() => portalNav?.navigate('courses', { detailCourse: item._raw })}
                       style={s.continueBtn}
                     >
                       <Text style={s.continueBtnText}>Continue</Text>
@@ -485,7 +516,8 @@ export function DashboardView() {
                   </View>
                 </View>
               </React.Fragment>
-            ))}
+              ))
+            )}
           </View>
         </View>
 

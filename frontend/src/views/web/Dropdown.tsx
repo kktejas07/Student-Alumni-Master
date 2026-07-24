@@ -23,7 +23,7 @@ export interface DropdownOption {
 }
 
 interface Props {
-  label: string;
+  label?: string;
   required?: boolean;
   optional?: boolean;
   value?: string;
@@ -149,10 +149,12 @@ export function Dropdown({
 
   return (
     <View style={{ marginBottom: 14, position: 'relative' }}>
-      <Text style={s.label}>
-        {label}{required ? <Text style={{ color: '#EF4444' }}> *</Text> : null}
-        {optional ? <Text style={s.optional}>  Optional</Text> : null}
-      </Text>
+      {label ? (
+        <Text style={s.label}>
+          {label}{required ? <Text style={{ color: '#EF4444' }}> *</Text> : null}
+          {optional ? <Text style={s.optional}>  Optional</Text> : null}
+        </Text>
+      ) : null}
 
       {/* Trigger / Manual input */}
       {editable ? (
@@ -196,7 +198,7 @@ export function Dropdown({
           <TextInput
             value={manualText || value || ''}
             onChangeText={(t) => { setManualText(t); onChange(t); }}
-            placeholder={`Please enter your ${label.toLowerCase()}`}
+            placeholder={`Please enter your ${label?.toLowerCase() || 'value'}`}
             placeholderTextColor="rgba(255,255,255,0.32)"
             style={s.manualInput}
             autoCapitalize="words"
@@ -238,7 +240,7 @@ export function Dropdown({
             )}
             <View style={{ marginTop: 6, zIndex: 10, position: 'relative' }}>
               <OptionListCard
-                headerLabel={overlayHeader || label.toUpperCase()}
+                headerLabel={overlayHeader || label?.toUpperCase() || 'SELECT'}
                 options={filteredOptions}
                 selectedValue={value}
                 onSelect={(opt) => { onChange(opt.value); setManualMode(false); setOpen(false); }}
@@ -261,7 +263,7 @@ export function Dropdown({
                 }}
               >
                 <OptionListCard
-                  headerLabel={overlayHeader || label.toUpperCase()}
+                  headerLabel={overlayHeader || label?.toUpperCase() || 'SELECT'}
                   options={filteredOptions}
                   selectedValue={value}
                   onSelect={(opt) => { onChange(opt.value); setManualMode(false); setOpen(false); }}
