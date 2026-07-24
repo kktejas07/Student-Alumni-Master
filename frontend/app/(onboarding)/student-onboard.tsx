@@ -40,14 +40,14 @@ import { Dropdown } from '@/src/views/web/Dropdown';
 import { WebcamModal } from '@/src/views/components/WebcamModal';
 import { OnboardingProgressBar } from '@/src/views/components/onboarding/OnboardingProgressBar';
 
-const TOTAL = 5; // 0-indexed steps 0–4 = 5 steps
+const TOTAL = 4; // 0-indexed steps 0–3 = 4 steps
 const CURRENT_YEAR = new Date().getFullYear();
-const GRAD_YEARS = Array.from({ length: 9 }, (_, i) => String(CURRENT_YEAR + i));
+const GRAD_YEARS = Array.from({ length: CURRENT_YEAR + 9 - 1975 }, (_, i) => String(CURRENT_YEAR + 8 - i));
 
 // ─── Step labels for the progress bar ────────────────────────────────────────
-const STEP_LABELS = ['Education', 'College', 'Career Path', 'Profile', 'Badge'];
+const STEP_LABELS = ['Education', 'Institution', 'Career Path', 'Profile'];
 // Estimated seconds per step (for "~N min left" label)
-const STEP_SECS = [90, 20, 25, 60, 20];
+const STEP_SECS = [90, 20, 25, 60];
 
 // ─── Step 1: Education ───────────────────────────────────────────────────────
 const EDU_LEVELS = [
@@ -55,9 +55,7 @@ const EDU_LEVELS = [
   { id: 'diploma',  label: 'Diploma / ITI',        icon: Award },
   { id: 'btech',    label: "Bachelor's Degree",     icon: GraduationCap },
   { id: 'masters',  label: "Master's Degree",       icon: GraduationCap },
-  { id: 'mba',      label: 'MBA',                   icon: BriefcaseBusiness },
   { id: 'phd',      label: 'PhD / Doctorate',       icon: Award },
-  { id: 'bootcamp', label: 'Self-taught / Bootcamp', icon: Code },
 ];
 
 // ─── Step 2: Career Path ★ NEW ────────────────────────────────────────────────
@@ -225,6 +223,7 @@ export default function StudentOnboard() {
       if (!college) return edu === 'high_school' ? 'Enter your school name.' : 'Select your college or university so we can connect you with alumni.';
       if (edu === 'high_school' && !stream) return 'Select your stream.';
       if (edu !== 'high_school' && !gradYear) return 'Select your graduation year to tailor your timeline.';
+      if (!cgpa) return edu === 'high_school' ? 'Enter your percentage.' : 'Enter your domain of study.';
     }
     if (step === 2 && !careerPath) return 'Choose a career path to personalize your dashboard.';
     return null;
@@ -311,8 +310,8 @@ export default function StudentOnboard() {
       sub: 'This helps us recommend the most relevant opportunities.',
     },
     {
-      title: 'College & Contact Info',
-      sub: 'We connect you with alumni, events, and peers from your institution.',
+      title: 'Institution & Domain',
+      sub: 'We connect you with alumni, mentors and peers from your institution and domain.',
     },
     {
       title: "What's your big picture?",
@@ -321,10 +320,6 @@ export default function StudentOnboard() {
     {
       title: 'Put a face to your name',
       sub: 'Profiles with photos receive more mentor engagement.',
-    },
-    {
-      title: `You've earned your ${badge.tier} badge! 🎉`,
-      sub: 'Review your details below before we build your personalized dashboard.',
     },
   ];
   const head = HEADS[step] ?? HEADS[0];
@@ -394,23 +389,25 @@ export default function StudentOnboard() {
           {/* ══════════════════ STEP 1: College ══════════════════ */}
           {step === 1 && (
             <>
-              <Text style={s.section}>{edu === 'high_school' ? 'School Name *' : 'College / University *'}</Text>
-              <InstitutionAutocomplete
-                value={college}
-                onChangeText={setCollege}
-                onSelect={(pick) => {
-                  setCollege(pick.name);
-                  if (!city && pick.city) setCity(pick.city);
-                  if (!stateName && pick.state) setState2(pick.state);
-                }}
-                type={edu === 'high_school' ? 'school' : 'college'}
-                placeholder={edu === 'high_school' ? 'Search your school…' : 'Search your institution…'}
-              />
+              <Text style={s.section}>{edu === 'high_school' ? 'School Name *' : 'Institution *'}</Text>
+              <View style={{ marginBottom: 14 }}>
+                <InstitutionAutocomplete
+                  value={college}
+                  onChangeText={setCollege}
+                  onSelect={(pick) => {
+                    setCollege(pick.name);
+                    if (!city && pick.city) setCity(pick.city);
+                    if (!stateName && pick.state) setState2(pick.state);
+                  }}
+                  type={edu === 'high_school' ? 'school' : 'college'}
+                  placeholder={edu === 'high_school' ? 'Search your school…' : 'Search your institution…'}
+                />
+              </View>
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ flex: 1 }}>
+                  <Text style={s.section}>{edu === 'high_school' ? 'Stream *' : 'Graduation Year *'}</Text>
                   {edu === 'high_school' ? (
                     <Dropdown
-                      label="Stream"
                       required
                       value={stream}
                       options={[
@@ -429,7 +426,6 @@ export default function StudentOnboard() {
                     />
                   ) : (
                     <Dropdown
-                      label="Graduation Year"
                       required
                       value={gradYear}
                       options={GRAD_YEARS.map((y) => ({ value: y, label: y }))}
@@ -440,7 +436,8 @@ export default function StudentOnboard() {
                   )}
                 </View>
                 <View style={{ flex: 1 }}>
-                  <AuthInput label={edu === 'high_school' ? 'Percentage/CGPA' : 'CGPA'} value={cgpa} onChangeText={setCgpa} placeholder={edu === 'high_school' ? '95' : '8.5'} keyboardType="decimal-pad" />
+                  <Text style={s.section}>{edu === 'high_school' ? 'Percentage/CGPA *' : 'Domain *'}</Text>
+                  <AuthInput value={cgpa} onChangeText={setCgpa} placeholder={edu === 'high_school' ? '95' : 'e.g. Computer Science'} keyboardType={edu === 'high_school' ? 'decimal-pad' : 'default'} />
                 </View>
               </View>
             </>
@@ -555,55 +552,7 @@ export default function StudentOnboard() {
               )}
             </>
           )}
-
-          {/* ══════════════════ STEP 4: Badge & Review ══════════════════ */}
-          {step === 4 && (
-            <View style={{ alignItems: 'center', gap: 14 }}>
-              {/* Badge visual */}
-              <View style={[
-                s.badgeCircle,
-                {
-                  borderColor:
-                    badge.tier === 'Platinum' ? '#E5E4E2' :
-                    badge.tier === 'Gold'     ? '#FFD700' :
-                    badge.tier === 'Silver'   ? '#C0C0C0' : '#CD7F32',
-                },
-              ]}>
-                <Award size={38} color="#FFF" />
-                <Text style={s.badgeTier}>{badge.tier}</Text>
-              </View>
-
-              <View style={s.verifiedPill}>
-                <CheckCircle2 size={14} color="#5EEAD4" />
-                <Text style={s.verifiedText}>Verified SA Member</Text>
-              </View>
-
-              {/* Profile summary card */}
-              <View style={s.reviewCard}>
-                <Text style={s.reviewCardTitle}>Your Profile Summary</Text>
-                {[
-                  { label: 'College',       value: college || '—' },
-                  { label: 'Education',     value: EDU_LEVELS.find(e => e.id === edu)?.label || '—' },
-                  { label: 'Career Path',   value: CAREER_PATHS.find(p => p.id === careerPath)?.title || '—' },
-                  { label: 'Badge Level',   value: `${badge.tier} (${badge.score} pts)` },
-                ].map((row) => (
-                  <View key={row.label} style={s.reviewRow}>
-                    <Text style={s.reviewLabel}>✓ {row.label}</Text>
-                    <Text style={s.reviewValue}>{row.value}</Text>
-                  </View>
-                ))}
-              </View>
-
-              <View style={s.reviewCard}>
-                <Text style={s.reviewCardTitle}>{badge.tier} Perks</Text>
-                <Text style={s.perk}>✔ Verified SA member badge</Text>
-                <Text style={s.perk}>
-                  ✔ +{badge.tier === 'Platinum' ? 500 : badge.tier === 'Gold' ? 200 : badge.tier === 'Silver' ? 50 : 10} bonus credits
-                </Text>
-                <Text style={s.perk}>✨ Complete your profile to upgrade your tier</Text>
-              </View>
-            </View>
-          )}
+          {/* Step 4 was removed */}
 
         </View>
       </ScrollView>
@@ -620,11 +569,9 @@ export default function StudentOnboard() {
 
       {/* ── Navigation Row ── */}
       <View style={s.navRow}>
-        {step > 0 ? (
-          <Pressable onPress={prev} style={s.backBtn}>
-            <ArrowLeft size={18} color="#FFF" />
-          </Pressable>
-        ) : <View style={{ width: 42 }} />}
+        <Pressable onPress={() => step > 0 ? prev() : router.push('/(auth)/referral-code')} style={s.backBtn}>
+          <ArrowLeft size={18} color="#FFF" />
+        </Pressable>
         <View style={{ flex: 1 }}>
           <PrimaryButton
             label={step === TOTAL - 1 ? 'Complete Profile →' : 'Continue →'}
@@ -659,7 +606,7 @@ const s = StyleSheet.create({
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
 
   // Education / generic card grid
-  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center' },
   card: {
     width: '48%', paddingVertical: 14, paddingHorizontal: 12,
     borderRadius: 12, borderWidth: 1,

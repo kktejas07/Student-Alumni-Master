@@ -37,6 +37,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
 import { AdBanner } from '@/src/views/web/components/AdBanner';
+import { PartnerCards } from '@/src/views/web/components/PartnerCards';
 
 const KPI_ICONS = { matches: Briefcase, applications: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp, events: Calendar } as const;
 
@@ -282,6 +283,11 @@ export function DashboardView() {
       ]}
     >
       {Platform.OS !== 'web' && <Aurora intensity="strong" />}
+
+      {/* Ad Banner — rotating carousel from /ad/image */}
+      <AdBanner />
+      {/* Partner cards row — from /partner-websites */}
+      <PartnerCards />
 
       {/* ── KPI Metrics Cards at the top ── */}
       <View style={s.kpiRow}>

@@ -164,8 +164,16 @@ const inp = StyleSheet.create({
 
 // ─── Password Rules — real-time checklist ────────────────────────
 export function PasswordRules({ checks }: { checks: { met: boolean; label: string; key: string }[] }) {
+  const allMet = checks.length > 0 && checks.every(c => c.met);
+  if (allMet) return (
+    <View style={pr.secureContainer}>
+      <Text style={pr.secureText}>Secure Password</Text>
+    </View>
+  );
+
   return (
     <View style={pr.wrap}>
+      <Text style={pr.title}>Password must contain : </Text>
       {checks.map((c) => (
         <View key={c.key} style={pr.row}>
           <View style={[pr.dot, c.met ? pr.dotOk : pr.dotMiss]} />
@@ -185,6 +193,20 @@ const pr = StyleSheet.create({
     padding: 12,
     gap: 7,
     marginTop: 10,
+  },
+  secureContainer: {
+    marginTop: 2,
+  },
+  title: {
+    color: '#fff',
+    fontFamily: FONTS.bold,
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  secureText: {
+    color: '#22C55E',
+    fontFamily: FONTS.bold,
+    fontSize: 13,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 8, height: 8, borderRadius: 4 },
