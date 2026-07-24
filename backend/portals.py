@@ -2159,73 +2159,92 @@ async def student_events_list(
         return None
 
     # Fetch from both events AND events_v2 collections (mentor, college, admin & aggregator events)
-    cur1 = _db.events.find({})
-    cur2 = _db.events_v2.find({})
-    
-    raw_list1 = [ev async for ev in cur1]
-    raw_list2 = [ev async for ev in cur2]
-    
-    all_events = []
-    seen_titles = set()
-    seen_ids = set()
-    
-    for ev in raw_list1 + raw_list2:
-        title = ev.get("title") or ev.get("event_title") or "Event"
-        eid = str(ev.get("_id"))
+    cache_key = f"events_global_s{sort_by}"
+    if cache_key in events_cache:
+        filtered_events = events_cache[cache_key]
+    else:
+        projection = {
+            "title": 1, "event_title": 1,
+            "start_date": 1, "date": 1, "event_date_start": 1, "posted_date": 1, "created_at": 1,
+            "end_date": 1, "event_date_end": 1,
+            "mode": 1, "event_mode": 1,
+            "city": 1, "location_city": 1, "venue": 1,
+            "cat": 1, "category": 1, "event_type": 1,
+            "price": 1, "price_amount": 1,
+            "description": 1,
+            "tags": 1,
+            "attendee_count": 1, "capacity": 1,
+        }
+        cur1 = _db.events.find({}, projection)
+        cur2 = _db.events_v2.find({}, projection)
         
-        # Deduplicate
-        if eid in seen_ids or title.lower() in seen_titles:
-            continue
-        seen_ids.add(eid)
-        seen_titles.add(title.lower())
+        raw_list1 = await cur1.to_list(length=1000)
+        raw_list2 = await cur2.to_list(length=1000)
         
-        # Resolve start date across all field variations
-        sd_raw = ev.get("start_date") or ev.get("date") or ev.get("event_date_start") or ev.get("posted_date") or ev.get("created_at")
-        sd = _parse_date(sd_raw) or now
+        all_events = []
+        seen_titles = set()
+        seen_ids = set()
         
-        # Resolve created date
-        ca_raw = ev.get("created_at") or ev.get("posted_date") or sd_raw
-        ca = _parse_date(ca_raw) or sd
+        for ev in raw_list1 + raw_list2:
+            title = ev.get("title") or ev.get("event_title") or "Event"
+            eid = str(ev.get("_id"))
+            
+            # Deduplicate
+            if eid in seen_ids or title.lower() in seen_titles:
+                continue
+            seen_ids.add(eid)
+            seen_titles.add(title.lower())
+            
+            # Resolve start date across all field variations
+            sd_raw = ev.get("start_date") or ev.get("date") or ev.get("event_date_start") or ev.get("posted_date") or ev.get("created_at")
+            sd = _parse_date(sd_raw) or now
+            
+            # Resolve created date
+            ca_raw = ev.get("created_at") or ev.get("posted_date") or sd_raw
+            ca = _parse_date(ca_raw) or sd
+            
+            # Resolve end date
+            ed_raw = ev.get("end_date") or ev.get("event_date_end")
+            ed = _parse_date(ed_raw) or (sd + timedelta(hours=3))
+            
+            ev["_resolved_start"] = sd
+            ev["_resolved_created"] = ca
+            ev["_resolved_end"] = ed
+            all_events.append(ev)
+            
+        today_start = datetime(now.year, now.month, now.day)
+        filtered_events = []
         
-        # Resolve end date
-        ed_raw = ev.get("end_date") or ev.get("event_date_end")
-        ed = _parse_date(ed_raw) or (sd + timedelta(hours=3))
-        
-        ev["_resolved_start"] = sd
-        ev["_resolved_created"] = ca
-        ev["_resolved_end"] = ed
-        all_events.append(ev)
-        
-    today_start = datetime(now.year, now.month, now.day)
-    filtered_events = []
-    
-    for ev in all_events:
-        sd = ev["_resolved_start"]
-        ed = ev["_resolved_end"]
-        
-        if sort_by == "upcoming":
-            if sd >= today_start - timedelta(days=90):
+        for ev in all_events:
+            sd = ev["_resolved_start"]
+            ed = ev["_resolved_end"]
+            
+            if sort_by == "upcoming":
+                if sd >= today_start - timedelta(days=90):
+                    filtered_events.append(ev)
+            elif sort_by == "ongoing":
+                if sd <= now <= ed:
+                    filtered_events.append(ev)
+            elif sort_by == "ended":
+                if ed < now:
+                    filtered_events.append(ev)
+            elif sort_by in ("recently_created", "all", "none"):
                 filtered_events.append(ev)
-        elif sort_by == "ongoing":
-            if sd <= now <= ed:
-                filtered_events.append(ev)
+    
+        # Fallback to all_events if filter yielded empty result
+        if not filtered_events:
+            filtered_events = all_events
+    
+        # Sort
+        if sort_by in ("upcoming", "ongoing", "all", "none"):
+            filtered_events.sort(key=lambda x: x["_resolved_start"])
+        elif sort_by == "recently_created":
+            filtered_events.sort(key=lambda x: x["_resolved_created"], reverse=True)
         elif sort_by == "ended":
-            if ed < now:
-                filtered_events.append(ev)
-        elif sort_by in ("recently_created", "all", "none"):
-            filtered_events.append(ev)
-
-    # Fallback to all_events if filter yielded empty result
-    if not filtered_events:
-        filtered_events = all_events
-
-    # Sort
-    if sort_by in ("upcoming", "ongoing", "all", "none"):
-        filtered_events.sort(key=lambda x: x["_resolved_start"])
-    elif sort_by == "recently_created":
-        filtered_events.sort(key=lambda x: x["_resolved_created"], reverse=True)
-    elif sort_by == "ended":
-        filtered_events.sort(key=lambda x: x["_resolved_start"], reverse=True)
+            filtered_events.sort(key=lambda x: x["_resolved_start"], reverse=True)
+            
+        # Store to cache for 60 seconds
+        events_cache[cache_key] = filtered_events
         
     total = len(filtered_events)
     skip = (page - 1) * per_page
