@@ -9,7 +9,7 @@ import { Badge } from '../atoms';
 import { usePortalData, postPortal, fetchPortal } from '@/src/lib/portalApi';
 import { request } from '@/src/models/services/api';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-
+import { SkeletonBlock } from '../motion';
 type Ev = { id: string; title: string; date: string; mode: string; city: string; cat: string; attending: number; capacity: number; kind: string; price?: number; accent: string; registered: boolean; description?: string; tags?: string[]; spotsLeft?: number; };
 const FALLBACK = { items: [] as Ev[] };
 
@@ -367,7 +367,11 @@ export function EventsView() {
       </View>
 
       {eventsLoading ? (
-        <View style={{ paddingVertical: 60, alignItems: 'center' }}><ActivityIndicator size="large" color={SC.primary} /></View>
+        <View style={s.grid}>
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <EventCardSkeleton key={idx} />
+          ))}
+        </View>
       ) : processedList.length === 0 ? (
         <View style={{ paddingVertical: 80, alignItems: 'center', justifyContent: 'center' }}>
           <MaterialCommunityIcons name="calendar-search" size={48} color="rgba(255,255,255,0.15)" />
@@ -662,3 +666,52 @@ const s = StyleSheet.create({
     outlineStyle: 'none',
   },
 });
+
+function EventCardSkeleton() {
+  return (
+    <View style={{
+      flexGrow: 1, flexBasis: 300, maxWidth: 360,
+      padding: 16, borderRadius: 14,
+      backgroundColor: 'rgba(255,255,255,0.025)',
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)'
+    }}>
+      {/* Top Row */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <SkeletonBlock w={28} h={28} br={6} />
+          <View style={{ flexDirection: 'row', gap: 4 }}>
+            <SkeletonBlock w={60} h={20} br={10} />
+            <SkeletonBlock w={70} h={20} br={10} />
+          </View>
+        </View>
+        <SkeletonBlock w={40} h={20} br={10} />
+      </View>
+      {/* Title */}
+      <SkeletonBlock w="80%" h={18} br={4} style={{ marginTop: 4, marginBottom: 8 }} />
+      <SkeletonBlock w="60%" h={18} br={4} style={{ marginBottom: 14 }} />
+      {/* Description */}
+      <SkeletonBlock w="100%" h={12} br={4} style={{ marginBottom: 6 }} />
+      <SkeletonBlock w="90%" h={12} br={4} style={{ marginBottom: 6 }} />
+      <SkeletonBlock w="70%" h={12} br={4} style={{ marginBottom: 14 }} />
+      {/* Meta details */}
+      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+        <SkeletonBlock w={60} h={12} br={4} />
+        <SkeletonBlock w={50} h={12} br={4} />
+        <SkeletonBlock w={70} h={12} br={4} />
+      </View>
+      {/* Tags */}
+      <View style={{ flexDirection: 'row', gap: 6, marginBottom: 20 }}>
+        <SkeletonBlock w={50} h={16} br={4} />
+        <SkeletonBlock w={60} h={16} br={4} />
+        <SkeletonBlock w={40} h={16} br={4} />
+      </View>
+      {/* Divider */}
+      <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginTop: 'auto', marginBottom: 10 }} />
+      {/* Footer */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <SkeletonBlock w={80} h={14} br={4} />
+        <SkeletonBlock w={90} h={30} br={8} />
+      </View>
+    </View>
+  );
+}
