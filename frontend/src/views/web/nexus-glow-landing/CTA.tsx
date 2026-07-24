@@ -6,7 +6,7 @@ export function CTA() {
   const router = useRouter();
 
   return (
-    <section className="relative py-32 px-6">
+    <section id="contact" className="relative py-32 px-6">
       <div className="mx-auto max-w-7xl">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
