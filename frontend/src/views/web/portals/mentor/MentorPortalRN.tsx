@@ -165,21 +165,22 @@ export default function MentorPortalRN() {
             setDemoMode={setDemoMode}
           />
 
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
-            <PromoBanner portal="mentor" />
-            {active === 'dashboard' && <DashboardView onNav={(id) => setActive(id as NavId)} demoMode={demoMode} setDemoMode={setDemoMode} />}
-            {active === 'ai-studio' && <MentorAIStudioView />}
-            {active === 'students'  && <ConnectionsView />}
-            {active === 'sessions'  && <SessionsView demoMode={demoMode} setDemoMode={setDemoMode} />}
-            {active === 'requests'  && <RequestsView decisions={decisions} onSetDecision={(id, d) => setDecisions(prev => ({ ...prev, [id]: d }))} demoMode={demoMode} />}
-            {active === 'network'   && <NetworkView />}
-            {active === 'earnings'  && <EarningsView demoMode={demoMode} setDemoMode={setDemoMode} />}
-            {active === 'feedback'  && <FeedbackView demoMode={demoMode} setDemoMode={setDemoMode} />}
-            {active === 'event'     && <CreateEventView />}
-            {active === 'profile'   && <MentorProfileSettingsView initialTab={profileTab} demoMode={demoMode} setDemoMode={setDemoMode} />}
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
+            <View style={{ flex: 1, padding: 20 }}>
+              <PromoBanner portal="mentor" />
+              {active === 'dashboard' && <DashboardView onNav={(id) => setActive(id as NavId)} demoMode={demoMode} setDemoMode={setDemoMode} />}
+              {active === 'ai-studio' && <MentorAIStudioView />}
+              {active === 'students'  && <ConnectionsView />}
+              {active === 'sessions'  && <SessionsView demoMode={demoMode} setDemoMode={setDemoMode} />}
+              {active === 'requests'  && <RequestsView decisions={decisions} onSetDecision={(id, d) => setDecisions(prev => ({ ...prev, [id]: d }))} demoMode={demoMode} />}
+              {active === 'network'   && <NetworkView />}
+              {active === 'earnings'  && <EarningsView demoMode={demoMode} setDemoMode={setDemoMode} />}
+              {active === 'feedback'  && <FeedbackView demoMode={demoMode} setDemoMode={setDemoMode} />}
+              {active === 'event'     && <CreateEventView />}
+              {active === 'profile'   && <MentorProfileSettingsView initialTab={profileTab} demoMode={demoMode} setDemoMode={setDemoMode} />}
+            </View>
             <DashboardFooter portal="mentor" />
           </ScrollView>
-          <DashboardFooter portal="mentor" />
         </View>
         {showNotifs && (
           <NotificationsPanel

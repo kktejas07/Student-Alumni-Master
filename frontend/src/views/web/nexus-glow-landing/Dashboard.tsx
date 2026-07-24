@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Sparkles, TrendingUp, CheckCircle2, Navigation } from "lucide-react";
+import { Sparkles, TrendingUp, CheckCircle2, Navigation } from "lucide-react-native";
 
 export function Dashboard() {
   return (

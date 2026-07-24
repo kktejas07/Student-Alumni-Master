@@ -82,27 +82,29 @@ export function CollegePortalRN() {
           <ScrollView
             ref={scrollRef}
             style={[{ flex: 1 }, Platform.OS === 'web' && ({ scrollBehavior: 'smooth' } as any)]}
-            contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
+            contentContainerStyle={{ flexGrow: 1 }}
             showsVerticalScrollIndicator={false}
           >
-            <PromoBanner portal="college" />
-            {active === 'dashboard'    && (
-              <DashboardView
-                onOpenProfile={() => setActive('profile')}
-                onNavigate={setActive}
-              />
-            )}
-            {active === 'students'     && <StudentsView />}
-            {active === 'alumni'       && <AlumniView />}
-            {active === 'mentors'      && <MentorsView />}
-            {active === 'events'       && <EventsView onNavigate={setActive} />}
-            {active === 'create-event' && <CreateEventView onNavigate={setActive} />}
-            {active === 'announcements'&& <AnnouncementsView />}
-            {active === 'analytics'    && <AnalyticsView />}
-            {active === 'ai-insights'  && <AIInsightsView />}
-            {active === 'career-intel' && <CareerIntelView />}
-            {active === 'placements'   && <PlacementsView />}
-            {active === 'profile'      && <SharedProfileSettingsView roleOverride="college" />}
+            <View style={{ flex: 1, padding: 22, paddingBottom: 60 }}>
+              <PromoBanner portal="college" />
+              {active === 'dashboard'    && (
+                <DashboardView
+                  onOpenProfile={() => setActive('profile')}
+                  onNavigate={setActive}
+                />
+              )}
+              {active === 'students'     && <StudentsView />}
+              {active === 'alumni'       && <AlumniView />}
+              {active === 'mentors'      && <MentorsView />}
+              {active === 'events'       && <EventsView onNavigate={setActive} />}
+              {active === 'create-event' && <CreateEventView onNavigate={setActive} />}
+              {active === 'announcements'&& <AnnouncementsView />}
+              {active === 'analytics'    && <AnalyticsView />}
+              {active === 'ai-insights'  && <AIInsightsView />}
+              {active === 'career-intel' && <CareerIntelView />}
+              {active === 'placements'   && <PlacementsView />}
+              {active === 'profile'      && <SharedProfileSettingsView roleOverride="college" />}
+            </View>
             <DashboardFooter portal="college" />
           </ScrollView>
         </View>

@@ -119,32 +119,34 @@ function PortalShell() {
             <TopBar scrolled={scrolled} activeView={active} onAvatarPress={() => handleNav('profile')} onBellPress={() => setShowNotifs(!showNotifs)} />
             <ScrollView
               style={{ flex: 1 }}
-              contentContainerStyle={{ paddingHorizontal: padH, paddingTop: SP.lg, paddingBottom: SP.giga }}
+              contentContainerStyle={{ flexGrow: 1 }}
               showsVerticalScrollIndicator={false}
               onScroll={onScroll}
               scrollEventThrottle={16}
             >
-              <EmbeddedShellContext.Provider value={true}>
-                {active !== 'internships' && <PromoBanner portal="student" />}
-                <RouteTransition deps={[active]}>
-                  {active === 'dashboard'       && <DashboardView />}
-                  {active === 'career-ai'       && <CareerAIView />}
-                  {active === 'internships'     && <InternshipsView />}
-                  {active === 'network'         && <NetworkView />}
-                  {active === 'my-bookings'     && <MyBookingsView />}
-                  {active === 'events'          && <EventsView />}
-                  {active === 'my-workshops'    && <MyWorkshopsView />}
-                  {active === 'courses'         && <CoursesPage />}
-                  {active === 'financial'       && <FinancialPage />}
-                  {active === 'deals'           && <DealsPage />}
-                  {active === 'wallet'          && <WalletPage />}
-                  {active === 'higher-ed'       && <HigherEducationPage />}
-                  {active === 'rentals'         && <RentalsPage />}
-                  {active === 'profile'         && <ProfileSettingsView />}
-                </RouteTransition>
-              </EmbeddedShellContext.Provider>
+              <View style={{ flex: 1, paddingHorizontal: padH, paddingTop: SP.lg, paddingBottom: SP.giga }}>
+                <EmbeddedShellContext.Provider value={true}>
+                  {active !== 'internships' && <PromoBanner portal="student" />}
+                  <RouteTransition deps={[active]}>
+                    {active === 'dashboard'       && <DashboardView />}
+                    {active === 'career-ai'       && <CareerAIView />}
+                    {active === 'internships'     && <InternshipsView />}
+                    {active === 'network'         && <NetworkView />}
+                    {active === 'my-bookings'     && <MyBookingsView />}
+                    {active === 'events'          && <EventsView />}
+                    {active === 'my-workshops'    && <MyWorkshopsView />}
+                    {active === 'courses'         && <CoursesPage />}
+                    {active === 'financial'       && <FinancialPage />}
+                    {active === 'deals'           && <DealsPage />}
+                    {active === 'wallet'          && <WalletPage />}
+                    {active === 'higher-ed'       && <HigherEducationPage />}
+                    {active === 'rentals'         && <RentalsPage />}
+                    {active === 'profile'         && <ProfileSettingsView />}
+                  </RouteTransition>
+                </EmbeddedShellContext.Provider>
+              </View>
+              <DashboardFooter portal="student" />
             </ScrollView>
-            <DashboardFooter portal="student" />
           </StudentPortalNavContext.Provider>
 
           {/* Global AI Copilot FAB — visible on every Student screen */}

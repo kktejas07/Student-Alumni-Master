@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowUpRight, Zap } from "lucide-react";
+import { ArrowUpRight, Zap } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
 export function CTA() {
