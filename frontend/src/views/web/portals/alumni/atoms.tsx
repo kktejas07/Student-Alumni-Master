@@ -42,12 +42,13 @@ export function Badge({ label, color = 'purple' }: { label: string; color?: Badg
 
 export function KpiCard({
   Icon, label, value, delta, color = 'purple',
-}: { Icon: LucideIcon; label: string; value: string; delta: string; color?: 'blue' | 'purple' | 'green' | 'amber' }) {
+}: { Icon: LucideIcon; label: string; value: string; delta: string; color?: 'blue' | 'purple' | 'green' | 'amber' | 'red' }) {
   const PALETTES = {
     blue:   { tint: 'rgba(37,99,235,0.18)',   border: 'rgba(96,165,250,0.30)',  ic: '#60A5FA' },
     purple: { tint: 'rgba(95,37,159,0.18)',   border: 'rgba(176,127,223,0.30)', ic: '#A78BFA' },
     green:  { tint: 'rgba(6,95,70,0.18)',     border: 'rgba(52,211,153,0.30)',  ic: '#34D399' },
     amber:  { tint: 'rgba(180,83,9,0.18)',    border: 'rgba(245,158,11,0.30)',  ic: '#F59E0B' },
+    red:    { tint: 'rgba(185,28,28,0.18)',   border: 'rgba(252,165,165,0.30)', ic: '#FCA5A5' },
   };
   const p = PALETTES[color];
   return (
