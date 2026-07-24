@@ -536,7 +536,7 @@ async def events_search(
     user: dict = Depends(_get_current_user_dependency()),
 ):
     await _ensure_fresh()
-    query: Dict[str, Any] = {"is_active": True, "status": {"$in": ["published", "approved"]}}
+    query: Dict[str, Any] = {"is_active": {"$ne": False}, "status": {"$ne": "rejected"}}
     if event_type:
         types = [t.strip() for t in event_type.split(",") if t.strip()]
         if types and "all" not in [t.lower() for t in types]:
@@ -675,7 +675,7 @@ async def events_search(
 async def events_category_counts(user: dict = Depends(_get_current_user_dependency())):
     await _ensure_fresh()
     pipe = [
-        {"$match": {"is_active": True, "status": {"$in": ["published", "approved"]}}},
+        {"$match": {"is_active": {"$ne": False}, "status": {"$ne": "rejected"}}},
         {"$group": {"_id": "$event_type", "count": {"$sum": 1}}},
     ]
     counts = {t: 0 for t in EVENT_TYPES}
@@ -1137,8 +1137,8 @@ async def event_recommendations(limit: int = Query(8, ge=1, le=20),
 
     now = datetime.now(timezone.utc)
     out = []
-    async for d in _db.events_v2.find({"is_active": True,
-                                        "status": {"$in": ["published", "approved"]}}).limit(200):
+    async for d in _db.events_v2.find({"is_active": {"$ne": False},
+                                        "status": {"$ne": "rejected"}}).limit(200):
         if d.get("event_id") in reg_ids:
             continue
         score = 50.0
