@@ -159,6 +159,7 @@ async def _lifespan(application):
     await _safe_create_index(db.users, [("role", 1), ("mentor_status", 1)])
     await _safe_create_index(db.users, "sa_id", unique=True, sparse=True)
     await _safe_create_index(db.career_suggestions, "user_id")
+    await _safe_create_index(db.career_roadmaps, "user_id")
     await _safe_create_index(db.chat_messages, [("user_id", 1), ("session_id", 1)])
     await _safe_create_index(db.bookings, [("student_id", 1), ("slot_start_iso", -1)])
     await _safe_create_index(db.bookings, [("mentor_id", 1), ("slot_start_iso", -1)])
