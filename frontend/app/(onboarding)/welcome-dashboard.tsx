@@ -14,21 +14,16 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Compass, Briefcase, Handshake, Calendar, DollarSign } from 'lucide-react-native';
 import { AuthShell } from '@/src/views/auth/AuthShell';
 import { FONTS } from '@/src/views/auth/tokens';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
-const CHIP_ICONS: Record<string, React.ComponentType<{ size?: number; color?: string }>> = {
-  Compass, Briefcase, Handshake, Calendar, DollarSign,
-};
-
 const CHIPS = [
-  { id: 'career', label: 'Career AI',    icon: 'Compass' },
-  { id: 'intern', label: 'Internships',  icon: 'Briefcase' },
-  { id: 'net',    label: 'Network',      icon: 'Handshake' },
-  { id: 'events', label: 'Events',       icon: 'Calendar' },
-  { id: 'wallet', label: 'Wallet',       icon: 'DollarSign' },
+  { id: 'career', label: 'Career AI',    emoji: '🧭' },
+  { id: 'intern', label: 'Internships',  emoji: '💼' },
+  { id: 'net',    label: 'Network',      emoji: '🤝' },
+  { id: 'events', label: 'Events',       emoji: '📅' },
+  { id: 'wallet', label: 'Wallet',       emoji: '💰' },
 ];
 
 const ROLE_LABEL: Record<string, string> = {
@@ -56,7 +51,7 @@ export default function DashboardPreview() {
         <View style={s.spinnerCircle}>
           <ActivityIndicator size="large" color="#B07FDF" />
         </View>
-        <Text style={s.title}>Welcome to SA!</Text>
+        <Text style={s.title}>Welcome to SA! 🎉</Text>
         <Text style={s.sub}>
           You're all set as a <Text style={s.roleHl}>{roleName}</Text>.
         </Text>
@@ -65,14 +60,12 @@ export default function DashboardPreview() {
         </Text>
 
         <View style={s.chipRow}>
-          {CHIPS.map((c) => {
-            const ChipIcon = CHIP_ICONS[c.icon];
-            return (
+          {CHIPS.map((c) => (
             <View key={c.id} style={s.chip}>
-              {ChipIcon && <ChipIcon size={14} color="#E9D5FF" />}
+              <Text style={s.chipEmoji}>{c.emoji}</Text>
               <Text style={s.chipLabel}>{c.label}</Text>
             </View>
-          );})}
+          ))}
         </View>
       </View>
     </AuthShell>

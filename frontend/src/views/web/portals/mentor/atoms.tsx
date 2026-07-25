@@ -63,16 +63,27 @@ export function StarRow({ rating, size = 13 }: { rating: number; size?: number }
 }
 
 export function Countdown({ days }: { days: number }) {
-  const isUrgent = days <= 3;
-  const c = isUrgent ? MC.amber : MC.tealP;
-  const bg = isUrgent ? 'rgba(245,158,11,0.15)' : 'rgba(20,184,166,0.12)';
+  const isUrgent = days <= 3 && days >= 0;
+  const isPast = days < 0;
+  
+  const c = isPast ? MC.muted : isUrgent ? MC.amber : MC.tealP;
+  const bg = isPast ? 'rgba(255,255,255,0.05)' : isUrgent ? 'rgba(245,158,11,0.15)' : 'rgba(20,184,166,0.12)';
+  const border = isPast ? 'rgba(255,255,255,0.12)' : c + '40';
+  
+  let label = `${days}d`;
+  if (days === 0) {
+    label = 'Today';
+  } else if (isPast) {
+    label = `${Math.abs(days)}d ago`;
+  }
+
   return (
     <View style={{
       paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6,
-      backgroundColor: bg, borderColor: c + '40', borderWidth: 1,
+      backgroundColor: bg, borderColor: border, borderWidth: 1,
     }}>
       <Text style={{ color: c, fontFamily: FONTS.xbold, fontSize: 9.5 }}>
-        {days === 0 ? 'Today' : `${days}d`}
+        {label}
       </Text>
     </View>
   );

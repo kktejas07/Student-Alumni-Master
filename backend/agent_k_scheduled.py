@@ -51,7 +51,6 @@ Safety rules
 - A schedule cannot fire more than once per minute regardless of cadence.
 """
 from __future__ import annotations
-from pathlib import Path
 import os
 import asyncio
 import logging
@@ -63,9 +62,8 @@ from croniter import croniter
 from fastapi import APIRouter, Body, Header, HTTPException
 from pydantic import BaseModel, Field, field_validator
 import pytz
-from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).parent / ".env")
+
 
 # Reuse the Agent K engine — plan + execute the run through the same
 # pipeline the manual /agent-k/run uses.
@@ -81,8 +79,7 @@ from agent_k import (  # noqa: E402
 log = logging.getLogger("agent-k.scheduled")
 log.setLevel(logging.INFO)
 
-from db import client as _mongo
-_db = _mongo[os.environ["DB_NAME"]]
+from core.db import db as _db
 
 router = APIRouter(tags=["agent-k-scheduled"])
 

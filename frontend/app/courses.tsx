@@ -18,6 +18,7 @@ import CareerTrackInline from '@/src/views/web/courses/CareerTrackInline';
 import CourseDetailDrawer from '@/src/views/web/courses/CourseDetailDrawer';
 import AICourseAdvisor from '@/src/views/web/courses/AICourseAdvisor';
 import { request } from '@/src/models/services/api';
+import { StudentPortalNavContext } from '@/src/views/web/portals/student/StudentPortalNavContext';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -93,6 +94,14 @@ export default function CoursesPage() {
   const user = useAuthStore((s) => s.user);
   const initialized = useAuthStore((s) => s.initialized);
   const isEmbedded = React.useContext(EmbeddedShellContext);
+  const studentNav = React.useContext(StudentPortalNavContext);
+
+  useEffect(() => {
+    if (studentNav?.detailCourse) {
+      setEnrollFor(studentNav.detailCourse);
+      studentNav.setDetailCourse?.(null);
+    }
+  }, [studentNav?.detailCourse]);
 
   useEffect(() => {
     if (!isEmbedded && initialized && user) {

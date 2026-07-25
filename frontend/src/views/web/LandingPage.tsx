@@ -13,8 +13,9 @@ import {
   useWindowDimensions, Platform, Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { motion } from 'framer-motion';
 import Svg, { Circle, Rect, Defs, LinearGradient, Stop, Text as SvgText, Path, G } from 'react-native-svg';
+// framer-motion removed: Metro bundler cannot resolve its tslib ESM dependency.
+// Hero enter animations are now driven by CSS keyframes (see injectKeyframes below).
 import {
   Sparkles, GraduationCap, Bot, Users, Star,
   ChevronRight, Target, MessageCircle, ArrowUpRight, Activity,
@@ -55,6 +56,8 @@ function injectKeyframes() {
     @keyframes saRipple { 0%{box-shadow:0 0 0 0 rgba(139,92,246,0.4)} 100%{box-shadow:0 0 0 20px rgba(139,92,246,0)} }
     @keyframes saSlideUp { 0%{opacity:0;transform:translateY(20px)} 100%{opacity:1;transform:translateY(0)} }
     @keyframes saProgressFill { 0%{width:0%} 100%{width:var(--target)} }
+    @keyframes saHeroEnterL { 0%{opacity:0;transform:translateX(-30px)} 100%{opacity:1;transform:translateX(0)} }
+    @keyframes saHeroEnterR { 0%{opacity:0;transform:translateX(30px)} 100%{opacity:1;transform:translateX(0)} }
     .sa-hover-lift:hover { transform:translateY(-4px) !important; box-shadow:0 24px 64px rgba(2,6,23,0.5), 0 1px 0 rgba(139,92,246,0.15) inset !important; }
     .sa-hover-glow:hover { border-color:rgba(139,92,246,0.4) !important; box-shadow:0 0 24px rgba(139,92,246,0.08) !important; }
     .sa-card-3d { transition:transform 0.4s cubic-bezier(.23,1,.32,1), box-shadow 0.4s ease; transform-style:preserve-3d; }
@@ -72,6 +75,43 @@ function injectKeyframes() {
   document.head.appendChild(style);
 }
 if (typeof document !== 'undefined') injectKeyframes();
+
+/* ── Social Icon SVG Components ─────────────────────────────────────── */
+type IconProps = { size?: number; color?: string };
+function XIcon({ size = 13, color = '#fff' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" fill={color} />
+    </Svg>
+  );
+}
+function LinkedInIcon({ size = 13, color = '#fff' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.268 2.37 4.268 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.064 2.063 2.063 0 112.063 2.064zm1.778 13.019H3.555V9h3.56v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" fill={color} />
+    </Svg>
+  );
+}
+function InstagramIcon({ size = 13, color = '#fff' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24s3.668-.014 4.948-.072c4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" fill={color} />
+    </Svg>
+  );
+}
+function GitHubIcon({ size = 13, color = '#fff' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.6.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" fill={color} />
+    </Svg>
+  );
+}
+const SOCIAL_ICONS = [
+  { key: 'x',  Icon: XIcon },
+  { key: 'li', Icon: LinkedInIcon },
+  { key: 'ig', Icon: InstagramIcon },
+  { key: 'gh', Icon: GitHubIcon },
+];
 
 /* ── Hooks ─────────────────────────────────────────────────────────────── */
 type RevealDir = 'up' | 'left' | 'right' | 'scale';
@@ -196,8 +236,11 @@ function Navbar({ router, desk }: { router: any; desk: boolean }) {
 
 /* ════════════════════════════════════════════════════════════════════════
    ── Hero (Immersive split · left copy + right 3D illustration) ─────── */
-const MView = motion(View);
-const MText = motion(Text);
+// MView / MText: plain aliases after framer-motion removal.
+// The useScrollReveal hook drives reveal via IntersectionObserver + CSS transitions.
+// Hero enter animation is handled by CSS keyframe 'saHeroEnter' (see injectKeyframes).
+const MView = View as any;
+const MText = Text as any;
 function Hero({ router, desk }: { router: any; desk: boolean }) {
   const metrics = [
     { v: '12.5K', l: 'Students', c: C.primary },
@@ -207,23 +250,14 @@ function Hero({ router, desk }: { router: any; desk: boolean }) {
   return (
     <SunsetHero>
       <View style={{ width: '100%', maxWidth: 1400, marginHorizontal: 'auto', paddingHorizontal: 24, paddingTop: desk ? 120 : 90, paddingBottom: desk ? 80 : 50, flexDirection: desk ? 'row' : 'column', alignItems: 'center', gap: desk ? 48 : 0 } as any}>
-        {/* Left — Copy */}
-        <MView
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
-          style={{ flex: 1, alignItems: desk ? 'flex-start' : 'center', paddingTop: desk ? 40 : 0, zIndex: 2 } as any}
-        >
-          <MView
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
+        {/* Left — Copy (CSS enter animation) */}
+        <View style={{ flex: 1, alignItems: desk ? 'flex-start' : 'center', paddingTop: desk ? 40 : 0, zIndex: 2, ...(Platform.OS === 'web' ? { animation: 'saHeroEnterL 0.8s ease-out forwards' } : {}) } as any}>
+          <View>
             <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.primaryS, borderWidth: 1, borderColor: C.borderH, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5, marginBottom: 20, ...(Platform.OS === 'web' ? { cursor: 'pointer', transition: 'all 0.2s ease' } : {}) } as any}>
               <Sparkles size={10} color={C.primary} />
               <Text style={{ fontFamily: TYPO.body600, fontSize: 9.5, color: C.primary, letterSpacing: 0.3 }}>India's trusted alumni network</Text>
             </Pressable>
-          </MView>
+          </View>
 
           <View style={{ marginBottom: 16 }}>
             <Text style={[hro.h1, { fontSize: desk ? 50 : 34, lineHeight: desk ? 56 : 40, textAlign: desk ? 'left' : 'center', letterSpacing: -1.2 }]}>
@@ -232,10 +266,7 @@ function Hero({ router, desk }: { router: any; desk: boolean }) {
             </Text>
           </View>
 
-          <MText
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
+          <Text
             style={{
               fontFamily: TYPO.body400,
               fontSize: desk ? 15 : 13.5,
@@ -247,14 +278,9 @@ function Hero({ router, desk }: { router: any; desk: boolean }) {
             }}
           >
             Connect with verified alumni, get AI career guidance, book 1-on-1 mentoring, and unlock exclusive opportunities.
-          </MText>
+          </Text>
 
-          <MView
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.7 }}
-            style={{ alignSelf: desk ? 'auto' : 'center' } as any}
-          >
+          <View style={{ alignSelf: desk ? 'auto' : 'center' }}>
             <View style={[hro.cr, { alignSelf: desk ? 'auto' : 'center' }]}>
               <Pressable onPress={() => router.push('/register')} style={({ hovered }: any) => [{ paddingHorizontal: 24, paddingVertical: 13, borderRadius: 10, backgroundColor: C.primary, flexDirection: 'row', alignItems: 'center', gap: 6 }, hovered && { backgroundColor: C.primaryD, transform: [{ translateY: -1 }] as any }]}>
                 <Text style={{ color: '#fff', fontFamily: TYPO.body700, fontSize: 14 }}>Start free</Text>
@@ -264,44 +290,30 @@ function Hero({ router, desk }: { router: any; desk: boolean }) {
                 <Text style={{ color: C.text2, fontFamily: TYPO.body600, fontSize: 13 }}>Sign in</Text>
               </Pressable>
             </View>
-          </MView>
+          </View>
 
           {/* Floating trust metrics */}
-          <MView
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 1 }}
-            style={{ flexDirection: 'row', gap: 16, marginTop: 28, flexWrap: 'wrap', alignSelf: desk ? 'auto' : 'center' } as any}
-          >
-            {metrics.map((m, i) => (
+          <View style={{ flexDirection: 'row', gap: 16, marginTop: 28, flexWrap: 'wrap', alignSelf: desk ? 'auto' : 'center', ...(Platform.OS === 'web' ? { animation: 'saSlideUp 0.6s ease-out 0.9s both' } : {}) } as any}>
+            {metrics.map((m) => (
               <View key={m.l} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: m.c }} />
                 <Text style={{ color: C.text, fontFamily: TYPO.mono700, fontSize: 14, letterSpacing: -0.5 }}>{m.v}</Text>
                 <Text style={{ color: C.text3, fontFamily: TYPO.body500, fontSize: 11 }}>{m.l}</Text>
               </View>
             ))}
-          </MView>
+          </View>
 
           {/* Trust indicators */}
-          <MView
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 1.2 }}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 20 } as any}
-          >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 20, ...(Platform.OS === 'web' ? { animation: 'saSlideUp 0.6s ease-out 1.1s both' } : {}) } as any}>
             <View style={{ flexDirection: 'row' }}>{[0,1,2,3,4].map(s => <Text key={s} style={{ color: '#FBBF24', fontSize: 11 }}>★</Text>)}</View>
             <Text style={{ color: C.text3, fontFamily: TYPO.body500, fontSize: 11 }}>4.9 from 2,400+ reviews</Text>
-          </MView>
-        </MView>
-        {/* Right — Product Image Carousel */}
-        <MView
-          initial={{ opacity: 0, x: 30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          style={{ flex: 1, width: '100%' } as any}
-        >
+          </View>
+        </View>
+
+        {/* Right — Product Image Carousel (CSS enter animation) */}
+        <View style={{ flex: 1, width: '100%', ...(Platform.OS === 'web' ? { animation: 'saHeroEnterR 0.8s ease-out 0.4s both' } : {}) } as any}>
           <HeroCarousel desk={desk} />
-        </MView>
+        </View>
       </View>
     </SunsetHero>
   );
@@ -843,9 +855,9 @@ function FooterSection() {
               The private career network for India's top students and alumni. AI-powered mentoring, events, internships, and career growth.
             </Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              {[{l:'X'},{l:'Li'},{l:'IG'},{l:'GH'}].map(s => (
-                <Pressable key={s.l} style={({ hovered }: any) => [{ width: 30, height: 30, borderRadius: 8, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' }, hovered && { borderColor: C.borderH, backgroundColor: C.primaryS }]}>
-                  <Text style={{ color: C.text2, fontFamily: TYPO.body600, fontSize: 9 }}>{s.l}</Text>
+              {SOCIAL_ICONS.map(({ key, Icon }) => (
+                <Pressable key={key} style={({ hovered }: any) => [{ width: 30, height: 30, borderRadius: 8, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' }, hovered && { borderColor: C.borderH, backgroundColor: C.primaryS }]}>
+                  <Icon size={13} color={C.text2} />
                 </Pressable>
               ))}
             </View>

@@ -563,18 +563,29 @@ export function BookingDrawer({
 
                 <Text style={s.kicker}>AVAILABLE SLOTS {pickedDay ? '' : '— select a day first'}</Text>
                 <View style={s.slots}>
-                  {TIME_SLOTS.map((t) => {
+                  {slotsForDay.map((sObj) => {
+                    const t = sObj.time;
+                    const isAvailable = sObj.available;
                     const sel = pickedTime === t;
                     return (
                       <Pressable
                         key={t}
-                        onPress={() => pickedDay && setPickedTime(t)}
-                        disabled={!pickedDay}
-                        style={[s.slot, sel && s.slotSel, !pickedDay && { opacity: 0.5 }]}
+                        onPress={() => pickedDay && isAvailable && setPickedTime(t)}
+                        disabled={!pickedDay || !isAvailable}
+                        style={[
+                          s.slot,
+                          sel && s.slotSel,
+                          (!pickedDay || !isAvailable) && { opacity: 0.4 },
+                          !isAvailable && { backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'transparent' }
+                        ]}
                         testID={`book-slot-${t}`}
                       >
-                        <Clock size={11} color={sel ? '#fff' : C.text2} />
-                        <Text style={[s.slotText, sel && { color: '#fff' }]}>{t}</Text>
+                        <Clock size={11} color={sel ? '#fff' : isAvailable ? C.text2 : C.text3} />
+                        <Text style={[
+                          s.slotText,
+                          sel && { color: '#fff' },
+                          !isAvailable && { color: C.text3, textDecorationLine: 'line-through' }
+                        ]}>{t}</Text>
                       </Pressable>
                     );
                   })}

@@ -1,25 +1,15 @@
 """
 jobs_feed.py — Multi-source live job/internship aggregator.
 
-Fetches real job listings from 11 free, no-key APIs in two staggered waves:
-   Wave A — fast, no-auth sources (run in parallel):
+Fetches real job listings in parallel from 5 free, no-key APIs:
    1. RemoteOK         (https://remoteok.com/api)
    2. ArbeitNow        (https://www.arbeitnow.com/api/job-board-api)
    3. The Muse         (https://www.themuse.com/api/public/jobs)
    4. Remotive         (https://remotive.com/api/remote-jobs)
    5. Jobicy           (https://jobicy.com/api/v2/remote-jobs)
-   6. Himalayas        (https://himalayas.app/jobs/api)
-   7. Hacker News      (https://hn.algolia.com/api)
-
-   Wave B — secondary sources (staggered with 1s delay between groups):
-   8.  Himalayas p2     (offset=40, 40 more remote roles)
-   9.  WeWorkRemotely  (https://weworkremotely.com/remote-jobs.rss)
-  10.  Remotive Dev    (https://remotive.com/api/remote-jobs?category=software-dev)
-  11.  Arbeitnow Board (additional page)
 
 Pipeline:
-   - Two-wave async fetch: Wave A (7 core sources in parallel) +
-     Wave B (4 secondary sources, 1s stagger between sub-groups)
+   - Async parallel fetch via asyncio.gather (with per-API timeout)
    - Per-source normalizer → unified schema
    - MD5 dedup hash on (title|company|location_country) → keeps source_urls[]
    - MongoDB TTL cache (30 min) so repeat hits skip the network
@@ -38,6 +28,7 @@ Public API:
 from __future__ import annotations
 
 import os
+import time
 import re
 import asyncio
 import hashlib
@@ -53,8 +44,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 load_dotenv(Path(__file__).parent / ".env")
 
-from db import client as _mongo
-_db = _mongo[os.environ["DB_NAME"]]
+from core.db import db as _db
+from services.recommendation_engine import calculate_match_score
 
 logger = logging.getLogger("jobs_feed")
 router = APIRouter()
@@ -131,7 +122,7 @@ async def _fetch_remoteok(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
             })
         return out
     except Exception as e:
-        logger.info(f"[jobs_feed] RemoteOK fetch failed: {e}")
+        logger.warning(f"[jobs_feed] RemoteOK fetch failed: {e}")
         return []
 
 async def _fetch_arbeitnow(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
@@ -165,7 +156,7 @@ async def _fetch_arbeitnow(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
             })
         return out
     except Exception as e:
-        logger.info(f"[jobs_feed] ArbeitNow fetch failed: {e}")
+        logger.warning(f"[jobs_feed] ArbeitNow fetch failed: {e}")
         return []
 
 async def _fetch_the_muse(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
@@ -206,7 +197,7 @@ async def _fetch_the_muse(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
                     "logo_url": _company_logo(company),
                 })
         except Exception as e:
-            logger.info(f"[jobs_feed] The Muse fetch failed for {u}: {e}")
+            logger.warning(f"[jobs_feed] The Muse fetch failed for {u}: {e}")
     return out
 
 
@@ -244,7 +235,7 @@ async def _fetch_remoteok_interns(client: httpx.AsyncClient) -> List[Dict[str, A
             })
         return out
     except Exception as e:
-        logger.info(f"[jobs_feed] RemoteOK intern fetch failed: {e}")
+        logger.warning(f"[jobs_feed] RemoteOK intern fetch failed: {e}")
         return []
 
 async def _fetch_remotive(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
@@ -277,7 +268,7 @@ async def _fetch_remotive(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
             })
         return out
     except Exception as e:
-        logger.info(f"[jobs_feed] Remotive fetch failed: {e}")
+        logger.warning(f"[jobs_feed] Remotive fetch failed: {e}")
         return []
 
 async def _fetch_jobicy(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
@@ -310,292 +301,8 @@ async def _fetch_jobicy(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
             })
         return out
     except Exception as e:
-        logger.info(f"[jobs_feed] Jobicy fetch failed: {e}")
+        logger.warning(f"[jobs_feed] Jobicy fetch failed: {e}")
         return []
-
-async def _fetch_himalayas(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
-    """Himalayas Remote Jobs — free, no key."""
-    try:
-        r = await client.get("https://himalayas.app/jobs/api?limit=40", timeout=PER_API_TIMEOUT_S)
-        r.raise_for_status()
-        data = r.json() or {}
-        items = data.get("jobs") or []
-        out = []
-        for it in items[:40]:
-            title = it.get("title") or ""
-            comp_data = it.get("company") or {}
-            company = comp_data.get("name") or ""
-            loc = it.get("location") or "Remote"
-            jtype = it.get("employment_type") or ""
-            salary_min = None
-            salary_max = None
-            if it.get("salary_min"):
-                try:
-                    salary_min = int(it["salary_min"])
-                except Exception:
-                    pass
-            if it.get("salary_max"):
-                try:
-                    salary_max = int(it["salary_max"])
-                except Exception:
-                    pass
-            
-            out.append({
-                "title": title,
-                "company": company,
-                "location": loc,
-                "work_mode": "Remote" if it.get("worldwide") or "remote" in loc.lower() else _classify_work_mode(loc),
-                "job_type": _classify_type(title, jtype),
-                "salary_min": salary_min,
-                "salary_max": salary_max,
-                "currency": "USD",
-                "description": _short(it.get("description") or ""),
-                "tags": (it.get("categories") or [])[:6],
-                "posted_date": it.get("published_at"),
-                "source": "Himalayas",
-                "source_url": it.get("application_link") or "",
-                "logo_url": comp_data.get("logo") or _company_logo(company),
-            })
-        return out
-    except Exception as e:
-        logger.info(f"[jobs_feed] Himalayas fetch failed: {e}")
-        return []
-
-async def _fetch_hackernews(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
-    """Hacker News Algolia Search API for jobs — free, no key."""
-    try:
-        r = await client.get("https://hn.algolia.com/api/v1/search_by_date?tags=job&numericFilters=created_at_i%3E0", timeout=PER_API_TIMEOUT_S)
-        r.raise_for_status()
-        data = r.json() or {}
-        items = data.get("hits") or []
-        out = []
-        for it in items[:40]:
-            title = it.get("title") or ""
-            if not title:
-                continue
-            
-            company = "Hacker News Startup"
-            display_title = title
-            
-            found_split = False
-            for marker in ["is hiring", "is looking for", "hiring for", "Hiring"]:
-                marker_lower = marker.lower()
-                if marker_lower in title.lower():
-                    idx = title.lower().find(marker_lower)
-                    part1 = title[:idx].strip()
-                    part2 = title[idx + len(marker):].strip()
-                    part1 = re.sub(r'^[–\-—\s]+', '', part1).strip()
-                    part2 = re.sub(r'^[–\-—\s:]+', '', part2).strip()
-                    if part1 and part2:
-                        company = part1
-                        display_title = part2
-                        found_split = True
-                        break
-            
-            if not found_split:
-                if ":" in title:
-                    parts = title.split(":", 1)
-                    if len(parts[0].split()) <= 4:
-                        company = parts[0].strip()
-                        display_title = parts[1].strip()
-            
-            desc = it.get("story_text") or ""
-            url = it.get("url") or f"https://news.ycombinator.com/item?id={it.get('objectID')}"
-            
-            out.append({
-                "title": display_title,
-                "company": company,
-                "location": "Remote",
-                "work_mode": "Remote" if "remote" in title.lower() or "remote" in desc.lower() else "Onsite",
-                "job_type": _classify_type(display_title, "Full-time"),
-                "salary_min": None,
-                "salary_max": None,
-                "currency": "USD",
-                "description": _short(desc or f"Job posted on Hacker News by {it.get('author') or 'user'}. Details at YCombinator HN."),
-                "tags": ["Tech", "Startup"],
-                "posted_date": it.get("created_at"),
-                "source": "HackerNews",
-                "source_url": url,
-                "logo_url": _company_logo(company),
-            })
-        return out
-    except Exception as e:
-        logger.info(f"[jobs_feed] Hacker News fetch failed: {e}")
-        return []
-
-
-async def _fetch_himalayas_p2(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
-    """Himalayas page 2 — offset=40 fetches 40 more unique remote roles."""
-    try:
-        r = await client.get(
-            "https://himalayas.app/jobs/api?limit=40&offset=40",
-            timeout=PER_API_TIMEOUT_S,
-        )
-        r.raise_for_status()
-        data  = r.json() or {}
-        items = data.get("jobs") or []
-        out   = []
-        for it in items[:40]:
-            title    = it.get("title") or ""
-            comp_d   = it.get("company") or {}
-            company  = comp_d.get("name") or ""
-            loc      = it.get("location") or "Remote"
-            jtype    = it.get("employment_type") or ""
-            salary_min = None
-            salary_max = None
-            try:
-                if it.get("salary_min"): salary_min = int(it["salary_min"])
-                if it.get("salary_max"): salary_max = int(it["salary_max"])
-            except Exception:
-                pass
-            out.append({
-                "title":      title,
-                "company":    company,
-                "location":   loc,
-                "work_mode":  "Remote" if it.get("worldwide") or "remote" in loc.lower() else _classify_work_mode(loc),
-                "job_type":   _classify_type(title, jtype),
-                "salary_min": salary_min,
-                "salary_max": salary_max,
-                "currency":   "USD",
-                "description": _short(it.get("description") or ""),
-                "tags":       (it.get("categories") or [])[:6],
-                "posted_date": it.get("published_at"),
-                "source":     "Himalayas",
-                "source_url": it.get("application_link") or "",
-                "logo_url":   comp_d.get("logo") or _company_logo(company),
-            })
-        return out
-    except Exception as e:
-        logger.info(f"[jobs_feed] Himalayas p2 fetch failed: {e}")
-        return []
-
-
-async def _fetch_weworkremotely(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
-    """WeWorkRemotely public RSS — one of the largest remote job boards."""
-    import xml.etree.ElementTree as ET
-    out: List[Dict[str, Any]] = []
-    feeds = [
-        "https://weworkremotely.com/remote-jobs.rss",
-        "https://weworkremotely.com/categories/remote-programming-jobs.rss",
-        "https://weworkremotely.com/categories/remote-design-jobs.rss",
-    ]
-    for feed_url in feeds:
-        try:
-            r = await client.get(feed_url, headers={"User-Agent": USER_AGENT}, timeout=PER_API_TIMEOUT_S)
-            r.raise_for_status()
-            root = ET.fromstring(r.text)
-            ns   = {"content": "http://purl.org/rss/1.0/modules/content/"}
-            channel = root.find("channel")
-            if channel is None:
-                continue
-            for item in list(channel.findall("item"))[:30]:
-                raw_title = (item.findtext("title") or "").strip()
-                # WeWorkRemotely format: "Company: Job Title at Company"
-                title = raw_title
-                company = "Remote Company"
-                if ":" in raw_title:
-                    parts = raw_title.split(":", 1)
-                    company = parts[0].strip()
-                    title   = parts[1].strip()
-                link  = item.findtext("link") or ""
-                desc  = item.findtext("description") or ""
-                region= item.findtext("region") or "Worldwide"
-                pub   = item.findtext("pubDate") or ""
-                out.append({
-                    "title":      title,
-                    "company":    company,
-                    "location":   region,
-                    "work_mode":  "Remote",
-                    "job_type":   _classify_type(title, ""),
-                    "salary_min": None,
-                    "salary_max": None,
-                    "currency":   "USD",
-                    "description": _short(re.sub(r'<[^>]+>', ' ', desc)),
-                    "tags":       ["Remote"],
-                    "posted_date": pub,
-                    "source":     "WeWorkRemotely",
-                    "source_url": link,
-                    "logo_url":   _company_logo(company),
-                })
-        except Exception as e:
-            logger.info(f"[jobs_feed] WeWorkRemotely feed {feed_url} failed: {e}")
-    return out
-
-
-async def _fetch_remotive_dev(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
-    """Remotive software-dev category — extra developer-focused remote roles."""
-    try:
-        r = await client.get(
-            "https://remotive.com/api/remote-jobs?category=software-dev&limit=40",
-            timeout=PER_API_TIMEOUT_S,
-        )
-        r.raise_for_status()
-        items = (r.json() or {}).get("jobs") or []
-        out   = []
-        for it in items[:40]:
-            title   = it.get("title") or ""
-            company = it.get("company_name") or ""
-            loc     = it.get("candidate_required_location") or "Remote"
-            jtype   = it.get("job_type") or ""
-            out.append({
-                "title":      title,
-                "company":    company,
-                "location":   loc,
-                "work_mode":  "Remote",
-                "job_type":   _classify_type(title, jtype),
-                "salary_min": None,
-                "salary_max": None,
-                "currency":   "USD",
-                "description": _short(it.get("description") or ""),
-                "tags":       (it.get("tags") or [])[:6],
-                "posted_date": it.get("publication_date"),
-                "source":     "Remotive",
-                "source_url": it.get("url") or "",
-                "logo_url":   it.get("company_logo_url") or _company_logo(company),
-            })
-        return out
-    except Exception as e:
-        logger.info(f"[jobs_feed] Remotive dev fetch failed: {e}")
-        return []
-
-
-async def _fetch_arbeitnow_page2(client: httpx.AsyncClient) -> List[Dict[str, Any]]:
-    """ArbeitNow page 2 — gets 60 more European/remote listings."""
-    try:
-        r = await client.get(
-            "https://www.arbeitnow.com/api/job-board-api?page=2",
-            timeout=PER_API_TIMEOUT_S,
-        )
-        r.raise_for_status()
-        items = (r.json() or {}).get("data") or []
-        out   = []
-        for it in items[:40]:
-            title   = it.get("title") or ""
-            company = it.get("company_name") or ""
-            loc     = it.get("location") or "—"
-            tags    = it.get("tags") or []
-            remote  = bool(it.get("remote"))
-            out.append({
-                "title":      title,
-                "company":    company,
-                "location":   loc,
-                "work_mode":  "Remote" if remote else _classify_work_mode(loc),
-                "job_type":   _classify_type(title, ",".join(tags)),
-                "salary_min": None,
-                "salary_max": None,
-                "currency":   "EUR",
-                "description": _short(it.get("description") or ""),
-                "tags":       tags[:6],
-                "posted_date": it.get("created_at"),
-                "source":     "ArbeitNow",
-                "source_url": it.get("url") or "",
-                "logo_url":   _company_logo(company),
-            })
-        return out
-    except Exception as e:
-        logger.info(f"[jobs_feed] ArbeitNow page2 fetch failed: {e}")
-        return []
-
 
 # ─── Aggregator with cache + dedup ───────────────────────────────────────
 async def _ensure_cache_indexes():
@@ -610,13 +317,7 @@ async def _ensure_cache_indexes():
 _indexes_ready = False
 
 async def fetch_and_cache_all() -> Dict[str, Any]:
-    """Staggered two-wave fetch from all 11 APIs. Dedupes and persists to
-    jobs_cache with TTL.  Wave-A runs instantly (fast/reliable sources);
-    Wave-B runs with a 1-second stagger between sub-groups to avoid
-    triggering rate-limits on secondary sources.
-
-    **No database schema changes** — all data flows into the existing
-    jobs_cache collection via upsert on dedup_hash.
+    """Calls all 5 APIs in parallel, dedupes, persists with TTL.
 
     Returns a stats dict for observability.
     """
@@ -627,67 +328,34 @@ async def fetch_and_cache_all() -> Dict[str, Any]:
 
     expires = datetime.now(timezone.utc) + timedelta(minutes=CACHE_TTL_MIN)
 
-    async with httpx.AsyncClient(
-        timeout=PER_API_TIMEOUT_S,
-        follow_redirects=True,
-        headers={"User-Agent": USER_AGENT},
-    ) as client:
-        # ── Wave A: core fast sources (all in parallel) ─────────────────
-        wave_a = await asyncio.gather(
+    async with httpx.AsyncClient(timeout=PER_API_TIMEOUT_S, follow_redirects=True) as client:
+        results = await asyncio.gather(
             _fetch_remoteok(client),
             _fetch_remoteok_interns(client),
             _fetch_arbeitnow(client),
             _fetch_the_muse(client),
             _fetch_remotive(client),
             _fetch_jobicy(client),
-            _fetch_himalayas(client),
-            _fetch_hackernews(client),
-            return_exceptions=True,
+            return_exceptions=False,
         )
-
-        # ── Wave B: secondary sources — staggered in 2 sub-groups ───────
-        await asyncio.sleep(1.0)   # breathe before hitting secondary APIs
-        wave_b1 = await asyncio.gather(
-            _fetch_himalayas_p2(client),
-            _fetch_weworkremotely(client),
-            return_exceptions=True,
-        )
-        await asyncio.sleep(1.0)
-        wave_b2 = await asyncio.gather(
-            _fetch_remotive_dev(client),
-            _fetch_arbeitnow_page2(client),
-            return_exceptions=True,
-        )
-
-    # Normalise: replace exceptions with empty lists
-    def _safe(batch):
-        return batch if isinstance(batch, list) else []
-
-    r = [_safe(x) for x in wave_a]
-    b1 = [_safe(x) for x in wave_b1]
-    b2 = [_safe(x) for x in wave_b2]
 
     sources_count = {
-        "RemoteOK":       len(r[0]) + len(r[1]),
-        "ArbeitNow":      len(r[2]) + len(b2[1]),
-        "The Muse":       len(r[3]),
-        "Remotive":       len(r[4]) + len(b2[0]),
-        "Jobicy":         len(r[5]),
-        "Himalayas":      len(r[6]) + len(b1[0]),
-        "HackerNews":     len(r[7]),
-        "WeWorkRemotely": len(b1[1]),
+        "RemoteOK": len(results[0]) + len(results[1]),
+        "ArbeitNow": len(results[2]),
+        "The Muse": len(results[3]),
+        "Remotive": len(results[4]),
+        "Jobicy": len(results[5]),
     }
-
-    all_batches = r + b1 + b2
 
     # Flatten + dedupe
     seen: Dict[str, Dict[str, Any]] = {}
-    for batch in all_batches:
+    for batch in results:
         for it in batch:
             if not it.get("title") or not it.get("company"):
                 continue
             h = _make_dedup_hash(it["title"], it["company"], it.get("location", ""))
             if h in seen:
+                # Append source_url to existing job
                 existing = seen[h]
                 src = it.get("source_url") or ""
                 if src and src not in existing["source_urls"]:
@@ -704,25 +372,25 @@ async def fetch_and_cache_all() -> Dict[str, Any]:
                     "expires_at": expires,
                     "cached_at": datetime.now(timezone.utc),
                 }
+                # Drop scalar source_url (list now in source_urls)
                 seen[h].pop("source_url", None)
 
-    # Bulk upsert — zero schema changes, existing documents are updated in-place
+    # Bulk upsert
     try:
+        ops = []
         from pymongo import UpdateOne
-        ops = [
-            UpdateOne({"dedup_hash": h}, {"$set": doc}, upsert=True)
-            for h, doc in seen.items()
-        ]
+        for h, doc in seen.items():
+            ops.append(UpdateOne({"dedup_hash": h}, {"$set": doc}, upsert=True))
         if ops:
             await _db.jobs_cache.bulk_write(ops, ordered=False)
     except Exception as e:
         logger.warning(f"[jobs_feed] cache bulk_write failed: {e}")
 
     return {
-        "fetched_at":   datetime.now(timezone.utc).isoformat(),
-        "sources":      sources_count,
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
+        "sources": sources_count,
         "total_unique": len(seen),
-        "ttl_minutes":  CACHE_TTL_MIN,
+        "ttl_minutes": CACHE_TTL_MIN,
     }
 
 
@@ -808,19 +476,42 @@ def _get_current_user_dependency():
     return get_current_user
 
 
+_feed_cache: Dict[str, Tuple[float, Dict[str, Any]]] = {}
+
 @router.get("/jobs/feed")
 async def jobs_feed(
     type: Optional[str] = Query(None, description="Internship | Full-time | Contract"),
     work_mode: Optional[str] = Query(None, description="Remote | Hybrid | Onsite"),
     q: Optional[str] = Query(None, description="Search title/company/tags"),
     location: Optional[str] = Query(None),
-    source: Optional[str] = Query(None, description="RemoteOK | ArbeitNow | The Muse | Remotive | Jobicy | Himalayas | HackerNews"),
+    source: Optional[str] = Query(None, description="RemoteOK | ArbeitNow | The Muse | Remotive | Jobicy"),
     page: int = Query(1, ge=1),
     per_page: int = Query(15, ge=1, le=50),
     refresh: bool = Query(False, description="Force re-fetch from upstream APIs"),
     user: dict = Depends(_get_current_user_dependency()),
 ):
     """Aggregated live job feed. Tier-filtered by user's year automatically."""
+    u_role = user.get("role") or "student"
+    u_year = (user.get("school_info") or {}).get("class_or_year") or user.get("class_or_year") or ""
+    c_key = f"jobs_feed_{u_role}_{u_year}_t{type}_wm{work_mode}_q{q}_l{location}_s{source}_p{page}_pp{per_page}"
+    now_t = time.time() if "time" in globals() else datetime.now(timezone.utc).timestamp()
+    
+    if not refresh and c_key in _feed_cache:
+        t_c, cached_res = _feed_cache[c_key]
+        if now_t - t_c < 60:  # 60-second TTL
+            # Update user-specific saved/applied state on cached feed
+            saved_ids = set((user or {}).get("saved_jobs") or [])
+            applied_ids = set((user or {}).get("applied_jobs") or [])
+            cached_res_copy = dict(cached_res)
+            cached_items = []
+            for it in cached_res.get("items", []):
+                item_copy = dict(it)
+                item_copy["saved"] = item_copy.get("job_id") in saved_ids
+                item_copy["applied"] = item_copy.get("job_id") in applied_ids
+                cached_items.append(item_copy)
+            cached_res_copy["items"] = cached_items
+            return cached_res_copy
+
     refresh_stats = None
     if refresh or not await _has_fresh_cache():
         refresh_stats = await fetch_and_cache_all()
@@ -859,13 +550,23 @@ async def jobs_feed(
         ]
 
     total = await _db.jobs_cache.count_documents(q_match)
+    # Fetch up to 1000 items to score and sort in memory
+    cur = _db.jobs_cache.find(q_match).sort([("posted_date", -1), ("cached_at", -1)])
+    all_docs = await cur.to_list(length=1000)
+    
+    all_items = []
+    for d in all_docs:
+        it = _serialize(d)
+        score = calculate_match_score(it, user)
+        it["match_score"] = score
+        it["is_recommended"] = score >= 65
+        all_items.append(it)
+        
+    # Sort by match score descending, then posted date
+    all_items.sort(key=lambda x: (x["match_score"], str(x.get("posted_date") or "")), reverse=True)
+    
     skip = (page - 1) * per_page
-    cur = (
-        _db.jobs_cache.find(q_match)
-        .sort([("posted_date", -1), ("cached_at", -1)])
-        .skip(skip).limit(per_page)
-    )
-    items = [_serialize(d) async for d in cur]
+    items = all_items[skip : skip + per_page]
 
     # Mark saved/applied state
     saved_ids = set((user or {}).get("saved_jobs") or [])
@@ -874,20 +575,19 @@ async def jobs_feed(
         it["saved"] = it["job_id"] in saved_ids
         it["applied"] = it["job_id"] in applied_ids
 
-    return {
+    res = {
         "items": items,
         "total": total,
         "page": page,
         "per_page": per_page,
         "allowed_types": allowed,
         "user_tier_locked": False,
-        "available_sources": [
-            "RemoteOK", "ArbeitNow", "The Muse", "Remotive",
-            "Jobicy", "Himalayas", "HackerNews", "WeWorkRemotely",
-        ],
+        "available_sources": ["RemoteOK", "ArbeitNow", "The Muse", "Remotive", "Jobicy"],
         "refresh_stats": refresh_stats,
         "fetched_at": datetime.now(timezone.utc).isoformat(),
     }
+    _feed_cache[c_key] = (time.time(), res)
+    return res
 
 
 @router.post("/jobs/save")

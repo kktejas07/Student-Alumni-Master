@@ -25,6 +25,8 @@ async def main():
     await safe_create(db.users, "email")
     await safe_create(db.users, "role")
     await safe_create(db.users, [("role", 1), ("mentor_status", 1)])
+    await safe_create(db.users, "is_mock")
+    await safe_create(db.users, [("is_mock", 1), ("_id", -1)])
     
     # Bookings
     logger.info("Creating indexes for bookings collection...")
@@ -50,6 +52,15 @@ async def main():
     logger.info("Creating indexes for connections collection...")
     await safe_create(db.connections, "a")
     await safe_create(db.connections, "b")
+    # Career AI: skill intelligence queries connections by from_id/to_id + status
+    await safe_create(db.connections, "from_id")
+    await safe_create(db.connections, "to_id")
+    await safe_create(db.connections, [("from_id", 1), ("status", 1)])
+    await safe_create(db.connections, [("to_id", 1), ("status", 1)])
+
+    # Career Roadmaps
+    logger.info("Creating indexes for career_roadmaps collection...")
+    await safe_create(db.career_roadmaps, "user_id")
     
     # Sessions
     logger.info("Creating indexes for sessions collection...")

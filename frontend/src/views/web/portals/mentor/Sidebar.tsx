@@ -110,7 +110,7 @@ export function Sidebar({
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 }}>{fullName}</Text>
-                <Text numberOfLines={1} style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 9 }}>{role} · {company}</Text>
+                <Text numberOfLines={1} style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 9 }}>{jobTitle} · {company}</Text>
               </View>
             </Pressable>
             <Pressable 
@@ -135,7 +135,7 @@ export function Sidebar({
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: collapsed ? 4 : 6, paddingVertical: 4 }} showsVerticalScrollIndicator={false}>
         {!collapsed && <Text style={s.kicker}>MAIN MENU</Text>}
         {items.map((n) => {
-          const isActive = n.id === active;
+          const isActive = active === n.id;
           const tint = isActive ? MC.tealP : MC.muted;
           return (
             <Pressable

@@ -81,11 +81,19 @@ start_backend() {
     VENV_BIN="$BACKEND_DIR/venv/Scripts"
   fi
 
+  if [[ -d "$BACKEND_DIR/venv/Scripts" ]]; then
+    VENV_BIN="$BACKEND_DIR/venv/Scripts"
+  else
+    VENV_BIN="$BACKEND_DIR/venv/bin"
+  fi
+
   if [[ ! -d "$BACKEND_DIR/venv" ]]; then
     warn "No venv found — creating one and installing dependencies…"
     "$PYTHON_CMD" -m venv "$BACKEND_DIR/venv"
     if [[ -d "$BACKEND_DIR/venv/Scripts" ]]; then
       VENV_BIN="$BACKEND_DIR/venv/Scripts"
+    else
+      VENV_BIN="$BACKEND_DIR/venv/bin"
     fi
     "$VENV_BIN/python" -m pip install -q --upgrade pip
     "$VENV_BIN/python" -m pip install -q -r "$BACKEND_DIR/requirements.txt"
@@ -96,8 +104,6 @@ start_backend() {
   load_env
 
   cd "$BACKEND_DIR"
-  BACKEND_URL="${BACKEND_URL:-http://localhost:8002}" \
-  FRONTEND_URL="${FRONTEND_URL:-http://localhost:8081}" \
   "$VENV_BIN/python" -m uvicorn server:app \
     --host 0.0.0.0 --port 8002 --reload \
     --log-level info &

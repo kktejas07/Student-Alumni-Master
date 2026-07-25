@@ -29,7 +29,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useToast } from '@/src/views/components';
 import { request, api } from '@/src/models/services/api';
 
-import { StudentPortalNavContext } from '../StudentPortalRN';
+import { StudentPortalNavContext } from '../StudentPortalNavContext';
 
 type CategoryTab = 'discover' | 'connections' | 'book' | 'requests';
 type FilterType = 'everyone' | 'students' | 'alumnis' | 'mentors' | 'industry';
@@ -348,8 +348,17 @@ export function NetworkView() {
     try {
       await api.acceptConnection(id);
       toast.success('Connection Accepted! 🎉', `${name} is now connected with you.`);
+      setDiscoverSections(prev => prev.map(section => ({
+        ...section,
+        items: (section.items || []).map((item: any) =>
+          item.id === id
+            ? { ...item, connection_state: 'connected', connectionState: 'connected' }
+            : item
+        )
+      })));
       await loadRequests();
       await loadConnections();
+      await loadDiscover();
       await fetchNetworkData(true);
     } catch (e: any) {
       toast.error('Failed to accept request', e.message || 'Please try again.');
@@ -469,7 +478,7 @@ export function NetworkView() {
 
   const viewMentor = (m: any) => {
     router.push({
-      pathname: `/mentor/${m.id}`,
+      pathname: '/mentor/[id]',
       params: {
         id: m.id,
         name: m.name,

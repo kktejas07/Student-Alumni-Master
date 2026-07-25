@@ -21,7 +21,7 @@ import React, {
   useCallback, useEffect, useMemo, useState,
 } from 'react';
 import {
-  ActivityIndicator, Platform, Pressable, ScrollView,
+  ActivityIndicator, Modal, Platform, Pressable, ScrollView,
   StyleSheet, Text, useWindowDimensions, View,
 } from 'react-native';
 import Svg, { Circle, Defs, Line, LinearGradient as SvgLinearGradient, Polygon, Stop, Text as SvgText } from 'react-native-svg';
@@ -31,8 +31,8 @@ LogBox.ignoreAllLogs();
 import { useRouter } from 'expo-router';
 import {
   ArrowLeft, Award, Briefcase, ChevronRight, CircleCheck as CheckCircle2,
-  Code, Download, FileText, Flame, Folder, Link2, MessageSquare,
-  Mic, Star, Target, TrendingUp, User as UserIcon,
+  Code, Download, FileText, Flame, Folder, HelpCircle, Link2, MessageSquare,
+  Mic, Star, Target, TrendingUp, User as UserIcon, X,
 } from 'lucide-react-native';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
@@ -47,6 +47,9 @@ import {
   normalizeRoadmapSkillScores,
   getImpactLabel,
 } from '@/src/lib/careerConstants';
+import { PredictionTimeline } from '@/src/views/web/PredictionTimeline';
+import { ReadinessEstimates } from '@/src/views/web/ReadinessEstimates';
+import { GoalSimulator } from '@/src/views/web/GoalSimulator';
 
 /* ────────── Design tokens ────────── */
 const C = {
@@ -57,6 +60,7 @@ const C = {
   border2: 'rgba(255,255,255,0.14)',
   text: '#f0eeff',
   text2: 'rgba(240,238,255,0.60)',
+  textSub: 'rgba(240,238,255,0.70)',
   dim: 'rgba(240,238,255,0.30)',
   purple: '#6d28d9',
   purple2: '#7c3aed',
@@ -85,17 +89,8 @@ const SKILL_META = [
   { key: 'Industry Presence',            label: 'Industry\nPresence',           short: 'Industry Presence',          color: '#C4B5FD', Icon: UserIcon },
 ];
 
-// GAINS and IMPACT_LABEL are now imported from careerConstants.ts (centralized)
-const IMPACT_LABEL: Record<number, { text: string; color: string }> = {
-  12: { text: 'High Impact',   color: C.purpleL },
-  8:  { text: 'High Impact',   color: C.purpleL },
-  7:  { text: 'Medium Impact', color: C.teal },
-  6:  { text: 'Medium Impact', color: C.teal },
-  5:  { text: 'Medium Impact', color: C.teal },
-  4:  { text: 'Low Impact',    color: C.amber },
-  3:  { text: 'Low Impact',    color: C.amber },
-  2:  { text: 'Low Impact',    color: C.amber },
-};
+// GAINS and getImpactLabel are imported from careerConstants.ts (single source of truth)
+// IMPACT_LABEL local constant removed — use getImpactLabel(gain) for robust threshold matching
 
 /* ────────── Types ────────── */
 interface Milestone {
@@ -300,6 +295,8 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   const [profileStrength, setProfileStrength] = useState(0);
   const [skillStreak, setSkillStreak] = useState(0);
   const [careerIntel, setCareerIntel] = useState<any>(null);
+  const [showExplainModal, setShowExplainModal] = useState(false);
+  const [explainTab, setExplainTab] = useState('readiness');
 
   /* ── Derived ── */
   const allMilestones = useMemo(() => roadmap.milestones || [], [roadmap]);
@@ -311,7 +308,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
     if (force) setRegenerating(true); else setLoading(true);
     try {
       const [rm, comp, stats, intel] = await Promise.all([
-        request<RoadmapResp>('/ai/career-roadmap', { method: 'POST', body: force ? JSON.stringify({ force: true }) : undefined } as any).catch(() => ({})),
+        request<RoadmapResp>('/ai/career-roadmap', { method: 'POST', body: force ? { force: true } : undefined } as any).catch(() => ({})),
         request<any>('/users/me/completion').catch(() => ({})),
         request<any>('/users/me/stats').catch(() => ({})),
         request<any>('/users/me/skill-intelligence').catch(() => null),
@@ -452,7 +449,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
         potentialScore,
         potentialLevel: getLevelForScore(potentialScore),
         profileStrength,
-        progressPct: Math.min(100, roadmap.progress_pct ?? 42),
+        progressPct: Math.min(100, roadmap.progress_pct ?? 0),
         generatedAt: roadmap.generated_at,
         estimatedWeeks: pendingMilestones.length > 0 ? `~${pendingMilestones.length * 2} Weeks` : 'Goal Reached!',
         suggestion: roadmap.suggestion,
@@ -475,11 +472,17 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   ]);
 
   /* ── Loading state ── */
-  if (loading && !roadmap.milestones) {
+  if (!roadmap.milestones) {
     return (
       <View style={[embedded ? s.embeddedShell : s.shell, { alignItems: 'center', justifyContent: 'center', gap: 14 }]}>
-        <ActivityIndicator size="large" color={C.purpleL} />
-        <Text style={{ color: C.text2, fontFamily: FT.med, fontSize: 15 }}>Generating your roadmap…</Text>
+        {loading ? (
+          <>
+            <ActivityIndicator size="large" color={C.purpleL} />
+            <Text style={{ color: C.text2, fontFamily: FT.med, fontSize: 15 }}>Generating your roadmap…</Text>
+          </>
+        ) : (
+          <Text style={{ color: C.text2, fontFamily: FT.med, fontSize: 15 }}>Failed to load career roadmap.</Text>
+        )}
       </View>
     );
   }
@@ -488,7 +491,8 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   const targetCo   = roadmap.target_company_type || 'Top Tech Company';
   // Fix 2: progress_pct is now computed server-side from milestone completion, default 0
   const progress   = Math.min(100, roadmap.progress_pct ?? 0);
-  const estimatedWeeks = pendingMilestones.length > 0 ? `~${pendingMilestones.length * 2} Weeks` : 'Goal Reached!';
+  const isActuallyComplete = allMilestones.length > 0 && pendingMilestones.length === 0 && progress === 100;
+  const estimatedWeeks = pendingMilestones.length > 0 ? `~${pendingMilestones.length * 2} Weeks` : (isActuallyComplete ? 'Goal Reached!' : 'Not Started');
   const radarSize = Math.min(isLarge ? 280 : winW * 0.72, 310);
 
   const Container: any = embedded ? View : ScrollView;
@@ -567,7 +571,18 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 
         {/* 1 – Current Readiness (ring) */}
         <View style={[s.kpiCard, { flex: isLarge ? 1 : 0, minWidth: isLarge ? 0 : '47%' }]}>
-          <Text style={s.kpiLabel}>CURRENT READINESS</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={s.kpiLabel}>CURRENT READINESS</Text>
+            <Pressable
+              onPress={() => setShowExplainModal(true)}
+              style={({ pressed, hovered }: any) => [
+                { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: 'rgba(167,139,250,0.15)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)' },
+                (pressed || hovered) && { backgroundColor: 'rgba(167,139,250,0.25)' },
+              ]}
+            >
+              <Text style={{ color: C.purpleL, fontSize: 10, fontFamily: FT.bold }}>Why?</Text>
+            </Pressable>
+          </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 }}>
             <CompletionRing
               pct={readinessScore}
@@ -712,6 +727,16 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
         </View>
       </LinearGradient>
 
+      {/* ──────── PREDICTIONS ──────── */}
+      <View style={{ flexDirection: isLarge ? 'row' : 'column', gap: 10 }}>
+        <View style={{ flex: 1 }}>
+          <PredictionTimeline data={careerIntel?.predictions ?? null} />
+        </View>
+        <View style={{ width: isLarge ? 260 : undefined }}>
+          <ReadinessEstimates data={careerIntel?.readiness_estimates ?? null} />
+        </View>
+      </View>
+
       {/* ──────── MAIN CONTENT: two columns ──────── */}
       <View style={{ flexDirection: isLarge ? 'row' : 'column', gap: 14, alignItems: 'stretch' }}>
 
@@ -724,15 +749,27 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
                 <Text style={s.cardTitle}>Skills & Score</Text>
                 <Text style={s.cardSubtitle}>{readinessScore}%  {readinessLevel}</Text>
               </View>
-              <Pressable
-                onPress={() => router.push('/student-portal?tab=profile' as any)}
-                style={({ pressed, hovered }: any) => [
-                  s.viewDetailsBtn,
-                  (pressed || hovered) && { backgroundColor: 'rgba(167,139,250,0.15)' },
-                ]}
-              >
-                <Text style={s.viewDetailsBtnText}>View Details</Text>
-              </Pressable>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <Pressable
+                  onPress={() => setShowExplainModal(true)}
+                  style={({ pressed, hovered }: any) => [
+                    s.viewDetailsBtn,
+                    { backgroundColor: 'rgba(45,212,191,0.12)', borderColor: 'rgba(45,212,191,0.3)' },
+                    (pressed || hovered) && { backgroundColor: 'rgba(45,212,191,0.2)' },
+                  ]}
+                >
+                  <Text style={[s.viewDetailsBtnText, { color: C.teal }]}>Explain Scores</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => router.push('/student-portal?tab=profile' as any)}
+                  style={({ pressed, hovered }: any) => [
+                    s.viewDetailsBtn,
+                    (pressed || hovered) && { backgroundColor: 'rgba(167,139,250,0.15)' },
+                  ]}
+                >
+                  <Text style={s.viewDetailsBtnText}>View Details</Text>
+                </Pressable>
+              </View>
             </View>
 
             {/* Radar chart */}
@@ -751,7 +788,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
                 const meta = getMilestoneMeta(act.type || act.milestone_type);
                 const Icon = meta.Icon;
                 const gain = act.gain ?? GAINS[act.type] ?? 3;
-                const impact = IMPACT_LABEL[gain] || { text: 'Low Impact', color: C.amber };
+                const impact = getImpactLabel(gain);
                 return (
                   <Pressable
                     key={`sa-${idx}`}
@@ -766,7 +803,27 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
                     </View>
                     <Text style={[s.scoreActionPct, { color: meta.color }]}>+{gain}%</Text>
                     <Text style={s.scoreActionTitle} numberOfLines={2}>{act.title || act.type}</Text>
-                    <Text style={[s.scoreActionImpact, { color: impact.color }]}>{impact.text}</Text>
+                    <Text style={{ color: C.text2, fontFamily: FT.med, fontSize: 11, textAlign: 'center', marginTop: 2, lineHeight: 14 }} numberOfLines={3}>
+                      {act.reason || act.description || 'Boost your readiness score.'}
+                    </Text>
+                    {act.impact_breakdown && Array.isArray(act.impact_breakdown) && (
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 4, marginTop: 4 }}>
+                        {act.impact_breakdown.slice(0, 2).map((impText: string, impIdx: number) => (
+                          <View key={`imp-${impIdx}`} style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
+                            <Text style={{ color: C.textSub, fontSize: 9.5, fontFamily: FT.med }}>{impText}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                    {(act.current_readiness !== undefined && act.estimated_readiness !== undefined) ? (
+                      <View style={{ backgroundColor: 'rgba(45,212,191,0.12)', borderColor: 'rgba(45,212,191,0.3)', borderWidth: 1, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, marginTop: 4 }}>
+                        <Text style={{ color: C.teal, fontSize: 10, fontFamily: FT.bold }}>
+                          Expected: {act.current_readiness}% ➔ {act.estimated_readiness}%
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text style={[s.scoreActionImpact, { color: impact.color, marginTop: 2 }]}>{impact.text}</Text>
+                    )}
                   </Pressable>
                 );
               })}
@@ -782,6 +839,9 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
               <Text style={s.viewAllBtnText}>View All Actions</Text>
             </Pressable>
           </View>
+
+          {/* ── Goal Simulator ── */}
+          <GoalSimulator currentReadiness={readinessScore} />
         </View>
 
         {/* ── RIGHT: Career Journey ── */}
@@ -800,6 +860,12 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
             </View>
 
             {allMilestones.length === 0 ? (
+              <View style={s.emptyState}>
+                <Target size={32} color={C.dim} />
+                <Text style={[s.emptyStateTitle, { marginTop: 8 }]}>No Roadmap Yet</Text>
+                <Text style={s.emptyStateDesc}>Click "Regenerate" to build your personalized career journey.</Text>
+              </View>
+            ) : isActuallyComplete ? (
               <View style={s.emptyState}>
                 <CheckCircle2 size={32} color={C.green} />
                 <Text style={[s.emptyStateTitle, { marginTop: 8 }]}>All Steps Completed!</Text>
@@ -898,6 +964,114 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           </View>
         </View>
       </View>
+
+      {/* ──────── AI SCORE EXPLAINABILITY MODAL ──────── */}
+      <Modal visible={showExplainModal} transparent animationType="fade" onRequestClose={() => setShowExplainModal(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+          <View style={{ width: '100%', maxWidth: 580, backgroundColor: C.bgCard, borderColor: C.border, borderWidth: 1, borderRadius: 20, padding: 22, maxHeight: '85%', ...(Platform.OS === 'web' ? { boxShadow: '0 20px 50px rgba(0,0,0,0.5)' } as any : {}) }}>
+            {/* Modal Header */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={[s.kpiIconWrap, { backgroundColor: C.purple + '25', borderColor: C.purpleL }]}>
+                  <HelpCircle size={18} color={C.purpleL} />
+                </View>
+                <View>
+                  <Text style={[s.cardTitle, { fontSize: 18 }]}>AI Score Explainability</Text>
+                  <Text style={s.cardSubtitle}>Transparent breakdown of how your career scores are calculated</Text>
+                </View>
+              </View>
+              <Pressable onPress={() => setShowExplainModal(false)} style={{ padding: 6, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)' }}>
+                <X size={18} color={C.text2} />
+              </Pressable>
+            </View>
+
+            {/* Category Tabs */}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)', paddingBottom: 12 }}>
+              <Pressable
+                onPress={() => setExplainTab('readiness')}
+                style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: explainTab === 'readiness' ? C.purple : 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: explainTab === 'readiness' ? C.purpleL : C.border }}
+              >
+                <Text style={{ color: explainTab === 'readiness' ? '#fff' : C.text2, fontFamily: FT.bold, fontSize: 12 }}>Overall Readiness</Text>
+              </Pressable>
+              {Object.keys(careerIntel?.score_explanations?.categories || {}).map((catName) => (
+                <Pressable
+                  key={catName}
+                  onPress={() => setExplainTab(catName)}
+                  style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: explainTab === catName ? C.purple : 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: explainTab === catName ? C.purpleL : C.border }}
+                >
+                  <Text style={{ color: explainTab === catName ? '#fff' : C.text2, fontFamily: FT.bold, fontSize: 11.5 }}>{catName.split(' ')[0]}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            {/* Modal Body ScrollView */}
+            <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
+              {explainTab === 'readiness' ? (
+                <View style={{ gap: 12 }}>
+                  <View style={{ backgroundColor: 'rgba(167,139,250,0.08)', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: 'rgba(167,139,250,0.2)' }}>
+                    <Text style={{ color: C.purpleL, fontFamily: FT.xbold, fontSize: 15, marginBottom: 4 }}>How Readiness is Computed</Text>
+                    <Text style={{ color: C.text2, fontFamily: FT.med, fontSize: 12.5, lineHeight: 18 }}>
+                      Your Overall Readiness ({readinessScore}%) is a weighted sum of your 6 core career pillars. Each category contributes points proportional to its industry importance for {targetRole}.
+                    </Text>
+                  </View>
+                  <Text style={{ color: C.text, fontFamily: FT.bold, fontSize: 14, marginTop: 4 }}>Contributing Pillars:</Text>
+                  {(careerIntel?.score_explanations?.readiness?.factors || []).map((fac: any, fIdx: number) => (
+                    <View key={`rf-${fIdx}`} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.025)', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: C.border }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: C.text, fontFamily: FT.bold, fontSize: 13 }}>{fac.label}</Text>
+                        <Text style={{ color: C.dim, fontFamily: FT.med, fontSize: 11, marginTop: 2 }}>Weight: {fac.weight_pct}% of total score</Text>
+                      </View>
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={{ color: C.purpleL, fontFamily: FT.xbold, fontSize: 14 }}>+{fac.earned} / {fac.max} pts</Text>
+                        <Text style={{ color: C.textSub, fontSize: 10.5, fontFamily: FT.med }}>Category Score: {fac.score_pct}%</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <View style={{ gap: 12 }}>
+                  {(() => {
+                    const catData = careerIntel?.score_explanations?.categories?.[explainTab];
+                    if (!catData) return <Text style={{ color: C.textSub }}>Select a category to view details.</Text>;
+                    return (
+                      <>
+                        <View style={{ backgroundColor: 'rgba(45,212,191,0.08)', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: 'rgba(45,212,191,0.2)' }}>
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Text style={{ color: C.teal, fontFamily: FT.xbold, fontSize: 15 }}>{explainTab}</Text>
+                            <Text style={{ color: C.text, fontFamily: FT.xbold, fontSize: 16 }}>{catData.current_score}%</Text>
+                          </View>
+                          <Text style={{ color: C.text2, fontFamily: FT.med, fontSize: 12.5, marginTop: 4 }}>
+                            This pillar accounts for {catData.weight_pct}% of your Total Readiness. You currently have {catData.missing_points} potential growth points remaining.
+                          </Text>
+                        </View>
+                        <Text style={{ color: C.text, fontFamily: FT.bold, fontSize: 14, marginTop: 4 }}>Evaluation Checklist & Formula:</Text>
+                        {(catData.factors || []).map((item: any, idx: number) => (
+                          <View key={`cf-${idx}`} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: item.done ? 'rgba(52,211,153,0.04)' : 'rgba(255,255,255,0.02)', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: item.done ? 'rgba(52,211,153,0.2)' : C.border }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                              {item.done ? <CheckCircle2 size={16} color={C.green} /> : <View style={{ width: 16, height: 16, borderRadius: 8, borderWidth: 1.5, borderColor: C.dim }} />}
+                              <View style={{ flex: 1 }}>
+                                <Text style={{ color: item.done ? C.text : C.text2, fontFamily: item.done ? FT.bold : FT.med, fontSize: 13 }}>{item.label}</Text>
+                              </View>
+                            </View>
+                            <Text style={{ color: item.done ? C.green : C.dim, fontFamily: FT.bold, fontSize: 13 }}>+{item.earned} / {item.max} pts</Text>
+                          </View>
+                        ))}
+                      </>
+                    );
+                  })()}
+                </View>
+              )}
+            </ScrollView>
+
+            {/* Modal Footer */}
+            <View style={{ marginTop: 18, alignItems: 'flex-end', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', paddingTop: 14 }}>
+              <Pressable onPress={() => setShowExplainModal(false)} style={{ backgroundColor: C.purple, paddingHorizontal: 18, paddingVertical: 9, borderRadius: 10 }}>
+                <Text style={{ color: '#fff', fontFamily: FT.bold, fontSize: 13 }}>Got It</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* ──────── FOOTER ──────── */}
       <Text style={s.footer}>

@@ -13,7 +13,7 @@ import { ROLE_META, type Role } from '@/src/views/auth/RoleCards';
 import { AC, FONTS } from '@/src/views/auth/tokens';
 import { trackAuth, passwordStrength } from '@/src/lib/authAnalytics';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
-import { initFirebaseAuth, signInWithGoogleRedirect, signInWithGitHubRedirect, handleRedirectResult } from '@/src/lib/firebaseAuth';
+import { initFirebaseAuth, signInWithGoogle, signInWithGitHub } from '@/src/lib/firebaseAuth';
 
 const BASE = getBaseUrl();
 
@@ -63,12 +63,7 @@ export default function LoginScreen() {
   const submittingRef = useRef(false);
   const pwdRef = useRef<TextInput>(null);
 
-  const [oauthCfg, setOauthCfg] = useState<{
-    linkedin_client_id?: string;
-    redirect_uri?: string;
-    firebase?: { apiKey: string; authDomain: string; projectId: string; appId: string } | null;
-    enabled_providers?: { google: boolean; linkedin: boolean; github: boolean };
-  } | null>(null);
+  const [oauthCfg, setOauthCfg] = useState<{ linkedin_client_id?: string; redirect_uri?: string; firebase?: { apiKey: string; authDomain: string; projectId: string; appId: string } | null } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -77,13 +72,9 @@ export default function LoginScreen() {
         if (res.ok) {
           const cfg = await res.json();
           setOauthCfg(cfg);
+          // Init Firebase Auth if configured
           if (cfg.firebase?.apiKey) {
-            await initFirebaseAuth(cfg.firebase);
-            // Check for redirect result (user returning from Google/GitHub OAuth)
-            const redirectResult = await handleRedirectResult();
-            if (redirectResult?.idToken) {
-              await completeFirebaseLogin(redirectResult);
-            }
+            initFirebaseAuth(cfg.firebase);
           }
         }
       } catch {}
@@ -141,33 +132,6 @@ export default function LoginScreen() {
     }
   };
 
-  const navigateByRole = (role: string) => {
-    const r = role.toLowerCase();
-    if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
-    else if (r === 'mentor') router.replace('/mentor-portal');
-    else if (r === 'college') router.replace('/college-portal');
-    else if (r === 'alumni') router.replace('/alumni-portal');
-    else router.replace('/student-portal');
-  };
-
-  const completeFirebaseLogin = async (result: { idToken: string; email?: string; name?: string; picture?: string }) => {
-    try {
-      const res = await fetch(`${BASE}/api/auth/firebase`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id_token: result.idToken }),
-      });
-      if (!res.ok) throw new Error('Firebase auth failed');
-      const data = await res.json();
-      setUser(data.user);
-      setTokens(data.access_token, data.refresh_token);
-      trackAuth({ event: 'login_success', email: data.user.email, role: data.user.role });
-      navigateByRole(data.user.role);
-    } catch (e: any) {
-      setPwdError(e?.message || 'Firebase sign-in failed');
-    }
-  };
-
   const onLogin = async (overrideEmail?: string, overridePwd?: string) => {
     // Defensive: callers like `onPress={onLogin}` pass the gesture event as 1st arg.
     const e = String(typeof overrideEmail === 'string' ? overrideEmail : (email || '')).trim();
@@ -219,7 +183,12 @@ export default function LoginScreen() {
       // preventing a stale loading→false re-render from racing the navigation event queue.
       setLoading(false);
       submittingRef.current = false;
-      navigateByRole(data.user.role);
+      const r = (data.user.role || '').toLowerCase();
+      if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
+      else if (r === 'mentor') router.replace('/mentor-portal');
+      else if (r === 'college') router.replace('/college-portal');
+      else if (r === 'alumni') router.replace('/alumni-portal');
+      else router.replace('/student-portal');
       return; // prevent finally from running setLoading again
     } catch (e: any) {
       trackAuth({ event: 'login_failure', email, reason: e?.message || 'Network error' });
@@ -256,60 +225,85 @@ export default function LoginScreen() {
       </View>
 
       {/* OAuth row */}
-      {oauthCfg?.enabled_providers && (
-        <>
-          <View style={s.oauthRow}>
-            {oauthCfg.enabled_providers.google && (
-              <View style={{ flex: 1 }}>
-                <OutlineButton label="Google" testID="login-google" icon={<GoogleG size={16} />} onPress={async () => {
-                  try {
-                    if (oauthCfg?.firebase && Platform.OS === 'web') {
-                      await signInWithGoogleRedirect();
-                    } else {
-                      setPwdError('Google sign-in is not configured. Contact admin.');
-                    }
-                  } catch (e: any) {
-                    setPwdError(e?.message || 'Google sign-in failed');
-                  }
-                }} />
-              </View>
-            )}
-            {oauthCfg.enabled_providers.linkedin && (
-              <View style={{ flex: 1 }}>
-                <OutlineButton label="LinkedIn" testID="login-linkedin" icon={<LinkedInIn size={16} />} onPress={() => {
-                  if (oauthCfg?.linkedin_client_id && Platform.OS === 'web') {
-                    const state = `linkedin_${Math.random().toString(36).slice(2)}`;
-                    const url = `https://www.linkedin.com/oauth/v2/authorization?client_id=${oauthCfg.linkedin_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri!)}&response_type=code&scope=openid%20email%20profile&state=${state}`;
-                    window.open(url, '_blank', 'width=600,height=700');
-                  } else {
-                    setPwdError('LinkedIn sign-in is not configured. Contact admin.');
-                  }
-                }} />
-              </View>
-            )}
-            {oauthCfg.enabled_providers.github && (
-              <View style={{ flex: 1 }}>
-                <OutlineButton label="GitHub" testID="login-github" icon={<GitHubCat size={16} />} onPress={async () => {
-                  try {
-                    if (oauthCfg?.firebase && Platform.OS === 'web') {
-                      await signInWithGitHubRedirect();
-                    } else {
-                      setPwdError('GitHub sign-in is not configured. Contact admin.');
-                    }
-                  } catch (e: any) {
-                    setPwdError(e?.message || 'GitHub sign-in failed');
-                  }
-                }} />
-              </View>
-            )}
-          </View>
-          <View style={s.divider}>
-            <View style={s.line} />
-            <Text style={s.dividerText}>or continue with email</Text>
-            <View style={s.line} />
-          </View>
-        </>
-      )}
+      <View style={s.oauthRow}>
+        <View style={{ flex: 1 }}>
+          <OutlineButton label="Google" testID="login-google" icon={<GoogleG size={16} />} onPress={async () => {
+            try {
+              if (oauthCfg?.firebase && Platform.OS === 'web') {
+                const result = await signInWithGoogle();
+                if (!result) return;
+                const res = await fetch(`${BASE}/api/auth/firebase`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id_token: result.idToken }),
+                });
+                if (!res.ok) throw new Error('Firebase auth failed');
+                const data = await res.json();
+                setUser(data.user);
+                setTokens(data.access_token, data.refresh_token);
+                trackAuth({ event: 'login_success', email: data.user.email, role: data.user.role });
+                const r = (data.user.role || '').toLowerCase();
+                if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
+                else if (r === 'mentor') router.replace('/mentor-portal');
+                else if (r === 'college') router.replace('/college-portal');
+                else if (r === 'alumni') router.replace('/alumni-portal');
+                else router.replace('/student-portal');
+              } else {
+                setPwdError('Google sign-in is not configured. Contact admin.');
+              }
+            } catch (e: any) {
+              setPwdError(e?.message || 'Google sign-in failed');
+            }
+          }} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <OutlineButton label="LinkedIn" testID="login-linkedin" icon={<LinkedInIn size={16} />} onPress={() => {
+            if (oauthCfg?.linkedin_client_id && Platform.OS === 'web') {
+              const state = `linkedin_${Math.random().toString(36).slice(2)}`;
+              const url = `https://www.linkedin.com/oauth/v2/authorization?client_id=${oauthCfg.linkedin_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri!)}&response_type=code&scope=openid%20email%20profile&state=${state}`;
+              window.open(url, '_blank', 'width=600,height=700');
+            } else {
+              setPwdError('LinkedIn sign-in is not configured. Contact admin.');
+            }
+          }} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <OutlineButton label="GitHub" testID="login-github" icon={<GitHubCat size={16} />} onPress={async () => {
+            try {
+              if (oauthCfg?.firebase && Platform.OS === 'web') {
+                const result = await signInWithGitHub();
+                if (!result) return;
+                const res = await fetch(`${BASE}/api/auth/firebase`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id_token: result.idToken }),
+                });
+                if (!res.ok) throw new Error('Firebase auth failed');
+                const data = await res.json();
+                setUser(data.user);
+                setTokens(data.access_token, data.refresh_token);
+                trackAuth({ event: 'login_success', email: data.user.email, role: data.user.role });
+                const r = (data.user.role || '').toLowerCase();
+                if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
+                else if (r === 'mentor') router.replace('/mentor-portal');
+                else if (r === 'college') router.replace('/college-portal');
+                else if (r === 'alumni') router.replace('/alumni-portal');
+                else router.replace('/student-portal');
+              } else {
+                setPwdError('GitHub sign-in is not configured. Contact admin.');
+              }
+            } catch (e: any) {
+              setPwdError(e?.message || 'GitHub sign-in failed');
+            }
+          }} />
+        </View>
+      </View>
+
+      <View style={s.divider}>
+        <View style={s.line} />
+        <Text style={s.dividerText}>or continue with email</Text>
+        <View style={s.line} />
+      </View>
 
       <View style={{ gap: 14 }}>
         <AuthInput

@@ -40,8 +40,10 @@ export function AgentKQuickLauncher() {
   const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 60);
+    let t: ReturnType<typeof setTimeout>;
+    if (open) t = setTimeout(() => inputRef.current?.focus(), 60);
     else setText('');
+    return () => clearTimeout(t);
   }, [open]);
 
   const submit = (prompt?: string) => {

@@ -29,6 +29,7 @@ Collections:
   agent_k_prefs      { user_id, auto_approve_read, auto_approve_write, ... }
 """
 from __future__ import annotations
+from pathlib import Path
 
 
 async def _get_best_ai_key() -> tuple:
@@ -59,7 +60,7 @@ async def _get_best_ai_key() -> tuple:
 
     return ("", "", "")
 
-from pathlib import Path
+
 import os
 import json
 import logging
@@ -71,10 +72,7 @@ from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Header, Body
 from pydantic import BaseModel
 
-load_dotenv(Path(__file__).parent / ".env")
-
-from db import client as _mongo
-_db = _mongo[os.environ["DB_NAME"]]
+from core.db import db as _db
 
 router = APIRouter(tags=["agent-k"])
 log = logging.getLogger("agent-k")
@@ -288,12 +286,12 @@ async def _generate_text(prompt: str, system: str = "You are a helpful drafting 
         from emergentintegrations.llm.chat import LlmChat, UserMessage
     except ImportError:
         return "(LLM unavailable in this environment.)"
-    api_key, model, provider = await _get_best_ai_key()
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
     if not api_key:
-        return "(No AI provider configured. Install Claude, OpenAI, or Gemini from Marketplace.)"
+        return "(EMERGENT_LLM_KEY missing.)"
     chat = (
         LlmChat(api_key=api_key, session_id=f"agentk-draft-{uuid4().hex[:8]}", system_message=system)
-        .with_model(provider, model)
+        .with_model("anthropic", "claude-sonnet-4-5-20250929")
     )
     try:
         return ((await chat.send_message(UserMessage(text=prompt))) or "").strip()
@@ -449,9 +447,9 @@ async def _plan_with_claude(prompt: str, user: dict) -> dict:
     except ImportError:
         raise HTTPException(500, "emergentintegrations not installed")
 
-    api_key, model, provider = await _get_best_ai_key()
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
     if not api_key:
-        raise HTTPException(500, "No AI provider configured. Install Claude, OpenAI, or Gemini from Marketplace.")
+        raise HTTPException(500, "EMERGENT_LLM_KEY missing")
 
     tools_block = _enabled_tool_summary()
     system = (
@@ -466,7 +464,7 @@ async def _plan_with_claude(prompt: str, user: dict) -> dict:
     chat = (
         LlmChat(api_key=api_key, session_id=f"agentk-plan-{uuid4().hex[:8]}",
                 system_message=system)
-        .with_model(provider, model)
+        .with_model("anthropic", "claude-sonnet-4-5-20250929")
     )
     try:
         reply = await chat.send_message(UserMessage(text=prompt))
@@ -497,7 +495,7 @@ async def _summarize_results(prompt: str, plan: dict, step_results: list, user: 
         from emergentintegrations.llm.chat import LlmChat, UserMessage
     except ImportError:
         return f"Done. Executed {len(step_results)} steps."
-    api_key, model, provider = await _get_best_ai_key()
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
     if not api_key:
         return f"Done. Executed {len(step_results)} steps."
     summary_prompt = (
@@ -510,7 +508,7 @@ async def _summarize_results(prompt: str, plan: dict, step_results: list, user: 
     chat = (
         LlmChat(api_key=api_key, session_id=f"agentk-sum-{uuid4().hex[:8]}",
                 system_message="You write concise post-execution summaries for an automation agent.")
-        .with_model(provider, model)
+        .with_model("anthropic", "claude-sonnet-4-5-20250929")
     )
     try:
         reply = await chat.send_message(UserMessage(text=summary_prompt))
@@ -929,7 +927,7 @@ async def _connected_ai_providers(user_id: str) -> List[Dict[str, str]]:
 
 def _is_admin(user: dict) -> bool:
     role = (user.get("role") or "").lower()
-    return role in ("admin", "super_admin")
+    return role == "admin"
 
 
 async def _assert_ai_provider_or_412(user: dict) -> None:

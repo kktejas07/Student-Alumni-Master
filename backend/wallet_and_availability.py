@@ -13,26 +13,20 @@ Endpoints (all under /api):
 """
 from __future__ import annotations
 
-from pathlib import Path
 import os
 import logging
 from datetime import datetime, timezone, timedelta, time as dt_time
 from typing import Any, Dict, List, Optional
 
 from bson import ObjectId
-from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Query
-
-load_dotenv(Path(__file__).parent / ".env")
-
-from db import client as _mongo
-_db = _mongo[os.environ["DB_NAME"]]
+from core.db import db as _db
 
 logger = logging.getLogger("wallet")
 router = APIRouter()
 
 DEFAULT_SLOTS = ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]
-NEW_USER_BONUS = 320  # everyone starts with ₹320 SA Credits
+NEW_USER_BONUS = 500  # everyone starts with ₹500 SA Credits
 
 
 def _get_current_user_dependency():
@@ -146,7 +140,7 @@ async def wallet_credit(body: Dict[str, Any], user: dict = Depends(_get_current_
     reason = (body or {}).get("reason") or "Bonus"
     if amount <= 0:
         raise HTTPException(400, "amount must be positive")
-    if (user.get("role") not in ("admin", "super_admin")) and amount > 100:
+    if (user.get("role") != "admin") and amount > 100:
         raise HTTPException(403, "Only admin can credit > 100 credits in one call")
 
     state = await _wallet_state(str(user["_id"]))
@@ -227,10 +221,19 @@ async def mentor_availability(
             slots_today = []
 
         booked_set = booked.get(date_key, set())
-        slots = [{
-            "time": t,
-            "available": t not in booked_set,
-        } for t in slots_today]
+        slots = []
+        for t in slots_today:
+            is_available = t not in booked_set
+            try:
+                slot_dt = datetime.fromisoformat(f"{date_key}T{t}:00+00:00")
+                if slot_dt <= datetime.now(timezone.utc):
+                    is_available = False
+            except Exception:
+                pass
+            slots.append({
+                "time": t,
+                "available": is_available,
+            })
 
         out.append({
             "date": date_key,
@@ -281,6 +284,9 @@ async def book_slot(
     except Exception:
         raise HTTPException(400, "Invalid date/time format")
 
+    if scheduled_at <= datetime.now(timezone.utc):
+        raise HTTPException(400, "Cannot book a slot in the past")
+
     clash = await _db.sessions.find_one({
         "mentor_id": str(mentor["_id"]),
         "scheduled_at": scheduled_at,
@@ -315,7 +321,7 @@ async def seed_mentor_demo(user: dict = Depends(_get_current_user_dependency()))
     `connections` records + minimal `career_roadmaps` + `sessions` so the
     Mentor AI Studio shows real Mentee Pulse / Skill Gaps / Impact.
     """
-    if user.get("role") not in ("admin", "super_admin", "mentor", "alumni"):
+    if user.get("role") not in ("admin", "mentor", "alumni"):
         # Loosen — let any authenticated test user trigger seeding for QA
         pass
 
@@ -370,6 +376,19 @@ async def seed_mentor_demo(user: dict = Depends(_get_current_user_dependency()))
         ]
         ms_done = list(range(min(i, 4)))   # 0,1,2,3,4 milestones across mentees
 
+        # Seed both weekly_plan + milestones_completed AND milestones list for parity
+        milestones = []
+        for idx, wp_item in enumerate(weekly_plan):
+            is_completed = idx in ms_done
+            milestones.append({
+                "id": f"m{idx + 1}",
+                "title": wp_item.get("title") or f"Phase {idx + 1}",
+                "description": ", ".join(wp_item.get("tasks") or []),
+                "completed": is_completed,
+                "completed_at": (now - timedelta(days=10)).isoformat() if is_completed else None,
+                "milestone_type": "PROFILE"
+            })
+
         rm_res = await _db.career_roadmaps.update_one(
             {"user_id": sid},
             {"$set": {
@@ -380,6 +399,7 @@ async def seed_mentor_demo(user: dict = Depends(_get_current_user_dependency()))
                 "progress_pct": progress,
                 "weekly_plan": weekly_plan,
                 "milestones_completed": ms_done,
+                "milestones": milestones,
                 "generated_at": now.isoformat(),
             }},
             upsert=True,

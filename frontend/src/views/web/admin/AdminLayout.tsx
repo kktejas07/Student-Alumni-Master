@@ -44,7 +44,7 @@ export function AdminLayout({ title, subtitle, pendingCount = 0, children, right
 
   // Gate — non-admins redirected to platform
   useEffect(() => {
-    if (user && user.role !== 'admin' && user.role !== 'super_admin') router.replace('/');
+    if (user.role !== 'admin') router.replace('/welcome' as any);
   }, [user]);
 
   const isActive = (route: string) =>

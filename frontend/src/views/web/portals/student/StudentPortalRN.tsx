@@ -37,18 +37,7 @@ import { MyWorkshopsView } from './views/MyWorkshopsView';
 
 import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 
-// Navigation context for internal portal navigation
-export const StudentPortalNavContext = createContext<{
-  navigate: (id: StudentNavId, params?: { q?: string }) => void;
-  searchQuery: string;
-  setSearchQuery: (q: string) => void;
-} | null>(null);
-
-export const useStudentPortalNav = () => {
-  const ctx = useContext(StudentPortalNavContext);
-  if (!ctx) throw new Error('useStudentPortalNav must be used inside StudentPortalRN');
-  return ctx;
-};
+import { StudentPortalNavContext, useStudentPortalNav } from './StudentPortalNavContext';
 
 // Feature pages imported as components for inline rendering
 import CoursesPage from '@/app/courses';
@@ -77,6 +66,7 @@ function PortalShell() {
   const logout = useAuthStore((sx) => sx.logout);
   const [active, setActive] = useState<StudentNavId>((tab as StudentNavId) || 'dashboard');
   const [searchQuery, setSearchQuery] = useState('');
+  const [detailCourse, setDetailCourse] = useState<any>(null);
   const [scrolled, setScrolled] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   // Phase B — auto-launch the Student portal tour on first visit
@@ -89,13 +79,16 @@ function PortalShell() {
   }, [tab]);
 
   const onLogout = async () => {
-    try { await logout(); } catch {}
     router.replace('/welcome');
+    try { await logout(); } catch {}
   };
-  const handleNav = (id: StudentNavId, params?: { q?: string }) => {
+  const handleNav = (id: StudentNavId, params?: { q?: string; detailCourse?: any }) => {
     setActive(id);
     if (params && typeof params.q === 'string') {
       setSearchQuery(params.q);
+    }
+    if (params && params.detailCourse) {
+      setDetailCourse(params.detailCourse);
     }
   };
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -122,36 +115,38 @@ function PortalShell() {
       <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0, flexDirection: 'row' }}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <StudentPortalNavContext.Provider value={{ navigate: handleNav, searchQuery, setSearchQuery }}>
+          <StudentPortalNavContext.Provider value={{ navigate: handleNav, searchQuery, setSearchQuery, detailCourse, setDetailCourse }}>
             <TopBar scrolled={scrolled} activeView={active} onAvatarPress={() => handleNav('profile')} onBellPress={() => setShowNotifs(!showNotifs)} />
             <ScrollView
               style={{ flex: 1 }}
-              contentContainerStyle={{ paddingHorizontal: padH, paddingTop: SP.lg, paddingBottom: SP.giga }}
+              contentContainerStyle={{ flexGrow: 1 }}
               showsVerticalScrollIndicator={false}
               onScroll={onScroll}
               scrollEventThrottle={16}
             >
-              <EmbeddedShellContext.Provider value={true}>
-                {active !== 'internships' && <PromoBanner portal="student" />}
-                <RouteTransition deps={[active]}>
-                  {active === 'dashboard'       && <DashboardView />}
-                  {active === 'career-ai'       && <CareerAIView />}
-                  {active === 'internships'     && <InternshipsView />}
-                  {active === 'network'         && <NetworkView />}
-                  {active === 'my-bookings'     && <MyBookingsView />}
-                  {active === 'events'          && <EventsView />}
-                  {active === 'my-workshops'    && <MyWorkshopsView />}
-                  {active === 'courses'         && <CoursesPage />}
-                  {active === 'financial'       && <FinancialPage />}
-                  {active === 'deals'           && <DealsPage />}
-                  {active === 'wallet'          && <WalletPage />}
-                  {active === 'higher-ed'       && <HigherEducationPage />}
-                  {active === 'rentals'         && <RentalsPage />}
-                  {active === 'profile'         && <ProfileSettingsView />}
-                </RouteTransition>
-              </EmbeddedShellContext.Provider>
+              <View style={{ flex: 1, paddingHorizontal: padH, paddingTop: SP.lg, paddingBottom: SP.giga }}>
+                <EmbeddedShellContext.Provider value={true}>
+                  {active !== 'internships' && <PromoBanner portal="student" />}
+                  <RouteTransition deps={[active]}>
+                    {active === 'dashboard'       && <DashboardView />}
+                    {active === 'career-ai'       && <CareerAIView />}
+                    {active === 'internships'     && <InternshipsView />}
+                    {active === 'network'         && <NetworkView />}
+                    {active === 'my-bookings'     && <MyBookingsView />}
+                    {active === 'events'          && <EventsView />}
+                    {active === 'my-workshops'    && <MyWorkshopsView />}
+                    {active === 'courses'         && <CoursesPage />}
+                    {active === 'financial'       && <FinancialPage />}
+                    {active === 'deals'           && <DealsPage />}
+                    {active === 'wallet'          && <WalletPage />}
+                    {active === 'higher-ed'       && <HigherEducationPage />}
+                    {active === 'rentals'         && <RentalsPage />}
+                    {active === 'profile'         && <ProfileSettingsView />}
+                  </RouteTransition>
+                </EmbeddedShellContext.Provider>
+              </View>
+              <DashboardFooter portal="student" />
             </ScrollView>
-            <DashboardFooter portal="student" />
           </StudentPortalNavContext.Provider>
 
           {/* Global AI Copilot FAB — visible on every Student screen */}

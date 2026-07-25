@@ -59,11 +59,19 @@ const PAGE_TITLES: Record<NavId, string> = {
 
 export default function MentorPortalRN() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const logout = useAuthStore((st) => st.logout);
   const user = useAuthStore((st) => st.user) as any;
 
-  const params = useLocalSearchParams();
+  const [demoMode, setDemoMode] = useState(true);
   const [active, setActive] = useState<NavId>('dashboard');
+
+  useEffect(() => {
+    if (params.tab) {
+      setActive(params.tab as NavId);
+    }
+  }, [params.tab]);
+
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState('');
   const [showNotifs, setShowNotifs] = useState(false);
@@ -119,8 +127,8 @@ export default function MentorPortalRN() {
   const [decisions, setDecisions] = useState<Record<number, 'pending' | 'accepted' | 'declined'>>({});
 
   const onLogout = async () => {
-    try { await logout(); } catch {}
     router.replace('/welcome');
+    try { await logout(); } catch {}
   };
 
   return (
@@ -153,22 +161,26 @@ export default function MentorPortalRN() {
             notifCount={unreadCount}
             onBellPress={() => setShowNotifs(!showNotifs)}
             onAvatarPress={() => { setProfileTab('manage'); setActive('profile'); }}
+            demoMode={demoMode}
+            setDemoMode={setDemoMode}
           />
 
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
-            <PromoBanner portal="mentor" />
-            {active === 'dashboard' && <DashboardView onNav={(id) => setActive(id as NavId)} />}
-            {active === 'ai-studio' && <MentorAIStudioView />}
-            {active === 'students'  && <ConnectionsView />}
-            {active === 'sessions'  && <SessionsView />}
-            {active === 'requests'  && <RequestsView decisions={decisions} onSetDecision={(id, d) => setDecisions(prev => ({ ...prev, [id]: d }))} />}
-            {active === 'network'   && <NetworkView />}
-            {active === 'earnings'  && <EarningsView />}
-            {active === 'feedback'  && <FeedbackView />}
-            {active === 'event'     && <CreateEventView />}
-            {active === 'profile'   && <MentorProfileSettingsView initialTab={profileTab} />}
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
+            <View style={{ flex: 1, padding: 20 }}>
+              <PromoBanner portal="mentor" />
+              {active === 'dashboard' && <DashboardView onNav={(id) => setActive(id as NavId)} demoMode={demoMode} setDemoMode={setDemoMode} />}
+              {active === 'ai-studio' && <MentorAIStudioView />}
+              {active === 'students'  && <ConnectionsView />}
+              {active === 'sessions'  && <SessionsView demoMode={demoMode} setDemoMode={setDemoMode} />}
+              {active === 'requests'  && <RequestsView decisions={decisions} onSetDecision={(id, d) => setDecisions(prev => ({ ...prev, [id]: d }))} demoMode={demoMode} />}
+              {active === 'network'   && <NetworkView />}
+              {active === 'earnings'  && <EarningsView demoMode={demoMode} setDemoMode={setDemoMode} />}
+              {active === 'feedback'  && <FeedbackView demoMode={demoMode} setDemoMode={setDemoMode} />}
+              {active === 'event'     && <CreateEventView />}
+              {active === 'profile'   && <MentorProfileSettingsView initialTab={profileTab} demoMode={demoMode} setDemoMode={setDemoMode} />}
+            </View>
+            <DashboardFooter portal="mentor" />
           </ScrollView>
-          <DashboardFooter portal="mentor" />
         </View>
         {showNotifs && (
           <NotificationsPanel

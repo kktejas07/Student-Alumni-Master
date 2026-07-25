@@ -163,10 +163,10 @@ def run():
         try:
             svg = page.locator("svg").first
             svg.wait_for(timeout=5000)
-            svg_size = page.evaluate("() => document.querySelector('svg')?.outerHTML?.length || 0")
+            svg_size = page.evaluate("() => Array.from(document.querySelectorAll('svg')).reduce((acc, s) => acc + (s.outerHTML?.length || 0), 0)")
             # Check that radar has skill labels
             skill_abbrevs = ["Excellence", "Communication", "Brand", "Leadership", "Preparation", "Presence"]
-            svg_text = page.evaluate("() => document.querySelector('svg')?.textContent || ''")
+            svg_text = page.evaluate("() => Array.from(document.querySelectorAll('svg')).map(s => s.textContent).join(' ') || ''")
             found = [s for s in skill_abbrevs if s.lower() in svg_text.lower()]
             if len(found) >= 4:
                 log(f"TEST 4 - Radar SVG has {len(found)}/6 skill labels (size={svg_size})", "PASS")

@@ -44,7 +44,14 @@ export function ConnectionsView() {
       const email = user?.email;
       const res = await api.mentorConnections(email, p, 24);
       const items = res?.items || [];
-      setStudentsList(items);
+      const connectedItems = items.filter(
+        (item: any) =>
+          item.status !== 'none' &&
+          item.status !== 'withdrawn' &&
+          item.status !== 'declined' &&
+          item.status !== 'rejected'
+      );
+      setStudentsList(connectedItems);
       setPages(res.pages || 1);
       setPage(p);
       if (picked) {

@@ -52,7 +52,7 @@ export default function AdvisorAIBlock({
 
   // Manage delayed focus on open and cleanup focus timeout on close/unmount
   React.useEffect(() => {
-    let timer: NodeJS.Timeout | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
     if (aiOpen) {
       timer = setTimeout(() => {
         aiInputRef?.current?.focus();

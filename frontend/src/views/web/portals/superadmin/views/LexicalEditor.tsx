@@ -64,13 +64,20 @@ export default function LexicalEditor({ value, onChange }: { value: string; onCh
   };
 
   const handleAiAssist = async (prompt: string) => {
-    const resp = await request<{ content: string }>('/admin/pages/ai-assist', {
-      method: 'POST',
-      body: { prompt, current_content: contentRef.current },
-    });
-    if (resp?.content && editorRef.current) {
-      editorRef.current.innerHTML = resp.content;
-      onChange(resp.content);
+    try {
+      const resp = await request<{ content: string }>('/admin/pages/ai-assist', {
+        method: 'POST',
+        body: { prompt, current_content: contentRef.current },
+      });
+      if (resp?.content && editorRef.current) {
+        editorRef.current.innerHTML = resp.content;
+        onChange(resp.content);
+      }
+    } catch (e: any) {
+      console.warn('AI Assist failed:', e?.message);
+      if (Platform.OS === 'web') {
+        alert('AI Assist failed: ' + (e?.message || 'Please try again.'));
+      }
     }
   };
 

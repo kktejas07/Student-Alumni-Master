@@ -39,8 +39,8 @@ export function SuperAdminPortalRN() {
   useAutoTour('super_admin');
 
   const onLogout = async () => {
-    try { await logout(); } catch {}
     router.replace('/welcome');
+    try { await logout(); } catch {}
   };
 
   const titleFor = (id: SuperAdminNavId) => NAV.find((n) => n.id === id)?.label || 'Overview';
@@ -66,24 +66,26 @@ export function SuperAdminPortalRN() {
           showsVerticalScrollIndicator={false}
         >
           <PromoBanner portal="super_admin" />
-          {active === 'overview'    && <OverviewView onNavigate={(id) => setActive(id as SuperAdminNavId)} />}
-          {active === 'colleges'    && <CollegesView />}
-          {active === 'students'    && <StudentsView />}
-          {active === 'mentors'     && <MentorsView />}
-          {active === 'alumni'      && <AlumniView />}
-          {active === 'events'      && <EventsView />}
-          {active === 'payments'    && <PaymentsView />}
-          {active === 'analytics'   && <AnalyticsView />}
-          {active === 'approvals'   && <ApprovalsView />}
-          {active === 'ai-insights' && <AIInsightsView />}
-          {active === 'settings'    && <SettingsView />}
-          {active === 'workflows'   && <WorkflowsView />}
-          {active === 'imports'     && <ImportsView />}
-          {active === 'partners'    && <PartnersView />}
-          {active === 'promotions'  && <PromotionsView />}
-          {active === 'talent-pool' && <TalentPoolView />}
+          <View style={{ flex: 1, padding: 22 }}>
+            {active === 'overview'    && <OverviewView onNavigate={(id) => setActive(id as SuperAdminNavId)} />}
+            {active === 'colleges'    && <CollegesView />}
+            {active === 'students'    && <StudentsView />}
+            {active === 'mentors'     && <MentorsView />}
+            {active === 'alumni'      && <AlumniView />}
+            {active === 'events'      && <EventsView />}
+            {active === 'payments'    && <PaymentsView />}
+            {active === 'analytics'   && <AnalyticsView />}
+            {active === 'approvals'   && <ApprovalsView />}
+            {active === 'ai-insights' && <AIInsightsView />}
+            {active === 'settings'    && <SettingsView />}
+            {active === 'workflows'   && <WorkflowsView />}
+            {active === 'imports'     && <ImportsView />}
+            {active === 'partners'    && <PartnersView />}
+            {active === 'promotions'  && <PromotionsView />}
+            {active === 'talent-pool' && <TalentPoolView />}
+          </View>
+          <DashboardFooter portal="super_admin" />
         </ScrollView>
-        <DashboardFooter portal="super_admin" />
       </View>
     </View>
   );

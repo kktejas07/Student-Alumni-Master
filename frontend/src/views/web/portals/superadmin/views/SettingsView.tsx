@@ -29,7 +29,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View, Text, Pressable, StyleSheet, Switch, Platform, Modal,
-  TextInput, ScrollView, ActivityIndicator, Image, useWindowDimensions,
+  TextInput, ScrollView, ActivityIndicator, Image,
 } from 'react-native';
 import {
   UserCog, Sliders, Plug, Shield, Bell, Lock, IdCard, Plus,
@@ -130,7 +130,7 @@ const GRAD_BG   = ['rgba(251,146,60,0.20)', 'rgba(245,158,11,0.10)'] as const;
  * ───────────────────────────────────────────────────────────────── */
 type TabId =
   | 'profile' | 'platform' | 'integrations' | 'roles'
-  | 'notifications' | 'security' | 'digital-id' | 'pages' | 'email-settings' | 'email-templates';
+  | 'notifications' | 'security' | 'digital-id' | 'pages';
 
 type Tool = {
   id: string; name: string; category: string; icon: string; tint: string;
@@ -155,8 +155,6 @@ const TABS: { id: TabId; label: string; icon: any }[] = [
   { id: 'security',      label: 'Security',            icon: Lock },
   { id: 'digital-id',    label: 'Digital ID',          icon: IdCard },
   { id: 'pages',         label: 'Pages',               icon: FileText },
-  { id: 'email-settings',label: 'Email Settings',      icon: Mail },
-  { id: 'email-templates',label: 'Email Templates',    icon: Eye },
 ];
 
 const DEFAULT_SYSTEM_OPTIONS: Record<string, { value: string; label: string }[]> = {
@@ -249,8 +247,6 @@ export function SettingsView() {
         {tab === 'security'      && <SecurityTab onSaved={flashToast} />}
         {tab === 'digital-id'    && <DigitalIdTab onSaved={flashToast} />}
         {tab === 'pages'         && <PagesTab onSaved={flashToast} />}
-        {tab === 'email-settings' && <EmailSettingsTab onSaved={flashToast} />}
-        {tab === 'email-templates' && <EmailTemplatesTab />}
       </View>
       <Toast text={toast.text} visible={toast.visible} />
     </View>
@@ -1982,8 +1978,12 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
           {sessionTotal > 5 && !showAllSessions && (
             <Pressable
               onPress={async () => {
-                const r = await request<any>('/admin/security/sessions?all=true');
-                if (r?.sessions) { setSessions(r.sessions); setShowAllSessions(true); }
+                try {
+                  const r = await request<any>('/admin/security/sessions?all=true');
+                  if (r?.sessions) { setSessions(r.sessions); setShowAllSessions(true); }
+                } catch (e: any) {
+                  console.error('Failed to load all sessions', e);
+                }
               }}
               style={[s.linkBtn, { alignSelf: 'center', marginTop: 8 }]}
             >
@@ -1993,8 +1993,12 @@ function SecurityTab({ onSaved }: { onSaved: (s?: string) => void }) {
           {showAllSessions && (
             <Pressable
               onPress={async () => {
-                const r = await request<any>('/admin/security/sessions');
-                if (r?.sessions) { setSessions(r.sessions); setShowAllSessions(false); }
+                try {
+                  const r = await request<any>('/admin/security/sessions');
+                  if (r?.sessions) { setSessions(r.sessions); setShowAllSessions(false); }
+                } catch (e: any) {
+                  console.error('Failed to load sessions', e);
+                }
               }}
               style={[s.linkBtn, { alignSelf: 'center', marginTop: 8 }]}
             >
@@ -2496,347 +2500,6 @@ function Loading() {
     <View style={{ padding: 60, alignItems: 'center', justifyContent: 'center', gap: 10 }}>
       <ActivityIndicator color={GRAD_TO} size="small" />
       <Text style={s.muted}>Loading…</Text>
-    </View>
-  );
-}
-
-/* ═════════════════════════════════════════════════════════════════
- * TAB 9 — Email Settings (Postal / SMTP / Gmail)
- * ═════════════════════════════════════════════════════════════════ */
-function EmailSettingsTab({ onSaved }: { onSaved: (s?: string) => void }) {
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [testTo, setTestTo] = useState('');
-  const [err, setErr] = useState('');
-  const [settings, setSettings] = useState({
-    provider: '',
-    postal_server: '',
-    postal_api_key: '',
-    from_email: '',
-    from_name: '',
-    smtp_host: '',
-    smtp_port: '587',
-    smtp_user: '',
-    smtp_password: '',
-  });
-
-  const load = useCallback(async () => {
-    try {
-      const res = await request<{ settings: any }>('/admin/email-settings');
-      if (res?.settings) {
-        const s = res.settings;
-        setSettings({
-          provider: s.provider || '',
-          postal_server: s.postal_server || '',
-          postal_api_key: s.postal_api_key || '',
-          from_email: s.from_email || '',
-          from_name: s.from_name || '',
-          smtp_host: s.smtp_host || '',
-          smtp_port: s.smtp_port || '587',
-          smtp_user: s.smtp_user || '',
-          smtp_password: s.smtp_password || '',
-        });
-      }
-    } catch {}
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  const up = (field: string, value: string) => {
-    setSettings((prev) => ({ ...prev, [field]: value }));
-    setErr('');
-  };
-
-  const save = async () => {
-    setSaving(true);
-    setErr('');
-    try {
-      await request('/admin/email-settings', {
-        method: 'POST',
-        body: { settings },
-      });
-      onSaved('Email settings saved');
-    } catch (e: any) {
-      setErr(e?.message || 'Failed to save');
-    }
-    setSaving(false);
-  };
-
-  const sendTest = async () => {
-    if (!testTo) { setErr('Enter a recipient email'); return; }
-    setTesting(true);
-    setErr('');
-    try {
-      await request('/admin/email-settings/test', {
-        method: 'POST',
-        body: { to_email: testTo },
-      });
-      onSaved(`Test email sent to ${testTo}`);
-    } catch (e: any) {
-      setErr(e?.message || 'Test failed');
-    }
-    setTesting(false);
-  };
-
-  if (loading) {
-    return (
-      <Animated.View entering={FadeIn.duration(180)} style={{ alignItems: 'center', padding: 40 }}>
-        <ActivityIndicator color={GRAD_TO} size="small" />
-        <Text style={s.muted}>Loading…</Text>
-      </Animated.View>
-    );
-  }
-
-  const provider = settings.provider;
-
-  return (
-    <Animated.View entering={FadeIn.duration(180)} style={{ gap: 16 }}>
-      {/* Provider selector */}
-      <Text style={s.sectionTitle}>Email Provider</Text>
-      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-        {[
-          { id: 'postal', label: 'Postal' },
-          { id: 'smtp',   label: 'SMTP' },
-          { id: 'gmail',  label: 'Gmail (via Integrations)' },
-        ].map((p) => (
-          <Pressable
-            key={p.id}
-            onPress={() => up('provider', provider === p.id ? '' : p.id)}
-            style={[s.providerChip, provider === p.id && s.providerChipActive]}
-          >
-            <Text style={[s.providerChipText, provider === p.id && s.providerChipTextActive]}>
-              {p.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      {/* Postal fields */}
-      {provider === 'postal' && (
-        <View style={{ gap: 10, marginTop: 4 }}>
-          <Text style={s.sectionTitle}>Postal API Configuration</Text>
-          <EmailField label="Postal Server URL" placeholder="https://postal.yourdomain.com"
-            value={settings.postal_server} onChangeText={(t) => up('postal_server', t)} />
-          <EmailField label="API Key" placeholder="your-postal-api-key" secureTextEntry
-            value={settings.postal_api_key} onChangeText={(t) => up('postal_api_key', t)} />
-          <EmailField label="From Email" placeholder="noreply@yourdomain.com"
-            value={settings.from_email} onChangeText={(t) => up('from_email', t)} />
-          <EmailField label="From Name (optional)" placeholder="StudentAlumni"
-            value={settings.from_name} onChangeText={(t) => up('from_name', t)} />
-        </View>
-      )}
-
-      {/* SMTP fields */}
-      {provider === 'smtp' && (
-        <View style={{ gap: 10, marginTop: 4 }}>
-          <Text style={s.sectionTitle}>SMTP Configuration</Text>
-          <EmailField label="SMTP Host" placeholder="smtp.yourdomain.com"
-            value={settings.smtp_host} onChangeText={(t) => up('smtp_host', t)} />
-          <EmailField label="SMTP Port" placeholder="587" keyboardType="numeric"
-            value={settings.smtp_port} onChangeText={(t) => up('smtp_port', t)} />
-          <EmailField label="SMTP Username" placeholder="user@yourdomain.com"
-            value={settings.smtp_user} onChangeText={(t) => up('smtp_user', t)} />
-          <EmailField label="SMTP Password" placeholder="••••••••" secureTextEntry
-            value={settings.smtp_password} onChangeText={(t) => up('smtp_password', t)} />
-          <EmailField label="From Email" placeholder="noreply@yourdomain.com"
-            value={settings.from_email} onChangeText={(t) => up('from_email', t)} />
-          <EmailField label="From Name (optional)" placeholder="StudentAlumni"
-            value={settings.from_name} onChangeText={(t) => up('from_name', t)} />
-        </View>
-      )}
-
-      {provider === 'gmail' && (
-        <View style={{ marginTop: 4 }}>
-          <Text style={s.muted}>
-            Gmail is configured via the Integrations tab. Connect a Gmail account there
-            with an App Password, then return here to send test emails.
-          </Text>
-        </View>
-      )}
-
-      {err ? <Text style={{ color: '#FCA5A5', fontSize: 11, fontFamily: FONTS.med }}>{err}</Text> : null}
-
-      {/* Save button */}
-      <Pressable onPress={save} disabled={saving || !provider}
-        style={[s.adSaveBtn, (saving || !provider) && { opacity: 0.4 }]}>
-        <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
-          {saving ? 'Saving...' : 'Save Email Settings'}
-        </Text>
-      </Pressable>
-
-      {/* Test email section */}
-      {provider && (
-        <View style={{ marginTop: 8, gap: 10 }}>
-          <Text style={s.sectionTitle}>Send Test Email</Text>
-          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-            <TextInput
-              style={[s.adFieldInput, { flex: 1, paddingVertical: 8, fontSize: 12 }]}
-              value={testTo} onChangeText={setTestTo}
-              placeholder="recipient@example.com" placeholderTextColor={SAC.dim}
-              autoCapitalize="none" keyboardType="email-address"
-            />
-            <Pressable onPress={sendTest} disabled={testing}
-              style={[s.adSaveBtn, testing && { opacity: 0.4 }]}>
-              <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
-                {testing ? 'Sending...' : 'Send Test'}
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-      )}
-    </Animated.View>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════
-   ── Email Templates Tab (preview all templates) ─────── */
-function EmailTemplatesTab() {
-  const { width } = useWindowDimensions();
-  const desk = width >= 1024;
-  const [templates, setTemplates] = useState<any[]>([]);
-  const [active, setActive] = useState<string | null>(null);
-  const [preview, setPreview] = useState<{ subject: string; html: string } | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await request<{ templates: any[] }>('/admin/email-templates');
-        setTemplates(res?.templates || []);
-      } catch {}
-      setLoading(false);
-    })();
-  }, []);
-
-  const showPreview = useCallback(async (id: string) => {
-    setActive(id);
-    setPreview(null);
-    try {
-      const res = await request<{ subject: string; html: string }>('/admin/email-templates/preview', {
-        method: 'POST',
-        body: { template: id },
-      });
-      setPreview(res);
-    } catch {}
-  }, []);
-
-  if (loading) {
-    return (
-      <Animated.View entering={FadeIn.duration(180)} style={{ alignItems: 'center', padding: 40 }}>
-        <ActivityIndicator color={GRAD_TO} size="small" />
-        <Text style={s.muted}>Loading templates…</Text>
-      </Animated.View>
-    );
-  }
-
-  return (
-    <Animated.View entering={FadeIn.duration(180)} style={{ flexDirection: desk ? 'row' : 'column', gap: 24, minHeight: 400 }}>
-      {/* Template list */}
-      <View style={{ width: desk ? 280 : '100%', gap: 10 }}>
-        <Text style={s.sectionTitle}>Email Templates</Text>
-        <Text style={s.muted}>Select a template to preview</Text>
-        <ScrollView style={{ marginTop: 16, maxHeight: 520 }} showsVerticalScrollIndicator={false}>
-          {templates.map((t: any) => (
-            <Pressable
-              key={t.id}
-              onPress={() => showPreview(t.id)}
-              style={[{
-                padding: '14px 18px', borderRadius: 10, marginBottom: 8,
-                backgroundColor: active === t.id ? 'rgba(139,92,246,0.12)' : 'transparent',
-                borderLeftWidth: 3,
-                borderLeftColor: active === t.id ? '#8B5CF6' : 'transparent',
-              } as any]}
-            >
-              <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>{t.label}</Text>
-              <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11, marginTop: 3 }}>{t.description}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Preview pane */}
-      <View style={{ flex: 1, borderWidth: 1, borderColor: SAC.border, borderRadius: 12, overflow: 'hidden', backgroundColor: SAC.card }}>
-        {!active ? (
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 }}>
-            <Text style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center' }}>
-              Select a template from the list to preview
-            </Text>
-          </View>
-        ) : !preview ? (
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-            <ActivityIndicator color={GRAD_TO} size="small" />
-          </View>
-        ) : (
-          <View style={{ flex: 1 }}>
-            {/* Subject line */}
-            <View style={{ padding: '16px 24px', borderBottomWidth: 1, borderBottomColor: SAC.border } as any}>
-              <Text style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 10, letterSpacing: 0.5 }}>SUBJECT</Text>
-              <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 14, marginTop: 4 }}>{preview.subject}</Text>
-            </View>
-            {/* HTML preview - iframe on web */}
-            {Platform.OS === 'web' ? (
-              <View style={{ flex: 1, padding: 16 }}>
-                <View style={{ flex: 1, borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', boxShadow: '0 4px 24px rgba(0,0,0,0.4)' } as any}>
-                  <iframe
-                    srcDoc={preview.html}
-                    style={{ width: '100%', height: '100%', border: 'none', minHeight: 500 }}
-                    title="Email Preview"
-                    sandbox="allow-same-origin"
-                  />
-                </View>
-              </View>
-            ) : (
-              <View style={{ padding: 16 }}>
-                <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11 }}>
-                  Email preview is available on web. The subject line is shown above.
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
-      </View>
-    </Animated.View>
-  );
-}
-
-/* ── Small reusable field row for email settings ─── */
-function EmailField({
-  label, placeholder, value, onChangeText, secureTextEntry, keyboardType,
-}: {
-  label: string; placeholder: string; value: string; onChangeText: (t: string) => void;
-  secureTextEntry?: boolean; keyboardType?: string;
-}) {
-  const [revealed, setRevealed] = useState(false);
-  const isSecured = secureTextEntry && !revealed;
-  return (
-    <View>
-      <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.5, marginBottom: 3 }}>
-        {label}
-      </Text>
-      <View style={{ position: 'relative' }}>
-        <TextInput
-          style={[s.adFieldInput, { paddingVertical: 8, fontSize: 12, paddingRight: secureTextEntry ? 36 : 12 }]}
-          value={value} onChangeText={onChangeText}
-          placeholder={placeholder} placeholderTextColor={SAC.dim}
-          secureTextEntry={isSecured}
-          autoCapitalize="none"
-          keyboardType={keyboardType as any}
-        />
-        {secureTextEntry && (
-          <Pressable
-            onPress={() => setRevealed((v) => !v)}
-            style={{ position: 'absolute', right: 8, top: 0, bottom: 0, justifyContent: 'center', paddingHorizontal: 4 }}
-          >
-            {revealed ? (
-              <EyeOff size={14} color={SAC.muted} />
-            ) : (
-              <Eye size={14} color={SAC.muted} />
-            )}
-          </Pressable>
-        )}
-      </View>
     </View>
   );
 }
@@ -3410,32 +3073,6 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(245,158,11,0.14)', borderColor: 'rgba(245,158,11,0.32)', borderWidth: 1 },
   roleUserName: { color: SAC.text, fontFamily: FONTS.xbold, fontSize: 12.5 },
   roleUserMeta: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 11, marginTop: 1 },
-  // Email Settings tab
-  sectionTitle: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13, marginBottom: 2 },
-  providerChip: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1, borderColor: SAC.border,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
-  providerChipActive: {
-    backgroundColor: 'rgba(139,92,246,0.12)',
-    borderColor: 'rgba(139,92,246,0.35)',
-  },
-  providerChipText: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11 },
-  providerChipTextActive: { color: '#fff' },
-  adFieldInput: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1, borderColor: SAC.border, borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 10,
-    color: '#fff', fontFamily: FONTS.med, fontSize: 12,
-  },
-  adSaveBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    paddingHorizontal: 20, paddingVertical: 11, borderRadius: 10,
-    backgroundColor: SAC.primary,
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
-  },
 });
 
 const previewStyles = StyleSheet.create({

@@ -569,6 +569,7 @@ async def upsert_user(email: str, password: str, full_name: str, role: str,
     existing = await db.users.find_one({"email": email})
     if existing:
         return str(existing["_id"])
+    uid = generate_unique_id(role)
     user_doc: Dict[str, Any] = {
         "email": email,
         "password_hash": hash_password(password),
@@ -576,15 +577,15 @@ async def upsert_user(email: str, password: str, full_name: str, role: str,
         "role": role,
         "is_super_admin": extra.get("is_super_admin", False),
         "phone": extra.get("phone"),
-        "unique_id": generate_unique_id(role),
-        "qr_code_base64": generate_qr_code(f"SA-USER:{email}|{role}"),
+        "unique_id": uid,
+        "qr_code_base64": generate_qr_code(f"https://studentalumni.app/verify/{uid.split('-')[-1]}"),
         "school_info": extra.get("school_info"),
         "career_path": extra.get("career_path"),
         "interests": extra.get("interests", []),
         "skills": extra.get("skills", []),
         "bio": extra.get("bio"),
-        "face_image_base64": None,
         "onboarding_completed": True,
+        "is_mock": True,
         "created_at": NOW,
     }
     if "student_info" in extra:

@@ -18,7 +18,11 @@ async def get_current_user(request: Request) -> dict:
         payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
         if payload.get("type") != "access":
             raise HTTPException(401, "Invalid token type")
-        user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
+        # Exclude large binary/base64 fields to minimize payload size & latency on auth lookup
+        user = await db.users.find_one(
+            {"_id": ObjectId(payload["sub"])},
+            {"face_image_base64": 0, "college_logo_data": 0, "banner_data": 0}
+        )
         if not user:
             raise HTTPException(401, "User not found")
         return user

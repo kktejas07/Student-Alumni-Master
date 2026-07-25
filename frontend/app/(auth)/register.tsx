@@ -165,7 +165,7 @@ export default function RegisterScreen() {
             <Text style={s.sub}>Set up your Student Alumni profile in 30 seconds</Text>
           </View>
 
-          <View style={{ gap: 14 }}>
+          <View style={{ gap: 14, zIndex: 20, position: 'relative' }}>
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <View style={{ flex: 1 }}>
                 <AuthInput label="First name" value={firstName} onChangeText={(t) => { setFirstName(t); setErrors((p) => ({ ...p, firstName: '' })); }} placeholder="e.g. Aryan" autoCapitalize="words" error={errors.firstName} autoFocus={true} editable={!loading} onSubmitEditing={() => lastNameRef.current?.focus()} blurOnSubmit={false} testID="register-first-name" />
@@ -177,7 +177,7 @@ export default function RegisterScreen() {
             <AuthInput ref={emailRef} label="Email" value={email} onChangeText={(t) => { setEmail(t); setErrors((p) => ({ ...p, email: '' })); }} placeholder="you@university.edu" keyboardType="email-address" error={errors.email} editable={!loading} onSubmitEditing={() => phoneRef.current?.focus()} blurOnSubmit={false} testID="register-email" />
 
             {/* Personal Information — phone (with country code) + DOB (mandatory) */}
-            <View style={{ zIndex: 10, position: 'relative' }}>
+            <View style={{ zIndex: 30, position: 'relative' }}>
               <Text style={s.fieldLabel}>Phone Number<Text style={{ color: '#EF4444' }}> *</Text></Text>
               <PhoneInput
                 ref={phoneRef}
@@ -205,13 +205,15 @@ export default function RegisterScreen() {
               {errors.phone ? <Text style={s.fieldErr}>{errors.phone}</Text> : null}
             </View>
 
-            <DateOfBirthPicker
-              value={dob}
-              onChange={(iso) => { setDob(iso); setErrors((p) => ({ ...p, dob: '' })); }}
-              minAge={minAge}
-              required
-              helper={`You must be at least ${minAge} years old to register as a ${ROLE_META[role].label.toLowerCase()}.`}
-            />
+            <View style={{ zIndex: 20, position: 'relative' }}>
+              <DateOfBirthPicker
+                value={dob}
+                onChange={(iso) => { setDob(iso); setErrors((p) => ({ ...p, dob: '' })); }}
+                minAge={minAge}
+                required
+                helper={`You must be at least ${minAge} years old to register as a ${ROLE_META[role].label.toLowerCase()}.`}
+              />
+            </View>
             {errors.dob ? <Text style={s.fieldErr}>{errors.dob}</Text> : null}
 
             <AuthInput

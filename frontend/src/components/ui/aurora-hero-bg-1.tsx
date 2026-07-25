@@ -1,5 +1,8 @@
+/**
+ * aurora-hero-bg-1 — framer-motion removed; uses CSS keyframes for aurora
+ * animation so Metro dev server no longer crashes on tslib ESM resolution.
+ */
 import React from 'react';
-import { motion } from 'framer-motion';
 
 const C = {
   bg: '#080B12',
@@ -20,6 +23,7 @@ function injectKeyframes() {
   s.id = id;
   s.textContent = `
     @keyframes saAuroraHero { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+    @keyframes saAuroraDrift { 0%{background-position:50% 50%,50% 50%} 50%{background-position:100% 50%,150% 50%} 100%{background-position:50% 50%,50% 50%} }
   `;
   document.head.appendChild(s);
 }
@@ -43,7 +47,7 @@ export function SunsetHero({
   const titleWords = title?.split(' ') || [];
 
   return (
-    <motion.section
+    <section
       style={{
         position: 'relative',
         width: '100%',
@@ -53,7 +57,7 @@ export function SunsetHero({
       role="banner"
       aria-label="Hero section"
     >
-      {/* Sunset Gradient Background */}
+      {/* Aurora Gradient Background — animated via CSS keyframes */}
       <div
         style={{
           position: 'absolute',
@@ -63,18 +67,17 @@ export function SunsetHero({
         }}
         aria-hidden="true"
       >
-        <motion.div
+        <div
           style={{
             position: 'absolute',
             top: '-100%', left: '-100%', right: '-100%', bottom: '-100%',
             background: 'repeating-linear-gradient(100deg, #ff6b6b 10%, #feca57 15%, #ff9ff3 20%, #ff6b6b 25%, #feca57 30%)',
             backgroundSize: '300% 100%',
             filter: 'blur(80px)',
-          }}
-          animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
-          transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+            animation: 'saAuroraHero 20s linear infinite',
+          } as any}
         />
-        <motion.div
+        <div
           style={{
             position: 'absolute',
             inset: -10,
@@ -84,12 +87,9 @@ export function SunsetHero({
             `,
             backgroundSize: '200%, 100%',
             backgroundPosition: '50% 50%, 50% 50%',
-            mixBlendMode: 'difference' as any,
-          }}
-          animate={{
-            backgroundPosition: ['50% 50%, 50% 50%', '100% 50%, 150% 50%', '50% 50%, 50% 50%'],
-          }}
-          transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
+            mixBlendMode: 'difference',
+            animation: 'saAuroraDrift 15s linear infinite',
+          } as any}
         />
       </div>
 
@@ -109,13 +109,8 @@ export function SunsetHero({
         <div style={{ position: 'relative', zIndex: 10, width: '100%' }}>{children}</div>
       ) : (
         <div style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: 1280, margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1.2, ease: 'easeOut' }}
-            style={{ maxWidth: 1024, margin: '0 auto' }}
-          >
-            {/* Animated Title */}
+          <div style={{ maxWidth: 1024, margin: '0 auto', animation: 'saSlideUp 1.2s ease-out forwards' }}>
+            {/* Title */}
             {title && (
               <h1
                 style={{
@@ -129,26 +124,18 @@ export function SunsetHero({
                 {titleWords.map((word, wordIndex) => (
                   <span key={wordIndex} style={{ display: 'inline-block', marginRight: 16 }}>
                     {word.split('').map((letter, letterIndex) => (
-                      <motion.span
+                      <span
                         key={`${wordIndex}-${letterIndex}`}
-                        initial={{ y: 100, opacity: 0, filter: 'blur(8px)' }}
-                        animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
-                        transition={{
-                          delay: wordIndex * 0.1 + letterIndex * 0.03,
-                          type: 'spring',
-                          stiffness: 100,
-                          damping: 15,
-                        }}
                         style={{
                           display: 'inline-block',
                           background: 'linear-gradient(135deg, #F4F4F8 0%, #A1A6B7 100%)',
                           WebkitBackgroundClip: 'text',
                           WebkitTextFillColor: 'transparent',
                           textShadow: '0 0 20px rgba(139,92,246,0.3)',
-                        }}
+                        } as any}
                       >
                         {letter}
-                      </motion.span>
+                      </span>
                     ))}
                   </span>
                 ))}
@@ -157,10 +144,7 @@ export function SunsetHero({
 
             {/* Description */}
             {description && (
-              <motion.p
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 1, delay: 0.6 }}
+              <p
                 style={{
                   fontSize: 'clamp(1rem, 2vw, 1.5rem)',
                   color: '#A1A6B7',
@@ -172,15 +156,12 @@ export function SunsetHero({
                 }}
               >
                 {description}
-              </motion.p>
+              </p>
             )}
 
             {/* Action Buttons */}
             {(primaryAction || secondaryAction) && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.8, delay: 1 }}
+              <div
                 style={{
                   display: 'flex',
                   flexDirection: 'row',
@@ -191,10 +172,8 @@ export function SunsetHero({
                 }}
               >
                 {primaryAction && (
-                  <motion.button
+                  <button
                     onClick={primaryAction.onClick}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
                     style={{
                       padding: '16px 32px',
                       fontSize: '1rem',
@@ -205,18 +184,16 @@ export function SunsetHero({
                       backgroundColor: '#8B5CF6',
                       color: '#fff',
                       boxShadow: '0 4px 24px rgba(139,92,246,0.35)',
-                      transition: 'box-shadow 0.3s ease',
+                      transition: 'box-shadow 0.3s ease, transform 0.2s ease',
                     }}
                     aria-label={primaryAction.label}
                   >
                     {primaryAction.label}
-                  </motion.button>
+                  </button>
                 )}
                 {secondaryAction && (
-                  <motion.button
+                  <button
                     onClick={secondaryAction.onClick}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
                     style={{
                       padding: '16px 32px',
                       fontSize: '1rem',
@@ -231,13 +208,13 @@ export function SunsetHero({
                     aria-label={secondaryAction.label}
                   >
                     {secondaryAction.label}
-                  </motion.button>
+                  </button>
                 )}
-              </motion.div>
+              </div>
             )}
-          </motion.div>
+          </div>
         </div>
       )}
-    </motion.section>
+    </section>
   );
 }

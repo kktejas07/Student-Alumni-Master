@@ -303,10 +303,8 @@ export default function MentorOnboard() {
       };
       await api.completeOnboarding(payload);
       await refreshUser();
-      toast.success(`${badge.tier} badge earned! 🎉`, 'Verifying your email next…');
-      // Per spec — Step 8 → Email Verify → 2FA Setup → Welcome Dashboard
-      // (Member ID is accessible later from within the Mentor Portal.)
-      router.push(`/(auth)/email-verify?email=${encodeURIComponent(user?.email || '')}` as any);
+      toast.success(`${badge.tier} badge earned! 🎉`, 'Taking you to your Member ID…');
+      router.push({ pathname: '/(onboarding)/member-id', params: { from: 'onboarding' } } as any);
     } catch (e: any) {
       toast.error('Setup failed', e?.message || 'Please try again.');
     }

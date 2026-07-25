@@ -30,7 +30,7 @@ export function PartnerCards() {
             <Image source={{ uri: item.logo }} style={s.logo} resizeMode="contain" />
           ) : (
             <View style={[s.logo, { backgroundColor: 'rgba(255,255,255,0.06)', justifyContent: 'center', alignItems: 'center' }]}>
-              <Text style={{ color: '#666', fontFamily: 'Inter_700Bold', fontSize: 10, textAlign: 'center' }}>{item.name?.charAt(0) || '?'}</Text>
+              <Text style={{ color: '#666', fontFamily: 'DMSans_700Bold', fontSize: 10, textAlign: 'center' }}>{item.name?.charAt(0) || '?'}</Text>
             </View>
           )}
           <Text style={s.name} numberOfLines={1}>{item.name}</Text>
@@ -59,9 +59,9 @@ const s = StyleSheet.create({
     width: 48, height: 48, borderRadius: 8,
   },
   name: {
-    color: '#fff', fontFamily: 'Inter_700Bold', fontSize: 12, textAlign: 'center',
+    color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 12, textAlign: 'center',
   },
   ref: {
-    color: 'rgba(255,255,255,0.5)', fontFamily: 'Inter_600SemiBold', fontSize: 10,
+    color: 'rgba(255,255,255,0.5)', fontFamily: 'DMSans_600SemiBold', fontSize: 10,
   },
 });

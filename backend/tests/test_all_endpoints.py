@@ -7,13 +7,14 @@ Run with coverage: venv/bin/pytest tests/test_all_endpoints.py -v --cov=.
 """
 
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 from server import app
 import asyncio
 from datetime import datetime, timedelta
 
 # ─────────────────────────────────────────────────────────────
-# FIXTURES
+# FIXTURES — shared versions live in conftest.py; these are
+# kept here only for backward compat with any local overrides.
 # ─────────────────────────────────────────────────────────────
 
 @pytest.fixture
@@ -22,7 +23,7 @@ def anyio_backend():
 
 @pytest.fixture
 async def client():
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
 
 @pytest.fixture
@@ -31,7 +32,7 @@ async def auth_client(client):
     test_user = {
         "email": f"test_{datetime.now().timestamp()}@test.com",
         "password": "Test@123!pass",
-        "name": "Test User",
+        "full_name": "Test User",
         "role": "student"
     }
     resp = await client.post("/api/auth/register", json=test_user)
@@ -75,7 +76,7 @@ class TestAuthEndpoints:
         resp = await client.post("/api/auth/register", json={
             "email": f"newuser_{unique}@test.com",
             "password": "Test@1234!pass",
-            "name": "New Test User",
+            "full_name": "New Test User",
             "role": "student"
         })
         assert resp.status_code in [200, 201], f"Register failed: {resp.text}"
@@ -87,10 +88,10 @@ class TestAuthEndpoints:
         unique = datetime.now().timestamp()
         email = f"dup_{unique}@test.com"
         await client.post("/api/auth/register", json={
-            "email": email, "password": "Test@1234!", "name": "Dup", "role": "student"
+            "email": email, "password": "Test@1234!", "full_name": "Dup", "role": "student"
         })
         resp = await client.post("/api/auth/register", json={
-            "email": email, "password": "Test@1234!", "name": "Dup2", "role": "student"
+            "email": email, "password": "Test@1234!", "full_name": "Dup2", "role": "student"
         })
         assert resp.status_code == 400 or resp.status_code == 409
 
@@ -153,7 +154,7 @@ class TestAuthEndpoints:
         resp = await client.post("/api/auth/google", json={
             "id_token": "test_invalid_token",
             "email": "google_user@test.com",
-            "name": "Google User"
+            "full_name": "Google User"
         })
         # Should either succeed or give 400/401 (not 500)
         assert resp.status_code not in [500, 502, 503]
@@ -178,7 +179,7 @@ class TestAuthEndpoints:
         resp = await client.post("/api/auth/register", json={
             "email": "not-an-email",
             "password": "Test@1234!",
-            "name": "Bad Email",
+            "full_name": "Bad Email",
             "role": "student"
         })
         assert resp.status_code == 422
@@ -199,7 +200,7 @@ class TestUserProfileEndpoints:
     async def test_01_update_profile(self, auth_client):
         """PUT /api/users/me - Update user profile"""
         resp = await auth_client.put("/api/users/me", json={
-            "name": "Updated Name",
+            "full_name": "Updated Name",
             "bio": "This is a test bio",
             "phone": "+1234567890"
         })
@@ -751,7 +752,7 @@ class TestAdminEndpoints:
         resp = await admin_client.post("/api/admin/users", json={
             "email": f"admin_created_{unique}@test.com",
             "password": "TestPass123!",
-            "name": "Admin Created User",
+            "full_name": "Admin Created User",
             "role": "student"
         })
         assert resp.status_code in [200, 201, 403]

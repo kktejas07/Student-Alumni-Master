@@ -12,10 +12,11 @@
  */
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform } from 'react-native';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Sparkles, Briefcase, BookOpen, Users, TrendingUp, Calendar, MapPin,
-  Star, ArrowRight, Check, ExternalLink,
+  Star, ArrowRight, Check, ExternalLink, FileText,
 } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { Av, Badge, KpiCard } from '../atoms';
@@ -25,9 +26,15 @@ import { TierBadge } from '@/src/views/web/TierBadge';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
 import { request } from '@/src/models/services/api';
 import { AdBanner } from '@/src/views/web/components/AdBanner';
-import { PartnerCards } from '@/src/views/web/components/PartnerCards';
 
-const KPI_ICONS = { matches: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp } as const;
+const KPI_ICONS = {
+  matches: Briefcase,
+  applications: FileText,
+  courses: BookOpen,
+  mentors: Users,
+  score: TrendingUp,
+  events: Calendar,
+} as const;
 
 const STUDENT_MOCK = {
   student: MOCK.STUDENT,
@@ -47,6 +54,7 @@ export function DashboardView({
   onOpenEvents?: () => void;
   onOpenCareerAi?: () => void;
 } = {}) {
+  const router = useRouter();
   const { data } = usePortalData<typeof STUDENT_MOCK>('/student/dashboard', STUDENT_MOCK);
   // Live counters polled every 15s so users can SEE auto-refresh working
   const { data: live } = usePortalData<any>('/live/counters', null as any, 15_000);
@@ -69,7 +77,6 @@ export function DashboardView({
     <View style={{ gap: 16 }}>
       {/* Ad Banner */}
       <AdBanner />
-      <PartnerCards />
 
       {/* AI Daily Brief banner */}
       <View style={s.briefRow}>
@@ -177,6 +184,7 @@ export function DashboardView({
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
         {KPIS.map((k) => {
           const Icon = KPI_ICONS[k.id as keyof typeof KPI_ICONS];
+          if (!Icon) return null; // skip unknown KPI ids gracefully
           return <KpiCard key={k.id} Icon={Icon} label={k.label} value={k.value} delta={k.delta} color={k.color} />;
         })}
       </View>
@@ -236,7 +244,22 @@ export function DashboardView({
                   </View>
                   <Text style={s.mentorPrice}>₹{m.price}/session</Text>
                 </View>
-                <Pressable style={({ hovered }: any) => [s.bookCta, hovered && { backgroundColor: SC.primaryL }]}>
+                <Pressable
+                  onPress={() => router.push({
+                    pathname: '/mentor/[id]',
+                    params: {
+                      id: m.id,
+                      name: m.name,
+                      title: m.role,
+                      bio: (m.bio || 'Experienced professional ready to share industry insights, career strategies, and guidance.').slice(0, 200) + ((m.bio || '').length > 200 ? '...' : ''),
+                      avatar: m.avatar || `https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200`,
+                      rating: String(m.rating),
+                      sessions: String(m.sessions),
+                      tags: m.skills?.join(',') || 'System Design,Career Strategy',
+                    }
+                  } as any)}
+                  style={({ hovered }: any) => [s.bookCta, hovered && { backgroundColor: SC.primaryL }]}
+                >
                   <Calendar size={12} color="#fff" />
                   <Text style={s.bookCtaText}>Book Session</Text>
                 </Pressable>
