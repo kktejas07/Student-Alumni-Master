@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
-import { Sparkles, TrendingUp, CheckCircle2, Navigation } from "lucide-react";
+import { Sparkles, TrendingUp, CheckCircle2, Navigation } from "lucide-react-native";
 
 export function Dashboard() {
   return (
-    <section className="relative py-32 overflow-hidden">
+    <section id="about-us" className="relative py-32 overflow-hidden">
       <div className="mx-auto max-w-7xl px-6">
         <div className="max-w-3xl mx-auto text-center mb-20">
           <motion.div

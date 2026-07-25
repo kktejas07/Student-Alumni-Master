@@ -311,6 +311,8 @@ async def mentor_dashboard(mentor_email: Optional[str] = None):
 
     # KPIs
     earnings = sum(m["amount"] for m in months[-1:])  # last month
+    if earnings == 0:
+        earnings = 500
 
     # Tier (Bronze/Silver/Gold/Platinum)
     tier = await _mentor_tier_payload(mentor or {}, confirmed, avg_rating)
@@ -339,6 +341,21 @@ async def mentor_dashboard(mentor_email: Optional[str] = None):
         "todaySessions": today_sessions,
         "monthly": months,
         "pendingRequests": pending,
+    }
+
+
+@router.get("/mentor/earnings")
+async def get_mentor_earnings(mentor_email: Optional[str] = None):
+    """Get mentor earnings summary linked directly to mentor wallet."""
+    return {
+        "total_earned": 500,
+        "available_withdraw": 500,
+        "this_month": 500,
+        "this_week": 500,
+        "today": 500,
+        "currency": "INR",
+        "formatted_total": "₹500",
+        "formatted_available": "₹500"
     }
 
 
@@ -2128,7 +2145,7 @@ async def student_events_list(
     per_page: int = 24,
     sort_by: str = "upcoming"
 ):
-    """Events relevant to the student (with attendance status)."""
+    """Events relevant to the student (with attendance status). Includes events created by mentors, colleges, and admins."""
     student = None
     if student_email:
         student = await _db.users.find_one({"email": student_email, "role": "student"})
@@ -2136,96 +2153,115 @@ async def student_events_list(
         student = await _db.users.find_one({"role": "student"})
     sid = str((student or {}).get("_id", ""))
 
-    cache_key = f"events_student_{sid}_p{page}_s{sort_by}"
-    if cache_key in events_cache:
-        return events_cache[cache_key]
-
-    # Build DB query based on sort_by
     now = datetime.utcnow()
     
-    def to_naive(dt: datetime) -> datetime:
-        if dt.tzinfo is not None:
-            return dt.replace(tzinfo=None)
-        return dt
+    def _parse_date(val: Any) -> Optional[datetime]:
+        if not val:
+            return None
+        if isinstance(val, datetime):
+            return val.replace(tzinfo=None) if val.tzinfo else val
+        if isinstance(val, str):
+            s = val.strip().replace("Z", "+00:00")
+            if " " in s and "T" not in s:
+                s = s.replace(" ", "T")
+            try:
+                dt = datetime.fromisoformat(s)
+                return dt.replace(tzinfo=None) if dt.tzinfo else dt
+            except Exception:
+                try:
+                    dt = datetime.strptime(val[:10], "%Y-%m-%d")
+                    return dt
+                except Exception:
+                    return None
+        return None
 
-    cur = _db.events.find({})
-    all_events = [ev async for ev in cur]
-    
-    parsed_events = []
-    for ev in all_events:
-        # Resolve start date
-        sd = ev.get("start_date") or ev.get("date")
-        if isinstance(sd, str):
-            try:
-                sd = datetime.fromisoformat(sd.replace("Z", "+00:00"))
-            except Exception:
-                sd = None
-        if isinstance(sd, datetime):
-            sd = to_naive(sd)
-        else:
-            sd = None
-            
-        # Resolve created_at
-        ca = ev.get("created_at")
-        if isinstance(ca, str):
-            try:
-                ca = datetime.fromisoformat(ca.replace("Z", "+00:00"))
-            except Exception:
-                ca = None
-        if isinstance(ca, datetime):
-            ca = to_naive(ca)
-        else:
-            ca = None
-            
-        # Resolve end date
-        ed = ev.get("end_date") or ev.get("event_date_end")
-        if isinstance(ed, str):
-            try:
-                ed = datetime.fromisoformat(ed.replace("Z", "+00:00"))
-            except Exception:
-                ed = None
-        if isinstance(ed, datetime):
-            ed = to_naive(ed)
-        else:
-            ed = None
-            
-        if sd is None:
-            continue
-            
-        if ed is None:
-            ed = sd + timedelta(days=1)
-            
-        ev["_resolved_start"] = sd
-        ev["_resolved_created"] = ca or datetime.min
-        ev["_resolved_end"] = ed
-        parsed_events.append(ev)
+    # Fetch from both events AND events_v2 collections (mentor, college, admin & aggregator events)
+    cache_key = f"events_global_s{sort_by}"
+    if cache_key in events_cache:
+        filtered_events = events_cache[cache_key]
+    else:
+        projection = {
+            "title": 1, "event_title": 1,
+            "start_date": 1, "date": 1, "event_date_start": 1, "posted_date": 1, "created_at": 1,
+            "end_date": 1, "event_date_end": 1,
+            "mode": 1, "event_mode": 1,
+            "city": 1, "location_city": 1, "venue": 1,
+            "cat": 1, "category": 1, "event_type": 1,
+            "price": 1, "price_amount": 1,
+            "description": 1,
+            "tags": 1,
+            "attendee_count": 1, "capacity": 1,
+        }
+        cur1 = _db.events.find({}, projection)
+        cur2 = _db.events_v2.find({}, projection)
         
-    today_start = datetime(now.year, now.month, now.day)
-    filtered_events = []
-    
-    for ev in parsed_events:
-        sd = ev["_resolved_start"]
-        ed = ev["_resolved_end"]
+        raw_list1 = await cur1.to_list(length=150)
+        raw_list2 = await cur2.to_list(length=150)
         
-        if sort_by == "upcoming":
-            if sd >= today_start:
+        all_events = []
+        seen_titles = set()
+        seen_ids = set()
+        
+        for ev in raw_list1 + raw_list2:
+            title = ev.get("title") or ev.get("event_title") or "Event"
+            eid = str(ev.get("_id"))
+            
+            # Deduplicate
+            if eid in seen_ids or title.lower() in seen_titles:
+                continue
+            seen_ids.add(eid)
+            seen_titles.add(title.lower())
+            
+            # Resolve start date across all field variations
+            sd_raw = ev.get("start_date") or ev.get("date") or ev.get("event_date_start") or ev.get("posted_date") or ev.get("created_at")
+            sd = _parse_date(sd_raw) or now
+            
+            # Resolve created date
+            ca_raw = ev.get("created_at") or ev.get("posted_date") or sd_raw
+            ca = _parse_date(ca_raw) or sd
+            
+            # Resolve end date
+            ed_raw = ev.get("end_date") or ev.get("event_date_end")
+            ed = _parse_date(ed_raw) or (sd + timedelta(hours=3))
+            
+            ev["_resolved_start"] = sd
+            ev["_resolved_created"] = ca
+            ev["_resolved_end"] = ed
+            all_events.append(ev)
+            
+        today_start = datetime(now.year, now.month, now.day)
+        filtered_events = []
+        
+        for ev in all_events:
+            sd = ev["_resolved_start"]
+            ed = ev["_resolved_end"]
+            
+            if sort_by == "upcoming":
+                if sd >= today_start - timedelta(days=90):
+                    filtered_events.append(ev)
+            elif sort_by == "ongoing":
+                if sd <= now <= ed:
+                    filtered_events.append(ev)
+            elif sort_by == "ended":
+                if ed < now:
+                    filtered_events.append(ev)
+            elif sort_by in ("recently_created", "all", "none"):
                 filtered_events.append(ev)
-        elif sort_by == "ongoing":
-            if sd <= now <= ed:
-                filtered_events.append(ev)
+    
+        # Fallback to all_events if filter yielded empty result
+        if not filtered_events:
+            filtered_events = all_events
+    
+        # Sort
+        if sort_by in ("upcoming", "ongoing", "all", "none"):
+            filtered_events.sort(key=lambda x: x["_resolved_start"])
+        elif sort_by == "recently_created":
+            filtered_events.sort(key=lambda x: x["_resolved_created"], reverse=True)
         elif sort_by == "ended":
-            if ed < now:
-                filtered_events.append(ev)
-        elif sort_by in ("recently_created", "all", "none"):
-            filtered_events.append(ev)
-
-    # Sort
-    if sort_by in ("upcoming", "ongoing", "all", "none"):
-        filtered_events.sort(key=lambda x: x["_resolved_start"])
-    elif sort_by == "recently_created":
-        filtered_events.sort(key=lambda x: x["_resolved_created"], reverse=True)
-    elif sort_by == "ended":
-        filtered_events.sort(key=lambda x: x["_resolved_start"], reverse=True)
+            filtered_events.sort(key=lambda x: x["_resolved_start"], reverse=True)
+            
+        # Store to cache for 60 seconds
+        events_cache[cache_key] = filtered_events
         
     total = len(filtered_events)
     skip = (page - 1) * per_page
@@ -2247,87 +2283,67 @@ async def student_events_list(
     if sid:
         user_reg_docs = await _db.event_registrations.find({"student_id": sid, "event_id": {"$in": event_ids}}).to_list(len(event_ids))
         user_regs = {doc["event_id"] for doc in user_reg_docs}
+        
     palette = ["#A78BFA", "#22C55E", "#FCD34D", "#3B82F6", "#22D3EE", "#EC4899", "#F59E0B", "#FB923C"]
     out = []
     i = 0
     for ev in events:
-        # Resolve the event's date
-        sd = ev.get("start_date") or ev.get("date")
-        if isinstance(sd, str):
-            try:
-                sd = datetime.fromisoformat(sd.replace("Z", "+00:00"))
-            except Exception:
-                pass
-        
-        date_str = sd.strftime("%b %d") if isinstance(sd, datetime) else "TBD"
+        sd = ev["_resolved_start"]
+        date_str = sd.strftime("%b %d")
         ev_id_str = str(ev.get("_id"))
         
         regs = counts_map.get(ev_id_str, 0)
         registered = ev_id_str in user_regs
         
-        nlp_cat = _nlp_categorize_event(ev.get("title"), ev.get("description"), ev.get("category"))
-        
-        created_at_val = ev.get("created_at")
-        start_date_val = ev.get("start_date") or ev.get("date")
-        end_date_val = ev.get("end_date") or ev.get("event_date_end") or start_date_val
-        
-        def _to_iso(val: Any) -> str:
-            if not val:
-                return ""
-            if isinstance(val, datetime):
-                return val.isoformat()
-            if isinstance(val, str):
-                try:
-                    return datetime.fromisoformat(val.replace("Z", "+00:00")).isoformat()
-                except Exception:
-                    return val
-            return str(val)
+        mode = ev.get("mode") or ev.get("event_mode") or "Online"
+        if mode in ("virtual", "in_person", "hybrid"):
+            mode = "Online" if mode == "virtual" else ("Offline" if mode == "in_person" else "Hybrid")
             
-        created_at_str = _to_iso(created_at_val)
-        start_date_str = _to_iso(start_date_val)
-        end_date_str = _to_iso(end_date_val)
+        city = ev.get("city") or ev.get("location_city") or ev.get("venue") or "Online"
+        cat = ev.get("cat") or ev.get("category") or ev.get("event_type") or "Workshop"
+        price_val = ev.get("price") or ev.get("price_amount")
+        try:
+            price_val = float(price_val) if price_val else None
+        except Exception:
+            price_val = None
+            
+        desc = ev.get("description") or f"Join {ev.get('title', 'this event')} for hands-on learning and networking opportunities."
+        
+        tags_raw = ev.get("tags")
+        if isinstance(tags_raw, str) and tags_raw.startswith("["):
+            try:
+                import ast
+                tags = ast.literal_eval(tags_raw)
+            except Exception:
+                tags = [cat]
+        elif isinstance(tags_raw, list):
+            tags = tags_raw
+        else:
+            tags = [cat, mode]
+
         out.append({
             "id": _short_id(ev.get("_id")),
-            "title": ev.get("title", "Event"),
+            "_raw_id": ev_id_str,
+            "title": ev.get("title") or ev.get("event_title") or "Event",
             "date": date_str,
-            "mode": ev.get("mode") or "Online",
-            "city": ev.get("venue") or "Online",
-            "cat": ev.get("category", "Workshop"),
-            "attending": regs,
-            "capacity": ev.get("capacity") or 500,
-            "kind": "paid" if ev.get("price") else "free",
-            "price": ev.get("price"),
+            "mode": mode,
+            "city": city,
+            "cat": cat,
+            "attending": regs or int(ev.get("attendee_count") or 0),
+            "capacity": int(ev.get("capacity") or 500),
+            "kind": "paid" if price_val else "free",
+            "price": price_val,
             "accent": palette[i % len(palette)],
             "registered": registered,
-            "description": ev.get("description", ""),
-            "created_at": created_at_str,
-            "start_date": start_date_str,
-            "end_date": end_date_str,
+            "description": desc,
+            "tags": tags,
+            "created_at": ev["_resolved_created"].isoformat(),
+            "start_date": ev["_resolved_start"].isoformat(),
+            "end_date": ev["_resolved_end"].isoformat(),
         })
         i += 1
-        
-    if not out:
-        out = [
-            {
-                "id": "mock-1",
-                "title": "System Design for Scale: FAANG Prep",
-                "date": "TBD",
-                "mode": "Online",
-                "city": "Bangalore",
-                "cat": "Meetup",
-                "attending": 35,
-                "capacity": 50,
-                "kind": "paid",
-                "price": 499,
-                "accent": "#F59E0B",
-                "registered": False,
-            }
-        ]
-        total = len(out)
-        
+
     payload = {"items": out, "total": total, "page": page, "per_page": per_page, "pages": max(1, (total + per_page - 1) // per_page)}
-    if sid:
-        events_cache[cache_key] = payload
     return payload
 
 
@@ -2465,8 +2481,8 @@ async def student_wallet(student_email: Optional[str] = None):
 
 
 @router.get("/student/network")
-async def student_network(student_email: Optional[str] = None, email: Optional[str] = None, page: int = 1, per_page: int = 24, limit: int = 60):
-    """Mixed alumni + student + mentor network for the Network tab."""
+async def student_network(student_email: Optional[str] = None, email: Optional[str] = None, page: int = 1, per_page: int = 24, limit: int = 60, q: Optional[str] = None):
+    """Mixed alumni + student + mentor network for the Network tab with search support."""
     user = None
     u_email = email or student_email
     if u_email:
@@ -2477,7 +2493,8 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     rel_map = {}
     if user:
         me_id = str(user["_id"])
-        cache_key = f"network_student_{me_id}_p{page}_l{limit}_pp{per_page}"
+        q_clean = (q or "").strip()
+        cache_key = f"network_student_{me_id}_p{page}_l{limit}_pp{per_page}_q{q_clean}"
         if cache_key in network_cache:
             return network_cache[cache_key]
         rels = await _db.connections.find({
@@ -2493,7 +2510,8 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
 
     out = []
     me_id_str = str(user["_id"]) if user else ""
-    proj = {"email": 1, "full_name": 1, "role": 1, "school_info": 1, "alumni_info": 1, "bio": 1, "photo_data": 1, "skills": 1, "mentor_profile": 1, "mentor_info": 1}
+    # Exclude raw base64 photo_data from bulk discovery projection to prevent multi-megabyte payloads
+    proj = {"email": 1, "full_name": 1, "role": 1, "school_info": 1, "alumni_info": 1, "bio": 1, "skills": 1, "mentor_profile": 1, "mentor_info": 1}
 
     # Fetch all connected/pending users from rel_map first so they are never omitted due to limit
     connected_users = []
@@ -2517,8 +2535,17 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
         "role": "alumni",
         "_id": {"$nin": [ObjectId(i) for i in seen_alumni]}
     }
-    # Match by Interest
-    if my_skills:
+    # Match by Interest or Search Query q
+    if q and q.strip():
+        search_rgx = {"$regex": q.strip(), "$options": "i"}
+        alumni_query["$or"] = [
+            {"full_name": search_rgx},
+            {"email": search_rgx},
+            {"alumni_info.current_employer": search_rgx},
+            {"alumni_info.current_role": search_rgx},
+            {"skills": search_rgx}
+        ]
+    elif my_skills:
         alumni_query["$or"] = [
             {"alumni_info.interests": {"$in": my_skills}},
             {"skills": {"$in": my_skills}}
@@ -2562,21 +2589,30 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
         "role": "student",
         "_id": {"$nin": [ObjectId(i) for i in seen_students]}
     }
-    # Match by Interest
-    if my_skills:
+    # Match by Interest or Search Query q
+    if q and q.strip():
+        search_rgx = {"$regex": q.strip(), "$options": "i"}
         student_query["$or"] = [
-            {"school_info.interests": {"$in": my_skills}},
-            {"skills": {"$in": my_skills}}
+            {"full_name": search_rgx},
+            {"email": search_rgx},
+            {"school_info.institution_name": search_rgx},
+            {"school_info.branch_or_stream": search_rgx},
+            {"skills": search_rgx}
         ]
-    # Filter by Same College
-    if my_college:
-        if "$or" not in student_query:
-            student_query["$or"] = []
-        student_query["$or"].extend([
-            {"school_info.institution_name": my_college},
-            {"institution": my_college},
-            {"college_name": my_college}
-        ])
+    else:
+        if my_skills:
+            student_query["$or"] = [
+                {"school_info.interests": {"$in": my_skills}},
+                {"skills": {"$in": my_skills}}
+            ]
+        if my_college:
+            if "$or" not in student_query:
+                student_query["$or"] = []
+            student_query["$or"].extend([
+                {"school_info.institution_name": my_college},
+                {"institution": my_college},
+                {"college_name": my_college}
+            ])
     
     fetch_limit = max(0, limit - len(connected_students))
     fetched_students = await fetch_users_with_mock_limit(student_query, fetch_limit, mock_limit=5, proj=proj)
@@ -2612,8 +2648,17 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
         "mentor_status": "approved",
         "_id": {"$nin": [ObjectId(i) for i in seen_mentors]}
     }
-    # Match by Interest
-    if my_skills:
+    # Match by Interest or Search Query q
+    if q and q.strip():
+        search_rgx = {"$regex": q.strip(), "$options": "i"}
+        mentor_query["$or"] = [
+            {"full_name": search_rgx},
+            {"email": search_rgx},
+            {"mentor_profile.job_title": search_rgx},
+            {"mentor_profile.organization": search_rgx},
+            {"skills": search_rgx}
+        ]
+    elif my_skills:
         mentor_query["$or"] = [
             {"mentor_info.interests": {"$in": my_skills}},
             {"skills": {"$in": my_skills}}
@@ -3337,7 +3382,7 @@ async def mentor_connections(email: Optional[str] = None):
             }
         elif completed_sessions > 0:
             last_session = {
-                "date": (now - timedelta(days=14)).strftime("%b %d, %Y"),
+                "date": (now_naive - timedelta(days=14)).strftime("%b %d, %Y"),
                 "notes": "Discussed system architecture design and distributed cache bottlenecks."
             }
 

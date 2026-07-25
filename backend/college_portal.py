@@ -11,6 +11,7 @@ Endpoints (all under /api):
 """
 from __future__ import annotations
 import os
+import time
 import logging
 import random
 from datetime import datetime, timezone
@@ -100,7 +101,15 @@ def _seed_roster() -> List[Dict[str, Any]]:
     return out
 
 
+_roster_cache: Dict[str, Tuple[float, List[Dict[str, Any]]]] = {}
+
 async def get_roster(college_id: str, user_doc: dict) -> List[Dict[str, Any]]:
+    now = time.time()
+    if college_id in _roster_cache:
+        t_cache, cached_items = _roster_cache[college_id]
+        if now - t_cache < 60:  # 60s cache TTL
+            return cached_items
+
     if not user_doc.get("demo_seeded"):
         count = await _db.college_students.count_documents({"college_id": college_id})
         if count == 0:
@@ -118,7 +127,9 @@ async def get_roster(college_id: str, user_doc: dict) -> List[Dict[str, Any]]:
         await _db.users.update_one({"_id": user_doc["_id"]}, {"$set": {"demo_seeded": True}})
     
     cursor = _db.college_students.find({"college_id": college_id}, {"_id": 0}).sort("id", 1)
-    return await cursor.to_list(None)
+    items = await cursor.to_list(None)
+    _roster_cache[college_id] = (now, items)
+    return items
 
 
 # ─── Endpoints ───────────────────────────────────────────────────────────

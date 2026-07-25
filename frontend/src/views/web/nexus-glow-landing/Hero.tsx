@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowUpRight, Sparkles } from "lucide-react";
+import { ArrowUpRight, Sparkles } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { AgentK3D } from "./AgentK3D";
 
@@ -7,7 +7,7 @@ export function Hero() {
   const router = useRouter();
 
   return (
-    <section className="relative overflow-hidden pt-40 pb-24 md:pt-48 md:pb-32 flex flex-col items-center">
+    <section id="agent-k" className="relative overflow-hidden pt-40 pb-24 md:pt-48 md:pb-32 flex flex-col items-center">
       <div className="mx-auto max-w-7xl px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
         
         {/* Left Column: Text */}

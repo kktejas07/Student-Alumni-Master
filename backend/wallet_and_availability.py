@@ -26,7 +26,7 @@ logger = logging.getLogger("wallet")
 router = APIRouter()
 
 DEFAULT_SLOTS = ["09:00", "11:00", "14:00", "16:00", "18:00", "20:00"]
-NEW_USER_BONUS = 320  # everyone starts with ₹320 SA Credits
+NEW_USER_BONUS = 500  # everyone starts with ₹500 SA Credits
 
 
 def _get_current_user_dependency():

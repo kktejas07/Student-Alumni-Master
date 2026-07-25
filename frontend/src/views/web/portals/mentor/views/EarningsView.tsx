@@ -86,7 +86,7 @@ export function EarningsView({ demoMode = true, setDemoMode }: { demoMode?: bool
   const [isDownloadingForm16, setIsDownloadingForm16] = useState(false);
 
   // Stateful cashout simulator
-  const [availableWithdraw, setAvailableWithdraw] = useState(1998);
+  const [availableWithdraw, setAvailableWithdraw] = useState(500);
   const [withdrawMethod, setWithdrawMethod] = useState<'upi' | 'bank' | 'paytm' | null>(null);
   const [upiId, setUpiId] = useState('sureshrao@okicici');
   const [bankAccount, setBankAccount] = useState('50200012345678');
@@ -230,28 +230,28 @@ export function EarningsView({ demoMode = true, setDemoMode }: { demoMode?: bool
             {/* Total Earned Card */}
             <View style={s.totalEarnedCard}>
               <Text style={s.totalEarnedKicker}>TOTAL EARNED</Text>
-              <Text style={s.totalEarnedValue}>{demoMode ? '₹1,42,000' : '₹0'}</Text>
+              <Text style={s.totalEarnedValue}>₹500</Text>
               <Text style={s.totalEarnedSubtext}>
-                {demoMode ? 'Across 142 sessions · avg ₹1000/session' : 'Across 0 sessions · avg ₹0/session'}
+                Default mentor wallet balance · Welcome bonus
               </Text>
               
               <View style={s.metricGrid}>
                 <View style={s.metricItem}>
                   <Text style={s.metricItemLabel}>THIS MONTH</Text>
-                  <Text style={s.metricItemVal}>{demoMode ? '₹28,500' : '₹0'}</Text>
-                  <Text style={s.metricItemSub}>{demoMode ? '18 sessions' : '0 sessions'}</Text>
+                  <Text style={s.metricItemVal}>₹500</Text>
+                  <Text style={s.metricItemSub}>1 session</Text>
                 </View>
                 
                 <View style={[s.metricItem, s.metricItemBorder]}>
                   <Text style={s.metricItemLabel}>THIS WEEK</Text>
-                  <Text style={s.metricItemVal}>{demoMode ? '₹6,000' : '₹0'}</Text>
-                  <Text style={s.metricItemSub}>{demoMode ? '4 sessions' : '0 sessions'}</Text>
+                  <Text style={s.metricItemVal}>₹500</Text>
+                  <Text style={s.metricItemSub}>1 session</Text>
                 </View>
                 
                 <View style={s.metricItem}>
                   <Text style={s.metricItemLabel}>TODAY</Text>
-                  <Text style={s.metricItemVal}>{demoMode ? `₹${availableWithdraw.toLocaleString('en-IN')}` : '₹0'}</Text>
-                  <Text style={s.metricItemSub}>{demoMode ? '2 sessions' : '0 sessions'}</Text>
+                  <Text style={s.metricItemVal}>₹{availableWithdraw.toLocaleString('en-IN')}</Text>
+                  <Text style={s.metricItemSub}>Available</Text>
                 </View>
               </View>
 

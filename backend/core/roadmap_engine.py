@@ -20,6 +20,11 @@ async def evaluate_roadmap_milestones(user: Dict[str, Any], milestones: List[Dic
     """
     user_id_str = str(user.get("_id", ""))
     
+    # Pre-fetch counts for DB-dependent milestones to avoid sequential DB calls
+    connections_count = None
+    bookings_count = None
+    applications_count = None
+    
     for m in milestones:
         comp_val = m.get("completed")
         if isinstance(comp_val, str):
@@ -40,16 +45,18 @@ async def evaluate_roadmap_milestones(user: Dict[str, Any], milestones: List[Dic
             
         elif m_type == MilestoneType.NETWORKING.value:
             if db is not None and user_id_str:
-                count = await db.connections.count_documents({"$or": [{"from_id": user_id_str}, {"to_id": user_id_str}], "status": "accepted"})
-                is_done = count > 0
+                if connections_count is None:
+                    connections_count = await db.connections.count_documents({"$or": [{"from_id": user_id_str}, {"to_id": user_id_str}], "status": "accepted"})
+                is_done = connections_count > 0
                 
         elif m_type == MilestoneType.SKILLS.value:
             is_done = len(user.get("skills") or []) >= 3
             
         elif m_type == MilestoneType.MOCK_INTERVIEW.value:
             if db is not None and user_id_str:
-                count = await db.bookings.count_documents({"student_id": user_id_str})
-                is_done = count > 0
+                if bookings_count is None:
+                    bookings_count = await db.bookings.count_documents({"student_id": user_id_str})
+                is_done = bookings_count > 0
                 
         elif m_type == MilestoneType.PORTFOLIO.value:
             is_done = bool((user.get("portfolio_url") or "").strip())
@@ -59,8 +66,9 @@ async def evaluate_roadmap_milestones(user: Dict[str, Any], milestones: List[Dic
             
         elif m_type == MilestoneType.JOB_APPLICATION.value:
             if db is not None and user_id_str:
-                count = await db.applications.count_documents({"user_id": user_id_str})
-                is_done = count > 0
+                if applications_count is None:
+                    applications_count = await db.applications.count_documents({"user_id": user_id_str})
+                is_done = applications_count > 0
             else:
                 is_done = len(user.get("applied_jobs") or []) > 0
                 

@@ -21,6 +21,7 @@ from services.career_roadmap_service import (
 from services.profile_service import compute_profile_completion
 from core.career_prediction import simulate_goal_impact, compute_predictions, estimate_placement_readiness
 from core.roadmap_engine import evaluate_roadmap_milestones
+from emergentintegrations.llm.chat import UserMessage
 
 logger = logging.getLogger(__name__)
 
