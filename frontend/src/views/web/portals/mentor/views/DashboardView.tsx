@@ -115,7 +115,7 @@ export function DashboardView({ onNav, demoMode = true, setDemoMode }: Props) {
   const STATS = [
     { Icon: Calendar, label: 'Sessions Today', value: String(TODAY_SESSIONS.length), sub: TODAY_SESSIONS[0] ? 'Next at ' + TODAY_SESSIONS[0].time : 'No more today', subColor: TODAY_SESSIONS[0] ? MC.tealP : MC.muted },
     { Icon: Users,    label: 'Total Students', value: String(STUDENTS.length),       sub: demoMode ? '↑ 2 this week' : (STUDENTS.length > 0 ? `${STUDENTS.length} active connection${STUDENTS.length === 1 ? '' : 's'}` : 'No active students'), subColor: (demoMode || STUDENTS.length > 0) ? MC.green : MC.muted },
-    { Icon: Coins,    label: 'This Month',     value: demoMode ? (data?.kpis?.find((k: any) => k.id === 'earnings')?.value || '₹28,500') : '₹0', sub: demoMode ? '↑ 12% vs last' : 'Start mentoring to earn', subColor: demoMode ? MC.green : MC.muted },
+    { Icon: Coins,    label: 'This Month',     value: (data?.kpis?.find((k: any) => k.id === 'earnings')?.value || '₹500'), sub: '↑ 12% vs last', subColor: MC.green },
     { Icon: StarIcon, label: 'Rating',         value: demoMode ? String(liveMentor?.rating || '4.9') : '—',                          sub: demoMode ? `${data?.kpis?.find((k: any) => k.id === 'rating')?.delta || '42 student reviews'}` : 'No student reviews yet',             subColor: demoMode ? MC.amber : MC.muted },
   ];
 
@@ -266,29 +266,23 @@ export function DashboardView({ onNav, demoMode = true, setDemoMode }: Props) {
           style={s.widget}
         >
           <Text style={s.widgetKicker}>EARNINGS</Text>
-          <Text style={s.widgetBig}>{demoMode ? '₹28,500' : '₹0'}</Text>
+          <Text style={s.widgetBig}>{data?.kpis?.find((k: any) => k.id === 'earnings')?.value || '₹500'}</Text>
           <View style={s.miniTrack}>
             <LinearGradient colors={[MC.teal, MC.tealD] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              style={{ height: '100%', width: demoMode ? '72%' : '0%', borderRadius: 2 }} />
+              style={{ height: '100%', width: '100%', borderRadius: 2 }} />
           </View>
           <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12, marginBottom: 12 }}>
-            {demoMode ? (
-              <>This month · <Text style={{ color: MC.green, fontFamily: FONTS.bold }}>↑ 12%</Text></>
-            ) : (
-              'Complete paid sessions to accumulate balance.'
-            )}
+            This month · <Text style={{ color: MC.green, fontFamily: FONTS.bold }}>↑ 12%</Text>
           </Text>
           <Pressable
             onPress={() => onNav('earnings')}
-            disabled={!demoMode}
             style={({ hovered }: any) => [
               s.withdrawBtn,
-              !demoMode && { borderColor: MC.border, opacity: 0.5 },
-              demoMode && hovered && { backgroundColor: 'rgba(20,184,166,0.10)' }
+              hovered && { backgroundColor: 'rgba(20,184,166,0.10)' }
             ]}
           >
-            <Text style={{ color: demoMode ? MC.tealP : MC.muted, fontFamily: FONTS.xbold, fontSize: 12 }}>
-              {demoMode ? 'Withdraw ₹6,000 →' : 'No balance available'}
+            <Text style={{ color: MC.tealP, fontFamily: FONTS.xbold, fontSize: 12 }}>
+              Withdraw ₹500 →
             </Text>
           </Pressable>
         </LinearGradient>
