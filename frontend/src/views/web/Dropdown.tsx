@@ -148,7 +148,7 @@ export function Dropdown({
     : (sel?.label || placeholder);
 
   return (
-    <View style={{ marginBottom: 14, position: 'relative' }}>
+    <View style={{ marginBottom: 14, position: 'relative', zIndex: open ? 999 : 1 }}>
       {label ? (
         <Text style={s.label}>
           {label}{required ? <Text style={{ color: '#EF4444' }}> *</Text> : null}
@@ -238,9 +238,10 @@ export function Dropdown({
                 onPress={() => setOpen(false)}
               />
             )}
-            <View style={{ marginTop: 6, zIndex: 10, position: 'relative' }}>
+            <View style={{ marginTop: 6, zIndex: 10, position: 'absolute', top: '100%', left: 0, right: 0 }}>
               <OptionListCard
-                headerLabel={overlayHeader || label?.toUpperCase() || 'SELECT'}
+                maxHeight={140}
+                headerLabel={inline ? undefined : (overlayHeader || label?.toUpperCase() || 'SELECT')}
                 options={filteredOptions}
                 selectedValue={value}
                 onSelect={(opt) => { onChange(opt.value); setManualMode(false); setOpen(false); }}
