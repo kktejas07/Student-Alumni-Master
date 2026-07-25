@@ -1,0 +1,30 @@
+{
+  "name": "qa-automation",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@faker-js/faker": "^10.5.0",
+    "@playwright/test": "^1.62.0",
+    "allure-commandline": "^2.43.0",
+    "allure-playwright": "^3.10.2",
+    "axios": "^1.18.1",
+    "chromedriver": "^151.0.1",
+    "csv-writer": "^1.6.0",
+    "dotenv": "^17.4.2",
+    "exceljs": "^4.4.0",
+    "geckodriver": "^6.1.1",
+    "mochawesome": "^7.1.4",
+    "selenium-webdriver": "^4.46.0"
+  }
+}
