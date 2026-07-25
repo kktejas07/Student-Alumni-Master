@@ -2369,7 +2369,7 @@ async def get_cached_suggestions(user: dict = Depends(get_current_user)):
 
 @router.post("/ai/daily-brief")
 async def ai_daily_brief(
-    body: Dict[str, Any] = None,
+    body: Optional[Dict[str, Any]] = None,
     user: dict = Depends(get_current_user),
 ):
     """
@@ -2520,7 +2520,7 @@ async def chat_history(session_id: Optional[str] = None, user: dict = Depends(ge
 
 @router.post("/ai/generate-bio")
 async def ai_generate_bio(
-    body: Dict[str, Any] = None,
+    body: Optional[Dict[str, Any]] = None,
     user: dict = Depends(get_current_user),
 ):
     """

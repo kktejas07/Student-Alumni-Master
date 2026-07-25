@@ -1,9 +1,10 @@
 {
-  "venvPath": "backend",
+  "venvPath": "c:/Users/kalya/Desktop/Master/Student-Alumni-Master/backend",
   "venv": "venv",
   "pythonVersion": "3.13",
+  "pythonPlatform": "Windows",
   "extraPaths": [
-    "backend"
+    "c:/Users/kalya/Desktop/Master/Student-Alumni-Master/backend"
   ],
   "include": [
     "backend"
