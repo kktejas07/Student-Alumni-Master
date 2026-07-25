@@ -175,8 +175,16 @@ async def _lifespan(application):
     await _safe_create_index(db.workflow_events, [("fired_at", -1)])
     await _safe_create_index(db.connections, "a")
     await _safe_create_index(db.connections, "b")
+    await _safe_create_index(db.connections, [("from_id", 1), ("status", 1)])
+    await _safe_create_index(db.connections, [("to_id", 1), ("status", 1)])
     await _safe_create_index(db.connections, "mentor_id")
+    await _safe_create_index(db.applications, "user_id")
+    await _safe_create_index(db.jobs_cache, "dedup_hash")
+    await _safe_create_index(db.jobs_cache, [("expires_at", 1), ("job_type", 1)])
+    await _safe_create_index(db.mentor_sessions, [("mentee_id", 1), ("status", 1)])
+    await _safe_create_index(db.mentor_sessions, [("mentor_id", 1), ("status", 1)])
     await _safe_create_index(db.events, "mentor_id")
+    await _safe_create_index(db.events, [("status", 1), ("start_date", -1)])
     await _safe_create_index(db.event_registrations, "event_id")
 
     # Seed admin account and baseline data

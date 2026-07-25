@@ -967,9 +967,6 @@ async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
 # ----------------------------------------------------------------------------
 @router.get("/users/me/completion")
 async def get_my_completion(user: dict = Depends(get_current_user)):
-    user_db = await db.users.find_one({"_id": user["_id"]}, {"resume_documents": 1})
-    if user_db:
-        user["resume_documents"] = user_db.get("resume_documents") or []
     return compute_profile_completion(user)
 
 

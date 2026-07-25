@@ -2178,8 +2178,8 @@ async def student_events_list(
         cur1 = _db.events.find({}, projection)
         cur2 = _db.events_v2.find({}, projection)
         
-        raw_list1 = await cur1.to_list(length=1000)
-        raw_list2 = await cur2.to_list(length=1000)
+        raw_list1 = await cur1.to_list(length=150)
+        raw_list2 = await cur2.to_list(length=150)
         
         all_events = []
         seen_titles = set()
