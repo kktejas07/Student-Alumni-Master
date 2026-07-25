@@ -27,6 +27,7 @@ from core.security import (
 from core.models import UserRole, AuthResponse, UserResponse
 from core.security import serialize_user
 from core.deps import get_current_user
+from firebase_admin import credentials, initialize_app, auth as fb_auth
 
 router = APIRouter(tags=["auth"])
 limiter = Limiter(key_func=get_remote_address)
