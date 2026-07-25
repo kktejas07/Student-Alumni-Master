@@ -160,6 +160,7 @@ async def _lifespan(application):
     await _safe_create_index(db.users, "sa_id", unique=True, sparse=True)
     await _safe_create_index(db.career_suggestions, "user_id")
     await _safe_create_index(db.career_roadmaps, "user_id")
+    await _safe_create_index(db.college_students, [("college_id", 1), ("id", 1)])
     await _safe_create_index(db.chat_messages, [("user_id", 1), ("session_id", 1)])
     await _safe_create_index(db.bookings, [("student_id", 1), ("slot_start_iso", -1)])
     await _safe_create_index(db.bookings, [("mentor_id", 1), ("slot_start_iso", -1)])
@@ -883,7 +884,10 @@ async def get_current_user(request: Request) -> dict:
         if payload.get("type") != "access":
             raise HTTPException(401, "Invalid token type")
         print(f'[AUTH TRACE] DB_QUERY_START | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
-        user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
+        user = await db.users.find_one(
+            {"_id": ObjectId(payload["sub"])},
+            {"face_image_base64": 0, "college_logo_data": 0, "banner_data": 0}
+        )
         print(f'[AUTH TRACE] DB_QUERY_END | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
         if not user:
             raise HTTPException(401, "User not found")
