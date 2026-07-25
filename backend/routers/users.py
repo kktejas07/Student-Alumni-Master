@@ -34,7 +34,7 @@ try:
 except Exception:
     async def compute_badges(db, user): return []
     async def refresh_user_badges(db, user_id): return []
-    def get_tier_theme(tier): return {}
+    def get_tier_theme(tier=None): return {}
 
 try:
     from notifications import notify_booking_created, notify_booking_confirmed
@@ -2223,11 +2223,16 @@ try:
     from emergentintegrations.llm.chat import LlmChat, UserMessage
 except Exception:
     class UserMessage:
-        def __init__(self, text: str = ""):
+        def __init__(self, text: str = "", **kwargs):
             self.text = text
 
     class LlmChat:
-        pass
+        def __init__(self, *args, **kwargs):
+            pass
+        def with_model(self, *args, **kwargs):
+            return self
+        async def send_message(self, *args, **kwargs):
+            return ""
 
 
 async def get_claude_chat(session_id: str, system_message: str):
