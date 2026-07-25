@@ -2,6 +2,8 @@ import io
 import os
 import random
 import re
+import uuid
+import secrets
 import logging
 import asyncio
 from datetime import datetime, timezone, timedelta
@@ -19,13 +21,31 @@ from core.db import db
 from core.security import (
     hash_password, verify_password, create_access_token, _audit_log, _audit_log_many,
     serialize_user, validate_student_class, generate_unique_id, generate_qr_code,
-    encrypt_value, decrypt_value
+    encrypt_value, decrypt_value, _ENC_PREFIX
 )
 from core.deps import get_current_user
 from core.models import UserRole, UserResponse, SchoolInfo, MentorInfo, AlumniInfo, StudentInfo, CareerPath, EducationLevel, CollegeInfo
 from personalization import build_personalized_dashboard, track_module_click
 from services.career_intelligence_service import compute_full_intelligence, invalidate_intel_cache
 from services.profile_service import compute_profile_completion
+
+try:
+    from badges import compute_badges, refresh_user_badges, get_tier_theme
+except Exception:
+    async def compute_badges(db, user): return []
+    async def refresh_user_badges(db, user_id): return []
+    def get_tier_theme(tier): return {}
+
+try:
+    from notifications import notify_booking_created, notify_booking_confirmed
+except Exception:
+    async def notify_booking_created(*args, **kwargs): pass
+    async def notify_booking_confirmed(*args, **kwargs): pass
+
+try:
+    from alumni_transition_engine import transition_to_alumni
+except Exception:
+    async def transition_to_alumni(*args, **kwargs): pass
 
 
 class OnboardingRequest(BaseModel):
@@ -1027,11 +1047,11 @@ async def get_my_stats(user: dict = Depends(get_current_user)):
     async def _get_earnings_this_month():
         earnings = 0
         try:
-            now = _dt.utcnow()
+            now = datetime.now(timezone.utc)
             earnings_pipeline = [
                 {"$match": {
                     "user_id": uid, "type": "earning",
-                    "created_at": {"$gte": _dt(now.year, now.month, 1)},
+                    "created_at": {"$gte": datetime(now.year, now.month, 1, tzinfo=timezone.utc)},
                 }},
                 {"$group": {"_id": None, "total": {"$sum": "$amount"}}},
             ]
@@ -1064,26 +1084,26 @@ async def get_my_stats(user: dict = Depends(get_current_user)):
     # Compute skill_streak based on consecutive days of activity in the last 30 days
     skill_streak = 0
     try:
-        today = _dt.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        thirty_days_ago = today - _td(days=30)
+        today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        thirty_days_ago = today - timedelta(days=30)
         streak_days = set()
         async for ev in db.activity_events.find({
             "user_id": uid,
             "ts": {"$gte": thirty_days_ago},
         }, {"ts": 1}):
             d_ts = ev.get("ts")
-            if isinstance(d_ts, _dt):
+            if isinstance(d_ts, datetime):
                 streak_days.add(d_ts.date().isoformat())
         # Compute current consecutive-day streak
         d_day = today.date()
         # If today has no activity, check yesterday to keep streak alive
         if d_day.isoformat() not in streak_days:
-            yesterday = d_day - _td(days=1)
+            yesterday = d_day - timedelta(days=1)
             if yesterday.isoformat() in streak_days:
                 d_day = yesterday
         while d_day.isoformat() in streak_days:
             skill_streak += 1
-            d_day = d_day - _td(days=1)
+            d_day = d_day - timedelta(days=1)
     except Exception:
         pass
 
@@ -2198,6 +2218,16 @@ CAREER_PATH_SYSTEM_PROMPTS = {
     "business": "You are a business strategy advisor. Guide students toward leadership, MBA prep, "
                 "family-business modernization, and corporate / business career trajectories.",
 }
+
+try:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+except Exception:
+    class UserMessage:
+        def __init__(self, text: str = ""):
+            self.text = text
+
+    class LlmChat:
+        pass
 
 
 async def get_claude_chat(session_id: str, system_message: str):
