@@ -17,7 +17,7 @@ const ROLES: { id: Role; Icon: LucideIcon; label: string; sub: string; gradient:
   { id: 'student', Icon: GraduationCap, label: 'Student',           sub: 'Internships, mentors & career guidance',  gradient: [AC.student, '#A78BFA'], shadow: 'rgba(124,58,237,0.30)', delay:    0 },
   { id: 'mentor',  Icon: UserCheck,     label: 'Mentor',             sub: 'Guide students & earn on your schedule',  gradient: [AC.mentor,  '#5EEAD4'], shadow: 'rgba(20,184,166,0.30)', delay:   70 },
   { id: 'alumni',  Icon: Award,         label: 'Alumni',             sub: 'Stay connected & give back to juniors',   gradient: [AC.alumni,  '#FCD34D'], shadow: 'rgba(245,158,11,0.30)', delay:  140 },
-  { id: 'college', Icon: Building2,     label: 'College / University', sub: 'Manage your institution on SA platform', gradient: [AC.college, '#818CF8'], shadow: 'rgba(99,102,241,0.30)', delay:  210 },
+  { id: 'college', Icon: Building2,     label: 'College / University', sub: 'Manage your institution', gradient: [AC.college, '#818CF8'], shadow: 'rgba(99,102,241,0.30)', delay:  210 },
 ];
 
 function FadeUpCard({ delay, children }: { delay: number; children: React.ReactNode }) {
