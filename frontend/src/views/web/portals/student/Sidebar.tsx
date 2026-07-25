@@ -36,6 +36,7 @@ import { STUDENT } from './data';
 import { Av } from './atoms';
 import { FadeInView, PressScale, SparkIcon, PulseDot } from './motion';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
+import { SALogo } from '@/src/views/components';
 
 export type StudentNavId =
   | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'events'
@@ -113,7 +114,7 @@ export function Sidebar({
       {/* Brand */}
       <FadeInView delay={20}>
         <View style={[s.brand, collapsed && { justifyContent: 'center' }]} nativeID="student-brand">
-          <Image source={require('@/assets/images/sa-icon.png')} style={s.brandLogo} />
+          <SALogo size={32} variant="glass" />
           {!collapsed && (
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={[s.brandTitle, { color: C.text }]}>Student Alumni</Text>

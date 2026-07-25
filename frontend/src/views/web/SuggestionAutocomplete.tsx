@@ -59,15 +59,15 @@ export function SuggestionAutocomplete({
     <View style={[styles.container, { zIndex: showDropdown ? 9999 : 30 }]}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <View style={[styles.wrap, {
-        borderColor: focused ? primary : 'rgba(255,255,255,0.12)',
-        backgroundColor: focused ? `${primary}10` : 'rgba(255,255,255,0.03)',
+        borderColor: focused ? primary : '#E5E7EB',
+        backgroundColor: focused ? `${primary}10` : '#FFFFFF',
       }]}>
-        {!manualMode && <Search size={14} color="rgba(255,255,255,0.5)" />}
+        {!manualMode && <Search size={14} color="#6B7280" />}
         <RNTextInput
           value={value}
           onChangeText={(t) => { if (manualMode) setManualMode(true); onChangeText(t); }}
           placeholder={manualMode ? `Please enter your ${label.toLowerCase()}` : placeholder}
-          placeholderTextColor="rgba(255,255,255,0.32)"
+          placeholderTextColor="#9CA3AF"
           onFocus={() => setFocused(true)}
           onBlur={() => setTimeout(() => setFocused(false), 180)}
           testID={testID}
@@ -79,7 +79,7 @@ export function SuggestionAutocomplete({
             onPress={() => { setManualMode(false); onChangeText(''); setFocused(true); }}
             style={styles.editPill}
           >
-            <Edit3 size={12} color="#FFF" />
+            <Edit3 size={12} color="#111827" />
             <Text style={styles.editPillText}>Pick</Text>
           </Pressable>
         )}
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     ...(Platform.OS === 'web' ? ({ isolation: 'isolate' } as any) : {}),
   },
-  label: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 13, marginBottom: 8 },
+  label: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 13, marginBottom: 8 },
   wrap: {
     flexDirection: 'row', alignItems: 'center',
     height: 48,
@@ -123,19 +123,19 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: '#FFFFFF',
+    color: '#111827',
     fontSize: 14,
     fontFamily: 'DMSans_500Medium',
     ...(Platform.OS === 'web' ? ({ outlineWidth: 0, outlineStyle: 'none' } as any) : {}),
   },
   helper: {
-    color: 'rgba(255,255,255,0.5)',
+    color: '#6B7280',
     fontFamily: 'DMSans_500Medium',
     fontSize: 11.5,
     marginTop: 6,
   },
   statusHint: {
-    color: 'rgba(255,255,255,0.45)',
+    color: '#9CA3AF',
     fontFamily: 'DMSans_500Medium',
     fontSize: 11,
     marginTop: 6,
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 8, paddingVertical: 3,
   },
-  editPillText: { color: '#FFF', fontFamily: 'DMSans_700Bold', fontSize: 10 },
+  editPillText: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 10 },
   dropdownAnchor: {
     position: 'absolute',
     top: 78, left: 0, right: 0,

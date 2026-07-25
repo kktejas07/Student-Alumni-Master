@@ -11,6 +11,7 @@ import Svg, { Path, Text as SvgText } from 'react-native-svg';
 import { AuthBrand } from './AuthBrand';
 import { AC, FONTS } from './tokens';
 import { RoleThemeProvider } from './RoleTheme';
+import { StarryBackground } from '../web/nexus-glow-landing/StarryBackground';
 
 function MobileBrand() {
   return (
@@ -39,8 +40,12 @@ export function AuthShell({ children, role }: { children: React.ReactNode; role?
 
   return (
     <RoleThemeProvider role={role}>
-    <View style={[s.root, { backgroundColor: AC.bgVia }]}>
-      <LinearGradient colors={[AC.bgFrom, AC.bgVia, AC.bgTo] as any} style={StyleSheet.absoluteFill} />
+    <View style={[s.root, Platform.OS !== 'web' && { backgroundColor: AC.bgVia }]}>
+      {Platform.OS === 'web' ? (
+        <StarryBackground />
+      ) : (
+        <LinearGradient colors={[AC.bgFrom, AC.bgVia, AC.bgTo] as any} style={StyleSheet.absoluteFill} />
+      )}
 
       {isDesktop ? (
         <View style={s.row}>
@@ -69,10 +74,36 @@ export function AuthShell({ children, role }: { children: React.ReactNode; role?
 const s = StyleSheet.create({
   root: { flex: 1 },
   row: { flex: 1, flexDirection: 'row' },
-  left: { flex: 1, maxWidth: 560 },
+  left: { flex: 1 },
   right: { flex: 1, minWidth: 480 },
-  formScroll: { flexGrow: 1, paddingHorizontal: 56, paddingVertical: 64 },
-  formCol: { width: '100%', maxWidth: 460, alignSelf: 'center', flex: 1, justifyContent: 'center' },
-  mobileScroll: { flexGrow: 1, padding: 22 },
-  mobileForm: { width: '100%', maxWidth: 460, alignSelf: 'center', flex: 1, justifyContent: 'center', paddingTop: 24, paddingBottom: 32 },
+  formScroll: { flexGrow: 1, paddingHorizontal: 56, paddingVertical: 24, justifyContent: 'center' },
+  formCol: { 
+    width: '100%', 
+    maxWidth: 460, 
+    alignSelf: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    paddingHorizontal: 40,
+    paddingVertical: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 24 },
+    shadowOpacity: 0.1,
+    shadowRadius: 48,
+    elevation: 10,
+  },
+  mobileScroll: { flexGrow: 1, padding: 22, justifyContent: 'center' },
+  mobileForm: { 
+    width: '100%', 
+    maxWidth: 460, 
+    alignSelf: 'center', 
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    elevation: 8,
+  },
 });

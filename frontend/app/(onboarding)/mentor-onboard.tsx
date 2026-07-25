@@ -112,7 +112,7 @@ function Stepper({ step }: { step: number }) {
         return (
           <React.Fragment key={i}>
             <View style={[s.dot, (done || active) && s.dotActive]}>
-              {done ? <CheckCircle2 size={14} color="#FFF" /> : <Text style={[s.dotText, active && s.dotTextActive]}>{i + 1}</Text>}
+              {done ? <CheckCircle2 size={14} color="#111827" /> : <Text style={[s.dotText, active && s.dotTextActive]}>{i + 1}</Text>}
             </View>
             {i < TOTAL - 1 && <View style={[s.line, done && s.lineActive]} />}
           </React.Fragment>
@@ -398,7 +398,7 @@ export default function MentorOnboard() {
                     onChangeText={(t) => setYoe(t.replace(/[^0-9]/g, '').slice(0, 2))}
                     placeholder="5"
                     keyboardType="numeric"
-                    leftIcon={<Clock size={16} color="rgba(255,255,255,0.55)" />}
+                    leftIcon={<Clock size={16} color="#6B7280" />}
                   />
                 </View>
               </View>
@@ -475,7 +475,7 @@ export default function MentorOnboard() {
                 const active = edu === e.id;
                 return (
                   <Pressable key={e.id} style={[s.eduCard, active && s.eduCardActive]} onPress={() => setEdu(e.id)}>
-                    <Icon size={22} color={active ? '#B07FDF' : 'rgba(255,255,255,0.6)'} />
+                    <Icon size={22} color={active ? '#B07FDF' : '#6B7280'} />
                     <Text style={[s.cardLabel, active && s.cardLabelActive]}>{e.label}</Text>
                   </Pressable>
                 );
@@ -503,7 +503,7 @@ export default function MentorOnboard() {
                     style={[s.slotCard, active && s.slotCardActive]}
                     onPress={() => setAvailability((arr) => toggle(arr, slot.id))}
                   >
-                    <Clock size={16} color={active ? '#B07FDF' : 'rgba(255,255,255,0.55)'} />
+                    <Clock size={16} color={active ? '#B07FDF' : '#6B7280'} />
                     <Text style={[s.cardLabel, active && s.cardLabelActive]}>{slot.label}</Text>
                   </Pressable>
                 );
@@ -521,7 +521,7 @@ export default function MentorOnboard() {
                   <Image source={{ uri: photo }} style={s.photoImg} />
                 ) : (
                   <View style={{ alignItems: 'center', gap: 8 }}>
-                    <Camera size={32} color="rgba(255,255,255,0.6)" />
+                    <Camera size={32} color="#6B7280" />
                     <Text style={s.photoHint}>Tap to capture</Text>
                   </View>
                 )}
@@ -530,12 +530,12 @@ export default function MentorOnboard() {
               {pendingPhoto ? (
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <Pressable style={s.confirmBtn} onPress={confirmPhoto}><Check size={14} color="#000" /><Text style={s.confirmBtnText}>Confirm</Text></Pressable>
-                  <Pressable style={s.smallBtn} onPress={() => { setPendingPhoto(null); takeSelfie(); }}><Camera size={14} color="#FFF" /><Text style={s.smallBtnText}>Retake</Text></Pressable>
+                  <Pressable style={s.smallBtn} onPress={() => { setPendingPhoto(null); takeSelfie(); }}><Camera size={14} color="#111827" /><Text style={s.smallBtnText}>Retake</Text></Pressable>
                 </View>
               ) : (
                 <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <Pressable style={s.smallBtn} onPress={takeSelfie}><Camera size={14} color="#FFF" /><Text style={s.smallBtnText}>Take Selfie</Text></Pressable>
-                  <Pressable style={s.smallBtn} onPress={pickPhoto}><Upload size={14} color="#FFF" /><Text style={s.smallBtnText}>Upload Photo</Text></Pressable>
+                  <Pressable style={s.smallBtn} onPress={takeSelfie}><Camera size={14} color="#111827" /><Text style={s.smallBtnText}>Take Selfie</Text></Pressable>
+                  <Pressable style={s.smallBtn} onPress={pickPhoto}><Upload size={14} color="#111827" /><Text style={s.smallBtnText}>Upload Photo</Text></Pressable>
                 </View>
               )}
             </View>
@@ -551,7 +551,7 @@ export default function MentorOnboard() {
                   onChangeText={(t) => setBio(t.slice(0, 300))}
                   multiline
                   placeholder="e.g. SDE-2 at Google with 5+ yrs in distributed systems. Happy to help with system design, FAANG interviews & career growth."
-                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  placeholderTextColor="#9CA3AF"
                   style={s.textarea}
                 />
               </View>
@@ -567,7 +567,7 @@ export default function MentorOnboard() {
           {step === 7 && (
             <View style={{ alignItems: 'center', gap: 14 }}>
               <View style={[s.badgeCircle, { borderColor: badge.tier === 'Platinum' ? '#E5E4E2' : badge.tier === 'Gold' ? '#FFD700' : badge.tier === 'Silver' ? '#C0C0C0' : '#CD7F32' }]}>
-                <Award size={38} color="#FFF" />
+                <Award size={38} color="#111827" />
                 <Text style={s.badgeTier}>{badge.tier}</Text>
               </View>
               <Text style={s.greeting}>Welcome, {(user?.full_name || 'Mentor').split(' ')[0]}!</Text>
@@ -606,7 +606,7 @@ export default function MentorOnboard() {
       <View style={s.navRow}>
         {step > 0 ? (
           <Pressable onPress={prev} style={s.backBtn}>
-            <ArrowLeft size={18} color="#FFF" />
+            <ArrowLeft size={18} color="#374151" />
           </Pressable>
         ) : <View style={{ width: 42 }} />}
         <View style={{ flex: 1 }}>
@@ -627,15 +627,15 @@ export default function MentorOnboard() {
 
 const s = StyleSheet.create({
   stepRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 18, gap: 4 },
-  dot: { width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.04)' },
+  dot: { width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, borderColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F9FAFB' },
   dotActive: { borderColor: '#B07FDF', backgroundColor: '#7C3AED' },
-  dotText: { color: 'rgba(255,255,255,0.4)', fontFamily: FONTS.bold, fontSize: 10 },
-  dotTextActive: { color: '#FFF' },
-  line: { flex: 1, height: 1.5, backgroundColor: 'rgba(255,255,255,0.14)' },
+  dotText: { color: '#9CA3AF', fontFamily: FONTS.bold, fontSize: 10 },
+  dotTextActive: { color: '#FFFFFF' },
+  line: { flex: 1, height: 1.5, backgroundColor: '#E5E7EB' },
   lineActive: { backgroundColor: '#7C3AED' },
-  title: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 26, marginBottom: 6, textAlign: 'center' },
-  sub: { color: 'rgba(255,255,255,0.6)', fontFamily: FONTS.med, fontSize: 13.5, textAlign: 'center', marginBottom: 18 },
-  section: { color: 'rgba(255,255,255,0.55)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 4, marginBottom: 6 },
+  title: { color: '#111827', fontFamily: FONTS.bold, fontSize: 26, marginBottom: 6, textAlign: 'center' },
+  sub: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 13.5, textAlign: 'center', marginBottom: 18 },
+  section: { color: '#6B7280', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 4, marginBottom: 6 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
 
@@ -646,8 +646,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: '#E5E7EB', backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -655,9 +654,9 @@ const s = StyleSheet.create({
   },
   archetypeCardActive: { borderColor: '#B07FDF', backgroundColor: 'rgba(176,127,223,0.14)' },
   archetypeIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  archetypeTitle: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.bold, fontSize: 13.5 },
-  archetypeTitleActive: { color: '#FFF' },
-  archetypeDesc: { color: 'rgba(255,255,255,0.55)', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
+  archetypeTitle: { color: '#1F2937', fontFamily: FONTS.bold, fontSize: 13.5 },
+  archetypeTitleActive: { color: '#1F2937' },
+  archetypeDesc: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
 
   // Edu / availability cards (48% width — two per row)
   eduCard: {
@@ -666,8 +665,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: '#E5E7EB', backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -681,8 +679,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: '#E5E7EB', backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -690,50 +687,49 @@ const s = StyleSheet.create({
   },
   slotCardActive: { borderColor: '#B07FDF', backgroundColor: 'rgba(176,127,223,0.14)' },
 
-  cardLabel: { flex: 1, color: 'rgba(255,255,255,0.75)', fontFamily: FONTS.med, fontSize: 13 },
-  cardLabelActive: { color: '#FFF' },
+  cardLabel: { flex: 1, color: '#374151', fontFamily: FONTS.med, fontSize: 13 },
+  cardLabelActive: { color: '#4C1D95' },
 
   // Price chips
   priceChip: {
     paddingHorizontal: 18, paddingVertical: 10, borderRadius: 10,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#FFFFFF',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   priceChipActive: { borderColor: '#B07FDF', backgroundColor: 'rgba(176,127,223,0.18)' },
-  priceChipText: { color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.bold, fontSize: 14 },
-  priceChipTextActive: { color: '#FFF' },
+  priceChipText: { color: '#4B5563', fontFamily: FONTS.bold, fontSize: 14 },
+  priceChipTextActive: { color: '#4C1D95' },
 
   // Photo
   photoFrame: {
     width: 160, height: 160, borderRadius: 80, borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.2)', borderStyle: 'dashed',
+    borderColor: '#D1D5DB', borderStyle: 'dashed',
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.03)', overflow: 'hidden',
+    backgroundColor: '#FFFFFF', overflow: 'hidden',
   },
   photoImg: { width: '100%', height: '100%' },
-  photoHint: { color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.med, fontSize: 12 },
-  helper: { color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.med, fontSize: 12.5, textAlign: 'center', lineHeight: 18 },
-  helperRight: { color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.med, fontSize: 11, textAlign: 'right', marginTop: -10 },
+  photoHint: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12 },
+  helper: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12.5, textAlign: 'center', lineHeight: 18 },
+  helperRight: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 11, textAlign: 'right', marginTop: -10 },
   smallBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: 'rgba(124,58,237,0.32)', borderWidth: 1, borderColor: 'rgba(176,127,223,0.4)' },
-  smallBtnText: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 12 },
+  smallBtnText: { color: '#4C1D95', fontFamily: FONTS.bold, fontSize: 12 },
   confirmBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 999, backgroundColor: '#C4B5FD', borderWidth: 1, borderColor: '#C4B5FD' },
   confirmBtnText: { color: '#000', fontFamily: FONTS.bold, fontSize: 12 },
 
   // Bio textarea
-  textareaWrap: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)', paddingHorizontal: 14, paddingVertical: 12 },
-  textarea: { color: '#FFF', fontFamily: FONTS.med, fontSize: 13.5, minHeight: 100, ...(Platform.OS === 'web' ? ({ outlineWidth: 0 } as any) : {}) },
+  textareaWrap: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, backgroundColor: '#FFFFFF', paddingHorizontal: 14, paddingVertical: 12 },
+  textarea: { color: '#1F2937', fontFamily: FONTS.med, fontSize: 13.5, minHeight: 100, ...(Platform.OS === 'web' ? ({ outlineWidth: 0 } as any) : {}) },
 
   // Badge
   badgeCircle: { width: 120, height: 120, borderRadius: 60, borderWidth: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(124,58,237,0.22)', marginTop: 4 },
-  badgeTier: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 12, marginTop: 4, letterSpacing: 1 },
-  greeting: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 18 },
+  badgeTier: { color: '#1F2937', fontFamily: FONTS.bold, fontSize: 12, marginTop: 4, letterSpacing: 1 },
+  greeting: { color: '#1F2937', fontFamily: FONTS.bold, fontSize: 18 },
   verifiedPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999, backgroundColor: 'rgba(94,234,212,0.12)', borderWidth: 1, borderColor: 'rgba(94,234,212,0.3)' },
   verifiedText: { color: '#5EEAD4', fontFamily: FONTS.bold, fontSize: 11.5 },
-  calcRow: { color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.med, fontSize: 12.5 },
-  perk: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.med, fontSize: 12.5 },
+  calcRow: { color: '#4B5563', fontFamily: FONTS.med, fontSize: 12.5 },
+  perk: { color: '#1F2937', fontFamily: FONTS.med, fontSize: 12.5 },
 
   navRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
-  backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   generatingText: { color: '#A78BFA', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 6 },
 });

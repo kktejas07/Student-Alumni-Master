@@ -81,7 +81,7 @@ function Stepper({ step }: { step: number }) {
         return (
           <React.Fragment key={i}>
             <View style={[s.dot, (done || active) && s.dotActive]}>
-              {done ? <CheckCircle2 size={14} color="#FFF" /> : <Text style={[s.dotText, active && s.dotTextActive]}>{i + 1}</Text>}
+              {done ? <CheckCircle2 size={14} color="#111827" /> : <Text style={[s.dotText, active && s.dotTextActive]}>{i + 1}</Text>}
             </View>
             {i < TOTAL - 1 && <View style={[s.line, done && s.lineActive]} />}
           </React.Fragment>
@@ -340,7 +340,7 @@ export default function CollegeOnboard() {
                 value={affiliated}
                 onChangeText={setAffiliated}
                 placeholder="e.g. Mumbai University"
-                leftIcon={<Link2 size={16} color="rgba(255,255,255,0.55)" />}
+                leftIcon={<Link2 size={16} color="#6B7280" />}
               />
               <AuthInput
                 label="Official Website"
@@ -348,7 +348,7 @@ export default function CollegeOnboard() {
                 onChangeText={setWebsite}
                 placeholder="www.iitb.ac.in"
                 autoCapitalize="none"
-                leftIcon={<Globe size={16} color="rgba(255,255,255,0.55)" />}
+                leftIcon={<Globe size={16} color="#6B7280" />}
               />
               <Text style={s.section}>City &amp; State</Text>
               <View style={{ flexDirection: 'row', gap: 10, zIndex: 20, position: 'relative' }}>
@@ -378,7 +378,7 @@ export default function CollegeOnboard() {
                 onChangeText={(t) => setYearEst(t.replace(/[^0-9]/g, '').slice(0, 4))}
                 placeholder="e.g. 1958"
                 keyboardType="numeric"
-                leftIcon={<Calendar size={16} color="rgba(255,255,255,0.55)" />}
+                leftIcon={<Calendar size={16} color="#6B7280" />}
               />
               <Text style={s.section}>National Ranking Tier</Text>
               <View style={s.chipRow}>
@@ -404,7 +404,7 @@ export default function CollegeOnboard() {
                 onChangeText={setContactName}
                 placeholder="Full name"
                 autoCapitalize="words"
-                leftIcon={<UserIcon size={16} color="rgba(255,255,255,0.55)" />}
+                leftIcon={<UserIcon size={16} color="#6B7280" />}
               />
               <SuggestionAutocomplete
                 label="Designation"
@@ -430,7 +430,7 @@ export default function CollegeOnboard() {
                 onChangeText={setContactEmail}
                 placeholder="name@college.ac.in"
                 keyboardType="email-address"
-                leftIcon={<Mail size={16} color="rgba(255,255,255,0.55)" />}
+                leftIcon={<Mail size={16} color="#6B7280" />}
               />
 
               <View style={s.infoBox}>
@@ -474,7 +474,7 @@ export default function CollegeOnboard() {
                   {logo
                     ? <Image source={{ uri: logo }} style={s.logoImg} />
                     : <View style={{ alignItems: 'center', gap: 6 }}>
-                        <Upload size={26} color="rgba(255,255,255,0.6)" />
+                        <Upload size={26} color="#6B7280" />
                         <Text style={s.photoHint}>Tap to upload</Text>
                       </View>}
                 </Pressable>
@@ -487,7 +487,7 @@ export default function CollegeOnboard() {
                   {cover
                     ? <Image source={{ uri: cover }} style={s.coverImg} />
                     : <View style={{ alignItems: 'center', gap: 6 }}>
-                        <ImageIcon size={28} color="rgba(255,255,255,0.6)" />
+                        <ImageIcon size={28} color="#6B7280" />
                         <Text style={s.photoHint}>Upload campus photo · 1200×400px recommended</Text>
                       </View>}
                 </Pressable>
@@ -505,7 +505,7 @@ export default function CollegeOnboard() {
                   onChangeText={(t) => setBio(t.slice(0, 300))}
                   multiline
                   placeholder="e.g. IIT Bombay is one of India's premier engineering institutions, ranked #1 nationally. We have 10,000+ alumni across 50+ countries…"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  placeholderTextColor="#9CA3AF"
                   style={s.textarea}
                 />
               </View>
@@ -529,7 +529,7 @@ export default function CollegeOnboard() {
                   : badge.tier === 'Gold' ? '#FFD700'
                   : badge.tier === 'Silver' ? '#C0C0C0' : '#CD7F32'
               }]}>
-                <Award size={38} color="#FFF" />
+                <Award size={38} color="#111827" />
                 <Text style={s.badgeTier}>{badge.tier} Status</Text>
               </View>
               <Text style={s.greeting}>Welcome, {userFirstName}!</Text>
@@ -574,7 +574,7 @@ export default function CollegeOnboard() {
           style={s.backBtn}
           testID="college-onboard-back"
         >
-          <ArrowLeft size={18} color="#FFF" />
+          <ArrowLeft size={18} color="#374151" />
         </Pressable>
         <View style={{ flex: 1 }}>
           <PrimaryButton label={ctaLabel} onPress={onContinue} />
@@ -586,60 +586,59 @@ export default function CollegeOnboard() {
 
 const s = StyleSheet.create({
   stepRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 18, gap: 4 },
-  dot: { width: 26, height: 26, borderRadius: 13, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.04)' },
+  dot: { width: 26, height: 26, borderRadius: 13, borderWidth: 1.5, borderColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F9FAFB' },
   // College theme accent: blue
   dotActive: { borderColor: '#3B82F6', backgroundColor: '#3B82F6' },
-  dotText: { color: 'rgba(255,255,255,0.4)', fontFamily: FONTS.bold, fontSize: 11 },
-  dotTextActive: { color: '#FFF' },
-  line: { flex: 1, height: 1.5, backgroundColor: 'rgba(255,255,255,0.14)' },
+  dotText: { color: '#9CA3AF', fontFamily: FONTS.bold, fontSize: 11 },
+  dotTextActive: { color: '#FFFFFF' },
+  line: { flex: 1, height: 1.5, backgroundColor: '#E5E7EB' },
   lineActive: { backgroundColor: '#3B82F6' },
-  title: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 26, marginBottom: 6, textAlign: 'center' },
-  sub: { color: 'rgba(255,255,255,0.6)', fontFamily: FONTS.med, fontSize: 13.5, textAlign: 'center', marginBottom: 18 },
-  section: { color: 'rgba(255,255,255,0.55)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 4, marginBottom: 6 },
+  title: { color: '#111827', fontFamily: FONTS.bold, fontSize: 26, marginBottom: 6, textAlign: 'center' },
+  sub: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 13.5, textAlign: 'center', marginBottom: 18 },
+  section: { color: '#6B7280', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 4, marginBottom: 6 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
 
   // Info box (Step 2)
   infoBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 12, borderRadius: 10, backgroundColor: 'rgba(96,165,250,0.10)', borderWidth: 1, borderColor: 'rgba(96,165,250,0.25)' },
-  infoText: { flex: 1, color: 'rgba(255,255,255,0.78)', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18 },
+  infoText: { flex: 1, color: '#1E3A8A', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18 },
 
   // Feature cards (Step 3)
   featureCard: {
     width: '100%', paddingVertical: 12, paddingHorizontal: 12,
-    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#FFFFFF',
     flexDirection: 'row', alignItems: 'center', gap: 12,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   featureCardActive: { borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.10)' },
   featureIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  featureLabel: { flex: 1, color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.bold, fontSize: 13.5 },
-  featureLabelActive: { color: '#FFF' },
+  featureLabel: { flex: 1, color: '#1F2937', fontFamily: FONTS.bold, fontSize: 13.5 },
+  featureLabelActive: { color: '#111827' },
 
   // Photo / Logo
-  logoFrame: { width: 130, height: 130, borderRadius: 12, borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.03)', overflow: 'hidden' },
+  logoFrame: { width: 130, height: 130, borderRadius: 12, borderWidth: 2, borderColor: '#D1D5DB', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', overflow: 'hidden' },
   logoImg: { width: '100%', height: '100%' },
-  coverFrame: { width: '100%', height: 110, borderRadius: 12, borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.03)', overflow: 'hidden' },
+  coverFrame: { width: '100%', height: 110, borderRadius: 12, borderWidth: 2, borderColor: '#D1D5DB', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', overflow: 'hidden' },
   coverImg: { width: '100%', height: '100%' },
-  photoHint: { color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', paddingHorizontal: 16 },
-  helper: { color: 'rgba(255,255,255,0.55)', fontFamily: FONTS.med, fontSize: 12.5, textAlign: 'center', lineHeight: 18 },
-  helperLeft: { color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 4 },
-  helperRight: { color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.med, fontSize: 11, textAlign: 'right', marginTop: -10 },
+  photoHint: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', paddingHorizontal: 16 },
+  helper: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12.5, textAlign: 'center', lineHeight: 18 },
+  helperLeft: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 4 },
+  helperRight: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 11, textAlign: 'right', marginTop: -10 },
 
   // Bio
-  textareaWrap: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)', paddingHorizontal: 14, paddingVertical: 12 },
-  textarea: { color: '#FFF', fontFamily: FONTS.med, fontSize: 13.5, minHeight: 100, ...(Platform.OS === 'web' ? ({ outlineWidth: 0 } as any) : {}) },
+  textareaWrap: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, backgroundColor: '#FFFFFF', paddingHorizontal: 14, paddingVertical: 12 },
+  textarea: { color: '#1F2937', fontFamily: FONTS.med, fontSize: 13.5, minHeight: 100, ...(Platform.OS === 'web' ? ({ outlineWidth: 0 } as any) : {}) },
 
   // Badge
   badgeCircle: { width: 120, height: 120, borderRadius: 60, borderWidth: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(59,130,246,0.18)', marginTop: 4 },
-  badgeTier: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 11, marginTop: 4, letterSpacing: 0.6 },
-  greeting: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 18 },
+  badgeTier: { color: '#1F2937', fontFamily: FONTS.bold, fontSize: 11, marginTop: 4, letterSpacing: 0.6 },
+  greeting: { color: '#1F2937', fontFamily: FONTS.bold, fontSize: 18 },
   verifiedPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999, backgroundColor: 'rgba(96,165,250,0.12)', borderWidth: 1, borderColor: 'rgba(96,165,250,0.3)' },
   verifiedText: { color: '#60A5FA', fontFamily: FONTS.bold, fontSize: 11.5 },
-  calcRow: { color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.med, fontSize: 12.5 },
-  perk: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.med, fontSize: 12.5 },
+  calcRow: { color: '#4B5563', fontFamily: FONTS.med, fontSize: 12.5 },
+  perk: { color: '#1F2937', fontFamily: FONTS.med, fontSize: 12.5 },
 
   navRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
-  backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   generatingText: { color: '#A78BFA', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 6 },
 });

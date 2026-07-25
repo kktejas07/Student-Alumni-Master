@@ -42,6 +42,7 @@ export type SuperAdminNavId =
   | 'overview' | 'colleges' | 'students' | 'mentors' | 'alumni' | 'events'
   | 'payments' | 'analytics' | 'approvals' | 'ai-insights' | 'settings'
   | 'workflows' | 'imports' | 'partners' | 'promotions' | 'talent-pool';
+import { SALogo } from '@/src/views/components';
 
 export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?: number; tag?: 'NEW' }> = [
   { id: 'overview',    label: 'Overview',    Icon: LayoutDashboard },
@@ -71,7 +72,7 @@ export function Sidebar({
     <View style={s.aside}>
       {/* Brand */}
       <View style={s.brand} nativeID="superadmin-brand">
-        <View style={s.brandLogo}><Text style={s.brandLogoText}>SA</Text></View>
+        <SALogo size={32} variant="glass" />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.brandTitle}>Super Admin</Text>
           <Text style={s.brandSub}>STUDENT ALUMNI</Text>

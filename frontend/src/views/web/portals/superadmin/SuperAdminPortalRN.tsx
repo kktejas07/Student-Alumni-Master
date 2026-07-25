@@ -2,7 +2,7 @@
  * Super Admin Portal — outer shell.
  */
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import { View, ScrollView, StyleSheet , Platform} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
@@ -66,24 +66,22 @@ export function SuperAdminPortalRN() {
           showsVerticalScrollIndicator={false}
         >
           <PromoBanner portal="super_admin" />
-          <View style={{ flex: 1, padding: 22 }}>
-            {active === 'overview'    && <OverviewView onNavigate={(id) => setActive(id as SuperAdminNavId)} />}
-            {active === 'colleges'    && <CollegesView />}
-            {active === 'students'    && <StudentsView />}
-            {active === 'mentors'     && <MentorsView />}
-            {active === 'alumni'      && <AlumniView />}
-            {active === 'events'      && <EventsView />}
-            {active === 'payments'    && <PaymentsView />}
-            {active === 'analytics'   && <AnalyticsView />}
-            {active === 'approvals'   && <ApprovalsView />}
-            {active === 'ai-insights' && <AIInsightsView />}
-            {active === 'settings'    && <SettingsView />}
-            {active === 'workflows'   && <WorkflowsView />}
-            {active === 'imports'     && <ImportsView />}
-            {active === 'partners'    && <PartnersView />}
-            {active === 'promotions'  && <PromotionsView />}
-            {active === 'talent-pool' && <TalentPoolView />}
-          </View>
+          {active === 'overview'    && <OverviewView onNavigate={(id) => setActive(id as SuperAdminNavId)} />}
+          {active === 'colleges'    && <CollegesView />}
+          {active === 'students'    && <StudentsView />}
+          {active === 'mentors'     && <MentorsView />}
+          {active === 'alumni'      && <AlumniView />}
+          {active === 'events'      && <EventsView />}
+          {active === 'payments'    && <PaymentsView />}
+          {active === 'analytics'   && <AnalyticsView />}
+          {active === 'approvals'   && <ApprovalsView />}
+          {active === 'ai-insights' && <AIInsightsView />}
+          {active === 'settings'    && <SettingsView />}
+          {active === 'workflows'   && <WorkflowsView />}
+          {active === 'imports'     && <ImportsView />}
+          {active === 'partners'    && <PartnersView />}
+          {active === 'promotions'  && <PromotionsView />}
+          {active === 'talent-pool' && <TalentPoolView />}
           <DashboardFooter portal="super_admin" />
         </ScrollView>
       </View>

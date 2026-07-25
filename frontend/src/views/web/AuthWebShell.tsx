@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   glassCard: {
     width: '100%',
     backgroundColor: 'rgba(20,12,40,0.65)',
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: '#E5E7EB',
     borderWidth: 1,
     borderRadius: 22,
     paddingHorizontal: 32,

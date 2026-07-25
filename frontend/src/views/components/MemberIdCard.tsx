@@ -261,7 +261,7 @@ export function MemberIdCard({
   );
 }
 
-const CARD_HEIGHT = 240;
+const CARD_HEIGHT = 270;
 
 const s = StyleSheet.create({
   flipWrap: {
@@ -279,7 +279,7 @@ const s = StyleSheet.create({
     minHeight: CARD_HEIGHT,
     borderRadius: 16,
     borderWidth: 1.5,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: '#FFFFFF',
     padding: 16,
     position: 'absolute',
     top: 0,
@@ -292,7 +292,7 @@ const s = StyleSheet.create({
     elevation: 6,
   },
   faceBack: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: '#FFFFFF',
   },
   headerRow: {
     flexDirection: 'row',
@@ -303,8 +303,8 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1,
   },
-  headerTitle: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 14 },
-  headerSub: { color: 'rgba(255,255,255,0.55)', fontFamily: FONTS.bold, fontSize: 9.5, letterSpacing: 0.8, marginTop: 2 },
+  headerTitle: { color: '#111827', fontFamily: FONTS.bold, fontSize: 14 },
+  headerSub: { color: '#6B7280', fontFamily: FONTS.bold, fontSize: 9.5, letterSpacing: 0.8, marginTop: 2 },
   tierPill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 9, paddingVertical: 4,
@@ -319,9 +319,9 @@ const s = StyleSheet.create({
     marginTop: 14,
     flex: 1,
   },
-  miniLabel: { color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.bold, fontSize: 9.5, letterSpacing: 0.8 },
-  idText: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 16, letterSpacing: 0.6, marginTop: 4 },
-  helperText: { color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.med, fontSize: 11, lineHeight: 16, marginTop: 8 },
+  miniLabel: { color: '#6B7280', fontFamily: FONTS.bold, fontSize: 9.5, letterSpacing: 0.8 },
+  idText: { color: '#111827', fontFamily: FONTS.bold, fontSize: 16, letterSpacing: 0.6, marginTop: 4 },
+  helperText: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 11, lineHeight: 16, marginTop: 8 },
   verifyLink: { fontFamily: FONTS.bold, fontSize: 11, marginTop: 8, letterSpacing: 0.3 },
   qrWrap: {
     width: 96, height: 96, padding: 6,
@@ -331,15 +331,15 @@ const s = StyleSheet.create({
   qrFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8 },
   qrFallbackText: { fontFamily: FONTS.bold, fontSize: 11, marginTop: 4, letterSpacing: 1 },
   flipHintRow: { marginTop: 10, alignItems: 'flex-end' },
-  flipHint: { color: 'rgba(255,255,255,0.45)', fontFamily: FONTS.med, fontSize: 10.5 },
+  flipHint: { color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 10.5 },
 
   /* Back body */
   backBody: { marginTop: 14 },
-  idTextLarge: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 22, letterSpacing: 1, marginTop: 4 },
+  idTextLarge: { color: '#111827', fontFamily: FONTS.bold, fontSize: 22, letterSpacing: 1, marginTop: 4 },
   barcodeBox: {
     marginTop: 14, padding: 8,
     borderRadius: 10, borderWidth: 1,
-    backgroundColor: 'rgba(0,0,0,0.25)',
+    backgroundColor: '#F3F4F6',
   },
   backFootRow: {
     flexDirection: 'row',
@@ -347,7 +347,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     marginTop: 12,
   },
-  validityText: { color: 'rgba(255,255,255,0.6)', fontFamily: FONTS.med, fontSize: 11 },
+  validityText: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 11 },
 });
 
 export default MemberIdCard;

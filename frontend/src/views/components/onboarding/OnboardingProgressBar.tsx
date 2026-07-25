@@ -175,26 +175,26 @@ const s = StyleSheet.create({
     marginBottom: 6,
   },
   stepCounter: {
-    color: AC.textSub,
+    color: '#374151',
     fontFamily: FONTS.med,
     fontSize: 11.5,
   },
   timeLeft: {
-    color: AC.muted,
+    color: '#6B7280',
     fontFamily: FONTS.med,
     fontSize: 11.5,
   },
   barBackground: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: AC.cardHover,
+    backgroundColor: '#E5E7EB',
     marginBottom: 8,
     overflow: 'hidden',
   },
   barFill: {
     height: '100%',
     borderRadius: 2,
-    backgroundColor: AC.primary,
+    backgroundColor: '#7C3AED',
     ...(Platform.OS === 'web'
       ? ({ transition: 'width 0.38s cubic-bezier(0.16, 1, 0.3, 1)' } as any)
       : {}),
@@ -214,19 +214,19 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   labelBase: {
-    color: AC.dim,
+    color: '#9CA3AF',
     fontFamily: FONTS.med,
     fontSize: 11,
   },
   labelCompleted: {
-    color: AC.green,
+    color: '#10B981',
   },
   labelCurrent: {
-    color: AC.text,
+    color: '#111827',
     fontFamily: FONTS.bold,
   },
   labelSeparator: {
-    color: AC.dim,
+    color: '#9CA3AF',
     fontSize: 10.5,
     marginHorizontal: 4,
   },

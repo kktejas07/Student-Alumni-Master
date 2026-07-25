@@ -107,8 +107,8 @@ const styles = StyleSheet.create({
   tile: {
     flexBasis: '48%',
     flexGrow: 1,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#F9FAFB',
+    borderColor: '#E5E7EB',
     borderWidth: 1,
     borderRadius: 14,
     padding: 14,
@@ -123,6 +123,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tileTitle: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 14, marginTop: 6 },
-  tileDesc: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_400Regular', fontSize: 12, lineHeight: 17 },
+  tileTitle: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 14, marginTop: 6 },
+  tileDesc: { color: '#6B7280', fontFamily: 'DMSans_400Regular', fontSize: 12, lineHeight: 17 },
 });

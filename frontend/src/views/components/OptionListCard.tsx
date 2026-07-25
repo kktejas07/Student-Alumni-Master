@@ -33,7 +33,6 @@ export function OptionListCard({
   emptyLabel = 'No matches',
   loading = false,
   width,
-  maxHeight,
   style,
 }: {
   headerLabel?: string;
@@ -46,7 +45,6 @@ export function OptionListCard({
   emptyLabel?: string;
   loading?: boolean;
   width?: number | string;
-  maxHeight?: number;
   style?: any;
 }) {
   const { primary } = useRoleTheme();
@@ -59,7 +57,7 @@ export function OptionListCard({
         <View style={styles.empty}><Text style={styles.emptyText}>{emptyLabel}</Text></View>
       ) : (
         <>
-          <ScrollView style={[styles.scroll, { maxHeight: maxHeight || 260 }]} nestedScrollEnabled={true} showsVerticalScrollIndicator={false}>
+          <ScrollView style={styles.scroll} nestedScrollEnabled={true} showsVerticalScrollIndicator={true}>
             {options.map((opt) => {
               const isSelected = opt.value === selectedValue;
               return (
@@ -100,7 +98,7 @@ export function OptionListCard({
                 ]}
               >
                 <Edit3 size={14} color="rgba(255,255,255,0.78)" />
-                <Text style={[styles.rowText, { color: 'rgba(255,255,255,0.85)', marginLeft: 8 }]}>
+                <Text style={[styles.rowText, { color: '#111827', marginLeft: 8 }]}>
                   {otherLabel}
                 </Text>
               </Pressable>
@@ -117,20 +115,20 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     paddingVertical: 14,
     paddingHorizontal: 12,
-    backgroundColor: '#13091F',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(176,127,223,0.30)',
+    borderColor: '#E5E7EB',
     ...(Platform.OS === 'web'
       ? ({
           userSelect: 'none' as any,
-          // Subtle inner gradient + neutral outer shadow.
-          backgroundImage: 'linear-gradient(180deg, #1A0E2E 0%, #0A0512 100%)' as any,
-          boxShadow: '0px 16px 60px rgba(0,0,0,0.65), 0px 0px 0px 1px rgba(255,255,255,0.08) inset' as any,
+          // Subtle inner gradient + purple outer glow per reference.
+          backgroundImage: 'none' as any,
+          boxShadow: '0px 10px 25px rgba(0,0,0,0.1)' as any,
         } as any)
       : { elevation: 12 }),
   },
   header: {
-    color: 'rgba(255,255,255,0.55)',
+    color: '#6B7280',
     fontFamily: 'DMSans_700Bold',
     fontSize: 11,
     letterSpacing: 1.4,
@@ -152,7 +150,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   rowText: {
-    color: 'rgba(255,255,255,0.92)',
+    color: '#111827',
     fontFamily: 'DMSans_500Medium',
     fontSize: 14.5,
     flex: 1,
@@ -163,7 +161,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#F3F4F6',
     marginVertical: 6,
     marginHorizontal: 4,
   },
@@ -172,10 +170,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    color: 'rgba(255,255,255,0.45)',
+    color: '#9CA3AF',
     fontFamily: 'DMSans_500Medium',
     fontSize: 13,
   },
   scroll: {
+    maxHeight: 220,
   },
 });

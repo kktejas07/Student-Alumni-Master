@@ -76,11 +76,11 @@ export const ROLE_META: Record<Role, { label: string; emoji: string; gradient: [
 
 const s = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
-  card: { width: '100%', padding: 16, borderRadius: 16, backgroundColor: AC.card, borderWidth: 1, borderColor: AC.border, ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transition: 'all 0.18s ease' } as any) : {}) },
-  cardOn: { backgroundColor: AC.cardOn },
+  card: { width: '100%', padding: 16, borderRadius: 16, backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transition: 'all 0.18s ease' } as any) : {}) },
+  cardOn: { backgroundColor: '#F3F4F6' },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
   iconBox: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  dot: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center' },
-  label: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 16, marginBottom: 4 },
-  sub: { color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.med, fontSize: 13, lineHeight: 19 },
+  dot: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#D1D5DB', alignItems: 'center', justifyContent: 'center' },
+  label: { color: '#111827', fontFamily: FONTS.xbold, fontSize: 16, marginBottom: 4 },
+  sub: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 13, lineHeight: 19 },
 });

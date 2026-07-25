@@ -74,15 +74,16 @@ const btn = StyleSheet.create({
 export function OutlineButton({ label, onPress, icon, disabled, testID, accessibilityLabel, accessibilityHint }: { label: string; onPress?: () => void; icon?: React.ReactNode; disabled?: boolean; testID?: string; accessibilityLabel?: string; accessibilityHint?: string }) {
   return (
     <Pressable onPress={disabled ? undefined : onPress} style={[ob.wrap, disabled && { opacity: 0.5 }]} testID={testID} accessible={true} accessibilityRole="button" accessibilityLabel={accessibilityLabel || label} accessibilityHint={accessibilityHint} accessibilityState={{ disabled }}>
-      {icon}
+      {icon && <View style={ob.iconWrap}>{icon}</View>}
       <Text style={ob.text}>{label}</Text>
     </Pressable>
   );
 }
 
 const ob = StyleSheet.create({
-  wrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 13, paddingHorizontal: 18, borderRadius: 12, borderWidth: 1, borderColor: AC.border, backgroundColor: AC.glass, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  text: { color: '#fff', fontFamily: FONTS.bold, fontSize: 14 },
+  wrap: { flexDirection: 'row', alignItems: 'center', paddingVertical: 13, paddingHorizontal: 18, borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#FFFFFF', position: 'relative', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  iconWrap: { position: 'absolute', left: 16 },
+  text: { flex: 1, textAlign: 'center', color: '#111827', fontFamily: FONTS.bold, fontSize: 14 },
 });
 
 // ─── Text Input ─────────────────────────────────────────────────
@@ -126,7 +127,7 @@ export const AuthInput = React.forwardRef<TextInput, {
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={AC.dim}
+          placeholderTextColor="#9CA3AF"
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize ?? 'none'}
@@ -153,12 +154,12 @@ export const AuthInput = React.forwardRef<TextInput, {
 
 const inp = StyleSheet.create({
   wrap: { width: '100%' },
-  label: { color: '#fff', fontFamily: FONTS.bold, fontSize: 13, marginBottom: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: AC.card, borderColor: AC.border, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, height: 48 },
+  label: { color: '#374151', fontFamily: FONTS.bold, fontSize: 13, marginBottom: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, height: 48 },
   rowOn: { borderColor: AC.primary, backgroundColor: 'rgba(124,58,237,0.06)' },
   rowErr: { borderColor: AC.red },
-  input: { flex: 1, color: '#fff', fontFamily: FONTS.med, fontSize: 14, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
-  hint: { color: AC.muted, fontFamily: FONTS.med, fontSize: 11.5, marginTop: 6 },
+  input: { flex: 1, color: '#111827', fontFamily: FONTS.med, fontSize: 14, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  hint: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 6 },
   err: { color: AC.red, fontFamily: FONTS.bold, fontSize: 11.5, marginTop: 6 },
 });
 
@@ -186,10 +187,10 @@ export function PasswordRules({ checks }: { checks: { met: boolean; label: strin
 
 const pr = StyleSheet.create({
   wrap: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: '#F9FAFB',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+    borderColor: '#E5E7EB',
     padding: 12,
     gap: 7,
     marginTop: 10,
@@ -198,21 +199,21 @@ const pr = StyleSheet.create({
     marginTop: 2,
   },
   title: {
-    color: '#fff',
+    color: '#374151',
     fontFamily: FONTS.bold,
     fontSize: 13,
     marginBottom: 4,
   },
   secureText: {
-    color: '#22C55E',
+    color: '#16A34A',
     fontFamily: FONTS.bold,
     fontSize: 13,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  dotOk: { backgroundColor: '#22C55E' },
-  dotMiss: { backgroundColor: 'rgba(255,255,255,0.12)' },
+  dotOk: { backgroundColor: '#16A34A' },
+  dotMiss: { backgroundColor: '#E5E7EB' },
   text: { fontFamily: FONTS.med, fontSize: 12 },
-  textOk: { color: '#22C55E' },
-  textMiss: { color: 'rgba(255,255,255,0.35)' },
+  textOk: { color: '#16A34A' },
+  textMiss: { color: '#9CA3AF' },
 });

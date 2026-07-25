@@ -51,7 +51,7 @@ export function Hero() {
             className="mt-10 flex flex-wrap items-center justify-center lg:justify-start gap-4"
           >
             <button
-              onClick={() => router.push('/(auth)/login')}
+              onClick={() => router.push('/get-started')}
               className="group inline-flex items-center gap-2 rounded-lg bg-primary px-8 py-4 text-sm font-bold text-primary-foreground transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] cursor-pointer"
             >
               Start now

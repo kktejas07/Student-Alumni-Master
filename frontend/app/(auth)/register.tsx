@@ -142,7 +142,7 @@ export default function RegisterScreen() {
   return (
     <AuthShell role={role}>
       <Pressable onPress={() => router.back()} style={s.back}>
-        <ArrowLeft size={16} color={AC.muted} />
+        <ArrowLeft size={16} color="#6B7280" />
         <Text style={s.backText}>Back</Text>
       </Pressable>
 
@@ -159,7 +159,7 @@ export default function RegisterScreen() {
             <Pressable onPress={() => setShowPicker(true)} style={s.roleStripe} testID="register-role-selector" accessible={true} accessibilityRole="button" accessibilityLabel="Change role">
               <Text style={s.roleEmoji}>{ROLE_META[role].emoji}</Text>
               <Text style={s.roleText}>Joining as {ROLE_META[role].label}</Text>
-              <Text style={[s.roleText, { color: AC.muted, fontSize: 11 }]}> · change</Text>
+              <Text style={[s.roleText, { color: '#6B7280', fontSize: 11 }]}> · change</Text>
             </Pressable>
             <Text style={s.title}>Create your account</Text>
             <Text style={s.sub}>Set up your Student Alumni profile in 30 seconds</Text>
@@ -229,7 +229,7 @@ export default function RegisterScreen() {
               rightSlot={
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <Pressable onPress={() => setShowPwd((v) => !v)} style={{ paddingHorizontal: 6 }} testID="register-show-password" accessible={true} accessibilityRole="button" accessibilityLabel={showPwd ? "Hide password" : "Show password"}>
-                    {showPwd ? <EyeOff size={16} color={AC.muted} /> : <Eye size={16} color={AC.muted} />}
+                    {showPwd ? <EyeOff size={16} color="#6B7280" /> : <Eye size={16} color="#6B7280" />}
                   </Pressable>
                   <Pressable
                     onPress={() => {
@@ -281,22 +281,22 @@ export default function RegisterScreen() {
 
 const s = StyleSheet.create({
   back: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginBottom: 14, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  backText: { color: AC.muted, fontFamily: FONTS.med, fontSize: 13 },
+  backText: { color: '#374151', fontFamily: FONTS.med, fontSize: 13 },
 
   head: { marginBottom: 22 },
   roleStripe: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10, backgroundColor: 'rgba(124,58,237,0.10)', borderWidth: 1, borderColor: 'rgba(124,58,237,0.25)', marginBottom: 18, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   roleEmoji: { fontSize: 14 },
-  roleText: { color: AC.primaryL, fontFamily: FONTS.bold, fontSize: 12 },
+  roleText: { color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 12 },
 
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 30, letterSpacing: -0.6, marginBottom: 6 },
-  sub: { color: AC.muted, fontFamily: FONTS.med, fontSize: 15 },
+  title: { color: '#111827', fontFamily: FONTS.xbold, fontSize: 30, letterSpacing: -0.6, marginBottom: 6 },
+  sub: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 15 },
 
-  terms: { textAlign: 'center', color: AC.dim, fontFamily: FONTS.med, fontSize: 12, marginTop: 14, lineHeight: 18 },
-  link: { color: AC.muted, ...(Platform.OS === 'web' ? ({ textDecorationLine: 'underline', cursor: 'pointer' } as any) : {}) },
+  terms: { textAlign: 'center', color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 12, marginTop: 14, lineHeight: 18 },
+  link: { color: '#6B7280', ...(Platform.OS === 'web' ? ({ textDecorationLine: 'underline', cursor: 'pointer' } as any) : {}) },
 
-  signin: { textAlign: 'center', color: AC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 18 },
-  signinLink: { color: AC.primaryL, fontFamily: FONTS.bold, ...(Platform.OS === 'web' ? ({ textDecorationLine: 'underline', cursor: 'pointer' } as any) : {}) },
+  signin: { textAlign: 'center', color: '#6B7280', fontFamily: FONTS.med, fontSize: 13, marginTop: 18 },
+  signinLink: { color: '#7C3AED', fontFamily: FONTS.bold, ...(Platform.OS === 'web' ? ({ textDecorationLine: 'underline', cursor: 'pointer' } as any) : {}) },
 
-  fieldLabel: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13, marginBottom: 8 },
+  fieldLabel: { color: '#374151', fontFamily: FONTS.bold, fontSize: 13, marginBottom: 8 },
   fieldErr: { color: '#EF4444', fontFamily: FONTS.med, fontSize: 12, marginTop: -8, marginBottom: 6 },
 });

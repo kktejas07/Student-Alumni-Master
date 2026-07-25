@@ -127,11 +127,11 @@ export default function GeneratingExperience() {
             const opacity = iconAnims[i];
             const bg = iconAnims[i].interpolate({
               inputRange: [0, 1],
-              outputRange: ['rgba(255,255,255,0.04)', 'rgba(124,58,237,0.30)'],
+              outputRange: ['#F9FAFB', 'rgba(124,58,237,0.30)'],
             });
             const border = iconAnims[i].interpolate({
               inputRange: [0, 1],
-              outputRange: ['rgba(255,255,255,0.08)', 'rgba(196,181,253,0.55)'],
+              outputRange: ['#E5E7EB', 'rgba(196,181,253,0.55)'],
             });
             return (
               <React.Fragment key={i}>
@@ -140,7 +140,7 @@ export default function GeneratingExperience() {
                   { backgroundColor: bg, borderColor: border },
                 ]}>
                   <Animated.View style={[{ opacity: iconAnims[i].interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) }]}>
-                    <beat.icon size={20} color="#FFF" />
+                    <beat.icon size={20} color="#111827" />
                   </Animated.View>
                 </Animated.View>
                 {i < BEATS.length - 1 && (
@@ -149,7 +149,7 @@ export default function GeneratingExperience() {
                     {
                       backgroundColor: iconAnims[i].interpolate({
                         inputRange: [0, 1],
-                        outputRange: ['rgba(255,255,255,0.08)', 'rgba(124,58,237,0.5)'],
+                        outputRange: ['#E5E7EB', 'rgba(124,58,237,0.5)'],
                       }),
                     },
                   ]} />
@@ -174,7 +174,7 @@ export default function GeneratingExperience() {
               ]}
             >
               <View style={s.beatIconWrap}>
-                {React.createElement(BEATS[i].icon as any, { size: 16, color: i === activeBeat ? '#FFF' : 'rgba(255,255,255,0.5)' })}
+                {React.createElement(BEATS[i].icon as any, { size: 16, color: i === activeBeat ? '#FFF' : '#6B7280' })}
               </View>
               <Text style={[
                 s.beatText,
@@ -210,7 +210,7 @@ const s = StyleSheet.create({
   },
 
   label: {
-    color: '#FFF',
+    color: '#111827',
     fontFamily: FONTS.bold,
     fontSize: 20,
     textAlign: 'center',
@@ -242,9 +242,9 @@ const s = StyleSheet.create({
   beatContainer: {
     width: '100%',
     minHeight: 120,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: '#F9FAFB',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: '#E5E7EB',
     borderRadius: 16,
     padding: 16,
     gap: 8,
@@ -257,13 +257,13 @@ const s = StyleSheet.create({
   },
   beatIcon: { fontSize: 16 },
   beatText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: '#6B7280',
     fontFamily: FONTS.med,
     fontSize: 13.5,
     flex: 1,
   },
   beatTextActive: {
-    color: '#FFF',
+    color: '#111827',
     fontFamily: FONTS.bold,
   },
 
