@@ -4,7 +4,8 @@
  * Mobile (< 980px):   single column, top compact brand strip.
  */
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, useWindowDimensions, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, useWindowDimensions, Platform, KeyboardAvoidingView, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
@@ -14,17 +15,20 @@ import { RoleThemeProvider } from './RoleTheme';
 import { StarryBackground } from '../web/nexus-glow-landing/StarryBackground';
 
 function MobileBrand() {
+  const router = useRouter();
   return (
-    <LinearGradient colors={[AC.brandFrom, AC.brandTo] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={ms.bar}>
-      <Svg width={28} height={33} viewBox="0 0 200 240" fill="none">
-        <Path d="M100 4L196 36L196 120Q196 190 100 236Q4 190 4 120L4 36Z" fill="white" />
-        <SvgText x="100" y="158" textAnchor="middle" fontFamily="DM Sans" fontWeight="700" fontSize="88" fill="#7C3AED" letterSpacing="-4">SA</SvgText>
-      </Svg>
-      <View>
-        <Text style={ms.title}>Student Alumni</Text>
-        <Text style={ms.sub}>AI-powered career platform</Text>
-      </View>
-    </LinearGradient>
+    <Pressable onPress={() => router.push('/')}>
+      <LinearGradient colors={[AC.brandFrom, AC.brandTo] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={ms.bar}>
+        <Svg width={28} height={33} viewBox="0 0 200 240" fill="none">
+          <Path d="M100 4L196 36L196 120Q196 190 100 236Q4 190 4 120L4 36Z" fill="#7C3AED" />
+          <SvgText x="100" y="158" textAnchor="middle" fontFamily="DM Sans" fontWeight="700" fontSize="88" fill="#FFFFFF" letterSpacing="-4">SA</SvgText>
+        </Svg>
+        <View>
+          <Text style={ms.title}>StudentAlumni</Text>
+          <Text style={ms.sub}>AI-powered career platform</Text>
+        </View>
+      </LinearGradient>
+    </Pressable>
   );
 }
 

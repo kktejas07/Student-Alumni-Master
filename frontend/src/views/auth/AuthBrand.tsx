@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
 import Svg, { Path, Text as SvgText } from 'react-native-svg';
 import { Sparkles, Users, Briefcase, GraduationCap } from 'lucide-react-native';
 import { AC, FONTS } from './tokens';
@@ -8,23 +9,23 @@ function SALogoBig({ size = 48 }: { size?: number }) {
   return (
     <View style={s.logoRow}>
       <Svg width={size} height={size * 1.2} viewBox="0 0 200 240" fill="none">
-        <Path d="M100 4L196 36L196 120Q196 190 100 236Q4 190 4 120L4 36Z" fill="white" />
-        <SvgText x="100" y="158" textAnchor="middle" fontFamily="DM Sans" fontWeight="700" fontSize="88" fill="#7C3AED" letterSpacing="-4">SA</SvgText>
+        <Path d="M100 4L196 36L196 120Q196 190 100 236Q4 190 4 120L4 36Z" fill="#7C3AED" />
+        <SvgText x="100" y="158" textAnchor="middle" fontFamily="DM Sans" fontWeight="700" fontSize="88" fill="#FFFFFF" letterSpacing="-4">SA</SvgText>
       </Svg>
       <View>
-        <Text style={s.logoTitle}>Student</Text>
-        <Text style={s.logoTitle}>Alumni</Text>
+        <Text style={s.logoTitle}>StudentAlumni</Text>
       </View>
     </View>
   );
 }
 
 export function AuthBrand({ role, minWidth = 980 }: { role?: any; minWidth?: number }) {
+  const router = useRouter();
   return (
     <View style={s.wrap}>
-      <View style={s.topLogo}>
+      <Pressable style={s.topLogo} onPress={() => router.push('/')}>
         <SALogoBig size={40} />
-      </View>
+      </Pressable>
 
       {/* Subtle purple glow matching the design */}
       <View style={[s.blob, { top: '20%', left: '-20%', width: 500, height: 500, backgroundColor: 'rgba(124,58,237,0.15)' }]} />
@@ -35,7 +36,7 @@ export function AuthBrand({ role, minWidth = 980 }: { role?: any; minWidth?: num
         </Text>
         
         <Text style={s.tagline}>
-          Connect with mentors, discover internships, and accelerate{'\n'}your future — all in one place built for students.
+          Connect with mentors, discover internships, and accelerate your future all in one place built for students.
         </Text>
 
         <View style={s.features}>
