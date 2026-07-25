@@ -17,12 +17,14 @@ def compute_profile_completion(u: dict) -> dict:
         ]
     else:
         inst_done = bool((u.get("institution") or (u.get("school_info") or {}).get("institution_name") or "").strip()) and bool((u.get("branch") or (u.get("school_info") or {}).get("branch_or_stream") or "").strip())
+        account_done = bool((u.get("email") or u.get("full_name") or "").strip())
         items = [
-            {"key": "skills", "label": "Skills listed", "done": len(u.get("skills") or []) > 0, "weight": 25},
-            {"key": "resume", "label": "Resume uploaded", "done": len(u.get("resume_documents") or []) > 0 or bool(u.get("resume_url")) or bool(u.get("resume_data")), "weight": 20},
-            {"key": "projects", "label": "Projects added", "done": len(u.get("projects") or []) > 0, "weight": 20},
-            {"key": "socials", "label": "LinkedIn/GitHub linked", "done": bool(u.get("linkedin_url")) or bool(u.get("github_url")), "weight": 15},
-            {"key": "education", "label": "Education/College details", "done": inst_done, "weight": 10},
+            {"key": "account", "label": "Account registered", "done": account_done, "weight": 15},
+            {"key": "education", "label": "Education/College details", "done": inst_done, "weight": 15},
+            {"key": "skills", "label": "Skills listed", "done": len(u.get("skills") or []) > 0, "weight": 20},
+            {"key": "resume", "label": "Resume uploaded", "done": len(u.get("resume_documents") or []) > 0 or bool(u.get("resume_url")) or bool(u.get("resume_data")), "weight": 15},
+            {"key": "projects", "label": "Projects added", "done": len(u.get("projects") or []) > 0, "weight": 15},
+            {"key": "socials", "label": "LinkedIn/GitHub linked", "done": bool(u.get("linkedin_url")) or bool(u.get("github_url")), "weight": 10},
             {"key": "bio", "label": "Bio / headline", "done": bool((u.get("bio") or u.get("headline") or "").strip()), "weight": 5},
             {"key": "photo", "label": "Profile photo", "done": bool(u.get("face_image_base64") or u.get("photo_data")), "weight": 5},
         ]
