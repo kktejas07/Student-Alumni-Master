@@ -128,7 +128,7 @@ export function InstitutionAutocomplete({
       ...(Platform.OS === 'web' ? ({ isolation: 'isolate' } as any) : {}),
     }}>
       <View style={styles.inputWrap}>
-        <Search size={16} color="rgba(255,255,255,0.45)" />
+        <Search size={16} color="#9CA3AF" />
         <TextInput
           value={value}
           onChangeText={(v) => {
@@ -137,7 +137,7 @@ export function InstitutionAutocomplete({
           }}
           onFocus={() => { if (results.length && !suppress) setOpen(true); }}
           placeholder={ph}
-          placeholderTextColor="rgba(255,255,255,0.35)"
+          placeholderTextColor="#9CA3AF"
           style={styles.input}
           testID={testID}
         />
@@ -155,14 +155,14 @@ export function InstitutionAutocomplete({
               testID="institution-add-manual-empty"
               style={({ hovered }: any) => [
                 styles.row,
-                hovered && { backgroundColor: 'rgba(45,212,191,0.16)' },
+                hovered && { backgroundColor: '#CCFBF1' },
               ]}
             >
-              <View style={[styles.rowIcon, { backgroundColor: 'rgba(45,212,191,0.18)' }]}>
-                <Plus size={14} color="#2DD4BF" />
+              <View style={[styles.rowIcon, { backgroundColor: '#CCFBF1' }]}>
+                <Plus size={14} color="#0D9488" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.rowName, { color: '#2DD4BF' }]} numberOfLines={1}>
+                <Text style={[styles.rowName, { color: '#0D9488' }]} numberOfLines={1}>
                   Use “{value}” as my institution
                 </Text>
                 <Text style={styles.rowMeta}>No matches — type your address manually below.</Text>
@@ -180,8 +180,8 @@ export function InstitutionAutocomplete({
                 testID={`institution-result-${r.id}`}
                 style={({ hovered, pressed }: any) => [
                   styles.row,
-                  hovered && { backgroundColor: 'rgba(124,58,237,0.16)' },
-                  pressed && { backgroundColor: 'rgba(124,58,237,0.24)' },
+                  hovered && { backgroundColor: '#F3E8FF' },
+                  pressed && { backgroundColor: '#E9D5FF' },
                 ]}
               >
                 <View style={styles.rowIcon}>
@@ -205,14 +205,14 @@ export function InstitutionAutocomplete({
               testID="institution-add-manual"
               style={({ hovered, pressed }: any) => [
                 styles.row, styles.rowAdd,
-                hovered && { backgroundColor: 'rgba(45,212,191,0.16)' },
-                pressed && { backgroundColor: 'rgba(45,212,191,0.24)' },
+                hovered && { backgroundColor: '#CCFBF1' },
+                pressed && { backgroundColor: '#99F6E4' },
               ]}
             >
-              <View style={[styles.rowIcon, { backgroundColor: 'rgba(45,212,191,0.18)' }]}>
-                <Plus size={14} color="#2DD4BF" />
+              <View style={[styles.rowIcon, { backgroundColor: '#CCFBF1' }]}>
+                <Plus size={14} color="#0D9488" />
               </View>
-              <Text style={[styles.rowName, { color: '#2DD4BF' }]}>
+              <Text style={[styles.rowName, { color: '#0D9488' }]}>
                 Can’t find it? Use “{value}” as-is
               </Text>
             </Pressable>
@@ -273,34 +273,34 @@ const styles = StyleSheet.create({
   inputWrap: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 14, height: 48,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E5E7EB',
     borderWidth: 1, borderRadius: 12,
   },
   input: {
-    flex: 1, color: '#FFFFFF', fontFamily: 'DMSans_500Medium', fontSize: 14,
+    flex: 1, color: '#111827', fontFamily: 'DMSans_500Medium', fontSize: 14,
     ...({ outlineStyle: 'none' } as any),
   },
   dropdown: {
     marginTop: 6, zIndex: 200,
-    backgroundColor: 'rgba(20,8,40,0.98)',
-    borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E5E7EB', borderWidth: 1, borderRadius: 14,
     overflow: 'hidden',
-    ...({ backdropFilter: 'blur(24px)' } as any),
+    ...({ boxShadow: '0px 8px 24px rgba(0,0,0,0.1)' } as any),
   },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 14, paddingVertical: 11,
     ...({ cursor: 'pointer', transitionDuration: '120ms' } as any),
   },
-  rowAdd: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
+  rowAdd: { borderTopWidth: 1, borderTopColor: '#E5E7EB' },
   rowIcon: {
     width: 28, height: 28, borderRadius: 8,
-    backgroundColor: 'rgba(124,58,237,0.18)',
+    backgroundColor: '#F3E8FF',
     alignItems: 'center', justifyContent: 'center',
   },
-  rowName: { color: '#FFFFFF', fontFamily: 'DMSans_600SemiBold', fontSize: 13 },
-  rowMeta: { color: 'rgba(255,255,255,0.50)', fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: 2 },
+  rowName: { color: '#111827', fontFamily: 'DMSans_600SemiBold', fontSize: 13 },
+  rowMeta: { color: '#6B7280', fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: 2 },
 
   logoWrap: {
     backgroundColor: '#FFFFFF',
@@ -309,10 +309,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   defaultLogo: {
-    backgroundColor: 'rgba(124,58,237,0.22)',
-    borderColor: 'rgba(196,181,253,0.45)', borderWidth: 1.5,
+    backgroundColor: '#F3E8FF',
+    borderColor: '#C4B5FD', borderWidth: 1.5,
     alignItems: 'center', justifyContent: 'center',
-    boxShadow: '0px 4px 14px rgba(124,58,237,0.30)',
   },
   scroll: {
     maxHeight: 220,

@@ -80,7 +80,7 @@ export function OnboardingShell({
             style={({ hovered }: any) => [styles.backBtn, hovered && { opacity: 1 }]}
             testID="onboarding-back-btn"
           >
-            <ArrowLeft size={18} color="rgba(255,255,255,0.85)" />
+            <ArrowLeft size={18} color="#1F2937" />
           </Pressable>
         ) : (
           <View style={{ width: 32 }} />
@@ -162,7 +162,7 @@ export function DarkChip({
       testID={testID}
       style={({ hovered, pressed }: any) => [
         chipStyles.chip,
-        hovered && !active && { backgroundColor: 'rgba(255,255,255,0.10)', borderColor: 'rgba(196,181,253,0.30)' },
+        hovered && !active && { backgroundColor: '#E5E7EB', borderColor: '#D8B4FE' },
         active && chipStyles.chipActive,
         pressed && { transform: [{ scale: 0.97 }] },
       ]}
@@ -181,8 +181,8 @@ export function DarkInfoCard({
 }) {
   const palette = {
     neutral: {
-      bg: 'rgba(255,255,255,0.04)',
-      border: 'rgba(255,255,255,0.08)',
+      bg: '#F9FAFB',
+      border: '#E5E7EB',
     },
     warning: {
       bg: 'rgba(245,158,11,0.10)',
@@ -235,16 +235,16 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 32, height: 32,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
+    borderColor: '#E5E7EB',
     alignItems: 'center',
     justifyContent: 'center',
     opacity: 0.85,
     ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
   },
   kicker: {
-    color: 'rgba(255,255,255,0.55)',
+    color: '#6B7280',
     fontFamily: 'DMSans_700Bold',
     fontSize: 11,
     letterSpacing: 1.2,
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   title: {
-    color: '#FFFFFF',
+    color: '#111827',
     fontFamily: 'DMSans_700Bold',
     fontSize: 26,
     letterSpacing: -0.5,
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   subtitle: {
-    color: 'rgba(255,255,255,0.55)',
+    color: '#6B7280',
     fontFamily: 'DMSans_400Regular',
     fontSize: 14,
     lineHeight: 22,
@@ -283,22 +283,22 @@ const chipStyles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
     borderWidth: 1,
     ...({ cursor: 'pointer', transitionDuration: '140ms' } as any),
   },
   chipActive: {
-    backgroundColor: 'rgba(124,58,237,0.25)',
-    borderColor: '#7C3AED',
+    backgroundColor: '#EDE9FE',
+    borderColor: '#C4B5FD',
   },
   chipText: {
-    color: 'rgba(255,255,255,0.78)',
+    color: '#4B5563',
     fontFamily: 'DMSans_500Medium',
     fontSize: 13,
   },
   chipTextActive: {
-    color: '#FFFFFF',
+    color: '#6D28D9',
     fontFamily: 'DMSans_700Bold',
   },
 });
@@ -318,7 +318,7 @@ const toggleStyles = StyleSheet.create({
     width: 44,
     height: 26,
     borderRadius: 13,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: '#E5E7EB',
     padding: 2,
     justifyContent: 'center',
     ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),

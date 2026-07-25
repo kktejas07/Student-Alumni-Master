@@ -191,7 +191,7 @@ export function DropdownSelect({ label, value, options, onSelect }: DropdownSele
           borderRadius: 8,
           backgroundColor: 'rgba(255,255,255,0.03)',
           borderWidth: 1,
-          borderColor: open ? '#8B5CF6' : 'rgba(255,255,255,0.08)',
+          borderColor: open ? '#6366F1' : 'rgba(255,255,255,0.08)',
           // @ts-ignore
           cursor: 'pointer',
         }}
@@ -643,7 +643,7 @@ const s = StyleSheet.create({
   },
   sortChipOn: {
     backgroundColor: 'rgba(139, 92, 246, 0.25)',
-    borderColor: '#8B5CF6',
+    borderColor: '#6366F1',
   },
   searchWrap: {
     flexDirection: 'row',

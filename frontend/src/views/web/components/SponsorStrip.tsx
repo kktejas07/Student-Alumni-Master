@@ -192,9 +192,7 @@ export function DashboardFooter({ portal }: { portal: 'student' | 'alumni' | 'co
 
   return (
     <View style={s.dashFoot}>
-      <View style={{ maxWidth: 1280, width: '100%', alignSelf: 'center', gap: 14 }}>
-        <SponsorStrip variant="footer" />
-        <View style={s.dashFootDivider} />
+      <View style={{ maxWidth: 1280, width: '100%', alignSelf: 'center' }}>
         <View style={s.dashFootRow}>
           <Text style={s.dashFootCopy}>© {year} StudentAlumni · All rights reserved</Text>
           <View style={{ flexDirection: 'row', gap: 18, flexWrap: 'wrap' }}>

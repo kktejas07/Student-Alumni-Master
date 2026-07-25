@@ -34,14 +34,26 @@ export function Badge({ label, color = 'amber' }: { label: string; color?: Badge
   );
 }
 
-export function KpiCard({ Icon, label, value, delta }: { Icon: LucideIcon; label: string; value: string; delta: string }) {
-  const isUp = delta.includes('↑');
+export function KpiCard({
+  Icon, label, value, delta, color = 'purple',
+}: { Icon?: any; label: string; value: string; delta: string; color?: 'blue' | 'purple' | 'green' | 'amber' | 'red' | string }) {
+  const PALETTES: any = {
+    blue:   { tint: 'rgba(37,99,235,0.18)',   border: 'rgba(96,165,250,0.30)',  ic: '#60A5FA' },
+    purple: { tint: 'rgba(95,37,159,0.18)',   border: 'rgba(176,127,223,0.30)', ic: '#A78BFA' },
+    green:  { tint: 'rgba(6,95,70,0.18)',     border: 'rgba(52,211,153,0.30)',  ic: '#34D399' },
+    amber:  { tint: 'rgba(180,83,9,0.18)',    border: 'rgba(245,158,11,0.30)',  ic: '#F59E0B' },
+    red:    { tint: 'rgba(239,68,68,0.18)',   border: 'rgba(248,113,113,0.30)', ic: '#F87171' },
+  };
+  const p = PALETTES[color] || PALETTES.purple;
+  const IconComp = Icon;
   return (
-    <View style={styles.kpi}>
-      <View style={styles.kpiIcon}><Icon size={16} color={SAC.accent} /></View>
-      <Text style={styles.kpiLabel}>{label}</Text>
-      <Text style={styles.kpiValue}>{value}</Text>
-      <Text style={[styles.kpiDelta, { color: isUp ? SAC.green : SAC.muted }]}>{delta}</Text>
+    <View style={[styles.kpi, { backgroundColor: p.tint, borderColor: p.border }]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        {IconComp && <IconComp size={14} color={p.ic} />}
+        <Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11.5, letterSpacing: 0.4 }}>{label}</Text>
+      </View>
+      <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 30, letterSpacing: -0.5 }}>{value}</Text>
+      <Text style={{ color: p.ic, fontFamily: FONTS.med, fontSize: 11, marginTop: 2 }}>{delta}</Text>
     </View>
   );
 }

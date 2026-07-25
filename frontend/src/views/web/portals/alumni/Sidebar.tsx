@@ -21,6 +21,7 @@ import { Av } from './atoms';
 import { FadeInView, PressScale, SparkIcon, PulseDot } from './motion';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
 import { router } from 'expo-router';
+import { SALogo } from '@/src/views/components';
 
 export type StudentNavId =
   | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'events'
@@ -66,9 +67,7 @@ export function Sidebar({
       {/* Brand */}
       <FadeInView delay={20}>
         <View style={s.brand} nativeID="alumni-brand">
-          <LinearGradient colors={GRADS.brand as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.brandLogo}>
-            <Text style={s.brandLogoText}>SA</Text>
-          </LinearGradient>
+          <SALogo size={32} variant="glass" />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={s.brandTitle}>Student Alumni</Text>
             <Text style={s.brandSub}>Alumni Dashboard</Text>
@@ -203,8 +202,8 @@ const s = StyleSheet.create({
   },
   navItemActive: {
     ...(Platform.OS === 'web' ? ({
-      boxShadow: '0 6px 18px rgba(194,65,12,0.45), inset 0 1px 0 rgba(255,255,255,0.18)',
-    } as any) : { shadowColor: SC.primary, shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } as any }),
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18)',
+    } as any) : {}),
   },
   navLabel: { color: SC.muted, fontFamily: FONTS.bold, fontSize: 12.5, flex: 1 },
   navLabelActive: { color: '#fff' },

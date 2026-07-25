@@ -40,7 +40,7 @@ export function WebField({
     state === 'error' ? '#EF4444'
     : state === 'ok' ? '#10B981'
     : focused ? '#B07FDF'
-    : 'rgba(255,255,255,0.14)';
+    : '#E5E7EB';
   return (
     <View style={{ marginBottom: 14 }}>
       {label ? <Text style={controlStyles.label}>{label}</Text> : null}
@@ -55,7 +55,7 @@ export function WebField({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="rgba(255,255,255,0.32)"
+          placeholderTextColor="#9CA3AF"
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
@@ -233,7 +233,7 @@ export function WebOptionRow({
           selected && { borderColor: '#7C3AED', backgroundColor: '#7C3AED' },
         ]}
       >
-        {selected && <Text style={{ color: '#FFF', fontSize: 11 }}>✓</Text>}
+        {selected && <Text style={{ color: '#111827', fontSize: 11 }}>✓</Text>}
       </View>
     </Pressable>
   );
@@ -251,13 +251,13 @@ const controlStyles = StyleSheet.create({
   wrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderRadius: 12,
     ...({ transitionDuration: '160ms' } as any),
   },
   wrapFocus: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#E5E7EB',
     boxShadow: '0px 0px 16px rgba(176,127,223,0.25)',
   },
   input: {
@@ -271,7 +271,7 @@ const controlStyles = StyleSheet.create({
   },
   rightSlot: { paddingRight: 12 },
   helper: {
-    color: 'rgba(255,255,255,0.44)',
+    color: '#9CA3AF',
     fontFamily: 'DMSans_400Regular',
     fontSize: 12,
     marginTop: 5,
@@ -298,8 +298,8 @@ const controlStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: '#F9FAFB',
+    borderColor: '#E5E7EB',
     borderWidth: 1,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -307,11 +307,11 @@ const controlStyles = StyleSheet.create({
     ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
   },
   ghostHover: {
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderColor: 'rgba(255,255,255,0.22)',
+    backgroundColor: '#E5E7EB',
+    borderColor: '#D1D5DB',
     transform: [{ translateY: -1 }],
   },
-  ghostText: { color: C.white, fontFamily: 'DMSans_600SemiBold', fontSize: 14 },
+  ghostText: { color: '#111827', fontFamily: 'DMSans_600SemiBold', fontSize: 14 },
 
   stepBar: {
     flexDirection: 'row',
@@ -322,9 +322,9 @@ const controlStyles = StyleSheet.create({
   dot: {
     width: 10, height: 10,
     borderRadius: 5,
-    backgroundColor: 'rgba(255,255,255,0.16)',
+    backgroundColor: '#E5E7EB',
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.16)',
+    borderColor: '#E5E7EB',
     marginBottom: 6,
     zIndex: 2,
   },
@@ -340,7 +340,7 @@ const controlStyles = StyleSheet.create({
   },
   stepLabel: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.45)',
+    color: '#9CA3AF',
     fontFamily: 'DMSans_500Medium',
   },
   connector: {
@@ -349,12 +349,12 @@ const controlStyles = StyleSheet.create({
     left: '50%',
     right: '-50%',
     height: 2,
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: '#E5E7EB',
     zIndex: 1,
   },
 
   section: {
-    color: 'rgba(255,255,255,0.5)',
+    color: '#6B7280',
     fontFamily: 'DMSans_700Bold',
     fontSize: 11,
     letterSpacing: 1,
@@ -369,8 +369,8 @@ const controlStyles = StyleSheet.create({
     gap: 12,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#F9FAFB',
+    borderColor: '#E5E7EB',
     borderWidth: 1,
     borderRadius: 14,
     marginBottom: 10,
@@ -383,19 +383,19 @@ const controlStyles = StyleSheet.create({
   optIcon: {
     width: 38, height: 38,
     borderRadius: 11,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: '#E5E7EB',
+    borderColor: '#E5E7EB',
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  optTitle: { color: C.white, fontFamily: 'DMSans_700Bold', fontSize: 14 },
-  optSub: { color: 'rgba(255,255,255,0.5)', fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 2 },
+  optTitle: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  optSub: { color: '#6B7280', fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 2 },
   radio: {
     width: 22, height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.25)',
+    borderColor: '#D1D5DB',
     backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',

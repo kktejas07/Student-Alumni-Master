@@ -117,7 +117,7 @@ export const PhoneInput = React.forwardRef<RNTextInput, {
             <Text style={s.dial}>
               <Text style={s.flag}>{country.flag}</Text>   {country.dial}
             </Text>
-            <ChevronDown size={14} color="rgba(255,255,255,0.5)" />
+            <ChevronDown size={14} color="#9CA3AF" />
           </Pressable>
           <View style={s.num}>
             <RNTextInput
@@ -125,7 +125,7 @@ export const PhoneInput = React.forwardRef<RNTextInput, {
               value={local}
               onChangeText={(n) => commit(country, n)}
               placeholder={placeholder}
-              placeholderTextColor="rgba(255,255,255,0.32)"
+              placeholderTextColor="#9CA3AF"
               keyboardType="phone-pad"
               autoComplete="tel"
               textContentType="telephoneNumber"
@@ -148,12 +148,12 @@ export const PhoneInput = React.forwardRef<RNTextInput, {
             )}
             <View style={s.dropdown}>
             <View style={s.searchRow}>
-              <Search size={14} color="rgba(255,255,255,0.5)" />
+              <Search size={14} color="#9CA3AF" />
               <RNTextInput
                 value={search}
                 onChangeText={setSearch}
                 placeholder="Search country"
-                placeholderTextColor="rgba(255,255,255,0.4)"
+                placeholderTextColor="#9CA3AF"
                 style={s.searchInput}
                 autoFocus
               />
@@ -183,7 +183,7 @@ export const PhoneInput = React.forwardRef<RNTextInput, {
 
 const s = StyleSheet.create({
   label: {
-    color: 'rgba(255,255,255,0.55)', fontFamily: FONTS.bold,
+    color: '#374151', fontFamily: FONTS.bold,
     fontSize: 11, letterSpacing: 1, textTransform: 'uppercase',
     marginBottom: 6,
   },
@@ -191,45 +191,45 @@ const s = StyleSheet.create({
   cc: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, height: 48,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E5E7EB', borderWidth: 1, borderRadius: 12,
     minWidth: 100,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  codeText: { color: '#FFF', fontFamily: FONTS.med, fontSize: 14, marginLeft: 2, marginRight: 2 },
-  flag: { fontSize: 16, color: '#FFF' },
+  codeText: { color: '#111827', fontFamily: FONTS.med, fontSize: 14, marginLeft: 2, marginRight: 2 },
+  flag: { fontSize: 16, color: '#111827' },
   dial: {
-    color: '#FFF', fontFamily: FONTS.med, fontSize: 14,
+    color: '#111827', fontFamily: FONTS.med, fontSize: 14,
     transform: [{ translateY: -2 }],
   },
   num: { flex: 1 },
   input: {
-    color: '#FFF', fontFamily: FONTS.med, fontSize: 14,
+    color: '#111827', fontFamily: FONTS.med, fontSize: 14,
     paddingHorizontal: 14, height: 48,
     paddingVertical: 0,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E5E7EB', borderWidth: 1, borderRadius: 12,
     ...(Platform.OS === 'web' ? ({ outlineWidth: 0, outlineStyle: 'none' } as any) : {}),
   },
   helper: {
-    color: 'rgba(255,255,255,0.45)', fontFamily: FONTS.med,
+    color: '#9CA3AF', fontFamily: FONTS.med,
     fontSize: 11.5, marginTop: 6,
   },
   dropdown: {
     position: 'absolute', top: 52, left: 0, width: 280,
-    backgroundColor: '#1A1625',
-    borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E5E7EB', borderWidth: 1,
     borderRadius: 12, paddingVertical: 6,
     zIndex: 100,
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 12px 32px rgba(0,0,0,0.55)' } as any) : { elevation: 12 }),
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 12px 32px rgba(0,0,0,0.1)' } as any) : { elevation: 12 }),
   },
   searchRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 12, paddingVertical: 8,
-    borderBottomColor: 'rgba(255,255,255,0.08)', borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB', borderBottomWidth: 1,
   },
   searchInput: {
-    flex: 1, color: '#FFF', fontFamily: FONTS.med, fontSize: 13,
+    flex: 1, color: '#111827', fontFamily: FONTS.med, fontSize: 13,
     ...(Platform.OS === 'web' ? ({ outlineWidth: 0, outlineStyle: 'none' } as any) : {}),
   },
   item: {
@@ -237,7 +237,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 8,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  itemHover: { backgroundColor: 'rgba(124,58,237,0.14)' },
-  itemName: { flex: 1, color: '#F3F4F6', fontFamily: FONTS.med, fontSize: 13 },
-  itemDial: { color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.bold, fontSize: 12 },
+  itemHover: { backgroundColor: '#F3F4F6' },
+  itemName: { flex: 1, color: '#111827', fontFamily: FONTS.med, fontSize: 13 },
+  itemDial: { color: '#6B7280', fontFamily: FONTS.bold, fontSize: 12 },
 });
