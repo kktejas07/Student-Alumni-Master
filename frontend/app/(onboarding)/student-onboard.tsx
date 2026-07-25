@@ -346,20 +346,16 @@ export default function StudentOnboard() {
                 <Text style={s.previewVal}>{name || 'New Student'}</Text>
               </View>
               <View style={[s.previewRow, { flex: 1, minWidth: 120 }]}>
-                <Text style={s.previewLabel}>College</Text>
-                <Text style={s.previewVal} numberOfLines={1}>{college || 'Not picked yet'}</Text>
-              </View>
-              <View style={[s.previewRow, { flex: 1, minWidth: 120 }]}>
                 <Text style={s.previewLabel}>Education</Text>
                 <Text style={s.previewVal}>{EDU_LEVELS.find(e => e.id === edu)?.label || 'Not picked yet'}</Text>
               </View>
               <View style={[s.previewRow, { flex: 1, minWidth: 120 }]}>
-                <Text style={s.previewLabel}>Career Path</Text>
-                <Text style={s.previewVal}>{CAREER_PATHS.find(p => p.id === careerPath)?.title || 'Not picked yet'}</Text>
+                <Text style={s.previewLabel}>Institution</Text>
+                <Text style={s.previewVal} numberOfLines={1}>{college || 'Not picked yet'}</Text>
               </View>
               <View style={[s.previewRow, { flex: 1, minWidth: 120 }]}>
-                <Text style={s.previewLabel}>Badge Tier</Text>
-                <Text style={s.previewVal}>{badge.tier} Member</Text>
+                <Text style={s.previewLabel}>Career Path</Text>
+                <Text style={s.previewVal}>{CAREER_PATHS.find(p => p.id === careerPath)?.title || 'Not picked yet'}</Text>
               </View>
               {/* Invisible spacer to fix flex: 1 alignment on the last row */}
               <View style={{ flex: 1, minWidth: 120 }} />
@@ -432,6 +428,7 @@ export default function StudentOnboard() {
                       onChange={setGradYear}
                       placeholder="Select year"
                       testID="grad-year-dropdown"
+                      allowOther={false}
                     />
                   )}
                 </View>

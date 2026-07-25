@@ -139,7 +139,14 @@ export const PhoneInput = React.forwardRef<RNTextInput, {
         </View>
 
         {pickerOpen && (
-          <View style={s.dropdown}>
+          <>
+            {Platform.OS === 'web' && (
+              <Pressable
+                style={{ position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 99 }}
+                onPress={() => setPickerOpen(false)}
+              />
+            )}
+            <View style={s.dropdown}>
             <View style={s.searchRow}>
               <Search size={14} color="rgba(255,255,255,0.5)" />
               <RNTextInput
@@ -166,6 +173,7 @@ export const PhoneInput = React.forwardRef<RNTextInput, {
               ))}
             </ScrollView>
           </View>
+          </>
         )}
       </View>
       {helper ? <Text style={s.helper}>{helper}</Text> : null}

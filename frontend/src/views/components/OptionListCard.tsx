@@ -33,6 +33,7 @@ export function OptionListCard({
   emptyLabel = 'No matches',
   loading = false,
   width,
+  maxHeight,
   style,
 }: {
   headerLabel?: string;
@@ -45,6 +46,7 @@ export function OptionListCard({
   emptyLabel?: string;
   loading?: boolean;
   width?: number | string;
+  maxHeight?: number;
   style?: any;
 }) {
   const { primary } = useRoleTheme();
@@ -57,7 +59,7 @@ export function OptionListCard({
         <View style={styles.empty}><Text style={styles.emptyText}>{emptyLabel}</Text></View>
       ) : (
         <>
-          <ScrollView style={styles.scroll} nestedScrollEnabled={true} showsVerticalScrollIndicator={true}>
+          <ScrollView style={[styles.scroll, { maxHeight: maxHeight || 260 }]} nestedScrollEnabled={true} showsVerticalScrollIndicator={false}>
             {options.map((opt) => {
               const isSelected = opt.value === selectedValue;
               return (
@@ -121,9 +123,9 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web'
       ? ({
           userSelect: 'none' as any,
-          // Subtle inner gradient + purple outer glow per reference.
+          // Subtle inner gradient + neutral outer shadow.
           backgroundImage: 'linear-gradient(180deg, #1A0E2E 0%, #0A0512 100%)' as any,
-          boxShadow: '0px 16px 60px rgba(91,33,182,0.45), 0px 0px 0px 1px rgba(176,127,223,0.18) inset' as any,
+          boxShadow: '0px 16px 60px rgba(0,0,0,0.65), 0px 0px 0px 1px rgba(255,255,255,0.08) inset' as any,
         } as any)
       : { elevation: 12 }),
   },
@@ -175,6 +177,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   scroll: {
-    maxHeight: 220,
   },
 });

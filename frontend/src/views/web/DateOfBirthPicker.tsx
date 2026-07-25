@@ -256,6 +256,7 @@ export function DateOfBirthPicker({
             maxLength={2}
             inputRef={dayRef}
             onBlur={handleDayBlur}
+            inline
           />
         </View>
         <View style={{ flex: 1.4 }}>
@@ -272,6 +273,7 @@ export function DateOfBirthPicker({
             maxLength={12}
             inputRef={monthRef}
             onBlur={handleMonthBlur}
+            inline
           />
         </View>
         <View style={{ flex: 1 }}>
@@ -287,6 +289,7 @@ export function DateOfBirthPicker({
             keyboardType="number-pad"
             maxLength={4}
             inputRef={yearRef}
+            inline
           />
         </View>
       </View>
@@ -317,7 +320,7 @@ export function isDobValid(iso: string, minAge = 18): { ok: boolean; message?: s
 const styles = StyleSheet.create({
   wrap: { marginBottom: 14 },
   label: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 13, marginBottom: 8 },
-  row: { flexDirection: 'row', gap: 8 },
+  row: { flexDirection: 'row', gap: 8, zIndex: 10, position: 'relative' },
   err: { color: '#EF4444', fontFamily: 'DMSans_500Medium', fontSize: 12, marginTop: 4 },
   helper: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium', fontSize: 12, marginTop: 4 },
 });
