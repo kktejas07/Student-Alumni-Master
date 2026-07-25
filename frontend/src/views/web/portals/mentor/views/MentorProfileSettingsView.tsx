@@ -1969,7 +1969,7 @@ export function MentorProfileSettingsView({
               <SidebarStatRow Icon={UsersRound} label="Active Mentees" value="18" color="#3B82F6" />
               <SidebarStatRow Icon={Eye} label="Profile Views" value="1,248" color={MC.tealP} />
               <SidebarStatRow Icon={Star} label="Avg Rating" value="4.9★" color="#F59E0B" />
-              <SidebarStatRow Icon={IndianRupee} label="Earnings (Month)" value="₹28,500" color="#22C55E" isLast />
+              <SidebarStatRow Icon={IndianRupee} label="Earnings (Month)" value="₹500" color="#22C55E" isLast />
             </View>
           </View>
 
