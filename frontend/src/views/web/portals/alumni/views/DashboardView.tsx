@@ -27,7 +27,7 @@ import { LiveStrip } from '@/src/views/web/LiveStrip';
 import { request } from '@/src/models/services/api';
 import { AdBanner } from '@/src/views/web/components/AdBanner';
 
-const KPI_ICONS = { matches: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp } as const;
+const KPI_ICONS = { matches: Briefcase, applications: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp, events: Calendar } as const;
 
 const STUDENT_MOCK = {
   student: MOCK.STUDENT,

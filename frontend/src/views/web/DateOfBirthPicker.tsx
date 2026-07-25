@@ -316,8 +316,8 @@ export function isDobValid(iso: string, minAge = 18): { ok: boolean; message?: s
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: 14 },
-  label: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 13, marginBottom: 8 },
+  label: { color: '#374151', fontFamily: 'DMSans_700Bold', fontSize: 13, marginBottom: 8 },
   row: { flexDirection: 'row', gap: 8 },
   err: { color: '#EF4444', fontFamily: 'DMSans_500Medium', fontSize: 12, marginTop: 4 },
-  helper: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium', fontSize: 12, marginTop: 4 },
+  helper: { color: '#9CA3AF', fontFamily: 'DMSans_500Medium', fontSize: 12, marginTop: 4 },
 });

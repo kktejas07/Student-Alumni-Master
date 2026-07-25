@@ -173,7 +173,7 @@ export function Dropdown({
               onChange(t);
             }}
             placeholder={placeholder}
-            placeholderTextColor="rgba(255,255,255,0.4)"
+            placeholderTextColor="#9CA3AF"
             style={s.editableInput}
             keyboardType={Platform.OS === 'web' ? 'default' : keyboardType}
             maxLength={maxLength}
@@ -190,7 +190,7 @@ export function Dropdown({
             testID={testID}
           />
           <Pressable onPress={() => setOpen(true)} style={s.chevronPressable}>
-            <ChevronDown size={18} color="rgba(255,255,255,0.6)" />
+            <ChevronDown size={18} color="#9CA3AF" />
           </Pressable>
         </View>
       ) : showingManual ? (
@@ -199,7 +199,7 @@ export function Dropdown({
             value={manualText || value || ''}
             onChangeText={(t) => { setManualText(t); onChange(t); }}
             placeholder={`Please enter your ${label?.toLowerCase() || 'value'}`}
-            placeholderTextColor="rgba(255,255,255,0.32)"
+            placeholderTextColor="#9CA3AF"
             style={s.manualInput}
             autoCapitalize="words"
             testID={testID}
@@ -208,7 +208,7 @@ export function Dropdown({
             onPress={() => { setManualMode(false); setManualText(''); onChange(''); setOpen(true); }}
             style={s.editPill}
           >
-            <ChevronDown size={14} color="#FFF" />
+            <ChevronDown size={14} color="#111827" />
             <Text style={s.editPillText}>Pick</Text>
           </Pressable>
         </View>
@@ -224,7 +224,7 @@ export function Dropdown({
           ]}
         >
           <Text style={[s.triggerText, !sel && s.triggerPlaceholder]} numberOfLines={1}>{triggerLabel}</Text>
-          <ChevronDown size={18} color="rgba(255,255,255,0.6)" />
+          <ChevronDown size={18} color="#9CA3AF" />
         </Pressable>
       )}
 
@@ -280,25 +280,25 @@ export function Dropdown({
 }
 
 const s = StyleSheet.create({
-  label: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 13, marginBottom: 8 },
-  optional: { color: 'rgba(255,255,255,0.45)', fontFamily: 'DMSans_500Medium', fontSize: 11 },
+  label: { color: '#374151', fontFamily: 'DMSans_700Bold', fontSize: 13, marginBottom: 8 },
+  optional: { color: '#9CA3AF', fontFamily: 'DMSans_500Medium', fontSize: 11 },
   triggerRow: {
     flexDirection: 'row', alignItems: 'center',
     height: 48,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 14,
     gap: 10,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
   },
-  triggerText: { flex: 1, color: '#FFFFFF', fontFamily: 'DMSans_500Medium', fontSize: 14 },
-  triggerPlaceholder: { color: 'rgba(255,255,255,0.4)' },
+  triggerText: { flex: 1, color: '#111827', fontFamily: 'DMSans_500Medium', fontSize: 14 },
+  triggerPlaceholder: { color: '#9CA3AF' },
   manualInput: {
     flex: 1,
     minWidth: 0,
-    color: '#FFF',
+    color: '#111827',
     fontSize: 14,
     fontFamily: 'DMSans_500Medium',
     ...(Platform.OS === 'web' ? ({ outlineWidth: 0 } as any) : {}),
@@ -306,7 +306,7 @@ const s = StyleSheet.create({
   editableInput: {
     flex: 1,
     minWidth: 0,
-    color: '#FFF',
+    color: '#111827',
     fontSize: 14,
     fontFamily: 'DMSans_500Medium',
     padding: 0,
@@ -326,7 +326,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 4,
     flexShrink: 0,
   },
-  editPillText: { color: '#FFF', fontFamily: 'DMSans_700Bold', fontSize: 11 },
+  editPillText: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 11 },
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.55)',

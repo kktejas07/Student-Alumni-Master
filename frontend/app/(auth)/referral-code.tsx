@@ -84,7 +84,7 @@ export default function ReferralCode() {
         }}
         style={s.back}
       >
-        <ArrowLeft size={16} color={AC.muted} />
+        <ArrowLeft size={16} color="#6B7280" />
         <Text style={s.backText}>Back</Text>
       </Pressable>
 
@@ -120,7 +120,7 @@ export default function ReferralCode() {
 
 const s = StyleSheet.create({
   back: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 14 },
-  backText: { color: AC.muted, fontFamily: FONTS.med, fontSize: 13 },
+  backText: { color: '#374151', fontFamily: FONTS.med, fontSize: 13 },
   giftWrap: { alignItems: 'center', marginBottom: 20 },
   giftCircle: {
     width: 72, height: 72, borderRadius: 36,
@@ -129,9 +129,9 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   head: { marginBottom: 20, alignItems: 'center' },
-  title: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 26, marginBottom: 8, textAlign: 'center' },
+  title: { color: '#111827', fontFamily: FONTS.bold, fontSize: 26, marginBottom: 8, textAlign: 'center' },
   sub: {
-    color: 'rgba(255,255,255,0.6)', fontFamily: FONTS.med, fontSize: 14,
+    color: '#6B7280', fontFamily: FONTS.med, fontSize: 14,
     lineHeight: 20, textAlign: 'center', paddingHorizontal: 10,
   },
 });

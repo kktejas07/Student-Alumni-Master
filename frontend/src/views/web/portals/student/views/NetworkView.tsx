@@ -388,7 +388,7 @@ export function NetworkView() {
       const kind = p.kind || 'student';
       const name = p.name || 'Anonymous';
       const initials = p.initials || (name.split(' ').slice(0, 2).map((part: string) => part[0] || '').join('').toUpperCase());
-      const color = p.color || '#8B5CF6';
+      const color = p.color || '#6366F1';
       
       let tag = 'Student';
       if (kind === 'alumni') tag = 'Alumni';

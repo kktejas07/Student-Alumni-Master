@@ -70,7 +70,7 @@ export function Navbar() {
               Sign in
             </button>
             <button 
-              onClick={() => router.push('/(auth)/email-detect')}
+              onClick={() => router.push('/get-started')}
               className="group relative overflow-hidden rounded-full bg-primary px-5 py-2 text-xs font-bold text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] cursor-pointer"
             >
               Get Started

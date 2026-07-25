@@ -4,7 +4,7 @@
  * EmbeddedShellContext (no router redirects).
  */
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import { View, ScrollView, StyleSheet , Platform} from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useAutoTour } from '@/src/views/web/tour/TourProvider';
@@ -12,8 +12,8 @@ import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 import { SC } from './tokens';
 import { Sidebar, StudentNavId } from './Sidebar';
 import { TopBar } from './TopBar';
-import { AnimatedAurora, GridOverlay } from '../student/glass';
 import { LinearGradient } from 'expo-linear-gradient';
+import { StarryBackground } from '@/src/views/web/nexus-glow-landing/StarryBackground';
 import { DashboardFooter } from '../../components/SponsorStrip';
 import { PromoBanner } from '../../components/PromoBanner';
 import { DashboardView } from './views/DashboardView';
@@ -71,15 +71,19 @@ export function AlumniPortalRN() {
 
   return (
     <View style={s.shell}>
-      {/* FinTax360 Jewel-glass canvas */}
-      <LinearGradient
-        pointerEvents="none"
-        colors={['#0a0f1e', '#131938']}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject as any}
-      />
-      <AnimatedAurora intensity="normal" />
-      <GridOverlay />
+      {/* Landing Page Starry Background */}
+      {Platform.OS === 'web' ? (
+        <View style={StyleSheet.absoluteFillObject}>
+          <StarryBackground />
+        </View>
+      ) : (
+        <LinearGradient
+          pointerEvents="none"
+          colors={['#030614', '#040816']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject as any}
+        />
+      )}
 
       <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0 }}>
@@ -116,8 +120,8 @@ export function AlumniPortalRN() {
             {active === 'rentals'         && <RentalsPage />}
             {active === 'profile'         && <ProfileSettingsView />}
           </EmbeddedShellContext.Provider>
+          <DashboardFooter portal="alumni" />
         </ScrollView>
-        <DashboardFooter portal="alumni" />
         </AlumniPortalNavContext.Provider>
       </View>
     </View>

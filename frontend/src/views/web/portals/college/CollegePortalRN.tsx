@@ -9,8 +9,8 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { CC } from './tokens';
 import { Sidebar, CollegeNavId, NAV } from './Sidebar';
 import { TopBar } from './TopBar';
-import { AnimatedAurora, GridOverlay } from '../student/glass';
 import { LinearGradient } from 'expo-linear-gradient';
+import { StarryBackground } from '@/src/views/web/nexus-glow-landing/StarryBackground';
 import { DashboardFooter } from '../../components/SponsorStrip';
 import { PromoBanner } from '../../components/PromoBanner';
 import { DashboardView } from './views/DashboardView';
@@ -59,15 +59,19 @@ export function CollegePortalRN() {
 
   return (
     <View style={s.shell}>
-      {/* FinTax360 Jewel-glass canvas */}
-      <LinearGradient
-        pointerEvents="none"
-        colors={['#0a0f1e', '#131938']}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject as any}
-      />
-      <AnimatedAurora intensity="normal" />
-      <GridOverlay />
+      {/* Landing Page Starry Background */}
+      {Platform.OS === 'web' ? (
+        <View style={StyleSheet.absoluteFillObject}>
+          <StarryBackground />
+        </View>
+      ) : (
+        <LinearGradient
+          pointerEvents="none"
+          colors={['#030614', '#040816']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject as any}
+        />
+      )}
 
       <Sidebar active={active} onNav={setActive} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0, flexDirection: 'row' }}>

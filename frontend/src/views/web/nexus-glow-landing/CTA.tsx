@@ -46,7 +46,7 @@ export function CTA() {
             
             <div className="mt-12 flex justify-center w-full">
               <button 
-                onClick={() => router.push('/(auth)/email-detect')}
+                onClick={() => router.push('/get-started')}
                 className="group relative inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground px-8 py-4 text-base font-bold transition-all hover:scale-105 hover:bg-primary/90 w-full sm:w-auto overflow-hidden cursor-pointer"
               >
                 {/* Shine effect on hover */}

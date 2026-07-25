@@ -412,7 +412,7 @@ export default function SchoolInfoScreen() {
           <Switch
             value={!!school_info.address_manual}
             onValueChange={toggleManualAddress}
-            trackColor={{ false: 'rgba(255,255,255,0.18)', true: 'rgba(124,58,237,0.55)' }}
+            trackColor={{ false: '#E5E7EB', true: 'rgba(124,58,237,0.55)' }}
             thumbColor={school_info.address_manual ? '#A78BFA' : '#9CA3AF'}
             testID="school-address-toggle"
           />
@@ -480,7 +480,7 @@ export default function SchoolInfoScreen() {
 
 const styles = StyleSheet.create({
   section: {
-    color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_700Bold',
+    color: '#6B7280', fontFamily: 'DMSans_700Bold',
     fontSize: 11, letterSpacing: 1, textTransform: 'uppercase',
     marginTop: 4, marginBottom: 8,
   },
@@ -499,17 +499,17 @@ const styles = StyleSheet.create({
   },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   toggleLabel: {
-    color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_500Medium',
+    color: '#6B7280', fontFamily: 'DMSans_500Medium',
     fontSize: 11.5, letterSpacing: 0.4,
   },
 
   addressCard: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+    borderColor: '#E5E7EB', borderWidth: 1, borderRadius: 12,
     padding: 14, marginBottom: 14,
   },
   addressLine: {
-    color: '#FFFFFF', fontFamily: 'DMSans_500Medium', fontSize: 13, lineHeight: 18,
+    color: '#111827', fontFamily: 'DMSans_500Medium', fontSize: 13, lineHeight: 18,
     marginBottom: 4,
   },
   addressCityState: {
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   addressEmpty: {
-    color: 'rgba(255,255,255,0.45)', fontFamily: 'DMSans_400Regular', fontSize: 12.5,
+    color: '#9CA3AF', fontFamily: 'DMSans_400Regular', fontSize: 12.5,
   },
 
   hint: { color: 'rgba(255,255,255,0.40)', fontFamily: 'DMSans_400Regular', fontSize: 11.5, marginTop: 4 },

@@ -61,14 +61,14 @@ export const NX = {
 // primary CTA / chip / active-rail / hover-border colour shifts per
 // portal so users can tell which portal they're in at a glance.
 export const PORTAL_ACCENTS = {
-  // Student — Violet (FinTax360 flagship)
-  student: { primary: '#8B5CF6', primaryD: '#7C3AED', primaryL: '#A78BFA', accent: '#8B5CF6', accentSoft: 'rgba(139,92,246,0.18)' },
-  // Alumni — LinkedIn Blue ("professional network")
-  alumni:  { primary: '#3B82F6', primaryD: '#1D4ED8', primaryL: '#60A5FA', accent: '#3B82F6', accentSoft: 'rgba(59,130,246,0.18)' },
-  // College — Indigo ("academic prestige")
-  college: { primary: '#6366F1', primaryD: '#4338CA', primaryL: '#818CF8', accent: '#6366F1', accentSoft: 'rgba(99,102,241,0.18)' },
-  // Mentor — Teal ("wisdom + calm")
-  mentor:  { primary: '#14B8A6', primaryD: '#0F766E', primaryL: '#5EEAD4', accent: '#14B8A6', accentSoft: 'rgba(20,184,166,0.18)' },
+  // Student — Indigo
+  student: { primary: '#6366F1', primaryD: '#4F46E5', primaryL: '#818CF8', accent: '#6366F1', accentSoft: 'rgba(99,102,241,0.18)' },
+  // Alumni — Indigo
+  alumni:  { primary: '#6366F1', primaryD: '#4F46E5', primaryL: '#818CF8', accent: '#6366F1', accentSoft: 'rgba(99,102,241,0.18)' },
+  // College — Indigo
+  college: { primary: '#6366F1', primaryD: '#4F46E5', primaryL: '#818CF8', accent: '#6366F1', accentSoft: 'rgba(99,102,241,0.18)' },
+  // Mentor — Indigo
+  mentor:  { primary: '#6366F1', primaryD: '#4F46E5', primaryL: '#818CF8', accent: '#6366F1', accentSoft: 'rgba(99,102,241,0.18)' },
   // Super Admin — Amber (NexusOS / Apple HIG warmth)
   admin:   { primary: '#F59E0B', primaryD: '#D97706', primaryL: '#FBBF24', accent: '#F59E0B', accentSoft: 'rgba(245,158,11,0.18)' },
 } as const;

@@ -8,7 +8,7 @@
  * • All existing routing, state, props, API calls preserved 1:1
  */
 import React, { useState, createContext, useContext } from 'react';
-import { View, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { View, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
@@ -38,6 +38,7 @@ import { MyWorkshopsView } from './views/MyWorkshopsView';
 import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 
 import { StudentPortalNavContext, useStudentPortalNav } from './StudentPortalNavContext';
+import { StarryBackground } from '@/src/views/web/nexus-glow-landing/StarryBackground';
 
 // Feature pages imported as components for inline rendering
 import CoursesPage from '@/app/courses';
@@ -99,19 +100,20 @@ function PortalShell() {
   const padH = bp.isPhone ? SP.base : bp.atLeast('xl') ? SP.xxl : SP.lg;
 
   return (
-    <View style={[s.shell, { backgroundColor: PALETTE.bg0 }]}>
-      {/* Body gradient — deep navy → midnight (per FinTax360 Jewel spec) */}
-      <LinearGradient
-        pointerEvents="none"
-        colors={[PALETTE.bg0, PALETTE.bg2]}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject as any}
-      />
-      {/* Animated multicolor aurora behind everything */}
-      <AnimatedAurora intensity="normal" />
-      {/* 64px grid overlay (web only, radial-fade masked) */}
-      <GridOverlay />
-
+    <View style={[s.shell, { backgroundColor: '#030614' }]}>
+      {/* Landing Page Starry Background */}
+      {Platform.OS === 'web' ? (
+        <View style={StyleSheet.absoluteFillObject}>
+          <StarryBackground />
+        </View>
+      ) : (
+        <LinearGradient
+          pointerEvents="none"
+          colors={['#030614', '#040816']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject as any}
+        />
+      )}
       <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0, flexDirection: 'row' }}>
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -143,8 +145,8 @@ function PortalShell() {
                   {active === 'profile'         && <ProfileSettingsView />}
                 </RouteTransition>
               </EmbeddedShellContext.Provider>
+              <DashboardFooter portal="student" />
             </ScrollView>
-            <DashboardFooter portal="student" />
           </StudentPortalNavContext.Provider>
 
           {/* Global AI Copilot FAB — visible on every Student screen */}
