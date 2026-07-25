@@ -248,10 +248,10 @@ export default function LoginScreen() {
         <Text style={s.sub}>Sign in to continue your journey on Student Alumni</Text>
       </View>
 
-      {/* OAuth column */}
-      <View style={s.oauthCol}>
+      {/* OAuth row */}
+      <View style={s.oauthRow}>
         {oauthCfg?.enable_google_login !== false && (
-          <OutlineButton label="Continue with Google" testID="login-google" icon={<GoogleG size={16} />} onPress={async () => {
+          <DarkSocialButton label="Google" testID="login-google" icon={<GoogleG size={16} />} onPress={async () => {
             try {
               if (oauthCfg?.firebase && Platform.OS === 'web') {
                 const result = await signInWithGoogle();
@@ -281,7 +281,7 @@ export default function LoginScreen() {
           }} />
         )}
         {oauthCfg?.enable_linkedin_login !== false && (
-          <OutlineButton label="Continue with LinkedIn" testID="login-linkedin" icon={<LinkedInIn size={16} />} onPress={() => {
+          <DarkSocialButton label="LinkedIn" testID="login-linkedin" icon={<LinkedInIn size={16} />} onPress={() => {
             if (oauthCfg?.linkedin_client_id && Platform.OS === 'web') {
               const state = `linkedin_${Math.random().toString(36).slice(2)}`;
               const url = `https://www.linkedin.com/oauth/v2/authorization?client_id=${oauthCfg.linkedin_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri!)}&response_type=code&scope=openid%20email%20profile&state=${state}`;
@@ -292,7 +292,7 @@ export default function LoginScreen() {
           }} />
         )}
         {oauthCfg?.enable_github_login !== false && (
-          <OutlineButton label="Continue with GitHub" testID="login-github" icon={<GitHubCat size={16} />} onPress={async () => {
+          <DarkSocialButton label="GitHub" testID="login-github" icon={<GitHubCat size={16} />} onPress={async () => {
             try {
               if (oauthCfg?.firebase && Platform.OS === 'web') {
                 const result = await signInWithGitHub();
