@@ -3382,7 +3382,7 @@ async def mentor_connections(email: Optional[str] = None):
             }
         elif completed_sessions > 0:
             last_session = {
-                "date": (now - timedelta(days=14)).strftime("%b %d, %Y"),
+                "date": (now_naive - timedelta(days=14)).strftime("%b %d, %Y"),
                 "notes": "Discussed system architecture design and distributed cache bottlenecks."
             }
 
