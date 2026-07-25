@@ -29,11 +29,7 @@ export function Navbar() {
         >
           {/* Logo */}
           <a href="#" className="flex items-center gap-3">
-            <img
-              src="/sa-icon.png"
-              alt="StudentAlumni Logo"
-              className="h-8 w-8 object-contain shrink-0 drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]"
-            />
+            <SALogo size={32} variant="gradient" />
             <span className="text-sm font-bold tracking-wide text-white">
               StudentAlumni
             </span>
