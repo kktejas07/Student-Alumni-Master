@@ -3,6 +3,7 @@ import os
 import random
 import re
 import logging
+import asyncio
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Any, Dict
 
@@ -966,9 +967,6 @@ async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
 # ----------------------------------------------------------------------------
 @router.get("/users/me/completion")
 async def get_my_completion(user: dict = Depends(get_current_user)):
-    user_db = await db.users.find_one({"_id": user["_id"]}, {"resume_documents": 1})
-    if user_db:
-        user["resume_documents"] = user_db.get("resume_documents") or []
     return compute_profile_completion(user)
 
 
@@ -976,71 +974,92 @@ async def get_my_completion(user: dict = Depends(get_current_user)):
 async def get_my_stats(user: dict = Depends(get_current_user)):
     uid = str(user.get("id") or user.get("_id"))
 
-    # Sessions completed (mentor sessions where user was mentee/mentor and status=completed)
-    sessions_completed = 0
-    mentor_sessions = 0
-    try:
-        sessions_completed = await db.mentor_sessions.count_documents({
-            "$or": [{"mentor_id": uid}, {"mentee_id": uid}],
-            "status": {"$in": ["completed", "done", "finished"]},
-        })
-        mentor_sessions = await db.mentor_sessions.count_documents({
-            "mentee_id": uid,
-            "status": {"$in": ["scheduled", "confirmed", "upcoming", "completed"]},
-        })
-    except Exception:
-        sessions_completed = int(user.get("sessions_completed") or user.get("sessions") or 0)
-        mentor_sessions = int(user.get("mentor_sessions") or 0)
+    # Helper async queries for parallel execution
+    async def _get_sessions_completed():
+        try:
+            return await db.mentor_sessions.count_documents({
+                "$or": [{"mentor_id": uid}, {"mentee_id": uid}],
+                "status": {"$in": ["completed", "done", "finished"]},
+            })
+        except Exception:
+            return int(user.get("sessions_completed") or user.get("sessions") or 0)
 
-    # Connections made
-    connections_made = 0
-    try:
-        connections_made = await db.connections.count_documents({
-            "$or": [{"from_id": uid}, {"to_id": uid}],
-            "status": "accepted",
-        })
-    except Exception:
-        connections_made = int(user.get("connections_made") or 0)
+    async def _get_mentor_sessions():
+        try:
+            return await db.mentor_sessions.count_documents({
+                "mentee_id": uid,
+                "status": {"$in": ["scheduled", "confirmed", "upcoming", "completed"]},
+            })
+        except Exception:
+            return int(user.get("mentor_sessions") or 0)
 
-    # Profile views (counter incremented elsewhere; fallback to user field)
+    async def _get_connections_made():
+        try:
+            return await db.connections.count_documents({
+                "$or": [{"from_id": uid}, {"to_id": uid}],
+                "status": "accepted",
+            })
+        except Exception:
+            return int(user.get("connections_made") or 0)
+
+    async def _get_applications_sent():
+        try:
+            return await db.applications.count_documents({"user_id": uid})
+        except Exception:
+            return int(user.get("applications_sent") or 0)
+
+    async def _get_rating_info():
+        avg_rating = 0.0
+        rating_count = 0
+        try:
+            rating_pipeline = [
+                {"$match": {"mentor_id": uid, "rating": {"$gte": 1}}},
+                {"$group": {"_id": None, "avg": {"$avg": "$rating"}, "n": {"$sum": 1}}},
+            ]
+            async for doc in db.feedback.aggregate(rating_pipeline):
+                avg_rating = round(float(doc.get("avg") or 0), 2)
+                rating_count = int(doc.get("n") or 0)
+        except Exception:
+            avg_rating = float(user.get("rating_avg") or 0)
+            rating_count = int(user.get("rating_count") or 0)
+        return avg_rating, rating_count
+
+    async def _get_earnings_this_month():
+        earnings = 0
+        try:
+            now = _dt.utcnow()
+            earnings_pipeline = [
+                {"$match": {
+                    "user_id": uid, "type": "earning",
+                    "created_at": {"$gte": _dt(now.year, now.month, 1)},
+                }},
+                {"$group": {"_id": None, "total": {"$sum": "$amount"}}},
+            ]
+            async for doc in db.payments.aggregate(earnings_pipeline):
+                earnings = int(doc.get("total") or 0)
+        except Exception:
+            earnings = int(user.get("earnings_this_month") or 0)
+        return earnings
+
+    # Execute all queries concurrently
+    (
+        sessions_completed,
+        mentor_sessions,
+        connections_made,
+        applications_sent,
+        (avg_rating, rating_count),
+        earnings_this_month,
+    ) = await asyncio.gather(
+        _get_sessions_completed(),
+        _get_mentor_sessions(),
+        _get_connections_made(),
+        _get_applications_sent(),
+        _get_rating_info(),
+        _get_earnings_this_month(),
+    )
+
     profile_views = int(user.get("profile_views") or 0)
 
-    # Applications sent (internship/job applications)
-    applications_sent = 0
-    try:
-        applications_sent = await db.applications.count_documents({"user_id": uid})
-    except Exception:
-        applications_sent = int(user.get("applications_sent") or 0)
-
-    # Mentor-specific aggregates (rating + monthly earnings) — cheap if collections empty
-    avg_rating = 0.0
-    rating_count = 0
-    earnings_this_month = 0
-    try:
-        rating_pipeline = [
-            {"$match": {"mentor_id": uid, "rating": {"$gte": 1}}},
-            {"$group": {"_id": None, "avg": {"$avg": "$rating"}, "n": {"$sum": 1}}},
-        ]
-        async for doc in db.feedback.aggregate(rating_pipeline):
-            avg_rating = round(float(doc.get("avg") or 0), 2)
-            rating_count = int(doc.get("n") or 0)
-    except Exception:
-        avg_rating = float(user.get("rating_avg") or 0)
-        rating_count = int(user.get("rating_count") or 0)
-
-    try:
-        now = _dt.utcnow()
-        earnings_pipeline = [
-            {"$match": {
-                "user_id": uid, "type": "earning",
-                "created_at": {"$gte": _dt(now.year, now.month, 1)},
-            }},
-            {"$group": {"_id": None, "total": {"$sum": "$amount"}}},
-        ]
-        async for doc in db.payments.aggregate(earnings_pipeline):
-            earnings_this_month = int(doc.get("total") or 0)
-    except Exception:
-        earnings_this_month = int(user.get("earnings_this_month") or 0)
 
     # Compute skill_streak based on consecutive days of activity in the last 30 days
     skill_streak = 0

@@ -28,6 +28,7 @@ Public API:
 from __future__ import annotations
 
 import os
+import time
 import re
 import asyncio
 import hashlib
@@ -475,6 +476,8 @@ def _get_current_user_dependency():
     return get_current_user
 
 
+_feed_cache: Dict[str, Tuple[float, Dict[str, Any]]] = {}
+
 @router.get("/jobs/feed")
 async def jobs_feed(
     type: Optional[str] = Query(None, description="Internship | Full-time | Contract"),
@@ -488,6 +491,27 @@ async def jobs_feed(
     user: dict = Depends(_get_current_user_dependency()),
 ):
     """Aggregated live job feed. Tier-filtered by user's year automatically."""
+    u_role = user.get("role") or "student"
+    u_year = (user.get("school_info") or {}).get("class_or_year") or user.get("class_or_year") or ""
+    c_key = f"jobs_feed_{u_role}_{u_year}_t{type}_wm{work_mode}_q{q}_l{location}_s{source}_p{page}_pp{per_page}"
+    now_t = time.time() if "time" in globals() else datetime.now(timezone.utc).timestamp()
+    
+    if not refresh and c_key in _feed_cache:
+        t_c, cached_res = _feed_cache[c_key]
+        if now_t - t_c < 60:  # 60-second TTL
+            # Update user-specific saved/applied state on cached feed
+            saved_ids = set((user or {}).get("saved_jobs") or [])
+            applied_ids = set((user or {}).get("applied_jobs") or [])
+            cached_res_copy = dict(cached_res)
+            cached_items = []
+            for it in cached_res.get("items", []):
+                item_copy = dict(it)
+                item_copy["saved"] = item_copy.get("job_id") in saved_ids
+                item_copy["applied"] = item_copy.get("job_id") in applied_ids
+                cached_items.append(item_copy)
+            cached_res_copy["items"] = cached_items
+            return cached_res_copy
+
     refresh_stats = None
     if refresh or not await _has_fresh_cache():
         refresh_stats = await fetch_and_cache_all()
@@ -551,7 +575,7 @@ async def jobs_feed(
         it["saved"] = it["job_id"] in saved_ids
         it["applied"] = it["job_id"] in applied_ids
 
-    return {
+    res = {
         "items": items,
         "total": total,
         "page": page,
@@ -562,6 +586,8 @@ async def jobs_feed(
         "refresh_stats": refresh_stats,
         "fetched_at": datetime.now(timezone.utc).isoformat(),
     }
+    _feed_cache[c_key] = (time.time(), res)
+    return res
 
 
 @router.post("/jobs/save")

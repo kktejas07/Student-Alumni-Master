@@ -2178,8 +2178,8 @@ async def student_events_list(
         cur1 = _db.events.find({}, projection)
         cur2 = _db.events_v2.find({}, projection)
         
-        raw_list1 = await cur1.to_list(length=1000)
-        raw_list2 = await cur2.to_list(length=1000)
+        raw_list1 = await cur1.to_list(length=150)
+        raw_list2 = await cur2.to_list(length=150)
         
         all_events = []
         seen_titles = set()
@@ -2464,8 +2464,8 @@ async def student_wallet(student_email: Optional[str] = None):
 
 
 @router.get("/student/network")
-async def student_network(student_email: Optional[str] = None, email: Optional[str] = None, page: int = 1, per_page: int = 24, limit: int = 60):
-    """Mixed alumni + student + mentor network for the Network tab."""
+async def student_network(student_email: Optional[str] = None, email: Optional[str] = None, page: int = 1, per_page: int = 24, limit: int = 60, q: Optional[str] = None):
+    """Mixed alumni + student + mentor network for the Network tab with search support."""
     user = None
     u_email = email or student_email
     if u_email:
@@ -2476,7 +2476,8 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     rel_map = {}
     if user:
         me_id = str(user["_id"])
-        cache_key = f"network_student_{me_id}_p{page}_l{limit}_pp{per_page}"
+        q_clean = (q or "").strip()
+        cache_key = f"network_student_{me_id}_p{page}_l{limit}_pp{per_page}_q{q_clean}"
         if cache_key in network_cache:
             return network_cache[cache_key]
         rels = await _db.connections.find({
@@ -2492,7 +2493,8 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
 
     out = []
     me_id_str = str(user["_id"]) if user else ""
-    proj = {"email": 1, "full_name": 1, "role": 1, "school_info": 1, "alumni_info": 1, "bio": 1, "photo_data": 1, "skills": 1, "mentor_profile": 1, "mentor_info": 1}
+    # Exclude raw base64 photo_data from bulk discovery projection to prevent multi-megabyte payloads
+    proj = {"email": 1, "full_name": 1, "role": 1, "school_info": 1, "alumni_info": 1, "bio": 1, "skills": 1, "mentor_profile": 1, "mentor_info": 1}
 
     # Fetch all connected/pending users from rel_map first so they are never omitted due to limit
     connected_users = []
@@ -2516,8 +2518,17 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
         "role": "alumni",
         "_id": {"$nin": [ObjectId(i) for i in seen_alumni]}
     }
-    # Match by Interest
-    if my_skills:
+    # Match by Interest or Search Query q
+    if q and q.strip():
+        search_rgx = {"$regex": q.strip(), "$options": "i"}
+        alumni_query["$or"] = [
+            {"full_name": search_rgx},
+            {"email": search_rgx},
+            {"alumni_info.current_employer": search_rgx},
+            {"alumni_info.current_role": search_rgx},
+            {"skills": search_rgx}
+        ]
+    elif my_skills:
         alumni_query["$or"] = [
             {"alumni_info.interests": {"$in": my_skills}},
             {"skills": {"$in": my_skills}}
@@ -2561,21 +2572,30 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
         "role": "student",
         "_id": {"$nin": [ObjectId(i) for i in seen_students]}
     }
-    # Match by Interest
-    if my_skills:
+    # Match by Interest or Search Query q
+    if q and q.strip():
+        search_rgx = {"$regex": q.strip(), "$options": "i"}
         student_query["$or"] = [
-            {"school_info.interests": {"$in": my_skills}},
-            {"skills": {"$in": my_skills}}
+            {"full_name": search_rgx},
+            {"email": search_rgx},
+            {"school_info.institution_name": search_rgx},
+            {"school_info.branch_or_stream": search_rgx},
+            {"skills": search_rgx}
         ]
-    # Filter by Same College
-    if my_college:
-        if "$or" not in student_query:
-            student_query["$or"] = []
-        student_query["$or"].extend([
-            {"school_info.institution_name": my_college},
-            {"institution": my_college},
-            {"college_name": my_college}
-        ])
+    else:
+        if my_skills:
+            student_query["$or"] = [
+                {"school_info.interests": {"$in": my_skills}},
+                {"skills": {"$in": my_skills}}
+            ]
+        if my_college:
+            if "$or" not in student_query:
+                student_query["$or"] = []
+            student_query["$or"].extend([
+                {"school_info.institution_name": my_college},
+                {"institution": my_college},
+                {"college_name": my_college}
+            ])
     
     fetch_limit = max(0, limit - len(connected_students))
     fetched_students = await fetch_users_with_mock_limit(student_query, fetch_limit, mock_limit=5, proj=proj)
@@ -2611,8 +2631,17 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
         "mentor_status": "approved",
         "_id": {"$nin": [ObjectId(i) for i in seen_mentors]}
     }
-    # Match by Interest
-    if my_skills:
+    # Match by Interest or Search Query q
+    if q and q.strip():
+        search_rgx = {"$regex": q.strip(), "$options": "i"}
+        mentor_query["$or"] = [
+            {"full_name": search_rgx},
+            {"email": search_rgx},
+            {"mentor_profile.job_title": search_rgx},
+            {"mentor_profile.organization": search_rgx},
+            {"skills": search_rgx}
+        ]
+    elif my_skills:
         mentor_query["$or"] = [
             {"mentor_info.interests": {"$in": my_skills}},
             {"skills": {"$in": my_skills}}
