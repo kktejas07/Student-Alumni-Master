@@ -23,7 +23,7 @@ export function Footer() {
               <img
                 src="/sa-icon.png"
                 alt="StudentAlumni Logo"
-                className="h-8 w-8 rounded-lg object-contain shrink-0 shadow-[0_0_10px_rgba(255,255,255,0.2)]"
+                className="h-8 w-8 object-contain shrink-0 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]"
               />
               <span className="text-lg font-black tracking-tight text-white">
                 StudentAlumni

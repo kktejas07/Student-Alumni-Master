@@ -33,7 +33,7 @@ export function Navbar() {
             <img
               src="/sa-icon.png"
               alt="StudentAlumni Logo"
-              className="h-8 w-8 rounded-lg object-contain shrink-0 shadow-[0_0_15px_rgba(255,255,255,0.4)]"
+              className="h-8 w-8 object-contain shrink-0 drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]"
             />
             <span className="text-sm font-bold tracking-wide text-white">
               StudentAlumni
