@@ -701,7 +701,7 @@ async def verify_id_card(identifier: str):
         "org": u.get("org") or "Student Alumni",
         "status": _student_status_label(u),
         "photo": u.get("photo") or u.get("avatar_url") or "",
-        "issued_at": (u.get("sa_id_issued_at") or u.get("created_at") or "").isoformat()
+        "issued_at": (u.get("sa_id_issued_at") or u.get("created_at")).isoformat()
             if isinstance(u.get("sa_id_issued_at") or u.get("created_at"), datetime) else "",
     }
 
@@ -1419,9 +1419,9 @@ async def change_my_password(payload: dict, user: dict = Depends(get_current_use
     new_pw = payload.get("new_password") or ""
     if len(new_pw) < 8:
         raise HTTPException(400, "Password must be at least 8 characters")
-    if not bcrypt.checkpw(cur_pw.encode("utf-8"), user.get("password_hash", "").encode("utf-8")):
+    if not verify_password(cur_pw, user.get("password_hash", "")):
         raise HTTPException(400, "Current password is incorrect")
-    new_hash = bcrypt.hashpw(new_pw.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    new_hash = hash_password(new_pw)
     await db.users.update_one(
         {"_id": user["_id"]},
         {"$set": {"password_hash": new_hash, "updated_at": datetime.now(timezone.utc)}},
@@ -3075,9 +3075,10 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     by_college = [c for c in cards if my_inst and c.get("institution") == my_inst]
 
     # Section: mentors (approved)
-    mentor_q = {"_id": {"$ne": user["_id"]}, "role": "mentor", "mentor_status": "approved"}
+    mentor_q: dict = {"_id": {"$ne": user["_id"]}, "role": "mentor", "mentor_status": "approved"}
     if q:
-        mentor_q["$or"] = [{"full_name": rx}, {"email": rx}]
+        mentor_rx = {"$regex": re.escape(q), "$options": "i"}
+        mentor_q["$or"] = [{"full_name": mentor_rx}, {"email": mentor_rx}]
     approved_mentors = await db.users.find(
         mentor_q,
         {"password_hash": 0, "face_image_base64": 0},
@@ -3852,18 +3853,20 @@ async def post_room_message(room_id: str, payload: dict, user: dict = Depends(ge
     msg = (payload.get("message") or "").strip()
     if not msg:
         raise HTTPException(400, "Message cannot be empty")
+    now_dt = datetime.now(timezone.utc)
     doc = {
         "room_id": room_id,
         "user_id": str(user["_id"]),
         "user_name": user["full_name"],
         "user_role": user["role"],
         "message": msg,
-        "created_at": datetime.now(timezone.utc),
+        "created_at": now_dt,
     }
-    await db.room_messages.insert_one(doc.copy())
-    doc["created_at"] = doc["created_at"].isoformat()
-    doc.pop("_id", None)
-    return doc
+    await db.room_messages.insert_one(doc)
+    res_doc: dict = dict(doc)
+    res_doc["created_at"] = now_dt.isoformat()
+    res_doc.pop("_id", None)
+    return res_doc
 
 
 # ----------------------------------------------------------------------------
