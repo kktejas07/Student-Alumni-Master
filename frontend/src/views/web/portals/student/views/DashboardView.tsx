@@ -1073,7 +1073,9 @@ const s = StyleSheet.create({
   itemActionCol: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-end',
     gap: 10,
+    width: 150,
   },
   bookmarkBtn: {
     width: 34,

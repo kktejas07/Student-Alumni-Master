@@ -51,7 +51,7 @@ export function AgentK3D() {
     /* ── scene / camera ──────────────────── */
     const scene  = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 100);
-    camera.position.set(0, 0.3, 5.5);
+    camera.position.set(0, -0.1, 4.8);
 
     /* ── lighting ────────────────────────── */
     const amb = new THREE.AmbientLight(0xffffff, 0.7);
@@ -117,54 +117,41 @@ export function AgentK3D() {
 
     /* ── shoulder joints ─────────────────── */
     const makeJoint = (x: number) => {
-      const g = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16), mat(C.joint));
-      g.position.set(x, -0.05, 0);
+      const g = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 16), mat(C.joint));
+      g.position.set(x, -0.08, 0);
       body.add(g);
       return g;
     };
-    makeJoint(-0.82);
-    makeJoint( 0.82);
+    makeJoint(-0.74);
+    makeJoint( 0.74);
 
-    /* ── right arm (waving) ──────────────── */
+    /* ── right arm (connected to shoulder) ──── */
     const rightArmGroup = new THREE.Group();
-    rightArmGroup.position.set(0.82, -0.05, 0);
+    rightArmGroup.position.set(0.74, -0.08, 0);
     body.add(rightArmGroup);
 
-    const armGeo = new THREE.CapsuleGeometry(0.1, 0.42, 8, 16);
+    const armGeo = new THREE.CapsuleGeometry(0.08, 0.32, 8, 16);
     const rightArm = new THREE.Mesh(armGeo, mat(C.arm));
-    rightArm.position.set(0.28, 0.1, 0);
-    rightArm.rotation.z = -0.7;
+    rightArm.position.set(0.18, 0.12, 0);
+    rightArm.rotation.z = -0.6;
     rightArmGroup.add(rightArm);
 
-    // hand
-    const rightHand = new THREE.Mesh(new THREE.SphereGeometry(0.14, 16, 16), mat(C.arm));
-    rightHand.position.set(0.55, 0.38, 0);
+    const rightHand = new THREE.Mesh(new THREE.SphereGeometry(0.11, 16, 16), mat(C.arm));
+    rightHand.position.set(0.35, 0.28, 0);
     rightArmGroup.add(rightHand);
 
-    // fingers
-    for (let i = 0; i < 4; i++) {
-      const f = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.03, 0.1, 4, 8),
-        mat(C.arm)
-      );
-      const angle = (i / 3) * 1.1 - 0.55;
-      f.position.set(rightHand.position.x + Math.cos(angle) * 0.13, rightHand.position.y + 0.12, Math.sin(angle) * 0.05);
-      f.rotation.z = angle * 0.3;
-      rightArmGroup.add(f);
-    }
-
-    /* ── left arm (resting) ──────────────── */
+    /* ── left arm (connected to shoulder) ───── */
     const leftArmGroup = new THREE.Group();
-    leftArmGroup.position.set(-0.82, -0.05, 0);
+    leftArmGroup.position.set(-0.74, -0.08, 0);
     body.add(leftArmGroup);
 
     const leftArm = new THREE.Mesh(armGeo, mat(C.arm));
-    leftArm.position.set(-0.28, -0.12, 0);
-    leftArm.rotation.z = 0.35;
+    leftArm.position.set(-0.18, 0.12, 0);
+    leftArm.rotation.z = 0.6;
     leftArmGroup.add(leftArm);
 
-    const leftHand = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 16), mat(C.arm));
-    leftHand.position.set(-0.52, -0.38, 0);
+    const leftHand = new THREE.Mesh(new THREE.SphereGeometry(0.11, 16, 16), mat(C.arm));
+    leftHand.position.set(-0.35, 0.28, 0);
     leftArmGroup.add(leftHand);
 
     /* ── neck ────────────────────────────── */
@@ -188,55 +175,67 @@ export function AgentK3D() {
 
     /* ── face plate removed per user request ─────────── */
 
-    /* ── eyes ────────────────────────────── */
+    /* ── cute chibi eyes ─────────────────── */
     const makeEye = (x: number, rotY: number) => {
       const eyeGroup = new THREE.Group();
-      // Lowered eyes slightly (y: 0.02) for cuter "baby" proportions
-      eyeGroup.position.set(x, 0.02, 0.54);
+      eyeGroup.position.set(x, 0.04, 0.54);
       eyeGroup.rotation.y = rotY;
-      eyeGroup.scale.set(0.85, 1.25, 1); // Cute oval shape
+      eyeGroup.scale.set(0.9, 1.3, 1); // Large cute oval shape
 
-      // outer ring
+      // outer dark ring
       const outer = new THREE.Mesh(
-        new THREE.CircleGeometry(0.14, 32),
-        new THREE.MeshStandardMaterial({ color: C.eyeOuter, roughness: 0.1 })
+        new THREE.CircleGeometry(0.145, 32),
+        new THREE.MeshStandardMaterial({ color: 0x120d30, roughness: 0.1 })
       );
       eyeGroup.add(outer);
 
-      // iris glow
+      // glowing cyan/sky-blue iris
       const iris = new THREE.Mesh(
-        new THREE.CircleGeometry(0.11, 32),
-        new THREE.MeshStandardMaterial({ color: C.eyeInner, emissive: C.eyeGlow, emissiveIntensity: 0.8, roughness: 0.0 })
+        new THREE.CircleGeometry(0.12, 32),
+        new THREE.MeshStandardMaterial({
+          color: 0x38bdf8,
+          emissive: 0x0ea5e9,
+          emissiveIntensity: 0.95,
+          roughness: 0.0
+        })
       );
       iris.position.z = 0.001;
       eyeGroup.add(iris);
 
-      // pupil
+      // deep pupil
       const pupil = new THREE.Mesh(
-        new THREE.CircleGeometry(0.075, 32),
-        new THREE.MeshStandardMaterial({ color: C.pupil, emissive: 0xffffff, emissiveIntensity: 0.9 })
+        new THREE.CircleGeometry(0.078, 32),
+        new THREE.MeshStandardMaterial({ color: 0x07051a, roughness: 0.1 })
       );
-      pupil.position.set(x < 0 ? 0.015 : -0.015, 0, 0.002);
+      pupil.position.set(x < 0 ? 0.012 : -0.012, 0, 0.002);
       eyeGroup.add(pupil);
 
-      // cute anime eye highlight (catchlight)
-      const highlight = new THREE.Mesh(
-        new THREE.CircleGeometry(0.025, 16),
+      // Big main shiny catchlight (top right)
+      const highlightBig = new THREE.Mesh(
+        new THREE.CircleGeometry(0.038, 16),
         new THREE.MeshBasicMaterial({ color: 0xffffff })
       );
-      highlight.position.set(0.025, 0.035, 0.003); // Top right of the pupil
-      eyeGroup.add(highlight);
+      highlightBig.position.set(0.03, 0.04, 0.003);
+      eyeGroup.add(highlightBig);
 
-      // secondary tiny highlight
+      // Cute secondary catchlight (bottom left)
       const highlightSmall = new THREE.Mesh(
-        new THREE.CircleGeometry(0.01, 16),
+        new THREE.CircleGeometry(0.018, 16),
         new THREE.MeshBasicMaterial({ color: 0xffffff })
       );
-      highlightSmall.position.set(-0.02, -0.03, 0.003);
+      highlightSmall.position.set(-0.025, -0.035, 0.003);
       eyeGroup.add(highlightSmall);
 
+      // Tiny sparkle highlight
+      const spark = new THREE.Mesh(
+        new THREE.CircleGeometry(0.01, 12),
+        new THREE.MeshBasicMaterial({ color: 0xffe4e6 })
+      );
+      spark.position.set(0.04, -0.02, 0.003);
+      eyeGroup.add(spark);
+
       // point-light glow
-      const ePt = new THREE.PointLight(C.eyeGlow, 0.5, 1.2);
+      const ePt = new THREE.PointLight(0x38bdf8, 0.6, 1.2);
       ePt.position.z = 0.1;
       eyeGroup.add(ePt);
 
@@ -244,9 +243,8 @@ export function AgentK3D() {
       return { eyeGroup, iris, pupil };
     };
 
-    // Angled outwards, placed slightly closer together
-    const eyeL = makeEye(-0.16, -0.22);
-    const eyeR = makeEye( 0.16,  0.22);
+    const eyeL = makeEye(-0.16, -0.2);
+    const eyeR = makeEye( 0.16,  0.2);
 
     /* pink blush removed per user request */
 
