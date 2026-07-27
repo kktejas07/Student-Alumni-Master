@@ -62,15 +62,14 @@ from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Respons
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr, field_validator
-from starlette.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
-# Rate limiting (imports only, setup after app is created)
+# Rate limiting — uses real client IP (proxy-aware, not raw REMOTE_ADDR)
 from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from core.middleware import get_real_ip, register_security_middleware
 
-limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
+limiter = Limiter(key_func=get_real_ip, default_limits=["200/minute"])
 
 # Content prioritization engine — implements interest + edu-level + deadline + frequency scoring
 from personalization import (
@@ -117,12 +116,14 @@ logger = logging.getLogger(__name__)
 import time
 _t0_mongo = time.perf_counter()
 print("[DB TRACE] Mongo client created")
-mongo_url = os.environ.get('MONGO_URL', 'mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin')
+# MONGO_URL must be set — no hardcoded fallback (prevents accidental prod data exposure)
+mongo_url = os.environ['MONGO_URL']
 from db import client, db as _db_default, fetch_users_with_mock_limit
 db = _db_default
 
-# JWT configuration
-JWT_SECRET = os.environ.get('JWT_SECRET', '44ef879c2317ef383b123617fdac89bc7291a27e3848b8dbdfb9a1c1d8e8f8e9')
+# JWT configuration — JWT_SECRET must be set explicitly; no fallback to prevent
+# accidental deployment with a publicly-known secret value.
+JWT_SECRET = os.environ['JWT_SECRET']
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days for mobile (less re-login friction)
 REFRESH_TOKEN_EXPIRE_DAYS = 30
@@ -900,8 +901,7 @@ async def get_current_user(request: Request) -> dict:
             raise HTTPException(401, "Invalid token type")
         print(f'[AUTH TRACE] DB_QUERY_START | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
         user = await db.users.find_one(
-            {"_id": ObjectId(payload["sub"])},
-            {"face_image_base64": 0, "college_logo_data": 0, "banner_data": 0}
+            {"_id": ObjectId(payload["sub"])}
         )
         print(f'[AUTH TRACE] DB_QUERY_END | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
         if not user:
@@ -2051,10 +2051,14 @@ app.add_middleware(
     allow_credentials=_allow_creds,
     allow_origins=_origins_list or ["*"],
     allow_origin_regex=os.getenv("ALLOWED_ORIGIN_REGEX") or None,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    # Explicit method/header lists — "*" is overly permissive
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Request-Id", "Accept"],
     expose_headers=["Content-Length", "X-Request-Id"],
 )
+
+# Security middleware — registers RequestId, SecurityHeaders, MongoSanitize
+register_security_middleware(app)
 
 
 # ── Health-check endpoints (used by Dokploy / Docker / load-balancers) ──

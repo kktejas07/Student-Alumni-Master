@@ -27,6 +27,7 @@ from core.security import (
 from core.models import UserRole, AuthResponse, UserResponse
 from core.security import serialize_user
 from core.deps import get_current_user
+from firebase_admin import credentials, initialize_app, auth as fb_auth
 
 router = APIRouter(tags=["auth"])
 limiter = Limiter(key_func=get_remote_address)
@@ -250,17 +251,23 @@ async def forgot_password(request: Request, req: ForgotPasswordRequest):
     
     otp = str(random.randint(100000, 999999))
     otp_hash = hashlib.sha256(otp.encode()).hexdigest()
-    expires = datetime.utcnow() + timedelta(minutes=15)
+    # Use timezone-aware datetime (UTC) — avoids naive vs aware comparison bugs
+    expires = datetime.now(timezone.utc) + timedelta(minutes=15)
     
     await db.users.update_one(
         {"_id": user["_id"]},
-        {"$set": {"reset_otp_hash": otp_hash, "reset_otp_expires": expires}, "$unset": {"reset_otp": ""}}
+        {
+            "$set": {
+                "reset_otp_hash": otp_hash,
+                "reset_otp_expires": expires,
+                "reset_otp_attempts": 0,          # reset brute-force counter
+            },
+            "$unset": {"reset_otp": ""}
+        }
     )
     
     body = f"<p>Your password reset code is: <strong>{otp}</strong></p><p>This code will expire in 15 minutes.</p>"
     
-    # We await the email send but don't strictly fail the request if the email config is missing, 
-    # though practically the user won't get the email.
     import asyncio
     asyncio.create_task(send_email(email, "Password Reset Code", body))
     
@@ -274,18 +281,35 @@ async def verify_reset_otp(request: Request, req: VerifyResetOtpRequest):
     user = await db.users.find_one({"email": email})
     if not user:
         raise HTTPException(400, "Invalid email or OTP")
-        
+
     import hashlib
     otp_hash = user.get("reset_otp_hash")
     expires = user.get("reset_otp_expires")
-    
-    if not otp_hash or not expires or datetime.utcnow() > expires:
+    attempts = user.get("reset_otp_attempts", 0)
+
+    # Brute-force guard: 5 wrong attempts invalidates the OTP
+    if attempts >= 5:
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$unset": {"reset_otp_hash": "", "reset_otp_expires": "", "reset_otp_attempts": ""}}
+        )
+        raise HTTPException(429, "Too many attempts. Please request a new OTP.")
+
+    # Timezone-aware expiry check
+    now_utc = datetime.now(timezone.utc)
+    exp_aware = expires.replace(tzinfo=timezone.utc) if expires and expires.tzinfo is None else expires
+    if not otp_hash or not expires or now_utc > exp_aware:
         raise HTTPException(400, "OTP expired or invalid")
-        
+
     req_hash = hashlib.sha256(req.otp.strip().encode()).hexdigest()
     if otp_hash != req_hash:
+        # Increment failed attempt counter
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$inc": {"reset_otp_attempts": 1}}
+        )
         raise HTTPException(400, "Invalid OTP")
-        
+
     return {"success": True}
 
 
@@ -296,25 +320,51 @@ async def reset_password(request: Request, req: ResetPasswordRequest):
     user = await db.users.find_one({"email": email})
     if not user:
         raise HTTPException(400, "Invalid email or OTP")
-        
+
     import hashlib
     otp_hash = user.get("reset_otp_hash")
     expires = user.get("reset_otp_expires")
-    
-    if not otp_hash or not expires or datetime.utcnow() > expires:
+    attempts = user.get("reset_otp_attempts", 0)
+
+    # Brute-force guard
+    if attempts >= 5:
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$unset": {"reset_otp_hash": "", "reset_otp_expires": "", "reset_otp_attempts": ""}}
+        )
+        raise HTTPException(429, "Too many attempts. Please request a new OTP.")
+
+    # Timezone-aware expiry check
+    now_utc = datetime.now(timezone.utc)
+    exp_aware = expires.replace(tzinfo=timezone.utc) if expires and expires.tzinfo is None else expires
+    if not otp_hash or not expires or now_utc > exp_aware:
         raise HTTPException(400, "OTP expired or invalid")
-        
+
     req_hash = hashlib.sha256(req.otp.strip().encode()).hexdigest()
     if otp_hash != req_hash:
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$inc": {"reset_otp_attempts": 1}}
+        )
         raise HTTPException(400, "OTP expired or invalid")
-        
+
     new_hashed = hash_password(req.new_password)
-    
+
+    # CRITICAL FIX: write to "password_hash" — same field that login reads.
+    # Previous code wrote to "hashed_password" (wrong field) which silently
+    # broke login for any user who had reset their password.
     await db.users.update_one(
         {"_id": user["_id"]},
-        {"$set": {"hashed_password": new_hashed}, "$unset": {"reset_otp_hash": "", "reset_otp_expires": ""}}
+        {
+            "$set": {"password_hash": new_hashed},
+            "$unset": {
+                "reset_otp_hash": "",
+                "reset_otp_expires": "",
+                "reset_otp_attempts": "",
+            }
+        }
     )
-    
+
     return {"success": True}
 
 
@@ -1067,10 +1117,25 @@ async def oauth_config(response: Response):
     creds = await _get_oauth_creds()
     raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
     frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
+    
+    # Fetch feature flags for login buttons
+    doc = await db.platform_controls.find_one({"_id": "singleton"})
+    flags = {f["key"]: f.get("value", False) for f in (doc.get("feature_flags") or [])} if doc else {}
+    try:
+        from routers.admin.settings import DEFAULT_PLATFORM_CONTROLS
+        for f in DEFAULT_PLATFORM_CONTROLS.get("feature_flags") or []:
+            if f["key"] not in flags:
+                flags[f["key"]] = f.get("value", False)
+    except Exception:
+        pass
+
     return {
         "google_client_id": creds.get("google_oauth_client_id", ""),
         "linkedin_client_id": creds.get("linkedin_oauth_client_id", ""),
         "github_client_id": creds.get("github_oauth_client_id", ""),
+        "enable_google_login": flags.get("enable_google_login", True),
+        "enable_linkedin_login": flags.get("enable_linkedin_login", True),
+        "enable_github_login": flags.get("enable_github_login", True),
         "firebase": {
             "apiKey": creds.get("firebase_api_key", ""),
             "authDomain": creds.get("firebase_auth_domain", ""),
