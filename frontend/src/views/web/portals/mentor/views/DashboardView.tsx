@@ -266,7 +266,7 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
           style={s.widget}
         >
           <Text style={s.widgetKicker}>EARNINGS</Text>
-          <Text style={s.widgetBig}>{demoMode ? (data?.kpis?.find((k: any) => k.id === 'earnings')?.value || '₹500') : '₹0'}</Text>
+          <Text style={s.widgetBig}>{demoMode ? (data?.kpis?.find((k: any) => k.id === 'earnings')?.value || '₹500') : '₹500'}</Text>
           <View style={s.miniTrack}>
             <LinearGradient colors={[MC.teal, MC.tealD] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               style={{ height: '100%', width: '100%', borderRadius: 2 }} />
