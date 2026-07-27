@@ -24,7 +24,6 @@ import { Av, StarRow, Countdown } from '../atoms';
 import * as MOCK from '../data';
 import { usePortalData } from '@/src/lib/portalApi';
 import { TierBadge } from '@/src/views/web/TierBadge';
-import { LiveStrip } from '@/src/views/web/LiveStrip';
 import { api, request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { AdBanner } from '@/src/views/web/components/AdBanner';
@@ -138,11 +137,6 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
             </Text>
           </View>
         )}
-        {/* LIVE counters */}
-        <View style={{ marginBottom: 14 }}>
-          <LiveStrip accent="#5EEAD4" keys={['mentors', 'bookings_today', 'bookings', 'courses']} />
-        </View>
-
         {/* Ad Banner */}
         <AdBanner />
 
