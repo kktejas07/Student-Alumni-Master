@@ -250,71 +250,77 @@ export default function LoginScreen() {
 
       {/* OAuth row */}
       <View style={s.oauthRow}>
-        <DarkSocialButton label="Google" testID="login-google" icon={<GoogleG size={16} />} onPress={async () => {
-            try {
-              if (oauthCfg?.firebase && Platform.OS === 'web') {
-                const result = await signInWithGoogle();
-                if (!result) return;
-                const res = await fetch(`${BASE}/api/auth/firebase`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ id_token: result.idToken }),
-                });
-                if (!res.ok) throw new Error('Firebase auth failed');
-                const data = await res.json();
-                setUser(data.user);
-                setTokens(data.access_token, data.refresh_token);
-                trackAuth({ event: 'login_success', email: data.user.email, role: data.user.role });
-                const r = (data.user.role || '').toLowerCase();
-                if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
-                else if (r === 'mentor') router.replace('/mentor-portal');
-                else if (r === 'college') router.replace('/college-portal');
-                else if (r === 'alumni') router.replace('/alumni-portal');
-                else router.replace('/student-portal');
-              } else {
-                setPwdError('Google sign-in is not configured. Contact admin.');
+        {oauthCfg?.enable_google_login === true && (
+          <DarkSocialButton label="Google" testID="login-google" icon={<GoogleG size={16} />} onPress={async () => {
+              try {
+                if (oauthCfg?.firebase && Platform.OS === 'web') {
+                  const result = await signInWithGoogle();
+                  if (!result) return;
+                  const res = await fetch(`${BASE}/api/auth/firebase`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id_token: result.idToken }),
+                  });
+                  if (!res.ok) throw new Error('Firebase auth failed');
+                  const data = await res.json();
+                  setUser(data.user);
+                  setTokens(data.access_token, data.refresh_token);
+                  trackAuth({ event: 'login_success', email: data.user.email, role: data.user.role });
+                  const r = (data.user.role || '').toLowerCase();
+                  if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
+                  else if (r === 'mentor') router.replace('/mentor-portal');
+                  else if (r === 'college') router.replace('/college-portal');
+                  else if (r === 'alumni') router.replace('/alumni-portal');
+                  else router.replace('/student-portal');
+                } else {
+                  setPwdError('Google sign-in is not configured. Contact admin.');
+                }
+              } catch (e: any) {
+                setPwdError(e?.message || 'Google sign-in failed');
               }
-            } catch (e: any) {
-              setPwdError(e?.message || 'Google sign-in failed');
-            }
-          }} />
-        <DarkSocialButton label="LinkedIn" testID="login-linkedin" icon={<LinkedInIn size={16} />} onPress={() => {
-            if (oauthCfg?.linkedin_client_id && Platform.OS === 'web') {
-              const state = `linkedin_${Math.random().toString(36).slice(2)}`;
-              const url = `https://www.linkedin.com/oauth/v2/authorization?client_id=${oauthCfg.linkedin_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri!)}&response_type=code&scope=openid%20email%20profile&state=${state}`;
-              window.open(url, '_blank', 'width=600,height=700');
-            } else {
-              setPwdError('LinkedIn sign-in is not configured. Contact admin.');
-            }
-          }} />
-        <DarkSocialButton label="GitHub" testID="login-github" icon={<GitHubCat size={16} />} onPress={async () => {
-            try {
-              if (oauthCfg?.firebase && Platform.OS === 'web') {
-                const result = await signInWithGitHub();
-                if (!result) return;
-                const res = await fetch(`${BASE}/api/auth/firebase`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ id_token: result.idToken }),
-                });
-                if (!res.ok) throw new Error('Firebase auth failed');
-                const data = await res.json();
-                setUser(data.user);
-                setTokens(data.access_token, data.refresh_token);
-                trackAuth({ event: 'login_success', email: data.user.email, role: data.user.role });
-                const r = (data.user.role || '').toLowerCase();
-                if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
-                else if (r === 'mentor') router.replace('/mentor-portal');
-                else if (r === 'college') router.replace('/college-portal');
-                else if (r === 'alumni') router.replace('/alumni-portal');
-                else router.replace('/student-portal');
+            }} />
+        )}
+        {oauthCfg?.enable_linkedin_login === true && (
+          <DarkSocialButton label="LinkedIn" testID="login-linkedin" icon={<LinkedInIn size={16} />} onPress={() => {
+              if (oauthCfg?.linkedin_client_id && Platform.OS === 'web') {
+                const state = `linkedin_${Math.random().toString(36).slice(2)}`;
+                const url = `https://www.linkedin.com/oauth/v2/authorization?client_id=${oauthCfg.linkedin_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri!)}&response_type=code&scope=openid%20email%20profile&state=${state}`;
+                window.open(url, '_blank', 'width=600,height=700');
               } else {
-                setPwdError('GitHub sign-in is not configured. Contact admin.');
+                setPwdError('LinkedIn sign-in is not configured. Contact admin.');
               }
-            } catch (e: any) {
-              setPwdError(e?.message || 'GitHub sign-in failed');
-            }
-          }} />
+            }} />
+        )}
+        {oauthCfg?.enable_github_login === true && (
+          <DarkSocialButton label="GitHub" testID="login-github" icon={<GitHubCat size={16} />} onPress={async () => {
+              try {
+                if (oauthCfg?.firebase && Platform.OS === 'web') {
+                  const result = await signInWithGitHub();
+                  if (!result) return;
+                  const res = await fetch(`${BASE}/api/auth/firebase`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id_token: result.idToken }),
+                  });
+                  if (!res.ok) throw new Error('Firebase auth failed');
+                  const data = await res.json();
+                  setUser(data.user);
+                  setTokens(data.access_token, data.refresh_token);
+                  trackAuth({ event: 'login_success', email: data.user.email, role: data.user.role });
+                  const r = (data.user.role || '').toLowerCase();
+                  if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
+                  else if (r === 'mentor') router.replace('/mentor-portal');
+                  else if (r === 'college') router.replace('/college-portal');
+                  else if (r === 'alumni') router.replace('/alumni-portal');
+                  else router.replace('/student-portal');
+                } else {
+                  setPwdError('GitHub sign-in is not configured. Contact admin.');
+                }
+              } catch (e: any) {
+                setPwdError(e?.message || 'GitHub sign-in failed');
+              }
+            }} />
+        )}
       </View>
 
       <View style={s.divider}>
