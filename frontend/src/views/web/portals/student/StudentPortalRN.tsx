@@ -101,12 +101,19 @@ function PortalShell() {
 
   return (
     <View style={[s.shell, { backgroundColor: '#030614' }]}>
-      <LinearGradient
-        pointerEvents="none"
-        colors={['#030614', '#040816']}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject as any}
-      />
+      {/* Landing Page Starry Background */}
+      {Platform.OS === 'web' ? (
+        <View style={StyleSheet.absoluteFillObject}>
+          <StarryBackground />
+        </View>
+      ) : (
+        <LinearGradient
+          pointerEvents="none"
+          colors={['#030614', '#040816']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject as any}
+        />
+      )}
       <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0, flexDirection: 'row' }}>
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -114,13 +121,12 @@ function PortalShell() {
             <TopBar scrolled={scrolled} activeView={active} onAvatarPress={() => handleNav('profile')} onBellPress={() => setShowNotifs(!showNotifs)} />
             <ScrollView
               style={{ flex: 1 }}
-              contentContainerStyle={{ flexGrow: 1, paddingHorizontal: padH, paddingTop: SP.lg }}
+              contentContainerStyle={{ paddingHorizontal: padH, paddingTop: SP.lg, paddingBottom: SP.giga }}
               showsVerticalScrollIndicator={false}
               onScroll={onScroll}
               scrollEventThrottle={16}
             >
-              <View style={{ flex: 1 }}>
-                <EmbeddedShellContext.Provider value={true}>
+              <EmbeddedShellContext.Provider value={true}>
                 {active !== 'internships' && <PromoBanner portal="student" />}
                 <RouteTransition deps={[active]}>
                   {active === 'dashboard'       && <DashboardView />}
@@ -139,7 +145,6 @@ function PortalShell() {
                   {active === 'profile'         && <ProfileSettingsView />}
                 </RouteTransition>
               </EmbeddedShellContext.Provider>
-              </View>
               <DashboardFooter portal="student" />
             </ScrollView>
           </StudentPortalNavContext.Provider>

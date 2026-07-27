@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-07-25T17:27:56.721070",
+  "generated_at": "2026-07-14T14:27:36.501290",
   "frontend_url": "http://localhost:8081",
-  "api_url": "http://localhost:8002/api",
+  "api_url": "http://localhost:8000/api",
   "feature_matrix": {
     "Login Form": {
       "status": "WORKING",
@@ -32,12 +32,12 @@
       "notes": ""
     },
     "Google OAuth Login": {
-      "status": "NOT_IMPLEMENTED",
+      "status": "WORKING",
       "notes": ""
     },
     "Student Dashboard": {
       "status": "WORKING",
-      "notes": "Load: 16721ms"
+      "notes": "Load: 4986ms"
     },
     "Career AI": {
       "status": "NOT_IMPLEMENTED",
@@ -110,16 +110,12 @@
     "Admin Portal": {
       "status": "WORKING",
       "notes": ""
-    },
-    "Dark Mode": {
-      "status": "WORKING",
-      "notes": ""
     }
   },
   "findings": {
     "critical": 0,
-    "high": 7,
-    "medium": 8,
+    "high": 1,
+    "medium": 6,
     "low": 1,
     "info": 0
   },
@@ -130,36 +126,6 @@
         "module": "Auth",
         "desc": "No visible logout button - UX issue",
         "fix": "Add logout in header/sidebar menu"
-      },
-      {
-        "module": "UI/UX",
-        "desc": "Navigation disappears on mobile (375px)",
-        "fix": "Add hamburger menu for mobile"
-      },
-      {
-        "module": "Performance",
-        "desc": "Homepage/Dashboard extremely slow: 8651ms",
-        "fix": "Optimize with code splitting / lazy loading"
-      },
-      {
-        "module": "Performance",
-        "desc": "Profile extremely slow: 9338ms",
-        "fix": "Optimize with code splitting / lazy loading"
-      },
-      {
-        "module": "Performance",
-        "desc": "Jobs extremely slow: 8310ms",
-        "fix": "Optimize with code splitting / lazy loading"
-      },
-      {
-        "module": "Performance",
-        "desc": "Mentors extremely slow: 8340ms",
-        "fix": "Optimize with code splitting / lazy loading"
-      },
-      {
-        "module": "Performance",
-        "desc": "Courses extremely slow: 13484ms",
-        "fix": "Optimize with code splitting / lazy loading"
       }
     ],
     "medium": [
@@ -170,38 +136,28 @@
       },
       {
         "module": "Performance",
-        "desc": "Dashboard slow load: 16721ms (>3s)",
+        "desc": "Dashboard slow load: 4986ms (>3s)",
         "fix": ""
       },
       {
         "module": "Performance",
-        "desc": "API slow: Health Check took 2102ms",
+        "desc": "API slow: Health Check took 2127ms",
         "fix": "Optimize query or add caching"
       },
       {
         "module": "Performance",
-        "desc": "API slow: Auth: Get Current User took 4092ms",
+        "desc": "API slow: Dashboard Data took 8347ms",
         "fix": "Optimize query or add caching"
       },
       {
         "module": "Performance",
-        "desc": "API slow: Dashboard Data took 5235ms",
+        "desc": "API slow: Courses List took 2062ms",
         "fix": "Optimize query or add caching"
       },
       {
         "module": "Performance",
-        "desc": "API slow: Courses List took 2042ms",
+        "desc": "API slow: Notifications took 6108ms",
         "fix": "Optimize query or add caching"
-      },
-      {
-        "module": "Performance",
-        "desc": "API slow: Notifications took 4106ms",
-        "fix": "Optimize query or add caching"
-      },
-      {
-        "module": "Performance",
-        "desc": "LCP: 6260ms (>2500ms threshold)",
-        "fix": "Optimize largest contentful paint"
       }
     ],
     "low": [
@@ -213,7 +169,7 @@
     ],
     "info": []
   },
-  "console_errors_count": 214,
-  "failed_requests_count": 44,
-  "screenshots_count": 22
+  "console_errors_count": 232,
+  "failed_requests_count": 52,
+  "screenshots_count": 21
 }

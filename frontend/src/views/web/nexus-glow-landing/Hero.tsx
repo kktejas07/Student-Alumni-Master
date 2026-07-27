@@ -9,7 +9,7 @@ export function Hero() {
   return (
     <section id="agent-k" className="relative overflow-hidden pt-40 pb-24 md:pt-48 md:pb-32 flex flex-col items-center">
       <div className="mx-auto max-w-7xl px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
-
+        
         {/* Left Column: Text */}
         <div className="w-full flex flex-col items-center text-center lg:items-start lg:text-left">
           <motion.div
