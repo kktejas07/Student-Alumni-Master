@@ -133,19 +133,12 @@ export default function MentorPortalRN() {
 
   return (
     <View style={s.shell}>
-      {/* Landing Page Starry Background */}
-      {Platform.OS === 'web' ? (
-        <View style={StyleSheet.absoluteFillObject}>
-          <StarryBackground />
-        </View>
-      ) : (
-        <LinearGradient
-          pointerEvents="none"
-          colors={['#030614', '#040816']}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFillObject as any}
-        />
-      )}
+      <LinearGradient
+        pointerEvents="none"
+        colors={['#030614', '#040816']}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject as any}
+      />
 
       <Sidebar
         active={active}

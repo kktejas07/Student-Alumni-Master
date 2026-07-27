@@ -1,0 +1,17 @@
+node_modules/
+test-results/
+playwright-report/
+allure-results/
+allure-report/
+reports/html/
+reports/allure/
+reports/excel/
+reports/csv/
+reports/json/
+reports/pdf/
+screenshots/
+videos/
+downloads/
+logs/
+.env
+dist/
