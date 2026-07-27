@@ -104,7 +104,8 @@ export function NetworkView() {
       linkedin: u.linkedin_url || u.linkedin || '',
       github: u.github_url || u.github || '',
       connectionState: u.connection_state || 'none',
-      kind: role
+      kind: role,
+      email: u.email
     };
   };
 
