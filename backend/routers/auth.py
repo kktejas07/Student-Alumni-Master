@@ -1120,12 +1120,21 @@ async def oauth_config(response: Response):
     
     # Fetch feature flags for login buttons
     doc = await db.platform_controls.find_one({"_id": "singleton"})
-    flags = {f["key"]: f.get("value", False) for f in (doc.get("feature_flags") or [])} if doc else {}
+    def _parse_b(v, d=True):
+        if v is None: return d
+        if isinstance(v, bool): return v
+        if isinstance(v, str): return v.strip().lower() in ("true", "1", "yes")
+        return bool(v)
+
+    flags = {}
+    if doc and doc.get("feature_flags"):
+        for f in doc["feature_flags"]:
+            flags[f["key"]] = _parse_b(f.get("value"), True)
     try:
         from routers.admin.settings import DEFAULT_PLATFORM_CONTROLS
         for f in DEFAULT_PLATFORM_CONTROLS.get("feature_flags") or []:
             if f["key"] not in flags:
-                flags[f["key"]] = f.get("value", False)
+                flags[f["key"]] = _parse_b(f.get("value"), True)
     except Exception:
         pass
 
