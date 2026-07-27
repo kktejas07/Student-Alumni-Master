@@ -3280,19 +3280,7 @@ async def mentor_connections(email: Optional[str] = None):
             pass
     resolved_users = await _db.users.find({"_id": {"$in": resolved_objs}}).to_list(len(resolved_objs))
 
-    # 5. Backfill with real database users (students + alumni + other mentors) so there are always real accounts to connect
-    students = await _db.users.find({"role": "student"}).sort("_id", -1).limit(15).to_list(15)
-    alumni = await _db.users.find({"role": "alumni"}).sort("_id", -1).limit(10).to_list(10)
-    other_mentors = await _db.users.find({"role": "mentor", "_id": {"$ne": mentor["_id"]}}).sort("_id", -1).limit(10).to_list(10)
-
-    all_candidates = resolved_users + students + alumni + other_mentors
-    seen_ids = set()
-    unique_users = []
-    for u in all_candidates:
-        uid = str(u["_id"])
-        if uid not in seen_ids:
-            seen_ids.add(uid)
-            unique_users.append(u)
+    unique_users = resolved_users
 
     tz_name = (mentor or {}).get("timezone") or "Asia/Kolkata"
     try:
@@ -3313,29 +3301,9 @@ async def mentor_connections(email: Optional[str] = None):
         total_sessions = len(s_list)
         completed_sessions = len([b for b in s_list if b.get("status") == "completed"])
         
-        # Assign deterministic mock sessions if they are backfilled users to make them look complete
-        if total_sessions == 0:
-            if idx % 3 == 0:
-                total_sessions = 4
-                completed_sessions = 3
-            elif idx % 3 == 1:
-                total_sessions = 3
-                completed_sessions = 2
-            else:
-                total_sessions = 5
-                completed_sessions = 5
-        # Determine status
         status = connection_status.get(uid)
         if not status:
-            if idx % 4 == 0 or idx % 4 == 1:
-                status = "active"
-            elif idx % 4 == 2:
-                status = "pending"
-            else:
-                status = "completed"
-
-        # Determine status.
-        status = connection_status.get(uid, "active")
+            continue
         # Skip if they are not accepted connections
         if status not in ("active", "accepted", "completed"):
             continue
@@ -3360,14 +3328,7 @@ async def mentor_connections(email: Optional[str] = None):
                 "topic": ns.get("topic") or "1:1 Mentorship Session",
                 "daysAway": max(0, (ns_dt_naive.date() - now_naive.date()).days)
             }
-        elif status == "active" and idx % 2 == 0:
-            ns_dt_naive = now_naive + timedelta(days=7 + (idx % 3))
-            next_session = {
-                "date": ns_dt_naive.strftime("%b %d, %Y"),
-                "time": "10:00 AM",
-                "topic": "System Design Mock Interview" if idx % 3 == 0 else "Career Growth Plan",
-                "daysAway": max(0, (ns_dt_naive.date() - now_naive.date()).days)
-            }
+
 
         # Last session date/notes
         past = [b for b in s_list if b.get("scheduled_at") and b.get("scheduled_at").replace(tzinfo=None) <= now_naive]
@@ -3380,11 +3341,7 @@ async def mentor_connections(email: Optional[str] = None):
                 "date": ls_dt_naive.strftime("%b %d, %Y"),
                 "notes": ls.get("notes") or ls.get("topic") or "Review goals and progress."
             }
-        elif completed_sessions > 0:
-            last_session = {
-                "date": (now_naive - timedelta(days=14)).strftime("%b %d, %Y"),
-                "notes": "Discussed system architecture design and distributed cache bottlenecks."
-            }
+
 
         si = u.get("school_info") or {}
         mi = u.get("mentor_info") or u.get("mentor_profile") or {}

@@ -136,9 +136,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         # ── Remove server fingerprinting headers ────────────────────────────
         # FastAPI/Uvicorn sets these; strip them to reduce attack surface.
-        response.headers.pop("server", None)
-        response.headers.pop("Server", None)
-        response.headers.pop("x-powered-by", None)
+        if "server" in response.headers:
+            del response.headers["server"]
+        if "Server" in response.headers:
+            del response.headers["Server"]
+        if "x-powered-by" in response.headers:
+            del response.headers["x-powered-by"]
 
         return response
 

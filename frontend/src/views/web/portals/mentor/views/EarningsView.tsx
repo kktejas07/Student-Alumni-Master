@@ -69,7 +69,7 @@ const INITIAL_WITHDRAWAL_HISTORY = [
   { id: 'wh3', amount: 22000, date: 'Feb 1, 2026', utr: 'UTR6601988', status: 'Completed' },
 ];
 
-export function EarningsView({ demoMode = true, setDemoMode }: { demoMode?: boolean; setDemoMode?: (val: boolean) => void }) {
+export function EarningsView({ demoMode = false, setDemoMode }: { demoMode?: boolean; setDemoMode?: (val: boolean) => void }) {
   const toast = useToast();
   const { width } = useWindowDimensions();
   const stack = width < 980;

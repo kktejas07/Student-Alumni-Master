@@ -52,7 +52,7 @@ const MENTOR_EMPTY: MentorDashboardData = {
   pendingRequests: 0,
 };
 
-export function DashboardView({ onNav, demoMode = true, setDemoMode }: Props) {
+export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
   const user = useAuthStore((s) => s.user);
   const dashPath = user?.email
     ? `/mentor/dashboard?mentor_email=${encodeURIComponent(user.email)}`
@@ -344,7 +344,7 @@ export function DashboardView({ onNav, demoMode = true, setDemoMode }: Props) {
 }
 
 /** AI Daily Briefing card — prominent purple-tinted glass with CTA */
-function AIDailyBriefing({ onNav, demoMode = true }: { onNav: (id: string) => void; demoMode?: boolean }) {
+function AIDailyBriefing({ onNav, demoMode = false }: { onNav: (id: string) => void; demoMode?: boolean }) {
   const user = useAuthStore((s) => s.user);
   const firstName = (user as any)?.first_name || (user?.full_name || '').split(' ')[0] || 'Mentor';
   const [briefText, setBriefText] = React.useState<string>('');
