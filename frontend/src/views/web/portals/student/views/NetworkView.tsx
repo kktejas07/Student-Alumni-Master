@@ -209,6 +209,7 @@ export function NetworkView() {
       setBookingMentor(null);
       setBookingSlot(null);
       setBookingTopic('');
+      fetchNetworkData(true);
     } catch (err: any) {
       toast.error('Booking failed', err?.message || 'Please try again.');
     } finally {
