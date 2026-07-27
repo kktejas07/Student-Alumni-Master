@@ -2973,6 +2973,7 @@ def _user_card(u: dict) -> dict:
     cp = u.get("college_info") or u.get("college_profile") or {}
     return {
         "id": str(u.get("_id") or u.get("id")),
+        "email": u.get("email"),
         "full_name": u.get("full_name") or u.get("email"),
         "role": u.get("role"),
         "institution": u.get("institution") or si.get("institution_name") or ai.get("institution_name") or cp.get("institution_name") or (u.get("full_name") if u.get("role") == "college" else None),
