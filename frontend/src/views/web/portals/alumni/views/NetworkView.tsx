@@ -199,6 +199,7 @@ export function NetworkView() {
         body: {
           student_email: authUser?.email,
           mentor_email: bookingMentor.email || 'mentor@test.com',
+          mentor_id: bookingMentor.id || bookingMentor._id,
           topic: bookingTopic.trim(),
           scheduled_at: bookingSlot.iso,
           duration_minutes: 45
