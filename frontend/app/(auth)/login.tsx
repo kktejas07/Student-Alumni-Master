@@ -226,7 +226,7 @@ export default function LoginScreen() {
 
       {/* OAuth column */}
       <View style={s.oauthCol}>
-        {oauthCfg?.enable_google_login !== false && (
+        {oauthCfg?.enable_google_login === true && (
           <OutlineButton label="Continue with Google" testID="login-google" icon={<GoogleG size={16} />} onPress={async () => {
             try {
               if (oauthCfg?.firebase && Platform.OS === 'web') {
@@ -256,7 +256,7 @@ export default function LoginScreen() {
             }
           }} />
         )}
-        {oauthCfg?.enable_linkedin_login !== false && (
+        {oauthCfg?.enable_linkedin_login === true && (
           <OutlineButton label="Continue with LinkedIn" testID="login-linkedin" icon={<LinkedInIn size={16} />} onPress={() => {
             if (oauthCfg?.linkedin_client_id && Platform.OS === 'web') {
               const state = `linkedin_${Math.random().toString(36).slice(2)}`;
@@ -267,7 +267,7 @@ export default function LoginScreen() {
             }
           }} />
         )}
-        {oauthCfg?.enable_github_login !== false && (
+        {oauthCfg?.enable_github_login === true && (
           <OutlineButton label="Continue with GitHub" testID="login-github" icon={<GitHubCat size={16} />} onPress={async () => {
             try {
               if (oauthCfg?.firebase && Platform.OS === 'web') {
