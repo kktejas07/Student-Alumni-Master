@@ -143,24 +143,9 @@ export function ConnectionsView() {
             <Text style={s.sectionTitle}>My Connections</Text>
             <Text style={s.sub}>{stats.total} students · {stats.upcoming} upcoming sessions</Text>
           </View>
-
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            {/* Inline Filter Chips next to search bar */}
-            <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
-              {FILTERS.map((f) => {
-                const on = f.id === filter;
-                return (
-                  <Pressable key={f.id} onPress={() => setFilter(f.id)} style={[s.chip, on && s.chipOn]}>
-                    <Text style={{ color: on ? '#fff' : MC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>{f.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <View style={s.searchBox}>
-              <MaterialCommunityIcons name="magnify" size={16} color={MC.dim} />
-              <TextInput value={q} onChangeText={setQ} placeholder="Search students..." placeholderTextColor={MC.dim} style={s.searchInput} />
-            </View>
+          <View style={s.searchBox}>
+            <MaterialCommunityIcons name="magnify" size={16} color={MC.dim} />
+            <TextInput value={q} onChangeText={setQ} placeholder="Search students..." placeholderTextColor={MC.dim} style={s.searchInput} />
           </View>
         </View>
 
@@ -214,8 +199,40 @@ export function ConnectionsView() {
         </View>
       </View>
 
-      {/* Main Content Cards Grid */}
-      <View style={{ width: '100%' }}>
+      {/* Main Content Layout */}
+      <View style={{ flexDirection: isLarge ? 'row' : 'column', gap: 20, alignItems: 'flex-start' }}>
+        {/* Left Sidebar Filter (Large Screens) / Top Chip Filter (Mobile) */}
+        {isLarge ? (
+          <View style={s.sidebarFilters}>
+            <Text style={s.filterHeader}>FILTER</Text>
+            {FILTERS.map((f) => {
+              const on = f.id === filter;
+              return (
+                <Pressable
+                  key={f.id}
+                  onPress={() => setFilter(f.id)}
+                  style={[s.filterRow, on && s.filterRowActive]}
+                >
+                  <View style={[s.filterDot, { backgroundColor: on ? MC.tealP : 'transparent' }]} />
+                  <Text style={[s.filterText, on && s.filterTextActive]}>{f.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : (
+          <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', width: '100%' }}>
+            {FILTERS.map((f) => {
+              const on = f.id === filter;
+              return (
+                <Pressable key={f.id} onPress={() => setFilter(f.id)} style={[s.chip, on && s.chipOn]}>
+                  <Text style={{ color: on ? '#fff' : MC.muted, fontFamily: FONTS.bold, fontSize: 12 }}>{f.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+
+        {/* Right side: Cards Grid */}
         <View style={{ flex: 1, width: '100%' }}>
           <View style={s.grid}>
             {list.map((st) => {

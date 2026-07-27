@@ -72,10 +72,10 @@ export default function Index() {
         if (!user.onboarding_completed) {
           const dest =
             user.role === 'student' ? '/(onboarding)/student-onboard' :
-              user.role === 'mentor' ? '/(onboarding)/mentor-onboard' :
-                user.role === 'alumni' ? '/(onboarding)/alumni-onboard' :
-                  user.role === 'college' ? '/(onboarding)/college-onboard' :
-                    '/(onboarding)/role-info';
+            user.role === 'mentor'  ? '/(onboarding)/mentor-onboard'  :
+            user.role === 'alumni'  ? '/(onboarding)/alumni-onboard'  :
+            user.role === 'college' ? '/(onboarding)/college-onboard' :
+            '/(onboarding)/role-info';
           router.replace(dest as any);
         } else {
           router.replace('/(tabs)');
