@@ -1067,10 +1067,25 @@ async def oauth_config(response: Response):
     creds = await _get_oauth_creds()
     raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
     frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
+    
+    # Fetch feature flags for login buttons
+    doc = await _db.platform_controls.find_one({"_id": "singleton"})
+    flags = {f["key"]: f.get("value", False) for f in (doc.get("feature_flags") or [])} if doc else {}
+    try:
+        from routers.admin.settings import DEFAULT_PLATFORM_CONTROLS
+        for f in DEFAULT_PLATFORM_CONTROLS.get("feature_flags") or []:
+            if f["key"] not in flags:
+                flags[f["key"]] = f.get("value", False)
+    except Exception:
+        pass
+
     return {
         "google_client_id": creds.get("google_oauth_client_id", ""),
         "linkedin_client_id": creds.get("linkedin_oauth_client_id", ""),
         "github_client_id": creds.get("github_oauth_client_id", ""),
+        "enable_google_login": flags.get("enable_google_login", True),
+        "enable_linkedin_login": flags.get("enable_linkedin_login", True),
+        "enable_github_login": flags.get("enable_github_login", True),
         "firebase": {
             "apiKey": creds.get("firebase_api_key", ""),
             "authDomain": creds.get("firebase_auth_domain", ""),

@@ -63,7 +63,7 @@ export default function LoginScreen() {
   const submittingRef = useRef(false);
   const pwdRef = useRef<TextInput>(null);
 
-  const [oauthCfg, setOauthCfg] = useState<{ linkedin_client_id?: string; redirect_uri?: string; firebase?: { apiKey: string; authDomain: string; projectId: string; appId: string } | null } | null>(null);
+  const [oauthCfg, setOauthCfg] = useState<{ linkedin_client_id?: string; redirect_uri?: string; firebase?: { apiKey: string; authDomain: string; projectId: string; appId: string } | null; enable_google_login?: boolean; enable_linkedin_login?: boolean; enable_github_login?: boolean; } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -226,7 +226,8 @@ export default function LoginScreen() {
 
       {/* OAuth column */}
       <View style={s.oauthCol}>
-        <OutlineButton label="Continue with Google" testID="login-google" icon={<GoogleG size={16} />} onPress={async () => {
+        {oauthCfg?.enable_google_login !== false && (
+          <OutlineButton label="Continue with Google" testID="login-google" icon={<GoogleG size={16} />} onPress={async () => {
             try {
               if (oauthCfg?.firebase && Platform.OS === 'web') {
                 const result = await signInWithGoogle();
@@ -254,7 +255,9 @@ export default function LoginScreen() {
               setPwdError(e?.message || 'Google sign-in failed');
             }
           }} />
-        <OutlineButton label="Continue with LinkedIn" testID="login-linkedin" icon={<LinkedInIn size={16} />} onPress={() => {
+        )}
+        {oauthCfg?.enable_linkedin_login !== false && (
+          <OutlineButton label="Continue with LinkedIn" testID="login-linkedin" icon={<LinkedInIn size={16} />} onPress={() => {
             if (oauthCfg?.linkedin_client_id && Platform.OS === 'web') {
               const state = `linkedin_${Math.random().toString(36).slice(2)}`;
               const url = `https://www.linkedin.com/oauth/v2/authorization?client_id=${oauthCfg.linkedin_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri!)}&response_type=code&scope=openid%20email%20profile&state=${state}`;
@@ -263,7 +266,9 @@ export default function LoginScreen() {
               setPwdError('LinkedIn sign-in is not configured. Contact admin.');
             }
           }} />
-        <OutlineButton label="Continue with GitHub" testID="login-github" icon={<GitHubCat size={16} />} onPress={async () => {
+        )}
+        {oauthCfg?.enable_github_login !== false && (
+          <OutlineButton label="Continue with GitHub" testID="login-github" icon={<GitHubCat size={16} />} onPress={async () => {
             try {
               if (oauthCfg?.firebase && Platform.OS === 'web') {
                 const result = await signInWithGitHub();
@@ -291,6 +296,7 @@ export default function LoginScreen() {
               setPwdError(e?.message || 'GitHub sign-in failed');
             }
           }} />
+        )}
       </View>
 
       <View style={s.divider}>
