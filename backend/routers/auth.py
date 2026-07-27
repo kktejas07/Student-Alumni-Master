@@ -1069,7 +1069,7 @@ async def oauth_config(response: Response):
     frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
     
     # Fetch feature flags for login buttons
-    doc = await _db.platform_controls.find_one({"_id": "singleton"})
+    doc = await db.platform_controls.find_one({"_id": "singleton"})
     flags = {f["key"]: f.get("value", False) for f in (doc.get("feature_flags") or [])} if doc else {}
     try:
         from routers.admin.settings import DEFAULT_PLATFORM_CONTROLS
