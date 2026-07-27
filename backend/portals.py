@@ -2570,6 +2570,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
         si = a.get("school_info") or {}
         out.append({
             "id": other_id,
+            "email": a.get("email"),
             "name": a.get("full_name") or "—",
             "initials": _initials(a.get("full_name") or ""),
             "role": "Alumni",
@@ -2624,6 +2625,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
         si = s.get("school_info") or {}
         out.append({
             "id": other_id,
+            "email": s.get("email"),
             "name": s.get("full_name") or "—",
             "initials": _initials(s.get("full_name") or ""),
             "role": "Student",
@@ -2674,6 +2676,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
         si = m.get("school_info") or {}
         out.append({
             "id": other_id,
+            "email": m.get("email"),
             "name": m.get("full_name") or "—",
             "initials": _initials(m.get("full_name") or ""),
             "role": "Mentor",
