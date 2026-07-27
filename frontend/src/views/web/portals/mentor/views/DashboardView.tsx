@@ -266,7 +266,7 @@ export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
               style={{ height: '100%', width: '100%', borderRadius: 2 }} />
           </View>
           <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12, marginBottom: 12 }}>
-            This month · <Text style={{ color: MC.green, fontFamily: FONTS.bold }}>↑ 12%</Text>
+            This month · <Text style={{ color: MC.muted, fontFamily: FONTS.bold }}>0%</Text>
           </Text>
           <Pressable
             onPress={() => onNav('earnings')}
