@@ -26,10 +26,7 @@ import jwt as _jwt
 
 from core.roles import Role, Perm, SYSTEM_ROLES, seed_admin_roles
 
-load_dotenv(Path(__file__).parent / ".env")
-
-from db import client as _mongo
-_db = _mongo[os.environ["DB_NAME"]]
+from core.db import db as _db
 
 router = APIRouter(tags=["admin-settings"])
 
