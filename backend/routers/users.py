@@ -3052,7 +3052,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     if q:
         rx = {"$regex": re.escape(q), "$options": "i"}
         base_query["$or"] = [{"full_name": rx}, {"email": rx}]
-    candidates = await db.users.find(base_query, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).to_list(500)
+    candidates = await db.users.find(base_query, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).to_list(80)
 
     cards = [_user_card(c) for c in candidates if str(c.get("_id") or c.get("id")) != me_id]
     # attach connection_state (none|pending|connected|incoming)
