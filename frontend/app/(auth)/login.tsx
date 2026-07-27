@@ -46,6 +46,31 @@ function GitHubCat({ size = 18 }: { size?: number }) {
   );
 }
 
+function DarkSocialButton({ label, onPress, icon, testID }: any) {
+  return (
+    <Pressable
+      onPress={onPress}
+      testID={testID}
+      style={{
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        paddingVertical: 12,
+        borderRadius: 12,
+        gap: 8,
+        ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {})
+      }}
+    >
+      {icon}
+      <Text style={{ color: '#111827', fontFamily: FONTS.bold, fontSize: 14 }}>{label}</Text>
+    </Pressable>
+  );
+}
+
 export default function LoginScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ role?: Role; email?: string }>();
@@ -209,8 +234,7 @@ export default function LoginScreen() {
           router.replace('/');
         }
       }} style={s.back}>
-        <ArrowLeft size={16} color={AC.muted} />
-        <Text style={s.backText}>Back</Text>
+        <Text style={s.backText}>← Back</Text>
       </Pressable>
 
       <View style={s.head}>
@@ -224,10 +248,10 @@ export default function LoginScreen() {
         <Text style={s.sub}>Sign in to continue your journey on Student Alumni</Text>
       </View>
 
-      {/* OAuth column */}
-      <View style={s.oauthCol}>
+      {/* OAuth row */}
+      <View style={s.oauthRow}>
         {oauthCfg?.enable_google_login === true && (
-          <OutlineButton label="Continue with Google" testID="login-google" icon={<GoogleG size={16} />} onPress={async () => {
+          <DarkSocialButton label="Google" testID="login-google" icon={<GoogleG size={16} />} onPress={async () => {
             try {
               if (oauthCfg?.firebase && Platform.OS === 'web') {
                 const result = await signInWithGoogle();
@@ -257,7 +281,7 @@ export default function LoginScreen() {
           }} />
         )}
         {oauthCfg?.enable_linkedin_login === true && (
-          <OutlineButton label="Continue with LinkedIn" testID="login-linkedin" icon={<LinkedInIn size={16} />} onPress={() => {
+          <DarkSocialButton label="LinkedIn" testID="login-linkedin" icon={<LinkedInIn size={16} />} onPress={() => {
             if (oauthCfg?.linkedin_client_id && Platform.OS === 'web') {
               const state = `linkedin_${Math.random().toString(36).slice(2)}`;
               const url = `https://www.linkedin.com/oauth/v2/authorization?client_id=${oauthCfg.linkedin_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri!)}&response_type=code&scope=openid%20email%20profile&state=${state}`;
@@ -268,7 +292,7 @@ export default function LoginScreen() {
           }} />
         )}
         {oauthCfg?.enable_github_login === true && (
-          <OutlineButton label="Continue with GitHub" testID="login-github" icon={<GitHubCat size={16} />} onPress={async () => {
+          <DarkSocialButton label="GitHub" testID="login-github" icon={<GitHubCat size={16} />} onPress={async () => {
             try {
               if (oauthCfg?.firebase && Platform.OS === 'web') {
                 const result = await signInWithGitHub();
@@ -337,9 +361,7 @@ export default function LoginScreen() {
           onSubmitEditing={onLogin}
           testID="login-password"
         />
-        {password.length > 0 && (
-          <PasswordRules checks={strength.checks} />
-        )}
+
       </View>
 
       <View style={s.row}>
@@ -372,7 +394,7 @@ const s = StyleSheet.create({
   title: { color: '#111827', fontFamily: FONTS.xbold, fontSize: 30, letterSpacing: -0.6, marginBottom: 6 },
   sub: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 15 },
 
-  oauthCol: { flexDirection: 'column', gap: 10, marginBottom: 18 },
+  oauthRow: { flexDirection: 'row', gap: 12, marginBottom: 18, width: '100%' },
   divider: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 18 },
   line: { flex: 1, height: 1, backgroundColor: '#E5E7EB' },
   dividerText: { color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 11.5, letterSpacing: 0.4, textTransform: 'uppercase' },
