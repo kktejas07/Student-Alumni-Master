@@ -11,6 +11,8 @@ import sys
 from typing import Any, Dict, List
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 # Load env variables from backend/.env or root .env
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
@@ -19,8 +21,13 @@ load_dotenv(BASE_DIR.parent / ".env")
 LOCAL_URI = os.environ.get("LOCAL_MONGO_URL", "mongodb://localhost:27017")
 LOCAL_DB  = os.environ.get("LOCAL_DB_NAME", "career_platform")
 
-# Retrieve from environment, falling back to the default credentials
-ATLAS_URI = os.environ.get("MONGO_URL", "mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/studentalumniadmin?appName=studentalumniadmin")
+# MONGO_URL must be set in the environment — no hardcoded credential fallback.
+ATLAS_URI = os.environ.get("MONGO_URL")
+if not ATLAS_URI:
+    raise RuntimeError(
+        "MONGO_URL environment variable is not set.\n"
+        "Set it before running: export MONGO_URL='mongodb+srv://...' or populate backend/.env"
+    )
 ATLAS_DB  = os.environ.get("DB_NAME", "studentalumniadmin")
 
 BATCH = 500

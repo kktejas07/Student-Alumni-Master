@@ -2,7 +2,13 @@ import time
 import os
 
 BASE_URL = os.environ.get("BASE_URL", "http://localhost:8081")
-MONGO_URL = os.environ.get('MONGO_URL', 'mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin')
+# MONGO_URL must be provided via environment or backend/.env — never hardcode credentials.
+MONGO_URL = os.environ.get('MONGO_URL')
+if not MONGO_URL:
+    raise RuntimeError(
+        "MONGO_URL environment variable is not set.\n"
+        "Set it in backend/.env or export it before running tests."
+    )
 DB_NAME = os.environ.get('DB_NAME', 'studentalumniadmin')
 
 VALID_STUDENT = {

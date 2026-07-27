@@ -5,7 +5,13 @@ import urllib.request
 async def get_student():
     from motor.motor_asyncio import AsyncIOMotorClient
     
-    MONGO_URL = 'mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin'
+    import os
+    MONGO_URL = os.environ.get('MONGO_URL')
+    if not MONGO_URL:
+        raise RuntimeError(
+            "MONGO_URL environment variable is not set.\n"
+            "Set it before running: export MONGO_URL='mongodb+srv://...' or populate backend/.env"
+        )
     client = AsyncIOMotorClient(MONGO_URL)
     db = client['studentalumniadmin']
     

@@ -5,8 +5,15 @@ import time
 import json
 from datetime import datetime
 
-os.environ['MONGO_URL'] = 'mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin'
-os.environ['DB_NAME'] = 'studentalumniadmin'
+# MONGO_URL must be set in the environment (or backend/.env) before running this script.
+# Never hardcode credentials here — use: export MONGO_URL=... or a .env file.
+if 'MONGO_URL' not in os.environ:
+    raise RuntimeError(
+        "MONGO_URL environment variable is not set.\n"
+        "Set it before running: export MONGO_URL='mongodb+srv://...' or populate backend/.env"
+    )
+# DB_NAME defaults to 'studentalumniadmin' if not explicitly overridden.
+os.environ.setdefault('DB_NAME', 'studentalumniadmin')
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from core.db import db
