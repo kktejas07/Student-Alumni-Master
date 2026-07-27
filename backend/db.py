@@ -13,7 +13,7 @@ async def fetch_users_with_mock_limit(base_query: Dict[str, Any], limit: int, mo
     Fetches real users first. If limit allows, appends a small number of mock users.
     """
     if proj is None:
-        proj = {"password_hash": 0, "face_image_base64": 0}
+        proj = {"password_hash": 0}
         
     real_query = {**base_query, "is_mock": {"$ne": True}}
     # Removed .sort("_id", -1) to prevent 524 timeouts on DBs missing the is_mock index

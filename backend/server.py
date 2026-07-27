@@ -893,8 +893,7 @@ async def get_current_user(request: Request) -> dict:
             raise HTTPException(401, "Invalid token type")
         print(f'[AUTH TRACE] DB_QUERY_START | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
         user = await db.users.find_one(
-            {"_id": ObjectId(payload["sub"])},
-            {"face_image_base64": 0, "college_logo_data": 0, "banner_data": 0}
+            {"_id": ObjectId(payload["sub"])}
         )
         print(f'[AUTH TRACE] DB_QUERY_END | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
         if not user:

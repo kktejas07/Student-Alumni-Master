@@ -675,7 +675,7 @@ async def verify_id_card(identifier: str):
     """
     u = await db.users.find_one(
         {"$or": [{"sa_id": identifier}, {"admin_id": identifier}]},
-        {"password_hash": 0, "phone": 0, "face_image_base64": 0, "two_fa_secret": 0},
+        {"password_hash": 0, "phone": 0, "two_fa_secret": 0},
     )
     if not u:
         raise HTTPException(404, "Invalid ID")
@@ -1439,7 +1439,7 @@ async def list_pending_mentors(user: dict = Depends(get_current_user)):
         raise HTTPException(403, "Admin only")
     mentors = await db.users.find(
         {"role": "mentor", "mentor_status": "pending"},
-        {"password_hash": 0, "face_image_base64": 0},
+        {"password_hash": 0},
     ).to_list(100)
     for m in mentors:
         m["id"] = str(m["_id"])
@@ -1521,7 +1521,7 @@ async def admin_mentor_detail(mentor_id: str, user: dict = Depends(get_current_u
     try:
         m = await db.users.find_one(
             {"_id": ObjectId(mentor_id)},
-            {"password_hash": 0, "face_image_base64": 0},
+            {"password_hash": 0},
         )
     except Exception:
         m = None
@@ -1610,7 +1610,7 @@ async def admin_overview(user: dict = Depends(get_current_user)):
 
     # Recent activity: latest registrations
     recent_users = await db.users.find(
-        {}, {"password_hash": 0, "face_image_base64": 0},
+        {}, {"password_hash": 0},
     ).sort("created_at", -1).limit(8).to_list(8)
     activity = []
     for u in recent_users:
@@ -1663,7 +1663,7 @@ async def admin_approvals(
         status = "pending"
     items = await db.users.find(
         {"role": "mentor", "mentor_status": status},
-        {"password_hash": 0, "face_image_base64": 0},
+        {"password_hash": 0},
     ).sort("created_at", -1).limit(100).to_list(100)
     counts = {
         s: await db.users.count_documents({"role": "mentor", "mentor_status": s})
@@ -1713,7 +1713,7 @@ async def admin_users_list(
             {"alumni_info.alumni_employer": rx},
         ]
     items = await db.users.find(
-        query, {"password_hash": 0, "face_image_base64": 0},
+        query, {"password_hash": 0},
     ).sort("created_at", -1).limit(limit).to_list(limit)
     out = []
     for u in items:
@@ -1813,7 +1813,7 @@ async def admin_users_directory_list(
     skip = (page - 1) * limit
     total = await db.users.count_documents(query)
     items = await db.users.find(
-        query, {"password_hash": 0, "face_image_base64": 0},
+        query, {"password_hash": 0},
     ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     out = []
     for u in items:
@@ -1903,7 +1903,7 @@ async def admin_get_user_profile(user_id: str, user: dict = Depends(get_current_
     _require_admin(user)
     u = await db.users.find_one(
         _user_query(user_id),
-        {"password_hash": 0, "face_image_base64": 0},
+        {"password_hash": 0},
     )
     if not u:
         raise HTTPException(404, "User not found")
@@ -2027,7 +2027,7 @@ async def admin_settings_list(user: dict = Depends(get_current_user)):
     """List of admin users."""
     _require_admin(user)
     items = await db.users.find(
-        {"role": "admin"}, {"password_hash": 0, "face_image_base64": 0},
+        {"role": "admin"}, {"password_hash": 0},
     ).to_list(50)
     return {
         "items": [
@@ -2099,7 +2099,7 @@ async def admin_user_update(user_id: str, payload: dict, user: dict = Depends(ge
     if res.matched_count == 0:
         raise HTTPException(404, "User not found")
     fresh = await db.users.find_one(
-        _user_query(user_id), {"password_hash": 0, "face_image_base64": 0},
+        _user_query(user_id), {"password_hash": 0},
     )
     if fresh:
         fresh["id"] = str(fresh.get("_id"))
@@ -2775,7 +2775,7 @@ async def list_mentors(career_path: Optional[str] = None, limit: int = 20):
     if career_path:
         user_q["mentor_info.category"] = _path_to_mentor_cat(career_path)
         sample_q["expertise"] = career_path
-    real = await db.users.find(user_q, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).limit(limit).to_list(limit)
+    real = await db.users.find(user_q, {"password_hash": 0}).sort("_id", -1).limit(limit).to_list(limit)
     for m in real:
         m["id"] = str(m["_id"])
         m.pop("_id", None)
@@ -3052,7 +3052,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     if q:
         rx = {"$regex": re.escape(q), "$options": "i"}
         base_query["$or"] = [{"full_name": rx}, {"email": rx}]
-    candidates = await db.users.find(base_query, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).to_list(500)
+    candidates = await db.users.find(base_query, {"password_hash": 0}).sort("_id", -1).to_list(500)
 
     cards = [_user_card(c) for c in candidates if str(c.get("_id") or c.get("id")) != me_id]
     # attach connection_state (none|pending|connected|incoming)
@@ -3081,7 +3081,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
         mentor_q["$or"] = [{"full_name": mentor_rx}, {"email": mentor_rx}]
     approved_mentors = await db.users.find(
         mentor_q,
-        {"password_hash": 0, "face_image_base64": 0},
+        {"password_hash": 0},
     ).sort("_id", -1).limit(100).to_list(100)
     mentor_cards = [_user_card(m) for m in approved_mentors if str(m.get("_id") or m.get("id")) != me_id]
     for m in mentor_cards:
@@ -3161,7 +3161,7 @@ async def my_connections(user: dict = Depends(get_current_user)):
         except Exception:
             pass
     users = await db.users.find(
-        {"_id": {"$in": objs}}, {"password_hash": 0, "face_image_base64": 0},
+        {"_id": {"$in": objs}}, {"password_hash": 0},
     ).to_list(len(objs))
     cards = [_user_card(u) for u in users]
     for c in cards:
@@ -3188,7 +3188,7 @@ async def my_connection_requests(user: dict = Depends(get_current_user)):
                 objs.append(ObjectId(rid))
             except Exception:
                 pass
-        users = await db.users.find({"_id": {"$in": objs}}, {"password_hash": 0, "face_image_base64": 0}).to_list(len(objs))
+        users = await db.users.find({"_id": {"$in": objs}}, {"password_hash": 0}).to_list(len(objs))
         by_id = {str(u["_id"]): u for u in users}
         for r in rels:
             u = by_id.get(r["a"])
@@ -3213,7 +3213,7 @@ async def my_connection_requests(user: dict = Depends(get_current_user)):
                 objs_sent.append(ObjectId(rid))
             except Exception:
                 pass
-        users_sent = await db.users.find({"_id": {"$in": objs_sent}}, {"password_hash": 0, "face_image_base64": 0}).to_list(len(objs_sent))
+        users_sent = await db.users.find({"_id": {"$in": objs_sent}}, {"password_hash": 0}).to_list(len(objs_sent))
         by_id_sent = {str(u["_id"]): u for u in users_sent}
         for r in sent_rels:
             u = by_id_sent.get(r["b"])
