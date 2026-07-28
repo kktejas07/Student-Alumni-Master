@@ -922,7 +922,7 @@ export function NetworkView() {
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Search the SA network..."
+              placeholder="Search by name, role, skill or company..."
               placeholderTextColor={MC.dim}
               style={s.searchInput}
             />

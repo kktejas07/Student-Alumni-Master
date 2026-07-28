@@ -555,14 +555,17 @@ export function NetworkView() {
       <View style={s.searchContainer}>
         <Search size={16} color={SC.dim} style={{ marginRight: 8 }} />
         <TextInput
-          value={q}
-          onChangeText={setQ}
+          value={searchQuery}
+          onChangeText={(val) => {
+            setSearchQuery(val);
+            setQ(val);
+          }}
           placeholder="Search by name, role, skill or company..."
           placeholderTextColor={SC.dim}
           style={s.searchInput}
         />
-        {q ? (
-          <Pressable onPress={() => setQ('')} style={{ padding: 4 }}>
+        {searchQuery ? (
+          <Pressable onPress={() => { setSearchQuery(''); setQ(''); }} style={{ padding: 4 }}>
             <X size={14} color={SC.dim} />
           </Pressable>
         ) : null}
@@ -594,18 +597,6 @@ export function NetworkView() {
               </Pressable>
               );
             })}
-          </View>
-
-          {/* Search Input Box */}
-          <View style={s.searchContainer}>
-            <Search size={14} color={SC.dim} style={{ marginRight: 10 }} />
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search the SA network..."
-              placeholderTextColor={SC.dim}
-              style={s.searchInput}
-            />
           </View>
 
           {/* Discover Sub-category Pill Filters Row */}
