@@ -2273,6 +2273,12 @@ async def get_claude_chat(session_id: str, system_message: str):
                     return "Here are some top scholarships for you:\n\n1. **Global Tech Leaders Scholarship** - $5,000 for Computer Science students.\n2. **Diversity in STEM Grant** - $3,500 (Deadline: Next month).\n3. **University Merit Award** - $2,000 based on GPA.\n\nReply with a scholarship name to learn more or apply!"
                 elif "/loans" in clean_text.lower():
                     return "Here are the top student loan options available right now:\n\n1. **Federal Subsidized Loan** - 4.99% APY (Recommended)\n2. **Sallie Mae Smart Option** - 6.5% APY\n3. **Discover Undergraduate** - 7.2% APY\n\nLet me know if you want to calculate your monthly payments!"
+                elif "/startup" in clean_text.lower():
+                    return "Starting a business? Here are top funding options:\n\n1. **Seed Angel Network** - Up to $50k for early-stage.\n2. **Student Innovation Fund** - $10k equity-free grant.\n3. **Y Combinator** - Standard $500k deal.\n\nTell me about your startup idea!"
+                elif "/investors" in clean_text.lower():
+                    return "Looking for investors? I can help you connect with VCs who specialize in student-led startups. Make sure your pitch deck and MVP are ready!"
+                elif "/insurance" in clean_text.lower():
+                    return "Student insurance is crucial! Popular options include:\n\n1. **CampusCare Health** - Full medical coverage.\n2. **TechProtect** - Insurance for your laptop and gear.\n\nWhich type of coverage are you looking for?"
                 else:
                     return f"This is a mock AI response to: '{clean_text}'. Please configure EMERGENT_LLM_KEY for real, intelligent AI responses."
             if "bio-" in self.sess_id.lower():
@@ -2485,6 +2491,21 @@ async def ai_daily_brief(
     )
     return {"brief": brief_text, "generated_at": now_iso, "cached": False,
             "provider": used_provider, "provider_label": provider_label}
+
+
+@router.post("/ai/public-chat", response_model=ChatResponse)
+async def ai_public_chat(req: ChatRequest):
+    """Unauthenticated chat endpoint for public marketing pages (like Financial AI Coach)."""
+    system_msg = "You are a Financial AI Coach. Keep replies concise, friendly, and actionable."
+    session_id = req.session_id or f"public-chat-{uuid.uuid4().hex[:12]}"
+    try:
+        chat = await get_claude_chat(session_id, system_msg)
+        reply = await chat.send_message(UserMessage(text=req.message))
+        # Public chats are not persisted to DB
+        return ChatResponse(session_id=session_id, message=reply)
+    except Exception as e:
+        logger.error(f"Public AI chat failed: {e}")
+        raise HTTPException(500, f"AI service error: {str(e)}")
 
 
 @router.post("/ai/chat", response_model=ChatResponse)
