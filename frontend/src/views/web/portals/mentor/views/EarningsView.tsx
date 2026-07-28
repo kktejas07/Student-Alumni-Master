@@ -69,7 +69,7 @@ const INITIAL_WITHDRAWAL_HISTORY = [
   { id: 'wh3', amount: 22000, date: 'Feb 1, 2026', utr: 'UTR6601988', status: 'Completed' },
 ];
 
-export function EarningsView({ demoMode = true, setDemoMode }: { demoMode?: boolean; setDemoMode?: (val: boolean) => void }) {
+export function EarningsView({ demoMode = false, setDemoMode }: { demoMode?: boolean; setDemoMode?: (val: boolean) => void }) {
   const toast = useToast();
   const { width } = useWindowDimensions();
   const stack = width < 980;
@@ -238,8 +238,8 @@ export function EarningsView({ demoMode = true, setDemoMode }: { demoMode?: bool
               <View style={s.metricGrid}>
                 <View style={s.metricItem}>
                   <Text style={s.metricItemLabel}>THIS MONTH</Text>
-                  <Text style={s.metricItemVal}>₹500</Text>
-                  <Text style={s.metricItemSub}>1 session</Text>
+                  <Text style={s.metricItemVal}>{demoMode ? '₹500' : '₹0'}</Text>
+                  <Text style={s.metricItemSub}>{demoMode ? '1 session' : '0 sessions'}</Text>
                 </View>
                 
                 <View style={[s.metricItem, s.metricItemBorder]}>

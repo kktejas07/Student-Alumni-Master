@@ -111,7 +111,8 @@ export function NetworkView() {
       linkedin: u.linkedin_url || u.linkedin || '',
       github: u.github_url || u.github || '',
       connectionState: u.connection_state || 'none',
-      kind: role
+      kind: role,
+      email: u.email
     };
   };
 
@@ -205,6 +206,7 @@ export function NetworkView() {
         body: {
           student_email: authUser?.email,
           mentor_email: bookingMentor.email || 'mentor@test.com',
+          mentor_id: bookingMentor.id || bookingMentor._id,
           topic: bookingTopic.trim(),
           scheduled_at: bookingSlot.iso,
           duration_minutes: 45
@@ -214,7 +216,7 @@ export function NetworkView() {
       setBookingMentor(null);
       setBookingSlot(null);
       setBookingTopic('');
-      if (refresh) refresh();
+      fetchNetworkData(true);
     } catch (err: any) {
       toast.error('Booking failed', err?.message || 'Please try again.');
     } finally {

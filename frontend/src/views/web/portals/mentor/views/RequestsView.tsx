@@ -18,7 +18,7 @@ export interface RequestsViewProps {
   demoMode?: boolean;
 }
 
-export function RequestsView({ decisions, onSetDecision, demoMode = true }: RequestsViewProps) {
+export function RequestsView({ decisions, onSetDecision, demoMode = false }: RequestsViewProps) {
   const [realBookings, setRealBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 

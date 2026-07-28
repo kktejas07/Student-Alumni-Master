@@ -518,8 +518,10 @@ async def _summarize_results(prompt: str, plan: dict, step_results: list, user: 
 
 
 # ─── Pydantic models ──────────────────────────────────────────────
+from pydantic import BaseModel, Field
+
 class RunRequest(BaseModel):
-    prompt: str
+    prompt: str = Field(..., min_length=2, max_length=1500)
     auto_execute: Optional[bool] = False  # if True, skip preview and run immediately for read-only plans
 
 
