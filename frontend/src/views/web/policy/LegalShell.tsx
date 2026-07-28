@@ -15,7 +15,7 @@ export default function LegalShell({ title, children }: LegalShellProps) {
     <ScrollView style={s.scroll} contentContainerStyle={s.container}>
       <Animated.View entering={FadeIn.duration(300)}>
         <Pressable onPress={() => {
-          if (Platform.OS === 'web' && window.history.length > 1) router.back();
+          if (router.canGoBack()) router.back();
           else router.replace('/');
         }} style={s.back}>
           <ChevronLeft size={18} color="#94a3b8" />
