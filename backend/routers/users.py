@@ -2270,6 +2270,8 @@ async def get_claude_chat(session_id: str, system_message: str):
                     return "Here are the top student loan options available right now:\n\n1. **Federal Subsidized Loan** - 4.99% APY (Recommended)\n2. **Sallie Mae Smart Option** - 6.5% APY\n3. **Discover Undergraduate** - 7.2% APY\n\nLet me know if you want to calculate your monthly payments!"
                 else:
                     return f"This is a mock AI response to: '{clean_text}'. Please configure EMERGENT_LLM_KEY for real, intelligent AI responses."
+            if "bio-" in self.sess_id.lower():
+                raise ValueError("Triggering bio fallback logic")
             return '{"summary": "Mock summary", "milestones": [{"id": "m1", "title": "Mock Milestone", "timeframe": "0-3 months", "actions": [], "milestone_type": "profile"}], "recommended_skills": ["Python"], "recommended_courses": [], "mentor_traits": ["Helpful"], "target_role": "Software Engineer", "target_company_type": "Tech", "progress_pct": 10, "skill_scores": {"Technical Excellence": 80, "Professional Communication": 80, "Personal Brand": 80, "Leadership & Collaboration": 80, "Career Preparation": 80, "Industry Presence": 80}, "weekly_plan": [], "key_projects": [], "book_recommendations": []}'
     if not os.environ.get("EMERGENT_LLM_KEY"):
         return DummyChat(system_message, session_id)
@@ -2971,6 +2973,7 @@ def _user_card(u: dict) -> dict:
     cp = u.get("college_info") or u.get("college_profile") or {}
     return {
         "id": str(u.get("_id") or u.get("id")),
+        "email": u.get("email"),
         "full_name": u.get("full_name") or u.get("email"),
         "role": u.get("role"),
         "institution": u.get("institution") or si.get("institution_name") or ai.get("institution_name") or cp.get("institution_name") or (u.get("full_name") if u.get("role") == "college" else None),

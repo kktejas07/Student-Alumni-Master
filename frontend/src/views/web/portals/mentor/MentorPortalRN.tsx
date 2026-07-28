@@ -63,7 +63,6 @@ export default function MentorPortalRN() {
   const logout = useAuthStore((st) => st.logout);
   const user = useAuthStore((st) => st.user) as any;
 
-  const [demoMode, setDemoMode] = useState(true);
   const [active, setActive] = useState<NavId>('dashboard');
 
   useEffect(() => {
@@ -158,23 +157,21 @@ export default function MentorPortalRN() {
             notifCount={unreadCount}
             onBellPress={() => setShowNotifs(!showNotifs)}
             onAvatarPress={() => { setProfileTab('manage'); setActive('profile'); }}
-            demoMode={demoMode}
-            setDemoMode={setDemoMode}
           />
 
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
             <View style={{ flex: 1, padding: 20 }}>
               <PromoBanner portal="mentor" />
-              {active === 'dashboard' && <DashboardView onNav={(id) => setActive(id as NavId)} demoMode={demoMode} setDemoMode={setDemoMode} />}
+              {active === 'dashboard' && <DashboardView onNav={(id) => setActive(id as NavId)} />}
               {active === 'ai-studio' && <MentorAIStudioView />}
               {active === 'students'  && <ConnectionsView />}
-              {active === 'sessions'  && <SessionsView demoMode={demoMode} setDemoMode={setDemoMode} />}
-              {active === 'requests'  && <RequestsView decisions={decisions} onSetDecision={(id, d) => setDecisions(prev => ({ ...prev, [id]: d }))} demoMode={demoMode} />}
+              {active === 'sessions'  && <SessionsView />}
+              {active === 'requests'  && <RequestsView decisions={decisions} onSetDecision={(id, d) => setDecisions(prev => ({ ...prev, [id]: d }))} />}
               {active === 'network'   && <NetworkView />}
-              {active === 'earnings'  && <EarningsView demoMode={demoMode} setDemoMode={setDemoMode} />}
-              {active === 'feedback'  && <FeedbackView demoMode={demoMode} setDemoMode={setDemoMode} />}
+              {active === 'earnings'  && <EarningsView />}
+              {active === 'feedback'  && <FeedbackView />}
               {active === 'event'     && <CreateEventView />}
-              {active === 'profile'   && <MentorProfileSettingsView initialTab={profileTab} demoMode={demoMode} setDemoMode={setDemoMode} />}
+              {active === 'profile'   && <MentorProfileSettingsView initialTab={profileTab} />}
             </View>
             <DashboardFooter portal="mentor" />
           </ScrollView>

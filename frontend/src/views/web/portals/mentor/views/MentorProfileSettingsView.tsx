@@ -43,7 +43,7 @@ const LANGUAGES = ['English', 'हिन्दी', 'Tamil', 'Telugu', 'Kannada'
 const TIMEZONES = ['Asia/Kolkata (IST)', 'Asia/Dubai (GST)', 'America/New_York (EST)', 'Europe/London (BST)', 'America/Los_Angeles (PST)', 'Asia/Singapore (SGT)'];
 
 export function MentorProfileSettingsView({ 
-  initialTab, demoMode = true, setDemoMode 
+  initialTab, demoMode = false, setDemoMode 
 }: { 
   initialTab?: TabKey;
   demoMode?: boolean;
