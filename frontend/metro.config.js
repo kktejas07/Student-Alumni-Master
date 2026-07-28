@@ -59,11 +59,21 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       type: 'sourceFile',
     };
   }
-  const resolved = context.resolveRequest(context, moduleName, platform);
-  if (resolved?.filePath?.endsWith('.node.mjs')) {
-    return { filePath: resolved.filePath.replace('.node.mjs', '.js'), type: 'sourceFile' };
+  const fs = require('fs');
+  const emptyAssetPath = path.join(__dirname, 'assets', 'empty-asset.png');
+
+  try {
+    const resolved = context.resolveRequest(context, moduleName, platform);
+    if (resolved?.filePath?.endsWith('.node.mjs')) {
+      return { filePath: resolved.filePath.replace('.node.mjs', '.js'), type: 'sourceFile' };
+    }
+    return resolved;
+  } catch (err) {
+    if (/\.(png|jpg|jpeg|gif|svg|webp)$/i.test(moduleName)) {
+      return { filePath: emptyAssetPath, type: 'sourceFile' };
+    }
+    throw err;
   }
-  return resolved;
 };
 
 // Reduce the number of workers to decrease resource usage
