@@ -11,7 +11,7 @@ from typing import List, Optional, Any
 
 import jwt
 import pyotp
-import qrcode
+import qrcode  # type: ignore
 try:
     from google.oauth2 import id_token as g_id
     from google.auth.transport import requests as g_req
@@ -1072,15 +1072,18 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
         return await db.users.find_one({"_id": user["_id"]})
 
     # New OAuth user — create with onboarding NOT yet completed so the client
-    # routes them through the onboarding flow.
-    user_doc = {
+    uid = generate_unique_id(role or "student")
+    qr_code = generate_qr_code(
+        f"https://studentalumni.app/verify/{uid.split('-')[-1]}"
+    )
+    user_doc: Dict[str, Any] = {
         "email": email,
         "password_hash": hash_password(secrets.token_urlsafe(16)),  # random unguessable password
         "full_name": full_name or email.split("@")[0].title(),
         "role": role or "student",
         "phone": None,
-        "unique_id": generate_unique_id(role or "student"),
-        "qr_code_base64": None,
+        "unique_id": uid,
+        "qr_code_base64": qr_code,
         "school_info": None,
         "career_path": None,
         "interests": [],
@@ -1096,13 +1099,6 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
     }
     res = await db.users.insert_one(user_doc)
     user_doc["_id"] = res.inserted_id
-    user_doc["qr_code_base64"] = generate_qr_code(
-        f"https://studentalumni.app/verify/{user_doc['unique_id'].split('-')[-1]}"
-    )
-    await db.users.update_one(
-        {"_id": res.inserted_id},
-        {"$set": {"qr_code_base64": user_doc["qr_code_base64"]}},
-    )
     return user_doc
 
 
