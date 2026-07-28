@@ -674,7 +674,11 @@ async def verify_id_card(identifier: str):
     Returns role-specific fields dynamically. Nothing is hardcoded — all from DB.
     """
     u = await db.users.find_one(
-        {"$or": [{"sa_id": identifier}, {"admin_id": identifier}]},
+        {"$or": [
+            {"sa_id": identifier}, 
+            {"admin_id": identifier},
+            {"unique_id": {"$regex": f"{identifier}$", "$options": "i"}}
+        ]},
         {"password_hash": 0, "phone": 0, "face_image_base64": 0, "two_fa_secret": 0},
     )
     if not u:
@@ -701,7 +705,7 @@ async def verify_id_card(identifier: str):
         "org": u.get("org") or "Student Alumni",
         "status": _student_status_label(u),
         "photo": u.get("photo") or u.get("avatar_url") or "",
-        "issued_at": (u.get("sa_id_issued_at") or u.get("created_at") or "").isoformat()
+        "issued_at": (u.get("sa_id_issued_at") or u.get("created_at")).isoformat()
             if isinstance(u.get("sa_id_issued_at") or u.get("created_at"), datetime) else "",
     }
 
@@ -798,7 +802,8 @@ async def complete_onboarding(req: OnboardingRequest, user: dict = Depends(get_c
 
     # ---- Generate unique ID + QR code (idempotent — only on first onboarding) ----
     unique_id = user.get("unique_id") or generate_unique_id(role)
-    qr_payload = f"https://studentalumni.app/verify/{unique_id.split('-')[-1]}"
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.app").strip().rstrip("/")
+    qr_payload = f"{frontend_url}/verify/{unique_id.split('-')[-1]}"
     qr_code = generate_qr_code(qr_payload)
 
     # ---- Build update document ----
@@ -1419,9 +1424,9 @@ async def change_my_password(payload: dict, user: dict = Depends(get_current_use
     new_pw = payload.get("new_password") or ""
     if len(new_pw) < 8:
         raise HTTPException(400, "Password must be at least 8 characters")
-    if not bcrypt.checkpw(cur_pw.encode("utf-8"), user.get("password_hash", "").encode("utf-8")):
+    if not verify_password(cur_pw, user.get("password_hash", "")):
         raise HTTPException(400, "Current password is incorrect")
-    new_hash = bcrypt.hashpw(new_pw.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    new_hash = hash_password(new_pw)
     await db.users.update_one(
         {"_id": user["_id"]},
         {"$set": {"password_hash": new_hash, "updated_at": datetime.now(timezone.utc)}},
@@ -1439,7 +1444,7 @@ async def list_pending_mentors(user: dict = Depends(get_current_user)):
         raise HTTPException(403, "Admin only")
     mentors = await db.users.find(
         {"role": "mentor", "mentor_status": "pending"},
-        {"password_hash": 0, "face_image_base64": 0},
+        {"password_hash": 0},
     ).to_list(100)
     for m in mentors:
         m["id"] = str(m["_id"])
@@ -1521,7 +1526,7 @@ async def admin_mentor_detail(mentor_id: str, user: dict = Depends(get_current_u
     try:
         m = await db.users.find_one(
             {"_id": ObjectId(mentor_id)},
-            {"password_hash": 0, "face_image_base64": 0},
+            {"password_hash": 0},
         )
     except Exception:
         m = None
@@ -1610,7 +1615,7 @@ async def admin_overview(user: dict = Depends(get_current_user)):
 
     # Recent activity: latest registrations
     recent_users = await db.users.find(
-        {}, {"password_hash": 0, "face_image_base64": 0},
+        {}, {"password_hash": 0},
     ).sort("created_at", -1).limit(8).to_list(8)
     activity = []
     for u in recent_users:
@@ -1663,7 +1668,7 @@ async def admin_approvals(
         status = "pending"
     items = await db.users.find(
         {"role": "mentor", "mentor_status": status},
-        {"password_hash": 0, "face_image_base64": 0},
+        {"password_hash": 0},
     ).sort("created_at", -1).limit(100).to_list(100)
     counts = {
         s: await db.users.count_documents({"role": "mentor", "mentor_status": s})
@@ -1713,7 +1718,7 @@ async def admin_users_list(
             {"alumni_info.alumni_employer": rx},
         ]
     items = await db.users.find(
-        query, {"password_hash": 0, "face_image_base64": 0},
+        query, {"password_hash": 0},
     ).sort("created_at", -1).limit(limit).to_list(limit)
     out = []
     for u in items:
@@ -1813,7 +1818,7 @@ async def admin_users_directory_list(
     skip = (page - 1) * limit
     total = await db.users.count_documents(query)
     items = await db.users.find(
-        query, {"password_hash": 0, "face_image_base64": 0},
+        query, {"password_hash": 0},
     ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     out = []
     for u in items:
@@ -1903,7 +1908,7 @@ async def admin_get_user_profile(user_id: str, user: dict = Depends(get_current_
     _require_admin(user)
     u = await db.users.find_one(
         _user_query(user_id),
-        {"password_hash": 0, "face_image_base64": 0},
+        {"password_hash": 0},
     )
     if not u:
         raise HTTPException(404, "User not found")
@@ -2027,7 +2032,7 @@ async def admin_settings_list(user: dict = Depends(get_current_user)):
     """List of admin users."""
     _require_admin(user)
     items = await db.users.find(
-        {"role": "admin"}, {"password_hash": 0, "face_image_base64": 0},
+        {"role": "admin"}, {"password_hash": 0},
     ).to_list(50)
     return {
         "items": [
@@ -2099,7 +2104,7 @@ async def admin_user_update(user_id: str, payload: dict, user: dict = Depends(ge
     if res.matched_count == 0:
         raise HTTPException(404, "User not found")
     fresh = await db.users.find_one(
-        _user_query(user_id), {"password_hash": 0, "face_image_base64": 0},
+        _user_query(user_id), {"password_hash": 0},
     )
     if fresh:
         fresh["id"] = str(fresh.get("_id"))
@@ -2268,8 +2273,12 @@ async def get_claude_chat(session_id: str, system_message: str):
                     return "Here are some top scholarships for you:\n\n1. **Global Tech Leaders Scholarship** - $5,000 for Computer Science students.\n2. **Diversity in STEM Grant** - $3,500 (Deadline: Next month).\n3. **University Merit Award** - $2,000 based on GPA.\n\nReply with a scholarship name to learn more or apply!"
                 elif "/loans" in clean_text.lower():
                     return "Here are the top student loan options available right now:\n\n1. **Federal Subsidized Loan** - 4.99% APY (Recommended)\n2. **Sallie Mae Smart Option** - 6.5% APY\n3. **Discover Undergraduate** - 7.2% APY\n\nLet me know if you want to calculate your monthly payments!"
+                elif "/startup" in clean_text.lower():
+                    return "Here are the best startup funding sources:\n\n1. **Y Combinator** - Seed funding for early stage.\n2. **Local Angel Network** - Best for MVP stage.\n3. **Gov Tech Grants** - Non-dilutive funding.\n\nTell me your startup's niche to get specialized matches!"
                 else:
                     return f"This is a mock AI response to: '{clean_text}'. Please configure EMERGENT_LLM_KEY for real, intelligent AI responses."
+            if "bio-" in self.sess_id.lower():
+                raise ValueError("Triggering bio fallback logic")
             return '{"summary": "Mock summary", "milestones": [{"id": "m1", "title": "Mock Milestone", "timeframe": "0-3 months", "actions": [], "milestone_type": "profile"}], "recommended_skills": ["Python"], "recommended_courses": [], "mentor_traits": ["Helpful"], "target_role": "Software Engineer", "target_company_type": "Tech", "progress_pct": 10, "skill_scores": {"Technical Excellence": 80, "Professional Communication": 80, "Personal Brand": 80, "Leadership & Collaboration": 80, "Career Preparation": 80, "Industry Presence": 80}, "weekly_plan": [], "key_projects": [], "book_recommendations": []}'
     if not os.environ.get("EMERGENT_LLM_KEY"):
         return DummyChat(system_message, session_id)
@@ -2481,11 +2490,20 @@ async def ai_daily_brief(
 
 
 @router.post("/ai/chat", response_model=ChatResponse)
-async def ai_chat(req: ChatRequest, user: dict = Depends(get_current_user)):
-    career_path = user.get("career_path") or "job"
+async def ai_chat(req: ChatRequest, request: Request):
+    user = None
+    try:
+        user = await get_current_user(request)
+    except Exception:
+        pass
+    
+    career_path = user.get("career_path") if user else "job"
+    full_name = user.get("full_name", "Guest") if user else "Guest"
+    role = user.get("role", "Visitor") if user else "Visitor"
+    
     base = CAREER_PATH_SYSTEM_PROMPTS.get(career_path, CAREER_PATH_SYSTEM_PROMPTS["job"])
     system_msg = (
-        f"{base}\n\nYou are speaking with {user.get('full_name')}, a {user.get('role')}. "
+        f"{base}\n\nYou are speaking with {full_name}, a {role}. "
         "Keep replies concise (2-4 short paragraphs), friendly, and actionable."
     )
     session_id = req.session_id or f"chat-{uuid.uuid4().hex[:12]}"
@@ -2493,13 +2511,14 @@ async def ai_chat(req: ChatRequest, user: dict = Depends(get_current_user)):
         chat = await get_claude_chat(session_id, system_msg)
         reply = await chat.send_message(UserMessage(text=req.message))
 
-        # Persist chat history (used to render conversation on reload)
-        await db.chat_messages.insert_many([
-            {"user_id": str(user["_id"]), "session_id": session_id, "role": "user",
-             "content": req.message, "created_at": datetime.now(timezone.utc)},
-            {"user_id": str(user["_id"]), "session_id": session_id, "role": "assistant",
-             "content": reply, "created_at": datetime.now(timezone.utc)},
-        ])
+        # Persist chat history only if user exists (to render conversation on reload)
+        if user:
+            await db.chat_messages.insert_many([
+                {"user_id": str(user["_id"]), "session_id": session_id, "role": "user",
+                 "content": req.message, "created_at": datetime.now(timezone.utc)},
+                {"user_id": str(user["_id"]), "session_id": session_id, "role": "assistant",
+                 "content": reply, "created_at": datetime.now(timezone.utc)},
+            ])
         return ChatResponse(session_id=session_id, message=reply)
     except Exception as e:
         logger.error(f"AI chat failed: {e}")
@@ -2775,7 +2794,7 @@ async def list_mentors(career_path: Optional[str] = None, limit: int = 20):
     if career_path:
         user_q["mentor_info.category"] = _path_to_mentor_cat(career_path)
         sample_q["expertise"] = career_path
-    real = await db.users.find(user_q, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).limit(limit).to_list(limit)
+    real = await db.users.find(user_q, {"password_hash": 0}).sort("_id", -1).limit(limit).to_list(limit)
     for m in real:
         m["id"] = str(m["_id"])
         m.pop("_id", None)
@@ -2971,6 +2990,7 @@ def _user_card(u: dict) -> dict:
     cp = u.get("college_info") or u.get("college_profile") or {}
     return {
         "id": str(u.get("_id") or u.get("id")),
+        "email": u.get("email"),
         "full_name": u.get("full_name") or u.get("email"),
         "role": u.get("role"),
         "institution": u.get("institution") or si.get("institution_name") or ai.get("institution_name") or cp.get("institution_name") or (u.get("full_name") if u.get("role") == "college" else None),
@@ -3015,6 +3035,19 @@ def _matches_count(a: list, b: list) -> int:
     return len(sa & sb)
 
 
+def _match_institution(inst_a: Optional[str], inst_b: Optional[str]) -> bool:
+    if not inst_a or not inst_b:
+        return False
+    a = inst_a.strip().lower()
+    b = inst_b.strip().lower()
+    if a == b or a in b or b in a:
+        return True
+    ignore = {"the", "of", "and", "for", "in", "institute", "technology", "university", "college", "school", "national", "state"}
+    words_a = {w for w in a.replace(",", " ").replace("-", " ").split() if len(w) > 1 and w not in ignore}
+    words_b = {w for w in b.replace(",", " ").replace("-", " ").split() if len(w) > 1 and w not in ignore}
+    return bool(words_a & words_b)
+
+
 @router.get("/network/discover")
 async def network_discover(user: dict = Depends(get_current_user), q: str = "", limit: int = 12):
     """
@@ -3027,10 +3060,13 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     """
     me_id = str(user.get("_id") or user.get("id"))
     si = user.get("school_info") or {}
+    ai = user.get("alumni_info") or {}
+    cp = user.get("college_info") or user.get("college_profile") or {}
     my_interests = user.get("interests") or si.get("interests") or []
     my_skills = user.get("skills") or []
     my_cp = user.get("career_path")
-    my_inst = si.get("institution_name")
+    my_inst = user.get("institution") or si.get("institution_name") or ai.get("institution_name") or cp.get("institution_name") or (user.get("full_name") if user.get("role") == "college" else None)
+    my_inst_normalized = (my_inst or "").strip().lower()
     # Existing connection state to mark cards
     rels = await db.connections.find(
         {"$or": [{"a": me_id}, {"b": me_id}]},
@@ -3049,10 +3085,25 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
 
     # Pull a healthy candidate set
     base_query: dict = {"_id": {"$ne": user["_id"]}}
-    if q:
-        rx = {"$regex": re.escape(q), "$options": "i"}
-        base_query["$or"] = [{"full_name": rx}, {"email": rx}]
-    candidates = await db.users.find(base_query, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).to_list(80)
+    is_search = bool(q and q.strip())
+    if is_search:
+        rx = {"$regex": re.escape(q.strip()), "$options": "i"}
+        base_query["$or"] = [
+            {"full_name": rx},
+            {"email": rx},
+            {"role": rx},
+            {"institution": rx},
+            {"school_info.institution_name": rx},
+            {"alumni_info.institution_name": rx},
+            {"alumni_info.company": rx},
+            {"alumni_info.job_title": rx},
+            {"mentor_profile.company": rx},
+            {"mentor_profile.job_title": rx},
+            {"skills": rx},
+            {"interests": rx},
+            {"career_path": rx},
+        ]
+    candidates = await db.users.find(base_query, {"password_hash": 0}).sort("_id", -1).to_list(100 if is_search else 200)
 
     cards = [_user_card(c) for c in candidates if str(c.get("_id") or c.get("id")) != me_id]
     # attach connection_state (none|pending|connected|incoming)
@@ -3060,28 +3111,50 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
         st = state_by_user.get(c["id"])
         c["connection_state"] = st or "none"
 
+    sec_limit = 24 if is_search else limit
+
     # Section: by_interest
     by_interest = [c for c in cards if _matches_count(my_interests, c["interests"]) > 0]
+    if not by_interest:
+        by_interest = cards
     by_interest.sort(key=lambda c: -_matches_count(my_interests, c["interests"]))
 
     # Section: by_career
     by_career = [c for c in cards if my_cp and c.get("career_path") == my_cp and c["role"] != "college"]
+    if not by_career:
+        by_career = cards
 
-    # Section: by_skills (NEW)
+    # Section: by_skills
     by_skills = [c for c in cards if _matches_count(my_skills, c.get("skills") or []) > 0]
+    if not by_skills:
+        by_skills = cards
     by_skills.sort(key=lambda c: -_matches_count(my_skills, c.get("skills") or []))
 
     # Section: by_college
-    by_college = [c for c in cards if my_inst and c.get("institution") == my_inst]
+    by_college = []
+    if my_inst:
+        by_college = [c for c in cards if _match_institution(my_inst, c.get("institution") or "")]
+    if not by_college:
+        by_college = [c for c in cards if c.get("institution")]
+    if not by_college:
+        by_college = cards
 
     # Section: mentors (approved)
-    mentor_q = {"_id": {"$ne": user["_id"]}, "role": "mentor", "mentor_status": "approved"}
-    if q:
-        mentor_q["$or"] = [{"full_name": rx}, {"email": rx}]
+    mentor_q: dict = {"_id": {"$ne": user["_id"]}, "role": "mentor", "mentor_status": "approved"}
+    if is_search:
+        mentor_rx = {"$regex": re.escape(q.strip()), "$options": "i"}
+        mentor_q["$or"] = [
+            {"full_name": mentor_rx},
+            {"email": mentor_rx},
+            {"mentor_profile.company": mentor_rx},
+            {"mentor_profile.job_title": mentor_rx},
+            {"skills": mentor_rx},
+            {"interests": mentor_rx},
+        ]
     approved_mentors = await db.users.find(
         mentor_q,
-        {"password_hash": 0, "face_image_base64": 0},
-    ).sort("_id", -1).limit(100).to_list(100)
+        {"password_hash": 0},
+    ).sort("_id", -1).limit(50).to_list(50)
     mentor_cards = [_user_card(m) for m in approved_mentors if str(m.get("_id") or m.get("id")) != me_id]
     for m in mentor_cards:
         m["connection_state"] = state_by_user.get(m["id"], "none")
@@ -3089,56 +3162,73 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     if my_cp:
         mentor_cards.sort(key=lambda m: (m.get("category") or "").lower().find(my_cp.lower()) == -1)
 
-    # Section: peer_students (NEW)
+    # Section: peer_students
     peer_students = [c for c in cards if c["role"] == "student"]
+    if not peer_students:
+        peer_students = cards
 
-    # Section: explore_alumni (NEW)
+    # Section: explore_alumni
     explore_alumni = [c for c in cards if c["role"] == "alumni"]
+    if not explore_alumni:
+        explore_alumni = cards
 
     # Section: expand — diverse roles user hasn't matched on yet
-    seen_ids = {c["id"] for c in (by_interest + by_career + by_skills + by_college + peer_students[:limit] + explore_alumni[:limit])} | {m["id"] for m in mentor_cards}
-    expand = [c for c in cards if c["id"] not in seen_ids and c["role"] in {"student", "alumni", "college", "mentor"}]
+    seen_ids = {c["id"] for c in (by_interest[:sec_limit] + by_career[:sec_limit] + by_skills[:sec_limit] + by_college[:sec_limit] + peer_students[:sec_limit] + explore_alumni[:sec_limit])} | {m["id"] for m in mentor_cards}
+    expand = [c for c in cards if c["id"] not in seen_ids]
+    if not expand:
+        expand = cards
 
     interest_label = ", ".join(my_interests[:2]) if my_interests else "Your declared interests"
     skill_label    = ", ".join(my_skills[:3])     if my_skills    else "your declared skills"
     cp_label = (my_cp or "your goal").replace("_", " ").title() if my_cp else "Your career goal"
 
-    return {
-        "sections": [
-            {"key": "by_interest", "title": "Matched by Interest",
-             "subtitle": f"Based on: {interest_label}",
-             "icon": "Heart", "tint": "#A78BFA",
-             "items": by_interest[:limit]},
-            {"key": "by_career", "title": "Matched by Career Path",
-             "subtitle": f"Pursuing {cp_label}",
-             "icon": "Briefcase", "tint": "#F59E0B",
-             "items": by_career[:limit]},
-            {"key": "by_skills", "title": "Matched by Skills",
-             "subtitle": f"Shared skills: {skill_label}",
-             "icon": "Code2", "tint": "#2DD4BF",
-             "items": by_skills[:limit]},
-            {"key": "by_college", "title": "From Your College",
-             "subtitle": "People from " + (my_inst or "your school"),
-             "icon": "GraduationCap", "tint": "#22D3EE",
-             "items": by_college[:limit]},
-            {"key": "mentors", "title": "Recommended Mentors",
-             "subtitle": "Book a session \u00b7 First 2 free",
-             "icon": "UserCheck", "tint": "#10B981",
-             "items": mentor_cards[:limit]},
-            {"key": "peer_students", "title": "Peer Students",
-             "subtitle": "Connect with peers and classmates",
-             "icon": "Users", "tint": "#22D3EE",
-             "items": peer_students[:limit]},
-            {"key": "explore_alumni", "title": "Explore Alumni",
-             "subtitle": "Learn from graduates in the industry",
-             "icon": "Users", "tint": "#F59E0B",
-             "items": explore_alumni[:limit]},
-            {"key": "expand", "title": "Expand Your Horizons",
-             "subtitle": "People outside your current interests",
-             "icon": "Compass", "tint": "#EC4899",
-             "items": expand[:limit]},
-        ],
-    }
+    sections = []
+    if is_search:
+        sections.append({
+            "key": "search_results",
+            "title": f"Search Results for '{q.strip()}'",
+            "subtitle": f"Found {len(cards)} account(s) matching your query",
+            "icon": "Search",
+            "tint": "#3B82F6",
+            "items": cards[:sec_limit]
+        })
+
+    sections.extend([
+        {"key": "by_interest", "title": "Matched by Interest",
+         "subtitle": f"Based on: {interest_label}",
+         "icon": "Heart", "tint": "#A78BFA",
+         "items": by_interest[:sec_limit]},
+        {"key": "by_career", "title": "Matched by Career Path",
+         "subtitle": f"Pursuing {cp_label}",
+         "icon": "Briefcase", "tint": "#F59E0B",
+         "items": by_career[:sec_limit]},
+        {"key": "by_skills", "title": "Matched by Skills",
+         "subtitle": f"Shared skills: {skill_label}",
+         "icon": "Code2", "tint": "#2DD4BF",
+         "items": by_skills[:sec_limit]},
+        {"key": "by_college", "title": "From Your College",
+         "subtitle": "People from " + (my_inst or "your school"),
+         "icon": "GraduationCap", "tint": "#22D3EE",
+         "items": by_college[:sec_limit]},
+        {"key": "mentors", "title": "Recommended Mentors",
+         "subtitle": "Book a session \u00b7 First 2 free",
+         "icon": "UserCheck", "tint": "#10B981",
+         "items": mentor_cards[:sec_limit]},
+        {"key": "peer_students", "title": "Peer Students",
+         "subtitle": "Connect with peers and classmates",
+         "icon": "Users", "tint": "#22D3EE",
+         "items": peer_students[:sec_limit]},
+        {"key": "explore_alumni", "title": "Explore Alumni",
+         "subtitle": "Learn from graduates in the industry",
+         "icon": "Users", "tint": "#F59E0B",
+         "items": explore_alumni[:sec_limit]},
+        {"key": "expand", "title": "Expand Your Horizons",
+         "subtitle": "People outside your current interests",
+         "icon": "Compass", "tint": "#EC4899",
+         "items": expand[:sec_limit]},
+    ])
+
+    return {"sections": sections}
 
 
 @router.get("/network/connections")
@@ -3160,7 +3250,7 @@ async def my_connections(user: dict = Depends(get_current_user)):
         except Exception:
             pass
     users = await db.users.find(
-        {"_id": {"$in": objs}}, {"password_hash": 0, "face_image_base64": 0},
+        {"_id": {"$in": objs}}, {"password_hash": 0},
     ).to_list(len(objs))
     cards = [_user_card(u) for u in users]
     for c in cards:
@@ -3187,7 +3277,7 @@ async def my_connection_requests(user: dict = Depends(get_current_user)):
                 objs.append(ObjectId(rid))
             except Exception:
                 pass
-        users = await db.users.find({"_id": {"$in": objs}}, {"password_hash": 0, "face_image_base64": 0}).to_list(len(objs))
+        users = await db.users.find({"_id": {"$in": objs}}, {"password_hash": 0}).to_list(len(objs))
         by_id = {str(u["_id"]): u for u in users}
         for r in rels:
             u = by_id.get(r["a"])
@@ -3212,7 +3302,7 @@ async def my_connection_requests(user: dict = Depends(get_current_user)):
                 objs_sent.append(ObjectId(rid))
             except Exception:
                 pass
-        users_sent = await db.users.find({"_id": {"$in": objs_sent}}, {"password_hash": 0, "face_image_base64": 0}).to_list(len(objs_sent))
+        users_sent = await db.users.find({"_id": {"$in": objs_sent}}, {"password_hash": 0}).to_list(len(objs_sent))
         by_id_sent = {str(u["_id"]): u for u in users_sent}
         for r in sent_rels:
             u = by_id_sent.get(r["b"])
@@ -3852,18 +3942,20 @@ async def post_room_message(room_id: str, payload: dict, user: dict = Depends(ge
     msg = (payload.get("message") or "").strip()
     if not msg:
         raise HTTPException(400, "Message cannot be empty")
+    now_dt = datetime.now(timezone.utc)
     doc = {
         "room_id": room_id,
         "user_id": str(user["_id"]),
         "user_name": user["full_name"],
         "user_role": user["role"],
         "message": msg,
-        "created_at": datetime.now(timezone.utc),
+        "created_at": now_dt,
     }
-    await db.room_messages.insert_one(doc.copy())
-    doc["created_at"] = doc["created_at"].isoformat()
-    doc.pop("_id", None)
-    return doc
+    await db.room_messages.insert_one(doc)
+    res_doc: dict = dict(doc)
+    res_doc["created_at"] = now_dt.isoformat()
+    res_doc.pop("_id", None)
+    return res_doc
 
 
 # ----------------------------------------------------------------------------

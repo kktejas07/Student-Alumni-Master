@@ -26,10 +26,7 @@ import jwt as _jwt
 
 from core.roles import Role, Perm, SYSTEM_ROLES, seed_admin_roles
 
-load_dotenv(Path(__file__).parent / ".env")
-
-from db import client as _mongo
-_db = _mongo[os.environ["DB_NAME"]]
+from core.db import db as _db
 
 router = APIRouter(tags=["admin-settings"])
 
@@ -787,6 +784,9 @@ DEFAULT_PLATFORM_CONTROLS = {
         {"key": "event_rsvp",           "label": "Event RSVP",           "description": "Allow students to RSVP for events",           "value": True},
         {"key": "career_tracker",      "label": "Career Tracker",       "description": "Enable alumni career tracking module",        "value": True},
         {"key": "newsletter",           "label": "Newsletter",            "description": "Send weekly newsletter to all users",           "value": True},
+        {"key": "enable_google_login",  "label": "Enable Google Login",  "description": "Show Google sign-in button on login page", "value": True},
+        {"key": "enable_linkedin_login","label": "Enable LinkedIn Login","description": "Show LinkedIn sign-in button on login page", "value": True},
+        {"key": "enable_github_login",  "label": "Enable GitHub Login",  "description": "Show GitHub sign-in button on login page", "value": True},
     ],
     "system_settings": [
         {"key": "session_timeout",  "label": "Session Timeout",   "value": "30 minutes"},

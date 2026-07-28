@@ -82,6 +82,7 @@ async def _resolve_user(role: str, email: Optional[str]) -> Dict[str, Any]:
 class BookingCreate(BaseModel):
     student_email: Optional[str] = None
     mentor_email: str
+    mentor_id: Optional[str] = None
     topic: str
     scheduled_at: Optional[str] = None  # ISO; defaults to next slot
     duration_minutes: int = 45
@@ -90,7 +91,15 @@ class BookingCreate(BaseModel):
 @router.post("/student/bookings")
 async def create_booking(req: BookingCreate):
     student = await _resolve_user("student", req.student_email)
-    mentor = await _db.users.find_one({"role": "mentor", "email": req.mentor_email})
+    mentor = None
+    if req.mentor_id:
+        try:
+            from bson import ObjectId
+            mentor = await _db.users.find_one({"role": "mentor", "_id": ObjectId(req.mentor_id)})
+        except Exception:
+            pass
+    if not mentor:
+        mentor = await _db.users.find_one({"role": "mentor", "email": req.mentor_email})
     if not mentor:
         raise HTTPException(404, "Mentor not found")
     if mentor.get("mentor_status") and mentor.get("mentor_status") != "approved":

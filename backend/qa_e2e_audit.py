@@ -22,7 +22,7 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="repla
 
 # ── Config ─────────────────────────────────────────────────────────────────────
 FRONTEND_URL = "http://localhost:8081"
-BACKEND_URL  = "http://localhost:8000"
+BACKEND_URL  = "http://localhost:8002"
 API_BASE     = f"{BACKEND_URL}/api"
 
 REPORT_DIR   = Path(__file__).parent / "qa_audit_report"

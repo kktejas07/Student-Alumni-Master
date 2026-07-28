@@ -36,59 +36,59 @@ export function AuthWebShell({
 
   return (
     <RoleThemeProvider role={role}>
-    <View style={styles.shell}>
-      {/* LEFT — brand pane (hidden on small screens) */}
-      {!compact && (
-        <View style={styles.brandPane}>
-          <View pointerEvents="none" style={[styles.orb, { width: 280, height: 280, top: '-10%', right: '-15%', backgroundColor: 'rgba(139,92,246,0.18)' }]} />
-          <View pointerEvents="none" style={[styles.orb, { width: 200, height: 200, bottom: '10%', left: '-10%', backgroundColor: 'rgba(109,40,217,0.16)' }]} />
-          <View style={{ alignItems: 'center', marginBottom: 24 }}>
-            <SALogo size={76} variant="white" />
+      <View style={styles.shell}>
+        {/* LEFT — brand pane (hidden on small screens) */}
+        {!compact && (
+          <View style={styles.brandPane}>
+            <View pointerEvents="none" style={[styles.orb, { width: 280, height: 280, top: '-10%', right: '-15%', backgroundColor: 'rgba(139,92,246,0.18)' }]} />
+            <View pointerEvents="none" style={[styles.orb, { width: 200, height: 200, bottom: '10%', left: '-10%', backgroundColor: 'rgba(109,40,217,0.16)' }]} />
+            <View style={{ alignItems: 'center', marginBottom: 24 }}>
+              <SALogo size={76} variant="white" />
+            </View>
+            <Text style={styles.brandTitle}>Student Alumni</Text>
+            <Text style={styles.brandSub}>
+              AI career guidance, internships, mentorship, and alumni networking.
+            </Text>
+            {[
+              { emoji: '🤖', t: 'AI Career Guidance', s: 'Personalised roadmap based on your goals' },
+              { emoji: '🌍', t: '10,000+ Internships', s: 'Global opportunities matched to you' },
+              { emoji: '🤝', t: '500+ Mentors', s: 'Alumni who want to help you grow' },
+            ].map((f) => (
+              <View key={f.t} style={styles.featRow}>
+                <View style={styles.featIcon}>
+                  <Text style={{ fontSize: 17 }}>{f.emoji}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.featTitle}>{f.t}</Text>
+                  <Text style={styles.featSub}>{f.s}</Text>
+                </View>
+              </View>
+            ))}
           </View>
-          <Text style={styles.brandTitle}>Student Alumni</Text>
-          <Text style={styles.brandSub}>
-            AI career guidance, internships, mentorship, and alumni networking.
-          </Text>
-          {[
-            { emoji: '🤖', t: 'AI Career Guidance', s: 'Personalised roadmap based on your goals' },
-            { emoji: '🌍', t: '10,000+ Internships', s: 'Global opportunities matched to you' },
-            { emoji: '🤝', t: '500+ Mentors', s: 'Alumni who want to help you grow' },
-          ].map((f) => (
-            <View key={f.t} style={styles.featRow}>
-              <View style={styles.featIcon}>
-                <Text style={{ fontSize: 17 }}>{f.emoji}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.featTitle}>{f.t}</Text>
-                <Text style={styles.featSub}>{f.s}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-      )}
+        )}
 
-      {/* RIGHT — content pane */}
-      <View style={styles.rightPane}>
-        <ScrollView
-          contentContainerStyle={[
-            styles.scroll,
-            variant === 'center' && styles.scrollCenter,
-          ]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {variant === 'center' ? (
-            <View style={[styles.glassCard, { maxWidth: cardMaxWidth }]}>
-              {/* subtle gradient halo behind the card */}
-              <View pointerEvents="none" style={styles.cardHalo} />
-              {children}
-            </View>
-          ) : (
-            <View style={{ width: '100%', maxWidth: 480 }}>{children}</View>
-          )}
-        </ScrollView>
+        {/* RIGHT — content pane */}
+        <View style={styles.rightPane}>
+          <ScrollView
+            contentContainerStyle={[
+              styles.scroll,
+              variant === 'center' && styles.scrollCenter,
+            ]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {variant === 'center' ? (
+              <View style={[styles.glassCard, { maxWidth: cardMaxWidth }]}>
+                {/* subtle gradient halo behind the card */}
+                <View pointerEvents="none" style={styles.cardHalo} />
+                {children}
+              </View>
+            ) : (
+              <View style={{ width: '100%', maxWidth: 480 }}>{children}</View>
+            )}
+          </ScrollView>
+        </View>
       </View>
-    </View>
     </RoleThemeProvider>
   );
 }

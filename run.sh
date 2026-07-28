@@ -152,8 +152,9 @@ stop_all() {
   fi
   info "Stopping local processes…"
   while read -r pid; do
-    if kill -0 "$pid" 2>/dev/null; then
-      kill "$pid" && success "Stopped PID $pid"
+    if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+      kill "$pid" 2>/dev/null || true
+      success "Stopped PID $pid"
     fi
   done < "$PID_FILE"
   rm -f "$PID_FILE"

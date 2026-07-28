@@ -125,7 +125,7 @@ db = _db_default
 # accidental deployment with a publicly-known secret value.
 JWT_SECRET = os.environ['JWT_SECRET']
 JWT_ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days for mobile (less re-login friction)
+ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour — short-lived; use refresh token for re-auth
 REFRESH_TOKEN_EXPIRE_DAYS = 30
 
 from contextlib import asynccontextmanager
@@ -187,6 +187,11 @@ async def _lifespan(application):
     await _safe_create_index(db.events, "mentor_id")
     await _safe_create_index(db.events, [("status", 1), ("start_date", -1)])
     await _safe_create_index(db.event_registrations, "event_id")
+    # Token blacklist for logout revocation — auto-expires with TTL
+    await _safe_create_index(
+        db.token_blacklist, [("expires_at", 1)], expireAfterSeconds=0
+    )
+    await _safe_create_index(db.token_blacklist, "jti", unique=True, sparse=True)
 
     # Seed admin account and baseline data
     # (seed_admin / seed_data are defined later in server.py and are in scope at runtime)
@@ -239,6 +244,8 @@ async def _lifespan(application):
 
 
 app = FastAPI(title="Student Alumni Platform API", lifespan=_lifespan)
+# SECURITY: CORSMiddleware is registered once at the bottom of this file,
+# configured from env vars (ALLOWED_ORIGINS). Do NOT add a second registration here.
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernetes ingress requirement)
@@ -273,12 +280,20 @@ except Exception:
 
 _FERNET_KEY = os.environ.get("FERNET_KEY")
 if not _FERNET_KEY:
+    if os.getenv("ENV") == "production":
+        raise RuntimeError(
+            "FERNET_KEY environment variable is required in production. "
+            "PII encryption (phone, dob, postal_code) would be non-persistent without it."
+        )
     # Auto-generate a session key in dev so the app boots; logs a warning.
     if _HAS_CRYPTOGRAPHY:
         _FERNET_KEY = Fernet.generate_key().decode()
     else:
         _FERNET_KEY = Fernet.generate_key().decode('utf-8')
-    print(f"⚠️  FERNET_KEY not set — using ephemeral key (dev only): {_FERNET_KEY[:12]}…")
+    logger.warning(
+        "⚠️  FERNET_KEY not set — using ephemeral key (dev only). "
+        "Set FERNET_KEY in .env for persistent PII encryption."
+    )
 _FERNET = Fernet(_FERNET_KEY.encode() if isinstance(_FERNET_KEY, str) else _FERNET_KEY)
 # Marker so we can recognise our ciphertexts in mixed-format collections.
 _ENC_PREFIX = "enc::"
@@ -762,11 +777,14 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 def create_access_token(user_id: str, email: str, role: str) -> str:
-    """Short-lived access token for API authentication."""
+    """Short-lived access token for API authentication.
+    Includes a JTI (JWT ID) for token revocation support (logout blacklist).
+    """
     payload = {
         "sub": user_id,
         "email": email,
         "role": role,
+        "jti": secrets.token_hex(16),  # unique token ID for revocation
         "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
         "type": "access",
     }
@@ -882,22 +900,22 @@ def serialize_user(user: dict) -> dict | None:
 
 async def get_current_user(request: Request) -> dict:
     """JWT auth dependency. Reads `Authorization: Bearer <token>` header."""
-    import time
-    _t0 = time.perf_counter()
     auth = request.headers.get("Authorization", "")
-    print(f"[AUTH TRACE] path={request.url.path}", flush=True)
     if not auth.startswith("Bearer "):
         raise HTTPException(401, "Not authenticated")
     try:
         payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
         if payload.get("type") != "access":
             raise HTTPException(401, "Invalid token type")
-        print(f'[AUTH TRACE] DB_QUERY_START | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
+        # Check token blacklist (logout revocation)
+        jti = payload.get("jti")
+        if jti:
+            blacklisted = await db.token_blacklist.find_one({"jti": jti})
+            if blacklisted:
+                raise HTTPException(401, "Token has been revoked")
         user = await db.users.find_one(
-            {"_id": ObjectId(payload["sub"])},
-            {"face_image_base64": 0, "college_logo_data": 0, "banner_data": 0}
+            {"_id": ObjectId(payload["sub"])}
         )
-        print(f'[AUTH TRACE] DB_QUERY_END | t={(time.perf_counter()-_t0)*1000:.1f}ms', flush=True)
         if not user:
             raise HTTPException(401, "User not found")
 
@@ -1902,11 +1920,31 @@ async def seed_data():
 
 
 async def seed_admin():
-    """Seed a default admin user from .env credentials (idempotent)."""
+    """Seed a default admin user from .env credentials (idempotent).
+
+    SECURITY: ADMIN_PASSWORD must be set in .env. A hardcoded fallback
+    would allow attackers to predict admin credentials on unconfirmed deployments.
+    """
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@careerpath.app")
-    admin_password = os.environ.get("ADMIN_PASSWORD", "Admin@12345")
+    admin_password = os.environ.get("ADMIN_PASSWORD", "")
+
+    if not admin_password:
+        if os.getenv("ENV") == "production":
+            raise RuntimeError(
+                "ADMIN_PASSWORD environment variable is required in production. "
+                "Set it in .env to prevent an empty or predictable admin password."
+            )
+        # Dev: generate a random password and log it so developer can use it
+        admin_password = secrets.token_urlsafe(16)
+        logger.warning(
+            "⚠️  ADMIN_PASSWORD not set — generated ephemeral admin password: %s"
+            " (set ADMIN_PASSWORD in .env to make this persistent)",
+            admin_password,
+        )
+
     existing = await db.users.find_one({"email": admin_email})
     if not existing:
+        frontend_url_env = (os.environ.get("FRONTEND_URL") or "https://studentalumni.app").strip().rstrip("/")
         await db.users.insert_one({
             "email": admin_email,
             "password_hash": hash_password(admin_password),
@@ -1914,7 +1952,7 @@ async def seed_admin():
             "role": "admin",
             "phone": None,
             "unique_id": "SA-2026-ADM-000001",
-            "qr_code_base64": generate_qr_code("https://studentalumni.app/verify/000001"),
+            "qr_code_base64": generate_qr_code(f"{frontend_url_env}/verify/000001"),
             "school_info": None,
             "career_path": None,
             "interests": [],
@@ -1923,7 +1961,7 @@ async def seed_admin():
             "onboarding_completed": True,
             "created_at": datetime.now(timezone.utc),
         })
-        logger.info(f"Seeded admin: {admin_email}")
+        logger.info("Seeded admin: %s", admin_email)
     elif not verify_password(admin_password, existing["password_hash"]):
         # Reseed password if .env credentials changed
         await db.users.update_one(
@@ -1933,6 +1971,39 @@ async def seed_admin():
 
 
 # (Shutdown logic — stopping schedulers and closing the Mongo client — lives in _lifespan above)
+
+
+# ----------------------------------------------------------------------------
+# Auth — Logout (token revocation)
+# ----------------------------------------------------------------------------
+@api_router.post("/auth/logout")
+async def logout(request: Request, user: dict = Depends(get_current_user)):
+    """Invalidate the current access token by adding its JTI to the blacklist.
+
+    The blacklist entry auto-expires via MongoDB TTL index when the token
+    itself would have expired, so the collection stays bounded.
+    """
+    auth = request.headers.get("Authorization", "")
+    try:
+        payload = jwt.decode(auth[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        jti = payload.get("jti")
+        exp = payload.get("exp")
+        if jti:
+            expires_at = datetime.fromtimestamp(exp, tz=timezone.utc) if exp else (
+                datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+            )
+            try:
+                await db.token_blacklist.insert_one({
+                    "jti": jti,
+                    "user_id": str(user["_id"]),
+                    "expires_at": expires_at,
+                    "revoked_at": datetime.now(timezone.utc),
+                })
+            except Exception:
+                pass  # Duplicate JTI insert is fine — token already revoked
+    except Exception:
+        pass  # Token already invalid; logout is still successful
+    return {"status": "logged_out"}
 
 
 # ----------------------------------------------------------------------------

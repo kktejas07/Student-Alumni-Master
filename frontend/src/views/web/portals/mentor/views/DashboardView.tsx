@@ -24,7 +24,6 @@ import { Av, StarRow, Countdown } from '../atoms';
 import * as MOCK from '../data';
 import { usePortalData } from '@/src/lib/portalApi';
 import { TierBadge } from '@/src/views/web/TierBadge';
-import { LiveStrip } from '@/src/views/web/LiveStrip';
 import { api, request } from '@/src/models/services/api';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { AdBanner } from '@/src/views/web/components/AdBanner';
@@ -52,7 +51,7 @@ const MENTOR_EMPTY: MentorDashboardData = {
   pendingRequests: 0,
 };
 
-export function DashboardView({ onNav, demoMode = true, setDemoMode }: Props) {
+export function DashboardView({ onNav, demoMode = false, setDemoMode }: Props) {
   const user = useAuthStore((s) => s.user);
   const dashPath = user?.email
     ? `/mentor/dashboard?mentor_email=${encodeURIComponent(user.email)}`
@@ -138,11 +137,6 @@ export function DashboardView({ onNav, demoMode = true, setDemoMode }: Props) {
             </Text>
           </View>
         )}
-        {/* LIVE counters */}
-        <View style={{ marginBottom: 14 }}>
-          <LiveStrip accent="#5EEAD4" keys={['mentors', 'bookings_today', 'bookings', 'courses']} />
-        </View>
-
         {/* Ad Banner */}
         <AdBanner />
 
@@ -266,13 +260,13 @@ export function DashboardView({ onNav, demoMode = true, setDemoMode }: Props) {
           style={s.widget}
         >
           <Text style={s.widgetKicker}>EARNINGS</Text>
-          <Text style={s.widgetBig}>{demoMode ? (data?.kpis?.find((k: any) => k.id === 'earnings')?.value || '₹500') : '₹0'}</Text>
+          <Text style={s.widgetBig}>{demoMode ? (data?.kpis?.find((k: any) => k.id === 'earnings')?.value || '₹500') : '₹500'}</Text>
           <View style={s.miniTrack}>
             <LinearGradient colors={[MC.teal, MC.tealD] as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               style={{ height: '100%', width: '100%', borderRadius: 2 }} />
           </View>
           <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12, marginBottom: 12 }}>
-            This month · <Text style={{ color: MC.green, fontFamily: FONTS.bold }}>↑ 12%</Text>
+            This month · <Text style={{ color: MC.muted, fontFamily: FONTS.bold }}>0%</Text>
           </Text>
           <Pressable
             onPress={() => onNav('earnings')}
@@ -344,7 +338,7 @@ export function DashboardView({ onNav, demoMode = true, setDemoMode }: Props) {
 }
 
 /** AI Daily Briefing card — prominent purple-tinted glass with CTA */
-function AIDailyBriefing({ onNav, demoMode = true }: { onNav: (id: string) => void; demoMode?: boolean }) {
+function AIDailyBriefing({ onNav, demoMode = false }: { onNav: (id: string) => void; demoMode?: boolean }) {
   const user = useAuthStore((s) => s.user);
   const firstName = (user as any)?.first_name || (user?.full_name || '').split(' ')[0] || 'Mentor';
   const [briefText, setBriefText] = React.useState<string>('');
