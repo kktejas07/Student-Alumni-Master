@@ -9,6 +9,8 @@ export function useAuth() {
   return useAuthStore();
 }
 
+export { useCareerAI } from './useCareerAI';
+
 /** Hook to load dashboard data */
 export function useDashboard() {
   const [data, setData] = useState<any>(null);
