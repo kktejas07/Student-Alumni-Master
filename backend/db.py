@@ -1,6 +1,6 @@
 import os
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from core.db import client, db, mongo_url
 
 logger = logging.getLogger(__name__)
@@ -8,12 +8,12 @@ db_name = os.environ.get('DB_NAME', 'studentalumniadmin')
 
 logger.info(f"Database singleton initialized for {db_name} (shared with core.db)")
 
-async def fetch_users_with_mock_limit(base_query: Dict[str, Any], limit: int, mock_limit: int = 10, proj: Dict[str, Any] = None):
+async def fetch_users_with_mock_limit(base_query: Dict[str, Any], limit: int, mock_limit: int = 10, proj: Optional[Dict[str, Any]] = None):
     """
     Fetches real users first. If limit allows, appends a small number of mock users.
     """
     if proj is None:
-        proj = {"password_hash": 0, "face_image_base64": 0}
+        proj = {"password_hash": 0}
         
     real_query = {**base_query, "is_mock": {"$ne": True}}
     # Removed .sort("_id", -1) to prevent 524 timeouts on DBs missing the is_mock index

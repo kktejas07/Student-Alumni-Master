@@ -36,6 +36,7 @@ import { STUDENT } from './data';
 import { Av } from './atoms';
 import { FadeInView, PressScale, SparkIcon, PulseDot } from './motion';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
+import { SALogo } from '@/src/views/components';
 
 export type StudentNavId =
   | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'events'
@@ -113,34 +114,36 @@ export function Sidebar({
       {/* Brand */}
       <FadeInView delay={20}>
         <View style={[s.brand, collapsed && { justifyContent: 'center' }]} nativeID="student-brand">
-          <Image source={require('@/assets/images/sa-icon.png')} style={s.brandLogo} />
+          <Pressable onPress={() => collapsed && toggleCollapse()} style={collapsed && Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}}>
+            <SALogo size={32} variant="gradient" />
+          </Pressable>
           {!collapsed && (
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={[s.brandTitle, { color: C.text }]}>Student Alumni</Text>
               <Text style={[s.brandSub, { color: C.textSec }]}>Web Dashboard</Text>
             </View>
           )}
-          {/* Collapse toggle — visible at every breakpoint above phone */}
-          <Pressable
-            onPress={toggleCollapse}
-            accessibilityRole="button"
-            accessibilityLabel={userCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            aria-expanded={!userCollapsed}
-            style={({ hovered }: any) => ([
-              s.collapseBtn,
-              {
-                borderColor: C.border,
-                backgroundColor: hovered && Platform.OS === 'web' ? C.cardBg : 'transparent',
-              },
-              collapsed && { position: 'absolute', right: -10, top: 4 },
-            ])}
-          >
-            <MaterialCommunityIcons
-              name={userCollapsed ? 'chevron-right' : 'chevron-left'}
-              size={14}
-              color={C.textSec}
-            />
-          </Pressable>
+          {!collapsed && (
+            <Pressable
+              onPress={toggleCollapse}
+              accessibilityRole="button"
+              accessibilityLabel={userCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-expanded={!userCollapsed}
+              style={({ hovered }: any) => ([
+                s.collapseBtn,
+                {
+                  borderColor: C.border,
+                  backgroundColor: hovered && Platform.OS === 'web' ? C.cardBg : 'transparent',
+                }
+              ])}
+            >
+              <MaterialCommunityIcons
+                name={userCollapsed ? 'chevron-right' : 'chevron-left'}
+                size={14}
+                color={C.textSec}
+              />
+            </Pressable>
+          )}
         </View>
       </FadeInView>
 

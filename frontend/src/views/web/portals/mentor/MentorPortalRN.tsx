@@ -13,15 +13,15 @@
  *     Feedback, Create Event, Profile
  */
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import { View, ScrollView, StyleSheet, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 import { MC } from './tokens';
 import { Sidebar, NavId } from './Sidebar';
 import { TopBar } from './TopBar';
-import { AnimatedAurora, GridOverlay } from '../student/glass';
 import { LinearGradient } from 'expo-linear-gradient';
+import { StarryBackground } from '@/src/views/web/nexus-glow-landing/StarryBackground';
 import { DashboardFooter } from '../../components/SponsorStrip';
 import { PromoBanner } from '../../components/PromoBanner';
 import { DashboardView } from './views/DashboardView';
@@ -63,7 +63,6 @@ export default function MentorPortalRN() {
   const logout = useAuthStore((st) => st.logout);
   const user = useAuthStore((st) => st.user) as any;
 
-  const [demoMode, setDemoMode] = useState(true);
   const [active, setActive] = useState<NavId>('dashboard');
 
   useEffect(() => {
@@ -133,15 +132,12 @@ export default function MentorPortalRN() {
 
   return (
     <View style={s.shell}>
-      {/* FinTax360 Jewel-glass canvas. */}
       <LinearGradient
         pointerEvents="none"
-        colors={['#0a0f1e', '#131938']}
+        colors={['#030614', '#040816']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFillObject as any}
       />
-      <AnimatedAurora intensity="normal" />
-      <GridOverlay />
 
       <Sidebar
         active={active}
@@ -161,23 +157,21 @@ export default function MentorPortalRN() {
             notifCount={unreadCount}
             onBellPress={() => setShowNotifs(!showNotifs)}
             onAvatarPress={() => { setProfileTab('manage'); setActive('profile'); }}
-            demoMode={demoMode}
-            setDemoMode={setDemoMode}
           />
 
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
             <View style={{ flex: 1, padding: 20 }}>
               <PromoBanner portal="mentor" />
-              {active === 'dashboard' && <DashboardView onNav={(id) => setActive(id as NavId)} demoMode={demoMode} setDemoMode={setDemoMode} />}
+              {active === 'dashboard' && <DashboardView onNav={(id) => setActive(id as NavId)} />}
               {active === 'ai-studio' && <MentorAIStudioView />}
               {active === 'students'  && <ConnectionsView />}
-              {active === 'sessions'  && <SessionsView demoMode={demoMode} setDemoMode={setDemoMode} />}
-              {active === 'requests'  && <RequestsView decisions={decisions} onSetDecision={(id, d) => setDecisions(prev => ({ ...prev, [id]: d }))} demoMode={demoMode} />}
+              {active === 'sessions'  && <SessionsView />}
+              {active === 'requests'  && <RequestsView decisions={decisions} onSetDecision={(id, d) => setDecisions(prev => ({ ...prev, [id]: d }))} />}
               {active === 'network'   && <NetworkView />}
-              {active === 'earnings'  && <EarningsView demoMode={demoMode} setDemoMode={setDemoMode} />}
-              {active === 'feedback'  && <FeedbackView demoMode={demoMode} setDemoMode={setDemoMode} />}
+              {active === 'earnings'  && <EarningsView />}
+              {active === 'feedback'  && <FeedbackView />}
               {active === 'event'     && <CreateEventView />}
-              {active === 'profile'   && <MentorProfileSettingsView initialTab={profileTab} demoMode={demoMode} setDemoMode={setDemoMode} />}
+              {active === 'profile'   && <MentorProfileSettingsView initialTab={profileTab} />}
             </View>
             <DashboardFooter portal="mentor" />
           </ScrollView>

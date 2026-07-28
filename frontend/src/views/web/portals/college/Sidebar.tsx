@@ -3,6 +3,7 @@
  */
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
   LayoutDashboard, GraduationCap, Users, UserCheck, Calendar, Megaphone,
@@ -14,6 +15,7 @@ import { Av, Badge } from './atoms';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request, api } from '@/src/models/services/api';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
+import { SALogo } from '@/src/views/components';
 
 export type CollegeNavId =
   | 'dashboard' | 'students' | 'alumni' | 'mentors' | 'events' | 'create-event'
@@ -78,7 +80,7 @@ export function Sidebar({
     <View style={s.aside}>
       {/* Brand */}
       <View style={s.brand} nativeID="college-brand">
-        <View style={s.brandLogo}><Text style={s.brandLogoText}>SA</Text></View>
+        <SALogo size={32} variant="glass" />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.brandTitle}>Admin Portal</Text>
           <Text style={s.brandSub}>Student Alumni</Text>

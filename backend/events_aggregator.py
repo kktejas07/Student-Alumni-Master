@@ -494,7 +494,7 @@ def _doc_to_public(doc: Dict[str, Any], user_id: Optional[str] = None,
         "title": doc.get("title"),
         "description": doc.get("description"),
         "event_type": doc.get("event_type"),
-        "tint": EVENT_TYPE_TINTS.get(doc.get("event_type"), "#8B5CF6"),
+        "tint": EVENT_TYPE_TINTS.get(str(doc.get("event_type") or ""), "#8B5CF6"),
         "location_country": doc.get("location_country"),
         "location_city": doc.get("location_city"),
         "event_date_start": _safe_iso(doc.get("event_date_start")),
@@ -913,7 +913,7 @@ async def _try_deduct_credits(user_doc: dict, amount: int, reason: str) -> bool:
 
 
 @router.post("/events/{event_id}/rsvp")
-async def rsvp_event(event_id: str, body: Dict[str, Any] = None,
+async def rsvp_event(event_id: str, body: Optional[Dict[str, Any]] = None,
                      user: dict = Depends(_get_current_user_dependency())):
     body = body or {}
     use_credits = bool(body.get("use_credits"))
@@ -1211,7 +1211,7 @@ async def create_event(body: Dict[str, Any], user: dict = Depends(_get_current_u
     title_str = str(body.get("title") or "")
     raw_eid = f"{uid_str}|{title_str}|{when}"
     eid = "host-" + role + "-" + hashlib.md5(raw_eid.encode()).hexdigest()[:10]
-    h = _dedup_hash(body.get("title"), body.get("location_city"), when)
+    h = _dedup_hash(str(body.get("title") or ""), str(body.get("location_city") or ""), str(when or ""))
     existing = await _db.events_v2.find_one({"dedup_hash": h})
     if existing:
         raise HTTPException(409, "An event with this title/city/date already exists")
@@ -1356,7 +1356,7 @@ async def admin_approve_event(event_id: str, user: dict = Depends(_get_current_u
 
 
 @router.post("/admin/events/{event_id}/reject")
-async def admin_reject_event(event_id: str, body: Dict[str, Any] = None,
+async def admin_reject_event(event_id: str, body: Optional[Dict[str, Any]] = None,
                               user: dict = Depends(_get_current_user_dependency())):
     if user.get("role") != "admin":
         raise HTTPException(403, "Admin only")

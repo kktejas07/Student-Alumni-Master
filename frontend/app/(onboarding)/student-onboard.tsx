@@ -373,7 +373,7 @@ export default function StudentOnboard() {
                 const active = edu === e.id;
                 return (
                   <Pressable key={e.id} style={[s.card, active && s.cardActive]} onPress={() => setEdu(e.id)}>
-                    <Icon size={22} color={active ? '#B07FDF' : 'rgba(255,255,255,0.6)'} />
+                    <Icon size={22} color={active ? '#7C3AED' : '#9CA3AF'} />
                     <Text style={[s.cardLabel, active && s.cardLabelActive]}>{e.label}</Text>
                     {active && <CheckCircle2 size={14} color="#B07FDF" style={{ marginLeft: 'auto' } as any} />}
                   </Pressable>
@@ -458,13 +458,13 @@ export default function StudentOnboard() {
                   >
                     <View style={s.pathTileTop}>
                       <View style={{ marginTop: 2, marginRight: 2 }}>
-                        <p.icon size={24} color={active ? '#B07FDF' : 'rgba(255,255,255,0.7)'} />
+                        <p.icon size={24} color={active ? '#7C3AED' : '#9CA3AF'} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={[s.pathTitle, active && s.pathTitleActive]}>{p.title}</Text>
                         <Text style={s.pathDesc}>{p.desc}</Text>
                       </View>
-                      {active && <CheckCircle2 size={16} color="#B07FDF" />}
+                      {active && <CheckCircle2 size={16} color="#7C3AED" />}
                     </View>
                     {/* "You'll receive" preview */}
                     <Text style={[s.section, { marginTop: 4, marginBottom: 2 }]}>You'll receive</Text>
@@ -494,7 +494,7 @@ export default function StudentOnboard() {
                     <Image source={{ uri: photo }} style={s.photoImg} />
                   ) : (
                     <View style={{ alignItems: 'center', gap: 8 }}>
-                      <Camera size={32} color="rgba(255,255,255,0.6)" />
+                      <Camera size={32} color="#9CA3AF" />
                       <Text style={s.photoHint}>Tap to capture</Text>
                     </View>
                   )}
@@ -505,16 +505,16 @@ export default function StudentOnboard() {
                       <Check size={14} color="#000" /><Text style={s.confirmBtnText}>Confirm</Text>
                     </Pressable>
                     <Pressable style={s.smallBtn} onPress={() => { setPendingPhoto(null); takeSelfie(); }}>
-                      <Camera size={14} color="#FFF" /><Text style={s.smallBtnText}>Retake</Text>
+                      <Camera size={14} color="#111827" /><Text style={s.smallBtnText}>Retake</Text>
                     </Pressable>
                   </View>
                 ) : (
                   <View style={{ flexDirection: 'row', gap: 10 }}>
                     <Pressable style={s.smallBtn} onPress={takeSelfie}>
-                      <Camera size={14} color="#FFF" /><Text style={s.smallBtnText}>Take Selfie</Text>
+                      <Camera size={14} color="#111827" /><Text style={s.smallBtnText}>Take Selfie</Text>
                     </Pressable>
                     <Pressable style={s.smallBtn} onPress={pickPhoto}>
-                      <Upload size={14} color="#FFF" /><Text style={s.smallBtnText}>Upload Photo</Text>
+                      <Upload size={14} color="#111827" /><Text style={s.smallBtnText}>Upload Photo</Text>
                     </Pressable>
                   </View>
                 )}
@@ -531,7 +531,7 @@ export default function StudentOnboard() {
                   onChangeText={(t) => setBio(t.slice(0, 300))}
                   multiline
                   placeholder="e.g. Final year CSE student at IIT Bombay, passionate about building AI products…"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  placeholderTextColor="#9CA3AF"
                   style={s.textarea}
                 />
               </View>
@@ -567,7 +567,7 @@ export default function StudentOnboard() {
       {/* ── Navigation Row ── */}
       <View style={s.navRow}>
         <Pressable onPress={() => step > 0 ? prev() : router.push('/(auth)/referral-code')} style={s.backBtn}>
-          <ArrowLeft size={18} color="#FFF" />
+          <ArrowLeft size={18} color="#374151" />
         </Pressable>
         <View style={{ flex: 1 }}>
           <PrimaryButton
@@ -593,10 +593,10 @@ export default function StudentOnboard() {
 
 // ─── Main Styles ──────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  title: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 24, marginBottom: 4 },
-  sub: { color: 'rgba(255,255,255,0.58)', fontFamily: FONTS.med, fontSize: 13, marginBottom: 16, lineHeight: 18 },
+  title: { color: '#111827', fontFamily: FONTS.bold, fontSize: 24, marginBottom: 4 },
+  sub: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 13, marginBottom: 16, lineHeight: 18 },
   section: {
-    color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.bold,
+    color: '#6B7280', fontFamily: FONTS.bold,
     fontSize: 10.5, letterSpacing: 1, textTransform: 'uppercase',
     marginTop: 4, marginBottom: 6,
   },
@@ -607,43 +607,43 @@ const s = StyleSheet.create({
   card: {
     width: '48%', paddingVertical: 14, paddingHorizontal: 12,
     borderRadius: 12, borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
     flexDirection: 'row', alignItems: 'center', gap: 10,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  cardActive: { borderColor: '#B07FDF', backgroundColor: 'rgba(176,127,223,0.14)' },
-  cardLabel: { flex: 1, color: 'rgba(255,255,255,0.75)', fontFamily: FONTS.med, fontSize: 13 },
-  cardLabelActive: { color: '#FFF' },
+  cardActive: { borderColor: '#7C3AED', backgroundColor: '#F3E8FF' },
+  cardLabel: { flex: 1, color: '#4B5563', fontFamily: FONTS.med, fontSize: 13 },
+  cardLabelActive: { color: '#7C3AED' },
 
   // Career path tiles
   pathTile: {
     borderRadius: 14, borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
     padding: 14, gap: 10,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transition: 'all 160ms' } as any) : {}),
   },
-  pathTileActive: { borderColor: '#7C3AED', backgroundColor: 'rgba(124,58,237,0.14)' },
+  pathTileActive: { borderColor: '#7C3AED', backgroundColor: '#F3E8FF' },
   pathTileTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   pathEmoji: { fontSize: 26, marginTop: 2 },
-  pathTitle: { color: 'rgba(255,255,255,0.8)', fontFamily: FONTS.bold, fontSize: 15 },
-  pathTitleActive: { color: '#FFF' },
-  pathDesc: { color: 'rgba(255,255,255,0.48)', fontFamily: FONTS.med, fontSize: 12, marginTop: 2, lineHeight: 16 },
+  pathTitle: { color: '#374151', fontFamily: FONTS.bold, fontSize: 15 },
+  pathTitleActive: { color: '#7C3AED' },
+  pathDesc: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12, marginTop: 2, lineHeight: 16 },
   pathUnlocks: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   pathUnlockChip: {
-    color: 'rgba(255,255,255,0.45)', fontFamily: FONTS.med, fontSize: 11,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    color: '#6B7280', fontFamily: FONTS.med, fontSize: 11,
+    backgroundColor: '#F3F4F6',
     borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1, borderColor: '#E5E7EB',
   },
   pathUnlockChipActive: {
-    color: '#C4B5FD',
-    backgroundColor: 'rgba(124,58,237,0.18)',
-    borderColor: 'rgba(196,181,253,0.3)',
+    color: '#6D28D9',
+    backgroundColor: '#EDE9FE',
+    borderColor: '#C4B5FD',
   },
   feedbackText: {
-    color: '#A78BFA', fontFamily: FONTS.med, fontSize: 12,
+    color: '#7C3AED', fontFamily: FONTS.med, fontSize: 12,
     textAlign: 'center', marginTop: 4,
   },
 
@@ -652,110 +652,110 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 14, paddingHorizontal: 16,
     borderRadius: 12, borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  optRowActive: { borderColor: '#B07FDF', backgroundColor: 'rgba(176,127,223,0.14)' },
+  optRowActive: { borderColor: '#7C3AED', backgroundColor: '#F3E8FF' },
   radio: {
     width: 18, height: 18, borderRadius: 9,
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)',
+    borderWidth: 1.5, borderColor: '#9CA3AF',
     alignItems: 'center', justifyContent: 'center',
   },
-  radioActive: { borderColor: '#B07FDF' },
-  radioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#B07FDF' },
-  optLabel: { color: 'rgba(255,255,255,0.75)', fontFamily: FONTS.med, fontSize: 14 },
-  optLabelActive: { color: '#FFF' },
-  helper: { color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18, marginBottom: 8 },
+  radioActive: { borderColor: '#7C3AED' },
+  radioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#7C3AED' },
+  optLabel: { color: '#4B5563', fontFamily: FONTS.med, fontSize: 14 },
+  optLabelActive: { color: '#7C3AED' },
+  helper: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18, marginBottom: 8 },
 
   // Photo
   photoFrame: {
     width: 140, height: 140, borderRadius: 70,
-    borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)', borderStyle: 'dashed',
+    borderWidth: 2, borderColor: '#E5E7EB', borderStyle: 'dashed',
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.03)', overflow: 'hidden',
+    backgroundColor: '#FFFFFF', overflow: 'hidden',
   },
   photoImg: { width: '100%', height: '100%' },
-  photoHint: { color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.med, fontSize: 11 },
-  skipHint: { color: 'rgba(255,255,255,0.3)', fontFamily: FONTS.med, fontSize: 11, textAlign: 'center' },
+  photoHint: { color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 11 },
+  skipHint: { color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 11, textAlign: 'center' },
   smallBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: 'rgba(124,58,237,0.32)', borderWidth: 1, borderColor: 'rgba(176,127,223,0.4)',
+    backgroundColor: '#7C3AED', borderWidth: 1, borderColor: '#7C3AED',
   },
-  smallBtnText: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 12 },
+  smallBtnText: { color: '#4C1D95', fontFamily: FONTS.bold, fontSize: 12 },
   confirmBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 18, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: '#C4B5FD', borderWidth: 1, borderColor: '#C4B5FD',
+    backgroundColor: '#10B981', borderWidth: 1, borderColor: '#10B981',
   },
-  confirmBtnText: { color: '#000', fontFamily: FONTS.bold, fontSize: 12 },
+  confirmBtnText: { color: '#111827', fontFamily: FONTS.bold, fontSize: 12 },
 
   // Bio
-  helperRight: { color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.med, fontSize: 11, textAlign: 'right', marginTop: -8 },
+  helperRight: { color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 11, textAlign: 'right', marginTop: -8 },
   textareaWrap: {
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)',
-    borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1, borderColor: '#E5E7EB',
+    borderRadius: 12, backgroundColor: '#FFFFFF',
     paddingHorizontal: 14, paddingVertical: 12,
   },
   textarea: {
-    color: '#FFF', fontFamily: FONTS.med, fontSize: 13.5, minHeight: 90,
+    color: '#111827', fontFamily: FONTS.med, fontSize: 13.5, minHeight: 90,
     ...(Platform.OS === 'web' ? ({ outlineWidth: 0 } as any) : {}),
   },
-  generatingText: { color: '#A78BFA', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 4 },
+  generatingText: { color: '#7C3AED', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 4 },
 
   // Badge + Review
   badgeCircle: {
     width: 110, height: 110, borderRadius: 55, borderWidth: 4,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(124,58,237,0.22)', marginTop: 4,
+    backgroundColor: '#F3E8FF', marginTop: 4,
   },
-  badgeTier: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 11, marginTop: 4, letterSpacing: 1 },
+  badgeTier: { color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 11, marginTop: 4, letterSpacing: 1 },
   verifiedPill: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999,
-    backgroundColor: 'rgba(94,234,212,0.12)', borderWidth: 1, borderColor: 'rgba(94,234,212,0.3)',
+    backgroundColor: '#ECFDF5', borderWidth: 1, borderColor: '#A7F3D0',
   },
-  verifiedText: { color: '#5EEAD4', fontFamily: FONTS.bold, fontSize: 11.5 },
+  verifiedText: { color: '#059669', fontFamily: FONTS.bold, fontSize: 11.5 },
   reviewCard: {
-    width: '100%', backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    width: '100%', backgroundColor: '#FFFFFF',
+    borderWidth: 1, borderColor: '#E5E7EB',
     borderRadius: 14, padding: 14, gap: 6,
   },
-  reviewCardTitle: { color: 'rgba(255,255,255,0.55)', fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
+  reviewCardTitle: { color: '#6B7280', fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 },
   reviewRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  reviewLabel: { color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.med, fontSize: 12.5 },
-  reviewValue: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 12.5 },
-  perk: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.med, fontSize: 12.5 },
+  reviewLabel: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12.5 },
+  reviewValue: { color: '#111827', fontFamily: FONTS.bold, fontSize: 12.5 },
+  perk: { color: '#374151', fontFamily: FONTS.med, fontSize: 12.5 },
 
   // Nav
   navRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
   backBtn: {
     width: 42, height: 42, borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB',
     alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   validationPill: {
     marginTop: 12, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
-    backgroundColor: 'rgba(167,139,250,0.14)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)',
+    backgroundColor: '#F3E8FF', borderWidth: 1, borderColor: '#C4B5FD',
   },
   validationText: {
-    color: '#C4B5FD', fontFamily: FONTS.med, fontSize: 12.5,
+    color: '#6D28D9', fontFamily: FONTS.med, fontSize: 12.5,
   },
   previewCard: {
     width: '100%', padding: 16, borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)',
+    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB',
     alignSelf: 'stretch', gap: 12,
   },
   previewTitle: {
-    color: '#A78BFA', fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 1,
+    color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 10.5, letterSpacing: 1,
   },
   previewRow: { gap: 2 },
   previewLabel: {
-    color: 'rgba(255,255,255,0.45)', fontFamily: FONTS.med, fontSize: 11,
+    color: '#6B7280', fontFamily: FONTS.med, fontSize: 11,
   },
   previewVal: {
-    color: '#FFF', fontFamily: FONTS.bold, fontSize: 13,
+    color: '#111827', fontFamily: FONTS.bold, fontSize: 13,
   },
 });

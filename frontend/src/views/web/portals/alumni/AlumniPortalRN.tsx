@@ -4,7 +4,7 @@
  * EmbeddedShellContext (no router redirects).
  */
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import { View, ScrollView, StyleSheet , Platform} from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useAutoTour } from '@/src/views/web/tour/TourProvider';
@@ -12,8 +12,8 @@ import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 import { SC } from './tokens';
 import { Sidebar, StudentNavId } from './Sidebar';
 import { TopBar } from './TopBar';
-import { AnimatedAurora, GridOverlay } from '../student/glass';
 import { LinearGradient } from 'expo-linear-gradient';
+import { StarryBackground } from '@/src/views/web/nexus-glow-landing/StarryBackground';
 import { DashboardFooter } from '../../components/SponsorStrip';
 import { PromoBanner } from '../../components/PromoBanner';
 import { DashboardView } from './views/DashboardView';
@@ -71,15 +71,12 @@ export function AlumniPortalRN() {
 
   return (
     <View style={s.shell}>
-      {/* FinTax360 Jewel-glass canvas */}
       <LinearGradient
         pointerEvents="none"
-        colors={['#0a0f1e', '#131938']}
+        colors={['#030614', '#040816']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFillObject as any}
       />
-      <AnimatedAurora intensity="normal" />
-      <GridOverlay />
 
       <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0 }}>
@@ -87,39 +84,37 @@ export function AlumniPortalRN() {
           <TopBar activeView={active} onAvatarPress={() => setActive('profile')} />
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={{ flexGrow: 1 }}
+            contentContainerStyle={{ padding: 22, paddingBottom: 60 }}
             showsVerticalScrollIndicator={false}
           >
-            <View style={{ flex: 1, padding: 22 }}>
-              <EmbeddedShellContext.Provider value={true}>
-                <PromoBanner portal="alumni" />
-                {active === 'dashboard'       && (
-                  <DashboardView
-                    onOpenProfile={() => setActive('profile')}
-                    onOpenInternships={() => setActive('internships')}
-                    onOpenNetwork={() => setActive('network')}
-                    onOpenEvents={() => setActive('events')}
-                    onOpenCareerAi={() => setActive('career-ai')}
-                  />
-                )}
-                {active === 'career-ai'       && <CareerAIView />}
-                {active === 'internships'     && <InternshipsView />}
-                {active === 'my-applications' && <MyApplicationsView />}
-                {active === 'network'         && <NetworkView />}
-                {active === 'my-bookings'     && <MyBookingsView />}
-                {active === 'events'          && <EventsView />}
-                {active === 'my-workshops'    && <MyWorkshopsView />}
-                {active === 'courses'         && <CoursesPage />}
-                {active === 'financial'       && <FinancialPage />}
-                {active === 'deals'           && <DealsPage />}
-                {active === 'wallet'          && <WalletPage />}
-                {active === 'higher-ed'       && <HigherEducationPage />}
-                {active === 'rentals'         && <RentalsPage />}
-                {active === 'profile'         && <ProfileSettingsView />}
-              </EmbeddedShellContext.Provider>
-            </View>
-            <DashboardFooter portal="alumni" />
-          </ScrollView>
+            <EmbeddedShellContext.Provider value={true}>
+              <PromoBanner portal="alumni" />
+            {active === 'dashboard'       && (
+              <DashboardView
+                onOpenProfile={() => setActive('profile')}
+                onOpenInternships={() => setActive('internships')}
+                onOpenNetwork={() => setActive('network')}
+                onOpenEvents={() => setActive('events')}
+                onOpenCareerAi={() => setActive('career-ai')}
+              />
+            )}
+            {active === 'career-ai'       && <CareerAIView />}
+            {active === 'internships'     && <InternshipsView />}
+            {active === 'my-applications' && <MyApplicationsView />}
+            {active === 'network'         && <NetworkView />}
+            {active === 'my-bookings'     && <MyBookingsView />}
+            {active === 'events'          && <EventsView />}
+            {active === 'my-workshops'    && <MyWorkshopsView />}
+            {active === 'courses'         && <CoursesPage />}
+            {active === 'financial'       && <FinancialPage />}
+            {active === 'deals'           && <DealsPage />}
+            {active === 'wallet'          && <WalletPage />}
+            {active === 'higher-ed'       && <HigherEducationPage />}
+            {active === 'rentals'         && <RentalsPage />}
+            {active === 'profile'         && <ProfileSettingsView />}
+          </EmbeddedShellContext.Provider>
+          <DashboardFooter portal="alumni" />
+        </ScrollView>
         </AlumniPortalNavContext.Provider>
       </View>
     </View>

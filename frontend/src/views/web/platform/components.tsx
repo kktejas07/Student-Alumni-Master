@@ -8,9 +8,10 @@ import Svg, { Path, Text as SvgText } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 import { LucideIcon } from 'lucide-react-native';
 import { SA, SAGradients } from './tokens';
+import { SALogo } from '@/src/views/components';
 
 // ─── Shield Logo ─────────────────────────────────────────────────────────────
-export function ShieldLogo({ size = 26, bg = '#FFFFFF', fg = SA.purple }: { size?: number; bg?: string; fg?: string }) {
+export function ShieldLogo({ size = 26, bg = '#4F46E5', fg = '#FFFFFF' }: { size?: number; bg?: string; fg?: string }) {
   return (
     <Svg viewBox="0 0 200 240" width={size} height={size * 1.2} fill="none">
       <Path d="M100 4 L196 36 L196 120 Q196 190 100 236 Q4 190 4 120 L4 36 Z" fill={bg} />
@@ -295,7 +296,7 @@ export function Sidebar({
       {/* Brand + Toggle */}
       <View style={[styles.sidebarBrand, collapsed && { paddingHorizontal: 12, alignItems: 'center' }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: collapsed ? 0 : 10, justifyContent: collapsed ? 'center' : 'flex-start' }}>
-          <ShieldLogo size={26} />
+          <SALogo size={26} variant="glass" />
           {!collapsed && (
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={{ color: SA.white, fontFamily: SA.fontBold, fontSize: 14 }}>Student Alumni</Text>

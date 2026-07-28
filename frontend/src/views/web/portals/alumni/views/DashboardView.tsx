@@ -16,7 +16,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Sparkles, Briefcase, BookOpen, Users, TrendingUp, Calendar, MapPin,
-  Star, ArrowRight, Check, ExternalLink, FileText,
+  Star, ArrowRight, Check, ExternalLink,
 } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { Av, Badge, KpiCard } from '../atoms';
@@ -27,14 +27,7 @@ import { LiveStrip } from '@/src/views/web/LiveStrip';
 import { request } from '@/src/models/services/api';
 import { AdBanner } from '@/src/views/web/components/AdBanner';
 
-const KPI_ICONS = {
-  matches: Briefcase,
-  applications: FileText,
-  courses: BookOpen,
-  mentors: Users,
-  score: TrendingUp,
-  events: Calendar,
-} as const;
+const KPI_ICONS = { matches: Briefcase, applications: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp, events: Calendar } as const;
 
 const STUDENT_MOCK = {
   student: MOCK.STUDENT,
@@ -184,7 +177,6 @@ export function DashboardView({
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
         {KPIS.map((k) => {
           const Icon = KPI_ICONS[k.id as keyof typeof KPI_ICONS];
-          if (!Icon) return null; // skip unknown KPI ids gracefully
           return <KpiCard key={k.id} Icon={Icon} label={k.label} value={k.value} delta={k.delta} color={k.color} />;
         })}
       </View>

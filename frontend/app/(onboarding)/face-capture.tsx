@@ -190,7 +190,7 @@ export default function FaceCapture() {
             <WebGhostBtn
               label="Retake"
               onPress={retakePhoto}
-              leftIcon={<RotateCcw size={18} color="rgba(255,255,255,0.85)" />}
+              leftIcon={<RotateCcw size={18} color="#1F2937" />}
             />
           </>
         ) : (
@@ -205,8 +205,8 @@ export default function FaceCapture() {
               ]}
             >
               {onboarding.face_image_base64
-                ? <RotateCcw size={18} color="#FFFFFF" />
-                : <CameraIcon size={18} color="#FFFFFF" />}
+                ? <RotateCcw size={18} color="#111827" />
+                : <CameraIcon size={18} color="#111827" />}
               <Text style={styles.cameraBtnText}>
                 {onboarding.face_image_base64 ? 'Retake with camera' : 'Capture with camera'}
               </Text>
@@ -215,7 +215,7 @@ export default function FaceCapture() {
               label="Choose from gallery"
               onPress={pickFromLibrary}
               testID="face-capture-gallery-btn"
-              leftIcon={<ImagePlus size={18} color="rgba(255,255,255,0.85)" />}
+              leftIcon={<ImagePlus size={18} color="#1F2937" />}
             />
           </>
         )}
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
   },
   photo: { width: '100%', height: '100%' },
   photoEmpty: { alignItems: 'center', gap: 8 },
-  photoEmptyText: { color: 'rgba(255,255,255,0.45)', fontFamily: 'DMSans_500Medium', fontSize: 13 },
+  photoEmptyText: { color: '#9CA3AF', fontFamily: 'DMSans_500Medium', fontSize: 13 },
   cameraBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 10,
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     boxShadow: '0px 8px 16px rgba(124,58,237,0.35)',
     ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
   },
-  cameraBtnText: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  cameraBtnText: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 14 },
   confirmBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 10,

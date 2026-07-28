@@ -93,12 +93,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heroTitle: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 16 },
-  heroSub: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_400Regular', fontSize: 13, marginTop: 2 },
+  heroTitle: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 16 },
+  heroSub: { color: '#6B7280', fontFamily: 'DMSans_400Regular', fontSize: 13, marginTop: 2 },
 
   card: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#F9FAFB',
+    borderColor: '#E5E7EB',
     borderWidth: 1,
     borderRadius: 14,
     padding: 16,
@@ -109,14 +109,14 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(196,181,253,0.30)',
   },
   cardIdText: {
-    color: '#FFFFFF',
+    color: '#111827',
     fontFamily: 'DMSans_700Bold',
     fontSize: 22,
     letterSpacing: 1.5,
     marginTop: 6,
   },
-  cardLabel: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_700Bold', fontSize: 10.5, letterSpacing: 1.2 },
-  cardSub: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 6, lineHeight: 17 },
+  cardLabel: { color: '#6B7280', fontFamily: 'DMSans_700Bold', fontSize: 10.5, letterSpacing: 1.2 },
+  cardSub: { color: '#6B7280', fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 6, lineHeight: 17 },
 
   qr: {
     width: 180, height: 180, borderRadius: 12,
@@ -130,6 +130,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(252,211,77,0.10)',
     borderColor: 'rgba(252,211,77,0.28)',
   },
-  aiTitle: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 14 },
-  aiSub: { color: 'rgba(255,255,255,0.65)', fontFamily: 'DMSans_400Regular', fontSize: 12.5, marginTop: 4, lineHeight: 18 },
+  aiTitle: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  aiSub: { color: '#4B5563', fontFamily: 'DMSans_400Regular', fontSize: 12.5, marginTop: 4, lineHeight: 18 },
 });

@@ -8,11 +8,11 @@ type G2 = readonly [string, string];
 type G3 = readonly [string, string, string];
 
 export const GRADS = {
-  // Primary brand — used on hero cards, sidebar active, primary CTAs.
-  brand:    ['#C2410C', '#7C2D12'] as G2,
-  brandSoft:['#F97316', '#FB923C'] as G2,
-  brandHero:['#EA580C', '#FB923C', '#C2410C'] as G3,
-  brandGlow:['rgba(249,115,22,0.55)', 'rgba(124,45,18,0.0)'] as G2,
+  // Primary brand — Indigo
+  brand:    ['#6366F1', '#4F46E5'] as G2,
+  brandSoft:['#818CF8', '#C4B5FD'] as G2,
+  brandHero:['#6366F1', '#4F46E5', '#818CF8'] as G3,
+  brandGlow:['rgba(99,102,241,0.55)', 'rgba(7,7,10,0.0)'] as G2,
 
   // Tier — Bronze < Silver < Gold < Platinum (matches student)
   bronze:   ['#92400E', '#B45309'] as G2,
@@ -30,10 +30,10 @@ export const GRADS = {
   amber:    ['#B45309', '#F59E0B'] as G2,
   amberSoft:['rgba(245,158,11,0.18)', 'rgba(245,158,11,0.04)'] as G2,
 
-  premium:  ['#C2410C', '#FB923C', '#FCD34D'] as G3,
-  glass:    ['rgba(251,146,60,0.18)', 'rgba(124,45,18,0.06)'] as G2,
-  glassDark:['rgba(124,45,18,0.20)', 'rgba(13,8,5,0.6)'] as G2,
-  card:     ['rgba(43,20,7,0.85)', 'rgba(13,8,5,0.85)'] as G2,
+  premium:  ['#6366F1', '#818CF8', '#FCD34D'] as G3,
+  glass:    ['rgba(99,102,241,0.10)', 'rgba(7,7,10,0.06)'] as G2,
+  glassDark:['rgba(99,102,241,0.18)', 'rgba(7,7,10,0.6)'] as G2,
+  card:     ['rgba(20,16,33,0.85)', 'rgba(7,7,10,0.85)'] as G2,
 } as const;
 
 export type GradKey = keyof typeof GRADS;

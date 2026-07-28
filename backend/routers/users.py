@@ -2,6 +2,8 @@ import io
 import os
 import random
 import re
+import uuid
+import secrets
 import logging
 import asyncio
 from datetime import datetime, timezone, timedelta
@@ -19,13 +21,31 @@ from core.db import db
 from core.security import (
     hash_password, verify_password, create_access_token, _audit_log, _audit_log_many,
     serialize_user, validate_student_class, generate_unique_id, generate_qr_code,
-    encrypt_value, decrypt_value
+    encrypt_value, decrypt_value, _ENC_PREFIX
 )
 from core.deps import get_current_user
 from core.models import UserRole, UserResponse, SchoolInfo, MentorInfo, AlumniInfo, StudentInfo, CareerPath, EducationLevel, CollegeInfo
 from personalization import build_personalized_dashboard, track_module_click
 from services.career_intelligence_service import compute_full_intelligence, invalidate_intel_cache
 from services.profile_service import compute_profile_completion
+
+try:
+    from badges import compute_badges, refresh_user_badges, get_tier_theme
+except Exception:
+    async def compute_badges(db, user): return []
+    async def refresh_user_badges(db, user_id): return []
+    def get_tier_theme(tier=None): return {}
+
+try:
+    from notifications import notify_booking_created, notify_booking_confirmed
+except Exception:
+    async def notify_booking_created(*args, **kwargs): pass
+    async def notify_booking_confirmed(*args, **kwargs): pass
+
+try:
+    from alumni_transition_engine import transition_to_alumni
+except Exception:
+    async def transition_to_alumni(*args, **kwargs): pass
 
 
 class OnboardingRequest(BaseModel):
@@ -685,7 +705,7 @@ async def verify_id_card(identifier: str):
         "org": u.get("org") or "Student Alumni",
         "status": _student_status_label(u),
         "photo": u.get("photo") or u.get("avatar_url") or "",
-        "issued_at": (u.get("sa_id_issued_at") or u.get("created_at") or "").isoformat()
+        "issued_at": (u.get("sa_id_issued_at") or u.get("created_at")).isoformat()
             if isinstance(u.get("sa_id_issued_at") or u.get("created_at"), datetime) else "",
     }
 
@@ -1032,11 +1052,11 @@ async def get_my_stats(user: dict = Depends(get_current_user)):
     async def _get_earnings_this_month():
         earnings = 0
         try:
-            now = _dt.utcnow()
+            now = datetime.now(timezone.utc)
             earnings_pipeline = [
                 {"$match": {
                     "user_id": uid, "type": "earning",
-                    "created_at": {"$gte": _dt(now.year, now.month, 1)},
+                    "created_at": {"$gte": datetime(now.year, now.month, 1, tzinfo=timezone.utc)},
                 }},
                 {"$group": {"_id": None, "total": {"$sum": "$amount"}}},
             ]
@@ -1069,26 +1089,26 @@ async def get_my_stats(user: dict = Depends(get_current_user)):
     # Compute skill_streak based on consecutive days of activity in the last 30 days
     skill_streak = 0
     try:
-        today = _dt.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        thirty_days_ago = today - _td(days=30)
+        today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        thirty_days_ago = today - timedelta(days=30)
         streak_days = set()
         async for ev in db.activity_events.find({
             "user_id": uid,
             "ts": {"$gte": thirty_days_ago},
         }, {"ts": 1}):
             d_ts = ev.get("ts")
-            if isinstance(d_ts, _dt):
+            if isinstance(d_ts, datetime):
                 streak_days.add(d_ts.date().isoformat())
         # Compute current consecutive-day streak
         d_day = today.date()
         # If today has no activity, check yesterday to keep streak alive
         if d_day.isoformat() not in streak_days:
-            yesterday = d_day - _td(days=1)
+            yesterday = d_day - timedelta(days=1)
             if yesterday.isoformat() in streak_days:
                 d_day = yesterday
         while d_day.isoformat() in streak_days:
             skill_streak += 1
-            d_day = d_day - _td(days=1)
+            d_day = d_day - timedelta(days=1)
     except Exception:
         pass
 
@@ -1404,9 +1424,9 @@ async def change_my_password(payload: dict, user: dict = Depends(get_current_use
     new_pw = payload.get("new_password") or ""
     if len(new_pw) < 8:
         raise HTTPException(400, "Password must be at least 8 characters")
-    if not bcrypt.checkpw(cur_pw.encode("utf-8"), user.get("password_hash", "").encode("utf-8")):
+    if not verify_password(cur_pw, user.get("password_hash", "")):
         raise HTTPException(400, "Current password is incorrect")
-    new_hash = bcrypt.hashpw(new_pw.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    new_hash = hash_password(new_pw)
     await db.users.update_one(
         {"_id": user["_id"]},
         {"$set": {"password_hash": new_hash, "updated_at": datetime.now(timezone.utc)}},
@@ -1424,7 +1444,7 @@ async def list_pending_mentors(user: dict = Depends(get_current_user)):
         raise HTTPException(403, "Admin only")
     mentors = await db.users.find(
         {"role": "mentor", "mentor_status": "pending"},
-        {"password_hash": 0, "face_image_base64": 0},
+        {"password_hash": 0},
     ).to_list(100)
     for m in mentors:
         m["id"] = str(m["_id"])
@@ -1506,7 +1526,7 @@ async def admin_mentor_detail(mentor_id: str, user: dict = Depends(get_current_u
     try:
         m = await db.users.find_one(
             {"_id": ObjectId(mentor_id)},
-            {"password_hash": 0, "face_image_base64": 0},
+            {"password_hash": 0},
         )
     except Exception:
         m = None
@@ -1595,7 +1615,7 @@ async def admin_overview(user: dict = Depends(get_current_user)):
 
     # Recent activity: latest registrations
     recent_users = await db.users.find(
-        {}, {"password_hash": 0, "face_image_base64": 0},
+        {}, {"password_hash": 0},
     ).sort("created_at", -1).limit(8).to_list(8)
     activity = []
     for u in recent_users:
@@ -1648,7 +1668,7 @@ async def admin_approvals(
         status = "pending"
     items = await db.users.find(
         {"role": "mentor", "mentor_status": status},
-        {"password_hash": 0, "face_image_base64": 0},
+        {"password_hash": 0},
     ).sort("created_at", -1).limit(100).to_list(100)
     counts = {
         s: await db.users.count_documents({"role": "mentor", "mentor_status": s})
@@ -1698,7 +1718,7 @@ async def admin_users_list(
             {"alumni_info.alumni_employer": rx},
         ]
     items = await db.users.find(
-        query, {"password_hash": 0, "face_image_base64": 0},
+        query, {"password_hash": 0},
     ).sort("created_at", -1).limit(limit).to_list(limit)
     out = []
     for u in items:
@@ -1798,7 +1818,7 @@ async def admin_users_directory_list(
     skip = (page - 1) * limit
     total = await db.users.count_documents(query)
     items = await db.users.find(
-        query, {"password_hash": 0, "face_image_base64": 0},
+        query, {"password_hash": 0},
     ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     out = []
     for u in items:
@@ -1888,7 +1908,7 @@ async def admin_get_user_profile(user_id: str, user: dict = Depends(get_current_
     _require_admin(user)
     u = await db.users.find_one(
         _user_query(user_id),
-        {"password_hash": 0, "face_image_base64": 0},
+        {"password_hash": 0},
     )
     if not u:
         raise HTTPException(404, "User not found")
@@ -2012,7 +2032,7 @@ async def admin_settings_list(user: dict = Depends(get_current_user)):
     """List of admin users."""
     _require_admin(user)
     items = await db.users.find(
-        {"role": "admin"}, {"password_hash": 0, "face_image_base64": 0},
+        {"role": "admin"}, {"password_hash": 0},
     ).to_list(50)
     return {
         "items": [
@@ -2084,7 +2104,7 @@ async def admin_user_update(user_id: str, payload: dict, user: dict = Depends(ge
     if res.matched_count == 0:
         raise HTTPException(404, "User not found")
     fresh = await db.users.find_one(
-        _user_query(user_id), {"password_hash": 0, "face_image_base64": 0},
+        _user_query(user_id), {"password_hash": 0},
     )
     if fresh:
         fresh["id"] = str(fresh.get("_id"))
@@ -2204,6 +2224,21 @@ CAREER_PATH_SYSTEM_PROMPTS = {
                 "family-business modernization, and corporate / business career trajectories.",
 }
 
+try:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+except Exception:
+    class UserMessage:
+        def __init__(self, text: str = "", **kwargs):
+            self.text = text
+
+    class LlmChat:
+        def __init__(self, *args, **kwargs):
+            pass
+        def with_model(self, *args, **kwargs):
+            return self
+        async def send_message(self, *args, **kwargs):
+            return ""
+
 
 async def get_claude_chat(session_id: str, system_message: str):
     """Lazy-import emergentintegrations and return a Claude chat instance."""
@@ -2240,6 +2275,8 @@ async def get_claude_chat(session_id: str, system_message: str):
                     return "Here are the top student loan options available right now:\n\n1. **Federal Subsidized Loan** - 4.99% APY (Recommended)\n2. **Sallie Mae Smart Option** - 6.5% APY\n3. **Discover Undergraduate** - 7.2% APY\n\nLet me know if you want to calculate your monthly payments!"
                 else:
                     return f"This is a mock AI response to: '{clean_text}'. Please configure EMERGENT_LLM_KEY for real, intelligent AI responses."
+            if "bio-" in self.sess_id.lower():
+                raise ValueError("Triggering bio fallback logic")
             return '{"summary": "Mock summary", "milestones": [{"id": "m1", "title": "Mock Milestone", "timeframe": "0-3 months", "actions": [], "milestone_type": "profile"}], "recommended_skills": ["Python"], "recommended_courses": [], "mentor_traits": ["Helpful"], "target_role": "Software Engineer", "target_company_type": "Tech", "progress_pct": 10, "skill_scores": {"Technical Excellence": 80, "Professional Communication": 80, "Personal Brand": 80, "Leadership & Collaboration": 80, "Career Preparation": 80, "Industry Presence": 80}, "weekly_plan": [], "key_projects": [], "book_recommendations": []}'
     if not os.environ.get("EMERGENT_LLM_KEY"):
         return DummyChat(system_message, session_id)
@@ -2339,7 +2376,7 @@ async def get_cached_suggestions(user: dict = Depends(get_current_user)):
 
 @router.post("/ai/daily-brief")
 async def ai_daily_brief(
-    body: Dict[str, Any] = None,
+    body: Optional[Dict[str, Any]] = None,
     user: dict = Depends(get_current_user),
 ):
     """
@@ -2490,7 +2527,7 @@ async def chat_history(session_id: Optional[str] = None, user: dict = Depends(ge
 
 @router.post("/ai/generate-bio")
 async def ai_generate_bio(
-    body: Dict[str, Any] = None,
+    body: Optional[Dict[str, Any]] = None,
     user: dict = Depends(get_current_user),
 ):
     """
@@ -2745,7 +2782,7 @@ async def list_mentors(career_path: Optional[str] = None, limit: int = 20):
     if career_path:
         user_q["mentor_info.category"] = _path_to_mentor_cat(career_path)
         sample_q["expertise"] = career_path
-    real = await db.users.find(user_q, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).limit(limit).to_list(limit)
+    real = await db.users.find(user_q, {"password_hash": 0}).sort("_id", -1).limit(limit).to_list(limit)
     for m in real:
         m["id"] = str(m["_id"])
         m.pop("_id", None)
@@ -2941,6 +2978,7 @@ def _user_card(u: dict) -> dict:
     cp = u.get("college_info") or u.get("college_profile") or {}
     return {
         "id": str(u.get("_id") or u.get("id")),
+        "email": u.get("email"),
         "full_name": u.get("full_name") or u.get("email"),
         "role": u.get("role"),
         "institution": u.get("institution") or si.get("institution_name") or ai.get("institution_name") or cp.get("institution_name") or (u.get("full_name") if u.get("role") == "college" else None),
@@ -3022,7 +3060,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     if q:
         rx = {"$regex": re.escape(q), "$options": "i"}
         base_query["$or"] = [{"full_name": rx}, {"email": rx}]
-    candidates = await db.users.find(base_query, {"password_hash": 0, "face_image_base64": 0}).sort("_id", -1).to_list(500)
+    candidates = await db.users.find(base_query, {"password_hash": 0}).sort("_id", -1).to_list(500)
 
     cards = [_user_card(c) for c in candidates if str(c.get("_id") or c.get("id")) != me_id]
     # attach connection_state (none|pending|connected|incoming)
@@ -3045,12 +3083,13 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     by_college = [c for c in cards if my_inst and c.get("institution") == my_inst]
 
     # Section: mentors (approved)
-    mentor_q = {"_id": {"$ne": user["_id"]}, "role": "mentor", "mentor_status": "approved"}
+    mentor_q: dict = {"_id": {"$ne": user["_id"]}, "role": "mentor", "mentor_status": "approved"}
     if q:
-        mentor_q["$or"] = [{"full_name": rx}, {"email": rx}]
+        mentor_rx = {"$regex": re.escape(q), "$options": "i"}
+        mentor_q["$or"] = [{"full_name": mentor_rx}, {"email": mentor_rx}]
     approved_mentors = await db.users.find(
         mentor_q,
-        {"password_hash": 0, "face_image_base64": 0},
+        {"password_hash": 0},
     ).sort("_id", -1).limit(100).to_list(100)
     mentor_cards = [_user_card(m) for m in approved_mentors if str(m.get("_id") or m.get("id")) != me_id]
     for m in mentor_cards:
@@ -3130,7 +3169,7 @@ async def my_connections(user: dict = Depends(get_current_user)):
         except Exception:
             pass
     users = await db.users.find(
-        {"_id": {"$in": objs}}, {"password_hash": 0, "face_image_base64": 0},
+        {"_id": {"$in": objs}}, {"password_hash": 0},
     ).to_list(len(objs))
     cards = [_user_card(u) for u in users]
     for c in cards:
@@ -3157,7 +3196,7 @@ async def my_connection_requests(user: dict = Depends(get_current_user)):
                 objs.append(ObjectId(rid))
             except Exception:
                 pass
-        users = await db.users.find({"_id": {"$in": objs}}, {"password_hash": 0, "face_image_base64": 0}).to_list(len(objs))
+        users = await db.users.find({"_id": {"$in": objs}}, {"password_hash": 0}).to_list(len(objs))
         by_id = {str(u["_id"]): u for u in users}
         for r in rels:
             u = by_id.get(r["a"])
@@ -3182,7 +3221,7 @@ async def my_connection_requests(user: dict = Depends(get_current_user)):
                 objs_sent.append(ObjectId(rid))
             except Exception:
                 pass
-        users_sent = await db.users.find({"_id": {"$in": objs_sent}}, {"password_hash": 0, "face_image_base64": 0}).to_list(len(objs_sent))
+        users_sent = await db.users.find({"_id": {"$in": objs_sent}}, {"password_hash": 0}).to_list(len(objs_sent))
         by_id_sent = {str(u["_id"]): u for u in users_sent}
         for r in sent_rels:
             u = by_id_sent.get(r["b"])
@@ -3822,18 +3861,20 @@ async def post_room_message(room_id: str, payload: dict, user: dict = Depends(ge
     msg = (payload.get("message") or "").strip()
     if not msg:
         raise HTTPException(400, "Message cannot be empty")
+    now_dt = datetime.now(timezone.utc)
     doc = {
         "room_id": room_id,
         "user_id": str(user["_id"]),
         "user_name": user["full_name"],
         "user_role": user["role"],
         "message": msg,
-        "created_at": datetime.now(timezone.utc),
+        "created_at": now_dt,
     }
-    await db.room_messages.insert_one(doc.copy())
-    doc["created_at"] = doc["created_at"].isoformat()
-    doc.pop("_id", None)
-    return doc
+    await db.room_messages.insert_one(doc)
+    res_doc: dict = dict(doc)
+    res_doc["created_at"] = now_dt.isoformat()
+    res_doc.pop("_id", None)
+    return res_doc
 
 
 # ----------------------------------------------------------------------------

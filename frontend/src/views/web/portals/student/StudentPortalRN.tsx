@@ -8,7 +8,7 @@
  * • All existing routing, state, props, API calls preserved 1:1
  */
 import React, { useState, createContext, useContext } from 'react';
-import { View, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { View, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
@@ -38,6 +38,7 @@ import { MyWorkshopsView } from './views/MyWorkshopsView';
 import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 
 import { StudentPortalNavContext, useStudentPortalNav } from './StudentPortalNavContext';
+import { StarryBackground } from '@/src/views/web/nexus-glow-landing/StarryBackground';
 
 // Feature pages imported as components for inline rendering
 import CoursesPage from '@/app/courses';
@@ -99,19 +100,13 @@ function PortalShell() {
   const padH = bp.isPhone ? SP.base : bp.atLeast('xl') ? SP.xxl : SP.lg;
 
   return (
-    <View style={[s.shell, { backgroundColor: PALETTE.bg0 }]}>
-      {/* Body gradient — deep navy → midnight (per FinTax360 Jewel spec) */}
+    <View style={[s.shell, { backgroundColor: '#030614' }]}>
       <LinearGradient
         pointerEvents="none"
-        colors={[PALETTE.bg0, PALETTE.bg2]}
+        colors={['#030614', '#040816']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFillObject as any}
       />
-      {/* Animated multicolor aurora behind everything */}
-      <AnimatedAurora intensity="normal" />
-      {/* 64px grid overlay (web only, radial-fade masked) */}
-      <GridOverlay />
-
       <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0, flexDirection: 'row' }}>
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -119,31 +114,31 @@ function PortalShell() {
             <TopBar scrolled={scrolled} activeView={active} onAvatarPress={() => handleNav('profile')} onBellPress={() => setShowNotifs(!showNotifs)} />
             <ScrollView
               style={{ flex: 1 }}
-              contentContainerStyle={{ flexGrow: 1 }}
+              contentContainerStyle={{ flexGrow: 1, paddingHorizontal: padH, paddingTop: SP.lg }}
               showsVerticalScrollIndicator={false}
               onScroll={onScroll}
               scrollEventThrottle={16}
             >
-              <View style={{ flex: 1, paddingHorizontal: padH, paddingTop: SP.lg, paddingBottom: SP.giga }}>
+              <View style={{ flex: 1 }}>
                 <EmbeddedShellContext.Provider value={true}>
-                  {active !== 'internships' && <PromoBanner portal="student" />}
-                  <RouteTransition deps={[active]}>
-                    {active === 'dashboard'       && <DashboardView />}
-                    {active === 'career-ai'       && <CareerAIView />}
-                    {active === 'internships'     && <InternshipsView />}
-                    {active === 'network'         && <NetworkView />}
-                    {active === 'my-bookings'     && <MyBookingsView />}
-                    {active === 'events'          && <EventsView />}
-                    {active === 'my-workshops'    && <MyWorkshopsView />}
-                    {active === 'courses'         && <CoursesPage />}
-                    {active === 'financial'       && <FinancialPage />}
-                    {active === 'deals'           && <DealsPage />}
-                    {active === 'wallet'          && <WalletPage />}
-                    {active === 'higher-ed'       && <HigherEducationPage />}
-                    {active === 'rentals'         && <RentalsPage />}
-                    {active === 'profile'         && <ProfileSettingsView />}
-                  </RouteTransition>
-                </EmbeddedShellContext.Provider>
+                {active !== 'internships' && <PromoBanner portal="student" />}
+                <RouteTransition deps={[active]}>
+                  {active === 'dashboard'       && <DashboardView />}
+                  {active === 'career-ai'       && <CareerAIView />}
+                  {active === 'internships'     && <InternshipsView />}
+                  {active === 'network'         && <NetworkView />}
+                  {active === 'my-bookings'     && <MyBookingsView />}
+                  {active === 'events'          && <EventsView />}
+                  {active === 'my-workshops'    && <MyWorkshopsView />}
+                  {active === 'courses'         && <CoursesPage />}
+                  {active === 'financial'       && <FinancialPage />}
+                  {active === 'deals'           && <DealsPage />}
+                  {active === 'wallet'          && <WalletPage />}
+                  {active === 'higher-ed'       && <HigherEducationPage />}
+                  {active === 'rentals'         && <RentalsPage />}
+                  {active === 'profile'         && <ProfileSettingsView />}
+                </RouteTransition>
+              </EmbeddedShellContext.Provider>
               </View>
               <DashboardFooter portal="student" />
             </ScrollView>

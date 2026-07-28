@@ -29,9 +29,9 @@ export const PALETTE = {
   bg2: '#131938',   // top of body gradient
 
   // Accents
-  violet: '#8B5CF6',  // primary
-  violetD: '#7C3AED',  // primary deep (used in button gradient bottom)
-  violetL: '#A78BFA',  // primary soft (hover)
+  violet: '#6366F1',  // primary
+  violetD: '#4F46E5',  // primary deep (used in button gradient bottom)
+  violetL: '#818CF8',  // primary soft (hover)
 
   blue:   '#3B82F6',  // secondary
   teal:   '#10B981',  // success
@@ -47,14 +47,14 @@ export const PALETTE = {
   glass:        'rgba(20, 26, 45, 0.55)',
   glassStrong:  'rgba(20, 26, 45, 0.72)',
   glassSoft:    'rgba(255,255,255,0.04)',
-  glassHover:   'rgba(139, 92, 246, 0.10)',
+  glassHover:   'rgba(99, 102, 241, 0.10)',
   glassBorder:  'rgba(255,255,255,0.08)',
-  glassBorderHi:'rgba(139, 92, 246, 0.40)',
+  glassBorderHi:'rgba(99, 102, 241, 0.40)',
   glassHighlight:'rgba(255,255,255,0.10)',
 
   // Shadows / glows (web boxShadow strings)
   glassShadow:  '0 16px 48px rgba(2,6,23,0.45), 0 1px 0 rgba(255,255,255,0.06) inset',
-  violetGlow:   '0 10px 30px rgba(139,92,246,0.35), 0 0 0 1px rgba(139,92,246,0.20)',
+  violetGlow:   '0 10px 30px rgba(99,102,241,0.35), 0 0 0 1px rgba(99,102,241,0.20)',
 } as const;
 
 /* ─────────────────────────────────────────────────────────────────
@@ -102,23 +102,23 @@ export const SC = {
 const SC_LIGHT = {
   bg: '#F5F5F7',
   bg2: '#FFFFFF',
-  card: 'rgba(139,92,246,0.06)',
+  card: 'rgba(99,102,241,0.06)',
   cardSolid: '#FFFFFF',
-  cardH: 'rgba(139,92,246,0.10)',
+  cardH: 'rgba(99,102,241,0.10)',
   border: 'rgba(0,0,0,0.10)',
-  border2: 'rgba(139,92,246,0.30)',
+  border2: 'rgba(99,102,241,0.30)',
   glassBg: 'rgba(255,255,255,0.55)',
   glassBgStrong: 'rgba(255,255,255,0.78)',
-  glassBgSoft: 'rgba(139,92,246,0.06)',
+  glassBgSoft: 'rgba(99,102,241,0.06)',
   glassBorder: 'rgba(0,0,0,0.06)',
-  glassBorderHi: 'rgba(139,92,246,0.32)',
+  glassBorderHi: 'rgba(99,102,241,0.32)',
   glassHighlight: 'rgba(255,255,255,0.6)',
   glassShadow: '0 12px 40px rgba(15,23,42,0.10), 0 1px 0 rgba(255,255,255,0.6) inset',
-  primary: '#7C3AED',
-  primaryD: '#5B21B6',
-  primaryL: '#8B5CF6',
-  accent: '#7C3AED',
-  accentBright: '#8B5CF6',
+  primary: '#6366F1',
+  primaryD: '#4F46E5',
+  primaryL: '#818CF8',
+  accent: '#6366F1',
+  accentBright: '#818CF8',
   text: '#0a0f1e',
   muted: '#475569',
   dim: '#94A3B8',

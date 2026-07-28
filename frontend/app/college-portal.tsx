@@ -13,7 +13,15 @@ import { CollegePortalRN } from '@/src/views/web/portals/college/CollegePortalRN
 export default function CollegePortalRoute() {
   const { legacy } = useLocalSearchParams<{ legacy?: string }>();
   const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const initialized = useAuthStore((s) => s.initialized);
   const logout = useAuthStore((s) => s.logout);
+
+  React.useEffect(() => {
+    if (initialized && !user) {
+      router.replace('/login');
+    }
+  }, [user, initialized, router]);
 
   const onLogout = async () => {
     try { await logout(); } catch {}

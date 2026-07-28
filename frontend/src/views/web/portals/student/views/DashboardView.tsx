@@ -90,7 +90,7 @@ export function DashboardView() {
     events: 7,
     events_subtext: "Upcoming",
   };
-  const displayJobs = jobsFeed?.items || [];
+  const displayJobs = jobsFeed?.items?.length > 0 ? jobsFeed.items : TOP_MATCHES.slice(0, 3);
   const [appliedJobIds, setAppliedJobIds] = useState<Record<string, boolean>>({});
   const [savedJobIds, setSavedJobIds] = useState<Record<string, boolean>>({});
 
@@ -151,28 +151,33 @@ export function DashboardView() {
   };
 
   const displayCourses = React.useMemo(() => {
-    if (coursesFeed?.courses && coursesFeed.courses.length > 0) {
-      return coursesFeed.courses.slice(0, 5).map((c: any, idx: number) => {
-        const title = c.title || 'Course';
-        const providerName = c.provider?.name || c.provider || 'Provider';
-        const shortName = title.split(' ')[0].substring(0, 4);
-        const seed = title + providerName;
-        return {
-          id: c.id || c._id || idx,
-          title: title,
-          provider: providerName,
-          hours: c.duration_hours ? `${c.duration_hours} hours` : 'Flexible',
-          level: c.level || 'All Levels',
-          rating: c.rating || '4.5',
-          learners: c.enrolled_count ? `${(c.enrolled_count / 1000).toFixed(1)}k learners` : '1.2k learners',
-          logo: c.logo || shortName,
-          logoColor: pickColor(seed + 'fg'),
-          bg: pickColor(seed + 'bg') + '22',
-          _raw: c,
-        };
-      });
-    }
-    return [];
+    const rawCourses = coursesFeed?.courses?.length > 0 
+      ? coursesFeed.courses 
+      : [
+          { id: 'c1', title: 'Advanced React Native', provider: 'Meta', duration_hours: 12, level: 'Advanced', rating: '4.8', enrolled_count: 15400, logo: 'RN' },
+          { id: 'c2', title: 'Machine Learning A-Z', provider: 'Stanford', duration_hours: 40, level: 'Beginner', rating: '4.9', enrolled_count: 120500, logo: 'ML' },
+          { id: 'c3', title: 'UI/UX Design Masterclass', provider: 'Google', duration_hours: 15, level: 'All Levels', rating: '4.7', enrolled_count: 8500, logo: 'UX' },
+        ];
+
+    return rawCourses.slice(0, 5).map((c: any, idx: number) => {
+      const title = c.title || 'Course';
+      const providerName = c.provider?.name || c.provider || 'Provider';
+      const shortName = title.split(' ')[0].substring(0, 4);
+      const seed = title + providerName;
+      return {
+        id: c.id || c._id || idx,
+        title: title,
+        provider: providerName,
+        hours: c.duration_hours ? `${c.duration_hours} hours` : 'Flexible',
+        level: c.level || 'All Levels',
+        rating: c.rating || '4.5',
+        learners: c.enrolled_count ? `${(c.enrolled_count / 1000).toFixed(1)}k learners` : '1.2k learners',
+        logo: c.logo || shortName,
+        logoColor: pickColor(seed + 'fg'),
+        bg: pickColor(seed + 'bg') + '22',
+        _raw: c,
+      };
+    });
   }, [coursesFeed]);
 
 
@@ -268,10 +273,6 @@ export function DashboardView() {
       style={[
         { gap: 16, position: 'relative' },
         Platform.OS === 'web' ? ({
-          backgroundImage:
-            'radial-gradient(900px 720px at 12% 6%,  rgba(167,139,250,0.55) 0%, rgba(167,139,250,0) 60%),' +
-            'radial-gradient(900px 720px at 95% 10%, rgba(236, 72,153,0.40) 0%, rgba(236, 72,153,0) 65%),' +
-            'radial-gradient(1100px 900px at 60% 110%, rgba(123, 61,191,0.58) 0%, rgba(123, 61,191,0) 70%)',
           marginHorizontal: -24,
           marginTop: -16,
           marginBottom: -16,
@@ -1072,7 +1073,9 @@ const s = StyleSheet.create({
   itemActionCol: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-end',
     gap: 10,
+    width: 150,
   },
   bookmarkBtn: {
     width: 34,
