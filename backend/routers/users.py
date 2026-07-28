@@ -674,8 +674,12 @@ async def verify_id_card(identifier: str):
     Returns role-specific fields dynamically. Nothing is hardcoded — all from DB.
     """
     u = await db.users.find_one(
-        {"$or": [{"sa_id": identifier}, {"admin_id": identifier}]},
-        {"password_hash": 0, "phone": 0, "two_fa_secret": 0},
+        {"$or": [
+            {"sa_id": identifier}, 
+            {"admin_id": identifier},
+            {"unique_id": {"$regex": f"{identifier}$", "$options": "i"}}
+        ]},
+        {"password_hash": 0, "phone": 0, "face_image_base64": 0, "two_fa_secret": 0},
     )
     if not u:
         raise HTTPException(404, "Invalid ID")
@@ -798,7 +802,8 @@ async def complete_onboarding(req: OnboardingRequest, user: dict = Depends(get_c
 
     # ---- Generate unique ID + QR code (idempotent — only on first onboarding) ----
     unique_id = user.get("unique_id") or generate_unique_id(role)
-    qr_payload = f"https://studentalumni.app/verify/{unique_id.split('-')[-1]}"
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.app").strip().rstrip("/")
+    qr_payload = f"{frontend_url}/verify/{unique_id.split('-')[-1]}"
     qr_code = generate_qr_code(qr_payload)
 
     # ---- Build update document ----

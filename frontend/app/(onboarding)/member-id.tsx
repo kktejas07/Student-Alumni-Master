@@ -68,7 +68,8 @@ export default function MemberId() {
 
   const onShare = async () => {
     try {
-      const text = `I'm an SA member! 🎓\nMember ID: ${uid}\nVerify: https://studentalumni.app/verify/${uid.split('-').pop()}`;
+      const baseUrl = process.env.EXPO_PUBLIC_FRONTEND_URL || 'https://studentalumni.app';
+      const text = `I'm an SA member! 🎓\nMember ID: ${uid}\nVerify: ${baseUrl}/verify/${uid.split('-').pop()}`;
       if (Platform.OS === 'web' && (navigator as any).share) {
         await (navigator as any).share({ title: 'My SA Member ID', text });
         return;
@@ -139,6 +140,7 @@ export default function MemberId() {
           tier={tier}
           qrBase64={qr}
           validFromYear={regYear}
+          verifyBaseUrl={(process.env.EXPO_PUBLIC_FRONTEND_URL || 'https://studentalumni.app').replace(/^https?:\/\//, '') + '/verify'}
         />
 
         {/* Action buttons row */}

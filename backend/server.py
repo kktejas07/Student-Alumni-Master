@@ -1913,6 +1913,7 @@ async def seed_admin():
     admin_password = os.environ.get("ADMIN_PASSWORD", "Admin@12345")
     existing = await db.users.find_one({"email": admin_email})
     if not existing:
+        frontend_url_env = (os.environ.get("FRONTEND_URL") or "https://studentalumni.app").strip().rstrip("/")
         await db.users.insert_one({
             "email": admin_email,
             "password_hash": hash_password(admin_password),
@@ -1920,7 +1921,7 @@ async def seed_admin():
             "role": "admin",
             "phone": None,
             "unique_id": "SA-2026-ADM-000001",
-            "qr_code_base64": generate_qr_code("https://studentalumni.app/verify/000001"),
+            "qr_code_base64": generate_qr_code(f"{frontend_url_env}/verify/000001"),
             "school_info": None,
             "career_path": None,
             "interests": [],

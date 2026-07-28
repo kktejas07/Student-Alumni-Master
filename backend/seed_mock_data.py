@@ -570,6 +570,7 @@ async def upsert_user(email: str, password: str, full_name: str, role: str,
     if existing:
         return str(existing["_id"])
     uid = generate_unique_id(role)
+    frontend_url_env = (os.environ.get("FRONTEND_URL") or "https://studentalumni.app").strip().rstrip("/")
     user_doc: Dict[str, Any] = {
         "email": email,
         "password_hash": hash_password(password),
@@ -578,7 +579,7 @@ async def upsert_user(email: str, password: str, full_name: str, role: str,
         "is_super_admin": extra.get("is_super_admin", False),
         "phone": extra.get("phone"),
         "unique_id": uid,
-        "qr_code_base64": generate_qr_code(f"https://studentalumni.app/verify/{uid.split('-')[-1]}"),
+        "qr_code_base64": generate_qr_code(f"{frontend_url_env}/verify/{uid.split('-')[-1]}"),
         "school_info": extra.get("school_info"),
         "career_path": extra.get("career_path"),
         "interests": extra.get("interests", []),
