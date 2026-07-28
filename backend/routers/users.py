@@ -2274,11 +2274,7 @@ async def get_claude_chat(session_id: str, system_message: str):
                 elif "/loans" in clean_text.lower():
                     return "Here are the top student loan options available right now:\n\n1. **Federal Subsidized Loan** - 4.99% APY (Recommended)\n2. **Sallie Mae Smart Option** - 6.5% APY\n3. **Discover Undergraduate** - 7.2% APY\n\nLet me know if you want to calculate your monthly payments!"
                 elif "/startup" in clean_text.lower():
-                    return "Starting a business? Here are top funding options:\n\n1. **Seed Angel Network** - Up to $50k for early-stage.\n2. **Student Innovation Fund** - $10k equity-free grant.\n3. **Y Combinator** - Standard $500k deal.\n\nTell me about your startup idea!"
-                elif "/investors" in clean_text.lower():
-                    return "Looking for investors? I can help you connect with VCs who specialize in student-led startups. Make sure your pitch deck and MVP are ready!"
-                elif "/insurance" in clean_text.lower():
-                    return "Student insurance is crucial! Popular options include:\n\n1. **CampusCare Health** - Full medical coverage.\n2. **TechProtect** - Insurance for your laptop and gear.\n\nWhich type of coverage are you looking for?"
+                    return "Here are the best startup funding sources:\n\n1. **Y Combinator** - Seed funding for early stage.\n2. **Local Angel Network** - Best for MVP stage.\n3. **Gov Tech Grants** - Non-dilutive funding.\n\nTell me your startup's niche to get specialized matches!"
                 else:
                     return f"This is a mock AI response to: '{clean_text}'. Please configure EMERGENT_LLM_KEY for real, intelligent AI responses."
             if "bio-" in self.sess_id.lower():
@@ -2493,27 +2489,21 @@ async def ai_daily_brief(
             "provider": used_provider, "provider_label": provider_label}
 
 
-@router.post("/ai/public-chat", response_model=ChatResponse)
-async def ai_public_chat(req: ChatRequest):
-    """Unauthenticated chat endpoint for public marketing pages (like Financial AI Coach)."""
-    system_msg = "You are a Financial AI Coach. Keep replies concise, friendly, and actionable."
-    session_id = req.session_id or f"public-chat-{uuid.uuid4().hex[:12]}"
-    try:
-        chat = await get_claude_chat(session_id, system_msg)
-        reply = await chat.send_message(UserMessage(text=req.message))
-        # Public chats are not persisted to DB
-        return ChatResponse(session_id=session_id, message=reply)
-    except Exception as e:
-        logger.error(f"Public AI chat failed: {e}")
-        raise HTTPException(500, f"AI service error: {str(e)}")
-
-
 @router.post("/ai/chat", response_model=ChatResponse)
-async def ai_chat(req: ChatRequest, user: dict = Depends(get_current_user)):
-    career_path = user.get("career_path") or "job"
+async def ai_chat(req: ChatRequest, request: Request):
+    user = None
+    try:
+        user = await get_current_user(request)
+    except Exception:
+        pass
+    
+    career_path = user.get("career_path") if user else "job"
+    full_name = user.get("full_name", "Guest") if user else "Guest"
+    role = user.get("role", "Visitor") if user else "Visitor"
+    
     base = CAREER_PATH_SYSTEM_PROMPTS.get(career_path, CAREER_PATH_SYSTEM_PROMPTS["job"])
     system_msg = (
-        f"{base}\n\nYou are speaking with {user.get('full_name')}, a {user.get('role')}. "
+        f"{base}\n\nYou are speaking with {full_name}, a {role}. "
         "Keep replies concise (2-4 short paragraphs), friendly, and actionable."
     )
     session_id = req.session_id or f"chat-{uuid.uuid4().hex[:12]}"
@@ -2521,13 +2511,14 @@ async def ai_chat(req: ChatRequest, user: dict = Depends(get_current_user)):
         chat = await get_claude_chat(session_id, system_msg)
         reply = await chat.send_message(UserMessage(text=req.message))
 
-        # Persist chat history (used to render conversation on reload)
-        await db.chat_messages.insert_many([
-            {"user_id": str(user["_id"]), "session_id": session_id, "role": "user",
-             "content": req.message, "created_at": datetime.now(timezone.utc)},
-            {"user_id": str(user["_id"]), "session_id": session_id, "role": "assistant",
-             "content": reply, "created_at": datetime.now(timezone.utc)},
-        ])
+        # Persist chat history only if user exists (to render conversation on reload)
+        if user:
+            await db.chat_messages.insert_many([
+                {"user_id": str(user["_id"]), "session_id": session_id, "role": "user",
+                 "content": req.message, "created_at": datetime.now(timezone.utc)},
+                {"user_id": str(user["_id"]), "session_id": session_id, "role": "assistant",
+                 "content": reply, "created_at": datetime.now(timezone.utc)},
+            ])
         return ChatResponse(session_id=session_id, message=reply)
     except Exception as e:
         logger.error(f"AI chat failed: {e}")

@@ -65,7 +65,7 @@ export default function FinancialCoach({ open, setOpen }: {
     setMessages((p) => [...p, { role: 'user', text }]);
     setBusy(true);
     try {
-      const r = await request<any>('/ai/public-chat', {
+      const r = await request<any>('/ai/chat', {
         method: 'POST',
         body: { message: `[financial] ${text}`, session_id: 'financial-coach-chat' },
       });
