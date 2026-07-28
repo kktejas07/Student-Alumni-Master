@@ -911,9 +911,11 @@ _AI_PROVIDER_IDS = {
 
 
 async def _connected_ai_providers(user_id: str) -> List[Dict[str, str]]:
-    """Return the AI tools this user has marked `connected` in installed_tools."""
-    cur = _db.installed_tools.find({"user_id": user_id, "status": "connected"})
+    """Return the AI tools this user has marked `connected` in installed_tools or integrations."""
     out: List[Dict[str, str]] = []
+    
+    # 1. Check installed_tools
+    cur = _db.installed_tools.find({"user_id": user_id, "status": "connected"})
     async for row in cur:
         tid = row.get("tool_id", "")
         if tid in _AI_PROVIDER_IDS:
@@ -922,6 +924,19 @@ async def _connected_ai_providers(user_id: str) -> List[Dict[str, str]]:
                 "label": row.get("label") or tid.replace("-", " ").title(),
                 "connected_at": (row.get("connected_at") or "").__str__(),
             })
+            
+    # 2. Check user integrations
+    from bson import ObjectId
+    user = await _db.users.find_one({"_id": ObjectId(user_id)})
+    if user and "integrations" in user:
+        for provider, info in user["integrations"].items():
+            if provider in _AI_PROVIDER_IDS or provider in ["openai_chatgpt", "anthropic_claude", "google_gemini"]:
+                if not any(x["tool_id"] == provider for x in out):
+                    out.append({
+                        "tool_id": provider,
+                        "label": info.get("account_label") or provider.replace("_", " ").title(),
+                        "connected_at": (info.get("connected_at") or "").__str__(),
+                    })
     return out
 
 
