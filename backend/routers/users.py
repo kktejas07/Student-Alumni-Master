@@ -3015,6 +3015,19 @@ def _matches_count(a: list, b: list) -> int:
     return len(sa & sb)
 
 
+def _match_institution(inst_a: Optional[str], inst_b: Optional[str]) -> bool:
+    if not inst_a or not inst_b:
+        return False
+    a = inst_a.strip().lower()
+    b = inst_b.strip().lower()
+    if a == b or a in b or b in a:
+        return True
+    ignore = {"the", "of", "and", "for", "in", "institute", "technology", "university", "college", "school", "national", "state"}
+    words_a = {w for w in a.replace(",", " ").replace("-", " ").split() if len(w) > 1 and w not in ignore}
+    words_b = {w for w in b.replace(",", " ").replace("-", " ").split() if len(w) > 1 and w not in ignore}
+    return bool(words_a & words_b)
+
+
 @router.get("/network/discover")
 async def network_discover(user: dict = Depends(get_current_user), q: str = "", limit: int = 12):
     """
@@ -3032,7 +3045,7 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     my_interests = user.get("interests") or si.get("interests") or []
     my_skills = user.get("skills") or []
     my_cp = user.get("career_path")
-    my_inst = user.get("institution") or si.get("institution_name") or ai.get("institution_name") or cp.get("institution_name")
+    my_inst = user.get("institution") or si.get("institution_name") or ai.get("institution_name") or cp.get("institution_name") or (user.get("full_name") if user.get("role") == "college" else None)
     my_inst_normalized = (my_inst or "").strip().lower()
     # Existing connection state to mark cards
     rels = await db.connections.find(
@@ -3082,24 +3095,28 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
 
     # Section: by_interest
     by_interest = [c for c in cards if _matches_count(my_interests, c["interests"]) > 0]
-    if not by_interest and is_search:
+    if not by_interest:
         by_interest = cards
     by_interest.sort(key=lambda c: -_matches_count(my_interests, c["interests"]))
 
     # Section: by_career
     by_career = [c for c in cards if my_cp and c.get("career_path") == my_cp and c["role"] != "college"]
-    if not by_career and is_search:
+    if not by_career:
         by_career = cards
 
-    # Section: by_skills (NEW)
+    # Section: by_skills
     by_skills = [c for c in cards if _matches_count(my_skills, c.get("skills") or []) > 0]
-    if not by_skills and is_search:
+    if not by_skills:
         by_skills = cards
     by_skills.sort(key=lambda c: -_matches_count(my_skills, c.get("skills") or []))
 
     # Section: by_college
-    by_college = [c for c in cards if my_inst_normalized and (c.get("institution") or "").strip().lower() == my_inst_normalized]
-    if not by_college and is_search:
+    by_college = []
+    if my_inst:
+        by_college = [c for c in cards if _match_institution(my_inst, c.get("institution") or "")]
+    if not by_college:
+        by_college = [c for c in cards if c.get("institution")]
+    if not by_college:
         by_college = cards
 
     # Section: mentors (approved)
@@ -3125,20 +3142,20 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     if my_cp:
         mentor_cards.sort(key=lambda m: (m.get("category") or "").lower().find(my_cp.lower()) == -1)
 
-    # Section: peer_students (NEW)
+    # Section: peer_students
     peer_students = [c for c in cards if c["role"] == "student"]
-    if not peer_students and is_search:
+    if not peer_students:
         peer_students = cards
 
-    # Section: explore_alumni (NEW)
+    # Section: explore_alumni
     explore_alumni = [c for c in cards if c["role"] == "alumni"]
-    if not explore_alumni and is_search:
+    if not explore_alumni:
         explore_alumni = cards
 
     # Section: expand — diverse roles user hasn't matched on yet
     seen_ids = {c["id"] for c in (by_interest[:sec_limit] + by_career[:sec_limit] + by_skills[:sec_limit] + by_college[:sec_limit] + peer_students[:sec_limit] + explore_alumni[:sec_limit])} | {m["id"] for m in mentor_cards}
-    expand = [c for c in cards if c["id"] not in seen_ids and c["role"] in {"student", "alumni", "college", "mentor"}]
-    if not expand and is_search:
+    expand = [c for c in cards if c["id"] not in seen_ids]
+    if not expand:
         expand = cards
 
     interest_label = ", ".join(my_interests[:2]) if my_interests else "Your declared interests"
