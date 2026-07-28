@@ -455,14 +455,18 @@ export function NetworkView() {
 
   // Discover tab active matching section resolver
   const activeSection = useMemo(() => {
+    if (searchQuery.trim()) {
+      const searchSec = discoverSections.find(s => s.key === 'search_results');
+      if (searchSec) return searchSec;
+    }
     let secKey = 'by_interest';
     if (discoverSubTab === 'path') secKey = 'by_career';
     if (discoverSubTab === 'college') secKey = 'by_college';
     if (discoverSubTab === 'recommended') secKey = 'mentors';
     if (discoverSubTab === 'expand') secKey = 'expand';
 
-    return discoverSections.find(s => s.key === secKey);
-  }, [discoverSections, discoverSubTab]);
+    return discoverSections.find(s => s.key === secKey) || discoverSections.find(s => s.key === 'search_results') || discoverSections[0];
+  }, [discoverSections, discoverSubTab, searchQuery]);
 
   const normalizedDiscover = useMemo(() => {
     return (activeSection?.items || []).map(normalizeDiscoverUser);

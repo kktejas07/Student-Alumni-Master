@@ -66,14 +66,18 @@ export function NetworkView() {
 
   // Discover tab active matching section resolver
   const activeSection = useMemo(() => {
+    if (searchQuery.trim()) {
+      const searchSec = discoverSections.find((s: any) => s.key === 'search_results');
+      if (searchSec) return searchSec;
+    }
     let secKey = 'by_interest';
     if (discoverSubTab === 'path') secKey = 'by_career';
     if (discoverSubTab === 'college') secKey = 'by_college';
     if (discoverSubTab === 'recommended') secKey = 'mentors';
     if (discoverSubTab === 'expand') secKey = 'expand';
 
-    return discoverSections.find((s: any) => s.key === secKey);
-  }, [discoverSections, discoverSubTab]);
+    return discoverSections.find((s: any) => s.key === secKey) || discoverSections.find((s: any) => s.key === 'search_results') || discoverSections[0];
+  }, [discoverSections, discoverSubTab, searchQuery]);
   
   const normalizeDiscoverUser = (u: any) => {
     const role = u.role || 'student';
@@ -446,12 +450,19 @@ export function NetworkView() {
 
   // Filter list by search query
   const filteredList = useMemo(() => {
-    return normalizedPeople.filter((p) => {
-      if (!q) return true;
-      const matchText = `${p.name} ${p.role} ${p.company} ${p.college} ${p.tags.join(' ')}`.toLowerCase();
-      return matchText.includes(q.toLowerCase());
+    const searchTerm = (searchQuery || q || '').trim().toLowerCase();
+    
+    // Combine normalizedPeople with discoverItems to ensure all backend search results appear
+    const discoverItems = discoverSections.flatMap((s: any) => s.items || []).map(normalizeDiscoverUser);
+    const combined = [...discoverItems, ...normalizedPeople];
+    const uniquePeople = Array.from(new Map(combined.map((p: any) => [p.id, p])).values());
+
+    return uniquePeople.filter((p) => {
+      if (!searchTerm) return true;
+      const matchText = `${p.name} ${p.role} ${p.company} ${p.college} ${(p.tags || []).join(' ')}`.toLowerCase();
+      return matchText.includes(searchTerm);
     });
-  }, [normalizedPeople, q]);
+  }, [normalizedPeople, discoverSections, q, searchQuery]);
 
   // Partition data for the Discover Tab
   const mentorsList = useMemo(() => filteredList.filter(p => p.kind === 'mentor'), [filteredList]);
