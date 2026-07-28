@@ -12,7 +12,15 @@ from typing import List, Optional, Any
 import jwt
 import pyotp
 import qrcode
+try:
+    from google.oauth2 import id_token as g_id
+    from google.auth.transport import requests as g_req
+except ImportError:
+    g_id = None
+    g_req = None
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr, field_validator
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -22,11 +30,13 @@ from core.db import db
 from core.security import (
     hash_password, verify_password, create_access_token, create_refresh_token,
     encrypt_value, decrypt_value, _audit_log, _audit_log_many,
+    generate_unique_id, generate_qr_code,
     JWT_SECRET, JWT_ALGORITHM
 )
 from core.models import UserRole, AuthResponse, UserResponse
 from core.security import serialize_user
 from core.deps import get_current_user
+from core.email import send_email
 from firebase_admin import credentials, initialize_app, auth as fb_auth
 
 router = APIRouter(tags=["auth"])
@@ -187,7 +197,7 @@ async def register(request: Request, req: RegisterRequest):
         "face_image_base64": None,
         "onboarding_completed": False,
         "created_at": datetime.now(timezone.utc),
-        "last_login": datetime.utcnow(),
+        "last_login": datetime.now(timezone.utc),
     }
     result = await db.users.insert_one(user_doc)
     user_id = str(result.inserted_id)
@@ -429,7 +439,7 @@ async def login(request: Request, req: LoginRequest):
     try:
         await db.users.update_one(
             {"_id": user["_id"]},
-            {"$set": {"last_login": datetime.utcnow()}}
+            {"$set": {"last_login": datetime.now(timezone.utc)}}
         )
     except Exception as e:
         print(f"[LOGIN] Failed to update last_login: {e}", flush=True)
@@ -547,7 +557,7 @@ def _cache_get(key: str):
     if not entry:
         return None
     ts, val = entry
-    if (datetime.utcnow().timestamp() - ts) > _INST_CACHE_TTL:
+    if (__import__("time").time() - ts) > _INST_CACHE_TTL:
         _INST_CACHE.pop(key, None)
         return None
     return val
@@ -561,7 +571,7 @@ def _cache_set(key: str, val):
             _INST_CACHE.pop(oldest, None)
         except ValueError:
             pass
-    _INST_CACHE[key] = (datetime.utcnow().timestamp(), val)
+    _INST_CACHE[key] = (__import__("time").time(), val)
 
 
 # Educational types we want to KEEP from Nominatim
@@ -935,7 +945,9 @@ async def two_fa_verify(request: Request, req: TwoFAVerifyRequest):
         raise HTTPException(401, "Invalid or expired challenge")
     if challenge.get("consumed"):
         raise HTTPException(401, "Challenge already used")
-    if challenge["expires_at"].replace(tzinfo=None) < datetime.utcnow():
+    exp_at = challenge["expires_at"]
+    if exp_at.tzinfo is None: exp_at = exp_at.replace(tzinfo=timezone.utc)
+    if exp_at < datetime.now(timezone.utc):
         raise HTTPException(401, "Challenge expired. Please log in again.")
 
     user = await db.users.find_one({"_id": ObjectId(challenge["user_id"])})
@@ -965,7 +977,7 @@ async def two_fa_verify(request: Request, req: TwoFAVerifyRequest):
         {"_id": req.challenge_id},
         {"$set": {"consumed": True, "consumed_at": datetime.now(timezone.utc)}},
     )
-    update_fields = {"last_login": datetime.utcnow()}
+    update_fields = {"last_login": datetime.now(timezone.utc)}
     if used_backup_idx is not None:
         backup_codes = user.get("two_fa_backup_codes", [])
         backup_codes.pop(used_backup_idx)
@@ -1053,7 +1065,7 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
     email = email.lower().strip()
     user = await db.users.find_one({"email": email})
     if user:
-        update = {"oauth_provider": provider, "oauth_picture": picture, "last_login": datetime.utcnow()}
+        update = {"oauth_provider": provider, "oauth_picture": picture, "last_login": datetime.now(timezone.utc)}
         if picture:
             update["photo_data"] = picture
         await db.users.update_one({"_id": user["_id"]}, {"$set": update})
@@ -1080,7 +1092,7 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
         "oauth_picture": picture,
         "onboarding_completed": False,
         "created_at": datetime.now(timezone.utc),
-        "last_login": datetime.utcnow(),
+        "last_login": datetime.now(timezone.utc),
     }
     res = await db.users.insert_one(user_doc)
     user_doc["_id"] = res.inserted_id
@@ -1158,7 +1170,7 @@ async def oauth_config(response: Response):
 
 def _verify_google_token(id_token: Optional[str], client_id: str = "") -> Optional[dict]:
     """Verify a Google ID token if credentials are configured, else return None (mock fallback)."""
-    if not id_token or not client_id:
+    if not id_token or not client_id or not g_id or not g_req:
         return None
     try:
         info = g_id.verify_oauth2_token(id_token, g_req.Request(), client_id)
@@ -1291,7 +1303,7 @@ async def auth_google(request: Request, req: OAuthCallback):
 
     user = await _upsert_oauth_user(
         provider="google",
-        email=profile["email"],
+        email=profile.get("email") or "",
         full_name=profile.get("name") or profile.get("full_name") or "",
         picture=profile.get("picture"),
         role=req.role or "student",
@@ -1321,7 +1333,7 @@ async def auth_linkedin(request: Request, req: OAuthCallback):
 
     user = await _upsert_oauth_user(
         provider="linkedin",
-        email=profile["email"],
+        email=profile.get("email") or "",
         full_name=profile.get("name") or profile.get("full_name") or "",
         picture=profile.get("picture"),
         role=req.role or "student",
@@ -1351,7 +1363,7 @@ async def auth_github(request: Request, req: OAuthCallback):
 
     user = await _upsert_oauth_user(
         provider="github",
-        email=profile["email"],
+        email=profile.get("email") or "",
         full_name=profile.get("name") or profile.get("full_name") or "",
         picture=profile.get("picture"),
         role=req.role or "student",
@@ -1425,8 +1437,8 @@ async def auth_firebase(request: Request, req: OAuthCallback):
 
     provider = profile.get("firebase_provider", "firebase")
     user = await _upsert_oauth_user(
-        provider=provider,
-        email=profile["email"],
+        provider=provider or "google",
+        email=profile.get("email") or "",
         full_name=profile.get("name") or req.full_name or "",
         picture=profile.get("picture"),
         role=req.role or "student",
