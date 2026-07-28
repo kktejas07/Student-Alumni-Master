@@ -372,13 +372,10 @@ export function NetworkView() {
   }, [authUser?.email]);
 
   useEffect(() => {
-    if (activeTab === 'discover') {
-      const delayDebounceFn = setTimeout(() => {
-        loadDiscover();
-      }, 500);
-      return () => clearTimeout(delayDebounceFn);
+    if (activeTab === 'discover' && !searchQuery.trim()) {
+      loadDiscover('');
     }
-  }, [searchQuery, activeTab]);
+  }, [activeTab]);
 
   const handleAcceptRequest = async (id: string, name: string) => {
     try {

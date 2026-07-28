@@ -408,15 +408,12 @@ export function NetworkView() {
     init();
   }, [user]);
 
-  // Debounced search for Discover tab
+  // Initial discover fetch
   useEffect(() => {
-    if (tab === 'discover') {
-      const delayDebounceFn = setTimeout(() => {
-        loadDiscover();
-      }, 500);
-      return () => clearTimeout(delayDebounceFn);
+    if (tab === 'discover' && !searchQuery.trim()) {
+      loadDiscover('');
     }
-  }, [searchQuery, tab]);
+  }, [tab]);
 
   const normalizeDiscoverUser = (u: any) => {
     const role = u.role || 'student';
