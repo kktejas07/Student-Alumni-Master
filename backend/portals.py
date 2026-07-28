@@ -60,10 +60,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Body, Res
 from pydantic import BaseModel, Field
 import random
 import pytz
+import re
 from cachetools import TTLCache, cached
 from pathlib import Path
 
-from core.deps import get_current_user
+from core.deps import get_current_user, require_role
 from pydantic import BaseModel
 
 # Instantiate TTL Caches for high-traffic endpoints
@@ -198,7 +199,7 @@ def _parse_datetime(val: Any) -> datetime | None:
 
 # ─── 1. MENTOR DASHBOARD ─────────────────────────────────────────
 @router.get("/mentor/dashboard")
-async def mentor_dashboard(mentor_email: Optional[str] = None):
+async def mentor_dashboard(mentor_email: Optional[str] = None, user: dict = Depends(require_role('mentor'))):
     """Real mentor dashboard. If mentor_email passed, scopes to that mentor;
     otherwise returns first approved mentor as demo."""
     mentor = None
@@ -345,7 +346,7 @@ async def mentor_dashboard(mentor_email: Optional[str] = None):
 
 
 @router.get("/mentor/earnings")
-async def get_mentor_earnings(mentor_email: Optional[str] = None):
+async def get_mentor_earnings(mentor_email: Optional[str] = None, user: dict = Depends(require_role('mentor'))):
     """Get mentor earnings summary linked directly to mentor wallet."""
     return {
         "total_earned": 500,
@@ -361,7 +362,7 @@ async def get_mentor_earnings(mentor_email: Optional[str] = None):
 
 # ─── 2. STUDENT DASHBOARD ────────────────────────────────────────
 @router.get("/student/dashboard")
-async def student_dashboard(request: Request, student_email: Optional[str] = None):
+async def student_dashboard(request: Request, student_email: Optional[str] = None, user: dict = Depends(require_role('student'))):
     """Student dashboard — all independent DB queries run in parallel via asyncio.gather."""
     import asyncio
     import time
@@ -563,7 +564,7 @@ def format_time_ago(dt: datetime) -> str:
 # Recent-Activity feed. Uses real DB counters where available + a
 # deterministic, lightly-randomised series for sparkline shape.
 @router.get("/student/intelligence")
-async def student_intelligence(student_email: Optional[str] = None):
+async def student_intelligence(student_email: Optional[str] = None, user: dict = Depends(require_role('student'))):
     """NexusOS Intelligence Center payload for the student dashboard.
     Returns sparkline arrays, an area-chart series, KPI totals, an
     activity feed, and an overall profile-completion percentage.
@@ -892,7 +893,7 @@ async def student_intelligence(student_email: Optional[str] = None):
 
 # ─── 3. COLLEGE ADMIN DASHBOARD ──────────────────────────────────
 @router.get("/admin/college-stats")
-async def college_admin_stats(college_name: Optional[str] = None):
+async def college_admin_stats(college_name: Optional[str] = None, user: dict = Depends(require_role('admin'))):
     """Real college dashboard. Scopes to a specific college if provided."""
     if not college_name:
         # Pick the college with most students
@@ -1057,7 +1058,7 @@ async def college_admin_stats(college_name: Optional[str] = None):
 
 # ─── 4. SUPER ADMIN OVERVIEW ─────────────────────────────────────
 @router.get("/admin/super-overview")
-async def super_admin_overview():
+async def super_admin_overview(user: dict = Depends(require_role('admin'))):
     """Real platform-wide overview."""
     students = await _db.users.count_documents({"role": "student"})
     alumni = await _db.users.count_documents({"role": "alumni"})
@@ -1158,7 +1159,7 @@ async def super_admin_overview():
 # ════════════════════════════════════════════════════════════════
 
 @router.get("/admin/super/colleges")
-async def super_colleges():
+async def super_colleges(user: dict = Depends(require_role('admin'))):
     """List all colleges with aggregated stats."""
     agg = await _db.users.aggregate([
         {"$match": {"role": "student", "school_info.institution_name": {"$ne": None}}},
@@ -1192,11 +1193,11 @@ async def super_colleges():
 
 
 @router.get("/admin/super/students")
-async def super_students(limit: int = 50, q: Optional[str] = None):
+async def super_students(limit: int = 50, q: Optional[str] = None, user: dict = Depends(require_role('admin'))):
     """Cross-college student directory."""
     match: Dict[str, Any] = {"role": "student"}
     if q:
-        match["full_name"] = {"$regex": q, "$options": "i"}
+        match["full_name"] = {"$regex": re.escape(q), "$options": "i"}
 
     cur = _db.users.find(match).limit(limit)
     out = []
@@ -1229,7 +1230,7 @@ async def super_students(limit: int = 50, q: Optional[str] = None):
 
 
 @router.get("/admin/super/mentors")
-async def super_mentors(status: Optional[str] = None):
+async def super_mentors(status: Optional[str] = None, user: dict = Depends(require_role('admin'))):
     """List all mentors. status filter: 'pending' | 'approved' | None=all."""
     match: Dict[str, Any] = {"role": "mentor"}
     if status:
@@ -1277,7 +1278,7 @@ async def super_mentors(status: Optional[str] = None):
 
 
 @router.get("/admin/super/alumni")
-async def super_alumni(limit: int = 60):
+async def super_alumni(limit: int = 60, user: dict = Depends(require_role('admin'))):
     """Cross-college alumni directory."""
     cur = _db.users.find({"role": "alumni"}).limit(limit)
     out = []
@@ -1313,7 +1314,7 @@ async def super_alumni(limit: int = 60):
 
 
 @router.get("/admin/super/events")
-async def super_events():
+async def super_events(user: dict = Depends(require_role('admin'))):
     """All platform events with registration counts (newest first)."""
     # Sort newest-first so freshly created events appear at the top of the
     # admin grid. Raised to 200 to accommodate seeded + user-created events.
@@ -1393,7 +1394,7 @@ def _serialize_event(ev: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @router.post("/admin/super/events")
-async def create_super_event(payload: EventPayload):
+async def create_super_event(payload: EventPayload, user: dict = Depends(require_role('admin'))):
     """Create a new event (Super Admin). Empty fields fall back to sensible defaults."""
     doc: Dict[str, Any] = {
         "title": payload.title.strip() or "Untitled event",
@@ -1450,7 +1451,7 @@ async def update_super_event(event_id: str, payload: EventPayload):
 
 
 @router.delete("/admin/super/events/{event_id}")
-async def delete_super_event(event_id: str):
+async def delete_super_event(event_id: str, user: dict = Depends(require_role('admin'))):
     """Delete an event. Idempotent — returns ok even if already deleted."""
     deleted = 0
     try:
@@ -1468,7 +1469,7 @@ async def delete_super_event(event_id: str):
 
 
 @router.get("/admin/super/payments")
-async def super_payments():
+async def super_payments(user: dict = Depends(require_role('admin'))):
     """Stripe-style ledger from bookings + wallet. Uses live Stripe data when credentials are installed."""
     bookings_cnt = await _db.bookings.count_documents({})
     gross = bookings_cnt * 999
@@ -1571,7 +1572,7 @@ async def super_payments():
 
 
 @router.post("/admin/super/payouts/initiate")
-async def initiate_payout():
+async def initiate_payout(user: dict = Depends(require_role('admin'))):
     """Initiate a real Stripe payout if credentials are installed, otherwise mock."""
     stripe_installed = await _db.installed_tools.find_one({"tool_id": "stripe", "status": "connected"})
     if stripe_installed:
@@ -1611,7 +1612,7 @@ async def initiate_payout():
 
 
 @router.get("/admin/export/payments")
-async def export_payments_csv():
+async def export_payments_csv(user: dict = Depends(require_role('admin'))):
     """Generate and return a real CSV of all payment transactions."""
     import csv, io
 
@@ -1670,7 +1671,7 @@ async def export_payments_csv():
 
 
 @router.get("/admin/super/approvals")
-async def super_approvals():
+async def super_approvals(user: dict = Depends(require_role('admin'))):
     """All pending items: mentors + colleges (from colleges_meta) + events."""
     items: List[Dict[str, Any]] = []
 
@@ -1725,7 +1726,7 @@ async def super_approvals():
 
 
 @router.get("/admin/super/analytics")
-async def super_analytics():
+async def super_analytics(user: dict = Depends(require_role('admin'))):
     """Platform analytics — growth, retention, funnel, A/B."""
     now = datetime.now(timezone.utc)
     growth = []
@@ -1763,7 +1764,7 @@ async def super_analytics():
 
 
 @router.get("/admin/super/ai-insights")
-async def super_ai_insights():
+async def super_ai_insights(user: dict = Depends(require_role('admin'))):
     """Returns Claude-generated platform briefings (cached in db)."""
     cur = _db.ai_insights.find({"audience": "super_admin", "dismissed": {"$ne": True}}).sort("created_at", -1).limit(10)
     out = [doc async for doc in cur]
@@ -1774,7 +1775,7 @@ async def super_ai_insights():
 
 
 @router.get("/admin/super/workflows")
-async def super_workflows():
+async def super_workflows(user: dict = Depends(require_role('admin'))):
     cur = _db.workflows.find()
     out = []
     async for w in cur:
@@ -1788,7 +1789,7 @@ async def super_workflows():
 # ════════════════════════════════════════════════════════════════
 
 @router.get("/college/students-legacy")
-async def college_students_list(college_name: Optional[str] = None):
+async def college_students_list(college_name: Optional[str] = None, user: dict = Depends(require_role('college'))):
     if not college_name:
         agg = await _db.users.aggregate([
             {"$match": {"role": "student", "school_info.institution_name": {"$ne": None}}},
@@ -1830,7 +1831,7 @@ async def college_students_list(college_name: Optional[str] = None):
 
 
 @router.get("/college/placements")
-async def college_placements(college_name: Optional[str] = None):
+async def college_placements(college_name: Optional[str] = None, user: dict = Depends(require_role('college'))):
     """Placement pipeline kanban: shortlisted, interviewing, offered, joined."""
     if not college_name:
         agg = await _db.users.aggregate([
@@ -1864,7 +1865,7 @@ async def college_placements(college_name: Optional[str] = None):
 
 
 @router.get("/college/alumni")
-async def college_alumni_list(college_name: Optional[str] = None, limit: int = 30):
+async def college_alumni_list(college_name: Optional[str] = None, limit: int = 30, user: dict = Depends(require_role('college'))):
     if not college_name:
         agg = await _db.users.aggregate([
             {"$match": {"role": "alumni", "school_info.institution_name": {"$ne": None}}},
@@ -1952,7 +1953,7 @@ async def college_alumni_list(college_name: Optional[str] = None, limit: int = 3
 
 
 @router.get("/college/mentors")
-async def college_mentors_list(college_name: Optional[str] = None, limit: int = 30):
+async def college_mentors_list(college_name: Optional[str] = None, limit: int = 30, user: dict = Depends(require_role('college'))):
     """Mentors who graduated from this college."""
     if not college_name:
         agg = await _db.users.aggregate([
@@ -1983,7 +1984,7 @@ async def college_mentors_list(college_name: Optional[str] = None, limit: int = 
 
 
 @router.get("/college/events")
-async def college_events_list(college_name: Optional[str] = None, limit: int = 100):
+async def college_events_list(college_name: Optional[str] = None, limit: int = 100, user: dict = Depends(require_role('college'))):
     """Events at or linked to this college."""
     q = {}
     if college_name:
@@ -2017,7 +2018,7 @@ async def college_events_list(college_name: Optional[str] = None, limit: int = 1
 
 
 @router.get("/college/announcements")
-async def college_announcements(college_name: Optional[str] = None):
+async def college_announcements(college_name: Optional[str] = None, user: dict = Depends(require_role('college'))):
     """Notices / announcements (currently from `announcements` collection or seeded fallback)."""
     cur = _db.announcements.find({"college_name": college_name} if college_name else {}).sort("posted_at", -1).limit(20)
     items = []
@@ -2045,7 +2046,7 @@ async def college_announcements(college_name: Optional[str] = None):
 
 
 @router.get("/college/analytics-legacy")
-async def college_analytics(college_name: Optional[str] = None):
+async def college_analytics(college_name: Optional[str] = None, user: dict = Depends(require_role('college'))):
     """Aggregated college analytics: cohort placement, salary curve, attrition."""
     if not college_name:
         agg = await _db.users.aggregate([
@@ -2108,7 +2109,7 @@ async def college_analytics(college_name: Optional[str] = None):
 
 
 @router.get("/college/career-intel")
-async def college_career_intel(college_name: Optional[str] = None):
+async def college_career_intel(college_name: Optional[str] = None, user: dict = Depends(require_role('college'))):
     """Career Intel: aggregate skill gaps + hiring intent + roles in demand."""
     skill_gaps = [
         {"skill": "Cloud (AWS / GCP)",     "demand": 92, "supply": 38, "gap": 54, "color": "#3B82F6"},
@@ -2144,7 +2145,7 @@ async def student_events_list(
     page: int = 1,
     per_page: int = 24,
     sort_by: str = "upcoming"
-):
+, user: dict = Depends(require_role('student'))):
     """Events relevant to the student (with attendance status). Includes events created by mentors, colleges, and admins."""
     student = None
     if student_email:
@@ -2348,7 +2349,7 @@ async def student_events_list(
 
 
 @router.get("/college/ai-insights")
-async def college_ai_insights(college_name: Optional[str] = None):
+async def college_ai_insights(college_name: Optional[str] = None, user: dict = Depends(require_role('college'))):
     cur = _db.ai_insights.find({"audience": "college", "dismissed": {"$ne": True}}).sort("created_at", -1).limit(10)
     out = [doc async for doc in cur]
     for d in out:
@@ -2362,7 +2363,7 @@ async def college_ai_insights(college_name: Optional[str] = None):
 # ════════════════════════════════════════════════════════════════
 
 @router.get("/student/internships")
-async def student_internships(query: Optional[str] = None, student_email: Optional[str] = None):
+async def student_internships(query: Optional[str] = None, student_email: Optional[str] = None, user: dict = Depends(require_role('student'))):
     """Internship list with tier-aware boost.
 
     Soft filter (Q2 = (a)): everyone sees all opportunities, but listings are
@@ -2383,8 +2384,8 @@ async def student_internships(query: Optional[str] = None, student_email: Option
     match: Dict[str, Any] = {}
     if query:
         match["$or"] = [
-            {"title": {"$regex": query, "$options": "i"}},
-            {"company": {"$regex": query, "$options": "i"}},
+            {"title": {"$regex": re.escape(query), "$options": "i"}},
+            {"company": {"$regex": re.escape(query), "$options": "i"}},
         ]
     cur = _db.internships.find(match).limit(60)
 
@@ -2450,7 +2451,7 @@ async def student_internships(query: Optional[str] = None, student_email: Option
 
 
 @router.get("/student/wallet")
-async def student_wallet(student_email: Optional[str] = None):
+async def student_wallet(student_email: Optional[str] = None, user: dict = Depends(require_role('student'))):
     student = None
     if student_email:
         student = await _db.users.find_one({"email": student_email, "role": "student"})
@@ -2481,7 +2482,7 @@ async def student_wallet(student_email: Optional[str] = None):
 
 
 @router.get("/student/network")
-async def student_network(student_email: Optional[str] = None, email: Optional[str] = None, page: int = 1, per_page: int = 24, limit: int = 60, q: Optional[str] = None):
+async def student_network(student_email: Optional[str] = None, email: Optional[str] = None, page: int = 1, per_page: int = 24, limit: int = 60, q: Optional[str] = None, user: dict = Depends(require_role('student'))):
     """Mixed alumni + student + mentor network for the Network tab with search support."""
     user = None
     u_email = email or student_email
@@ -2537,7 +2538,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     }
     # Match by Interest or Search Query q
     if q and q.strip():
-        search_rgx = {"$regex": q.strip(), "$options": "i"}
+        search_rgx = {"$regex": re.escape(q.strip()), "$options": "i"}
         alumni_query["$or"] = [
             {"full_name": search_rgx},
             {"email": search_rgx},
@@ -2592,7 +2593,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     }
     # Match by Interest or Search Query q
     if q and q.strip():
-        search_rgx = {"$regex": q.strip(), "$options": "i"}
+        search_rgx = {"$regex": re.escape(q.strip()), "$options": "i"}
         student_query["$or"] = [
             {"full_name": search_rgx},
             {"email": search_rgx},
@@ -2652,7 +2653,7 @@ async def student_network(student_email: Optional[str] = None, email: Optional[s
     }
     # Match by Interest or Search Query q
     if q and q.strip():
-        search_rgx = {"$regex": q.strip(), "$options": "i"}
+        search_rgx = {"$regex": re.escape(q.strip()), "$options": "i"}
         mentor_query["$or"] = [
             {"full_name": search_rgx},
             {"email": search_rgx},
@@ -2707,7 +2708,7 @@ class TopupRequest(BaseModel):
 
 
 @router.post("/admin/super/events/{event_id}/approve")
-async def approve_event(event_id: str):
+async def approve_event(event_id: str, user: dict = Depends(require_role('admin'))):
     """Approve a pending event."""
     try:
         oid = ObjectId(event_id)
@@ -2751,7 +2752,7 @@ async def _get_workflow_or_404(wf_id: str):
 
 
 @router.post("/admin/super/workflows")
-async def create_workflow(req: WorkflowCreateRequest):
+async def create_workflow(req: WorkflowCreateRequest, user: dict = Depends(require_role('admin'))):
     """Create a new workflow."""
     doc = {
         "name": req.name,
@@ -2884,7 +2885,7 @@ STEP_REGISTRY: Dict[str, callable] = {
 
 
 @router.post("/admin/super/workflows/{wf_id}/run")
-async def run_workflow(wf_id: str, body: WorkflowRunRequest = None):
+async def run_workflow(wf_id: str, body: WorkflowRunRequest = None, user: dict = Depends(require_role('admin'))):
     """Execute all steps of a workflow and record the result."""
     wf = await _get_workflow_or_404(wf_id)
     steps = wf.get("steps", [])
@@ -2940,7 +2941,7 @@ async def run_workflow(wf_id: str, body: WorkflowRunRequest = None):
 
 
 @router.get("/admin/super/workflows/{wf_id}")
-async def get_workflow_detail(wf_id: str):
+async def get_workflow_detail(wf_id: str, user: dict = Depends(require_role('admin'))):
     """Get a single workflow with its run history."""
     wf = await _get_workflow_or_404(wf_id)
     wf["id"] = str(wf.pop("_id"))
@@ -2966,7 +2967,7 @@ async def update_workflow(wf_id: str, req: WorkflowUpdateRequest):
 
 
 @router.delete("/admin/super/workflows/{wf_id}")
-async def delete_workflow(wf_id: str):
+async def delete_workflow(wf_id: str, user: dict = Depends(require_role('admin'))):
     """Delete a workflow."""
     await _get_workflow_or_404(wf_id)
     await _db.workflows.delete_one({"_id": ObjectId(wf_id)})
@@ -2974,7 +2975,7 @@ async def delete_workflow(wf_id: str):
 
 
 @router.post("/admin/super/approvals/{user_id}/approve")
-async def approve_user(user_id: str):
+async def approve_user(user_id: str, user: dict = Depends(require_role('admin'))):
     """Approve a pending mentor, college, or event."""
     # Try MongoDB ObjectId
     try:
@@ -3008,7 +3009,7 @@ async def approve_user(user_id: str):
 
 
 @router.post("/admin/super/approvals/{user_id}/reject")
-async def reject_user(user_id: str):
+async def reject_user(user_id: str, user: dict = Depends(require_role('admin'))):
     try:
         oid = ObjectId(user_id)
         res = await _db.users.update_one({"_id": oid, "role": "mentor"}, {"$set": {"mentor_status": "rejected"}})
@@ -3037,7 +3038,7 @@ async def reject_user(user_id: str):
 
 
 @router.post("/admin/super/workflows/{wf_id}/toggle")
-async def toggle_workflow(wf_id: str):
+async def toggle_workflow(wf_id: str, user: dict = Depends(require_role('admin'))):
     try:
         oid = ObjectId(wf_id)
     except Exception:
@@ -3051,7 +3052,7 @@ async def toggle_workflow(wf_id: str):
 
 
 @router.post("/admin/super/ai-insights/{insight_id}/dismiss")
-async def dismiss_insight(insight_id: str):
+async def dismiss_insight(insight_id: str, user: dict = Depends(require_role('admin'))):
     try:
         oid = ObjectId(insight_id)
     except Exception:
@@ -3063,7 +3064,7 @@ async def dismiss_insight(insight_id: str):
 
 
 @router.post("/student/wallet/topup")
-async def wallet_topup(req: TopupRequest):
+async def wallet_topup(req: TopupRequest, user: dict = Depends(require_role('student'))):
     if req.amount <= 0:
         raise HTTPException(400, "Amount must be positive")
     student = None
@@ -3093,7 +3094,7 @@ async def wallet_topup(req: TopupRequest):
 
 
 @router.post("/student/events/{event_id}/rsvp")
-async def event_rsvp(event_id: str, student_email: Optional[str] = None):
+async def event_rsvp(event_id: str, student_email: Optional[str] = None, user: dict = Depends(require_role('student'))):
     student = None
     if student_email:
         student = await _db.users.find_one({"email": student_email, "role": "student"})
@@ -3116,7 +3117,7 @@ async def event_rsvp(event_id: str, student_email: Optional[str] = None):
 
 # ─── Payout Tiers CRUD ──────────────────────────────────────────
 @router.get("/admin/super/payout-tiers")
-async def list_payout_tiers():
+async def list_payout_tiers(user: dict = Depends(require_role('admin'))):
     tiers = []
     cur = _db.payout_tiers.find().sort("cut_percent", -1)
     async for t in cur:
@@ -3131,7 +3132,7 @@ async def list_payout_tiers():
 
 
 @router.post("/admin/super/payout-tiers")
-async def create_payout_tier(body: dict):
+async def create_payout_tier(body: dict, user: dict = Depends(require_role('admin'))):
     doc = {
         "name": body.get("name"),
         "cut_percent": body.get("cut_percent", 50),
@@ -3144,7 +3145,7 @@ async def create_payout_tier(body: dict):
 
 
 @router.put("/admin/super/payout-tiers/{tier_id}")
-async def update_payout_tier(tier_id: str, body: dict):
+async def update_payout_tier(tier_id: str, body: dict, user: dict = Depends(require_role('admin'))):
     oid = ObjectId(tier_id)
     existing = await _db.payout_tiers.find_one({"_id": oid})
     if not existing:
@@ -3159,7 +3160,7 @@ async def update_payout_tier(tier_id: str, body: dict):
 
 
 @router.delete("/admin/super/payout-tiers/{tier_id}")
-async def delete_payout_tier(tier_id: str):
+async def delete_payout_tier(tier_id: str, user: dict = Depends(require_role('admin'))):
     oid = ObjectId(tier_id)
     res = await _db.payout_tiers.delete_one({"_id": oid})
     if res.deleted_count == 0:
@@ -3169,7 +3170,7 @@ async def delete_payout_tier(tier_id: str):
 
 # ─── Stripe webhook ────────────────────────────────────────────
 @router.post("/webhooks/stripe")
-async def stripe_webhook(body: dict):
+async def stripe_webhook(body: dict, user: dict = Depends(get_current_user)):
     """Receive Stripe webhook events (payout completed, payment confirmed, etc.)."""
     evt_type = body.get("type", "unknown")
     evt_data = body.get("data", {}).get("object", {})
@@ -3184,7 +3185,7 @@ async def stripe_webhook(body: dict):
 
 # ─── Unified Tier endpoint (works for any role) ──────────────────
 @router.get("/users/me/tier")
-async def my_tier(email: Optional[str] = None, role: Optional[str] = None):
+async def my_tier(email: Optional[str] = None, role: Optional[str] = None, user: dict = Depends(get_current_user)):
     """Returns the computed tier for any user (Bronze/Silver/Gold/Platinum)
     along with score breakdown, visuals, and tier-driven suggestions.
     Accepts ?email= for per-user lookup; falls back to first user of role.
@@ -3222,7 +3223,7 @@ async def my_tier(email: Optional[str] = None, role: Optional[str] = None):
 
 
 @router.get("/mentor/connections")
-async def mentor_connections(email: Optional[str] = None):
+async def mentor_connections(email: Optional[str] = None, user: dict = Depends(require_role('mentor'))):
     # 1. Resolve mentor
     mentor = None
     if email:
