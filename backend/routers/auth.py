@@ -15,9 +15,9 @@ import qrcode
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, EmailStr, field_validator
 from slowapi import Limiter
-from slowapi.util import get_remote_address
 from bson import ObjectId
 
+from core.middleware import get_real_ip
 from core.db import db
 from core.security import (
     hash_password, verify_password, create_access_token, create_refresh_token,
@@ -30,7 +30,7 @@ from core.deps import get_current_user
 from firebase_admin import credentials, initialize_app, auth as fb_auth
 
 router = APIRouter(tags=["auth"])
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=get_real_ip)
 
 # ----- Auth payloads -----
 class RegisterRequest(BaseModel):
@@ -155,7 +155,7 @@ class OAuthCallback(BaseModel):
 
 # ----- Auth Endpoints -----
 @router.post("/auth/register", response_model=AuthResponse)
-@limiter.limit("10/minute")
+@limiter.limit("5/minute")
 async def register(request: Request, req: RegisterRequest):
     """Register a new user. Role is captured upfront — onboarding collects role-specific fields."""
     email = req.email.lower().strip()
@@ -275,7 +275,7 @@ async def forgot_password(request: Request, req: ForgotPasswordRequest):
 
 
 @router.post("/auth/verify-reset-otp")
-@limiter.limit("10/minute")
+@limiter.limit("5/minute")
 async def verify_reset_otp(request: Request, req: VerifyResetOtpRequest):
     email = req.email.lower().strip()
     user = await db.users.find_one({"email": email})
@@ -369,7 +369,7 @@ async def reset_password(request: Request, req: ResetPasswordRequest):
 
 
 @router.post("/auth/login")
-@limiter.limit("20/minute")
+@limiter.limit("10/minute")
 async def login(request: Request, req: LoginRequest):
     """Email + password login. Returns JWT pair, OR a 2FA challenge if user has 2FA enabled."""
     import time as _time
@@ -878,7 +878,8 @@ async def institution_logo(name: str = "", domain: str = ""):
 
 
 @router.post("/auth/2fa/setup", response_model=TwoFASetupResponse)
-async def two_fa_setup(user: dict = Depends(get_current_user)):
+@limiter.limit("5/minute")
+async def two_fa_setup(request: Request, user: dict = Depends(get_current_user)):
     """Generate a fresh TOTP secret and QR for the authenticator app.
     Stored as `pending_two_fa_secret` until the user confirms with /enable."""
     secret = pyotp.random_base32()
@@ -897,7 +898,8 @@ async def two_fa_setup(user: dict = Depends(get_current_user)):
 
 
 @router.post("/auth/2fa/enable", response_model=TwoFAEnableResponse)
-async def two_fa_enable(req: TwoFAEnableRequest, user: dict = Depends(get_current_user)):
+@limiter.limit("5/minute")
+async def two_fa_enable(request: Request, req: TwoFAEnableRequest, user: dict = Depends(get_current_user)):
     """User confirms TOTP code → 2FA officially enabled + backup codes returned ONCE."""
     pending = user.get("pending_two_fa_secret")
     if not pending:
@@ -926,7 +928,7 @@ async def two_fa_enable(req: TwoFAEnableRequest, user: dict = Depends(get_curren
 
 
 @router.post("/auth/2fa/verify", response_model=AuthResponse)
-@limiter.limit("10/minute")
+@limiter.limit("5/minute")
 async def two_fa_verify(request: Request, req: TwoFAVerifyRequest):
     """User submits TOTP/backup code with the challenge_id from /auth/login.
     On success → returns full access + refresh JWT pair."""
@@ -1012,7 +1014,8 @@ async def two_fa_disable(req: TwoFADisableRequest, user: dict = Depends(get_curr
 
 
 @router.post("/auth/2fa/regenerate-backup-codes", response_model=TwoFAEnableResponse)
-async def two_fa_regenerate_backup(req: TwoFAEnableRequest, user: dict = Depends(get_current_user)):
+@limiter.limit("5/minute")
+async def two_fa_regenerate_backup(request: Request, req: TwoFAEnableRequest, user: dict = Depends(get_current_user)):
     """Regenerate backup codes — requires current TOTP code. Old codes invalidated."""
     if not user.get("two_fa_enabled"):
         raise HTTPException(400, "2FA is not enabled")
