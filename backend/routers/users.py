@@ -3023,6 +3023,19 @@ def _matches_count(a: list, b: list) -> int:
     return len(sa & sb)
 
 
+def _match_institution(inst_a: Optional[str], inst_b: Optional[str]) -> bool:
+    if not inst_a or not inst_b:
+        return False
+    a = inst_a.strip().lower()
+    b = inst_b.strip().lower()
+    if a == b or a in b or b in a:
+        return True
+    ignore = {"the", "of", "and", "for", "in", "institute", "technology", "university", "college", "school", "national", "state"}
+    words_a = {w for w in a.replace(",", " ").replace("-", " ").split() if len(w) > 1 and w not in ignore}
+    words_b = {w for w in b.replace(",", " ").replace("-", " ").split() if len(w) > 1 and w not in ignore}
+    return bool(words_a & words_b)
+
+
 @router.get("/network/discover")
 async def network_discover(user: dict = Depends(get_current_user), q: str = "", limit: int = 12):
     """
@@ -3035,10 +3048,13 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     """
     me_id = str(user.get("_id") or user.get("id"))
     si = user.get("school_info") or {}
+    ai = user.get("alumni_info") or {}
+    cp = user.get("college_info") or user.get("college_profile") or {}
     my_interests = user.get("interests") or si.get("interests") or []
     my_skills = user.get("skills") or []
     my_cp = user.get("career_path")
-    my_inst = si.get("institution_name")
+    my_inst = user.get("institution") or si.get("institution_name") or ai.get("institution_name") or cp.get("institution_name") or (user.get("full_name") if user.get("role") == "college" else None)
+    my_inst_normalized = (my_inst or "").strip().lower()
     # Existing connection state to mark cards
     rels = await db.connections.find(
         {"$or": [{"a": me_id}, {"b": me_id}]},
@@ -3057,10 +3073,25 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
 
     # Pull a healthy candidate set
     base_query: dict = {"_id": {"$ne": user["_id"]}}
-    if q:
-        rx = {"$regex": re.escape(q), "$options": "i"}
-        base_query["$or"] = [{"full_name": rx}, {"email": rx}]
-    candidates = await db.users.find(base_query, {"password_hash": 0}).sort("_id", -1).to_list(500)
+    is_search = bool(q and q.strip())
+    if is_search:
+        rx = {"$regex": re.escape(q.strip()), "$options": "i"}
+        base_query["$or"] = [
+            {"full_name": rx},
+            {"email": rx},
+            {"role": rx},
+            {"institution": rx},
+            {"school_info.institution_name": rx},
+            {"alumni_info.institution_name": rx},
+            {"alumni_info.company": rx},
+            {"alumni_info.job_title": rx},
+            {"mentor_profile.company": rx},
+            {"mentor_profile.job_title": rx},
+            {"skills": rx},
+            {"interests": rx},
+            {"career_path": rx},
+        ]
+    candidates = await db.users.find(base_query, {"password_hash": 0}).sort("_id", -1).to_list(100 if is_search else 200)
 
     cards = [_user_card(c) for c in candidates if str(c.get("_id") or c.get("id")) != me_id]
     # attach connection_state (none|pending|connected|incoming)
@@ -3068,29 +3099,50 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
         st = state_by_user.get(c["id"])
         c["connection_state"] = st or "none"
 
+    sec_limit = 24 if is_search else limit
+
     # Section: by_interest
     by_interest = [c for c in cards if _matches_count(my_interests, c["interests"]) > 0]
+    if not by_interest:
+        by_interest = cards
     by_interest.sort(key=lambda c: -_matches_count(my_interests, c["interests"]))
 
     # Section: by_career
     by_career = [c for c in cards if my_cp and c.get("career_path") == my_cp and c["role"] != "college"]
+    if not by_career:
+        by_career = cards
 
-    # Section: by_skills (NEW)
+    # Section: by_skills
     by_skills = [c for c in cards if _matches_count(my_skills, c.get("skills") or []) > 0]
+    if not by_skills:
+        by_skills = cards
     by_skills.sort(key=lambda c: -_matches_count(my_skills, c.get("skills") or []))
 
     # Section: by_college
-    by_college = [c for c in cards if my_inst and c.get("institution") == my_inst]
+    by_college = []
+    if my_inst:
+        by_college = [c for c in cards if _match_institution(my_inst, c.get("institution") or "")]
+    if not by_college:
+        by_college = [c for c in cards if c.get("institution")]
+    if not by_college:
+        by_college = cards
 
     # Section: mentors (approved)
     mentor_q: dict = {"_id": {"$ne": user["_id"]}, "role": "mentor", "mentor_status": "approved"}
-    if q:
-        mentor_rx = {"$regex": re.escape(q), "$options": "i"}
-        mentor_q["$or"] = [{"full_name": mentor_rx}, {"email": mentor_rx}]
+    if is_search:
+        mentor_rx = {"$regex": re.escape(q.strip()), "$options": "i"}
+        mentor_q["$or"] = [
+            {"full_name": mentor_rx},
+            {"email": mentor_rx},
+            {"mentor_profile.company": mentor_rx},
+            {"mentor_profile.job_title": mentor_rx},
+            {"skills": mentor_rx},
+            {"interests": mentor_rx},
+        ]
     approved_mentors = await db.users.find(
         mentor_q,
         {"password_hash": 0},
-    ).sort("_id", -1).limit(100).to_list(100)
+    ).sort("_id", -1).limit(50).to_list(50)
     mentor_cards = [_user_card(m) for m in approved_mentors if str(m.get("_id") or m.get("id")) != me_id]
     for m in mentor_cards:
         m["connection_state"] = state_by_user.get(m["id"], "none")
@@ -3098,56 +3150,73 @@ async def network_discover(user: dict = Depends(get_current_user), q: str = "", 
     if my_cp:
         mentor_cards.sort(key=lambda m: (m.get("category") or "").lower().find(my_cp.lower()) == -1)
 
-    # Section: peer_students (NEW)
+    # Section: peer_students
     peer_students = [c for c in cards if c["role"] == "student"]
+    if not peer_students:
+        peer_students = cards
 
-    # Section: explore_alumni (NEW)
+    # Section: explore_alumni
     explore_alumni = [c for c in cards if c["role"] == "alumni"]
+    if not explore_alumni:
+        explore_alumni = cards
 
     # Section: expand — diverse roles user hasn't matched on yet
-    seen_ids = {c["id"] for c in (by_interest + by_career + by_skills + by_college + peer_students[:limit] + explore_alumni[:limit])} | {m["id"] for m in mentor_cards}
-    expand = [c for c in cards if c["id"] not in seen_ids and c["role"] in {"student", "alumni", "college", "mentor"}]
+    seen_ids = {c["id"] for c in (by_interest[:sec_limit] + by_career[:sec_limit] + by_skills[:sec_limit] + by_college[:sec_limit] + peer_students[:sec_limit] + explore_alumni[:sec_limit])} | {m["id"] for m in mentor_cards}
+    expand = [c for c in cards if c["id"] not in seen_ids]
+    if not expand:
+        expand = cards
 
     interest_label = ", ".join(my_interests[:2]) if my_interests else "Your declared interests"
     skill_label    = ", ".join(my_skills[:3])     if my_skills    else "your declared skills"
     cp_label = (my_cp or "your goal").replace("_", " ").title() if my_cp else "Your career goal"
 
-    return {
-        "sections": [
-            {"key": "by_interest", "title": "Matched by Interest",
-             "subtitle": f"Based on: {interest_label}",
-             "icon": "Heart", "tint": "#A78BFA",
-             "items": by_interest[:limit]},
-            {"key": "by_career", "title": "Matched by Career Path",
-             "subtitle": f"Pursuing {cp_label}",
-             "icon": "Briefcase", "tint": "#F59E0B",
-             "items": by_career[:limit]},
-            {"key": "by_skills", "title": "Matched by Skills",
-             "subtitle": f"Shared skills: {skill_label}",
-             "icon": "Code2", "tint": "#2DD4BF",
-             "items": by_skills[:limit]},
-            {"key": "by_college", "title": "From Your College",
-             "subtitle": "People from " + (my_inst or "your school"),
-             "icon": "GraduationCap", "tint": "#22D3EE",
-             "items": by_college[:limit]},
-            {"key": "mentors", "title": "Recommended Mentors",
-             "subtitle": "Book a session \u00b7 First 2 free",
-             "icon": "UserCheck", "tint": "#10B981",
-             "items": mentor_cards[:limit]},
-            {"key": "peer_students", "title": "Peer Students",
-             "subtitle": "Connect with peers and classmates",
-             "icon": "Users", "tint": "#22D3EE",
-             "items": peer_students[:limit]},
-            {"key": "explore_alumni", "title": "Explore Alumni",
-             "subtitle": "Learn from graduates in the industry",
-             "icon": "Users", "tint": "#F59E0B",
-             "items": explore_alumni[:limit]},
-            {"key": "expand", "title": "Expand Your Horizons",
-             "subtitle": "People outside your current interests",
-             "icon": "Compass", "tint": "#EC4899",
-             "items": expand[:limit]},
-        ],
-    }
+    sections = []
+    if is_search:
+        sections.append({
+            "key": "search_results",
+            "title": f"Search Results for '{q.strip()}'",
+            "subtitle": f"Found {len(cards)} account(s) matching your query",
+            "icon": "Search",
+            "tint": "#3B82F6",
+            "items": cards[:sec_limit]
+        })
+
+    sections.extend([
+        {"key": "by_interest", "title": "Matched by Interest",
+         "subtitle": f"Based on: {interest_label}",
+         "icon": "Heart", "tint": "#A78BFA",
+         "items": by_interest[:sec_limit]},
+        {"key": "by_career", "title": "Matched by Career Path",
+         "subtitle": f"Pursuing {cp_label}",
+         "icon": "Briefcase", "tint": "#F59E0B",
+         "items": by_career[:sec_limit]},
+        {"key": "by_skills", "title": "Matched by Skills",
+         "subtitle": f"Shared skills: {skill_label}",
+         "icon": "Code2", "tint": "#2DD4BF",
+         "items": by_skills[:sec_limit]},
+        {"key": "by_college", "title": "From Your College",
+         "subtitle": "People from " + (my_inst or "your school"),
+         "icon": "GraduationCap", "tint": "#22D3EE",
+         "items": by_college[:sec_limit]},
+        {"key": "mentors", "title": "Recommended Mentors",
+         "subtitle": "Book a session \u00b7 First 2 free",
+         "icon": "UserCheck", "tint": "#10B981",
+         "items": mentor_cards[:sec_limit]},
+        {"key": "peer_students", "title": "Peer Students",
+         "subtitle": "Connect with peers and classmates",
+         "icon": "Users", "tint": "#22D3EE",
+         "items": peer_students[:sec_limit]},
+        {"key": "explore_alumni", "title": "Explore Alumni",
+         "subtitle": "Learn from graduates in the industry",
+         "icon": "Users", "tint": "#F59E0B",
+         "items": explore_alumni[:sec_limit]},
+        {"key": "expand", "title": "Expand Your Horizons",
+         "subtitle": "People outside your current interests",
+         "icon": "Compass", "tint": "#EC4899",
+         "items": expand[:sec_limit]},
+    ])
+
+    return {"sections": sections}
 
 
 @router.get("/network/connections")
