@@ -277,6 +277,8 @@ export function NetworkView() {
   // Live stateful lists
   const [connectionsList, setConnectionsList] = useState<any[]>([]);
   const [discoverSections, setDiscoverSections] = useState<any[]>([]);
+  const [dbSearchStatus, setDbSearchStatus] = useState<'idle' | 'searching' | 'success' | 'error'>('idle');
+  const [dbStatusMsg, setDbStatusMsg] = useState('');
   const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
   const [sentRequests, setSentRequests] = useState<any[]>([]);
   
@@ -324,12 +326,40 @@ export function NetworkView() {
     }
   };
 
-  const loadDiscover = async () => {
+  const loadDiscover = async (overrideTerm?: string) => {
     try {
-      const res = await api.networkDiscover(searchQuery);
+      const term = overrideTerm !== undefined ? overrideTerm : searchQuery;
+      const res = await api.networkDiscover(term);
       setDiscoverSections(res?.sections || []);
+      return res?.sections || [];
     } catch (e) {
       console.warn('Failed to load discover sections:', e);
+      return [];
+    }
+  };
+
+  const handleDatabaseSearch = async (termToSearch?: string) => {
+    const term = (termToSearch !== undefined ? termToSearch : searchQuery).trim();
+    if (!term) {
+      setDbSearchStatus('idle');
+      setDbStatusMsg('');
+      loadDiscover('');
+      return;
+    }
+    setDbSearchStatus('searching');
+    setDbStatusMsg(`Searching database for "${term}"...`);
+    try {
+      const secs = await loadDiscover(term);
+      const totalFound = secs.reduce((acc: number, s: any) => acc + (s.items?.length || 0), 0);
+      setDbSearchStatus('success');
+      if (totalFound > 0) {
+        setDbStatusMsg(`Got results! Found ${totalFound} account(s) matching "${term}"`);
+      } else {
+        setDbStatusMsg(`No accounts found in database matching "${term}"`);
+      }
+    } catch (e: any) {
+      setDbSearchStatus('error');
+      setDbStatusMsg(e?.message || 'Search failed. Please try again.');
     }
   };
 
@@ -916,16 +946,81 @@ export function NetworkView() {
             ))}
           </View>
 
-          {/* Search Input Box */}
-          <View style={s.searchContainer}>
-            <Search size={14} color={MC.dim} style={{ marginRight: 10 }} />
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search by name, role, skill or company..."
-              placeholderTextColor={MC.dim}
-              style={s.searchInput}
-            />
+          {/* Search Input Box with DB Search Button */}
+          <View style={{ gap: 8, marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={[s.searchContainer, { flex: 1, marginBottom: 0 }]}>
+                <Search size={14} color={MC.dim} style={{ marginRight: 10 }} />
+                <TextInput
+                  value={searchQuery}
+                  onChangeText={(val) => {
+                    setSearchQuery(val);
+                    if (!val.trim() && dbSearchStatus !== 'idle') {
+                      setDbSearchStatus('idle');
+                      setDbStatusMsg('');
+                    }
+                  }}
+                  onSubmitEditing={() => handleDatabaseSearch()}
+                  placeholder="Filter displayed accounts or search DB..."
+                  placeholderTextColor={MC.dim}
+                  style={s.searchInput}
+                />
+                {searchQuery ? (
+                  <Pressable onPress={() => { setSearchQuery(''); setDbSearchStatus('idle'); setDbStatusMsg(''); }} style={{ padding: 4 }}>
+                    <X size={14} color={MC.dim} />
+                  </Pressable>
+                ) : null}
+              </View>
+
+              <Pressable 
+                onPress={() => handleDatabaseSearch()}
+                disabled={dbSearchStatus === 'searching'}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#3B82F6',
+                  borderRadius: 10,
+                  paddingHorizontal: 14,
+                  height: 42,
+                  opacity: dbSearchStatus === 'searching' ? 0.7 : 1
+                }}
+              >
+                {dbSearchStatus === 'searching' ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Search size={13} color="#FFFFFF" style={{ marginRight: 5 }} />
+                    <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: FONTS.med, fontWeight: '600' }}>Search DB</Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
+
+            {/* Status Feedback Banner */}
+            {dbSearchStatus !== 'idle' && (
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 8,
+                borderWidth: 1,
+                backgroundColor: dbSearchStatus === 'searching' ? 'rgba(59, 130, 246, 0.1)' : dbSearchStatus === 'success' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                borderColor: dbSearchStatus === 'searching' ? 'rgba(59, 130, 246, 0.3)' : dbSearchStatus === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)',
+              }}>
+                {dbSearchStatus === 'searching' && <ActivityIndicator size="small" color="#60A5FA" style={{ marginRight: 8 }} />}
+                {dbSearchStatus === 'success' && <Check size={14} color="#34D399" style={{ marginRight: 8 }} />}
+                {dbSearchStatus === 'error' && <X size={14} color="#F87171" style={{ marginRight: 8 }} />}
+                <Text style={{
+                  fontSize: 12,
+                  fontFamily: FONTS.med,
+                  color: dbSearchStatus === 'searching' ? '#60A5FA' : dbSearchStatus === 'success' ? '#34D399' : '#F87171'
+                }}>
+                  {dbStatusMsg}
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* Discover Sub-category Pill Filters Row */}

@@ -61,8 +61,9 @@ export function NetworkView() {
   const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
   const [sentRequests, setSentRequests] = useState<any[]>([]);
   const [connectionsList, setConnectionsList] = useState<any[]>([]);
-  const [showMatchedInterest, setShowMatchedInterest] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [dbSearchStatus, setDbSearchStatus] = useState<'idle' | 'searching' | 'success' | 'error'>('idle');
+  const [dbStatusMsg, setDbStatusMsg] = useState('');
 
   // Discover tab active matching section resolver
   const activeSection = useMemo(() => {
@@ -256,12 +257,40 @@ export function NetworkView() {
 
 
   
-  const loadDiscover = async () => {
+  const loadDiscover = async (overrideTerm?: string) => {
     try {
-      const res = await api.networkDiscover(searchQuery);
+      const term = overrideTerm !== undefined ? overrideTerm : searchQuery;
+      const res = await api.networkDiscover(term);
       setDiscoverSections(res?.sections || []);
+      return res?.sections || [];
     } catch (e) {
       console.warn('Failed to load discover sections:', e);
+      return [];
+    }
+  };
+
+  const handleDatabaseSearch = async (termToSearch?: string) => {
+    const term = (termToSearch !== undefined ? termToSearch : searchQuery).trim();
+    if (!term) {
+      setDbSearchStatus('idle');
+      setDbStatusMsg('');
+      loadDiscover('');
+      return;
+    }
+    setDbSearchStatus('searching');
+    setDbStatusMsg(`Searching database for "${term}"...`);
+    try {
+      const secs = await loadDiscover(term);
+      const totalFound = secs.reduce((acc: number, s: any) => acc + (s.items?.length || 0), 0);
+      setDbSearchStatus('success');
+      if (totalFound > 0) {
+        setDbStatusMsg(`Got results! Found ${totalFound} account(s) matching "${term}"`);
+      } else {
+        setDbStatusMsg(`No accounts found in database matching "${term}"`);
+      }
+    } catch (e: any) {
+      setDbSearchStatus('error');
+      setDbStatusMsg(e?.message || 'Search failed. Please try again.');
     }
   };
 
@@ -551,24 +580,73 @@ export function NetworkView() {
         </Pressable>
       </View>
 
-      {/* Global Search bar */}
-      <View style={s.searchContainer}>
-        <Search size={16} color={SC.dim} style={{ marginRight: 8 }} />
-        <TextInput
-          value={searchQuery}
-          onChangeText={(val) => {
-            setSearchQuery(val);
-            setQ(val);
-          }}
-          placeholder="Search by name, role, skill or company..."
-          placeholderTextColor={SC.dim}
-          style={s.searchInput}
-        />
-        {searchQuery ? (
-          <Pressable onPress={() => { setSearchQuery(''); setQ(''); }} style={{ padding: 4 }}>
-            <X size={14} color={SC.dim} />
+      {/* Global Search bar with DB Search Button & Status Feedback */}
+      <View style={{ gap: 8, marginBottom: 16 }}>
+        <View style={s.searchRowContainer}>
+          <View style={s.searchContainerFlex}>
+            <Search size={16} color={SC.dim} style={{ marginRight: 8 }} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={(val) => {
+                setSearchQuery(val);
+                setQ(val);
+                if (!val.trim() && dbSearchStatus !== 'idle') {
+                  setDbSearchStatus('idle');
+                  setDbStatusMsg('');
+                }
+              }}
+              onSubmitEditing={() => handleDatabaseSearch()}
+              placeholder="Filter displayed accounts or search DB..."
+              placeholderTextColor={SC.dim}
+              style={s.searchInput}
+            />
+            {searchQuery ? (
+              <Pressable onPress={() => { setSearchQuery(''); setQ(''); setDbSearchStatus('idle'); setDbStatusMsg(''); }} style={{ padding: 4 }}>
+                <X size={14} color={SC.dim} />
+              </Pressable>
+            ) : null}
+          </View>
+
+          <Pressable 
+            onPress={() => handleDatabaseSearch()}
+            disabled={dbSearchStatus === 'searching'}
+            style={[
+              s.dbSearchBtn,
+              dbSearchStatus === 'searching' && { opacity: 0.7 }
+            ]}
+          >
+            {dbSearchStatus === 'searching' ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Search size={13} color="#FFFFFF" style={{ marginRight: 5 }} />
+                <Text style={s.dbSearchBtnText}>Search DB</Text>
+              </>
+            )}
           </Pressable>
-        ) : null}
+        </View>
+
+        {/* Status Feedback Banner */}
+        {dbSearchStatus !== 'idle' && (
+          <View style={[
+            s.statusBanner,
+            dbSearchStatus === 'searching' && s.statusBannerSearching,
+            dbSearchStatus === 'success' && s.statusBannerSuccess,
+            dbSearchStatus === 'error' && s.statusBannerError,
+          ]}>
+            {dbSearchStatus === 'searching' && <ActivityIndicator size="small" color="#60A5FA" style={{ marginRight: 8 }} />}
+            {dbSearchStatus === 'success' && <Check size={14} color="#34D399" style={{ marginRight: 8 }} />}
+            {dbSearchStatus === 'error' && <X size={14} color="#F87171" style={{ marginRight: 8 }} />}
+            <Text style={[
+              s.statusText,
+              dbSearchStatus === 'searching' && { color: '#60A5FA' },
+              dbSearchStatus === 'success' && { color: '#34D399' },
+              dbSearchStatus === 'error' && { color: '#F87171' },
+            ]}>
+              {dbStatusMsg}
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* 3. Discover Tab Redesign (Screenshot 1) */}
@@ -1441,7 +1519,62 @@ const s = StyleSheet.create({
     fontFamily: FONTS.bold
   },
 
-  // Search input styles
+  // Search input & DB button styles
+  searchRowContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  searchContainerFlex: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    borderColor: SC.border,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 42,
+  },
+  dbSearchBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3B82F6',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    height: 42,
+  },
+  dbSearchBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontFamily: FONTS.med,
+    fontWeight: '600',
+  },
+  statusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  statusBannerSearching: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+  },
+  statusBannerSuccess: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  statusBannerError: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  statusText: {
+    fontSize: 12,
+    fontFamily: FONTS.med,
+  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
