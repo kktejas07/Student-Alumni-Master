@@ -61,6 +61,7 @@ export function NetworkView() {
   const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
   const [sentRequests, setSentRequests] = useState<any[]>([]);
   const [connectionsList, setConnectionsList] = useState<any[]>([]);
+  const [showMatchedInterest, setShowMatchedInterest] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [dbSearchStatus, setDbSearchStatus] = useState<'idle' | 'searching' | 'success' | 'error'>('idle');
   const [dbStatusMsg, setDbStatusMsg] = useState('');
