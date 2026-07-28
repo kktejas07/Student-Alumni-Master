@@ -213,7 +213,7 @@ export function OAuthModal({
 
                 <View style={s.btnRow}>
                   <Pressable
-                    onPress={() => setStep('authorize')}
+                    onPress={() => { setError(null); setStep('authorize'); }}
                     style={s.btnSecondary}
                     accessibilityRole="button"
                     accessibilityLabel="Back"
