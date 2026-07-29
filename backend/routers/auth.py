@@ -1140,13 +1140,23 @@ async def oauth_config(response: Response):
 
     flags = {}
     if doc and doc.get("feature_flags"):
-        for f in doc["feature_flags"]:
-            flags[f["key"]] = _parse_b(f.get("value"), True)
+        raw_ff = doc["feature_flags"]
+        if isinstance(raw_ff, list):
+            for f in raw_ff:
+                if isinstance(f, dict):
+                    k = f.get("key")
+                    if k:
+                        flags[k] = _parse_b(f.get("value"), True)
+        elif isinstance(raw_ff, dict):
+            for k, v in raw_ff.items():
+                flags[k] = _parse_b(v, True)
+
     try:
         from routers.admin.settings import DEFAULT_PLATFORM_CONTROLS
         for f in DEFAULT_PLATFORM_CONTROLS.get("feature_flags") or []:
-            if f["key"] not in flags:
-                flags[f["key"]] = _parse_b(f.get("value"), True)
+            k = f.get("key") if isinstance(f, dict) else None
+            if k and k not in flags:
+                flags[k] = _parse_b(f.get("value"), True)
     except Exception:
         pass
 

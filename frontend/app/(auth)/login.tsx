@@ -88,6 +88,13 @@ export default function LoginScreen() {
   const submittingRef = useRef(false);
   const pwdRef = useRef<TextInput>(null);
 
+  const isTrue = (val: any, defaultVal = false) => {
+    if (val === undefined || val === null) return defaultVal;
+    if (typeof val === 'boolean') return val;
+    if (typeof val === 'string') return val.toLowerCase() === 'true' || val === '1';
+    return Boolean(val);
+  };
+
   const [oauthCfg, setOauthCfg] = useState<{ 
     linkedin_client_id?: string; 
     github_client_id?: string;
@@ -96,22 +103,31 @@ export default function LoginScreen() {
     enable_linkedin_login?: boolean;
     enable_github_login?: boolean;
     firebase?: { apiKey: string; authDomain: string; projectId: string; appId: string } | null 
-  } | null>(null);
+  }>({
+    enable_google_login: true,
+    enable_linkedin_login: false,
+    enable_github_login: false,
+  });
+
+  const fetchOauthCfg = async () => {
+    try {
+      const res = await fetch(`${BASE}/api/auth/oauth-config?_t=${Date.now()}`);
+      if (res.ok) {
+        const cfg = await res.json();
+        setOauthCfg(cfg);
+        if (cfg.firebase?.apiKey) {
+          initFirebaseAuth(cfg.firebase);
+        }
+      }
+    } catch {}
+  };
 
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`${BASE}/api/auth/oauth-config`);
-        if (res.ok) {
-          const cfg = await res.json();
-          setOauthCfg(cfg);
-          // Init Firebase Auth if configured
-          if (cfg.firebase?.apiKey) {
-            initFirebaseAuth(cfg.firebase);
-          }
-        }
-      } catch {}
-    })();
+    fetchOauthCfg();
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.addEventListener('focus', fetchOauthCfg);
+      return () => window.removeEventListener('focus', fetchOauthCfg);
+    }
   }, []);
 
   // Listen for OAuth popup callback (web only)
@@ -257,9 +273,9 @@ export default function LoginScreen() {
       </View>
 
       {/* OAuth row */}
-      {(oauthCfg?.enable_google_login === true || oauthCfg?.enable_linkedin_login === true || oauthCfg?.enable_github_login === true) && (
+      {(isTrue(oauthCfg?.enable_google_login, true) || isTrue(oauthCfg?.enable_linkedin_login, false) || isTrue(oauthCfg?.enable_github_login, false)) && (
         <View style={s.oauthRow}>
-          {oauthCfg?.enable_google_login === true && (
+          {isTrue(oauthCfg?.enable_google_login, true) && (
             <DarkSocialButton label="Google" testID="login-google" icon={<GoogleG size={16} />} onPress={async () => {
                 try {
                   if (oauthCfg?.firebase && Platform.OS === 'web') {
@@ -290,7 +306,7 @@ export default function LoginScreen() {
               }} />
           )}
 
-          {oauthCfg?.enable_linkedin_login === true && (
+          {isTrue(oauthCfg?.enable_linkedin_login, false) && (
             <DarkSocialButton label="LinkedIn" testID="login-linkedin" icon={<LinkedInIn size={16} />} onPress={() => {
               if (Platform.OS === 'web' && oauthCfg?.linkedin_client_id && oauthCfg?.redirect_uri) {
                 const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${oauthCfg.linkedin_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&state=linkedin_login&scope=profile%20email`;
@@ -301,7 +317,7 @@ export default function LoginScreen() {
             }} />
           )}
 
-          {oauthCfg?.enable_github_login === true && (
+          {isTrue(oauthCfg?.enable_github_login, false) && (
             <DarkSocialButton label="GitHub" testID="login-github" icon={<GitHubCat size={16} />} onPress={() => {
               if (Platform.OS === 'web' && oauthCfg?.github_client_id && oauthCfg?.redirect_uri) {
                 const url = `https://github.com/login/oauth/authorize?client_id=${oauthCfg.github_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&state=github_login&scope=user:email`;
