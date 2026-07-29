@@ -198,12 +198,12 @@ async def _lifespan(application):
     await seed_admin()
     await seed_data()
 
-    # Start the Agent K scheduler (60s polling tick).
+    # Start Agent K systems
     try:
-        from agent_k_scheduled import start_scheduler as _ak_start
-        _ak_start()
+        from agent_k.rag.store import init_collection
+        init_collection() # Ensure Qdrant collection is ready
     except Exception as _e:
-        logger.warning("Could not start Agent K scheduler: %s", _e)
+        logger.warning("Could not init Agent K collection: %s", _e)
 
     # Start the hourly content sync scheduler.
     try:
@@ -230,11 +230,7 @@ async def _lifespan(application):
     yield  # ← application runs here
 
     # ── SHUTDOWN ─────────────────────────────────────────────────────────────
-    try:
-        from agent_k_scheduled import stop_scheduler as _ak_stop
-        _ak_stop()
-    except Exception:
-        pass
+
     try:
         from background_sync import stop_sync_scheduler
         stop_sync_scheduler()
@@ -2046,12 +2042,16 @@ from ai_briefs import router as ai_briefs_router
 api_router.include_router(ai_briefs_router)
 
 # Agent K — automation operator (Claude tool-use loop)
-from agent_k import router as agent_k_router
+from agent_k.api.routes import router as agent_k_router
 api_router.include_router(agent_k_router)
 
-# Agent K — scheduled (cron) automations
-from agent_k_scheduled import router as agent_k_scheduled_router
-api_router.include_router(agent_k_scheduled_router)
+# Agent K — provider configurations
+from agent_k.api.provider_routes import router as agent_k_provider_router
+api_router.include_router(agent_k_provider_router)
+
+# Agent K — RAG routes
+from agent_k.api.rag_routes import router as agent_k_rag_router
+api_router.include_router(agent_k_rag_router)
 
 # Admin settings — Roles & Permissions + Marketplace
 from routers.admin.settings import router as admin_settings_router
