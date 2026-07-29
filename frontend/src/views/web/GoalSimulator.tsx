@@ -135,7 +135,7 @@ export function GoalSimulator({ currentReadiness }: { currentReadiness: number }
       {/* Simulated breakdown */}
       {simResult && simResult.breakdown.length > 0 && (
         <View style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 12, marginTop: 12 }}>
-          <Text style={{ color: C.text, fontFamily: FT.bold, fontSize: 9, letterSpacing: 0.8, marginBottom: 8 }}>BREAKDOWN</Text>
+          <Text style={{ color: C.text, fontFamily: FT.bold, fontSize: 9, letterSpacing: 0.8, marginBottom: 8 }}>EXPECTED GAIN</Text>
           {simResult.breakdown.map((b, idx) => (
             <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 3 }}>
               <Text style={{ color: C.text, fontFamily: FT.med, fontSize: 11 }}>{b.title || b.type}</Text>
