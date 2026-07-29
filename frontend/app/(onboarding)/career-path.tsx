@@ -76,7 +76,7 @@ export default function CareerPathScreen() {
               ]}
             >
               <Text style={{ fontSize: 28 }}>{p.emoji}</Text>
-              <Text style={[styles.pathTitle, active && { color: '#FFFFFF' }]}>{p.title}</Text>
+              <Text style={[styles.pathTitle, active && { color: '#111827' }]}>{p.title}</Text>
               <Text style={styles.pathDesc} numberOfLines={3}>{p.desc}</Text>
             </Pressable>
           );
@@ -151,16 +151,16 @@ const styles = StyleSheet.create({
     flexBasis: '48%', flexGrow: 1,
     paddingVertical: 16, paddingHorizontal: 14,
     borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: '#F9FAFB',
     borderColor: 'rgba(255,255,255,0.10)',
     borderWidth: 1,
     gap: 6,
     ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
   },
   pathTileActive: { borderColor: '#7C3AED', backgroundColor: 'rgba(124,58,237,0.16)' },
-  pathTitle: { color: 'rgba(255,255,255,0.85)', fontFamily: 'DMSans_700Bold', fontSize: 15, marginTop: 6 },
+  pathTitle: { color: '#1F2937', fontFamily: 'DMSans_700Bold', fontSize: 15, marginTop: 6 },
   pathDesc: { color: 'rgba(255,255,255,0.50)', fontFamily: 'DMSans_400Regular', fontSize: 12, lineHeight: 17 },
-  h3: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 16, marginTop: 4, marginBottom: 4 },
+  h3: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 16, marginTop: 4, marginBottom: 4 },
   helper: { color: 'rgba(255,255,255,0.50)', fontFamily: 'DMSans_400Regular', fontSize: 12.5, marginBottom: 10 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
   addBtn: {
@@ -172,5 +172,5 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
   },
-  addBtnText: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  addBtnText: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 14 },
 });

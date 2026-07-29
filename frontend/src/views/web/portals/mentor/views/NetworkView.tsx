@@ -277,6 +277,8 @@ export function NetworkView() {
   // Live stateful lists
   const [connectionsList, setConnectionsList] = useState<any[]>([]);
   const [discoverSections, setDiscoverSections] = useState<any[]>([]);
+  const [dbSearchStatus, setDbSearchStatus] = useState<'idle' | 'searching' | 'success' | 'error'>('idle');
+  const [dbStatusMsg, setDbStatusMsg] = useState('');
   const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
   const [sentRequests, setSentRequests] = useState<any[]>([]);
   
@@ -299,7 +301,15 @@ export function NetworkView() {
     try {
       const email = user?.email;
       const res = await api.mentorConnections(email);
-      setConnectionsList((res?.items || []).map((c: any) => {
+      const items = res?.items || [];
+      const connectedItems = items.filter(
+        (item: any) =>
+          item.status !== 'none' &&
+          item.status !== 'withdrawn' &&
+          item.status !== 'declined' &&
+          item.status !== 'rejected'
+      );
+      setConnectionsList(connectedItems.map((c: any) => {
         const role = c.role || (c.tags && c.tags[0] ? c.tags[0].toLowerCase() : 'student');
         const tag = role === 'mentor' ? 'Mentor' : role === 'alumni' ? 'Alumni' : 'Student';
         return {
@@ -316,12 +326,40 @@ export function NetworkView() {
     }
   };
 
-  const loadDiscover = async () => {
+  const loadDiscover = async (overrideTerm?: string) => {
     try {
-      const res = await api.networkDiscover(searchQuery);
+      const term = overrideTerm !== undefined ? overrideTerm : searchQuery;
+      const res = await api.networkDiscover(term);
       setDiscoverSections(res?.sections || []);
+      return res?.sections || [];
     } catch (e) {
       console.warn('Failed to load discover sections:', e);
+      return [];
+    }
+  };
+
+  const handleDatabaseSearch = async (termToSearch?: string) => {
+    const term = (termToSearch !== undefined ? termToSearch : searchQuery).trim();
+    if (!term) {
+      setDbSearchStatus('idle');
+      setDbStatusMsg('');
+      loadDiscover('');
+      return;
+    }
+    setDbSearchStatus('searching');
+    setDbStatusMsg(`Searching database for "${term}"...`);
+    try {
+      const secs = await loadDiscover(term);
+      const totalFound = secs.reduce((acc: number, s: any) => acc + (s.items?.length || 0), 0);
+      setDbSearchStatus('success');
+      if (totalFound > 0) {
+        setDbStatusMsg(`Got results! Found ${totalFound} account(s) matching "${term}"`);
+      } else {
+        setDbStatusMsg(`No accounts found in database matching "${term}"`);
+      }
+    } catch (e: any) {
+      setDbSearchStatus('error');
+      setDbStatusMsg(e?.message || 'Search failed. Please try again.');
     }
   };
 
@@ -346,6 +384,7 @@ export function NetworkView() {
           id: req.id,
           name,
           avatar,
+          photo: req.photo_data || req.face_image_base64 || req.photo || '',
           color,
           role: (role === 'student' ? 'Student' : role === 'alumni' ? 'Alumni' : 'Industry') as any,
           subtitle,
@@ -369,15 +408,12 @@ export function NetworkView() {
     init();
   }, [user]);
 
-  // Debounced search for Discover tab
+  // Initial discover fetch
   useEffect(() => {
-    if (tab === 'discover') {
-      const delayDebounceFn = setTimeout(() => {
-        loadDiscover();
-      }, 500);
-      return () => clearTimeout(delayDebounceFn);
+    if (tab === 'discover' && !searchQuery.trim()) {
+      loadDiscover('');
     }
-  }, [searchQuery, tab]);
+  }, [tab]);
 
   const normalizeDiscoverUser = (u: any) => {
     const role = u.role || 'student';
@@ -397,6 +433,7 @@ export function NetworkView() {
       id: u.id,
       name,
       avatar,
+      photo: u.photo_data || u.face_image_base64 || u.photo || '',
       color,
       tag,
       role: jobTitle || role.charAt(0).toUpperCase() + role.slice(1),
@@ -445,14 +482,18 @@ export function NetworkView() {
 
   // Discover tab active matching section resolver
   const activeSection = useMemo(() => {
+    if (searchQuery.trim()) {
+      const searchSec = discoverSections.find(s => s.key === 'search_results');
+      if (searchSec) return searchSec;
+    }
     let secKey = 'by_interest';
     if (discoverSubTab === 'path') secKey = 'by_career';
     if (discoverSubTab === 'college') secKey = 'by_college';
     if (discoverSubTab === 'recommended') secKey = 'mentors';
     if (discoverSubTab === 'expand') secKey = 'expand';
 
-    return discoverSections.find(s => s.key === secKey);
-  }, [discoverSections, discoverSubTab]);
+    return discoverSections.find(s => s.key === secKey) || discoverSections.find(s => s.key === 'search_results') || discoverSections[0];
+  }, [discoverSections, discoverSubTab, searchQuery]);
 
   const normalizedDiscover = useMemo(() => {
     return (activeSection?.items || []).map(normalizeDiscoverUser);
@@ -495,8 +536,17 @@ export function NetworkView() {
     try {
       await api.acceptConnection(id);
       toast.success('Connection Accepted! 🎉', `${name} is now connected with you.`);
+      setDiscoverSections(prev => prev.map(section => ({
+        ...section,
+        items: (section.items || []).map((item: any) =>
+          item.id === id
+            ? { ...item, connection_state: 'connected', connectionState: 'connected' }
+            : item
+        )
+      })));
       await loadRequests();
       await loadConnections();
+      await loadDiscover();
     } catch (e: any) {
       toast.error('Failed to accept request', e.message || 'Please try again.');
     }
@@ -893,16 +943,81 @@ export function NetworkView() {
             ))}
           </View>
 
-          {/* Search Input Box */}
-          <View style={s.searchContainer}>
-            <Search size={14} color={MC.dim} style={{ marginRight: 10 }} />
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search the SA network..."
-              placeholderTextColor={MC.dim}
-              style={s.searchInput}
-            />
+          {/* Search Input Box with DB Search Button */}
+          <View style={{ gap: 8, marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={[s.searchContainer, { flex: 1, marginBottom: 0 }]}>
+                <Search size={14} color={MC.dim} style={{ marginRight: 10 }} />
+                <TextInput
+                  value={searchQuery}
+                  onChangeText={(val) => {
+                    setSearchQuery(val);
+                    if (!val.trim() && dbSearchStatus !== 'idle') {
+                      setDbSearchStatus('idle');
+                      setDbStatusMsg('');
+                    }
+                  }}
+                  onSubmitEditing={() => handleDatabaseSearch()}
+                  placeholder="Filter displayed accounts or search DB..."
+                  placeholderTextColor={MC.dim}
+                  style={s.searchInput}
+                />
+                {searchQuery ? (
+                  <Pressable onPress={() => { setSearchQuery(''); setDbSearchStatus('idle'); setDbStatusMsg(''); }} style={{ padding: 4 }}>
+                    <X size={14} color={MC.dim} />
+                  </Pressable>
+                ) : null}
+              </View>
+
+              <Pressable 
+                onPress={() => handleDatabaseSearch()}
+                disabled={dbSearchStatus === 'searching'}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#3B82F6',
+                  borderRadius: 10,
+                  paddingHorizontal: 14,
+                  height: 42,
+                  opacity: dbSearchStatus === 'searching' ? 0.7 : 1
+                }}
+              >
+                {dbSearchStatus === 'searching' ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Search size={13} color="#FFFFFF" style={{ marginRight: 5 }} />
+                    <Text style={{ color: '#FFFFFF', fontSize: 13, fontFamily: FONTS.med, fontWeight: '600' }}>Search DB</Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
+
+            {/* Status Feedback Banner */}
+            {dbSearchStatus !== 'idle' && (
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 8,
+                borderWidth: 1,
+                backgroundColor: dbSearchStatus === 'searching' ? 'rgba(59, 130, 246, 0.1)' : dbSearchStatus === 'success' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                borderColor: dbSearchStatus === 'searching' ? 'rgba(59, 130, 246, 0.3)' : dbSearchStatus === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)',
+              }}>
+                {dbSearchStatus === 'searching' && <ActivityIndicator size="small" color="#60A5FA" style={{ marginRight: 8 }} />}
+                {dbSearchStatus === 'success' && <Check size={14} color="#34D399" style={{ marginRight: 8 }} />}
+                {dbSearchStatus === 'error' && <X size={14} color="#F87171" style={{ marginRight: 8 }} />}
+                <Text style={{
+                  fontSize: 12,
+                  fontFamily: FONTS.med,
+                  color: dbSearchStatus === 'searching' ? '#60A5FA' : dbSearchStatus === 'success' ? '#34D399' : '#F87171'
+                }}>
+                  {dbStatusMsg}
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* Discover Sub-category Pill Filters Row */}

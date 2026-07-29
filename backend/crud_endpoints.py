@@ -35,7 +35,6 @@ ENDPOINTS:
 """
 from __future__ import annotations
 
-from pydantic import BaseModel
 import os
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -45,26 +44,16 @@ from typing import Any, Dict, Optional, List
 from bson import ObjectId
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
 
 load_dotenv(Path(__file__).parent / ".env")
 
-from db import db as _db
+from core.db import db as _db
 router = APIRouter()
 
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
-
-import logging
-logger = logging.getLogger("crud_endpoints")
-
-def _fire_and_forget(coro):
-    async def _task():
-        try:
-            await coro
-        except Exception as e:
-            logger.error(f"Background task failed: {e}")
-    asyncio.create_task(_task())
 
 
 def _short_id(oid) -> str:
@@ -93,6 +82,7 @@ async def _resolve_user(role: str, email: Optional[str]) -> Dict[str, Any]:
 class BookingCreate(BaseModel):
     student_email: Optional[str] = None
     mentor_email: str
+    mentor_id: Optional[str] = None
     topic: str
     scheduled_at: Optional[str] = None  # ISO; defaults to next slot
     duration_minutes: int = 45
@@ -101,9 +91,19 @@ class BookingCreate(BaseModel):
 @router.post("/student/bookings")
 async def create_booking(req: BookingCreate):
     student = await _resolve_user("student", req.student_email)
-    mentor = await _db.users.find_one({"role": "mentor", "email": req.mentor_email})
+    mentor = None
+    if req.mentor_id:
+        try:
+            from bson import ObjectId
+            mentor = await _db.users.find_one({"role": "mentor", "_id": ObjectId(req.mentor_id)})
+        except Exception:
+            pass
+    if not mentor:
+        mentor = await _db.users.find_one({"role": "mentor", "email": req.mentor_email})
     if not mentor:
         raise HTTPException(404, "Mentor not found")
+    if mentor.get("mentor_status") and mentor.get("mentor_status") != "approved":
+        raise HTTPException(400, "Mentor not approved")
 
     try:
         sched = datetime.fromisoformat(req.scheduled_at) if req.scheduled_at else _now() + timedelta(days=2, hours=10)
@@ -112,15 +112,11 @@ async def create_booking(req: BookingCreate):
 
     doc = {
         "student_id": str(student["_id"]),
-        "student_name": student.get("full_name") or "Student",
         "student_email": student["email"],
         "mentor_id": str(mentor["_id"]),
-        "mentor_name": mentor.get("full_name") or "Mentor",
         "mentor_email": mentor["email"],
         "topic": req.topic,
         "scheduled_at": sched,
-        "slot_start_iso": sched.isoformat(),
-        "slot_end_iso": (sched + timedelta(minutes=req.duration_minutes)).isoformat(),
         "duration_minutes": req.duration_minutes,
         "amount_paid": mentor.get("expected_rate_inr", 999),
         "status": "pending",
@@ -128,21 +124,16 @@ async def create_booking(req: BookingCreate):
         "_user_created": True,
     }
     res = await _db.bookings.insert_one(doc)
-    
-    # Write to notifications
     try:
-        await _db.notifications.insert_one({
-            "user_id": str(mentor["_id"]),
-            "title": "New booking request",
-            "body": f"{student.get('full_name') or 'A student'} has requested a session on '{req.topic}' for {sched.isoformat()}.",
-            "type": "booking_request",
-            "read": False,
-            "created_at": _now(),
-            "booking_id": str(res.inserted_id),
-        })
+        from notifications import notify_booking_created
+        await notify_booking_created(
+            _db, mentor_id=str(mentor["_id"]),
+            student_name=student.get("full_name") or student.get("name") or "Student",
+            topic=req.topic,
+            when=sched.strftime("%b %d, %Y at %I:%M %p"),
+        )
     except Exception:
         pass
-        
     return {"ok": True, "booking_id": _short_id(res.inserted_id), "scheduled_at": sched.isoformat(), "amount_paid": doc["amount_paid"]}
 
 
@@ -226,6 +217,7 @@ async def complete_booking(booking_id: str):
     q: Dict[str, Any] = {}
     matched_in_bookings = False
     matched_in_sessions = False
+
     is_oid = False
     try:
         if len(booking_id) == 24:
@@ -243,11 +235,29 @@ async def complete_booking(booking_id: str):
     if not is_oid or (not matched_in_bookings and not matched_in_sessions):
         import re
         booking_rx = f"{re.escape(booking_id)}$"
+
         bookings_matches = []
-        async for b in _db.bookings.find({"$expr": {"$regexMatch": {"input": {"$toString": "$_id"}, "regex": booking_rx, "options": "i"}}}, {"_id": 1}):
+        async for b in _db.bookings.find({
+            "$expr": {
+                "$regexMatch": {
+                    "input": {"$toString": "$_id"},
+                    "regex": booking_rx,
+                    "options": "i"
+                }
+            }
+        }, {"_id": 1}):
             bookings_matches.append(b)
+
         sessions_matches = []
-        async for s in _db.sessions.find({"$expr": {"$regexMatch": {"input": {"$toString": "$_id"}, "regex": booking_rx, "options": "i"}}}, {"_id": 1}):
+        async for s in _db.sessions.find({
+            "$expr": {
+                "$regexMatch": {
+                    "input": {"$toString": "$_id"},
+                    "regex": booking_rx,
+                    "options": "i"
+                }
+            }
+        }, {"_id": 1}):
             sessions_matches.append(s)
 
         total_matches = len(bookings_matches) + len(sessions_matches)
@@ -275,7 +285,7 @@ async def complete_booking(booking_id: str):
 
 
 @router.get("/student/my-bookings")
-async def my_bookings(email: Optional[str] = None, status: Optional[str] = None, page: int = 1, per_page: int = 20):
+async def my_bookings(email: Optional[str] = None, status: Optional[str] = None):
     student = await _resolve_user("student", email)
     sid = str(student["_id"])
 
@@ -328,28 +338,18 @@ async def my_bookings(email: Optional[str] = None, status: Optional[str] = None,
     out = []
 
     # Map legacy bookings
-    now = _now()
     for b in raw_bookings:
         mid_str = b.get("mentor_id")
         mentor = mentors_map.get(mid_str) if mid_str else None
-        
-        status = b.get("status")
-        sched = b.get("scheduled_at")
-        if sched and isinstance(sched, datetime):
-            if status == "confirmed" and sched.replace(tzinfo=timezone.utc) < now:
-                status = "completed"
-                # Best-effort DB update
-                _fire_and_forget(_db.bookings.update_one({"_id": b["_id"]}, {"$set": {"status": "completed"}}))
-        
         out.append({
             "id": _short_id(b["_id"]),
             "topic": b.get("topic") or "1:1 Mentorship Session",
             "mentor_name": (mentor or {}).get("full_name") or (mentor or {}).get("name") or "Mentor",
             "mentor_email": b.get("mentor_email") or (mentor or {}).get("email"),
-            "scheduled_at": sched,
+            "scheduled_at": b.get("scheduled_at"),
             "duration_minutes": b.get("duration_minutes", 45),
             "amount_paid": b.get("amount_paid") or (mentor or {}).get("expected_rate_inr") or 0,
-            "status": status,
+            "status": b.get("status"),
         })
 
     # Map slot-based sessions
@@ -357,14 +357,6 @@ async def my_bookings(email: Optional[str] = None, status: Optional[str] = None,
         mid_str = s.get("mentor_id")
         mentor = mentors_map.get(mid_str) if mid_str else None
         s_status = s.get("status")
-        
-        sched = s.get("scheduled_at")
-        if sched and isinstance(sched, datetime):
-            if s_status in ["booked", "scheduled", "confirmed"] and sched.replace(tzinfo=timezone.utc) < now:
-                s_status = "completed"
-                # Best-effort DB update
-                _fire_and_forget(_db.sessions.update_one({"_id": s["_id"]}, {"$set": {"status": "completed"}}))
-
         # Map all session statuses cleanly
         mapped_status = (
             "confirmed" if s_status in ["booked", "scheduled", "confirmed"]
@@ -377,13 +369,13 @@ async def my_bookings(email: Optional[str] = None, status: Optional[str] = None,
             "topic": s.get("topic") or "1:1 Mentorship Session",
             "mentor_name": (mentor or {}).get("full_name") or (mentor or {}).get("name") or "Mentor",
             "mentor_email": (mentor or {}).get("email") or s.get("mentor_email"),
-            "scheduled_at": sched,
+            "scheduled_at": s.get("scheduled_at"),
             "duration_minutes": s.get("duration_minutes", 30),
             "amount_paid": (mentor or {}).get("expected_rate_inr") or 0,
             "status": mapped_status,
         })
 
-    # Sort unified list chronologically by scheduled_at in descending order
+    # Sort unified list chronologically by scheduled_at
     def get_sched(x):
         val = x.get("scheduled_at")
         if isinstance(val, datetime):
@@ -395,11 +387,8 @@ async def my_bookings(email: Optional[str] = None, status: Optional[str] = None,
                 pass
         return datetime.min
 
-    out.sort(key=get_sched, reverse=True)
-    total = len(out)
-    skip = (page - 1) * per_page
-    sliced = out[skip:skip + per_page]
-    return {"items": sliced, "total": total, "page": page, "per_page": per_page, "pages": max(1, (total + per_page - 1) // per_page), "student_email": student["email"]}
+    out.sort(key=get_sched)
+    return {"items": out, "count": len(out), "student_email": student["email"]}
 
 
 # ════════════════════════════════════════════════════════════════
@@ -499,12 +488,10 @@ async def apply_internship(internship_id: str, req: ApplyRequest, request: Reque
 
 
 @router.get("/student/my-applications")
-async def my_applications(email: Optional[str] = None, page: int = 1, per_page: int = 20):
+async def my_applications(email: Optional[str] = None):
     student = await _resolve_user("student", email)
-    total = await _db.internship_applications.count_documents({"student_id": str(student["_id"])})
-    skip = (page - 1) * per_page
     out = []
-    async for a in _db.internship_applications.find({"student_id": str(student["_id"])}).sort("applied_at", -1).skip(skip).limit(per_page):
+    async for a in _db.internship_applications.find({"student_id": str(student["_id"])}).sort("applied_at", -1).limit(50):
         out.append({
             "id": _short_id(a["_id"]),
             "internship_title": a.get("internship_title"),
@@ -512,7 +499,7 @@ async def my_applications(email: Optional[str] = None, page: int = 1, per_page: 
             "status": a.get("status"),
             "applied_at": a.get("applied_at"),
         })
-    return {"items": out, "total": total, "page": page, "per_page": per_page, "pages": max(1, (total + per_page - 1) // per_page)}
+    return {"items": out, "count": len(out)}
 
 
 # ════════════════════════════════════════════════════════════════
@@ -550,12 +537,10 @@ async def enroll_workshop(req: WorkshopEnroll):
 
 
 @router.get("/student/my-workshops")
-async def my_workshops(email: Optional[str] = None, page: int = 1, per_page: int = 20):
+async def my_workshops(email: Optional[str] = None):
     student = await _resolve_user("student", email)
-    total = await _db.workshop_registrations.count_documents({"student_id": str(student["_id"])})
-    skip = (page - 1) * per_page
     out = []
-    async for w in _db.workshop_registrations.find({"student_id": str(student["_id"])}).sort("registered_at", -1).skip(skip).limit(per_page):
+    async for w in _db.workshop_registrations.find({"student_id": str(student["_id"])}).sort("registered_at", -1).limit(50):
         out.append({
             "id": _short_id(w["_id"]),
             "title": w.get("workshop_title"),
@@ -567,7 +552,7 @@ async def my_workshops(email: Optional[str] = None, page: int = 1, per_page: int
             "certificate_url": w.get("certificate_url"),
             "registered_at": w.get("registered_at"),
         })
-    return {"items": out, "total": total, "page": page, "per_page": per_page, "pages": max(1, (total + per_page - 1) // per_page)}
+    return {"items": out, "count": len(out)}
 
 
 class WorkshopProgressReq(BaseModel):
@@ -736,13 +721,6 @@ class AvailabilitySet(BaseModel):
     slots: List[AvailabilityItem]
 
 
-@router.get("/mentor/availability")
-async def get_availability(email: Optional[str] = None):
-    mentor = await _resolve_user("mentor", email)
-    docs = await _db.mentor_availability.find({"mentor_id": str(mentor["_id"])}, {"_id": 0}).to_list(100)
-    return {"slots": docs}
-
-
 @router.post("/mentor/availability")
 async def set_availability(req: AvailabilitySet):
     mentor = await _resolve_user("mentor", req.mentor_email)
@@ -806,7 +784,7 @@ class UserInvite(BaseModel):
 
 @router.post("/admin/users/invite")
 async def invite_user(req: UserInvite):
-    if req.role not in ("student", "mentor", "college", "admin", "super_admin"):
+    if req.role not in ("student", "mentor", "college", "admin"):
         raise HTTPException(400, "Invalid role")
     existing = await _db.users.find_one({"email": req.email})
     if existing:
@@ -854,7 +832,38 @@ async def create_college_event(req: EventCreate):
         "_user_created": True,
     }
     res = await _db.events.insert_one(doc)
-    return {"ok": True, "event_id": _short_id(res.inserted_id)}
+    event_id_str = str(res.inserted_id)
+
+    # 1. Fetch all student users and create notification cards
+    try:
+        students = await _db.users.find({"role": "student"}).to_list(None)
+        if students:
+            notification_docs = [
+                {
+                    "user_id": str(s["_id"]),
+                    "title": "New Event Invitation",
+                    "body": f"A new event '{req.title}' has been scheduled by {req.college_name or 'your college'}. Click to register!",
+                    "data": {"type": "new_event", "event_id": event_id_str},
+                    "type": "new_event",
+                    "read": False,
+                    "created_at": _now(),
+                }
+                for s in students
+            ]
+            await _db.notifications.insert_many(notification_docs)
+    except Exception as e:
+        logger.warning(f"Failed to notify students: {e}")
+
+    # 2. Clear portals events cache so the new event shows up immediately on frontend
+    try:
+        from portals import events_cache
+        events_cache.clear()
+    except Exception as e:
+        logger.warning(f"Failed to clear events_cache: {e}")
+
+    return {"ok": True, "event_id": event_id_str}
+
+
 
 
 @router.get("/college/my-students")

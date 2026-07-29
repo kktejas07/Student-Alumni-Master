@@ -164,7 +164,7 @@ export const TRANSACTIONS = [
 
 // ── Events created by this mentor
 export interface MentorEvent {
-  id: number;
+  id: number | string;
   title: string;
   date: string;
   time: string;

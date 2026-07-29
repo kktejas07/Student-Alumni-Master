@@ -29,7 +29,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { useToast } from '@/src/views/components';
 import { request, api } from '@/src/models/services/api';
 
-import { StudentPortalNavContext } from '../StudentPortalRN';
+import { StudentPortalNavContext } from '../StudentPortalNavContext';
 
 type CategoryTab = 'discover' | 'connections' | 'book' | 'requests';
 type FilterType = 'everyone' | 'students' | 'alumnis' | 'mentors' | 'industry';
@@ -63,17 +63,23 @@ export function NetworkView() {
   const [connectionsList, setConnectionsList] = useState<any[]>([]);
   const [showMatchedInterest, setShowMatchedInterest] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [dbSearchStatus, setDbSearchStatus] = useState<'idle' | 'searching' | 'success' | 'error'>('idle');
+  const [dbStatusMsg, setDbStatusMsg] = useState('');
 
   // Discover tab active matching section resolver
   const activeSection = useMemo(() => {
+    if (searchQuery.trim()) {
+      const searchSec = discoverSections.find((s: any) => s.key === 'search_results');
+      if (searchSec) return searchSec;
+    }
     let secKey = 'by_interest';
     if (discoverSubTab === 'path') secKey = 'by_career';
     if (discoverSubTab === 'college') secKey = 'by_college';
     if (discoverSubTab === 'recommended') secKey = 'mentors';
     if (discoverSubTab === 'expand') secKey = 'expand';
 
-    return discoverSections.find((s: any) => s.key === secKey);
-  }, [discoverSections, discoverSubTab]);
+    return discoverSections.find((s: any) => s.key === secKey) || discoverSections.find((s: any) => s.key === 'search_results') || discoverSections[0];
+  }, [discoverSections, discoverSubTab, searchQuery]);
   
   const normalizeDiscoverUser = (u: any) => {
     const role = u.role || 'student';
@@ -93,6 +99,7 @@ export function NetworkView() {
       id: u.id,
       name,
       avatar,
+      photo: u.photo_data || u.face_image_base64 || u.photo || '',
       color,
       tag,
       role: jobTitle || role.charAt(0).toUpperCase() + role.slice(1),
@@ -104,7 +111,8 @@ export function NetworkView() {
       linkedin: u.linkedin_url || u.linkedin || '',
       github: u.github_url || u.github || '',
       connectionState: u.connection_state || 'none',
-      kind: role
+      kind: role,
+      email: u.email
     };
   };
 
@@ -198,6 +206,7 @@ export function NetworkView() {
         body: {
           student_email: authUser?.email,
           mentor_email: bookingMentor.email || 'mentor@test.com',
+          mentor_id: bookingMentor.id || bookingMentor._id,
           topic: bookingTopic.trim(),
           scheduled_at: bookingSlot.iso,
           duration_minutes: 45
@@ -207,7 +216,7 @@ export function NetworkView() {
       setBookingMentor(null);
       setBookingSlot(null);
       setBookingTopic('');
-      if (refresh) refresh();
+      fetchNetworkData(true);
     } catch (err: any) {
       toast.error('Booking failed', err?.message || 'Please try again.');
     } finally {
@@ -251,12 +260,40 @@ export function NetworkView() {
 
 
   
-  const loadDiscover = async () => {
+  const loadDiscover = async (overrideTerm?: string) => {
     try {
-      const res = await api.networkDiscover(searchQuery);
+      const term = overrideTerm !== undefined ? overrideTerm : searchQuery;
+      const res = await api.networkDiscover(term);
       setDiscoverSections(res?.sections || []);
+      return res?.sections || [];
     } catch (e) {
       console.warn('Failed to load discover sections:', e);
+      return [];
+    }
+  };
+
+  const handleDatabaseSearch = async (termToSearch?: string) => {
+    const term = (termToSearch !== undefined ? termToSearch : searchQuery).trim();
+    if (!term) {
+      setDbSearchStatus('idle');
+      setDbStatusMsg('');
+      loadDiscover('');
+      return;
+    }
+    setDbSearchStatus('searching');
+    setDbStatusMsg(`Searching database for "${term}"...`);
+    try {
+      const secs = await loadDiscover(term);
+      const totalFound = secs.reduce((acc: number, s: any) => acc + (s.items?.length || 0), 0);
+      setDbSearchStatus('success');
+      if (totalFound > 0) {
+        setDbStatusMsg(`Got results! Found ${totalFound} account(s) matching "${term}"`);
+      } else {
+        setDbStatusMsg(`No accounts found in database matching "${term}"`);
+      }
+    } catch (e: any) {
+      setDbSearchStatus('error');
+      setDbStatusMsg(e?.message || 'Search failed. Please try again.');
     }
   };
 
@@ -281,6 +318,7 @@ export function NetworkView() {
           id: req.id,
           name,
           avatar,
+          photo: req.photo_data || req.face_image_base64 || req.photo || '',
           color,
           role: (role === 'student' ? 'Student' : role === 'alumni' ? 'Alumni' : role === 'mentor' ? 'Mentor' : 'Industry') as any,
           subtitle,
@@ -311,6 +349,7 @@ export function NetworkView() {
           id: req.id || req._id,
           name,
           initials: avatar,
+          photo: req.photo_data || req.face_image_base64 || req.photo || '',
           color,
           kind: role,
           role: jobTitle || role,
@@ -336,20 +375,26 @@ export function NetworkView() {
   }, [authUser?.email]);
 
   useEffect(() => {
-    if (activeTab === 'discover') {
-      const delayDebounceFn = setTimeout(() => {
-        loadDiscover();
-      }, 500);
-      return () => clearTimeout(delayDebounceFn);
+    if (activeTab === 'discover' && !searchQuery.trim()) {
+      loadDiscover('');
     }
-  }, [searchQuery, activeTab]);
+  }, [activeTab]);
 
   const handleAcceptRequest = async (id: string, name: string) => {
     try {
       await api.acceptConnection(id);
       toast.success('Connection Accepted! 🎉', `${name} is now connected with you.`);
+      setDiscoverSections(prev => prev.map(section => ({
+        ...section,
+        items: (section.items || []).map((item: any) =>
+          item.id === id
+            ? { ...item, connection_state: 'connected', connectionState: 'connected' }
+            : item
+        )
+      })));
       await loadRequests();
       await loadConnections();
+      await loadDiscover();
       await fetchNetworkData(true);
     } catch (e: any) {
       toast.error('Failed to accept request', e.message || 'Please try again.');
@@ -379,7 +424,7 @@ export function NetworkView() {
       const kind = p.kind || 'student';
       const name = p.name || 'Anonymous';
       const initials = p.initials || (name.split(' ').slice(0, 2).map((part: string) => part[0] || '').join('').toUpperCase());
-      const color = p.color || '#8B5CF6';
+      const color = p.color || '#6366F1';
       
       let tag = 'Student';
       if (kind === 'alumni') tag = 'Alumni';
@@ -434,12 +479,19 @@ export function NetworkView() {
 
   // Filter list by search query
   const filteredList = useMemo(() => {
-    return normalizedPeople.filter((p) => {
-      if (!q) return true;
-      const matchText = `${p.name} ${p.role} ${p.company} ${p.college} ${p.tags.join(' ')}`.toLowerCase();
-      return matchText.includes(q.toLowerCase());
+    const searchTerm = (searchQuery || q || '').trim().toLowerCase();
+    
+    // Combine normalizedPeople with discoverItems to ensure all backend search results appear
+    const discoverItems = discoverSections.flatMap((s: any) => s.items || []).map(normalizeDiscoverUser);
+    const combined = [...discoverItems, ...normalizedPeople];
+    const uniquePeople = Array.from(new Map(combined.map((p: any) => [p.id, p])).values());
+
+    return uniquePeople.filter((p) => {
+      if (!searchTerm) return true;
+      const matchText = `${p.name} ${p.role} ${p.company} ${p.college} ${(p.tags || []).join(' ')}`.toLowerCase();
+      return matchText.includes(searchTerm);
     });
-  }, [normalizedPeople, q]);
+  }, [normalizedPeople, discoverSections, q, searchQuery]);
 
   // Partition data for the Discover Tab
   const mentorsList = useMemo(() => filteredList.filter(p => p.kind === 'mentor'), [filteredList]);
@@ -469,7 +521,7 @@ export function NetworkView() {
 
   const viewMentor = (m: any) => {
     router.push({
-      pathname: `/mentor/${m.id}`,
+      pathname: '/mentor/[id]',
       params: {
         id: m.id,
         name: m.name,
@@ -528,21 +580,73 @@ export function NetworkView() {
         </Pressable>
       </View>
 
-      {/* Global Search bar */}
-      <View style={s.searchContainer}>
-        <Search size={16} color={SC.dim} style={{ marginRight: 8 }} />
-        <TextInput
-          value={q}
-          onChangeText={setQ}
-          placeholder="Search by name, role, skill or company..."
-          placeholderTextColor={SC.dim}
-          style={s.searchInput}
-        />
-        {q ? (
-          <Pressable onPress={() => setQ('')} style={{ padding: 4 }}>
-            <X size={14} color={SC.dim} />
+      {/* Global Search bar with DB Search Button & Status Feedback */}
+      <View style={{ gap: 8, marginBottom: 16 }}>
+        <View style={s.searchRowContainer}>
+          <View style={s.searchContainerFlex}>
+            <Search size={16} color={SC.dim} style={{ marginRight: 8 }} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={(val) => {
+                setSearchQuery(val);
+                setQ(val);
+                if (!val.trim() && dbSearchStatus !== 'idle') {
+                  setDbSearchStatus('idle');
+                  setDbStatusMsg('');
+                }
+              }}
+              onSubmitEditing={() => handleDatabaseSearch()}
+              placeholder="Filter displayed accounts or search DB..."
+              placeholderTextColor={SC.dim}
+              style={s.searchInput}
+            />
+            {searchQuery ? (
+              <Pressable onPress={() => { setSearchQuery(''); setQ(''); setDbSearchStatus('idle'); setDbStatusMsg(''); }} style={{ padding: 4 }}>
+                <X size={14} color={SC.dim} />
+              </Pressable>
+            ) : null}
+          </View>
+
+          <Pressable 
+            onPress={() => handleDatabaseSearch()}
+            disabled={dbSearchStatus === 'searching'}
+            style={[
+              s.dbSearchBtn,
+              dbSearchStatus === 'searching' && { opacity: 0.7 }
+            ]}
+          >
+            {dbSearchStatus === 'searching' ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Search size={13} color="#FFFFFF" style={{ marginRight: 5 }} />
+                <Text style={s.dbSearchBtnText}>Search DB</Text>
+              </>
+            )}
           </Pressable>
-        ) : null}
+        </View>
+
+        {/* Status Feedback Banner */}
+        {dbSearchStatus !== 'idle' && (
+          <View style={[
+            s.statusBanner,
+            dbSearchStatus === 'searching' && s.statusBannerSearching,
+            dbSearchStatus === 'success' && s.statusBannerSuccess,
+            dbSearchStatus === 'error' && s.statusBannerError,
+          ]}>
+            {dbSearchStatus === 'searching' && <ActivityIndicator size="small" color="#60A5FA" style={{ marginRight: 8 }} />}
+            {dbSearchStatus === 'success' && <Check size={14} color="#34D399" style={{ marginRight: 8 }} />}
+            {dbSearchStatus === 'error' && <X size={14} color="#F87171" style={{ marginRight: 8 }} />}
+            <Text style={[
+              s.statusText,
+              dbSearchStatus === 'searching' && { color: '#60A5FA' },
+              dbSearchStatus === 'success' && { color: '#34D399' },
+              dbSearchStatus === 'error' && { color: '#F87171' },
+            ]}>
+              {dbStatusMsg}
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* 3. Discover Tab Redesign (Screenshot 1) */}
@@ -571,18 +675,6 @@ export function NetworkView() {
               </Pressable>
               );
             })}
-          </View>
-
-          {/* Search Input Box */}
-          <View style={s.searchContainer}>
-            <Search size={14} color={SC.dim} style={{ marginRight: 10 }} />
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search the SA network..."
-              placeholderTextColor={SC.dim}
-              style={s.searchInput}
-            />
           </View>
 
           {/* Discover Sub-category Pill Filters Row */}
@@ -1427,7 +1519,62 @@ const s = StyleSheet.create({
     fontFamily: FONTS.bold
   },
 
-  // Search input styles
+  // Search input & DB button styles
+  searchRowContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  searchContainerFlex: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    borderColor: SC.border,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 42,
+  },
+  dbSearchBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3B82F6',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    height: 42,
+  },
+  dbSearchBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontFamily: FONTS.med,
+    fontWeight: '600',
+  },
+  statusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  statusBannerSearching: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+  },
+  statusBannerSuccess: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  statusBannerError: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  statusText: {
+    fontSize: 12,
+    fontFamily: FONTS.med,
+  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',

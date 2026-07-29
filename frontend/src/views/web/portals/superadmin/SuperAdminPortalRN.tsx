@@ -2,7 +2,7 @@
  * Super Admin Portal — outer shell.
  */
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import { View, ScrollView, StyleSheet , Platform} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
@@ -39,8 +39,8 @@ export function SuperAdminPortalRN() {
   useAutoTour('super_admin');
 
   const onLogout = async () => {
-    try { await logout(); } catch {}
     router.replace('/welcome');
+    try { await logout(); } catch {}
   };
 
   const titleFor = (id: SuperAdminNavId) => NAV.find((n) => n.id === id)?.label || 'Overview';
@@ -82,8 +82,8 @@ export function SuperAdminPortalRN() {
           {active === 'partners'    && <PartnersView />}
           {active === 'promotions'  && <PromotionsView />}
           {active === 'talent-pool' && <TalentPoolView />}
+          <DashboardFooter portal="super_admin" />
         </ScrollView>
-        <DashboardFooter portal="super_admin" />
       </View>
     </View>
   );

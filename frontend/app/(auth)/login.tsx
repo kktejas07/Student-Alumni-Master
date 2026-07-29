@@ -41,8 +41,33 @@ function LinkedInIn({ size = 18 }: { size?: number }) {
 function GitHubCat({ size = 18 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Path fill="#fff" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+      <Path fill="#111827" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
     </Svg>
+  );
+}
+
+function DarkSocialButton({ label, onPress, icon, testID }: any) {
+  return (
+    <Pressable
+      onPress={onPress}
+      testID={testID}
+      style={{
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        paddingVertical: 12,
+        borderRadius: 12,
+        gap: 8,
+        ...(Platform.OS === 'web' ? { cursor: 'pointer' } : {})
+      }}
+    >
+      {icon}
+      <Text style={{ color: '#111827', fontFamily: FONTS.bold, fontSize: 14 }}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -63,22 +88,46 @@ export default function LoginScreen() {
   const submittingRef = useRef(false);
   const pwdRef = useRef<TextInput>(null);
 
-  const [oauthCfg, setOauthCfg] = useState<{ linkedin_client_id?: string; redirect_uri?: string; firebase?: { apiKey: string; authDomain: string; projectId: string; appId: string } | null } | null>(null);
+  const isTrue = (val: any, defaultVal = false) => {
+    if (val === undefined || val === null) return defaultVal;
+    if (typeof val === 'boolean') return val;
+    if (typeof val === 'string') return val.toLowerCase() === 'true' || val === '1';
+    return Boolean(val);
+  };
+
+  const [oauthCfg, setOauthCfg] = useState<{ 
+    linkedin_client_id?: string; 
+    github_client_id?: string;
+    redirect_uri?: string; 
+    enable_google_login?: boolean;
+    enable_linkedin_login?: boolean;
+    enable_github_login?: boolean;
+    firebase?: { apiKey: string; authDomain: string; projectId: string; appId: string } | null 
+  }>({
+    enable_google_login: true,
+    enable_linkedin_login: false,
+    enable_github_login: false,
+  });
+
+  const fetchOauthCfg = async () => {
+    try {
+      const res = await fetch(`${BASE}/api/auth/oauth-config?_t=${Date.now()}`);
+      if (res.ok) {
+        const cfg = await res.json();
+        setOauthCfg(cfg);
+        if (cfg.firebase?.apiKey) {
+          initFirebaseAuth(cfg.firebase);
+        }
+      }
+    } catch {}
+  };
 
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`${BASE}/api/auth/oauth-config`);
-        if (res.ok) {
-          const cfg = await res.json();
-          setOauthCfg(cfg);
-          // Init Firebase Auth if configured
-          if (cfg.firebase?.apiKey) {
-            initFirebaseAuth(cfg.firebase);
-          }
-        }
-      } catch {}
-    })();
+    fetchOauthCfg();
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.addEventListener('focus', fetchOauthCfg);
+      return () => window.removeEventListener('focus', fetchOauthCfg);
+    }
   }, []);
 
   // Listen for OAuth popup callback (web only)
@@ -209,8 +258,7 @@ export default function LoginScreen() {
           router.replace('/');
         }
       }} style={s.back}>
-        <ArrowLeft size={16} color={AC.muted} />
-        <Text style={s.backText}>Back</Text>
+        <Text style={s.backText}>← Back</Text>
       </Pressable>
 
       <View style={s.head}>
@@ -225,79 +273,62 @@ export default function LoginScreen() {
       </View>
 
       {/* OAuth row */}
-      <View style={s.oauthRow}>
-        <View style={{ flex: 1 }}>
-          <OutlineButton label="Google" testID="login-google" icon={<GoogleG size={16} />} onPress={async () => {
-            try {
-              if (oauthCfg?.firebase && Platform.OS === 'web') {
-                const result = await signInWithGoogle();
-                if (!result) return;
-                const res = await fetch(`${BASE}/api/auth/firebase`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ id_token: result.idToken }),
-                });
-                if (!res.ok) throw new Error('Firebase auth failed');
-                const data = await res.json();
-                setUser(data.user);
-                setTokens(data.access_token, data.refresh_token);
-                trackAuth({ event: 'login_success', email: data.user.email, role: data.user.role });
-                const r = (data.user.role || '').toLowerCase();
-                if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
-                else if (r === 'mentor') router.replace('/mentor-portal');
-                else if (r === 'college') router.replace('/college-portal');
-                else if (r === 'alumni') router.replace('/alumni-portal');
-                else router.replace('/student-portal');
+      {(isTrue(oauthCfg?.enable_google_login, true) || isTrue(oauthCfg?.enable_linkedin_login, false) || isTrue(oauthCfg?.enable_github_login, false)) && (
+        <View style={s.oauthRow}>
+          {isTrue(oauthCfg?.enable_google_login, true) && (
+            <DarkSocialButton label="Google" testID="login-google" icon={<GoogleG size={16} />} onPress={async () => {
+                try {
+                  if (oauthCfg?.firebase && Platform.OS === 'web') {
+                    const result = await signInWithGoogle();
+                    if (!result) return;
+                    const res = await fetch(`${BASE}/api/auth/firebase`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ id_token: result.idToken }),
+                    });
+                    if (!res.ok) throw new Error('Firebase auth failed');
+                    const data = await res.json();
+                    setUser(data.user);
+                    setTokens(data.access_token, data.refresh_token);
+                    trackAuth({ event: 'login_success', email: data.user.email, role: data.user.role });
+                    const r = (data.user.role || '').toLowerCase();
+                    if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
+                    else if (r === 'mentor') router.replace('/mentor-portal');
+                    else if (r === 'college') router.replace('/college-portal');
+                    else if (r === 'alumni') router.replace('/alumni-portal');
+                    else router.replace('/student-portal');
+                  } else {
+                    setPwdError('Google sign-in is not configured. Contact admin.');
+                  }
+                } catch (e: any) {
+                  setPwdError(e?.message || 'Google sign-in failed');
+                }
+              }} />
+          )}
+
+          {isTrue(oauthCfg?.enable_linkedin_login, false) && (
+            <DarkSocialButton label="LinkedIn" testID="login-linkedin" icon={<LinkedInIn size={16} />} onPress={() => {
+              if (Platform.OS === 'web' && oauthCfg?.linkedin_client_id && oauthCfg?.redirect_uri) {
+                const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${oauthCfg.linkedin_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&state=linkedin_login&scope=profile%20email`;
+                window.location.href = url;
               } else {
-                setPwdError('Google sign-in is not configured. Contact admin.');
+                setPwdError('LinkedIn sign-in is not configured or unsupported on this platform.');
               }
-            } catch (e: any) {
-              setPwdError(e?.message || 'Google sign-in failed');
-            }
-          }} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <OutlineButton label="LinkedIn" testID="login-linkedin" icon={<LinkedInIn size={16} />} onPress={() => {
-            if (oauthCfg?.linkedin_client_id && Platform.OS === 'web') {
-              const state = `linkedin_${Math.random().toString(36).slice(2)}`;
-              const url = `https://www.linkedin.com/oauth/v2/authorization?client_id=${oauthCfg.linkedin_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri!)}&response_type=code&scope=openid%20email%20profile&state=${state}`;
-              window.open(url, '_blank', 'width=600,height=700');
-            } else {
-              setPwdError('LinkedIn sign-in is not configured. Contact admin.');
-            }
-          }} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <OutlineButton label="GitHub" testID="login-github" icon={<GitHubCat size={16} />} onPress={async () => {
-            try {
-              if (oauthCfg?.firebase && Platform.OS === 'web') {
-                const result = await signInWithGitHub();
-                if (!result) return;
-                const res = await fetch(`${BASE}/api/auth/firebase`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ id_token: result.idToken }),
-                });
-                if (!res.ok) throw new Error('Firebase auth failed');
-                const data = await res.json();
-                setUser(data.user);
-                setTokens(data.access_token, data.refresh_token);
-                trackAuth({ event: 'login_success', email: data.user.email, role: data.user.role });
-                const r = (data.user.role || '').toLowerCase();
-                if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
-                else if (r === 'mentor') router.replace('/mentor-portal');
-                else if (r === 'college') router.replace('/college-portal');
-                else if (r === 'alumni') router.replace('/alumni-portal');
-                else router.replace('/student-portal');
+            }} />
+          )}
+
+          {isTrue(oauthCfg?.enable_github_login, false) && (
+            <DarkSocialButton label="GitHub" testID="login-github" icon={<GitHubCat size={16} />} onPress={() => {
+              if (Platform.OS === 'web' && oauthCfg?.github_client_id && oauthCfg?.redirect_uri) {
+                const url = `https://github.com/login/oauth/authorize?client_id=${oauthCfg.github_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&state=github_login&scope=user:email`;
+                window.location.href = url;
               } else {
-                setPwdError('GitHub sign-in is not configured. Contact admin.');
+                setPwdError('GitHub sign-in is not configured or unsupported on this platform.');
               }
-            } catch (e: any) {
-              setPwdError(e?.message || 'GitHub sign-in failed');
-            }
-          }} />
+            }} />
+          )}
         </View>
-      </View>
+      )}
 
       <View style={s.divider}>
         <View style={s.line} />
@@ -331,15 +362,13 @@ export default function LoginScreen() {
           editable={!loading}
           rightSlot={
             <Pressable onPress={() => setShowPwd((v) => !v)} style={{ paddingHorizontal: 6 }} testID="login-show-password" accessibilityRole="button" accessibilityLabel={showPwd ? "Hide password" : "Show password"}>
-              {showPwd ? <EyeOff size={16} color={AC.muted} /> : <Eye size={16} color={AC.muted} />}
+              {showPwd ? <EyeOff size={16} color="#9CA3AF" /> : <Eye size={16} color="#9CA3AF" />}
             </Pressable>
           }
           onSubmitEditing={onLogin}
           testID="login-password"
         />
-        {password.length > 0 && (
-          <PasswordRules checks={strength.checks} />
-        )}
+
       </View>
 
       <View style={s.row}>
@@ -363,24 +392,24 @@ export default function LoginScreen() {
 
 const s = StyleSheet.create({
   back: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginBottom: 18, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  backText: { color: AC.muted, fontFamily: FONTS.med, fontSize: 13 },
+  backText: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 13 },
 
   head: { marginBottom: 22 },
   roleStripe: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10, backgroundColor: 'rgba(124,58,237,0.10)', borderWidth: 1, borderColor: 'rgba(124,58,237,0.25)', marginBottom: 18 },
   roleEmoji: { fontSize: 14 },
-  roleText: { color: AC.primaryL, fontFamily: FONTS.bold, fontSize: 12 },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 30, letterSpacing: -0.6, marginBottom: 6 },
-  sub: { color: AC.muted, fontFamily: FONTS.med, fontSize: 15 },
+  roleText: { color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 12 },
+  title: { color: '#111827', fontFamily: FONTS.xbold, fontSize: 30, letterSpacing: -0.6, marginBottom: 6 },
+  sub: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 15 },
 
-  oauthRow: { flexDirection: 'row', gap: 10, marginBottom: 18 },
+  oauthRow: { flexDirection: 'row', gap: 12, marginBottom: 18, width: '100%' },
   divider: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 18 },
-  line: { flex: 1, height: 1, backgroundColor: AC.border },
-  dividerText: { color: AC.dim, fontFamily: FONTS.med, fontSize: 11.5, letterSpacing: 0.4, textTransform: 'uppercase' },
+  line: { flex: 1, height: 1, backgroundColor: '#E5E7EB' },
+  dividerText: { color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 11.5, letterSpacing: 0.4, textTransform: 'uppercase' },
 
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 14 },
-  forgot: { color: AC.primaryL, fontFamily: FONTS.bold, fontSize: 13, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  forgot: { color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 13, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
 
-  signup: { textAlign: 'center', color: AC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 18 },
-  signupLink: { color: AC.primaryL, fontFamily: FONTS.bold, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  signup: { textAlign: 'center', color: '#374151', fontFamily: FONTS.med, fontSize: 13, marginTop: 18 },
+  signupLink: { color: '#7C3AED', fontFamily: FONTS.bold, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
 
 });

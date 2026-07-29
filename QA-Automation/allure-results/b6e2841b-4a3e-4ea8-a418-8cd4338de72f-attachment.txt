@@ -1,0 +1,1 @@
+Student Dashboard Navigation Metrics: { loadTime: 6843, domReady: 2355, ttfb: 4475 }

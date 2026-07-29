@@ -8,7 +8,7 @@
  * • All existing routing, state, props, API calls preserved 1:1
  */
 import React, { useState, createContext, useContext } from 'react';
-import { View, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { View, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
@@ -37,18 +37,8 @@ import { MyWorkshopsView } from './views/MyWorkshopsView';
 
 import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 
-// Navigation context for internal portal navigation
-export const StudentPortalNavContext = createContext<{
-  navigate: (id: StudentNavId, params?: { q?: string }) => void;
-  searchQuery: string;
-  setSearchQuery: (q: string) => void;
-} | null>(null);
-
-export const useStudentPortalNav = () => {
-  const ctx = useContext(StudentPortalNavContext);
-  if (!ctx) throw new Error('useStudentPortalNav must be used inside StudentPortalRN');
-  return ctx;
-};
+import { StudentPortalNavContext, useStudentPortalNav } from './StudentPortalNavContext';
+import { StarryBackground } from '@/src/views/web/nexus-glow-landing/StarryBackground';
 
 // Feature pages imported as components for inline rendering
 import CoursesPage from '@/app/courses';
@@ -77,6 +67,7 @@ function PortalShell() {
   const logout = useAuthStore((sx) => sx.logout);
   const [active, setActive] = useState<StudentNavId>((tab as StudentNavId) || 'dashboard');
   const [searchQuery, setSearchQuery] = useState('');
+  const [detailCourse, setDetailCourse] = useState<any>(null);
   const [scrolled, setScrolled] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   // Phase B — auto-launch the Student portal tour on first visit
@@ -89,13 +80,16 @@ function PortalShell() {
   }, [tab]);
 
   const onLogout = async () => {
-    try { await logout(); } catch {}
     router.replace('/welcome');
+    try { await logout(); } catch {}
   };
-  const handleNav = (id: StudentNavId, params?: { q?: string }) => {
+  const handleNav = (id: StudentNavId, params?: { q?: string; detailCourse?: any }) => {
     setActive(id);
     if (params && typeof params.q === 'string') {
       setSearchQuery(params.q);
+    }
+    if (params && params.detailCourse) {
+      setDetailCourse(params.detailCourse);
     }
   };
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -106,32 +100,27 @@ function PortalShell() {
   const padH = bp.isPhone ? SP.base : bp.atLeast('xl') ? SP.xxl : SP.lg;
 
   return (
-    <View style={[s.shell, { backgroundColor: PALETTE.bg0 }]}>
-      {/* Body gradient — deep navy → midnight (per FinTax360 Jewel spec) */}
+    <View style={[s.shell, { backgroundColor: '#030614' }]}>
       <LinearGradient
         pointerEvents="none"
-        colors={[PALETTE.bg0, PALETTE.bg2]}
+        colors={['#030614', '#040816']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFillObject as any}
       />
-      {/* Animated multicolor aurora behind everything */}
-      <AnimatedAurora intensity="normal" />
-      {/* 64px grid overlay (web only, radial-fade masked) */}
-      <GridOverlay />
-
       <Sidebar active={active} onNav={handleNav} onLogout={onLogout} />
       <View style={{ flex: 1, minWidth: 0, flexDirection: 'row' }}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <StudentPortalNavContext.Provider value={{ navigate: handleNav, searchQuery, setSearchQuery }}>
+          <StudentPortalNavContext.Provider value={{ navigate: handleNav, searchQuery, setSearchQuery, detailCourse, setDetailCourse }}>
             <TopBar scrolled={scrolled} activeView={active} onAvatarPress={() => handleNav('profile')} onBellPress={() => setShowNotifs(!showNotifs)} />
             <ScrollView
               style={{ flex: 1 }}
-              contentContainerStyle={{ paddingHorizontal: padH, paddingTop: SP.lg, paddingBottom: SP.giga }}
+              contentContainerStyle={{ flexGrow: 1, paddingHorizontal: padH, paddingTop: SP.lg }}
               showsVerticalScrollIndicator={false}
               onScroll={onScroll}
               scrollEventThrottle={16}
             >
-              <EmbeddedShellContext.Provider value={true}>
+              <View style={{ flex: 1 }}>
+                <EmbeddedShellContext.Provider value={true}>
                 {active !== 'internships' && <PromoBanner portal="student" />}
                 <RouteTransition deps={[active]}>
                   {active === 'dashboard'       && <DashboardView />}
@@ -149,8 +138,9 @@ function PortalShell() {
                   {active === 'rentals'         && <RentalsPage />}
                   {active === 'profile'         && <ProfileSettingsView />}
                 </RouteTransition>
-                <DashboardFooter portal="student" />
               </EmbeddedShellContext.Provider>
+              </View>
+              <DashboardFooter portal="student" />
             </ScrollView>
           </StudentPortalNavContext.Provider>
 

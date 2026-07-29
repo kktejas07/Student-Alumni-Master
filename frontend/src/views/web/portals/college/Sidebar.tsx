@@ -3,6 +3,7 @@
  */
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import {
   LayoutDashboard, GraduationCap, Users, UserCheck, Calendar, Megaphone,
@@ -12,7 +13,9 @@ import { CC, FONTS } from './tokens';
 import { COLLEGE } from './data';
 import { Av, Badge } from './atoms';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { request, api } from '@/src/models/services/api';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
+import { SALogo } from '@/src/views/components';
 
 export type CollegeNavId =
   | 'dashboard' | 'students' | 'alumni' | 'mentors' | 'events' | 'create-event'
@@ -23,12 +26,12 @@ export const NAV: Array<{ id: CollegeNavId; label: string; Icon: any; count?: nu
   { id: 'dashboard',     label: 'Dashboard',     Icon: LayoutDashboard },
   { id: 'students',      label: 'Students',      Icon: GraduationCap },
   { id: 'alumni',        label: 'Alumni',        Icon: Users },
-  { id: 'mentors',       label: 'Mentors',       Icon: UserCheck,  count: 3 },
-  { id: 'events',        label: 'Events',        Icon: Calendar,   count: 3 },
+  { id: 'mentors',       label: 'Mentors',       Icon: UserCheck },
+  { id: 'events',        label: 'Events',        Icon: Calendar },
   { id: 'create-event',  label: 'Create Event',  Icon: Plus },
-  { id: 'announcements', label: 'Announcements', Icon: Megaphone,  count: 2 },
+  { id: 'announcements', label: 'Announcements', Icon: Megaphone },
   { id: 'analytics',     label: 'Analytics',     Icon: BarChart3 },
-  { id: 'ai-insights',   label: 'AI Insights',   Icon: Sparkles,   count: 4 },
+  { id: 'ai-insights',   label: 'AI Insights',   Icon: Sparkles },
   { id: 'career-intel',  label: 'Career Intel',  Icon: Briefcase },
   { id: 'placements',    label: 'Placements',    Icon: Trophy },
   { id: 'profile',       label: 'Profile',       Icon: User },
@@ -51,11 +54,33 @@ export function Sidebar({
   const collegeInitials = user?.college_info?.institution_name || user?.school_info?.institution_name ? getInitials(collegeName) : COLLEGE.initials;
   const collegeRank = user?.college_info?.accreditation || user?.college_info?.accreditations?.[0] || COLLEGE.rank;
 
+  const [counts, setCounts] = React.useState<Record<string, number>>({});
+
+  React.useEffect(() => {
+    api.pendingMentors().then((r) => {
+      const n = Array.isArray(r) ? r.length : (r?.items?.length || 0);
+      setCounts((c) => ({ ...c, mentors: n }));
+    }).catch(() => {});
+
+    const eventsPath = collegeName ? `/college/events?college_name=${encodeURIComponent(collegeName)}` : '/college/events';
+    request<any>(eventsPath).then((r) => {
+      setCounts((c) => ({ ...c, events: r?.items?.length || 0 }));
+    }).catch(() => {});
+
+    request<any>('/college/announcements').then((r) => {
+      setCounts((c) => ({ ...c, announcements: r?.items?.length || 0 }));
+    }).catch(() => {});
+
+    request<any>('/college/ai-insights').then((r) => {
+      setCounts((c) => ({ ...c, 'ai-insights': r?.items?.length || 0 }));
+    }).catch(() => {});
+  }, [collegeName]);
+
   return (
     <View style={s.aside}>
       {/* Brand */}
       <View style={s.brand} nativeID="college-brand">
-        <View style={s.brandLogo}><Text style={s.brandLogoText}>SA</Text></View>
+        <SALogo size={32} variant="glass" />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.brandTitle}>Admin Portal</Text>
           <Text style={s.brandSub}>Student Alumni</Text>
@@ -65,9 +90,9 @@ export function Sidebar({
       {/* College card */}
       <View style={s.collegeCard}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Av initials={collegeInitials} size={40} color="#6366F1" />
+          <Av photo={user?.college_logo_data || user?.college_info?.logo || user?.school_info?.logo || null} initials={collegeInitials} size={40} color="#6366F1" />
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text numberOfLines={1} style={s.collegeName}>{collegeName}</Text>
+            <Text style={s.collegeName}>{collegeName}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
               <Text style={s.collegeRole}>Admin ·</Text>
               <Badge label={collegeRank} color="cyan" />
@@ -93,8 +118,9 @@ export function Sidebar({
 
       {/* Nav */}
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 6, paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
-        {NAV.map(({ id, label, Icon, count }) => {
+        {NAV.map(({ id, label, Icon }) => {
           const isActive = id === active;
+          const count = counts[id];
           return (
             <Pressable
               key={id}
@@ -108,7 +134,7 @@ export function Sidebar({
             >
               <Icon size={16} color={isActive ? '#fff' : CC.muted} />
               <Text style={[s.navLabel, isActive && s.navLabelActive]} numberOfLines={1}>{label}</Text>
-              {count != null && (
+              {count != null && count > 0 && (
                 <View style={[s.countPill, isActive && { backgroundColor: 'rgba(255,255,255,0.20)' }]}>
                   <Text style={[s.countText, isActive && { color: '#fff' }]}>{count}</Text>
                 </View>

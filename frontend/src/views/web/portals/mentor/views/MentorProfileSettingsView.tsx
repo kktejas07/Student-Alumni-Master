@@ -42,7 +42,13 @@ const TABS: { key: TabKey; label: string; Icon: any }[] = [
 const LANGUAGES = ['English', 'हिन्दी', 'Tamil', 'Telugu', 'Kannada', 'Marathi'];
 const TIMEZONES = ['Asia/Kolkata (IST)', 'Asia/Dubai (GST)', 'America/New_York (EST)', 'Europe/London (BST)', 'America/Los_Angeles (PST)', 'Asia/Singapore (SGT)'];
 
-export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey } = {}) {
+export function MentorProfileSettingsView({ 
+  initialTab, demoMode = false, setDemoMode 
+}: { 
+  initialTab?: TabKey;
+  demoMode?: boolean;
+  setDemoMode?: (val: boolean) => void;
+}) {
   const router = useRouter();
   const toast = useToast();
   const user = useAuthStore((u) => u.user);
@@ -1436,6 +1442,22 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
                 </View>
               </View>
 
+              {/* DEMO SANDBOX SETTINGS */}
+              {setDemoMode && (
+                <View style={st.formSectionCard}>
+                  <Text style={st.sectionTitle}>DEMO SANDBOX SETTINGS</Text>
+                  <View style={{ gap: 4 }}>
+                    <ToggleRow
+                      label="Enable Demo Mode"
+                      subtext="Display pre-populated mock/sample records in portal views to preview dashboard layouts"
+                      value={demoMode}
+                      onValueChange={setDemoMode}
+                      isLast
+                    />
+                  </View>
+                </View>
+              )}
+
             </View>
           )}
 
@@ -1947,7 +1969,7 @@ export function MentorProfileSettingsView({ initialTab }: { initialTab?: TabKey 
               <SidebarStatRow Icon={UsersRound} label="Active Mentees" value="18" color="#3B82F6" />
               <SidebarStatRow Icon={Eye} label="Profile Views" value="1,248" color={MC.tealP} />
               <SidebarStatRow Icon={Star} label="Avg Rating" value="4.9★" color="#F59E0B" />
-              <SidebarStatRow Icon={IndianRupee} label="Earnings (Month)" value="₹28,500" color="#22C55E" isLast />
+              <SidebarStatRow Icon={IndianRupee} label="Earnings (Month)" value="₹500" color="#22C55E" isLast />
             </View>
           </View>
 

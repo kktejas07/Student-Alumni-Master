@@ -48,7 +48,7 @@ type Notif = {
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const user = useAuthStore((s) => s.user);
+  const user = useAuthStore((s) => s.user) as any;
   const [items, setItems] = useState<Notif[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -110,42 +110,24 @@ export default function NotificationsScreen() {
                 key={n.id}
                 notif={n}
                 onPress={() => {
-                  const role = user?.role || 'student';
-                  const lowerType = (n.type || '').toLowerCase();
+                  // Route depending on type, supporting nested and title-based fallbacks
+                  const resolvedType = (n.type || n.data?.type || '').toLowerCase();
+                  const isBooking = resolvedType.includes('booking') || 
+                                    (n.title || '').toLowerCase().includes('booking') || 
+                                    !!n.booking_id;
                   
-                  if (lowerType === 'booking_request' || lowerType === 'booking_pending') {
-                    if (role === 'mentor') {
+                  if (resolvedType === 'connection_request' || resolvedType === 'connection_accepted') {
+                    router.push('/network');
+                  } else if (isBooking) {
+                    if (user?.role === 'mentor') {
                       router.push('/mentor-portal?tab=requests');
                     } else {
-                      router.push('/(tabs)/profile');
+                      router.push('/(tabs)/profile' as any);
                     }
-                  } else if (lowerType === 'connection_request' || lowerType === 'connection_accepted') {
-                    if (role === 'mentor') {
-                      router.push('/mentor-portal?tab=students');
-                    } else {
-                      router.push('/network');
-                    }
-                  } else if (n.booking_id) {
-                    if (role === 'mentor') {
-                      router.push('/mentor-portal?tab=sessions');
-                    } else {
-                      router.push('/(tabs)/profile');
-                    }
-                  } else if (lowerType === 'event' && n.data?.event_id) {
+                  } else if (resolvedType === 'event' && n.data?.event_id) {
                     router.push(`/event/${n.data.event_id}` as any);
-                  } else if (lowerType === 'review') {
-                    if (role === 'mentor') {
-                      router.push('/mentor-portal?tab=feedback');
-                    } else {
-                      router.push('/(tabs)/profile');
-                    }
-                  } else {
-                    // Fallback
-                    if (role === 'mentor') {
-                      router.push('/mentor-portal');
-                    } else {
-                      router.push('/(tabs)/profile');
-                    }
+                  } else if (resolvedType === 'review' || (n.title || '').toLowerCase().includes('review')) {
+                    router.push('/(tabs)/profile' as any);
                   }
                 }}
               />
@@ -173,7 +155,7 @@ function EmptyState() {
 }
 
 function NotificationRow({ notif, onPress }: { notif: Notif; onPress: () => void }) {
-  const { Icon, tint } = iconForType(notif.type);
+  const { Icon, tint } = iconForType(notif.type || notif.data?.type, notif.title);
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
       <View style={[styles.rowCard, !notif.read && styles.rowCardUnread]}>
@@ -209,8 +191,24 @@ function NotificationRow({ notif, onPress }: { notif: Notif; onPress: () => void
 }
 
 // ----- helpers -----------------------------------------------------------
-function iconForType(type?: string) {
-  switch ((type || '').toLowerCase()) {
+function iconForType(type?: string, title?: string) {
+  let t = (type || '').toLowerCase();
+  if (!t && title) {
+    const lowerTitle = title.toLowerCase();
+    if (lowerTitle.includes('booking request') || lowerTitle.includes('booking pending')) {
+      t = 'booking_request';
+    } else if (lowerTitle.includes('confirmed')) {
+      t = 'booking_confirmed';
+    } else if (lowerTitle.includes('cancelled')) {
+      t = 'booking_cancelled';
+    } else if (lowerTitle.includes('review')) {
+      t = 'review';
+    } else if (lowerTitle.includes('event')) {
+      t = 'event';
+    }
+  }
+
+  switch (t) {
     case 'booking_request':
     case 'booking_pending':
       return { Icon: CalendarCheck, tint: { bg: 'rgba(232,163,23,0.18)', fg: '#E8A317' } };

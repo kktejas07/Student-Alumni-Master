@@ -23,7 +23,7 @@ export interface DropdownOption {
 }
 
 interface Props {
-  label: string;
+  label?: string;
   required?: boolean;
   optional?: boolean;
   value?: string;
@@ -43,6 +43,8 @@ interface Props {
   inputRef?: React.RefObject<any>;
   onFocus?: () => void;
   onBlur?: () => void;
+  /** Render the options inline directly below the trigger instead of in a modal pop up */
+  inline?: boolean;
 }
 
 const OTHER_VALUE = '__other__';
@@ -51,6 +53,7 @@ export function Dropdown({
   label, required, optional, value, options, onChange,
   placeholder = 'Select…', testID, allowOther = true, overlayHeader,
   editable, keyboardType = 'default', maxLength, inputRef, onFocus, onBlur,
+  inline,
 }: Props) {
   const { primary } = useRoleTheme();
   const [open, setOpen] = useState(false);
@@ -145,11 +148,13 @@ export function Dropdown({
     : (sel?.label || placeholder);
 
   return (
-    <View style={{ marginBottom: 14, position: 'relative' }}>
-      <Text style={s.label}>
-        {label}{required ? <Text style={{ color: '#EF4444' }}> *</Text> : null}
-        {optional ? <Text style={s.optional}>  Optional</Text> : null}
-      </Text>
+    <View style={{ marginBottom: 14, position: 'relative', zIndex: open ? 999 : 1 }}>
+      {label ? (
+        <Text style={s.label}>
+          {label}{required ? <Text style={{ color: '#EF4444' }}> *</Text> : null}
+          {optional ? <Text style={s.optional}>  Optional</Text> : null}
+        </Text>
+      ) : null}
 
       {/* Trigger / Manual input */}
       {editable ? (
@@ -168,7 +173,7 @@ export function Dropdown({
               onChange(t);
             }}
             placeholder={placeholder}
-            placeholderTextColor="rgba(255,255,255,0.4)"
+            placeholderTextColor="#9CA3AF"
             style={s.editableInput}
             keyboardType={Platform.OS === 'web' ? 'default' : keyboardType}
             maxLength={maxLength}
@@ -185,7 +190,7 @@ export function Dropdown({
             testID={testID}
           />
           <Pressable onPress={() => setOpen(true)} style={s.chevronPressable}>
-            <ChevronDown size={18} color="rgba(255,255,255,0.6)" />
+            <ChevronDown size={18} color="#9CA3AF" />
           </Pressable>
         </View>
       ) : showingManual ? (
@@ -193,8 +198,8 @@ export function Dropdown({
           <TextInput
             value={manualText || value || ''}
             onChangeText={(t) => { setManualText(t); onChange(t); }}
-            placeholder={`Please enter your ${label.toLowerCase()}`}
-            placeholderTextColor="rgba(255,255,255,0.32)"
+            placeholder={`Please enter your ${label?.toLowerCase() || 'value'}`}
+            placeholderTextColor="#9CA3AF"
             style={s.manualInput}
             autoCapitalize="words"
             testID={testID}
@@ -203,13 +208,13 @@ export function Dropdown({
             onPress={() => { setManualMode(false); setManualText(''); onChange(''); setOpen(true); }}
             style={s.editPill}
           >
-            <ChevronDown size={14} color="#FFF" />
+            <ChevronDown size={14} color="#111827" />
             <Text style={s.editPillText}>Pick</Text>
           </Pressable>
         </View>
       ) : (
         <Pressable
-          onPress={() => setOpen(true)}
+          onPress={() => setOpen(!open)}
           testID={testID}
           style={({ hovered, pressed }: any) => [
             s.triggerRow,
@@ -219,59 +224,82 @@ export function Dropdown({
           ]}
         >
           <Text style={[s.triggerText, !sel && s.triggerPlaceholder]} numberOfLines={1}>{triggerLabel}</Text>
-          <ChevronDown size={18} color="rgba(255,255,255,0.6)" />
+          <ChevronDown size={18} color="#9CA3AF" />
         </Pressable>
       )}
 
-      {/* Modal overlay — backdrop click closes; positioned-centred card */}
+      {/* Modal overlay or Inline dropdown */}
       {open && (
-        <Modal transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-          <Pressable style={s.backdrop} onPress={() => setOpen(false)}>
-            <Pressable
-              onPress={(e: any) => e?.stopPropagation?.()}
-              style={s.cardWrap}
-              onKeyDown={(e: any) => {
-                if (Platform.OS === 'web' && e?.key === 'Escape') {
-                  setOpen(false);
-                }
-              }}
-            >
+        inline ? (
+          <>
+            {Platform.OS === 'web' && (
+              <Pressable
+                style={{ position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 9 }}
+                onPress={() => setOpen(false)}
+              />
+            )}
+            <View style={{ marginTop: 6, zIndex: 10, position: 'absolute', top: '100%', left: 0, right: 0 }}>
               <OptionListCard
-                headerLabel={overlayHeader || label.toUpperCase()}
+                maxHeight={140}
+                headerLabel={inline ? undefined : (overlayHeader || label?.toUpperCase() || 'SELECT')}
                 options={filteredOptions}
                 selectedValue={value}
                 onSelect={(opt) => { onChange(opt.value); setManualMode(false); setOpen(false); }}
                 showOther={allowOther}
                 onSelectOther={() => { setOpen(false); setManualMode(true); setManualText(''); onChange(''); }}
               />
+            </View>
+          </>
+        ) : (
+          <Modal transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+            <Pressable style={s.backdrop} onPress={() => setOpen(false)}>
+              <Pressable
+                onPress={(e: any) => e?.stopPropagation?.()}
+                style={s.cardWrap}
+                // @ts-ignore - React Native Web supports onKeyDown but types might not
+                onKeyDown={(e: any) => {
+                  if (Platform.OS === 'web' && e?.key === 'Escape') {
+                    setOpen(false);
+                  }
+                }}
+              >
+                <OptionListCard
+                  headerLabel={overlayHeader || label?.toUpperCase() || 'SELECT'}
+                  options={filteredOptions}
+                  selectedValue={value}
+                  onSelect={(opt) => { onChange(opt.value); setManualMode(false); setOpen(false); }}
+                  showOther={allowOther}
+                  onSelectOther={() => { setOpen(false); setManualMode(true); setManualText(''); onChange(''); }}
+                />
+              </Pressable>
             </Pressable>
-          </Pressable>
-        </Modal>
+          </Modal>
+        )
       )}
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  label: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 13, marginBottom: 8 },
-  optional: { color: 'rgba(255,255,255,0.45)', fontFamily: 'DMSans_500Medium', fontSize: 11 },
+  label: { color: '#374151', fontFamily: 'DMSans_700Bold', fontSize: 13, marginBottom: 8 },
+  optional: { color: '#9CA3AF', fontFamily: 'DMSans_500Medium', fontSize: 11 },
   triggerRow: {
     flexDirection: 'row', alignItems: 'center',
     height: 48,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 14,
     gap: 10,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
   },
-  triggerText: { flex: 1, color: '#FFFFFF', fontFamily: 'DMSans_500Medium', fontSize: 14 },
-  triggerPlaceholder: { color: 'rgba(255,255,255,0.4)' },
+  triggerText: { flex: 1, color: '#111827', fontFamily: 'DMSans_500Medium', fontSize: 14 },
+  triggerPlaceholder: { color: '#9CA3AF' },
   manualInput: {
     flex: 1,
     minWidth: 0,
-    color: '#FFF',
+    color: '#111827',
     fontSize: 14,
     fontFamily: 'DMSans_500Medium',
     ...(Platform.OS === 'web' ? ({ outlineWidth: 0 } as any) : {}),
@@ -279,7 +307,7 @@ const s = StyleSheet.create({
   editableInput: {
     flex: 1,
     minWidth: 0,
-    color: '#FFF',
+    color: '#111827',
     fontSize: 14,
     fontFamily: 'DMSans_500Medium',
     padding: 0,
@@ -299,7 +327,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 4,
     flexShrink: 0,
   },
-  editPillText: { color: '#FFF', fontFamily: 'DMSans_700Bold', fontSize: 11 },
+  editPillText: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 11 },
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.55)',

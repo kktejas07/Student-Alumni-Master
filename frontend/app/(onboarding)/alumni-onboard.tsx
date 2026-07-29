@@ -87,7 +87,7 @@ function Stepper({ step }: { step: number }) {
         return (
           <React.Fragment key={i}>
             <View style={[s.dot, (done || active) && s.dotActive]}>
-              {done ? <CheckCircle2 size={14} color="#FFF" /> : <Text style={[s.dotText, active && s.dotTextActive]}>{i + 1}</Text>}
+              {done ? <CheckCircle2 size={14} color="#111827" /> : <Text style={[s.dotText, active && s.dotTextActive]}>{i + 1}</Text>}
             </View>
             {i < TOTAL - 1 && <View style={[s.line, done && s.lineActive]} />}
           </React.Fragment>
@@ -264,7 +264,13 @@ export default function AlumniOnboard() {
           // If they picked "Become a Mentor" auto-flag wants_to_mentor
           wants_to_mentor:    nextChapter === 'become_mentor',
         },
-        career_path: 'job',
+        // ★ FIX: map "Next Chapter" selection to a real career_path
+        career_path: (
+          nextChapter === 'higher_education' ? 'higher_education' :
+          nextChapter === 'build_startup'    ? 'startup' :
+          nextChapter === 'build_business'   ? 'business' :
+          'job' // covers become_mentor, level_up_career, give_back, explore_options
+        ),
         interests:   domain,
         skills:      [...tech, ...biz, ...soft],
         bio:         bio || `${jobTitle || 'Alumnus'} at ${company || ''} — ${college || ''} class of ${gy}`,
@@ -329,7 +335,7 @@ export default function AlumniOnboard() {
                 onChangeText={setFullName}
                 placeholder="e.g. Rohan Bhat"
                 autoCapitalize="words"
-                leftIcon={<UserIcon size={16} color="rgba(255,255,255,0.55)" />}
+                leftIcon={<UserIcon size={16} color="#6B7280" />}
               />
               <SuggestionAutocomplete
                 label="Current Role"
@@ -373,7 +379,7 @@ export default function AlumniOnboard() {
                     onChangeText={(t) => setYoe(t.replace(/[^0-9]/g, '').slice(0, 2))}
                     placeholder="4"
                     keyboardType="numeric"
-                    leftIcon={<Clock size={16} color="rgba(255,255,255,0.55)" />}
+                    leftIcon={<Clock size={16} color="#6B7280" />}
                   />
                 </View>
               </View>
@@ -448,7 +454,7 @@ export default function AlumniOnboard() {
                   <Image source={{ uri: photo }} style={s.photoImg} />
                 ) : (
                   <View style={{ alignItems: 'center', gap: 8 }}>
-                    <Camera size={32} color="rgba(255,255,255,0.6)" />
+                    <Camera size={32} color="#6B7280" />
                     <Text style={s.photoHint}>Tap to capture</Text>
                   </View>
                 )}
@@ -457,12 +463,12 @@ export default function AlumniOnboard() {
               {pendingPhoto ? (
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <Pressable style={s.confirmBtn} onPress={confirmPhoto}><Check size={14} color="#000" /><Text style={s.confirmBtnText}>Confirm</Text></Pressable>
-                  <Pressable style={s.smallBtn} onPress={() => { setPendingPhoto(null); takeSelfie(); }}><Camera size={14} color="#FFF" /><Text style={s.smallBtnText}>Retake</Text></Pressable>
+                  <Pressable style={s.smallBtn} onPress={() => { setPendingPhoto(null); takeSelfie(); }}><Camera size={14} color="#111827" /><Text style={s.smallBtnText}>Retake</Text></Pressable>
                 </View>
               ) : (
                 <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <Pressable style={s.smallBtn} onPress={takeSelfie}><Camera size={14} color="#FFF" /><Text style={s.smallBtnText}>Take Selfie</Text></Pressable>
-                  <Pressable style={s.smallBtn} onPress={pickPhoto}><Upload size={14} color="#FFF" /><Text style={s.smallBtnText}>Upload Photo</Text></Pressable>
+                  <Pressable style={s.smallBtn} onPress={takeSelfie}><Camera size={14} color="#111827" /><Text style={s.smallBtnText}>Take Selfie</Text></Pressable>
+                  <Pressable style={s.smallBtn} onPress={pickPhoto}><Upload size={14} color="#111827" /><Text style={s.smallBtnText}>Upload Photo</Text></Pressable>
                 </View>
               )}
             </View>
@@ -478,7 +484,7 @@ export default function AlumniOnboard() {
                   onChangeText={(t) => setBio(t.slice(0, 300))}
                   multiline
                   placeholder="e.g. Senior PM at Flipkart with 6 years in product. IIT Bombay alum passionate about mentoring the next generation of builders…"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  placeholderTextColor="#9CA3AF"
                   style={s.textarea}
                 />
               </View>
@@ -500,7 +506,7 @@ export default function AlumniOnboard() {
                   : badge.tier === 'Gold' ? '#FFD700'
                   : badge.tier === 'Silver' ? '#C0C0C0' : '#CD7F32'
               }]}>
-                <Award size={38} color="#FFF" />
+                <Award size={38} color="#111827" />
                 <Text style={s.badgeTier}>{badge.tier}</Text>
               </View>
               <Text style={s.greeting}>Welcome, {(fullName || user?.full_name || 'Alumni').split(' ')[0]}!</Text>
@@ -539,7 +545,7 @@ export default function AlumniOnboard() {
           style={s.backBtn}
           testID="alumni-onboard-back"
         >
-          <ArrowLeft size={18} color="#FFF" />
+          <ArrowLeft size={18} color="#374151" />
         </Pressable>
         <View style={{ flex: 1 }}>
           <PrimaryButton label={ctaLabel} onPress={onContinue} />
@@ -559,61 +565,60 @@ export default function AlumniOnboard() {
 
 const s = StyleSheet.create({
   stepRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 18, gap: 4 },
-  dot: { width: 26, height: 26, borderRadius: 13, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.04)' },
+  dot: { width: 26, height: 26, borderRadius: 13, borderWidth: 1.5, borderColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F9FAFB' },
   // Alumni theme accent: orange/yellow on active step
   dotActive: { borderColor: '#F59E0B', backgroundColor: '#F59E0B' },
-  dotText: { color: 'rgba(255,255,255,0.4)', fontFamily: FONTS.bold, fontSize: 11 },
+  dotText: { color: '#9CA3AF', fontFamily: FONTS.bold, fontSize: 11 },
   dotTextActive: { color: '#1F2937' },
-  line: { flex: 1, height: 1.5, backgroundColor: 'rgba(255,255,255,0.14)' },
+  line: { flex: 1, height: 1.5, backgroundColor: '#E5E7EB' },
   lineActive: { backgroundColor: '#F59E0B' },
-  title: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 26, marginBottom: 6, textAlign: 'center' },
-  sub: { color: 'rgba(255,255,255,0.6)', fontFamily: FONTS.med, fontSize: 13.5, textAlign: 'center', marginBottom: 18 },
-  section: { color: 'rgba(255,255,255,0.55)', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 4, marginBottom: 6 },
+  title: { color: '#111827', fontFamily: FONTS.bold, fontSize: 26, marginBottom: 6, textAlign: 'center' },
+  sub: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 13.5, textAlign: 'center', marginBottom: 18 },
+  section: { color: '#6B7280', fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 4, marginBottom: 6 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
 
   // Next Chapter cards
   nextCard: {
     width: '100%', paddingVertical: 12, paddingHorizontal: 12,
-    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', backgroundColor: '#FFFFFF',
     flexDirection: 'row', alignItems: 'center', gap: 12,
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   nextCardActive: { borderColor: '#F59E0B', backgroundColor: 'rgba(245,158,11,0.10)' },
   nextIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  nextTitle: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.bold, fontSize: 13.5 },
-  nextTitleActive: { color: '#FFF' },
-  nextDesc: { color: 'rgba(255,255,255,0.55)', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
-  radio: { width: 18, height: 18, borderRadius: 9, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
+  nextTitle: { color: '#1F2937', fontFamily: FONTS.bold, fontSize: 13.5 },
+  nextTitleActive: { color: '#111827' },
+  nextDesc: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 11.5, marginTop: 2 },
+  radio: { width: 18, height: 18, borderRadius: 9, borderWidth: 1.5, borderColor: '#D1D5DB', alignItems: 'center', justifyContent: 'center' },
   radioActive: { borderColor: '#F59E0B' },
   radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#F59E0B' },
 
   // Photo
-  photoFrame: { width: 160, height: 160, borderRadius: 80, borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.03)', overflow: 'hidden' },
+  photoFrame: { width: 160, height: 160, borderRadius: 80, borderWidth: 2, borderColor: '#D1D5DB', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', overflow: 'hidden' },
   photoImg: { width: '100%', height: '100%' },
-  photoHint: { color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.med, fontSize: 12 },
-  helper: { color: 'rgba(255,255,255,0.55)', fontFamily: FONTS.med, fontSize: 12.5, textAlign: 'center', lineHeight: 18 },
-  helperRight: { color: 'rgba(255,255,255,0.5)', fontFamily: FONTS.med, fontSize: 11, textAlign: 'right', marginTop: -10 },
+  photoHint: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12 },
+  helper: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12.5, textAlign: 'center', lineHeight: 18 },
+  helperRight: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 11, textAlign: 'right', marginTop: -10 },
   smallBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: 'rgba(245,158,11,0.18)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.4)' },
-  smallBtnText: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 12 },
+  smallBtnText: { color: '#4C1D95', fontFamily: FONTS.bold, fontSize: 12 },
   confirmBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 999, backgroundColor: '#C4B5FD', borderWidth: 1, borderColor: '#C4B5FD' },
   confirmBtnText: { color: '#000', fontFamily: FONTS.bold, fontSize: 12 },
 
   // Bio
-  textareaWrap: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)', paddingHorizontal: 14, paddingVertical: 12 },
-  textarea: { color: '#FFF', fontFamily: FONTS.med, fontSize: 13.5, minHeight: 100, ...(Platform.OS === 'web' ? ({ outlineWidth: 0 } as any) : {}) },
+  textareaWrap: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, backgroundColor: '#FFFFFF', paddingHorizontal: 14, paddingVertical: 12 },
+  textarea: { color: '#1F2937', fontFamily: FONTS.med, fontSize: 13.5, minHeight: 100, ...(Platform.OS === 'web' ? ({ outlineWidth: 0 } as any) : {}) },
 
   // Badge
   badgeCircle: { width: 120, height: 120, borderRadius: 60, borderWidth: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(245,158,11,0.18)', marginTop: 4 },
-  badgeTier: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 12, marginTop: 4, letterSpacing: 1 },
-  greeting: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 18 },
+  badgeTier: { color: '#1F2937', fontFamily: FONTS.bold, fontSize: 12, marginTop: 4, letterSpacing: 1 },
+  greeting: { color: '#1F2937', fontFamily: FONTS.bold, fontSize: 18 },
   verifiedPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999, backgroundColor: 'rgba(251,191,36,0.12)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.3)' },
   verifiedText: { color: '#FBBF24', fontFamily: FONTS.bold, fontSize: 11.5 },
-  calcRow: { color: 'rgba(255,255,255,0.7)', fontFamily: FONTS.med, fontSize: 12.5 },
-  perk: { color: 'rgba(255,255,255,0.85)', fontFamily: FONTS.med, fontSize: 12.5 },
+  calcRow: { color: '#4B5563', fontFamily: FONTS.med, fontSize: 12.5 },
+  perk: { color: '#1F2937', fontFamily: FONTS.med, fontSize: 12.5 },
 
   navRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
-  backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center', ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   generatingText: { color: '#A78BFA', fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', marginTop: 6 },
 });

@@ -12,6 +12,7 @@
  */
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform } from 'react-native';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Sparkles, Briefcase, BookOpen, Users, TrendingUp, Calendar, MapPin,
@@ -24,8 +25,9 @@ import { usePortalData } from '@/src/lib/portalApi';
 import { TierBadge } from '@/src/views/web/TierBadge';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
 import { request } from '@/src/models/services/api';
+import { AdBanner } from '@/src/views/web/components/AdBanner';
 
-const KPI_ICONS = { matches: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp } as const;
+const KPI_ICONS = { matches: Briefcase, applications: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp, events: Calendar } as const;
 
 const STUDENT_MOCK = {
   student: MOCK.STUDENT,
@@ -45,6 +47,7 @@ export function DashboardView({
   onOpenEvents?: () => void;
   onOpenCareerAi?: () => void;
 } = {}) {
+  const router = useRouter();
   const { data } = usePortalData<typeof STUDENT_MOCK>('/student/dashboard', STUDENT_MOCK);
   // Live counters polled every 15s so users can SEE auto-refresh working
   const { data: live } = usePortalData<any>('/live/counters', null as any, 15_000);
@@ -65,6 +68,9 @@ export function DashboardView({
 
   return (
     <View style={{ gap: 16 }}>
+      {/* Ad Banner */}
+      <AdBanner />
+
       {/* AI Daily Brief banner */}
       <View style={s.briefRow}>
         <View style={s.briefIcon}><Sparkles size={18} color={SC.accentBright} /></View>
@@ -230,7 +236,22 @@ export function DashboardView({
                   </View>
                   <Text style={s.mentorPrice}>₹{m.price}/session</Text>
                 </View>
-                <Pressable style={({ hovered }: any) => [s.bookCta, hovered && { backgroundColor: SC.primaryL }]}>
+                <Pressable
+                  onPress={() => router.push({
+                    pathname: '/mentor/[id]',
+                    params: {
+                      id: m.id,
+                      name: m.name,
+                      title: m.role,
+                      bio: (m.bio || 'Experienced professional ready to share industry insights, career strategies, and guidance.').slice(0, 200) + ((m.bio || '').length > 200 ? '...' : ''),
+                      avatar: m.avatar || `https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200`,
+                      rating: String(m.rating),
+                      sessions: String(m.sessions),
+                      tags: m.skills?.join(',') || 'System Design,Career Strategy',
+                    }
+                  } as any)}
+                  style={({ hovered }: any) => [s.bookCta, hovered && { backgroundColor: SC.primaryL }]}
+                >
                   <Calendar size={12} color="#fff" />
                   <Text style={s.bookCtaText}>Book Session</Text>
                 </Pressable>

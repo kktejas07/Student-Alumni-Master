@@ -29,6 +29,24 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       type: 'sourceFile',
     };
   }
+  if (moduleName === 'three') {
+    return {
+      filePath: path.join(__dirname, 'node_modules', 'three', 'build', 'three.cjs'),
+      type: 'sourceFile',
+    };
+  }
+  if (moduleName === 'framer-motion') {
+    return {
+      filePath: path.join(__dirname, 'node_modules', 'framer-motion', 'dist', 'cjs', 'index.js'),
+      type: 'sourceFile',
+    };
+  }
+  if (moduleName === 'lucide-react') {
+    return {
+      filePath: path.join(__dirname, 'node_modules', 'lucide-react', 'dist', 'cjs', 'lucide-react.js'),
+      type: 'sourceFile',
+    };
+  }
   if (moduleName === 'jspdf/dist/jspdf.es.min.js') {
     return {
       filePath: require.resolve('jspdf/dist/jspdf.es.min.js'),
@@ -41,11 +59,21 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       type: 'sourceFile',
     };
   }
-  const resolved = context.resolveRequest(context, moduleName, platform);
-  if (resolved?.filePath?.endsWith('.node.mjs')) {
-    return { filePath: resolved.filePath.replace('.node.mjs', '.js'), type: 'sourceFile' };
+  const fs = require('fs');
+  const emptyAssetPath = path.join(__dirname, 'assets', 'empty-asset.png');
+
+  try {
+    const resolved = context.resolveRequest(context, moduleName, platform);
+    if (resolved?.filePath?.endsWith('.node.mjs')) {
+      return { filePath: resolved.filePath.replace('.node.mjs', '.js'), type: 'sourceFile' };
+    }
+    return resolved;
+  } catch (err) {
+    if (/\.(png|jpg|jpeg|gif|svg|webp)$/i.test(moduleName)) {
+      return { filePath: emptyAssetPath, type: 'sourceFile' };
+    }
+    throw err;
   }
-  return resolved;
 };
 
 // Reduce the number of workers to decrease resource usage

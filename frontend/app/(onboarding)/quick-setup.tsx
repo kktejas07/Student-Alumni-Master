@@ -110,7 +110,7 @@ export default function QuickSetup() {
       try {
         const [o, c] = await Promise.all([
           fetch(`${BASE}/api/mentors/suggestions`).then((r) => r.ok ? r.json() : null).catch(() => null),
-          fetch(`${BASE}/api/courses`).then((r) => r.ok ? r.json() : null).catch(() => null),
+          fetch(`${BASE}/api/catalog/courses`).then((r) => r.ok ? r.json() : null).catch(() => null),
         ]);
         if (o?.organizations?.length) setOrgs(o.organizations);
         if (o?.job_titles?.length)    setRoleSuggestions(o.job_titles);
@@ -415,7 +415,7 @@ export default function QuickSetup() {
                     onChangeText={setYoe}
                     placeholder="e.g. 5"
                     keyboardType="numeric"
-                    leftIcon={<Clock size={16} color="rgba(255,255,255,0.55)" />}
+                    leftIcon={<Clock size={16} color="#6B7280" />}
                   />
                 </View>
               </View>
@@ -498,19 +498,18 @@ const s = StyleSheet.create({
   stepRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 22, justifyContent: 'center' },
   stepDot: {
     width: 28, height: 28, borderRadius: 14,
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1.5, borderColor: '#E5E7EB',
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: '#F9FAFB',
   },
   stepDotActive: { borderColor: '#B07FDF', backgroundColor: 'rgba(176,127,223,0.18)' },
-  stepText: { color: 'rgba(255,255,255,0.4)', fontFamily: FONTS.bold, fontSize: 11 },
+  stepText: { color: '#9CA3AF', fontFamily: FONTS.bold, fontSize: 11 },
   stepTextActive: { color: '#E9D5FF' },
-  stepLine: { width: 24, height: 1.5, backgroundColor: 'rgba(255,255,255,0.14)' },
+  stepLine: { width: 24, height: 1.5, backgroundColor: '#E5E7EB' },
   stepLineActive: { backgroundColor: '#B07FDF' },
-  title: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 26, marginBottom: 6, textAlign: 'center' },
-  sub: { color: 'rgba(255,255,255,0.6)', fontFamily: FONTS.med, fontSize: 13.5, textAlign: 'center', marginBottom: 18 },
-  section: {
-    color: 'rgba(255,255,255,0.55)', fontFamily: FONTS.bold,
+  title: { color: '#111827', fontFamily: FONTS.bold, fontSize: 26, marginBottom: 6, textAlign: 'center' },
+  sub: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 13.5, textAlign: 'center', marginBottom: 18 },
+  section: { color: '#6B7280', fontFamily: FONTS.bold,
     fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 4,
   },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

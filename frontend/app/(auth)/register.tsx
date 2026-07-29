@@ -142,7 +142,7 @@ export default function RegisterScreen() {
   return (
     <AuthShell role={role}>
       <Pressable onPress={() => router.back()} style={s.back}>
-        <ArrowLeft size={16} color={AC.muted} />
+        <ArrowLeft size={16} color="#6B7280" />
         <Text style={s.backText}>Back</Text>
       </Pressable>
 
@@ -159,13 +159,13 @@ export default function RegisterScreen() {
             <Pressable onPress={() => setShowPicker(true)} style={s.roleStripe} testID="register-role-selector" accessible={true} accessibilityRole="button" accessibilityLabel="Change role">
               <Text style={s.roleEmoji}>{ROLE_META[role].emoji}</Text>
               <Text style={s.roleText}>Joining as {ROLE_META[role].label}</Text>
-              <Text style={[s.roleText, { color: AC.muted, fontSize: 11 }]}> · change</Text>
+              <Text style={[s.roleText, { color: '#6B7280', fontSize: 11 }]}> · change</Text>
             </Pressable>
             <Text style={s.title}>Create your account</Text>
             <Text style={s.sub}>Set up your Student Alumni profile in 30 seconds</Text>
           </View>
 
-          <View style={{ gap: 14 }}>
+          <View style={{ gap: 14, zIndex: 20, position: 'relative' }}>
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <View style={{ flex: 1 }}>
                 <AuthInput label="First name" value={firstName} onChangeText={(t) => { setFirstName(t); setErrors((p) => ({ ...p, firstName: '' })); }} placeholder="e.g. Aryan" autoCapitalize="words" error={errors.firstName} autoFocus={true} editable={!loading} onSubmitEditing={() => lastNameRef.current?.focus()} blurOnSubmit={false} testID="register-first-name" />
@@ -177,7 +177,7 @@ export default function RegisterScreen() {
             <AuthInput ref={emailRef} label="Email" value={email} onChangeText={(t) => { setEmail(t); setErrors((p) => ({ ...p, email: '' })); }} placeholder="you@university.edu" keyboardType="email-address" error={errors.email} editable={!loading} onSubmitEditing={() => phoneRef.current?.focus()} blurOnSubmit={false} testID="register-email" />
 
             {/* Personal Information — phone (with country code) + DOB (mandatory) */}
-            <View style={{ zIndex: 10, position: 'relative' }}>
+            <View style={{ zIndex: 30, position: 'relative' }}>
               <Text style={s.fieldLabel}>Phone Number<Text style={{ color: '#EF4444' }}> *</Text></Text>
               <PhoneInput
                 ref={phoneRef}
@@ -205,13 +205,15 @@ export default function RegisterScreen() {
               {errors.phone ? <Text style={s.fieldErr}>{errors.phone}</Text> : null}
             </View>
 
-            <DateOfBirthPicker
-              value={dob}
-              onChange={(iso) => { setDob(iso); setErrors((p) => ({ ...p, dob: '' })); }}
-              minAge={minAge}
-              required
-              helper={`You must be at least ${minAge} years old to register as a ${ROLE_META[role].label.toLowerCase()}.`}
-            />
+            <View style={{ zIndex: 20, position: 'relative' }}>
+              <DateOfBirthPicker
+                value={dob}
+                onChange={(iso) => { setDob(iso); setErrors((p) => ({ ...p, dob: '' })); }}
+                minAge={minAge}
+                required
+                helper={`You must be at least ${minAge} years old to register as a ${ROLE_META[role].label.toLowerCase()}.`}
+              />
+            </View>
             {errors.dob ? <Text style={s.fieldErr}>{errors.dob}</Text> : null}
 
             <AuthInput
@@ -227,7 +229,7 @@ export default function RegisterScreen() {
               rightSlot={
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <Pressable onPress={() => setShowPwd((v) => !v)} style={{ paddingHorizontal: 6 }} testID="register-show-password" accessible={true} accessibilityRole="button" accessibilityLabel={showPwd ? "Hide password" : "Show password"}>
-                    {showPwd ? <EyeOff size={16} color={AC.muted} /> : <Eye size={16} color={AC.muted} />}
+                    {showPwd ? <EyeOff size={16} color="#6B7280" /> : <Eye size={16} color="#6B7280" />}
                   </Pressable>
                   <Pressable
                     onPress={() => {
@@ -279,22 +281,22 @@ export default function RegisterScreen() {
 
 const s = StyleSheet.create({
   back: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginBottom: 14, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
-  backText: { color: AC.muted, fontFamily: FONTS.med, fontSize: 13 },
+  backText: { color: '#374151', fontFamily: FONTS.med, fontSize: 13 },
 
   head: { marginBottom: 22 },
   roleStripe: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10, backgroundColor: 'rgba(124,58,237,0.10)', borderWidth: 1, borderColor: 'rgba(124,58,237,0.25)', marginBottom: 18, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
   roleEmoji: { fontSize: 14 },
-  roleText: { color: AC.primaryL, fontFamily: FONTS.bold, fontSize: 12 },
+  roleText: { color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 12 },
 
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 30, letterSpacing: -0.6, marginBottom: 6 },
-  sub: { color: AC.muted, fontFamily: FONTS.med, fontSize: 15 },
+  title: { color: '#111827', fontFamily: FONTS.xbold, fontSize: 30, letterSpacing: -0.6, marginBottom: 6 },
+  sub: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 15 },
 
-  terms: { textAlign: 'center', color: AC.dim, fontFamily: FONTS.med, fontSize: 12, marginTop: 14, lineHeight: 18 },
-  link: { color: AC.muted, ...(Platform.OS === 'web' ? ({ textDecorationLine: 'underline', cursor: 'pointer' } as any) : {}) },
+  terms: { textAlign: 'center', color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 12, marginTop: 14, lineHeight: 18 },
+  link: { color: '#6B7280', ...(Platform.OS === 'web' ? ({ textDecorationLine: 'underline', cursor: 'pointer' } as any) : {}) },
 
-  signin: { textAlign: 'center', color: AC.muted, fontFamily: FONTS.med, fontSize: 13, marginTop: 18 },
-  signinLink: { color: AC.primaryL, fontFamily: FONTS.bold, ...(Platform.OS === 'web' ? ({ textDecorationLine: 'underline', cursor: 'pointer' } as any) : {}) },
+  signin: { textAlign: 'center', color: '#6B7280', fontFamily: FONTS.med, fontSize: 13, marginTop: 18 },
+  signinLink: { color: '#7C3AED', fontFamily: FONTS.bold, ...(Platform.OS === 'web' ? ({ textDecorationLine: 'underline', cursor: 'pointer' } as any) : {}) },
 
-  fieldLabel: { color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 13, marginBottom: 8 },
+  fieldLabel: { color: '#374151', fontFamily: FONTS.bold, fontSize: 13, marginBottom: 8 },
   fieldErr: { color: '#EF4444', fontFamily: FONTS.med, fontSize: 12, marginTop: -8, marginBottom: 6 },
 });

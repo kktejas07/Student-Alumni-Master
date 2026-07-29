@@ -20,10 +20,11 @@ import { Av, Badge, KpiCard } from '../atoms';
 import * as MOCK from '../data';
 import { usePortalData } from '@/src/lib/portalApi';
 import { TierBadge } from '@/src/views/web/TierBadge';
-import { LiveStrip } from '@/src/views/web/LiveStrip';
+
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
 import type { CollegeNavId } from '../Sidebar';
+import { AdBanner } from '@/src/views/web/components/AdBanner';
 
 const KPI_ICONS = { students: GraduationCap, alumni: Users, placement: Trophy, events: CalendarDays } as const;
 
@@ -48,7 +49,7 @@ export function DashboardView({
   onNavigate?: (id: CollegeNavId) => void;
 }) {
   const user = useAuthStore((state) => state.user);
-  const collegeName = user?.institution || user?.college_info?.institution_name || user?.school_info?.institution_name || '';
+  const collegeName = (user as any)?.institution || user?.college_info?.institution_name || user?.school_info?.institution_name || '';
 
   const { data, loading } = usePortalData<typeof COLLEGE_MOCK>(
     collegeName
@@ -81,7 +82,7 @@ export function DashboardView({
   return (
     <View style={{ gap: 16 }}>
       {/* Live counters */}
-      <LiveStrip accent="#FCD34D" keys={['students', 'colleges', 'rsvps', 'events']} />
+
 
       {/* Hero */}
       <View style={{ flexDirection: stack ? 'column' : 'row', alignItems: stack ? 'flex-start' : 'center', gap: 16 }}>
@@ -110,6 +111,9 @@ export function DashboardView({
           return <KpiCard key={k.id} Icon={Icon} label={k.label} value={k.value} delta={k.delta} color={k.color} />;
         })}
       </View>
+
+      {/* Ad Banner */}
+      <AdBanner />
 
       {/* AI Daily Briefing */}
       <View style={s.briefCard}>

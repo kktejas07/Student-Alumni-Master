@@ -116,7 +116,10 @@ export function TalentPoolView() {
       try {
         const accessToken = await tokenStore.getAccess();
         const formData = new FormData(); formData.append('file', file);
-        const res = await fetch('https://studentalumni.ai/api/admin/talent-pool/import/csv', {
+        // Note: Use fetch directly for FormData but use the base URL from window.location if possible
+        // Actually, we can just use /api as the prefix like other places in this file (which proxy to backend)
+        const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+        const res = await fetch(`${baseUrl}/api/admin/talent-pool/import/csv`, {
           method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: formData,
         });
         const data = await res.json();

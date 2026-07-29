@@ -69,7 +69,7 @@ const INITIAL_WITHDRAWAL_HISTORY = [
   { id: 'wh3', amount: 22000, date: 'Feb 1, 2026', utr: 'UTR6601988', status: 'Completed' },
 ];
 
-export function EarningsView() {
+export function EarningsView({ demoMode = false, setDemoMode }: { demoMode?: boolean; setDemoMode?: (val: boolean) => void }) {
   const toast = useToast();
   const { width } = useWindowDimensions();
   const stack = width < 980;
@@ -86,7 +86,7 @@ export function EarningsView() {
   const [isDownloadingForm16, setIsDownloadingForm16] = useState(false);
 
   // Stateful cashout simulator
-  const [availableWithdraw, setAvailableWithdraw] = useState(1998);
+  const [availableWithdraw, setAvailableWithdraw] = useState(500);
   const [withdrawMethod, setWithdrawMethod] = useState<'upi' | 'bank' | 'paytm' | null>(null);
   const [upiId, setUpiId] = useState('sureshrao@okicici');
   const [bankAccount, setBankAccount] = useState('50200012345678');
@@ -141,6 +141,19 @@ export function EarningsView() {
 
   return (
     <View style={{ flexDirection: 'column', gap: 16 }}>
+      {demoMode && (
+        <View style={s.demoBadgeBanner}>
+          <Text style={s.demoBadgeText}>
+            Demo Mode · Sample data is displayed for demonstration purposes.{' '}
+            <Text 
+              onPress={() => setDemoMode?.(false)}
+              style={{ textDecorationLine: 'underline', color: '#fff', fontFamily: FONTS.bold }}
+            >
+              Switch to Live Mode
+            </Text>
+          </Text>
+        </View>
+      )}
       {/* Header and Subtitle */}
       <View style={s.headerRow}>
         <View>
@@ -187,21 +200,29 @@ export function EarningsView() {
                 >
                   <Sparkles size={12} color={showInsights ? '#fff' : '#F59E0B'} />
                   <Text style={[s.insightsButtonText, showInsights && s.insightsButtonTextActive]}>
-                    {showInsights ? 'Hide Insights' : 'AI Earnings Insights'}
+                    {showInsights ? 'Hide Insights' : 'AI Insights'}
                   </Text>
                 </Pressable>
               </View>
               
               {showInsights && (
                 <View style={s.insightsContent}>
-                  <Text style={s.insightsDetailText}>
-                    🚀 <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>Boost your weekly conversions by 18%:</Text>
-                  </Text>
-                  <Text style={s.insightsBullets}>
-                    • Add 4 evening slots on Tuesday & Thursday (6:00 PM - 8:00 PM) — your highest-converting student booking windows.{"\n"}
-                    • Run a Saturday AMA session on "Advanced System Design interviews" to fill up empty weekend slots.{"\n"}
-                    • 20% of your free/pro-bono mock sessions currently convert into recurring, high-paying weekly sessions.
-                  </Text>
+                  {demoMode ? (
+                    <>
+                      <Text style={s.insightsDetailText}>
+                        🚀 <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>Boost your weekly conversions by 18%:</Text>
+                      </Text>
+                      <Text style={s.insightsBullets}>
+                        • Add 4 evening slots on Tuesday & Thursday (6:00 PM - 8:00 PM) — your highest-converting student booking windows.{"\n"}
+                        • Run a Saturday AMA session on "Advanced System Design interviews" to fill up empty weekend slots.{"\n"}
+                        • 20% of your free/pro-bono mock sessions currently convert into recurring, high-paying weekly sessions.
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 12.5, lineHeight: 18 }}>
+                      🔒 AI Earnings Insights are locked. Complete at least 3 paid mentoring sessions to unlock conversion and slot recommendations.
+                    </Text>
+                  )}
                 </View>
               )}
             </View>
@@ -209,37 +230,41 @@ export function EarningsView() {
             {/* Total Earned Card */}
             <View style={s.totalEarnedCard}>
               <Text style={s.totalEarnedKicker}>TOTAL EARNED</Text>
-              <Text style={s.totalEarnedValue}>₹1,42,000</Text>
-              <Text style={s.totalEarnedSubtext}>Across 142 sessions · avg ₹1000/session</Text>
+              <Text style={s.totalEarnedValue}>₹500</Text>
+              <Text style={s.totalEarnedSubtext}>
+                Default mentor wallet balance · Welcome bonus
+              </Text>
               
               <View style={s.metricGrid}>
                 <View style={s.metricItem}>
                   <Text style={s.metricItemLabel}>THIS MONTH</Text>
-                  <Text style={s.metricItemVal}>₹28,500</Text>
-                  <Text style={s.metricItemSub}>18 sessions</Text>
+                  <Text style={s.metricItemVal}>{demoMode ? '₹500' : '₹0'}</Text>
+                  <Text style={s.metricItemSub}>{demoMode ? '1 session' : '0 sessions'}</Text>
                 </View>
                 
                 <View style={[s.metricItem, s.metricItemBorder]}>
                   <Text style={s.metricItemLabel}>THIS WEEK</Text>
-                  <Text style={s.metricItemVal}>₹6,000</Text>
-                  <Text style={s.metricItemSub}>4 sessions</Text>
+                  <Text style={s.metricItemVal}>₹500</Text>
+                  <Text style={s.metricItemSub}>1 session</Text>
                 </View>
                 
                 <View style={s.metricItem}>
                   <Text style={s.metricItemLabel}>TODAY</Text>
-                  <Text style={s.metricItemVal}>₹1,998</Text>
-                  <Text style={s.metricItemSub}>2 sessions</Text>
+                  <Text style={s.metricItemVal}>₹{availableWithdraw.toLocaleString('en-IN')}</Text>
+                  <Text style={s.metricItemSub}>Available</Text>
                 </View>
               </View>
 
-              {availableWithdraw > 0 ? (
+              {demoMode && availableWithdraw > 0 ? (
                 <Pressable onPress={handleWithdrawPendingClick} style={s.withdrawPendingBtn}>
                   <Text style={s.withdrawPendingText}>Withdraw ₹{availableWithdraw.toLocaleString('en-IN')} Pending →</Text>
                 </Pressable>
               ) : (
-                <View style={s.withdrawAllSettled}>
-                  <Check size={14} color={MC.green} />
-                  <Text style={s.withdrawAllSettledText}>All available earnings have been withdrawn</Text>
+                <View style={[s.withdrawAllSettled, !demoMode && { borderColor: MC.border, backgroundColor: 'rgba(255,255,255,0.03)' }]}>
+                  <Check size={14} color={demoMode ? MC.green : MC.muted} />
+                  <Text style={[s.withdrawAllSettledText, !demoMode && { color: MC.muted }]}>
+                    {demoMode ? 'All available earnings have been withdrawn' : 'No balance available'}
+                  </Text>
                 </View>
               )}
             </View>
@@ -251,20 +276,28 @@ export function EarningsView() {
                 style={s.forecastHeader}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Sparkles size={14} color="#22C55E" />
-                  <Text style={s.forecastTitle}>AI Revenue Forecast — What will I earn next month?</Text>
+                  <Sparkles size={14} color={demoMode ? '#22C55E' : MC.muted} />
+                  <Text style={[s.forecastTitle, !demoMode && { color: MC.muted }]}>AI Revenue Forecast — What will I earn next month?</Text>
                 </View>
                 {showForecast ? <ChevronUp size={16} color={MC.muted} /> : <ChevronDown size={16} color={MC.muted} />}
               </Pressable>
               
               {showForecast && (
                 <View style={s.forecastContent}>
-                  <Text style={s.forecastText}>
-                    Based on your current 12% monthly growth rate, average conversion, and active recurring student commitments, you are projected to make <Text style={{ color: '#5EEAD4', fontFamily: FONTS.bold }}>₹33,000</Text> next month (June 2026).
-                  </Text>
-                  <Text style={[s.forecastText, { marginTop: 6 }]}>
-                    🚀 <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>Pro Tip:</Text> Offering a "3-session package discount" can secure up to ₹42,000 in advanced bookings.
-                  </Text>
+                  {demoMode ? (
+                    <>
+                      <Text style={s.forecastText}>
+                        Based on your current 12% monthly growth rate, average conversion, and active recurring student commitments, you are projected to make <Text style={{ color: '#5EEAD4', fontFamily: FONTS.bold }}>₹33,000</Text> next month (June 2026).
+                      </Text>
+                      <Text style={[s.forecastText, { marginTop: 6 }]}>
+                        🚀 <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>Pro Tip:</Text> Offering a "3-session package discount" can secure up to ₹42,000 in advanced bookings.
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={s.forecastText}>
+                      🔒 AI Revenue Forecast will be available after completing 5 paid mentoring sessions.
+                    </Text>
+                  )}
                 </View>
               )}
             </View>
@@ -276,69 +309,83 @@ export function EarningsView() {
                   <Text style={s.chartTitle}>Monthly Earnings</Text>
                   <Text style={s.chartSubtitle}>Last 6 months</Text>
                 </View>
-                <View style={s.growthBadge}>
-                  <TrendingUp size={12} color="#86EFAC" />
-                  <Text style={s.growthBadgeText}>12% vs last month</Text>
-                </View>
+                {demoMode ? (
+                  <View style={s.growthBadge}>
+                    <TrendingUp size={12} color="#86EFAC" />
+                    <Text style={s.growthBadgeText}>12% vs last month</Text>
+                  </View>
+                ) : (
+                  <View style={[s.growthBadge, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
+                    <Text style={[s.growthBadgeText, { color: MC.muted }]}>No trend data</Text>
+                  </View>
+                )}
               </View>
               
-              <View style={s.customChartContainer}>
-                {MOCK_MONTHLY_CHART.map((c) => {
-                  const isApr = c.month === 'Apr';
-                  const maxVal = 31000;
-                  const barHeight = Math.round((c.amount / maxVal) * 105);
-                  
-                  return (
-                    <View key={c.month} style={s.chartBarColumn}>
-                      <Text style={[s.chartBarLabel, isApr && s.chartBarLabelActive]}>
-                        {c.label}
-                      </Text>
-                      <View 
-                        style={[
-                          s.chartBarTrack, 
-                          { height: barHeight },
-                          isApr ? s.chartBarActive : s.chartBarInactive
-                        ]} 
-                      />
-                      <Text style={[s.chartBarMonth, isApr && s.chartBarMonthActive]}>
-                        {c.month}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </View>
+              {demoMode ? (
+                <View style={s.customChartContainer}>
+                  {MOCK_MONTHLY_CHART.map((c) => {
+                    const isApr = c.month === 'Apr';
+                    const maxVal = 31000;
+                    const barHeight = Math.round((c.amount / maxVal) * 105);
+                    
+                    return (
+                      <View key={c.month} style={s.chartBarColumn}>
+                        <Text style={[s.chartBarLabel, isApr && s.chartBarLabelActive]}>
+                          {c.label}
+                        </Text>
+                        <View 
+                          style={[
+                            s.chartBarTrack, 
+                            { height: barHeight },
+                            isApr ? s.chartBarActive : s.chartBarInactive
+                          ]} 
+                        />
+                        <Text style={[s.chartBarMonth, isApr && s.chartBarMonthActive]}>
+                          {c.month}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              ) : (
+                <View style={[s.customChartContainer, { alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderStyle: 'dashed', borderColor: MC.border, borderRadius: 10, height: 120 }]}>
+                  <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 12, textAlign: 'center', paddingHorizontal: 20 }}>
+                    Timeline for monthly earnings will appear here after you conduct paid sessions.
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* Highlights Grid */}
             <View style={s.highlightGrid}>
               <View style={s.highlightCard}>
-                <View style={[s.highlightIndicator, { backgroundColor: MC.green }]} />
+                <View style={[s.highlightIndicator, { backgroundColor: demoMode ? MC.green : MC.border }]} />
                 <View style={s.highlightContent}>
-                  <Text style={s.highlightVal}>₹1000</Text>
+                  <Text style={s.highlightVal}>{demoMode ? '₹1000' : '₹0'}</Text>
                   <Text style={s.highlightLabel}>Avg/Session</Text>
                 </View>
               </View>
               
               <View style={s.highlightCard}>
-                <View style={[s.highlightIndicator, { backgroundColor: MC.amber }]} />
+                <View style={[s.highlightIndicator, { backgroundColor: demoMode ? MC.amber : MC.border }]} />
                 <View style={s.highlightContent}>
-                  <Text style={s.highlightVal}>Mar - ₹31k</Text>
+                  <Text style={s.highlightVal}>{demoMode ? 'Mar - ₹31k' : '—'}</Text>
                   <Text style={s.highlightLabel}>Best Month</Text>
                 </View>
               </View>
               
               <View style={s.highlightCard}>
-                <View style={[s.highlightIndicator, { backgroundColor: MC.teal }]} />
+                <View style={[s.highlightIndicator, { backgroundColor: demoMode ? MC.teal : MC.border }]} />
                 <View style={s.highlightContent}>
-                  <Text style={s.highlightVal}>6</Text>
+                  <Text style={s.highlightVal}>{demoMode ? '6' : '0'}</Text>
                   <Text style={s.highlightLabel}>Paid Sessions</Text>
                 </View>
               </View>
               
               <View style={s.highlightCard}>
-                <View style={[s.highlightIndicator, { backgroundColor: MC.purple }]} />
+                <View style={[s.highlightIndicator, { backgroundColor: demoMode ? MC.purple : MC.border }]} />
                 <View style={s.highlightContent}>
-                  <Text style={s.highlightVal}>2</Text>
+                  <Text style={s.highlightVal}>{demoMode ? '2' : '0'}</Text>
                   <Text style={s.highlightLabel}>Free Sessions</Text>
                 </View>
               </View>
@@ -349,17 +396,28 @@ export function EarningsView() {
               <View style={s.tdsDetails}>
                 <FileText size={16} color="#FCD34D" style={{ marginTop: 2 }} />
                 <View style={{ flex: 1 }}>
-                  <Text style={s.tdsText}>
-                    <Text style={{ fontFamily: FONTS.bold, color: '#FCD34D' }}>TDS (10%):</Text> Gross ₹1,42,000 - Deducted ₹14,200 - <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>Net ₹1,27,800</Text>
-                  </Text>
-                  <Text style={s.tdsSubtext}>Taxes withheld under Section 194J. Net proceeds settled directly.</Text>
+                  {demoMode ? (
+                    <>
+                      <Text style={s.tdsText}>
+                        <Text style={{ fontFamily: FONTS.bold, color: '#FCD34D' }}>TDS (10%):</Text> Gross ₹1,42,000 - Deducted ₹14,200 - <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>Net ₹1,27,800</Text>
+                      </Text>
+                      <Text style={s.tdsSubtext}>Taxes withheld under Section 194J. Net proceeds settled directly.</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={s.tdsText}>
+                        <Text style={{ fontFamily: FONTS.bold, color: '#FCD34D' }}>TDS (10%):</Text> Gross ₹0 - Deducted ₹0 - <Text style={{ fontFamily: FONTS.bold, color: '#fff' }}>Net ₹0</Text>
+                      </Text>
+                      <Text style={s.tdsSubtext}>TDS details and Form 16 will be generated after your first paid session.</Text>
+                    </>
+                  )}
                 </View>
               </View>
               
               <Pressable 
                 onPress={handleDownloadForm16}
-                disabled={isDownloadingForm16}
-                style={s.downloadBtn}
+                disabled={isDownloadingForm16 || !demoMode}
+                style={[s.downloadBtn, !demoMode && { opacity: 0.5, cursor: 'default' }]}
               >
                 {isDownloadingForm16 ? (
                   <ActivityIndicator size="small" color="#FCD34D" />
@@ -376,100 +434,120 @@ export function EarningsView() {
 
         {/* 2. TRANSACTIONS TAB */}
         {activeTab === 'transactions' && (
-          <View style={s.card}>
-            <Text style={s.cardTitle}>Recent Transactions</Text>
-            <View style={s.transactionsList}>
-              {MOCK_TRANSACTIONS.map((t) => {
-                const isFree = t.status === 'free';
-                const isPending = t.status === 'pending';
-                const amountText = isFree ? 'Free' : `₹${t.amount}`;
-                
-                let badgeColor: any = 'green';
-                let badgeLabel = 'Settled';
-                if (isFree) {
-                  badgeColor = 'gray';
-                  badgeLabel = 'Free';
-                } else if (isPending) {
-                  badgeColor = 'amber';
-                  badgeLabel = 'Pending';
-                }
+          demoMode ? (
+            <View style={s.card}>
+              <Text style={s.cardTitle}>Recent Transactions</Text>
+              <View style={s.transactionsList}>
+                {MOCK_TRANSACTIONS.map((t) => {
+                  const isFree = t.status === 'free';
+                  const isPending = t.status === 'pending';
+                  const amountText = isFree ? 'Free' : `₹${t.amount}`;
+                  
+                  let badgeColor: any = 'green';
+                  let badgeLabel = 'Settled';
+                  if (isFree) {
+                    badgeColor = 'gray';
+                    badgeLabel = 'Free';
+                  } else if (isPending) {
+                    badgeColor = 'amber';
+                    badgeLabel = 'Pending';
+                  }
 
-                return (
-                  <View key={t.id} style={s.txRow}>
-                    {/* Circle avatar initials */}
-                    <View style={[s.txAvatar, { backgroundColor: t.color + '25', borderColor: t.color + '60' }]}>
-                      <Text style={[s.txAvatarText, { color: t.color }]}>{t.avatar}</Text>
+                  return (
+                    <View key={t.id} style={s.txRow}>
+                      {/* Circle avatar initials */}
+                      <View style={[s.txAvatar, { backgroundColor: t.color + '25', borderColor: t.color + '60' }]}>
+                        <Text style={[s.txAvatarText, { color: t.color }]}>{t.avatar}</Text>
+                      </View>
+                      
+                      {/* Transaction topic info */}
+                      <View style={s.txInfoWrap}>
+                        <Text style={s.txStudentName}>{t.name}</Text>
+                        <Text style={s.txTopicText}>{t.topic}</Text>
+                        <Text style={s.txMetaText}>{t.duration} min · {t.date}</Text>
+                      </View>
+                      
+                      {/* Amount & Status Badges */}
+                      <View style={s.txRightWrap}>
+                        <Text style={[
+                          s.txAmountText, 
+                          isFree && s.txAmountFree,
+                          isPending && s.txAmountPending
+                        ]}>
+                          {amountText}
+                        </Text>
+                        <Badge label={badgeLabel} color={badgeColor} />
+                      </View>
                     </View>
-                    
-                    {/* Transaction topic info */}
-                    <View style={s.txInfoWrap}>
-                      <Text style={s.txStudentName}>{t.name}</Text>
-                      <Text style={s.txTopicText}>{t.topic}</Text>
-                      <Text style={s.txMetaText}>{t.duration} min · {t.date}</Text>
-                    </View>
-                    
-                    {/* Amount & Status Badges */}
-                    <View style={s.txRightWrap}>
-                      <Text style={[
-                        s.txAmountText, 
-                        isFree && s.txAmountFree,
-                        isPending && s.txAmountPending
-                      ]}>
-                        {amountText}
-                      </Text>
-                      <Badge label={badgeLabel} color={badgeColor} />
-                    </View>
-                  </View>
-                );
-              })}
+                  );
+                })}
+              </View>
             </View>
-          </View>
+          ) : (
+            <View style={[s.card, { alignItems: 'center', paddingVertical: 40 }]}>
+              <FileText size={48} color={MC.dim} style={{ marginBottom: 12 }} />
+              <Text style={[s.cardTitle, { marginBottom: 4 }]}>No transactions yet</Text>
+              <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 13, textAlign: 'center', paddingHorizontal: 20 }}>
+                Transactions appear here once students book and complete paid sessions with you.
+              </Text>
+            </View>
+          )
         )}
 
         {/* 3. BY STUDENT TAB */}
         {activeTab === 'student' && (
-          <View style={s.card}>
-            <Text style={s.cardTitle}>Earnings by Student</Text>
-            <View style={s.studentList}>
-              {MOCK_BY_STUDENT.map((item) => {
-                const isFree = item.isFree;
-                const progressWidth = `${item.progress * 100}%`;
-                
-                return (
-                  <View key={item.id} style={s.studentCard}>
-                    <View style={s.studentHeader}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                        <View style={[s.txAvatar, { backgroundColor: item.color + '25', borderColor: item.color + '60', width: 34, height: 34, borderRadius: 17 }]}>
-                          <Text style={[s.txAvatarText, { color: item.color, fontSize: 11 }]}>{item.avatar}</Text>
+          demoMode ? (
+            <View style={s.card}>
+              <Text style={s.cardTitle}>Earnings by Student</Text>
+              <View style={s.studentList}>
+                {MOCK_BY_STUDENT.map((item) => {
+                  const isFree = item.isFree;
+                  const progressWidth = `${item.progress * 100}%`;
+                  
+                  return (
+                    <View key={item.id} style={s.studentCard}>
+                      <View style={s.studentHeader}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                          <View style={[s.txAvatar, { backgroundColor: item.color + '25', borderColor: item.color + '60', width: 34, height: 34, borderRadius: 17 }]}>
+                            <Text style={[s.txAvatarText, { color: item.color, fontSize: 11 }]}>{item.avatar}</Text>
+                          </View>
+                          <View>
+                            <Text style={s.studentNameText}>{item.name}</Text>
+                            <Text style={s.studentSessionsCount}>{item.sessions} sessions</Text>
+                          </View>
                         </View>
-                        <View>
-                          <Text style={s.studentNameText}>{item.name}</Text>
-                          <Text style={s.studentSessionsCount}>{item.sessions} sessions</Text>
+                        <View style={{ alignItems: 'flex-end' }}>
+                          <Text style={[s.studentAmountText, isFree && s.studentAmountFree]}>
+                            {isFree ? 'Pro-bono' : `₹${item.amount.toLocaleString('en-IN')}`}
+                          </Text>
+                          <Text style={s.studentRateText}>{item.rate}</Text>
                         </View>
                       </View>
-                      <View style={{ alignItems: 'flex-end' }}>
-                        <Text style={[s.studentAmountText, isFree && s.studentAmountFree]}>
-                          {isFree ? 'Pro-bono' : `₹${item.amount.toLocaleString('en-IN')}`}
-                        </Text>
-                        <Text style={s.studentRateText}>{item.rate}</Text>
+                      
+                      {/* Dynamic horizontal percentage progress bar */}
+                      <View style={s.progressBarTrack}>
+                        <View style={[
+                          s.progressBarFill, 
+                          { 
+                            width: progressWidth as any,
+                            backgroundColor: item.color 
+                          }
+                        ]} />
                       </View>
                     </View>
-                    
-                    {/* Dynamic horizontal percentage progress bar */}
-                    <View style={s.progressBarTrack}>
-                      <View style={[
-                        s.progressBarFill, 
-                        { 
-                          width: progressWidth as any,
-                          backgroundColor: item.color 
-                        }
-                      ]} />
-                    </View>
-                  </View>
-                );
-              })}
+                  );
+                })}
+              </View>
             </View>
-          </View>
+          ) : (
+            <View style={[s.card, { alignItems: 'center', paddingVertical: 40 }]}>
+              <Users size={48} color={MC.dim} style={{ marginBottom: 12 }} />
+              <Text style={[s.cardTitle, { marginBottom: 4 }]}>No student earnings yet</Text>
+              <Text style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 13, textAlign: 'center', paddingHorizontal: 20 }}>
+                Once you have active student connections, their session breakdown and earnings will appear here.
+              </Text>
+            </View>
+          )
         )}
 
         {/* 4. WITHDRAWALS TAB */}
@@ -481,14 +559,14 @@ export function EarningsView() {
               style={s.withdrawBanner}
             >
               <Text style={s.withdrawKicker}>AVAILABLE TO WITHDRAW</Text>
-              <Text style={s.withdrawMainAmount}>₹{availableWithdraw.toLocaleString('en-IN')}</Text>
+              <Text style={s.withdrawMainAmount}>₹{demoMode ? availableWithdraw.toLocaleString('en-IN') : '0'}</Text>
               <Text style={s.withdrawSubtext}>
-                {availableWithdraw > 0 
+                {demoMode && availableWithdraw > 0 
                   ? 'From 2 settled sessions · Credited in 2-3 business days' 
-                  : 'All available funds have been withdrawn.'}
+                  : 'No balance available for withdrawal.'}
               </Text>
               
-              {availableWithdraw > 0 && (
+              {demoMode && availableWithdraw > 0 && (
                 <View style={s.withdrawOptionsRow}>
                   <Pressable 
                     onPress={() => setWithdrawMethod('upi')}
@@ -517,7 +595,7 @@ export function EarningsView() {
               )}
               
               {/* Confirm details subform drawer */}
-              {availableWithdraw > 0 && withdrawMethod && (
+              {demoMode && availableWithdraw > 0 && withdrawMethod && (
                 <View style={s.withdrawDrawer}>
                   {withdrawMethod === 'upi' && (
                     <View style={s.drawerForm}>
@@ -589,21 +667,29 @@ export function EarningsView() {
                 style={s.forecastHeader}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Sparkles size={14} color="#A78BFA" />
-                  <Text style={s.forecastTitle}>AI Tax Summary — What do I owe?</Text>
+                  <Sparkles size={14} color={demoMode ? '#A78BFA' : MC.muted} />
+                  <Text style={[s.forecastTitle, !demoMode && { color: MC.muted }]}>AI Tax Summary — What do I owe?</Text>
                 </View>
                 {showTaxSummary ? <ChevronUp size={16} color={MC.muted} /> : <ChevronDown size={16} color={MC.muted} />}
               </Pressable>
               
               {showTaxSummary && (
                 <View style={s.forecastContent}>
-                  <Text style={s.forecastText}>
-                    Professional fee settlements are subject to a flat <Text style={{ color: '#FCD34D', fontFamily: FONTS.bold }}>10% TDS</Text> under Section 194J of the Income Tax Act.
-                  </Text>
-                  <Text style={[s.forecastText, { marginTop: 6 }]}>
-                    • Total deducted this fiscal year: <Text style={{ color: '#fff', fontFamily: FONTS.bold }}>₹14,200</Text>{"\n"}
-                    • Consolidated Form 16 can be downloaded from the Overview tab. This TDS will automatically reflect in your Form 26AS for tax offsetting.
-                  </Text>
+                  {demoMode ? (
+                    <>
+                      <Text style={s.forecastText}>
+                        Professional fee settlements are subject to a flat <Text style={{ color: '#FCD34D', fontFamily: FONTS.bold }}>10% TDS</Text> under Section 194J of the Income Tax Act.
+                      </Text>
+                      <Text style={[s.forecastText, { marginTop: 6 }]}>
+                        • Total deducted this fiscal year: <Text style={{ color: '#fff', fontFamily: FONTS.bold }}>₹14,200</Text>{"\n"}
+                        • Consolidated Form 16 can be downloaded from the Overview tab. This TDS will automatically reflect in your Form 26AS for tax offsetting.
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={s.forecastText}>
+                      🔒 AI Tax Summary will be available after your first paid session.
+                    </Text>
+                  )}
                 </View>
               )}
             </View>
@@ -611,20 +697,26 @@ export function EarningsView() {
             {/* Withdrawal UTR history */}
             <View style={s.card}>
               <Text style={s.cardTitle}>WITHDRAWAL HISTORY</Text>
-              <View style={{ gap: 10 }}>
-                {withdrawalHistory.map((w) => (
-                  <View key={w.id} style={s.withdrawalHistoryRow}>
-                    <View style={s.withdrawalIconBox}>
-                      <Clock size={15} color={MC.teal} />
+              {demoMode ? (
+                <View style={{ gap: 10 }}>
+                  {withdrawalHistory.map((w) => (
+                    <View key={w.id} style={s.withdrawalHistoryRow}>
+                      <View style={s.withdrawalIconBox}>
+                        <Clock size={15} color={MC.teal} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.withdrawalAmountText}>₹{w.amount.toLocaleString('en-IN')}</Text>
+                        <Text style={s.withdrawalMetaText}>{w.date} · {w.utr}</Text>
+                      </View>
+                      <Badge label={w.status} color="green" />
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={s.withdrawalAmountText}>₹{w.amount.toLocaleString('en-IN')}</Text>
-                      <Text style={s.withdrawalMetaText}>{w.date} · {w.utr}</Text>
-                    </View>
-                    <Badge label={w.status} color="green" />
-                  </View>
-                ))}
-              </View>
+                  ))}
+                </View>
+              ) : (
+                <View style={{ paddingVertical: 10, alignItems: 'center' }}>
+                  <Text style={{ color: MC.dim, fontFamily: FONTS.med, fontSize: 13 }}>No withdrawal history found.</Text>
+                </View>
+              )}
             </View>
           </View>
         )}
@@ -647,15 +739,23 @@ export function EarningsView() {
               style={[s.withdrawBanner, { borderWidth: 1, borderColor: 'rgba(20,184,166,0.30)' }]}
             >
               <Text style={s.withdrawKicker}>SA WALLET BALANCE</Text>
-              <Text style={s.withdrawMainAmount}>₹45,500</Text>
+              <Text style={s.withdrawMainAmount}>{demoMode ? '₹45,500' : '₹0'}</Text>
               <Text style={s.withdrawSubtext}>Linked with your verified institutional student account</Text>
               
               <View style={[s.withdrawOptionsRow, { marginTop: 16 }]}>
-                <Pressable style={s.methodButton} onPress={() => toast.success('Transfer Initiated', 'Transferring funds to your bank account...')}>
-                  <Text style={s.methodBtnText}>Transfer to Bank</Text>
+                <Pressable 
+                  style={[s.methodButton, !demoMode && { opacity: 0.5, borderColor: MC.border }]} 
+                  disabled={!demoMode}
+                  onPress={() => toast.success('Transfer Initiated', 'Transferring funds to your bank account...')}
+                >
+                  <Text style={[s.methodBtnText, !demoMode && { color: MC.muted }]}>Transfer to Bank</Text>
                 </Pressable>
-                <Pressable style={s.methodButton} onPress={() => toast.info('Smart Wallet Linked', 'Smart wallet details are verified.')}>
-                  <Text style={s.methodBtnText}>Wallet Settings</Text>
+                <Pressable 
+                  style={[s.methodButton, !demoMode && { opacity: 0.5, borderColor: MC.border }]} 
+                  disabled={!demoMode}
+                  onPress={() => toast.info('Smart Wallet Linked', 'Smart wallet details are verified.')}
+                >
+                  <Text style={[s.methodBtnText, !demoMode && { color: MC.muted }]}>Wallet Settings</Text>
                 </Pressable>
               </View>
             </LinearGradient>
@@ -1326,5 +1426,21 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     alignItems: 'flex-start',
+  },
+  demoBadgeBanner: {
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  demoBadgeText: {
+    color: '#FBBF24',
+    fontFamily: FONTS.bold,
+    fontSize: 12,
+    textAlign: 'center',
   },
 });

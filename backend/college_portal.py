@@ -11,18 +11,17 @@ Endpoints (all under /api):
 """
 from __future__ import annotations
 import os
+import time
 import logging
 import random
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 from pathlib import Path
-from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile, File
 from pydantic import BaseModel
 import csv
 import io
-from db import client as _mongo
-_db = _mongo[os.environ["DB_NAME"]]
+from core.db import db as _db
 logger = logging.getLogger("college_portal")
 router = APIRouter()
 
@@ -102,7 +101,15 @@ def _seed_roster() -> List[Dict[str, Any]]:
     return out
 
 
+_roster_cache: Dict[str, Tuple[float, List[Dict[str, Any]]]] = {}
+
 async def get_roster(college_id: str, user_doc: dict) -> List[Dict[str, Any]]:
+    now = time.time()
+    if college_id in _roster_cache:
+        t_cache, cached_items = _roster_cache[college_id]
+        if now - t_cache < 60:  # 60s cache TTL
+            return cached_items
+
     if not user_doc.get("demo_seeded"):
         count = await _db.college_students.count_documents({"college_id": college_id})
         if count == 0:
@@ -120,7 +127,9 @@ async def get_roster(college_id: str, user_doc: dict) -> List[Dict[str, Any]]:
         await _db.users.update_one({"_id": user_doc["_id"]}, {"$set": {"demo_seeded": True}})
     
     cursor = _db.college_students.find({"college_id": college_id}, {"_id": 0}).sort("id", 1)
-    return await cursor.to_list(None)
+    items = await cursor.to_list(None)
+    _roster_cache[college_id] = (now, items)
+    return items
 
 
 # ─── Endpoints ───────────────────────────────────────────────────────────
@@ -216,6 +225,118 @@ async def add_college_student(payload: AddStudentPayload, user: dict = Depends(_
     await _db.college_students.insert_one(new_student.copy())
     return {"ok": True, "student": new_student}
 
+
+class EditStudentPayload(BaseModel):
+    name: str | None = None
+    email: str | None = None
+    dept: str | None = None
+    year: str | None = None
+    cgpa: float | None = None
+    attendance: int | None = None
+    placed: bool | None = None
+    company: str | None = None
+    package_lpa: float | None = None
+
+@router.put("/college/students/{student_id}")
+async def edit_college_student(student_id: str, payload: EditStudentPayload, user: dict = Depends(_auth())):
+    student = await _db.college_students.find_one({"college_id": str(user["_id"]), "id": student_id})
+    if not student:
+        raise HTTPException(404, "Student not found")
+        
+    update_data = {}
+    if payload.name is not None:
+        update_data["name"] = payload.name
+        initials = "".join([p[0] for p in payload.name.split() if p]).upper()[:2]
+        if initials:
+            update_data["initials"] = initials
+    if payload.email is not None: update_data["email"] = payload.email
+    if payload.dept is not None: 
+        update_data["dept"] = payload.dept
+        update_data["color"] = COLORS.get(payload.dept, "#3B82F6")
+    if payload.year is not None: update_data["year"] = payload.year
+    if payload.cgpa is not None: update_data["cgpa"] = payload.cgpa
+    if payload.attendance is not None: update_data["attendance"] = payload.attendance
+    if payload.placed is not None: update_data["placed"] = payload.placed
+    if payload.company is not None: update_data["company"] = payload.company
+    if payload.package_lpa is not None: update_data["package_lpa"] = payload.package_lpa
+
+    # Re-calculate status if cgpa or attendance changed
+    new_cgpa = update_data.get("cgpa", student.get("cgpa", 0))
+    new_att = update_data.get("attendance", student.get("attendance", 0))
+    
+    if new_cgpa >= 9.0:
+        update_data["status"] = "top"
+    elif new_cgpa < 7.0 or new_att < 75:
+        update_data["status"] = "at_risk"
+    else:
+        update_data["status"] = "good"
+
+    if update_data:
+        await _db.college_students.update_one(
+            {"college_id": str(user["_id"]), "id": student_id},
+            {"$set": update_data}
+        )
+        
+    updated_student = await _db.college_students.find_one({"college_id": str(user["_id"]), "id": student_id})
+    if updated_student and "_id" in updated_student:
+        del updated_student["_id"]
+    return {"ok": True, "student": updated_student}
+
+class EditStudentPayload(BaseModel):
+    name: str | None = None
+    email: str | None = None
+    dept: str | None = None
+    year: str | None = None
+    cgpa: float | None = None
+    attendance: int | None = None
+    placed: bool | None = None
+    company: str | None = None
+    package_lpa: float | None = None
+
+@router.put("/college/students/{student_id}")
+async def edit_college_student(student_id: str, payload: EditStudentPayload, user: dict = Depends(_auth())):
+    student = await _db.college_students.find_one({"college_id": str(user["_id"]), "id": student_id})
+    if not student:
+        raise HTTPException(404, "Student not found")
+        
+    update_data = {}
+    if payload.name is not None:
+        update_data["name"] = payload.name
+        initials = "".join([p[0] for p in payload.name.split() if p]).upper()[:2]
+        if initials:
+            update_data["initials"] = initials
+    if payload.email is not None: update_data["email"] = payload.email
+    if payload.dept is not None: 
+        update_data["dept"] = payload.dept
+        update_data["color"] = COLORS.get(payload.dept, "#3B82F6")
+    if payload.year is not None: update_data["year"] = payload.year
+    if payload.cgpa is not None: update_data["cgpa"] = payload.cgpa
+    if payload.attendance is not None: update_data["attendance"] = payload.attendance
+    if payload.placed is not None: update_data["placed"] = payload.placed
+    if payload.company is not None: update_data["company"] = payload.company
+    if payload.package_lpa is not None: update_data["package_lpa"] = payload.package_lpa
+
+    # Re-calculate status if cgpa or attendance changed
+    new_cgpa = update_data.get("cgpa", student.get("cgpa", 0))
+    new_att = update_data.get("attendance", student.get("attendance", 0))
+    
+    if new_cgpa >= 9.0:
+        update_data["status"] = "top"
+    elif new_cgpa < 7.0 or new_att < 75:
+        update_data["status"] = "at_risk"
+    else:
+        update_data["status"] = "good"
+
+    if update_data:
+        await _db.college_students.update_one(
+            {"college_id": str(user["_id"]), "id": student_id},
+            {"$set": update_data}
+        )
+        
+    updated_student = await _db.college_students.find_one({"college_id": str(user["_id"]), "id": student_id})
+    if updated_student and "_id" in updated_student:
+        del updated_student["_id"]
+    return {"ok": True, "student": updated_student}
 
 @router.get("/college/students/export")
 async def export_college_students_csv(
@@ -449,26 +570,45 @@ async def clear_college_students(user: dict = Depends(_auth())):
     await _db.college_students.delete_many({"college_id": str(user["_id"])})
     return {"ok": True}
 
+class BulkDeletePayload(BaseModel):
+    ids: list[str]
+
+@router.post("/college/students/bulk-delete")
+async def bulk_delete_college_students(payload: BulkDeletePayload, user: dict = Depends(_auth())):
+    if not payload.ids:
+        return {"ok": True, "deleted_count": 0}
+    result = await _db.college_students.delete_many({
+        "college_id": str(user["_id"]),
+        "id": {"$in": payload.ids}
+    })
+    return {"ok": True, "deleted_count": result.deleted_count}
+
 
 @router.post("/college/students/upload")
 async def upload_college_students(file: UploadFile = File(...), user: dict = Depends(_auth())):
-    if not file.filename.endswith('.csv'):
-        raise HTTPException(400, "Must be a CSV file")
+    if not (file.filename.endswith('.csv') or file.filename.endswith('.xlsx')):
+        raise HTTPException(400, "Must be a CSV or XLSX file")
         
     contents = await file.read()
     if len(contents) > 5 * 1024 * 1024:  # 5MB limit
         raise HTTPException(400, "File too large. Maximum size is 5MB.")
 
+    import pandas as pd
     try:
-        decoded = contents.decode('utf-8')
-    except Exception:
-        raise HTTPException(400, "Invalid file encoding. Must be UTF-8.")
+        if file.filename.endswith('.csv'):
+            df = pd.read_csv(io.BytesIO(contents))
+        else:
+            df = pd.read_excel(io.BytesIO(contents))
+            
+        df = df.fillna("")
+        reader = df.to_dict(orient="records")
+    except Exception as e:
+        raise HTTPException(400, f"Error parsing file: {str(e)}")
         
-    reader = csv.DictReader(io.StringIO(decoded))
     to_insert = []
     
     for row in reader:
-        cleaned_row = {k.strip().lower(): (v.strip() if v else "") for k, v in row.items() if k}
+        cleaned_row = {str(k).strip().lower(): (str(v).strip() if str(v) else "") for k, v in row.items() if str(k).strip()}
         
         name = cleaned_row.get("name") or "Unknown Student"
         email = cleaned_row.get("email") or ""

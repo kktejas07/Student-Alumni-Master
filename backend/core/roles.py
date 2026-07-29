@@ -15,22 +15,10 @@ from typing import Dict, List, Optional, Literal, Set
 from fastapi import HTTPException, Header
 import jwt as _jwt
 import os
-from datetime import datetime
-from motor.motor_asyncio import AsyncIOMotorClient
-from dotenv import load_dotenv
-from pathlib import Path
-
-load_dotenv(Path(__file__).parent.parent / ".env")
-
-# Lazy MongoDB connection — only connects when first needed
-_db = None
-
+from datetime import datetime, timezone
 def _get_db():
-    global _db
-    if _db is None:
-        from core.db import db as shared_db
-        _db = shared_db
-    return _db
+    from core.db import db
+    return db
 
 _JWT_SECRET = os.environ.get("JWT_SECRET", "")
 _JWT_ALG = os.environ.get("JWT_ALGORITHM", "HS256")
@@ -282,7 +270,7 @@ async def seed_admin_roles(db=None):
     """Ensure all system roles exist in admin_roles collection.
     Call on startup or via migration. Uses $setOnInsert for idempotency.
     If db is provided, uses it; otherwise creates its own connection."""
-    target_db = db or _db
+    target_db = db or _get_db()
     for role_def in SYSTEM_ROLES:
         await target_db.admin_roles.update_one(
             {"key": role_def["key"]},
@@ -292,7 +280,7 @@ async def seed_admin_roles(db=None):
                 "description": role_def["description"],
                 "permissions": role_def["permissions"],
                 "is_system": role_def["is_system"],
-                "created_at": datetime.utcnow(),
+                "created_at": datetime.now(timezone.utc),
             }},
             upsert=True,
         )

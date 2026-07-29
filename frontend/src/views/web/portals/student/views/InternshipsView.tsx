@@ -36,7 +36,7 @@ import { EmptyState, SuccessBurst } from '../EmptyState';
 import { SkeletonList } from '../motion';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
-import { StudentPortalNavContext } from '../StudentPortalRN';
+import { StudentPortalNavContext } from '../StudentPortalNavContext';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 type Job = {
@@ -58,6 +58,8 @@ type Job = {
   logo_url?: string;
   saved?: boolean;
   applied?: boolean;
+  match_score?: number;
+  is_recommended?: boolean;
 };
 
 type FeedResponse = {
@@ -814,6 +816,22 @@ function JobCard({
     <GlassCard radius={12} padding={20} style={{ position: 'relative' }}>
       {/* Top right match badge and save bookmark */}
       <View style={{ position: 'absolute', top: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 10, zIndex: 10 }}>
+        {job.is_recommended && (
+          <View style={{
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            borderColor: 'rgba(239, 68, 68, 0.3)',
+            borderWidth: 1,
+            borderRadius: 6,
+            paddingHorizontal: 8,
+            paddingVertical: 3,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4
+          }}>
+            <Text style={{ fontSize: 10 }}>🔥</Text>
+            <Text style={{ color: '#FCA5A5', fontFamily: FONTS.bold, fontSize: 10 }}>Recommended</Text>
+          </View>
+        )}
         <View style={{
           backgroundColor: 'rgba(124, 58, 237, 0.1)',
           borderColor: 'rgba(124, 58, 237, 0.3)',
@@ -822,7 +840,7 @@ function JobCard({
           paddingHorizontal: 8,
           paddingVertical: 3,
         }}>
-          <Text style={{ color: '#C4B5FD', fontFamily: FONTS.bold, fontSize: 10 }}>+{matchPct}% match</Text>
+          <Text style={{ color: '#C4B5FD', fontFamily: FONTS.bold, fontSize: 10 }}>{job.match_score !== undefined ? `${job.match_score}%` : `+${matchPct}%`} match</Text>
         </View>
         <Pressable
           onPress={() => onSave(job)}

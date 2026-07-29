@@ -15,6 +15,7 @@ import { MC, FONTS } from './tokens';
 import { MENTOR } from './data';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
 import { router } from 'expo-router';
+import { SALogo } from '@/src/views/components';
 
 export type NavId = 'dashboard'|'students'|'sessions'|'requests'|'network'|'earnings'|'feedback'|'event'|'availability'|'profile'|'ai-studio';
 
@@ -63,7 +64,7 @@ export function Sidebar({
         </Pressable>
         {!collapsed && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-            <Image source={require('@/assets/images/sa-icon.png')} style={s.brandLogo} />
+            <SALogo size={32} variant="glass" />
             <View style={{ minWidth: 0, flex: 1 }}>
               <Text style={s.brandTitle} numberOfLines={1}>Mentor Portal</Text>
               <Text style={s.brandSub} numberOfLines={1}>Student Alumni</Text>
@@ -110,7 +111,7 @@ export function Sidebar({
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text numberOfLines={1} style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 11 }}>{fullName}</Text>
-                <Text numberOfLines={1} style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 9 }}>{role} · {company}</Text>
+                <Text numberOfLines={1} style={{ color: MC.muted, fontFamily: FONTS.med, fontSize: 9 }}>{jobTitle} · {company}</Text>
               </View>
             </Pressable>
             <Pressable 
@@ -135,7 +136,7 @@ export function Sidebar({
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: collapsed ? 4 : 6, paddingVertical: 4 }} showsVerticalScrollIndicator={false}>
         {!collapsed && <Text style={s.kicker}>MAIN MENU</Text>}
         {items.map((n) => {
-          const isActive = n.id === active;
+          const isActive = active === n.id;
           const tint = isActive ? MC.tealP : MC.muted;
           return (
             <Pressable
@@ -201,7 +202,8 @@ const s = StyleSheet.create({
     width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
     ...({ cursor: 'pointer' } as any),
   },
-  brandLogo: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+  brandLogo: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  brandLogoText: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13, transform: [{ translateY: -1 }] },
   brandTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 12 },
   brandSub: { color: MC.muted, fontFamily: FONTS.bold, fontSize: 9, letterSpacing: 0.5 },
 

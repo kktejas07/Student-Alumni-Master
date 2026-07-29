@@ -76,13 +76,13 @@ export default function GetStarted() {
 
 const s = StyleSheet.create({
   head: { marginBottom: 28 },
-  title: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 30, letterSpacing: -0.6, marginBottom: 6 },
-  sub: { color: AC.muted, fontFamily: FONTS.med, fontSize: 15 },
+  title: { color: '#111827', fontFamily: FONTS.xbold, fontSize: 30, letterSpacing: -0.6, marginBottom: 6 },
+  sub: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 15 },
 
-  terms: { textAlign: 'center', color: AC.dim, fontFamily: FONTS.med, fontSize: 12, marginTop: 14, lineHeight: 18 },
-  link: { color: AC.muted, ...(Platform.OS === 'web' ? ({ textDecorationLine: 'underline', cursor: 'pointer' } as any) : {}) },
+  terms: { textAlign: 'center', color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 12, marginTop: 14, lineHeight: 18 },
+  link: { color: '#6B7280', ...(Platform.OS === 'web' ? ({ textDecorationLine: 'underline', cursor: 'pointer' } as any) : {}) },
 
   signinRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 22 },
-  signinText: { color: AC.muted, fontFamily: FONTS.med, fontSize: 13 },
-  signinLink: { color: AC.primaryL, fontFamily: FONTS.bold, fontSize: 13, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
+  signinText: { color: '#374151', fontFamily: FONTS.med, fontSize: 13 },
+  signinLink: { color: '#7C3AED', fontFamily: FONTS.bold, fontSize: 13, ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}) },
 });

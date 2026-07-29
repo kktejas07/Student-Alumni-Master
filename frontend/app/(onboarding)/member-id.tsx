@@ -7,7 +7,7 @@
  *   • Tier badge (defaults to Gold)
  *   • Copy ID / Save Card / Share actions
  *
- * After "Continue" → /(auth)/email-verify → /(auth)/two-fa-setup → /welcome-dashboard
+ * After "Continue" → /(onboarding)/generating-experience → portal (role-based)
  */
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
@@ -68,7 +68,8 @@ export default function MemberId() {
 
   const onShare = async () => {
     try {
-      const text = `I'm an SA member! 🎓\nMember ID: ${uid}\nVerify: https://studentalumni.app/verify/${uid.split('-').pop()}`;
+      const baseUrl = process.env.EXPO_PUBLIC_FRONTEND_URL || 'https://studentalumni.app';
+      const text = `I'm an SA member! 🎓\nMember ID: ${uid}\nVerify: ${baseUrl}/verify/${uid.split('-').pop()}`;
       if (Platform.OS === 'web' && (navigator as any).share) {
         await (navigator as any).share({ title: 'My SA Member ID', text });
         return;
@@ -81,7 +82,7 @@ export default function MemberId() {
   };
 
   const onContinue = () =>
-    router.push({ pathname: '/(auth)/email-verify', params: { email: user?.email || '', next: 'onboard' } } as any);
+    router.replace('/(onboarding)/generating-experience' as any);
 
   return (
     <AuthShell role={role}>
@@ -91,7 +92,7 @@ export default function MemberId() {
             if (role === 'college') {
               router.replace({ pathname: '/(onboarding)/college-onboard', params: { step: '5' } } as any);
             } else if (role === 'student') {
-              router.replace({ pathname: '/(onboarding)/student-onboard', params: { step: '6' } } as any);
+              router.replace({ pathname: '/(onboarding)/student-onboard', params: { step: '7' } } as any);
             } else if (role === 'alumni') {
               router.replace({ pathname: '/(onboarding)/alumni-onboard', params: { step: '5' } } as any);
             } else if (role === 'mentor') {
@@ -118,7 +119,7 @@ export default function MemberId() {
         style={({ hovered }: any) => [s.back, hovered && { opacity: 1 }]}
         testID="member-id-back"
       >
-        <ArrowLeft size={16} color="rgba(255,255,255,0.75)" />
+        <ArrowLeft size={16} color="#4B5563" />
         <Text style={s.backText}>Back</Text>
       </Pressable>
 
@@ -139,39 +140,40 @@ export default function MemberId() {
           tier={tier}
           qrBase64={qr}
           validFromYear={regYear}
+          verifyBaseUrl={(process.env.EXPO_PUBLIC_FRONTEND_URL || 'https://studentalumni.app').replace(/^https?:\/\//, '') + '/verify'}
         />
 
         {/* Action buttons row */}
         <View style={s.actionsRow}>
           <Pressable onPress={onCopy} style={s.actionBtn} testID="member-id-copy">
-            <Copy size={14} color="#FFF" />
+            <Copy size={14} color="#111827" />
             <Text style={s.actionText}>Copy ID</Text>
           </Pressable>
           <Pressable onPress={onSaveCard} style={s.actionBtn} testID="member-id-save">
-            <Save size={14} color="#FFF" />
+            <Save size={14} color="#111827" />
             <Text style={s.actionText}>Save Card</Text>
           </Pressable>
           <Pressable onPress={onShare} style={s.actionBtn} testID="member-id-share">
-            <Share2 size={14} color="#FFF" />
+            <Share2 size={14} color="#111827" />
             <Text style={s.actionText}>Share</Text>
           </Pressable>
         </View>
 
         {/* Info box */}
         <View style={s.infoBox}>
-          <Info size={14} color="rgba(255,255,255,0.55)" />
+          <Info size={14} color="#6B7280" />
           <Text style={s.infoText}>
             Your Member ID is permanent and unique to you. It appears on your profile, session receipts, certificates and placement letters.
           </Text>
         </View>
 
         <View style={s.footNote}>
-          <ShieldCheck size={12} color="rgba(255,255,255,0.4)" />
+          <ShieldCheck size={12} color="#9CA3AF" />
           <Text style={s.footText}>Keep this ID safe — it's your gateway to SA.</Text>
         </View>
 
         <View style={{ width: '100%', marginTop: 18 }}>
-          <PrimaryButton label="Continue to Email Verification →" onPress={onContinue} />
+          <PrimaryButton label="Continue to Your Dashboard →" onPress={onContinue} />
         </View>
       </View>
     </AuthShell>
@@ -185,38 +187,38 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: 'rgba(52,211,153,0.12)',
-    borderWidth: 1, borderColor: 'rgba(52,211,153,0.4)',
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1, borderColor: '#A7F3D0',
     marginBottom: 14,
   },
-  verifiedText: { color: '#34D399', fontFamily: FONTS.bold, fontSize: 11.5, letterSpacing: 0.3 },
+  verifiedText: { color: '#059669', fontFamily: FONTS.bold, fontSize: 11.5, letterSpacing: 0.3 },
 
-  title: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 24, marginBottom: 6, textAlign: 'center' },
-  sub: { color: 'rgba(255,255,255,0.6)', fontFamily: FONTS.med, fontSize: 12.5, textAlign: 'center', marginBottom: 18, paddingHorizontal: 10, lineHeight: 18 },
+  title: { color: '#111827', fontFamily: FONTS.bold, fontSize: 24, marginBottom: 6, textAlign: 'center' },
+  sub: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12.5, textAlign: 'center', marginBottom: 18, paddingHorizontal: 10, lineHeight: 18 },
 
   actionsRow: { flexDirection: 'row', gap: 8, marginTop: 14, width: '100%' },
   actionBtn: {
     flex: 1, flexDirection: 'row',
     justifyContent: 'center', alignItems: 'center', gap: 6,
     paddingVertical: 11, borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1, borderColor: '#E5E7EB',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  actionText: { color: '#FFF', fontFamily: FONTS.bold, fontSize: 12 },
+  actionText: { color: '#111827', fontFamily: FONTS.bold, fontSize: 12 },
 
   infoBox: {
     width: '100%', flexDirection: 'row', alignItems: 'flex-start', gap: 8,
     paddingHorizontal: 14, paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1, borderColor: '#E5E7EB',
     marginTop: 14,
   },
-  infoText: { flex: 1, color: 'rgba(255,255,255,0.6)', fontFamily: FONTS.med, fontSize: 11.5, lineHeight: 17 },
+  infoText: { flex: 1, color: '#6B7280', fontFamily: FONTS.med, fontSize: 11.5, lineHeight: 17 },
 
   footNote: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
-  footText: { color: 'rgba(255,255,255,0.45)', fontFamily: FONTS.med, fontSize: 11 },
+  footText: { color: '#9CA3AF', fontFamily: FONTS.med, fontSize: 11 },
   back: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -227,5 +229,5 @@ const s = StyleSheet.create({
     alignSelf: 'flex-start',
     ...({ cursor: 'pointer', transitionDuration: '160ms' } as any),
   },
-  backText: { color: 'rgba(255,255,255,0.75)', fontFamily: FONTS.med, fontSize: 13 },
+  backText: { color: '#4B5563', fontFamily: FONTS.med, fontSize: 13 },
 });

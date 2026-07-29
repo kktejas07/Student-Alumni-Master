@@ -389,7 +389,7 @@ export default function RoleDetailsScreen() {
 }
 
 const styles = StyleSheet.create({
-  section: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_700Bold', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 4, marginBottom: 8 },
+  section: { color: '#6B7280', fontFamily: 'DMSans_700Bold', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', marginTop: 4, marginBottom: 8 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
   infoText: { color: '#C4B5FD', fontFamily: 'DMSans_500Medium', fontSize: 13, lineHeight: 19 },
   toggleCard: {
@@ -401,8 +401,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 12,
     marginTop: 4, marginBottom: 14,
   },
-  toggleTitle: { color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 13.5 },
-  toggleSub: { color: 'rgba(255,255,255,0.55)', fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 2 },
-  helper: { color: 'rgba(255,255,255,0.45)', fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 4, marginBottom: 12 },
+  toggleTitle: { color: '#111827', fontFamily: 'DMSans_700Bold', fontSize: 13.5 },
+  toggleSub: { color: '#6B7280', fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 2 },
+  helper: { color: '#9CA3AF', fontFamily: 'DMSans_400Regular', fontSize: 12, marginTop: 4, marginBottom: 12 },
   error: { color: '#FCA5A5', fontFamily: 'DMSans_500Medium', fontSize: 13, backgroundColor: 'rgba(220,38,38,0.15)', borderColor: 'rgba(252,165,165,0.3)', borderWidth: 1, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 8 },
 });

@@ -28,7 +28,15 @@ if (Platform.OS !== 'web') {
 export default function MentorPortalRoute() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const user = useAuthStore((st) => st.user);
+  const initialized = useAuthStore((st) => st.initialized);
   const logout = useAuthStore((st) => st.logout);
+
+  useEffect(() => {
+    if (initialized && !user) {
+      router.replace('/login');
+    }
+  }, [user, initialized, router]);
 
   const onLogout = async () => {
     analytics.track('logout', { from: 'mentor_portal' });

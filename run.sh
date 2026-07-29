@@ -81,11 +81,19 @@ start_backend() {
     VENV_BIN="$BACKEND_DIR/venv/Scripts"
   fi
 
+  if [[ -d "$BACKEND_DIR/venv/Scripts" ]]; then
+    VENV_BIN="$BACKEND_DIR/venv/Scripts"
+  else
+    VENV_BIN="$BACKEND_DIR/venv/bin"
+  fi
+
   if [[ ! -d "$BACKEND_DIR/venv" ]]; then
     warn "No venv found — creating one and installing dependencies…"
     "$PYTHON_CMD" -m venv "$BACKEND_DIR/venv"
     if [[ -d "$BACKEND_DIR/venv/Scripts" ]]; then
       VENV_BIN="$BACKEND_DIR/venv/Scripts"
+    else
+      VENV_BIN="$BACKEND_DIR/venv/bin"
     fi
     "$VENV_BIN/python" -m pip install -q --upgrade pip
     "$VENV_BIN/python" -m pip install -q -r "$BACKEND_DIR/requirements.txt"
@@ -144,8 +152,9 @@ stop_all() {
   fi
   info "Stopping local processes…"
   while read -r pid; do
-    if kill -0 "$pid" 2>/dev/null; then
-      kill "$pid" && success "Stopped PID $pid"
+    if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+      kill "$pid" 2>/dev/null || true
+      success "Stopped PID $pid"
     fi
   done < "$PID_FILE"
   rm -f "$PID_FILE"

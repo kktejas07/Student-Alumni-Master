@@ -36,6 +36,7 @@ export function TopBar({
           style={s.searchInput}
         />
       </View>
+
       <Pressable onPress={onBellPress} style={({ hovered }: any) => [s.iconBtn, hovered && { backgroundColor: 'rgba(20,184,166,0.10)' }]}>
         <Bell size={16} color={MC.muted} />
         {notifCount > 0 && (
@@ -83,4 +84,5 @@ const s = StyleSheet.create({
     backgroundColor: MC.red, borderColor: MC.bg, borderWidth: 1.5,
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3,
   },
+
 });
