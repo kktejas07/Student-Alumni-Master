@@ -46,15 +46,15 @@ const s = StyleSheet.create({
   bubble: {
     flexDirection: 'row',
     alignItems: 'stretch',
-    backgroundColor: 'rgba(109,40,217,0.08)',
-    borderColor: 'rgba(167, 139, 250, 0.22)',
+    backgroundColor: 'rgba(67,56,202,0.08)',
+    borderColor: 'rgba(129, 140, 248, 0.22)',
     borderWidth: 1,
     borderRadius: RADIUS.card,
     overflow: 'hidden',
     ...(Platform.OS === 'web'
       ? ({
           transition: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)',
-          boxShadow: '0 0 12px rgba(167, 139, 250, 0.12)',
+          boxShadow: '0 0 12px rgba(129, 140, 248, 0.12)',
         } as any)
       : {}),
   },
@@ -82,13 +82,13 @@ const s = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: RADIUS.chip,
-    backgroundColor: 'rgba(167,139,250,0.18)',
-    borderColor: 'rgba(167,139,250,0.25)',
+    backgroundColor: 'rgba(129,140,248,0.18)',
+    borderColor: 'rgba(129,140,248,0.25)',
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     ...(Platform.OS === 'web'
-      ? ({ boxShadow: '0 0 10px rgba(167,139,250,0.25)' } as any)
+      ? ({ boxShadow: '0 0 10px rgba(129,140,248,0.25)' } as any)
       : {}),
   },
 
@@ -96,8 +96,8 @@ const s = StyleSheet.create({
     paddingHorizontal: SPACING.xs,
     paddingVertical: 2,
     borderRadius: RADIUS.full,
-    backgroundColor: 'rgba(167,139,250,0.12)',
-    borderColor: 'rgba(167,139,250,0.22)',
+    backgroundColor: 'rgba(129,140,248,0.12)',
+    borderColor: 'rgba(129,140,248,0.22)',
     borderWidth: 1,
   },
   aiChipText: {

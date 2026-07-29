@@ -149,13 +149,20 @@ export const CareerGoalSimulator = memo(function CareerGoalSimulator({
                 onPress={() => toggle(act.type)}
                 style={[
                   s.actionRow,
-                  isOn && { backgroundColor: act.color + '12', borderColor: act.color + '35' },
+                  isOn 
+                    ? { backgroundColor: act.color + '18', borderColor: act.color + '50' }
+                    : { borderColor: act.color + '30', backgroundColor: 'rgba(255,255,255,0.015)' }
                 ]}
               >
-                <View style={[s.check, isOn && { backgroundColor: act.color }]}>
-                  {isOn ? <Check size={11} color="#fff" /> : <Plus size={11} color={COLORS.dim} />}
+                <View style={[
+                  s.check, 
+                  isOn 
+                    ? { backgroundColor: act.color }
+                    : { backgroundColor: act.color + '15', borderColor: act.color + '35', borderWidth: 1 }
+                ]}>
+                  {isOn ? <Check size={11} color="#fff" /> : <Plus size={11} color={act.color} />}
                 </View>
-                <Text style={[s.actionLabel, isOn && { color: COLORS.text }]}>
+                <Text style={s.actionLabel}>
                   {act.label}
                 </Text>
                 {breakdown && (
@@ -202,7 +209,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.06)',
     alignItems: 'center', justifyContent: 'center',
   },
-  actionLabel:   { flex: 1, color: COLORS.text2, fontFamily: FONT_FAMILIES.med,  fontSize: FONT_SIZES.sm },
+  actionLabel:   { flex: 1, color: '#FFFFFF', fontFamily: FONT_FAMILIES.bold,  fontSize: FONT_SIZES.sm },
   breakdownGain: { color: COLORS.green,           fontFamily: FONT_FAMILIES.bold, fontSize: FONT_SIZES.sm },
   disclaimer:    { color: COLORS.dim, fontFamily: FONT_FAMILIES.med, fontSize: FONT_SIZES.sm, textAlign: 'center', marginTop: SPACING.xs },
 });

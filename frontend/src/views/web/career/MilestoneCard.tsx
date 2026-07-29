@@ -158,11 +158,11 @@ const s = StyleSheet.create({
     borderColor: COLORS.green,
   },
   dotActive: {
-    backgroundColor: 'rgba(124,58,237,0.22)',
+    backgroundColor: 'rgba(79,70,229,0.22)',
     borderColor: COLORS.purpleL,
     borderWidth: 2,
     ...(Platform.OS === 'web'
-      ? ({ boxShadow: '0 0 8px rgba(167,139,250,0.35)' } as any)
+      ? ({ boxShadow: '0 0 8px rgba(129,140,248,0.35)' } as any)
       : {}),
   },
   dotFuture: { opacity: 0.45 },
@@ -184,10 +184,10 @@ const s = StyleSheet.create({
     borderColor: 'rgba(52,211,153,0.12)',
   },
   cardActive: {
-    backgroundColor: 'rgba(124,58,237,0.10)',
-    borderColor: 'rgba(124,58,237,0.32)',
+    backgroundColor: 'rgba(79,70,229,0.10)',
+    borderColor: 'rgba(79,70,229,0.32)',
     ...(Platform.OS === 'web'
-      ? ({ boxShadow: '0 2px 16px rgba(124,58,237,0.15)' } as any)
+      ? ({ boxShadow: '0 2px 16px rgba(79,70,229,0.15)' } as any)
       : {}),
   },
   cardFuture: { opacity: 0.52 },
@@ -208,7 +208,7 @@ const s = StyleSheet.create({
     borderTopLeftRadius: RADIUS.card,
     borderBottomLeftRadius: RADIUS.card,
     ...(Platform.OS === 'web'
-      ? ({ boxShadow: '2px 0 8px rgba(167,139,250,0.40)' } as any)
+      ? ({ boxShadow: '2px 0 8px rgba(129,140,248,0.40)' } as any)
       : {}),
   },
 
@@ -229,7 +229,7 @@ const s = StyleSheet.create({
 
   badge:       { paddingHorizontal: 7, paddingVertical: 2, borderRadius: RADIUS.full },
   badgeDone:   { backgroundColor: 'rgba(52,211,153,0.12)' },
-  badgeActive: { backgroundColor: 'rgba(167,139,250,0.14)' },
+  badgeActive: { backgroundColor: 'rgba(129,140,248,0.14)' },
   badgeFuture: { backgroundColor: 'rgba(255,255,255,0.04)' },
   badgeText:   { fontSize: FONT_SIZES.xs, fontFamily: FONT_FAMILIES.bold, letterSpacing: 0.3 },
 

@@ -85,3 +85,17 @@ export function normalizeRoadmapSkillScores(
   }
   return out;
 }
+
+export const SIM_ACTIONS = [
+  { type: 'RESUME', label: 'Upload Resume', color: '#818CF8' },
+  { type: 'PROJECT', label: 'Add a Project', color: '#2DD4BF' },
+  { type: 'SKILLS', label: 'List 3+ Skills', color: '#F59E0B' },
+  { type: 'LINKEDIN', label: 'Link LinkedIn', color: '#3B82F6' },
+  { type: 'PORTFOLIO', label: 'Build Portfolio', color: '#EC4899' },
+  { type: 'MOCK_INTERVIEW', label: 'Practice Mock Interview', color: '#10B981' },
+  { type: 'CERTIFICATION', label: 'Get Certified', color: '#F59E0B' },
+  { type: 'NETWORKING', label: 'Network with Alumni', color: '#2DD4BF' },
+  { type: 'PROFILE', label: 'Complete Profile', color: '#818CF8' },
+  { type: 'EDUCATION', label: 'Add Education Details', color: '#3B82F6' },
+];
+

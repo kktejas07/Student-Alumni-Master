@@ -94,8 +94,8 @@ export const HorizontalRoadmap = memo(function HorizontalRoadmap({
             } else if (isNext) {
               statusLabel = 'Next Step';
               statusColor = COLORS.text2;
-              nodeBg = 'rgba(124, 58, 237, 0.20)';
-              nodeBorder = 'rgba(167, 139, 250, 0.40)';
+              nodeBg = 'rgba(79, 70, 229, 0.20)';
+              nodeBorder = 'rgba(129, 140, 248, 0.40)';
               progressBadge = '0%';
             }
 
