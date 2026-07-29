@@ -16,7 +16,8 @@ async def main():
         uid = user.get("unique_id")
         if uid:
             suffix = uid.split("-")[-1]
-            new_qr_payload = f"https://studentalumni.app/verify/{suffix}"
+            frontend_url_env = (os.environ.get("FRONTEND_URL") or "https://studentalumni.app").strip().rstrip("/")
+            new_qr_payload = f"{frontend_url_env}/verify/{suffix}"
             new_qr_base64 = generate_qr_code(new_qr_payload)
             
             await db.users.update_one(

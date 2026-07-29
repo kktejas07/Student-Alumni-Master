@@ -7,29 +7,40 @@ import re
 import secrets
 import string
 from datetime import datetime, timedelta, timezone, date as _date
-from typing import List, Optional, Any
+from typing import Dict, List, Optional, Any
 
 import jwt
 import pyotp
-import qrcode
+import qrcode  # type: ignore
+try:
+    from google.oauth2 import id_token as g_id
+    from google.auth.transport import requests as g_req
+except ImportError:
+    g_id = None
+    g_req = None
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr, field_validator
 from slowapi import Limiter
-from slowapi.util import get_remote_address
 from bson import ObjectId
 
+from core.middleware import get_real_ip
 from core.db import db
 from core.security import (
     hash_password, verify_password, create_access_token, create_refresh_token,
     encrypt_value, decrypt_value, _audit_log, _audit_log_many,
+    generate_unique_id, generate_qr_code,
     JWT_SECRET, JWT_ALGORITHM
 )
 from core.models import UserRole, AuthResponse, UserResponse
 from core.security import serialize_user
 from core.deps import get_current_user
+from core.email import send_email
+from firebase_admin import credentials, initialize_app, auth as fb_auth
 
 router = APIRouter(tags=["auth"])
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=get_real_ip)
 
 # ----- Auth payloads -----
 class RegisterRequest(BaseModel):
@@ -154,7 +165,7 @@ class OAuthCallback(BaseModel):
 
 # ----- Auth Endpoints -----
 @router.post("/auth/register", response_model=AuthResponse)
-@limiter.limit("10/minute")
+@limiter.limit("5/minute")
 async def register(request: Request, req: RegisterRequest):
     """Register a new user. Role is captured upfront — onboarding collects role-specific fields."""
     email = req.email.lower().strip()
@@ -186,7 +197,7 @@ async def register(request: Request, req: RegisterRequest):
         "face_image_base64": None,
         "onboarding_completed": False,
         "created_at": datetime.now(timezone.utc),
-        "last_login": datetime.utcnow(),
+        "last_login": datetime.now(timezone.utc),
     }
     result = await db.users.insert_one(user_doc)
     user_id = str(result.inserted_id)
@@ -250,17 +261,23 @@ async def forgot_password(request: Request, req: ForgotPasswordRequest):
     
     otp = str(random.randint(100000, 999999))
     otp_hash = hashlib.sha256(otp.encode()).hexdigest()
-    expires = datetime.utcnow() + timedelta(minutes=15)
+    # Use timezone-aware datetime (UTC) — avoids naive vs aware comparison bugs
+    expires = datetime.now(timezone.utc) + timedelta(minutes=15)
     
     await db.users.update_one(
         {"_id": user["_id"]},
-        {"$set": {"reset_otp_hash": otp_hash, "reset_otp_expires": expires}, "$unset": {"reset_otp": ""}}
+        {
+            "$set": {
+                "reset_otp_hash": otp_hash,
+                "reset_otp_expires": expires,
+                "reset_otp_attempts": 0,          # reset brute-force counter
+            },
+            "$unset": {"reset_otp": ""}
+        }
     )
     
     body = f"<p>Your password reset code is: <strong>{otp}</strong></p><p>This code will expire in 15 minutes.</p>"
     
-    # We await the email send but don't strictly fail the request if the email config is missing, 
-    # though practically the user won't get the email.
     import asyncio
     asyncio.create_task(send_email(email, "Password Reset Code", body))
     
@@ -268,24 +285,41 @@ async def forgot_password(request: Request, req: ForgotPasswordRequest):
 
 
 @router.post("/auth/verify-reset-otp")
-@limiter.limit("10/minute")
+@limiter.limit("5/minute")
 async def verify_reset_otp(request: Request, req: VerifyResetOtpRequest):
     email = req.email.lower().strip()
     user = await db.users.find_one({"email": email})
     if not user:
         raise HTTPException(400, "Invalid email or OTP")
-        
+
     import hashlib
     otp_hash = user.get("reset_otp_hash")
     expires = user.get("reset_otp_expires")
-    
-    if not otp_hash or not expires or datetime.utcnow() > expires:
+    attempts = user.get("reset_otp_attempts", 0)
+
+    # Brute-force guard: 5 wrong attempts invalidates the OTP
+    if attempts >= 5:
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$unset": {"reset_otp_hash": "", "reset_otp_expires": "", "reset_otp_attempts": ""}}
+        )
+        raise HTTPException(429, "Too many attempts. Please request a new OTP.")
+
+    # Timezone-aware expiry check
+    now_utc = datetime.now(timezone.utc)
+    exp_aware = expires.replace(tzinfo=timezone.utc) if expires and expires.tzinfo is None else expires
+    if not otp_hash or not expires or now_utc > exp_aware:
         raise HTTPException(400, "OTP expired or invalid")
-        
+
     req_hash = hashlib.sha256(req.otp.strip().encode()).hexdigest()
     if otp_hash != req_hash:
+        # Increment failed attempt counter
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$inc": {"reset_otp_attempts": 1}}
+        )
         raise HTTPException(400, "Invalid OTP")
-        
+
     return {"success": True}
 
 
@@ -296,30 +330,56 @@ async def reset_password(request: Request, req: ResetPasswordRequest):
     user = await db.users.find_one({"email": email})
     if not user:
         raise HTTPException(400, "Invalid email or OTP")
-        
+
     import hashlib
     otp_hash = user.get("reset_otp_hash")
     expires = user.get("reset_otp_expires")
-    
-    if not otp_hash or not expires or datetime.utcnow() > expires:
+    attempts = user.get("reset_otp_attempts", 0)
+
+    # Brute-force guard
+    if attempts >= 5:
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$unset": {"reset_otp_hash": "", "reset_otp_expires": "", "reset_otp_attempts": ""}}
+        )
+        raise HTTPException(429, "Too many attempts. Please request a new OTP.")
+
+    # Timezone-aware expiry check
+    now_utc = datetime.now(timezone.utc)
+    exp_aware = expires.replace(tzinfo=timezone.utc) if expires and expires.tzinfo is None else expires
+    if not otp_hash or not expires or now_utc > exp_aware:
         raise HTTPException(400, "OTP expired or invalid")
-        
+
     req_hash = hashlib.sha256(req.otp.strip().encode()).hexdigest()
     if otp_hash != req_hash:
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$inc": {"reset_otp_attempts": 1}}
+        )
         raise HTTPException(400, "OTP expired or invalid")
-        
+
     new_hashed = hash_password(req.new_password)
-    
+
+    # CRITICAL FIX: write to "password_hash" — same field that login reads.
+    # Previous code wrote to "hashed_password" (wrong field) which silently
+    # broke login for any user who had reset their password.
     await db.users.update_one(
         {"_id": user["_id"]},
-        {"$set": {"hashed_password": new_hashed}, "$unset": {"reset_otp_hash": "", "reset_otp_expires": ""}}
+        {
+            "$set": {"password_hash": new_hashed},
+            "$unset": {
+                "reset_otp_hash": "",
+                "reset_otp_expires": "",
+                "reset_otp_attempts": "",
+            }
+        }
     )
-    
+
     return {"success": True}
 
 
 @router.post("/auth/login")
-@limiter.limit("20/minute")
+@limiter.limit("10/minute")
 async def login(request: Request, req: LoginRequest):
     """Email + password login. Returns JWT pair, OR a 2FA challenge if user has 2FA enabled."""
     import time as _time
@@ -379,7 +439,7 @@ async def login(request: Request, req: LoginRequest):
     try:
         await db.users.update_one(
             {"_id": user["_id"]},
-            {"$set": {"last_login": datetime.utcnow()}}
+            {"$set": {"last_login": datetime.now(timezone.utc)}}
         )
     except Exception as e:
         print(f"[LOGIN] Failed to update last_login: {e}", flush=True)
@@ -497,7 +557,7 @@ def _cache_get(key: str):
     if not entry:
         return None
     ts, val = entry
-    if (datetime.utcnow().timestamp() - ts) > _INST_CACHE_TTL:
+    if (__import__("time").time() - ts) > _INST_CACHE_TTL:
         _INST_CACHE.pop(key, None)
         return None
     return val
@@ -511,7 +571,7 @@ def _cache_set(key: str, val):
             _INST_CACHE.pop(oldest, None)
         except ValueError:
             pass
-    _INST_CACHE[key] = (datetime.utcnow().timestamp(), val)
+    _INST_CACHE[key] = (__import__("time").time(), val)
 
 
 # Educational types we want to KEEP from Nominatim
@@ -828,7 +888,8 @@ async def institution_logo(name: str = "", domain: str = ""):
 
 
 @router.post("/auth/2fa/setup", response_model=TwoFASetupResponse)
-async def two_fa_setup(user: dict = Depends(get_current_user)):
+@limiter.limit("5/minute")
+async def two_fa_setup(request: Request, user: dict = Depends(get_current_user)):
     """Generate a fresh TOTP secret and QR for the authenticator app.
     Stored as `pending_two_fa_secret` until the user confirms with /enable."""
     secret = pyotp.random_base32()
@@ -847,7 +908,8 @@ async def two_fa_setup(user: dict = Depends(get_current_user)):
 
 
 @router.post("/auth/2fa/enable", response_model=TwoFAEnableResponse)
-async def two_fa_enable(req: TwoFAEnableRequest, user: dict = Depends(get_current_user)):
+@limiter.limit("5/minute")
+async def two_fa_enable(request: Request, req: TwoFAEnableRequest, user: dict = Depends(get_current_user)):
     """User confirms TOTP code → 2FA officially enabled + backup codes returned ONCE."""
     pending = user.get("pending_two_fa_secret")
     if not pending:
@@ -876,7 +938,7 @@ async def two_fa_enable(req: TwoFAEnableRequest, user: dict = Depends(get_curren
 
 
 @router.post("/auth/2fa/verify", response_model=AuthResponse)
-@limiter.limit("10/minute")
+@limiter.limit("5/minute")
 async def two_fa_verify(request: Request, req: TwoFAVerifyRequest):
     """User submits TOTP/backup code with the challenge_id from /auth/login.
     On success → returns full access + refresh JWT pair."""
@@ -885,7 +947,9 @@ async def two_fa_verify(request: Request, req: TwoFAVerifyRequest):
         raise HTTPException(401, "Invalid or expired challenge")
     if challenge.get("consumed"):
         raise HTTPException(401, "Challenge already used")
-    if challenge["expires_at"].replace(tzinfo=None) < datetime.utcnow():
+    exp_at = challenge["expires_at"]
+    if exp_at.tzinfo is None: exp_at = exp_at.replace(tzinfo=timezone.utc)
+    if exp_at < datetime.now(timezone.utc):
         raise HTTPException(401, "Challenge expired. Please log in again.")
 
     user = await db.users.find_one({"_id": ObjectId(challenge["user_id"])})
@@ -915,7 +979,7 @@ async def two_fa_verify(request: Request, req: TwoFAVerifyRequest):
         {"_id": req.challenge_id},
         {"$set": {"consumed": True, "consumed_at": datetime.now(timezone.utc)}},
     )
-    update_fields = {"last_login": datetime.utcnow()}
+    update_fields = {"last_login": datetime.now(timezone.utc)}
     if used_backup_idx is not None:
         backup_codes = user.get("two_fa_backup_codes", [])
         backup_codes.pop(used_backup_idx)
@@ -962,7 +1026,8 @@ async def two_fa_disable(req: TwoFADisableRequest, user: dict = Depends(get_curr
 
 
 @router.post("/auth/2fa/regenerate-backup-codes", response_model=TwoFAEnableResponse)
-async def two_fa_regenerate_backup(req: TwoFAEnableRequest, user: dict = Depends(get_current_user)):
+@limiter.limit("5/minute")
+async def two_fa_regenerate_backup(request: Request, req: TwoFAEnableRequest, user: dict = Depends(get_current_user)):
     """Regenerate backup codes — requires current TOTP code. Old codes invalidated."""
     if not user.get("two_fa_enabled"):
         raise HTTPException(400, "2FA is not enabled")
@@ -1003,22 +1068,26 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
     email = email.lower().strip()
     user = await db.users.find_one({"email": email})
     if user:
-        update = {"oauth_provider": provider, "oauth_picture": picture, "last_login": datetime.utcnow()}
+        update = {"oauth_provider": provider, "oauth_picture": picture, "last_login": datetime.now(timezone.utc)}
         if picture:
             update["photo_data"] = picture
         await db.users.update_one({"_id": user["_id"]}, {"$set": update})
         return await db.users.find_one({"_id": user["_id"]})
 
     # New OAuth user — create with onboarding NOT yet completed so the client
-    # routes them through the onboarding flow.
-    user_doc = {
+    uid = generate_unique_id(role or "student")
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.app").strip().rstrip("/")
+    qr_code = generate_qr_code(
+        f"{frontend_url}/verify/{uid.split('-')[-1]}"
+    )
+    user_doc: Dict[str, Any] = {
         "email": email,
         "password_hash": hash_password(secrets.token_urlsafe(16)),  # random unguessable password
         "full_name": full_name or email.split("@")[0].title(),
         "role": role or "student",
         "phone": None,
-        "unique_id": generate_unique_id(role or "student"),
-        "qr_code_base64": None,
+        "unique_id": uid,
+        "qr_code_base64": qr_code,
         "school_info": None,
         "career_path": None,
         "interests": [],
@@ -1030,17 +1099,10 @@ async def _upsert_oauth_user(provider: str, email: str, full_name: str,
         "oauth_picture": picture,
         "onboarding_completed": False,
         "created_at": datetime.now(timezone.utc),
-        "last_login": datetime.utcnow(),
+        "last_login": datetime.now(timezone.utc),
     }
     res = await db.users.insert_one(user_doc)
     user_doc["_id"] = res.inserted_id
-    user_doc["qr_code_base64"] = generate_qr_code(
-        f"https://studentalumni.app/verify/{user_doc['unique_id'].split('-')[-1]}"
-    )
-    await db.users.update_one(
-        {"_id": res.inserted_id},
-        {"$set": {"qr_code_base64": user_doc["qr_code_base64"]}},
-    )
     return user_doc
 
 
@@ -1067,10 +1129,34 @@ async def oauth_config(response: Response):
     creds = await _get_oauth_creds()
     raw_url = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
     frontend_url = raw_url if (raw_url.startswith("http://") or raw_url.startswith("https://")) else "https://studentalumni.ai"
+    
+    # Fetch feature flags for login buttons
+    doc = await db.platform_controls.find_one({"_id": "singleton"})
+    def _parse_b(v, d=True):
+        if v is None: return d
+        if isinstance(v, bool): return v
+        if isinstance(v, str): return v.strip().lower() in ("true", "1", "yes")
+        return bool(v)
+
+    flags = {}
+    if doc and doc.get("feature_flags"):
+        for f in doc["feature_flags"]:
+            flags[f["key"]] = _parse_b(f.get("value"), True)
+    try:
+        from routers.admin.settings import DEFAULT_PLATFORM_CONTROLS
+        for f in DEFAULT_PLATFORM_CONTROLS.get("feature_flags") or []:
+            if f["key"] not in flags:
+                flags[f["key"]] = _parse_b(f.get("value"), True)
+    except Exception:
+        pass
+
     return {
         "google_client_id": creds.get("google_oauth_client_id", ""),
         "linkedin_client_id": creds.get("linkedin_oauth_client_id", ""),
         "github_client_id": creds.get("github_oauth_client_id", ""),
+        "enable_google_login": flags.get("enable_google_login", True),
+        "enable_linkedin_login": flags.get("enable_linkedin_login", True),
+        "enable_github_login": flags.get("enable_github_login", True),
         "firebase": {
             "apiKey": creds.get("firebase_api_key", ""),
             "authDomain": creds.get("firebase_auth_domain", ""),
@@ -1084,7 +1170,7 @@ async def oauth_config(response: Response):
 
 def _verify_google_token(id_token: Optional[str], client_id: str = "") -> Optional[dict]:
     """Verify a Google ID token if credentials are configured, else return None (mock fallback)."""
-    if not id_token or not client_id:
+    if not id_token or not client_id or not g_id or not g_req:
         return None
     try:
         info = g_id.verify_oauth2_token(id_token, g_req.Request(), client_id)
@@ -1217,7 +1303,7 @@ async def auth_google(request: Request, req: OAuthCallback):
 
     user = await _upsert_oauth_user(
         provider="google",
-        email=profile["email"],
+        email=profile.get("email") or "",
         full_name=profile.get("name") or profile.get("full_name") or "",
         picture=profile.get("picture"),
         role=req.role or "student",
@@ -1247,7 +1333,7 @@ async def auth_linkedin(request: Request, req: OAuthCallback):
 
     user = await _upsert_oauth_user(
         provider="linkedin",
-        email=profile["email"],
+        email=profile.get("email") or "",
         full_name=profile.get("name") or profile.get("full_name") or "",
         picture=profile.get("picture"),
         role=req.role or "student",
@@ -1277,7 +1363,7 @@ async def auth_github(request: Request, req: OAuthCallback):
 
     user = await _upsert_oauth_user(
         provider="github",
-        email=profile["email"],
+        email=profile.get("email") or "",
         full_name=profile.get("name") or profile.get("full_name") or "",
         picture=profile.get("picture"),
         role=req.role or "student",
@@ -1351,8 +1437,8 @@ async def auth_firebase(request: Request, req: OAuthCallback):
 
     provider = profile.get("firebase_provider", "firebase")
     user = await _upsert_oauth_user(
-        provider=provider,
-        email=profile["email"],
+        provider=provider or "google",
+        email=profile.get("email") or "",
         full_name=profile.get("name") or req.full_name or "",
         picture=profile.get("picture"),
         role=req.role or "student",

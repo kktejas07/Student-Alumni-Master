@@ -1,0 +1,423 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: Student\Student.spec.js >> Student Portal Complete Suite >> TC01: Student Login with valid credentials
+- Location: tests\Student\Student.spec.js:13:3
+
+# Error details
+
+```
+TypeError: expect(...).not.hasURL is not a function
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=e6]:
+  - generic [ref=e11]:
+    - generic [ref=e13]:
+      - generic [ref=e15]:
+        - img [ref=e17]:
+          - generic [ref=e19]: SA
+        - generic [ref=e20]:
+          - generic [ref=e21]: Student Alumni
+          - generic [ref=e22]: Web Dashboard
+        - button "Collapse sidebar" [expanded] [ref=e23] [cursor=pointer]:
+          - generic [ref=e24]: 󰅁
+      - button "AS Aarav Student Class 11" [ref=e27] [cursor=pointer]:
+        - generic [ref=e28]:
+          - generic [ref=e29]: AS
+          - generic [ref=e36]:
+            - generic [ref=e37]: Aarav Student
+            - generic [ref=e38]: Class 11
+      - button "My Student Card SA-2026-STU-KWNNHJ 󰏌" [ref=e41] [cursor=pointer]:
+        - generic [ref=e42]:
+          - generic [ref=e43]: My Student Card
+          - generic [ref=e44]: SA-2026-STU-KWNNHJ
+        - generic [ref=e45]: 󰏌
+      - button "Agent K · Run automations" [ref=e47] [cursor=pointer]:
+        - generic [ref=e48]:
+          - generic [ref=e49]:
+            - generic [ref=e50]: 󱙺
+            - generic [ref=e53]:
+              - generic [ref=e54]: AGENT K
+              - generic [ref=e55]: BETA
+          - generic [ref=e57]: Run automations
+          - generic [ref=e58]: Let AI handle multi-step tasks for you
+          - generic [ref=e59]:
+            - generic [ref=e60]: ⌘
+            - generic [ref=e62]: K
+            - generic [ref=e64]: quick launcher
+      - navigation "Primary navigation" [ref=e65]:
+        - generic [ref=e66]:
+          - tab "Dashboard" [ref=e69] [cursor=pointer]:
+            - generic [ref=e70]:
+              - generic [ref=e71]: 󰨝
+              - generic [ref=e72]: Dashboard
+          - tab "Career AI" [ref=e76] [cursor=pointer]:
+            - generic [ref=e77]:
+              - generic [ref=e78]: 󰁨
+              - generic [ref=e80]: Career AI
+          - tab "Internships & Jobs" [ref=e83] [cursor=pointer]:
+            - generic [ref=e84]:
+              - generic [ref=e85]: 󰠔
+              - generic [ref=e86]: Internships & Jobs
+          - tab "Network" [ref=e89] [cursor=pointer]:
+            - generic [ref=e90]:
+              - generic [ref=e91]: 󰭘
+              - generic [ref=e92]: Network
+          - tab "My Bookings" [ref=e95] [cursor=pointer]:
+            - generic [ref=e96]:
+              - generic [ref=e97]: 󰱄
+              - generic [ref=e98]: My Bookings
+          - tab "Events" [ref=e101] [cursor=pointer]:
+            - generic [ref=e102]:
+              - generic [ref=e103]: 󰭦
+              - generic [ref=e104]: Events
+          - tab "My Workshops" [ref=e107] [cursor=pointer]:
+            - generic [ref=e108]:
+              - generic [ref=e109]: 󱗖
+              - generic [ref=e110]: My Workshops
+          - tab "Courses" [ref=e113] [cursor=pointer]:
+            - generic [ref=e114]:
+              - generic [ref=e115]: 󱗖
+              - generic [ref=e116]: Courses
+          - tab "Financial" [ref=e119] [cursor=pointer]:
+            - generic [ref=e120]:
+              - generic [ref=e121]: 󰯝
+              - generic [ref=e122]: Financial
+          - tab "Deals & Offers" [ref=e125] [cursor=pointer]:
+            - generic [ref=e126]:
+              - generic [ref=e127]: 󰓼
+              - generic [ref=e128]: Deals & Offers
+          - tab "SA Wallet" [ref=e131] [cursor=pointer]:
+            - generic [ref=e132]:
+              - generic [ref=e133]: 󰆛
+              - generic [ref=e134]: SA Wallet
+          - tab "Higher Education" [ref=e137] [cursor=pointer]:
+            - generic [ref=e138]:
+              - generic [ref=e139]: 󱆀
+              - generic [ref=e140]: Higher Education
+          - tab "Rentals" [ref=e143] [cursor=pointer]:
+            - generic [ref=e144]:
+              - generic [ref=e145]: 󰚡
+              - generic [ref=e146]: Rentals
+          - tab "Profile" [ref=e149] [cursor=pointer]:
+            - generic [ref=e150]:
+              - generic [ref=e151]: 󰀓
+              - generic [ref=e152]: Profile
+      - button "Log out of your account" [ref=e154] [cursor=pointer]:
+        - generic [ref=e155]: 󰍃
+        - generic [ref=e156]: Log out
+    - generic [ref=e158]:
+      - generic [ref=e161]:
+        - generic [ref=e162]:
+          - generic [ref=e163]: Good afternoon, Aarav 👋
+          - generic [ref=e164]: Here's your personalised dashboard for today
+        - generic [ref=e166]:
+          - generic "Execute search" [ref=e167] [cursor=pointer]: 󰍉
+          - textbox "Search the dashboard" [ref=e169]:
+            - /placeholder: Search anything…
+        - 'button "Theme: dark. Tap to cycle." [ref=e172] [cursor=pointer]':
+          - generic [ref=e173]:
+            - generic [ref=e174]: 󰖙
+            - generic [ref=e176]: 󰖔
+        - button "Notifications" [ref=e180] [cursor=pointer]:
+          - generic [ref=e181]: 󰂜
+        - button "View Profile Settings" [ref=e184] [cursor=pointer]:
+          - generic [ref=e185]: AS
+      - generic [ref=e193]:
+        - generic [ref=e195]:
+          - generic [ref=e196]:
+            - generic [ref=e198]:
+              - generic [ref=e199]: Profile Strength
+              - generic [ref=e200]: 68%
+              - generic [ref=e201]: Keep going!
+            - generic [ref=e206]:
+              - generic [ref=e207]:
+                - generic [ref=e208]: Applications
+                - generic [ref=e209]: "16"
+                - generic [ref=e210]: 2 new updates
+              - generic [ref=e211]: 󰠔
+            - generic [ref=e214]:
+              - generic [ref=e215]:
+                - generic [ref=e216]: Network
+                - generic [ref=e217]: "128"
+                - generic [ref=e218]: Connections
+              - generic [ref=e219]: 󰭘
+            - generic [ref=e222]:
+              - generic [ref=e223]:
+                - generic [ref=e224]: Events
+                - generic [ref=e225]: "7"
+                - generic [ref=e226]: Upcoming
+              - generic [ref=e227]: 󰭦
+          - generic [ref=e230]:
+            - generic [ref=e231] [cursor=pointer]:
+              - generic [ref=e232]: 󰠔
+              - generic [ref=e233]: Opportunities
+            - generic [ref=e234] [cursor=pointer]:
+              - generic [ref=e235]: 󰔵
+              - generic [ref=e236]: Intelligence Center
+          - generic [ref=e237]:
+            - generic [ref=e238]:
+              - generic [ref=e239]:
+                - generic [ref=e240]:
+                  - generic [ref=e241]: 󰠔
+                  - generic [ref=e243]:
+                    - generic [ref=e244]: Jobs
+                    - generic [ref=e245]: Find the right job opportunities and kickstart your career.
+                - generic [ref=e246] [cursor=pointer]:
+                  - generic [ref=e247]: View all Jobs
+                  - generic [ref=e248]: 󰁔
+              - generic [ref=e249]:
+                - generic [ref=e250]:
+                  - generic [ref=e251]: G
+                  - generic [ref=e253]:
+                    - generic [ref=e254]: Software Engineering Intern
+                    - generic [ref=e255]:
+                      - generic [ref=e256]: Google · Internship
+                      - generic [ref=e257]: ✦ 87% match
+                  - generic [ref=e259]:
+                    - generic [ref=e260]:
+                      - generic [ref=e261]: 󰟙
+                      - generic [ref=e262]: Bengaluru
+                    - generic [ref=e263]:
+                      - generic [ref=e264]: 󰆯
+                      - generic [ref=e265]: ₹60,000/mo
+                  - generic [ref=e266]:
+                    - generic [ref=e267] [cursor=pointer]: 󰃃
+                    - generic [ref=e269] [cursor=pointer]: Apply
+                - generic [ref=e272]:
+                  - generic [ref=e273]: F
+                  - generic [ref=e275]:
+                    - generic [ref=e276]: Product Management Intern
+                    - generic [ref=e277]:
+                      - generic [ref=e278]: Flipkart · Internship
+                      - generic [ref=e279]: ✦ 87% match
+                  - generic [ref=e281]:
+                    - generic [ref=e282]:
+                      - generic [ref=e283]: 󰟙
+                      - generic [ref=e284]: Bengaluru
+                    - generic [ref=e285]:
+                      - generic [ref=e286]: 󰆯
+                      - generic [ref=e287]: ₹85,000/mo
+                  - generic [ref=e288]:
+                    - generic [ref=e289] [cursor=pointer]: 󰃃
+                    - generic [ref=e291] [cursor=pointer]: Apply
+                - generic [ref=e294]:
+                  - generic [ref=e295]: S
+                  - generic [ref=e297]:
+                    - generic [ref=e298]: Data Science Intern
+                    - generic [ref=e299]:
+                      - generic [ref=e300]: Swiggy · Internship
+                      - generic [ref=e301]: ✦ 87% match
+                  - generic [ref=e303]:
+                    - generic [ref=e304]:
+                      - generic [ref=e305]: 󰟙
+                      - generic [ref=e306]: Remote
+                    - generic [ref=e307]:
+                      - generic [ref=e308]: 󰆯
+                      - generic [ref=e309]: ₹1,20,000/mo
+                  - generic [ref=e310]:
+                    - generic [ref=e311] [cursor=pointer]: 󰃃
+                    - generic [ref=e313] [cursor=pointer]: Apply
+            - generic [ref=e315]:
+              - generic [ref=e316]:
+                - generic [ref=e317]:
+                  - generic [ref=e318]: 󱗖
+                  - generic [ref=e320]:
+                    - generic [ref=e321]: Courses
+                    - generic [ref=e322]: Discover expert-led courses to enhance your skills and grow.
+                - generic [ref=e323] [cursor=pointer]:
+                  - generic [ref=e324]: View all Courses
+                  - generic [ref=e325]: 󰁔
+              - generic [ref=e326]:
+                - generic [ref=e327]:
+                  - generic [ref=e328]: RN
+                  - generic [ref=e330]:
+                    - generic [ref=e331]: Advanced React Native
+                    - generic [ref=e332]: Meta · 12 hours · Advanced
+                  - generic [ref=e333]:
+                    - generic [ref=e334]:
+                      - generic [ref=e335]: 󰓎
+                      - generic [ref=e336]: "4.8"
+                    - generic [ref=e337]: 15.4k learners
+                  - generic [ref=e338]: Continue
+                - generic [ref=e342]:
+                  - generic [ref=e343]: ML
+                  - generic [ref=e345]:
+                    - generic [ref=e346]: Machine Learning A-Z
+                    - generic [ref=e347]: Stanford · 40 hours · Beginner
+                  - generic [ref=e348]:
+                    - generic [ref=e349]:
+                      - generic [ref=e350]: 󰓎
+                      - generic [ref=e351]: "4.9"
+                    - generic [ref=e352]: 120.5k learners
+                  - generic [ref=e353]: Continue
+                - generic [ref=e357]:
+                  - generic [ref=e358]: UX
+                  - generic [ref=e360]:
+                    - generic [ref=e361]: UI/UX Design Masterclass
+                    - generic [ref=e362]: Google · 15 hours · All Levels
+                  - generic [ref=e363]:
+                    - generic [ref=e364]:
+                      - generic [ref=e365]: 󰓎
+                      - generic [ref=e366]: "4.7"
+                    - generic [ref=e367]: 8.5k learners
+                  - generic [ref=e368]: Continue
+            - generic [ref=e371]:
+              - generic [ref=e372]:
+                - generic [ref=e373]:
+                  - generic [ref=e374]: 󰭘
+                  - generic [ref=e376]:
+                    - generic [ref=e377]: Mentors
+                    - generic [ref=e378]: Connect with experienced mentors and get guidance.
+                - generic [ref=e379] [cursor=pointer]:
+                  - generic [ref=e380]: View all Mentors
+                  - generic [ref=e381]: 󰁔
+              - generic [ref=e382]:
+                - generic [ref=e383]:
+                  - generic [ref=e384]: RS
+                  - generic [ref=e386]:
+                    - generic [ref=e387]: Rahul Sharma
+                    - generic [ref=e388]: Senior SDE @ Google
+                  - generic [ref=e389]:
+                    - generic [ref=e390]:
+                      - generic [ref=e391]: 󰓎
+                      - generic [ref=e392]: 4.9 (128)
+                    - generic [ref=e393]: 24 sessions
+                  - generic [ref=e394]:
+                    - generic [ref=e395] [cursor=pointer]: Book Session
+                    - generic [ref=e397] [cursor=pointer]: 󰍥
+                - generic [ref=e400]:
+                  - generic [ref=e401]: PM
+                  - generic [ref=e403]:
+                    - generic [ref=e404]: Priya Mehta
+                    - generic [ref=e405]: Product Manager @ Microsoft
+                  - generic [ref=e406]:
+                    - generic [ref=e407]:
+                      - generic [ref=e408]: 󰓎
+                      - generic [ref=e409]: 4.8 (96)
+                    - generic [ref=e410]: 18 sessions
+                  - generic [ref=e411]:
+                    - generic [ref=e412] [cursor=pointer]: Book Session
+                    - generic [ref=e414] [cursor=pointer]: 󰍥
+                - generic [ref=e417]:
+                  - generic [ref=e418]: AV
+                  - generic [ref=e420]:
+                    - generic [ref=e421]: Arjun Verma
+                    - generic [ref=e422]: Data Scientist @ Amazon
+                  - generic [ref=e423]:
+                    - generic [ref=e424]:
+                      - generic [ref=e425]: 󰓎
+                      - generic [ref=e426]: 4.7 (87)
+                    - generic [ref=e427]: 16 sessions
+                  - generic [ref=e428]:
+                    - generic [ref=e429] [cursor=pointer]: Book Session
+                    - generic [ref=e431] [cursor=pointer]: 󰍥
+                - generic [ref=e434]:
+                  - generic [ref=e435]: SI
+                  - generic [ref=e437]:
+                    - generic [ref=e438]: Sneha Iyer
+                    - generic [ref=e439]: UX Designer @ Adobe
+                  - generic [ref=e440]:
+                    - generic [ref=e441]:
+                      - generic [ref=e442]: 󰓎
+                      - generic [ref=e443]: 4.8 (74)
+                    - generic [ref=e444]: 14 sessions
+                  - generic [ref=e445]:
+                    - generic [ref=e446] [cursor=pointer]: Book Session
+                    - generic [ref=e448] [cursor=pointer]: 󰍥
+                - generic [ref=e451]:
+                  - generic [ref=e452]: VS
+                  - generic [ref=e454]:
+                    - generic [ref=e455]: Vikram Singh
+                    - generic [ref=e456]: Cloud Architect @ AWS
+                  - generic [ref=e457]:
+                    - generic [ref=e458]:
+                      - generic [ref=e459]: 󰓎
+                      - generic [ref=e460]: 4.9 (105)
+                    - generic [ref=e461]: 20 sessions
+                  - generic [ref=e462]:
+                    - generic [ref=e463] [cursor=pointer]: Book Session
+                    - generic [ref=e465] [cursor=pointer]: 󰍥
+        - generic [ref=e469]:
+          - generic [ref=e470]: © 2026 StudentAlumni · All rights reserved
+          - generic [ref=e471]:
+            - generic [ref=e472] [cursor=pointer]: Privacy Policy
+            - generic [ref=e474] [cursor=pointer]: Terms of Service
+            - generic [ref=e476] [cursor=pointer]: Cookies
+      - button "Open AI Copilot — Agent K" [ref=e478] [cursor=pointer]:
+        - generic [ref=e480]:
+          - generic [ref=e481]: ✦
+          - generic [ref=e482]: Agent K
+  - generic [ref=e484]:
+    - generic [ref=e488]:
+      - generic [ref=e489]: We use cookies to make this better
+      - generic [ref=e490]: Essential cookies keep StudentAlumni running. With your consent we also use analytics, functional and marketing cookies to personalise content. Read more in our Privacy Policy and Cookie Policy.
+    - generic [ref=e491]:
+      - generic [ref=e492] [cursor=pointer]: Customize
+      - generic [ref=e497] [cursor=pointer]: Reject optional
+      - generic [ref=e499] [cursor=pointer]: Accept all
+  - generic [ref=e505]:
+    - generic [ref=e506]: Step 1 of 6
+    - generic [ref=e516]: Welcome to your Student portal
+    - generic [ref=e517]: Your home base for jobs, mentors, events and AI-powered career guidance. Let's look around — takes 30 seconds.
+    - generic [ref=e518]:
+      - generic [ref=e519] [cursor=pointer]: Skip tour
+      - generic [ref=e521] [cursor=pointer]: Next
+```
+
+# Test source
+
+```ts
+  1  | const { test, expect } = require('@playwright/test');
+  2  | const LoginPage = require('../../pages/LoginPage');
+  3  | const TestDataGenerator = require('../../utils/TestDataGenerator');
+  4  | 
+  5  | test.describe('Student Portal Complete Suite', () => {
+  6  |   let loginPage;
+  7  | 
+  8  |   test.beforeEach(async ({ page }) => {
+  9  |     loginPage = new LoginPage(page);
+  10 |     await loginPage.navigateTo(process.env.STUDENT_PORTAL_URL || 'http://localhost:8081/login');
+  11 |   });
+  12 | 
+  13 |   test('TC01: Student Login with valid credentials', async ({ page }) => {
+  14 |     await loginPage.login(process.env.STUDENT_USERNAME, process.env.STUDENT_PASSWORD);
+> 15 |     await expect(page).not.hasURL(/\/login$/);
+     |                            ^ TypeError: expect(...).not.hasURL is not a function
+  16 |   });
+  17 | 
+  18 |   test('TC02: Form Validation - Invalid Credentials & Empty Fields', async ({ page }) => {
+  19 |     await loginPage.login('', '');
+  20 |     // Expect form validation trigger or stayed on login
+  21 |     expect(page.url()).toContain('login');
+  22 | 
+  23 |     await loginPage.login('invalid@student.com', 'WrongPass123!');
+  24 |     await page.waitForTimeout(1000);
+  25 |     expect(page.url()).toContain('login');
+  26 |   });
+  27 | 
+  28 |   test('TC03: Security Injection Check on Login Inputs', async ({ page }) => {
+  29 |     const payloads = TestDataGenerator.generateSecurityPayloads();
+  30 |     for (const sqli of payloads.sqli) {
+  31 |       await loginPage.login(sqli, sqli);
+  32 |       expect(page.url()).toContain('login');
+  33 |     }
+  34 |   });
+  35 | 
+  36 |   test('TC04: Console & Performance Audit', async ({ page }) => {
+  37 |     const consoleErrors = await loginPage.checkConsoleErrors();
+  38 |     await loginPage.login(process.env.STUDENT_USERNAME, process.env.STUDENT_PASSWORD);
+  39 |     const metrics = await loginPage.getPerformanceMetrics();
+  40 |     console.log('Student Dashboard Navigation Metrics:', metrics);
+  41 |   });
+  42 | });
+  43 | 
+```

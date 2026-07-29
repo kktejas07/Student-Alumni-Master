@@ -39,11 +39,15 @@ export function AgentKCompanion() {
           /* ── collapsed avatar button ── */
           <button
             onClick={() => setMinimized(false)}
-            className="w-full h-full flex items-center justify-center rounded-3xl
-              bg-gradient-to-br from-indigo-500/30 via-fuchsia-400/20 to-cyan-400/20
-              hover:from-indigo-500/50 hover:via-fuchsia-400/35 transition-all"
+            className="w-full h-full flex items-center justify-center rounded-3xl p-1.5
+              bg-gradient-to-br from-purple-600/40 via-indigo-500/30 to-fuchsia-500/30
+              hover:from-purple-600/60 hover:via-indigo-500/45 transition-all shadow-lg border border-white/20 group"
           >
-            <span className="text-2xl">🤖</span>
+            <img
+              src="/sa-3d-shield.png"
+              alt="SA 3D Shield Logo"
+              className="w-full h-full object-contain drop-shadow-[0_4px_10px_rgba(124,58,237,0.5)] group-hover:scale-110 transition-transform rounded-2xl"
+            />
           </button>
         ) : (
           /* ── expanded 3D view ── */

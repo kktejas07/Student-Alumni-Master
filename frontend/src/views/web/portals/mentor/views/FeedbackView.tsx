@@ -147,7 +147,7 @@ const MOCK_MONTHLY_TREND = [
   { month: 'Apr', score: 4.9, label: '4.9', isCurrent: true },
 ];
 
-export function FeedbackView({ demoMode = true, setDemoMode }: { demoMode?: boolean; setDemoMode?: (val: boolean) => void }) {
+export function FeedbackView({ demoMode = false, setDemoMode }: { demoMode?: boolean; setDemoMode?: (val: boolean) => void }) {
   const toast = useToast();
   const { width } = useWindowDimensions();
   const stack = width < 980;
