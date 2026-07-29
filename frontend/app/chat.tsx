@@ -8,11 +8,12 @@ import {
   TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Send, Sparkles } from 'lucide-react-native';
 import { Colors as C, Spacing, Typography } from '@/src/theme';
 import { api } from '@/src/models/services/api';
 import type { ChatMsg } from '@/src/models/entities';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 const SUGGESTIONS = [
   'What courses should I take next?',
@@ -22,6 +23,9 @@ const SUGGESTIONS = [
 ];
 
 export default function ChatScreen() {
+  const { user } = useAuthStore();
+  const firstName = user?.name?.split(' ')[0] || 'Kavya';
+  
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState('');
@@ -29,14 +33,26 @@ export default function ChatScreen() {
   const [sessionId, setSessionId] = useState<string | undefined>();
   const scrollRef = useRef<ScrollView>(null);
 
+  const { prompt } = useLocalSearchParams<{ prompt?: string }>();
+  const initialPromptSent = useRef(false);
+
   // Restore conversation history on mount
   useEffect(() => {
+    let isMounted = true;
     api.chatHistory().then((res) => {
+      if (!isMounted) return;
       if (res.messages?.length) {
         setMessages(res.messages.map((m: any) => ({ role: m.role, content: m.content })));
       }
+      if (prompt && !initialPromptSent.current) {
+        initialPromptSent.current = true;
+        setTimeout(() => {
+          if (isMounted) send(prompt);
+        }, 100);
+      }
     }).catch(() => {});
-  }, []);
+    return () => { isMounted = false; };
+  }, [prompt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const send = async (text?: string) => {
     const msg = (text ?? input).trim();
@@ -72,7 +88,7 @@ export default function ChatScreen() {
               <Text style={[Typography.bodyBold, { color: C.textPrimary }]}>Career AI</Text>
             </View>
             <Text style={[Typography.label, { color: C.textSecondary, fontSize: 10 }]}>
-              POWERED BY CLAUDE
+              POWERED BY AI
             </Text>
           </View>
           <View style={{ width: 40 }} />
@@ -85,8 +101,7 @@ export default function ChatScreen() {
                 <Sparkles size={32} color={C.white} />
               </View>
               <Text style={[Typography.h3, { color: C.textPrimary, textAlign: 'center', marginTop: 16 }]}>
-                Hi, I'm your{' '}
-                <Text style={{ color: C.brandPurple }}>Career AI</Text>
+                Hi {firstName} How can I help you
               </Text>
               <Text style={[Typography.body, { color: C.textSecondary, textAlign: 'center', marginTop: 8 }]}>
                 Ask anything about courses, internships, mentors, or your roadmap.

@@ -2506,9 +2506,46 @@ async def ai_chat(req: ChatRequest, request: Request):
         f"{base}\n\nYou are speaking with {full_name}, a {role}. "
         "Keep replies concise (2-4 short paragraphs), friendly, and actionable."
     )
+
+    if "mentor" in req.message.lower():
+        mentors = await db.users.find({'role': 'mentor'}).to_list(length=5)
+        if mentors:
+            m_list = []
+            for m in mentors:
+                name = m.get('full_name', 'Unknown')
+                title = m.get('headline', '')
+                company = m.get('institution', '')
+                info = f"- {name}: {title} at {company}"
+                m_info = m.get('mentor_info') or {}
+                exp = m_info.get('expertise', [])
+                if exp:
+                    info += f". Expertise: {', '.join(exp)}"
+                m_list.append(info)
+            system_msg += "\n\nAvailable app mentors context:\n" + "\n".join(m_list) + "\nRecommend these specific mentors from our platform if the user asks."
     session_id = req.session_id or f"chat-{uuid.uuid4().hex[:12]}"
     try:
-        chat = await get_claude_chat(session_id, system_msg)
+        chat = None
+        if user:
+            from core.security import decrypt_value
+            from emergentintegrations.llm.chat import LlmChat, UserMessage
+            settings = await db.user_ai_settings.find_one({"user_id": str(user["_id"])})
+            if settings and settings.get("encrypted_api_key"):
+                try:
+                    api_key = decrypt_value(settings["encrypted_api_key"])
+                    provider = settings.get("provider", "claude")
+                    model = settings.get("model", "claude-3-5-sonnet-20240620")
+                    chat = LlmChat(
+                        api_key=api_key,
+                        session_id=session_id,
+                        system_message=system_msg,
+                    ).with_model(provider, model)
+                except Exception as e:
+                    print(f"Error decrypting user BYOK key or setting up chat: {e}")
+
+        if not chat:
+            chat = await get_claude_chat(session_id, system_msg)
+            
+        from emergentintegrations.llm.chat import UserMessage
         reply = await chat.send_message(UserMessage(text=req.message))
 
         # Persist chat history only if user exists (to render conversation on reload)
