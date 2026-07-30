@@ -164,7 +164,7 @@ const s = StyleSheet.create({
   },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16, paddingHorizontal: 4 },
   brandLogo: { width: 32, height: 32, borderRadius: 8, backgroundColor: CC.accent, alignItems: 'center', justifyContent: 'center' },
-  brandLogoText: { color: '#000', fontFamily: FONTS.xbold, fontSize: 12, letterSpacing: 0.5 },
+  brandLogoText: { color: '#1E1B4B', fontFamily: FONTS.xbold, fontSize: 12, letterSpacing: 0.5 },
   brandTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 13.5, letterSpacing: -0.2 },
   brandSub: { color: CC.muted, fontFamily: FONTS.med, fontSize: 10.5 },
 

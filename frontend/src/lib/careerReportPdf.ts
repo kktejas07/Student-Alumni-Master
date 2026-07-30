@@ -96,6 +96,8 @@ export interface CareerReportData {
   profileStrength: number;
   /** 0-100 — overall roadmap progress */
   progressPct: number;
+  /** Skill streak in days */
+  skillStreak?: number;
   /** ISO string */
   generatedAt?: string;
   /** e.g. "~14 Weeks" */
@@ -115,6 +117,10 @@ export interface CareerReportData {
   }[];
   /** Top ranked actions [{type, title, gain}] */
   rankedActions: { type?: string; milestone_type?: string; title: string; gain: number; description?: string }[];
+  /** AI suggestion line */
+  aiInsights?: string[];
+  /** Recruiter view scores */
+  recruiterView?: { overall: number; resume: number; portfolio: number; communication: number; technical: number };
   /** AI recommendation object */
   recommendation?: { category: string; description: string; gain: string };
 }

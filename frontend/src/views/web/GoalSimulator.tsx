@@ -10,7 +10,7 @@ const C = {
   border: 'rgba(255,255,255,0.08)',
   text: 'rgba(255,255,255,0.55)',
   dim: 'rgba(255,255,255,0.28)',
-  purpleL: '#A78BFA', purple: '#6D28D9', teal: '#2DD4BF', green: '#34D399',
+  purpleL: '#818CF8', purple: '#4338CA', teal: '#2DD4BF', green: '#34D399',
   amber: '#F59E0B', blue: '#60A5FA', pink: '#F472B6',
 };
 
@@ -135,7 +135,7 @@ export function GoalSimulator({ currentReadiness }: { currentReadiness: number }
       {/* Simulated breakdown */}
       {simResult && simResult.breakdown.length > 0 && (
         <View style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 12, marginTop: 12 }}>
-          <Text style={{ color: C.text, fontFamily: FT.bold, fontSize: 9, letterSpacing: 0.8, marginBottom: 8 }}>BREAKDOWN</Text>
+          <Text style={{ color: C.text, fontFamily: FT.bold, fontSize: 9, letterSpacing: 0.8, marginBottom: 8 }}>EXPECTED GAIN</Text>
           {simResult.breakdown.map((b, idx) => (
             <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 3 }}>
               <Text style={{ color: C.text, fontFamily: FT.med, fontSize: 11 }}>{b.title || b.type}</Text>
