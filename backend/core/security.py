@@ -38,7 +38,9 @@ except Exception:
 from .db import db
 
 # ─── JWT configuration ─────────────────────────────────────────────────
-JWT_SECRET = os.environ.get('JWT_SECRET', 'nexusos_secret_jwt_key_2026_alumni_student')
+JWT_SECRET = os.environ.get('JWT_SECRET', '')
+if not JWT_SECRET:
+    raise RuntimeError("JWT_SECRET environment variable is required but missing.")
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour — short-lived; use refresh token for re-auth
 REFRESH_TOKEN_EXPIRE_DAYS = 30

@@ -18,7 +18,9 @@ load_dotenv(Path(__file__).resolve().parent.parent / '.env')
 
 from motor.motor_asyncio import AsyncIOMotorClient  # noqa: E402
 
-mongo_url = os.environ.get('MONGO_URL', 'mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin')
+mongo_url = os.environ.get('MONGO_URL', '')
+if not mongo_url:
+    raise RuntimeError("MONGO_URL environment variable is required but missing.")
 
 # Inject short timeouts so topology discovery never hangs for 60 s.
 _qs = "?" if "?" not in mongo_url else "&"
