@@ -199,16 +199,7 @@ export default function AgentKPage() {
           <Text style={[ss.backText, { color: theme.text }]}>Back to Dashboard</Text>
         </Pressable>
         <View style={{ flex: 1 }} />
-        {!!poweredByLabel && (
-          <LinearGradient
-            colors={grad}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={ss.poweredBy}
-          >
-            <MaterialCommunityIcons name="flash" size={11} color="#fff" />
-            <Text style={ss.poweredByText}>Powered by {poweredByLabel}</Text>
-          </LinearGradient>
-        )}
+
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 60 + (insets.bottom || 0) }}>
@@ -223,13 +214,7 @@ export default function AgentKPage() {
               Personalised automations powered by your connected AI provider.
             </Text>
           </View>
-          {presc?.ai_connected && !presc?.is_admin && (
-            <Pressable onPress={() => router.push(integrationsRoute as any)}
-                       style={[s.miniBtn, { borderColor: theme.hairline }]}>
-              <MaterialCommunityIcons name="key-outline" size={12} color={theme.textSec} />
-              <Text style={[s.miniBtnText, { color: theme.textSec }]}>Manage providers</Text>
-            </Pressable>
-          )}
+
         </View>
 
         {!!error && (
