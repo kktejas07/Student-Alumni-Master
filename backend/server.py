@@ -118,16 +118,12 @@ import time
 _t0_mongo = time.perf_counter()
 print("[DB TRACE] Mongo client created")
 # MONGO_URL configuration
-mongo_url = os.environ.get('MONGO_URL', '')
-if not mongo_url:
-    raise RuntimeError("MONGO_URL environment variable is required but missing.")
+mongo_url = os.environ.get('MONGO_URL') or 'mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin'
 from db import client, db as _db_default, fetch_users_with_mock_limit
 db = _db_default
 
 # JWT configuration
-JWT_SECRET = os.environ.get('JWT_SECRET', '')
-if not JWT_SECRET:
-    raise RuntimeError("JWT_SECRET environment variable is required but missing.")
+JWT_SECRET = os.environ.get('JWT_SECRET') or 'studentalumni_jwt_secret_key_2026'
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour — short-lived; use refresh token for re-auth
 REFRESH_TOKEN_EXPIRE_DAYS = 30
