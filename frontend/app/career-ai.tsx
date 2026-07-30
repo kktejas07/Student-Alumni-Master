@@ -63,13 +63,13 @@ const C = {
   border: 'rgba(255, 255, 255, 0.08)',
   border2: 'rgba(255, 255, 255, 0.14)',
   text: '#F0EEFF',
-  text2: 'rgba(240, 238, 255, 0.65)',
-  textSub: 'rgba(240, 238, 255, 0.45)',
-  dim: 'rgba(240, 238, 255, 0.30)',
-  purple: '#6D28D9',
-  purple2: '#7C3AED',
-  purpleL: '#A78BFA',
-  purpleXL: '#C4B5FD',
+  text2: 'rgba(240, 238, 255, 0.80)',
+  textSub: 'rgba(240, 238, 255, 0.60)',
+  dim: 'rgba(240, 238, 255, 0.45)',
+  purple: '#4F46E5',
+  purple2: '#6366F1',
+  purpleL: '#818CF8',
+  purpleXL: '#A5B4FC',
   teal: '#2DD4BF',
   blue: '#60A5FA',
   amber: '#F59E0B',
@@ -90,7 +90,7 @@ const SKILL_META = [
   { key: 'Technical Excellence',       label: 'Technical Excellence',       short: 'Technical Excellence',       color: '#38BDF8', Icon: Code, status: 'Strong' },
   { key: 'Professional Communication', label: 'Professional Communication', short: 'Professional Communication', color: '#60A5FA', Icon: MessageSquare, status: 'Developing' },
   { key: 'Leadership & Collaboration', label: 'Leadership & Collaboration', color: '#2DD4BF', Icon: Award, status: 'Needs Work' },
-  { key: 'Projects & Practical Skills',label: 'Projects & Practical Skills',color: '#A78BFA', Icon: Folder, status: 'Strong' },
+  { key: 'Projects & Practical Skills',label: 'Projects & Practical Skills',color: '#818CF8', Icon: Folder, status: 'Strong' },
   { key: 'Personal Brand',             label: 'Personal Brand',             short: 'Personal Brand',             color: '#F59E0B', Icon: Star, status: 'Developing' },
   { key: 'Industry Presence',          label: 'Industry Presence',          short: 'Industry Presence',          color: '#EC4899', Icon: UserIcon, status: 'Needs Work' },
 ];
@@ -254,9 +254,11 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
         potentialLevel: getLevelForScore(potentialScore),
         estimatedWeeks,
         profileStrength,
+        progressPct: progress || 0,
         skillStreak,
         skillScores,
         milestones: allMilestones,
+        rankedActions,
         aiInsights: [
           'Your resume is the biggest growth opportunity. Completing it can increase your readiness by 8%.',
           'Adding 3 quality projects will boost your readiness by 5% and showcase your practical skills.',
@@ -333,7 +335,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
 
       {/* ══════════════ 2. HERO MISSION CARD ══════════════ */}
       <LinearGradient
-        colors={['rgba(91, 33, 182, 0.50)', 'rgba(24, 18, 48, 0.90)', 'rgba(18, 22, 35, 0.95)']}
+        colors={['rgba(55, 48, 163, 0.50)', 'rgba(24, 18, 48, 0.90)', 'rgba(18, 22, 35, 0.95)']}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={s.heroCard}
       >
@@ -377,6 +379,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
                     stroke={6}
                     color={C.purpleL}
                     trackColor="rgba(255,255,255,0.08)"
+                    hideText={true}
                   />
                   <Text style={s.heroRingText}>{readinessScore}%</Text>
                 </View>
@@ -430,7 +433,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
           trendText="+8% from last week"
           trendPositive={true}
           subText={readinessLevel}
-          iconElement={<CompletionRing pct={readinessScore} size={18} stroke={2.5} color={C.purpleL} trackColor="transparent" />}
+          iconElement={<CompletionRing pct={readinessScore} size={18} stroke={2.5} color={C.purpleL} trackColor="transparent" hideText={true} />}
           onPress={() => setShowExplainModal(true)}
           style={{ flex: 1 }}
         />
@@ -664,23 +667,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
         </View>
       </View>
 
-      {/* ══════════════ 9. FOOTER ══════════════ */}
-      <View style={s.footerRow}>
-        <Text style={s.footerCopy}>© 2026 StudentAlumni · All rights reserved</Text>
-        <View style={s.footerLinks}>
-          <Pressable onPress={() => {}} style={s.footerLinkBtn}>
-            <Text style={s.footerLinkText}>Privacy Policy</Text>
-          </Pressable>
-          <Text style={s.footerDot}>·</Text>
-          <Pressable onPress={() => {}} style={s.footerLinkBtn}>
-            <Text style={s.footerLinkText}>Terms of Service</Text>
-          </Pressable>
-          <Text style={s.footerDot}>·</Text>
-          <Pressable onPress={() => {}} style={s.footerLinkBtn}>
-            <Text style={s.footerLinkText}>Cookies</Text>
-          </Pressable>
-        </View>
-      </View>
+
 
     </Container>
   );
@@ -737,11 +724,11 @@ const s = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: RADIUS.btn,
     borderWidth: 1,
-    borderColor: 'rgba(167, 139, 250, 0.35)',
-    backgroundColor: 'rgba(167, 139, 250, 0.08)',
+    borderColor: 'rgba(129, 140, 248, 0.35)',
+    backgroundColor: 'rgba(129, 140, 248, 0.08)',
   },
   regenBtnHover: {
-    backgroundColor: 'rgba(167, 139, 250, 0.18)',
+    backgroundColor: 'rgba(129, 140, 248, 0.18)',
   },
   regenBtnText: {
     color: C.purpleL,
@@ -758,7 +745,7 @@ const s = StyleSheet.create({
     backgroundColor: C.purple2,
   },
   reportBtnHover: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: '#6366F1',
   },
   reportBtnText: {
     color: '#FFF',
@@ -769,12 +756,12 @@ const s = StyleSheet.create({
   /* 2. Hero Mission Card */
   heroCard: {
     borderRadius: RADIUS.card,
-    borderColor: 'rgba(167, 139, 250, 0.25)',
+    borderColor: 'rgba(129, 140, 248, 0.25)',
     borderWidth: 1,
     padding: SPACING.xl,
     overflow: 'hidden',
-    ...(Platform.OS === 'web' ? { boxShadow: '0 8px 32px rgba(109, 40, 217, 0.25)' } as any : {}),
-    backgroundColor: 'rgba(109, 40, 217, 0.15)',
+    ...(Platform.OS === 'web' ? { boxShadow: '0 8px 32px rgba(79, 70, 229, 0.25)' } as any : {}),
+    backgroundColor: 'rgba(79, 70, 229, 0.15)',
   },
   heroContentRow: {
     flexDirection: 'row',
@@ -907,7 +894,7 @@ const s = StyleSheet.create({
     marginTop: 8,
   },
   continueBtnHover: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: '#6366F1',
   },
   continueBtnText: {
     color: '#FFF',
@@ -938,7 +925,7 @@ const s = StyleSheet.create({
     width: 2,
     height: 2,
     borderRadius: 1,
-    backgroundColor: '#C4B5FD',
+    backgroundColor: '#A5B4FC',
     opacity: 0.7,
   },
   heroStar2: {
@@ -948,7 +935,7 @@ const s = StyleSheet.create({
     width: 3,
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: '#A78BFA',
+    backgroundColor: '#818CF8',
     opacity: 0.5,
   },
   heroStar3: {
@@ -968,7 +955,7 @@ const s = StyleSheet.create({
     width: 2,
     height: 2,
     borderRadius: 1,
-    backgroundColor: '#C4B5FD',
+    backgroundColor: '#A5B4FC',
     opacity: 0.6,
   },
   heroStar5: {
@@ -987,7 +974,7 @@ const s = StyleSheet.create({
     right: 82,
     width: 120,
     height: 1,
-    backgroundColor: 'rgba(196, 181, 253, 0.15)',
+    backgroundColor: 'rgba(165, 180, 252, 0.15)',
     transform: [{ rotate: '25deg' }],
   },
   heroConstLine2: {
@@ -1030,7 +1017,7 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sectionTitle: {
-    color: 'rgba(238,240,255,0.45)',
+    color: C.purpleXL,
     fontFamily: FT.bold,
     fontSize: 18,
     letterSpacing: 1.2,
@@ -1072,7 +1059,7 @@ const s = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(124, 58, 237, 0.20)',
+    backgroundColor: 'rgba(99, 102, 241, 0.20)',
     borderColor: C.purpleL,
     borderWidth: 1,
     alignItems: 'center',
@@ -1082,8 +1069,8 @@ const s = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: RADIUS.chip,
-    backgroundColor: 'rgba(167, 139, 250, 0.12)',
-    borderColor: 'rgba(167, 139, 250, 0.25)',
+    backgroundColor: 'rgba(129, 140, 248, 0.12)',
+    borderColor: 'rgba(129, 140, 248, 0.25)',
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1154,8 +1141,8 @@ const s = StyleSheet.create({
   },
   improvementCard: {
     flex: 1,
-    backgroundColor: 'rgba(91, 33, 182, 0.25)',
-    borderColor: 'rgba(167, 139, 250, 0.30)',
+    backgroundColor: 'rgba(55, 48, 163, 0.25)',
+    borderColor: 'rgba(129, 140, 248, 0.30)',
     borderWidth: 1,
     borderRadius: RADIUS.card,
     padding: SPACING.lg,
@@ -1180,7 +1167,7 @@ const s = StyleSheet.create({
 
   /* Recruiter View */
   betaTag: {
-    backgroundColor: 'rgba(167, 139, 250, 0.15)',
+    backgroundColor: 'rgba(129, 140, 248, 0.15)',
     borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 1,

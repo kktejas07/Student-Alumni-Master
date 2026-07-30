@@ -10,7 +10,7 @@ const C = {
   border: 'rgba(255,255,255,0.08)',
   text: 'rgba(255,255,255,0.55)',
   dim: 'rgba(255,255,255,0.28)',
-  purpleL: '#A78BFA', purple: '#6D28D9', teal: '#2DD4BF', green: '#34D399',
+  purpleL: '#818CF8', purple: '#4338CA', teal: '#2DD4BF', green: '#34D399',
   amber: '#F59E0B', blue: '#60A5FA', pink: '#F472B6',
 };
 

@@ -82,8 +82,8 @@ const s = StyleSheet.create({
     ...ROW_WEB,
   },
   rowTop: {
-    backgroundColor: 'rgba(124,58,237,0.05)',
-    borderColor: 'rgba(124,58,237,0.22)',
+    backgroundColor: 'rgba(79,70,229,0.05)',
+    borderColor: 'rgba(79,70,229,0.22)',
   },
   rowHover: {
     backgroundColor: COLORS.cardHover,
@@ -101,7 +101,7 @@ const s = StyleSheet.create({
     flexShrink: 0,
   },
   numTop: {
-    backgroundColor: 'rgba(124,58,237,0.22)',
+    backgroundColor: 'rgba(79,70,229,0.22)',
   },
   numText: {
     color: COLORS.text2,

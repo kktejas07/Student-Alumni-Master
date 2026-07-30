@@ -88,7 +88,7 @@ export const SkillsRadarChart = memo(function SkillsRadarChart({ skillScores }: 
           {/* Data Polygon */}
           <Polygon
             points={polygonPointsStr}
-            fill="rgba(167,139,250,0.22)"
+            fill="rgba(129,140,248,0.22)"
             stroke={COLORS.purpleL}
             strokeWidth={2}
           />

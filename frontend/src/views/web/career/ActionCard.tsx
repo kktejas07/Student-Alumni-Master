@@ -97,10 +97,10 @@ const s = StyleSheet.create({
     ...ROW_WEB,
   },
   rowTop: {
-    backgroundColor: 'rgba(124,58,237,0.07)',
-    borderColor: 'rgba(124,58,237,0.28)',
+    backgroundColor: 'rgba(79,70,229,0.07)',
+    borderColor: 'rgba(79,70,229,0.28)',
     ...(Platform.OS === 'web'
-      ? ({ boxShadow: '0 0 0 1px rgba(124,58,237,0.18) inset' } as any)
+      ? ({ boxShadow: '0 0 0 1px rgba(79,70,229,0.18) inset' } as any)
       : {}),
   },
   rowHover: {
@@ -118,7 +118,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   rankTop: {
-    backgroundColor: 'rgba(124,58,237,0.20)',
+    backgroundColor: 'rgba(79,70,229,0.20)',
   },
   rankText: {
     color: COLORS.textSub,

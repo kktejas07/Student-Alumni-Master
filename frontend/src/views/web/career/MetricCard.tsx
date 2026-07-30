@@ -67,7 +67,7 @@ export const MetricCard = memo(function MetricCard({
               {trendText}
             </Text>
           ) : (
-            <Text style={s.sub} numberOfLines={1}>{subText}</Text>
+            <Text style={[s.sub, { color }]} numberOfLines={1}>{subText}</Text>
           )}
           {hintText && !trendText ? (
             <Text style={[s.hint, { color: COLORS.textSub }]} numberOfLines={1}>{hintText}</Text>
@@ -111,7 +111,7 @@ const s = StyleSheet.create({
   },
   cardHover: {
     backgroundColor: 'rgba(26, 30, 50, 0.90)',
-    borderColor: 'rgba(167, 139, 250, 0.30)',
+    borderColor: 'rgba(129, 140, 248, 0.30)',
     ...CARD_HOVER_SHADOW,
   },
   body: {
@@ -134,7 +134,7 @@ const s = StyleSheet.create({
   },
   colorDot: { width: 10, height: 10, borderRadius: 5 },
   label: {
-    color: 'rgba(238,240,255,0.45)',
+    color: 'rgba(238,240,255,0.65)',
     fontFamily: FONT_FAMILIES.bold,
     fontSize: FONT_SIZES.xs,
     letterSpacing: 0.8,

@@ -28,7 +28,7 @@ export const SkillBar = memo(function SkillBar({ label, score, baseColor, icon: 
         <View style={[s.iconWrap, { backgroundColor: baseColor + '1F', borderColor: baseColor + '35' }]}>
           <Icon size={14} color={baseColor} />
         </View>
-        <Text style={s.name} numberOfLines={1}>{label}</Text>
+        <Text style={[s.name, { color: baseColor }]} numberOfLines={1}>{label}</Text>
       </View>
 
       {/* Bar */}

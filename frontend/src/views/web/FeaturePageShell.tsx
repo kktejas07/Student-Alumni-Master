@@ -36,8 +36,8 @@ export const EmbeddedShellContext = React.createContext<boolean>(false);
 
 // Single source of truth for sidebar navigation
 const NAV: NavItem[] = [
-  { id: 'home',              Icon: HomeIcon,       label: 'Dashboard',        color: '#A78BFA' },
-  { id: 'career',            Icon: Sparkles,       label: 'Career AI',        color: '#A78BFA' },
+  { id: 'home',              Icon: HomeIcon,       label: 'Dashboard',        color: '#818CF8' },
+  { id: 'career',            Icon: Sparkles,       label: 'Career AI',        color: '#818CF8' },
   { id: 'internships',       Icon: Briefcase,      label: 'Internships',      color: '#34D399' },
   { id: 'courses',           Icon: BookOpen,       label: 'Courses',          color: '#22D3EE' },
   { id: 'higher-education',  Icon: GraduationCap,  label: 'Higher Education', color: '#FCD34D' },
@@ -46,9 +46,9 @@ const NAV: NavItem[] = [
   { id: 'financial',         Icon: Wallet,         label: 'Financial',        color: '#FCD34D' },
   { id: 'wallet',            Icon: Wallet,         label: 'Wallet',           color: '#86EFAC' },
   { id: 'insurance',         Icon: Shield,         label: 'Insurance',        color: '#60A5FA' },
-  { id: 'rentals',           Icon: Building2,      label: 'Rentals',          color: '#A78BFA' },
+  { id: 'rentals',           Icon: Building2,      label: 'Rentals',          color: '#818CF8' },
   { id: 'deals',             Icon: Gift,           label: 'Deals',            color: '#F472B6' },
-  { id: 'profile',           Icon: UserIcon,       label: 'Profile',          color: '#A78BFA' },
+  { id: 'profile',           Icon: UserIcon,       label: 'Profile',          color: '#818CF8' },
 ];
 
 // Map NAV id ↔ Expo-router route
@@ -113,14 +113,14 @@ export default function FeaturePageShell({
 
   let pageBgColors = ['#0a0f1e', '#131938'] as any;
   let sidebarBg = 'rgba(10, 15, 30, 0.92)';
-  let railColor = '#8B5CF6';
+  let railColor = '#6366F1';
   let brandSubtitle = 'Web Dashboard';
-  let orbColor1 = 'rgba(139,92,246,0.18)';
+  let orbColor1 = 'rgba(99,102,241,0.18)';
   let orbColor2 = 'rgba(59,130,246,0.18)';
-  let heroBorder = 'rgba(139,92,246,0.20)';
-  let heroBg = 'rgba(124, 58, 237, 0.18)';
-  let heroBoxShadow = '0 20px 60px -12px rgba(139,92,246,0.25), 0 0 0 1px rgba(255, 255, 255, 0.08) inset';
-  let heroOrbColor1 = 'rgba(139,92,246,0.22)';
+  let heroBorder = 'rgba(99,102,241,0.20)';
+  let heroBg = 'rgba(79, 70, 229, 0.18)';
+  let heroBoxShadow = '0 20px 60px -12px rgba(99,102,241,0.25), 0 0 0 1px rgba(255, 255, 255, 0.08) inset';
+  let heroOrbColor1 = 'rgba(99,102,241,0.22)';
   let heroOrbColor2 = 'rgba(191,219,254,0.18)';
   let avatarGradient: readonly [string, string] | undefined = undefined;
 

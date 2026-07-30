@@ -152,15 +152,24 @@ export function useCareerAI() {
   const generateCareerReport = useCallback(async () => {
     setGeneratingPdf(true);
     try {
-      const { generateCareerPdf } = await import('@/src/lib/careerReportPdf');
-      await generateCareerPdf({
-        user,
+      const { generateCareerReportPdf } = await import('@/src/lib/careerReportPdf');
+      await generateCareerReportPdf({
+        studentName: user?.full_name || user?.email || 'Student',
+        targetRole,
+        targetCompany: targetCo || 'Top Company',
         readinessScore,
         readinessLevel,
-        targetRole,
+        nextGoal,
+        bandProgress,
+        potentialScore,
+        potentialLevel: getLevelForScore(potentialScore),
+        profileStrength,
+        progressPct: progress,
+        estimatedWeeks: String(estimatedWeeks),
         skillScores,
+        milestones: allMilestones,
         rankedActions,
-        allMilestones,
+        skillStreak,
       });
     } catch (e) {
       console.warn('PDF generation error:', e);
@@ -204,3 +213,10 @@ export function useCareerAI() {
     generateCareerReport,
   };
 }
+
+export interface Milestone {
+  title: string;
+  description: string;
+  completed: boolean;
+}
+

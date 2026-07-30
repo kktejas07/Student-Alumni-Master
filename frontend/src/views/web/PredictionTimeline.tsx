@@ -55,13 +55,13 @@ export function PredictionTimeline({ data }: { data?: any }) {
           <Svg width="100%" height={160} viewBox="0 0 480 160" preserveAspectRatio="none">
             <Defs>
               <SvgLinearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-                <Stop offset="0%" stopColor="#A78BFA" />
-                <Stop offset="50%" stopColor="#8B5CF6" />
-                <Stop offset="100%" stopColor="#C4B5FD" />
+                <Stop offset="0%" stopColor="#818CF8" />
+                <Stop offset="50%" stopColor="#6366F1" />
+                <Stop offset="100%" stopColor="#A5B4FC" />
               </SvgLinearGradient>
               <SvgLinearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0%" stopColor="#7C3AED" stopOpacity={0.35} />
-                <Stop offset="100%" stopColor="#7C3AED" stopOpacity={0.0} />
+                <Stop offset="0%" stopColor="#4F46E5" stopOpacity={0.35} />
+                <Stop offset="100%" stopColor="#4F46E5" stopOpacity={0.0} />
               </SvgLinearGradient>
             </Defs>
 
@@ -79,17 +79,16 @@ export function PredictionTimeline({ data }: { data?: any }) {
             {/* Dots and Labels */}
             {points.map((p, i) => (
               <React.Fragment key={i}>
-                <Circle cx={p.x} cy={p.y} r={5} fill="#C4B5FD" stroke="#18162A" strokeWidth="2" />
+                <Circle cx={p.x} cy={p.y} r={5} fill="#A5B4FC" stroke="#18162A" strokeWidth="2" />
               </React.Fragment>
             ))}
           </Svg>
 
-          {/* HTML Overlay Labels for perfect crisp typography */}
           <View style={s.overlayLabels}>
             {points.map((p, i) => (
-              <View key={i} style={[s.pointCol, { left: `${(i / 5) * 88 + 4}%` }]}>
+              <View key={i} style={[s.pointCol, { left: `${(p.x / 480) * 100}%` }]}>
                 <Text style={s.scoreText}>{p.score}%</Text>
-                <Text style={s.labelText}>{p.label}</Text>
+                <Text style={s.labelText} numberOfLines={1}>{p.label}</Text>
               </View>
             ))}
           </View>
@@ -158,25 +157,29 @@ const s = StyleSheet.create({
   pointCol: {
     position: 'absolute',
     alignItems: 'center',
-    transform: [{ translateX: -20 }],
+    width: 80,
+    marginLeft: -40,
+    height: '100%' as any,
   },
   scoreText: {
     color: '#FFF',
     fontFamily: FONT_FAMILIES.bold,
     fontSize: 13,
-    marginBottom: 20,
+    marginTop: 8,
   },
   labelText: {
     color: COLORS.text2,
     fontFamily: FONT_FAMILIES.med,
     fontSize: 12,
     position: 'absolute',
-    bottom: 0,
+    bottom: 8,
+    width: '100%',
+    textAlign: 'center',
   },
   insightCard: {
     flex: 1,
-    backgroundColor: 'rgba(109, 40, 217, 0.12)',
-    borderColor: 'rgba(167, 139, 250, 0.25)',
+    backgroundColor: 'rgba(67, 56, 202, 0.12)',
+    borderColor: 'rgba(129, 140, 248, 0.25)',
     borderWidth: 1,
     borderRadius: RADIUS.card,
     padding: SPACING.md,
@@ -200,8 +203,8 @@ const s = StyleSheet.create({
     fontFamily: FONT_FAMILIES.bold,
   },
   insightBtn: {
-    backgroundColor: 'rgba(167, 139, 250, 0.15)',
-    borderColor: 'rgba(167, 139, 250, 0.35)',
+    backgroundColor: 'rgba(129, 140, 248, 0.15)',
+    borderColor: 'rgba(129, 140, 248, 0.35)',
     borderWidth: 1,
     borderRadius: RADIUS.btn,
     paddingVertical: 10,
@@ -210,7 +213,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   insightBtnHover: {
-    backgroundColor: 'rgba(167, 139, 250, 0.25)',
+    backgroundColor: 'rgba(129, 140, 248, 0.25)',
   },
   insightBtnText: {
     color: COLORS.purpleL,
