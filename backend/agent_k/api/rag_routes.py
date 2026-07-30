@@ -10,9 +10,12 @@ from agent_k.rag.store import upsert_chunks, delete_document
 
 router = APIRouter(tags=["agent-k-rag"])
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 KNOWLEDGE_BASE_DIR = BASE_DIR / "knowledge_base"
-os.makedirs(KNOWLEDGE_BASE_DIR, exist_ok=True)
+try:
+    os.makedirs(KNOWLEDGE_BASE_DIR, exist_ok=True)
+except Exception as e:
+    print(f"[RAG] Warning: Could not create knowledge_base directory ({e})")
 
 class ReindexResponse(BaseModel):
     status: str
