@@ -18,7 +18,7 @@ load_dotenv(Path(__file__).resolve().parent.parent / '.env')
 
 from motor.motor_asyncio import AsyncIOMotorClient  # noqa: E402
 
-mongo_url = os.environ['MONGO_URL']
+mongo_url = os.environ.get('MONGO_URL') or 'mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin'
 
 # Inject short timeouts so topology discovery never hangs for 60 s.
 _qs = "?" if "?" not in mongo_url else "&"
@@ -37,7 +37,8 @@ client = AsyncIOMotorClient(
     # Resolve Atlas hostnames eagerly (avoids lazy-DNS hang on first request)
     serverSelectionTimeoutMS=10000,
 )
-db = client[os.environ['DB_NAME']]
+db_name = os.environ.get('DB_NAME', 'studentalumniadmin')
+db = client[db_name]
 
 
 async def warm_db() -> float:

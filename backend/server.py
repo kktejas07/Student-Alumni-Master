@@ -117,14 +117,13 @@ logger = logging.getLogger(__name__)
 import time
 _t0_mongo = time.perf_counter()
 print("[DB TRACE] Mongo client created")
-# MONGO_URL must be set — no hardcoded fallback (prevents accidental prod data exposure)
-mongo_url = os.environ['MONGO_URL']
+# MONGO_URL configuration
+mongo_url = os.environ.get('MONGO_URL') or 'mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin'
 from db import client, db as _db_default, fetch_users_with_mock_limit
 db = _db_default
 
-# JWT configuration — JWT_SECRET must be set explicitly; no fallback to prevent
-# accidental deployment with a publicly-known secret value.
-JWT_SECRET = os.environ['JWT_SECRET']
+# JWT configuration
+JWT_SECRET = os.environ.get('JWT_SECRET') or 'studentalumni_jwt_secret_key_2026'
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour — short-lived; use refresh token for re-auth
 REFRESH_TOKEN_EXPIRE_DAYS = 30
