@@ -10,7 +10,7 @@ from agent_k.api.auth import resolve_user
 router = APIRouter(tags=["agent-k-providers"])
 
 class BYOKRequest(BaseModel):
-    provider: Literal["openai", "claude", "gemini", "groq"]
+    provider: Literal["openai", "claude", "gemini", "groq", "featherless"]
     api_key: str = Field(..., min_length=10)
     model: str = Field(...)
 

@@ -6,6 +6,8 @@ from agent_k.tools.read_tools import (
     search_mentors,
     search_courses,
     get_profile,
+    search_events,
+    search_scholarships,
 )
 from agent_k.tools.write_tools import (
     draft_application,
@@ -76,6 +78,33 @@ TOOL_REGISTRY: Dict[str, Dict[str, Any]] = {
         "description": "Get the user's own profile (skills, tier, career goal, year).",
         "parameters": {"type": "object", "properties": {}},
     },
+    "search_events": {
+        "module": "events",
+        "side_effect": "read",
+        "requires_approval": False,
+        "enabled": True,
+        "description": "Search SA events and external hackathons.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "category": {"type": "string"},
+                "limit":    {"type": "integer", "default": 5, "maximum": 10},
+            },
+        },
+    },
+    "search_scholarships": {
+        "module": "financial",
+        "side_effect": "read",
+        "requires_approval": False,
+        "enabled": True,
+        "description": "Search available scholarships and financial aid.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "limit": {"type": "integer", "default": 5, "maximum": 10},
+            },
+        },
+    },
     # ── Write tools (Chunk 2: ENABLED — generate drafts only, no submission) ──
     "draft_application": {
         "module": "jobs", "side_effect": "write", "requires_approval": False, "enabled": True,
@@ -122,6 +151,8 @@ TOOL_DISPATCH = {
     "search_mentors":      search_mentors,
     "search_courses":      search_courses,
     "get_profile":         get_profile,
+    "search_events":       search_events,
+    "search_scholarships": search_scholarships,
     "draft_application":   draft_application,
     "tailor_cv_for_job":   tailor_cv_for_job,
     "draft_sop":           draft_sop,

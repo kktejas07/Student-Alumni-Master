@@ -10,7 +10,8 @@ from agent_k.rag.store import upsert_chunks, delete_document
 
 router = APIRouter(tags=["agent-k-rag"])
 
-KNOWLEDGE_BASE_DIR = Path("knowledge_base")
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+KNOWLEDGE_BASE_DIR = BASE_DIR / "knowledge_base"
 os.makedirs(KNOWLEDGE_BASE_DIR, exist_ok=True)
 
 class ReindexResponse(BaseModel):
@@ -140,11 +141,25 @@ async def reindex_all():
     except Exception:
         pass
         
-    for file_path in KNOWLEDGE_BASE_DIR.iterdir():
+    paths_to_index = []
+    if KNOWLEDGE_BASE_DIR.exists():
+        paths_to_index.extend(KNOWLEDGE_BASE_DIR.rglob("*"))
+        
+    root_dir = KNOWLEDGE_BASE_DIR.parent
+    for doc in ["PROJECT_FEATURES.md", "CHANGELOG.md", "DOKPLOY.md", "RELEASE_NOTES.md", "TEST_REPORT.md", "AGENTS.md", "backend/agent_k/README.md"]:
+        p = root_dir / doc
+        if p.exists():
+            paths_to_index.append(p)
+
+    for file_path in paths_to_index:
         if file_path.is_file() and file_path.suffix.lower() in [".md", ".txt", ".pdf", ".docx"]:
             try:
                 text = parse_document(str(file_path))
-                chunks = chunk_text(text, document_name=file_path.name)
+                try:
+                    doc_name = str(file_path.relative_to(root_dir))
+                except ValueError:
+                    doc_name = file_path.name
+                chunks = chunk_text(text, document_name=doc_name)
                 upsert_chunks(chunks)
                 documents_indexed += 1
                 total_chunks += len(chunks)

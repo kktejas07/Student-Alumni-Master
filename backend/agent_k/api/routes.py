@@ -23,8 +23,27 @@ from agent_k.memory.repository import (
     get_run_by_id, list_runs_for_user, get_user_prefs, update_user_prefs
 )
 from agent_k.tools.registry import TOOL_REGISTRY
+from agent_k.rag.retrieval import QdrantRetriever
 
 router = APIRouter(tags=["agent-k"])
+
+@router.get("/agent-k/debug")
+async def debug_qdrant():
+    try:
+        from agent_k.rag.store import client, COLLECTION_NAME
+        exists = client.collection_exists(COLLECTION_NAME)
+        count = client.count(collection_name=COLLECTION_NAME).count if exists else 0
+        test_results = QdrantRetriever.query("give me the top 10 connections i had to make in this platform according to my role", top_k=1, user_role="student")
+        return {
+            "exists": exists, 
+            "count": count, 
+            "test_results_count": len(test_results),
+            "test_max_score": max([r["score"] for r in test_results]) if test_results else 0,
+            "document_name": test_results[0]["document_name"] if test_results else "None",
+            "text_snippet": test_results[0]["text"][:100] if test_results else "None"
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 class ChatRequest(BaseModel):
     message: str

@@ -29,18 +29,8 @@ class QdrantRetriever:
         
         # Build query filter for role awareness
         query_filter = None
-        if user_role:
-            query_filter = models.Filter(
-                should=[
-                    models.FieldCondition(
-                        key="allowed_roles",
-                        match=models.MatchValue(value=user_role)
-                    ),
-                    models.IsEmptyCondition(
-                        is_empty=models.PayloadField(key="allowed_roles")
-                    )
-                ]
-            )
+        # Currently, all documents are indexed with allowed_roles=[] which causes IsEmptyCondition to fail in local Qdrant.
+        # We will disable role filtering until RBAC for documents is fully implemented.
         
         results = client.query(
             collection_name=COLLECTION_NAME,

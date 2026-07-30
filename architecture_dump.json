@@ -1,0 +1,973 @@
+{
+  "server.py": {
+    "classes": [
+      {
+        "name": "SchoolInfo",
+        "fields": [
+          "institution_name",
+          "institution_type",
+          "class_or_year",
+          "branch_or_stream",
+          "board_or_university",
+          "city",
+          "state",
+          "country",
+          "graduation_year"
+        ]
+      },
+      {
+        "name": "MentorInfo",
+        "fields": [
+          "category",
+          "organization",
+          "job_title",
+          "linkedin_url",
+          "years_of_experience",
+          "bio",
+          "session_price_inr",
+          "categories",
+          "education_level",
+          "expertise",
+          "availability",
+          "profile_photo",
+          "college",
+          "college_batch"
+        ]
+      },
+      {
+        "name": "CollegeInfo",
+        "fields": [
+          "institution_name",
+          "institution_type",
+          "affiliated_university",
+          "official_website",
+          "city",
+          "state",
+          "country",
+          "accreditation",
+          "year_established",
+          "ranking_tier",
+          "accreditations",
+          "contact_name",
+          "contact_designation",
+          "contact_official_email",
+          "contact_phone",
+          "features_needed",
+          "logo",
+          "cover_photo",
+          "bio",
+          "writing_style"
+        ]
+      },
+      {
+        "name": "AlumniInfo",
+        "fields": [
+          "graduation_year",
+          "university",
+          "current_employer",
+          "current_role",
+          "employment_status",
+          "linkedin_url",
+          "wants_to_mentor",
+          "mentor_category",
+          "mentor_categories",
+          "years_of_experience",
+          "domain_expertise",
+          "tech_skills",
+          "business_skills",
+          "soft_skills",
+          "next_chapter",
+          "profile_photo",
+          "bio",
+          "writing_style"
+        ]
+      },
+      {
+        "name": "StudentInfo",
+        "fields": [
+          "age",
+          "education_level",
+          "career_interests",
+          "career_goal",
+          "cgpa"
+        ]
+      },
+      {
+        "name": "RegisterRequest",
+        "fields": [
+          "email",
+          "password",
+          "full_name",
+          "role",
+          "phone",
+          "dob",
+          "country_code",
+          "postal_code"
+        ]
+      },
+      {
+        "name": "LoginRequest",
+        "fields": [
+          "email",
+          "password"
+        ]
+      },
+      {
+        "name": "ForgotPasswordRequest",
+        "fields": [
+          "email"
+        ]
+      },
+      {
+        "name": "VerifyResetOtpRequest",
+        "fields": [
+          "email",
+          "otp"
+        ]
+      },
+      {
+        "name": "ResetPasswordRequest",
+        "fields": [
+          "email",
+          "otp",
+          "new_password"
+        ]
+      },
+      {
+        "name": "OnboardingRequest",
+        "fields": [
+          "school_info",
+          "career_path",
+          "student_info",
+          "alumni_info",
+          "mentor_info",
+          "college_info",
+          "interests",
+          "skills",
+          "bio",
+          "face_image_base64",
+          "phone"
+        ]
+      },
+      {
+        "name": "UserResponse",
+        "fields": [
+          "id",
+          "email",
+          "full_name",
+          "role",
+          "phone",
+          "unique_id",
+          "qr_code_base64",
+          "school_info",
+          "career_path",
+          "student_info",
+          "alumni_info",
+          "mentor_info",
+          "college_info",
+          "mentor_status",
+          "interests",
+          "skills",
+          "bio",
+          "face_image_base64",
+          "onboarding_completed",
+          "two_fa_enabled",
+          "dob",
+          "country_code",
+          "postal_code",
+          "created_at",
+          "first_name",
+          "last_name",
+          "headline",
+          "photo_data",
+          "banner_data",
+          "college_logo_data",
+          "institution",
+          "branch",
+          "stream",
+          "department",
+          "graduation_year",
+          "cgpa",
+          "location",
+          "city",
+          "state",
+          "linkedin_url",
+          "github_url",
+          "portfolio_url",
+          "primary_skill",
+          "profile_visibility",
+          "section_toggles",
+          "projects",
+          "preferences",
+          "is_verified",
+          "ranking_tier",
+          "badges"
+        ]
+      },
+      {
+        "name": "AuthResponse",
+        "fields": [
+          "access_token",
+          "refresh_token",
+          "user"
+        ]
+      },
+      {
+        "name": "TwoFAChallengeResponse",
+        "fields": [
+          "requires_2fa",
+          "challenge_id",
+          "methods",
+          "user_email"
+        ]
+      },
+      {
+        "name": "TwoFASetupRequest",
+        "fields": []
+      },
+      {
+        "name": "TwoFASetupResponse",
+        "fields": [
+          "secret",
+          "otpauth_uri",
+          "qr_code_base64"
+        ]
+      },
+      {
+        "name": "TwoFAEnableRequest",
+        "fields": [
+          "code"
+        ]
+      },
+      {
+        "name": "TwoFAEnableResponse",
+        "fields": [
+          "enabled",
+          "backup_codes"
+        ]
+      },
+      {
+        "name": "TwoFAVerifyRequest",
+        "fields": [
+          "challenge_id",
+          "code"
+        ]
+      },
+      {
+        "name": "TwoFADisableRequest",
+        "fields": [
+          "password",
+          "code"
+        ]
+      },
+      {
+        "name": "CareerSuggestionRequest",
+        "fields": [
+          "additional_context",
+          "session_id"
+        ]
+      },
+      {
+        "name": "ChatRequest",
+        "fields": [
+          "message",
+          "session_id"
+        ]
+      },
+      {
+        "name": "ChatResponse",
+        "fields": [
+          "session_id",
+          "message"
+        ]
+      },
+      {
+        "name": "BookingRequest",
+        "fields": [
+          "mentor_id",
+          "slot_start_iso",
+          "slot_end_iso",
+          "topic",
+          "notes"
+        ]
+      },
+      {
+        "name": "ConnectRequestIn",
+        "fields": [
+          "message"
+        ]
+      },
+      {
+        "name": "MentorBookingCreateRequest",
+        "fields": [
+          "student_id",
+          "slot_start_iso",
+          "topic",
+          "notes"
+        ]
+      },
+      {
+        "name": "RescheduleRequest",
+        "fields": [
+          "slot_start_iso"
+        ]
+      },
+      {
+        "name": "ReviewIn",
+        "fields": [
+          "mentor_id",
+          "rating",
+          "comment",
+          "booking_id"
+        ]
+      },
+      {
+        "name": "ReviewReplyIn",
+        "fields": [
+          "reply"
+        ]
+      },
+      {
+        "name": "PushTokenRegister",
+        "fields": [
+          "token",
+          "platform"
+        ]
+      },
+      {
+        "name": "ManualPushIn",
+        "fields": [
+          "user_id",
+          "title",
+          "body",
+          "data"
+        ]
+      }
+    ],
+    "functions": [
+      "_lifespan",
+      "encrypt_value",
+      "decrypt_value",
+      "_audit_log",
+      "_audit_log_many",
+      "hash_password",
+      "verify_password",
+      "create_access_token",
+      "create_refresh_token",
+      "generate_unique_id",
+      "generate_qr_code",
+      "_safe_block",
+      "serialize_user",
+      "get_current_user",
+      "validate_student_class",
+      "student_dashboard_summary",
+      "get_ad_images",
+      "set_ad_images",
+      "analytics_dispatcher",
+      "analytics_super_admin",
+      "analytics_admin_endpoint",
+      "analytics_college_endpoint",
+      "analytics_mentor_endpoint",
+      "get_integrations_status",
+      "integrations_courses",
+      "integrations_internships",
+      "sync_courses",
+      "sync_internships",
+      "post_review",
+      "reply_to_review",
+      "get_reviews",
+      "notifications_register",
+      "notifications_deregister",
+      "notifications_inbox",
+      "notifications_mark_read",
+      "notifications_dismiss",
+      "notifications_send_manual",
+      "root",
+      "seed_data",
+      "seed_admin",
+      "logout",
+      "_health"
+    ]
+  },
+  "crud_endpoints.py": {
+    "classes": [
+      {
+        "name": "BookingCreate",
+        "fields": [
+          "student_email",
+          "mentor_email",
+          "mentor_id",
+          "topic",
+          "scheduled_at",
+          "duration_minutes"
+        ]
+      },
+      {
+        "name": "ApplyRequest",
+        "fields": [
+          "student_email",
+          "cover_note"
+        ]
+      },
+      {
+        "name": "WorkshopEnroll",
+        "fields": [
+          "student_email",
+          "workshop_title",
+          "fee_inr",
+          "weeks"
+        ]
+      },
+      {
+        "name": "WorkshopProgressReq",
+        "fields": [
+          "student_email",
+          "registration_id",
+          "action"
+        ]
+      },
+      {
+        "name": "CourseCreate",
+        "fields": [
+          "mentor_email",
+          "title",
+          "fee_inr",
+          "summary"
+        ]
+      },
+      {
+        "name": "AvailabilityItem",
+        "fields": [
+          "day",
+          "start_time",
+          "end_time"
+        ]
+      },
+      {
+        "name": "AvailabilitySet",
+        "fields": [
+          "mentor_email",
+          "slots"
+        ]
+      },
+      {
+        "name": "UserInvite",
+        "fields": [
+          "email",
+          "role",
+          "full_name"
+        ]
+      },
+      {
+        "name": "EventCreate",
+        "fields": [
+          "title",
+          "category",
+          "mode",
+          "college_name",
+          "start_date",
+          "capacity",
+          "price"
+        ]
+      }
+    ],
+    "functions": [
+      "_now",
+      "_short_id",
+      "_resolve_user",
+      "create_booking",
+      "cancel_booking",
+      "complete_booking",
+      "my_bookings",
+      "apply_internship",
+      "my_applications",
+      "enroll_workshop",
+      "my_workshops",
+      "progress_workshop",
+      "my_events",
+      "cancel_rsvp",
+      "create_course",
+      "my_courses",
+      "set_availability",
+      "mentor_my_bookings",
+      "invite_user",
+      "create_college_event",
+      "college_my_students",
+      "live_counters"
+    ]
+  },
+  "portals.py": {
+    "classes": [
+      {
+        "name": "EventPayload",
+        "fields": [
+          "title",
+          "start_date",
+          "mode",
+          "venue",
+          "category",
+          "capacity",
+          "price",
+          "description"
+        ]
+      },
+      {
+        "name": "TopupRequest",
+        "fields": [
+          "amount",
+          "student_email"
+        ]
+      },
+      {
+        "name": "WorkflowCreateRequest",
+        "fields": [
+          "name",
+          "trigger",
+          "event_triggers"
+        ]
+      },
+      {
+        "name": "WorkflowUpdateRequest",
+        "fields": [
+          "name",
+          "trigger",
+          "steps",
+          "color",
+          "event_triggers"
+        ]
+      },
+      {
+        "name": "WorkflowRunRequest",
+        "fields": [
+          "params"
+        ]
+      }
+    ],
+    "functions": [
+      "_tier_visuals",
+      "_student_tier_payload",
+      "_mentor_tier_payload",
+      "_college_tier_payload",
+      "_money",
+      "_initials",
+      "_color_for",
+      "_short_id",
+      "_parse_datetime",
+      "mentor_dashboard",
+      "get_mentor_earnings",
+      "student_dashboard",
+      "format_time_ago",
+      "student_intelligence",
+      "college_admin_stats",
+      "super_admin_overview",
+      "super_colleges",
+      "super_students",
+      "super_mentors",
+      "super_alumni",
+      "super_events",
+      "_parse_event_dt",
+      "_serialize_event",
+      "create_super_event",
+      "update_super_event",
+      "delete_super_event",
+      "super_payments",
+      "initiate_payout",
+      "export_payments_csv",
+      "super_approvals",
+      "super_analytics",
+      "super_ai_insights",
+      "super_workflows",
+      "college_students_list",
+      "college_placements",
+      "college_alumni_list",
+      "college_mentors_list",
+      "college_events_list",
+      "college_announcements",
+      "college_analytics",
+      "college_career_intel",
+      "student_events_list",
+      "college_ai_insights",
+      "student_internships",
+      "student_wallet",
+      "student_network",
+      "approve_event",
+      "_get_workflow_or_404",
+      "create_workflow",
+      "fire_workflow_event_endpoint",
+      "_step_verify_email",
+      "_step_linkedin_check",
+      "_step_auto_approve",
+      "_step_daily_scan",
+      "_step_notify_counsellor",
+      "_step_schedule_call",
+      "_step_compute_payouts",
+      "_step_stripe_transfer",
+      "_step_email_receipt",
+      "_step_day_welcome",
+      "_step_mentor_pitch",
+      "_step_hackathon",
+      "_step_detect_no_show",
+      "_step_auto_refund",
+      "_step_notify_both",
+      "_step_find_donors",
+      "_step_personalize_copy",
+      "_step_sendgrid",
+      "run_workflow",
+      "get_workflow_detail",
+      "update_workflow",
+      "delete_workflow",
+      "approve_user",
+      "reject_user",
+      "toggle_workflow",
+      "dismiss_insight",
+      "wallet_topup",
+      "event_rsvp",
+      "list_payout_tiers",
+      "create_payout_tier",
+      "update_payout_tier",
+      "delete_payout_tier",
+      "stripe_webhook",
+      "my_tier",
+      "mentor_connections"
+    ]
+  },
+  "jobs_feed.py": {
+    "classes": [],
+    "functions": [
+      "_make_dedup_hash",
+      "_classify_type",
+      "_classify_work_mode",
+      "_company_logo",
+      "_short",
+      "_fetch_remoteok",
+      "_fetch_arbeitnow",
+      "_fetch_the_muse",
+      "_fetch_remoteok_interns",
+      "_fetch_remotive",
+      "_fetch_jobicy",
+      "_ensure_cache_indexes",
+      "fetch_and_cache_all",
+      "_has_fresh_cache",
+      "_allowed_job_types_for_user",
+      "_enforce_year_tier",
+      "_serialize",
+      "_get_current_user_dependency",
+      "jobs_feed",
+      "save_job",
+      "unsave_job",
+      "list_saved",
+      "track_apply",
+      "admin_refresh",
+      "trending_companies",
+      "new_since_last_visit"
+    ]
+  },
+  "events_aggregator.py": {
+    "classes": [],
+    "functions": [
+      "_classify_institution_tier",
+      "_extract_topics",
+      "_classify_event_mode",
+      "_get_current_user_dependency",
+      "_dedup_hash",
+      "_safe_iso",
+      "_to_dt",
+      "_normalize",
+      "_fetch_devpost",
+      "_fetch_hackclub",
+      "_fetch_eventyay",
+      "_aggregate_and_store",
+      "_ensure_fresh",
+      "_doc_to_public",
+      "events_search",
+      "events_category_counts",
+      "event_detail",
+      "get_event_prefs",
+      "update_event_prefs",
+      "toggle_save",
+      "track_activity",
+      "saved_events",
+      "registered_events",
+      "_try_deduct_credits",
+      "rsvp_event",
+      "cancel_rsvp",
+      "_ics_escape",
+      "_ics_dt",
+      "event_ics",
+      "event_recommendations",
+      "create_event",
+      "update_event",
+      "delete_event",
+      "hosted_events",
+      "admin_pending_events",
+      "admin_approve_event",
+      "admin_reject_event",
+      "force_refresh"
+    ]
+  },
+  "mentor_ai.py": {
+    "classes": [],
+    "functions": [
+      "_get_current_user_dependency",
+      "_ensure_mentor",
+      "_mentee_ids",
+      "mentee_pulse",
+      "skill_gaps",
+      "impact",
+      "session_prep"
+    ]
+  },
+  "financial_services.py": {
+    "classes": [],
+    "functions": [
+      "_get_current_user_dependency",
+      "_dh",
+      "_safe_iso",
+      "_seed_doc",
+      "_ensure_seeded",
+      "_match_score",
+      "_doc_to_public",
+      "get_fin_profile",
+      "update_fin_profile",
+      "_search",
+      "scholarships_search",
+      "loans_search",
+      "startup_search",
+      "insurance_search",
+      "vc_search",
+      "search_all",
+      "fin_detail",
+      "save_fin",
+      "apply_fin",
+      "fin_activity",
+      "saved_fin",
+      "emi_calc",
+      "_ai_helper",
+      "_build_reason",
+      "ai_scholarships",
+      "ai_loans",
+      "ai_startup",
+      "ai_insurance",
+      "ai_vc",
+      "refresh_catalog"
+    ]
+  },
+  "deals_aggregator.py": {
+    "classes": [],
+    "functions": [
+      "_logo",
+      "_make_id",
+      "_calc_pct",
+      "_percentile",
+      "_curated_deals",
+      "_price_label",
+      "_orig_label",
+      "_fetch_github_pack",
+      "_guess_category",
+      "apply_tags",
+      "_seed_curated_if_missing",
+      "_refresh_live_sources",
+      "_is_cache_fresh",
+      "_get_current_user_dependency",
+      "deals_all",
+      "deals_stats",
+      "deals_refresh",
+      "deals_claim",
+      "deals_sources",
+      "deals_ai_generate"
+    ]
+  },
+  "notifications.py": {
+    "classes": [],
+    "functions": [
+      "register_push_token",
+      "deregister_push_token",
+      "list_user_tokens",
+      "send_push",
+      "_log_inbox",
+      "list_inbox",
+      "mark_inbox_read",
+      "dismiss_inbox",
+      "unread_count",
+      "notify_booking_created",
+      "notify_booking_confirmed",
+      "notify_event_registered",
+      "notify_mentor_approved",
+      "notify_review_received"
+    ]
+  },
+  "activity_credits.py": {
+    "classes": [],
+    "functions": [
+      "credits_to_inr",
+      "inr_to_credits",
+      "_compute_level",
+      "_get_current_user_dependency",
+      "_resolve_user",
+      "_credit_user",
+      "_debit_user",
+      "_record_activity",
+      "wallet_summary",
+      "wallet_earnings",
+      "wallet_track_activity",
+      "wallet_topup",
+      "wallet_withdraw",
+      "wallet_seed_demo",
+      "wallet_coach_chat",
+      "list_rewards",
+      "redeem_credits"
+    ]
+  },
+  "badges.py": {
+    "classes": [],
+    "functions": [
+      "_logins_30d",
+      "_sessions_count",
+      "_courses_completed",
+      "_connections_count",
+      "_events_attended",
+      "_roadmap_milestones_done",
+      "_roadmap_skills_high",
+      "_years_experience",
+      "_sessions_hosted",
+      "_trust_score",
+      "_response_time_hrs_inv",
+      "_alumni_count",
+      "_events_hosted_year",
+      "_placement_rate",
+      "_verification_level",
+      "_internships_posted_count",
+      "_offers_extended_count",
+      "_reputation_score",
+      "_tier_for_value",
+      "_badge_role_for_user",
+      "_classify_institution",
+      "_certificates_tier",
+      "_years_experience_tier",
+      "_compute_credential_badges",
+      "_compute_universal_badges",
+      "compute_badges",
+      "refresh_user_badges",
+      "compute_all_users_badges",
+      "get_tier_theme"
+    ]
+  },
+  "talent_pool.py": {
+    "classes": [
+      {
+        "name": "TalentProfileIn",
+        "fields": [
+          "full_name",
+          "headline",
+          "email",
+          "phone",
+          "linkedin_url",
+          "github_url",
+          "portfolio_url",
+          "location",
+          "skills",
+          "experience_years",
+          "current_company",
+          "current_role",
+          "education",
+          "graduation_year",
+          "photo_url",
+          "bio",
+          "source"
+        ]
+      },
+      {
+        "name": "TalentProfileOut",
+        "fields": [
+          "id",
+          "full_name",
+          "headline",
+          "email",
+          "phone",
+          "linkedin_url",
+          "github_url",
+          "portfolio_url",
+          "location",
+          "skills",
+          "experience_years",
+          "current_company",
+          "current_role",
+          "education",
+          "graduation_year",
+          "photo_url",
+          "bio",
+          "source",
+          "is_active",
+          "imported_at",
+          "last_synced_at",
+          "created_at"
+        ]
+      },
+      {
+        "name": "TalentPoolSearch",
+        "fields": [
+          "q",
+          "skills",
+          "location",
+          "experience_min",
+          "experience_max",
+          "source",
+          "page",
+          "limit"
+        ]
+      }
+    ],
+    "functions": [
+      "_resolve_user",
+      "_require_auth",
+      "_require_admin",
+      "_profile_out",
+      "_ensure_indexes",
+      "list_talent_pool",
+      "get_talent_profile",
+      "talent_pool_stats",
+      "talent_pool_opt_in",
+      "talent_pool_opt_out",
+      "talent_pool_my_status",
+      "admin_create_talent_profile",
+      "admin_update_talent_profile",
+      "admin_delete_talent_profile",
+      "admin_import_talent_csv",
+      "admin_commit_talent_csv",
+      "admin_sync_linkedin_profiles",
+      "admin_sync_from_platform_users",
+      "admin_list_talent_pool",
+      "admin_bulk_action",
+      "setup"
+    ]
+  },
+  "courses_marketplace.py": {
+    "classes": [],
+    "functions": [
+      "_auth",
+      "_seed_courses",
+      "_seed_tracks",
+      "courses_catalog",
+      "courses_list",
+      "course_detail",
+      "_create_enrollment",
+      "_serialize_enrollment",
+      "enroll",
+      "my_enrollments",
+      "update_progress",
+      "list_tracks",
+      "track_detail",
+      "enroll_track",
+      "_claude",
+      "ai_recommend",
+      "ai_path",
+      "my_track_enrollments",
+      "update_track_progress",
+      "my_certificates",
+      "ai_advisor",
+      "_fetch_mit_ocw",
+      "_fetch_freecodecamp",
+      "live_catalog"
+    ]
+  }
+}

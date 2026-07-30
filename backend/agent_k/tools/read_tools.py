@@ -92,3 +92,36 @@ async def get_profile(args: dict, user: dict) -> dict:
         "tier":   (user.get("tier") or {}).get("tier"),
         "career_goal": (user.get("student_info") or {}).get("career_goal"),
     }
+
+async def search_events(args: dict, user: dict) -> dict:
+    category = (args.get("category") or "").lower()
+    limit = min(int(args.get("limit") or 5), 10)
+    q = {}
+    cur = _db.events.find(q).limit(limit)
+    out = []
+    async for e in cur:
+        cat = (e.get("category") or "")
+        if category and category not in cat.lower():
+            continue
+        out.append({
+            "id": str(e.get("_id")),
+            "title": e.get("title", ""),
+            "mode": e.get("mode", ""),
+            "category": cat,
+            "capacity": e.get("capacity", 0),
+        })
+    return {"count": len(out), "results": out}
+
+async def search_scholarships(args: dict, user: dict) -> dict:
+    limit = min(int(args.get("limit") or 5), 10)
+    cur = _db.scholarships_data.find({}).limit(limit)
+    out = []
+    async for s in cur:
+        out.append({
+            "id": str(s.get("_id")),
+            "title": s.get("title", ""),
+            "amount_inr": s.get("amount_inr", 0),
+            "deadline": str(s.get("deadline", "")),
+        })
+    return {"count": len(out), "results": out}
+

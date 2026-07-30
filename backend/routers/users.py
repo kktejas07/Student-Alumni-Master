@@ -2496,82 +2496,38 @@ async def ai_chat(req: ChatRequest, request: Request):
         user = await get_current_user(request)
     except Exception:
         pass
+        
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+        
+    user_id = str(user["_id"])
     
-    career_path = user.get("career_path") if user else "job"
-    full_name = user.get("full_name", "Guest") if user else "Guest"
-    role = user.get("role", "Visitor") if user else "Visitor"
+    from agent_k.core.engine import process_message
     
-    base = CAREER_PATH_SYSTEM_PROMPTS.get(career_path, CAREER_PATH_SYSTEM_PROMPTS["job"])
-    system_msg = (
-        f"{base}\n\nYou are speaking with {full_name}, a {role}. "
-        "Keep replies concise (2-4 short paragraphs), friendly, and actionable."
-    )
-
-    if "mentor" in req.message.lower():
-        mentors = await db.users.find({'role': 'mentor'}).to_list(length=5)
-        if mentors:
-            m_list = []
-            for m in mentors:
-                name = m.get('full_name', 'Unknown')
-                title = m.get('headline', '')
-                company = m.get('institution', '')
-                info = f"- {name}: {title} at {company}"
-                m_info = m.get('mentor_info') or {}
-                exp = m_info.get('expertise', [])
-                if exp:
-                    info += f". Expertise: {', '.join(exp)}"
-                m_list.append(info)
-            system_msg += "\n\nAvailable app mentors context:\n" + "\n".join(m_list) + "\nRecommend these specific mentors from our platform if the user asks."
-    session_id = req.session_id or f"chat-{uuid.uuid4().hex[:12]}"
     try:
-        chat = None
-        if user:
-            from core.security import decrypt_value
-            from emergentintegrations.llm.chat import LlmChat, UserMessage
-            settings = await db.user_ai_settings.find_one({"user_id": str(user["_id"])})
-            if settings and settings.get("encrypted_api_key"):
-                try:
-                    api_key = decrypt_value(settings["encrypted_api_key"])
-                    provider = settings.get("provider", "claude")
-                    model = settings.get("model", "claude-3-5-sonnet-20240620")
-                    chat = LlmChat(
-                        api_key=api_key,
-                        session_id=session_id,
-                        system_message=system_msg,
-                    ).with_model(provider, model)
-                except Exception as e:
-                    print(f"Error decrypting user BYOK key or setting up chat: {e}")
-
-        if not chat:
-            chat = await get_claude_chat(session_id, system_msg)
-            
-        from emergentintegrations.llm.chat import UserMessage
-        reply = await chat.send_message(UserMessage(text=req.message))
-
-        # Persist chat history only if user exists (to render conversation on reload)
-        if user:
-            await db.chat_messages.insert_many([
-                {"user_id": str(user["_id"]), "session_id": session_id, "role": "user",
-                 "content": req.message, "created_at": datetime.now(timezone.utc)},
-                {"user_id": str(user["_id"]), "session_id": session_id, "role": "assistant",
-                 "content": reply, "created_at": datetime.now(timezone.utc)},
-            ])
+        session_id = req.session_id or f"chat-{uuid.uuid4().hex[:12]}"
+        # Process message using Agent K (RAG pipeline)
+        reply = await process_message(user_id, req.message, session_id=session_id)
+        
         return ChatResponse(session_id=session_id, message=reply)
     except Exception as e:
         logger.error(f"AI chat failed: {e}")
-        raise HTTPException(500, f"AI service error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"AI service error: {str(e)}")
 
 
 @router.get("/ai/chat/history")
 async def chat_history(session_id: Optional[str] = None, user: dict = Depends(get_current_user)):
-    query = {"user_id": str(user["_id"])}
-    if session_id:
-        query["session_id"] = session_id
-    msgs = await db.chat_messages.find(query, {"_id": 0}).sort("created_at", 1).to_list(200)
-    for m in msgs:
-        if isinstance(m.get("created_at"), datetime):
-            m["created_at"] = m["created_at"].isoformat()
-    return {"messages": msgs}
+    user_id = str(user["_id"])
+    from agent_k.memory.history import ChatMemory
+    history = await ChatMemory().get_history(user_id, session_id=session_id)
+    return {"messages": history}
+
+@router.get("/ai/chat/sessions")
+async def chat_sessions(user: dict = Depends(get_current_user)):
+    user_id = str(user["_id"])
+    from agent_k.memory.history import ChatMemory
+    sessions = await ChatMemory().get_sessions(user_id)
+    return {"sessions": sessions}
 
 
 @router.post("/ai/generate-bio")

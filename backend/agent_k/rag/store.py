@@ -8,13 +8,16 @@ try:
 except ImportError:
     pass  # We will handle missing dependency gracefully or just let it crash at runtime if not installed
 
+from pathlib import Path
+
 # For testing, allow falling back to in-memory, but prefer a persistent DB or host if configured
 _QDRANT_URL = os.environ.get("QDRANT_URL")
 if _QDRANT_URL:
     client = QdrantClient(url=_QDRANT_URL)
 else:
-    # Use memory for local testing/dev if no URL provided
-    client = QdrantClient(":memory:")
+    # Use persistent local storage so index scripts and the web server share the data
+    local_path = str(Path(__file__).resolve().parent.parent.parent.parent / ".qdrant_local")
+    client = QdrantClient(path=local_path)
 
 # Configure the embedding models. 
 # fastembed will download these locally on first use.
@@ -22,10 +25,11 @@ DEFAULT_DENSE_MODEL = "BAAI/bge-small-en-v1.5"
 DEFAULT_SPARSE_MODEL = "Qdrant/bm25"
 COLLECTION_NAME = "agent_k_knowledge"
 
+client.set_model(DEFAULT_DENSE_MODEL)
+client.set_sparse_model(DEFAULT_SPARSE_MODEL)
+
 def init_collection(dense_model: str = DEFAULT_DENSE_MODEL, sparse_model: str = DEFAULT_SPARSE_MODEL):
     """Sets up the collection if it doesn't exist, using fastembed integration."""
-    client.set_model(dense_model)
-    client.set_sparse_model(sparse_model)
     
     if not client.collection_exists(COLLECTION_NAME):
         # Using the fastembed integration to auto-configure vector sizes

@@ -9,9 +9,12 @@ class ChatMemory:
         self.max_history = max_history
         self.collection = _db.agent_k_chat_history
 
-    async def get_history(self, user_id: str) -> List[Dict[str, str]]:
+    async def get_history(self, user_id: str, session_id: str = None) -> List[Dict[str, str]]:
         """Retrieves the last N messages for the user."""
-        cursor = self.collection.find({"user_id": user_id}).sort("timestamp", -1).limit(self.max_history)
+        query = {"user_id": user_id}
+        if session_id:
+            query["session_id"] = session_id
+        cursor = self.collection.find(query).sort("timestamp", -1).limit(self.max_history)
         docs = await cursor.to_list(length=self.max_history)
         
         # Sort back to chronological order
@@ -24,10 +27,11 @@ class ChatMemory:
             
         return history
 
-    async def add_interaction(self, user_id: str, user_message: str, ai_response: str, interaction_id: str = None, metrics: Dict[str, Any] = None) -> None:
+    async def add_interaction(self, user_id: str, user_message: str, ai_response: str, interaction_id: str = None, metrics: Dict[str, Any] = None, session_id: str = None) -> None:
         """Stores a new interaction in the history."""
         doc = {
             "user_id": user_id,
+            "session_id": session_id,
             "user_message": user_message,
             "ai_response": ai_response,
             "timestamp": datetime.now(timezone.utc),
@@ -58,6 +62,22 @@ class ChatMemory:
             formatted.append(f"{role}: {msg['content']}")
             
         return "\n".join(formatted)
+
+    async def get_sessions(self, user_id: str) -> List[Dict[str, Any]]:
+        """Returns a list of unique chat sessions for the user."""
+        pipeline = [
+            {"$match": {"user_id": user_id, "session_id": {"$ne": None}}},
+            {"$sort": {"timestamp": 1}},
+            {"$group": {
+                "_id": "$session_id",
+                "first_message": {"$first": "$user_message"},
+                "last_active": {"$last": "$timestamp"},
+                "message_count": {"$sum": 1}
+            }},
+            {"$sort": {"last_active": -1}}
+        ]
+        sessions = await self.collection.aggregate(pipeline).to_list(length=100)
+        return [{"session_id": s["_id"], "preview": s["first_message"][:50], "timestamp": s["last_active"]} for s in sessions]
 
     async def get_dashboard_metrics(self) -> Dict[str, Any]:
         """Calculates analytics for the dashboard."""
