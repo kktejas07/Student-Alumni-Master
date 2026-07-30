@@ -601,9 +601,9 @@ const s = StyleSheet.create({
   helper: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12.5, textAlign: 'center', lineHeight: 18 },
   helperRight: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 11, textAlign: 'right', marginTop: -10 },
   smallBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: 'rgba(245,158,11,0.18)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.4)' },
-  smallBtnText: { color: '#4C1D95', fontFamily: FONTS.bold, fontSize: 12 },
-  confirmBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 999, backgroundColor: '#C4B5FD', borderWidth: 1, borderColor: '#C4B5FD' },
-  confirmBtnText: { color: '#000', fontFamily: FONTS.bold, fontSize: 12 },
+  smallBtnText: { color: '#1E1B4B', fontFamily: FONTS.bold, fontSize: 12 },
+  confirmBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 999, backgroundColor: '#818CF8', borderWidth: 1, borderColor: '#818CF8' },
+  confirmBtnText: { color: '#1E1B4B', fontFamily: FONTS.bold, fontSize: 12 },
 
   // Bio
   textareaWrap: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, backgroundColor: '#FFFFFF', paddingHorizontal: 14, paddingVertical: 12 },

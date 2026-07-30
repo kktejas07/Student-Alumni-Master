@@ -101,7 +101,7 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
   },
   numPill: { position: 'absolute', top: -4, right: -4, minWidth: 16, height: 16, paddingHorizontal: 4, borderRadius: 8, backgroundColor: CC.accent, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: CC.bg2 },
-  numText: { color: '#000', fontFamily: FONTS.xbold, fontSize: 9 },
+  numText: { color: '#1E1B4B', fontFamily: FONTS.xbold, fontSize: 9 },
 
   addCta: { borderRadius: 10, overflow: 'hidden', ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms', boxShadow: '0px 4px 14px rgba(99,102,241,0.40)' } as any) : {}) },
   addCtaInner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 34 },

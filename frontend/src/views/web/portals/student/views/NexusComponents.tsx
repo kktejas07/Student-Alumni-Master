@@ -531,7 +531,7 @@ export function NxPageHeader({
               ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '150ms' } as any) : {}),
             })}
           >
-            <Text style={{ color: '#000', fontFamily: FONT, fontSize: 13, fontWeight: '600' }}>{ctaLabel}</Text>
+            <Text style={{ color: '#0F172A', fontFamily: FONT, fontSize: 13, fontWeight: '600' }}>{ctaLabel}</Text>
           </Pressable>
         )}
       </View>

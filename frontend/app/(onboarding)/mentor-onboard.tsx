@@ -711,17 +711,17 @@ const s = StyleSheet.create({
   photoHint: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12 },
   helper: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 12.5, textAlign: 'center', lineHeight: 18 },
   helperRight: { color: '#6B7280', fontFamily: FONTS.med, fontSize: 11, textAlign: 'right', marginTop: -10 },
-  smallBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: 'rgba(124,58,237,0.32)', borderWidth: 1, borderColor: 'rgba(176,127,223,0.4)' },
-  smallBtnText: { color: '#4C1D95', fontFamily: FONTS.bold, fontSize: 12 },
-  confirmBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 999, backgroundColor: '#C4B5FD', borderWidth: 1, borderColor: '#C4B5FD' },
-  confirmBtnText: { color: '#000', fontFamily: FONTS.bold, fontSize: 12 },
+  smallBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: 'rgba(79,70,229,0.32)', borderWidth: 1, borderColor: 'rgba(129,140,248,0.4)' },
+  smallBtnText: { color: '#1E1B4B', fontFamily: FONTS.bold, fontSize: 12 },
+  confirmBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 999, backgroundColor: '#818CF8', borderWidth: 1, borderColor: '#818CF8' },
+  confirmBtnText: { color: '#1E1B4B', fontFamily: FONTS.bold, fontSize: 12 },
 
   // Bio textarea
   textareaWrap: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, backgroundColor: '#FFFFFF', paddingHorizontal: 14, paddingVertical: 12 },
   textarea: { color: '#1F2937', fontFamily: FONTS.med, fontSize: 13.5, minHeight: 100, ...(Platform.OS === 'web' ? ({ outlineWidth: 0 } as any) : {}) },
 
   // Badge
-  badgeCircle: { width: 120, height: 120, borderRadius: 60, borderWidth: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(124,58,237,0.22)', marginTop: 4 },
+  badgeCircle: { width: 120, height: 120, borderRadius: 60, borderWidth: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(79,70,229,0.22)', marginTop: 4 },
   badgeTier: { color: '#1F2937', fontFamily: FONTS.bold, fontSize: 12, marginTop: 4, letterSpacing: 1 },
   greeting: { color: '#1F2937', fontFamily: FONTS.bold, fontSize: 18 },
   verifiedPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999, backgroundColor: 'rgba(94,234,212,0.12)', borderWidth: 1, borderColor: 'rgba(94,234,212,0.3)' },

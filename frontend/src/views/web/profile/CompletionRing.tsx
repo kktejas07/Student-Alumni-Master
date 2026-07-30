@@ -11,11 +11,13 @@ interface Props {
   stroke?: number;      // ring thickness
   color?: string;
   trackColor?: string;
+  hideText?: boolean;
 }
 
 export function CompletionRing({
   pct, size = 92, stroke = 8,
   color = '#A78BFA', trackColor = 'rgba(255,255,255,0.10)',
+  hideText = false,
 }: Props) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
@@ -38,9 +40,11 @@ export function CompletionRing({
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </Svg>
-      <View style={styles.label}>
-        <Text style={[styles.pct, { color }]}>{safe}%</Text>
-      </View>
+      {!hideText && (
+        <View style={styles.label}>
+          <Text style={[styles.pct, { color }]}>{safe}%</Text>
+        </View>
+      )}
     </View>
   );
 }

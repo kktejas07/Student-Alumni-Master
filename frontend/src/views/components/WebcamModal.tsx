@@ -288,7 +288,7 @@ const s = StyleSheet.create({
     height: 260,
     borderRadius: 130, // Perfect circular crop for selfie
     borderWidth: 3,
-    borderColor: 'rgba(167,139,250,0.5)',
+    borderColor: 'rgba(129,140,248,0.5)',
     overflow: 'hidden',
     backgroundColor: '#000',
     position: 'relative',
@@ -296,7 +296,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 20,
     ...({
-      boxShadow: '0px 0px 24px rgba(167,139,250,0.25)' as any
+      boxShadow: '0px 0px 24px rgba(129,140,248,0.25)' as any
     } as any),
   },
   overlay: {
@@ -328,7 +328,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#C4B5FD',
+    backgroundColor: '#818CF8',
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 28,
@@ -340,7 +340,7 @@ const s = StyleSheet.create({
     ...({ cursor: 'default' } as any),
   },
   captureBtnText: {
-    color: '#000',
+    color: '#1E1B4B',
     fontFamily: 'DMSans_700Bold',
     fontSize: 14,
   },
@@ -364,13 +364,13 @@ const s = StyleSheet.create({
     flex: 1,
     height: 44,
     borderRadius: 14,
-    backgroundColor: '#C4B5FD',
+    backgroundColor: '#818CF8',
     alignItems: 'center',
     justifyContent: 'center',
     ...({ cursor: 'pointer' } as any),
   },
   confirmBtnText: {
-    color: '#000',
+    color: '#1E1B4B',
     fontFamily: 'DMSans_700Bold',
     fontSize: 14,
   },
