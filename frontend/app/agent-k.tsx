@@ -172,7 +172,7 @@ export default function AgentKPage() {
         </Text>
       </View>
     );
-  } else if (!presc?.ai_connected && !presc?.is_admin) {
+  } else {
     body = (
       <EmptyConnectAI
         gradient={grad}
@@ -181,69 +181,6 @@ export default function AgentKPage() {
         borderColor={theme.hairline}
         onConnect={() => router.push(integrationsRoute as any)}
       />
-    );
-  } else {
-    body = (
-      <View style={{ gap: 18 }}>
-        {/* Kicker */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <View style={[s.dot, { backgroundColor: grad[0] }]} />
-          <Text style={[s.kicker, { color: theme.textSec }]}>
-            TODAY’S PRESCRIPTION · POWERED BY YOUR CONNECTED AI
-          </Text>
-        </View>
-        <Text style={[s.h1, { color: theme.text }]}>
-          {portal === 'admin'    && 'Run the platform on autopilot'}
-          {portal === 'college'  && 'Move every department forward today'}
-          {portal === 'mentor'   && 'Show up prepared for every mentee'}
-          {portal === 'alumni'   && 'Give back in 30 seconds'}
-          {portal === 'student'  && 'One tap → Agent K does it for you'}
-        </Text>
-
-        {/* Cards grid */}
-        <View style={[s.grid, Platform.OS === 'web' ? {
-          // @ts-expect-error web grid
-          display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: 14,
-        } : null]}>
-          {presc!.cards.map((c, i) => (
-            <Animated.View key={c.id} entering={FadeInDown.duration(280).delay(60 * i)} style={[s.card, {
-              backgroundColor: theme.bgElevated, borderColor: theme.hairline,
-            }]}>
-              <View style={[s.iconBox, { backgroundColor: c.tint + '22', borderColor: c.tint + '55' }]}>
-                <MaterialCommunityIcons
-                  name={(c.icon as any) || 'lightbulb-outline'}
-                  size={16}
-                  color={c.tint}
-                />
-              </View>
-              <Text style={[s.cardKicker, { color: c.tint }]}>{c.kicker}</Text>
-              <Text numberOfLines={2} style={[s.cardTitle, { color: theme.text }]}>{c.title}</Text>
-              {!!c.subtitle && (
-                <Text numberOfLines={3} style={[s.cardSub, { color: theme.textSec }]}>{c.subtitle}</Text>
-              )}
-              <View style={{ flex: 1 }} />
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <Pressable
-                  onPress={() => runCard(c)}
-                  disabled={busyCardId === c.id}
-                  style={{ flex: 1 }}
-                >
-                  <LinearGradient
-                    colors={grad}
-                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                    style={[s.cardCta, busyCardId === c.id && { opacity: 0.7 }]}
-                  >
-                    {busyCardId === c.id
-                      ? <ActivityIndicator size="small" color="#fff" />
-                      : <MaterialCommunityIcons name="lightning-bolt" size={13} color="#fff" />}
-                    <Text style={s.cardCtaText}>{busyCardId === c.id ? 'Running…' : c.cta}</Text>
-                  </LinearGradient>
-                </Pressable>
-              </View>
-            </Animated.View>
-          ))}
-        </View>
-      </View>
     );
   }
 
