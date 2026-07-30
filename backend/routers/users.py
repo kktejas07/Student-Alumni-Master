@@ -2496,57 +2496,38 @@ async def ai_chat(req: ChatRequest, request: Request):
         user = await get_current_user(request)
     except Exception:
         pass
+        
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+        
+    user_id = str(user["_id"])
     
-    career_path = user.get("career_path") if user else "job"
-    full_name = user.get("full_name", "Guest") if user else "Guest"
-    role = user.get("role", "Visitor") if user else "Visitor"
+    from agent_k.core.engine import process_message
     
-    base = CAREER_PATH_SYSTEM_PROMPTS.get(career_path, CAREER_PATH_SYSTEM_PROMPTS["job"])
-    session_id = req.session_id or f"chat-{uuid.uuid4().hex[:12]}"
-    
-    guardrail = ""
-    if "financial" in session_id.lower():
-        guardrail = "\n\nCRITICAL RULE: You are an expert Financial Coach. You MUST ONLY answer questions related to finance, financial planning, UAE regulations, startups, and scholarships. If the user asks about ANYTHING else (e.g. coding, cooking, unrelated topics), politely decline and state you only answer finance questions."
-    elif "fab-stay" in session_id.lower() or "rental" in session_id.lower():
-        guardrail = "\n\nCRITICAL RULE: You are a Rental and Accommodation Advisor. You MUST ONLY answer questions related to housing, rentals, leases, finding roommates, and student accommodations. If the user asks about ANYTHING else, politely decline and state you only answer rental questions."
-    elif "advisor" in session_id.lower():
-        guardrail = "\n\nCRITICAL RULE: You are a Career and Education Advisor. You MUST ONLY answer questions related to careers, skills, education, networking, and professional development. If the user asks about ANYTHING else, politely decline."
-    else:
-        guardrail = "\n\nCRITICAL RULE: You are a Student Alumni assistant. You must stay on topic regarding the Student Alumni platform, careers, education, and student life. If the user asks off-topic questions, decline politely."
-
-    system_msg = (
-        f"{base}\n\nYou are speaking with {full_name}, a {role}. "
-        "Keep replies concise (2-4 short paragraphs), friendly, and actionable."
-        f"{guardrail}"
-    )
     try:
-        chat = await get_claude_chat(session_id, system_msg)
-        reply = await chat.send_message(UserMessage(text=req.message))
-
-        # Persist chat history only if user exists (to render conversation on reload)
-        if user:
-            await db.chat_messages.insert_many([
-                {"user_id": str(user["_id"]), "session_id": session_id, "role": "user",
-                 "content": req.message, "created_at": datetime.now(timezone.utc)},
-                {"user_id": str(user["_id"]), "session_id": session_id, "role": "assistant",
-                 "content": reply, "created_at": datetime.now(timezone.utc)},
-            ])
+        session_id = req.session_id or f"chat-{uuid.uuid4().hex[:12]}"
+        # Process message using Agent K (RAG pipeline)
+        reply = await process_message(user_id, req.message, session_id=session_id)
+        
         return ChatResponse(session_id=session_id, message=reply)
     except Exception as e:
         logger.error(f"AI chat failed: {e}")
-        raise HTTPException(500, f"AI service error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"AI service error: {str(e)}")
 
 
 @router.get("/ai/chat/history")
 async def chat_history(session_id: Optional[str] = None, user: dict = Depends(get_current_user)):
-    query = {"user_id": str(user["_id"])}
-    if session_id:
-        query["session_id"] = session_id
-    msgs = await db.chat_messages.find(query, {"_id": 0}).sort("created_at", 1).to_list(200)
-    for m in msgs:
-        if isinstance(m.get("created_at"), datetime):
-            m["created_at"] = m["created_at"].isoformat()
-    return {"messages": msgs}
+    user_id = str(user["_id"])
+    from agent_k.memory.history import ChatMemory
+    history = await ChatMemory().get_history(user_id, session_id=session_id)
+    return {"messages": history}
+
+@router.get("/ai/chat/sessions")
+async def chat_sessions(user: dict = Depends(get_current_user)):
+    user_id = str(user["_id"])
+    from agent_k.memory.history import ChatMemory
+    sessions = await ChatMemory().get_sessions(user_id)
+    return {"sessions": sessions}
 
 
 @router.post("/ai/generate-bio")

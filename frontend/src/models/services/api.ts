@@ -207,6 +207,8 @@ export const api = {
   chatHistory: (session_id?: string) =>
     request<any>(`/ai/chat/history${session_id ? `?session_id=${session_id}` : ''}`),
 
+  chatSessions: () => request<any>('/ai/chat/sessions'),
+
   generateBio: (data: {
     role: string;
     full_name?: string;
