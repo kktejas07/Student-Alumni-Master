@@ -109,7 +109,16 @@ async def process_message(user_id: str, message: str, session_id: str = None) ->
     except Exception:
         profile_str = str(profile_info)
         
-    system_prompt_formatted = SYSTEM_PROMPT.format(profile=profile_str)
+    guardrail = ""
+    if session_id:
+        if "financial" in session_id.lower():
+            guardrail = "\n\nCRITICAL RULE: You are an expert Financial Coach. You MUST ONLY answer questions related to finance, financial planning, UAE regulations."
+        elif "fab-stay" in session_id.lower() or "rental" in session_id.lower():
+            guardrail = "\n\nCRITICAL RULE: You are a Rental and Accommodation Advisor. You MUST ONLY answer questions related to housing, rentals, leases, finding accommodation."
+        elif "advisor" in session_id.lower():
+            guardrail = "\n\nCRITICAL RULE: You are a Career and Education Advisor. You MUST ONLY answer questions related to careers, skills, education, networking."
+            
+    system_prompt_formatted = SYSTEM_PROMPT.format(profile=profile_str) + guardrail
         
     # Generate the response
     try:
@@ -221,7 +230,16 @@ async def stream_message(user_id: str, message: str, user_role: str, session_id:
     except Exception:
         profile_str = str(profile_info)
         
-    system_prompt_formatted = SYSTEM_PROMPT.format(profile=profile_str)
+    guardrail = ""
+    if session_id:
+        if "financial" in session_id.lower():
+            guardrail = "\n\nCRITICAL RULE: You are an expert Financial Coach. You MUST ONLY answer questions related to finance, financial planning, UAE regulations."
+        elif "fab-stay" in session_id.lower() or "rental" in session_id.lower():
+            guardrail = "\n\nCRITICAL RULE: You are a Rental and Accommodation Advisor. You MUST ONLY answer questions related to housing, rentals, leases, finding accommodation."
+        elif "advisor" in session_id.lower():
+            guardrail = "\n\nCRITICAL RULE: You are a Career and Education Advisor. You MUST ONLY answer questions related to careers, skills, education, networking."
+            
+    system_prompt_formatted = SYSTEM_PROMPT.format(profile=profile_str) + guardrail
         
     # Stream the response
     full_response = ""
