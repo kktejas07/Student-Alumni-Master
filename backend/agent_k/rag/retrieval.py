@@ -1,5 +1,9 @@
 from typing import List, Dict, Any, Optional
-from qdrant_client import models
+try:
+    from qdrant_client import models
+except Exception:
+    models = None
+
 from cachetools import TTLCache, cached
 from .store import client, COLLECTION_NAME, init_collection
 
@@ -11,7 +15,7 @@ def get_reranker():
         try:
             from fastembed import TextCrossEncoder
             reranker_model = TextCrossEncoder(model_name="BAAI/bge-reranker-base")
-        except ImportError:
+        except Exception:
             reranker_model = False # Marker for not available
     return reranker_model
 
@@ -22,7 +26,12 @@ class QdrantRetriever:
     @staticmethod
     @cached(cache=_query_cache)
     def query(text: str, top_k: int = 5, user_role: Optional[str] = None) -> List[Dict[str, Any]]:
-        if not client.collection_exists(COLLECTION_NAME):
+        if client is None:
+            return []
+        try:
+            if not client.collection_exists(COLLECTION_NAME):
+                return []
+        except Exception:
             return []
             
         candidate_limit = top_k * 3
