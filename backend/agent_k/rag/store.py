@@ -17,7 +17,11 @@ if _QDRANT_URL:
 else:
     # Use persistent local storage so index scripts and the web server share the data
     local_path = str(Path(__file__).resolve().parent.parent.parent.parent / ".qdrant_local")
-    client = QdrantClient(path=local_path)
+    try:
+        client = QdrantClient(path=local_path)
+    except Exception as e:
+        print(f"[Qdrant] Persistent storage lock error ({e}), falling back to in-memory instance.")
+        client = QdrantClient(":memory:")
 
 # Configure the embedding models. 
 # fastembed will download these locally on first use.
