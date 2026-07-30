@@ -26,7 +26,7 @@ if HAS_QDRANT and QdrantClient is not None:
         if _QDRANT_URL:
             client = QdrantClient(url=_QDRANT_URL)
         else:
-            local_path = str(Path(__file__).resolve().parent.parent.parent.parent / ".qdrant_local")
+            local_path = str(Path(__file__).resolve().parent.parent.parent / ".qdrant_local")
             try:
                 client = QdrantClient(path=local_path)
             except Exception as e:
