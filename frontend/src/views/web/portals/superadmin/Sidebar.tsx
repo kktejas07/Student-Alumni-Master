@@ -41,7 +41,7 @@ function useAdminProfile() {
 export type SuperAdminNavId =
   | 'overview' | 'colleges' | 'students' | 'mentors' | 'alumni' | 'events'
   | 'payments' | 'analytics' | 'approvals' | 'ai-insights' | 'settings'
-  | 'workflows' | 'imports' | 'partners' | 'promotions' | 'talent-pool';
+  | 'workflows' | 'imports' | 'partners' | 'promotions' | 'talent-pool' | 'echo-showcase';
 import { SALogo } from '@/src/views/components';
 
 export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?: number; tag?: 'NEW' }> = [
@@ -52,7 +52,8 @@ export const NAV: Array<{ id: SuperAdminNavId; label: string; Icon: any; count?:
   { id: 'alumni',      label: 'Alumni',      Icon: Users },
   { id: 'talent-pool', label: 'Talent Pool', Icon: UserPlus,    tag: 'NEW' },
   { id: 'imports',     label: 'Imports',     Icon: Upload,      tag: 'NEW' },
-  { id: 'events',      label: 'Events',      Icon: Calendar },
+  { id: 'events',          label: 'Events',          Icon: Calendar },
+  { id: 'echo-showcase',   label: 'Echo Showcase',   Icon: Sparkles,    tag: 'NEW' },
   { id: 'partners',    label: 'Partners',    Icon: Handshake,   tag: 'NEW' },
   { id: 'promotions',  label: 'Promotions',  Icon: Megaphone,   tag: 'NEW' },
   { id: 'payments',    label: 'Payments',    Icon: CreditCard },

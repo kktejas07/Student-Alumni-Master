@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 from typing import List, Dict, Any
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 def parse_pdf(file_path: str) -> str:
     try:
@@ -38,6 +37,11 @@ def parse_document(file_path: str) -> str:
 
 def chunk_text(text: str, document_name: str, chunk_size: int = 1000, chunk_overlap: int = 200, allowed_roles: List[str] = None) -> List[Dict[str, Any]]:
     """Chunks text into manageable pieces with overlap."""
+    try:
+        from langchain_text_splitters import RecursiveCharacterTextSplitter
+    except ImportError:
+        raise RuntimeError("langchain-text-splitters is required for chunking text")
+
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
