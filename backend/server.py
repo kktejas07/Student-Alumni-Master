@@ -192,6 +192,14 @@ async def _lifespan(application):
         db.token_blacklist, [("expires_at", 1)], expireAfterSeconds=0
     )
     await _safe_create_index(db.token_blacklist, "jti", unique=True, sparse=True)
+    # ECHO Showcase indexes
+    await _safe_create_index(db.echo_showcases, "slug", unique=True, sparse=True)
+    await _safe_create_index(db.echo_showcases, [("status", 1), ("date", -1)])
+    try:
+        from echo_showcase import seed_echo_showcase
+        await seed_echo_showcase(db)
+    except Exception as _e:
+        logger.warning("Could not seed ECHO showcases: %s", _e)
 
     # Seed admin account and baseline data
     # (seed_admin / seed_data are defined later in server.py and are in scope at runtime)
@@ -245,6 +253,16 @@ app = FastAPI(title="Student Alumni Platform API", lifespan=_lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernetes ingress requirement)
+
+# ECHO Showcase sub-router
+from echo_showcase import router as echo_router
+app.include_router(echo_router)
+
+# Static file serving for uploads (ECHO Showcase images & documents)
+import os
+from fastapi.staticfiles import StaticFiles
+os.makedirs("uploads/echo", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
 # (Mongo warm-up and shutdown handling are now handled in the _lifespan context above)

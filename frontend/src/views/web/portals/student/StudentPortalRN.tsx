@@ -34,6 +34,7 @@ import { NetworkView } from './views/NetworkView';
 import { ProfileSettingsView } from './views/ProfileSettingsView';
 import { MyBookingsView } from './views/MyBookingsView';
 import { MyWorkshopsView } from './views/MyWorkshopsView';
+import { EchoShowcaseView } from './views/EchoShowcaseView';
 
 import { EmbeddedShellContext } from '@/src/views/web/FeaturePageShell';
 
@@ -130,6 +131,12 @@ function PortalShell() {
                   {active === 'my-bookings'     && <MyBookingsView />}
                   {active === 'events'          && <EventsView />}
                   {active === 'my-workshops'    && <MyWorkshopsView />}
+                  {(active === 'vnr-echo-2026' || active === 'echo-showcase' || (![
+                    'dashboard', 'career-ai', 'internships', 'network', 'my-bookings', 'events',
+                    'my-workshops', 'courses', 'financial', 'deals', 'wallet', 'higher-ed', 'rentals', 'profile'
+                  ].includes(active))) && (
+                    <EchoShowcaseView slug={active === 'echo-showcase' ? 'vnr-echo-2026' : active} onBack={() => handleNav('events')} />
+                  )}
                   {active === 'courses'         && <CoursesPage />}
                   {active === 'financial'       && <FinancialPage />}
                   {active === 'deals'           && <DealsPage />}
