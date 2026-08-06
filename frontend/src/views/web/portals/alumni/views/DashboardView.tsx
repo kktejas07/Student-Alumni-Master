@@ -26,6 +26,7 @@ import { TierBadge } from '@/src/views/web/TierBadge';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
 import { request } from '@/src/models/services/api';
 import { AdBanner } from '@/src/views/web/components/AdBanner';
+import { CouponBanner } from '@/src/views/web/components/CouponBanner';
 
 const KPI_ICONS = { matches: Briefcase, applications: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp, events: Calendar } as const;
 
@@ -70,6 +71,9 @@ export function DashboardView({
     <View style={{ gap: 16 }}>
       {/* Ad Banner */}
       <AdBanner />
+
+      {/* Exclusive Coupons — below the ad banner */}
+      <CouponBanner portal="alumni" />
 
       {/* AI Daily Brief banner */}
       <View style={s.briefRow}>

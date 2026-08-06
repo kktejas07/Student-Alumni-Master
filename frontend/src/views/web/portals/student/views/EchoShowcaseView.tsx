@@ -341,7 +341,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
             </View>
           </PressScale>
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            {showSection('registration') && (data?.registration?.enabled !== false) && (
+            {showSection('registration') && (data?.registration?.enabled !== false) && (data?.event_status_badge !== 'Completed') && (
               <Pressable
                 onPress={() => {
                   if (Platform.OS === 'web') {

@@ -1,4 +1,4 @@
-import { motion, useScroll, useMotionValueEvent } from "framer-motion";
+import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "expo-router";
 import { SALogo } from "@/src/views/components";
@@ -12,8 +12,21 @@ export function Navbar() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState("Agent K");
-  const { scrollY } = useScroll();
-  useMotionValueEvent(scrollY, "change", (v) => setScrolled(v > 20));
+  // The app scrolls inside a container (body has overflow:hidden), not the
+  // window, so framer-motion's useScroll() never fires. A capture-phase
+  // listener catches scroll events from ANY scroll container on the page.
+  useEffect(() => {
+    const onScroll = (e: Event) => {
+      const target = e.target as any;
+      const top =
+        target && typeof target.scrollTop === "number"
+          ? target.scrollTop
+          : window.scrollY || document.documentElement.scrollTop || 0;
+      setScrolled(top > 20);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true, capture: true });
+    return () => window.removeEventListener("scroll", onScroll, { capture: true } as any);
+  }, []);
   const isEcho = typeof pathname === "string" && pathname.startsWith("/echo");
   const isLanding = typeof pathname === "string" && pathname === "/welcome";
 
@@ -49,14 +62,14 @@ export function Navbar() {
       initial={{ y: -30, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? "py-2" : "py-4"
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled
+          ? "py-2 bg-[#0C0C0D]/80 backdrop-blur-md border-b border-white/10 shadow-2xl"
+          : "py-4 bg-transparent border-b border-transparent"
         }`}
     >
       <div className="mx-auto max-w-7xl px-6">
         <div
-          className={`flex items-center justify-between rounded-full border transition-all duration-500 ${scrolled
-              ? "border-white/10 bg-[#0C0C0D]/80 backdrop-blur-md px-5 py-2.5 shadow-2xl"
-              : "border-transparent bg-transparent px-5 py-3"
+          className={`flex items-center justify-between transition-all duration-500 ${scrolled ? "px-5 py-2.5" : "px-5 py-3"
             }`}
         >
           {/* Logo */}

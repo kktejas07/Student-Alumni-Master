@@ -552,6 +552,19 @@ async def register_for_showcase(
     if reg_cfg.get("enabled") is False:
         raise HTTPException(status_code=400, detail="Registrations are closed for this event")
 
+    # Completed events stop accepting registrations regardless of settings.
+    if showcase.get("event_status_badge") == "Completed":
+        raise HTTPException(status_code=400, detail="This event has ended — registrations are closed")
+
+    # Auto-onboard manually-typed colleges (idempotent — no-op if already in DB).
+    college_value = (payload.college or "").strip()
+    if college_value:
+        try:
+            from routers.admin.colleges import ensure_college
+            await ensure_college(college_value, created_by="echo-registration")
+        except Exception:
+            pass
+
     user_key = str(user["_id"]) if user else (payload.email or payload.phone or "anon")
     existing = await db.echo_registrations.find_one(
         {"slug": canonical_slug, "user_key": user_key}

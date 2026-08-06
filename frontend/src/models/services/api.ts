@@ -363,6 +363,10 @@ export const api = {
   listEchoShowcases: () => request<any>('/echo/showcases'),
   getEchoShowcase: (slug: string) => request<any>(`/echo/showcases/${slug}`),
 
+  // Public college autocomplete (registration / onboarding forms)
+  searchColleges: (q: string, limit = 8) =>
+    request<any>(`/colleges/search?q=${encodeURIComponent(q)}&limit=${limit}`, { auth: false }),
+
   // Admin ECHO Showcase
   adminListEchoShowcases: () => request<any>('/echo/admin/showcases'),
   createEchoShowcase: (payload: any) =>

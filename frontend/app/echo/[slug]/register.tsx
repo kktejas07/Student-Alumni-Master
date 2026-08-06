@@ -25,6 +25,7 @@ import { api } from '@/src/models/services/api';
 import { PALETTE, FONTS, TYPO } from '@/src/views/web/portals/student/tokens';
 import { GRAD } from '@/src/views/web/portals/student/portalkit';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
+import { CollegeAutocomplete } from '@/src/views/web/components/CollegeAutocomplete';
 
 export default function EchoRegisterPage() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -66,6 +67,7 @@ export default function EchoRegisterPage() {
   const fee = Number(regCfg.fee || 0);
   const currency = regCfg.currency || 'INR';
   const isOpen = regCfg.enabled !== false;
+  const isCompleted = showcase?.event_status_badge === 'Completed';
   const paymentUrl = regCfg.payment_url || null;
   const posters = Array.isArray(regCfg.poster_images) && regCfg.poster_images.length > 0
     ? regCfg.poster_images
@@ -254,10 +256,14 @@ export default function EchoRegisterPage() {
 
         {/* ── RIGHT: REGISTRATION + PAYMENT ───────────────────────────── */}
         <View style={[s.formCol, !isWide && s.formColStack]}>
-          {!isOpen ? (
+          {!isOpen || isCompleted ? (
             <View style={s.closedCard}>
-              <Text style={s.closedTitle}>Registrations are closed</Text>
-              <Text style={s.closedSub}>This event is no longer accepting registrations.</Text>
+              <Text style={s.closedTitle}>{isCompleted ? 'This event has ended' : 'Registrations are closed'}</Text>
+              <Text style={s.closedSub}>
+                {isCompleted
+                  ? 'This event is complete and no longer accepting registrations.'
+                  : 'This event is no longer accepting registrations.'}
+              </Text>
             </View>
           ) : (
             <>
@@ -306,7 +312,11 @@ export default function EchoRegisterPage() {
                 </View>
 
                 <Text style={s.label}>College</Text>
-                <TextInput style={s.input} value={form.college} onChangeText={(v) => set('college', v)} placeholder={showcase.college || 'Your college' } placeholderTextColor={PALETTE.dim} />
+                <CollegeAutocomplete
+                  value={form.college}
+                  onChangeText={(v) => set('college', v)}
+                  placeholder={showcase.college || 'Search your college…'}
+                />
 
                 {error ? <Text style={s.error}>{error}</Text> : null}
 

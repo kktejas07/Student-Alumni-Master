@@ -24,7 +24,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StarryBackground } from '@/src/views/web/nexus-glow-landing/StarryBackground';
 import { DashboardFooter } from '../../components/SponsorStrip';
 import { PromoBanner } from '../../components/PromoBanner';
-import { CouponBanner } from '../../components/CouponBanner';
 import { DashboardView } from './views/DashboardView';
 import { ConnectionsView } from './views/ConnectionsView';
 import { SessionsView } from './views/SessionsView';
@@ -163,7 +162,6 @@ export default function MentorPortalRN() {
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
             <View style={{ flex: 1, padding: 20 }}>
               <PromoBanner portal="mentor" />
-              <CouponBanner portal="mentor" />
               {active === 'dashboard' && <DashboardView onNav={(id) => setActive(id as NavId)} />}
               {active === 'ai-studio' && <MentorAIStudioView />}
               {active === 'students'  && <ConnectionsView />}
