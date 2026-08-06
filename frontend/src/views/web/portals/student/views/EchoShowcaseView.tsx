@@ -22,8 +22,8 @@ import {
   Building2, Award, TrendingUp, Target, Zap, FileText, Download,
   Ticket,
 } from 'lucide-react-native';
-import { api } from '@/src/models/services/api';
-import { PALETTE, FONTS, TYPO } from '../tokens';
+import { api, resolveImageUrl } from '@/src/models/services/api';
+import { PALETTE, SC, FONTS, TYPO } from '../tokens';
 import { GlassCard } from '../glass';
 import { FadeInView, PressScale } from '../motion';
 import { GRAD } from '../portalkit';
@@ -72,6 +72,18 @@ const DEFAULT_SHOWCASE: any = {
 function Lightbox({ images, startIndex, onClose }: { images: any[]; startIndex: number; onClose: () => void }) {
   const [idx, setIdx] = useState(startIndex);
   const img = images[idx];
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') setIdx((prev) => Math.max(0, prev - 1));
+      if (e.key === 'ArrowRight') setIdx((prev) => Math.min(images.length - 1, prev + 1));
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [images.length, onClose]);
+
   return (
     <Modal transparent animationType="fade" onRequestClose={onClose}>
       <View style={lb.overlay}>
@@ -81,7 +93,7 @@ function Lightbox({ images, startIndex, onClose }: { images: any[]; startIndex: 
             <X size={18} color="#fff" />
           </Pressable>
           {img?.url ? (
-            <Image source={{ uri: img.url }} style={lb.img} resizeMode="contain" />
+            <Image source={{ uri: resolveImageUrl(img.url) }} style={lb.img} resizeMode="contain" />
           ) : (
             <View style={[lb.img, { backgroundColor: 'rgba(99,102,241,0.20)', alignItems: 'center', justifyContent: 'center' }]}>
               <ZoomIn size={40} color={PALETTE.muted} />
@@ -172,9 +184,7 @@ const hc = StyleSheet.create({
 
 // ── Testimonial Card ───────────────────────────────────────────────────────
 function TestimonialCard({ t }: { t: any }) {
-  const photoUri = t.photo_url
-    ? (t.photo_url.startsWith('http') ? t.photo_url : `http://localhost:8000${t.photo_url}`)
-    : null;
+  const photoUri = t.photo_url ? resolveImageUrl(t.photo_url) : null;
   return (
     <View style={tc.card}>
       <Text style={tc.quote}>"{t.quote}"</Text>
@@ -227,7 +237,7 @@ function GalleryCell({ img, onPress, style }: { img: any; onPress: () => void; s
   return (
     <Pressable onPress={onPress} style={[gc.cell, style]}>
       {img?.url ? (
-        <Image source={{ uri: img.url }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+        <Image source={{ uri: resolveImageUrl(img.url) }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
       ) : (
         <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(99,102,241,0.12)', alignItems: 'center', justifyContent: 'center' }]}>
           <ZoomIn size={24} color={PALETTE.dim} />
@@ -278,18 +288,23 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
         }
         const d = await api.getEchoShowcase(targetSlug);
         if (mounted && d) {
+          console.log('[STUDENT GET RESPONSE]', {
+            targetSlug,
+            title: d.title,
+            hero_image_url: d.hero_image_url,
+            hero_cover_url: d.hero_cover_url,
+            resolved_hero_url: resolveImageUrl(d.hero_image_url),
+          });
           setData(d);
           if (Platform.OS === 'web' && (d.seo_title || d.title)) {
             document.title = d.seo_title || `${d.title} | Student Alumni Platform`;
           }
         }
-      } catch {
-        /* keep default (neutral) data */
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-    resolve();
+      })
+      .catch((err) => {
+        console.warn('[STUDENT GET ERROR — FALLBACK USED]', err);
+      })
+      .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, [slug]);
 
@@ -408,7 +423,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
             {isWide && (
               <View style={s.heroRight}>
                 {data?.hero_image_url ? (
-                  <Image source={{ uri: data.hero_image_url }} style={s.heroImg} resizeMode="cover" />
+                  <Image source={{ uri: resolveImageUrl(data.hero_image_url) }} style={s.heroImg} resizeMode="cover" />
                 ) : (
                   <LinearGradient
                     colors={['rgba(123,61,191,0.35)', 'rgba(95,37,159,0.55)', 'rgba(30,10,80,0.80)']}
@@ -460,7 +475,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
             <View style={s.orgRow}>
               <View style={s.orgAvatar}>
                 {data?.organizer_logo_url ? (
-                  <Image source={{ uri: data.organizer_logo_url }} style={{ width: 38, height: 38, borderRadius: 10 }} resizeMode="contain" />
+                  <Image source={{ uri: resolveImageUrl(data.organizer_logo_url) }} style={{ width: 38, height: 38, borderRadius: 10 }} resizeMode="contain" />
                 ) : (
                   <Text style={{ fontFamily: TYPO.display800, fontSize: 16, color: GRAD.from }}>
                     {(data?.organizer_name || 'EV').split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()}
@@ -479,7 +494,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                   {partners.map((p, i) => (
                     <View key={i} style={s.partnerChip}>
                       {p.logo_url ? (
-                        <Image source={{ uri: p.logo_url }} style={{ width: 28, height: 28 }} resizeMode="contain" />
+                        <Image source={{ uri: resolveImageUrl(p.logo_url) }} style={{ width: 28, height: 28 }} resizeMode="contain" />
                       ) : (
                         <Text style={{ fontFamily: TYPO.body700, fontSize: 12, color: PALETTE.text }}>{p.name}</Text>
                       )}

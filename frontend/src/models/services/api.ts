@@ -79,15 +79,17 @@ export async function request<T>(
     }
   }
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+  const headers: Record<string, string> = {};
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
   if (auth && token) headers['Authorization'] = `Bearer ${token}`;
 
   const res = await fetch(`${BASE_URL}/api${path}`, {
     method,
     headers,
-    body: body ? JSON.stringify(body) : undefined,
+    body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
   });
 
   const text = await res.text();
@@ -381,28 +383,41 @@ export const api = {
     request<any>(`/echo/admin/showcases/${id}/draft`, { method: 'PATCH' }),
   archiveEchoShowcase: (id: string) =>
     request<any>(`/echo/admin/showcases/${id}/archive`, { method: 'PATCH' }),
-  uploadEchoMedia: (payload: any) =>
-    request<any>('/echo/admin/upload', { method: 'POST', body: payload }),
+  uploadEchoMedia: (payload: any) => {
+    if (typeof FormData !== 'undefined' && payload instanceof FormData) {
+      return request<any>('/echo/admin/upload', { method: 'POST', body: payload });
+    }
+    if (payload && payload.file && typeof FormData !== 'undefined') {
+      const fd = new FormData();
+      fd.append('file', payload.file, payload.filename || payload.file.name);
+      return request<any>('/echo/admin/upload', { method: 'POST', body: fd });
+    }
+    return request<any>('/echo/admin/upload', { method: 'POST', body: payload });
+  },
   listEchoMedia: () =>
     request<any>('/echo/admin/media'),
+  getEchoMediaStats: () =>
+    request<any>('/echo/admin/media/stats'),
   deleteEchoMedia: (filename: string) =>
     request<any>(`/echo/admin/media/${encodeURIComponent(filename)}`, { method: 'DELETE' }),
-  registerEchoShowcase: (slug: string, payload: any) =>
-    request<any>(`/echo/showcases/${slug}/register`, { method: 'POST', body: payload }),
-  myEchoRegistration: (slug: string) =>
-    request<any>(`/echo/showcases/${slug}/my-registration`),
-
-  // ── Coupons ──────────────────────────────────────────────────────────────
-  listActiveCoupons: () => request<any>('/coupons/active'),
-  listCoupons: () => request<any>('/coupons'),
-  listAdminCoupons: () => request<any>('/admin/coupons'),
-  createCoupon: (payload: any) =>
-    request<any>('/admin/coupons', { method: 'POST', body: payload }),
-  updateCoupon: (id: string, payload: any) =>
-    request<any>(`/admin/coupons/${id}`, { method: 'PATCH', body: payload }),
-  deleteCoupon: (id: string) =>
-    request<any>(`/admin/coupons/${id}`, { method: 'DELETE' }),
+  bulkDeleteEchoMedia: (filenames: string[]) =>
+    request<any>('/echo/admin/media/bulk-delete', { method: 'POST', body: { filenames } }),
+  restoreEchoShowcaseVersion: (id: string, versionIndex: number) =>
+    request<any>(`/echo/admin/showcases/${id}/restore/${versionIndex}`, { method: 'POST' }),
 };
 
+export function resolveImageUrl(url?: string | null): string {
+  if (!url) return '';
+  if (
+    url.startsWith('http://') ||
+    url.startsWith('https://') ||
+    url.startsWith('data:') ||
+    url.startsWith('blob:')
+  ) {
+    return url;
+  }
+  const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+  return `${BASE_URL}${cleanUrl}`;
+}
 
 export { BASE_URL };
