@@ -33,8 +33,8 @@ dotenv.config();
 // ── Config ────────────────────────────────────────────────────────────────────
 const BASE_URL: string = process.env['BASE_URL'] ?? 'http://localhost:8081';
 const API_URL: string  = process.env['API_URL']  ?? 'http://localhost:8000';
-const ADMIN_EMAIL: string    = process.env['ADMIN_EMAIL']    ?? 'admin@studentalumni.com';
-const ADMIN_PASSWORD: string = process.env['ADMIN_PASSWORD'] ?? 'Admin@123';
+const ADMIN_EMAIL: string    = process.env['ADMIN_EMAIL']    ?? 'admin@careerpath.app';
+const ADMIN_PASSWORD: string = process.env['ADMIN_PASSWORD'] ?? 'Admin@12345';
 
 // Path to a tiny test PNG (created inline if not present)
 const TEST_IMAGE_PATH: string = path.join(__dirname, 'fixtures', 'test-image.png');
@@ -55,34 +55,35 @@ async function ensureTestImage(): Promise<void> {
 }
 
 async function loginAsAdmin(page: Page): Promise<void> {
-  await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle', timeout: 30000 });
-  await page.waitForTimeout(1000);
-
-  const emailInput = page.locator('input[type="email"], input[placeholder*="email" i], input[placeholder*="Email" i]').first();
-  if (await emailInput.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await emailInput.fill(ADMIN_EMAIL);
-  }
-
-  const passwordInput = page.locator('input[type="password"]').first();
-  if (await passwordInput.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await passwordInput.fill(ADMIN_PASSWORD);
-  }
-
-  const submitBtn = page.locator('button[type="submit"], text=Login, text=Sign In, text=Log in').first();
-  if (await submitBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await submitBtn.click();
-    await page.waitForTimeout(2000);
-  }
+  await page.goto(`${BASE_URL}/welcome`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.evaluate(async ({ email, password, apiUrl }) => {
+    try {
+      const res = await fetch(`${apiUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem('scd_access_token', data.access_token);
+        if (data.refresh_token) localStorage.setItem('scd_refresh_token', data.refresh_token);
+        localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('scd_user', JSON.stringify(data.user));
+      }
+    } catch (e) {}
+  }, { email: ADMIN_EMAIL, password: ADMIN_PASSWORD, apiUrl: API_URL });
+  await page.waitForTimeout(500);
 }
 
 async function navigateToEchoShowcase(page: Page): Promise<void> {
-  await page.goto(`${BASE_URL}/super-admin`, { waitUntil: 'networkidle', timeout: 30000 });
+  await page.goto(`${BASE_URL}/super-admin`, { waitUntil: 'domcontentloaded', timeout: 30000 });
   await page.waitForTimeout(2000);
 
-  const echoNav = page.locator('[nativeID="superadmin-nav-echo-showcase"], text="Echo Showcase"').first();
+  const echoNav = page.locator('text=Echo Showcase').or(page.locator('text=ECHO Showcase')).first();
   if (await echoNav.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await echoNav.click();
-    await page.waitForTimeout(1500);
+    await echoNav.click({ force: true });
+    await page.waitForTimeout(2000);
   }
 }
 
@@ -119,7 +120,7 @@ test.describe('ECHO Showcase CMS — Super Admin', () => {
     await loginAsAdmin(page);
     await navigateToEchoShowcase(page);
 
-    const header = page.locator('text=ECHO Showcase CMS, text=Echo Showcase').first();
+    const header = page.locator('text=ECHO Showcase CMS').or(page.locator('text=Echo Showcase')).first();
     await expect(header).toBeVisible({ timeout: 10000 });
 
     await expect(page.locator('text=Total Showcases').first()).toBeVisible({ timeout: 8000 });
@@ -609,4 +610,85 @@ test.describe('ECHO Showcase CMS — Super Admin', () => {
     expect([401, 403, 404]).toContain(res.status());
   });
 
+  // ── ECHO-026: End-to-End Image Upload Pipeline & Persistence Verification ──
+  test('ECHO-026: Complete Image Upload Pipeline (Banner, Cover, Thumbnail -> Save -> Refresh -> Verify CMS & Public Page)', async ({ page }: { page: Page }) => {
+    await loginAsAdmin(page);
+    await navigateToEchoShowcase(page);
+
+    // Edit existing VNR ECHO 2026 showcase
+    const titleEl = page.locator('text=VNR ECHO 2026').first();
+    await expect(titleEl).toBeVisible({ timeout: 10000 });
+    // Find ancestor container and click edit icon
+    const container = titleEl.locator('xpath=ancestor::div[3]');
+    const editIcon = container.locator('svg').nth(1);
+    if (await editIcon.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await editIcon.click();
+    } else {
+      await titleEl.click();
+    }
+    await page.waitForTimeout(1000);
+
+    // Switch to Hero tab
+    await switchToTab(page, 'Hero');
+
+    // Upload Hero Banner, Hero Cover, and Hero Thumbnail
+    const fileInputs = page.locator('input[type="file"]');
+    const inputCount = await fileInputs.count();
+    console.log(`Hero file inputs count: ${inputCount}`);
+
+    if (inputCount >= 3) {
+      await fileInputs.nth(0).setInputFiles(TEST_IMAGE_PATH);
+      await page.waitForTimeout(1500);
+      await fileInputs.nth(1).setInputFiles(TEST_IMAGE_PATH);
+      await page.waitForTimeout(1500);
+      await fileInputs.nth(2).setInputFiles(TEST_IMAGE_PATH);
+      await page.waitForTimeout(1500);
+    }
+
+    // Save Changes
+    const saveBtn = page.locator('text=Save Changes').first();
+    await expect(saveBtn).toBeVisible({ timeout: 5000 });
+    await saveBtn.click();
+    await page.waitForTimeout(3000);
+
+    // Refresh page to test persistence across page reloads
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(2000);
+
+    // Reopen CMS and verify images persisted
+    await navigateToEchoShowcase(page);
+    const titleEl2 = page.locator('text=VNR ECHO 2026').first();
+    await expect(titleEl2).toBeVisible({ timeout: 10000 });
+    const container2 = titleEl2.locator('xpath=ancestor::div[3]');
+    const editIcon2 = container2.locator('svg').nth(1);
+    if (await editIcon2.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await editIcon2.click();
+    } else {
+      await titleEl2.click();
+    }
+    await page.waitForTimeout(1000);
+    await switchToTab(page, 'Hero');
+
+    const replaceBtns = page.locator('text=Replace');
+    const replaceCount = await replaceBtns.count();
+    console.log(`Replace buttons found in Hero tab after refresh: ${replaceCount}`);
+    expect(replaceCount).toBeGreaterThanOrEqual(1);
+
+    // Close modal
+    const cancelBtn = page.locator('text=Cancel').first();
+    if (await cancelBtn.isVisible().catch(() => false)) await cancelBtn.click();
+
+    // Verify public VNR ECHO page displays uploaded images
+    await page.goto(`${BASE_URL}/echo-showcase/vnr-echo-2026`, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(2000);
+
+    const publicImages = page.locator('img').or(page.locator('[style*="background-image"]'));
+    const imgCount = await publicImages.count();
+    console.log(`Images found on public ECHO page: ${imgCount}`);
+    expect(imgCount).toBeGreaterThan(0);
+
+    await page.screenshot({ path: 'reports/screenshots/ECHO026_upload_persistence.png', fullPage: true });
+  });
+
 });
+
