@@ -58,7 +58,7 @@ import jwt
 import pyotp
 import qrcode
 from bson import ObjectId
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response
+from fastapi import FastAPI, APIRouter, File, HTTPException, Depends, Request, Response, UploadFile
 # trigger reload
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -1603,6 +1603,34 @@ async def delete_coupon(coupon_id: str, user: dict = Depends(get_current_user)):
     from bson import ObjectId
     await db.coupons.delete_one({"_id": ObjectId(coupon_id)})
     return {"status": "ok"}
+
+
+@api_router.post("/admin/coupons/upload")
+async def upload_coupon_image(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+    """Admin — upload coupon image. Returns the static URL."""
+    role = (user.get("role") or "").lower()
+    if role not in ("admin", "superadmin", "super_admin"):
+        raise HTTPException(403, "Only admins can manage coupons")
+    from pathlib import Path
+    from datetime import datetime, timezone
+    upload_dir = Path("uploads/coupons")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    ext = Path(file.filename).suffix.lower() if file.filename else ".png"
+    allowed = {".jpg", ".jpeg", ".png", ".webp", ".svg", ".gif"}
+    if ext not in allowed:
+        raise HTTPException(400, f"File type {ext} not allowed")
+    contents = await file.read()
+    max_size = 5 * 1024 * 1024
+    if len(contents) > max_size:
+        raise HTTPException(413, "File too large. Maximum 5 MB allowed")
+    ts = int(datetime.now(timezone.utc).timestamp())
+    stem = Path(file.filename).stem.replace(" ", "_") if file.filename else "coupon"
+    safe_name = f"{ts}_{stem}{ext}"
+    out_path = upload_dir / safe_name
+    with open(out_path, "wb") as f:
+        f.write(contents)
+    url = f"/uploads/coupons/{safe_name}"
+    return {"status": "ok", "url": url}
 
 
 @api_router.post("/coupons/redeem")
