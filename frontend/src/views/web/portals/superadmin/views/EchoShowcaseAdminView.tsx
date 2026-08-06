@@ -33,7 +33,7 @@ import {
   StatusPill, SearchField, KpiTile, useToast, Toast, TopTabs, IconBox,
 } from '../applekit';
 import { SAC, FONTS } from '../tokens';
-import { api, resolveImageUrl } from '@/src/models/services/api';
+import { api } from '@/src/models/services/api';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const STATUS_PILL_MAP: Record<string, any> = {
@@ -161,64 +161,39 @@ const cs = StyleSheet.create({
 
 // ── Single image upload widget ────────────────────────────────────────────────
 function ImageUploadWidget({
-  label, url, onUpload, onRemove, aspectHint, onUploadStart, onUploadEnd, flash, onPickMedia,
+  label, url, onUpload, onRemove, aspectHint,
 }: {
   label: string;
   url?: string | null;
   onUpload: (url: string) => void;
   onRemove: () => void;
   aspectHint?: string;
-  onUploadStart?: () => void;
-  onUploadEnd?: () => void;
-  flash?: (msg: string) => void;
-  onPickMedia?: () => void;
 }) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState('');
 
   const handleFile = async (file: File) => {
-    // 1. Instant local preview
-    if (Platform.OS === 'web' && typeof URL !== 'undefined') {
-      try {
-        const localPreview = URL.createObjectURL(file);
-        onUpload(localPreview);
-        console.log('[CMS INSTANT PREVIEW]', { label, localPreview, fileName: file.name });
-      } catch (e) {
-        console.warn('Could not create local object URL for preview', e);
-      }
-    }
-
     setUploading(true);
-    setProgress(`Uploading ${file.name}…`);
-    onUploadStart?.();
-    console.log('[CMS UPLOAD REQUEST]', { label, fileName: file.name, size: file.size, type: file.type });
-
+    setProgress('Uploading…');
     try {
-      const fd = new FormData();
-      fd.append('file', file, file.name);
-      const res = await api.uploadEchoMedia(fd);
-      console.log('[CMS UPLOAD RESPONSE]', res);
-
+      const reader = new FileReader();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const res = await api.uploadEchoMedia({ data: dataUrl, filename: file.name });
       if (res?.url) {
         onUpload(res.url);
-        console.log('[CMS FORM STATE UPDATED]', { label, serverUrl: res.url });
-        flash?.(`${label} uploaded ✓`);
       } else {
-        throw new Error('Upload returned no URL');
+        onUpload(dataUrl);
       }
-    } catch (err: any) {
-      console.error('[CMS UPLOAD ERROR]', err);
-      flash?.(`Upload failed: ${err?.message || 'Unknown error'}`);
+    } catch {
+      onUpload('');
     } finally {
       setUploading(false);
       setProgress('');
-      onUploadEnd?.();
     }
-  };
-
-  const handleRemove = () => {
-    console.log('[CMS REMOVE IMAGE]', { label, previousUrl: url });
-    onRemove();
   };
 
   const onDrop = (e: any) => {
@@ -239,7 +214,7 @@ function ImageUploadWidget({
       {url ? (
         <View style={{ borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: SAC.border }}>
           <Image
-            source={{ uri: resolveImageUrl(url) }}
+            source={{ uri: url.startsWith('http') ? url : `http://localhost:8000${url}` }}
             style={{ width: '100%', height: 140 }}
             resizeMode="cover"
           />
@@ -258,7 +233,7 @@ function ImageUploadWidget({
               </label>
             )}
             <Pressable
-              onPress={handleRemove}
+              onPress={onRemove}
               style={{ backgroundColor: 'rgba(239,68,68,0.25)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 }}
             >
               <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: '#FCA5A5' }}>Remove</Text>
@@ -291,26 +266,19 @@ function ImageUploadWidget({
               <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted, marginTop: 4 }}>
                 JPEG · PNG · WEBP · AVIF · Max 25MB
               </Text>
-              <View style={{ flexDirection: 'row', gap: 8, marginTop: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
-                {Platform.OS === 'web' && (
-                  <label style={{ cursor: 'pointer' }}>
-                    <span style={{
-                      backgroundColor: 'rgba(123,61,191,0.30)', color: '#fff',
-                      padding: '6px 14px', borderRadius: '8px',
-                      fontFamily: FONTS.semi, fontSize: '12px',
-                    }}>
-                      Browse Files
-                    </span>
-                    <input type="file" accept="image/*" style={{ display: 'none' }}
-                      onChange={(e: any) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-                  </label>
-                )}
-                {onPickMedia && (
-                  <Pressable onPress={onPickMedia} style={{ backgroundColor: 'rgba(255,255,255,0.08)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: SAC.border }}>
-                    <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: SAC.text }}>Choose Existing Image</Text>
-                  </Pressable>
-                )}
-              </View>
+              {Platform.OS === 'web' && (
+                <label style={{ marginTop: 10, cursor: 'pointer' }}>
+                  <span style={{
+                    backgroundColor: 'rgba(123,61,191,0.30)', color: '#fff',
+                    padding: '6px 14px', borderRadius: '8px',
+                    fontFamily: FONTS.semi, fontSize: '12px',
+                  }}>
+                    Browse Files
+                  </span>
+                  <input type="file" accept="image/*" style={{ display: 'none' }}
+                    onChange={(e: any) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+                </label>
+              )}
             </>
           )}
         </View>
@@ -420,10 +388,14 @@ function TestimonialsEditor({ testimonials, onChange }: any) {
 
   const handlePhotoUpload = async (i: number, file: File) => {
     try {
-      const fd = new FormData();
-      fd.append('file', file, file.name);
-      const res = await api.uploadEchoMedia(fd);
-      if (res?.url) update(i, 'photo_url', res.url);
+      const reader = new FileReader();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const res = await api.uploadEchoMedia({ data: dataUrl, filename: file.name });
+      update(i, 'photo_url', res?.url || dataUrl);
     } catch { /* ignore */ }
   };
 
@@ -466,7 +438,7 @@ function TestimonialsEditor({ testimonials, onChange }: any) {
                 backgroundColor: 'rgba(123,61,191,0.15)', borderWidth: 1, borderColor: SAC.border,
                 alignItems: 'center', justifyContent: 'center' }}>
                 {t.photo_url ? (
-                  <Image source={{ uri: resolveImageUrl(t.photo_url) }}
+                  <Image source={{ uri: t.photo_url.startsWith('http') ? t.photo_url : `http://localhost:8000${t.photo_url}` }}
                     style={{ width: 60, height: 60 }} resizeMode="cover" />
                 ) : (
                   <Text style={{ fontFamily: FONTS.bold, fontSize: 18, color: GRAD.from }}>
@@ -528,10 +500,14 @@ function SponsorsEditor({ sponsors, onChange }: any) {
 
   const handleLogoUpload = async (i: number, file: File) => {
     try {
-      const fd = new FormData();
-      fd.append('file', file, file.name);
-      const res = await api.uploadEchoMedia(fd);
-      if (res?.url) update(i, 'logo_url', res.url);
+      const reader = new FileReader();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const res = await api.uploadEchoMedia({ data: dataUrl, filename: file.name });
+      update(i, 'logo_url', res?.url || dataUrl);
     } catch { /* ignore */ }
   };
 
@@ -546,7 +522,7 @@ function SponsorsEditor({ sponsors, onChange }: any) {
                 backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: SAC.border,
                 alignItems: 'center', justifyContent: 'center' }}>
                 {sp.logo_url ? (
-                  <Image source={{ uri: resolveImageUrl(sp.logo_url) }}
+                  <Image source={{ uri: sp.logo_url.startsWith('http') ? sp.logo_url : `http://localhost:8000${sp.logo_url}` }}
                     style={{ width: 70, height: 42 }} resizeMode="contain" />
                 ) : (
                   <ImageIcon size={18} color={SAC.dim} />
@@ -605,12 +581,16 @@ function DownloadsEditor({ downloads, onChange }: any) {
 
   const handleFileUpload = async (i: number, file: File) => {
     try {
-      const fd = new FormData();
-      fd.append('file', file, file.name);
-      const res = await api.uploadEchoMedia(fd);
+      const reader = new FileReader();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const res = await api.uploadEchoMedia({ data: dataUrl, filename: file.name });
       const sizeKB = file.size / 1024;
       const sizeHuman = sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${Math.round(sizeKB)} KB`;
-      if (res?.url) update(i, 'file_url', res.url);
+      update(i, 'file_url', res?.url || dataUrl);
       if (!downloads[i].file_size) update(i, 'file_size', sizeHuman);
     } catch { /* ignore */ }
   };
@@ -676,29 +656,35 @@ function GalleryDropzone({ gallery, onChange }: { gallery: any[]; onChange: (g: 
       const file = files[i];
       setProgress(`Uploading ${i + 1} of ${total}…`);
       try {
-        const fd = new FormData();
-        fd.append('file', file, file.name);
-        const res = await api.uploadEchoMedia(fd);
-        if (res?.url) {
-          newItems.push({
-            url: res.url,
-            caption: file.name.split('.')[0].replace(/[-_]/g, ' '),
-            alt: file.name,
-            credit: '',
-            tags: [],
-            featured: false,
-            hero: false,
-            order: (gallery?.length || 0) + i,
-          });
-        }
+        const reader = new FileReader();
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        let finalUrl = dataUrl;
+        try {
+          const res = await api.uploadEchoMedia({ data: dataUrl, filename: file.name });
+          if (res?.url) finalUrl = res.url;
+        } catch { /* fallback to dataUrl */ }
+
+        newItems.push({
+          url: finalUrl,
+          caption: file.name.split('.')[0].replace(/[-_]/g, ' '),
+          alt: file.name,
+          credit: '',
+          tags: [],
+          featured: false,
+          hero: false,
+          order: (gallery?.length || 0) + i,
+        });
       } catch (err) {
         console.error('Upload error', err);
       }
     }
 
-    if (newItems.length > 0) {
-      onChange([...(gallery || []), ...newItems]);
-    }
+    onChange([...(gallery || []), ...newItems]);
     setUploading(false);
     setProgress('');
   };
@@ -786,7 +772,7 @@ function GalleryDropzone({ gallery, onChange }: { gallery: any[]; onChange: (g: 
               {/* Thumbnail */}
               <View style={{ width: 72, height: 72, borderRadius: 8, overflow: 'hidden', backgroundColor: '#000' }}>
                 {item.url ? (
-                  <Image source={{ uri: resolveImageUrl(item.url) }}
+                  <Image source={{ uri: item.url.startsWith('http') ? item.url : `http://localhost:8000${item.url}` }}
                     style={{ width: '100%', height: '100%' }} resizeMode="cover" />
                 ) : (
                   <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -904,9 +890,13 @@ function MediaLibraryPanel() {
       setUploadProgress(`Uploading ${i + 1}/${files.length}…`);
       const file = files[i];
       try {
-        const fd = new FormData();
-        fd.append('file', file, file.name);
-        await api.uploadEchoMedia(fd);
+        const reader = new FileReader();
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        await api.uploadEchoMedia({ data: dataUrl, filename: file.name });
         count++;
       } catch { /* skip failed */ }
     }
@@ -976,7 +966,7 @@ function MediaLibraryPanel() {
                     style={{ width: 120, borderRadius: 10, overflow: 'hidden',
                       backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: SAC.border }}>
                     <Image
-                      source={{ uri: resolveImageUrl(m.url) }}
+                      source={{ uri: m.url.startsWith('http') ? m.url : `http://localhost:8000${m.url}` }}
                       style={{ width: 120, height: 80 }} resizeMode="cover"
                     />
                     <View style={{ padding: 6, gap: 3 }}>
@@ -1028,7 +1018,7 @@ function MediaLibraryPanel() {
             <View style={{ width: '90%', maxWidth: 700, backgroundColor: '#0d1326',
               borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: SAC.border, zIndex: 2 }}>
               <Image
-                source={{ uri: resolveImageUrl(preview.url) }}
+                source={{ uri: preview.url.startsWith('http') ? preview.url : `http://localhost:8000${preview.url}` }}
                 style={{ width: '100%', height: 380 }} resizeMode="contain"
               />
               <View style={{ padding: 14, gap: 10 }}>
@@ -1153,16 +1143,12 @@ const EMPTY: any = {
 const AUTOSAVE_KEY = 'echo_cms_autosave';
 
 // ── Showcase Editor Modal ─────────────────────────────────────────────────────
-function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash }: any) {
+function ShowcaseModal({ visible, editing, onClose, onSave, saving }: any) {
   const [tab, setTab] = useState<FormTab>('general');
   const [form, setForm] = useState<any>({ ...EMPTY });
   const [isDirty, setIsDirty] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
-  const [activeUploads, setActiveUploads] = useState(0);
   const autosaveTimer = useRef<any>(null);
-
-  const onUploadStart = () => setActiveUploads((c) => c + 1);
-  const onUploadEnd = () => setActiveUploads((c) => Math.max(0, c - 1));
 
   useEffect(() => {
     const initial = editing ? { ...editing } : { ...EMPTY };
@@ -1170,7 +1156,6 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash }: any
     setTab('general');
     setIsDirty(false);
     setLastSaved(null);
-    setActiveUploads(0);
     // Restore autosave draft if creating new
     if (!editing && Platform.OS === 'web') {
       try {
@@ -1342,9 +1327,6 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash }: any
                   url={form.hero_image_url}
                   onUpload={(url) => set('hero_image_url', url)}
                   onRemove={() => set('hero_image_url', '')}
-                  onUploadStart={onUploadStart}
-                  onUploadEnd={onUploadEnd}
-                  flash={flash}
                   aspectHint="Recommended: 1920×600px · Landscape · Min 1MB for crisp display"
                 />
                 <ImageUploadWidget
@@ -1352,9 +1334,6 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash }: any
                   url={form.hero_cover_url}
                   onUpload={(url) => set('hero_cover_url', url)}
                   onRemove={() => set('hero_cover_url', '')}
-                  onUploadStart={onUploadStart}
-                  onUploadEnd={onUploadEnd}
-                  flash={flash}
                   aspectHint="Recommended: 1200×800px · Used as card cover in listings"
                 />
                 <ImageUploadWidget
@@ -1362,9 +1341,6 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash }: any
                   url={form.hero_thumbnail_url}
                   onUpload={(url) => set('hero_thumbnail_url', url)}
                   onRemove={() => set('hero_thumbnail_url', '')}
-                  onUploadStart={onUploadStart}
-                  onUploadEnd={onUploadEnd}
-                  flash={flash}
                   aspectHint="Recommended: 400×300px · Used in thumbnails and search results"
                 />
                 <ImageUploadWidget
@@ -1372,9 +1348,6 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash }: any
                   url={form.hero_bg_url}
                   onUpload={(url) => set('hero_bg_url', url)}
                   onRemove={() => set('hero_bg_url', '')}
-                  onUploadStart={onUploadStart}
-                  onUploadEnd={onUploadEnd}
-                  flash={flash}
                   aspectHint="Recommended: 1920×1080px · Used as page background"
                 />
               </View>
@@ -1387,9 +1360,6 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash }: any
                   url={form.organizer_logo_url}
                   onUpload={(url) => set('organizer_logo_url', url)}
                   onRemove={() => set('organizer_logo_url', '')}
-                  onUploadStart={onUploadStart}
-                  onUploadEnd={onUploadEnd}
-                  flash={flash}
                   aspectHint="Recommended: 200×200px · Square PNG with transparent background"
                 />
               </View>
@@ -1581,9 +1551,9 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash }: any
             <SecondaryButton onPress={handleClose} size="md">
               <Text style={{ fontFamily: FONTS.semi, fontSize: 13, color: SAC.muted }}>Cancel</Text>
             </SecondaryButton>
-            <GradientButton onPress={() => onSave(form)} loading={saving || activeUploads > 0} disabled={saving || activeUploads > 0} size="md">
+            <GradientButton onPress={() => onSave(form)} loading={saving} size="md">
               <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>
-                {activeUploads > 0 ? 'Uploading…' : editing ? 'Save Changes' : 'Create Showcase'}
+                {editing ? 'Save Changes' : 'Create Showcase'}
               </Text>
             </GradientButton>
           </View>
@@ -1656,25 +1626,12 @@ export function EchoShowcaseAdminView() {
 
   const onSave = async (form: any) => {
     setSaving(true);
-    console.log('[CMS SAVE PAYLOAD]', {
-      id: editing?._id,
-      title: form.title,
-      slug: form.slug,
-      status: form.status,
-      hero_image_url: form.hero_image_url,
-      hero_cover_url: form.hero_cover_url,
-      hero_thumbnail_url: form.hero_thumbnail_url,
-      gallery_count: form.gallery?.length,
-    });
-
     try {
       if (editing) {
-        const res = await api.updateEchoShowcase(editing._id, form);
-        console.log('[CMS UPDATE RESPONSE]', res);
+        await api.updateEchoShowcase(editing._id, form);
         flash('Showcase updated ✓');
       } else {
-        const res = await api.createEchoShowcase(form);
-        console.log('[CMS CREATE RESPONSE]', res);
+        await api.createEchoShowcase(form);
         flash('Showcase created ✓');
         // Clear autosave draft
         if (Platform.OS === 'web') {
@@ -1798,7 +1755,7 @@ export function EchoShowcaseAdminView() {
       )}
 
       {/* Showcase Editor Modal */}
-      <ShowcaseModal visible={modalOpen} editing={editing} onClose={onClose} onSave={onSave} saving={saving} flash={flash} />
+      <ShowcaseModal visible={modalOpen} editing={editing} onClose={onClose} onSave={onSave} saving={saving} />
     </View>
   );
 }
