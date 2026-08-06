@@ -207,6 +207,8 @@ export const api = {
   chatHistory: (session_id?: string) =>
     request<any>(`/ai/chat/history${session_id ? `?session_id=${session_id}` : ''}`),
 
+  chatSessions: () => request<any>('/ai/chat/sessions'),
+
   generateBio: (data: {
     role: string;
     full_name?: string;
@@ -356,6 +358,32 @@ export const api = {
       method: 'POST',
       body: message ? { message } : {},
     }),
+
+  // ── ECHO Showcase ──────────────────────────────────────────────────────────
+  listEchoShowcases: () => request<any>('/echo/showcases'),
+  getEchoShowcase: (slug: string) => request<any>(`/echo/showcases/${slug}`),
+
+  // Admin ECHO Showcase
+  adminListEchoShowcases: () => request<any>('/echo/admin/showcases'),
+  createEchoShowcase: (payload: any) =>
+    request<any>('/echo/admin/showcases', { method: 'POST', body: payload }),
+  updateEchoShowcase: (id: string, payload: any) =>
+    request<any>(`/echo/admin/showcases/${id}`, { method: 'PUT', body: payload }),
+  deleteEchoShowcase: (id: string) =>
+    request<any>(`/echo/admin/showcases/${id}`, { method: 'DELETE' }),
+  publishEchoShowcase: (id: string) =>
+    request<any>(`/echo/admin/showcases/${id}/publish`, { method: 'PATCH' }),
+  draftEchoShowcase: (id: string) =>
+    request<any>(`/echo/admin/showcases/${id}/draft`, { method: 'PATCH' }),
+  archiveEchoShowcase: (id: string) =>
+    request<any>(`/echo/admin/showcases/${id}/archive`, { method: 'PATCH' }),
+  uploadEchoMedia: (payload: any) =>
+    request<any>('/echo/admin/upload', { method: 'POST', body: payload }),
+  listEchoMedia: () =>
+    request<any>('/echo/admin/media'),
+  deleteEchoMedia: (filename: string) =>
+    request<any>(`/echo/admin/media/${encodeURIComponent(filename)}`, { method: 'DELETE' }),
 };
+
 
 export { BASE_URL };

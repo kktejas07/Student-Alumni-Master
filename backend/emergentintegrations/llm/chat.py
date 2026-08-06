@@ -12,14 +12,12 @@ class LlmChat:
         self.model = "gemini/gemini-1.5-flash"
 
     def with_model(self, provider: str, model_name: str):
-        if self.api_key and self.api_key.startswith("AIza"):
-            self.model = "gemini/gemini-1.5-flash"
-        elif self.api_key and self.api_key.startswith("sk-ant"):
-            self.model = "anthropic/claude-3-5-sonnet-20240620"
-        elif self.api_key and self.api_key.startswith("sk-proj"):
-            self.model = "openai/gpt-4o"
-        elif provider == "anthropic":
+        if provider in ("anthropic", "claude"):
             self.model = f"anthropic/{model_name}"
+        elif provider == "openai":
+            self.model = f"openai/{model_name}"
+        elif provider == "gemini":
+            self.model = f"gemini/{model_name}"
         else:
             self.model = f"{provider}/{model_name}"
         return self

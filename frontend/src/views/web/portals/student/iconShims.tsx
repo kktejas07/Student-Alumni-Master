@@ -88,6 +88,8 @@ export const IndianRupee     = make('currency-inr');
 export const Building2       = make('office-building-outline');
 export const Plug            = make('power-plug-outline');
 export const Zap             = make('lightning-bolt');
+export const ChevronDown     = make('chevron-down');
+export const ChevronRight    = make('chevron-right');
 
 // ── Type alias replacement for lucide's `LucideIcon` type ─────────────────
 export type LucideIcon = React.FC<IconProps>;

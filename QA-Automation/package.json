@@ -12,6 +12,7 @@
     "test:mentor": "playwright test tests/Mentor",
     "test:alumni": "playwright test tests/Alumni",
     "test:college": "playwright test tests/College",
+    "test:echo": "playwright test tests/echo-showcase-cms.spec.ts --project=chromium",
     "report:html": "playwright show-report reports/html",
     "report:allure": "allure generate allure-results --clean -o reports/allure-report"
   },

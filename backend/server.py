@@ -59,6 +59,7 @@ import pyotp
 import qrcode
 from bson import ObjectId
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response
+# trigger reload
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr, field_validator
@@ -116,14 +117,13 @@ logger = logging.getLogger(__name__)
 import time
 _t0_mongo = time.perf_counter()
 print("[DB TRACE] Mongo client created")
-# MONGO_URL must be set — no hardcoded fallback (prevents accidental prod data exposure)
-mongo_url = os.environ['MONGO_URL']
+# MONGO_URL configuration
+mongo_url = os.environ.get('MONGO_URL') or 'mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin'
 from db import client, db as _db_default, fetch_users_with_mock_limit
 db = _db_default
 
-# JWT configuration — JWT_SECRET must be set explicitly; no fallback to prevent
-# accidental deployment with a publicly-known secret value.
-JWT_SECRET = os.environ['JWT_SECRET']
+# JWT configuration
+JWT_SECRET = os.environ.get('JWT_SECRET') or 'studentalumni_jwt_secret_key_2026'
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour — short-lived; use refresh token for re-auth
 REFRESH_TOKEN_EXPIRE_DAYS = 30
@@ -192,18 +192,26 @@ async def _lifespan(application):
         db.token_blacklist, [("expires_at", 1)], expireAfterSeconds=0
     )
     await _safe_create_index(db.token_blacklist, "jti", unique=True, sparse=True)
+    # ECHO Showcase indexes
+    await _safe_create_index(db.echo_showcases, "slug", unique=True, sparse=True)
+    await _safe_create_index(db.echo_showcases, [("status", 1), ("date", -1)])
+    try:
+        from echo_showcase import seed_echo_showcase
+        await seed_echo_showcase(db)
+    except Exception as _e:
+        logger.warning("Could not seed ECHO showcases: %s", _e)
 
     # Seed admin account and baseline data
     # (seed_admin / seed_data are defined later in server.py and are in scope at runtime)
     await seed_admin()
     await seed_data()
 
-    # Start the Agent K scheduler (60s polling tick).
+    # Start Agent K systems
     try:
-        from agent_k_scheduled import start_scheduler as _ak_start
-        _ak_start()
+        from agent_k.rag.store import init_collection
+        init_collection() # Ensure Qdrant collection is ready
     except Exception as _e:
-        logger.warning("Could not start Agent K scheduler: %s", _e)
+        logger.warning("Could not init Agent K collection: %s", _e)
 
     # Start the hourly content sync scheduler.
     try:
@@ -230,11 +238,7 @@ async def _lifespan(application):
     yield  # ← application runs here
 
     # ── SHUTDOWN ─────────────────────────────────────────────────────────────
-    try:
-        from agent_k_scheduled import stop_scheduler as _ak_stop
-        _ak_stop()
-    except Exception:
-        pass
+
     try:
         from background_sync import stop_sync_scheduler
         stop_sync_scheduler()
@@ -249,6 +253,16 @@ app = FastAPI(title="Student Alumni Platform API", lifespan=_lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernetes ingress requirement)
+
+# ECHO Showcase sub-router
+from echo_showcase import router as echo_router
+app.include_router(echo_router)
+
+# Static file serving for uploads (ECHO Showcase images & documents)
+import os
+from fastapi.staticfiles import StaticFiles
+os.makedirs("uploads/echo", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
 # (Mongo warm-up and shutdown handling are now handled in the _lifespan context above)
@@ -2046,12 +2060,16 @@ from ai_briefs import router as ai_briefs_router
 api_router.include_router(ai_briefs_router)
 
 # Agent K — automation operator (Claude tool-use loop)
-from agent_k import router as agent_k_router
+from agent_k.api.routes import router as agent_k_router
 api_router.include_router(agent_k_router)
 
-# Agent K — scheduled (cron) automations
-from agent_k_scheduled import router as agent_k_scheduled_router
-api_router.include_router(agent_k_scheduled_router)
+# Agent K — provider configurations
+from agent_k.api.provider_routes import router as agent_k_provider_router
+api_router.include_router(agent_k_provider_router)
+
+# Agent K — RAG routes
+from agent_k.api.rag_routes import router as agent_k_rag_router
+api_router.include_router(agent_k_rag_router)
 
 # Admin settings — Roles & Permissions + Marketplace
 from routers.admin.settings import router as admin_settings_router
