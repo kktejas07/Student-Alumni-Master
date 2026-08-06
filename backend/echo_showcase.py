@@ -85,6 +85,8 @@ def _ser(doc: dict) -> dict:
             out[k] = v.isoformat()
         else:
             out[k] = v
+    if "slug" in doc and "gallery_layout" not in out:
+        out["gallery_layout"] = "grid"
     return out
 
 
@@ -352,7 +354,7 @@ DEFAULT_SHOWCASE_SEED = {
 
 
 async def seed_echo_showcase(db: AsyncIOMotorDatabase):
-    """Seed initial VNR ECHO 2026 showcase if missing."""
+    """Seed initial VNR ECHO 2026 showcase if missing, and ensure gallery_layout exists."""
     try:
         existing = await db.echo_showcases.find_one({"slug": "vnr-echo-2026"})
         if not existing:
@@ -361,6 +363,8 @@ async def seed_echo_showcase(db: AsyncIOMotorDatabase):
             doc["updated_at"] = _now()
             await db.echo_showcases.insert_one(doc)
             print("[ECHO CMS] Seeded default vnr-echo-2026 showcase")
+        else:
+            await db.echo_showcases.update_many({"gallery_layout": {"$exists": False}}, {"$set": {"gallery_layout": "grid"}})
     except Exception as e:
         print(f"[ECHO CMS] Seed warning: {e}")
 
@@ -440,6 +444,7 @@ async def update_showcase(showcase_id: str, payload: ShowcaseUpdateSchema, reque
     result = await db.echo_showcases.update_one({"_id": _oid(showcase_id)}, {"$set": update})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Showcase not found")
+    print(f"[MONGO UPDATE EXECUTED] showcase_id={showcase_id} matched={result.matched_count} modified={result.modified_count} fields={list(update.keys())}")
     doc = await db.echo_showcases.find_one({"_id": _oid(showcase_id)})
     return _ser(doc or {})
 
@@ -483,25 +488,36 @@ async def archive_showcase(showcase_id: str, request: Request, _=Depends(_requir
     return {"ok": True, "status": "archived"}
 
 
+# ── File Upload Endpoint ──────────────────────────────────────────────────────
+
 @router.post("/admin/upload")
-async def upload_echo_media(
-    request: Request,
-    file: Optional[UploadFile] = File(None),
-    admin=Depends(_require_admin)
-):
-    """Upload images or document assets for ECHO Showcase CMS."""
+async def upload_echo_media(request: Request, file: UploadFile = File(None), admin=Depends(_require_admin)):
+    """
+    Accepts multipart/form-data with 'file', 'image', or 'media', OR base64 payload.
+    Validates file size (max 25 MB) and file format.
+    Generates responsive image variants (thumbnail, medium, large, original) using Pillow.
+    """
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-    file_bytes = None
-    filename = None
-    original_name = None
-
     content_type = request.headers.get("content-type", "")
+
+    filename = "upload.png"
+    original_name = "upload.png"
+    file_bytes = b""
 
     if file and file.filename:
         filename = file.filename
         original_name = filename
         file_bytes = await file.read()
+    elif "multipart/form-data" in content_type:
+        form = await request.form()
+        uploaded_file = form.get("file") or form.get("image") or form.get("media")
+        if uploaded_file and hasattr(uploaded_file, "filename"):
+            filename = uploaded_file.filename
+            original_name = filename
+            file_bytes = await uploaded_file.read()
+        else:
+            raise HTTPException(status_code=400, detail="No file found in multipart upload")
     elif "application/json" in content_type:
         body = await request.json()
         data = body.get("data", "")
@@ -519,13 +535,13 @@ async def upload_echo_media(
         raise HTTPException(status_code=413, detail="File too large. Maximum 25 MB allowed.")
 
     ext = Path(filename).suffix.lower() or ".png"
-    # Allow only safe extensions
-    ALLOWED = {".jpg", ".jpeg", ".png", ".webp", ".avif", ".gif", ".pdf", ".docx", ".xlsx", ".pptx", ".zip"}
+    ALLOWED = {".jpg", ".jpeg", ".png", ".webp", ".avif", ".svg", ".gif", ".pdf", ".docx", ".xlsx", ".pptx", ".zip"}
     if ext not in ALLOWED:
         raise HTTPException(status_code=400, detail=f"File type {ext} not allowed.")
 
     ts = int(datetime.now().timestamp())
-    safe_name = f"{ts}_{Path(filename).stem.replace(' ', '_')}{ext}"
+    stem = Path(filename).stem.replace(" ", "_")
+    safe_name = f"{ts}_{stem}{ext}"
     out_path = UPLOAD_DIR / safe_name
 
     with open(out_path, "wb") as f:
@@ -533,12 +549,48 @@ async def upload_echo_media(
 
     url = f"/uploads/echo/{safe_name}"
 
+    # Generate Image Variants using Pillow if applicable
+    variants = {"original": url, "large": url, "medium": url, "thumbnail": url}
+    img_width, img_height = 0, 0
+
+    if ext in (".jpg", ".jpeg", ".png", ".webp"):
+        try:
+            from PIL import Image as PILImage
+            with PILImage.open(out_path) as im:
+                img_width, img_height = im.size
+
+                # Generate thumbnail (150x150)
+                thumb_im = im.copy()
+                thumb_im.thumbnail((150, 150))
+                thumb_name = f"{ts}_{stem}_thumb{ext}"
+                thumb_im.save(UPLOAD_DIR / thumb_name)
+                variants["thumbnail"] = f"/uploads/echo/{thumb_name}"
+
+                # Generate medium (600x400)
+                med_im = im.copy()
+                med_im.thumbnail((600, 600))
+                med_name = f"{ts}_{stem}_med{ext}"
+                med_im.save(UPLOAD_DIR / med_name)
+                variants["medium"] = f"/uploads/echo/{med_name}"
+
+                # Generate large (1200x800)
+                large_im = im.copy()
+                large_im.thumbnail((1200, 1200))
+                large_name = f"{ts}_{stem}_large{ext}"
+                large_im.save(UPLOAD_DIR / large_name)
+                variants["large"] = f"/uploads/echo/{large_name}"
+        except Exception:
+            pass
+
     # Track in metadata sidecar
     meta = _load_media_meta()
     meta[safe_name] = {
         "filename": safe_name,
         "original_name": original_name,
         "url": url,
+        "variants": variants,
+        "width": img_width,
+        "height": img_height,
         "size": len(file_bytes),
         "size_human": _human_size(len(file_bytes)),
         "ext": ext.lstrip("."),
@@ -553,6 +605,9 @@ async def upload_echo_media(
         "url": url,
         "filename": safe_name,
         "original_name": original_name,
+        "variants": variants,
+        "width": img_width,
+        "height": img_height,
         "size": len(file_bytes),
         "size_human": _human_size(len(file_bytes)),
         "content_type": ext.strip(".")
@@ -589,6 +644,9 @@ async def list_echo_media(request: Request, _=Depends(_require_admin)):
             "filename": p.name,
             "original_name": m.get("original_name", p.name),
             "url": f"/uploads/echo/{p.name}",
+            "variants": m.get("variants", {"original": f"/uploads/echo/{p.name}"}),
+            "width": m.get("width", 0),
+            "height": m.get("height", 0),
             "size": size,
             "size_human": _human_size(size),
             "ext": ext,
@@ -598,7 +656,7 @@ async def list_echo_media(request: Request, _=Depends(_require_admin)):
                 datetime.fromtimestamp(p.stat().st_mtime, tz=timezone.utc).isoformat()
             ),
             "uploaded_by": m.get("uploaded_by", "admin"),
-            "is_image": ext in ("jpg", "jpeg", "png", "webp", "avif", "gif"),
+            "is_image": ext in ("jpg", "jpeg", "png", "webp", "avif", "gif", "svg"),
         })
 
     return {
