@@ -1,6 +1,8 @@
 // @ts-nocheck
 /**
- * ECHO Showcase View — VNR ECHO 2026 showcase page.
+ * ECHO Showcase View — fully data-driven from the CMS; content and slug are
+ * resolved from the API (a canonical slug is passed in, or the first published
+ * showcase is used when no slug is provided).
  *
  * 10 sections matching the reference design:
  *  1. Header  2. Hero  3. Stats  4. About + Organizers  5. Highlights
@@ -18,16 +20,16 @@ import {
   ArrowLeft, Share2, Calendar, Clock, MapPin, Users, Mic2,
   BookOpen, Network, Star, ChevronRight, X, ZoomIn,
   Building2, Award, TrendingUp, Target, Zap, FileText, Download,
+  Ticket,
 } from 'lucide-react-native';
 import { api, resolveImageUrl } from '@/src/models/services/api';
 import { PALETTE, SC, FONTS, TYPO } from '../tokens';
 import { GlassCard } from '../glass';
 import { FadeInView, PressScale } from '../motion';
 import { GRAD } from '../portalkit';
+import { useRouter } from 'expo-router';
 
-// ── SLUG for the VNR ECHO 2026 showcase ────────────────────────────────────
-const SHOWCASE_SLUG = 'vnr-echo-2026';
-
+// ── Status badge colors ─────────────────────────────────────────────────────
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string; dot: string }> = {
   'Completed':  { bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.30)', text: '#34D399', dot: '#10B981' },
   'Live':       { bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.30)',   text: '#FCA5A5', dot: '#EF4444' },
@@ -41,51 +43,29 @@ const STAT_ICONS: Record<string, any> = {
   target: Target, default: Zap,
 };
 
-// ── Default / seed data shown while API loads ───────────────────────────────
-const DEFAULT_SHOWCASE = {
-  title: 'VNR ECHO 2026',
-  subtitle: 'Empowering Tomorrow\'s Leaders',
-  description: 'A day of inspiration, learning, and networking as industry leaders, alumni, and students came together to explore opportunities and shape the future of technology.',
-  date: 'August 15, 2026',
-  time: '10:00 AM – 4:30 PM',
-  venue: 'Main Auditorium, VNR VJIET',
-  event_status_badge: 'Upcoming',
-  category: 'College Event',
+// ── Default data shape (neutral; all real content comes from the CMS) ──────
+const DEFAULT_SHOWCASE: any = {
+  title: '',
+  subtitle: '',
+  description: '',
+  date: '',
+  time: '',
+  venue: '',
+  event_status_badge: '',
+  category: '',
   hero_image_url: null,
-  organizer_name: 'Student Alumni Cell',
+  organizer_name: '',
   organizer_logo_url: null,
-  stats: [
-    { label: 'Students Attended', value: '320+', icon: 'users' },
-    { label: 'Expert Speakers',   value: '12',   icon: 'speakers' },
-    { label: 'Sessions',          value: '6',    icon: 'sessions' },
-    { label: 'Networking Connections', value: '48', icon: 'network' },
-    { label: 'Feedback Score',    value: '95%',  icon: 'feedback' },
-  ],
-  highlights: [
-    { icon: 'book', title: 'Learn',   description: 'Industry insights' },
-    { icon: 'network', title: 'Connect', description: 'Build your network' },
-    { icon: 'trending', title: 'Grow', description: 'Shape your future' },
-  ],
-  partners: [
-    { name: 'Microsoft', kind: 'association' },
-    { name: 'Google', kind: 'association' },
-    { name: 'LinkedIn', kind: 'association' },
-  ],
-  testimonials: [
-    { name: 'Ananya S.', branch: 'Computer Science', year: 'Final Year', quote: 'Amazing event! The sessions were insightful and helped me understand industry expectations much better.', rating: 5 },
-    { name: 'Rohit M.', branch: 'Information Technology', year: 'Pre-final Year', quote: 'Great opportunity to network with professionals and connect with like-minded peers.', rating: 5 },
-    { name: 'Priya K.', branch: 'Electronics & Communication', year: 'Final Year', quote: 'The workshops were hands-on and very practical. Looking forward to more such events!', rating: 5 },
-  ],
-  timeline: [
-    { icon: 'star', title: 'Inspiring Keynotes', description: 'Industry leaders shared their journey and insights' },
-    { icon: 'users', title: 'Panel Discussions', description: 'Engaging conversations on career and tech trends' },
-    { icon: 'code', title: 'Hands-on Workshops', description: 'Practical learning and skill-building sessions' },
-    { icon: 'network', title: 'Networking Sessions', description: 'Students connected with experts and alumni' },
-  ],
+  stats: [],
+  highlights: [],
+  partners: [],
+  testimonials: [],
+  timeline: [],
   gallery: [],
-  cta_title: 'Stay tuned for more events!',
-  cta_subtitle: 'Join our community and never miss an opportunity to learn, connect, and grow.',
-  cta_button_text: 'View Upcoming Events',
+  cta_title: '',
+  cta_subtitle: '',
+  cta_button_text: '',
+  cta_url: null,
 };
 
 // ── Lightbox ─────────────────────────────────────────────────────────────────
@@ -271,23 +251,42 @@ const gc = StyleSheet.create({
 });
 
 // ── Main Component ─────────────────────────────────────────────────────────
-export function EchoShowcaseView({ slug = 'vnr-echo-2026', onBack }: { slug?: string; onBack?: () => void }) {
+export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () => void }) {
   const { width } = useWindowDimensions();
   const isWide = width >= 860;
   const [data, setData] = useState<any>(DEFAULT_SHOWCASE);
   const [loading, setLoading] = useState(true);
   const [lbOpen, setLbOpen] = useState(false);
   const [lbIndex, setLbIndex] = useState(0);
+  const router = useRouter();
+
+  // Section visibility — defaults to showing everything when not configured.
+  const sections = (data?.sections && typeof data.sections === 'object') ? data.sections : {};
 
   // Must be before early returns (Rules of Hooks)
   const gallery: any[] = data?.gallery || [];
 
+  const showSection = (key: string) => sections[key] !== false;
+
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    const targetSlug = slug || SHOWCASE_SLUG;
-    api.getEchoShowcase(targetSlug)
-      .then((d) => {
+    const resolve = async () => {
+      try {
+        let targetSlug = slug;
+        if (!targetSlug) {
+          const list: any = await api.listEchoShowcases();
+          const items: any[] = list?.items || list || [];
+          const first = items.find(
+            (s: any) => s?.status === 'published' || !s?.status
+          ) || items[0];
+          targetSlug = first?.slug;
+        }
+        if (!targetSlug) {
+          if (mounted) setData(null);
+          return;
+        }
+        const d = await api.getEchoShowcase(targetSlug);
         if (mounted && d) {
           console.log('[STUDENT GET RESPONSE]', {
             targetSlug,
@@ -320,6 +319,20 @@ export function EchoShowcaseView({ slug = 'vnr-echo-2026', onBack }: { slug?: st
     );
   }
 
+  if (!data) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 80, gap: 8 }}>
+        <Calendar size={32} color={PALETTE.dim} />
+        <Text style={{ color: '#fff', fontFamily: FONTS.semibold, fontSize: 16 }}>
+          Showcase not found
+        </Text>
+        <Text style={{ color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 13, textAlign: 'center', maxWidth: 320 }}>
+          No event showcase is published yet. Check back soon.
+        </Text>
+      </View>
+    );
+  }
+
   const statusKey = data?.event_status_badge || 'Upcoming';
   const statusCol = STATUS_COLORS[statusKey] || STATUS_COLORS.default;
   const stats: any[] = data?.stats || DEFAULT_SHOWCASE.stats;
@@ -329,7 +342,7 @@ export function EchoShowcaseView({ slug = 'vnr-echo-2026', onBack }: { slug?: st
   );
   const timeline: any[] = data?.timeline || DEFAULT_SHOWCASE.timeline;
   const partners: any[] = data?.partners || DEFAULT_SHOWCASE.partners;
-  const galleryLayout: string = data?.gallery_layout || 'grid';
+  const canonicalSlug: string = data?.slug || slug || '';
 
   return (
     <View style={{ flex: 1 }}>
@@ -342,16 +355,36 @@ export function EchoShowcaseView({ slug = 'vnr-echo-2026', onBack }: { slug?: st
               <Text style={s.backText}>Back to Events</Text>
             </View>
           </PressScale>
-          <PressScale>
-            <LinearGradient colors={[GRAD.from, GRAD.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.shareBtn}>
-              <Share2 size={13} color="#fff" />
-              <Text style={s.shareText}>Share Event</Text>
-            </LinearGradient>
-          </PressScale>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {showSection('registration') && (data?.registration?.enabled !== false) && (data?.event_status_badge !== 'Completed') && (
+              <Pressable
+                onPress={() => {
+                  if (Platform.OS === 'web') {
+                    window.location.assign(`/echo/${canonicalSlug}/register`);
+                  } else {
+                    router.push(`/echo/${canonicalSlug}/register` as any);
+                  }
+                }}
+                style={{ borderRadius: 20, overflow: 'hidden' }}
+              >
+                <LinearGradient colors={['#059669', '#047857']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.registerBtn}>
+                  <Ticket size={13} color="#fff" />
+                  <Text style={s.shareText}>Register</Text>
+                </LinearGradient>
+              </Pressable>
+            )}
+            <PressScale>
+              <LinearGradient colors={[GRAD.from, GRAD.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.shareBtn}>
+                <Share2 size={13} color="#fff" />
+                <Text style={s.shareText}>Share Event</Text>
+              </LinearGradient>
+            </PressScale>
+          </View>
         </View>
       </FadeInView>
 
       {/* ── HERO ───────────────────────────────────────────────────────── */}
+      {showSection('hero') && (
       <FadeInView delay={60}>
         <GlassCard style={s.heroCard}>
           <View style={[s.heroInner, !isWide && { flexDirection: 'column' }]}>
@@ -407,46 +440,57 @@ export function EchoShowcaseView({ slug = 'vnr-echo-2026', onBack }: { slug?: st
           </View>
         </GlassCard>
       </FadeInView>
+      )}
 
       {/* ── STATISTICS ──────────────────────────────────────────────────── */}
+      {showSection('stats') && stats.length > 0 && (
       <FadeInView delay={120}>
         <View style={s.statsRow}>
           {stats.map((stat, i) => <StatCard key={i} stat={stat} />)}
         </View>
       </FadeInView>
+      )}
 
       {/* ── ABOUT + ORGANIZERS ──────────────────────────────────────────── */}
+      {showSection('about') && (data?.description || highlights.length > 0 || data?.organizer_name) && (
       <FadeInView delay={160}>
         <View style={[s.aboutRow, !isWide && { flexDirection: 'column' }]}>
           {/* About */}
-          <GlassCard style={[s.aboutCard, !isWide && { width: '100%' }]}>
-            <Text style={s.sectionTitle}>About the Event</Text>
-            <Text style={s.aboutDesc}>{data?.description || DEFAULT_SHOWCASE.description}</Text>
+          {((data?.description) || highlights.length > 0) && (
+          <GlassCard style={[s.aboutCard, !isWide && { width: '100%' }]} padding={22}>
+            <Text style={s.cardTitle}>About the Event</Text>
+            <Text style={s.aboutDesc}>{data?.description || ''}</Text>
             {/* Highlights */}
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
+            {highlights.length > 0 && (
+            <View style={s.highlightRow}>
               {highlights.map((h, i) => <HighlightCard key={i} h={h} />)}
             </View>
+            )}
           </GlassCard>
+          )}
           {/* Organizers */}
-          <GlassCard style={[s.orgCard, !isWide && { width: '100%' }]}>
-            <Text style={s.sectionTitle}>Event Organized By</Text>
+          {data?.organizer_name && (
+          <GlassCard style={[s.orgCard, !isWide && { width: '100%' }]} padding={22}>
+            <Text style={s.cardTitle}>Event Organized By</Text>
             <View style={s.orgRow}>
               <View style={s.orgAvatar}>
                 {data?.organizer_logo_url ? (
                   <Image source={{ uri: resolveImageUrl(data.organizer_logo_url) }} style={{ width: 38, height: 38, borderRadius: 10 }} resizeMode="contain" />
                 ) : (
-                  <Text style={{ fontFamily: TYPO.display800, fontSize: 14, color: GRAD.from }}>SA</Text>
+                  <Text style={{ fontFamily: TYPO.display800, fontSize: 16, color: GRAD.from }}>
+                    {(data?.organizer_name || 'EV').split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()}
+                  </Text>
                 )}
               </View>
-              <View>
-                <Text style={s.orgName}>{data?.organizer_name || 'Student Alumni Cell'}</Text>
-                <Text style={s.orgSub}>{data?.college || data?.venue?.split(',').pop()?.trim() || 'VNR VJIET'}</Text>
+              <View style={s.orgMeta}>
+                <Text style={s.orgName}>{data?.organizer_name || 'Event Organizers'}</Text>
+                <Text style={s.orgSub}>{data?.college || data?.venue || ''}</Text>
               </View>
             </View>
-            {partners.length > 0 && (
+            {showSection('partners') && partners.length > 0 && (
               <>
-                <Text style={[s.sectionTitle, { marginTop: 18, fontSize: 12 }]}>In Association With</Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
+                <Text style={s.partnerLabel}>In Association With</Text>
+                <View style={s.partnerRow}>
                   {partners.map((p, i) => (
                     <View key={i} style={s.partnerChip}>
                       {p.logo_url ? (
@@ -460,10 +504,13 @@ export function EchoShowcaseView({ slug = 'vnr-echo-2026', onBack }: { slug?: st
               </>
             )}
           </GlassCard>
+          )}
         </View>
       </FadeInView>
+      )}
 
       {/* ── GALLERY ─────────────────────────────────────────────────────── */}
+      {showSection('gallery') && (
       <FadeInView delay={200}>
         <View style={s.sectionHeader}>
           <Text style={s.sectionTitle}>Moments from the Event</Text>
@@ -500,6 +547,7 @@ export function EchoShowcaseView({ slug = 'vnr-echo-2026', onBack }: { slug?: st
           </View>
         )}
       </FadeInView>
+      )}
 
       {/* Lightbox */}
       {lbOpen && gallery.length > 0 && (
@@ -507,7 +555,7 @@ export function EchoShowcaseView({ slug = 'vnr-echo-2026', onBack }: { slug?: st
       )}
 
       {/* ── TESTIMONIALS ────────────────────────────────────────────────── */}
-      {testimonials.length > 0 && (
+      {showSection('testimonials') && testimonials.length > 0 && (
         <FadeInView delay={240}>
           <View style={s.sectionHeader}>
             <Text style={s.sectionTitle}>What People Are Saying</Text>
@@ -520,7 +568,7 @@ export function EchoShowcaseView({ slug = 'vnr-echo-2026', onBack }: { slug?: st
       )}
 
       {/* ── TIMELINE ────────────────────────────────────────────────────── */}
-      {timeline.length > 0 && (
+      {showSection('timeline') && timeline.length > 0 && (
         <FadeInView delay={280}>
           <Text style={[s.sectionTitle, { marginBottom: 18 }]}>Event Highlights</Text>
           <View style={[s.timelineRow, !isWide && { flexDirection: 'column', gap: 0 }]}>
@@ -545,7 +593,7 @@ export function EchoShowcaseView({ slug = 'vnr-echo-2026', onBack }: { slug?: st
       )}
 
       {/* ── SPONSORS ────────────────────────────────────────────────────── */}
-      {data?.sponsors && data.sponsors.length > 0 && (
+      {showSection('sponsors') && data?.sponsors && data.sponsors.length > 0 && (
         <FadeInView delay={300}>
           <Text style={[s.sectionTitle, { marginBottom: 14 }]}>Event Sponsors</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
@@ -569,7 +617,7 @@ export function EchoShowcaseView({ slug = 'vnr-echo-2026', onBack }: { slug?: st
       )}
 
       {/* ── DOWNLOADS ───────────────────────────────────────────────────── */}
-      {data?.downloads && data.downloads.length > 0 && (
+      {showSection('downloads') && data?.downloads && data.downloads.length > 0 && (
         <FadeInView delay={310}>
           <Text style={[s.sectionTitle, { marginBottom: 14 }]}>Resources & Downloads</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
@@ -595,6 +643,7 @@ export function EchoShowcaseView({ slug = 'vnr-echo-2026', onBack }: { slug?: st
       )}
 
       {/* ── CTA ─────────────────────────────────────────────────────────── */}
+      {showSection('cta') && (data?.cta_title || data?.cta_subtitle || data?.cta_button_text) && (
       <FadeInView delay={320}>
         <LinearGradient
           colors={['rgba(123,61,191,0.25)', 'rgba(95,37,159,0.40)']}
@@ -605,14 +654,15 @@ export function EchoShowcaseView({ slug = 'vnr-echo-2026', onBack }: { slug?: st
             <Calendar size={22} color={GRAD.from} />
           </View>
           <View style={{ flex: 1, gap: 4 }}>
-            <Text style={s.ctaTitle}>{data?.cta_title || DEFAULT_SHOWCASE.cta_title}</Text>
-            <Text style={s.ctaSubtitle}>{data?.cta_subtitle || DEFAULT_SHOWCASE.cta_subtitle}</Text>
+            <Text style={s.ctaTitle}>{data?.cta_title || ''}</Text>
+            <Text style={s.ctaSubtitle}>{data?.cta_subtitle || ''}</Text>
           </View>
           <LinearGradient colors={[GRAD.from, GRAD.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.ctaBtn}>
-            <Text style={s.ctaBtnText}>{data?.cta_button_text || DEFAULT_SHOWCASE.cta_button_text}</Text>
+            <Text style={s.ctaBtnText}>{data?.cta_button_text || 'Learn More'}</Text>
           </LinearGradient>
         </LinearGradient>
       </FadeInView>
+      )}
     </View>
   );
 }
@@ -632,6 +682,10 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   backText: { fontFamily: FONTS.med, fontSize: 13, color: '#fff' },
+  registerBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+  },
   shareBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
@@ -664,8 +718,11 @@ const s = StyleSheet.create({
   aboutRow: { flexDirection: 'row', gap: 14, marginBottom: 16 },
   aboutCard: { flex: 2 },
   orgCard: { flex: 1, minWidth: 200 },
+  cardTitle: { fontFamily: TYPO.display700, fontSize: 17, color: '#fff', marginBottom: 12 },
   aboutDesc: { fontFamily: TYPO.body400, fontSize: 13.5, color: PALETTE.muted, lineHeight: 22 },
-  orgRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 },
+  highlightRow: { flexDirection: 'row', gap: 10, marginTop: 18, flexWrap: 'wrap' },
+  orgRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  orgMeta: { flex: 1, gap: 2, minWidth: 0 },
   orgAvatar: {
     width: 44, height: 44, borderRadius: 10,
     backgroundColor: 'rgba(123,61,191,0.20)',
@@ -673,6 +730,8 @@ const s = StyleSheet.create({
   },
   orgName: { fontFamily: TYPO.display700, fontSize: 14, color: '#fff' },
   orgSub: { fontFamily: TYPO.body400, fontSize: 12, color: PALETTE.muted },
+  partnerLabel: { fontFamily: TYPO.display700, fontSize: 12, color: '#fff', marginTop: 20, marginBottom: 10 },
+  partnerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   partnerChip: {
     paddingHorizontal: 12, paddingVertical: 7,
     backgroundColor: 'rgba(255,255,255,0.05)',

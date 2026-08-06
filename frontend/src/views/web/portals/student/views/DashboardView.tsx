@@ -37,6 +37,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
 import { useToast } from '@/src/views/components';
 import { AdBanner } from '@/src/views/web/components/AdBanner';
+import { CouponBanner } from '@/src/views/web/components/CouponBanner';
 import { PartnerCards } from '@/src/views/web/components/PartnerCards';
 
 const KPI_ICONS = { matches: Briefcase, applications: Briefcase, courses: BookOpen, mentors: Users, score: TrendingUp, events: Calendar } as const;
@@ -287,6 +288,8 @@ export function DashboardView() {
 
       {/* Ad Banner — rotating carousel from /ad/image */}
       <AdBanner />
+      {/* Exclusive Coupons — below the ad banner */}
+      <CouponBanner portal="student" />
       {/* Partner cards row — from /partner-websites */}
       <PartnerCards />
 

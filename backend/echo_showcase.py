@@ -22,6 +22,7 @@ from __future__ import annotations
 import os
 import base64
 import json
+import secrets
 import mimetypes
 from pathlib import Path
 from datetime import datetime, timezone
@@ -30,6 +31,8 @@ from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Request, File, UploadFile
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel, Field
+
+from core.security import generate_qr_code
 
 router = APIRouter(prefix="/api/echo", tags=["echo-showcase"])
 
@@ -92,6 +95,14 @@ def _ser(doc: dict) -> dict:
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _slug_query(slug: str) -> dict:
+    """Match a showcase by its canonical slug OR any of its legacy aliases."""
+    slug = (slug or "").strip()
+    if not slug:
+        return {}
+    return {"$or": [{"slug": slug}, {"aliases": slug}]}
 
 
 # ── Media metadata helpers ────────────────────────────────────────────────────
@@ -198,9 +209,37 @@ class AboutCard(BaseModel):
     description: Optional[str] = ""
     color: Optional[str] = None
 
+class RegistrationConfig(BaseModel):
+    enabled: Optional[bool] = True
+    fee: Optional[float] = 0
+    currency: Optional[str] = "INR"
+    max_seats: Optional[int] = 0
+    deadline: Optional[str] = ""
+    payment_note: Optional[str] = ""
+    payment_url: Optional[str] = None  # External payment gateway link (e.g. Razorpay/Stripe) shown on the register page
+    poster_images: Optional[List[str]] = []  # Poster images displayed on the register page
+
+
+DEFAULT_SECTIONS = {
+    "hero": True,
+    "stats": True,
+    "about": True,
+    "gallery": True,
+    "testimonials": True,
+    "timeline": True,
+    "partners": True,
+    "sponsors": True,
+    "videos": True,
+    "downloads": True,
+    "cta": True,
+    "registration": True,
+}
+
+
 class ShowcaseCreateSchema(BaseModel):
     title: str
     slug: str
+    aliases: Optional[List[str]] = []  # Legacy/alternate slugs that resolve to this showcase
     subtitle: Optional[str] = ""
     description: Optional[str] = ""
     date: Optional[str] = ""
@@ -235,6 +274,8 @@ class ShowcaseCreateSchema(BaseModel):
     seo_description: Optional[str] = None
     seo_keywords: Optional[str] = None
     og_image_url: Optional[str] = None
+    sections: Optional[Dict[str, bool]] = None
+    registration: Optional[RegistrationConfig] = None
 
 # ShowcaseUpdateSchema makes every field optional (for partial PATCH-style updates).
 # Defined as a standalone model (not inheriting ShowcaseCreateSchema) to avoid
@@ -242,6 +283,7 @@ class ShowcaseCreateSchema(BaseModel):
 class ShowcaseUpdateSchema(BaseModel):
     title: Optional[str] = None
     slug: Optional[str] = None
+    aliases: Optional[List[str]] = None
     subtitle: Optional[str] = None
     description: Optional[str] = None
     date: Optional[str] = None
@@ -276,12 +318,15 @@ class ShowcaseUpdateSchema(BaseModel):
     seo_description: Optional[str] = None
     seo_keywords: Optional[str] = None
     og_image_url: Optional[str] = None
+    sections: Optional[Dict[str, bool]] = None
+    registration: Optional[RegistrationConfig] = None
 
 
 # ── Seed Default Data ────────────────────────────────────────────────────────
 DEFAULT_SHOWCASE_SEED = {
     "title": "VNR ECHO 2026",
-    "slug": "vnr-echo-2026",
+    "slug": "vnrvjit",
+    "aliases": ["vnr-echo-2026"],
     "subtitle": "Empowering Tomorrow's Leaders",
     "description": "A day of inspiration, learning, and networking as industry leaders, alumni, and students came together to explore opportunities and shape the future of technology.",
     "date": "August 15, 2026",
@@ -291,10 +336,10 @@ DEFAULT_SHOWCASE_SEED = {
     "category": "college-event",
     "status": "published",
     "event_status_badge": "Upcoming",
-    "hero_image_url": None,
-    "hero_cover_url": None,
-    "hero_thumbnail_url": None,
-    "hero_bg_url": None,
+    "hero_image_url": "https://picsum.photos/seed/echo2026-hero/1200/700",
+    "hero_cover_url": "https://picsum.photos/seed/echo2026-hero/1200/700",
+    "hero_thumbnail_url": "https://picsum.photos/seed/echo2026-hero/800/500",
+    "hero_bg_url": "https://picsum.photos/seed/echo2026-bg/1600/900",
     "organizer_name": "Student Alumni Cell",
     "organizer_logo_url": None,
     "stats": [
@@ -332,13 +377,23 @@ DEFAULT_SHOWCASE_SEED = {
     ],
     "sponsors": [
         { "name": "Tech Corp", "tier": "Title Sponsor", "website_url": "https://example.com", "logo_url": None, "priority": 0 },
-        { "name": "InnoLabs", "tier": "Gold Sponsor", "website_url": "https://example.com", "logo_url": None, "priority": 1 }
+        { "name": "InnoLabs", "tier": "Gold Sponsor", "website_url": "https://example.com", "logo_url": None, "priority": 1 },
+        { "name": "BrightFuture", "tier": "Silver Sponsor", "website_url": "https://example.com", "logo_url": None, "priority": 2 }
     ],
     "downloads": [
         { "title": "VNR ECHO 2026 Brochure", "description": "Official event guide & schedule", "file_url": "", "file_size": "2.4 MB", "category": "Brochure" }
     ],
     "videos": [],
-    "gallery": [],
+    "gallery": [
+        { "url": "https://picsum.photos/seed/echo2026-1/800/600", "caption": "Keynote session", "alt": "Keynote session at VNR ECHO 2026", "featured": True, "order": 0, "hero": True },
+        { "url": "https://picsum.photos/seed/echo2026-2/800/600", "caption": "Audience & panels", "alt": "Panel discussion", "order": 1 },
+        { "url": "https://picsum.photos/seed/echo2026-3/800/600", "caption": "Graduation ceremony", "alt": "Ceremony moments", "order": 2 },
+        { "url": "https://picsum.photos/seed/echo2026-4/800/600", "caption": "Workshops", "alt": "Hands-on workshops", "order": 3 },
+        { "url": "https://picsum.photos/seed/echo2026-5/800/600", "caption": "Event highlights", "alt": "Event highlights", "order": 4 },
+        { "url": "https://picsum.photos/seed/echo2026-6/800/600", "caption": "Networking", "alt": "Networking session", "order": 5 },
+        { "url": "https://picsum.photos/seed/echo2026-7/800/600", "caption": "Main hall", "alt": "Main auditorium", "order": 6 },
+        { "url": "https://picsum.photos/seed/echo2026-8/800/600", "caption": "Student experience", "alt": "Student experience", "order": 7 }
+    ],
     "gallery_layout": "grid",
     "cta_title": "Stay tuned for more events!",
     "cta_subtitle": "Join our community and never miss an opportunity to learn, connect, and grow.",
@@ -347,6 +402,21 @@ DEFAULT_SHOWCASE_SEED = {
     "seo_title": "VNR ECHO 2026 — Student Alumni Flagship Showcase",
     "seo_description": "Join VNR ECHO 2026 for inspiration, workshops, networking, and industry keynotes.",
     "seo_keywords": "VNR VJIET, ECHO 2026, Student Alumni, Hackathon, Networking",
+    "sections": dict(DEFAULT_SECTIONS),
+    "registration": {
+        "enabled": True,
+        "fee": 0,
+        "currency": "INR",
+        "max_seats": 500,
+        "deadline": "",
+        "payment_note": "Free entry for VNR VJIET students. Registrations close 1 day before the event.",
+        "payment_url": None,
+        "poster_images": [
+            "https://picsum.photos/seed/echo2026-poster1/900/1200",
+            "https://picsum.photos/seed/echo2026-poster2/900/1200",
+            "https://picsum.photos/seed/echo2026-poster3/900/1200"
+        ],
+    },
     "created_at": _now(),
     "updated_at": _now(),
     "created_by": "system"
@@ -356,7 +426,13 @@ DEFAULT_SHOWCASE_SEED = {
 async def seed_echo_showcase(db: AsyncIOMotorDatabase):
     """Seed initial VNR ECHO 2026 showcase if missing, and ensure gallery_layout exists."""
     try:
-        existing = await db.echo_showcases.find_one({"slug": "vnr-echo-2026"})
+        seed_slug = DEFAULT_SHOWCASE_SEED.get("slug")
+        seed_aliases = DEFAULT_SHOWCASE_SEED.get("aliases") or []
+        existing = await db.echo_showcases.find_one(_slug_query(seed_slug))
+        if not existing and seed_aliases:
+            existing = await db.echo_showcases.find_one(
+                {"aliases": {"$in": seed_aliases}}
+            )
         if not existing:
             doc = dict(DEFAULT_SHOWCASE_SEED)
             doc["created_at"] = _now()
@@ -392,10 +468,15 @@ async def list_showcases(request: Request):
 @router.get("/showcases/{slug}")
 async def get_showcase(slug: str, request: Request):
     db = _get_db(request)
-    doc = await db.echo_showcases.find_one({"slug": slug})
-    if not doc and slug == "vnr-echo-2026":
-        await seed_echo_showcase(db)
-        doc = await db.echo_showcases.find_one({"slug": slug})
+    doc = await db.echo_showcases.find_one(_slug_query(slug))
+    if not doc:
+        # Auto-seed the default showcase on first hit so a fresh DB serves content,
+        # but only when the requested slug is the seed's canonical slug/alias.
+        seed_slug = DEFAULT_SHOWCASE_SEED.get("slug")
+        seed_aliases = DEFAULT_SHOWCASE_SEED.get("aliases") or []
+        if slug == seed_slug or slug in seed_aliases:
+            await seed_echo_showcase(db)
+            doc = await db.echo_showcases.find_one(_slug_query(slug))
 
     if not doc:
         raise HTTPException(status_code=404, detail="Showcase not found")
@@ -408,6 +489,181 @@ async def get_showcase(slug: str, request: Request):
         except HTTPException:
             raise HTTPException(status_code=404, detail="Showcase not found")
     return _ser(doc)
+
+
+# ── Registration (mock payment gateway) ───────────────────────────────────────
+class RegisterSchema(BaseModel):
+    full_name: Optional[str] = ""
+    email: Optional[str] = ""
+    phone: Optional[str] = ""
+    branch: Optional[str] = ""
+    year: Optional[str] = ""
+    college: Optional[str] = ""
+    payment_method: Optional[str] = "mock"
+
+
+@router.post("/showcases/{slug}/register")
+async def register_for_showcase(
+    slug: str,
+    payload: RegisterSchema,
+    request: Request,
+):
+    """Register a user for an ECHO event. Simulates payment via mock gateway.
+
+    Writes two records:
+      1. `echo_registrations` — the event-side registration (paid status, QR).
+      2. `event_registrations` — StudentAlumni-side registration so the user
+         sees it in their SA account + gets a check-in QR (matches /events flow).
+    Idempotent per (slug, user).
+    """
+    db = _get_db(request)
+
+    # Resolve caller: optional auth (public registration is allowed, but if a
+    # token is present we bind the registration to that user).
+    user = None
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        try:
+            import jwt as _jwt
+            JWT_SECRET = os.environ.get("JWT_SECRET", "studentalumni_jwt_secret_key_2026")
+            payload_token = _jwt.decode(auth.split(" ", 1)[1], JWT_SECRET, algorithms=["HS256"])
+            user = await db.users.find_one({"_id": ObjectId(payload_token.get("sub"))})
+        except Exception:
+            user = None
+
+    showcase = await db.echo_showcases.find_one(_slug_query(slug))
+    if not showcase:
+        raise HTTPException(status_code=404, detail="Showcase not found")
+    if showcase.get("status") != "published":
+        raise HTTPException(status_code=404, detail="Showcase not found")
+
+    # Use the canonical slug so alias URLs (legacy redirects) register under one identity.
+    canonical_slug = showcase.get("slug") or slug
+
+    reg_cfg = showcase.get("registration") or {}
+    if reg_cfg.get("enabled") is False:
+        raise HTTPException(status_code=400, detail="Registrations are closed for this event")
+
+    # Completed events stop accepting registrations regardless of settings.
+    if showcase.get("event_status_badge") == "Completed":
+        raise HTTPException(status_code=400, detail="This event has ended — registrations are closed")
+
+    # Auto-onboard manually-typed colleges (idempotent — no-op if already in DB).
+    college_value = (payload.college or "").strip()
+    if college_value:
+        try:
+            from routers.admin.colleges import ensure_college
+            await ensure_college(college_value, created_by="echo-registration")
+        except Exception:
+            pass
+
+    user_key = str(user["_id"]) if user else (payload.email or payload.phone or "anon")
+    existing = await db.echo_registrations.find_one(
+        {"slug": canonical_slug, "user_key": user_key}
+    )
+    if existing:
+        return _ser(existing)
+
+    reg_id = secrets.token_hex(6)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    qr_payload = f"ECHO:{canonical_slug}|{user_key}|{reg_id}"
+    fee = float(reg_cfg.get("fee", 0) or 0)
+    currency = reg_cfg.get("currency", "INR")
+
+    # Mock payment — always succeeds (real gateway plugs in later).
+    payment = {
+        "payment_id": f"PAY_{secrets.token_hex(8).upper()}",
+        "gateway": "mock",
+        "amount": fee,
+        "currency": currency,
+        "status": "paid",
+        "paid_at": now_iso,
+        "method": payload.payment_method or "mock",
+    }
+
+    # 1) Event-side registration
+    reg = {
+        "id": reg_id,
+        "slug": canonical_slug,
+        "showcase_title": showcase.get("title"),
+        "showcase_college": showcase.get("college"),
+        "user_key": user_key,
+        "user_id": str(user["_id"]) if user else None,
+        "full_name": payload.full_name or (user.get("full_name") if user else "") or "Attendee",
+        "email": payload.email or (user.get("email") if user else ""),
+        "phone": payload.phone or (user.get("phone") if user else ""),
+        "branch": payload.branch,
+        "year": payload.year,
+        "college": payload.college or showcase.get("college"),
+        "fee": fee,
+        "currency": currency,
+        "payment": payment,
+        "qr_code_base64": generate_qr_code(qr_payload),
+        "registered_at": now_iso,
+        "status": "registered",
+        "created_at": now_iso,
+    }
+    await db.echo_registrations.insert_one(dict(reg))
+
+    # 2) StudentAlumni-side registration (mirror /events/:id/register)
+    if user is not None:
+        event_id = f"echo-{canonical_slug}"
+        event = await db.events.find_one({"id": event_id})
+        if not event:
+            event_doc = {
+                "id": event_id,
+                "title": showcase.get("title"),
+                "category": showcase.get("category", "college-event"),
+                "organizer": showcase.get("organizer_name") or "Student Alumni Cell",
+                "venue": showcase.get("venue"),
+                "start_date": showcase.get("date"),
+                "description": showcase.get("description"),
+                "image": showcase.get("hero_image_url"),
+                "tags": ["ECHO", showcase.get("college", "")],
+                "rsvp_count": 0,
+                "created_at": now_iso,
+            }
+            await db.events.insert_one(event_doc)
+        sa_reg = {
+            "id": reg_id,
+            "event_id": event_id,
+            "event_title": showcase.get("title"),
+            "user_id": str(user["_id"]),
+            "user_name": payload.full_name or user.get("full_name", ""),
+            "user_unique_id": user.get("unique_id"),
+            "qr_code_base64": reg["qr_code_base64"],
+            "registered_at": now_iso,
+            "status": "registered",
+            "echo_slug": slug,
+            "paid": True,
+            "payment": payment,
+        }
+        await db.event_registrations.insert_one(sa_reg.copy())
+
+    return _ser(reg)
+
+
+@router.get("/showcases/{slug}/my-registration")
+async def my_showcase_registration(slug: str, request: Request):
+    """Return the caller's registration for a showcase (public if anon → by email/phone)."""
+    db = _get_db(request)
+    showcase = await db.echo_showcases.find_one(_slug_query(slug))
+    canonical_slug = (showcase or {}).get("slug") or slug
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        import jwt as _jwt
+        JWT_SECRET = os.environ.get("JWT_SECRET", "studentalumni_jwt_secret_key_2026")
+        try:
+            payload = _jwt.decode(auth.split(" ", 1)[1], JWT_SECRET, algorithms=["HS256"])
+            user = await db.users.find_one({"_id": ObjectId(payload.get("sub"))})
+            if user:
+                reg = await db.echo_registrations.find_one(
+                    {"slug": canonical_slug, "user_id": str(user["_id"])}
+                )
+                return _ser(reg or {})
+        except Exception:
+            pass
+    return {}
 
 
 # ── Admin endpoints ───────────────────────────────────────────────────────────
@@ -428,6 +684,8 @@ async def create_showcase(payload: ShowcaseCreateSchema, request: Request, admin
     if existing:
         raise HTTPException(status_code=409, detail="Slug already exists")
     doc = payload.model_dump()
+    doc["sections"] = {**DEFAULT_SECTIONS, **(doc.get("sections") or {})}
+    doc["registration"] = doc.get("registration") or {"enabled": True, "fee": 0, "currency": "INR"}
     doc["created_at"] = _now()
     doc["updated_at"] = _now()
     doc["created_by"] = admin.get("sub") or admin.get("user_id") or "admin"

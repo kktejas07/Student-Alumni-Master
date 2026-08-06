@@ -74,7 +74,7 @@ export default function RoleInfo() {
     <OnboardingShell
       step={0}
       stepBarSteps={STEPS}
-      kicker={firstName ? `Welcome, ${firstName} 👋` : 'Welcome 👋'}
+      kicker={firstName ? `Welcome, ${firstName}` : 'Welcome'}
       title={
         <>
           Let's set up your{' '}
