@@ -300,11 +300,13 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
             document.title = d.seo_title || `${d.title} | Student Alumni Platform`;
           }
         }
-      })
-      .catch((err) => {
-        console.warn('[STUDENT GET ERROR — FALLBACK USED]', err);
-      })
-      .finally(() => { if (mounted) setLoading(false); });
+      } catch {
+        /* keep default (neutral) data */
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    resolve();
     return () => { mounted = false; };
   }, [slug]);
 
