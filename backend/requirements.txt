@@ -134,3 +134,4 @@ cachetools==7.1.4
 firebase-admin==6.6.0
 
 playwright==1.60.0
+g4f==7.9.4
