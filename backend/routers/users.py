@@ -904,7 +904,7 @@ async def update_profile(updates: dict, user: dict = Depends(get_current_user)):
         "full_name", "first_name", "last_name", "headline", "bio",
         "phone", "city", "state", "location", "face_image_base64", "photo_data", "banner_data", "college_logo_data",
         # Academic
-        "institution", "branch", "graduation_year", "year", "cgpa",
+        "institution", "branch", "graduation_year", "year", "class_or_year", "year_of_study", "cgpa",
         "stream", "department",
         # Career
         "career_path", "primary_skill", "interests", "skills",
