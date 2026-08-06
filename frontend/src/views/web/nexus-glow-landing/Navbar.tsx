@@ -1,16 +1,48 @@
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
-import { useState } from "react";
-import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "expo-router";
 import { SALogo } from "@/src/views/components";
+
+// Module-scoped so a pending section survives the Navbar remount when we
+// navigate from an echo page (/echo/...) to the landing page (/welcome).
+let pendingLandingSection: string | null = null;
 
 export function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState("Agent K");
   const { scrollY } = useScroll();
   useMotionValueEvent(scrollY, "change", (v) => setScrolled(v > 20));
+  const isEcho = typeof pathname === "string" && pathname.startsWith("/echo");
+  const isLanding = typeof pathname === "string" && pathname === "/welcome";
 
   const links = ["Agent K", "Features", "About Us", "Contact", "Partners", "Collaborations"];
+
+  // After navigating from an echo page to the landing page, scroll to the
+  // requested section once it has rendered.
+  useEffect(() => {
+    if (!isLanding || !pendingLandingSection) return;
+    const id = pendingLandingSection;
+    pendingLandingSection = null;
+    const raf = requestAnimationFrame(() => {
+      const elem = document.getElementById(id);
+      if (elem) elem.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [isLanding]);
+
+  const goToLandingSection = (e: any, targetId: string) => {
+    e.preventDefault();
+    setActive(e.currentTarget?.textContent || "Features");
+    if (isLanding) {
+      const elem = document.getElementById(targetId);
+      if (elem) elem.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      pendingLandingSection = targetId;
+      router.push("/welcome");
+    }
+  };
 
   return (
     <motion.header
@@ -28,7 +60,14 @@ export function Navbar() {
             }`}
         >
           {/* Logo */}
-          <a href="#" className="flex items-center gap-3">
+          <a
+            href="/welcome"
+            onClick={(e) => {
+              e.preventDefault();
+              router.push('/welcome');
+            }}
+            className="flex items-center gap-3 cursor-pointer"
+          >
             <SALogo size={32} variant="gradient" />
             <span className="text-sm font-bold tracking-wide text-white">
               StudentAlumni
@@ -37,21 +76,28 @@ export function Navbar() {
 
           {/* Nav links */}
           <nav className="hidden md:flex items-center gap-1 bg-[#121214] border border-white/5 rounded-full px-2 py-1.5">
+            <a
+              href="/echo"
+              onClick={(e) => {
+                e.preventDefault();
+                router.push('/echo');
+              }}
+              className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer ${
+                isEcho
+                  ? "text-white bg-white/10"
+                  : "text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              ECHO
+            </a>
             {links.map((l) => {
               const isActive = active === l;
               const targetId = l.toLowerCase().replace(" ", "-");
               return (
                 <a
                   key={l}
-                  href={`#${targetId}`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setActive(l);
-                    const elem = document.getElementById(targetId);
-                    if (elem) {
-                      elem.scrollIntoView({ behavior: "smooth", block: "start" });
-                    }
-                  }}
+                  href={isLanding ? `#${targetId}` : `/welcome#${targetId}`}
+                  onClick={(e) => goToLandingSection(e, targetId)}
                   className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer
                     ${isActive
                       ? "text-white bg-white/10"

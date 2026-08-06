@@ -383,6 +383,21 @@ export const api = {
     request<any>('/echo/admin/media'),
   deleteEchoMedia: (filename: string) =>
     request<any>(`/echo/admin/media/${encodeURIComponent(filename)}`, { method: 'DELETE' }),
+  registerEchoShowcase: (slug: string, payload: any) =>
+    request<any>(`/echo/showcases/${slug}/register`, { method: 'POST', body: payload }),
+  myEchoRegistration: (slug: string) =>
+    request<any>(`/echo/showcases/${slug}/my-registration`),
+
+  // ── Coupons ──────────────────────────────────────────────────────────────
+  listActiveCoupons: () => request<any>('/coupons/active'),
+  listCoupons: () => request<any>('/coupons'),
+  listAdminCoupons: () => request<any>('/admin/coupons'),
+  createCoupon: (payload: any) =>
+    request<any>('/admin/coupons', { method: 'POST', body: payload }),
+  updateCoupon: (id: string, payload: any) =>
+    request<any>(`/admin/coupons/${id}`, { method: 'PATCH', body: payload }),
+  deleteCoupon: (id: string) =>
+    request<any>(`/admin/coupons/${id}`, { method: 'DELETE' }),
 };
 
 

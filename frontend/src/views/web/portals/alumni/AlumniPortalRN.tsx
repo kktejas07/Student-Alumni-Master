@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StarryBackground } from '@/src/views/web/nexus-glow-landing/StarryBackground';
 import { DashboardFooter } from '../../components/SponsorStrip';
 import { PromoBanner } from '../../components/PromoBanner';
+import { CouponBanner } from '../../components/CouponBanner';
 import { DashboardView } from './views/DashboardView';
 import { StubView } from './views/StubView';
 import { EventsView } from './views/EventsView';
@@ -89,6 +90,7 @@ export function AlumniPortalRN() {
           >
             <EmbeddedShellContext.Provider value={true}>
               <PromoBanner portal="alumni" />
+              <CouponBanner portal="alumni" />
             {active === 'dashboard'       && (
               <DashboardView
                 onOpenProfile={() => setActive('profile')}

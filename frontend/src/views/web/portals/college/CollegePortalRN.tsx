@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StarryBackground } from '@/src/views/web/nexus-glow-landing/StarryBackground';
 import { DashboardFooter } from '../../components/SponsorStrip';
 import { PromoBanner } from '../../components/PromoBanner';
+import { CouponBanner } from '../../components/CouponBanner';
 import { DashboardView } from './views/DashboardView';
 import { StubView } from './views/StubView';
 import { StudentsView } from './views/StudentsView';
@@ -84,6 +85,7 @@ export function CollegePortalRN() {
           >
             <View style={{ flex: 1, padding: 22, paddingBottom: 60 }}>
               <PromoBanner portal="college" />
+              <CouponBanner portal="college" />
               {active === 'dashboard'    && (
                 <DashboardView
                   onOpenProfile={() => setActive('profile')}

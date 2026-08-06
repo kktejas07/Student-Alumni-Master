@@ -1,0 +1,582 @@
+/**
+ * CouponBanner — cross-portal coupon display.
+ *
+ * Loads active coupons and renders each as a clickable image card. Clicking a
+ * card opens a modal with the full redemption info: code, discount, partner
+ * website link, and step-by-step instructions.
+ *
+ * When `editable` is true (super admin Overview), it fetches the full coupon
+ * list via /admin/coupons and shows an inline "+ Add Coupon" button plus
+ * edit/delete controls on each card, mirroring the Advertisement Board manager.
+ *
+ * Mounted on every role's dashboard (student / alumni / mentor / college /
+ * super_admin). The editable variant is mounted on the super admin Overview
+ * page only.
+ */
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  View, Text, Pressable, StyleSheet, Platform, Image, Modal, Linking, ScrollView, TextInput,
+} from 'react-native';
+import { Ticket, ExternalLink, X, Copy, Check, Tag, Plus, Pencil, Trash2, Save } from 'lucide-react-native';
+import { request } from '@/src/models/services/api';
+
+export type Coupon = {
+  id: string;
+  code: string;
+  description?: string;
+  discount_pct?: number;
+  max_uses?: number;
+  used_count?: number;
+  expires_at?: string | null;
+  image_url?: string | null;
+  partner_name?: string | null;
+  partner_website_url?: string | null;
+  instructions?: string;
+  audience?: string[];
+  active?: boolean;
+};
+
+function CouponModal({ coupon, onClose }: { coupon: Coupon | null; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+
+  const copyCode = useCallback(() => {
+    if (Platform.OS !== 'web') return;
+    try {
+      window.navigator.clipboard.writeText(coupon?.code || '');
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch { /* clipboard unavailable */ }
+  }, [coupon]);
+
+  const openPartner = useCallback(() => {
+    if (!coupon?.partner_website_url) return;
+    if (Platform.OS === 'web') {
+      window.open(coupon.partner_website_url, '_blank', 'noopener,noreferrer');
+    } else {
+      Linking.openURL(coupon.partner_website_url).catch(() => {});
+    }
+  }, [coupon]);
+
+  if (!coupon) return null;
+
+  const steps = (coupon.instructions || '')
+    .split(/\n+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <View style={m.overlay}>
+        <Pressable style={m.backdrop} onPress={onClose} />
+        <View style={m.box}>
+          {/* Header image */}
+          <View style={m.heroWrap}>
+            {coupon.image_url ? (
+              <Image source={{ uri: coupon.image_url }} style={m.hero} resizeMode="cover" />
+            ) : (
+              <View style={[m.hero, m.heroFallback]}>
+                <Ticket size={44} color="#A78BFA" />
+                <Text style={m.heroFallbackText}>Special Offer</Text>
+              </View>
+            )}
+            <Pressable style={m.close} onPress={onClose}>
+              <X size={16} color="#fff" />
+            </Pressable>
+            <View style={m.badge}>
+              <Text style={m.badgeText}>
+                {coupon.discount_pct ? `${coupon.discount_pct}% OFF` : 'DEAL'}
+              </Text>
+            </View>
+          </View>
+
+          <ScrollView style={{ maxHeight: 420 }}>
+            <View style={m.body}>
+              <Text style={m.partner}>
+                {coupon.partner_name || 'Partner Offer'}
+              </Text>
+              <Text style={m.title}>{coupon.description || 'Exclusive discount for you'}</Text>
+
+              {/* Code + copy */}
+              <View style={m.codeRow}>
+                <Text style={m.codeLabel}>Coupon Code</Text>
+                <View style={m.codeBox}>
+                  <Text style={m.code}>{coupon.code}</Text>
+                  <Pressable onPress={copyCode} style={m.copyBtn}>
+                    {copied
+                      ? <Check size={14} color="#34D399" />
+                      : <Copy size={14} color="#A78BFA" />}
+                    <Text style={[m.copyText, copied && { color: '#34D399' }]}>
+                      {copied ? 'Copied' : 'Copy'}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              {/* Usage meta */}
+              <View style={m.metaRow}>
+                <Text style={m.meta}>
+                  {coupon.max_uses
+                    ? `Used ${coupon.used_count || 0}/${coupon.max_uses}`
+                    : 'Unlimited uses'}
+                </Text>
+                {coupon.expires_at ? (
+                  <Text style={m.meta}>
+                    Expires {new Date(coupon.expires_at).toLocaleDateString()}
+                  </Text>
+                ) : null}
+              </View>
+
+              {/* Instructions */}
+              {steps.length > 0 && (
+                <View style={m.steps}>
+                  <Text style={m.stepsTitle}>How to redeem</Text>
+                  {steps.map((step, i) => (
+                    <View key={i} style={m.stepRow}>
+                      <View style={m.stepNum}><Text style={m.stepNumText}>{i + 1}</Text></View>
+                      <Text style={m.stepText}>{step}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Partner CTA */}
+              {coupon.partner_website_url ? (
+                <Pressable onPress={openPartner} style={m.cta}>
+                  <ExternalLink size={15} color="#fff" />
+                  <Text style={m.ctaText}>
+                    Visit {coupon.partner_name || 'Partner'} Website
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const AUDIENCE_OPTIONS = [
+  { id: 'all', label: 'Everyone' },
+  { id: 'student', label: 'Students' },
+  { id: 'alumni', label: 'Alumni' },
+  { id: 'mentor', label: 'Mentors' },
+  { id: 'college', label: 'Colleges' },
+  { id: 'super_admin', label: 'Super Admins' },
+];
+
+function CouponEditor({
+  coupon, onClose, onSaved,
+}: {
+  coupon: Coupon | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [code, setCode] = useState('');
+  const [description, setDescription] = useState('');
+  const [discountPct, setDiscountPct] = useState('10');
+  const [maxUses, setMaxUses] = useState('100');
+  const [imageUrl, setImageUrl] = useState('');
+  const [partnerName, setPartnerName] = useState('');
+  const [partnerWebsite, setPartnerWebsite] = useState('');
+  const [instructions, setInstructions] = useState('');
+  const [audience, setAudience] = useState<string[]>(['all']);
+  const [expiresAt, setExpiresAt] = useState('');
+  const [activeToggle, setActiveToggle] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (coupon) {
+      setCode(coupon.code);
+      setDescription(coupon.description || '');
+      setDiscountPct(String(coupon.discount_pct ?? 0));
+      setMaxUses(String(coupon.max_uses || 1));
+      setImageUrl(coupon.image_url || '');
+      setPartnerName(coupon.partner_name || '');
+      setPartnerWebsite(coupon.partner_website_url || '');
+      setInstructions(coupon.instructions || '');
+      setAudience(coupon.audience?.length ? coupon.audience : ['all']);
+      setExpiresAt(coupon.expires_at || '');
+      setActiveToggle(coupon.active ?? true);
+    } else {
+      setCode(''); setDescription(''); setDiscountPct('10'); setMaxUses('100');
+      setImageUrl(''); setPartnerName(''); setPartnerWebsite(''); setInstructions('');
+      setAudience(['all']); setExpiresAt(''); setActiveToggle(true);
+    }
+  }, [coupon]);
+
+  const toggleAudience = (a: string) => {
+    if (a === 'all') { setAudience(['all']); return; }
+    setAudience((prev) => {
+      const has = prev.includes(a);
+      const next = has ? prev.filter((x) => x !== a) : [...prev.filter((x) => x !== 'all'), a];
+      return next.length ? next : ['all'];
+    });
+  };
+
+  const handleSave = async () => {
+    if (!code.trim() || saving) return;
+    setSaving(true);
+    const payload: any = {
+      description, discount_pct: parseInt(discountPct) || 0, max_uses: parseInt(maxUses) || 1,
+      image_url: imageUrl.trim() || null, partner_name: partnerName.trim() || null,
+      partner_website_url: partnerWebsite.trim() || null,
+      instructions: instructions.trim(), audience, expires_at: expiresAt || null,
+      active: activeToggle,
+    };
+    try {
+      if (coupon) {
+        await request(`/admin/coupons/${coupon.id}`, { method: 'PATCH', body: payload });
+      } else {
+        await request('/admin/coupons', { method: 'POST', body: { code: code.toUpperCase(), ...payload } });
+      }
+      onSaved();
+      onClose();
+    } catch { /* surface via onSaved? */ } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <View style={m.overlay}>
+        <Pressable style={m.backdrop} onPress={onClose} />
+        <ScrollView style={{ maxHeight: '90%', width: '92%', maxWidth: 560 }} contentContainerStyle={{ alignItems: 'center' }}>
+          <View style={[m.editBox, { width: '100%' }]}>
+            <View style={m.editHead}>
+              <Text style={m.editTitle}>{coupon ? 'Edit Coupon' : 'New Coupon'}</Text>
+              <Pressable onPress={onClose} style={m.editClose}><X size={18} color="#fff" /></Pressable>
+            </View>
+
+            <Text style={m.fieldLabel}>Coupon Code</Text>
+            <TextInput style={m.fieldInput} value={code} onChangeText={setCode} placeholder="e.g. STUDENT10" placeholderTextColor="rgba(255,255,255,0.35)" autoCapitalize="characters" editable={!coupon} />
+
+            <Text style={m.fieldLabel}>Description</Text>
+            <TextInput style={m.fieldInput} value={description} onChangeText={setDescription} placeholder="e.g. 10% off your first order" placeholderTextColor="rgba(255,255,255,0.35)" />
+
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={m.fieldLabel}>Discount %</Text>
+                <TextInput style={m.fieldInput} value={discountPct} onChangeText={setDiscountPct} placeholder="10" placeholderTextColor="rgba(255,255,255,0.35)" keyboardType="numeric" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={m.fieldLabel}>Max Uses</Text>
+                <TextInput style={m.fieldInput} value={maxUses} onChangeText={setMaxUses} placeholder="100" placeholderTextColor="rgba(255,255,255,0.35)" keyboardType="numeric" />
+              </View>
+            </View>
+
+            <Text style={m.fieldLabel}>Expires (ISO date, optional)</Text>
+            <TextInput style={m.fieldInput} value={expiresAt} onChangeText={setExpiresAt} placeholder="2026-12-31T23:59:59Z" placeholderTextColor="rgba(255,255,255,0.35)" />
+
+            <Text style={m.fieldLabel}>Partner Name</Text>
+            <TextInput style={m.fieldInput} value={partnerName} onChangeText={setPartnerName} placeholder="e.g. Swiggy" placeholderTextColor="rgba(255,255,255,0.35)" />
+
+            <Text style={m.fieldLabel}>Partner Website (redemption link)</Text>
+            <TextInput style={m.fieldInput} value={partnerWebsite} onChangeText={setPartnerWebsite} placeholder="https://partner.com/coupons" placeholderTextColor="rgba(255,255,255,0.35)" autoCapitalize="none" />
+
+            <Text style={m.fieldLabel}>Card Image URL (optional)</Text>
+            <TextInput style={m.fieldInput} value={imageUrl} onChangeText={setImageUrl} placeholder="https://…/coupon-banner.png" placeholderTextColor="rgba(255,255,255,0.35)" autoCapitalize="none" />
+            {imageUrl ? (
+              <View style={{ marginTop: 8, borderRadius: 10, overflow: 'hidden' }}>
+                <Image source={{ uri: imageUrl }} style={{ width: '100%', height: 90 }} resizeMode="cover" />
+              </View>
+            ) : null}
+
+            <Text style={m.fieldLabel}>Redemption Instructions (one step per line)</Text>
+            <TextInput
+              style={[m.fieldInput, { minHeight: 90, textAlignVertical: 'top' }]}
+              value={instructions}
+              onChangeText={setInstructions}
+              placeholder={'1. Visit the partner website\n2. Add items to cart\n3. Enter the coupon code at checkout'}
+              placeholderTextColor="rgba(255,255,255,0.35)"
+              multiline
+            />
+
+            <Text style={m.fieldLabel}>Show To (audience)</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
+              {AUDIENCE_OPTIONS.map((a) => {
+                const active = audience.includes(a.id);
+                return (
+                  <Pressable
+                    key={a.id}
+                    onPress={() => toggleAudience(a.id)}
+                    style={[m.audienceChip, active && m.audienceChipActive]}
+                  >
+                    <Text style={[m.audienceChipText, active && { color: '#fff' }]}>{a.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <Pressable onPress={() => setActiveToggle((v) => !v)} style={m.activeRow}>
+              <View style={[m.toggleDot, activeToggle && m.toggleDotOn]} />
+              <Text style={m.activeRowText}>{activeToggle ? 'Active — visible to selected audience' : 'Inactive — hidden everywhere'}</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={handleSave}
+              disabled={saving || !code.trim()}
+              style={[m.saveBtn, (saving || !code.trim()) && { opacity: 0.5 }]}
+            >
+              <Save size={14} color="#fff" />
+              <Text style={m.saveBtnText}>{saving ? 'Saving...' : 'Save Coupon'}</Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
+export function CouponBanner({ portal, editable }: { portal: string; editable?: boolean }) {
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [selected, setSelected] = useState<Coupon | null>(null);
+  const [editor, setEditor] = useState<Coupon | null | 'new'>(null);
+
+  const loadCoupons = useCallback(async () => {
+    try {
+      const r = await request<{ coupons: Coupon[] }>(editable ? '/admin/coupons' : '/coupons/active');
+      setCoupons(r.coupons || []);
+    } catch {
+      setCoupons([]);
+    }
+  }, [editable]);
+
+  useEffect(() => {
+    loadCoupons();
+  }, [loadCoupons, portal]);
+
+  const deleteCoupon = async (c: Coupon) => {
+    try {
+      await request(`/admin/coupons/${c.id}`, { method: 'DELETE' });
+      loadCoupons();
+    } catch { /* ignore */ }
+  };
+
+  if (!editable && !coupons.length) return null;
+
+  return (
+    <View style={s.wrap}>
+      <View style={s.headRow}>
+        <Tag size={13} color="#A78BFA" />
+        <Text style={s.headText}>Exclusive Coupons{editable ? ` (${coupons.length})` : ''}</Text>
+        {editable && (
+          <>
+            <View style={{ flex: 1 }} />
+            <Pressable onPress={() => setEditor('new')} style={s.addBtn}>
+              <Plus size={12} color="#fff" />
+              <Text style={s.addBtnText}>Add Coupon</Text>
+            </Pressable>
+          </>
+        )}
+      </View>
+
+      {coupons.length > 0 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.row}>
+          {coupons.map((c) => (
+            <Pressable key={c.id} onPress={() => setSelected(c)} style={[s.card, editable && !c.active && s.cardInactive]}>
+              <View style={s.cardImgWrap}>
+                {c.image_url ? (
+                  <Image source={{ uri: c.image_url }} style={s.cardImg} resizeMode="cover" />
+                ) : (
+                  <View style={[s.cardImg, s.cardImgFallback]}>
+                    <Ticket size={22} color="#A78BFA" />
+                  </View>
+                )}
+                {editable && (
+                  <View style={s.cardAdmin}>
+                    <Pressable onPress={() => setEditor(c)} style={s.cardAdminBtn} hitSlop={6}>
+                      <Pencil size={11} color="#fff" />
+                    </Pressable>
+                    <Pressable onPress={() => deleteCoupon(c)} style={s.cardAdminBtn} hitSlop={6}>
+                      <Trash2 size={11} color="#F87171" />
+                    </Pressable>
+                  </View>
+                )}
+              </View>
+              <View style={s.cardBody}>
+                <Text style={s.cardPartner} numberOfLines={1}>
+                  {c.partner_name || 'Partner Offer'}
+                </Text>
+                <Text style={s.cardTitle} numberOfLines={1}>
+                  {c.discount_pct ? `${c.discount_pct}% off` : c.description || 'Coupon'}
+                </Text>
+                <View style={s.cardCode}>
+                  <Text style={s.cardCodeText}>{c.code}</Text>
+                </View>
+              </View>
+            </Pressable>
+          ))}
+        </ScrollView>
+      ) : editable ? (
+        <Text style={s.emptyText}>No coupons created yet. Click "Add Coupon" to create one.</Text>
+      ) : null}
+
+      <CouponModal coupon={selected} onClose={() => setSelected(null)} />
+      {(editor === 'new' || editor) && (
+        <CouponEditor
+          coupon={editor === 'new' ? null : editor}
+          onClose={() => setEditor(null)}
+          onSaved={loadCoupons}
+        />
+      )}
+    </View>
+  );
+}
+
+const m = StyleSheet.create({
+  overlay: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.72)' },
+  box: {
+    width: '92%', maxWidth: 440, backgroundColor: '#0d1326', borderRadius: 18,
+    borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)', overflow: 'hidden',
+    ...(Platform.OS === 'web' ? { boxShadow: '0 24px 80px rgba(0,0,0,0.60)' } as any : {}),
+  },
+  heroWrap: { position: 'relative' },
+  hero: { width: '100%', height: 170 },
+  heroFallback: {
+    backgroundColor: '#141a33', alignItems: 'center', justifyContent: 'center', gap: 8,
+  },
+  heroFallbackText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 15, color: '#fff' },
+  close: {
+    position: 'absolute', top: 12, right: 12, width: 30, height: 30, borderRadius: 15,
+    backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  badge: {
+    position: 'absolute', bottom: 12, left: 12,
+    backgroundColor: 'rgba(124,58,237,0.92)', paddingHorizontal: 12, paddingVertical: 5,
+    borderRadius: 12,
+  },
+  badgeText: { color: '#fff', fontFamily: 'DMSans_800ExtraBold', fontSize: 12, letterSpacing: 0.6 },
+  body: { padding: 20, gap: 12 },
+  partner: { fontFamily: 'DMSans_800ExtraBold', fontSize: 12, color: '#A78BFA', letterSpacing: 0.5, textTransform: 'uppercase' },
+  title: { fontFamily: 'DMSans_800ExtraBold', fontSize: 19, color: '#fff' },
+  codeRow: { gap: 6 },
+  codeLabel: { fontFamily: 'DMSans_700Bold', fontSize: 11, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 0.6 },
+  codeBox: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: 'rgba(124,58,237,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.4)',
+    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12,
+  },
+  code: { fontFamily: 'DMSans_800ExtraBold', fontSize: 18, color: '#fff', letterSpacing: 2 },
+  copyBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6,
+    borderRadius: 8, backgroundColor: 'rgba(124,58,237,0.2)',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  copyText: { fontFamily: 'DMSans_700Bold', fontSize: 11, color: '#A78BFA' },
+  metaRow: { flexDirection: 'row', gap: 14 },
+  meta: { fontFamily: 'DMSans_500Medium', fontSize: 11, color: 'rgba(255,255,255,0.55)' },
+  steps: { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: 14, gap: 10 },
+  stepsTitle: { fontFamily: 'DMSans_700Bold', fontSize: 12, color: '#fff' },
+  stepRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  stepNum: {
+    width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(167,139,250,0.25)',
+    alignItems: 'center', justifyContent: 'center', marginTop: 1,
+  },
+  stepNumText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 11, color: '#C4B5FD' },
+  stepText: { flex: 1, fontFamily: 'DMSans_500Medium', fontSize: 12.5, color: 'rgba(255,255,255,0.8)', lineHeight: 18 },
+  cta: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#7C3AED', borderRadius: 12, paddingVertical: 13,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  ctaText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 13, color: '#fff' },
+
+  // ── Coupon editor modal ──
+  editBox: {
+    backgroundColor: '#0d1326', borderRadius: 18, padding: 20,
+    borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
+    ...(Platform.OS === 'web' ? { boxShadow: '0 24px 80px rgba(0,0,0,0.60)' } as any : {}),
+  },
+  editHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  editTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 16, color: '#fff' },
+  editClose: {
+    width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center', justifyContent: 'center',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  fieldLabel: {
+    fontFamily: 'DMSans_700Bold', fontSize: 11, color: 'rgba(255,255,255,0.6)',
+    textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 10, marginBottom: 5,
+  },
+  fieldInput: {
+    backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
+    borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10,
+    color: '#fff', fontFamily: 'DMSans_500Medium', fontSize: 13,
+  },
+  audienceChip: {
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1,
+    borderColor: 'rgba(167,139,250,0.3)', backgroundColor: 'transparent',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  audienceChipActive: { backgroundColor: 'rgba(124,58,237,0.22)', borderColor: '#7C3AED' },
+  audienceChipText: { fontFamily: 'DMSans_700Bold', fontSize: 12, color: 'rgba(255,255,255,0.55)' },
+  activeRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 10, marginTop: 12,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  toggleDot: {
+    width: 12, height: 12, borderRadius: 6, backgroundColor: '#3F4151', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+  },
+  toggleDotOn: { backgroundColor: '#34D399', borderColor: '#34D399' },
+  activeRowText: { flex: 1, fontFamily: 'DMSans_500Medium', fontSize: 12, color: 'rgba(255,255,255,0.75)' },
+  saveBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#7C3AED', borderRadius: 12, paddingVertical: 13, marginTop: 16,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  saveBtnText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 13, color: '#fff' },
+});
+
+const s = StyleSheet.create({
+  wrap: { marginBottom: 14, gap: 8 },
+  headRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  headText: { fontFamily: 'DMSans_700Bold', fontSize: 11.5, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 0.8 },
+  addBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 7, backgroundColor: '#7C3AED',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  addBtnText: { fontFamily: 'DMSans_700Bold', fontSize: 11, color: '#fff' },
+  emptyText: { fontFamily: 'DMSans_500Medium', fontSize: 12, color: 'rgba(255,255,255,0.45)' },
+  row: { gap: 12, paddingBottom: 2 },
+  card: {
+    width: 230, borderRadius: 14, overflow: 'hidden',
+    backgroundColor: 'rgba(15,20,38,0.85)',
+    borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
+    ...(Platform.OS === 'web' ? ({
+      cursor: 'pointer',
+      transitionDuration: '160ms',
+      ':hover': { transform: 'translateY(-2px)', borderColor: 'rgba(167,139,250,0.6)' },
+    } as any) : {}),
+  },
+  cardInactive: { opacity: 0.5 },
+  cardImgWrap: { position: 'relative' },
+  cardImg: { width: '100%', height: 90 },
+  cardImgFallback: {
+    backgroundColor: 'rgba(124,58,237,0.15)', alignItems: 'center', justifyContent: 'center',
+  },
+  cardAdmin: {
+    position: 'absolute', top: 6, right: 6, flexDirection: 'row', gap: 6,
+  },
+  cardAdminBtn: {
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.65)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  cardBody: { padding: 12, gap: 4 },
+  cardPartner: { fontFamily: 'DMSans_700Bold', fontSize: 11, color: '#A78BFA' },
+  cardTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 13.5, color: '#fff' },
+  cardCode: {
+    alignSelf: 'flex-start', backgroundColor: 'rgba(124,58,237,0.2)',
+    borderWidth: 1, borderColor: 'rgba(167,139,250,0.35)',
+    borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, marginTop: 3,
+  },
+  cardCodeText: { fontFamily: 'DMSans_700Bold', fontSize: 11, color: '#C4B5FD', letterSpacing: 1 },
+});

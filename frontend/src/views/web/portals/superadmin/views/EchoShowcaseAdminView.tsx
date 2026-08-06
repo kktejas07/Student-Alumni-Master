@@ -26,7 +26,7 @@ import {
   Pencil, Trash2, Eye, Globe, Archive, Send, X, Zap,
   Star, BookOpen, Upload, MoveUp, MoveDown, Images, FolderOpen,
   Copy, Check, Search, RefreshCw, PlusCircle, FileText, Link2,
-  Image as ImageIcon, HardDrive, Calendar, Layout,
+  Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown,
 } from 'lucide-react-native';
 import {
   GRAD, GradientButton, SecondaryButton, Card,
@@ -56,7 +56,7 @@ type StatusFilter = 'all' | 'published' | 'draft' | 'archived';
 type FormTab =
   | 'general' | 'hero' | 'statistics' | 'about' | 'gallery'
   | 'testimonials' | 'highlights' | 'sponsors' | 'videos' | 'downloads'
-  | 'seo' | 'publish';
+  | 'sections' | 'registration' | 'seo' | 'publish';
 
 const PAGE_TABS: Array<{ id: PageTab; label: string; icon?: any }> = [
   { id: 'all', label: 'All Showcases', icon: Layout },
@@ -83,6 +83,8 @@ const FORM_TABS: Array<{ id: FormTab; label: string }> = [
   { id: 'sponsors',     label: 'Sponsors' },
   { id: 'videos',       label: 'Videos' },
   { id: 'downloads',    label: 'Downloads' },
+  { id: 'sections',     label: 'Sections' },
+  { id: 'registration', label: 'Registration' },
   { id: 'seo',          label: 'SEO' },
   { id: 'publish',      label: 'Publish' },
 ];
@@ -641,6 +643,65 @@ function DownloadsEditor({ downloads, onChange }: any) {
   );
 }
 
+// ── Poster Editor (simple URL list) ──────────────────────────────────────────
+function PosterEditor({ posters, onChange }: { posters: string[]; onChange: (p: string[]) => void }) {
+  const list = Array.isArray(posters) ? posters : [];
+  const set = (i: number, v: string) => {
+    const next = [...list];
+    next[i] = v;
+    onChange(next);
+  };
+  const add = () => onChange([...list, '']);
+  const remove = (i: number) => onChange(list.filter((_: string, j: number) => j !== i));
+  const move = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= list.length) return;
+    const next = [...list];
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
+  };
+
+  return (
+    <View style={{ gap: 10 }}>
+      {list.map((url, i) => (
+        <View key={i} style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: SAC.border, gap: 8 }}>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            {url ? (
+              <Image source={{ uri: url }} style={{ width: 44, height: 56, borderRadius: 6, backgroundColor: '#0d1326' }} resizeMode="cover" />
+            ) : (
+              <View style={{ width: 44, height: 56, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' }}>
+                <ImageIcon size={14} color={SAC.dim} />
+              </View>
+            )}
+            <TextInput value={url} onChangeText={(v) => set(i, v)}
+              placeholder="Poster image URL" placeholderTextColor={SAC.dim}
+              style={[fi.input, { flex: 1 }]} />
+            <View style={{ flexDirection: 'row', gap: 4 }}>
+              <Pressable onPress={() => move(i, -1)} disabled={i === 0} style={[cs.iconBtn, { opacity: i === 0 ? 0.35 : 1 }]}>
+                <ChevronUp size={13} color="#CBD5E1" />
+              </Pressable>
+              <Pressable onPress={() => move(i, 1)} disabled={i === list.length - 1} style={[cs.iconBtn, { opacity: i === list.length - 1 ? 0.35 : 1 }]}>
+                <ChevronDown size={13} color="#CBD5E1" />
+              </Pressable>
+              <Pressable onPress={() => remove(i)} style={[cs.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
+                <Trash2 size={13} color="#F87171" />
+              </Pressable>
+            </View>
+          </View>
+          {url ? (
+            <Text style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.muted }} numberOfLines={1}>
+              🖼 {url}
+            </Text>
+          ) : null}
+        </View>
+      ))}
+      <Pressable onPress={add}>
+        <Text style={{ color: GRAD.from, fontFamily: FONTS.semi, fontSize: 12.5 }}>+ Add Poster Image</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 // ── Gallery Dropzone ──────────────────────────────────────────────────────────
 function GalleryDropzone({ gallery, onChange }: { gallery: any[]; onChange: (g: any[]) => void }) {
   const [uploading, setUploading] = useState(false);
@@ -1137,6 +1198,15 @@ const EMPTY: any = {
     { icon: 'network', title: 'Networking Sessions', description: '' },
   ],
   partners: [], sponsors: [], downloads: [], videos: [], gallery: [],
+  sections: {
+    hero: true, stats: true, about: true, gallery: true, testimonials: true,
+    timeline: true, partners: true, sponsors: true, videos: true,
+    downloads: true, cta: true, registration: true,
+  },
+  registration: {
+    enabled: true, fee: 0, currency: 'INR', max_seats: 0,
+    deadline: '', payment_note: '', payment_url: '', poster_images: [],
+  },
 };
 
 // ── Autosave key ──────────────────────────────────────────────────────────────
@@ -1265,7 +1335,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving }: any) {
                 <Field value={form.title} onChangeText={autoSlug} placeholder="VNR ECHO 2026" />
               </FieldRow>
               <FieldRow label="Short Title / Slug" hint="Auto-generated from title. Used in the page URL.">
-                <Field value={form.slug} onChangeText={(v: string) => set('slug', v)} placeholder="vnr-echo-2026" />
+                <Field value={form.slug} onChangeText={(v: string) => set('slug', v)} placeholder="vnrvjit" />
               </FieldRow>
               <FieldRow label="Subtitle">
                 <Field value={form.subtitle} onChangeText={(v: string) => set('subtitle', v)} placeholder="Empowering Tomorrow's Leaders" />
@@ -1495,6 +1565,101 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving }: any) {
               </FieldRow>
             )}
 
+            {/* ── SECTIONS TAB ── */}
+            {tab === 'sections' && <>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text, marginBottom: 16 }}>
+                Toggle which sections appear on the public page. Hidden sections stay in the CMS but won't render publicly.
+              </Text>
+              <Card style={{ padding: 18, gap: 4 }}>
+                {[
+                  { key: 'hero', label: 'Hero', hint: 'Title, subtitle, date/time/venue, hero image' },
+                  { key: 'stats', label: 'Statistics', hint: 'Attendance, speakers, sessions numbers' },
+                  { key: 'about', label: 'About + Organizers', hint: 'Description, highlights, organizer card' },
+                  { key: 'gallery', label: 'Photo Gallery', hint: 'Event photos grid + lightbox' },
+                  { key: 'testimonials', label: 'Testimonials', hint: 'Student quotes with ratings' },
+                  { key: 'timeline', label: 'Timeline / Highlights', hint: 'Event agenda cards' },
+                  { key: 'partners', label: 'Collaboration Partners', hint: 'In-association partner chips' },
+                  { key: 'sponsors', label: 'Sponsors', hint: 'Sponsor logos with tiers' },
+                  { key: 'videos', label: 'Videos', hint: 'YouTube / uploaded videos' },
+                  { key: 'downloads', label: 'Downloads', hint: 'Brochures, schedules, certificates' },
+                  { key: 'cta', label: 'CTA Banner', hint: 'Bottom call-to-action' },
+                  { key: 'registration', label: 'Registration', hint: 'Register button + registration page' },
+                ].map((sec) => {
+                  const on = (form.sections && form.sections[sec.key]) !== false;
+                  return (
+                    <Pressable key={sec.key} onPress={() => set('sections', { ...(form.sections || {}), [sec.key]: !on })}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: SAC.border }}>
+                      <View style={{
+                        width: 40, height: 22, borderRadius: 11, padding: 2,
+                        backgroundColor: on ? '#10B981' : '#334155',
+                      }}>
+                        <View style={{
+                          width: 18, height: 18, borderRadius: 9, backgroundColor: '#fff',
+                          transform: [{ translateX: on ? 18 : 0 }],
+                        }} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: '#fff', fontFamily: FONTS.semi, fontSize: 13 }}>{sec.label}</Text>
+                        <Text style={{ color: SAC.dim, fontFamily: FONTS.med, fontSize: 11 }}>{sec.hint}</Text>
+                      </View>
+                      <Text style={{ color: on ? '#34D399' : '#F87171', fontFamily: FONTS.bold, fontSize: 11 }}>{on ? 'Visible' : 'Hidden'}</Text>
+                    </Pressable>
+                  );
+                })}
+              </Card>
+            </>}
+
+            {/* ── REGISTRATION TAB ── */}
+            {tab === 'registration' && <>
+              <Card style={{ marginBottom: 16, padding: 20, gap: 12 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Registration & Payment</Text>
+                <FieldRow label="Registrations Enabled">
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Pressable onPress={() => set('registration', { ...(form.registration || {}), enabled: !((form.registration || {}).enabled) })} style={{
+                      width: 44, height: 24, borderRadius: 12, padding: 2, backgroundColor: (form.registration || {}).enabled ? '#10B981' : '#334155',
+                    }}>
+                      <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', transform: [{ translateX: (form.registration || {}).enabled ? 20 : 0 }] }} />
+                    </Pressable>
+                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 12 }}>
+                      Allow users to register + pay on the public page
+                    </Text>
+                  </View>
+                </FieldRow>
+                <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
+                  <View style={{ flex: 1, minWidth: 140 }}>
+                    <FieldRow label="Fee (0 = free)">
+                      <Field value={String((form.registration || {}).fee ?? 0)} onChangeText={(v: string) => set('registration', { ...(form.registration || {}), fee: Number(v) || 0 })} placeholder="0" />
+                    </FieldRow>
+                  </View>
+                  <View style={{ flex: 1, minWidth: 120 }}>
+                    <FieldRow label="Currency">
+                      <Field value={(form.registration || {}).currency || 'INR'} onChangeText={(v: string) => set('registration', { ...(form.registration || {}), currency: v })} placeholder="INR" />
+                    </FieldRow>
+                  </View>
+                  <View style={{ flex: 1, minWidth: 140 }}>
+                    <FieldRow label="Max Seats (0 = unlimited)">
+                      <Field value={String((form.registration || {}).max_seats ?? 0)} onChangeText={(v: string) => set('registration', { ...(form.registration || {}), max_seats: Number(v) || 0 })} placeholder="0" />
+                    </FieldRow>
+                  </View>
+                </View>
+                <FieldRow label="Registration Deadline">
+                  <Field value={(form.registration || {}).deadline || ''} onChangeText={(v: string) => set('registration', { ...(form.registration || {}), deadline: v })} placeholder="2026-08-14" />
+                </FieldRow>
+                <FieldRow label="Payment / Registration Note" hint="Shown to attendees on the registration page.">
+                  <Field value={(form.registration || {}).payment_note || ''} onChangeText={(v: string) => set('registration', { ...(form.registration || {}), payment_note: v })} placeholder="Free entry for VNR students…" multiline rows={3} />
+                </FieldRow>
+                <FieldRow label="Payment Gateway Link" hint="Optional external payment URL (Razorpay, PayU, etc.). When set, attendees are redirected here and the register API records a payment_method of 'external'.">
+                  <Field value={(form.registration || {}).payment_url || ''} onChangeText={(v: string) => set('registration', { ...(form.registration || {}), payment_url: v })} placeholder="https://razorpay.com/payment-link/…" />
+                </FieldRow>
+                <FieldRow label="Poster Images" hint="Left-column carousel on the register page. Falls back to gallery/hero images when empty.">
+                  <PosterEditor
+                    posters={(form.registration || {}).poster_images || []}
+                    onChange={(p: string[]) => set('registration', { ...(form.registration || {}), poster_images: p })}
+                  />
+                </FieldRow>
+              </Card>
+            </>}
+
             {/* ── SEO TAB ── */}
             {tab === 'seo' && <>
               <FieldRow label="SEO Page Title">
@@ -1534,7 +1699,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving }: any) {
                   After saving, the page will be available at:
                 </Text>
                 <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: GRAD.from }}>
-                  /echo-showcase/{form.slug || 'your-slug'}
+                  /echo/{form.slug || 'your-college'}
                 </Text>
                 {form.status !== 'published' && (
                   <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: '#FBBF24' }}>
@@ -1671,7 +1836,7 @@ export function EchoShowcaseAdminView() {
     catch { flash('Delete failed'); }
   };
   const onPreview = (item: any) => {
-    if (Platform.OS === 'web') window.open(`/echo-showcase/${item.slug}`, '_blank');
+    if (Platform.OS === 'web') window.open(`/echo/${item.slug}`, '_blank');
   };
 
   const pub = items.filter((i) => i.status === 'published').length;

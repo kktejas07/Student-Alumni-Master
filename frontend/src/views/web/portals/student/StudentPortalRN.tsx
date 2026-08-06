@@ -26,6 +26,7 @@ import { PALETTE } from './tokens';
 import { LinearGradient } from 'expo-linear-gradient';
 import { DashboardFooter } from '../../components/SponsorStrip';
 import { PromoBanner } from '../../components/PromoBanner';
+import { CouponBanner } from '../../components/CouponBanner';
 import { DashboardView } from './views/DashboardView';
 import { CareerAIView } from './views/CareerAIView';
 import { EventsView } from './views/EventsView';
@@ -123,6 +124,7 @@ function PortalShell() {
               <View style={{ flex: 1 }}>
                 <EmbeddedShellContext.Provider value={true}>
                 {active !== 'internships' && <PromoBanner portal="student" />}
+                {active !== 'internships' && <CouponBanner portal="student" />}
                 <RouteTransition deps={[active]}>
                   {active === 'dashboard'       && <DashboardView />}
                   {active === 'career-ai'       && <CareerAIView />}
@@ -131,11 +133,11 @@ function PortalShell() {
                   {active === 'my-bookings'     && <MyBookingsView />}
                   {active === 'events'          && <EventsView />}
                   {active === 'my-workshops'    && <MyWorkshopsView />}
-                  {(active === 'vnr-echo-2026' || active === 'echo-showcase' || (![
+                  {(active === 'echo-showcase' || (![
                     'dashboard', 'career-ai', 'internships', 'network', 'my-bookings', 'events',
                     'my-workshops', 'courses', 'financial', 'deals', 'wallet', 'higher-ed', 'rentals', 'profile'
                   ].includes(active))) && (
-                    <EchoShowcaseView slug={active === 'echo-showcase' ? 'vnr-echo-2026' : active} onBack={() => handleNav('events')} />
+                    <EchoShowcaseView slug={active === 'echo-showcase' ? undefined : active} onBack={() => handleNav('events')} />
                   )}
                   {active === 'courses'         && <CoursesPage />}
                   {active === 'financial'       && <FinancialPage />}
