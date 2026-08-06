@@ -13,12 +13,12 @@
  * super_admin). The editable variant is mounted on the super admin Overview
  * page only.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, Pressable, StyleSheet, Platform, Image, Modal, Linking, ScrollView, TextInput,
 } from 'react-native';
-import { Ticket, ExternalLink, X, Copy, Check, Tag, Plus, Pencil, Trash2, Save } from 'lucide-react-native';
-import { request } from '@/src/models/services/api';
+import { Ticket, ExternalLink, X, Copy, Check, Tag, Plus, Pencil, Trash2, Save, Upload } from 'lucide-react-native';
+import { BASE_URL, request, tokenStore } from '@/src/models/services/api';
 
 export type Coupon = {
   id: string;
@@ -184,6 +184,36 @@ function CouponEditor({
   const [expiresAt, setExpiresAt] = useState('');
   const [activeToggle, setActiveToggle] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<any>(null);
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    setUploading(true);
+    try {
+      const token = await tokenStore.getAccess();
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`${BASE_URL}/api/admin/coupons/upload`, {
+        method: 'POST',
+        body: fd,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      return data.url || null;
+    } catch {
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFileSelect = async (e: any) => {
+    const file = e.target?.files?.[0];
+    if (!file) return;
+    const url = await uploadImage(file);
+    if (url) setImageUrl(url);
+  };
 
   useEffect(() => {
     if (coupon) {
@@ -274,8 +304,25 @@ function CouponEditor({
             <Text style={m.fieldLabel}>Partner Website (redemption link)</Text>
             <TextInput style={m.fieldInput} value={partnerWebsite} onChangeText={setPartnerWebsite} placeholder="https://partner.com/coupons" placeholderTextColor="rgba(255,255,255,0.35)" autoCapitalize="none" />
 
-            <Text style={m.fieldLabel}>Card Image URL (optional)</Text>
-            <TextInput style={m.fieldInput} value={imageUrl} onChangeText={setImageUrl} placeholder="https://…/coupon-banner.png" placeholderTextColor="rgba(255,255,255,0.35)" autoCapitalize="none" />
+            <Text style={m.fieldLabel}>Card Image</Text>
+            {Platform.OS === 'web' && (
+              // @ts-ignore
+              <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif" onChange={handleFileSelect} style={{ display: 'none' }} />
+            )}
+            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 4 }}>
+              <Pressable onPress={() => fileRef.current?.click?.()} style={[m.uploadBtn, uploading && { opacity: 0.5 }]} disabled={uploading}>
+                <Upload size={12} color="#A78BFA" />
+                <Text style={m.uploadBtnText}>{uploading ? 'Uploading...' : 'Upload'}</Text>
+              </Pressable>
+              <TextInput
+                style={[m.fieldInput, { flex: 1 }]}
+                value={imageUrl}
+                onChangeText={setImageUrl}
+                placeholder="Or paste image URL"
+                placeholderTextColor="rgba(255,255,255,0.35)"
+                autoCapitalize="none"
+              />
+            </View>
             {imageUrl ? (
               <View style={{ marginTop: 8, borderRadius: 10, overflow: 'hidden' }}>
                 <Image source={{ uri: imageUrl }} style={{ width: '100%', height: 90 }} resizeMode="cover" />
@@ -531,6 +578,13 @@ const m = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   saveBtnText: { fontFamily: 'DMSans_800ExtraBold', fontSize: 13, color: '#fff' },
+  uploadBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(167,139,250,0.12)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.35)',
+    borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  uploadBtnText: { fontFamily: 'DMSans_700Bold', fontSize: 12, color: '#A78BFA' },
 });
 
 const s = StyleSheet.create({
