@@ -2,20 +2,21 @@
  * Super Admin Portal — Overview/Dashboard view (true RN port).
  */
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, Image, TextInput } from 'react-native';
+import { View, Text, Pressable, StyleSheet, useWindowDimensions, Platform, Image, TextInput, ScrollView } from 'react-native';
 import {
   Building2, GraduationCap, UserCheck, Users, CreditCard, Calendar,
   CheckCircle, BarChart3, Sparkles, AlertTriangle, FileText, Eye,
-  Image as ImageIcon, Link, Save, X, Upload,
+  Image as ImageIcon, Link, Save, X, Upload, Trash2,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SAC, FONTS } from '../tokens';
 import { Av } from '../atoms';
-import { GRAD, GradientButton, SecondaryButton, KpiTile, IconBox } from '../applekit';
+import { GRAD, GradientButton, SecondaryButton, KpiTile, IconBox, useToast, Toast } from '../applekit';
 import * as MOCK from '../data';
 import { usePortalData, postPortal, fetchPortal } from '@/src/lib/portalApi';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
 import { CouponBanner } from '@/src/views/web/components/CouponBanner';
+import { fileToDataUrl, fileNameToLabel } from '@/src/lib/image';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 const KPI_ICONS: Record<string, any> = {
@@ -23,6 +24,13 @@ const KPI_ICONS: Record<string, any> = {
 };
 const ACT_ICONS: Record<string, any> = {
   Building2, Sparkles, Users, CreditCard, AlertTriangle,
+};
+
+type AdDraft = {
+  label: string;
+  image_url: string;
+  redirect_url: string;
+  key: string;
 };
 
 const SUPER_MOCK = {
@@ -51,12 +59,11 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
   const maxEnroll = Math.max(...MONTHLY_ENROLLMENTS.map((m) => m.value));
 
   // ── Ad Manager state (multi-ad) ──────────────────────────────────────
+  const { flash: flashToast, toast } = useToast();
   const [ads, setAds] = useState<any[]>([]);
   const [showAdEditor, setShowAdEditor] = useState(false);
   const [editingAdIdx, setEditingAdIdx] = useState<number | null>(null);
-  const [adLabel, setAdLabel] = useState('');
-  const [adImage, setAdImage] = useState('');
-  const [adUrl, setAdUrl] = useState('');
+  const [editorItems, setEditorItems] = useState<AdDraft[]>([]);
   const [adSaving, setAdSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -68,36 +75,67 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
 
   useEffect(() => { loadAds(); }, []);
 
-  const handleFileSelect = (e: any) => {
-    const file = e.target?.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      setAdImage(dataUrl);
-    };
-    reader.readAsDataURL(file);
+  const handleFilesSelected = async (e: any) => {
+    const files: File[] = Array.from(e.target?.files || []);
+    if (!files.length) return;
+    if (e.target) e.target.value = '';
+    const drafts: AdDraft[] = [];
+    for (const file of files) {
+      try {
+        const dataUrl = await fileToDataUrl(file);
+        drafts.push({
+          label: fileNameToLabel(file.name),
+          image_url: dataUrl,
+          redirect_url: '',
+          key: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        });
+      } catch {
+        // skip files that fail to decode
+      }
+    }
+    if (drafts.length) setEditorItems((prev) => [...prev, ...drafts]);
   };
 
+  const updateDraft = (key: string, patch: Partial<AdDraft>) => {
+    setEditorItems((prev) => prev.map((it) => (it.key === key ? { ...it, ...patch } : it)));
+  };
+
+  const removeDraft = (key: string) => {
+    setEditorItems((prev) => prev.filter((it) => it.key !== key));
+  };
+
+  const hasSavableItems = editorItems.some((it) => it.image_url || (it.label.trim() && it.redirect_url.trim()));
+
   const handleSaveAd = async () => {
-    if (!adLabel.trim() || !adImage || !adUrl.trim()) return;
+    const validItems = editorItems.filter((it) => it.image_url || (it.label.trim() && it.redirect_url.trim()));
+    if (!validItems.length || adSaving) return;
     setAdSaving(true);
     const prevAds = [...ads];
     try {
       const newItems = [...ads];
       if (editingAdIdx !== null) {
-        newItems[editingAdIdx] = { label: adLabel, image_url: adImage, redirect_url: adUrl };
+        const first = validItems[0];
+        newItems[editingAdIdx] = { label: first.label.trim(), image_url: first.image_url, redirect_url: first.redirect_url.trim() };
+        for (const it of validItems.slice(1)) {
+          newItems.push({ label: it.label.trim(), image_url: it.image_url, redirect_url: it.redirect_url.trim() });
+        }
       } else {
-        newItems.push({ label: adLabel, image_url: adImage, redirect_url: adUrl });
+        for (const it of validItems) {
+          newItems.push({ label: it.label.trim(), image_url: it.image_url, redirect_url: it.redirect_url.trim() });
+        }
       }
       await postPortal('/admin/ad/image', { body: { items: newItems } });
       setAds(newItems);
       setShowAdEditor(false);
       setEditingAdIdx(null);
+      setEditorItems([]);
+      flashToast(editingAdIdx !== null ? 'Advertisement updated' : 'Advertisement saved');
     } catch (e: any) {
       console.error('Failed to save ad', e);
       if (Platform.OS === 'web') {
         window.alert(e?.message || 'Failed to save advertisement');
+      } else {
+        flashToast('Failed to save advertisement');
       }
       setAds(prevAds);
     } finally {
@@ -108,14 +146,15 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
   const openEditor = (idx: number | null) => {
     if (idx !== null) {
       const ad = ads[idx];
-      setAdLabel(ad.label || '');
-      setAdImage(ad.image_url || '');
-      setAdUrl(ad.redirect_url || '');
+      setEditorItems([{
+        label: ad.label || '',
+        image_url: ad.image_url || '',
+        redirect_url: ad.redirect_url || '',
+        key: 'edit',
+      }]);
       setEditingAdIdx(idx);
     } else {
-      setAdLabel('');
-      setAdImage('');
-      setAdUrl('');
+      setEditorItems([]);
       setEditingAdIdx(null);
     }
     setShowAdEditor(true);
@@ -127,6 +166,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
     try {
       await postPortal('/admin/ad/image', { body: { items: newItems } });
       setAds(newItems);
+      flashToast('Advertisement deleted');
     } catch (e: any) {
       console.error('Failed to delete ad', e);
       if (Platform.OS === 'web') {
@@ -192,73 +232,96 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
       {showAdEditor && (
         <View style={s.adEditorOverlay}>
           <View style={s.adEditorModal}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <Text style={s.adEditorTitle}>{editingAdIdx !== null ? 'Edit Advertisement' : 'New Advertisement'}</Text>
-              <Pressable onPress={() => { setShowAdEditor(false); setEditingAdIdx(null); }}><X size={18} color={SAC.muted} /></Pressable>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <Text style={s.adEditorTitle}>{editingAdIdx !== null ? 'Edit Advertisement' : 'New Advertisements'}</Text>
+              <Pressable onPress={() => { setShowAdEditor(false); setEditingAdIdx(null); setEditorItems([]); }}><X size={18} color={SAC.muted} /></Pressable>
             </View>
 
-            <Text style={s.adFieldLabel}>Label / Title</Text>
-            <TextInput
-              style={s.adFieldInput}
-              value={adLabel}
-              onChangeText={setAdLabel}
-              placeholder="e.g. EBS 2026"
-              placeholderTextColor={SAC.dim}
-            />
-
-            <Text style={s.adFieldLabel}>Redirect URL</Text>
-            <TextInput
-              style={s.adFieldInput}
-              value={adUrl}
-              onChangeText={setAdUrl}
-              placeholder="https://events.forgetechno.com/"
-              placeholderTextColor={SAC.dim}
-              autoCapitalize="none"
-            />
-
-            <Text style={s.adFieldLabel}>Image</Text>
-            {Platform.OS === 'web' ? (
-              <>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileSelect}
-                  style={{ display: 'none' }}
-                />
-                <Pressable
-                  onPress={() => fileInputRef.current?.click()}
-                  style={s.adFilePicker}
-                >
-                  <Upload size={14} color={SAC.accentBright} />
-                  <Text style={{ color: SAC.accentBright, fontFamily: FONTS.bold, fontSize: 12 }}>
-                    {adImage ? 'Change Image' : 'Choose Image'}
-                  </Text>
-                </Pressable>
-              </>
-            ) : (
-              <TextInput
-                style={[s.adFieldInput, { fontSize: 10 }]}
-                value={adImage}
-                onChangeText={setAdImage}
-                placeholder="Paste image URL"
-                placeholderTextColor={SAC.dim}
+            {Platform.OS === 'web' && (
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleFilesSelected}
+                style={{ display: 'none' }}
               />
             )}
-            {adImage ? (
-              <View style={{ marginTop: 8 }}>
-                <Image source={{ uri: adImage }} style={{ width: '100%', height: 100, borderRadius: 8 }} resizeMode="cover" />
+
+            <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+              <View style={{ gap: 12 }}>
+                {editorItems.length === 0 ? (
+                  <View style={s.adEmptyDrop}>
+                    <ImageIcon size={20} color={SAC.accentBright} />
+                    <Text style={{ color: SAC.muted, fontFamily: FONTS.med, fontSize: 11.5, textAlign: 'center' }}>
+                      No banners added yet. Select one or more banner images below.
+                    </Text>
+                  </View>
+                ) : editorItems.map((it) => (
+                  <View key={it.key} style={s.adDraftCard}>
+                    <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+                      {it.image_url ? (
+                        <Image source={{ uri: it.image_url }} style={{ width: 64, height: 42, borderRadius: 6 }} resizeMode="cover" />
+                      ) : (
+                        <View style={{ width: 64, height: 42, borderRadius: 6, backgroundColor: SAC.bg2, borderColor: SAC.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }}>
+                          <ImageIcon size={14} color={SAC.dim} />
+                        </View>
+                      )}
+                      <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+                        <TextInput
+                          style={[s.adFieldInput, { paddingVertical: 7 }]}
+                          value={it.label}
+                          onChangeText={(v) => updateDraft(it.key, { label: v })}
+                          placeholder="Label / Title (e.g. EBS 2026)"
+                          placeholderTextColor={SAC.dim}
+                        />
+                        <TextInput
+                          style={[s.adFieldInput, { paddingVertical: 7 }]}
+                          value={it.redirect_url}
+                          onChangeText={(v) => updateDraft(it.key, { redirect_url: v })}
+                          placeholder="Redirect URL (optional)"
+                          placeholderTextColor={SAC.dim}
+                          autoCapitalize="none"
+                        />
+                        {Platform.OS !== 'web' && (
+                          <TextInput
+                            style={[s.adFieldInput, { paddingVertical: 7, fontSize: 10 }]}
+                            value={it.image_url}
+                            onChangeText={(v) => updateDraft(it.key, { image_url: v })}
+                            placeholder="Paste image URL"
+                            placeholderTextColor={SAC.dim}
+                          />
+                        )}
+                      </View>
+                      <Pressable onPress={() => removeDraft(it.key)} hitSlop={6} style={{ padding: 4, marginTop: 2 }}>
+                        <Trash2 size={14} color="#EF4444" />
+                      </Pressable>
+                    </View>
+                  </View>
+                ))}
               </View>
+            </ScrollView>
+
+            {Platform.OS === 'web' ? (
+              <Pressable
+                onPress={() => fileInputRef.current?.click()}
+                style={[s.adFilePicker, { marginTop: 12 }]}
+              >
+                <Upload size={14} color={SAC.accentBright} />
+                <Text style={{ color: SAC.accentBright, fontFamily: FONTS.bold, fontSize: 12 }}>
+                  {editorItems.length ? 'Add More Banner Images' : 'Select Banner Image(s)'}
+                </Text>
+              </Pressable>
             ) : null}
 
             <Pressable
               onPress={handleSaveAd}
-              disabled={adSaving || !adLabel.trim() || !adImage || !adUrl.trim()}
-              style={[s.adSaveBtn, (adSaving || !adLabel.trim() || !adImage || !adUrl.trim()) && { opacity: 0.5 }]}
+              disabled={adSaving || !hasSavableItems}
+              style={[s.adSaveBtn, (adSaving || !hasSavableItems) && { opacity: 0.5 }]}
             >
               <Save size={14} color="#fff" />
               <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>
-                {adSaving ? 'Saving...' : 'Save Advertisement'}
+                {adSaving ? 'Saving...' : editingAdIdx !== null ? 'Save Advertisement' : `Save Advertisement${editorItems.length > 1 ? 's' : ''}`}
               </Text>
             </Pressable>
           </View>
@@ -391,6 +454,8 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
           </View>
         </View>
       </View>
+
+      <Toast text={toast.text} visible={toast.visible} />
     </View>
   );
 }
@@ -445,13 +510,13 @@ const s = StyleSheet.create({
 
   adEditorOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1000,
+    backgroundColor: 'rgba(0,0,0,0.72)', zIndex: 1000,
     justifyContent: 'center', alignItems: 'center',
     ...(Platform.OS === 'web' ? { position: 'fixed' } as any : {}),
   },
   adEditorModal: {
     backgroundColor: '#0E1428', borderColor: SAC.border, borderWidth: 1,
-    borderRadius: 16, padding: 20, width: '90%', maxWidth: 420,
+    borderRadius: 16, padding: 20, width: '90%', maxWidth: 440,
     gap: 8,
     ...(Platform.OS === 'web' ? { boxShadow: '0 24px 80px rgba(0,0,0,0.60)' } as any : {}),
   },
@@ -462,8 +527,17 @@ const s = StyleSheet.create({
     borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
     color: '#fff', fontFamily: FONTS.med, fontSize: 13,
   },
+  adEmptyDrop: {
+    alignItems: 'center', gap: 8, paddingVertical: 22, paddingHorizontal: 12,
+    backgroundColor: SAC.bg2, borderColor: SAC.border, borderWidth: 1, borderStyle: 'dashed',
+    borderRadius: 10,
+  },
+  adDraftCard: {
+    backgroundColor: SAC.bg2, borderColor: SAC.border, borderWidth: 1,
+    borderRadius: 10, padding: 10, gap: 6,
+  },
   adFilePicker: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: SAC.bg2, borderColor: SAC.border, borderWidth: 1,
     borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10,
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
