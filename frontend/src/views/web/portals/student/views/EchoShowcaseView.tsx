@@ -130,7 +130,11 @@ const lb = StyleSheet.create({
 });
 
 // ── Hero Banner Carousel (full-width, title overlaid) ─────────────────────
-function HeroBannerCarousel({ banners, data, isWide }: { banners: string[]; data: any; isWide: boolean }) {
+function HeroBannerCarousel({ banners, data, isWide, onBack, canonicalSlug, showRegistration, onRegister, onShare }: {
+  banners: string[]; data: any; isWide: boolean;
+  onBack?: () => void; canonicalSlug: string;
+  showRegistration: boolean; onRegister: () => void; onShare: () => void;
+}) {
   const [idx, setIdx] = useState(0);
   const timerRef = useRef<any>(null);
   const validBanners = (banners || []).filter(Boolean);
@@ -163,7 +167,31 @@ function HeroBannerCarousel({ banners, data, isWide }: { banners: string[]; data
         <View style={bc.gradient} />
       </View>
 
-      {/* Content overlaid on banner */}
+      {/* Floating back button — top left */}
+      <PressScale onPress={onBack || (() => {})} style={bc.backBtn}>
+        <View style={bc.backBtnInner}>
+          <ArrowLeft size={15} color="#fff" />
+        </View>
+      </PressScale>
+
+      {/* Floating action buttons — bottom right */}
+      <View style={bc.actions}>
+        {showRegistration && (
+          <Pressable onPress={onRegister} style={{ borderRadius: 20, overflow: 'hidden' }}>
+            <LinearGradient colors={['#059669', '#047857']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={bc.registerPill}>
+              <Ticket size={13} color="#fff" />
+              <Text style={bc.pillText}>Register</Text>
+            </LinearGradient>
+          </Pressable>
+        )}
+        <PressScale onPress={onShare}>
+          <View style={bc.shareBtn}>
+            <Share2 size={14} color="#fff" />
+          </View>
+        </PressScale>
+      </View>
+
+      {/* Content overlaid on banner — bottom left */}
       <View style={[bc.content, !isWide && { paddingHorizontal: 16 }]}>
         <View style={bc.contentInner}>
           {/* Status badge */}
@@ -227,17 +255,37 @@ const bc = StyleSheet.create({
   gradient: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'transparent',
-    // CSS gradient overlay: dark at bottom → transparent at top
     ...(Platform.OS === 'web' ? {
       background: 'linear-gradient(to top, #080714 0%, rgba(8,7,20,0.7) 40%, transparent 75%)',
     } as any : {
-      // RN fallback: use a LinearGradient-style approach with nested Views
       backgroundColor: 'rgba(8,7,20,0.5)',
     }),
   },
+  backBtn: {
+    position: 'absolute', top: 14, left: 14, zIndex: 10,
+  },
+  backBtnInner: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+  },
+  actions: {
+    position: 'absolute', bottom: 14, right: 14, zIndex: 10,
+    flexDirection: 'row', gap: 8, alignItems: 'center',
+  },
+  registerPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20,
+  },
+  shareBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+  },
+  pillText: { fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' },
   content: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    paddingHorizontal: 28, paddingBottom: 50, paddingTop: 60,
+    paddingHorizontal: 28, paddingBottom: 55, paddingTop: 60,
   },
   contentInner: { maxWidth: 900 },
   statusBadge: {
@@ -487,13 +535,46 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
 
   return (
     <View style={{ flex: 1 }}>
-      {/* ── HEADER ─────────────────────────────────────────────────────── */}
-      <FadeInView delay={0}>
-        <View style={s.header}>
+      {/* ── HERO BANNERS CAROUSEL (replaces hero card when banners exist) ── */}
+      {showSection('hero') && (data?.hero_banners?.length > 0) && (
+        <FadeInView delay={50}>
+          <HeroBannerCarousel
+            banners={data.hero_banners}
+            data={data}
+            isWide={isWide}
+            onBack={onBack}
+            canonicalSlug={canonicalSlug}
+            showRegistration={showSection('registration') && (data?.registration?.enabled !== false) && (data?.event_status_badge !== 'Completed')}
+            onRegister={() => {
+              if (Platform.OS === 'web') {
+                window.location.assign(`/echo/${canonicalSlug}/register`);
+              } else {
+                router.push(`/echo/${canonicalSlug}/register` as any);
+              }
+            }}
+            onShare={() => {
+              const url = typeof window !== 'undefined' ? window.location.href : '';
+              const text = `Check out ${data?.title || 'this event'}!`;
+              if (Platform.OS === 'web' && navigator.share) {
+                navigator.share({ title: data?.title, text, url }).catch(() => {});
+              } else if (Platform.OS === 'web' && navigator.clipboard) {
+                navigator.clipboard.writeText(`${text}\n${url}`).then(() => {
+                  alert('Link copied to clipboard!');
+                }).catch(() => {});
+              }
+            }}
+          />
+        </FadeInView>
+      )}
+
+      {/* ── HERO CARD (shown only when NO banners) ────────────────────────── */}
+      {showSection('hero') && !(data?.hero_banners?.length > 0) && (
+      <FadeInView delay={60}>
+        {/* Floating action bar over hero card */}
+        <View style={s.heroActionBar}>
           <PressScale onPress={onBack || (() => {})}>
-            <View style={s.backBtn}>
+            <View style={s.floatingBtn}>
               <ArrowLeft size={14} color="#fff" />
-              <Text style={s.backText}>Back to Events</Text>
             </View>
           </PressScale>
           <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -508,9 +589,9 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                 }}
                 style={{ borderRadius: 20, overflow: 'hidden' }}
               >
-                <LinearGradient colors={['#059669', '#047857']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.registerBtn}>
+                <LinearGradient colors={['#059669', '#047857']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.floatingPill}>
                   <Ticket size={13} color="#fff" />
-                  <Text style={s.shareText}>Register</Text>
+                  <Text style={s.floatingPillText}>Register</Text>
                 </LinearGradient>
               </Pressable>
             )}
@@ -525,25 +606,12 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                 }).catch(() => {});
               }
             }}>
-              <LinearGradient colors={[GRAD.from, GRAD.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.shareBtn}>
-                <Share2 size={13} color="#fff" />
-                <Text style={s.shareText}>Share Event</Text>
-              </LinearGradient>
+              <View style={s.floatingBtn}>
+                <Share2 size={14} color="#fff" />
+              </View>
             </PressScale>
           </View>
         </View>
-      </FadeInView>
-
-      {/* ── HERO BANNERS CAROUSEL (replaces hero card when banners exist) ── */}
-      {showSection('hero') && (data?.hero_banners?.length > 0) && (
-        <FadeInView delay={50}>
-          <HeroBannerCarousel banners={data.hero_banners} data={data} isWide={isWide} />
-        </FadeInView>
-      )}
-
-      {/* ── HERO CARD (shown only when NO banners) ────────────────────────── */}
-      {showSection('hero') && !(data?.hero_banners?.length > 0) && (
-      <FadeInView delay={60}>
         <GlassCard style={s.heroCard}>
           <View style={[s.heroInner, !isWide && { flexDirection: 'column' }]}>
             {/* Left content */}
@@ -852,6 +920,21 @@ const s = StyleSheet.create({
 
   // Hero
   heroCard: { marginBottom: 16, padding: 0, overflow: 'hidden' },
+  heroActionBar: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 10, marginBottom: -44, zIndex: 10,
+    position: 'relative',
+  },
+  floatingBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+  },
+  floatingPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20,
+  },
+  floatingPillText: { fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' },
   heroInner: { flexDirection: 'row', minHeight: 260 },
   heroLeft: { flex: 1, padding: 28, gap: 10 },
   heroRight: { width: 320 },
