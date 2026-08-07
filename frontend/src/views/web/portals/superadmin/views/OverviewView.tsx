@@ -82,6 +82,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
   const handleSaveAd = async () => {
     if (!adLabel.trim() || !adImage || !adUrl.trim()) return;
     setAdSaving(true);
+    const prevAds = [...ads];
     try {
       const newItems = [...ads];
       if (editingAdIdx !== null) {
@@ -95,6 +96,10 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
       setEditingAdIdx(null);
     } catch (e: any) {
       console.error('Failed to save ad', e);
+      if (Platform.OS === 'web') {
+        window.alert(e?.message || 'Failed to save advertisement');
+      }
+      setAds(prevAds);
     } finally {
       setAdSaving(false);
     }
@@ -118,11 +123,16 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
 
   const deleteAd = async (idx: number) => {
     const newItems = ads.filter((_, i) => i !== idx);
+    const prevAds = [...ads];
     try {
       await postPortal('/admin/ad/image', { body: { items: newItems } });
       setAds(newItems);
     } catch (e: any) {
       console.error('Failed to delete ad', e);
+      if (Platform.OS === 'web') {
+        window.alert(e?.message || 'Failed to delete advertisement');
+      }
+      setAds(prevAds);
     }
   };
 
@@ -440,9 +450,10 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? { position: 'fixed' } as any : {}),
   },
   adEditorModal: {
-    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1,
+    backgroundColor: '#0E1428', borderColor: SAC.border, borderWidth: 1,
     borderRadius: 16, padding: 20, width: '90%', maxWidth: 420,
     gap: 8,
+    ...(Platform.OS === 'web' ? { boxShadow: '0 24px 80px rgba(0,0,0,0.60)' } as any : {}),
   },
   adEditorTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
   adFieldLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11, marginTop: 6 },
