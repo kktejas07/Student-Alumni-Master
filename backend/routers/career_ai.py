@@ -48,96 +48,9 @@ CAREER_PATH_SYSTEM_PROMPTS = {
 
 
 async def get_claude_chat(session_id: str, system_message: str):
-    """Lazy-import emergentintegrations and return a Claude chat instance."""
-    class DummyChat:
-        def __init__(self, sys_msg, sess_id):
-            self.sys_msg = sys_msg
-            self.sess_id = sess_id
-        async def send_message(self, msg):
-            if "12-week" in self.sys_msg:
-                return """{
-                    "target_role": "Software Engineer",
-                    "target_company_type": "Top Tech Company",
-                    "progress_pct": 42,
-                    "skill_scores": {"communication": 40, "soft_skills": 45, "technical": 70, "interview_prep": 35, "networking": 30, "leadership": 35},
-                    "milestones": [
-                        {"id": "m1", "title": "Build your resume", "description": "Upload a tailored resume for AI review.", "milestone_type": "RESUME", "completion_rule": "resume_documents.length > 0", "completed": false, "completed_at": null},
-                        {"id": "m2", "title": "Build Portfolio", "description": "Showcase your work and link your GitHub.", "milestone_type": "PORTFOLIO", "completion_rule": "portfolio_url exists", "completed": false, "completed_at": null},
-                        {"id": "m3", "title": "Complete Profile", "description": "Write a strong bio and upload an avatar.", "milestone_type": "PROFILE", "completion_rule": "bio.length > 10", "completed": false, "completed_at": null},
-                        {"id": "m4", "title": "Network with Alumni", "description": "Connect with 5 alumni in your target domain.", "milestone_type": "NETWORKING", "completion_rule": "connections.length > 0", "completed": false, "completed_at": null},
-                        {"id": "m5", "title": "Practice Interviews", "description": "Book a session with a mentor for mock interviews.", "milestone_type": "MOCK_INTERVIEW", "completion_rule": "bookings.length > 0", "completed": false, "completed_at": null},
-                        {"id": "m6", "title": "Add 3 Projects", "description": "Demonstrate technical skills through projects.", "milestone_type": "PROJECT", "completion_rule": "projects.length >= 1", "completed": false, "completed_at": null},
-                        {"id": "m7", "title": "Earn Certifications", "description": "Complete relevant certifications on Coursera.", "milestone_type": "CERTIFICATION", "completion_rule": "certifications.length >= 1", "completed": false, "completed_at": null},
-                        {"id": "m8", "title": "LinkedIn Boost", "description": "Add your LinkedIn URL to your profile.", "milestone_type": "LINKEDIN", "completion_rule": "linkedin_url exists", "completed": false, "completed_at": null}
-                    ],
-                    "suggestion": "Your trajectory is solid — focus this week on shipping one polished portfolio piece."
-                }"""
-            if "daily" in self.sess_id.lower():
-                return '{"summary": "Mock daily brief summary", "focus_areas": ["Communication", "Technical prep"], "action_items": [{"id": "a1", "title": "Mock action", "description": "Mock description", "completed": false}], "industry_news": [{"id": "n1", "headline": "Mock news", "summary": "Mock", "url": "https://example.com"}]}'
-            if "chat" in self.sess_id.lower() or "financial" in self.sess_id.lower() or "stay" in self.sess_id.lower() or "rentals" in self.sess_id.lower() or "You are speaking with" in self.sys_msg:
-                user_text = getattr(msg, "text", str(msg))
-                import re
-                clean_text = re.sub(r"^\[.*?\]\s*", "", user_text).strip()
-                if "/scholarships" in clean_text.lower():
-                    return "Here are some top scholarships for you:\n\n1. **Global Tech Leaders Scholarship** - $5,000 for Computer Science students.\n2. **Diversity in STEM Grant** - $3,500 (Deadline: Next month).\n3. **University Merit Award** - $2,000 based on GPA.\n\nReply with a scholarship name to learn more or apply!"
-                elif "/loans" in clean_text.lower():
-                    return "Here are the top student loan options available right now:\n\n1. **Federal Subsidized Loan** - 4.99% APY (Recommended)\n2. **Sallie Mae Smart Option** - 6.5% APY\n3. **Discover Undergraduate** - 7.2% APY\n\nLet me know if you want to calculate your monthly payments!"
-                elif "/housing" in clean_text.lower() or "/hotel" in clean_text.lower():
-                    return "Here are the top student housing options near campus:\n\n1. **Campus View Apartments** - ₹8,000/mo (Shared)\n2. **OYO Student Stay** - ₹999/night\n3. **Sunrise Co-living** - ₹12,000/mo (Private)\n\nWould you like me to book a tour?"
-                elif "/vehicle" in clean_text.lower():
-                    return "We found some great rental options for you:\n\n1. **Vogo Electric Scooter** - ₹2,000/mo\n2. **Zoomcar Hatchback** - ₹800/day\n3. **Bounce Cycle** - ₹500/mo\n\nLet me know which vehicle suits your daily commute!"
-                elif "/budget" in clean_text.lower():
-                    return "I found 15 housing options under ₹10,000/mo near your campus. The most popular one is **Greenwood Hostels** (₹7,500/mo incl. food). Should I send you the full list?"
-                elif "/startup" in clean_text.lower() or "/investors" in clean_text.lower():
-                    return "Ready to pitch? We have 3 upcoming VC networking events this month, and the **Alumni Angel Fund** is currently accepting applications for grants up to ₹5 Lakhs. Reply 'Apply' to start your application."
-                elif "/insurance" in clean_text.lower():
-                    return "Student health insurance starts at just ₹499/mo. It covers emergency care, dental, and general physician visits. Would you like to compare the top 3 plans?"
-                elif "/path" in clean_text.lower() or "/cert" in clean_text.lower():
-                    return "Based on your goal, I recommend starting with the **AWS Cloud Practitioner Certification**, followed by the **Full-Stack Web Development Bootcamp**. It typically takes 3 months to complete both. Should I add them to your calendar?"
-                elif "/free" in clean_text.lower():
-                    return "I've filtered the catalog and found **42 free courses** matching your skills! The top recommendation is 'Introduction to Data Structures by Stanford'. Would you like the link to enroll?"
-                elif "/tax" in clean_text.lower() or "/spend" in clean_text.lower() or "/credit-plan" in clean_text.lower():
-                    return "Based on your recent wallet activity, you're doing great! To build your credit, try putting small recurring subscriptions on a student credit card and paying it off immediately. You are on track to save ₹5,000 this month."
-                elif clean_text.lower() in ("yes", "y", "sure", "ok", "okay", "please"):
-                    return "Great! I've sent the details to your registered email address and updated your dashboard. Is there anything else you'd like help with today?"
-                elif "apply" in clean_text.lower():
-                    return "Your application has been drafted! Please check your profile's 'Applications' tab to review and submit it. Good luck!"
-                elif "book" in clean_text.lower() or "tour" in clean_text.lower():
-                    return "Awesome! I've scheduled a tentative tour/session for you. You'll receive a calendar invite shortly with the exact timings."
-                elif clean_text.lower() in ("no", "n", "nope", "thanks", "thank you"):
-                    return "You're very welcome! Feel free to ask if you need anything else. Have a great day!"
-                else:
-                    try:
-                        import aiohttp
-                        import urllib.parse
-                        
-                        # Use a free, zero-config text generation API that works nicely within asyncio
-                        # and avoids the Windows multiprocessing crashes caused by g4f.
-                        system_encoded = urllib.parse.quote(self.sys_msg)
-                        prompt_encoded = urllib.parse.quote(clean_text)
-                        url = f"https://text.pollinations.ai/{prompt_encoded}?system={system_encoded}"
-                        
-                        async with aiohttp.ClientSession() as session:
-                            async with session.get(url, headers={"User-Agent": "Mozilla/5.0"}) as response:
-                                if response.status == 200:
-                                    ai_text = await response.text()
-                                    if ai_text and ai_text.strip():
-                                        # Remove pollinations.ai ad footer
-                                        ai_text = ai_text.split("🌸 **Ad** 🌸")[0]
-                                        ai_text = ai_text.split("**Support Pollinations.AI:**")[0]
-                                        ai_text = ai_text.split("---")[0]
-                                        return ai_text.strip()
-                        
-                        return f"I am currently operating in limited offline mode. I can only handle specific commands like /housing, /vehicle, or /loans."
-                    except Exception as e:
-                        return f"I am currently operating in limited offline mode. I can only handle specific commands like /housing, /vehicle, or /loans."
-            return '{"summary": "Mock summary", "milestones": [{"id": "m1", "title": "Mock Milestone", "timeframe": "0-3 months", "actions": [], "milestone_type": "profile"}], "recommended_skills": ["Python"], "recommended_courses": [], "mentor_traits": ["Helpful"], "target_role": "Software Engineer", "target_company_type": "Tech", "progress_pct": 10, "skill_scores": {"Technical Excellence": 80, "Professional Communication": 80, "Personal Brand": 80, "Leadership & Collaboration": 80, "Career Preparation": 80, "Industry Presence": 80}, "weekly_plan": [], "key_projects": [], "book_recommendations": []}'
-    if not os.environ.get("EMERGENT_LLM_KEY"):
-        return DummyChat(system_message, session_id)
-
+    """Return an AI chat instance via emergentintegrations LlmChat."""
     from emergentintegrations.llm.chat import LlmChat
     return LlmChat(
-        api_key=os.environ["EMERGENT_LLM_KEY"],
         session_id=session_id,
         system_message=system_message,
     ).with_model("anthropic", "claude-sonnet-4-5-20250929")
