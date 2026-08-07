@@ -25,6 +25,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 import { request } from '@/src/models/services/api';
 import type { CollegeNavId } from '../Sidebar';
 import { AdBanner } from '@/src/views/web/components/AdBanner';
+import { CouponBanner } from '@/src/views/web/components/CouponBanner';
 
 const KPI_ICONS = { students: GraduationCap, alumni: Users, placement: Trophy, events: CalendarDays } as const;
 
@@ -114,6 +115,9 @@ export function DashboardView({
 
       {/* Ad Banner */}
       <AdBanner />
+
+      {/* Exclusive Coupons — below the ad banner */}
+      <CouponBanner portal="college" />
 
       {/* AI Daily Briefing */}
       <View style={s.briefCard}>

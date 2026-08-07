@@ -15,6 +15,7 @@ import { GRAD, GradientButton, SecondaryButton, KpiTile, IconBox } from '../appl
 import * as MOCK from '../data';
 import { usePortalData, postPortal, fetchPortal } from '@/src/lib/portalApi';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
+import { CouponBanner } from '@/src/views/web/components/CouponBanner';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 const KPI_ICONS: Record<string, any> = {
@@ -49,20 +50,23 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
   const stack = width < 1100;
   const maxEnroll = Math.max(...MONTHLY_ENROLLMENTS.map((m) => m.value));
 
-  // ── Ad Manager state ─────────────────────────────────────────────────
-  const [currentAd, setCurrentAd] = useState<any>(null);
+  // ── Ad Manager state (multi-ad) ──────────────────────────────────────
+  const [ads, setAds] = useState<any[]>([]);
   const [showAdEditor, setShowAdEditor] = useState(false);
+  const [editingAdIdx, setEditingAdIdx] = useState<number | null>(null);
   const [adLabel, setAdLabel] = useState('');
   const [adImage, setAdImage] = useState('');
   const [adUrl, setAdUrl] = useState('');
   const [adSaving, setAdSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    fetchPortal<{ ad: any }>('/ad/image')
-      .then((res) => { setCurrentAd(res.ad); })
+  const loadAds = () => {
+    fetchPortal<{ ads: any[] }>('/ad/image')
+      .then((res) => { if (res.ads) setAds(res.ads); })
       .catch(() => {});
-  }, []);
+  };
+
+  useEffect(() => { loadAds(); }, []);
 
   const handleFileSelect = (e: any) => {
     const file = e.target?.files?.[0];
@@ -78,30 +82,58 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
   const handleSaveAd = async () => {
     if (!adLabel.trim() || !adImage || !adUrl.trim()) return;
     setAdSaving(true);
+    const prevAds = [...ads];
     try {
-      await postPortal('/admin/ad/image', {
-        body: { label: adLabel, image_url: adImage, redirect_url: adUrl },
-      });
-      setCurrentAd({ label: adLabel, image_url: adImage, redirect_url: adUrl });
+      const newItems = [...ads];
+      if (editingAdIdx !== null) {
+        newItems[editingAdIdx] = { label: adLabel, image_url: adImage, redirect_url: adUrl };
+      } else {
+        newItems.push({ label: adLabel, image_url: adImage, redirect_url: adUrl });
+      }
+      await postPortal('/admin/ad/image', { body: { items: newItems } });
+      setAds(newItems);
       setShowAdEditor(false);
+      setEditingAdIdx(null);
     } catch (e: any) {
       console.error('Failed to save ad', e);
+      if (Platform.OS === 'web') {
+        window.alert(e?.message || 'Failed to save advertisement');
+      }
+      setAds(prevAds);
     } finally {
       setAdSaving(false);
     }
   };
 
-  const openEditor = () => {
-    if (currentAd) {
-      setAdLabel(currentAd.label || '');
-      setAdImage(currentAd.image_url || '');
-      setAdUrl(currentAd.redirect_url || '');
+  const openEditor = (idx: number | null) => {
+    if (idx !== null) {
+      const ad = ads[idx];
+      setAdLabel(ad.label || '');
+      setAdImage(ad.image_url || '');
+      setAdUrl(ad.redirect_url || '');
+      setEditingAdIdx(idx);
     } else {
       setAdLabel('');
       setAdImage('');
       setAdUrl('');
+      setEditingAdIdx(null);
     }
     setShowAdEditor(true);
+  };
+
+  const deleteAd = async (idx: number) => {
+    const newItems = ads.filter((_, i) => i !== idx);
+    const prevAds = [...ads];
+    try {
+      await postPortal('/admin/ad/image', { body: { items: newItems } });
+      setAds(newItems);
+    } catch (e: any) {
+      console.error('Failed to delete ad', e);
+      if (Platform.OS === 'web') {
+        window.alert(e?.message || 'Failed to delete advertisement');
+      }
+      setAds(prevAds);
+    }
   };
 
   return (
@@ -109,47 +141,60 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
       {/* Live counters */}
       <LiveStrip accent={GRAD.to} keys={['users', 'students', 'mentors', 'colleges', 'bookings']} />
 
-      {/* Ad Manager — only visible to SuperAdmin */}
+      {/* Ad Manager — multi-ad management */}
       <View style={s.adManagerWrap}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <ImageIcon size={14} color={SAC.accentBright} />
-            <Text style={s.adManagerTitle}>Advertisement Board</Text>
+            <Text style={s.adManagerTitle}>Advertisement Board ({ads.length})</Text>
           </View>
-          <Pressable onPress={openEditor} style={s.adEditBtn}>
-            <Text style={s.adEditBtnText}>{currentAd ? 'Edit Ad' : 'Set Ad'}</Text>
+          <Pressable onPress={() => openEditor(null)} style={s.adEditBtn}>
+            <Text style={s.adEditBtnText}>+ Add Ad</Text>
           </Pressable>
         </View>
-        {currentAd ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 }}>
-            <Image
-              source={{ uri: currentAd.image_url }}
-              style={{ width: 60, height: 40, borderRadius: 6 }}
-              resizeMode="cover"
-            />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }} numberOfLines={1}>
-                {currentAd.label}
-              </Text>
-              <Text style={{ color: SAC.muted, fontSize: 10 }} numberOfLines={1}>
-                {currentAd.redirect_url}
-              </Text>
-            </View>
+        {ads.length > 0 ? (
+          <View style={{ gap: 8, marginTop: 8 }}>
+            {ads.map((ad, i) => (
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 8 }}>
+                <Image
+                  source={{ uri: ad.image_url }}
+                  style={{ width: 50, height: 34, borderRadius: 4 }}
+                  resizeMode="cover"
+                />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 11 }} numberOfLines={1}>
+                    {ad.label}
+                  </Text>
+                  <Text style={{ color: SAC.muted, fontSize: 9 }} numberOfLines={1}>
+                    {ad.redirect_url}
+                  </Text>
+                </View>
+                <Pressable onPress={() => openEditor(i)} style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
+                  <Text style={{ color: SAC.accentBright, fontSize: 11, fontFamily: FONTS.bold }}>Edit</Text>
+                </Pressable>
+                <Pressable onPress={() => deleteAd(i)} style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
+                  <Text style={{ color: '#EF4444', fontSize: 11, fontFamily: FONTS.bold }}>Del</Text>
+                </Pressable>
+              </View>
+            ))}
           </View>
         ) : (
           <Text style={{ color: SAC.dim, fontSize: 11, marginTop: 6 }}>
-            No advertisement set yet. Click "Set Ad" to add one.
+            No advertisements set yet. Click "+ Add Ad" to add one.
           </Text>
         )}
       </View>
+
+      {/* Exclusive Coupons — shown only on the overview page */}
+      <CouponBanner portal="super_admin" editable />
 
       {/* Ad Editor Modal */}
       {showAdEditor && (
         <View style={s.adEditorOverlay}>
           <View style={s.adEditorModal}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <Text style={s.adEditorTitle}>{currentAd ? 'Edit Advertisement' : 'New Advertisement'}</Text>
-              <Pressable onPress={() => setShowAdEditor(false)}><X size={18} color={SAC.muted} /></Pressable>
+              <Text style={s.adEditorTitle}>{editingAdIdx !== null ? 'Edit Advertisement' : 'New Advertisement'}</Text>
+              <Pressable onPress={() => { setShowAdEditor(false); setEditingAdIdx(null); }}><X size={18} color={SAC.muted} /></Pressable>
             </View>
 
             <Text style={s.adFieldLabel}>Label / Title</Text>
@@ -223,7 +268,7 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
       {/* Hero */}
       <View style={s.hero}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.heroKicker}>GOOD MORNING, {firstName.toUpperCase()} 👋</Text>
+          <Text style={s.heroKicker}>GOOD MORNING, {firstName.toUpperCase()}</Text>
           <Text style={s.heroTitle}>Platform is healthy. 12 items need your attention.</Text>
         </View>
         <GradientButton size="md" onPress={() => onNavigate?.('approvals')}>
@@ -405,9 +450,10 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? { position: 'fixed' } as any : {}),
   },
   adEditorModal: {
-    backgroundColor: SAC.card, borderColor: SAC.border, borderWidth: 1,
+    backgroundColor: '#0E1428', borderColor: SAC.border, borderWidth: 1,
     borderRadius: 16, padding: 20, width: '90%', maxWidth: 420,
     gap: 8,
+    ...(Platform.OS === 'web' ? { boxShadow: '0 24px 80px rgba(0,0,0,0.60)' } as any : {}),
   },
   adEditorTitle: { color: '#fff', fontFamily: FONTS.xbold, fontSize: 15 },
   adFieldLabel: { color: SAC.muted, fontFamily: FONTS.bold, fontSize: 11, marginTop: 6 },

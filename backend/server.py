@@ -58,7 +58,7 @@ import jwt
 import pyotp
 import qrcode
 from bson import ObjectId
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Response
+from fastapi import FastAPI, APIRouter, File, HTTPException, Depends, Request, Response, UploadFile
 # trigger reload
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -107,6 +107,9 @@ from notifications import (
 from services.career_intelligence_service import compute_full_intelligence, invalidate_intel_cache
 from services.profile_service import compute_profile_completion
 from services.career_roadmap_service import get_roadmap_summary
+
+# Email sending
+from core.email import send_email
 
 # ----------------------------------------------------------------------------
 # Setup & Configuration
@@ -195,11 +198,15 @@ async def _lifespan(application):
     # ECHO Showcase indexes
     await _safe_create_index(db.echo_showcases, "slug", unique=True, sparse=True)
     await _safe_create_index(db.echo_showcases, [("status", 1), ("date", -1)])
+    await _safe_create_index(db.echo_registrations, [("slug", 1), ("user_key", 1)])
     try:
         from echo_showcase import seed_echo_showcase
         await seed_echo_showcase(db)
     except Exception as _e:
         logger.warning("Could not seed ECHO showcases: %s", _e)
+    await _safe_create_index(db.coupons, "code", unique=True)
+    await _safe_create_index(db.email_verifications, "email")
+    await _safe_create_index(db.email_verifications, [("expires_at", 1)], expireAfterSeconds=0)
 
     # Seed admin account and baseline data
     # (seed_admin / seed_data are defined later in server.py and are in scope at runtime)
@@ -1478,6 +1485,261 @@ async def student_dashboard_summary(user: dict = Depends(get_current_user)):
 
 
 # ----------------------------------------------------------------------------
+# Coupon System — CRUD + redemption
+# ----------------------------------------------------------------------------
+def _coupon_fields(d: dict) -> dict:
+    """Whitelist of coupon fields returned to clients (never leaks internals)."""
+    return {
+        "id": str(d["_id"]),
+        "code": d.get("code", ""),
+        "description": d.get("description", ""),
+        "discount_type": d.get("discount_type", "percentage"),
+        "discount_pct": d.get("discount_pct", 0),
+        "max_uses": d.get("max_uses", 0),
+        "used_count": d.get("used_count", 0),
+        "active": bool(d.get("active", True)),
+        "expires_at": d.get("expires_at"),
+        "image_url": d.get("image_url"),
+        "partner_name": d.get("partner_name"),
+        "partner_website_url": d.get("partner_website_url"),
+        "instructions": d.get("instructions", ""),
+        "audience": d.get("audience") or ["all"],
+        "display_order": int(d.get("display_order", 0)),
+        "created_at": d.get("created_at"),
+    }
+
+
+@api_router.get("/coupons")
+async def list_coupons():
+    """Public — list active coupons for display."""
+    docs = await db.coupons.find({"active": True}).sort("display_order", 1).to_list(100)
+    return {"coupons": [_coupon_fields(d) for d in docs]}
+
+
+@api_router.get("/coupons/active")
+async def list_active_coupons_for_me(user: dict = Depends(get_current_user)):
+    """Role-targeted coupons for the logged-in user's dashboard."""
+    role = (user.get("role") or "student").lower()
+    role_map = {"superadmin": "super_admin", "admin": "super_admin"}
+    role = role_map.get(role, role)
+    docs = await db.coupons.find({
+        "active": True,
+        "$or": [{"audience": "all"}, {"audience": role}],
+    }).sort("display_order", 1).to_list(100)
+    return {"coupons": [_coupon_fields(d) for d in docs], "role": role}
+
+
+@api_router.post("/admin/coupons")
+async def create_coupon(payload: dict, user: dict = Depends(get_current_user)):
+    """Admin — create a new coupon."""
+    role = (user.get("role") or "").lower()
+    if role not in ("admin", "superadmin", "super_admin"):
+        raise HTTPException(403, "Only admins can manage coupons")
+    code = (payload.get("code") or "").strip().upper()
+    if not code:
+        raise HTTPException(400, "Coupon code is required")
+    existing = await db.coupons.find_one({"code": code})
+    if existing:
+        raise HTTPException(409, "Coupon code already exists")
+    audience = payload.get("audience") or ["all"]
+    if not isinstance(audience, list) or not audience:
+        audience = ["all"]
+    doc = {
+        "code": code,
+        "description": (payload.get("description") or "").strip(),
+        "discount_type": payload.get("discount_type", "percentage"),
+        "discount_pct": max(0, int(payload.get("discount_pct", 0) or 0)),
+        "max_uses": max(1, int(payload.get("max_uses", 1))),
+        "used_count": 0,
+        "active": True,
+        "expires_at": payload.get("expires_at"),
+        "image_url": payload.get("image_url") or None,
+        "partner_name": (payload.get("partner_name") or "").strip() or None,
+        "partner_website_url": (payload.get("partner_website_url") or "").strip() or None,
+        "instructions": (payload.get("instructions") or "").strip(),
+        "audience": list(dict.fromkeys(audience)),
+        "display_order": int(payload.get("display_order", 0) or 0),
+        "created_by": str(user.get("_id")),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    res = await db.coupons.insert_one(doc)
+    doc["id"] = str(res.inserted_id)
+    return {"status": "ok", "coupon": doc}
+
+
+@api_router.get("/admin/coupons")
+async def admin_list_coupons(user: dict = Depends(get_current_user)):
+    """Admin — list all coupons (active + inactive)."""
+    role = (user.get("role") or "").lower()
+    if role not in ("admin", "superadmin", "super_admin"):
+        raise HTTPException(403, "Only admins can manage coupons")
+    docs = await db.coupons.find().sort("created_at", -1).to_list(200)
+    return {"coupons": [_coupon_fields(d) for d in docs]}
+
+
+@api_router.patch("/admin/coupons/{coupon_id}")
+async def update_coupon(coupon_id: str, payload: dict, user: dict = Depends(get_current_user)):
+    """Admin — toggle active or update coupon fields."""
+    role = (user.get("role") or "").lower()
+    if role not in ("admin", "superadmin", "super_admin"):
+        raise HTTPException(403, "Only admins can manage coupons")
+    from bson import ObjectId
+    update = {}
+    for k in ("description", "discount_pct", "discount_type", "max_uses", "active", "expires_at",
+              "image_url", "partner_name", "partner_website_url", "instructions",
+              "audience", "display_order"):
+        if k in payload:
+            update[k] = payload[k]
+    if not update:
+        raise HTTPException(400, "No fields to update")
+    await db.coupons.update_one({"_id": ObjectId(coupon_id)}, {"$set": update})
+    return {"status": "ok"}
+
+
+@api_router.delete("/admin/coupons/{coupon_id}")
+async def delete_coupon(coupon_id: str, user: dict = Depends(get_current_user)):
+    """Admin — delete a coupon."""
+    role = (user.get("role") or "").lower()
+    if role not in ("admin", "superadmin", "super_admin"):
+        raise HTTPException(403, "Only admins can manage coupons")
+    from bson import ObjectId
+    await db.coupons.delete_one({"_id": ObjectId(coupon_id)})
+    return {"status": "ok"}
+
+
+@api_router.post("/admin/coupons/upload")
+async def upload_coupon_image(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+    """Admin — upload coupon image. Returns the static URL."""
+    role = (user.get("role") or "").lower()
+    if role not in ("admin", "superadmin", "super_admin"):
+        raise HTTPException(403, "Only admins can manage coupons")
+    from pathlib import Path
+    from datetime import datetime, timezone
+    upload_dir = Path("uploads/coupons")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    ext = Path(file.filename).suffix.lower() if file.filename else ".png"
+    allowed = {".jpg", ".jpeg", ".png", ".webp", ".svg", ".gif"}
+    if ext not in allowed:
+        raise HTTPException(400, f"File type {ext} not allowed")
+    contents = await file.read()
+    max_size = 5 * 1024 * 1024
+    if len(contents) > max_size:
+        raise HTTPException(413, "File too large. Maximum 5 MB allowed")
+    ts = int(datetime.now(timezone.utc).timestamp())
+    stem = Path(file.filename).stem.replace(" ", "_") if file.filename else "coupon"
+    safe_name = f"{ts}_{stem}{ext}"
+    out_path = upload_dir / safe_name
+    with open(out_path, "wb") as f:
+        f.write(contents)
+    url = f"/uploads/coupons/{safe_name}"
+    return {"status": "ok", "url": url}
+
+
+@api_router.post("/coupons/redeem")
+async def redeem_coupon(payload: dict, user: dict = Depends(get_current_user)):
+    """Redeem a coupon code — increments used_count if valid."""
+    code = (payload.get("code") or "").strip().upper()
+    if not code:
+        raise HTTPException(400, "Coupon code is required")
+    coupon = await db.coupons.find_one({"code": code, "active": True})
+    if not coupon:
+        raise HTTPException(404, "Invalid or expired coupon code")
+    if coupon.get("used_count", 0) >= coupon.get("max_uses", 1):
+        raise HTTPException(400, "Coupon has reached its usage limit")
+    if coupon.get("expires_at"):
+        from datetime import datetime as _dt
+        try:
+            expires = _dt.fromisoformat(coupon["expires_at"].replace("Z", "+00:00"))
+            if expires < _dt.now(timezone.utc):
+                raise HTTPException(400, "Coupon has expired")
+        except ValueError:
+            pass
+    await db.coupons.update_one(
+        {"_id": coupon["_id"]},
+        {"$inc": {"used_count": 1}}
+    )
+    return {"status": "ok", "discount_pct": coupon.get("discount_pct", 0), "code": code}
+
+
+# ----------------------------------------------------------------------------
+# Email Verification
+# ----------------------------------------------------------------------------
+@api_router.post("/auth/send-verification")
+async def send_verification_email(payload: dict):
+    """Send email verification link to the user's email address."""
+    email = (payload.get("email") or "").strip().lower()
+    if not email:
+        raise HTTPException(400, "Email is required")
+    user = await db.users.find_one({"email": email})
+    if not user:
+        raise HTTPException(404, "User not found")
+    if user.get("email_verified"):
+        return {"status": "ok", "message": "Email already verified"}
+
+    token = secrets.token_urlsafe(32)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
+    await db.email_verifications.update_one(
+        {"email": email},
+        {"$set": {
+            "email": email,
+            "token": token,
+            "expires_at": expires_at,
+            "created_at": datetime.now(timezone.utc),
+        }},
+        upsert=True,
+    )
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    verify_link = f"{frontend_url}/verify-email?token={token}&email={email}"
+    body = f"""
+    <h2>Verify your email address</h2>
+    <p>Click the link below to verify your email:</p>
+    <p><a href="{verify_link}" style="display:inline-block;padding:12px 24px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:8px;">Verify Email</a></p>
+    <p>Or copy this link: {verify_link}</p>
+    <p>This link expires in 24 hours.</p>
+    """
+    sent = await send_email(email, "Verify your email - Student Alumni", body)
+    if not sent:
+        # fallback — store as console log; user can still use OTP flow
+        print(f"[EMAIL] Verification token for {email}: {token}")
+    return {"status": "ok", "message": "Verification email sent" if sent else "Token generated (email service not configured)"}
+
+
+@api_router.post("/auth/verify-email")
+async def verify_email_endpoint(payload: dict):
+    """Verify email using token or OTP code."""
+    token = (payload.get("token") or "").strip()
+    email = (payload.get("email") or "").strip().lower()
+    if not token or not email:
+        raise HTTPException(400, "Token and email are required")
+    record = await db.email_verifications.find_one({"email": email, "token": token})
+    if not record:
+        raise HTTPException(400, "Invalid verification token")
+    if record.get("expires_at") and record["expires_at"] < datetime.now(timezone.utc):
+        raise HTTPException(400, "Verification token has expired")
+    await db.users.update_one({"email": email}, {"$set": {"email_verified": True}})
+    await db.email_verifications.delete_one({"email": email, "token": token})
+    return {"status": "ok", "message": "Email verified successfully"}
+
+
+# ----------------------------------------------------------------------------
+# Logo serving — sa-icon.png
+# ----------------------------------------------------------------------------
+import os as _os
+_STATIC_DIR = Path(__file__).parent / "static"
+_STATIC_DIR.mkdir(exist_ok=True)
+
+
+@api_router.get("/static/logo")
+async def serve_logo():
+    """Return the platform logo (sa-icon.png) for email templates and UI."""
+    logo_path = _STATIC_DIR / "sa-icon.png"
+    if not logo_path.exists():
+        raise HTTPException(404, "Logo not found")
+    from fastapi.responses import FileResponse
+    return FileResponse(str(logo_path), media_type="image/png")
+
+
+# ----------------------------------------------------------------------------
 # Advertisement — cross-portal sidebar banner
 # ----------------------------------------------------------------------------
 # A single active "ad" (label + image_url + redirect_url) set by admin that
@@ -1516,8 +1778,20 @@ async def set_ad_images(payload: dict, user: dict = Depends(get_current_user)):
     # Support new items array format
     items = payload.get("items")
     if items is not None:
-        if not isinstance(items, list) or len(items) == 0:
-            raise HTTPException(400, "items must be a non-empty array")
+        if not isinstance(items, list):
+            raise HTTPException(400, "items must be an array")
+        if len(items) == 0:
+            await db.site_config.update_one(
+                {"_key": "advertisement"},
+                {"$set": {
+                    "_key": "advertisement",
+                    "items": [],
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_by": str(user.get("_id")),
+                }},
+                upsert=True,
+            )
+            return {"status": "ok", "items": []}
         for item in items:
             item["label"] = (item.get("label") or "").strip()
             item["image_url"] = (item.get("image_url") or "").strip()
