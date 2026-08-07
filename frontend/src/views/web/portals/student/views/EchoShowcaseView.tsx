@@ -241,8 +241,9 @@ function HeroBannerCarousel({ banners, data, isWide, onBack, canonicalSlug, show
 }
 const bc = StyleSheet.create({
   section: {
-    width: '100%', height: 420, position: 'relative', overflow: 'hidden',
+    width: '100%', position: 'relative', overflow: 'hidden',
     marginBottom: 16, borderRadius: 14,
+    minHeight: 380, height: 440,
   },
   imageWrap: { ...StyleSheet.absoluteFillObject, borderRadius: 14 },
   image: { width: '100%', height: '100%', borderRadius: 14 },
@@ -250,7 +251,7 @@ const bc = StyleSheet.create({
     ...StyleSheet.absoluteFillObject, borderRadius: 14,
     backgroundColor: 'transparent',
     ...(Platform.OS === 'web' ? {
-      background: 'linear-gradient(to top, #080714 0%, rgba(8,7,20,0.7) 40%, transparent 75%)',
+      background: 'linear-gradient(to top, #080714 0%, rgba(8,7,20,0.75) 35%, rgba(8,7,20,0.2) 60%, transparent 80%)',
     } as any : {
       backgroundColor: 'rgba(8,7,20,0.5)',
     }),
@@ -261,7 +262,7 @@ const bc = StyleSheet.create({
   backBtnInner: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     height: 34, paddingHorizontal: 12, borderRadius: 17,
-    backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
   },
   actions: {
     position: 'absolute', bottom: 14, right: 14, zIndex: 10,
@@ -274,40 +275,40 @@ const bc = StyleSheet.create({
   shareBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     height: 34, paddingHorizontal: 12, borderRadius: 17,
-    backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
   },
   btnText: { fontFamily: FONTS.bold, fontSize: 12, color: '#fff' },
   pillText: { fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' },
   content: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    paddingHorizontal: 28, paddingBottom: 55, paddingTop: 60,
+    paddingHorizontal: 24, paddingBottom: 18, paddingTop: 80,
   },
-  contentInner: { maxWidth: 900 },
+  contentInner: { maxWidth: 700 },
   statusBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: 999, borderWidth: 1, marginBottom: 12,
+    borderRadius: 999, borderWidth: 1, marginBottom: 10,
   },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
   statusText: { fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.6 },
   title: {
-    fontFamily: TYPO.display800, fontSize: 34, color: '#fff',
-    lineHeight: 40, letterSpacing: -0.5,
+    fontFamily: TYPO.display800, fontSize: 30, color: '#fff',
+    lineHeight: 36, letterSpacing: -0.5,
   },
   subtitle: {
-    fontFamily: TYPO.body500, fontSize: 15, color: 'rgba(255,255,255,0.65)',
-    marginTop: 8, maxWidth: 600, lineHeight: 22,
+    fontFamily: TYPO.body500, fontSize: 14, color: 'rgba(255,255,255,0.65)',
+    marginTop: 6, maxWidth: 550, lineHeight: 20,
   },
-  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginTop: 14 },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  metaText: { fontFamily: FONTS.med, fontSize: 13, color: 'rgba(255,255,255,0.7)' },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 10 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  metaText: { fontFamily: FONTS.med, fontSize: 12.5, color: 'rgba(255,255,255,0.7)' },
   dots: {
     position: 'absolute', bottom: 14, alignSelf: 'center',
-    flexDirection: 'row', gap: 7,
-    backgroundColor: 'rgba(0,0,0,0.4)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
+    flexDirection: 'row', gap: 6,
+    backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
   },
-  dot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: 'rgba(255,255,255,0.35)' },
-  dotActive: { backgroundColor: '#fff', width: 20 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.35)' },
+  dotActive: { backgroundColor: '#fff', width: 18 },
 });
 
 // ── Stat Card ──────────────────────────────────────────────────────────────
