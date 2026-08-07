@@ -56,10 +56,17 @@ RUN npx expo export --platform web --output-dir dist
 
 FROM nginx:1.27-alpine
 
-RUN apk add --no-cache curl
+RUN apk add --no-cache curl gettext
+
+# Backend service name to proxy /uploads/ to. In a Dokploy Swarm deployment
+# this is the generated service name (e.g. student-alumni-backend-<id>).
+# Pass it as a build arg: BACKEND_HOST=student-alumni-backend-kokoiw
+ARG BACKEND_HOST=backend
 
 RUN rm /etc/nginx/conf.d/default.conf
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/nginx.conf.template
+RUN envsubst '${BACKEND_HOST}' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf \
+    && rm /etc/nginx/nginx.conf.template
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 RUN printf '%s\n' '{"status":"ok","service":"studentalumni-frontend"}' \
