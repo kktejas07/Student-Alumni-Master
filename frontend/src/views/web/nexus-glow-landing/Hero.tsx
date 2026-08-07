@@ -19,7 +19,7 @@ export function Hero() {
             className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[0.15em] uppercase mb-8"
             style={{ color: "#4f46e5" }}
           >
-            <Sparkles className="h-3.5 w-3.5" style={{ color: "#4f46e5" }} />
+            <Sparkles className="h-3.5 w-3.5" color="#4f46e5" />
             <span>AI Career Platform for Students</span>
           </motion.div>
 
