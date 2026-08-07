@@ -10,7 +10,7 @@
  *
  * Uses exclusively existing student-portal tokens & primitives.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Platform,
   ActivityIndicator, useWindowDimensions, Modal, Image,
@@ -54,6 +54,7 @@ const DEFAULT_SHOWCASE: any = {
   event_status_badge: '',
   category: '',
   hero_image_url: null,
+  hero_banners: [],
   organizer_name: '',
   organizer_logo_url: null,
   stats: [],
@@ -126,6 +127,136 @@ const lb = StyleSheet.create({
   nav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, padding: 12 },
   navBtn: { padding: 8 },
   counter: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 13 },
+});
+
+// ── Hero Banner Carousel (full-width, title overlaid) ─────────────────────
+function HeroBannerCarousel({ banners, data, isWide }: { banners: string[]; data: any; isWide: boolean }) {
+  const [idx, setIdx] = useState(0);
+  const timerRef = useRef<any>(null);
+  const validBanners = (banners || []).filter(Boolean);
+
+  const advance = useCallback(() => {
+    setIdx((prev) => (prev + 1) % validBanners.length);
+  }, [validBanners.length]);
+
+  useEffect(() => {
+    if (validBanners.length <= 1) return;
+    timerRef.current = setInterval(advance, 4000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [advance, validBanners.length]);
+
+  if (validBanners.length === 0) return null;
+
+  const statusKey = data?.event_status_badge || 'Upcoming';
+  const statusCol = STATUS_COLORS[statusKey] || STATUS_COLORS.default;
+
+  return (
+    <View style={bc.section}>
+      {/* Banner image layer */}
+      <View style={bc.imageWrap}>
+        <Image
+          source={{ uri: resolveImageUrl(validBanners[idx]) }}
+          style={bc.image}
+          resizeMode="cover"
+        />
+        {/* Gradient overlay from bottom (dark) to top (transparent) */}
+        <View style={bc.gradient} />
+      </View>
+
+      {/* Content overlaid on banner */}
+      <View style={[bc.content, !isWide && { paddingHorizontal: 16 }]}>
+        <View style={bc.contentInner}>
+          {/* Status badge */}
+          <View style={[bc.statusBadge, { backgroundColor: statusCol.bg, borderColor: statusCol.border }]}>
+            <View style={[bc.statusDot, { backgroundColor: statusCol.dot }]} />
+            <Text style={[bc.statusText, { color: statusCol.text }]}>{statusKey.toUpperCase()}</Text>
+          </View>
+
+          {/* Title */}
+          <Text style={[bc.title, !isWide && { fontSize: 26 }]} numberOfLines={3}>
+            {data?.title?.split(' ').slice(0, -1).join(' ')}{' '}
+            <Text style={{ color: GRAD.from }}>{data?.title?.split(' ').slice(-1)[0]}</Text>
+          </Text>
+
+          {/* Subtitle */}
+          {data?.subtitle ? <Text style={bc.subtitle}>{data.subtitle}</Text> : null}
+
+          {/* Meta row */}
+          <View style={bc.metaRow}>
+            {data?.date ? (
+              <View style={bc.metaItem}><Calendar size={13} color="rgba(255,255,255,0.7)" /><Text style={bc.metaText}>{data.date}</Text></View>
+            ) : null}
+            {data?.time ? (
+              <View style={bc.metaItem}><Clock size={13} color="rgba(255,255,255,0.7)" /><Text style={bc.metaText}>{data.time}</Text></View>
+            ) : null}
+            {data?.venue ? (
+              <View style={bc.metaItem}><MapPin size={13} color="rgba(255,255,255,0.7)" /><Text style={bc.metaText}>{data.venue}</Text></View>
+            ) : null}
+          </View>
+        </View>
+      </View>
+
+      {/* Carousel dots */}
+      {validBanners.length > 1 && (
+        <View style={bc.dots}>
+          {validBanners.map((_: string, i: number) => (
+            <Pressable key={i} onPress={() => setIdx(i)}>
+              <View style={[bc.dot, i === idx && bc.dotActive]} />
+            </Pressable>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+const bc = StyleSheet.create({
+  section: {
+    width: '100%', height: 420, position: 'relative', overflow: 'hidden',
+    ...(Platform.OS === 'web' ? { minHeight: '50vh' } as any : {}),
+  },
+  imageWrap: { ...StyleSheet.absoluteFillObject },
+  image: { width: '100%', height: '100%' },
+  gradient: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'transparent',
+    // CSS gradient overlay: dark at bottom → transparent at top
+    ...(Platform.OS === 'web' ? {
+      background: 'linear-gradient(to top, #080714 0%, rgba(8,7,20,0.7) 40%, transparent 75%)',
+    } as any : {
+      // RN fallback: use a LinearGradient-style approach with nested Views
+      backgroundColor: 'rgba(8,7,20,0.5)',
+    }),
+  },
+  content: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    paddingHorizontal: 28, paddingBottom: 50, paddingTop: 60,
+  },
+  contentInner: { maxWidth: 900 },
+  statusBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 999, borderWidth: 1, marginBottom: 12,
+  },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusText: { fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.6 },
+  title: {
+    fontFamily: TYPO.display800, fontSize: 34, color: '#fff',
+    lineHeight: 40, letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontFamily: TYPO.body500, fontSize: 15, color: 'rgba(255,255,255,0.65)',
+    marginTop: 8, maxWidth: 600, lineHeight: 22,
+  },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginTop: 14 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  metaText: { fontFamily: FONTS.med, fontSize: 13, color: 'rgba(255,255,255,0.7)' },
+  dots: {
+    position: 'absolute', bottom: 14, alignSelf: 'center',
+    flexDirection: 'row', gap: 7,
+    backgroundColor: 'rgba(0,0,0,0.4)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
+  },
+  dot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: 'rgba(255,255,255,0.35)' },
+  dotActive: { backgroundColor: '#fff', width: 20 },
 });
 
 // ── Stat Card ──────────────────────────────────────────────────────────────
@@ -385,8 +516,15 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
         </View>
       </FadeInView>
 
-      {/* ── HERO ───────────────────────────────────────────────────────── */}
-      {showSection('hero') && (
+      {/* ── HERO BANNERS CAROUSEL (replaces hero card when banners exist) ── */}
+      {showSection('hero') && (data?.hero_banners?.length > 0) && (
+        <FadeInView delay={50}>
+          <HeroBannerCarousel banners={data.hero_banners} data={data} isWide={isWide} />
+        </FadeInView>
+      )}
+
+      {/* ── HERO CARD (shown only when NO banners) ────────────────────────── */}
+      {showSection('hero') && !(data?.hero_banners?.length > 0) && (
       <FadeInView delay={60}>
         <GlassCard style={s.heroCard}>
           <View style={[s.heroInner, !isWide && { flexDirection: 'column' }]}>
