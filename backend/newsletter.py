@@ -1,0 +1,322 @@
+"""
+Newsletter — FastAPI router for composing + sending email newsletters to all
+registered users from the Super Admin portal.
+
+Public routes:
+  GET  /api/newsletter/unsubscribe   unsubscribe link (signed token)
+
+Admin routes (admin/super_admin JWT required):
+  GET    /api/newsletter/admin/campaigns         recent campaigns + recipients
+  GET    /api/newsletter/admin/upcoming-events   published upcoming ECHO events
+  POST   /api/newsletter/admin/send              compose + send to all users
+"""
+
+from __future__ import annotations
+import os
+import re
+import hashlib
+import hmac
+import secrets
+from datetime import datetime, timezone, date
+from typing import Any, Dict, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel
+
+from core.email import send_email, render_html_email
+from core.deps import require_role
+
+router = APIRouter(prefix="/api/newsletter", tags=["newsletter"])
+
+
+def _get_db(request: Request):
+    from db import db
+    return db
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _unsub_token(email: str) -> str:
+    secret = os.environ.get("JWT_SECRET", "studentalumni_jwt_secret_key_2026")
+    return hmac.new(secret.encode("utf-8"), email.strip().lower().encode("utf-8"), hashlib.sha256).hexdigest()[:16]
+
+
+async def _all_subscriber_emails(db, limit: int = 20000) -> list:
+    """All registered users with a valid email who haven't unsubscribed."""
+    unsubscribed = {
+        doc.get("email", "").strip().lower()
+        for doc in await db.email_preferences.find({"newsletter": False}).to_list(20000)
+    }
+    emails: list = []
+    cur = db.users.find({"email": {"$regex": r"@", "$options": "i"}}, {"email": 1}).limit(limit)
+    async for u in cur:
+        email = (u.get("email") or "").strip().lower()
+        if email and email not in unsubscribed:
+            emails.append(email)
+    return emails
+
+
+def _upcoming_events_html(events: list) -> str:
+    if not events:
+        return ""
+    cards = []
+    for ev in events:
+        title = ev.get("title") or ev.get("slug")
+        college = ev.get("college") or "Student Alumni Cell"
+        when = ev.get("date") or ""
+        venue = ev.get("venue") or ""
+        img = ev.get("hero_image_url") or ev.get("poster_image") or ""
+        img_html = f"<img src='{img}' alt='' style='width:100%;height:auto;display:block;border-radius:10px 10px 0 0;' />" if img else ""
+        badge = "FREE ENTRY" if float((ev.get("registration") or {}).get("fee") or 0) <= 0 else f"₹{float((ev.get('registration') or {}).get('fee') or 0):,.0f} ENTRY"
+        cards.append(
+            f"""
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">
+              <tr>
+                <td style="background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+                  {img_html}
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="padding:16px 18px;">
+                        <div style="font-size:11px;font-weight:700;color:#7C3AED;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;">{badge}</div>
+                        <div style="font-size:16px;font-weight:700;color:#111827;">{title}</div>
+                        <div style="font-size:12.5px;color:#6b7280;margin-top:6px;">{college}{' · ' + when if when else ''}</div>
+                        <div style="font-size:12.5px;color:#6b7280;">{venue}</div>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+            """
+        )
+    return "".join(cards)
+
+
+def build_newsletter_html(
+    subject: str,
+    hero_image: str,
+    intro: str,
+    body: str,
+    cta_text: str,
+    cta_url: str,
+    upcoming_events: list,
+) -> str:
+    hero_html = (
+        f"<img src='{hero_image}' alt='' style='width:100%;height:auto;display:block;border-radius:12px;margin:0 0 20px 0;' />"
+        if hero_image else ""
+    )
+    intro_html = (
+        f"<p style='margin:0 0 14px 0;color:#374151;font-size:15px;'>{intro}</p>" if intro else ""
+    )
+    body_html = (
+        f"<div style='margin:0 0 18px 0;color:#374151;font-size:15px;line-height:1.65;'>{body}</div>"
+        if body else ""
+    )
+    events_html = _upcoming_events_html(upcoming_events)
+    events_section = (
+        f"""
+        <h3 style="margin:24px 0 12px 0;color:#111827;font-size:17px;">Upcoming Events</h3>
+        {events_html}
+        """
+        if events_html else ""
+    )
+    cta_html = (
+        f"""
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0 6px 0;">
+          <tr><td align="center">
+            <a href="{cta_url}" style="display:inline-block;padding:13px 32px;background:#7C3AED;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;">{cta_text}</a>
+          </td></tr>
+        </table>
+        """
+        if cta_text and cta_url else ""
+    )
+
+    content = f"""
+    <h2 style="margin:0 0 6px 0;color:#111827;">{subject}</h2>
+    {hero_html}
+    {intro_html}
+    {body_html}
+    {events_section}
+    {cta_html}
+    """
+    return render_html_email(content)
+
+
+class SendNewsletterSchema(BaseModel):
+    subject: str
+    hero_image: Optional[str] = ""
+    intro: Optional[str] = ""
+    body: Optional[str] = ""
+    cta_text: Optional[str] = ""
+    cta_url: Optional[str] = ""
+    include_upcoming: bool = True
+    preview_only: bool = False
+
+
+@router.get("/admin/campaigns")
+async def list_campaigns(
+    request: Request,
+    limit: int = Query(20, ge=1, le=100),
+    _=Depends(require_role("admin")),
+):
+    db = _get_db(request)
+    docs = await db.email_campaigns.find({}).sort("created_at", -1).limit(limit).to_list(limit)
+    items = []
+    for d in docs:
+        d["_id"] = str(d["_id"])
+        d["sent"] = d.get("recipients_count", 0)
+        d["ok_count"] = sum(1 for a in d.get("attempts", []) if a.get("ok"))
+        d["fail_count"] = sum(1 for a in d.get("attempts", []) if not a.get("ok"))
+        d.pop("attempts", None)
+        items.append(d)
+    return {"items": items}
+
+
+@router.get("/admin/upcoming-events")
+async def upcoming_events(request: Request, _=Depends(require_role("admin"))):
+    db = _get_db(request)
+    docs = await db.echo_showcases.find(
+        {"status": "published"},
+        {"title": 1, "slug": 1, "college": 1, "date": 1, "venue": 1, "hero_image_url": 1,
+         "registration": 1, "poster_image": 1},
+    ).to_list(200)
+    out = []
+    for d in docs:
+        out.append({
+            "slug": d.get("slug"),
+            "title": d.get("title"),
+            "college": d.get("college"),
+            "date": d.get("date"),
+            "venue": d.get("venue"),
+            "hero_image_url": d.get("hero_image_url"),
+            "fee": float((d.get("registration") or {}).get("fee") or 0),
+        })
+    out.sort(key=lambda e: e.get("date") or "9999")
+    return {"items": out}
+
+
+@router.post("/admin/send")
+async def send_newsletter(payload: SendNewsletterSchema, request: Request, user=Depends(require_role("admin"))):
+    """Compose a newsletter and send it to every registered user."""
+    if not (payload.subject or "").strip():
+        raise HTTPException(status_code=400, detail="Subject is required")
+    if not (payload.cta_url or "").strip() and not (payload.body or "").strip():
+        raise HTTPException(status_code=400, detail="Add either a message body or a call-to-action link")
+
+    db = _get_db(request)
+    campaign_id = secrets.token_hex(8)
+    created_by = (user or {}).get("email") or "admin"
+
+    upcoming = []
+    if payload.include_upcoming:
+        docs = await db.echo_showcases.find(
+            {"status": "published"},
+            {"title": 1, "slug": 1, "college": 1, "date": 1, "venue": 1,
+             "hero_image_url": 1, "registration": 1, "poster_image": 1},
+        ).to_list(200)
+        upcoming = [d for d in docs if d.get("date") or True]
+
+    # Build the email once (per-recipient unsubscribe token is appended per send)
+    emails = await _all_subscriber_emails(db)
+    if not emails:
+        raise HTTPException(status_code=400, detail="No subscribed user emails found")
+
+    base_html = build_newsletter_html(
+        payload.subject,
+        payload.hero_image or "",
+        payload.intro or "",
+        payload.body or "",
+        payload.cta_text or "",
+        payload.cta_url or "",
+        upcoming,
+    )
+    campaign = {
+        "campaign_id": campaign_id,
+        "subject": payload.subject,
+        "hero_image": payload.hero_image or "",
+        "intro": payload.intro or "",
+        "body": payload.body or "",
+        "cta_text": payload.cta_text or "",
+        "cta_url": payload.cta_url or "",
+        "include_upcoming": payload.include_upcoming,
+        "recipients_count": len(emails),
+        "sent": False,
+        "status": "sending",
+        "attempts": [],
+        "created_at": _now(),
+        "created_by": created_by,
+    }
+    await db.email_campaigns.insert_one(campaign)
+
+    ok = 0
+    fail = 0
+    # Send in small batches to avoid hammering SMTP/API limits
+    for email in emails:
+        per_html = (
+            base_html
+            + f"<div style='text-align:center;margin-top:14px;'>"
+            f"<a href='https://studentalumni.ai/api/newsletter/unsubscribe?email={email}&t={_unsub_token(email)}' "
+            f"style='color:#9ca3af;font-size:11px;text-decoration:underline;'>Unsubscribe from these emails</a></div>"
+        )
+        try:
+            sent = await send_email(email, payload.subject, per_html)
+            if sent:
+                ok += 1
+                campaign["attempts"].append({"email": email, "ok": True})
+            else:
+                fail += 1
+                campaign["attempts"].append({"email": email, "ok": False})
+        except Exception as e:
+            fail += 1
+            campaign["attempts"].append({"email": email, "ok": False, "error": str(e)[:200]})
+
+        if (ok + fail) % 50 == 0:
+            await db.email_campaigns.update_one(
+                {"campaign_id": campaign_id},
+                {"$set": {"attempts": campaign["attempts"], "ok_count": ok, "fail_count": fail}},
+            )
+
+    campaign["sent"] = True
+    campaign["status"] = "completed"
+    campaign["ok_count"] = ok
+    campaign["fail_count"] = fail
+    campaign["completed_at"] = _now()
+    await db.email_campaigns.update_one(
+        {"campaign_id": campaign_id},
+        {"$set": {
+            "sent": True,
+            "status": "completed",
+            "ok_count": ok,
+            "fail_count": fail,
+            "completed_at": campaign["completed_at"],
+            "attempts": campaign["attempts"],
+        }},
+    )
+
+    return {
+        "ok": True,
+        "campaign_id": campaign_id,
+        "recipients": len(emails),
+        "sent": ok,
+        "failed": fail,
+        "message": f"Newsletter sent to {ok} of {len(emails)} recipients ({fail} failed)",
+    }
+
+
+@router.get("/unsubscribe")
+async def unsubscribe(request: Request, email: str = "", t: str = ""):
+    """Unsubscribe link endpoint. Verifies the signed token before opting out."""
+    db = _get_db(request)
+    email = (email or "").strip().lower()
+    if not email or not t or not re.match(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+        return {"ok": False, "message": "Invalid unsubscribe link"}
+    if t != _unsub_token(email):
+        return {"ok": False, "message": "Invalid unsubscribe link"}
+    await db.email_preferences.update_one(
+        {"email": email},
+        {"$set": {"email": email, "newsletter": False, "unsubscribed_at": _now()}},
+        upsert=True,
+    )
+    return {"ok": True, "message": "You have been unsubscribed from newsletters."}

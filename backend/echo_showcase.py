@@ -20,6 +20,7 @@ Admin routes   (super-admin JWT required):
 
 from __future__ import annotations
 import os
+import re
 import base64
 import json
 import secrets
@@ -28,11 +29,12 @@ from pathlib import Path
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException, Request, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Request, File, UploadFile, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel, Field
 
 from core.security import generate_qr_code
+from core.email import send_email, render_html_email
 
 router = APIRouter(prefix="/api/echo", tags=["echo-showcase"])
 
@@ -103,6 +105,292 @@ def _slug_query(slug: str) -> dict:
     if not slug:
         return {}
     return {"$or": [{"slug": slug}, {"aliases": slug}]}
+
+
+# ── Payments + invoices helpers ──────────────────────────────────────────────
+async def _razorpay_config(db) -> Optional[dict]:
+    """Return {key_id, key_secret} when Razorpay is connected, else None."""
+    tool = await db.installed_tools.find_one({"tool_id": "razorpay", "status": "connected"})
+    if not tool:
+        return None
+    creds = tool.get("credentials") or {}
+    key_id = (creds.get("key_id") or creds.get("api_key") or "").strip()
+    key_secret = (creds.get("key_secret") or creds.get("api_secret") or "").strip()
+    if not key_id or not key_secret:
+        return None
+    return {"key_id": key_id, "key_secret": key_secret}
+
+
+async def _razorpay_create_order(db, amount: float, currency: str, receipt: str, notes: dict) -> Optional[dict]:
+    """Create a Razorpay order via REST API. Returns None on failure."""
+    cfg = await _razorpay_config(db)
+    if not cfg:
+        return None
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            r = await client.post(
+                "https://api.razorpay.com/v1/orders",
+                auth=(cfg["key_id"], cfg["key_secret"]),
+                json={
+                    "amount": int(round(amount * 100)),
+                    "currency": currency,
+                    "receipt": receipt,
+                    "notes": notes,
+                },
+            )
+            if r.status_code in (200, 201):
+                return r.json()
+            print(f"[ECHO] Razorpay order error: HTTP {r.status_code} {r.text[:300]}")
+            return None
+    except Exception as e:
+        print(f"[ECHO] Razorpay order exception: {e}")
+        return None
+
+
+async def _razorpay_verify_signature(db, order_id: str, payment_id: str, signature: str) -> bool:
+    """Verify a Razorpay payment signature (HMAC-SHA256 of order_id|payment_id)."""
+    cfg = await _razorpay_config(db)
+    if not cfg:
+        return False
+    import hashlib
+    import hmac
+    expected = hmac.new(
+        cfg["key_secret"].encode("utf-8"),
+        f"{order_id}|{payment_id}".encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    return hmac.compare_digest(expected, (signature or ""))
+
+
+def _payment_label(method: str) -> str:
+    return {
+        "upi": "UPI",
+        "card": "Credit / Debit Card",
+        "netbanking": "Net Banking",
+        "wallet": "Wallet",
+        "mock": "Mock (demo)",
+        "external": "External gateway",
+    }.get(method or "", (method or "").title())
+
+
+def _build_invoice(reg: dict, showcase: dict) -> dict:
+    """Build a normalized invoice record from a registration + showcase."""
+    payment = reg.get("payment") or {}
+    fee = float(reg.get("fee") or 0)
+    currency = reg.get("currency") or "INR"
+    invoice_no = f"INV-{(reg.get('id') or str(reg.get('_id') or ''))[-10:].upper()}"
+    items = [
+        {
+            "desc": f"Registration — {showcase.get('title') or reg.get('showcase_title')}",
+            "qty": 1,
+            "amount": fee,
+        }
+    ]
+    return {
+        "invoice_no": invoice_no,
+        "reg_id": reg.get("id"),
+        "slug": reg.get("slug"),
+        "event_title": showcase.get("title") or reg.get("showcase_title"),
+        "event_date": showcase.get("date") or "",
+        "event_venue": showcase.get("venue") or "",
+        "full_name": reg.get("full_name"),
+        "email": reg.get("email"),
+        "phone": reg.get("phone"),
+        "branch": reg.get("branch"),
+        "year": reg.get("year"),
+        "college": reg.get("college"),
+        "amount": fee,
+        "currency": currency,
+        "payment_id": payment.get("payment_id"),
+        "payment_gateway": payment.get("gateway") or "mock",
+        "payment_method": payment.get("method"),
+        "paid_at": payment.get("paid_at") or reg.get("registered_at"),
+        "status": payment.get("status") or reg.get("status"),
+        "items": items,
+        "user_id": reg.get("user_id"),
+        "created_at": reg.get("registered_at") or _now(),
+    }
+
+
+def _build_invoice_html(inv: dict) -> str:
+    """Render a clean, printable HTML invoice (browser-print → PDF)."""
+    amount = float(inv.get("amount") or 0)
+    currency = inv.get("currency") or "INR"
+    rows = "".join(
+        f"<tr><td style='padding:10px 12px;border-bottom:1px solid #eee;color:#111827;'>{i.get('desc')}</td>"
+        f"<td style='padding:10px 12px;border-bottom:1px solid #eee;text-align:center;color:#111827;'>{i.get('qty')}</td>"
+        f"<td style='padding:10px 12px;border-bottom:1px solid #eee;text-align:right;color:#111827;'>{currency} {float(i.get('amount') or 0):,.2f}</td></tr>"
+        for i in inv.get("items") or []
+    )
+    if not rows:
+        rows = f"<tr><td style='padding:10px 12px;color:#111827;'>Event registration</td><td style='padding:10px 12px;text-align:center;color:#111827;'>1</td><td style='padding:10px 12px;text-align:right;color:#111827;'>{currency} {amount:,.2f}</td></tr>"
+    esc = lambda s: str(s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Invoice {esc(inv.get('invoice_no'))}</title>
+<style>
+  body {{ margin:0; padding:32px; background:#eef1f6; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#111827; }}
+  .sheet {{ max-width:720px; margin:0 auto; background:#fff; border-radius:14px; overflow:hidden; border:1px solid #e5e7eb; }}
+  .head {{ background:linear-gradient(135deg,#7C3AED,#4C1D95); color:#fff; padding:28px 34px; }}
+  .head .brand {{ font-size:13px; letter-spacing:2px; opacity:.85; }}
+  .head h1 {{ margin:6px 0 0; font-size:26px; }}
+  .head .invno {{ margin-top:8px; font-size:14px; opacity:.9; }}
+  .body {{ padding:28px 34px; }}
+  table.meta {{ width:100%; border-collapse:collapse; }}
+  table.meta td {{ vertical-align:top; padding:4px 0; }}
+  .label {{ color:#6b7280; font-size:12px; text-transform:uppercase; letter-spacing:.4px; }}
+  .val {{ color:#111827; font-size:14px; font-weight:600; }}
+  table.items {{ width:100%; border-collapse:collapse; margin-top:22px; }}
+  table.items th {{ text-align:left; padding:10px 12px; background:#f9fafb; color:#374151; font-size:12px; text-transform:uppercase; letter-spacing:.4px; }}
+  table.items th.r, table.items td.r {{ text-align:right; }}
+  .total {{ margin-top:18px; text-align:right; padding-top:14px; border-top:2px solid #e5e7eb; }}
+  .total .amt {{ font-size:26px; font-weight:800; color:#7C3AED; }}
+  .foot {{ padding:22px 34px; background:#f9fafb; color:#6b7280; font-size:12px; line-height:1.6; }}
+  .badge {{ display:inline-block; padding:4px 10px; border-radius:999px; font-size:11px; font-weight:700; background:#dcfce7; color:#15803d; }}
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="head">
+      <div class="brand">STUDENT ALUMNI · ECHO</div>
+      <h1>Payment Invoice</h1>
+      <div class="invno">Invoice No: {esc(inv.get('invoice_no'))} &nbsp;·&nbsp; <span class="badge" style="background:rgba(255,255,255,.2);color:#fff;">PAID</span></div>
+    </div>
+    <div class="body">
+      <table class="meta">
+        <tr>
+          <td style="width:50%;">
+            <div class="label">Billed To</div>
+            <div class="val">{esc(inv.get('full_name') or 'Attendee')}</div>
+            <div style="color:#374151;font-size:13px;">{esc(inv.get('email') or '')}</div>
+            <div style="color:#374151;font-size:13px;">{esc(inv.get('phone') or '')}</div>
+          </td>
+          <td>
+            <div class="label">Event</div>
+            <div class="val">{esc(inv.get('event_title') or '')}</div>
+            <div style="color:#374151;font-size:13px;">{esc(inv.get('event_date') or '')}</div>
+            <div style="color:#374151;font-size:13px;">{esc(inv.get('event_venue') or '')}</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding-top:16px;">
+            <div class="label">Payment ID</div>
+            <div class="val">{esc(inv.get('payment_id') or '—')}</div>
+          </td>
+          <td style="padding-top:16px;">
+            <div class="label">Payment Method</div>
+            <div class="val">{_payment_label(inv.get('payment_method'))}</div>
+          </td>
+        </tr>
+      </table>
+
+      <table class="items">
+        <tr><th>Description</th><th style="text-align:center;">Qty</th><th class="r">Amount</th></tr>
+        {rows}
+      </table>
+
+      <div class="total">
+        <div class="label" style="margin-bottom:4px;">Total Paid</div>
+        <div class="amt">{currency} {amount:,.2f}</div>
+      </div>
+    </div>
+    <div class="foot">
+      Thank you for registering for <strong>{esc(inv.get('event_title') or 'our event')}</strong>. Please carry this
+      invoice and your check-in QR to the venue. This is a computer-generated invoice and does not require a signature.
+      For any queries, contact the Student Alumni Cell.
+    </div>
+  </div>
+</body>
+</html>"""
+
+
+async def _mirror_to_event_registration(db, reg: dict, showcase: dict, user: Optional[dict]):
+    """Mirror an ECHO registration into the StudentAlumni event_registrations collection."""
+    canonical_slug = reg.get("slug") or (showcase or {}).get("slug")
+    event_id = f"echo-{canonical_slug}"
+    event = await db.events.find_one({"id": event_id})
+    if not event:
+        event_doc = {
+            "id": event_id,
+            "title": showcase.get("title"),
+            "category": showcase.get("category", "college-event"),
+            "organizer": showcase.get("organizer_name") or "Student Alumni Cell",
+            "venue": showcase.get("venue"),
+            "start_date": showcase.get("date"),
+            "description": showcase.get("description"),
+            "image": showcase.get("hero_image_url"),
+            "tags": ["ECHO", showcase.get("college", "")],
+            "rsvp_count": 0,
+            "created_at": _now(),
+        }
+        await db.events.insert_one(event_doc)
+    sa_reg = {
+        "id": reg.get("id"),
+        "event_id": event_id,
+        "event_title": showcase.get("title"),
+        "user_id": reg.get("user_id"),
+        "user_name": reg.get("full_name") or (user.get("full_name") if user else ""),
+        "user_unique_id": (user or {}).get("unique_id"),
+        "qr_code_base64": reg.get("qr_code_base64"),
+        "registered_at": reg.get("registered_at"),
+        "status": reg.get("status"),
+        "echo_slug": canonical_slug,
+        "paid": (reg.get("payment") or {}).get("status") == "paid",
+        "payment": reg.get("payment"),
+    }
+    existing = await db.event_registrations.find_one({"id": reg.get("id")})
+    if existing:
+        await db.event_registrations.update_one({"_id": existing["_id"]}, {"$set": sa_reg})
+    else:
+        await db.event_registrations.insert_one(sa_reg.copy())
+
+
+async def _store_invoice_and_email(db, reg: dict, showcase: dict) -> dict:
+    """Persist an invoice for a paid registration and email it to the attendee."""
+    fresh = _build_invoice(reg, showcase)
+    existing = await db.invoices.find_one({"reg_id": reg.get("id")})
+    if existing:
+        await db.invoices.update_one({"_id": existing["_id"]}, {"$set": fresh})
+        inv = {**_ser(existing), **fresh}
+    else:
+        result = await db.invoices.insert_one(fresh)
+        inv = {**fresh, "_id": result.inserted_id}
+    inv_ser = _ser(inv)
+
+    # Fire-and-forget email notification
+    try:
+        email = reg.get("email") or ""
+        if email:
+            subject = f"Payment Receipt & Invoice — {inv_ser.get('event_title') or 'Event Registration'}"
+            body = render_html_email(
+                f"""
+                <h2 style="margin:0 0 14px 0;color:#111827;">Thank you for registering!</h2>
+                <p style="margin:0 0 18px 0;color:#374151;">Your payment for <strong>{inv_ser.get('event_title')}</strong>
+                has been received. Here are your payment details:</p>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                  style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin:0 0 18px 0;">
+                  <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Invoice No</td>
+                      <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{inv_ser.get('invoice_no')}</td></tr>
+                  <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Payment ID</td>
+                      <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{inv_ser.get('payment_id')}</td></tr>
+                  <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Amount Paid</td>
+                      <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{inv_ser.get('currency')} {float(inv_ser.get('amount') or 0):,.2f}</td></tr>
+                </table>
+                <p style="margin:0 0 22px 0;color:#374151;">
+                  You can view and download your invoice anytime from your dashboard under
+                  <strong>My Tickets</strong>.
+                </p>
+                <a href="https://studentalumni.ai/dashboard"
+                   style="display:inline-block;padding:12px 26px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;">Open My Dashboard</a>
+                """
+            )
+            await send_email(email, subject, body)
+    except Exception as e:
+        print(f"[ECHO] Invoice email error: {e}")
+    return inv_ser
 
 
 # ── Media metadata helpers ────────────────────────────────────────────────────
@@ -570,16 +858,32 @@ async def register_for_showcase(
     fee = float(reg_cfg.get("fee", 0) or 0)
     currency = reg_cfg.get("currency", "INR")
 
-    # Mock payment — always succeeds (real gateway plugs in later).
-    payment = {
-        "payment_id": f"PAY_{secrets.token_hex(8).upper()}",
-        "gateway": "mock",
-        "amount": fee,
-        "currency": currency,
-        "status": "paid",
-        "paid_at": now_iso,
-        "method": payload.payment_method or "mock",
-    }
+    # Payment: for FREE events or when no real gateway is configured we confirm
+    # immediately (demo). For PAID events with Razorpay connected, registration is
+    # created as "pending" and the attendee pays via payment-order → verify-payment.
+    gateway_cfg = await _razorpay_config(db)
+    auto_paid = fee <= 0 or gateway_cfg is None
+
+    if auto_paid:
+        payment = {
+            "payment_id": f"PAY_{secrets.token_hex(8).upper()}",
+            "gateway": "mock" if fee > 0 else "free",
+            "amount": fee,
+            "currency": currency,
+            "status": "paid",
+            "paid_at": now_iso,
+            "method": payload.payment_method or "mock",
+        }
+    else:
+        payment = {
+            "payment_id": None,
+            "gateway": "razorpay",
+            "amount": fee,
+            "currency": currency,
+            "status": "pending",
+            "paid_at": None,
+            "method": payload.payment_method or "upi",
+        }
 
     # 1) Event-side registration
     reg = {
@@ -606,41 +910,19 @@ async def register_for_showcase(
     await db.echo_registrations.insert_one(dict(reg))
 
     # 2) StudentAlumni-side registration (mirror /events/:id/register)
-    if user is not None:
-        event_id = f"echo-{canonical_slug}"
-        event = await db.events.find_one({"id": event_id})
-        if not event:
-            event_doc = {
-                "id": event_id,
-                "title": showcase.get("title"),
-                "category": showcase.get("category", "college-event"),
-                "organizer": showcase.get("organizer_name") or "Student Alumni Cell",
-                "venue": showcase.get("venue"),
-                "start_date": showcase.get("date"),
-                "description": showcase.get("description"),
-                "image": showcase.get("hero_image_url"),
-                "tags": ["ECHO", showcase.get("college", "")],
-                "rsvp_count": 0,
-                "created_at": now_iso,
-            }
-            await db.events.insert_one(event_doc)
-        sa_reg = {
-            "id": reg_id,
-            "event_id": event_id,
-            "event_title": showcase.get("title"),
-            "user_id": str(user["_id"]),
-            "user_name": payload.full_name or user.get("full_name", ""),
-            "user_unique_id": user.get("unique_id"),
-            "qr_code_base64": reg["qr_code_base64"],
-            "registered_at": now_iso,
-            "status": "registered",
-            "echo_slug": slug,
-            "paid": True,
-            "payment": payment,
-        }
-        await db.event_registrations.insert_one(sa_reg.copy())
+    if user is not None or auto_paid:
+        await _mirror_to_event_registration(db, reg, showcase, user)
 
-    return _ser(reg)
+    # For paid registrations confirmed on this path (free or demo), persist an
+    # invoice and email it so users always get a receipt.
+    invoice = None
+    if fee > 0 and payment.get("status") == "paid":
+        invoice = await _store_invoice_and_email(db, reg, showcase)
+
+    result = _ser(reg)
+    if invoice:
+        result["invoice"] = invoice
+    return result
 
 
 @router.get("/showcases/{slug}/my-registration")
@@ -664,6 +946,362 @@ async def my_showcase_registration(slug: str, request: Request):
         except Exception:
             pass
     return {}
+
+
+# ── Payment endpoints (Razorpay) ─────────────────────────────────────────────
+class PaymentOrderSchema(BaseModel):
+    full_name: Optional[str] = ""
+    email: Optional[str] = ""
+    phone: Optional[str] = ""
+    branch: Optional[str] = ""
+    year: Optional[str] = ""
+    college: Optional[str] = ""
+
+
+class VerifyPaymentSchema(PaymentOrderSchema):
+    razorpay_payment_id: Optional[str] = ""
+    razorpay_order_id: Optional[str] = ""
+    razorpay_signature: Optional[str] = ""
+
+
+async def _resolve_user(request: Request, db) -> Optional[dict]:
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        import jwt as _jwt
+        JWT_SECRET = os.environ.get("JWT_SECRET", "studentalumni_jwt_secret_key_2026")
+        try:
+            p = _jwt.decode(auth.split(" ", 1)[1], JWT_SECRET, algorithms=["HS256"])
+            return await db.users.find_one({"_id": ObjectId(p.get("sub"))})
+        except Exception:
+            return None
+    return None
+
+
+@router.post("/showcases/{slug}/payment-order")
+async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: Request):
+    """Create a Razorpay payment order for a paid ECHO registration.
+
+    Returns an existing paid registration if the user already completed payment.
+    Returns {mock: true} when Razorpay is not configured (demo flow).
+    """
+    db = _get_db(request)
+    user = await _resolve_user(request, db)
+    showcase = await db.echo_showcases.find_one(_slug_query(slug))
+    if not showcase:
+        raise HTTPException(status_code=404, detail="Showcase not found")
+    if showcase.get("status") != "published":
+        raise HTTPException(status_code=404, detail="Showcase not found")
+    reg_cfg = showcase.get("registration") or {}
+    if reg_cfg.get("enabled") is False:
+        raise HTTPException(status_code=400, detail="Registrations are closed for this event")
+    if showcase.get("event_status_badge") == "Completed":
+        raise HTTPException(status_code=400, detail="This event has ended — registrations are closed")
+
+    canonical_slug = showcase.get("slug") or slug
+    fee = float(reg_cfg.get("fee", 0) or 0)
+    currency = reg_cfg.get("currency", "INR")
+
+    if fee <= 0:
+        raise HTTPException(status_code=400, detail="This event is free — register directly")
+
+    if not (payload.full_name or "").strip() or not (payload.email or "").strip():
+        raise HTTPException(status_code=400, detail="Full name and email are required")
+
+    email = (payload.email or "").strip().lower()
+    user_key = str(user["_id"]) if user else (email or payload.phone or "anon")
+
+    existing = await db.echo_registrations.find_one({"slug": canonical_slug, "user_key": user_key})
+    if existing:
+        payment = existing.get("payment") or {}
+        if payment.get("status") == "paid":
+            return {"already": True, "registration": _ser(existing)}
+        order_id = (existing.get("payment_order") or {}).get("order_id")
+        if order_id:
+            cfg = await _razorpay_config(db)
+            return {
+                "already": False,
+                "order_id": order_id,
+                "amount": fee,
+                "currency": currency,
+                "key_id": (cfg or {}).get("key_id", ""),
+                "receipt": existing.get("id"),
+                "pending": True,
+            }
+
+    reg_id = secrets.token_hex(6)
+    now_iso = _now()
+
+    # Create the Razorpay order
+    cfg = await _razorpay_config(db)
+    order = None
+    if cfg:
+        order = await _razorpay_create_order(
+            db, fee, currency, reg_id,
+            {"slug": canonical_slug, "email": email, "name": payload.full_name},
+        )
+        if order is None:
+            raise HTTPException(status_code=502, detail="Payment gateway temporarily unavailable — please try again")
+
+    # Persist a pending registration so verify-payment has a record to finalize
+    if not existing:
+        reg = {
+            "id": reg_id,
+            "slug": canonical_slug,
+            "showcase_title": showcase.get("title"),
+            "showcase_college": showcase.get("college"),
+            "user_key": user_key,
+            "user_id": str(user["_id"]) if user else None,
+            "full_name": payload.full_name,
+            "email": email,
+            "phone": payload.phone,
+            "branch": payload.branch,
+            "year": payload.year,
+            "college": payload.college or showcase.get("college"),
+            "fee": fee,
+            "currency": currency,
+            "payment": {
+                "payment_id": None,
+                "gateway": "razorpay" if cfg else "mock",
+                "amount": fee,
+                "currency": currency,
+                "status": "pending",
+                "paid_at": None,
+                "method": "upi",
+            },
+            "payment_order": {"order_id": (order or {}).get("id"), "created_at": now_iso} if order else None,
+            "qr_code_base64": None,
+            "registered_at": now_iso,
+            "status": "pending",
+            "created_at": now_iso,
+        }
+        await db.echo_registrations.insert_one(dict(reg))
+        reg_id = reg_id
+    else:
+        reg_id = existing.get("id")
+
+    if cfg and order:
+        return {
+            "already": False,
+            "order_id": order.get("id"),
+            "amount": fee,
+            "currency": currency,
+            "key_id": cfg["key_id"],
+            "receipt": reg_id,
+            "pending": True,
+        }
+
+    # No gateway configured → demo mode
+    return {"mock": True, "amount": fee, "currency": currency, "receipt": reg_id}
+
+
+@router.post("/showcases/{slug}/verify-payment")
+async def verify_payment(slug: str, payload: VerifyPaymentSchema, request: Request):
+    """Verify a Razorpay payment and finalize the registration (paid + invoice + email).
+
+    When no gateway is configured (demo), any submitted payment params are accepted
+    so the flow can be exercised end-to-end without real money.
+    """
+    db = _get_db(request)
+    user = await _resolve_user(request, db)
+    showcase = await db.echo_showcases.find_one(_slug_query(slug))
+    if not showcase:
+        raise HTTPException(status_code=404, detail="Showcase not found")
+
+    canonical_slug = showcase.get("slug") or slug
+    email = (payload.email or "").strip().lower()
+    user_key = str(user["_id"]) if user else (email or payload.phone or "anon")
+
+    reg = await db.echo_registrations.find_one({"slug": canonical_slug, "user_key": user_key})
+    if not reg:
+        # Fallback: match by the pending receipt we created during order creation
+        reg = await db.echo_registrations.find_one({"id": payload.razorpay_order_id})
+    if not reg:
+        raise HTTPException(status_code=404, detail="No pending registration found")
+
+    payment = reg.get("payment") or {}
+    cfg = await _razorpay_config(db)
+
+    # Signature verification when a gateway is connected
+    if cfg:
+        if not (payload.razorpay_payment_id and payload.razorpay_order_id and payload.razorpay_signature):
+            raise HTTPException(status_code=400, detail="Missing payment verification parameters")
+        if payload.razorpay_order_id != (reg.get("payment_order") or {}).get("order_id"):
+            raise HTTPException(status_code=400, detail="Order mismatch")
+        ok = await _razorpay_verify_signature(db, payload.razorpay_order_id, payload.razorpay_payment_id, payload.razorpay_signature)
+        if not ok:
+            raise HTTPException(status_code=400, detail="Payment verification failed — please contact support")
+    else:
+        # Demo path
+        if not payload.razorpay_payment_id:
+            payload.razorpay_payment_id = f"PAY_{secrets.token_hex(8).upper()}"
+
+    now_iso = _now()
+    paid_payment = {
+        "payment_id": payload.razorpay_payment_id,
+        "gateway": "razorpay" if cfg else "mock",
+        "amount": float(reg.get("fee") or 0),
+        "currency": reg.get("currency") or "INR",
+        "status": "paid",
+        "paid_at": now_iso,
+        "method": "upi" if cfg else (payment.get("method") or "mock"),
+    }
+
+    await db.echo_registrations.update_one(
+        {"_id": reg["_id"]},
+        {"$set": {
+            "payment": paid_payment,
+            "status": "registered",
+            "registered_at": now_iso,
+            "full_name": reg.get("full_name") or payload.full_name,
+            "email": reg.get("email") or email,
+            "qr_code_base64": generate_qr_code(f"ECHO:{canonical_slug}|{reg.get('user_key')}|{reg.get('id')}"),
+            "payment_order": None,
+        }}
+    )
+
+    updated = await db.echo_registrations.find_one({"_id": reg["_id"]})
+    updated = _ser(updated)
+    await _mirror_to_event_registration(db, updated, showcase, user)
+    invoice = await _store_invoice_and_email(db, updated, showcase)
+    return {"registration": updated, "invoice": invoice}
+
+
+# ── Invoices ─────────────────────────────────────────────────────────────────
+@router.get("/my-invoices")
+async def my_invoices(request: Request):
+    """Return the current user's invoices (dashboard → My Tickets)."""
+    db = _get_db(request)
+    user = await _resolve_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    email = (user.get("email") or "").strip().lower()
+    query = {"$or": [{"user_id": str(user["_id"])}]}
+    if email:
+        query = {"$or": [{"user_id": str(user["_id"])}, {"email": email}]}
+    docs = await db.invoices.find(query).sort("created_at", -1).limit(100).to_list(100)
+    return {"items": [_ser(d) for d in docs]}
+
+
+@router.get("/invoices/{invoice_no}")
+async def get_invoice(invoice_no: str, request: Request):
+    """Fetch a single invoice (user-owned or admin). Returns render-ready HTML."""
+    db = _get_db(request)
+    inv = await db.invoices.find_one({"invoice_no": invoice_no})
+    if not inv:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    inv_ser = _ser(inv)
+    # Authorization: owner, matching email, or admin
+    user = await _resolve_user(request, db)
+    is_admin = False
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        try:
+            await _require_admin(request)
+            is_admin = True
+        except HTTPException:
+            is_admin = False
+    if not is_admin:
+        allowed_email = (inv.get("email") or "").strip().lower()
+        owner_match = user is not None and (
+            str(user["_id"]) == inv.get("user_id")
+            or (user.get("email") or "").strip().lower() == allowed_email
+        )
+        if not owner_match:
+            raise HTTPException(status_code=403, detail="You do not have access to this invoice")
+    inv_ser["html"] = _build_invoice_html(inv_ser)
+    return inv_ser
+
+
+# ── Admin: registrations + revenue ───────────────────────────────────────────
+@router.get("/admin/registrations")
+async def admin_echo_registrations(
+    request: Request,
+    slug: Optional[str] = None,
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    limit: int = Query(500, ge=1, le=2000),
+    _=Depends(_require_admin),
+):
+    """List ECHO registrations with attendee + payment details for super-admin."""
+    db = _get_db(request)
+    query: Dict[str, Any] = {}
+    if slug:
+        query["slug"] = slug
+    if status:
+        query["payment.status"] = status
+    if search:
+        rx = re.compile(re.escape(search), re.IGNORECASE)
+        query["$or"] = [
+            {"full_name": rx},
+            {"email": rx},
+            {"phone": rx},
+            {"college": rx},
+        ]
+    cur = db.echo_registrations.find(query).sort("created_at", -1).limit(limit)
+    items = []
+    for r in await cur.to_list(limit):
+        s = _ser(r)
+        payment = s.get("payment") or {}
+        items.append({
+            "id": s.get("id"),
+            "slug": s.get("slug"),
+            "event_title": s.get("showcase_title"),
+            "full_name": s.get("full_name"),
+            "email": s.get("email"),
+            "phone": s.get("phone"),
+            "branch": s.get("branch"),
+            "year": s.get("year"),
+            "college": s.get("college"),
+            "fee": s.get("fee"),
+            "currency": s.get("currency"),
+            "payment_status": payment.get("status"),
+            "payment_id": payment.get("payment_id"),
+            "gateway": payment.get("gateway"),
+            "method": payment.get("method"),
+            "paid_at": payment.get("paid_at"),
+            "registered_at": s.get("registered_at"),
+            "user_id": s.get("user_id"),
+        })
+    return {"items": items, "total": len(items)}
+
+
+@router.get("/admin/revenue")
+async def admin_echo_revenue(request: Request, _=Depends(_require_admin)):
+    """Per-event revenue aggregates from real ECHO registrations."""
+    db = _get_db(request)
+    pipeline = [
+        {"$match": {}},
+        {"$group": {
+            "_id": "$slug",
+            "title": {"$first": "$showcase_title"},
+            "total": {"$sum": 1},
+            "paid": {"$sum": {"$cond": [{"$eq": ["$payment.status", "paid"]}, 1, 0]}},
+            "pending": {"$sum": {"$cond": [{"$eq": ["$payment.status", "pending"]}, 1, 0]}},
+            "free": {"$sum": {"$cond": [{"$and": [{"$eq": ["$payment.status", "paid"]}, {"$eq": ["$fee", 0]}]}, 1, 0]}},
+            "revenue": {"$sum": {"$cond": [{"$eq": ["$payment.status", "paid"]}, "$fee", 0]}},
+            "currency": {"$first": "$currency"},
+        }},
+        {"$sort": {"revenue": -1}},
+    ]
+    events = []
+    totals = {"total": 0, "paid": 0, "pending": 0, "revenue": 0.0, "free": 0}
+    for row in await db.echo_registrations.aggregate(pipeline).to_list(200):
+        events.append({
+            "slug": row["_id"],
+            "title": row.get("title") or row["_id"],
+            "total": row["total"],
+            "paid": row["paid"],
+            "pending": row["pending"],
+            "free": row.get("free", 0),
+            "revenue": round(float(row.get("revenue") or 0), 2),
+            "currency": row.get("currency") or "INR",
+        })
+        totals["total"] += row["total"]
+        totals["paid"] += row["paid"]
+        totals["pending"] += row["pending"]
+        totals["revenue"] += float(row.get("revenue") or 0)
+        totals["free"] += row.get("free", 0)
+    return {"events": events, "totals": totals}
 
 
 # ── Admin endpoints ───────────────────────────────────────────────────────────

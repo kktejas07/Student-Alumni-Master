@@ -199,6 +199,11 @@ async def _lifespan(application):
     await _safe_create_index(db.echo_showcases, "slug", unique=True, sparse=True)
     await _safe_create_index(db.echo_showcases, [("status", 1), ("date", -1)])
     await _safe_create_index(db.echo_registrations, [("slug", 1), ("user_key", 1)])
+    await _safe_create_index(db.echo_registrations, [("payment.status", 1), ("slug", 1)])
+    await _safe_create_index(db.invoices, "invoice_no", unique=True, sparse=True)
+    await _safe_create_index(db.invoices, [("user_id", 1), ("created_at", -1)])
+    await _safe_create_index(db.email_campaigns, "campaign_id", unique=True, sparse=True)
+    await _safe_create_index(db.email_campaign_events, [("campaign_id", 1), ("email", 1)])
     try:
         from echo_showcase import seed_echo_showcase
         await seed_echo_showcase(db)
@@ -264,6 +269,10 @@ api_router = APIRouter(prefix="/api")  # All routes prefixed with /api (Kubernet
 # ECHO Showcase sub-router
 from echo_showcase import router as echo_router
 app.include_router(echo_router)
+
+# Newsletter sub-router
+from newsletter import router as newsletter_router
+app.include_router(newsletter_router)
 
 # Static file serving for uploads (ECHO Showcase images & documents)
 import os
