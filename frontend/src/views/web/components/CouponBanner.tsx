@@ -18,7 +18,7 @@ import {
   View, Text, Pressable, StyleSheet, Platform, Image, Modal, Linking, ScrollView, TextInput,
 } from 'react-native';
 import { Ticket, ExternalLink, X, Copy, Check, Tag, Plus, Pencil, Trash2, Save, Upload } from 'lucide-react-native';
-import { BASE_URL, request, tokenStore } from '@/src/models/services/api';
+import { request } from '@/src/models/services/api';
 
 export type Coupon = {
   id: string;
@@ -187,32 +187,18 @@ function CouponEditor({
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<any>(null);
 
-  const uploadImage = async (file: File): Promise<string | null> => {
-    setUploading(true);
-    try {
-      const token = await tokenStore.getAccess();
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await fetch(`${BASE_URL}/api/admin/coupons/upload`, {
-        method: 'POST',
-        body: fd,
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!res.ok) throw new Error('Upload failed');
-      const data = await res.json();
-      return data.url || null;
-    } catch {
-      return null;
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleFileSelect = async (e: any) => {
+  const handleFileSelect = (e: any) => {
     const file = e.target?.files?.[0];
     if (!file) return;
-    const url = await uploadImage(file);
-    if (url) setImageUrl(url);
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      if (dataUrl) setImageUrl(dataUrl);
+      setUploading(false);
+    };
+    reader.onerror = () => setUploading(false);
+    reader.readAsDataURL(file);
   };
 
   useEffect(() => {
