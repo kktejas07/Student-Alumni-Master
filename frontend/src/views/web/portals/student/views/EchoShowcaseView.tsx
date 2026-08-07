@@ -170,7 +170,8 @@ function HeroBannerCarousel({ banners, data, isWide, onBack, canonicalSlug, show
       {/* Floating back button — top left */}
       <PressScale onPress={onBack || (() => {})} style={bc.backBtn}>
         <View style={bc.backBtnInner}>
-          <ArrowLeft size={15} color="#fff" />
+          <ArrowLeft size={14} color="#fff" />
+          <Text style={bc.btnText}>Back</Text>
         </View>
       </PressScale>
 
@@ -186,7 +187,8 @@ function HeroBannerCarousel({ banners, data, isWide, onBack, canonicalSlug, show
         )}
         <PressScale onPress={onShare}>
           <View style={bc.shareBtn}>
-            <Share2 size={14} color="#fff" />
+            <Share2 size={13} color="#fff" />
+            <Text style={bc.btnText}>Share</Text>
           </View>
         </PressScale>
       </View>
@@ -240,20 +242,12 @@ function HeroBannerCarousel({ banners, data, isWide, onBack, canonicalSlug, show
 const bc = StyleSheet.create({
   section: {
     width: '100%', height: 420, position: 'relative', overflow: 'hidden',
-    marginBottom: 16,
-    // Break out of parent ScrollView paddingHorizontal (16-40px)
-    ...(Platform.OS === 'web' ? {
-      marginLeft: 'calc(-50vw + 50%)',
-      width: '100vw',
-      minHeight: '50vh',
-    } as any : {
-      marginHorizontal: -40,
-    }),
+    marginBottom: 16, borderRadius: 14,
   },
-  imageWrap: { ...StyleSheet.absoluteFillObject },
-  image: { width: '100%', height: '100%' },
+  imageWrap: { ...StyleSheet.absoluteFillObject, borderRadius: 14 },
+  image: { width: '100%', height: '100%', borderRadius: 14 },
   gradient: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFillObject, borderRadius: 14,
     backgroundColor: 'transparent',
     ...(Platform.OS === 'web' ? {
       background: 'linear-gradient(to top, #080714 0%, rgba(8,7,20,0.7) 40%, transparent 75%)',
@@ -265,9 +259,9 @@ const bc = StyleSheet.create({
     position: 'absolute', top: 14, left: 14, zIndex: 10,
   },
   backBtnInner: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    height: 34, paddingHorizontal: 12, borderRadius: 17,
+    backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
   },
   actions: {
     position: 'absolute', bottom: 14, right: 14, zIndex: 10,
@@ -278,10 +272,11 @@ const bc = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20,
   },
   shareBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    height: 34, paddingHorizontal: 12, borderRadius: 17,
+    backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
   },
+  btnText: { fontFamily: FONTS.bold, fontSize: 12, color: '#fff' },
   pillText: { fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' },
   content: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
@@ -575,6 +570,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
           <PressScale onPress={onBack || (() => {})}>
             <View style={s.floatingBtn}>
               <ArrowLeft size={14} color="#fff" />
+              <Text style={s.floatingBtnText}>Back</Text>
             </View>
           </PressScale>
           <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -607,7 +603,8 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
               }
             }}>
               <View style={s.floatingBtn}>
-                <Share2 size={14} color="#fff" />
+                <Share2 size={13} color="#fff" />
+                <Text style={s.floatingBtnText}>Share</Text>
               </View>
             </PressScale>
           </View>
@@ -926,10 +923,11 @@ const s = StyleSheet.create({
     position: 'relative',
   },
   floatingBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    height: 34, paddingHorizontal: 12, borderRadius: 17,
+    backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
   },
+  floatingBtnText: { fontFamily: FONTS.bold, fontSize: 12, color: '#fff' },
   floatingPill: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20,
