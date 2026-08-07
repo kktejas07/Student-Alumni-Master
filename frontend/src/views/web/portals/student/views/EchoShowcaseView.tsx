@@ -212,7 +212,15 @@ function HeroBannerCarousel({ banners, data, isWide }: { banners: string[]; data
 const bc = StyleSheet.create({
   section: {
     width: '100%', height: 420, position: 'relative', overflow: 'hidden',
-    ...(Platform.OS === 'web' ? { minHeight: '50vh' } as any : {}),
+    marginBottom: 16,
+    // Break out of parent ScrollView paddingHorizontal (16-40px)
+    ...(Platform.OS === 'web' ? {
+      marginLeft: 'calc(-50vw + 50%)',
+      width: '100vw',
+      minHeight: '50vh',
+    } as any : {
+      marginHorizontal: -40,
+    }),
   },
   imageWrap: { ...StyleSheet.absoluteFillObject },
   image: { width: '100%', height: '100%' },
@@ -506,7 +514,17 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                 </LinearGradient>
               </Pressable>
             )}
-            <PressScale>
+            <PressScale onPress={() => {
+              const url = typeof window !== 'undefined' ? window.location.href : '';
+              const text = `Check out ${data?.title || 'this event'}!`;
+              if (Platform.OS === 'web' && navigator.share) {
+                navigator.share({ title: data?.title, text, url }).catch(() => {});
+              } else if (Platform.OS === 'web' && navigator.clipboard) {
+                navigator.clipboard.writeText(`${text}\n${url}`).then(() => {
+                  alert('Link copied to clipboard!');
+                }).catch(() => {});
+              }
+            }}>
               <LinearGradient colors={[GRAD.from, GRAD.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.shareBtn}>
                 <Share2 size={13} color="#fff" />
                 <Text style={s.shareText}>Share Event</Text>
