@@ -1778,8 +1778,20 @@ async def set_ad_images(payload: dict, user: dict = Depends(get_current_user)):
     # Support new items array format
     items = payload.get("items")
     if items is not None:
-        if not isinstance(items, list) or len(items) == 0:
-            raise HTTPException(400, "items must be a non-empty array")
+        if not isinstance(items, list):
+            raise HTTPException(400, "items must be an array")
+        if len(items) == 0:
+            await db.site_config.update_one(
+                {"_key": "advertisement"},
+                {"$set": {
+                    "_key": "advertisement",
+                    "items": [],
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_by": str(user.get("_id")),
+                }},
+                upsert=True,
+            )
+            return {"status": "ok", "items": []}
         for item in items:
             item["label"] = (item.get("label") or "").strip()
             item["image_url"] = (item.get("image_url") or "").strip()
