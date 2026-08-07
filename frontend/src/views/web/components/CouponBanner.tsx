@@ -498,7 +498,7 @@ const m = StyleSheet.create({
     ...(Platform.OS === 'web' ? { boxShadow: '0 24px 80px rgba(0,0,0,0.60)' } as any : {}),
   },
   heroWrap: { position: 'relative' },
-  hero: { width: '100%', height: 170 },
+  hero: { width: '100%', aspectRatio: 21 / 9 },
   heroFallback: {
     backgroundColor: '#141a33', alignItems: 'center', justifyContent: 'center', gap: 8,
   },
@@ -637,7 +637,7 @@ const s = StyleSheet.create({
   },
   cardInactive: { opacity: 0.5 },
   cardImgWrap: { position: 'relative' },
-  cardImg: { width: '100%', height: 90 },
+  cardImg: { width: '100%', aspectRatio: 21 / 9 },
   cardImgFallback: {
     backgroundColor: 'rgba(124,58,237,0.15)', alignItems: 'center', justifyContent: 'center',
   },

@@ -65,7 +65,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.3)',
     ...Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {},
   },
-  img: { width: '100%', height: 280 },
+  img: { width: '100%', maxHeight: 320, aspectRatio: 16 / 9 },
   dots: {
     flexDirection: 'row', justifyContent: 'center', gap: 8,
   },
