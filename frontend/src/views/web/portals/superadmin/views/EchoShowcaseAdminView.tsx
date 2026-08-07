@@ -723,6 +723,130 @@ function PosterEditor({ posters, onChange }: { posters: string[]; onChange: (p: 
   );
 }
 
+// ── Banner Carousel Editor ──────────────────────────────────────────────────
+function BannerCarouselEditor({ banners, onChange }: { banners: string[]; onChange: (b: string[]) => void }) {
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState('');
+  const list = Array.isArray(banners) ? banners : [];
+
+  const addFromUpload = async (files: FileList | File[]) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    const newUrls: string[] = [];
+    const total = files.length;
+    for (let i = 0; i < total; i++) {
+      const file = files[i];
+      setProgress(`Uploading ${i + 1} of ${total}…`);
+      try {
+        const fd = new FormData();
+        fd.append('file', file, file.name);
+        const res = await api.uploadEchoMedia(fd);
+        if (res?.url) newUrls.push(res.url);
+      } catch { /* skip failed */ }
+    }
+    if (newUrls.length > 0) onChange([...list, ...newUrls]);
+    setUploading(false);
+    setProgress('');
+  };
+
+  const set = (i: number, v: string) => {
+    const next = [...list];
+    next[i] = v;
+    onChange(next);
+  };
+  const add = () => onChange([...list, '']);
+  const remove = (i: number) => onChange(list.filter((_: string, j: number) => j !== i));
+  const move = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= list.length) return;
+    const next = [...list];
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
+  };
+
+  const onDrop = (e: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer?.files) addFromUpload(e.dataTransfer.files);
+  };
+
+  return (
+    <View style={{ gap: 10 }}>
+      {/* Dropzone for bulk upload */}
+      <View
+        style={{
+          borderWidth: 2, borderColor: 'rgba(123,61,191,0.35)', borderStyle: 'dashed',
+          borderRadius: 10, padding: 18, alignItems: 'center', justifyContent: 'center',
+          backgroundColor: 'rgba(123,61,191,0.04)',
+        }}
+        {...(Platform.OS === 'web' ? {
+          onDragOver: (e: any) => { e.preventDefault(); e.stopPropagation(); },
+          onDrop: onDrop,
+        } : {})}
+      >
+        {uploading ? (
+          <View style={{ alignItems: 'center', gap: 6 }}>
+            <ActivityIndicator size="small" color={GRAD.from} />
+            <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: GRAD.from }}>{progress}</Text>
+          </View>
+        ) : (
+          <View style={{ alignItems: 'center', gap: 6 }}>
+            <Upload size={20} color={GRAD.from} />
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: SAC.text }}>Drag banner images here</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.muted }}>Or use the buttons below</Text>
+            {Platform.OS === 'web' && (
+              <label style={{ marginTop: 4, cursor: 'pointer' }}>
+                <span style={{
+                  backgroundColor: 'rgba(123,61,191,0.25)', color: '#fff',
+                  padding: '5px 12px', borderRadius: '7px',
+                  fontFamily: FONTS.semi, fontSize: '11px',
+                }}>
+                  Browse Files
+                </span>
+                <input type="file" multiple accept="image/*" style={{ display: 'none' }}
+                  onChange={(e: any) => { if (e.target.files?.length > 0) addFromUpload(e.target.files); }} />
+              </label>
+            )}
+          </View>
+        )}
+      </View>
+
+      {/* Banner list */}
+      {list.map((url, i) => (
+        <View key={i} style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: SAC.border, gap: 8 }}>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            {url ? (
+              <Image source={{ uri: resolveImageUrl(url) }}
+                style={{ width: 80, height: 40, borderRadius: 6, backgroundColor: '#0d1326' }} resizeMode="cover" />
+            ) : (
+              <View style={{ width: 80, height: 40, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' }}>
+                <ImageIcon size={14} color={SAC.dim} />
+              </View>
+            )}
+            <TextInput value={url} onChangeText={(v) => set(i, v)}
+              placeholder="Banner image URL or paste link" placeholderTextColor={SAC.dim}
+              style={[fi.input, { flex: 1 }]} />
+            <View style={{ flexDirection: 'row', gap: 4 }}>
+              <Pressable onPress={() => move(i, -1)} disabled={i === 0} style={[cs.iconBtn, { opacity: i === 0 ? 0.35 : 1 }]}>
+                <ChevronUp size={13} color="#CBD5E1" />
+              </Pressable>
+              <Pressable onPress={() => move(i, 1)} disabled={i === list.length - 1} style={[cs.iconBtn, { opacity: i === list.length - 1 ? 0.35 : 1 }]}>
+                <ChevronDown size={13} color="#CBD5E1" />
+              </Pressable>
+              <Pressable onPress={() => remove(i)} style={[cs.iconBtn, { borderColor: 'rgba(239,68,68,0.30)' }]}>
+                <Trash2 size={13} color="#F87171" />
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      ))}
+      <Pressable onPress={add}>
+        <Text style={{ color: GRAD.from, fontFamily: FONTS.semi, fontSize: 12.5 }}>+ Add Banner Image URL</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 // ── Gallery Dropzone ──────────────────────────────────────────────────────────
 function GalleryDropzone({ gallery, onChange }: { gallery: any[]; onChange: (g: any[]) => void }) {
   const [uploading, setUploading] = useState(false);
@@ -1177,6 +1301,7 @@ const EMPTY: any = {
   date: '', time: '', venue: '', college: '', category: 'college-event',
   status: 'draft', event_status_badge: 'Upcoming',
   hero_image_url: '', hero_cover_url: '', hero_thumbnail_url: '', hero_bg_url: '',
+  hero_banners: [],
   organizer_name: '', organizer_logo_url: '',
   cta_title: 'Stay tuned for more events!',
   cta_subtitle: 'Join our community and never miss an opportunity to learn, connect, and grow.',
@@ -1410,6 +1535,12 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash }: any
                 Upload hero images for the showcase page. Each image serves a different display purpose.
               </Text>
               <View style={{ gap: 20 }}>
+                <FieldRow label="Hero Banners (carousel)" hint="Add multiple banner images for an auto-rotating carousel at the top of the page. First image is the primary banner.">
+                  <BannerCarouselEditor
+                    banners={form.hero_banners || []}
+                    onChange={(b: string[]) => set('hero_banners', b)}
+                  />
+                </FieldRow>
                 <ImageUploadWidget
                   label="Hero Banner (main hero image)"
                   url={form.hero_image_url}

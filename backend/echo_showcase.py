@@ -541,6 +541,7 @@ class ShowcaseCreateSchema(BaseModel):
     hero_cover_url: Optional[str] = None
     hero_thumbnail_url: Optional[str] = None
     hero_bg_url: Optional[str] = None
+    hero_banners: Optional[List[str]] = []
     organizer_name: Optional[str] = ""
     organizer_logo_url: Optional[str] = None
     stats: Optional[List[StatItem]] = []
@@ -585,6 +586,7 @@ class ShowcaseUpdateSchema(BaseModel):
     hero_cover_url: Optional[str] = None
     hero_thumbnail_url: Optional[str] = None
     hero_bg_url: Optional[str] = None
+    hero_banners: Optional[List[str]] = None
     organizer_name: Optional[str] = None
     organizer_logo_url: Optional[str] = None
     stats: Optional[List[StatItem]] = None

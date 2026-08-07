@@ -10,7 +10,7 @@
  *
  * Uses exclusively existing student-portal tokens & primitives.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Platform,
   ActivityIndicator, useWindowDimensions, Modal, Image,
@@ -54,6 +54,7 @@ const DEFAULT_SHOWCASE: any = {
   event_status_badge: '',
   category: '',
   hero_image_url: null,
+  hero_banners: [],
   organizer_name: '',
   organizer_logo_url: null,
   stats: [],
@@ -126,6 +127,53 @@ const lb = StyleSheet.create({
   nav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, padding: 12 },
   navBtn: { padding: 8 },
   counter: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 13 },
+});
+
+// ── Hero Banner Carousel ───────────────────────────────────────────────────
+function HeroBannerCarousel({ banners }: { banners: string[] }) {
+  const [idx, setIdx] = useState(0);
+  const timerRef = useRef<any>(null);
+  const validBanners = (banners || []).filter(Boolean);
+
+  const advance = useCallback(() => {
+    setIdx((prev) => (prev + 1) % validBanners.length);
+  }, [validBanners.length]);
+
+  useEffect(() => {
+    if (validBanners.length <= 1) return;
+    timerRef.current = setInterval(advance, 4000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [advance, validBanners.length]);
+
+  if (validBanners.length === 0) return null;
+
+  return (
+    <View style={{ marginBottom: 18 }}>
+      <View style={bc.wrap}>
+        <Image
+          source={{ uri: resolveImageUrl(validBanners[idx]) }}
+          style={bc.img}
+          resizeMode="cover"
+        />
+        {validBanners.length > 1 && (
+          <View style={bc.dots}>
+            {validBanners.map((_: string, i: number) => (
+              <Pressable key={i} onPress={() => setIdx(i)}>
+                <View style={[bc.dot, i === idx && bc.dotActive]} />
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+const bc = StyleSheet.create({
+  wrap: { borderRadius: 14, overflow: 'hidden', position: 'relative' },
+  img: { width: '100%', height: 220 },
+  dots: { position: 'absolute', bottom: 10, alignSelf: 'center', flexDirection: 'row', gap: 7, backgroundColor: 'rgba(0,0,0,0.35)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
+  dot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: 'rgba(255,255,255,0.4)' },
+  dotActive: { backgroundColor: '#fff', width: 18 },
 });
 
 // ── Stat Card ──────────────────────────────────────────────────────────────
@@ -384,6 +432,13 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
           </View>
         </View>
       </FadeInView>
+
+      {/* ── HERO BANNERS CAROUSEL ── */}
+      {showSection('hero') && (data?.hero_banners?.length > 0) && (
+        <FadeInView delay={50}>
+          <HeroBannerCarousel banners={data.hero_banners} />
+        </FadeInView>
+      )}
 
       {/* ── HERO ───────────────────────────────────────────────────────── */}
       {showSection('hero') && (
