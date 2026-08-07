@@ -24,6 +24,7 @@ export type Coupon = {
   id: string;
   code: string;
   description?: string;
+  discount_type?: 'percentage' | 'fixed';
   discount_pct?: number;
   max_uses?: number;
   used_count?: number;
@@ -35,6 +36,14 @@ export type Coupon = {
   audience?: string[];
   active?: boolean;
 };
+
+function discountLabel(c: Coupon): string {
+  if (c.discount_type === 'fixed' && c.discount_pct)
+    return `$${c.discount_pct}`;
+  if (c.discount_pct)
+    return `${c.discount_pct}% OFF`;
+  return 'DEAL';
+}
 
 function CouponModal({ coupon, onClose }: { coupon: Coupon | null; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
@@ -84,7 +93,7 @@ function CouponModal({ coupon, onClose }: { coupon: Coupon | null; onClose: () =
             </Pressable>
             <View style={m.badge}>
               <Text style={m.badgeText}>
-                {coupon.discount_pct ? `${coupon.discount_pct}% OFF` : 'DEAL'}
+                {discountLabel(coupon)}
               </Text>
             </View>
           </View>
@@ -174,7 +183,8 @@ function CouponEditor({
 }) {
   const [code, setCode] = useState('');
   const [description, setDescription] = useState('');
-  const [discountPct, setDiscountPct] = useState('10');
+  const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
+  const [discountValue, setDiscountValue] = useState('10');
   const [maxUses, setMaxUses] = useState('100');
   const [imageUrl, setImageUrl] = useState('');
   const [partnerName, setPartnerName] = useState('');
@@ -205,7 +215,8 @@ function CouponEditor({
     if (coupon) {
       setCode(coupon.code);
       setDescription(coupon.description || '');
-      setDiscountPct(String(coupon.discount_pct ?? 0));
+      setDiscountType(coupon.discount_type === 'fixed' ? 'fixed' : 'percentage');
+      setDiscountValue(String(coupon.discount_pct ?? 0));
       setMaxUses(String(coupon.max_uses || 1));
       setImageUrl(coupon.image_url || '');
       setPartnerName(coupon.partner_name || '');
@@ -215,7 +226,7 @@ function CouponEditor({
       setExpiresAt(coupon.expires_at || '');
       setActiveToggle(coupon.active ?? true);
     } else {
-      setCode(''); setDescription(''); setDiscountPct('10'); setMaxUses('100');
+      setCode(''); setDescription(''); setDiscountType('percentage'); setDiscountValue('10'); setMaxUses('100');
       setImageUrl(''); setPartnerName(''); setPartnerWebsite(''); setInstructions('');
       setAudience(['all']); setExpiresAt(''); setActiveToggle(true);
     }
@@ -234,7 +245,7 @@ function CouponEditor({
     if (!code.trim() || saving) return;
     setSaving(true);
     const payload: any = {
-      description, discount_pct: parseInt(discountPct) || 0, max_uses: parseInt(maxUses) || 1,
+      description, discount_type: discountType, discount_pct: parseInt(discountValue) || 0, max_uses: parseInt(maxUses) || 1,
       image_url: imageUrl.trim() || null, partner_name: partnerName.trim() || null,
       partner_website_url: partnerWebsite.trim() || null,
       instructions: instructions.trim(), audience, expires_at: expiresAt || null,
@@ -272,12 +283,33 @@ function CouponEditor({
 
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <View style={{ flex: 1 }}>
-                <Text style={m.fieldLabel}>Discount %</Text>
-                <TextInput style={m.fieldInput} value={discountPct} onChangeText={setDiscountPct} placeholder="10" placeholderTextColor="rgba(255,255,255,0.35)" keyboardType="numeric" />
+                <Text style={m.fieldLabel}>Discount</Text>
+                <View style={{ flexDirection: 'row', gap: 6, marginTop: 5 }}>
+                  <Pressable
+                    onPress={() => setDiscountType('percentage')}
+                    style={[m.togglePill, discountType === 'percentage' && m.togglePillActive]}
+                  >
+                    <Text style={[m.togglePillText, discountType === 'percentage' && { color: '#fff' }]}>%</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setDiscountType('fixed')}
+                    style={[m.togglePill, discountType === 'fixed' && m.togglePillActive]}
+                  >
+                    <Text style={[m.togglePillText, discountType === 'fixed' && { color: '#fff' }]}>$</Text>
+                  </Pressable>
+                  <TextInput
+                    style={[m.fieldInput, { flex: 1 }]}
+                    value={discountValue}
+                    onChangeText={setDiscountValue}
+                    placeholder={discountType === 'percentage' ? '10' : '49'}
+                    placeholderTextColor="rgba(255,255,255,0.35)"
+                    keyboardType="numeric"
+                  />
+                </View>
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={m.fieldLabel}>Max Uses</Text>
-                <TextInput style={m.fieldInput} value={maxUses} onChangeText={setMaxUses} placeholder="100" placeholderTextColor="rgba(255,255,255,0.35)" keyboardType="numeric" />
+                <TextInput style={[m.fieldInput, { marginTop: 5 }]} value={maxUses} onChangeText={setMaxUses} placeholder="100" placeholderTextColor="rgba(255,255,255,0.35)" keyboardType="numeric" />
               </View>
             </View>
 
@@ -432,7 +464,7 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
                   {c.partner_name || 'Partner Offer'}
                 </Text>
                 <Text style={s.cardTitle} numberOfLines={1}>
-                  {c.discount_pct ? `${c.discount_pct}% off` : c.description || 'Coupon'}
+                  {c.discount_pct ? discountLabel(c) : c.description || 'Coupon'}
                 </Text>
                 <View style={s.cardCode}>
                   <Text style={s.cardCodeText}>{c.code}</Text>
@@ -540,6 +572,14 @@ const m = StyleSheet.create({
     borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10,
     color: '#fff', fontFamily: 'DMSans_500Medium', fontSize: 13,
   },
+  togglePill: {
+    borderRadius: 10, borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)',
+    backgroundColor: 'transparent', paddingHorizontal: 12, paddingVertical: 10,
+    alignItems: 'center', justifyContent: 'center',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  togglePillActive: { backgroundColor: 'rgba(124,58,237,0.25)', borderColor: '#7C3AED' },
+  togglePillText: { fontFamily: 'DMSans_700Bold', fontSize: 13, color: 'rgba(255,255,255,0.55)' },
   audienceChip: {
     paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1,
     borderColor: 'rgba(167,139,250,0.3)', backgroundColor: 'transparent',

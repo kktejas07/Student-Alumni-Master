@@ -1493,6 +1493,7 @@ def _coupon_fields(d: dict) -> dict:
         "id": str(d["_id"]),
         "code": d.get("code", ""),
         "description": d.get("description", ""),
+        "discount_type": d.get("discount_type", "percentage"),
         "discount_pct": d.get("discount_pct", 0),
         "max_uses": d.get("max_uses", 0),
         "used_count": d.get("used_count", 0),
@@ -1546,7 +1547,8 @@ async def create_coupon(payload: dict, user: dict = Depends(get_current_user)):
     doc = {
         "code": code,
         "description": (payload.get("description") or "").strip(),
-        "discount_pct": max(0, min(100, int(payload.get("discount_pct", 0)))),
+        "discount_type": payload.get("discount_type", "percentage"),
+        "discount_pct": max(0, int(payload.get("discount_pct", 0) or 0)),
         "max_uses": max(1, int(payload.get("max_uses", 1))),
         "used_count": 0,
         "active": True,
@@ -1583,7 +1585,7 @@ async def update_coupon(coupon_id: str, payload: dict, user: dict = Depends(get_
         raise HTTPException(403, "Only admins can manage coupons")
     from bson import ObjectId
     update = {}
-    for k in ("description", "discount_pct", "max_uses", "active", "expires_at",
+    for k in ("description", "discount_pct", "discount_type", "max_uses", "active", "expires_at",
               "image_url", "partner_name", "partner_website_url", "instructions",
               "audience", "display_order"):
         if k in payload:
