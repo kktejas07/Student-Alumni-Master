@@ -1532,58 +1532,38 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash }: any
             {/* ── HERO TAB ── */}
             {tab === 'hero' && <>
               <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text, marginBottom: 16 }}>
-                Upload hero images for the showcase page. Each image serves a different display purpose.
+                Hero images for the showcase page. "Banners" shows a full-width carousel on the detail page. "Card Thumbnail" is the image on the /echo listing cards.
               </Text>
               <View style={{ gap: 20 }}>
-                <FieldRow label="Hero Banners (carousel)" hint="Add multiple banner images for an auto-rotating carousel at the top of the page. First image is the primary banner.">
+                <FieldRow label="Hero Banners (carousel)" hint="Multiple banner images for an auto-rotating carousel at the top of the detail page. First image is the primary banner.">
                   <BannerCarouselEditor
                     banners={form.hero_banners || []}
                     onChange={(b: string[]) => set('hero_banners', b)}
                   />
                 </FieldRow>
                 <ImageUploadWidget
-                  label="Hero Banner (main hero image)"
+                  label="Card Thumbnail (listing page + fallback)"
                   url={form.hero_image_url}
                   onUpload={(url) => set('hero_image_url', url)}
                   onRemove={() => set('hero_image_url', '')}
                   onUploadStart={onUploadStart}
                   onUploadEnd={onUploadEnd}
                   flash={flash}
-                  aspectHint="Recommended: 1920×600px · Landscape · Min 1MB for crisp display"
+                  aspectHint="Used as card image on /echo listing page, fallback hero when no banners, and poster on register page"
                 />
                 <ImageUploadWidget
-                  label="Hero Cover"
+                  label="Cover Image (fallback card thumbnail)"
                   url={form.hero_cover_url}
                   onUpload={(url) => set('hero_cover_url', url)}
                   onRemove={() => set('hero_cover_url', '')}
                   onUploadStart={onUploadStart}
                   onUploadEnd={onUploadEnd}
                   flash={flash}
-                  aspectHint="Recommended: 1200×800px · Used as card cover in listings"
-                />
-                <ImageUploadWidget
-                  label="Hero Thumbnail"
-                  url={form.hero_thumbnail_url}
-                  onUpload={(url) => set('hero_thumbnail_url', url)}
-                  onRemove={() => set('hero_thumbnail_url', '')}
-                  onUploadStart={onUploadStart}
-                  onUploadEnd={onUploadEnd}
-                  flash={flash}
-                  aspectHint="Recommended: 400×300px · Used in thumbnails and search results"
-                />
-                <ImageUploadWidget
-                  label="Hero Background"
-                  url={form.hero_bg_url}
-                  onUpload={(url) => set('hero_bg_url', url)}
-                  onRemove={() => set('hero_bg_url', '')}
-                  onUploadStart={onUploadStart}
-                  onUploadEnd={onUploadEnd}
-                  flash={flash}
-                  aspectHint="Recommended: 1920×1080px · Used as page background"
+                  aspectHint="Used as card image on /echo listing only when Card Thumbnail is empty"
                 />
               </View>
               <View style={{ marginTop: 20 }}>
-                <FieldRow label="Organizer Name">
+                <FieldRow label="Organizer Name" hint="Displayed in the 'About the Event' section on the detail page">
                   <Field value={form.organizer_name} onChangeText={(v: string) => set('organizer_name', v)} placeholder="Student Alumni Cell" />
                 </FieldRow>
                 <ImageUploadWidget
@@ -1594,7 +1574,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash }: any
                   onUploadStart={onUploadStart}
                   onUploadEnd={onUploadEnd}
                   flash={flash}
-                  aspectHint="Recommended: 200×200px · Square PNG with transparent background"
+                  aspectHint="Shown next to organizer name in the About section"
                 />
               </View>
             </>}
