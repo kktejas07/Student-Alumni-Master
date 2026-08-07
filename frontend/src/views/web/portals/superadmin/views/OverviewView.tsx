@@ -193,31 +193,37 @@ export function OverviewView({ onNavigate }: { onNavigate?: (id: string) => void
           </Pressable>
         </View>
         {ads.length > 0 ? (
-          <View style={{ gap: 8, marginTop: 8 }}>
-            {ads.map((ad, i) => (
-              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 8 }}>
-                <Image
-                  source={{ uri: ad.image_url }}
-                  style={{ width: 50, height: 34, borderRadius: 4 }}
-                  resizeMode="cover"
-                />
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 11 }} numberOfLines={1}>
-                    {ad.label}
-                  </Text>
-                  <Text style={{ color: SAC.muted, fontSize: 9 }} numberOfLines={1}>
-                    {ad.redirect_url}
-                  </Text>
+          <ScrollView
+            style={{ maxHeight: 216, marginTop: 8 }}
+            showsVerticalScrollIndicator={true}
+            nestedScrollEnabled={true}
+          >
+            <View style={{ gap: 8 }}>
+              {ads.map((ad, i) => (
+                <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 8 }}>
+                  <Image
+                    source={{ uri: ad.image_url }}
+                    style={{ width: 50, height: 34, borderRadius: 4 }}
+                    resizeMode="cover"
+                  />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 11 }} numberOfLines={1}>
+                      {ad.label}
+                    </Text>
+                    <Text style={{ color: SAC.muted, fontSize: 9 }} numberOfLines={1}>
+                      {ad.redirect_url}
+                    </Text>
+                  </View>
+                  <Pressable onPress={() => openEditor(i)} style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
+                    <Text style={{ color: SAC.accentBright, fontSize: 11, fontFamily: FONTS.bold }}>Edit</Text>
+                  </Pressable>
+                  <Pressable onPress={() => deleteAd(i)} style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
+                    <Text style={{ color: '#EF4444', fontSize: 11, fontFamily: FONTS.bold }}>Del</Text>
+                  </Pressable>
                 </View>
-                <Pressable onPress={() => openEditor(i)} style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
-                  <Text style={{ color: SAC.accentBright, fontSize: 11, fontFamily: FONTS.bold }}>Edit</Text>
-                </Pressable>
-                <Pressable onPress={() => deleteAd(i)} style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
-                  <Text style={{ color: '#EF4444', fontSize: 11, fontFamily: FONTS.bold }}>Del</Text>
-                </Pressable>
-              </View>
-            ))}
-          </View>
+              ))}
+            </View>
+          </ScrollView>
         ) : (
           <Text style={{ color: SAC.dim, fontSize: 11, marginTop: 6 }}>
             No advertisements set yet. Click "+ Add Ad" to add one.

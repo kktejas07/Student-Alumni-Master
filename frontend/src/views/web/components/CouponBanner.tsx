@@ -15,7 +15,7 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, Platform, Image, Modal, Linking, ScrollView, TextInput,
+  View, Text, Pressable, StyleSheet, Platform, Image, Modal, Linking, ScrollView, TextInput, NativeSyntheticEvent, NativeScrollEvent,
 } from 'react-native';
 import { Ticket, ExternalLink, X, Copy, Check, Tag, Plus, Pencil, Trash2, Save, Upload, AlertTriangle } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
@@ -397,11 +397,16 @@ function CouponEditor({
   );
 }
 
+const CARDS_PER_PAGE = 4;
+const CARD_GAP = 12;
+
 export function CouponBanner({ portal, editable }: { portal: string; editable?: boolean }) {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [selected, setSelected] = useState<Coupon | null>(null);
   const [editor, setEditor] = useState<Coupon | null | 'new'>(null);
   const [toast, setToast] = useState<{ text: string; kind: 'success' | 'error' } | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const scrollRef = useRef<ScrollView>(null);
   const toastTimer = useRef<any>(null);
 
   const flash = useCallback((text: string, kind: 'success' | 'error' = 'success') => {
@@ -446,6 +451,26 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
 
   if (!editable && !coupons.length) return null;
 
+  const totalPages = Math.ceil(coupons.length / CARDS_PER_PAGE);
+
+  const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const contentWidth = e.nativeEvent.contentSize.width;
+    const containerWidth = e.nativeEvent.layoutMeasurement.width;
+    const scrollX = e.nativeEvent.contentOffset.x;
+    if (contentWidth <= containerWidth) {
+      setCurrentPage(0);
+      return;
+    }
+    const cardWidth = (containerWidth - (CARDS_PER_PAGE - 1) * CARD_GAP) / CARDS_PER_PAGE;
+    const page = Math.round(scrollX / (cardWidth + CARD_GAP));
+    setCurrentPage(Math.min(page, totalPages - 1));
+  };
+
+  const scrollToPage = (page: number) => {
+    if (!scrollRef.current) return;
+    scrollRef.current.scrollTo({ x: page * 250 * CARDS_PER_PAGE, animated: true });
+  };
+
   return (
     <View style={s.wrap}>
       <View style={s.headRow}>
@@ -463,42 +488,64 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
       </View>
 
       {coupons.length > 0 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.row}>
-          {coupons.map((c) => (
-            <Pressable key={c.id} onPress={() => setSelected(c)} style={[s.card, editable && !c.active && s.cardInactive]}>
-              <View style={s.cardImgWrap}>
-                {c.image_url ? (
-                  <Image source={{ uri: c.image_url }} style={s.cardImg} resizeMode="contain" />
-                ) : (
-                  <View style={[s.cardImg, s.cardImgFallback]}>
-                    <Ticket size={22} color="#A78BFA" />
-                  </View>
-                )}
-                {editable && (
-                  <View style={s.cardAdmin}>
-                    <Pressable onPress={() => setEditor(c)} style={s.cardAdminBtn} hitSlop={6}>
-                      <Pencil size={11} color="#fff" />
-                    </Pressable>
-                    <Pressable onPress={() => deleteCoupon(c)} style={s.cardAdminBtn} hitSlop={6}>
-                      <Trash2 size={11} color="#F87171" />
-                    </Pressable>
-                  </View>
-                )}
-              </View>
-              <View style={s.cardBody}>
-                <Text style={s.cardPartner} numberOfLines={1}>
-                  {c.partner_name || 'Partner Offer'}
-                </Text>
-                <Text style={s.cardTitle} numberOfLines={1}>
-                  {c.discount_pct ? discountLabel(c) : c.description || 'Coupon'}
-                </Text>
-                <View style={s.cardCode}>
-                  <Text style={s.cardCodeText}>{c.code}</Text>
+        <>
+          <ScrollView
+            ref={scrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={s.row}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            snapToInterval={250 + CARD_GAP}
+            decelerationRate="fast"
+          >
+            {coupons.map((c) => (
+              <Pressable key={c.id} onPress={() => setSelected(c)} style={[s.card, editable && !c.active && s.cardInactive]}>
+                <View style={s.cardImgWrap}>
+                  {c.image_url ? (
+                    <Image source={{ uri: c.image_url }} style={s.cardImg} resizeMode="contain" />
+                  ) : (
+                    <View style={[s.cardImg, s.cardImgFallback]}>
+                      <Ticket size={22} color="#A78BFA" />
+                    </View>
+                  )}
+                  {editable && (
+                    <View style={s.cardAdmin}>
+                      <Pressable onPress={() => setEditor(c)} style={s.cardAdminBtn} hitSlop={6}>
+                        <Pencil size={11} color="#fff" />
+                      </Pressable>
+                      <Pressable onPress={() => deleteCoupon(c)} style={s.cardAdminBtn} hitSlop={6}>
+                        <Trash2 size={11} color="#F87171" />
+                      </Pressable>
+                    </View>
+                  )}
                 </View>
-              </View>
-            </Pressable>
-          ))}
-        </ScrollView>
+                <View style={s.cardBody}>
+                  <Text style={s.cardPartner} numberOfLines={1}>
+                    {c.partner_name || 'Partner Offer'}
+                  </Text>
+                  <Text style={s.cardTitle} numberOfLines={1}>
+                    {c.discount_pct ? discountLabel(c) : c.description || 'Coupon'}
+                  </Text>
+                  <View style={s.cardCode}>
+                    <Text style={s.cardCodeText}>{c.code}</Text>
+                  </View>
+                </View>
+              </Pressable>
+            ))}
+          </ScrollView>
+          {totalPages > 1 && (
+            <View style={s.dotsRow}>
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <Pressable
+                  key={i}
+                  onPress={() => scrollToPage(i)}
+                  style={[s.dot, i === currentPage && s.dotActive]}
+                />
+              ))}
+            </View>
+          )}
+        </>
       ) : editable ? (
         <Text style={s.emptyText}>No coupons created yet. Click "Add Coupon" to create one.</Text>
       ) : null}
@@ -660,9 +707,9 @@ const s = StyleSheet.create({
   },
   addBtnText: { fontFamily: 'DMSans_700Bold', fontSize: 11, color: '#fff' },
   emptyText: { fontFamily: 'DMSans_500Medium', fontSize: 12, color: 'rgba(255,255,255,0.45)' },
-  row: { gap: 12, paddingBottom: 2 },
+  row: { gap: CARD_GAP, paddingBottom: 2 },
   card: {
-    width: 230, borderRadius: 14, overflow: 'hidden',
+    width: 250, borderRadius: 14, overflow: 'hidden',
     backgroundColor: 'rgba(15,20,38,0.85)',
     borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
     ...(Platform.OS === 'web' ? ({
@@ -695,6 +742,14 @@ const s = StyleSheet.create({
     borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, marginTop: 3,
   },
   cardCodeText: { fontFamily: 'DMSans_700Bold', fontSize: 11, color: '#C4B5FD', letterSpacing: 1 },
+  dotsRow: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 10,
+  },
+  dot: {
+    width: 7, height: 7, borderRadius: 4, backgroundColor: 'rgba(167,139,250,0.25)',
+    ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } as any : {}),
+  },
+  dotActive: { backgroundColor: '#A78BFA', width: 18 },
 });
 
 const cbToast = StyleSheet.create({
