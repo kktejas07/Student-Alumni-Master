@@ -398,7 +398,8 @@ function CouponEditor({
 }
 
 const CARDS_PER_PAGE = 4;
-const CARD_GAP = 12;
+const CARD_GAP = 16;
+const CARD_WIDTH = 270;
 
 export function CouponBanner({ portal, editable }: { portal: string; editable?: boolean }) {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -468,7 +469,7 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
 
   const scrollToPage = (page: number) => {
     if (!scrollRef.current) return;
-    scrollRef.current.scrollTo({ x: page * 250 * CARDS_PER_PAGE, animated: true });
+    scrollRef.current.scrollTo({ x: page * (CARD_WIDTH + CARD_GAP) * CARDS_PER_PAGE, animated: true });
   };
 
   return (
@@ -496,7 +497,7 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
             contentContainerStyle={s.row}
             onScroll={handleScroll}
             scrollEventThrottle={16}
-            snapToInterval={250 + CARD_GAP}
+            snapToInterval={CARD_WIDTH + CARD_GAP}
             decelerationRate="fast"
           >
             {coupons.map((c) => (
@@ -697,59 +698,59 @@ const m = StyleSheet.create({
 });
 
 const s = StyleSheet.create({
-  wrap: { marginBottom: 14, gap: 8 },
-  headRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  headText: { fontFamily: 'DMSans_700Bold', fontSize: 11.5, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 0.8 },
+  wrap: { marginBottom: 18, gap: 10 },
+  headRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headText: { fontFamily: 'DMSans_700Bold', fontSize: 12, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 0.8 },
   addBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 7, backgroundColor: '#7C3AED',
-    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8, backgroundColor: '#7C3AED',
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer', transitionDuration: '160ms' } as any) : {}),
   },
-  addBtnText: { fontFamily: 'DMSans_700Bold', fontSize: 11, color: '#fff' },
+  addBtnText: { fontFamily: 'DMSans_700Bold', fontSize: 12, color: '#fff' },
   emptyText: { fontFamily: 'DMSans_500Medium', fontSize: 12, color: 'rgba(255,255,255,0.45)' },
-  row: { gap: CARD_GAP, paddingBottom: 2 },
+  row: { gap: CARD_GAP, paddingBottom: 4 },
   card: {
-    width: 250, borderRadius: 14, overflow: 'hidden',
-    backgroundColor: 'rgba(15,20,38,0.85)',
-    borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
+    width: CARD_WIDTH, borderRadius: 16, overflow: 'hidden',
+    backgroundColor: 'rgba(15,20,38,0.9)',
+    borderWidth: 1, borderColor: 'rgba(167,139,250,0.2)',
     ...(Platform.OS === 'web' ? ({
       cursor: 'pointer',
-      transitionDuration: '160ms',
-      ':hover': { transform: 'translateY(-2px)', borderColor: 'rgba(167,139,250,0.6)' },
+      transitionDuration: '200ms',
+      ':hover': { transform: 'translateY(-3px)', borderColor: 'rgba(167,139,250,0.55)', boxShadow: '0 8px 24px rgba(124,58,237,0.15)' },
     } as any) : {}),
   },
   cardInactive: { opacity: 0.5 },
   cardImgWrap: { position: 'relative' },
-  cardImg: { width: '100%', aspectRatio: 21 / 9, backgroundColor: '#070b19' },
+  cardImg: { width: '100%', aspectRatio: 16 / 9, backgroundColor: '#070b19' },
   cardImgFallback: {
-    backgroundColor: 'rgba(124,58,237,0.15)', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(124,58,237,0.12)', alignItems: 'center', justifyContent: 'center',
   },
   cardAdmin: {
-    position: 'absolute', top: 6, right: 6, flexDirection: 'row', gap: 6,
+    position: 'absolute', top: 8, right: 8, flexDirection: 'row', gap: 6,
   },
   cardAdminBtn: {
-    width: 24, height: 24, borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.65)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: 'rgba(0,0,0,0.6)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center', justifyContent: 'center',
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
-  cardBody: { padding: 12, gap: 4 },
-  cardPartner: { fontFamily: 'DMSans_700Bold', fontSize: 11, color: '#A78BFA' },
-  cardTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 13.5, color: '#fff' },
+  cardBody: { padding: 14, gap: 6 },
+  cardPartner: { fontFamily: 'DMSans_700Bold', fontSize: 11.5, color: '#A78BFA' },
+  cardTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 14.5, color: '#fff' },
   cardCode: {
-    alignSelf: 'flex-start', backgroundColor: 'rgba(124,58,237,0.2)',
-    borderWidth: 1, borderColor: 'rgba(167,139,250,0.35)',
-    borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, marginTop: 3,
+    alignSelf: 'flex-start', backgroundColor: 'rgba(124,58,237,0.18)',
+    borderWidth: 1, borderColor: 'rgba(167,139,250,0.3)',
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, marginTop: 4,
   },
-  cardCodeText: { fontFamily: 'DMSans_700Bold', fontSize: 11, color: '#C4B5FD', letterSpacing: 1 },
+  cardCodeText: { fontFamily: 'DMSans_700Bold', fontSize: 11.5, color: '#C4B5FD', letterSpacing: 1.2 },
   dotsRow: {
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 10,
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 14,
   },
   dot: {
-    width: 7, height: 7, borderRadius: 4, backgroundColor: 'rgba(167,139,250,0.25)',
-    ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '160ms' } as any : {}),
+    width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(167,139,250,0.2)',
+    ...(Platform.OS === 'web' ? { cursor: 'pointer', transitionDuration: '200ms' } as any : {}),
   },
-  dotActive: { backgroundColor: '#A78BFA', width: 18 },
+  dotActive: { backgroundColor: '#A78BFA', width: 22 },
 });
 
 const cbToast = StyleSheet.create({

@@ -426,6 +426,12 @@ export const api = {
     request<any>('/newsletter/admin/campaigns'),
   newsletterUpcomingEvents: () =>
     request<any>('/newsletter/admin/upcoming-events'),
+
+  // ── Individual notifications ──────────────────────────────────────────────
+  searchUsers: (q: string) =>
+    request<any>(`/newsletter/admin/search-users?q=${encodeURIComponent(q)}`),
+  sendIndividualNotification: (payload: any) =>
+    request<any>('/newsletter/admin/send-individual', { method: 'POST', body: payload }),
 };
 
 export function resolveImageUrl(url?: string | null): string {
