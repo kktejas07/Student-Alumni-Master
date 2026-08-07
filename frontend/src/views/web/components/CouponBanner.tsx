@@ -17,7 +17,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, Pressable, StyleSheet, Platform, Image, Modal, Linking, ScrollView, TextInput,
 } from 'react-native';
-import { Ticket, ExternalLink, X, Copy, Check, Tag, Plus, Pencil, Trash2, Save, Upload } from 'lucide-react-native';
+import { Ticket, ExternalLink, X, Copy, Check, Tag, Plus, Pencil, Trash2, Save, Upload, AlertTriangle } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 
 export type Coupon = {
@@ -81,7 +81,7 @@ function CouponModal({ coupon, onClose }: { coupon: Coupon | null; onClose: () =
           {/* Header image */}
           <View style={m.heroWrap}>
             {coupon.image_url ? (
-              <Image source={{ uri: coupon.image_url }} style={m.hero} resizeMode="cover" />
+              <Image source={{ uri: coupon.image_url }} style={m.hero} resizeMode="contain" />
             ) : (
               <View style={[m.hero, m.heroFallback]}>
                 <Ticket size={44} color="#A78BFA" />
@@ -175,11 +175,12 @@ const AUDIENCE_OPTIONS = [
 ];
 
 function CouponEditor({
-  coupon, onClose, onSaved,
+  coupon, onClose, onSaved, onError,
 }: {
   coupon: Coupon | null;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (created?: Coupon | null) => void;
+  onError: (msg: string) => void;
 }) {
   const [code, setCode] = useState('');
   const [description, setDescription] = useState('');
@@ -254,12 +255,15 @@ function CouponEditor({
     try {
       if (coupon) {
         await request(`/admin/coupons/${coupon.id}`, { method: 'PATCH', body: payload });
+        onSaved(null);
       } else {
-        await request('/admin/coupons', { method: 'POST', body: { code: code.toUpperCase(), ...payload } });
+        const res = await request<{ coupon?: Coupon }>('/admin/coupons', { method: 'POST', body: { code: code.toUpperCase(), ...payload } });
+        onSaved(res?.coupon || null);
       }
-      onSaved();
       onClose();
-    } catch { /* surface via onSaved? */ } finally {
+    } catch (e: any) {
+      onError(e?.message || 'Failed to save coupon');
+    } finally {
       setSaving(false);
     }
   };
@@ -343,7 +347,7 @@ function CouponEditor({
             </View>
             {imageUrl ? (
               <View style={{ marginTop: 8, borderRadius: 10, overflow: 'hidden' }}>
-                <Image source={{ uri: imageUrl }} style={{ width: '100%', height: 90 }} resizeMode="cover" />
+                <Image source={{ uri: imageUrl }} style={{ width: '100%', height: 90, backgroundColor: '#070b19' }} resizeMode="contain" />
               </View>
             ) : null}
 
@@ -397,6 +401,14 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [selected, setSelected] = useState<Coupon | null>(null);
   const [editor, setEditor] = useState<Coupon | null | 'new'>(null);
+  const [toast, setToast] = useState<{ text: string; kind: 'success' | 'error' } | null>(null);
+  const toastTimer = useRef<any>(null);
+
+  const flash = useCallback((text: string, kind: 'success' | 'error' = 'success') => {
+    setToast({ text, kind });
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2200);
+  }, []);
 
   const loadCoupons = useCallback(async () => {
     try {
@@ -409,14 +421,28 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
 
   useEffect(() => {
     loadCoupons();
+    return () => { if (toastTimer.current) clearTimeout(toastTimer.current); };
   }, [loadCoupons, portal]);
 
   const deleteCoupon = async (c: Coupon) => {
     try {
       await request(`/admin/coupons/${c.id}`, { method: 'DELETE' });
-      loadCoupons();
-    } catch { /* ignore */ }
+      setCoupons((prev) => prev.filter((x) => x.id !== c.id));
+      flash('Coupon deleted');
+    } catch (e: any) {
+      flash(e?.message || 'Failed to delete coupon', 'error');
+    }
   };
+
+  const handleSaved = useCallback((created?: Coupon | null) => {
+    if (created) {
+      setCoupons((prev) => [created, ...prev.filter((c) => c.id !== created.id)]);
+      flash('Coupon created');
+    } else {
+      loadCoupons();
+      flash('Coupon updated');
+    }
+  }, [flash, loadCoupons]);
 
   if (!editable && !coupons.length) return null;
 
@@ -442,7 +468,7 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
             <Pressable key={c.id} onPress={() => setSelected(c)} style={[s.card, editable && !c.active && s.cardInactive]}>
               <View style={s.cardImgWrap}>
                 {c.image_url ? (
-                  <Image source={{ uri: c.image_url }} style={s.cardImg} resizeMode="cover" />
+                  <Image source={{ uri: c.image_url }} style={s.cardImg} resizeMode="contain" />
                 ) : (
                   <View style={[s.cardImg, s.cardImgFallback]}>
                     <Ticket size={22} color="#A78BFA" />
@@ -482,8 +508,18 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
         <CouponEditor
           coupon={editor === 'new' ? null : editor}
           onClose={() => setEditor(null)}
-          onSaved={loadCoupons}
+          onSaved={handleSaved}
+          onError={(msg) => flash(msg, 'error')}
         />
+      )}
+
+      {toast && (
+        <View pointerEvents="none" style={[cbToast.wrap, toast.kind === 'error' && cbToast.error]}>
+          {toast.kind === 'error'
+            ? <AlertTriangle size={12} color="#F87171" />
+            : <Check size={12} color="#34D399" />}
+          <Text style={cbToast.text}>{toast.text}</Text>
+        </View>
       )}
     </View>
   );
@@ -498,7 +534,7 @@ const m = StyleSheet.create({
     ...(Platform.OS === 'web' ? { boxShadow: '0 24px 80px rgba(0,0,0,0.60)' } as any : {}),
   },
   heroWrap: { position: 'relative' },
-  hero: { width: '100%', aspectRatio: 21 / 9 },
+  hero: { width: '100%', aspectRatio: 21 / 9, backgroundColor: '#070b19' },
   heroFallback: {
     backgroundColor: '#141a33', alignItems: 'center', justifyContent: 'center', gap: 8,
   },
@@ -637,7 +673,7 @@ const s = StyleSheet.create({
   },
   cardInactive: { opacity: 0.5 },
   cardImgWrap: { position: 'relative' },
-  cardImg: { width: '100%', aspectRatio: 21 / 9 },
+  cardImg: { width: '100%', aspectRatio: 21 / 9, backgroundColor: '#070b19' },
   cardImgFallback: {
     backgroundColor: 'rgba(124,58,237,0.15)', alignItems: 'center', justifyContent: 'center',
   },
@@ -659,4 +695,16 @@ const s = StyleSheet.create({
     borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, marginTop: 3,
   },
   cardCodeText: { fontFamily: 'DMSans_700Bold', fontSize: 11, color: '#C4B5FD', letterSpacing: 1 },
+});
+
+const cbToast = StyleSheet.create({
+  wrap: {
+    position: 'absolute', top: 84, right: 24, zIndex: 9999,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#0d1326', borderColor: 'rgba(52,211,153,0.45)', borderWidth: 1,
+    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10,
+    ...(Platform.OS === 'web' ? ({ position: 'fixed', boxShadow: '0 12px 32px rgba(0,0,0,0.5)' } as any) : {}),
+  },
+  error: { borderColor: 'rgba(248,113,113,0.45)' },
+  text: { fontFamily: 'DMSans_700Bold', fontSize: 12, color: '#fff' },
 });
