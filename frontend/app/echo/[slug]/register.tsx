@@ -43,6 +43,43 @@ export default function EchoRegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [posterIdx, setPosterIdx] = useState(0);
 
+  const loadRazorpay = () =>
+    new Promise<boolean>((resolve) => {
+      if (typeof window === 'undefined') return resolve(false);
+      const w = window as any;
+      if (w.Razorpay) return resolve(true);
+      const s = document.createElement('script');
+      s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      s.async = true;
+      s.onload = () => resolve(true);
+      s.onerror = () => resolve(false);
+      document.head.appendChild(s);
+    });
+
+  const openInvoice = async (invoiceNo?: string) => {
+    if (!invoiceNo || typeof window === 'undefined') return;
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      const resp = await fetch(`${base}/api/echo/invoices/${invoiceNo}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!resp.ok) throw new Error('Invoice not available');
+      const data = await resp.json();
+      const w = window.open('', '_blank');
+      if (w) {
+        w.document.open();
+        w.document.write(data.html);
+        w.document.close();
+        w.focus();
+        w.print();
+      }
+    } catch {
+      setError('Could not open the invoice. Check your email for a copy.');
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -89,16 +126,73 @@ export default function EchoRegisterPage() {
     }
     setSubmitting(true);
     setError(null);
+    let keepLoading = true;
     try {
-      // Payment gateway: if an external payment_url is configured, the attendee
-      // pays there; the mock gateway below simulates that step for the demo.
-      await new Promise((r) => setTimeout(r, 900));
-      const res = await api.registerEchoShowcase(canonicalSlug, { ...form, payment_method: paymentUrl ? 'external' : 'mock' });
-      setDone(res);
-    } catch (e: any) {
-      setError(e?.message || 'Registration failed. Please try again.');
+      const contact = { ...form, email: form.email.trim().toLowerCase() };
+      const regPayload = { ...contact, payment_method: fee > 0 ? 'online' : 'free' };
+
+      // Free event → register directly.
+      if (fee <= 0) {
+        const res = await api.registerEchoShowcase(canonicalSlug, regPayload);
+        setDone(res);
+        return;
+      }
+
+      // Paid event → create a payment order, then redirect to the gateway.
+      const order = await api.createEchoPaymentOrder(canonicalSlug, contact);
+
+      // No real gateway connected → demo registration (records a paid mock).
+      if (order?.mock) {
+        const res = await api.registerEchoShowcase(canonicalSlug, regPayload);
+        setDone(res);
+        return;
+      }
+
+      // Already paid → show the existing registration + invoice.
+      if (order?.already) {
+        setDone(order.registration);
+        return;
+      }
+
+      const w = window as any;
+      if (!w.Razorpay) {
+        const ok = await loadRazorpay();
+        if (!ok) throw new Error('Payment gateway could not be loaded. Please try again.');
+      }
+
+      const checkout = new w.Razorpay({
+        key: order.key_id,
+        order_id: order.order_id,
+        name: 'Student Alumni',
+        description: `ECHO registration — ${showcase.title}`,
+        amount: Math.round(order.amount * 100),
+        currency: order.currency,
+        prefill: { name: form.full_name, email: form.email, contact: form.phone || '' },
+        theme: { color: '#7C3AED' },
+        handler: async (res: any) => {
+          try {
+            const verified = await api.verifyEchoPayment(canonicalSlug, {
+              ...contact,
+              razorpay_payment_id: res.razorpay_payment_id,
+              razorpay_order_id: res.razorpay_order_id,
+              razorpay_signature: res.razorpay_signature,
+            });
+            setDone(verified.registration || verified);
+          } catch (err: any) {
+            setError(err?.message || 'Payment verification failed. Please contact support.');
+            setSubmitting(false);
+          }
+        },
+        modal: {
+          ondismiss: () => setSubmitting(false),
+        },
+      });
+      checkout.open();
+      keepLoading = false; // keep button loading until the checkout modal closes
+    } catch (err: any) {
+      setError(err?.message || 'Registration failed. Please try again.');
     } finally {
-      setSubmitting(false);
+      if (keepLoading) setSubmitting(false);
     }
   };
 
@@ -143,6 +237,7 @@ export default function EchoRegisterPage() {
   if (done?.id || existing?.id) {
     const reg = done || existing;
     const payment = reg.payment || {};
+    const invoiceNo = reg.invoice?.invoice_no || done?.invoice?.invoice_no;
     return (
       <View style={s.root}>
         <EchoHeader current="echo" />
@@ -190,6 +285,12 @@ export default function EchoRegisterPage() {
         <Pressable onPress={() => router.push(`/echo/${canonicalSlug}`)} style={s.doneBtn}>
           <Text style={s.doneBtnText}>Done</Text>
         </Pressable>
+
+        {invoiceNo ? (
+          <Pressable onPress={() => openInvoice(invoiceNo)} style={s.invBtn}>
+            <Text style={s.invBtnText}>Download Invoice</Text>
+          </Pressable>
+        ) : null}
         <EchoFooter />
         </ScrollView>
       </View>
@@ -278,7 +379,7 @@ export default function EchoRegisterPage() {
                   {paymentUrl ? (
                     <View style={s.secureBadge}><ExternalLink size={12} color="#34D399" /><Text style={s.secureText}>Secure payment</Text></View>
                   ) : fee > 0 ? (
-                    <View style={s.secureBadge}><ShieldCheck size={12} color="#34D399" /><Text style={s.secureText}>Secure mock payment</Text></View>
+                    <View style={s.secureBadge}><ShieldCheck size={12} color="#34D399" /><Text style={s.secureText}>Secure payment</Text></View>
                   ) : null}
                 </View>
                 {regCfg.max_seats ? (
@@ -351,7 +452,7 @@ export default function EchoRegisterPage() {
                       </Pressable>
                     </LinearGradient>
                     <Text style={s.disclaimer}>
-                      By registering you agree to receive event updates. This is a demo payment flow — no real charge is made.
+                      By registering you agree to receive event updates. Payment is processed securely via Razorpay.
                     </Text>
                   </>
                 )}
@@ -472,6 +573,13 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
   },
   doneBtnText: { color: '#fff', fontFamily: TYPO.display700, fontSize: 14 },
+
+  invBtn: {
+    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, paddingVertical: 13, alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(52,211,153,0.4)', marginBottom: 14,
+    ...(Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : {}),
+  },
+  invBtnText: { color: '#34D399', fontFamily: TYPO.display700, fontSize: 13.5 },
 
   closedCard: {
     backgroundColor: 'rgba(245,158,11,0.08)', borderRadius: 14, borderWidth: 1,

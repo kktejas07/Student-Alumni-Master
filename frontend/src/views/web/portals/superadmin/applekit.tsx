@@ -36,10 +36,10 @@ export const GRAD = {
  * GradientButton — primary CTA used everywhere
  * ───────────────────────────────────────────────────────────────── */
 export function GradientButton({
-  onPress, loading, disabled, children, size = 'md',
+  onPress, loading, disabled, children, size = 'md', style,
 }: {
   onPress?: () => void; loading?: boolean; disabled?: boolean;
-  children: React.ReactNode; size?: 'sm' | 'md' | 'lg';
+  children: React.ReactNode; size?: 'sm' | 'md' | 'lg'; style?: any;
 }) {
   const pad = size === 'sm'
     ? { paddingHorizontal: 11, paddingVertical: 7 }
@@ -53,6 +53,7 @@ export function GradientButton({
       style={({ hovered }: any) => [
         { opacity: loading || disabled ? 0.6 : 1 },
         hovered && Platform.OS === 'web' ? { transform: [{ translateY: -1 }] } : null,
+        style,
       ]}
     >
       <LinearGradient
@@ -66,8 +67,8 @@ export function GradientButton({
   );
 }
 
-export function SecondaryButton({ onPress, children, size = 'md', danger }: {
-  onPress?: () => void; children: React.ReactNode; size?: 'sm' | 'md' | 'lg'; danger?: boolean;
+export function SecondaryButton({ onPress, children, size = 'md', danger, style }: {
+  onPress?: () => void; children: React.ReactNode; size?: 'sm' | 'md' | 'lg'; danger?: boolean; style?: any;
 }) {
   const pad = size === 'sm'
     ? { paddingHorizontal: 11, paddingVertical: 7 }
@@ -79,6 +80,7 @@ export function SecondaryButton({ onPress, children, size = 'md', danger }: {
         k.secBtn, pad,
         danger && { borderColor: 'rgba(239,68,68,0.35)' },
         hovered && Platform.OS === 'web' ? { backgroundColor: 'rgba(255,255,255,0.05)' } : null,
+        style,
       ]}
     >
       {children}

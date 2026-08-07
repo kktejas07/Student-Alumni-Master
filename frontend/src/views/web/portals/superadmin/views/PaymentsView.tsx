@@ -21,6 +21,9 @@ const FALLBACK = {
   stripe_balance: '₹0',
   has_live_stripe: false,
   tiers: [] as Tier[],
+  echo: { paid_count: 0, pending_count: 0, revenue: 0, events: [] as any[] },
+  bookings_count: 0,
+  wallet_revenue: 0,
 };
 
 function PayoutTiersEditor({ visible, onClose }: { visible: boolean; onClose: () => void }) {
@@ -157,7 +160,6 @@ export function PaymentsView() {
   const { data, refresh } = usePortalData<typeof FALLBACK>('/admin/super/payments', FALLBACK);
   const { width } = useWindowDimensions();
   const stack = width < 1100;
-  const totalMentors = data.tiers.reduce((a, t) => a + t.count, 0);
 
   const doExport = async () => {
     setExporting(true);
@@ -205,11 +207,33 @@ export function PaymentsView() {
 
       {/* KPIs */}
       <View style={st.kpiRow}>
-        <KpiTile Icon={TrendingUp}     label="GROSS REVENUE"   value={data.kpi.gross}   delta="↑ 18% MoM"        deltaKind="success" />
-        <KpiTile Icon={ArrowUp}        label="PAYOUTS PAID"    value={data.kpi.payouts} delta={`${totalMentors} mentors`} deltaKind="info" />
-        <KpiTile Icon={AlertTriangle}  label="PENDING REFUNDS" value={data.kpi.pending} delta="7 disputes"        deltaKind="warn" />
-        <KpiTile Icon={IndianRupee}    label="NET REVENUE"     value={data.kpi.net}     delta="↑ 14% MoM"         deltaKind="success" />
+        <KpiTile Icon={TrendingUp}     label="GROSS REVENUE"   value={data.kpi.gross}   delta={`${data.echo?.paid_count || 0} paid registrations`} deltaKind="success" />
+        <KpiTile Icon={ArrowUp}        label="PAYOUTS (EST)"    value={data.kpi.payouts} delta="10% platform fee" deltaKind="info" />
+        <KpiTile Icon={AlertTriangle}  label="PENDING PAYMENTS" value={data.kpi.pending} delta={`${data.echo?.pending_count || 0} awaiting payment`} deltaKind="warn" />
+        <KpiTile Icon={IndianRupee}    label="NET REVENUE"     value={data.kpi.net}     delta={`${data.bookings_count || 0} bookings`} deltaKind="success" />
       </View>
+
+      {/* Event revenue breakdown */}
+      {(data.echo?.events?.length || 0) > 0 && (
+        <Card>
+          <View style={st.cardHead}>
+            <Text style={st.cardTitle}>Event Revenue</Text>
+            <StatusPill kind="info" label={`${data.echo.events.length} events`} />
+          </View>
+          <View style={{ marginTop: 12, gap: 8 }}>
+            {data.echo.events.map((ev: any, i: number) => (
+              <View key={ev.slug + i} style={st.evRow}>
+                <View style={[st.evDot, { backgroundColor: GRAD.to }]} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text numberOfLines={1} style={st.evName}>{ev.title}</Text>
+                  <Text numberOfLines={1} style={st.evMeta}>{ev.count} paid · {ev.slug}</Text>
+                </View>
+                <Text style={st.evAmt}>₹{Number(ev.revenue || 0).toLocaleString('en-IN')}</Text>
+              </View>
+            ))}
+          </View>
+        </Card>
+      )}
 
       <View style={{ flexDirection: stack ? 'column' : 'row', gap: 16 }}>
         <Card style={{ flex: stack ? undefined : 2.4 }}>
@@ -259,7 +283,7 @@ export function PaymentsView() {
               )}
             </View>
             <Text style={st.gradVal}>{data.stripe_balance}</Text>
-            <Text style={st.gradSub}>{data.has_live_stripe ? 'Live Stripe balance' : 'Settles on May 5 to HDFC ****8821'}</Text>
+            <Text style={st.gradSub}>{data.has_live_stripe ? 'Live Stripe balance' : 'Connect Stripe in Settings for live balance'}</Text>
             <Pressable style={st.gradCta} onPress={doPayout} disabled={payoutLoading}>
               {payoutLoading ? (
                 <Text style={st.gradCtaText}>Processing…</Text>
@@ -345,6 +369,14 @@ const st = StyleSheet.create({
     backgroundColor: 'rgba(245,158,11,0.10)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.30)',
   },
   tierCut: { color: GRAD.to, fontFamily: FONTS.xbold, fontSize: 12 },
+  evRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: SAC.border,
+  },
+  evDot: { width: 8, height: 8, borderRadius: 4 },
+  evName: { color: '#fff', fontFamily: FONTS.bold, fontSize: 12.5 },
+  evMeta: { color: SAC.dim, fontFamily: FONTS.med, fontSize: 10.5, marginTop: 1 },
+  evAmt: { color: '#86EFAC', fontFamily: FONTS.xbold, fontSize: 12.5 },
   editBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(245,158,11,0.10)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.30)' },
   editBtnText: { color: GRAD.to, fontFamily: FONTS.bold, fontSize: 10.5 },
 });

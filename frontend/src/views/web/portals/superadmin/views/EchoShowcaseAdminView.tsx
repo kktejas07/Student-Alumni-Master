@@ -26,7 +26,7 @@ import {
   Pencil, Trash2, Eye, Globe, Archive, Send, X, Zap,
   Star, BookOpen, Upload, MoveUp, MoveDown, Images, FolderOpen,
   Copy, Check, Search, RefreshCw, PlusCircle, FileText, Link2,
-  Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown,
+  Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, Users,
 } from 'lucide-react-native';
 import {
   GRAD, GradientButton, SecondaryButton, Card,
@@ -51,7 +51,7 @@ const GALLERY_LAYOUT_OPTIONS = ['grid', 'masonry', 'mixed', 'featured-grid', 'ca
 const VIDEO_PLATFORM_OPTIONS = ['youtube', 'vimeo', 'mp4'];
 const DOWNLOAD_CATEGORY_OPTIONS = ['Brochure', 'Schedule', 'Certificate', 'Presentation', 'Report', 'Document'];
 
-type PageTab = 'all' | 'create' | 'drafts' | 'media';
+type PageTab = 'all' | 'create' | 'drafts' | 'media' | 'registrations';
 type StatusFilter = 'all' | 'published' | 'draft' | 'archived';
 type FormTab =
   | 'general' | 'hero' | 'statistics' | 'about' | 'gallery'
@@ -62,6 +62,7 @@ const PAGE_TABS: Array<{ id: PageTab; label: string; icon?: any }> = [
   { id: 'all', label: 'All Showcases', icon: Layout },
   { id: 'create', label: 'Create Showcase', icon: PlusCircle },
   { id: 'drafts', label: 'Drafts', icon: FileText },
+  { id: 'registrations', label: 'Registrations & Payments', icon: Users },
   { id: 'media', label: 'Media Library', icon: Images },
 ];
 
@@ -1285,7 +1286,6 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash }: any
   };
 
   const autoSlug = (title: string) => {
-    set('title', title);
     if (!editing) {
       const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       setForm((prev: any) => {
@@ -1293,7 +1293,10 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash }: any
         scheduleAutosave(next);
         return next;
       });
+    } else {
+      set('title', title);
     }
+    setIsDirty(true);
   };
 
   // Unsaved changes warning on browser close
@@ -1773,6 +1776,161 @@ const ml = StyleSheet.create({
   footer: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, padding: 16, borderTopWidth: 1, borderTopColor: SAC.border },
 });
 
+// ── Registrations & Payments panel ───────────────────────────────────────────
+function RegistrationsPanel() {
+  const [rows, setRows] = useState<any[]>([]);
+  const [revenue, setRevenue] = useState<any>({ events: [], totals: {} });
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState('');
+  const [status, setStatus] = useState('all');
+  const { flash } = useToast();
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [regs, rev] = await Promise.all([
+        api.adminEchoRegistrations(),
+        api.adminEchoRevenue(),
+      ]);
+      setRows(regs?.items || []);
+      setRevenue(rev || { events: [], totals: {} });
+    } catch {
+      flash('Failed to load registrations');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const filtered = rows.filter((r) => {
+    const s = q.toLowerCase();
+    const matchQ = !s
+      || r.full_name?.toLowerCase().includes(s)
+      || r.email?.toLowerCase().includes(s)
+      || r.college?.toLowerCase().includes(s)
+      || r.event_title?.toLowerCase().includes(s);
+    const matchStatus = status === 'all' || r.payment_status === status;
+    return matchQ && matchStatus;
+  });
+
+  const fmtAmt = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
+  const paid = filtered.filter((r) => r.payment_status === 'paid');
+  const revenueTotal = paid.reduce((a, r) => a + Number(r.fee || 0), 0);
+
+  return (
+    <View>
+      {/* Revenue KPIs */}
+      <View style={{ flexDirection: 'row', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
+        <KpiTile Icon={Users} label="Total Registrations" value={String(filtered.length)} />
+        <KpiTile Icon={Check} label="Paid" value={String(paid.length)} />
+        <KpiTile Icon={Zap} label="Revenue (filtered)" value={fmtAmt(revenueTotal)} delta="real-time" deltaKind="success" />
+      </View>
+
+      {/* Per-event revenue */}
+      {revenue.events?.length > 0 && (
+        <Card style={{ marginBottom: 16 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Event Revenue Breakdown</Text>
+            <StatusPill kind="info" label={`${revenue.events.length} events`} />
+          </View>
+          <View style={{ gap: 8 }}>
+            {revenue.events.map((ev: any, i: number) => (
+              <View key={ev.slug + i} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: GRAD.to }} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' }}>{ev.title}</Text>
+                  <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>
+                    {ev.paid} paid · {ev.pending} pending · {ev.free} free
+                  </Text>
+                </View>
+                <Text style={{ fontFamily: FONTS.xbold, fontSize: 12.5, color: '#86EFAC' }}>{fmtAmt(ev.revenue)}</Text>
+              </View>
+            ))}
+          </View>
+        </Card>
+      )}
+
+      {/* Search + filter */}
+      <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+        <View style={{ flex: 1, minWidth: 200 }}>
+          <SearchField value={q} onChange={setQ} placeholder="Search attendee, email, event…" />
+        </View>
+        <TopTabs
+          tabs={[
+            { id: 'all', label: 'All' },
+            { id: 'paid', label: 'Paid' },
+            { id: 'pending', label: 'Pending' },
+          ]}
+          active={status}
+          onChange={setStatus}
+        />
+        <SecondaryButton onPress={load}><RefreshCw size={12} color={SAC.muted} /><Text style={{ color: SAC.muted, fontFamily: FONTS.bold, fontSize: 12, marginLeft: 6 }}>Refresh</Text></SecondaryButton>
+      </View>
+
+      {/* Registrations table */}
+      <Card style={{ overflow: 'hidden' }}>
+        {loading ? (
+          <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={GRAD.from} />
+          </View>
+        ) : filtered.length === 0 ? (
+          <View style={{ padding: 40, alignItems: 'center', gap: 10 }}>
+            <IconBox size={46}><Users size={18} color={GRAD.to} /></IconBox>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>No registrations found</Text>
+            <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: SAC.muted, textAlign: 'center', maxWidth: 320 }}>
+              Registrations appear here the moment attendees sign up for an event.
+            </Text>
+          </View>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={{ minWidth: 760 }}>
+              {/* Header */}
+              <View style={{ flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1, borderBottomColor: SAC.border }}>
+                {['Attendee', 'Event', 'College / Branch', 'Amount', 'Payment', 'Date'].map((h) => (
+                  <Text key={h} style={{ width: h === 'Attendee' ? 180 : h === 'Event' ? 200 : 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>{h.toUpperCase()}</Text>
+                ))}
+              </View>
+              {filtered.map((r: any, i: number) => (
+                <View key={r.id || i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
+                  <View style={{ width: 180, minWidth: 0 }}>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' }}>{r.full_name || '—'}</Text>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>{r.email || r.phone || ''}</Text>
+                  </View>
+                  <View style={{ width: 200, minWidth: 0 }}>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 12, color: '#e5e7eb' }}>{r.event_title || r.slug || '—'}</Text>
+                  </View>
+                  <View style={{ width: 150, minWidth: 0 }}>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 12, color: '#e5e7eb' }}>{r.college || '—'}</Text>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.dim }}>{[r.branch, r.year].filter(Boolean).join(' · ')}</Text>
+                  </View>
+                  <View style={{ width: 150, minWidth: 0 }}>
+                    <Text style={{ fontFamily: FONTS.xbold, fontSize: 12.5, color: '#fff' }}>
+                      {Number(r.fee || 0) > 0 ? `₹${Number(r.fee).toLocaleString('en-IN')}` : 'FREE'}
+                    </Text>
+                    <Text numberOfLines={1} style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim }}>{r.payment_id || ''}</Text>
+                  </View>
+                  <View style={{ width: 150, minWidth: 0 }}>
+                    <StatusPill
+                      kind={r.payment_status === 'paid' ? 'success' : r.payment_status === 'pending' ? 'warn' : 'neutral'}
+                      label={(r.payment_status || '—').toUpperCase()}
+                    />
+                  </View>
+                  <View style={{ width: 150, minWidth: 0 }}>
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>
+                      {(r.registered_at || '').slice(0, 16).replace('T', ' ') || '—'}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+        )}
+      </Card>
+    </View>
+  );
+}
+
 // ── Main View ─────────────────────────────────────────────────────────────────
 export function EchoShowcaseAdminView() {
   const [pageTab, setPageTab] = useState<PageTab>('all');
@@ -1820,6 +1978,13 @@ export function EchoShowcaseAdminView() {
   const onClose = () => { setModalOpen(false); setEditing(null); if (pageTab === 'create') setPageTab('all'); };
 
   const onSave = async (form: any) => {
+    if (!form.title?.trim()) {
+      flash('Event name is required');
+      return;
+    }
+    if (!form.slug?.trim()) {
+      form = { ...form, slug: form.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'untitled' };
+    }
     setSaving(true);
     console.log('[CMS SAVE PAYLOAD]', {
       id: editing?._id,
@@ -1849,6 +2014,7 @@ export function EchoShowcaseAdminView() {
       onClose();
       await load();
     } catch (e: any) {
+      console.error('[CMS SAVE ERROR]', e);
       flash(e?.message || 'Save failed');
     } finally {
       setSaving(false);
@@ -1911,6 +2077,9 @@ export function EchoShowcaseAdminView() {
 
       {/* ── MEDIA LIBRARY ── */}
       {pageTab === 'media' && <MediaLibraryPanel />}
+
+      {/* ── REGISTRATIONS & PAYMENTS ── */}
+      {pageTab === 'registrations' && <RegistrationsPanel />}
 
       {/* ── SHOWCASES LIST (All / Drafts) ── */}
       {(pageTab === 'all' || pageTab === 'drafts') && (
