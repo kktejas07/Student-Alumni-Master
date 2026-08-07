@@ -69,7 +69,7 @@ export function SkillBar({ name, score }: { name: string; score: number }) {
 
 export function AIInsightBubble({ text }: { text: string }) {
   return (
-    <View style={{ flexDirection: 'row', gap: 10, backgroundColor: 'rgba(124,58,237,0.1)', borderColor: 'rgba(124,58,237,0.25)', borderWidth: 1, borderRadius: 12, padding: 14, marginBottom: 10 }}>
+    <View style={{ flexDirection: 'row', gap: 10, backgroundColor: 'rgba(79,70,229,0.1)', borderColor: 'rgba(79,70,229,0.25)', borderWidth: 1, borderRadius: 12, padding: 14, marginBottom: 10 }}>
       <MaterialCommunityIcons name="sparkles" size={18} color={COLORS.purpleL} />
       <Text style={{ flex: 1, color: COLORS.textPrimary, fontSize: 13, lineHeight: 18 }}>{text}</Text>
     </View>

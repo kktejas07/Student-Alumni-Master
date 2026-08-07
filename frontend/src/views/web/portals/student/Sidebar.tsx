@@ -23,7 +23,7 @@ import { useSidebarStore } from '@/src/viewmodels/stores/sidebarStore';
 import {
   LayoutDashboard, Sparkles, Briefcase, Users, Calendar, Wallet,
   Tag, CreditCard, GraduationCap, Home, User, ExternalLink, LogOut,
-  CalendarCheck, FileText, BookOpen,
+  CalendarCheck, FileText, BookOpen, ChevronDown, ChevronRight, Zap,
 } from './iconShims';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -38,10 +38,12 @@ import { FadeInView, PressScale, SparkIcon, PulseDot } from './motion';
 import { AgentKLauncher } from '@/src/views/web/agent-k/AgentKLauncher';
 import { SALogo } from '@/src/views/components';
 
+import { api } from '@/src/models/services/api';
+
 export type StudentNavId =
   | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'events'
   | 'financial' | 'deals' | 'wallet' | 'higher-ed' | 'rentals' | 'courses' | 'profile'
-  | 'my-bookings' | 'my-workshops';
+  | 'my-bookings' | 'my-workshops' | 'echo-showcase' | string;
 
 export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: boolean }> = [
   { id: 'dashboard',       label: 'Dashboard',          Icon: LayoutDashboard },
@@ -60,6 +62,130 @@ export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: bo
   { id: 'profile',         label: 'Profile',            Icon: User },
 ];
 
+/* ── ECHO Showcase collapsible nav group ──────────────────────────────────── */
+function EchoNavGroup({
+  active, collapsed, isOpen, onToggle, onNav, C,
+}: {
+  active: StudentNavId;
+  collapsed: boolean;
+  isOpen: boolean;
+  onToggle: () => void;
+  onNav: (id: StudentNavId) => void;
+  C: any;
+}) {
+  const [showcases, setShowcases] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    let mounted = true;
+    api.listEchoShowcases()
+      .then((res) => {
+        if (mounted && res?.items && res.items.length > 0) {
+          setShowcases(res.items);
+        }
+      })
+      .catch(() => {});
+    return () => { mounted = false; };
+  }, []);
+
+  const isChildActive = active === 'echo-showcase' || showcases.some((s) => s.slug === active || active === `echo-showcase:${s.slug}`);
+  const firstSlug = showcases[0]?.slug || 'echo-showcase';
+
+  return (
+    <View style={{ marginBottom: 2 }}>
+      {/* Group header row */}
+      <Pressable
+        onPress={collapsed ? () => onNav(firstSlug) : onToggle}
+        style={({ hovered }: any) => [
+          {
+            flexDirection: 'row', alignItems: 'center', gap: 11,
+            paddingHorizontal: collapsed ? 0 : 11, paddingVertical: 9,
+            borderRadius: 8, minHeight: 40,
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            backgroundColor: isChildActive && !isOpen
+              ? 'rgba(99,102,241,0.12)'
+              : hovered && Platform.OS === 'web'
+              ? 'rgba(99,102,241,0.06)'
+              : 'transparent',
+          },
+          Platform.OS === 'web' ? { cursor: 'pointer' } as any : {},
+        ]}
+        nativeID="student-nav-echo-showcase"
+        accessibilityRole="button"
+        accessibilityLabel="ECHO Showcase group"
+      >
+        <Zap size={16} color={isChildActive ? '#A5B4FC' : C.textSec} />
+        {!collapsed && (
+          <>
+            <Text style={{ fontFamily: TYPO.body600, fontSize: 13, flex: 1, color: isChildActive ? '#A5B4FC' : C.textSec }} numberOfLines={1}>
+              ECHO Showcase
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <View style={{ backgroundColor: 'rgba(99,102,241,0.30)', borderRadius: 10, paddingHorizontal: 5, paddingVertical: 2 }}>
+                <Text style={{ fontFamily: TYPO.body700, fontSize: 9, color: '#A5B4FC', letterSpacing: 0.5 }}>CMS</Text>
+              </View>
+              {isOpen
+                ? <ChevronDown size={12} color={C.textSec} />
+                : <ChevronRight size={12} color={C.textSec} />
+              }
+            </View>
+          </>
+        )}
+      </Pressable>
+      {/* Child items */}
+      {isOpen && !collapsed && (
+        <View style={{ gap: 2 }}>
+          {showcases.map((sc) => {
+            const isSelected = active === sc.slug || active === `echo-showcase:${sc.slug}`;
+            return (
+              <Pressable
+                key={sc.slug}
+                onPress={() => onNav(sc.slug)}
+                style={({ hovered }: any) => [
+                  {
+                    flexDirection: 'row', alignItems: 'center', gap: 8,
+                    paddingLeft: 32, paddingRight: 11, paddingVertical: 8,
+                    borderRadius: 8, minHeight: 36,
+                  },
+                  Platform.OS === 'web' ? { cursor: 'pointer' } as any : {},
+                ]}
+                nativeID={`student-nav-${sc.slug}`}
+                accessibilityRole="tab"
+                accessibilityLabel={sc.title}
+                accessibilityState={{ selected: isSelected }}
+              >
+                {isSelected ? (
+                  <LinearGradient
+                    colors={[PALETTE.violet, PALETTE.violetD] as any}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                    style={{
+                      flexDirection: 'row', alignItems: 'center', gap: 8,
+                      flex: 1, paddingHorizontal: 10, paddingVertical: 7,
+                      borderRadius: 8,
+                      ...(Platform.OS === 'web' ? { boxShadow: PALETTE.violetGlow } as any : {}),
+                    }}
+                  >
+                    <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#fff', opacity: 0.8 }} />
+                    <Text style={{ fontFamily: TYPO.body600, fontSize: 12.5, color: '#fff', flex: 1 }} numberOfLines={1}>
+                      {sc.title}
+                    </Text>
+                  </LinearGradient>
+                ) : (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: C.dim }} />
+                    <Text style={{ fontFamily: TYPO.body500, fontSize: 12.5, color: C.textSec }} numberOfLines={1}>
+                      {sc.title}
+                    </Text>
+                  </View>
+                )}
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+    </View>
+  );
+}
+
 export function Sidebar({
   active, onNav, onLogout,
 }: { active: StudentNavId; onNav: (id: StudentNavId) => void; onLogout: () => void }) {
@@ -67,6 +193,13 @@ export function Sidebar({
   const { theme, isDark } = useTheme();
   const bp = useBreakpoint();
   const user = useAuthStore((u) => u.user) as any;
+  const [echoOpen, setEchoOpen] = React.useState<boolean>(
+    active === 'echo-showcase' || active?.startsWith('echo-showcase:')
+  );
+  React.useEffect(() => {
+    if (active === 'echo-showcase' || active?.startsWith('echo-showcase:')) setEchoOpen(true);
+  }, [active]);
+
   const fullName: string = (user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`).trim() || STUDENT.name;
   const initials: string = (fullName.split(' ').slice(0, 2).map((p: string) => p[0] || '').join('') || STUDENT.initials).toUpperCase();
   const photo = useAuthStore((s) => s.photoOverride) || user?.photo_data || user?.face_image_base64;
@@ -195,35 +328,50 @@ export function Sidebar({
       >
         {NAV.map(({ id, label, Icon, spark }, i) => {
           const isActive = id === active;
+          // Insert ECHO Showcase group after 'internships'
+          const echoGroup = id === 'network' ? (
+            <EchoNavGroup
+              key="echo-group"
+              active={active}
+              collapsed={collapsed}
+              isOpen={echoOpen}
+              onToggle={() => setEchoOpen((o) => !o)}
+              onNav={onNav}
+              C={C}
+            />
+          ) : null;
           return (
-            <FadeInView key={id} delay={150 + i * 35} distance={8}>
-              <PressScale
-                onPress={() => onNav(id)}
-                accessibilityRole="tab"
-                accessibilityLabel={label}
-                accessibilityState={{ selected: isActive }}
-                accessibilityHint={`Opens the ${label} section of the dashboard`}
-                nativeID={`student-nav-${id}`}
-              >
-                {isActive ? (
-                  <LinearGradient
-                    colors={[PALETTE.violet, PALETTE.violetD] as any}
-                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                    style={[s.navItem, s.navItemActive, collapsed && { justifyContent: 'center', paddingHorizontal: 0 },
-                            Platform.OS === 'web' ? ({ boxShadow: PALETTE.violetGlow } as any) : {}]}
-                  >
-                    {spark ? <SparkIcon Icon={Icon} size={16} color="#fff" /> : <Icon size={16} color="#fff" />}
-                    {!collapsed && <Text style={[s.navLabel, s.navLabelActive]} numberOfLines={1}>{label}</Text>}
-                    {!collapsed && <View style={s.activeDot} />}
-                  </LinearGradient>
-                ) : (
-                  <View style={[s.navItem, collapsed && { justifyContent: 'center', paddingHorizontal: 0 }]}>
-                    {spark ? <SparkIcon Icon={Icon} size={16} color={C.textSec} /> : <Icon size={16} color={C.textSec} />}
-                    {!collapsed && <Text style={[s.navLabel, { color: C.textSec }]} numberOfLines={1}>{label}</Text>}
-                  </View>
-                )}
-              </PressScale>
-            </FadeInView>
+            <React.Fragment key={id}>
+              {echoGroup}
+              <FadeInView delay={150 + i * 35} distance={8}>
+                <PressScale
+                  onPress={() => onNav(id)}
+                  accessibilityRole="tab"
+                  accessibilityLabel={label}
+                  accessibilityState={{ selected: isActive }}
+                  accessibilityHint={`Opens the ${label} section of the dashboard`}
+                  nativeID={`student-nav-${id}`}
+                >
+                  {isActive ? (
+                    <LinearGradient
+                      colors={[PALETTE.violet, PALETTE.violetD] as any}
+                      start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                      style={[s.navItem, s.navItemActive, collapsed && { justifyContent: 'center', paddingHorizontal: 0 },
+                              Platform.OS === 'web' ? ({ boxShadow: PALETTE.violetGlow } as any) : {}]}
+                    >
+                      {spark ? <SparkIcon Icon={Icon} size={16} color="#fff" /> : <Icon size={16} color="#fff" />}
+                      {!collapsed && <Text style={[s.navLabel, s.navLabelActive]} numberOfLines={1}>{label}</Text>}
+                      {!collapsed && <View style={s.activeDot} />}
+                    </LinearGradient>
+                  ) : (
+                    <View style={[s.navItem, collapsed && { justifyContent: 'center', paddingHorizontal: 0 }]}>
+                      {spark ? <SparkIcon Icon={Icon} size={16} color={C.textSec} /> : <Icon size={16} color={C.textSec} />}
+                      {!collapsed && <Text style={[s.navLabel, { color: C.textSec }]} numberOfLines={1}>{label}</Text>}
+                    </View>
+                  )}
+                </PressScale>
+              </FadeInView>
+            </React.Fragment>
           );
         })}
       </ScrollView>

@@ -151,6 +151,7 @@ dump.rdb
 *.db-journal
 .run.pids
 .run.pid
+.qdrant_local/
 
 # ── Seed / export data (regenerable, often huge)
 backend/seed_data_export/

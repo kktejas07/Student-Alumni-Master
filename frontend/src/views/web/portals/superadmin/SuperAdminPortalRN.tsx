@@ -30,6 +30,7 @@ import { ImportsView } from './views/ImportsView';
 import { PartnersView } from './views/PartnersView';
 import { PromotionsView } from './views/PromotionsView';
 import { TalentPoolView } from './views/TalentPoolView';
+import { EchoShowcaseAdminView } from './views/EchoShowcaseAdminView';
 import { useAutoTour } from '@/src/views/web/tour/TourProvider';
 
 export function SuperAdminPortalRN() {
@@ -82,6 +83,7 @@ export function SuperAdminPortalRN() {
           {active === 'partners'    && <PartnersView />}
           {active === 'promotions'  && <PromotionsView />}
           {active === 'talent-pool' && <TalentPoolView />}
+          {active === 'echo-showcase' && <EchoShowcaseAdminView />}
           <DashboardFooter portal="super_admin" />
         </ScrollView>
       </View>

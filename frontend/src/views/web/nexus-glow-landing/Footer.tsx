@@ -1,10 +1,63 @@
+import { useEffect } from "react";
+import { useRouter, usePathname } from "expo-router";
+
+// Module-scoped so a pending section survives the Footer remount when we
+// navigate from an echo page (/echo/...) to the landing page (/welcome).
+let pendingLandingSection: string | null = null;
+
 export function Footer() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const isLanding = typeof pathname === "string" && pathname === "/welcome";
+
   const cols = [
-    { title: "Product",   items: ["Agent K", "Mentors", "AI Roadmap"] },
-    { title: "Company",   items: ["About", "Contact", "Partners", "Collaborations"] },
-    { title: "Resources", items: ["Blog", "Help center", "Community"] },
-    { title: "Legal",     items: ["Privacy", "Terms", "Security", "Cookies"] },
+    { title: "Product",   items: [
+      { label: "Agent K", href: "#agent-k" },
+      { label: "Mentors", href: "#features" },
+      { label: "AI Roadmap", href: "#features" }
+    ] },
+    { title: "Company",   items: [
+      { label: "About", href: "#about-us" },
+      { label: "Contact", href: "#contact" },
+      { label: "Partners", href: "#partners" },
+      { label: "Collaborations", href: "#collaborations" }
+    ] },
+    { title: "Resources", items: [
+      { label: "Blog", href: "/blogs" },
+      { label: "Help center", href: "/help-center" },
+      { label: "Community", href: "/community" }
+    ] },
+    { title: "Legal",     items: [
+      { label: "Privacy", href: "/policy/privacy" },
+      { label: "Terms", href: "/policy/terms" },
+      { label: "Security", href: "/policy/security" },
+      { label: "Cookies", href: "/policy/cookies" }
+    ] },
   ];
+
+  const goToLandingSection = (e: any, targetId: string) => {
+    e.preventDefault();
+    if (isLanding) {
+      const elem = document.getElementById(targetId);
+      if (elem) elem.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      pendingLandingSection = targetId;
+      router.push("/welcome");
+    }
+  };
+
+  // After navigating from an echo page to the landing page, scroll to the
+  // requested section once it has rendered.
+  useEffect(() => {
+    if (!isLanding || !pendingLandingSection) return;
+    const id = pendingLandingSection;
+    pendingLandingSection = null;
+    const raf = requestAnimationFrame(() => {
+      const elem = document.getElementById(id);
+      if (elem) elem.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [isLanding]);
 
   return (
     <footer className="relative border-t border-white/5 bg-[#0C0C0D] pt-20 pb-10">
@@ -56,12 +109,17 @@ export function Footer() {
               </div>
               <ul className="mt-5 space-y-3">
                 {c.items.map((item) => (
-                  <li key={item}>
+                  <li key={item.label}>
                     <a
-                      href="#"
+                      href={item.href}
+                      onClick={(e) => {
+                        if (item.href.startsWith("#") && item.href !== "#") {
+                          goToLandingSection(e, item.href.substring(1));
+                        }
+                      }}
                       className="text-sm font-medium text-gray-200 hover:text-primary hover:translate-x-0.5 inline-block transition-all duration-150"
                     >
-                      {item}
+                      {item.label}
                     </a>
                   </li>
                 ))}

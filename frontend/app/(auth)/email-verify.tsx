@@ -13,22 +13,25 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, ShieldCheck } from 'lucide-react-native';
+import { ArrowLeft, ShieldCheck, Mail, Send, Clock, Lock } from 'lucide-react-native';
 import { useToast } from '@/src/views/components';
 import { AuthWebShell } from '@/src/views/web/AuthWebShell';
 import { WebPrimaryBtn, WebGhostBtn } from '@/src/views/web/AuthWebControls';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { getBaseUrl } from '@/src/lib/env';
 
 const IS_WEB = Platform.OS === 'web';
+const BASE = getBaseUrl();
 
 export default function EmailVerify() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ email?: string }>();
+  const params = useLocalSearchParams<{ email?: string; token?: string }>();
   const email = params.email || 'rahul@alumni.edu';
+  const urlToken = params.token || '';
   const toast = useToast();
   const role = useAuthStore((u) => u.user?.role) as any;
 
-  const [step, setStep] = useState<0 | 1 | 2>(0);
+  const [step, setStep] = useState<0 | 1 | 2>(urlToken ? 1 : 0);
   const [resending, setResending] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
 
@@ -39,21 +42,54 @@ export default function EmailVerify() {
     }
   }, [resendTimer]);
 
-  const verify = () => {
+  const verify = async () => {
     setStep(1);
-    setTimeout(() => {
+    try {
+      if (urlToken) {
+        const res = await fetch(`${BASE}/api/auth/verify-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, token: urlToken }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          toast.error('Verification failed', err?.detail || 'Invalid or expired token');
+          setStep(0);
+          return;
+        }
+      }
       setStep(2);
       toast.success('Email verified', 'Your account is now fully active.');
-    }, 1300);
+    } catch {
+      toast.error('Network error', 'Could not verify email. Check your connection.');
+      setStep(0);
+    }
   };
 
-  const resend = () => {
+  useEffect(() => {
+    if (urlToken) verify();
+  }, [urlToken]);
+
+  const resend = async () => {
     setResending(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch(`${BASE}/api/auth/send-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (res.ok) {
+        setResendTimer(60);
+        toast.info('Verification email sent', `New link sent to ${email}`);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error('Failed to send', err?.detail || 'Could not send verification email');
+      }
+    } catch {
+      toast.error('Network error', 'Could not send verification email');
+    } finally {
       setResending(false);
-      setResendTimer(60);
-      toast.info('Verification email resent', `New link sent to ${email}`);
-    }, 1000);
+    }
   };
 
   const skipToDashboard = () => {
@@ -129,7 +165,7 @@ function PendingView({
     <View>
       <View style={{ alignItems: 'center', marginBottom: 24 }}>
         <Animated.View style={[styles.iconHero, { transform: [{ translateY: floatY }] }]}>
-          <Text style={{ fontSize: 44 }}>📧</Text>
+          <Mail size={36} color="#C4B5FD" />
         </Animated.View>
       </View>
       <Text style={styles.h1}>Verify your email address</Text>
@@ -141,18 +177,21 @@ function PendingView({
       {/* Status card */}
       <View style={styles.statusCard}>
         {[
-          { emoji: '📤', label: 'Email sent',   value: '2 minutes ago',    color: 'rgba(255,255,255,0.6)' },
-          { emoji: '⏳', label: 'Link expires', value: 'In 23 minutes',    color: '#FCD34D' },
-          { emoji: '🔒', label: 'Secure',       value: 'One-time use link', color: '#86EFAC' },
-        ].map((row, i, arr) => (
-          <View key={row.label} style={[styles.statusRow, i < arr.length - 1 && styles.statusRowDivider]}>
-            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
-              <Text style={{ fontSize: 17 }}>{row.emoji}</Text>
-              <Text style={styles.statusLabel}>{row.label}</Text>
+          { icon: Send, label: 'Email sent',   value: '2 minutes ago',    color: 'rgba(255,255,255,0.6)' },
+          { icon: Clock, label: 'Link expires', value: 'In 23 minutes',    color: '#FCD34D' },
+          { icon: Lock, label: 'Secure',       value: 'One-time use link', color: '#86EFAC' },
+        ].map((row, i, arr) => {
+          const Icon = row.icon;
+          return (
+            <View key={row.label} style={[styles.statusRow, i < arr.length - 1 && styles.statusRowDivider]}>
+              <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+                <Icon size={16} color={row.color} />
+                <Text style={styles.statusLabel}>{row.label}</Text>
+              </View>
+              <Text style={[styles.statusVal, { color: row.color }]}>{row.value}</Text>
             </View>
-            <Text style={[styles.statusVal, { color: row.color }]}>{row.value}</Text>
-          </View>
-        ))}
+          );
+        })}
       </View>
 
       {/* Progress timer */}
@@ -210,7 +249,7 @@ function DoneView({ onSetup2FA, onSkip }: { onSetup2FA: () => void; onSkip: () =
       <Animated.View style={[styles.successRing, { transform: [{ scale }], opacity }]}>
         <Text style={{ fontSize: 38, color: '#34D399' }}>✓</Text>
       </Animated.View>
-      <Text style={[styles.h1, { textAlign: 'center', marginTop: 6 }]}>Email verified! 🎉</Text>
+      <Text style={[styles.h1, { textAlign: 'center', marginTop: 6 }]}>Email verified!</Text>
       <Text style={[styles.sub, { textAlign: 'center', marginBottom: 18 }]}>
         Your email address has been confirmed. Your account is now fully active.
       </Text>

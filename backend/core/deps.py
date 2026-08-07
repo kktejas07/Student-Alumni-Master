@@ -32,7 +32,7 @@ async def get_current_user(request: Request) -> dict:
 
 
 def require_role(*allowed_roles: str):
-    \"\"\"Factory that returns a dependency enforcing role-based access control.\"\"\"
+    """Factory that returns a dependency enforcing role-based access control."""
     async def role_checker(user: dict = Depends(get_current_user)) -> dict:
         user_role = (user.get("role") or "").lower()
         if user_role not in [r.lower() for r in allowed_roles] and user_role != "admin":

@@ -88,22 +88,46 @@ export default function LoginScreen() {
   const submittingRef = useRef(false);
   const pwdRef = useRef<TextInput>(null);
 
-  const [oauthCfg, setOauthCfg] = useState<{ linkedin_client_id?: string; redirect_uri?: string; firebase?: { apiKey: string; authDomain: string; projectId: string; appId: string } | null } | null>(null);
+  const isTrue = (val: any, defaultVal = false) => {
+    if (val === undefined || val === null) return defaultVal;
+    if (typeof val === 'boolean') return val;
+    if (typeof val === 'string') return val.toLowerCase() === 'true' || val === '1';
+    return Boolean(val);
+  };
+
+  const [oauthCfg, setOauthCfg] = useState<{ 
+    linkedin_client_id?: string; 
+    github_client_id?: string;
+    redirect_uri?: string; 
+    enable_google_login?: boolean;
+    enable_linkedin_login?: boolean;
+    enable_github_login?: boolean;
+    firebase?: { apiKey: string; authDomain: string; projectId: string; appId: string } | null 
+  }>({
+    enable_google_login: true,
+    enable_linkedin_login: false,
+    enable_github_login: false,
+  });
+
+  const fetchOauthCfg = async () => {
+    try {
+      const res = await fetch(`${BASE}/api/auth/oauth-config?_t=${Date.now()}`);
+      if (res.ok) {
+        const cfg = await res.json();
+        setOauthCfg(cfg);
+        if (cfg.firebase?.apiKey) {
+          initFirebaseAuth(cfg.firebase);
+        }
+      }
+    } catch {}
+  };
 
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`${BASE}/api/auth/oauth-config`);
-        if (res.ok) {
-          const cfg = await res.json();
-          setOauthCfg(cfg);
-          // Init Firebase Auth if configured
-          if (cfg.firebase?.apiKey) {
-            initFirebaseAuth(cfg.firebase);
-          }
-        }
-      } catch {}
-    })();
+    fetchOauthCfg();
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.addEventListener('focus', fetchOauthCfg);
+      return () => window.removeEventListener('focus', fetchOauthCfg);
+    }
   }, []);
 
   // Listen for OAuth popup callback (web only)
@@ -249,36 +273,60 @@ export default function LoginScreen() {
       </View>
 
       {/* OAuth row */}
-      {oauthCfg?.enable_google_login === true && (
+      {(isTrue(oauthCfg?.enable_google_login, true) || isTrue(oauthCfg?.enable_linkedin_login, false) || isTrue(oauthCfg?.enable_github_login, false)) && (
         <View style={s.oauthRow}>
-          <DarkSocialButton label="Google" testID="login-google" icon={<GoogleG size={16} />} onPress={async () => {
-              try {
-                if (oauthCfg?.firebase && Platform.OS === 'web') {
-                  const result = await signInWithGoogle();
-                  if (!result) return;
-                  const res = await fetch(`${BASE}/api/auth/firebase`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id_token: result.idToken }),
-                  });
-                  if (!res.ok) throw new Error('Firebase auth failed');
-                  const data = await res.json();
-                  setUser(data.user);
-                  setTokens(data.access_token, data.refresh_token);
-                  trackAuth({ event: 'login_success', email: data.user.email, role: data.user.role });
-                  const r = (data.user.role || '').toLowerCase();
-                  if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
-                  else if (r === 'mentor') router.replace('/mentor-portal');
-                  else if (r === 'college') router.replace('/college-portal');
-                  else if (r === 'alumni') router.replace('/alumni-portal');
-                  else router.replace('/student-portal');
-                } else {
-                  setPwdError('Google sign-in is not configured. Contact admin.');
+          {isTrue(oauthCfg?.enable_google_login, true) && (
+            <DarkSocialButton label="Google" testID="login-google" icon={<GoogleG size={16} />} onPress={async () => {
+                try {
+                  if (oauthCfg?.firebase && Platform.OS === 'web') {
+                    const result = await signInWithGoogle();
+                    if (!result) return;
+                    const res = await fetch(`${BASE}/api/auth/firebase`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ id_token: result.idToken }),
+                    });
+                    if (!res.ok) throw new Error('Firebase auth failed');
+                    const data = await res.json();
+                    setUser(data.user);
+                    setTokens(data.access_token, data.refresh_token);
+                    trackAuth({ event: 'login_success', email: data.user.email, role: data.user.role });
+                    const r = (data.user.role || '').toLowerCase();
+                    if (r === 'admin' || r === 'super_admin') router.replace('/super-admin');
+                    else if (r === 'mentor') router.replace('/mentor-portal');
+                    else if (r === 'college') router.replace('/college-portal');
+                    else if (r === 'alumni') router.replace('/alumni-portal');
+                    else router.replace('/student-portal');
+                  } else {
+                    setPwdError('Google sign-in is not configured. Contact admin.');
+                  }
+                } catch (e: any) {
+                  setPwdError(e?.message || 'Google sign-in failed');
                 }
-              } catch (e: any) {
-                setPwdError(e?.message || 'Google sign-in failed');
+              }} />
+          )}
+
+          {isTrue(oauthCfg?.enable_linkedin_login, false) && (
+            <DarkSocialButton label="LinkedIn" testID="login-linkedin" icon={<LinkedInIn size={16} />} onPress={() => {
+              if (Platform.OS === 'web' && oauthCfg?.linkedin_client_id && oauthCfg?.redirect_uri) {
+                const url = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${oauthCfg.linkedin_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&state=linkedin_login&scope=profile%20email`;
+                window.location.href = url;
+              } else {
+                setPwdError('LinkedIn sign-in is not configured or unsupported on this platform.');
               }
             }} />
+          )}
+
+          {isTrue(oauthCfg?.enable_github_login, false) && (
+            <DarkSocialButton label="GitHub" testID="login-github" icon={<GitHubCat size={16} />} onPress={() => {
+              if (Platform.OS === 'web' && oauthCfg?.github_client_id && oauthCfg?.redirect_uri) {
+                const url = `https://github.com/login/oauth/authorize?client_id=${oauthCfg.github_client_id}&redirect_uri=${encodeURIComponent(oauthCfg.redirect_uri)}&state=github_login&scope=user:email`;
+                window.location.href = url;
+              } else {
+                setPwdError('GitHub sign-in is not configured or unsupported on this platform.');
+              }
+            }} />
+          )}
         </View>
       )}
 
@@ -314,7 +362,7 @@ export default function LoginScreen() {
           editable={!loading}
           rightSlot={
             <Pressable onPress={() => setShowPwd((v) => !v)} style={{ paddingHorizontal: 6 }} testID="login-show-password" accessibilityRole="button" accessibilityLabel={showPwd ? "Hide password" : "Show password"}>
-              {showPwd ? <EyeOff size={16} color={AC.muted} /> : <Eye size={16} color={AC.muted} />}
+              {showPwd ? <EyeOff size={16} color="#9CA3AF" /> : <Eye size={16} color="#9CA3AF" />}
             </Pressable>
           }
           onSubmitEditing={onLogin}
