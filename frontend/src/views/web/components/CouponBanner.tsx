@@ -400,6 +400,8 @@ function CouponEditor({
 const CARDS_PER_PAGE = 4;
 const CARD_GAP = 16;
 const CARD_WIDTH = 270;
+// Offset between the start of one 4-card page and the next: 4 cards + 4 gaps.
+const PAGE_STRIDE = CARDS_PER_PAGE * (CARD_WIDTH + CARD_GAP);
 
 export function CouponBanner({ portal, editable }: { portal: string; editable?: boolean }) {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -462,14 +464,13 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
       setCurrentPage(0);
       return;
     }
-    const cardWidth = (containerWidth - (CARDS_PER_PAGE - 1) * CARD_GAP) / CARDS_PER_PAGE;
-    const page = Math.round(scrollX / (cardWidth + CARD_GAP));
+    const page = Math.round(scrollX / PAGE_STRIDE);
     setCurrentPage(Math.min(page, totalPages - 1));
   };
 
   const scrollToPage = (page: number) => {
     if (!scrollRef.current) return;
-    scrollRef.current.scrollTo({ x: page * (CARD_WIDTH + CARD_GAP) * CARDS_PER_PAGE, animated: true });
+    scrollRef.current.scrollTo({ x: page * PAGE_STRIDE, animated: true });
   };
 
   return (
@@ -497,7 +498,7 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
             contentContainerStyle={s.row}
             onScroll={handleScroll}
             scrollEventThrottle={16}
-            snapToInterval={CARD_WIDTH + CARD_GAP}
+            snapToInterval={PAGE_STRIDE}
             decelerationRate="fast"
           >
             {coupons.map((c) => (

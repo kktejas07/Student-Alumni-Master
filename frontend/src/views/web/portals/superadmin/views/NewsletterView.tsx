@@ -12,13 +12,13 @@
  *   • Recipient count preview and confirmation before sending.
  *   • Campaign history with per-campaign deliverability (sent/failed).
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, Pressable, StyleSheet, TextInput, Platform,
 } from 'react-native';
 import {
   Mail, Send, RefreshCw, Calendar, AlertTriangle, Check, Users, Megaphone,
-  Bell, Smartphone, MessageSquare, Search, User,
+  Bell, Smartphone, Search, User,
 } from 'lucide-react-native';
 import { SAC, FONTS } from '../tokens';
 import {
@@ -34,6 +34,11 @@ type Campaign = {
   recipients_count: number;
   ok_count?: number;
   fail_count?: number;
+  email_ok?: number;
+  email_fail?: number;
+  push_ok?: number;
+  push_fail?: number;
+  in_app_ok?: number;
   status?: string;
   created_at?: string;
   created_by?: string;
@@ -103,7 +108,8 @@ export function NewsletterView() {
   const [indSelectedUser, setIndSelectedUser] = useState<any>(null);
   const [indForm, setIndForm] = useState({ title: '', body: '', cta_url: '', send_email: true, send_push: true, send_in_app: true });
   const [indSending, setIndSending] = useState(false);
-  const [searchDebounce, setSearchDebounce] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchSeqRef = useRef(0);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -156,19 +162,26 @@ export function NewsletterView() {
 
   // ── Individual notification ──
   const searchUsers = useCallback(async (q: string) => {
+    const seq = ++searchSeqRef.current;
     if (!q.trim()) { setIndUserResults([]); return; }
     try {
       const r = await api.searchUsers(q);
-      setIndUserResults(r?.users || []);
-    } catch { setIndUserResults([]); }
+      // Drop stale responses when a newer query has been issued meanwhile.
+      if (seq === searchSeqRef.current) setIndUserResults(r?.users || []);
+    } catch {
+      if (seq === searchSeqRef.current) setIndUserResults([]);
+    }
   }, []);
 
   const handleUserSearch = (q: string) => {
     setIndUserQuery(q);
-    if (searchDebounce) clearTimeout(searchDebounce);
-    const t = setTimeout(() => searchUsers(q), 350);
-    setSearchDebounce(t);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => searchUsers(q), 350);
   };
+
+  useEffect(() => () => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+  }, []);
 
   const doSendIndividual = async () => {
     if (!indSelectedUser) { flash('Select a user first'); return; }

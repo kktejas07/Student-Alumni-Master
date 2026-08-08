@@ -176,8 +176,19 @@ async def list_campaigns(
     for d in docs:
         d["_id"] = str(d["_id"])
         d["sent"] = d.get("recipients_count", 0)
-        d["ok_count"] = d.get("email_ok", 0)
-        d["fail_count"] = d.get("email_fail", 0)
+        # Multi-channel campaigns store per-channel counters. Fall back to the
+        # legacy ok_count/fail_count so pre-multichannel campaigns still render.
+        # (New campaigns always store email_ok/email_fail — even 0 — so the
+        # default only kicks in for pre-multichannel docs.)
+        email_ok = d.get("email_ok", d.get("ok_count", 0))
+        email_fail = d.get("email_fail", d.get("fail_count", 0))
+        d["email_ok"] = email_ok
+        d["email_fail"] = email_fail
+        d["push_ok"] = d.get("push_ok", 0)
+        d["push_fail"] = d.get("push_fail", 0)
+        d["in_app_ok"] = d.get("in_app_ok", 0)
+        d["ok_count"] = email_ok
+        d["fail_count"] = email_fail + d["push_fail"]
         d.pop("attempts", None)
         items.append(d)
     return {"items": items}
