@@ -278,7 +278,45 @@ app.include_router(newsletter_router)
 import os
 from fastapi.staticfiles import StaticFiles
 os.makedirs("uploads/echo", exist_ok=True)
+os.makedirs("uploads/general", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+
+# ----------------------------------------------------------------------------
+# Shared file upload endpoint (ads, coupons, promotions, newsletter)
+# ----------------------------------------------------------------------------
+@api_router.post("/admin/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    folder: str = Query("general"),
+    user: dict = Depends(get_current_user),
+):
+    """Upload an image file and return its static URL. Used by ads, coupons, promotions."""
+    role = (user.get("role") or "").lower()
+    if role not in ("admin", "superadmin", "super_admin"):
+        raise HTTPException(403, "Only admins can upload files")
+    from pathlib import Path
+    from datetime import datetime as _dt, timezone as _tz
+    allowed = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+    ext = Path(file.filename).suffix.lower() if file.filename else ".png"
+    if ext not in allowed:
+        raise HTTPException(400, f"File type {ext} not allowed. Use JPG, PNG, WebP, or GIF.")
+    contents = await file.read()
+    max_size = 5 * 1024 * 1024  # 5 MB
+    if len(contents) > max_size:
+        raise HTTPException(413, "File too large. Maximum 5 MB allowed.")
+    # Sanitize folder name to prevent path traversal
+    safe_folder = Path(folder).name if folder else "general"
+    upload_dir = Path("uploads") / safe_folder
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    ts = int(_dt.now(_tz).timestamp())
+    stem = Path(file.filename).stem.replace(" ", "_").replace("/", "_") if file.filename else "upload"
+    safe_name = f"{ts}_{stem}{ext}"
+    out_path = upload_dir / safe_name
+    with open(out_path, "wb") as f:
+        f.write(contents)
+    url = f"/uploads/{safe_folder}/{safe_name}"
+    return {"status": "ok", "url": url}
 
 
 # (Mongo warm-up and shutdown handling are now handled in the _lifespan context above)

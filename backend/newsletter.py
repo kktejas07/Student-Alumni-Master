@@ -41,6 +41,18 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _make_absolute_url(url: str) -> str:
+    """Convert relative URLs to absolute for email clients."""
+    if not url:
+        return url
+    if url.startswith("http://") or url.startswith("https://") or url.startswith("data:"):
+        return url
+    base = os.environ.get("BACKEND_URL", "https://studentalumni.ai")
+    base = base.rstrip("/")
+    path = url if url.startswith("/") else f"/{url}"
+    return f"{base}{path}"
+
+
 def _unsub_token(email: str) -> str:
     secret = os.environ.get("JWT_SECRET", "studentalumni_jwt_secret_key_2026")
     return hmac.new(secret.encode("utf-8"), email.strip().lower().encode("utf-8"), hashlib.sha256).hexdigest()[:16]
@@ -73,7 +85,7 @@ def _upcoming_events_html(events: list) -> str:
         college = ev.get("college") or "Student Alumni Cell"
         when = ev.get("date") or ""
         venue = ev.get("venue") or ""
-        img = ev.get("hero_image_url") or ev.get("poster_image") or ""
+        img = _make_absolute_url(ev.get("hero_image_url") or ev.get("poster_image") or "")
         img_html = f"<img src='{img}' alt='' style='width:100%;height:auto;display:block;border-radius:10px 10px 0 0;' />" if img else ""
         badge = "FREE ENTRY" if float((ev.get("registration") or {}).get("fee") or 0) <= 0 else f"₹{float((ev.get('registration') or {}).get('fee') or 0):,.0f} ENTRY"
         cards.append(
@@ -110,7 +122,7 @@ def build_newsletter_html(
     upcoming_events: list,
 ) -> str:
     hero_html = (
-        f"<img src='{hero_image}' alt='' style='width:100%;height:auto;display:block;border-radius:12px;margin:0 0 20px 0;' />"
+        f"<img src='{_make_absolute_url(hero_image)}' alt='' style='width:100%;height:auto;display:block;border-radius:12px;margin:0 0 20px 0;' />"
         if hero_image else ""
     )
     intro_html = (

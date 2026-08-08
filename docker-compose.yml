@@ -21,6 +21,8 @@ services:
       # Expose externally only when running locally.  In Dokploy the
       # reverse-proxy will route to this port automatically.
       - "${BACKEND_HOST_PORT:-8000}:8000"
+    volumes:
+      - uploads_data:/app/uploads
     environment:
       # ── Required ────────────────────────────────────────────────
       MONGO_URL:        ${MONGO_URL}
@@ -56,6 +58,7 @@ services:
       dockerfile: Dockerfile
       args:
         # Backend origin is BAKED into the JS bundle at build-time.
+        BACKEND_HOST:                  ${BACKEND_HOST:-backend}
         EXPO_PUBLIC_BACKEND_URL:               ${EXPO_PUBLIC_BACKEND_URL}
         EXPO_PUBLIC_FIREBASE_API_KEY:          ${EXPO_PUBLIC_FIREBASE_API_KEY:-}
         EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN:      ${EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN:-}
@@ -92,3 +95,6 @@ services:
 networks:
   studentalumni:
     driver: bridge
+
+volumes:
+  uploads_data:

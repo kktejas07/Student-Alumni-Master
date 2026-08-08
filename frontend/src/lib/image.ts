@@ -1,12 +1,47 @@
 /**
  * Image helpers for banner / coupon uploads.
  *
- * `fileToDataUrl` reads an image File into a base64 data URL. On web it also
- * downscales the image client-side (max 1280px on the long edge, JPEG 0.82)
- * so multi-banner payloads never grow into multi-megabyte JSON bodies that
- * can exceed proxy or document size limits. Falls back to the raw data URL
- * whenever canvas is unavailable.
+ * `uploadImage` uploads a File to the backend and returns a persistent URL.
+ * `fileToDataUrl` reads an image File into a base64 data URL (legacy fallback).
  */
+
+import { BASE_URL } from '@/src/models/services/api';
+
+function getAuthHeaders(): Record<string, string> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem('auth_tokens');
+    if (!raw) return {};
+    const tokens = JSON.parse(raw);
+    const token = tokens?.access_token || tokens?.accessToken || '';
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Upload an image file to the server and return its static URL.
+ * @param file - The File object to upload
+ * @param folder - Subdirectory under uploads/ (e.g. "ads", "coupons", "general")
+ * @returns The uploaded file URL (e.g. "/uploads/ads/12345_photo.jpg")
+ */
+export async function uploadImage(file: File, folder = 'general'): Promise<string> {
+  const form = new FormData();
+  form.append('file', file);
+  const url = `${BASE_URL}/api/admin/upload?folder=${encodeURIComponent(folder)}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: form,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Upload failed' }));
+    throw new Error(err.detail || `Upload failed (${res.status})`);
+  }
+  const data = await res.json();
+  return data.url as string;
+}
 
 function readAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

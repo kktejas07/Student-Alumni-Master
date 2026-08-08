@@ -21,7 +21,7 @@ import {
   ArrowLeft, Calendar, MapPin, Clock, Ticket, CreditCard,
   Check, ShieldCheck, Users, ChevronLeft, ChevronRight, ExternalLink,
 } from 'lucide-react-native';
-import { api } from '@/src/models/services/api';
+import { api, resolveImageUrl } from '@/src/models/services/api';
 import { PALETTE, FONTS, TYPO } from '@/src/views/web/portals/student/tokens';
 import { GRAD } from '@/src/views/web/portals/student/portalkit';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
@@ -323,7 +323,7 @@ export default function EchoRegisterPage() {
         <View style={[s.posterCol, !isWide && s.posterColStack]}>
           <View style={s.posterWrap}>
             {activePoster ? (
-              <Image source={{ uri: activePoster }} style={s.poster} resizeMode="cover" />
+              <Image source={{ uri: resolveImageUrl(activePoster) }} style={s.poster} resizeMode="cover" />
             ) : (
               <LinearGradient colors={['rgba(123,61,191,0.35)', 'rgba(95,37,159,0.55)', 'rgba(30,10,80,0.85)']} style={s.poster}>
                 <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, gap: 10, padding: 20 }}>

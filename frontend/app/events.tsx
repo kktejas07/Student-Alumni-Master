@@ -23,7 +23,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { request, tokenStore } from '@/src/models/services/api';
+import { request, tokenStore, resolveImageUrl } from '@/src/models/services/api';
 import AdvisorAIBlock from '@/src/views/web/AdvisorAIBlock';
 
 // ─── Constants ────────────────────────────────────────────────────────
@@ -878,7 +878,7 @@ function EventCard({
     ]}>
       {/* Image banner if available */}
       {ev.image_url ? (
-        <Image source={{ uri: ev.image_url }} style={s.cardImg} />
+        <Image source={{ uri: resolveImageUrl(ev.image_url) }} style={s.cardImg} />
       ) : (
         <LinearGradient
           colors={[tint + '40', tint + '15']}
@@ -1016,7 +1016,7 @@ function DetailPanel({
           {/* Banner */}
           <View style={{ position: 'relative' }}>
             {ev.image_url ? (
-              <Image source={{ uri: ev.image_url }} style={s.panelBanner} />
+              <Image source={{ uri: resolveImageUrl(ev.image_url) }} style={s.panelBanner} />
             ) : (
               <LinearGradient colors={[tint + '60', tint + '20']} style={s.panelBanner}>
                 <MaterialCommunityIcons name={icon} size={64} color={tint} style={{ alignSelf: 'center', marginTop: 64 }} />

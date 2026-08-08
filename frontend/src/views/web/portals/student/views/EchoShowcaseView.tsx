@@ -824,7 +824,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
             {data.sponsors.map((sp: any, i: number) => (
               <GlassCard key={i} style={{ flex: 1, minWidth: 160, padding: 14, alignItems: 'center', gap: 8 }}>
                 {sp.logo_url ? (
-                  <Image source={{ uri: sp.logo_url }} style={{ width: 100, height: 40 }} resizeMode="contain" />
+                  <Image source={{ uri: resolveImageUrl(sp.logo_url) }} style={{ width: 100, height: 40 }} resizeMode="contain" />
                 ) : (
                   <Building2 size={24} color={GRAD.from} />
                 )}

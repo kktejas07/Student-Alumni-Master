@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { Ticket, ExternalLink, X, Copy, Check, Tag, Plus, Pencil, Trash2, Save, Upload, AlertTriangle } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
+import { uploadImage } from '@/src/lib/image';
 
 export type Coupon = {
   id: string;
@@ -198,18 +199,18 @@ function CouponEditor({
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<any>(null);
 
-  const handleFileSelect = (e: any) => {
+  const handleFileSelect = async (e: any) => {
     const file = e.target?.files?.[0];
     if (!file) return;
     setUploading(true);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      if (dataUrl) setImageUrl(dataUrl);
+    try {
+      const url = await uploadImage(file, 'coupons');
+      setImageUrl(url);
+    } catch {
+      // upload failed silently
+    } finally {
       setUploading(false);
-    };
-    reader.onerror = () => setUploading(false);
-    reader.readAsDataURL(file);
+    }
   };
 
   useEffect(() => {

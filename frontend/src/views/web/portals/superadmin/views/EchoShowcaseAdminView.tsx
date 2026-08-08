@@ -688,7 +688,7 @@ function PosterEditor({ posters, onChange }: { posters: string[]; onChange: (p: 
         <View key={i} style={{ backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: SAC.border, gap: 8 }}>
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             {url ? (
-              <Image source={{ uri: url }} style={{ width: 44, height: 56, borderRadius: 6, backgroundColor: '#0d1326' }} resizeMode="cover" />
+              <Image source={{ uri: resolveImageUrl(url) }} style={{ width: 44, height: 56, borderRadius: 6, backgroundColor: '#0d1326' }} resizeMode="cover" />
             ) : (
               <View style={{ width: 44, height: 56, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' }}>
                 <ImageIcon size={14} color={SAC.dim} />
