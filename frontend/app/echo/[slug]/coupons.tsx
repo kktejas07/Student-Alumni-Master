@@ -7,7 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Platform, Image } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, QrCode, Check, Clock, Ticket } from 'lucide-react-native';
+import { ArrowLeft, QrCode, Check, Clock, Ticket, Lock } from 'lucide-react-native';
 import { api, resolveImageUrl } from '@/src/models/services/api';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
 
@@ -100,7 +100,7 @@ export default function EchoCouponsPage() {
           ) : (
             <View style={s.grid}>
               {coupons.map((c, i) => (
-                <View key={c._id || i} style={[s.couponCard, c.used && s.couponUsed]}>
+                <View key={c._id || i} style={[s.couponCard, c.used && s.couponUsed, c.session_locked && !c.used && s.couponLocked]}>
                   <View style={s.couponHeader}>
                     <Text style={s.couponIcon}>{SESSION_ICONS[c.session_key] || '🎫'}</Text>
                     <View style={{ flex: 1 }}>
@@ -112,6 +112,11 @@ export default function EchoCouponsPage() {
                         <Check size={14} color="#10B981" />
                         <Text style={[s.statusText, { color: '#34D399' }]}>Used</Text>
                       </View>
+                    ) : c.session_locked ? (
+                      <View style={[s.statusBadge, { backgroundColor: 'rgba(139,92,246,0.15)' }]}>
+                        <Lock size={14} color="#8B5CF6" />
+                        <Text style={[s.statusText, { color: '#A78BFA' }]}>Locked</Text>
+                      </View>
                     ) : (
                       <View style={[s.statusBadge, { backgroundColor: 'rgba(245,158,11,0.15)' }]}>
                         <Clock size={14} color="#F59E0B" />
@@ -119,7 +124,16 @@ export default function EchoCouponsPage() {
                       </View>
                     )}
                   </View>
-                  {!c.used && (
+                  {!c.used && c.session_locked && (
+                    <View style={s.lockedSection}>
+                      <View style={s.lockedPlaceholder}>
+                        <Lock size={36} color="#8B5CF6" />
+                        <Text style={s.lockedTitle}>Available soon</Text>
+                        <Text style={s.lockedHint}>Session locked — {c.session_name} will open shortly</Text>
+                      </View>
+                    </View>
+                  )}
+                  {!c.used && !c.session_locked && (
                     <View style={s.qrSection}>
                       <View style={s.qrPlaceholder}>
                         <QrCode size={48} color="#A78BFA" />
@@ -166,6 +180,7 @@ const s = StyleSheet.create({
     borderColor: 'rgba(167,139,250,0.2)', padding: 20, overflow: 'hidden',
   },
   couponUsed: { opacity: 0.6 },
+  couponLocked: { borderColor: 'rgba(139,92,246,0.3)' },
   couponHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   couponIcon: { fontSize: 32 },
   couponName: { fontFamily: 'DMSans_800ExtraBold', fontSize: 16, color: '#fff' },
@@ -173,6 +188,14 @@ const s = StyleSheet.create({
   statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
   statusText: { fontFamily: 'DMSans_700Bold', fontSize: 12 },
   qrSection: { marginTop: 16, alignItems: 'center' },
+  lockedSection: { marginTop: 16, alignItems: 'center' },
+  lockedPlaceholder: {
+    width: 180, height: 180, borderRadius: 16,
+    backgroundColor: 'rgba(139,92,246,0.08)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.2)',
+    alignItems: 'center', justifyContent: 'center', gap: 8,
+  },
+  lockedTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 14, color: '#C4B5FD' },
+  lockedHint: { fontFamily: 'DMSans_500Medium', fontSize: 10, color: 'rgba(255,255,255,0.4)', textAlign: 'center', paddingHorizontal: 12 },
   qrPlaceholder: {
     width: 180, height: 180, borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(167,139,250,0.2)',
