@@ -99,8 +99,8 @@ export function Navbar() {
             </span>
           </a>
 
-          {/* Nav links (desktop) */}
-          <nav className="hidden md:flex items-center gap-1 bg-[#121214] border border-white/5 rounded-full px-2 py-1.5">
+          {/* Nav links (desktop only) */}
+          <nav className="hidden lg:flex items-center gap-1 bg-[#121214] border border-white/5 rounded-full px-2 py-1.5">
             <a
               href="/echo"
               onClick={goToEcho}
@@ -147,11 +147,11 @@ export function Navbar() {
             >
               Get Started
             </button>
-            {/* Hamburger (mobile) */}
+            {/* Hamburger (tablet + mobile) */}
             <button
               onClick={() => setMobileOpen((o) => !o)}
               aria-label="Toggle menu"
-              className="md:hidden flex items-center justify-center w-10 h-10 rounded-lg text-white bg-[#121214] border border-white/10 cursor-pointer"
+              className="lg:hidden flex items-center justify-center w-10 h-10 rounded-lg text-white bg-[#121214] border border-white/10 cursor-pointer"
             >
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -167,7 +167,7 @@ export function Navbar() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.25 }}
-            className="md:hidden overflow-hidden bg-[#0C0C0D]/95 backdrop-blur-md border-b border-white/10"
+            className="lg:hidden overflow-hidden bg-transparent border-b border-white/10"
           >
             <div className="px-6 py-4 flex flex-col gap-1">
               <a
