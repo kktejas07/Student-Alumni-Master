@@ -46,6 +46,7 @@ import * as Linking from 'expo-linking';
 import { SAC, FONTS } from '../tokens';
 import { request } from '@/src/models/services/api';
 import LexicalEditor from './LexicalEditor';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 /* ─────────────────────────────────────────────────────────────────
  * Provider docs map — used by the "How to get credentials" link in
@@ -309,14 +310,16 @@ function ProfileTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<any>({});
   const [saving, setSaving] = useState(false);
+  const user = useAuthStore((s) => s.user);
 
   const load = useCallback(async () => {
+    if (!user) return;
     try {
       const r = await request<any>('/admin/profile');
       setData(r);
       setDraft({ name: r?.name, phone: r?.phone, title: r?.title, org: r?.org });
     } catch (e) { /* ignore */ }
-  }, []);
+  }, [user]);
   useEffect(() => { load(); }, [load]);
 
   const save = async () => {

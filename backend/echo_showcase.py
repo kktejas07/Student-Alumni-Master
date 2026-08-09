@@ -391,15 +391,13 @@ def _build_invoice(reg: dict, showcase: dict) -> dict:
     }
 
 
-def _build_invoice_html(inv: dict) -> str:
+def _build_invoice_html(inv: dict, template_id: str = "modern") -> str:
     """Render a professional, printable HTML invoice (browser-print → PDF).
 
-    Design features:
-      • Clean gradient header with company branding
-      • Two-column metadata (Billed To / Event Details)
-      • Itemized table with proper alignment
-      • Payment status badge
-      • Professional footer with terms
+    Templates:
+      • modern   — gradient header, card-based layout
+      • minimal  — clean white, thin borders, subtle
+      • classic  — formal, dark header, traditional table
     """
     amount = float(inv.get("amount") or 0)
     currency = inv.get("currency") or "INR"
@@ -515,6 +513,126 @@ def _build_invoice_html(inv: dict) -> str:
       </div>
       <div class="foot-brand">STUDENT ALUMNI · ECHO</div>
     </div>
+  </div>
+</body>
+</html>"""
+
+    if template_id == "minimal":
+        return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><title>Invoice {esc(inv.get('invoice_no'))}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  * {{ box-sizing:border-box; margin:0; padding:0; }}
+  body {{ padding:32px; background:#f8fafc; font-family:'Inter',sans-serif; color:#1e293b; -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
+  .sheet {{ max-width:700px; margin:0 auto; background:#fff; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; }}
+  .head {{ padding:28px 36px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; }}
+  .head-brand {{ font-size:18px; font-weight:700; color:#0f172a; }}
+  .head-badge {{ background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; padding:4px 14px; border-radius:999px; font-size:11px; font-weight:700; letter-spacing:.5px; }}
+  .body {{ padding:28px 36px; }}
+  .meta-row {{ display:flex; gap:32px; margin-bottom:24px; }}
+  .meta-col {{ flex:1; }}
+  .meta-label {{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#94a3b8; margin-bottom:4px; }}
+  .meta-val {{ font-size:14px; font-weight:600; color:#1e293b; }}
+  .meta-sub {{ font-size:12px; color:#64748b; margin-top:1px; }}
+  table {{ width:100%; border-collapse:collapse; margin-top:8px; }}
+  th {{ text-align:left; padding:8px 12px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:#94a3b8; border-bottom:1px solid #e2e8f0; }}
+  th.r, td.r {{ text-align:right; }}
+  td {{ padding:10px 12px; font-size:13px; color:#334155; border-bottom:1px solid #f1f5f9; }}
+  .total {{ display:flex; justify-content:flex-end; margin-top:16px; padding-top:16px; border-top:2px solid #e2e8f0; }}
+  .total-box {{ text-align:right; }}
+  .total-label {{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#94a3b8; }}
+  .total-amt {{ font-size:24px; font-weight:800; color:#1e293b; margin-top:2px; }}
+  .foot {{ padding:20px 36px; border-top:1px solid #e2e8f0; background:#f8fafc; }}
+  .foot-text {{ font-size:11px; color:#94a3b8; line-height:1.6; }}
+  @media print {{ body {{ background:#fff; padding:0; }} .sheet {{ border:none; border-radius:0; max-width:100%; }} }}
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="head">
+      <div class="head-brand">STUDENT ALUMNI</div>
+      <div class="head-badge">PAID</div>
+    </div>
+    <div class="body">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;">
+        <div><div style="font-size:20px;font-weight:700;">Invoice</div><div style="font-size:12px;color:#64748b;margin-top:2px;">{esc(inv.get('invoice_no'))}</div></div>
+        <div style="text-align:right;"><div style="font-size:12px;color:#94a3b8;">Paid</div><div style="font-size:13px;font-weight:600;">{esc(paid_at)}</div></div>
+      </div>
+      <div class="meta-row">
+        <div class="meta-col"><div class="meta-label">Billed To</div><div class="meta-val">{esc(inv.get('full_name') or 'Attendee')}</div><div class="meta-sub">{esc(inv.get('email') or '')}</div><div class="meta-sub">{esc(inv.get('college') or '')}</div></div>
+        <div class="meta-col"><div class="meta-label">Event</div><div class="meta-val">{esc(inv.get('event_title') or '')}</div><div class="meta-sub">{esc(inv.get('event_date') or '')}</div><div class="meta-sub">{esc(inv.get('event_venue') or '')}</div></div>
+      </div>
+      <div class="meta-row" style="margin-bottom:0;">
+        <div class="meta-col"><div class="meta-label">Payment ID</div><div class="meta-val" style="font-size:12px;">{esc(inv.get('payment_id') or '—')}</div></div>
+        <div class="meta-col"><div class="meta-label">Method</div><div class="meta-val" style="font-size:12px;">{_payment_label(inv.get('payment_method'))}</div></div>
+      </div>
+      <table style="margin-top:20px;"><tr><th>Description</th><th style="text-align:center;">Qty</th><th class="r">Amount</th></tr>{rows}</table>
+      <div class="total"><div class="total-box"><div class="total-label">Total Paid</div><div class="total-amt">{currency} {amount:,.2f}</div></div></div>
+    </div>
+    <div class="foot"><div class="foot-text">Thank you for registering. Carry this invoice and your check-in pass to the venue.</div></div>
+  </div>
+</body>
+</html>"""
+
+    if template_id == "classic":
+        return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><title>Invoice {esc(inv.get('invoice_no'))}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  * {{ box-sizing:border-box; margin:0; padding:0; }}
+  body {{ padding:32px; background:#1e293b; font-family:'Inter',sans-serif; color:#0f172a; -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
+  .sheet {{ max-width:720px; margin:0 auto; background:#fff; border-radius:4px; overflow:hidden; border:1px solid #cbd5e1; }}
+  .head {{ background:#0f172a; color:#fff; padding:28px 36px; }}
+  .head-brand {{ font-size:9px; font-weight:800; letter-spacing:3px; opacity:.5; }}
+  .head h1 {{ margin:6px 0 0; font-size:22px; font-weight:700; }}
+  .head-meta {{ display:flex; gap:10px; margin-top:8px; flex-wrap:wrap; }}
+  .head-pill {{ background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15); padding:3px 10px; border-radius:3px; font-size:11px; font-weight:600; }}
+  .body {{ padding:28px 36px; }}
+  .meta-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }}
+  .meta-col {{ }}
+  .meta-label {{ font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#94a3b8; margin-bottom:4px; }}
+  .meta-val {{ font-size:14px; font-weight:700; color:#0f172a; }}
+  .meta-sub {{ font-size:12px; color:#64748b; margin-top:1px; }}
+  table {{ width:100%; border-collapse:collapse; margin-top:4px; }}
+  th {{ text-align:left; padding:8px 12px; background:#f1f5f9; color:#475569; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; border-bottom:2px solid #e2e8f0; }}
+  th.r, td.r {{ text-align:right; }}
+  td {{ padding:10px 12px; font-size:13px; color:#334155; border-bottom:1px solid #f1f5f9; }}
+  .total {{ display:flex; justify-content:flex-end; margin-top:16px; }}
+  .total-box {{ background:#f8fafc; border:1px solid #e2e8f0; padding:14px 20px; text-align:right; }}
+  .total-label {{ font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#94a3b8; }}
+  .total-amt {{ font-size:22px; font-weight:900; color:#0f172a; margin-top:2px; }}
+  .foot {{ padding:18px 36px; border-top:2px solid #0f172a; background:#f8fafc; }}
+  .foot-text {{ font-size:11px; color:#64748b; line-height:1.6; }}
+  @media print {{ body {{ background:#fff; padding:0; }} .sheet {{ border:none; border-radius:0; max-width:100%; }} }}
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="head">
+      <div class="head-brand">STUDENT ALUMNI · ECHO</div>
+      <h1>Payment Invoice</h1>
+      <div class="head-meta">
+        <span class="head-pill">{esc(inv.get('invoice_no'))}</span>
+        <span class="head-pill" style="background:rgba(34,197,94,0.15);border-color:rgba(34,197,94,0.25);color:#4ade80;">PAID</span>
+      </div>
+    </div>
+    <div class="body">
+      <div class="meta-grid">
+        <div class="meta-col"><div class="meta-label">Billed To</div><div class="meta-val">{esc(inv.get('full_name') or 'Attendee')}</div><div class="meta-sub">{esc(inv.get('email') or '')}</div><div class="meta-sub">{esc(inv.get('college') or '')}</div></div>
+        <div class="meta-col"><div class="meta-label">Event</div><div class="meta-val">{esc(inv.get('event_title') or '')}</div><div class="meta-sub">{esc(inv.get('event_date') or '')}</div><div class="meta-sub">{esc(inv.get('event_venue') or '')}</div></div>
+      </div>
+      <div class="meta-grid" style="margin-bottom:0;"><div class="meta-col"><div class="meta-label">Payment ID</div><div class="meta-val" style="font-size:12px;">{esc(inv.get('payment_id') or '—')}</div></div><div class="meta-col"><div class="meta-label">Method</div><div class="meta-val" style="font-size:12px;">{_payment_label(inv.get('payment_method'))}</div></div></div>
+      <div style="height:1px;background:#e2e8f0;margin:20px 0;"></div>
+      <table><tr><th>Description</th><th style="text-align:center;">Qty</th><th class="r">Amount</th></tr>{rows}</table>
+      <div class="total"><div class="total-box"><div class="total-label">Total Paid</div><div class="total-amt">{currency} {amount:,.2f}</div></div></div>
+    </div>
+    <div class="foot"><div class="foot-text">This is a computer-generated invoice. Carry it along with your entry pass to the venue.</div></div>
   </div>
 </body>
 </html>"""
@@ -2314,13 +2432,16 @@ async def admin_echo_revenue(request: Request, _=Depends(_require_admin)):
 # ── Admin settings ────────────────────────────────────────────────────────────
 @router.get("/admin/settings")
 async def get_echo_settings(request: Request, _=Depends(_require_admin)):
-    """Return global ECHO settings (default template, etc.)."""
+    """Return global ECHO settings."""
     db = _get_db(request)
-    settings = await db.echo_settings.find_one({"_id": "global"})
-    if not settings:
-        settings = {"_id": "global", "default_ticket_template": "aurora"}
+    settings = await db.echo_settings.find_one({"_id": "global"}) or {}
     return {
         "default_ticket_template": settings.get("default_ticket_template", "aurora"),
+        "default_invoice_template": settings.get("default_invoice_template", "modern"),
+        "default_email_style": settings.get("default_email_style", "modern"),
+        "email_brand_color": settings.get("email_brand_color", "#7C3AED"),
+        "brand_name": settings.get("brand_name", "Student Alumni"),
+        "email_footer": settings.get("email_footer", "Student Alumni Cell — Empowering the next generation of leaders."),
     }
 
 
@@ -2334,11 +2455,49 @@ async def update_echo_settings(request: Request, admin=Depends(_require_admin)):
         tpl = body["default_ticket_template"]
         if tpl in TICKET_TEMPLATES:
             update["default_ticket_template"] = tpl
+    if "default_invoice_template" in body:
+        tpl = body["default_invoice_template"]
+        if tpl in ("modern", "minimal", "classic"):
+            update["default_invoice_template"] = tpl
+    if "default_email_style" in body:
+        tpl = body["default_email_style"]
+        if tpl in ("modern", "minimal", "professional"):
+            update["default_email_style"] = tpl
+    if "email_brand_color" in body:
+        update["email_brand_color"] = str(body["email_brand_color"])[:20]
+    if "brand_name" in body:
+        update["brand_name"] = str(body["brand_name"])[:60]
+    if "email_footer" in body:
+        update["email_footer"] = str(body["email_footer"])[:300]
     if update:
         await db.echo_settings.update_one(
             {"_id": "global"}, {"$set": update}, upsert=True
         )
     return {"ok": True, **update}
+
+
+@router.get("/admin/settings/preview/invoice/{template_id}")
+async def preview_invoice_template(template_id: str, request: Request, _=Depends(_require_admin)):
+    """Return a preview HTML for an invoice template variant."""
+    if template_id not in ("modern", "minimal", "classic"):
+        raise HTTPException(400, "Invalid template")
+    mock_inv = {
+        "invoice_no": "INV-DEMO123456",
+        "full_name": "Priya Sharma",
+        "email": "priya@example.com",
+        "phone": "+91 98765 43210",
+        "college": "VNR VJIET",
+        "event_title": "ECHO 2026 — Tech Summit",
+        "event_date": "August 15, 2026",
+        "event_venue": "Main Auditorium, VNR VJIET",
+        "payment_id": "pay_DEMO789",
+        "payment_method": "online",
+        "paid_at": "2026-08-10T14:30:00",
+        "amount": 499,
+        "currency": "INR",
+        "items": [{"desc": "Registration — ECHO 2026", "qty": 1, "amount": 499}],
+    }
+    return {"html": _build_invoice_html(mock_inv, template_id)}
 
 
 # ── Admin endpoints ───────────────────────────────────────────────────────────

@@ -11,6 +11,7 @@
  */
 import { useEffect, useState } from 'react';
 import { request } from '@/src/models/services/api';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 export async function fetchPortal<T>(path: string): Promise<T> {
   return request<T>(path);
@@ -51,10 +52,12 @@ export function usePortalData<T>(path: string, mock: T, refreshMs: number = 30_0
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
   const [tick,    setTick]    = useState(0);
+  const user = useAuthStore((s) => s.user);
 
   const refresh = () => setTick((t) => t + 1);
 
   useEffect(() => {
+    if (!user) { setLoading(false); return; }
     let cancelled = false;
     let timer: any = null;
 
@@ -82,7 +85,7 @@ export function usePortalData<T>(path: string, mock: T, refreshMs: number = 30_0
       cancelled = true;
       if (timer) clearInterval(timer);
     };
-  }, [path, refreshMs, tick]);
+  }, [path, refreshMs, tick, user]);
 
   return { data, loading, error, refresh };
 }
