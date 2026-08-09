@@ -502,7 +502,7 @@ export default function EchoRegisterPage() {
                           <>
                             <CreditCard size={16} color="#fff" />
                             <Text style={s.payBtnText}>
-                              {fee > 0 ? `Pay ${currency} ${fee} & Register` : 'Register Free'}
+                              {fee > 0 ? `Pay ${currency} ${fee} via Razorpay` : 'Register Free'}
                             </Text>
                           </>
                         )}

@@ -596,7 +596,7 @@ def test_ticket_email_block_contains_pass_and_download_link():
     show = {"title": "Hack Night", "date": "Sept 1, 2026", "venue": "Block C"}
     block = es._ticket_email_block(reg, show, "https://studentalumni.ai/api/echo/tickets/REG456")
     assert "ENTRY PASS" in block.upper() or "ENTRY PASS" in block
-    assert "Download Ticket" in block
+    assert "Download Pass" in block
     assert "REG456" in block
     assert "data:image/png;base64," in block
 
