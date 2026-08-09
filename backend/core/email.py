@@ -1,7 +1,39 @@
+import os
+import re
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from typing import Optional
 from core.db import db
+
+
+def _plain_text(html: str) -> str:
+    """Strip HTML to a plain-text fallback for Postal's text_body field."""
+    text = re.sub(r"<style.*?</style>", "", html, flags=re.DOTALL | re.IGNORECASE)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def get_postal_config() -> Optional[dict]:
+    """Fetch Postal (postalserver.io) email configuration from environment.
+
+    Postal is a self-hosted mail server exposing an HTTP JSON API. Credentials
+    are supplied via environment variables so they never live in the database:
+      POSTAL_API_URL         e.g. https://mail.example.com
+      POSTAL_SERVER_API_KEY  server API key (Settings → API Keys)
+      POSTAL_FROM_EMAIL      verified sender, e.g. Student Alumni <noreply@domain>
+    """
+    api_url = (os.environ.get("POSTAL_API_URL") or "").strip().rstrip("/")
+    server_api_key = (os.environ.get("POSTAL_SERVER_API_KEY") or "").strip()
+    if not api_url or not server_api_key:
+        return None
+    return {
+        "api_url": api_url,
+        "server_api_key": server_api_key,
+        "from_email": (os.environ.get("POSTAL_FROM_EMAIL") or "").strip()
+                      or "Student Alumni <noreply@studentalumni.ai>",
+    }
 
 
 async def get_gmail_config():
@@ -28,10 +60,23 @@ def _sendgrid_default_from():
 
 
 async def send_email(to_email: str, subject: str, body_html: str):
-    """Send an email. Prefers SendGrid (API key) and falls back to Gmail SMTP.
+    """Send an email.
+
+    Provider priority (all providers are optional):
+      1. Postal (env-configured) — the platform's primary mail server
+      2. SendGrid (marketplace API key)
+      3. Gmail SMTP (marketplace credentials)
 
     Returns True on success, False if no provider is configured or sending fails.
+    A failed delivery is never silently swallowed — it is logged at WARN/ERROR
+    and recorded in the `email_failures` collection for admin visibility.
     """
+    postal = get_postal_config()
+    if postal:
+        ok = await _send_via_postal(postal, to_email, subject, body_html)
+        if ok:
+            return True
+
     sendgrid = await get_sendgrid_config()
     if sendgrid:
         ok = await _send_via_sendgrid(sendgrid, to_email, subject, body_html)
@@ -45,7 +90,70 @@ async def send_email(to_email: str, subject: str, body_html: str):
             return True
 
     print(f"[WARN] No email provider configured. Cannot send email to {to_email}.")
+    await _record_failure(to_email, subject, "No email provider configured")
     return False
+
+
+async def _record_failure(to_email: str, subject: str, reason: str):
+    """Persist a failed delivery so silent drops are visible to admins."""
+    try:
+        from datetime import datetime, timezone
+        await db.email_failures.insert_one({
+            "email": to_email,
+            "subject": subject[:200],
+            "reason": reason[:500],
+            "created_at": datetime.now(timezone.utc),
+        })
+    except Exception as e:
+        print(f"[WARN] Could not persist email failure: {e}")
+
+
+async def _send_via_postal(config: dict, to_email: str, subject: str, body_html: str) -> bool:
+    """Send via a Postal (postalserver.io) HTTP JSON API.
+
+    Docs: https://docs.postalserver.io/developer/api
+    """
+    try:
+        import httpx
+        from email.utils import parseaddr
+
+        from_email = config.get("from_email") or "Student Alumni <noreply@studentalumni.ai>"
+        api_url = (config.get("api_url") or "").rstrip("/")
+        endpoint = f"{api_url}/api/v1/send/message"
+
+        # Postal requires a clean RFC 5322 display name for the From header.
+        display_name, addr = parseaddr(from_email)
+        if not addr:
+            addr = from_email.strip()
+            display_name = "Student Alumni"
+        from_header = f"{display_name} <{addr}>" if display_name else addr
+
+        async with httpx.AsyncClient(timeout=20) as client:
+            r = await client.post(
+                endpoint,
+                headers={
+                    "X-Server-API-Key": config.get("server_api_key"),
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "to": to_email,
+                    "from": from_header,
+                    "subject": subject,
+                    "html_body": body_html,
+                    "text_body": _plain_text(body_html),
+                    "tag": "student-alumni",
+                },
+            )
+            if r.status_code in (200, 201):
+                print(f"[INFO] Postal: sent email to {to_email}")
+                return True
+            print(f"[ERROR] Postal send failed to {to_email}: HTTP {r.status_code} {r.text[:300]}")
+            await _record_failure(to_email, subject, f"Postal HTTP {r.status_code} {r.text[:200]}")
+            return False
+    except Exception as e:
+        print(f"[ERROR] Postal send exception to {to_email}: {e}")
+        await _record_failure(to_email, subject, f"Postal exception: {e}")
+        return False
 
 
 async def _send_via_sendgrid(config: dict, to_email: str, subject: str, body_html: str) -> bool:
@@ -77,6 +185,7 @@ async def _send_via_sendgrid(config: dict, to_email: str, subject: str, body_htm
             return False
     except Exception as e:
         print(f"[ERROR] SendGrid send exception to {to_email}: {e}")
+        await _record_failure(to_email, subject, f"SendGrid exception: {e}")
         return False
 
 
@@ -89,6 +198,7 @@ async def _send_via_gmail(config: dict, to_email: str, subject: str, body_html: 
 
     if not sender_email or not app_password:
         print(f"[WARN] Gmail credentials missing. Cannot send email to {to_email}.")
+        await _record_failure(to_email, subject, "Gmail credentials missing")
         return False
 
     msg = MIMEMultipart("alternative")
@@ -111,6 +221,7 @@ async def _send_via_gmail(config: dict, to_email: str, subject: str, body_html: 
         return True
     except Exception as e:
         print(f"[ERROR] Gmail send failed to {to_email}: {e}")
+        await _record_failure(to_email, subject, f"Gmail exception: {e}")
         return False
 
 

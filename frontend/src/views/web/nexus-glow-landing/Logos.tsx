@@ -1,6 +1,3 @@
-import { useRef, useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-
 const collegeLogos = [
   { name: "MLRIT", subtitle: "MLR Institute of Technology", src: "/logos/mlrit.png" },
   { name: "Malla Reddy College", subtitle: "College of Engineering", src: "/logos/malla-reddy.png" },
@@ -38,11 +35,14 @@ export function Logos() {
 
       {/* Row 1: OUR COLLEGE COLLABORATIONS */}
       <div className="relative mx-auto max-w-7xl px-6 w-full">
-        <div className="flex items-center gap-6 md:gap-10">
+        <div className="flex items-center gap-4 md:gap-10">
           {/* Highlighted Left Title Badge */}
-          <div className="shrink-0 z-20 px-4 py-2.5 rounded-xl border border-primary/40 bg-primary/15 backdrop-blur-md shadow-[0_0_20px_rgba(124,58,237,0.4)]">
-            <p className="text-xs md:text-sm lg:text-base font-black uppercase tracking-widest text-primary drop-shadow-[0_0_10px_rgba(167,139,250,0.8)] whitespace-nowrap">
-              OUR COLLEGE COLLABORATIONS
+          <div className="shrink-0 z-20 px-3 py-2 md:px-4 md:py-2.5 rounded-xl border border-primary/40 bg-primary/15 backdrop-blur-md shadow-[0_0_20px_rgba(124,58,237,0.4)]">
+            <p className="text-[10px] sm:text-xs md:text-sm lg:text-base font-black uppercase tracking-widest text-primary drop-shadow-[0_0_10px_rgba(167,139,250,0.8)] whitespace-nowrap">
+              COLLEGES
+            </p>
+            <p className="hidden sm:block text-[10px] md:text-sm lg:text-base font-black uppercase tracking-widest text-primary drop-shadow-[0_0_10px_rgba(167,139,250,0.8)] whitespace-nowrap">
+              COLLABORATIONS
             </p>
           </div>
 
@@ -55,7 +55,7 @@ export function Logos() {
               {loopCollegeLogos.map((logo, i) => (
                 <div
                   key={`col-${logo.name}-${i}`}
-                  className="shrink-0 flex items-center justify-center h-16 w-36 md:h-18 md:w-44 rounded-2xl bg-white p-3.5 shadow-md border border-white/10 overflow-hidden opacity-95 hover:opacity-100 hover:scale-105 transition-all duration-200"
+                  className="shrink-0 flex items-center justify-center h-16 w-36 md:h-20 md:w-44 rounded-2xl bg-white p-3.5 shadow-md border border-white/10 overflow-hidden opacity-95 hover:opacity-100 hover:scale-105 transition-all duration-200"
                 >
                   <img
                     src={logo.src}
@@ -71,11 +71,14 @@ export function Logos() {
 
       {/* Row 2: OUR INDUSTRY COLLABORATIONS */}
       <div className="relative mx-auto max-w-7xl px-6 w-full mt-4">
-        <div className="flex items-center gap-6 md:gap-10">
+        <div className="flex items-center gap-4 md:gap-10">
           {/* Highlighted Left Title Badge */}
-          <div className="shrink-0 z-20 px-4 py-2.5 rounded-xl border border-cyan-500/40 bg-cyan-500/15 backdrop-blur-md shadow-[0_0_20px_rgba(6,182,212,0.35)]">
-            <p className="text-xs md:text-sm lg:text-base font-black uppercase tracking-widest text-cyan-300 drop-shadow-[0_0_10px_rgba(6,182,212,0.8)] whitespace-nowrap">
-              OUR INDUSTRY COLLABORATIONS
+          <div className="shrink-0 z-20 px-3 py-2 md:px-4 md:py-2.5 rounded-xl border border-cyan-500/40 bg-cyan-500/15 backdrop-blur-md shadow-[0_0_20px_rgba(6,182,212,0.35)]">
+            <p className="text-[10px] sm:text-xs md:text-sm lg:text-base font-black uppercase tracking-widest text-cyan-300 drop-shadow-[0_0_10px_rgba(6,182,212,0.8)] whitespace-nowrap">
+              INDUSTRY
+            </p>
+            <p className="hidden sm:block text-[10px] md:text-sm lg:text-base font-black uppercase tracking-widest text-cyan-300 drop-shadow-[0_0_10px_rgba(6,182,212,0.8)] whitespace-nowrap">
+              COLLABORATIONS
             </p>
           </div>
 
@@ -88,7 +91,7 @@ export function Logos() {
               {loopIndustryLogos.map((logo, i) => (
                 <div
                   key={`ind-${logo.name}-${i}`}
-                  className="shrink-0 flex items-center justify-center h-16 w-36 md:h-18 md:w-44 rounded-2xl bg-white p-3.5 shadow-md border border-white/10 overflow-hidden opacity-95 hover:opacity-100 hover:scale-105 transition-all duration-200"
+                  className="shrink-0 flex items-center justify-center h-16 w-36 md:h-20 md:w-44 rounded-2xl bg-white p-3.5 shadow-md border border-white/10 overflow-hidden opacity-95 hover:opacity-100 hover:scale-105 transition-all duration-200"
                 >
                   <img
                     src={logo.src}

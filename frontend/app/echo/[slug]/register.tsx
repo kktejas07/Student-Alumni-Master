@@ -4,7 +4,7 @@
  *
  * Two-column layout on wide screens:
  *   left  — poster image placeholder(s) (single or multiple, from CMS `poster_images`)
- *   right — registration form + payment (fee panel + external payment link or mock gateway)
+ *   right — registration form + payment (fee panel + Razorpay checkout)
  *
  * Everything (fee, currency, posters, payment link) is configured in the
  * superadmin CMS (Registration tab). On submit it registers the user in BOTH
@@ -141,13 +141,6 @@ export default function EchoRegisterPage() {
       // Paid event → create a payment order, then redirect to the gateway.
       const order = await api.createEchoPaymentOrder(canonicalSlug, contact);
 
-      // No real gateway connected → demo registration (records a paid mock).
-      if (order?.mock) {
-        const res = await api.registerEchoShowcase(canonicalSlug, regPayload);
-        setDone(res);
-        return;
-      }
-
       // Already paid → show the existing registration + invoice.
       if (order?.already) {
         setDone(order.registration);
@@ -233,8 +226,13 @@ export default function EchoRegisterPage() {
     );
   }
 
-  // Success screen with QR + payment confirmation
-  if (done?.id || existing?.id) {
+  // Success screen with QR + payment confirmation. Only shows for a
+  // CONFIRMED registration (paid or free both carry payment.status "paid");
+  // a `pending` payment means money wasn't captured, so keep the form up
+  // and let the user resume payment.
+  const confirmedReg =
+    (done?.payment?.status === 'paid') || (existing?.payment?.status === 'paid');
+  if (confirmedReg) {
     const reg = done || existing;
     const payment = reg.payment || {};
     const invoiceNo = reg.invoice?.invoice_no || done?.invoice?.invoice_no;
