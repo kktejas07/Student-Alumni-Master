@@ -97,7 +97,7 @@ export function Navbar() {
             className="flex items-center gap-3 cursor-pointer"
           >
             <Image
-              source={require("../../../assets/images/sa-icon.png")}
+              source={require('@/assets/images/sa-icon.png')}
               style={{ width: 32, height: 32, borderRadius: 8 }}
               resizeMode="contain"
             />
