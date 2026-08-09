@@ -1803,18 +1803,6 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                     onChange={(p: string[]) => set('registration', { ...(form.registration || {}), poster_images: p })}
                   />
                 </FieldRow>
-                <FieldRow label="Ticket / Pass Template" hint="Global template is used by default. Override for this event if needed.">
-                  <View style={{ gap: 10 }}>
-                    <SelectNative
-                      value={(form.registration || {}).ticket_template || 'global'}
-                      onChange={(v: string) => set('registration', { ...(form.registration || {}), ticket_template: v === 'global' ? undefined : v })}
-                      options={['global', 'aurora', 'classic', 'minimal']}
-                    />
-                    <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>
-                      {((form.registration || {}).ticket_template || '').toUpperCase() || 'GLOBAL DEFAULT'} — Configure in the Settings tab.
-                    </Text>
-                  </View>
-                </FieldRow>
               </Card>
             </>}
 
