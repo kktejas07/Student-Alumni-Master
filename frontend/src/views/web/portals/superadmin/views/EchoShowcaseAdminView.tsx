@@ -1833,17 +1833,38 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                   const sessions = (form.sessions || []);
                   const existing = sessions.find((x: any) => x.key === s.key);
                   const enabled = existing?.enabled ?? false;
+                  const locked = existing?.locked ?? false;
                   return (
                     <View key={s.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
                       <Text style={{ fontSize: 18, width: 28 }}>{s.icon}</Text>
                       <Text style={{ flex: 1, fontFamily: FONTS.med, fontSize: 13, color: SAC.text }}>{s.label}</Text>
+                      {enabled && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: locked ? '#F59E0B' : SAC.dim }}>
+                            {locked ? 'Locked' : 'Active'}
+                          </Text>
+                          <Pressable onPress={() => {
+                            const current = [...(form.sessions || [])];
+                            const idx = current.findIndex((x: any) => x.key === s.key);
+                            if (idx >= 0) {
+                              current[idx] = { ...current[idx], locked: !locked };
+                            }
+                            set('sessions', current);
+                          }} style={{
+                            width: 36, height: 20, borderRadius: 10, padding: 2,
+                            backgroundColor: locked ? '#F59E0B' : '#334155', cursor: 'pointer',
+                          }}>
+                            <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: '#fff', transform: [{ translateX: locked ? 16 : 0 }] }} />
+                          </Pressable>
+                        </View>
+                      )}
                       <Pressable onPress={() => {
                         const current = [...(form.sessions || [])];
                         const idx = current.findIndex((x: any) => x.key === s.key);
                         if (idx >= 0) {
-                          current[idx] = { ...current[idx], enabled: !enabled };
+                          current[idx] = { ...current[idx], enabled: !enabled, locked: false };
                         } else {
-                          current.push({ key: s.key, label: s.label, enabled: true });
+                          current.push({ key: s.key, label: s.label, enabled: true, locked: false });
                         }
                         set('sessions', current);
                       }} style={{

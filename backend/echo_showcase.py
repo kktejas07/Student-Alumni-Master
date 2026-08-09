@@ -73,11 +73,11 @@ DEFAULT_TICKET_TEMPLATE = "aurora"
 
 # Session coupon configuration — per-event
 DEFAULT_SESSIONS = [
-    {"key": "breakfast", "label": "Breakfast", "icon": "egg-fried", "enabled": False},
-    {"key": "lunch", "label": "Lunch", "icon": "utensils", "enabled": True},
-    {"key": "snacks", "label": "Snacks", "icon": "cookie", "enabled": True},
-    {"key": "tiffin", "label": "Tiffin", "icon": "sandwich", "enabled": False},
-    {"key": "coffee", "label": "Coffee & Tea", "icon": "cup-soda", "enabled": False},
+    {"key": "breakfast", "label": "Breakfast", "icon": "egg-fried", "enabled": False, "locked": False},
+    {"key": "lunch", "label": "Lunch", "icon": "utensils", "enabled": True, "locked": False},
+    {"key": "snacks", "label": "Snacks", "icon": "cookie", "enabled": True, "locked": False},
+    {"key": "tiffin", "label": "Tiffin", "icon": "sandwich", "enabled": False, "locked": False},
+    {"key": "coffee", "label": "Coffee & Tea", "icon": "cup-soda", "enabled": False, "locked": False},
 ]
 
 
@@ -2889,6 +2889,47 @@ async def update_sessions(slug: str, request: Request, admin=Depends(_require_ad
     return {"ok": True, "sessions": sessions}
 
 
+@router.put("/admin/{slug}/sessions/{session_key}/lock")
+async def toggle_session_lock(slug: str, session_key: str, request: Request, admin=Depends(_require_admin)):
+    """Toggle lock status for a session. When locked, coupons show 'Available soon'."""
+    db = _get_db(request)
+    body = await request.json()
+    locked = body.get("locked", True)
+
+    showcase = await db.echo_showcases.find_one({"slug": slug})
+    if not showcase:
+        raise HTTPException(404, "Showcase not found")
+
+    sessions = showcase.get("sessions") or DEFAULT_SESSIONS
+    updated = False
+    for s in sessions:
+        if s.get("key") == session_key:
+            s["locked"] = locked
+            updated = True
+            break
+
+    if not updated:
+        raise HTTPException(404, "Session not found")
+
+    await db.echo_showcases.update_one(
+        {"slug": slug}, {"$set": {"sessions": sessions}}
+    )
+
+    # Also update all coupons for this session to reflect the lock status
+    if locked:
+        await db.echo_coupons.update_many(
+            {"slug": slug, "session_key": session_key, "used": False},
+            {"$set": {"session_locked": True}}
+        )
+    else:
+        await db.echo_coupons.update_many(
+            {"slug": slug, "session_key": session_key},
+            {"$set": {"session_locked": False}}
+        )
+
+    return {"ok": True, "session_key": session_key, "locked": locked}
+
+
 @router.get("/{slug}/my-coupons")
 async def my_coupons(slug: str, request: Request, user=Depends(_get_current_user_dependency())):
     """Get current user's coupons for an event."""
@@ -2898,6 +2939,13 @@ async def my_coupons(slug: str, request: Request, user=Depends(_get_current_user
     if not reg:
         raise HTTPException(404, "No registration found")
     coupons = await db.echo_coupons.find({"slug": slug, "reg_id": reg["id"]}).to_list(100)
+    # Check session lock status
+    showcase = await db.echo_showcases.find_one({"slug": slug})
+    sessions = showcase.get("sessions") if showcase else []
+    locked_keys = {s["key"] for s in (sessions or []) if s.get("locked")}
+    for c in coupons:
+        if c.get("session_key") in locked_keys:
+            c["session_locked"] = True
     # Generate QR data URLs
     for c in coupons:
         c["_id"] = str(c["_id"])
@@ -2917,6 +2965,14 @@ async def scan_coupon(request: Request, admin=Depends(_require_admin)):
     coupon = await db.echo_coupons.find_one({"coupon_code": code})
     if not coupon:
         raise HTTPException(404, "Invalid coupon code")
+    # Check if session is locked
+    if coupon.get("session_locked"):
+        return {
+            "ok": False,
+            "status": "locked",
+            "message": f"This session ({coupon.get('session_name', '')}) is currently locked. It will be available soon.",
+            "coupon": {k: v for k, v in coupon.items() if k != "_id"},
+        }
     if coupon["used"]:
         return {
             "ok": False,
