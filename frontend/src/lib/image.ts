@@ -10,10 +10,10 @@ import { BASE_URL } from '@/src/models/services/api';
 function getAuthHeaders(): Record<string, string> {
   if (typeof window === 'undefined') return {};
   try {
-    const raw = localStorage.getItem('auth_tokens');
-    if (!raw) return {};
-    const tokens = JSON.parse(raw);
-    const token = tokens?.access_token || tokens?.accessToken || '';
+    // Try both storage keys — app uses scd_access_token, older versions used auth_tokens
+    const token = localStorage.getItem('scd_access_token') || (() => {
+      try { const raw = localStorage.getItem('auth_tokens'); return raw ? JSON.parse(raw)?.access_token : null; } catch { return null; }
+    })();
     return token ? { Authorization: `Bearer ${token}` } : {};
   } catch {
     return {};
