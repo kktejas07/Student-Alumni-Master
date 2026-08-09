@@ -1,26 +1,118 @@
 // @ts-nocheck
 /**
  * /echo/admin/scan — Admin coupon scanner page.
- * Scan QR codes or enter coupon codes manually.
+ * Scan QR codes via camera or enter coupon codes manually.
  */
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, Pressable, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, ScanLine, Check, X, Ticket, Clock, Users } from 'lucide-react-native';
+import { ArrowLeft, ScanLine, Check, X, Camera, Keyboard, Ticket } from 'lucide-react-native';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
 
+// ── QR Camera Scanner (html5-qrcode) ────────────────────────────────────────
+function QRScanner({ onScan, onClose }: { onScan: (code: string) => void; onClose: () => void }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const scannerRef = useRef<any>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    let scanner: any = null;
+
+    const start = async () => {
+      if (!containerRef.current || !mounted) return;
+      try {
+        const { Html5Qrcode } = await import('html5-qrcode');
+        scanner = new Html5Qrcode('qr-reader');
+        scannerRef.current = scanner;
+
+        await scanner.start(
+          { facingMode: 'environment' },
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0,
+          },
+          (decodedText: string) => {
+            if (mounted) {
+              scanner.stop().catch(() => {});
+              onScan(decodedText);
+            }
+          },
+          () => {} // ignore scan failures (no QR in frame)
+        );
+      } catch (err: any) {
+        console.error('QR scanner error:', err);
+        if (mounted) onClose();
+      }
+    };
+
+    start();
+
+    return () => {
+      mounted = false;
+      if (scannerRef.current) {
+        scannerRef.current.stop().catch(() => {});
+        scannerRef.current.clear().catch(() => {});
+      }
+    };
+  }, []);
+
+  return (
+    <View style={qrStyles.overlay}>
+      <View style={qrStyles.topBar}>
+        <Pressable onPress={onClose} style={qrStyles.closeBtn}>
+          <X size={20} color="#fff" />
+        </Pressable>
+        <Text style={qrStyles.topTitle}>Scan Coupon QR</Text>
+        <View style={{ width: 32 }} />
+      </View>
+      <View style={qrStyles.readerWrap}>
+        <div ref={containerRef} id="qr-reader" style={{ width: '100%' }} />
+      </View>
+      <View style={qrStyles.bottomHint}>
+        <Camera size={18} color="#A78BFA" />
+        <Text style={qrStyles.bottomText}>Point camera at the attendee's coupon QR code</Text>
+      </View>
+    </View>
+  );
+}
+
+const qrStyles = StyleSheet.create({
+  overlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: '#0a0f1e', zIndex: 999, flexDirection: 'column',
+  },
+  topBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    padding: 16, paddingTop: 50, backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  topTitle: { fontFamily: 'DMSans_700Bold', fontSize: 16, color: '#fff' },
+  closeBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  readerWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  bottomHint: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    padding: 16, paddingBottom: 32, backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  bottomText: { fontFamily: 'DMSans_500Medium', fontSize: 13, color: 'rgba(255,255,255,0.7)' },
+});
+
+// ── Main Page ────────────────────────────────────────────────────────────────
 export default function EchoScanPage() {
   const router = useRouter();
   const [code, setCode] = useState('');
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [recent, setRecent] = useState<any[]>([]);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const inputRef = useRef<any>(null);
 
-  const scan = async () => {
-    const c = code.trim().toUpperCase();
-    if (!c) return;
+  const submitCode = async (c: string) => {
+    const codeUpper = c.trim().toUpperCase();
+    if (!codeUpper) return;
     setLoading(true);
     setResult(null);
     try {
@@ -30,19 +122,31 @@ export default function EchoScanPage() {
       const resp = await fetch(`${base}/api/echo/admin/scan-coupon`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ code: c }),
+        body: JSON.stringify({ code: codeUpper }),
       });
       const data = await resp.json();
       setResult(data);
-      setRecent((prev) => [{ ...data, scannedCode: c, time: new Date().toLocaleTimeString() }, ...prev].slice(0, 20));
+      setRecent((prev) => [{ ...data, scannedCode: codeUpper, time: new Date().toLocaleTimeString() }, ...prev].slice(0, 50));
     } catch (err: any) {
       setResult({ ok: false, message: err?.message || 'Network error' });
     } finally {
       setLoading(false);
       setCode('');
-      inputRef.current?.focus();
     }
   };
+
+  const handleManualSubmit = () => {
+    submitCode(code);
+    inputRef.current?.focus();
+  };
+
+  const handleCameraScan = (decoded: string) => {
+    setCameraOpen(false);
+    submitCode(decoded);
+  };
+
+  const usedCount = recent.filter((r) => r.ok).length;
+  const failedCount = recent.filter((r) => !r.ok).length;
 
   return (
     <View style={s.root}>
@@ -60,7 +164,19 @@ export default function EchoScanPage() {
             <Text style={s.headerSub}>Scan QR codes or enter coupon codes manually</Text>
           </LinearGradient>
 
-          {/* Input */}
+          {/* Mode selector */}
+          <View style={s.modeRow}>
+            <Pressable onPress={() => setCameraOpen(true)} style={s.modeBtn}>
+              <Camera size={18} color="#A78BFA" />
+              <Text style={s.modeBtnText}>Scan with Camera</Text>
+            </Pressable>
+            <Pressable onPress={() => inputRef.current?.focus()} style={[s.modeBtn, { backgroundColor: 'rgba(255,255,255,0.04)' }]}>
+              <Keyboard size={18} color="#94a3b8" />
+              <Text style={[s.modeBtnText, { color: '#94a3b8' }]}>Type Code</Text>
+            </Pressable>
+          </View>
+
+          {/* Manual input */}
           <View style={s.inputCard}>
             <TextInput
               ref={inputRef}
@@ -69,14 +185,28 @@ export default function EchoScanPage() {
               placeholder="Enter coupon code (e.g. LUNCH-A7X9K2)"
               placeholderTextColor="#475569"
               autoCapitalize="characters"
-              onSubmitEditing={scan}
+              onSubmitEditing={handleManualSubmit}
               style={s.input}
             />
-            <Pressable onPress={scan} disabled={loading || !code.trim()} style={[s.scanBtn, (!code.trim() || loading) && { opacity: 0.5 }]}>
+            <Pressable onPress={handleManualSubmit} disabled={loading || !code.trim()} style={[s.scanBtn, (!code.trim() || loading) && { opacity: 0.5 }]}>
               <ScanLine size={16} color="#fff" />
               <Text style={s.scanBtnText}>{loading ? 'Scanning…' : 'Scan'}</Text>
             </Pressable>
           </View>
+
+          {/* Stats bar */}
+          {recent.length > 0 && (
+            <View style={s.statsBar}>
+              <View style={s.statItem}>
+                <Ticket size={14} color="#A78BFA" />
+                <Text style={s.statText}>{recent.length} scanned</Text>
+              </View>
+              <View style={[s.statDot, { backgroundColor: '#10B981' }]} />
+              <Text style={s.statText}>{usedCount} valid</Text>
+              <View style={[s.statDot, { backgroundColor: '#EF4444' }]} />
+              <Text style={s.statText}>{failedCount} failed</Text>
+            </View>
+          )}
 
           {/* Result */}
           {result && (
@@ -117,6 +247,11 @@ export default function EchoScanPage() {
         </View>
         <EchoFooter />
       </ScrollView>
+
+      {/* Camera QR scanner overlay */}
+      {cameraOpen && (
+        <QRScanner onScan={handleCameraScan} onClose={() => setCameraOpen(false)} />
+      )}
     </View>
   );
 }
@@ -135,6 +270,13 @@ const s = StyleSheet.create({
   headerIcon: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(124,58,237,0.2)', alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontFamily: 'DMSans_800ExtraBold', fontSize: 22, color: '#fff' },
   headerSub: { fontFamily: 'DMSans_500Medium', fontSize: 13, color: 'rgba(255,255,255,0.6)', textAlign: 'center' },
+  modeRow: { flexDirection: 'row', gap: 10 },
+  modeBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingVertical: 14, borderRadius: 12, backgroundColor: 'rgba(124,58,237,0.15)',
+    borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
+  },
+  modeBtnText: { fontFamily: 'DMSans_700Bold', fontSize: 14, color: '#C4B5FD' },
   inputCard: {
     flexDirection: 'row', gap: 10, backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 14, borderWidth: 1, borderColor: 'rgba(167,139,250,0.2)', padding: 12,
@@ -150,6 +292,13 @@ const s = StyleSheet.create({
     borderRadius: 12, paddingHorizontal: 20, paddingVertical: 14,
   },
   scanBtnText: { color: '#fff', fontFamily: 'DMSans_700Bold', fontSize: 14 },
+  statsBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8,
+    paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10,
+  },
+  statItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  statDot: { width: 6, height: 6, borderRadius: 3 },
+  statText: { fontFamily: 'DMSans_500Medium', fontSize: 12, color: 'rgba(255,255,255,0.5)' },
   resultCard: {
     backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16, borderWidth: 1,
     padding: 24, alignItems: 'center', gap: 10,
