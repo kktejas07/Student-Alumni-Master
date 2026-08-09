@@ -1639,7 +1639,7 @@ async def update_coupon(coupon_id: str, payload: dict, user: dict = Depends(get_
     update = {}
     for k in ("description", "discount_pct", "discount_type", "max_uses", "active", "expires_at",
               "image_url", "partner_name", "partner_website_url", "instructions",
-              "audience", "display_order"):
+              "audience", "display_order", "locked"):
         if k in payload:
             update[k] = payload[k]
     if not update:
