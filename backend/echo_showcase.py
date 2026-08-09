@@ -2557,12 +2557,18 @@ async def preview_invoice_template(template_id: str, request: Request, _=Depends
 
 @router.get("/admin/branding")
 async def get_branding(request: Request, _=Depends(_require_admin)):
-    """Return branding settings (logo, favicon)."""
+    """Return branding settings."""
     db = _get_db(request)
     settings = await db.echo_settings.find_one({"_id": "global"}) or {}
     return {
         "logo_url": settings.get("logo_url", ""),
         "favicon_url": settings.get("favicon_url", ""),
+        "brand_name": settings.get("brand_name", "StudentAlumni"),
+        "copyright": settings.get("copyright", "2026 StudentAlumni. All rights reserved."),
+        "address": settings.get("address", ""),
+        "phone": settings.get("phone", ""),
+        "email": settings.get("email", ""),
+        "website": settings.get("website", ""),
     }
 
 
@@ -2572,10 +2578,9 @@ async def update_branding(request: Request, admin=Depends(_require_admin)):
     db = _get_db(request)
     body = await request.json()
     update = {}
-    if "logo_url" in body:
-        update["logo_url"] = str(body["logo_url"])[:500]
-    if "favicon_url" in body:
-        update["favicon_url"] = str(body["favicon_url"])[:500]
+    for k in ("logo_url", "favicon_url", "brand_name", "copyright", "address", "phone", "email", "website"):
+        if k in body:
+            update[k] = str(body[k])[:500]
     if update:
         await db.echo_settings.update_one(
             {"_id": "global"}, {"$set": update}, upsert=True
