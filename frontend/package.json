@@ -95,6 +95,7 @@
     "firebase": "^12.17.0",
     "framer-motion": "^12.42.2",
     "html2canvas": "^1.4.1",
+    "html5-qrcode": "^2.3.8",
     "jspdf": "^4.2.1",
     "lexical": "^0.44.0",
     "lucide-react": "^1.26.0",
