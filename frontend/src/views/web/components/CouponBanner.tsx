@@ -17,7 +17,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, Pressable, StyleSheet, Platform, Image, Modal, Linking, ScrollView, TextInput, NativeSyntheticEvent, NativeScrollEvent,
 } from 'react-native';
-import { Ticket, ExternalLink, X, Copy, Check, Tag, Plus, Pencil, Trash2, Save, Upload, AlertTriangle } from 'lucide-react-native';
+import { Ticket, ExternalLink, X, Copy, Check, Tag, Plus, Pencil, Trash2, Save, Upload, AlertTriangle, Lock } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { uploadImage } from '@/src/lib/image';
 import { useAuthStore } from '@/src/viewmodels/stores/authStore';
@@ -37,6 +37,7 @@ export type Coupon = {
   instructions?: string;
   audience?: string[];
   active?: boolean;
+  locked?: boolean;
 };
 
 function discountLabel(c: Coupon): string {
@@ -446,6 +447,17 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
     }
   };
 
+  const toggleCouponLock = async (c: Coupon) => {
+    try {
+      const newLocked = !c.locked;
+      await request(`/admin/coupons/${c.id}`, { method: 'PATCH', body: { locked: newLocked } });
+      setCoupons((prev) => prev.map((x) => x.id === c.id ? { ...x, locked: newLocked } : x));
+      flash(newLocked ? 'Coupon locked' : 'Coupon unlocked');
+    } catch (e: any) {
+      flash(e?.message || 'Failed to update lock', 'error');
+    }
+  };
+
   const handleSaved = useCallback((created?: Coupon | null) => {
     if (created) {
       setCoupons((prev) => [created, ...prev.filter((c) => c.id !== created.id)]);
@@ -506,13 +518,13 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
             decelerationRate="fast"
           >
             {coupons.map((c) => (
-              <Pressable key={c.id} onPress={() => setSelected(c)} style={[s.card, editable && !c.active && s.cardInactive]}>
+              <Pressable key={c.id} onPress={() => setSelected(c)} style={[s.card, editable && !c.active && s.cardInactive, c.locked && { opacity: 0.6, borderColor: 'rgba(245,158,11,0.3)' }]}>
                 <View style={s.cardImgWrap}>
                   {c.image_url ? (
                     <Image source={{ uri: c.image_url }} style={s.cardImg} resizeMode="contain" />
                   ) : (
                     <View style={[s.cardImg, s.cardImgFallback]}>
-                      <Ticket size={22} color="#A78BFA" />
+                      {c.locked ? <Lock size={22} color="#F59E0B" /> : <Ticket size={22} color="#A78BFA" />}
                     </View>
                   )}
                   {editable && (
@@ -523,18 +535,23 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
                       <Pressable onPress={() => deleteCoupon(c)} style={s.cardAdminBtn} hitSlop={6}>
                         <Trash2 size={11} color="#F87171" />
                       </Pressable>
+                      <Pressable onPress={() => toggleCouponLock(c)} style={[s.cardAdminBtn, { backgroundColor: c.locked ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.15)' }]} hitSlop={6}>
+                        <Lock size={11} color={c.locked ? '#F59E0B' : '#fff'} />
+                      </Pressable>
                     </View>
                   )}
                 </View>
                 <View style={s.cardBody}>
                   <Text style={s.cardPartner} numberOfLines={1}>
-                    {c.partner_name || 'Partner Offer'}
+                    {c.locked ? 'Available soon' : (c.partner_name || 'Partner Offer')}
                   </Text>
                   <Text style={s.cardTitle} numberOfLines={1}>
-                    {c.discount_pct ? discountLabel(c) : c.description || 'Coupon'}
+                    {c.locked ? 'Session locked' : (c.discount_pct ? discountLabel(c) : c.description || 'Coupon')}
                   </Text>
-                  <View style={s.cardCode}>
-                    <Text style={s.cardCodeText}>{c.code}</Text>
+                  <View style={[s.cardCode, c.locked && { backgroundColor: 'rgba(245,158,11,0.15)' }]}>
+                    <Text style={[s.cardCodeText, c.locked && { color: '#F59E0B' }]}>
+                      {c.locked ? '🔒 Locked' : c.code}
+                    </Text>
                   </View>
                 </View>
               </Pressable>
