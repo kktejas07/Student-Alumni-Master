@@ -28,6 +28,7 @@ import { GlassCard } from '../glass';
 import { FadeInView, PressScale } from '../motion';
 import { GRAD } from '../portalkit';
 import { useRouter } from 'expo-router';
+import { EchoImg } from '@/src/views/web/components/EchoChrome';
 
 // ── Status badge colors ─────────────────────────────────────────────────────
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string; dot: string }> = {
@@ -158,10 +159,11 @@ function HeroBannerCarousel({ banners, data, isWide, onBack, canonicalSlug, show
     <View style={bc.section}>
       {/* Banner image layer */}
       <View style={bc.imageWrap}>
-        <Image
+        <EchoImg
           source={{ uri: resolveImageUrl(validBanners[idx]) }}
           style={bc.image}
           resizeMode="cover"
+          fallbackLabel={data?.title || 'Event Banner'}
         />
         {/* Gradient overlay from bottom (dark) to top (transparent) */}
         <View style={bc.gradient} />
@@ -324,7 +326,7 @@ function StatCard({ stat }: { stat: any }) {
 }
 const st = StyleSheet.create({
   card: {
-    flex: 1, minWidth: 80, backgroundColor: 'rgba(255,255,255,0.04)',
+    flex: 1, minWidth: 140, backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 14, borderWidth: 1, borderColor: PALETTE.glassBorder,
     padding: 16, alignItems: 'center', gap: 6,
     ...(Platform.OS === 'web' ? { boxShadow: '0 4px 24px rgba(2,6,23,0.30)' } as any : {}),
@@ -647,7 +649,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
             {isWide && (
               <View style={s.heroRight}>
                 {data?.hero_image_url ? (
-                  <Image source={{ uri: resolveImageUrl(data.hero_image_url) }} style={s.heroImg} resizeMode="cover" />
+                  <EchoImg source={{ uri: resolveImageUrl(data.hero_image_url) }} style={s.heroImg} resizeMode="cover" fallbackLabel={data?.title || 'Event'} />
                 ) : (
                   <LinearGradient
                     colors={['rgba(123,61,191,0.35)', 'rgba(95,37,159,0.55)', 'rgba(30,10,80,0.80)']}
@@ -872,18 +874,20 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
         <LinearGradient
           colors={['rgba(123,61,191,0.25)', 'rgba(95,37,159,0.40)']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={s.ctaBanner}
+          style={[s.ctaBanner, !isWide && s.ctaBannerStack]}
         >
-          <View style={s.ctaIconWrap}>
-            <Calendar size={22} color={GRAD.from} />
+          <View style={[s.ctaInner, !isWide && s.ctaInnerStack]}>
+            <View style={s.ctaIconWrap}>
+              <Calendar size={22} color={GRAD.from} />
+            </View>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={s.ctaTitle}>{data?.cta_title || ''}</Text>
+              <Text style={s.ctaSubtitle}>{data?.cta_subtitle || ''}</Text>
+            </View>
+            <LinearGradient colors={[GRAD.from, GRAD.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[s.ctaBtn, !isWide && s.ctaBtnFull]}>
+              <Text style={s.ctaBtnText}>{data?.cta_button_text || 'Learn More'}</Text>
+            </LinearGradient>
           </View>
-          <View style={{ flex: 1, gap: 4 }}>
-            <Text style={s.ctaTitle}>{data?.cta_title || ''}</Text>
-            <Text style={s.ctaSubtitle}>{data?.cta_subtitle || ''}</Text>
-          </View>
-          <LinearGradient colors={[GRAD.from, GRAD.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.ctaBtn}>
-            <Text style={s.ctaBtnText}>{data?.cta_button_text || 'Learn More'}</Text>
-          </LinearGradient>
         </LinearGradient>
       </FadeInView>
       )}
@@ -953,7 +957,6 @@ const s = StyleSheet.create({
 
   // Stats
   statsRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginBottom: 16 },
-
   // About
   aboutRow: { flexDirection: 'row', gap: 14, marginBottom: 16 },
   aboutCard: { flex: 2 },
@@ -1025,6 +1028,9 @@ const s = StyleSheet.create({
     borderRadius: 16, padding: 22, marginBottom: 16,
     borderWidth: 1, borderColor: 'rgba(123,61,191,0.25)',
   },
+  ctaBannerStack: { flexDirection: 'column', alignItems: 'stretch' },
+  ctaInner: { flexDirection: 'row', alignItems: 'center', gap: 16, flex: 1 },
+  ctaInnerStack: { flexDirection: 'column', alignItems: 'flex-start' },
   ctaIconWrap: {
     width: 48, height: 48, borderRadius: 24,
     backgroundColor: 'rgba(123,61,191,0.20)',
@@ -1036,5 +1042,6 @@ const s = StyleSheet.create({
     paddingHorizontal: 18, paddingVertical: 11, borderRadius: 12,
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
+  ctaBtnFull: { alignSelf: 'stretch', alignItems: 'center', marginTop: 4 },
   ctaBtnText: { fontFamily: FONTS.bold, fontSize: 13, color: '#fff' },
 });

@@ -1801,6 +1801,32 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash }: any
                     onChange={(p: string[]) => set('registration', { ...(form.registration || {}), poster_images: p })}
                   />
                 </FieldRow>
+                <FieldRow label="Ticket / Pass Template" hint="Style of the entry pass emailed to attendees and shown in the app.">
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    {[
+                      { id: 'aurora', name: 'Aurora', desc: 'Dark gradient pass with glow accents', gradient: 'linear-gradient(135deg,#312e81,#4C1D95)' },
+                      { id: 'classic', name: 'Classic', desc: 'White ticket with purple header', gradient: 'linear-gradient(135deg,#fff,#f3f4f6)' },
+                      { id: 'minimal', name: 'Minimal', desc: 'Bare-bones borderless pass', gradient: 'linear-gradient(135deg,#f9fafb,#e5e7eb)' },
+                    ].map((tpl) => {
+                      const active = (form.registration || {}).ticket_template === tpl.id;
+                      return (
+                        <Pressable
+                          key={tpl.id}
+                          onPress={() => set('registration', { ...(form.registration || {}), ticket_template: tpl.id })}
+                          style={{
+                            flex: 1, borderRadius: 10, borderWidth: 2, borderColor: active ? '#7C3AED' : 'rgba(255,255,255,0.1)',
+                            backgroundColor: active ? 'rgba(124,58,237,0.08)' : 'rgba(255,255,255,0.03)',
+                            padding: 12, cursor: 'pointer',
+                          }}
+                        >
+                          <View style={{ height: 6, borderRadius: 3, marginBottom: 8, background: tpl.gradient }} />
+                          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: active ? '#C4B5FD' : SAC.text }}>{tpl.name}</Text>
+                          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim, marginTop: 2 }}>{tpl.desc}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </FieldRow>
               </Card>
             </>}
 
@@ -1894,6 +1920,7 @@ function RegistrationsPanel() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('all');
+  const [eventSlug, setEventSlug] = useState('all');
   const { flash } = useToast();
 
   const load = useCallback(async () => {
@@ -1922,8 +1949,14 @@ function RegistrationsPanel() {
       || r.college?.toLowerCase().includes(s)
       || r.event_title?.toLowerCase().includes(s);
     const matchStatus = status === 'all' || r.payment_status === status;
-    return matchQ && matchStatus;
+    const matchEvent = eventSlug === 'all' || r.slug === eventSlug;
+    return matchQ && matchStatus && matchEvent;
   });
+
+  const uniqueEvents = Array.from(new Set(rows.map((r: any) => r.slug).filter(Boolean)))
+    .map((slug) => rows.find((r: any) => r.slug === slug))
+    .filter(Boolean)
+    .map((r: any) => ({ slug: r.slug, title: r.event_title || r.slug }));
 
   const fmtAmt = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
   const paid = filtered.filter((r) => r.payment_status === 'paid');
@@ -1967,6 +2000,22 @@ function RegistrationsPanel() {
         <View style={{ flex: 1, minWidth: 200 }}>
           <SearchField value={q} onChange={setQ} placeholder="Search attendee, email, event…" />
         </View>
+        {uniqueEvents.length > 1 && (
+          <select
+            value={eventSlug}
+            onChange={(e: any) => setEventSlug(e.target.value)}
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 12, fontFamily: 'Inter',
+              outline: 'none', cursor: 'pointer', minWidth: 140,
+            }}
+          >
+            <option value="all" style={{ background: '#1e1b4b', color: '#fff' }}>All Events</option>
+            {uniqueEvents.map((ev: any) => (
+              <option key={ev.slug} value={ev.slug} style={{ background: '#1e1b4b', color: '#fff' }}>{ev.title}</option>
+            ))}
+          </select>
+        )}
         <TopTabs
           tabs={[
             { id: 'all', label: 'All' },
@@ -1998,8 +2047,8 @@ function RegistrationsPanel() {
             <View style={{ minWidth: 760 }}>
               {/* Header */}
               <View style={{ flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1, borderBottomColor: SAC.border }}>
-                {['Attendee', 'Event', 'College / Branch', 'Amount', 'Payment', 'Date'].map((h) => (
-                  <Text key={h} style={{ width: h === 'Attendee' ? 180 : h === 'Event' ? 200 : 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>{h.toUpperCase()}</Text>
+                {['Attendee', 'Event', 'College / Branch', 'Amount', 'Payment', 'SA Account', 'Date'].map((h) => (
+                  <Text key={h} style={{ width: h === 'Attendee' ? 180 : h === 'Event' ? 200 : 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>{h.toUpperCase()}</Text>
                 ))}
               </View>
               {filtered.map((r: any, i: number) => (
@@ -2025,6 +2074,12 @@ function RegistrationsPanel() {
                     <StatusPill
                       kind={r.payment_status === 'paid' ? 'success' : r.payment_status === 'pending' ? 'warn' : 'neutral'}
                       label={(r.payment_status || '—').toUpperCase()}
+                    />
+                  </View>
+                  <View style={{ width: 120, minWidth: 0 }}>
+                    <StatusPill
+                      kind={r.has_account ? 'success' : 'neutral'}
+                      label={r.has_account ? 'Yes' : 'No'}
                     />
                   </View>
                   <View style={{ width: 150, minWidth: 0 }}>
