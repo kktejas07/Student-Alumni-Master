@@ -1806,17 +1806,12 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                 <FieldRow label="Ticket / Pass Template" hint="Global template is used by default. Override for this event if needed.">
                   <View style={{ gap: 10 }}>
                     <SelectNative
-                      value={(form.registration || {}).ticket_template || ''}
-                      onChange={(v: string) => set('registration', { ...(form.registration || {}), ticket_template: v || undefined })}
-                      options={[
-                        { value: '', label: 'Use global default' },
-                        { value: 'aurora', label: 'Aurora — Dark gradient pass' },
-                        { value: 'classic', label: 'Classic — White ticket with purple header' },
-                        { value: 'minimal', label: 'Minimal — Bare-bones borderless pass' },
-                      ]}
+                      value={(form.registration || {}).ticket_template || 'global'}
+                      onChange={(v: string) => set('registration', { ...(form.registration || {}), ticket_template: v === 'global' ? undefined : v })}
+                      options={['global', 'aurora', 'classic', 'minimal']}
                     />
                     <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>
-                      Configure the global default in the Settings tab.
+                      {((form.registration || {}).ticket_template || '').toUpperCase() || 'GLOBAL DEFAULT'} — Configure in the Settings tab.
                     </Text>
                   </View>
                 </FieldRow>
