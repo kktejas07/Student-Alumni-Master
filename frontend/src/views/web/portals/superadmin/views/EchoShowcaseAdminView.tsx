@@ -1828,10 +1828,27 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash }: any
                       })}
                     </View>
                     <Pressable
-                      onPress={() => {
+                      onPress={async () => {
                         const tplId = (form.registration || {}).ticket_template || 'aurora';
                         const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
-                        window.open(`${base}/api/echo/tickets/preview/${tplId}`, '_blank');
+                        try {
+                          const { tokenStore } = await import('@/src/models/services/api');
+                          const token = await tokenStore.getAccess();
+                          const resp = await fetch(`${base}/api/echo/tickets/preview/${tplId}`, {
+                            headers: token ? { Authorization: `Bearer ${token}` } : {},
+                          });
+                          if (!resp.ok) throw new Error('Preview not available');
+                          const data = await resp.json();
+                          const w = window.open('', '_blank');
+                          if (w) {
+                            w.document.open();
+                            w.document.write(data.html);
+                            w.document.close();
+                            w.focus();
+                          }
+                        } catch (err: any) {
+                          flash?.(err?.message || 'Could not load preview');
+                        }
                       }}
                       style={{
                         flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
