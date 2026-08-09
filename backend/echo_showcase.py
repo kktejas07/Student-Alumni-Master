@@ -2553,6 +2553,36 @@ async def preview_invoice_template(template_id: str, request: Request, _=Depends
     return {"html": _build_invoice_html(mock_inv, template_id)}
 
 
+# ── Branding Settings ─────────────────────────────────────────────────────────
+
+@router.get("/admin/branding")
+async def get_branding(request: Request, _=Depends(_require_admin)):
+    """Return branding settings (logo, favicon)."""
+    db = _get_db(request)
+    settings = await db.echo_settings.find_one({"_id": "global"}) or {}
+    return {
+        "logo_url": settings.get("logo_url", ""),
+        "favicon_url": settings.get("favicon_url", ""),
+    }
+
+
+@router.put("/admin/branding")
+async def update_branding(request: Request, admin=Depends(_require_admin)):
+    """Update branding settings."""
+    db = _get_db(request)
+    body = await request.json()
+    update = {}
+    if "logo_url" in body:
+        update["logo_url"] = str(body["logo_url"])[:500]
+    if "favicon_url" in body:
+        update["favicon_url"] = str(body["favicon_url"])[:500]
+    if update:
+        await db.echo_settings.update_one(
+            {"_id": "global"}, {"$set": update}, upsert=True
+        )
+    return {"ok": True, **update}
+
+
 # ── Admin endpoints ───────────────────────────────────────────────────────────
 @router.get("/admin/showcases")
 async def admin_list_showcases(request: Request, _=Depends(_require_admin)):

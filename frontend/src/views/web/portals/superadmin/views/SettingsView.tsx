@@ -131,7 +131,7 @@ const GRAD_BG   = ['rgba(251,146,60,0.20)', 'rgba(245,158,11,0.10)'] as const;
  * ───────────────────────────────────────────────────────────────── */
 type TabId =
   | 'profile' | 'platform' | 'integrations' | 'roles'
-  | 'notifications' | 'security' | 'digital-id' | 'pages' | 'templates';
+  | 'notifications' | 'security' | 'digital-id' | 'pages' | 'templates' | 'branding';
 
 type Tool = {
   id: string; name: string; category: string; icon: string; tint: string;
@@ -154,6 +154,7 @@ const TABS: { id: TabId; label: string; icon: any }[] = [
   { id: 'roles',         label: 'Roles & Permissions', icon: Shield },
   { id: 'notifications', label: 'Notifications',       icon: Bell },
   { id: 'templates',     label: 'Templates',           icon: FileText },
+  { id: 'branding',      label: 'Branding',            icon: FileText },
   { id: 'security',      label: 'Security',            icon: Lock },
   { id: 'digital-id',    label: 'Digital ID',          icon: IdCard },
   { id: 'pages',         label: 'Pages',               icon: FileText },
@@ -250,6 +251,7 @@ export function SettingsView() {
         {tab === 'digital-id'    && <DigitalIdTab onSaved={flashToast} />}
         {tab === 'pages'         && <PagesTab onSaved={flashToast} />}
         {tab === 'templates'     && <TemplatesTab onSaved={flashToast} />}
+        {tab === 'branding'      && <BrandingTab onSaved={flashToast} />}
       </View>
       <Toast text={toast.text} visible={toast.visible} />
     </View>
@@ -2466,6 +2468,90 @@ function PagesTab({ onSaved }: { onSaved: (s?: string) => void }) {
         ))}
       </View>
     </Animated.View>
+  );
+}
+
+
+function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
+  const [logoUrl, setLogoUrl] = useState('');
+  const [faviconUrl, setFaviconUrl] = useState('');
+  const [saving, setSaving] = useState(false);
+  const { flash } = useToast();
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+        const { tokenStore } = await import('@/src/models/services/api');
+        const token = await tokenStore.getAccess();
+        const resp = await fetch(`${base}/api/admin/branding`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          setLogoUrl(data.logo_url || '');
+          setFaviconUrl(data.favicon_url || '');
+        }
+      } catch { /* use defaults */ }
+    })();
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      const resp = await fetch(`${base}/api/admin/branding`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ logo_url: logoUrl, favicon_url: faviconUrl }),
+      });
+      if (!resp.ok) throw new Error('Failed to save');
+      onSaved('Branding saved');
+    } catch (err: any) {
+      flash(err?.message || 'Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <View style={{ gap: 16 }}>
+      <Card style={{ padding: 20, gap: 16 }}>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Branding & Logo</Text>
+        <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
+          Configure the logo and favicon displayed across the platform.
+        </Text>
+        <View style={{ gap: 8 }}>
+          <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Logo URL</Text>
+          <TextInput value={logoUrl} onChangeText={setLogoUrl} placeholder="https://example.com/logo.png"
+            placeholderTextColor="#475569"
+            style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 12, color: '#e2e8f0', fontSize: 13 }} />
+          {logoUrl ? (
+            <View style={{ padding: 16, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center' }}>
+              <Image source={{ uri: logoUrl }} style={{ width: 64, height: 64, borderRadius: 12 }} resizeMode="contain" />
+            </View>
+          ) : null}
+        </View>
+        <View style={{ gap: 8 }}>
+          <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Favicon URL</Text>
+          <TextInput value={faviconUrl} onChangeText={setFaviconUrl} placeholder="https://example.com/favicon.png"
+            placeholderTextColor="#475569"
+            style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 12, color: '#e2e8f0', fontSize: 13 }} />
+          {faviconUrl ? (
+            <View style={{ padding: 12, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center' }}>
+              <Image source={{ uri: faviconUrl }} style={{ width: 32, height: 32, borderRadius: 4 }} resizeMode="contain" />
+            </View>
+          ) : null}
+        </View>
+        <Pressable onPress={save} disabled={saving} style={{
+          backgroundColor: '#7C3AED', borderRadius: 10, paddingVertical: 14, alignItems: 'center', cursor: 'pointer', opacity: saving ? 0.6 : 1,
+        }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: '#fff' }}>{saving ? 'Saving...' : 'Save Branding'}</Text>
+        </Pressable>
+      </Card>
+    </View>
   );
 }
 
