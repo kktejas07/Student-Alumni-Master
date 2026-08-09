@@ -27,7 +27,7 @@ import {
   Star, BookOpen, Upload, MoveUp, MoveDown, Images, FolderOpen,
   Copy, Check, Search, RefreshCw, PlusCircle, FileText, Link2,
   Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, Users,
-  Settings, Ticket, Mail, Palette,
+  Settings, Ticket, Mail, Palette, ScanLine,
 } from 'lucide-react-native';
 import {
   GRAD, GradientButton, SecondaryButton, Card,
@@ -1306,6 +1306,7 @@ const EMPTY: any = {
   hero_image_url: '', hero_cover_url: '', hero_thumbnail_url: '', hero_bg_url: '',
   hero_banners: [],
   organizer_name: '', organizer_logo_url: '',
+  sessions: [],
   cta_title: 'Stay tuned for more events!',
   cta_subtitle: 'Join our community and never miss an opportunity to learn, connect, and grow.',
   cta_button_text: 'View Upcoming Events',
@@ -1805,6 +1806,46 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                   />
                 </FieldRow>
               </Card>
+
+              {/* Session Passes */}
+              <Card style={{ marginBottom: 16, padding: 20, gap: 12 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Session Passes</Text>
+                <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
+                  Enable food/amenity coupons for attendees. Each enabled session generates a unique QR coupon that can be scanned once at the venue.
+                </Text>
+                {[
+                  { key: 'breakfast', label: 'Breakfast', icon: '🍳' },
+                  { key: 'lunch', label: 'Lunch', icon: '🍽️' },
+                  { key: 'snacks', label: 'Snacks', icon: '🍪' },
+                  { key: 'tiffin', label: 'Tiffin', icon: '🥪' },
+                  { key: 'coffee', label: 'Coffee & Tea', icon: '☕' },
+                ].map((s) => {
+                  const sessions = (form.sessions || []);
+                  const existing = sessions.find((x: any) => x.key === s.key);
+                  const enabled = existing?.enabled ?? false;
+                  return (
+                    <View key={s.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
+                      <Text style={{ fontSize: 18, width: 28 }}>{s.icon}</Text>
+                      <Text style={{ flex: 1, fontFamily: FONTS.med, fontSize: 13, color: SAC.text }}>{s.label}</Text>
+                      <Pressable onPress={() => {
+                        const current = [...(form.sessions || [])];
+                        const idx = current.findIndex((x: any) => x.key === s.key);
+                        if (idx >= 0) {
+                          current[idx] = { ...current[idx], enabled: !enabled };
+                        } else {
+                          current.push({ key: s.key, label: s.label, enabled: true });
+                        }
+                        set('sessions', current);
+                      }} style={{
+                        width: 44, height: 24, borderRadius: 12, padding: 2,
+                        backgroundColor: enabled ? '#10B981' : '#334155', cursor: 'pointer',
+                      }}>
+                        <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff', transform: [{ translateX: enabled ? 20 : 0 }] }} />
+                      </Pressable>
+                    </View>
+                  );
+                })}
+              </Card>
             </>}
 
             {/* ── SEO TAB ── */}
@@ -1946,6 +1987,13 @@ function RegistrationsPanel() {
         <KpiTile Icon={Users} label="Total Registrations" value={String(filtered.length)} />
         <KpiTile Icon={Check} label="Paid" value={String(paid.length)} />
         <KpiTile Icon={Zap} label="Revenue (filtered)" value={fmtAmt(revenueTotal)} delta="real-time" deltaKind="success" />
+        <Pressable onPress={() => window.open('/echo/admin/scan', '_blank')} style={{
+          flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#7C3AED',
+          borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, cursor: 'pointer',
+        }}>
+          <ScanLine size={14} color="#fff" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: '#fff' }}>Scan Coupons</Text>
+        </Pressable>
       </View>
 
       {/* Per-event revenue */}

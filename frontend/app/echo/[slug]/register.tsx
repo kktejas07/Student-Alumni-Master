@@ -328,6 +328,13 @@ export default function EchoRegisterPage() {
           <Text style={s.doneBtnText}>Done</Text>
         </Pressable>
 
+        <Pressable onPress={() => router.push(`/echo/${canonicalSlug}/coupons`)} style={[s.invBtn, { borderColor: 'rgba(167,139,250,0.3)' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+            <Ticket size={14} color="#A78BFA" />
+            <Text style={[s.invBtnText, { color: '#C4B5FD' }]}>View My Coupons</Text>
+          </View>
+        </Pressable>
+
         {invoiceNo ? (
           <Pressable onPress={() => openInvoice(invoiceNo)} style={s.invBtn}>
             <Text style={s.invBtnText}>Download Invoice</Text>

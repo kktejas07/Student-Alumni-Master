@@ -23,6 +23,7 @@ import os
 import re
 import string
 import base64
+import hashlib
 import json
 import secrets
 import mimetypes
@@ -70,6 +71,46 @@ TICKET_TEMPLATES = {
 }
 DEFAULT_TICKET_TEMPLATE = "aurora"
 
+# Session coupon configuration — per-event
+DEFAULT_SESSIONS = [
+    {"key": "breakfast", "label": "Breakfast", "icon": "egg-fried", "enabled": False},
+    {"key": "lunch", "label": "Lunch", "icon": "utensils", "enabled": True},
+    {"key": "snacks", "label": "Snacks", "icon": "cookie", "enabled": True},
+    {"key": "tiffin", "label": "Tiffin", "icon": "sandwich", "enabled": False},
+    {"key": "coffee", "label": "Coffee & Tea", "icon": "cup-soda", "enabled": False},
+]
+
+
+def _generate_coupon_code(session_key: str, reg_id: str) -> str:
+    """Generate a unique coupon code like LUNCH-A7X9K2."""
+    raw = f"{session_key}:{reg_id}:{secrets.token_hex(4)}"
+    h = hashlib.sha256(raw.encode()).hexdigest()[:6].upper()
+    return f"{session_key.upper()}-{h}"
+
+
+def _generate_coupons_for_registration(db, slug: str, reg_id: str, sessions: list):
+    """Generate coupon records for all enabled sessions."""
+    from datetime import datetime, timezone
+    coupons = []
+    for s in sessions:
+        if not s.get("enabled"):
+            continue
+        code = _generate_coupon_code(s["key"], reg_id)
+        coupons.append({
+            "slug": slug,
+            "reg_id": reg_id,
+            "session_key": s["key"],
+            "session_name": s.get("label", s["key"]),
+            "coupon_code": code,
+            "used": False,
+            "used_at": None,
+            "scanned_by": None,
+            "created_at": datetime.now(timezone.utc),
+        })
+    if coupons:
+        db.echo_coupons.insert_many(coupons)
+    return coupons
+
 
 # ── DB dependency ────────────────────────────────────────────────────────────
 def _get_db(request: Request) -> AsyncIOMotorDatabase:
@@ -93,6 +134,11 @@ async def _require_admin(request: Request):
     if payload.get("role") not in ("admin", "super_admin"):
         raise HTTPException(status_code=403, detail="Admin only")
     return payload
+
+
+def _get_current_user_dependency():
+    from core.deps import get_current_user  # noqa
+    return get_current_user
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -262,6 +308,10 @@ async def _finalize_paid_registration(db, reg: dict, showcase: dict, payment_id:
     if created and temp_password:
         await _send_sa_welcome_email(updated_ser, showcase, temp_password)
     invoice = await _store_invoice_and_email(db, updated_ser, showcase)
+    # Generate session coupons for paid registrations
+    sessions = (showcase or {}).get("sessions") or []
+    if sessions:
+        await _generate_coupons_for_registration(db, canonical_slug, reg.get("id"), sessions)
     return {**updated_ser, "invoice": invoice}
 
 
@@ -1779,6 +1829,9 @@ async def register_for_showcase(
     invoice = None
     confirmation_sent = False
     if auto_paid:
+        # Generate session coupons
+        sessions = showcase.get("sessions") or []
+        await _generate_coupons_for_registration(db, canonical_slug, reg_id, sessions)
         await _send_registration_confirmation(db, reg, showcase)
         confirmation_sent = True
 
@@ -2779,3 +2832,117 @@ async def delete_echo_media(filename: str, request: Request, _=Depends(_require_
     _save_media_meta(meta)
 
     return {"ok": True, "deleted": safe_filename}
+
+
+# ── Session Coupons ─────────────────────────────────────────────────────────
+
+@router.get("/admin/{slug}/sessions")
+async def get_sessions(slug: str, request: Request, _=Depends(_require_admin)):
+    """Get session configuration for an event."""
+    db = _get_db(request)
+    showcase = await db.echo_showcases.find_one({"slug": slug})
+    if not showcase:
+        raise HTTPException(404, "Showcase not found")
+    sessions = showcase.get("sessions") or DEFAULT_SESSIONS
+    return {"sessions": sessions}
+
+
+@router.put("/admin/{slug}/sessions")
+async def update_sessions(slug: str, request: Request, admin=Depends(_require_admin)):
+    """Update session configuration for an event."""
+    db = _get_db(request)
+    body = await request.json()
+    sessions = body.get("sessions", [])
+    await db.echo_showcases.update_one(
+        {"slug": slug}, {"$set": {"sessions": sessions}}, upsert=True
+    )
+    return {"ok": True, "sessions": sessions}
+
+
+@router.get("/{slug}/my-coupons")
+async def my_coupons(slug: str, request: Request, user=Depends(_get_current_user_dependency())):
+    """Get current user's coupons for an event."""
+    db = _get_db(request)
+    # Find user's registration
+    reg = await db.echo_registrations.find_one({"slug": slug, "user_id": str(user["_id"])})
+    if not reg:
+        raise HTTPException(404, "No registration found")
+    coupons = await db.echo_coupons.find({"slug": slug, "reg_id": reg["id"]}).to_list(100)
+    # Generate QR data URLs
+    for c in coupons:
+        c["_id"] = str(c["_id"])
+        c["qr_url"] = f"/api/echo/scan/{c['coupon_code']}"
+    return {"coupons": coupons, "registration": {"id": reg["id"], "name": reg.get("full_name")}}
+
+
+@router.post("/admin/scan-coupon")
+async def scan_coupon(request: Request, admin=Depends(_require_admin)):
+    """Scan a coupon QR code."""
+    db = _get_db(request)
+    body = await request.json()
+    code = (body.get("code") or "").strip().upper()
+    if not code:
+        raise HTTPException(400, "Coupon code required")
+
+    coupon = await db.echo_coupons.find_one({"coupon_code": code})
+    if not coupon:
+        raise HTTPException(404, "Invalid coupon code")
+    if coupon["used"]:
+        return {
+            "ok": False,
+            "status": "already_used",
+            "message": f"Already scanned at {coupon.get('used_at', 'unknown time')} by {coupon.get('scanned_by', 'unknown')}",
+            "coupon": {k: v for k, v in coupon.items() if k != "_id"},
+        }
+
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    await db.echo_coupons.update_one(
+        {"_id": coupon["_id"]},
+        {"$set": {"used": True, "used_at": now, "scanned_by": admin.get("email", "admin")}}
+    )
+
+    # Get attendee info
+    reg = await db.echo_registrations.find_one({"id": coupon["reg_id"]})
+
+    return {
+        "ok": True,
+        "status": "valid",
+        "message": f"Valid — {coupon['session_name']} for {reg.get('full_name', 'Unknown') if reg else 'Unknown'}",
+        "coupon": {
+            "code": code,
+            "session_name": coupon["session_name"],
+            "attendee_name": reg.get("full_name", "") if reg else "",
+            "attendee_email": reg.get("email", "") if reg else "",
+            "used_at": now.isoformat(),
+        },
+    }
+
+
+@router.get("/admin/{slug}/coupon-stats")
+async def coupon_stats(slug: str, request: Request, _=Depends(_require_admin)):
+    """Get scan statistics for all sessions."""
+    db = _get_db(request)
+    pipeline = [
+        {"$match": {"slug": slug}},
+        {"$group": {
+            "_id": "$session_key",
+            "session_name": {"$first": "$session_name"},
+            "total": {"$sum": 1},
+            "used": {"$sum": {"$cond": ["$used", 1, 0]}},
+            "unused": {"$sum": {"$cond": ["$used", 0, 1]}},
+        }},
+        {"$sort": {"_id": 1}},
+    ]
+    stats = await db.echo_coupons.aggregate(pipeline).to_list(50)
+    return {"stats": stats, "slug": slug}
+
+
+@router.get("/admin/{slug}/coupons")
+async def admin_coupons(slug: str, request: Request, _=Depends(_require_admin)):
+    """List all coupons for an event."""
+    db = _get_db(request)
+    coupons = await db.echo_coupons.find({"slug": slug}).sort("created_at", -1).to_list(500)
+    for c in coupons:
+        c["_id"] = str(c["_id"])
+    return {"coupons": coupons, "total": len(coupons)}
