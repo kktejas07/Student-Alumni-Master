@@ -37,7 +37,7 @@ export default function EchoRegisterPage() {
   const [loading, setLoading] = useState(true);
   const [existing, setExisting] = useState<any>(null);
 
-  const [form, setForm] = useState({ full_name: '', email: '', phone: '', branch: '', year: '', college: '' });
+  const [form, setForm] = useState({ full_name: '', email: '', phone: '', dob: '', branch: '', year: '', college: '' });
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +77,50 @@ export default function EchoRegisterPage() {
       }
     } catch {
       setError('Could not open the invoice. Check your email for a copy.');
+    }
+  };
+
+  const openTicket = async (regId?: string) => {
+    if (!regId || typeof window === 'undefined') return;
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      const resp = await fetch(`${base}/api/echo/tickets/${regId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!resp.ok) throw new Error('Ticket not available');
+      const data = await resp.json();
+      const w = window.open('', '_blank');
+      if (w) {
+        w.document.open();
+        w.document.write(data.html);
+        w.document.close();
+        w.focus();
+        w.print();
+      }
+    } catch {
+      setError('Could not open the ticket. Check your email for a copy.');
+    }
+  };
+
+  const shareTicket = async (regId?: string) => {
+    if (!regId || typeof window === 'undefined') return;
+    const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+    const url = `${base}/api/echo/tickets/${regId}`;
+    const text = `My entry pass for ${showcase?.title || 'the event'}: ${url}`;
+    try {
+      const nav = (navigator as any);
+      if (nav.share) {
+        await nav.share({ title: `Entry Pass — ${showcase?.title || 'Event'}`, text, url });
+        return;
+      }
+    } catch { /* user cancelled share sheet — fall through to copy */ }
+    try {
+      await navigator.clipboard.writeText(url);
+      setError('Ticket link copied to clipboard — share it anywhere!');
+    } catch {
+      setError('Could not share the ticket. Long-press the link to copy it.');
     }
   };
 
@@ -289,6 +333,18 @@ export default function EchoRegisterPage() {
             <Text style={s.invBtnText}>Download Invoice</Text>
           </Pressable>
         ) : null}
+
+        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
+          <Pressable onPress={() => openTicket(reg.id)} style={[s.doneBtn, { flex: 1 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+              <Ticket size={16} color="#fff" />
+              <Text style={s.doneBtnText}>Download Ticket</Text>
+            </View>
+          </Pressable>
+          <Pressable onPress={() => shareTicket(reg.id)} style={[s.invBtn, { flex: 1, marginBottom: 0 }]}>
+            <Text style={s.invBtnText}>Share Ticket</Text>
+          </Pressable>
+        </View>
         <EchoFooter />
         </ScrollView>
       </View>
@@ -399,6 +455,9 @@ export default function EchoRegisterPage() {
                 <Text style={s.label}>Phone</Text>
                 <TextInput style={s.input} value={form.phone} onChangeText={(v) => set('phone', v)} placeholder="+91 …" placeholderTextColor={PALETTE.dim} keyboardType="phone-pad" />
 
+                <Text style={s.label}>Date of Birth</Text>
+                <TextInput style={s.input} value={form.dob} onChangeText={(v) => set('dob', v)} placeholder="YYYY-MM-DD" placeholderTextColor={PALETTE.dim} autoCapitalize="none" />
+
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <View style={{ flex: 1 }}>
                     <Text style={s.label}>Branch</Text>
@@ -454,6 +513,14 @@ export default function EchoRegisterPage() {
                     </Text>
                   </>
                 )}
+                <View style={s.accountNote}>
+                  <ShieldCheck size={13} color="#A78BFA" />
+                  <Text style={s.accountNoteText}>
+                    A <Text style={{ color: '#C4B5FD', fontFamily: FONTS.semi }}>free Student Alumni account</Text> will be
+                    created with this email — your login credentials will be emailed to you so you can
+                    view your tickets anytime under <Text style={{ color: '#C4B5FD', fontFamily: FONTS.semi }}>My Tickets</Text>.
+                  </Text>
+                </View>
               </View>
             </>
           )}
@@ -549,6 +616,12 @@ const s = StyleSheet.create({
   },
   payBtnText: { color: '#fff', fontFamily: TYPO.display700, fontSize: 15 },
   disclaimer: { color: PALETTE.dim, fontFamily: FONTS.med, fontSize: 11, lineHeight: 16, textAlign: 'center', marginTop: 10 },
+  accountNote: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 12,
+    backgroundColor: 'rgba(124,58,237,0.10)', borderColor: 'rgba(167,139,250,0.25)',
+    borderWidth: 1, borderRadius: 10, padding: 12,
+  },
+  accountNoteText: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 11, lineHeight: 16, flex: 1 },
 
   successHero: { borderRadius: 18, padding: 28, alignItems: 'center', gap: 8, marginBottom: 16 },
   successIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center', marginBottom: 4 },

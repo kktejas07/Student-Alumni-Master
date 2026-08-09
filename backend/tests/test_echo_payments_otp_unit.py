@@ -480,3 +480,147 @@ async def test_verify_payment_fallback_by_order_id(patch_deps, fake_db, monkeypa
     ), FakeRequest())
     assert out["registration"]["payment"]["status"] == "paid"
     assert out["registration"]["payment"]["payment_id"] == "pay_1"
+
+
+# ── 11. Free registration provisions a StudentAlumni account ────────────────
+@pytest.mark.asyncio
+async def test_free_registration_provisions_sa_account(patch_deps, fake_db, monkeypatch):
+    sent = []
+    monkeypatch.setattr(
+        es, "send_email",
+        lambda to, subj, body: sent.append((to, subj)) or asyncio.sleep(0) or True,
+    )
+
+    db = fake_db
+    db.echo_showcases.docs = [_showcase(fee=0)]
+
+    out = await es.register_for_showcase(
+        "echo-tech-2026",
+        es.RegisterSchema(full_name="Provision Me", email="provision@x.co", phone="999", dob="2002-01-15"),
+        FakeRequest(),
+    )
+    assert out["payment"]["status"] == "paid"
+
+    # A brand-new SA student account was created
+    users = db.users.docs
+    assert len(users) == 1
+    u = users[0]
+    assert u["email"] == "provision@x.co"
+    assert u["role"] == "student"
+    assert u["onboarding_completed"] is False
+    assert u["email_verified"] is False
+    assert u["account_source"] == "echo"
+    assert u["password_hash"]            # auto-generated password hashed
+    assert u["dob"]                      # DOB captured & encrypted
+    assert u["unique_id"].startswith("SA-")
+
+    # Echo registration is linked to the new account
+    assert db.echo_registrations.docs[0]["user_id"]
+
+    # Welcome email (account created) + confirmation/ticket email both sent
+    subjects = [s for _, s in sent]
+    assert any("Welcome to StudentAlumni" in s for s in subjects)
+    assert any("Entry Pass" in s for s in subjects)
+
+
+@pytest.mark.asyncio
+async def test_provision_sa_account_idempotent_and_existing(patch_deps, fake_db, monkeypatch):
+    sent = []
+    monkeypatch.setattr(
+        es, "send_email",
+        lambda to, subj, body: sent.append((to, subj)) or asyncio.sleep(0) or True,
+    )
+    db = fake_db
+
+    # Existing SA user must not be duplicated, and no welcome email is sent.
+    db.users.docs = [{
+        "_id": "existing-user",
+        "email": "already@x.co",
+        "full_name": "Already Here",
+        "role": "student",
+    }]
+    reg = {
+        "id": "r1", "slug": "echo-tech-2026", "showcase_title": "ECHO Tech Summit",
+        "full_name": "Already Here", "email": "already@x.co", "phone": "",
+        "dob": "2000-05-05",
+    }
+    user, created, password = await es._provision_sa_account(db, reg, {})
+    assert created is False
+    assert password is None
+    assert user["_id"] == "existing-user"
+    assert reg["user_id"] == "existing-user"
+    assert len(db.users.docs) == 1  # no duplicate
+
+    # A second call for the same new email is idempotent (no duplicate account)
+    fresh = {"id": "r2", "email": "new@x.co", "full_name": "New User", "phone": "", "dob": ""}
+    u1, c1, p1 = await es._provision_sa_account(db, dict(fresh), {})
+    assert c1 is True and p1 and u1["email"] == "new@x.co"
+    u2, c2, p2 = await es._provision_sa_account(db, dict(fresh), {})
+    assert c2 is False and p2 is None
+    assert u2["_id"] == u1["_id"]
+    assert len(db.users.docs) == 2
+
+
+# ── 12. Ticket / pass templates ──────────────────────────────────────────────
+def test_ticket_templates_render_all_variants():
+    reg = {
+        "id": "REG123", "slug": "echo-tech-2026", "showcase_title": "ECHO Tech Summit",
+        "full_name": "Aarav Sharma", "email": "a@x.co", "phone": "9999999999",
+        "branch": "CSE", "year": "3rd Year", "college": "VNR VJIET",
+        "qr_code_base64": "iVBORw0KGgo=",
+    }
+    show = {
+        "title": "ECHO Tech Summit", "date": "August 15, 2026", "time": "10:00 AM – 4:30 PM",
+        "venue": "Main Auditorium", "organizer_name": "Student Alumni Cell",
+        "registration": {"ticket_template": "aurora"},
+    }
+    for template in ("aurora", "classic", "minimal"):
+        html = es._build_ticket_html(reg, show, template)
+        assert "<html" in html and "REG123" in html and "ECHO Tech Summit" in html
+        assert "data:image/png;base64," in html  # QR embedded
+
+    # Unknown template id gracefully falls back to the default
+    assert es._build_ticket_html(reg, show, "bogus") == es._build_ticket_html(reg, show, "aurora")
+
+    # Default resolution from the showcase registration config
+    show2 = {"title": "T", "registration": {"ticket_template": "classic"}}
+    assert "classic" in es._build_ticket_html(reg, show2) or "CONFIRMED" in es._build_ticket_html(reg, show2)
+    assert es._build_ticket_html(reg, {"title": "T"}) == es._build_ticket_html(reg, {"title": "T"}, "aurora")
+
+
+def test_ticket_email_block_contains_pass_and_download_link():
+    reg = {
+        "id": "REG456", "full_name": "Bhavna Rao", "email": "b@x.co",
+        "qr_code_base64": "iVBORw0KGgo=",
+    }
+    show = {"title": "Hack Night", "date": "Sept 1, 2026", "venue": "Block C"}
+    block = es._ticket_email_block(reg, show, "https://studentalumni.ai/api/echo/tickets/REG456")
+    assert "ENTRY PASS" in block.upper() or "ENTRY PASS" in block
+    assert "Download Ticket" in block
+    assert "REG456" in block
+    assert "data:image/png;base64," in block
+
+
+@pytest.mark.asyncio
+async def test_get_ticket_endpoint(patch_deps, fake_db):
+    from fastapi import HTTPException
+
+    db = fake_db
+    db.echo_registrations.docs = [{
+        "_id": "rT", "id": "tkt1", "slug": "echo-tech-2026",
+        "user_key": "owner@x.co", "email": "owner@x.co", "full_name": "Owner",
+        "showcase_title": "ECHO Tech Summit", "qr_code_base64": "iVBORw0KGgo=",
+        "status": "registered",
+    }]
+    db.echo_showcases.docs = [{"slug": "echo-tech-2026", "title": "ECHO Tech Summit", "registration": {}}]
+
+    # Unauthenticated owner-by-email resolves via a seeded user lookup is not
+    # wired in the fake, so an anonymous call must 403 (no token / no user).
+    req = FakeRequest()
+    try:
+        await es.get_ticket("tkt1", req)
+        raised = False
+    except HTTPException as e:
+        raised = True
+        assert e.status_code in (401, 403)
+    assert raised is True

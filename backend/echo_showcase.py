@@ -21,6 +21,7 @@ Admin routes   (super-admin JWT required):
 from __future__ import annotations
 import os
 import re
+import string
 import base64
 import json
 import secrets
@@ -33,13 +34,41 @@ from fastapi import APIRouter, Depends, HTTPException, Request, File, UploadFile
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel, Field
 
-from core.security import generate_qr_code
+from core.security import (
+    generate_qr_code,
+    generate_unique_id,
+    hash_password,
+    encrypt_value,
+)
 from core.email import send_email, render_html_email
 
 router = APIRouter(prefix="/api/echo", tags=["echo-showcase"])
 
 UPLOAD_DIR = Path("uploads/echo")
 MEDIA_META_FILE = UPLOAD_DIR / ".media_meta.json"
+
+# ── Ticket / pass templates ───────────────────────────────────────────────────
+# Selected per event via the super-admin CMS (Registration tab →
+# `registration.ticket_template`). Each entry carries display metadata for the
+# picker; the actual rendering lives in _build_ticket_html below.
+TICKET_TEMPLATES = {
+    "aurora": {
+        "name": "Aurora",
+        "description": "Dark gradient pass with glow accents — modern & bold",
+        "theme": "dark",
+    },
+    "classic": {
+        "name": "Classic",
+        "description": "Clean white ticket with a purple header band — formal",
+        "theme": "light",
+    },
+    "minimal": {
+        "name": "Minimal",
+        "description": "Bare-bones borderless pass — crisp and lightweight",
+        "theme": "light",
+    },
+}
+DEFAULT_TICKET_TEMPLATE = "aurora"
 
 
 # ── DB dependency ────────────────────────────────────────────────────────────
@@ -220,13 +249,18 @@ async def _finalize_paid_registration(db, reg: dict, showcase: dict, payment_id:
 
     updated = await db.echo_registrations.find_one({"_id": reg["_id"]})
     updated_ser = _ser(updated)
-    user = None
-    if updated.get("user_id"):
-        try:
-            user = await db.users.find_one({"_id": ObjectId(updated["user_id"])})
-        except Exception:
-            user = None
-    await _mirror_to_event_registration(db, updated_ser, showcase, user)
+
+    # Provision/find the SA account for the attendee (idempotent by email) so
+    # every confirmed attendee has a StudentAlumni account, then mirror the
+    # registration into it. The welcome email is sent only when a brand-new
+    # SA account was created by this payment.
+    sa_user, created, temp_password = await _provision_sa_account(db, updated_ser, showcase)
+    fresh = await db.echo_registrations.find_one({"_id": reg["_id"]})
+    updated_ser = _ser(fresh)
+    if sa_user:
+        await _mirror_to_event_registration(db, updated_ser, showcase, sa_user)
+    if created and temp_password:
+        await _send_sa_welcome_email(updated_ser, showcase, temp_password)
     invoice = await _store_invoice_and_email(db, updated_ser, showcase)
     return {**updated_ser, "invoice": invoice}
 
@@ -287,31 +321,25 @@ async def _send_registration_confirmation(db, reg: dict, showcase: dict) -> None
         if not email:
             return
         title = reg.get("showcase_title") or showcase.get("title") or "Event Registration"
-        qr = reg.get("qr_code_base64") or ""
-        qr_block = ""
-        if qr:
-            qr_block = f"""
-            <div style="margin:0 0 18px 0;text-align:center;">
-              <img src="data:image/png;base64,{qr}" alt="Check-in QR" width="160" height="160"
-                   style="border-radius:10px;border:1px solid #e5e7eb;" />
-              <p style="margin:8px 0 0 0;color:#9ca3af;font-size:12px;">Scan this QR at the venue for check-in.</p>
-            </div>"""
-        subject = f"Registration Confirmed — {title}"
+        reg_id = reg.get("id") or ""
+        ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}"
+        ticket_block = _ticket_email_block(reg, showcase, ticket_url)
+        subject = f"Your Entry Pass — {title}"
         body = render_html_email(
             f"""
             <h2 style="margin:0 0 14px 0;color:#111827;">You're registered!</h2>
             <p style="margin:0 0 18px 0;color:#374151;">Thank you for registering for <strong>{title}</strong>.
-            Here are your registration details:</p>
+            Here is your entry pass — scan the QR at the venue for check-in.</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
               style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin:0 0 18px 0;">
               <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Registration ID</td>
-                  <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{reg.get('id')}</td></tr>
+                  <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{reg_id}</td></tr>
               <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Event</td>
                   <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{title}</td></tr>
               <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Attendee</td>
                   <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{reg.get('full_name')}</td></tr>
             </table>
-            {qr_block}
+            {ticket_block}
             <p style="margin:0 0 22px 0;color:#374151;">
               You can view your ticket anytime from your dashboard under <strong>My Tickets</strong>.
             </p>
@@ -457,6 +485,237 @@ def _build_invoice_html(inv: dict) -> str:
 </html>"""
 
 
+def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = None) -> str:
+    """Render a printable entry pass (ticket) with QR for an attendee.
+
+    Template is resolved from `registration.ticket_template` on the showcase,
+    falling back to DEFAULT_TICKET_TEMPLATE. The returned page is standalone
+    (browser-print → PDF), and is also served via GET /api/echo/tickets/{reg_id}
+    so attendees can download and share their pass.
+    """
+    esc = lambda s: str(s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    reg_cfg = showcase.get("registration") or {}
+    template_id = template_id or reg_cfg.get("ticket_template") or DEFAULT_TICKET_TEMPLATE
+    if template_id not in TICKET_TEMPLATES:
+        template_id = DEFAULT_TICKET_TEMPLATE
+
+    qr = reg.get("qr_code_base64") or ""
+    brand = "STUDENT ALUMNI · ECHO"
+    organizer = esc(showcase.get("organizer_name") or "Student Alumni Cell")
+    title = esc(reg.get("showcase_title") or showcase.get("title") or "Event")
+    event_date = esc(showcase.get("date") or "")
+    event_time = esc(showcase.get("time") or "")
+    venue = esc(showcase.get("venue") or "")
+    name = esc(reg.get("full_name") or "Attendee")
+    email = esc(reg.get("email") or "")
+    phone = esc(reg.get("phone") or "")
+    branch = esc(reg.get("branch") or "")
+    year = esc(reg.get("year") or "")
+    college = esc(reg.get("college") or "")
+    reg_id = esc(reg.get("id") or "")
+    meta = [v for v in (branch, year, college) if v]
+
+    def dl(label: str, value: str) -> str:
+        return f"<div class='dl'><div class='dl-label'>{label}</div><div class='dl-val'>{value or '—'}</div></div>"
+
+    qr_img = (
+        f'<img src="data:image/png;base64,{qr}" alt="Check-in QR" class="qr" />'
+        if qr
+        else '<div class="qr qr-empty">QR unavailable</div>'
+    )
+    attendee_line = " · ".join(meta) if meta else (phone or "Student")
+
+    if template_id == "classic":
+        inner = f"""
+      <div class="sheet">
+        <div class="head">
+          <div class="brand">{brand}</div>
+          <div class="org">{organizer}</div>
+          <h1>{title}</h1>
+          <div class="when">{event_date}{(' &nbsp;·&nbsp; ' + event_time) if event_time else ''}</div>
+          <div class="where">📍 {venue}</div>
+        </div>
+        <div class="body">
+          <table class="meta">
+            <tr>
+              <td><div class="dl-label">ATTENDEE</div><div class="dl-val">{name}</div>
+                <div style="color:#6b7280;font-size:13px;margin-top:2px;">{email}</div></td>
+              <td style="text-align:right;">
+                <div class="dl-label">REGISTRATION ID</div><div class="dl-val" style="font-size:15px;">{reg_id}</div>
+                <div style="color:#6b7280;font-size:12px;margin-top:2px;">{attendee_line}</div></td>
+            </tr>
+          </table>
+          <table class="items">
+            <tr><th>Item</th><th>Status</th></tr>
+            <tr><td>{title} — {organizer}</td><td><span class="badge">CONFIRMED</span></td></tr>
+          </table>
+          <div class="qr-wrap">{qr_img}</div>
+        </div>
+        <div class="foot">
+          This ticket is your entry pass. Scan the QR code at the venue for check-in.
+          Present this ticket (printed or on your phone) along with a valid ID. No refunds on redeemed passes.
+        </div>
+      </div>"""
+    elif template_id == "minimal":
+        inner = f"""
+      <div class="sheet minimal">
+        <div class="min-head">
+          <div class="brand">{brand}</div>
+          <div class="org">{organizer}</div>
+          <h1>{title}</h1>
+        </div>
+        <div class="min-event">
+          <div class="min-pill">{event_date or 'TBA'}</div>
+          <div class="min-pill">{event_time or ''}</div>
+          <div class="min-pill">📍 {venue}</div>
+        </div>
+        <div class="min-row">
+          <div>
+            <div class="dl-label">ATTENDEE</div><div class="dl-val">{name}</div>
+            <div style="color:#6b7280;font-size:13px;margin-top:2px;">{email}</div>
+            {f'<div style="color:#6b7280;font-size:13px;">{attendee_line}</div>' if attendee_line else ''}
+          </div>
+          <div class="min-qr">{qr_img}</div>
+        </div>
+        <div class="min-id">
+          <span>REG ID</span> <strong>{reg_id}</strong>
+          <span class="badge">CONFIRMED</span>
+        </div>
+        <div class="min-foot">
+          This ticket is your entry pass — scan the QR at check-in. Keep this pass handy on event day.
+        </div>
+      </div>"""
+    else:  # aurora (default)
+        inner = f"""
+      <div class="sheet aurora">
+        <div class="aur-glow aur-glow-a"></div>
+        <div class="aur-glow aur-glow-b"></div>
+        <div class="aur-head">
+          <div class="brand">{brand}</div>
+          <div class="org">{organizer}</div>
+          <h1>{title}</h1>
+          <div class="when">{event_date}{(' &nbsp;·&nbsp; ' + event_time) if event_time else ''} &nbsp;·&nbsp; 📍 {venue}</div>
+        </div>
+        <div class="aur-body">
+          <div class="aur-info">
+            <div class="dl"><div class="dl-label">ATTENDEE</div><div class="dl-val">{name}</div></div>
+            <div class="dl"><div class="dl-label">EMAIL</div><div class="dl-val">{email}</div></div>
+            <div class="dl"><div class="dl-label">REGISTRATION ID</div><div class="dl-val">{reg_id}</div></div>
+            {f'<div class="dl"><div class="dl-label">COLLEGE</div><div class="dl-val">{attendee_line}</div></div>' if attendee_line else ''}
+          </div>
+          <div class="aur-qr">{qr_img}</div>
+        </div>
+        <div class="aur-ticket"><span class="badge">CONFIRMED PASS</span>
+          <span>Scan the QR at the venue for check-in — this pass is valid for one attendee.</span></div>
+      </div>"""
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Ticket — {title}</title>
+<style>
+  * {{ box-sizing: border-box; }}
+  body {{ margin:0; padding:28px; background:#eef1f6; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#111827; }}
+  .sheet {{ position:relative; max-width:760px; margin:0 auto; background:#fff; border-radius:16px; overflow:hidden; border:1px solid #e5e7eb; }}
+  .brand {{ font-size:12px; letter-spacing:2.5px; opacity:.85; }}
+  .org {{ font-size:14px; font-weight:700; margin-top:6px; }}
+  .dl-label {{ color:#6b7280; font-size:11px; text-transform:uppercase; letter-spacing:.5px; }}
+  .dl-val {{ color:#111827; font-size:16px; font-weight:700; margin-top:2px; }}
+  .badge {{ display:inline-block; padding:4px 12px; border-radius:999px; font-size:11px; font-weight:800; background:#dcfce7; color:#15803d; }}
+  .qr {{ width:150px; height:150px; border-radius:12px; }}
+  .qr-empty {{ display:flex; align-items:center; justify-content:center; background:#f3f4f6; color:#9ca3af; font-size:11px; }}
+
+  .head {{ background:linear-gradient(135deg,#7C3AED,#4C1D95); color:#fff; padding:28px 32px; }}
+  .head h1 {{ margin:10px 0 6px; font-size:26px; }}
+  .head .when {{ font-size:14px; opacity:.92; }}
+  .head .where {{ margin-top:6px; font-size:13px; opacity:.9; }}
+  .body {{ padding:26px 32px 30px; }}
+  table.meta {{ width:100%; border-collapse:collapse; }}
+  table.meta td {{ vertical-align:top; padding:4px 0; }}
+  table.items {{ width:100%; border-collapse:collapse; margin-top:22px; }}
+  table.items th {{ text-align:left; padding:10px 12px; background:#f9fafb; color:#374151; font-size:12px; text-transform:uppercase; letter-spacing:.4px; }}
+  table.items td {{ padding:10px 12px; border-bottom:1px solid #f1f5f9; color:#111827; font-size:14px; }}
+  .qr-wrap {{ margin-top:22px; text-align:center; }}
+  .foot {{ padding:18px 32px; background:#f9fafb; color:#6b7280; font-size:12px; line-height:1.6; }}
+
+  .minimal .brand {{ color:#7C3AED; }}
+  .minimal .org {{ color:#374151; }}
+  .min-head {{ padding:30px 32px 6px; }}
+  .min-head h1 {{ margin:10px 0 0; font-size:26px; color:#111827; }}
+  .min-event {{ display:flex; gap:8px; flex-wrap:wrap; padding:16px 32px; border-bottom:1px solid #f1f5f9; }}
+  .min-pill {{ background:#f3f4f6; color:#374151; font-size:12px; font-weight:600; padding:6px 12px; border-radius:999px; }}
+  .min-row {{ display:flex; justify-content:space-between; align-items:center; gap:20px; padding:24px 32px; }}
+  .min-qr .qr {{ width:130px; height:130px; }}
+  .min-id {{ padding:12px 32px; background:#f9fafb; display:flex; align-items:center; gap:12px; font-size:13px; color:#6b7280; }}
+  .min-id strong {{ color:#111827; letter-spacing:.5px; }}
+  .min-foot {{ padding:18px 32px; color:#9ca3af; font-size:12px; }}
+
+  .aurora {{ background:linear-gradient(150deg,#1e1b4b 0%,#312e81 45%,#4C1D95 100%); color:#fff; border:none; }}
+  .aurora .dl-label {{ color:#a5b4fc; }}
+  .aurora .dl-val {{ color:#fff; }}
+  .aurora .badge {{ background:rgba(52,211,153,.18); color:#6ee7b7; }}
+  .aur-glow {{ position:absolute; width:320px; height:320px; border-radius:50%; filter:blur(90px); opacity:.35; }}
+  .aur-glow-a {{ top:-120px; right:-80px; background:#a855f7; }}
+  .aur-glow-b {{ bottom:-140px; left:-80px; background:#6366f1; }}
+  .aur-head {{ position:relative; padding:32px 34px 18px; }}
+  .aur-head h1 {{ margin:10px 0 8px; font-size:27px; }}
+  .aur-head .when {{ font-size:13px; opacity:.85; }}
+  .aur-body {{ position:relative; display:flex; justify-content:space-between; align-items:center; gap:24px; padding:8px 34px 26px; }}
+  .aur-info {{ flex:1; display:grid; grid-template-columns:1fr 1fr; gap:14px; }}
+  .aur-qr {{ background:#fff; padding:10px; border-radius:14px; }}
+  .aur-qr .qr {{ width:140px; height:140px; }}
+  .aur-ticket {{ position:relative; display:flex; align-items:center; gap:12px; padding:14px 34px; background:rgba(255,255,255,.06); border-top:1px dashed rgba(255,255,255,.25); font-size:12px; opacity:.9; }}
+  @media print {{
+    body {{ background:#fff; padding:0; }}
+    .sheet {{ border:none; border-radius:0; box-shadow:none; }}
+  }}
+</style>
+</head>
+<body>{inner}
+</body>
+</html>"""
+
+
+def _ticket_email_block(reg: dict, showcase: dict, ticket_url: str) -> str:
+    """Inline ticket card embedded in confirmation / invoice emails."""
+    qr = reg.get("qr_code_base64") or ""
+    title = reg.get("showcase_title") or showcase.get("title") or "Event"
+    reg_id = reg.get("id") or ""
+    esc = lambda s: str(s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    qr_img = (
+        f'<img src="data:image/png;base64,{qr}" width="120" height="120" style="border-radius:10px;" alt="Check-in QR" />'
+        if qr
+        else ""
+    )
+    return f"""
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;margin:0 0 18px 0;">
+      <tr><td style="padding:16px 18px;background:linear-gradient(135deg,#7C3AED,#4C1D95);border-radius:12px 12px 0 0;">
+        <div style="color:#fff;font-size:11px;letter-spacing:2px;">YOUR ENTRY PASS</div>
+        <div style="color:#fff;font-size:17px;font-weight:700;margin-top:2px;">{esc(title)}</div>
+      </td></tr>
+      <tr><td style="padding:16px 18px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="vertical-align:top;padding-right:16px;">
+              <div style="color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:.4px;">Attendee</div>
+              <div style="color:#111827;font-weight:700;font-size:14px;">{esc(reg.get('full_name') or 'Attendee')}</div>
+              <div style="color:#374151;font-size:13px;margin-top:4px;">Reg ID: {esc(reg_id)}</div>
+              <div style="margin-top:14px;">
+                <a href="{ticket_url}" style="display:inline-block;padding:10px 18px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;font-size:13px;">Download Ticket</a>
+              </div>
+            </td>
+            <td style="vertical-align:top;text-align:center;">{qr_img}</td>
+          </tr>
+        </table>
+        <div style="margin-top:14px;color:#9ca3af;font-size:12px;line-height:1.5;">
+          This ticket is your entry pass. Scan the QR at the venue for check-in, and present it
+          (printed or on your phone) along with a valid ID.
+        </div>
+      </td></tr>
+    </table>"""
+
+
 async def _mirror_to_event_registration(db, reg: dict, showcase: dict, user: Optional[dict]):
     """Mirror an ECHO registration into the StudentAlumni event_registrations collection."""
     canonical_slug = reg.get("slug") or (showcase or {}).get("slug")
@@ -481,7 +740,7 @@ async def _mirror_to_event_registration(db, reg: dict, showcase: dict, user: Opt
         "id": reg.get("id"),
         "event_id": event_id,
         "event_title": showcase.get("title"),
-        "user_id": reg.get("user_id"),
+        "user_id": reg.get("user_id") or (str(user["_id"]) if user else None),
         "user_name": reg.get("full_name") or (user.get("full_name") if user else ""),
         "user_unique_id": (user or {}).get("unique_id"),
         "qr_code_base64": reg.get("qr_code_base64"),
@@ -496,6 +755,134 @@ async def _mirror_to_event_registration(db, reg: dict, showcase: dict, user: Opt
         await db.event_registrations.update_one({"_id": existing["_id"]}, {"$set": sa_reg})
     else:
         await db.event_registrations.insert_one(sa_reg.copy())
+
+
+# ── StudentAlumni account provisioning ─────────────────────────────────────────
+def _generate_temp_password(length: int = 12) -> str:
+    """Random, typable, strong-enough password emailed to newly-provisioned users.
+
+    Uses a URL-safe alphabet so it can be typed from the email without confusion.
+    """
+    alphabet = string.ascii_letters + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(length))
+
+
+async def _provision_sa_account(db, reg: dict, showcase: dict):
+    """Ensure every confirmed ECHO attendee has a StudentAlumni account.
+
+    Returns (user, created, password):
+      - user     — the SA user doc (existing, or freshly provisioned)
+      - created  — True only when a brand-new account was created here
+      - password — the generated password when created, else None
+
+    Idempotent: looks the attendee up by email first; never creates duplicates
+    (the users.email unique index also guards against races). The registration
+    record is updated with the resolved user_id so admin tracking can link an
+    attendee to their SA account.
+    """
+    email = (reg.get("email") or "").strip().lower()
+    if not email:
+        return None, False, None
+
+    user = await db.users.find_one({"email": email})
+    if user:
+        reg["user_id"] = str(user["_id"])
+        await db.echo_registrations.update_one(
+            {"id": reg.get("id")}, {"$set": {"user_id": str(user["_id"])}}
+        )
+        return user, False, None
+
+    password = _generate_temp_password()
+    now = datetime.now(timezone.utc)
+    uid = generate_unique_id("student")
+    frontend_url = (os.environ.get("FRONTEND_URL") or "https://studentalumni.ai").strip().rstrip("/")
+    qr_code = generate_qr_code(f"{frontend_url}/verify/{uid.split('-')[-1]}")
+
+    user_doc: Dict[str, Any] = {
+        "email": email,
+        "password_hash": hash_password(password),  # auto-generated, emailed to attendee
+        "full_name": (reg.get("full_name") or "").strip() or email.split("@")[0].title(),
+        "role": "student",
+        "phone": encrypt_value(reg.get("phone")),
+        "dob": encrypt_value(reg.get("dob")),
+        "unique_id": uid,
+        "qr_code_base64": qr_code,
+        "school_info": None,
+        "career_path": None,
+        "student_info": None,
+        "alumni_info": None,
+        "mentor_info": None,
+        "interests": [],
+        "skills": [],
+        "bio": None,
+        "face_image_base64": None,
+        "onboarding_completed": False,
+        "email_verified": False,
+        "account_source": "echo",
+        "echo_slug": reg.get("slug"),
+        "created_at": now,
+        "last_login": None,
+    }
+    try:
+        res = await db.users.insert_one(user_doc)
+    except Exception as e:
+        # Duplicate-key race — another request created the same email between
+        # our find_one and insert. Fall back to the existing account.
+        if "duplicate key" in str(e).lower() or getattr(e, "code", None) == 11000:
+            user = await db.users.find_one({"email": email})
+            if user:
+                await db.echo_registrations.update_one(
+                    {"id": reg.get("id")}, {"$set": {"user_id": str(user["_id"])}}
+                )
+                return user, False, None
+            raise
+        raise
+
+    user_doc["_id"] = res.inserted_id
+    reg["user_id"] = str(res.inserted_id)
+    await db.echo_registrations.update_one(
+        {"id": reg.get("id")}, {"$set": {"user_id": str(res.inserted_id)}}
+    )
+    return user_doc, True, password
+
+
+async def _send_sa_welcome_email(reg: dict, showcase: dict, password: str) -> None:
+    """Welcome email from StudentAlumni when an ECHO registration creates an SA account."""
+    try:
+        email = (reg.get("email") or "").strip()
+        if not email:
+            return
+        title = reg.get("showcase_title") or showcase.get("title") or "Event Registration"
+        login_url = "https://studentalumni.ai/login"
+        dashboard_url = "https://studentalumni.ai/dashboard"
+        body = render_html_email(
+            f"""
+            <h2 style="margin:0 0 14px 0;color:#111827;">Your StudentAlumni account is ready 🎉</h2>
+            <p style="margin:0 0 18px 0;color:#374151;">Because you registered for
+            <strong>{title}</strong>, we've created a free account for you on the
+            StudentAlumni platform.</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+              style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin:0 0 18px 0;">
+              <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Your Email</td>
+                  <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{email}</td></tr>
+              <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Your Password</td>
+                  <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{password}</td></tr>
+              <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Event Registered</td>
+                  <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{title}</td></tr>
+            </table>
+            <p style="margin:0 0 22px 0;color:#374151;">
+              Sign in with the email and password above. We recommend changing your password
+              from your profile once you're in — for your security, please don't share it.
+            </p>
+            <a href="{login_url}"
+               style="display:inline-block;padding:12px 26px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;margin-right:8px;">Sign In</a>
+            <a href="{dashboard_url}"
+               style="display:inline-block;padding:12px 26px;background:#f3f4f6;color:#111827;text-decoration:none;border-radius:10px;font-weight:600;">Open Dashboard</a>
+            """
+        )
+        await send_email(email, f"Welcome to StudentAlumni — your account for {title}", body)
+    except Exception as e:
+        print(f"[ECHO] Welcome email error: {e}")
 
 
 async def _store_invoice_and_email(db, reg: dict, showcase: dict) -> dict:
@@ -514,12 +901,15 @@ async def _store_invoice_and_email(db, reg: dict, showcase: dict) -> dict:
     try:
         email = reg.get("email") or ""
         if email:
-            subject = f"Payment Receipt & Invoice — {inv_ser.get('event_title') or 'Event Registration'}"
+            reg_id = reg.get("id") or ""
+            ticket_url = f"https://studentalumni.ai/api/echo/tickets/{reg_id}"
+            ticket_block = _ticket_email_block(reg, showcase, ticket_url)
+            subject = f"Payment Receipt & Entry Pass — {inv_ser.get('event_title') or 'Event Registration'}"
             body = render_html_email(
                 f"""
                 <h2 style="margin:0 0 14px 0;color:#111827;">Thank you for registering!</h2>
                 <p style="margin:0 0 18px 0;color:#374151;">Your payment for <strong>{inv_ser.get('event_title')}</strong>
-                has been received. Here are your payment details:</p>
+                has been received. Here are your payment details and entry pass:</p>
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
                   style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin:0 0 18px 0;">
                   <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Invoice No</td>
@@ -529,8 +919,9 @@ async def _store_invoice_and_email(db, reg: dict, showcase: dict) -> dict:
                   <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Amount Paid</td>
                       <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{inv_ser.get('currency')} {float(inv_ser.get('amount') or 0):,.2f}</td></tr>
                 </table>
+                {ticket_block}
                 <p style="margin:0 0 22px 0;color:#374151;">
-                  You can view and download your invoice anytime from your dashboard under
+                  You can view and download your invoice and ticket anytime from your dashboard under
                   <strong>My Tickets</strong>.
                 </p>
                 <a href="https://studentalumni.ai/dashboard"
@@ -939,6 +1330,7 @@ class RegisterSchema(BaseModel):
     branch: Optional[str] = ""
     year: Optional[str] = ""
     college: Optional[str] = ""
+    dob: Optional[str] = ""  # YYYY-MM-DD — used to provision the StudentAlumni account
     payment_method: Optional[str] = ""
 
 
@@ -1058,6 +1450,7 @@ async def register_for_showcase(
         "phone": payload.phone or (user.get("phone") if user else ""),
         "branch": payload.branch,
         "year": payload.year,
+        "dob": (payload.dob or "").strip(),
         "college": payload.college or showcase.get("college"),
         "fee": fee,
         "currency": currency,
@@ -1069,10 +1462,16 @@ async def register_for_showcase(
     }
     await db.echo_registrations.insert_one(dict(reg))
 
-    # 2) StudentAlumni-side registration (mirror /events/:id/register)
-    #    Only mirrored once payment is confirmed so no pending QR leaks across.
-    if auto_paid and user is not None:
-        await _mirror_to_event_registration(db, reg, showcase, user)
+    # 2) StudentAlumni-side: provision an SA account for the attendee (idempotent,
+    #    by email), then mirror the registration into their SA account so it shows
+    #    under "My events" with a check-in QR. The welcome email is only sent when
+    #    a brand-new SA account was created by this registration.
+    if auto_paid:
+        sa_user, created, temp_password = await _provision_sa_account(db, reg, showcase)
+        if sa_user:
+            await _mirror_to_event_registration(db, reg, showcase, sa_user)
+        if created and temp_password:
+            await _send_sa_welcome_email(reg, showcase, temp_password)
 
     # Free/confirmed registrations get a confirmation email (with QR).
     # Paid registrations on this path are impossible — they must pay first.
@@ -1120,6 +1519,7 @@ class PaymentOrderSchema(BaseModel):
     branch: Optional[str] = ""
     year: Optional[str] = ""
     college: Optional[str] = ""
+    dob: Optional[str] = ""  # YYYY-MM-DD — used to provision the StudentAlumni account
 
 
 class VerifyPaymentSchema(PaymentOrderSchema):
@@ -1223,6 +1623,7 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
             "phone": payload.phone,
             "branch": payload.branch,
             "year": payload.year,
+            "dob": (payload.dob or "").strip(),
             "college": payload.college or showcase.get("college"),
             "fee": fee,
             "currency": currency,
@@ -1421,6 +1822,45 @@ async def get_invoice(invoice_no: str, request: Request):
     return inv_ser
 
 
+@router.get("/tickets/{reg_id}")
+async def get_ticket(reg_id: str, request: Request):
+    """Fetch an attendee's entry pass (ticket) with QR — owner or admin.
+
+    Returns render-ready standalone HTML so the app can open a printable page,
+    download it as PDF, or share the link as proof of purchase / entry pass.
+    """
+    db = _get_db(request)
+    reg = await db.echo_registrations.find_one({"id": reg_id})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    reg_ser = _ser(reg)
+    showcase = await db.echo_showcases.find_one({"slug": reg.get("slug")})
+    # Authorization: owner, matching email, or admin
+    user = await _resolve_user(request, db)
+    is_admin = False
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        try:
+            await _require_admin(request)
+            is_admin = True
+        except HTTPException:
+            is_admin = False
+    if not is_admin:
+        allowed_email = (reg.get("email") or "").strip().lower()
+        owner_match = user is not None and (
+            str(user["_id"]) == reg.get("user_id")
+            or (user.get("email") or "").strip().lower() == allowed_email
+        )
+        if not owner_match:
+            raise HTTPException(status_code=403, detail="You do not have access to this ticket")
+    return {
+        "reg_id": reg_id,
+        "status": reg.get("status"),
+        "event_title": reg.get("showcase_title") or (showcase or {}).get("title"),
+        "html": _build_ticket_html(reg_ser, showcase or {}, reg.get("ticket_template")),
+    }
+
+
 # ── Admin: registrations + revenue ───────────────────────────────────────────
 @router.get("/admin/registrations")
 async def admin_echo_registrations(
@@ -1470,6 +1910,7 @@ async def admin_echo_registrations(
             "paid_at": payment.get("paid_at"),
             "registered_at": s.get("registered_at"),
             "user_id": s.get("user_id"),
+            "has_account": bool(s.get("user_id")),
         })
     return {"items": items, "total": len(items)}
 
