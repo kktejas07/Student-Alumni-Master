@@ -45,8 +45,7 @@ from core.email import send_email, render_html_email
 
 router = APIRouter(prefix="/api/echo", tags=["echo-showcase"])
 
-UPLOAD_DIR = Path("uploads/echo")
-MEDIA_META_FILE = UPLOAD_DIR / ".media_meta.json"
+
 
 # ── Ticket / pass templates ───────────────────────────────────────────────────
 # Selected per event via the super-admin CMS (Registration tab →
@@ -1282,26 +1281,6 @@ async def _store_invoice_and_email(db, reg: dict, showcase: dict) -> dict:
     except Exception as e:
         print(f"[ECHO] Invoice email error: {e}")
     return inv_ser
-
-
-# ── Media metadata helpers ────────────────────────────────────────────────────
-def _load_media_meta() -> dict:
-    """Load persistent media metadata from JSON sidecar file."""
-    try:
-        if MEDIA_META_FILE.exists():
-            return json.loads(MEDIA_META_FILE.read_text(encoding="utf-8"))
-    except Exception:
-        pass
-    return {}
-
-
-def _save_media_meta(meta: dict) -> None:
-    """Persist media metadata to JSON sidecar file."""
-    try:
-        UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-        MEDIA_META_FILE.write_text(json.dumps(meta, indent=2), encoding="utf-8")
-    except Exception:
-        pass
 
 
 def _human_size(size: float) -> str:
@@ -2557,12 +2536,18 @@ async def preview_invoice_template(template_id: str, request: Request, _=Depends
 
 @router.get("/admin/branding")
 async def get_branding(request: Request, _=Depends(_require_admin)):
-    """Return branding settings (logo, favicon)."""
+    """Return branding settings."""
     db = _get_db(request)
     settings = await db.echo_settings.find_one({"_id": "global"}) or {}
     return {
         "logo_url": settings.get("logo_url", ""),
         "favicon_url": settings.get("favicon_url", ""),
+        "brand_name": settings.get("brand_name", "StudentAlumni"),
+        "copyright": settings.get("copyright", "2026 StudentAlumni. All rights reserved."),
+        "address": settings.get("address", ""),
+        "phone": settings.get("phone", ""),
+        "email": settings.get("email", ""),
+        "website": settings.get("website", ""),
     }
 
 
@@ -2572,10 +2557,9 @@ async def update_branding(request: Request, admin=Depends(_require_admin)):
     db = _get_db(request)
     body = await request.json()
     update = {}
-    if "logo_url" in body:
-        update["logo_url"] = str(body["logo_url"])[:500]
-    if "favicon_url" in body:
-        update["favicon_url"] = str(body["favicon_url"])[:500]
+    for k in ("logo_url", "favicon_url", "brand_name", "copyright", "address", "phone", "email", "website"):
+        if k in body:
+            update[k] = str(body[k])[:500]
     if update:
         await db.echo_settings.update_one(
             {"_id": "global"}, {"$set": update}, upsert=True
@@ -2667,14 +2651,9 @@ async def archive_showcase(showcase_id: str, request: Request, _=Depends(_requir
 
 @router.post("/admin/upload")
 async def upload_echo_media(request: Request, file: UploadFile = File(None), admin=Depends(_require_admin)):
-    """
-    Accepts multipart/form-data with 'file', 'image', or 'media', OR base64 payload.
-    Validates file size (max 25 MB) and file format.
-    Generates responsive image variants (thumbnail, medium, large, original) using Pillow.
-    """
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-
-    content_type = request.headers.get("content-type", "")
+    """Upload an image file and store it as base64 in the database."""
+    db = _get_db(request)
+    content_type_header = request.headers.get("content-type", "")
 
     filename = "upload.png"
     original_name = "upload.png"
@@ -2684,7 +2663,7 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
         filename = file.filename
         original_name = filename
         file_bytes = await file.read()
-    elif "multipart/form-data" in content_type:
+    elif "multipart/form-data" in content_type_header:
         form = await request.form()
         uploaded_file = form.get("file") or form.get("image") or form.get("media")
         if uploaded_file and hasattr(uploaded_file, "filename"):
@@ -2693,7 +2672,7 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
             file_bytes = await uploaded_file.read()
         else:
             raise HTTPException(status_code=400, detail="No file found in multipart upload")
-    elif "application/json" in content_type:
+    elif "application/json" in content_type_header:
         body = await request.json()
         data = body.get("data", "")
         filename = body.get("filename") or f"upload_{int(datetime.now().timestamp())}.png"
@@ -2704,88 +2683,41 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
     else:
         raise HTTPException(status_code=400, detail="No file or base64 data provided")
 
-    # Validate file size (25 MB max)
-    MAX_SIZE = 25 * 1024 * 1024
+    MAX_SIZE = 10 * 1024 * 1024
     if len(file_bytes) > MAX_SIZE:
-        raise HTTPException(status_code=413, detail="File too large. Maximum 25 MB allowed.")
+        raise HTTPException(status_code=413, detail="File too large. Maximum 10 MB allowed.")
 
     ext = Path(filename).suffix.lower() or ".png"
     ALLOWED = {".jpg", ".jpeg", ".png", ".webp", ".avif", ".svg", ".gif", ".pdf", ".docx", ".xlsx", ".pptx", ".zip"}
     if ext not in ALLOWED:
         raise HTTPException(status_code=400, detail=f"File type {ext} not allowed.")
 
-    ts = int(datetime.now().timestamp())
-    stem = Path(filename).stem.replace(" ", "_")
-    safe_name = f"{ts}_{stem}{ext}"
-    out_path = UPLOAD_DIR / safe_name
+    content_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
+    b64_data = base64.b64encode(file_bytes).decode("utf-8")
+    data_url = f"data:{content_type};base64,{b64_data}"
 
-    with open(out_path, "wb") as f:
-        f.write(file_bytes)
-
-    url = f"/uploads/echo/{safe_name}"
-
-    # Generate Image Variants using Pillow if applicable
-    variants = {"original": url, "large": url, "medium": url, "thumbnail": url}
-    img_width, img_height = 0, 0
-
-    if ext in (".jpg", ".jpeg", ".png", ".webp"):
-        try:
-            from PIL import Image as PILImage
-            with PILImage.open(out_path) as im:
-                img_width, img_height = im.size
-
-                # Generate thumbnail (150x150)
-                thumb_im = im.copy()
-                thumb_im.thumbnail((150, 150))
-                thumb_name = f"{ts}_{stem}_thumb{ext}"
-                thumb_im.save(UPLOAD_DIR / thumb_name)
-                variants["thumbnail"] = f"/uploads/echo/{thumb_name}"
-
-                # Generate medium (600x400)
-                med_im = im.copy()
-                med_im.thumbnail((600, 600))
-                med_name = f"{ts}_{stem}_med{ext}"
-                med_im.save(UPLOAD_DIR / med_name)
-                variants["medium"] = f"/uploads/echo/{med_name}"
-
-                # Generate large (1200x800)
-                large_im = im.copy()
-                large_im.thumbnail((1200, 1200))
-                large_name = f"{ts}_{stem}_large{ext}"
-                large_im.save(UPLOAD_DIR / large_name)
-                variants["large"] = f"/uploads/echo/{large_name}"
-        except Exception:
-            pass
-
-    # Track in metadata sidecar
-    meta = _load_media_meta()
-    meta[safe_name] = {
+    safe_name = file.filename.replace("/", "_").replace("\\", "_") if file.filename else f"upload_{int(datetime.now().timestamp())}{ext}"
+    record = {
         "filename": safe_name,
         "original_name": original_name,
-        "url": url,
-        "variants": variants,
-        "width": img_width,
-        "height": img_height,
+        "content_type": content_type,
         "size": len(file_bytes),
         "size_human": _human_size(len(file_bytes)),
         "ext": ext.lstrip("."),
-        "content_type": mimetypes.guess_type(safe_name)[0] or "application/octet-stream",
-        "uploaded_at": _now(),
+        "data_url": data_url,
         "uploaded_by": admin.get("sub") or admin.get("user_id") or "admin",
+        "uploaded_at": _now(),
     }
-    _save_media_meta(meta)
+    await db.echo_media.insert_one(record)
 
     return {
         "ok": True,
-        "url": url,
+        "url": data_url,
         "filename": safe_name,
         "original_name": original_name,
-        "variants": variants,
-        "width": img_width,
-        "height": img_height,
         "size": len(file_bytes),
         "size_human": _human_size(len(file_bytes)),
-        "content_type": ext.strip(".")
+        "content_type": content_type,
     }
 
 
@@ -2793,75 +2725,38 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
 
 @router.get("/admin/media")
 async def list_echo_media(request: Request, _=Depends(_require_admin)):
-    """List all uploaded media files for the ECHO Media Library."""
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    meta = _load_media_meta()
-
+    """List all uploaded media from the database."""
+    db = _get_db(request)
     files = []
     total_bytes = 0
-
-    # Scan actual files on disk, merge with metadata
-    try:
-        all_files = sorted(
-            [p for p in UPLOAD_DIR.iterdir() if p.is_file() and not p.name.startswith(".")],
-            key=lambda f: f.stat().st_mtime,
-            reverse=True
-        )
-    except Exception:
-        all_files = []
-
-    for p in all_files:
-        size = p.stat().st_size
+    async for doc in db.echo_media.find().sort("uploaded_at", -1):
+        doc["_id"] = str(doc["_id"])
+        size = doc.get("size", 0)
         total_bytes += size
-        ext = p.suffix.lower().lstrip(".")
-        m = meta.get(p.name, {})
+        ext = doc.get("filename", "").rsplit(".", 1)[-1] if "." in doc.get("filename", "") else ""
         files.append({
-            "filename": p.name,
-            "original_name": m.get("original_name", p.name),
-            "url": f"/uploads/echo/{p.name}",
-            "variants": m.get("variants", {"original": f"/uploads/echo/{p.name}"}),
-            "width": m.get("width", 0),
-            "height": m.get("height", 0),
+            "filename": doc.get("filename", ""),
+            "original_name": doc.get("original_name", doc.get("filename", "")),
+            "url": doc.get("data_url", ""),
             "size": size,
             "size_human": _human_size(size),
             "ext": ext,
-            "content_type": mimetypes.guess_type(p.name)[0] or "application/octet-stream",
-            "uploaded_at": m.get(
-                "uploaded_at",
-                datetime.fromtimestamp(p.stat().st_mtime, tz=timezone.utc).isoformat()
-            ),
-            "uploaded_by": m.get("uploaded_by", "admin"),
-            "is_image": ext in ("jpg", "jpeg", "png", "webp", "avif", "gif", "svg"),
+            "content_type": doc.get("content_type", ""),
+            "uploaded_at": doc.get("uploaded_at", ""),
+            "uploaded_by": doc.get("uploaded_by", "admin"),
+            "is_image": ext.lower() in ("png", "jpg", "jpeg", "gif", "webp", "svg"),
         })
-
-    return {
-        "items": files,
-        "total": len(files),
-        "total_size": total_bytes,
-        "total_size_human": _human_size(total_bytes),
-    }
+    return {"items": files, "total": len(files), "total_size_human": _human_size(total_bytes)}
 
 
 @router.delete("/admin/media/{filename}")
 async def delete_echo_media(filename: str, request: Request, _=Depends(_require_admin)):
-    """Delete a media file from the ECHO Media Library."""
-    # Security: strip any path traversal attempts
-    safe_filename = Path(filename).name
-    if safe_filename != filename:
-        raise HTTPException(status_code=400, detail="Invalid filename")
-
-    target = UPLOAD_DIR / safe_filename
-    if not target.exists():
+    """Delete a media file from the database."""
+    db = _get_db(request)
+    result = await db.echo_media.delete_one({"filename": filename})
+    if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="File not found")
-
-    target.unlink()
-
-    # Remove from metadata
-    meta = _load_media_meta()
-    meta.pop(safe_filename, None)
-    _save_media_meta(meta)
-
-    return {"ok": True, "deleted": safe_filename}
+    return {"ok": True}
 
 
 # ── Session Coupons ─────────────────────────────────────────────────────────

@@ -2475,8 +2475,13 @@ function PagesTab({ onSaved }: { onSaved: (s?: string) => void }) {
 function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [logoUrl, setLogoUrl] = useState('');
   const [faviconUrl, setFaviconUrl] = useState('');
+  const [brandName, setBrandName] = useState('StudentAlumni');
+  const [copyright, setCopyright] = useState('2026 StudentAlumni. All rights reserved.');
+  const [address, setAddress] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [website, setWebsite] = useState('');
   const [saving, setSaving] = useState(false);
-  const { flash } = useToast();
 
   useEffect(() => {
     (async () => {
@@ -2488,9 +2493,15 @@ function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (resp.ok) {
-          const data = await resp.json();
-          setLogoUrl(data.logo_url || '');
-          setFaviconUrl(data.favicon_url || '');
+          const d = await resp.json();
+          setLogoUrl(d.logo_url || '');
+          setFaviconUrl(d.favicon_url || '');
+          setBrandName(d.brand_name || 'StudentAlumni');
+          setCopyright(d.copyright || '2026 StudentAlumni. All rights reserved.');
+          setAddress(d.address || '');
+          setPhone(d.phone || '');
+          setEmail(d.email || '');
+          setWebsite(d.website || '');
         }
       } catch { /* use defaults */ }
     })();
@@ -2505,46 +2516,56 @@ function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
       const resp = await fetch(`${base}/api/admin/branding`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ logo_url: logoUrl, favicon_url: faviconUrl }),
+        body: JSON.stringify({
+          logo_url: logoUrl, favicon_url: faviconUrl, brand_name: brandName,
+          copyright, address, phone, email, website,
+        }),
       });
       if (!resp.ok) throw new Error('Failed to save');
       onSaved('Branding saved');
     } catch (err: any) {
-      flash(err?.message || 'Failed to save');
+      onSaved(err?.message || 'Failed to save');
     } finally {
       setSaving(false);
     }
   };
 
+  const Field = ({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder: string }) => (
+    <View style={{ gap: 6 }}>
+      <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</Text>
+      <TextInput value={value} onChangeText={onChange} placeholder={placeholder}
+        placeholderTextColor="#475569"
+        style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 12, color: '#e2e8f0', fontSize: 13 }} />
+    </View>
+  );
+
   return (
     <View style={{ gap: 16 }}>
       <Card style={{ padding: 20, gap: 16 }}>
-        <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Branding & Logo</Text>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Branding & Identity</Text>
         <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
-          Configure the logo and favicon displayed across the platform.
+          Configure logo, favicon, and contact information displayed across the platform.
         </Text>
-        <View style={{ gap: 8 }}>
-          <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Logo URL</Text>
-          <TextInput value={logoUrl} onChangeText={setLogoUrl} placeholder="https://example.com/logo.png"
-            placeholderTextColor="#475569"
-            style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 12, color: '#e2e8f0', fontSize: 13 }} />
-          {logoUrl ? (
-            <View style={{ padding: 16, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center' }}>
-              <Image source={{ uri: logoUrl }} style={{ width: 64, height: 64, borderRadius: 12 }} resizeMode="contain" />
-            </View>
-          ) : null}
-        </View>
-        <View style={{ gap: 8 }}>
-          <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Favicon URL</Text>
-          <TextInput value={faviconUrl} onChangeText={setFaviconUrl} placeholder="https://example.com/favicon.png"
-            placeholderTextColor="#475569"
-            style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 12, color: '#e2e8f0', fontSize: 13 }} />
-          {faviconUrl ? (
-            <View style={{ padding: 12, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center' }}>
-              <Image source={{ uri: faviconUrl }} style={{ width: 32, height: 32, borderRadius: 4 }} resizeMode="contain" />
-            </View>
-          ) : null}
-        </View>
+
+        <Field label="Brand Name" value={brandName} onChange={setBrandName} placeholder="StudentAlumni" />
+        <Field label="Logo URL" value={logoUrl} onChange={setLogoUrl} placeholder="https://example.com/logo.png" />
+        <Field label="Favicon URL" value={faviconUrl} onChange={setFaviconUrl} placeholder="https://example.com/favicon.png" />
+
+        {logoUrl ? (
+          <View style={{ padding: 16, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center' }}>
+            <Image source={{ uri: logoUrl }} style={{ width: 64, height: 64, borderRadius: 12 }} resizeMode="contain" />
+          </View>
+        ) : null}
+
+        <View style={{ height: 1, backgroundColor: SAC.border, marginVertical: 4 }} />
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }}>Contact & Legal</Text>
+
+        <Field label="Copyright" value={copyright} onChange={setCopyright} placeholder="2026 StudentAlumni. All rights reserved." />
+        <Field label="Address" value={address} onChange={setAddress} placeholder="123 Main St, City, Country" />
+        <Field label="Phone" value={phone} onChange={setPhone} placeholder="+91 98765 43210" />
+        <Field label="Email" value={email} onChange={setEmail} placeholder="contact@studentalumni.ai" />
+        <Field label="Website" value={website} onChange={setWebsite} placeholder="https://studentalumni.ai" />
+
         <Pressable onPress={save} disabled={saving} style={{
           backgroundColor: '#7C3AED', borderRadius: 10, paddingVertical: 14, alignItems: 'center', cursor: 'pointer', opacity: saving ? 0.6 : 1,
         }}>
@@ -2565,7 +2586,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [brandName, setBrandName] = useState('Student Alumni');
   const [emailFooter, setEmailFooter] = useState('Student Alumni Cell — Empowering the next generation of leaders.');
   const [saving, setSaving] = useState(false);
-  const { flash } = useToast();
+  // removed useToast - using onSaved
 
   useEffect(() => {
     (async () => {
@@ -2610,7 +2631,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       if (!resp.ok) throw new Error('Failed to save');
       onSaved('Templates saved');
     } catch (err: any) {
-      flash(err?.message || 'Failed to save');
+      onSaved(err?.message || 'Failed to save');
     } finally {
       setSaving(false);
     }
@@ -2630,7 +2651,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       const w = window.open('', '_blank');
       if (w) { w.document.write(data.html); w.document.close(); }
     } catch (err: any) {
-      flash(err?.message || 'Could not load preview');
+      onSaved(err?.message || 'Could not load preview');
     }
   };
 
