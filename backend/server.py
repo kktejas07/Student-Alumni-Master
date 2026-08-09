@@ -314,7 +314,7 @@ async def upload_file(
     safe_folder = Path(folder).name if folder else "general"
     upload_dir = Path("uploads") / safe_folder
     upload_dir.mkdir(parents=True, exist_ok=True)
-    ts = int(_dt.now(_tz).timestamp())
+    ts = int(_dt.now(_tz.utc).timestamp())
     stem = Path(file.filename).stem.replace(" ", "_").replace("/", "_") if file.filename else "upload"
     safe_name = f"{ts}_{stem}{ext}"
     out_path = upload_dir / safe_name
