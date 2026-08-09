@@ -1963,6 +1963,109 @@ const ml = StyleSheet.create({
 });
 
 // ── Registrations & Payments panel ───────────────────────────────────────────
+// ── Session Passes Overview ───────────────────────────────────────────────────
+function SessionPassesOverview({ events, onRefresh }: { events: any[]; onRefresh: () => void }) {
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [sessionData, setSessionData] = useState<Record<string, any[]>>({});
+  const [toggling, setToggling] = useState<string | null>(null);
+
+  const loadSessions = async (slug: string) => {
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      const resp = await fetch(`${base}/api/echo/admin/${slug}/sessions`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        setSessionData((prev) => ({ ...prev, [slug]: data.sessions || [] }));
+      }
+    } catch { /* ignore */ }
+  };
+
+  const toggleLock = async (slug: string, sessionKey: string, currentLocked: boolean) => {
+    setToggling(`${slug}:${sessionKey}`);
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      await fetch(`${base}/api/echo/admin/${slug}/sessions/${sessionKey}/lock`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ locked: !currentLocked }),
+      });
+      await loadSessions(slug);
+    } catch { /* ignore */ }
+    setToggling(null);
+  };
+
+  const toggleExpand = (slug: string) => {
+    if (expanded === slug) {
+      setExpanded(null);
+    } else {
+      setExpanded(slug);
+      if (!sessionData[slug]) loadSessions(slug);
+    }
+  };
+
+  if (events.length === 0) return null;
+
+  return (
+    <Card style={{ marginBottom: 16 }}>
+      <Pressable onPress={() => setExpanded(expanded ? null : events[0]?.slug)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Ticket size={16} color="#A78BFA" />
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: SAC.text }}>Session Passes</Text>
+          <StatusPill kind="info" label={`${events.length} events`} />
+        </View>
+        <ChevronUp size={16} color={SAC.muted} style={{ transform: [{ rotate: expanded ? '0deg' : '180deg' }] }} />
+      </Pressable>
+      {expanded && (
+        <View style={{ padding: 16, paddingTop: 0, gap: 12 }}>
+          {events.map((ev) => {
+            const sessions = sessionData[ev.slug] || [];
+            return (
+              <View key={ev.slug} style={{ borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', paddingBottom: 12 }}>
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text, marginBottom: 8 }}>{ev.title}</Text>
+                {sessions.length === 0 ? (
+                  <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>No sessions configured</Text>
+                ) : (
+                  <View style={{ gap: 6 }}>
+                    {sessions.map((s: any) => {
+                      const locked = s.locked ?? false;
+                      const enabled = s.enabled ?? false;
+                      return (
+                        <View key={s.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+                          <Text style={{ fontSize: 16, width: 24 }}>{s.icon || '🎫'}</Text>
+                          <Text style={{ flex: 1, fontFamily: FONTS.med, fontSize: 12, color: SAC.text }}>{s.label}</Text>
+                          {enabled && (
+                            <>
+                              <StatusPill kind={locked ? 'warn' : 'success'} label={locked ? 'Locked' : 'Active'} />
+                              <Pressable onPress={() => toggleLock(ev.slug, s.key, locked)} disabled={toggling === `${ev.slug}:${s.key}`} style={{
+                                width: 32, height: 18, borderRadius: 9, padding: 2,
+                                backgroundColor: locked ? '#F59E0B' : '#334155', cursor: 'pointer',
+                              }}>
+                                <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: '#fff', transform: [{ translateX: locked ? 14 : 0 }] }} />
+                              </Pressable>
+                            </>
+                          )}
+                          {!enabled && <StatusPill kind="neutral" label="Disabled" />}
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+            );
+          })}
+        </View>
+      )}
+    </Card>
+  );
+}
+
+
 function RegistrationsPanel() {
   const [rows, setRows] = useState<any[]>([]);
   const [revenue, setRevenue] = useState<any>({ events: [], totals: {} });
@@ -2049,6 +2152,11 @@ function RegistrationsPanel() {
             ))}
           </View>
         </Card>
+      )}
+
+      {/* Session Passes Overview */}
+      {uniqueEvents.length > 0 && (
+        <SessionPassesOverview events={uniqueEvents} onRefresh={load} />
       )}
 
       {/* Search + filter */}
