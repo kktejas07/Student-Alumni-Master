@@ -2476,7 +2476,7 @@ function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [logoUrl, setLogoUrl] = useState('');
   const [faviconUrl, setFaviconUrl] = useState('');
   const [saving, setSaving] = useState(false);
-  const { flash } = useToast();
+  // removed useToast - using onSaved
 
   useEffect(() => {
     (async () => {
@@ -2510,7 +2510,7 @@ function BrandingTab({ onSaved }: { onSaved: (s?: string) => void }) {
       if (!resp.ok) throw new Error('Failed to save');
       onSaved('Branding saved');
     } catch (err: any) {
-      flash(err?.message || 'Failed to save');
+      onSaved(err?.message || 'Failed to save');
     } finally {
       setSaving(false);
     }
@@ -2565,7 +2565,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
   const [brandName, setBrandName] = useState('Student Alumni');
   const [emailFooter, setEmailFooter] = useState('Student Alumni Cell — Empowering the next generation of leaders.');
   const [saving, setSaving] = useState(false);
-  const { flash } = useToast();
+  // removed useToast - using onSaved
 
   useEffect(() => {
     (async () => {
@@ -2610,7 +2610,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       if (!resp.ok) throw new Error('Failed to save');
       onSaved('Templates saved');
     } catch (err: any) {
-      flash(err?.message || 'Failed to save');
+      onSaved(err?.message || 'Failed to save');
     } finally {
       setSaving(false);
     }
@@ -2630,7 +2630,7 @@ function TemplatesTab({ onSaved }: { onSaved: (s?: string) => void }) {
       const w = window.open('', '_blank');
       if (w) { w.document.write(data.html); w.document.close(); }
     } catch (err: any) {
-      flash(err?.message || 'Could not load preview');
+      onSaved(err?.message || 'Could not load preview');
     }
   };
 
