@@ -392,93 +392,128 @@ def _build_invoice(reg: dict, showcase: dict) -> dict:
 
 
 def _build_invoice_html(inv: dict) -> str:
-    """Render a clean, printable HTML invoice (browser-print → PDF)."""
+    """Render a professional, printable HTML invoice (browser-print → PDF).
+
+    Design features:
+      • Clean gradient header with company branding
+      • Two-column metadata (Billed To / Event Details)
+      • Itemized table with proper alignment
+      • Payment status badge
+      • Professional footer with terms
+    """
     amount = float(inv.get("amount") or 0)
     currency = inv.get("currency") or "INR"
     rows = "".join(
-        f"<tr><td style='padding:10px 12px;border-bottom:1px solid #eee;color:#111827;'>{i.get('desc')}</td>"
-        f"<td style='padding:10px 12px;border-bottom:1px solid #eee;text-align:center;color:#111827;'>{i.get('qty')}</td>"
-        f"<td style='padding:10px 12px;border-bottom:1px solid #eee;text-align:right;color:#111827;'>{currency} {float(i.get('amount') or 0):,.2f}</td></tr>"
+        f"<tr><td style='padding:12px 16px;border-bottom:1px solid #f1f5f9;color:#0f172a;font-size:13px;'>{i.get('desc')}</td>"
+        f"<td style='padding:12px 16px;border-bottom:1px solid #f1f5f9;text-align:center;color:#64748b;font-size:13px;'>{i.get('qty')}</td>"
+        f"<td style='padding:12px 16px;border-bottom:1px solid #f1f5f9;text-align:right;color:#0f172a;font-weight:600;font-size:13px;'>{currency} {float(i.get('amount') or 0):,.2f}</td></tr>"
         for i in inv.get("items") or []
     )
     if not rows:
-        rows = f"<tr><td style='padding:10px 12px;color:#111827;'>Event registration</td><td style='padding:10px 12px;text-align:center;color:#111827;'>1</td><td style='padding:10px 12px;text-align:right;color:#111827;'>{currency} {amount:,.2f}</td></tr>"
+        rows = f"<tr><td style='padding:12px 16px;color:#0f172a;font-size:13px;'>Event registration</td><td style='padding:12px 16px;text-align:center;color:#64748b;font-size:13px;'>1</td><td style='padding:12px 16px;text-align:right;color:#0f172a;font-weight:600;font-size:13px;'>{currency} {amount:,.2f}</td></tr>"
     esc = lambda s: str(s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    paid_at = inv.get("paid_at") or ""
+    if paid_at and "T" in str(paid_at):
+        paid_at = str(paid_at)[:16].replace("T", " ")
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <title>Invoice {esc(inv.get('invoice_no'))}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
-  body {{ margin:0; padding:32px; background:#eef1f6; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#111827; }}
-  .sheet {{ max-width:720px; margin:0 auto; background:#fff; border-radius:14px; overflow:hidden; border:1px solid #e5e7eb; }}
-  .head {{ background:linear-gradient(135deg,#7C3AED,#4C1D95); color:#fff; padding:28px 34px; }}
-  .head .brand {{ font-size:13px; letter-spacing:2px; opacity:.85; }}
-  .head h1 {{ margin:6px 0 0; font-size:26px; }}
-  .head .invno {{ margin-top:8px; font-size:14px; opacity:.9; }}
-  .body {{ padding:28px 34px; }}
-  table.meta {{ width:100%; border-collapse:collapse; }}
-  table.meta td {{ vertical-align:top; padding:4px 0; }}
-  .label {{ color:#6b7280; font-size:12px; text-transform:uppercase; letter-spacing:.4px; }}
-  .val {{ color:#111827; font-size:14px; font-weight:600; }}
-  table.items {{ width:100%; border-collapse:collapse; margin-top:22px; }}
-  table.items th {{ text-align:left; padding:10px 12px; background:#f9fafb; color:#374151; font-size:12px; text-transform:uppercase; letter-spacing:.4px; }}
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{ padding:32px; background:#0f172a; font-family:'Inter',-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#0f172a; -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
+  .sheet {{ max-width:720px; margin:0 auto; background:#fff; border-radius:18px; overflow:hidden; border:1px solid rgba(0,0,0,0.04); box-shadow:0 25px 60px rgba(0,0,0,0.25); }}
+  .head {{ background:linear-gradient(135deg,#7C3AED 0%,#5B21B6 100%); color:#fff; padding:32px 36px; }}
+  .head-brand {{ font-size:10px; font-weight:800; letter-spacing:3px; opacity:.6; }}
+  .head h1 {{ margin:8px 0 0; font-size:28px; font-weight:900; letter-spacing:-0.3px; }}
+  .head-meta {{ display:flex; align-items:center; gap:12px; margin-top:10px; flex-wrap:wrap; }}
+  .head-pill {{ background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.2); padding:4px 12px; border-radius:999px; font-size:12px; font-weight:600; }}
+  .body {{ padding:32px 36px; }}
+  .meta-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:28px; }}
+  .meta-col {{ }}
+  .meta-label {{ font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; color:#94a3b8; margin-bottom:6px; }}
+  .meta-val {{ font-size:15px; font-weight:700; color:#0f172a; line-height:1.3; }}
+  .meta-sub {{ font-size:12px; color:#64748b; margin-top:2px; line-height:1.4; }}
+  table.items {{ width:100%; border-collapse:collapse; margin-top:4px; }}
+  table.items th {{ text-align:left; padding:10px 16px; background:#f8fafc; color:#64748b; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; border-bottom:2px solid #f1f5f9; }}
   table.items th.r, table.items td.r {{ text-align:right; }}
-  .total {{ margin-top:18px; text-align:right; padding-top:14px; border-top:2px solid #e5e7eb; }}
-  .total .amt {{ font-size:26px; font-weight:800; color:#7C3AED; }}
-  .foot {{ padding:22px 34px; background:#f9fafb; color:#6b7280; font-size:12px; line-height:1.6; }}
-  .badge {{ display:inline-block; padding:4px 10px; border-radius:999px; font-size:11px; font-weight:700; background:#dcfce7; color:#15803d; }}
+  .total-section {{ margin-top:24px; display:flex; justify-content:flex-end; }}
+  .total-box {{ background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:18px 24px; text-align:right; min-width:220px; }}
+  .total-label {{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#94a3b8; }}
+  .total-amt {{ font-size:28px; font-weight:900; color:#7C3AED; margin-top:4px; letter-spacing:-0.5px; }}
+  .total-currency {{ font-size:14px; font-weight:600; color:#a78bfa; }}
+  .divider {{ height:1px; background:linear-gradient(90deg,transparent,#e2e8f0,transparent); margin:24px 0; }}
+  .foot {{ padding:24px 36px; background:#f8fafc; border-top:1px solid #f1f5f9; }}
+  .foot-text {{ font-size:11px; color:#94a3b8; line-height:1.7; }}
+  .foot-brand {{ font-size:9px; font-weight:800; letter-spacing:2px; color:#cbd5e1; margin-top:12px; }}
+  @media print {{
+    body {{ background:#fff; padding:0; }}
+    .sheet {{ border:none; border-radius:0; box-shadow:none; max-width:100%; }}
+  }}
 </style>
 </head>
 <body>
   <div class="sheet">
     <div class="head">
-      <div class="brand">STUDENT ALUMNI · ECHO</div>
+      <div class="head-brand">STUDENT ALUMNI · ECHO</div>
       <h1>Payment Invoice</h1>
-      <div class="invno">Invoice No: {esc(inv.get('invoice_no'))} &nbsp;·&nbsp; <span class="badge" style="background:rgba(255,255,255,.2);color:#fff;">PAID</span></div>
+      <div class="head-meta">
+        <span class="head-pill">INV: {esc(inv.get('invoice_no'))}</span>
+        <span class="head-pill" style="background:rgba(52,211,153,0.2);border-color:rgba(52,211,153,0.3);color:#6ee7b7;">PAID</span>
+        {f'<span class="head-pill">Paid {esc(paid_at)}</span>' if paid_at else ''}
+      </div>
     </div>
     <div class="body">
-      <table class="meta">
-        <tr>
-          <td style="width:50%;">
-            <div class="label">Billed To</div>
-            <div class="val">{esc(inv.get('full_name') or 'Attendee')}</div>
-            <div style="color:#374151;font-size:13px;">{esc(inv.get('email') or '')}</div>
-            <div style="color:#374151;font-size:13px;">{esc(inv.get('phone') or '')}</div>
-          </td>
-          <td>
-            <div class="label">Event</div>
-            <div class="val">{esc(inv.get('event_title') or '')}</div>
-            <div style="color:#374151;font-size:13px;">{esc(inv.get('event_date') or '')}</div>
-            <div style="color:#374151;font-size:13px;">{esc(inv.get('event_venue') or '')}</div>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding-top:16px;">
-            <div class="label">Payment ID</div>
-            <div class="val">{esc(inv.get('payment_id') or '—')}</div>
-          </td>
-          <td style="padding-top:16px;">
-            <div class="label">Payment Method</div>
-            <div class="val">{_payment_label(inv.get('payment_method'))}</div>
-          </td>
-        </tr>
-      </table>
+      <div class="meta-grid">
+        <div class="meta-col">
+          <div class="meta-label">Billed To</div>
+          <div class="meta-val">{esc(inv.get('full_name') or 'Attendee')}</div>
+          <div class="meta-sub">{esc(inv.get('email') or '')}</div>
+          <div class="meta-sub">{esc(inv.get('phone') or '')}</div>
+          {f'<div class="meta-sub">{esc(inv.get("college") or "")}</div>' if inv.get('college') else ''}
+        </div>
+        <div class="meta-col">
+          <div class="meta-label">Event</div>
+          <div class="meta-val">{esc(inv.get('event_title') or '')}</div>
+          <div class="meta-sub">{esc(inv.get('event_date') or '')}</div>
+          <div class="meta-sub">{esc(inv.get('event_venue') or '')}</div>
+        </div>
+      </div>
+      <div class="meta-grid" style="margin-bottom:0;">
+        <div class="meta-col">
+          <div class="meta-label">Payment ID</div>
+          <div class="meta-val" style="font-size:13px;letter-spacing:.5px;">{esc(inv.get('payment_id') or '—')}</div>
+        </div>
+        <div class="meta-col">
+          <div class="meta-label">Payment Method</div>
+          <div class="meta-val" style="font-size:13px;">{_payment_label(inv.get('payment_method'))}</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
 
       <table class="items">
         <tr><th>Description</th><th style="text-align:center;">Qty</th><th class="r">Amount</th></tr>
         {rows}
       </table>
 
-      <div class="total">
-        <div class="label" style="margin-bottom:4px;">Total Paid</div>
-        <div class="amt">{currency} {amount:,.2f}</div>
+      <div class="total-section">
+        <div class="total-box">
+          <div class="total-label">Total Paid</div>
+          <div class="total-amt"><span class="total-currency">{currency}</span> {amount:,.2f}</div>
+        </div>
       </div>
     </div>
     <div class="foot">
-      Thank you for registering for <strong>{esc(inv.get('event_title') or 'our event')}</strong>. Please carry this
-      invoice and your check-in QR to the venue. This is a computer-generated invoice and does not require a signature.
-      For any queries, contact the Student Alumni Cell.
+      <div class="foot-text">
+        Thank you for registering for <strong style="color:#0f172a;">{esc(inv.get('event_title') or 'our event')}</strong>.
+        Please carry this invoice and your check-in QR pass to the venue. This is a computer-generated
+        invoice and does not require a signature. For queries, contact the Student Alumni Cell.
+      </div>
+      <div class="foot-brand">STUDENT ALUMNI · ECHO</div>
     </div>
   </div>
 </body>
@@ -486,7 +521,13 @@ def _build_invoice_html(inv: dict) -> str:
 
 
 def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = None) -> str:
-    """Render a printable entry pass (ticket) with QR for an attendee.
+    """Render a professional, printable entry pass (ticket) with QR for an attendee.
+
+    Design follows Behance/Dribbble-grade event ticket conventions:
+      • Perforated stub section with tear-off line
+      • Sponsor logo strip at the bottom
+      • Clean visual hierarchy: event name → date/venue → attendee → QR
+      • Print-optimized @media rules
 
     Template is resolved from `registration.ticket_template` on the showcase,
     falling back to DEFAULT_TICKET_TEMPLATE. The returned page is standalone
@@ -494,6 +535,7 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
     so attendees can download and share their pass.
     """
     esc = lambda s: str(s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    esc_img = lambda s: str(s or "").replace("&", "&amp;").replace('"', "&quot;")
     reg_cfg = showcase.get("registration") or {}
     template_id = template_id or reg_cfg.get("ticket_template") or DEFAULT_TICKET_TEMPLATE
     if template_id not in TICKET_TEMPLATES:
@@ -514,161 +556,263 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
     college = esc(reg.get("college") or "")
     reg_id = esc(reg.get("id") or "")
     meta = [v for v in (branch, year, college) if v]
+    attendee_line = " · ".join(meta) if meta else (phone or "Student")
 
-    def dl(label: str, value: str) -> str:
-        return f"<div class='dl'><div class='dl-label'>{label}</div><div class='dl-val'>{value or '—'}</div></div>"
+    # Sponsor logos strip
+    sponsors = showcase.get("sponsors") or []
+    sponsor_logos = []
+    for sp in sponsors:
+        logo = sp.get("logo_url") or ""
+        sp_name = esc(sp.get("name") or "")
+        if logo:
+            sponsor_logos.append(f'<img src="{esc_img(logo)}" alt="{sp_name}" class="sp-logo" />')
+        elif sp_name:
+            sponsor_logos.append(f'<span class="sp-name">{sp_name}</span>')
+    sponsors_html = ""
+    if sponsor_logos:
+        sponsors_html = f"""
+        <div class="sponsors">
+          <div class="sp-label">In Association With</div>
+          <div class="sp-row">{" ".join(sponsor_logos)}</div>
+        </div>"""
 
     qr_img = (
         f'<img src="data:image/png;base64,{qr}" alt="Check-in QR" class="qr" />'
         if qr
         else '<div class="qr qr-empty">QR unavailable</div>'
     )
-    attendee_line = " · ".join(meta) if meta else (phone or "Student")
+    qr_img_sm = (
+        f'<img src="data:image/png;base64,{qr}" alt="QR" class="qr-sm" />'
+        if qr
+        else '<div class="qr-sm qr-empty">QR</div>'
+    )
 
     if template_id == "classic":
         inner = f"""
-      <div class="sheet">
-        <div class="head">
-          <div class="brand">{brand}</div>
-          <div class="org">{organizer}</div>
-          <h1>{title}</h1>
-          <div class="when">{event_date}{(' &nbsp;·&nbsp; ' + event_time) if event_time else ''}</div>
-          <div class="where">📍 {venue}</div>
+      <div class="sheet classic">
+        <div class="c-main">
+          <div class="c-header">
+            <div class="c-brand">{brand}</div>
+            <div class="c-org">{organizer}</div>
+            <h1 class="c-title">{title}</h1>
+            <div class="c-meta">
+              <span class="c-pill">{event_date or 'TBA'}</span>
+              <span class="c-pill">{event_time}</span>
+              <span class="c-pill">{venue}</span>
+            </div>
+          </div>
+          <div class="c-body">
+            <div class="c-info">
+              <div class="c-col">
+                <div class="dl-label">ATTENDEE</div>
+                <div class="dl-val">{name}</div>
+                <div class="c-sub">{email}</div>
+                {f'<div class="c-sub">{attendee_line}</div>' if attendee_line else ''}
+              </div>
+              <div class="c-col" style="text-align:right;">
+                <div class="dl-label">REG ID</div>
+                <div class="dl-val" style="font-size:14px;letter-spacing:1px;">{reg_id}</div>
+                <div class="c-sub" style="margin-top:8px;"><span class="badge">CONFIRMED</span></div>
+              </div>
+            </div>
+            <div class="c-qr">{qr_img}</div>
+            <div class="c-note">This ticket is your entry pass. Scan the QR at check-in.</div>
+          </div>
         </div>
-        <div class="body">
-          <table class="meta">
-            <tr>
-              <td><div class="dl-label">ATTENDEE</div><div class="dl-val">{name}</div>
-                <div style="color:#6b7280;font-size:13px;margin-top:2px;">{email}</div></td>
-              <td style="text-align:right;">
-                <div class="dl-label">REGISTRATION ID</div><div class="dl-val" style="font-size:15px;">{reg_id}</div>
-                <div style="color:#6b7280;font-size:12px;margin-top:2px;">{attendee_line}</div></td>
-            </tr>
-          </table>
-          <table class="items">
-            <tr><th>Item</th><th>Status</th></tr>
-            <tr><td>{title} — {organizer}</td><td><span class="badge">CONFIRMED</span></td></tr>
-          </table>
-          <div class="qr-wrap">{qr_img}</div>
+        <div class="c-stub">
+          <div class="c-stub-inner">
+            <div class="c-stub-event">{title}</div>
+            <div class="c-stub-date">{event_date}</div>
+            <div class="c-stub-name">{name}</div>
+            <div class="c-stub-id">REG: {reg_id}</div>
+            {qr_img_sm}
+          </div>
+            <div class="c-stub-tear">TEAR HERE</div>
         </div>
-        <div class="foot">
-          This ticket is your entry pass. Scan the QR code at the venue for check-in.
-          Present this ticket (printed or on your phone) along with a valid ID. No refunds on redeemed passes.
-        </div>
+        {sponsors_html}
       </div>"""
     elif template_id == "minimal":
         inner = f"""
       <div class="sheet minimal">
-        <div class="min-head">
-          <div class="brand">{brand}</div>
-          <div class="org">{organizer}</div>
-          <h1>{title}</h1>
-        </div>
-        <div class="min-event">
-          <div class="min-pill">{event_date or 'TBA'}</div>
-          <div class="min-pill">{event_time or ''}</div>
-          <div class="min-pill">📍 {venue}</div>
-        </div>
-        <div class="min-row">
-          <div>
-            <div class="dl-label">ATTENDEE</div><div class="dl-val">{name}</div>
-            <div style="color:#6b7280;font-size:13px;margin-top:2px;">{email}</div>
-            {f'<div style="color:#6b7280;font-size:13px;">{attendee_line}</div>' if attendee_line else ''}
+        <div class="m-top">
+          <div class="m-brand">{brand}</div>
+          <div class="m-org">{organizer}</div>
+          <h1 class="m-title">{title}</h1>
+          <div class="m-pills">
+            <span class="m-pill">{event_date or 'TBA'}</span>
+            <span class="m-pill">{event_time}</span>
+            <span class="m-pill">{venue}</span>
           </div>
-          <div class="min-qr">{qr_img}</div>
         </div>
-        <div class="min-id">
-          <span>REG ID</span> <strong>{reg_id}</strong>
+        <div class="m-divider"></div>
+        <div class="m-body">
+          <div class="m-info">
+            <div class="m-row"><span class="m-label">Attendee</span><span class="m-value">{name}</span></div>
+            <div class="m-row"><span class="m-label">Email</span><span class="m-value">{email}</span></div>
+            <div class="m-row"><span class="m-label">Reg ID</span><span class="m-value">{reg_id}</span></div>
+            {f'<div class="m-row"><span class="m-label">College</span><span class="m-value">{attendee_line}</span></div>' if attendee_line else ''}
+          </div>
+          <div class="m-qr">{qr_img_sm}</div>
+        </div>
+        <div class="m-footer">
           <span class="badge">CONFIRMED</span>
+          <span class="m-note">Scan the QR at check-in · Keep this pass handy</span>
         </div>
-        <div class="min-foot">
-          This ticket is your entry pass — scan the QR at check-in. Keep this pass handy on event day.
-        </div>
+        {sponsors_html}
       </div>"""
     else:  # aurora (default)
         inner = f"""
       <div class="sheet aurora">
         <div class="aur-glow aur-glow-a"></div>
         <div class="aur-glow aur-glow-b"></div>
-        <div class="aur-head">
-          <div class="brand">{brand}</div>
-          <div class="org">{organizer}</div>
-          <h1>{title}</h1>
-          <div class="when">{event_date}{(' &nbsp;·&nbsp; ' + event_time) if event_time else ''} &nbsp;·&nbsp; 📍 {venue}</div>
-        </div>
-        <div class="aur-body">
-          <div class="aur-info">
-            <div class="dl"><div class="dl-label">ATTENDEE</div><div class="dl-val">{name}</div></div>
-            <div class="dl"><div class="dl-label">EMAIL</div><div class="dl-val">{email}</div></div>
-            <div class="dl"><div class="dl-label">REGISTRATION ID</div><div class="dl-val">{reg_id}</div></div>
-            {f'<div class="dl"><div class="dl-label">COLLEGE</div><div class="dl-val">{attendee_line}</div></div>' if attendee_line else ''}
+        <div class="aur-main">
+          <div class="aur-header">
+            <div class="aur-brand">{brand}</div>
+            <div class="aur-org">{organizer}</div>
+            <h1 class="aur-title">{title}</h1>
+            <div class="aur-pills">
+              <span class="aur-pill">{event_date or 'TBA'}</span>
+              <span class="aur-pill">{event_time}</span>
+              <span class="aur-pill">{venue}</span>
+            </div>
           </div>
-          <div class="aur-qr">{qr_img}</div>
+          <div class="aur-body">
+            <div class="aur-info">
+              <div class="aur-col">
+                <div class="dl-label">ATTENDEE</div>
+                <div class="dl-val">{name}</div>
+                <div class="aur-sub">{email}</div>
+                {f'<div class="aur-sub">{attendee_line}</div>' if attendee_line else ''}
+              </div>
+              <div class="aur-col">
+                <div class="dl-label">REG ID</div>
+                <div class="dl-val" style="letter-spacing:1px;">{reg_id}</div>
+              </div>
+            </div>
+            <div class="aur-qr">{qr_img}</div>
+          </div>
+          <div class="aur-badge-row"><span class="badge">CONFIRMED PASS</span></div>
+          <div class="aur-stub">
+            <div class="aur-stub-left">
+              <div class="aur-stub-event">{title}</div>
+              <div class="aur-stub-detail">{event_date} · {name}</div>
+              <div class="aur-stub-id">REG: {reg_id}</div>
+            </div>
+            {qr_img_sm}
+            <div class="aur-stub-tear">|</div>
+          </div>
         </div>
-        <div class="aur-ticket"><span class="badge">CONFIRMED PASS</span>
-          <span>Scan the QR at the venue for check-in — this pass is valid for one attendee.</span></div>
+        {sponsors_html}
       </div>"""
 
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Ticket — {title}</title>
+<title>Pass — {title}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
-  * {{ box-sizing: border-box; }}
-  body {{ margin:0; padding:28px; background:#eef1f6; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#111827; }}
-  .sheet {{ position:relative; max-width:760px; margin:0 auto; background:#fff; border-radius:16px; overflow:hidden; border:1px solid #e5e7eb; }}
-  .brand {{ font-size:12px; letter-spacing:2.5px; opacity:.85; }}
-  .org {{ font-size:14px; font-weight:700; margin-top:6px; }}
-  .dl-label {{ color:#6b7280; font-size:11px; text-transform:uppercase; letter-spacing:.5px; }}
-  .dl-val {{ color:#111827; font-size:16px; font-weight:700; margin-top:2px; }}
-  .badge {{ display:inline-block; padding:4px 12px; border-radius:999px; font-size:11px; font-weight:800; background:#dcfce7; color:#15803d; }}
-  .qr {{ width:150px; height:150px; border-radius:12px; }}
-  .qr-empty {{ display:flex; align-items:center; justify-content:center; background:#f3f4f6; color:#9ca3af; font-size:11px; }}
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{ padding:28px; background:#0f172a; font-family:'Inter',-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#111827; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+  .sheet {{ position:relative; max-width:740px; margin:0 auto; background:#fff; border-radius:18px; overflow:hidden; border:1px solid rgba(0,0,0,0.06); box-shadow:0 25px 60px rgba(0,0,0,0.3); }}
 
-  .head {{ background:linear-gradient(135deg,#7C3AED,#4C1D95); color:#fff; padding:28px 32px; }}
-  .head h1 {{ margin:10px 0 6px; font-size:26px; }}
-  .head .when {{ font-size:14px; opacity:.92; }}
-  .head .where {{ margin-top:6px; font-size:13px; opacity:.9; }}
-  .body {{ padding:26px 32px 30px; }}
-  table.meta {{ width:100%; border-collapse:collapse; }}
-  table.meta td {{ vertical-align:top; padding:4px 0; }}
-  table.items {{ width:100%; border-collapse:collapse; margin-top:22px; }}
-  table.items th {{ text-align:left; padding:10px 12px; background:#f9fafb; color:#374151; font-size:12px; text-transform:uppercase; letter-spacing:.4px; }}
-  table.items td {{ padding:10px 12px; border-bottom:1px solid #f1f5f9; color:#111827; font-size:14px; }}
-  .qr-wrap {{ margin-top:22px; text-align:center; }}
-  .foot {{ padding:18px 32px; background:#f9fafb; color:#6b7280; font-size:12px; line-height:1.6; }}
+  /* Common label/value tokens */
+  .dl-label {{ color:#94a3b8; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; }}
+  .dl-val {{ color:#0f172a; font-size:18px; font-weight:800; margin-top:3px; line-height:1.2; }}
+  .badge {{ display:inline-flex; align-items:center; gap:4px; padding:5px 14px; border-radius:999px; font-size:11px; font-weight:800; letter-spacing:.3px; background:#dcfce7; color:#15803d; }}
+  .qr {{ width:160px; height:160px; border-radius:14px; display:block; }}
+  .qr-sm {{ width:72px; height:72px; border-radius:8px; display:block; }}
+  .qr-empty {{ display:flex; align-items:center; justify-content:center; background:#f1f5f9; color:#94a3b8; font-size:10px; font-weight:600; }}
+  .sponsors {{ padding:16px 32px 20px; border-top:1px solid #f1f5f9; }}
+  .sp-label {{ font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:#cbd5e1; margin-bottom:10px; }}
+  .sp-row {{ display:flex; align-items:center; gap:18px; flex-wrap:wrap; }}
+  .sp-logo {{ height:28px; max-width:90px; object-fit:contain; opacity:.85; filter:grayscale(20%); }}
+  .sp-name {{ font-size:11px; font-weight:600; color:#94a3b8; white-space:nowrap; }}
 
-  .minimal .brand {{ color:#7C3AED; }}
-  .minimal .org {{ color:#374151; }}
-  .min-head {{ padding:30px 32px 6px; }}
-  .min-head h1 {{ margin:10px 0 0; font-size:26px; color:#111827; }}
-  .min-event {{ display:flex; gap:8px; flex-wrap:wrap; padding:16px 32px; border-bottom:1px solid #f1f5f9; }}
-  .min-pill {{ background:#f3f4f6; color:#374151; font-size:12px; font-weight:600; padding:6px 12px; border-radius:999px; }}
-  .min-row {{ display:flex; justify-content:space-between; align-items:center; gap:20px; padding:24px 32px; }}
-  .min-qr .qr {{ width:130px; height:130px; }}
-  .min-id {{ padding:12px 32px; background:#f9fafb; display:flex; align-items:center; gap:12px; font-size:13px; color:#6b7280; }}
-  .min-id strong {{ color:#111827; letter-spacing:.5px; }}
-  .min-foot {{ padding:18px 32px; color:#9ca3af; font-size:12px; }}
-
-  .aurora {{ background:linear-gradient(150deg,#1e1b4b 0%,#312e81 45%,#4C1D95 100%); color:#fff; border:none; }}
+  /* ── AURORA (default) ────────────────────────────────────────────────── */
+  .aurora {{ background:linear-gradient(160deg,#0f0a2e 0%,#1a1145 30%,#2d1b69 60%,#1a0e3e 100%); color:#fff; }}
   .aurora .dl-label {{ color:#a5b4fc; }}
   .aurora .dl-val {{ color:#fff; }}
-  .aurora .badge {{ background:rgba(52,211,153,.18); color:#6ee7b7; }}
-  .aur-glow {{ position:absolute; width:320px; height:320px; border-radius:50%; filter:blur(90px); opacity:.35; }}
-  .aur-glow-a {{ top:-120px; right:-80px; background:#a855f7; }}
-  .aur-glow-b {{ bottom:-140px; left:-80px; background:#6366f1; }}
-  .aur-head {{ position:relative; padding:32px 34px 18px; }}
-  .aur-head h1 {{ margin:10px 0 8px; font-size:27px; }}
-  .aur-head .when {{ font-size:13px; opacity:.85; }}
-  .aur-body {{ position:relative; display:flex; justify-content:space-between; align-items:center; gap:24px; padding:8px 34px 26px; }}
-  .aur-info {{ flex:1; display:grid; grid-template-columns:1fr 1fr; gap:14px; }}
-  .aur-qr {{ background:#fff; padding:10px; border-radius:14px; }}
-  .aur-qr .qr {{ width:140px; height:140px; }}
-  .aur-ticket {{ position:relative; display:flex; align-items:center; gap:12px; padding:14px 34px; background:rgba(255,255,255,.06); border-top:1px dashed rgba(255,255,255,.25); font-size:12px; opacity:.9; }}
+  .aurora .badge {{ background:rgba(52,211,153,0.15); color:#6ee7b7; }}
+  .aurora .sponsors {{ border-top-color:rgba(255,255,255,0.08); }}
+  .aurora .sp-label {{ color:rgba(255,255,255,0.35); }}
+  .aur-glow {{ position:absolute; width:350px; height:350px; border-radius:50%; filter:blur(100px); opacity:.30; pointer-events:none; }}
+  .aur-glow-a {{ top:-140px; right:-100px; background:#a855f7; }}
+  .aur-glow-b {{ bottom:-160px; left:-100px; background:#6366f1; }}
+  .aur-main {{ position:relative; }}
+  .aur-header {{ padding:36px 36px 20px; }}
+  .aur-brand {{ font-size:10px; font-weight:800; letter-spacing:3px; opacity:.6; }}
+  .aur-org {{ font-size:13px; font-weight:600; margin-top:8px; opacity:.7; }}
+  .aur-title {{ margin:12px 0 16px; font-size:32px; font-weight:900; line-height:1.1; letter-spacing:-0.5px; }}
+  .aur-pills {{ display:flex; gap:8px; flex-wrap:wrap; }}
+  .aur-pill {{ background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.85); font-size:12px; font-weight:600; padding:6px 14px; border-radius:999px; white-space:nowrap; }}
+  .aur-body {{ display:flex; justify-content:space-between; align-items:flex-start; gap:28px; padding:20px 36px 28px; }}
+  .aur-info {{ flex:1; display:grid; grid-template-columns:1fr 1fr; gap:18px; }}
+  .aur-col {{ min-width:0; }}
+  .aur-sub {{ font-size:12px; color:rgba(255,255,255,0.55); margin-top:3px; line-height:1.4; }}
+  .aur-qr {{ background:#fff; padding:12px; border-radius:16px; flex-shrink:0; box-shadow:0 8px 30px rgba(0,0,0,0.25); }}
+  .aur-qr .qr {{ width:150px; height:150px; }}
+  .aur-badge-row {{ padding:0 36px 16px; }}
+  .aur-stub {{ display:flex; align-items:center; gap:20px; padding:18px 36px; background:rgba(255,255,255,0.04); border-top:2px dashed rgba(255,255,255,0.15); position:relative; }}
+  .aur-stub-left {{ flex:1; min-width:0; }}
+  .aur-stub-event {{ font-size:14px; font-weight:700; opacity:.9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+  .aur-stub-detail {{ font-size:11px; opacity:.5; margin-top:3px; }}
+  .aur-stub-id {{ font-size:10px; font-weight:800; letter-spacing:1.5px; opacity:.45; margin-top:4px; }}
+  .aur-stub-tear {{ position:absolute; right:20px; top:-10px; font-size:11px; opacity:.3; letter-spacing:1px; font-weight:600; }}
+
+  /* ── CLASSIC ─────────────────────────────────────────────────────────── */
+  .classic {{ background:#fff; }}
+  .c-main {{ padding-bottom:0; }}
+  .c-header {{ background:linear-gradient(135deg,#7C3AED 0%,#5B21B6 100%); color:#fff; padding:32px 36px 24px; }}
+  .c-brand {{ font-size:10px; font-weight:800; letter-spacing:3px; opacity:.65; }}
+  .c-org {{ font-size:13px; font-weight:600; margin-top:8px; opacity:.75; }}
+  .c-title {{ margin:12px 0 14px; font-size:30px; font-weight:900; line-height:1.1; letter-spacing:-0.3px; }}
+  .c-meta {{ display:flex; gap:8px; flex-wrap:wrap; }}
+  .c-pill {{ background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.2); color:#fff; font-size:12px; font-weight:600; padding:5px 12px; border-radius:999px; white-space:nowrap; }}
+  .c-body {{ padding:28px 36px; }}
+  .c-info {{ display:flex; justify-content:space-between; align-items:flex-start; gap:20px; margin-bottom:24px; }}
+  .c-col {{ min-width:0; }}
+  .c-sub {{ font-size:12px; color:#94a3b8; margin-top:3px; line-height:1.4; }}
+  .c-qr {{ text-align:center; margin-bottom:20px; }}
+  .c-qr .qr {{ display:inline-block; }}
+  .c-note {{ text-align:center; font-size:12px; color:#94a3b8; padding-top:16px; border-top:1px solid #f1f5f9; }}
+  .c-stub {{ display:flex; align-items:center; padding:18px 36px; background:#f8fafc; border-top:2px dashed #d1d5db; position:relative; }}
+  .c-stub-inner {{ flex:1; }}
+  .c-stub-event {{ font-size:13px; font-weight:700; color:#111827; }}
+  .c-stub-date {{ font-size:11px; color:#94a3b8; margin-top:2px; }}
+  .c-stub-name {{ font-size:11px; color:#64748b; margin-top:2px; }}
+  .c-stub-id {{ font-size:10px; font-weight:800; color:#a78bfa; letter-spacing:1px; margin-top:3px; }}
+  .c-stub-tear {{ position:absolute; right:24px; top:-8px; font-size:10px; color:#cbd5e1; font-weight:600; letter-spacing:.5px; }}
+
+  /* ── MINIMAL ─────────────────────────────────────────────────────────── */
+  .minimal {{ background:#fff; }}
+  .m-top {{ padding:36px 36px 20px; text-align:center; }}
+  .m-brand {{ font-size:10px; font-weight:800; letter-spacing:3px; color:#7C3AED; }}
+  .m-org {{ font-size:13px; font-weight:600; color:#64748b; margin-top:6px; }}
+  .m-title {{ margin:12px 0 14px; font-size:30px; font-weight:900; color:#0f172a; letter-spacing:-0.3px; }}
+  .m-pills {{ display:flex; justify-content:center; gap:8px; flex-wrap:wrap; }}
+  .m-pill {{ background:#f1f5f9; color:#475569; font-size:12px; font-weight:600; padding:6px 14px; border-radius:999px; }}
+  .m-divider {{ height:1px; background:linear-gradient(90deg,transparent,#e2e8f0,transparent); margin:0 36px; }}
+  .m-body {{ display:flex; justify-content:space-between; align-items:center; gap:28px; padding:24px 36px; }}
+  .m-info {{ flex:1; }}
+  .m-row {{ display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #f8fafc; }}
+  .m-row:last-child {{ border-bottom:none; }}
+  .m-label {{ font-size:12px; font-weight:600; color:#94a3b8; text-transform:uppercase; letter-spacing:.5px; }}
+  .m-value {{ font-size:14px; font-weight:700; color:#0f172a; text-align:right; }}
+  .m-qr {{ flex-shrink:0; }}
+  .m-qr .qr-sm {{ width:110px; height:110px; border:3px solid #f1f5f9; border-radius:14px; }}
+  .m-footer {{ display:flex; align-items:center; justify-content:space-between; padding:14px 36px; background:#f8fafc; border-top:1px solid #f1f5f9; }}
+  .m-note {{ font-size:11px; color:#94a3b8; }}
+  .minimal .sponsors {{ border-top:1px solid #f1f5f9; text-align:center; }}
+  .minimal .sp-row {{ justify-content:center; }}
+
+  /* ── PRINT ───────────────────────────────────────────────────────────── */
   @media print {{
     body {{ background:#fff; padding:0; }}
-    .sheet {{ border:none; border-radius:0; box-shadow:none; }}
+    .sheet {{ border:none; border-radius:0; box-shadow:none; max-width:100%; }}
+    .aur-glow {{ display:none; }}
+    .sponsors .sp-logo {{ filter:none; opacity:1; }}
   }}
 </style>
 </head>
@@ -678,41 +822,79 @@ def _build_ticket_html(reg: dict, showcase: dict, template_id: Optional[str] = N
 
 
 def _ticket_email_block(reg: dict, showcase: dict, ticket_url: str) -> str:
-    """Inline ticket card embedded in confirmation / invoice emails."""
+    """Inline ticket card embedded in confirmation / invoice emails.
+
+    Professional design matching the downloadable pass. Includes sponsor logos
+    when available. Email-safe HTML (inline styles, table layout).
+    """
     qr = reg.get("qr_code_base64") or ""
     title = reg.get("showcase_title") or showcase.get("title") or "Event"
     reg_id = reg.get("id") or ""
+    event_date = showcase.get("date") or ""
+    event_time = showcase.get("time") or ""
+    venue = showcase.get("venue") or ""
+    organizer = showcase.get("organizer_name") or "Student Alumni Cell"
     esc = lambda s: str(s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    esc_img = lambda s: str(s or "").replace("&", "&amp;").replace('"', "&quot;")
+    email_addr = esc(reg.get("email") or "")
+
     qr_img = (
-        f'<img src="data:image/png;base64,{qr}" width="120" height="120" style="border-radius:10px;" alt="Check-in QR" />'
+        f'<img src="data:image/png;base64,{qr}" width="130" height="130" style="border-radius:12px;display:block;" alt="Check-in QR" />'
         if qr
         else ""
     )
+
+    # Sponsor logos in email
+    sponsors = showcase.get("sponsors") or []
+    sponsor_cells = []
+    for sp in sponsors:
+        logo = sp.get("logo_url") or ""
+        sp_name = esc(sp.get("name") or "")
+        if logo:
+            sponsor_cells.append(f'<td style="padding:0 10px;"><img src="{esc_img(logo)}" alt="{sp_name}" style="height:24px;max-width:80px;object-fit:contain;opacity:.7;" /></td>')
+        elif sp_name:
+            sponsor_cells.append(f'<td style="padding:0 10px;font-size:11px;font-weight:600;color:#94a3b8;white-space:nowrap;">{sp_name}</td>')
+    sponsors_html = ""
+    if sponsor_cells:
+        sponsors_html = f"""
+        <tr><td style="padding:14px 20px 18px;border-top:1px solid #f1f5f9;">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#cbd5e1;margin-bottom:8px;">In Association With</div>
+          <table role="presentation" cellpadding="0" cellspacing="0"><tr>{"".join(sponsor_cells)}</tr></table>
+        </td></tr>"""
+
     return f"""
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;margin:0 0 18px 0;">
-      <tr><td style="padding:16px 18px;background:linear-gradient(135deg,#7C3AED,#4C1D95);border-radius:12px 12px 0 0;">
-        <div style="color:#fff;font-size:11px;letter-spacing:2px;">YOUR ENTRY PASS</div>
-        <div style="color:#fff;font-size:17px;font-weight:700;margin-top:2px;">{esc(title)}</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;margin:0 0 20px 0;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.06);">
+      <tr><td style="padding:22px 24px 16px;background:linear-gradient(135deg,#7C3AED,#5B21B6);">
+        <div style="font-size:9px;font-weight:800;letter-spacing:3px;color:rgba(255,255,255,0.6);">YOUR ENTRY PASS</div>
+        <div style="font-size:20px;font-weight:900;color:#fff;margin-top:4px;line-height:1.2;">{esc(title)}</div>
+        <div style="margin-top:8px;">
+          <span style="display:inline-block;padding:4px 10px;background:rgba(255,255,255,0.15);border-radius:999px;font-size:11px;font-weight:600;color:#fff;">{esc(event_date)}</span>
+          <span style="display:inline-block;padding:4px 10px;background:rgba(255,255,255,0.15);border-radius:999px;font-size:11px;font-weight:600;color:#fff;margin-left:4px;">{esc(venue)}</span>
+        </div>
       </td></tr>
-      <tr><td style="padding:16px 18px;">
+      <tr><td style="padding:20px 24px;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
           <tr>
-            <td style="vertical-align:top;padding-right:16px;">
-              <div style="color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:.4px;">Attendee</div>
-              <div style="color:#111827;font-weight:700;font-size:14px;">{esc(reg.get('full_name') or 'Attendee')}</div>
-              <div style="color:#374151;font-size:13px;margin-top:4px;">Reg ID: {esc(reg_id)}</div>
-              <div style="margin-top:14px;">
-                <a href="{ticket_url}" style="display:inline-block;padding:10px 18px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;font-size:13px;">Download Ticket</a>
+            <td style="vertical-align:top;padding-right:20px;width:60%;">
+              <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;">Attendee</div>
+              <div style="font-size:16px;font-weight:800;color:#0f172a;margin-top:3px;">{esc(reg.get('full_name') or 'Attendee')}</div>
+              <div style="font-size:12px;color:#64748b;margin-top:4px;">{email_addr}</div>
+              <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Reg ID: <strong style="color:#475569;letter-spacing:.5px;">{esc(reg_id)}</strong></div>
+              <div style="margin-top:16px;">
+                <a href="{ticket_url}" style="display:inline-block;padding:11px 22px;background:linear-gradient(135deg,#7C3AED,#5B21B6);color:#fff;text-decoration:none;border-radius:10px;font-weight:700;font-size:13px;letter-spacing:.2px;">Download Pass</a>
               </div>
             </td>
             <td style="vertical-align:top;text-align:center;">{qr_img}</td>
           </tr>
         </table>
-        <div style="margin-top:14px;color:#9ca3af;font-size:12px;line-height:1.5;">
-          This ticket is your entry pass. Scan the QR at the venue for check-in, and present it
-          (printed or on your phone) along with a valid ID.
+      </td></tr>
+      <tr><td style="padding:0 24px 18px;">
+        <div style="padding:12px 16px;background:#f8fafc;border-radius:10px;font-size:11px;color:#64748b;line-height:1.6;">
+          This pass is your entry ticket. Present it (printed or on your phone) along with a valid photo ID at the venue check-in desk.
         </div>
       </td></tr>
+      {sponsors_html}
     </table>"""
 
 
@@ -857,7 +1039,7 @@ async def _send_sa_welcome_email(reg: dict, showcase: dict, password: str) -> No
         dashboard_url = "https://studentalumni.ai/dashboard"
         body = render_html_email(
             f"""
-            <h2 style="margin:0 0 14px 0;color:#111827;">Your StudentAlumni account is ready 🎉</h2>
+            <h2 style="margin:0 0 14px 0;color:#111827;">Your StudentAlumni account is ready!</h2>
             <p style="margin:0 0 18px 0;color:#374151;">Because you registered for
             <strong>{title}</strong>, we've created a free account for you on the
             StudentAlumni platform.</p>
@@ -1047,6 +1229,7 @@ class RegistrationConfig(BaseModel):
     payment_note: Optional[str] = ""
     payment_url: Optional[str] = None  # External payment gateway link (e.g. Razorpay/Stripe) shown on the register page
     poster_images: Optional[List[str]] = []  # Poster images displayed on the register page
+    ticket_template: Optional[str] = "aurora"  # aurora | classic | minimal
 
 
 DEFAULT_SECTIONS = {
@@ -1858,6 +2041,46 @@ async def get_ticket(reg_id: str, request: Request):
         "status": reg.get("status"),
         "event_title": reg.get("showcase_title") or (showcase or {}).get("title"),
         "html": _build_ticket_html(reg_ser, showcase or {}, reg.get("ticket_template")),
+    }
+
+
+@router.get("/tickets/preview/{template_id}")
+async def preview_ticket(template_id: str, request: Request, _=Depends(_require_admin)):
+    """Render a sample ticket with mock data for the superadmin template picker.
+
+    Returns standalone HTML so the frontend can open it in a new tab for preview.
+    Requires admin authentication.
+    """
+    from core.security import generate_qr_code
+    sample_reg = {
+        "id": "PREVIEW-001",
+        "full_name": "Aarav Sharma",
+        "email": "aarav@example.com",
+        "phone": "+91 98765 43210",
+        "branch": "Computer Science",
+        "year": "3rd Year",
+        "college": "VNR VJIET",
+        "showcase_title": "ECHO Tech Summit 2026",
+        "qr_code_base64": generate_qr_code("ECHO:preview|sample|PREVIEW-001"),
+    }
+    sample_showcase = {
+        "title": "ECHO Tech Summit 2026",
+        "date": "August 15, 2026",
+        "time": "10:00 AM - 4:30 PM",
+        "venue": "Main Auditorium, VNR VJIET",
+        "organizer_name": "Student Alumni Cell",
+        "sponsors": [
+            {"name": "TechCorp", "logo_url": "https://via.placeholder.com/90x28/7C3AED/fff?text=TechCorp", "tier": "Title Sponsor"},
+            {"name": "InnoLab", "logo_url": "https://via.placeholder.com/90x28/6366f1/fff?text=InnoLab", "tier": "Gold Sponsor"},
+            {"name": "StartupXYZ", "logo_url": "", "tier": "Silver"},
+        ],
+        "registration": {"ticket_template": template_id},
+    }
+    if template_id not in TICKET_TEMPLATES:
+        template_id = DEFAULT_TICKET_TEMPLATE
+    return {
+        "html": _build_ticket_html(sample_reg, sample_showcase, template_id),
+        "template_id": template_id,
     }
 
 

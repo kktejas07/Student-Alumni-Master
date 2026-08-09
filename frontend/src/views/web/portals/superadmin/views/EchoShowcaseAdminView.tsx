@@ -205,7 +205,7 @@ function ImageUploadWidget({
       if (res?.url) {
         onUpload(res.url);
         console.log('[CMS FORM STATE UPDATED]', { label, serverUrl: res.url });
-        flash?.(`${label} uploaded ✓`);
+        flash?.(`${label} uploaded`);
       } else {
         throw new Error('Upload returned no URL');
       }
@@ -1266,10 +1266,10 @@ function ShowcaseCard({ item, onEdit, onDelete, onPublish, onDraft, onArchive, o
           </View>
           {item.subtitle ? <Text style={{ fontFamily: FONTS.med, fontSize: 12.5, color: SAC.muted }} numberOfLines={1}>{item.subtitle}</Text> : null}
           <View style={{ flexDirection: 'row', gap: 14, marginTop: 3, flexWrap: 'wrap' }}>
-            {item.date ? <Text style={cs.meta}>📅 {item.date}</Text> : null}
-            {item.venue ? <Text style={cs.meta}>📍 {item.venue}</Text> : null}
+            {item.date ? <Text style={cs.meta}>{item.date}</Text> : null}
+            {item.venue ? <Text style={cs.meta}>{item.venue}</Text> : null}
             {item.category ? <Text style={cs.meta}>🏷 {item.category}</Text> : null}
-            <Text style={cs.meta}>🔗 /{item.slug}</Text>
+            <Text style={cs.meta}>/{item.slug}</Text>
           </View>
         </View>
         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -1450,7 +1450,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash }: any
               <Text style={ml.headerTitle}>{editing ? `Edit: ${editing.title}` : 'New ECHO Showcase'}</Text>
               {lastSaved && (
                 <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>
-                  ✓ Autosaved at {lastSaved}
+                  Autosaved at {lastSaved}
                 </Text>
               )}
             </View>
@@ -1792,8 +1792,8 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash }: any
                 <FieldRow label="Payment / Registration Note" hint="Shown to attendees on the registration page.">
                   <Field value={(form.registration || {}).payment_note || ''} onChangeText={(v: string) => set('registration', { ...(form.registration || {}), payment_note: v })} placeholder="Free entry for VNR students…" multiline rows={3} />
                 </FieldRow>
-                <FieldRow label="Payment Gateway Link" hint="Optional external payment URL (Razorpay, PayU, etc.). When set, attendees are redirected here and the register API records a payment_method of 'external'.">
-                  <Field value={(form.registration || {}).payment_url || ''} onChangeText={(v: string) => set('registration', { ...(form.registration || {}), payment_url: v })} placeholder="https://razorpay.com/payment-link/…" />
+                <FieldRow label="External Payment Link (optional)" hint="Leave empty to use the connected Razorpay integration automatically. Only fill this if you want to redirect attendees to a custom payment page (e.g. a Razorpay payment link, PayU, or Stripe checkout).">
+                  <Field value={(form.registration || {}).payment_url || ''} onChangeText={(v: string) => set('registration', { ...(form.registration || {}), payment_url: v })} placeholder="Leave empty to use connected Razorpay" />
                 </FieldRow>
                 <FieldRow label="Poster Images" hint="Left-column carousel on the register page. Falls back to gallery/hero images when empty.">
                   <PosterEditor
@@ -1802,29 +1802,47 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash }: any
                   />
                 </FieldRow>
                 <FieldRow label="Ticket / Pass Template" hint="Style of the entry pass emailed to attendees and shown in the app.">
-                  <View style={{ flexDirection: 'row', gap: 10 }}>
-                    {[
-                      { id: 'aurora', name: 'Aurora', desc: 'Dark gradient pass with glow accents', gradient: 'linear-gradient(135deg,#312e81,#4C1D95)' },
-                      { id: 'classic', name: 'Classic', desc: 'White ticket with purple header', gradient: 'linear-gradient(135deg,#fff,#f3f4f6)' },
-                      { id: 'minimal', name: 'Minimal', desc: 'Bare-bones borderless pass', gradient: 'linear-gradient(135deg,#f9fafb,#e5e7eb)' },
-                    ].map((tpl) => {
-                      const active = (form.registration || {}).ticket_template === tpl.id;
-                      return (
-                        <Pressable
-                          key={tpl.id}
-                          onPress={() => set('registration', { ...(form.registration || {}), ticket_template: tpl.id })}
-                          style={{
-                            flex: 1, borderRadius: 10, borderWidth: 2, borderColor: active ? '#7C3AED' : 'rgba(255,255,255,0.1)',
-                            backgroundColor: active ? 'rgba(124,58,237,0.08)' : 'rgba(255,255,255,0.03)',
-                            padding: 12, cursor: 'pointer',
-                          }}
-                        >
-                          <View style={{ height: 6, borderRadius: 3, marginBottom: 8, background: tpl.gradient }} />
-                          <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: active ? '#C4B5FD' : SAC.text }}>{tpl.name}</Text>
-                          <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim, marginTop: 2 }}>{tpl.desc}</Text>
-                        </Pressable>
-                      );
-                    })}
+                  <View style={{ gap: 12 }}>
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                      {[
+                        { id: 'aurora', name: 'Aurora', desc: 'Dark gradient pass with glow accents', gradient: 'linear-gradient(135deg,#312e81,#4C1D95)' },
+                        { id: 'classic', name: 'Classic', desc: 'White ticket with purple header', gradient: 'linear-gradient(135deg,#fff,#f3f4f6)' },
+                        { id: 'minimal', name: 'Minimal', desc: 'Bare-bones borderless pass', gradient: 'linear-gradient(135deg,#f9fafb,#e5e7eb)' },
+                      ].map((tpl) => {
+                        const active = (form.registration || {}).ticket_template === tpl.id;
+                        return (
+                          <Pressable
+                            key={tpl.id}
+                            onPress={() => set('registration', { ...(form.registration || {}), ticket_template: tpl.id })}
+                            style={{
+                              flex: 1, borderRadius: 10, borderWidth: 2, borderColor: active ? '#7C3AED' : 'rgba(255,255,255,0.1)',
+                              backgroundColor: active ? 'rgba(124,58,237,0.08)' : 'rgba(255,255,255,0.03)',
+                              padding: 12, cursor: 'pointer',
+                            }}
+                          >
+                            <View style={{ height: 6, borderRadius: 3, marginBottom: 8, background: tpl.gradient }} />
+                            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: active ? '#C4B5FD' : SAC.text }}>{tpl.name}</Text>
+                            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim, marginTop: 2 }}>{tpl.desc}</Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                    <Pressable
+                      onPress={() => {
+                        const tplId = (form.registration || {}).ticket_template || 'aurora';
+                        const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+                        window.open(`${base}/api/echo/tickets/preview/${tplId}`, '_blank');
+                      }}
+                      style={{
+                        flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+                        backgroundColor: 'rgba(124,58,237,0.12)', borderRadius: 8,
+                        paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <Eye size={12} color="#A78BFA" />
+                      <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: '#C4B5FD' }}>Preview selected template</Text>
+                    </Pressable>
                   </View>
                 </FieldRow>
               </Card>
@@ -1873,7 +1891,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash }: any
                 </Text>
                 {form.status !== 'published' && (
                   <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: '#FBBF24' }}>
-                    ⚠️ Status is "{form.status}" — set to Published to make it visible to students.
+                    Status is "{form.status}" — set to Published to make it visible to students.
                   </Text>
                 )}
               </Card>
@@ -2167,11 +2185,11 @@ export function EchoShowcaseAdminView() {
       if (editing) {
         const res = await api.updateEchoShowcase(editing._id, form);
         console.log('[CMS UPDATE RESPONSE]', res);
-        flash('Showcase updated ✓');
+        flash('Showcase updated');
       } else {
         const res = await api.createEchoShowcase(form);
         console.log('[CMS CREATE RESPONSE]', res);
-        flash('Showcase created ✓');
+        flash('Showcase created');
         // Clear autosave draft
         if (Platform.OS === 'web') {
           try { sessionStorage.removeItem(AUTOSAVE_KEY); } catch { /* ignore */ }
@@ -2189,7 +2207,7 @@ export function EchoShowcaseAdminView() {
 
   const onPublish = async (item: any) => {
     setBusy(item._id);
-    try { await api.publishEchoShowcase(item._id); flash(`"${item.title}" published ✓`); await load(); }
+    try { await api.publishEchoShowcase(item._id); flash(`"${item.title}" published`); await load(); }
     catch { flash('Publish failed'); }
     finally { setBusy(null); }
   };
