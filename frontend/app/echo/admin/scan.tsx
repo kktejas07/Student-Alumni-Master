@@ -108,7 +108,34 @@ export default function EchoScanPage() {
   const [loading, setLoading] = useState(false);
   const [recent, setRecent] = useState<any[]>([]);
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [accessCheck, setAccessCheck] = useState<'loading' | 'ok' | 'denied'>('loading');
   const inputRef = useRef<any>(null);
+
+  // Access guard — check if user is super_admin or volunteer
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+        const { tokenStore } = await import('@/src/models/services/api');
+        const token = await tokenStore.getAccess();
+        if (!token) { if (mounted) setAccessCheck('denied'); return; }
+        const resp = await fetch(`${base}/api/echo/volunteer/scan-access`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!mounted) return;
+        if (resp.ok) {
+          const data = await resp.json();
+          setAccessCheck(data.access ? 'ok' : 'denied');
+        } else {
+          setAccessCheck('denied');
+        }
+      } catch {
+        if (mounted) setAccessCheck('denied');
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const submitCode = async (c: string) => {
     const codeUpper = c.trim().toUpperCase();
@@ -147,6 +174,46 @@ export default function EchoScanPage() {
 
   const usedCount = recent.filter((r) => r.ok).length;
   const failedCount = recent.filter((r) => !r.ok).length;
+
+  // Access guard loading
+  if (accessCheck === 'loading') {
+    return (
+      <View style={s.root}>
+        <EchoHeader current="echo" />
+        <ScrollView contentContainerStyle={{ paddingTop: ECHO_TOP_PADDING }}>
+          <View style={[s.content, { alignItems: 'center', paddingVertical: 80 }]}>
+            <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>Checking access…</Text>
+          </View>
+          <EchoFooter />
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // Access denied
+  if (accessCheck === 'denied') {
+    return (
+      <View style={s.root}>
+        <EchoHeader current="echo" />
+        <ScrollView contentContainerStyle={{ paddingTop: ECHO_TOP_PADDING }}>
+          <View style={[s.content, { alignItems: 'center', paddingVertical: 80, gap: 16 }]}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(239,68,68,0.15)', alignItems: 'center', justifyContent: 'center' }}>
+              <X size={28} color="#EF4444" />
+            </View>
+            <Text style={{ fontFamily: 'DMSans_800ExtraBold', fontSize: 20, color: '#FCA5A5', textAlign: 'center' }}>Access Denied</Text>
+            <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: 13, color: 'rgba(255,255,255,0.5)', textAlign: 'center', maxWidth: 300 }}>
+              You need super admin or volunteer access to use the coupon scanner. Contact the event organizer to be added as a volunteer.
+            </Text>
+            <Pressable onPress={() => router.push('/echo')} style={s.backBtn}>
+              <ArrowLeft size={14} color="#fff" />
+              <Text style={s.backText}>Back to ECHO</Text>
+            </Pressable>
+          </View>
+          <EchoFooter />
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={s.root}>

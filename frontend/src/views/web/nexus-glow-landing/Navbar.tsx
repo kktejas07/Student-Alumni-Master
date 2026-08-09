@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "expo-router";
 import { Menu, X } from "lucide-react-native";
-import { SALogo } from "@/src/views/components";
+import { Image } from "react-native";
 import { useBreakpoint } from "@/src/theme/breakpoints";
 
 // Module-scoped so a pending section survives the Navbar remount when we
@@ -96,7 +96,11 @@ export function Navbar() {
             onClick={handleLogoClick}
             className="flex items-center gap-3 cursor-pointer"
           >
-            <SALogo size={32} variant="gradient" />
+            <Image
+              source={require("../../../assets/images/sa-icon.png")}
+              style={{ width: 32, height: 32, borderRadius: 8 }}
+              resizeMode="contain"
+            />
             <span className="text-sm font-bold tracking-wide text-white">
               StudentAlumni
             </span>

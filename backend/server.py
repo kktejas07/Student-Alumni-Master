@@ -213,6 +213,10 @@ async def _lifespan(application):
     await _safe_create_index(db.coupons, "code", unique=True)
     await _safe_create_index(db.email_verifications, "email")
     await _safe_create_index(db.email_verifications, [("expires_at", 1)], expireAfterSeconds=0)
+    # ECHO Volunteer indexes
+    await _safe_create_index(db.echo_volunteers, "email")
+    await _safe_create_index(db.echo_volunteers, "slug")
+    await _safe_create_index(db.echo_volunteers, [("slug", 1), ("email", 1)], unique=True)
 
     # Seed admin account and baseline data
     # (seed_admin / seed_data are defined later in server.py and are in scope at runtime)

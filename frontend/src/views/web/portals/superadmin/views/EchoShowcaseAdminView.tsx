@@ -53,7 +53,7 @@ const GALLERY_LAYOUT_OPTIONS = ['grid', 'masonry', 'mixed', 'featured-grid', 'ca
 const VIDEO_PLATFORM_OPTIONS = ['youtube', 'vimeo', 'mp4'];
 const DOWNLOAD_CATEGORY_OPTIONS = ['Brochure', 'Schedule', 'Certificate', 'Presentation', 'Report', 'Document'];
 
-type PageTab = 'all' | 'create' | 'drafts' | 'media' | 'registrations' | 'settings';
+type PageTab = 'all' | 'create' | 'drafts' | 'media' | 'registrations' | 'settings' | 'volunteers';
 type StatusFilter = 'all' | 'published' | 'draft' | 'archived';
 type FormTab =
   | 'general' | 'hero' | 'statistics' | 'about' | 'gallery'
@@ -65,6 +65,7 @@ const PAGE_TABS: Array<{ id: PageTab; label: string; icon?: any }> = [
   { id: 'create', label: 'Create Showcase', icon: PlusCircle },
   { id: 'drafts', label: 'Drafts', icon: FileText },
   { id: 'registrations', label: 'Registrations & Payments', icon: Users },
+  { id: 'volunteers', label: 'Volunteers', icon: Users },
   { id: 'media', label: 'Media Library', icon: Images },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
@@ -2122,6 +2123,136 @@ function RegistrationsPanel() {
   );
 }
 
+// ── Volunteers Panel ──────────────────────────────────────────────────────────
+function VolunteersPanel() {
+  const [slug, setSlug] = useState('');
+  const [items, setItems] = useState<any[]>([]);
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('volunteer');
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const { flash } = useToast();
+
+  const load = useCallback(async () => {
+    if (!slug) { setItems([]); return; }
+    setLoading(true);
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      const resp = await fetch(`${base}/api/echo/admin/${slug}/volunteers`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        setItems(data.volunteers || []);
+      }
+    } catch { /* ignore */ }
+    setLoading(false);
+  }, [slug]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const addVolunteer = async () => {
+    const e = email.trim().toLowerCase();
+    if (!e || !slug) return;
+    setSaving(true);
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      const resp = await fetch(`${base}/api/echo/admin/${slug}/volunteers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ email: e, role }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || 'Failed to add');
+      flash(data.has_account ? `${e} added — has SA account` : `${e} added — will get access on signup`);
+      setEmail('');
+      load();
+    } catch (err: any) {
+      flash(err?.message || 'Failed to add volunteer');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeVolunteer = async (id: string) => {
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      await fetch(`${base}/api/echo/admin/${slug}/volunteers/${id}`, {
+        method: 'DELETE',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      load();
+    } catch { /* ignore */ }
+  };
+
+  return (
+    <View style={{ gap: 16 }}>
+      <Card style={{ padding: 20, gap: 16 }}>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Volunteers & Ambassadors</Text>
+        <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
+          Add registered users who can scan coupons at the venue. They get access to the scanner page only.
+        </Text>
+        <FieldRow label="Event Slug">
+          <Field value={slug} onChangeText={setSlug} placeholder="e.g. vnrvjit" />
+        </FieldRow>
+        {slug && (
+          <>
+            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-end' }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, marginBottom: 4 }}>Email</Text>
+                <TextInput value={email} onChangeText={setEmail} placeholder="volunteer@email.com"
+                  placeholderTextColor="#475569" keyboardType="email-address" autoCapitalize="none"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: 10, color: '#fff', fontSize: 13 }} />
+              </View>
+              <View style={{ width: 120 }}>
+                <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, marginBottom: 4 }}>Role</Text>
+                <SelectNative value={role} onChange={setRole} options={['volunteer', 'ambassador']} />
+              </View>
+              <GradientButton onPress={addVolunteer} loading={saving} disabled={saving || !email.trim()} size="sm">
+                <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 12 }}>Add</Text>
+              </GradientButton>
+            </View>
+
+            <Text style={{ fontFamily: FONTS.semi, fontSize: 12, color: SAC.muted, marginTop: 8 }}>
+              Volunteers ({items.length})
+            </Text>
+            {loading ? (
+              <ActivityIndicator size="small" color="#A78BFA" style={{ marginVertical: 12 }} />
+            ) : items.length === 0 ? (
+              <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.dim }}>No volunteers added yet</Text>
+            ) : (
+              <View style={{ gap: 6 }}>
+                {items.map((v) => (
+                  <View key={v._id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontFamily: FONTS.bold, fontSize: 13, color: SAC.text }}>{v.email}</Text>
+                      <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>
+                        {v.role} {v.has_account ? '· Has account' : '· No account yet'}
+                        {v.user_name ? ` · ${v.user_name}` : ''}
+                      </Text>
+                    </View>
+                    <StatusPill kind={v.has_account ? 'success' : 'warn'} label={v.has_account ? 'Active' : 'Pending'} />
+                    <Pressable onPress={() => removeVolunteer(v._id)} style={{ padding: 6 }}>
+                      <Trash2 size={14} color="#EF4444" />
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            )}
+          </>
+        )}
+      </Card>
+    </View>
+  );
+}
+
+
 function SettingsPanel({ onPreview }: { onPreview?: (html: string) => void }) {
   const [tab, setTab] = useState<'pass' | 'invoice' | 'email' | 'branding'>('pass');
   const [defaultTemplate, setDefaultTemplate] = useState('aurora');
@@ -2485,6 +2616,9 @@ export function EchoShowcaseAdminView() {
 
       {/* ── SETTINGS ── */}
       {pageTab === 'settings' && <SettingsPanel onPreview={(html: string) => setPreviewHtml(html)} />}
+
+      {/* ── VOLUNTEERS ── */}
+      {pageTab === 'volunteers' && <VolunteersPanel />}
 
       {/* ── SHOWCASES LIST (All / Drafts) ── */}
       {(pageTab === 'all' || pageTab === 'drafts') && (
