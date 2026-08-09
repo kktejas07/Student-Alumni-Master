@@ -1803,59 +1803,21 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                     onChange={(p: string[]) => set('registration', { ...(form.registration || {}), poster_images: p })}
                   />
                 </FieldRow>
-                <FieldRow label="Ticket / Pass Template" hint="Style of the entry pass emailed to attendees and shown in the app.">
-                  <View style={{ gap: 12 }}>
-                    <View style={{ flexDirection: 'row', gap: 10 }}>
-                      {[
-                        { id: 'aurora', name: 'Aurora', desc: 'Dark gradient pass with glow accents', gradient: 'linear-gradient(135deg,#312e81,#4C1D95)' },
-                        { id: 'classic', name: 'Classic', desc: 'White ticket with purple header', gradient: 'linear-gradient(135deg,#fff,#f3f4f6)' },
-                        { id: 'minimal', name: 'Minimal', desc: 'Bare-bones borderless pass', gradient: 'linear-gradient(135deg,#f9fafb,#e5e7eb)' },
-                      ].map((tpl) => {
-                        const active = (form.registration || {}).ticket_template === tpl.id;
-                        return (
-                          <Pressable
-                            key={tpl.id}
-                            onPress={() => set('registration', { ...(form.registration || {}), ticket_template: tpl.id })}
-                            style={{
-                              flex: 1, borderRadius: 10, borderWidth: 2, borderColor: active ? '#7C3AED' : 'rgba(255,255,255,0.1)',
-                              backgroundColor: active ? 'rgba(124,58,237,0.08)' : 'rgba(255,255,255,0.03)',
-                              padding: 12, cursor: 'pointer',
-                            }}
-                          >
-                            <View style={{ height: 6, borderRadius: 3, marginBottom: 8, background: tpl.gradient }} />
-                            <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: active ? '#C4B5FD' : SAC.text }}>{tpl.name}</Text>
-                            <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim, marginTop: 2 }}>{tpl.desc}</Text>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-                    <Pressable
-                      onPress={async () => {
-                        const tplId = (form.registration || {}).ticket_template || 'aurora';
-                        const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
-                        try {
-                          const { tokenStore } = await import('@/src/models/services/api');
-                          const token = await tokenStore.getAccess();
-                          const resp = await fetch(`${base}/api/echo/tickets/preview/${tplId}`, {
-                            headers: token ? { Authorization: `Bearer ${token}` } : {},
-                          });
-                          if (!resp.ok) throw new Error('Preview not available');
-                          const data = await resp.json();
-                          onPreview?.(data.html);
-                        } catch (err: any) {
-                          flash?.(err?.message || 'Could not load preview');
-                        }
-                      }}
-                      style={{
-                        flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
-                        backgroundColor: 'rgba(124,58,237,0.12)', borderRadius: 8,
-                        paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <Eye size={12} color="#A78BFA" />
-                      <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: '#C4B5FD' }}>Preview selected template</Text>
-                    </Pressable>
+                <FieldRow label="Ticket / Pass Template" hint="Global template is used by default. Override for this event if needed.">
+                  <View style={{ gap: 10 }}>
+                    <SelectNative
+                      value={(form.registration || {}).ticket_template || ''}
+                      onChange={(v: string) => set('registration', { ...(form.registration || {}), ticket_template: v || undefined })}
+                      options={[
+                        { value: '', label: 'Use global default' },
+                        { value: 'aurora', label: 'Aurora — Dark gradient pass' },
+                        { value: 'classic', label: 'Classic — White ticket with purple header' },
+                        { value: 'minimal', label: 'Minimal — Bare-bones borderless pass' },
+                      ]}
+                    />
+                    <Text style={{ fontFamily: FONTS.med, fontSize: 11, color: SAC.dim }}>
+                      Configure the global default in the Settings tab.
+                    </Text>
                   </View>
                 </FieldRow>
               </Card>
@@ -2128,7 +2090,7 @@ function RegistrationsPanel() {
   );
 }
 
-function SettingsPanel() {
+function SettingsPanel({ onPreview }: { onPreview?: (html: string) => void }) {
   const [defaultTemplate, setDefaultTemplate] = useState('aurora');
   const [saving, setSaving] = useState(false);
   const { flash } = useToast();
@@ -2207,6 +2169,35 @@ function SettingsPanel() {
               </Pressable>
             ))}
           </View>
+        </View>
+
+        <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+          <Pressable
+            onPress={async () => {
+              const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+              try {
+                const { tokenStore } = await import('@/src/models/services/api');
+                const token = await tokenStore.getAccess();
+                const resp = await fetch(`${base}/api/echo/tickets/preview/${defaultTemplate}`, {
+                  headers: token ? { Authorization: `Bearer ${token}` } : {},
+                });
+                if (!resp.ok) throw new Error('Preview not available');
+                const data = await resp.json();
+                onPreview?.(data.html);
+              } catch (err: any) {
+                flash(err?.message || 'Could not load preview');
+              }
+            }}
+            style={{
+              flexDirection: 'row', alignItems: 'center', gap: 6,
+              backgroundColor: 'rgba(124,58,237,0.12)', borderRadius: 8,
+              paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: 'rgba(167,139,250,0.25)',
+              cursor: 'pointer',
+            }}
+          >
+            <Eye size={12} color="#A78BFA" />
+            <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: '#C4B5FD' }}>Preview selected template</Text>
+          </Pressable>
         </View>
 
         <GradientButton onPress={save} loading={saving} disabled={saving} size="md">
@@ -2370,7 +2361,7 @@ export function EchoShowcaseAdminView() {
       {pageTab === 'registrations' && <RegistrationsPanel />}
 
       {/* ── SETTINGS ── */}
-      {pageTab === 'settings' && <SettingsPanel />}
+      {pageTab === 'settings' && <SettingsPanel onPreview={(html: string) => setPreviewHtml(html)} />}
 
       {/* ── SHOWCASES LIST (All / Drafts) ── */}
       {(pageTab === 'all' || pageTab === 'drafts') && (
