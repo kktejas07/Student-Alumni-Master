@@ -28,6 +28,7 @@ import { GlassCard } from '../glass';
 import { FadeInView, PressScale } from '../motion';
 import { GRAD } from '../portalkit';
 import { useRouter } from 'expo-router';
+import { EchoImg } from '@/src/views/web/components/EchoChrome';
 
 // ── Status badge colors ─────────────────────────────────────────────────────
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string; dot: string }> = {
@@ -158,10 +159,11 @@ function HeroBannerCarousel({ banners, data, isWide, onBack, canonicalSlug, show
     <View style={bc.section}>
       {/* Banner image layer */}
       <View style={bc.imageWrap}>
-        <Image
+        <EchoImg
           source={{ uri: resolveImageUrl(validBanners[idx]) }}
           style={bc.image}
           resizeMode="cover"
+          fallbackLabel={data?.title || 'Event Banner'}
         />
         {/* Gradient overlay from bottom (dark) to top (transparent) */}
         <View style={bc.gradient} />
@@ -647,7 +649,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
             {isWide && (
               <View style={s.heroRight}>
                 {data?.hero_image_url ? (
-                  <Image source={{ uri: resolveImageUrl(data.hero_image_url) }} style={s.heroImg} resizeMode="cover" />
+                  <EchoImg source={{ uri: resolveImageUrl(data.hero_image_url) }} style={s.heroImg} resizeMode="cover" fallbackLabel={data?.title || 'Event'} />
                 ) : (
                   <LinearGradient
                     colors={['rgba(123,61,191,0.35)', 'rgba(95,37,159,0.55)', 'rgba(30,10,80,0.80)']}
