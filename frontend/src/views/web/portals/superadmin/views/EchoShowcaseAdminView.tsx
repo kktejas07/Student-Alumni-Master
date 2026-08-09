@@ -35,6 +35,7 @@ import {
 } from '../applekit';
 import { SAC, FONTS } from '../tokens';
 import { api, resolveImageUrl } from '@/src/models/services/api';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const STATUS_PILL_MAP: Record<string, any> = {
@@ -2205,8 +2206,10 @@ export function EchoShowcaseAdminView() {
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const { toast, flash } = useToast();
+  const user = useAuthStore((s) => s.user);
 
   const load = useCallback(async () => {
+    if (!user) { setLoading(false); return; }
     try {
       const res = await api.adminListEchoShowcases();
       setItems(res?.items || []);
@@ -2215,7 +2218,7 @@ export function EchoShowcaseAdminView() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => { load(); }, [load]);
 

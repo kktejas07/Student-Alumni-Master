@@ -20,6 +20,7 @@ import {
 import { Ticket, ExternalLink, X, Copy, Check, Tag, Plus, Pencil, Trash2, Save, Upload, AlertTriangle } from 'lucide-react-native';
 import { request } from '@/src/models/services/api';
 import { uploadImage } from '@/src/lib/image';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 export type Coupon = {
   id: string;
@@ -412,6 +413,7 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
   const [currentPage, setCurrentPage] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const toastTimer = useRef<any>(null);
+  const user = useAuthStore((s) => s.user);
 
   const flash = useCallback((text: string, kind: 'success' | 'error' = 'success') => {
     setToast({ text, kind });
@@ -420,13 +422,14 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
   }, []);
 
   const loadCoupons = useCallback(async () => {
+    if (!user) { setCoupons([]); return; }
     try {
       const r = await request<{ coupons: Coupon[] }>(editable ? '/admin/coupons' : '/coupons/active');
       setCoupons(r.coupons || []);
     } catch {
       setCoupons([]);
     }
-  }, [editable]);
+  }, [editable, user]);
 
   useEffect(() => {
     loadCoupons();
