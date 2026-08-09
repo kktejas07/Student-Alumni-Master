@@ -1257,6 +1257,12 @@ function MediaLibraryPanel() {
 
 // ── Showcase Card ─────────────────────────────────────────────────────────────
 function ShowcaseCard({ item, onEdit, onDelete, onPublish, onDraft, onArchive, onPreview, busy }: any) {
+  const viewShowcase = () => {
+    if (Platform.OS === 'web') {
+      window.open(`/echo/${item.slug}`, '_blank');
+    }
+  };
+
   return (
     <Card style={{ marginBottom: 12 }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 14 }}>
@@ -1272,11 +1278,14 @@ function ShowcaseCard({ item, onEdit, onDelete, onPublish, onDraft, onArchive, o
           <View style={{ flexDirection: 'row', gap: 14, marginTop: 3, flexWrap: 'wrap' }}>
             {item.date ? <Text style={cs.meta}>{item.date}</Text> : null}
             {item.venue ? <Text style={cs.meta}>{item.venue}</Text> : null}
-            {item.category ? <Text style={cs.meta}>🏷 {item.category}</Text> : null}
+            {item.category ? <Text style={cs.meta}>{item.category}</Text> : null}
             <Text style={cs.meta}>/{item.slug}</Text>
           </View>
         </View>
-        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <Pressable onPress={viewShowcase} style={[cs.iconBtn, { backgroundColor: 'rgba(124,58,237,0.12)', borderColor: 'rgba(167,139,250,0.25)' }]}>
+            <Globe size={14} color="#A78BFA" />
+          </Pressable>
           <Pressable onPress={() => onPreview(item)} style={cs.iconBtn}><Eye size={14} color={SAC.muted} /></Pressable>
           <Pressable onPress={() => onEdit(item)} style={cs.iconBtn}><Pencil size={14} color={SAC.muted} /></Pressable>
           {item.status !== 'published' && (
@@ -2073,9 +2082,13 @@ function RegistrationsPanel() {
             <View style={{ minWidth: 760 }}>
               {/* Header */}
               <View style={{ flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1, borderBottomColor: SAC.border }}>
-                {['Attendee', 'Event', 'College / Branch', 'Amount', 'Payment', 'SA Account', 'Date'].map((h) => (
-                  <Text key={h} style={{ width: h === 'Attendee' ? 180 : h === 'Event' ? 200 : 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>{h.toUpperCase()}</Text>
-                ))}
+                <Text style={{ width: 180, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>ATTENDEE</Text>
+                <Text style={{ width: 200, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>EVENT</Text>
+                <Text style={{ width: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>COLLEGE / BRANCH</Text>
+                <Text style={{ width: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>AMOUNT</Text>
+                <Text style={{ width: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>PAYMENT</Text>
+                <Text style={{ width: 120, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>SA ACCOUNT</Text>
+                <Text style={{ width: 150, fontFamily: FONTS.xbold, fontSize: 10.5, color: SAC.muted, letterSpacing: 0.5 }}>DATE</Text>
               </View>
               {filtered.map((r: any, i: number) => (
                 <View key={r.id || i} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 11, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' }}>
