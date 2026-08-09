@@ -7,7 +7,7 @@ export function Hero() {
   const router = useRouter();
 
   return (
-    <section id="hero" className="relative overflow-hidden pt-36 pb-20 md:pt-48 md:pb-32 flex flex-col items-center justify-center">
+    <section id="hero" className="relative overflow-hidden pt-28 pb-20 md:pt-40 md:pb-32 flex flex-col items-center justify-center">
       <div className="mx-auto max-w-7xl px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center relative z-10 w-full">
 
         {/* Left Side: Headline, Subheading & CTAs */}

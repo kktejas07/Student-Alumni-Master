@@ -109,7 +109,7 @@ def _slug_query(slug: str) -> dict:
 
 # ── Payments + invoices helpers ──────────────────────────────────────────────
 async def _razorpay_config(db) -> Optional[dict]:
-    """Return {key_id, key_secret} when Razorpay is connected, else None."""
+    """Return {key_id, key_secret, webhook_secret} when Razorpay is connected, else None."""
     tool = await db.installed_tools.find_one({"tool_id": "razorpay", "status": "connected"})
     if not tool:
         return None
@@ -118,7 +118,11 @@ async def _razorpay_config(db) -> Optional[dict]:
     key_secret = (creds.get("key_secret") or creds.get("api_secret") or "").strip()
     if not key_id or not key_secret:
         return None
-    return {"key_id": key_id, "key_secret": key_secret}
+    return {
+        "key_id": key_id,
+        "key_secret": key_secret,
+        "webhook_secret": (creds.get("webhook_secret") or "").strip(),
+    }
 
 
 async def _razorpay_create_order(db, amount: float, currency: str, receipt: str, notes: dict) -> Optional[dict]:
@@ -163,15 +167,161 @@ async def _razorpay_verify_signature(db, order_id: str, payment_id: str, signatu
     return hmac.compare_digest(expected, (signature or ""))
 
 
+async def _razorpay_verify_webhook_signature(db, body: bytes, signature: str) -> bool:
+    """Verify a Razorpay webhook signature — HMAC-SHA256 of the raw request body
+    using the webhook signing secret (falls back to the API key secret).
+    """
+    cfg = await _razorpay_config(db)
+    if not cfg:
+        return False
+    secret = cfg.get("webhook_secret") or cfg.get("key_secret")
+    if not secret:
+        return False
+    import hashlib
+    import hmac
+    expected = hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, (signature or ""))
+
+
+async def _finalize_paid_registration(db, reg: dict, showcase: dict, payment_id: str) -> Optional[dict]:
+    """Shared logic to mark a pending ECHO registration paid, generate its QR,
+    mirror to event_registrations, and email the invoice. Idempotent.
+    """
+    if not reg or not reg.get("_id"):
+        return None
+    current = reg.get("payment") or {}
+    if current.get("status") == "paid":
+        return _ser(reg)
+
+    now_iso = _now()
+    paid_payment = {
+        "payment_id": payment_id or f"PAY_{secrets.token_hex(8).upper()}",
+        "gateway": "razorpay",
+        "amount": float(reg.get("fee") or 0),
+        "currency": reg.get("currency") or "INR",
+        "status": "paid",
+        "paid_at": now_iso,
+        "method": current.get("method") or "upi",
+    }
+    canonical_slug = reg.get("slug") or (showcase or {}).get("slug")
+
+    await db.echo_registrations.update_one(
+        {"_id": reg["_id"]},
+        {"$set": {
+            "payment": paid_payment,
+            "status": "registered",
+            "registered_at": now_iso,
+            "qr_code_base64": generate_qr_code(
+                f"ECHO:{canonical_slug}|{reg.get('user_key')}|{reg.get('id')}"
+            ),
+            "payment_order": None,
+        }},
+    )
+
+    updated = await db.echo_registrations.find_one({"_id": reg["_id"]})
+    updated_ser = _ser(updated)
+    user = None
+    if updated.get("user_id"):
+        try:
+            user = await db.users.find_one({"_id": ObjectId(updated["user_id"])})
+        except Exception:
+            user = None
+    await _mirror_to_event_registration(db, updated_ser, showcase, user)
+    invoice = await _store_invoice_and_email(db, updated_ser, showcase)
+    return {**updated_ser, "invoice": invoice}
+
+
 def _payment_label(method: str) -> str:
     return {
         "upi": "UPI",
         "card": "Credit / Debit Card",
         "netbanking": "Net Banking",
         "wallet": "Wallet",
-        "mock": "Mock (demo)",
         "external": "External gateway",
     }.get(method or "", (method or "").title())
+
+
+def _parse_iso(s: str):
+    """Parse an ISO 8601 string to an aware datetime. Returns None if unparseable."""
+    if not s:
+        return None
+    try:
+        dt = datetime.fromisoformat(str(s).replace("Z", "+00:00"))
+    except Exception:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+async def _assert_registration_open(db, showcase: dict) -> None:
+    """Raise 400 when an ECHO event is closed: disabled, ended, past deadline, or full."""
+    reg_cfg = showcase.get("registration") or {}
+    if reg_cfg.get("enabled") is False:
+        raise HTTPException(status_code=400, detail="Registrations are closed for this event")
+    if showcase.get("event_status_badge") == "Completed":
+        raise HTTPException(status_code=400, detail="This event has ended — registrations are closed")
+
+    deadline = _parse_iso(reg_cfg.get("deadline"))
+    if deadline and deadline < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Registrations have closed for this event")
+
+    max_seats = int(reg_cfg.get("max_seats") or 0)
+    if max_seats > 0:
+        confirmed = await db.echo_registrations.count_documents({
+            "slug": showcase.get("slug"),
+            "payment.status": "paid",
+        })
+        if confirmed >= max_seats:
+            raise HTTPException(status_code=400, detail="Sorry — this event has reached full capacity")
+
+
+async def _send_registration_confirmation(db, reg: dict, showcase: dict) -> None:
+    """Email a confirmation (with QR) for FREE or confirmed registrations.
+
+    Paid registrations get a payment invoice via _store_invoice_and_email; this
+    covers the free/no-charge path so every attendee receives an email receipt.
+    """
+    try:
+        email = (reg.get("email") or "").strip()
+        if not email:
+            return
+        title = reg.get("showcase_title") or showcase.get("title") or "Event Registration"
+        qr = reg.get("qr_code_base64") or ""
+        qr_block = ""
+        if qr:
+            qr_block = f"""
+            <div style="margin:0 0 18px 0;text-align:center;">
+              <img src="data:image/png;base64,{qr}" alt="Check-in QR" width="160" height="160"
+                   style="border-radius:10px;border:1px solid #e5e7eb;" />
+              <p style="margin:8px 0 0 0;color:#9ca3af;font-size:12px;">Scan this QR at the venue for check-in.</p>
+            </div>"""
+        subject = f"Registration Confirmed — {title}"
+        body = render_html_email(
+            f"""
+            <h2 style="margin:0 0 14px 0;color:#111827;">You're registered!</h2>
+            <p style="margin:0 0 18px 0;color:#374151;">Thank you for registering for <strong>{title}</strong>.
+            Here are your registration details:</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+              style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;margin:0 0 18px 0;">
+              <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Registration ID</td>
+                  <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{reg.get('id')}</td></tr>
+              <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Event</td>
+                  <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{title}</td></tr>
+              <tr><td style="padding:12px 16px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.4px;">Attendee</td>
+                  <td style="padding:12px 16px;text-align:right;color:#111827;font-weight:700;">{reg.get('full_name')}</td></tr>
+            </table>
+            {qr_block}
+            <p style="margin:0 0 22px 0;color:#374151;">
+              You can view your ticket anytime from your dashboard under <strong>My Tickets</strong>.
+            </p>
+            <a href="https://studentalumni.ai/dashboard"
+               style="display:inline-block;padding:12px 26px;background:#7C3AED;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;">Open My Dashboard</a>
+            """
+        )
+        await send_email(email, subject, body)
+    except Exception as e:
+        print(f"[ECHO] Confirmation email error: {e}")
 
 
 def _build_invoice(reg: dict, showcase: dict) -> dict:
@@ -203,7 +353,7 @@ def _build_invoice(reg: dict, showcase: dict) -> dict:
         "amount": fee,
         "currency": currency,
         "payment_id": payment.get("payment_id"),
-        "payment_gateway": payment.get("gateway") or "mock",
+        "payment_gateway": payment.get("gateway") or "razorpay",
         "payment_method": payment.get("method"),
         "paid_at": payment.get("paid_at") or reg.get("registered_at"),
         "status": payment.get("status") or reg.get("status"),
@@ -781,7 +931,7 @@ async def get_showcase(slug: str, request: Request):
     return _ser(doc)
 
 
-# ── Registration (mock payment gateway) ───────────────────────────────────────
+# ── Registration (real payments only — Razorpay) ─────────────────────────────
 class RegisterSchema(BaseModel):
     full_name: Optional[str] = ""
     email: Optional[str] = ""
@@ -789,7 +939,7 @@ class RegisterSchema(BaseModel):
     branch: Optional[str] = ""
     year: Optional[str] = ""
     college: Optional[str] = ""
-    payment_method: Optional[str] = "mock"
+    payment_method: Optional[str] = ""
 
 
 @router.post("/showcases/{slug}/register")
@@ -798,7 +948,10 @@ async def register_for_showcase(
     payload: RegisterSchema,
     request: Request,
 ):
-    """Register a user for an ECHO event. Simulates payment via mock gateway.
+    """Register a user for an ECHO event.
+
+    Payment is 100% real — free events confirm instantly, paid events require a
+    connected Razorpay gateway and are confirmed only after payment capture.
 
     Writes two records:
       1. `echo_registrations` — the event-side registration (paid status, QR).
@@ -831,12 +984,9 @@ async def register_for_showcase(
     canonical_slug = showcase.get("slug") or slug
 
     reg_cfg = showcase.get("registration") or {}
-    if reg_cfg.get("enabled") is False:
-        raise HTTPException(status_code=400, detail="Registrations are closed for this event")
 
-    # Completed events stop accepting registrations regardless of settings.
-    if showcase.get("event_status_badge") == "Completed":
-        raise HTTPException(status_code=400, detail="This event has ended — registrations are closed")
+    # Server-side gates: closed registrations, past deadline, full capacity.
+    await _assert_registration_open(db, showcase)
 
     # Auto-onboard manually-typed colleges (idempotent — no-op if already in DB).
     college_value = (payload.college or "").strip()
@@ -847,7 +997,10 @@ async def register_for_showcase(
         except Exception:
             pass
 
-    user_key = str(user["_id"]) if user else (payload.email or payload.phone or "anon")
+    # Case-insensitive dedup — emails are normalized to lowercase so the same
+    # person cannot register twice with different capitalisation.
+    reg_email = (payload.email or "").strip().lower()
+    user_key = str(user["_id"]) if user else (reg_email or (payload.phone or "").strip() or "anon")
     existing = await db.echo_registrations.find_one(
         {"slug": canonical_slug, "user_key": user_key}
     )
@@ -860,23 +1013,28 @@ async def register_for_showcase(
     fee = float(reg_cfg.get("fee", 0) or 0)
     currency = reg_cfg.get("currency", "INR")
 
-    # Payment: for FREE events or when no real gateway is configured we confirm
-    # immediately (demo). For PAID events with Razorpay connected, registration is
-    # created as "pending" and the attendee pays via payment-order → verify-payment.
+    # Payment: FREE events are confirmed immediately. PAID events REQUIRE a
+    # connected Razorpay gateway — there is no demo/mock auto-approve path, so
+    # paid registration never issues a QR or invoice unless money was captured.
     gateway_cfg = await _razorpay_config(db)
-    auto_paid = fee <= 0 or gateway_cfg is None
+    auto_paid = fee <= 0
 
     if auto_paid:
         payment = {
             "payment_id": f"PAY_{secrets.token_hex(8).upper()}",
-            "gateway": "mock" if fee > 0 else "free",
+            "gateway": "free",
             "amount": fee,
             "currency": currency,
             "status": "paid",
             "paid_at": now_iso,
-            "method": payload.payment_method or "mock",
+            "method": payload.payment_method or "free",
         }
     else:
+        if gateway_cfg is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Online payments are temporarily unavailable — please try again later",
+            )
         payment = {
             "payment_id": None,
             "gateway": "razorpay",
@@ -896,7 +1054,7 @@ async def register_for_showcase(
         "user_key": user_key,
         "user_id": str(user["_id"]) if user else None,
         "full_name": payload.full_name or (user.get("full_name") if user else "") or "Attendee",
-        "email": payload.email or (user.get("email") if user else ""),
+        "email": reg_email or (user.get("email") if user else ""),
         "phone": payload.phone or (user.get("phone") if user else ""),
         "branch": payload.branch,
         "year": payload.year,
@@ -904,24 +1062,28 @@ async def register_for_showcase(
         "fee": fee,
         "currency": currency,
         "payment": payment,
-        "qr_code_base64": generate_qr_code(qr_payload),
+        "qr_code_base64": generate_qr_code(qr_payload) if auto_paid else None,
         "registered_at": now_iso,
-        "status": "registered",
+        "status": "registered" if auto_paid else "pending",
         "created_at": now_iso,
     }
     await db.echo_registrations.insert_one(dict(reg))
 
     # 2) StudentAlumni-side registration (mirror /events/:id/register)
-    if user is not None or auto_paid:
+    #    Only mirrored once payment is confirmed so no pending QR leaks across.
+    if auto_paid and user is not None:
         await _mirror_to_event_registration(db, reg, showcase, user)
 
-    # For paid registrations confirmed on this path (free or demo), persist an
-    # invoice and email it so users always get a receipt.
+    # Free/confirmed registrations get a confirmation email (with QR).
+    # Paid registrations on this path are impossible — they must pay first.
     invoice = None
-    if fee > 0 and payment.get("status") == "paid":
-        invoice = await _store_invoice_and_email(db, reg, showcase)
+    confirmation_sent = False
+    if auto_paid:
+        await _send_registration_confirmation(db, reg, showcase)
+        confirmation_sent = True
 
     result = _ser(reg)
+    result["confirmation_email_sent"] = confirmation_sent
     if invoice:
         result["invoice"] = invoice
     return result
@@ -984,7 +1146,7 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
     """Create a Razorpay payment order for a paid ECHO registration.
 
     Returns an existing paid registration if the user already completed payment.
-    Returns {mock: true} when Razorpay is not configured (demo flow).
+    Requires a connected Razorpay gateway — returns 503 otherwise (no demo path).
     """
     db = _get_db(request)
     user = await _resolve_user(request, db)
@@ -994,10 +1156,9 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
     if showcase.get("status") != "published":
         raise HTTPException(status_code=404, detail="Showcase not found")
     reg_cfg = showcase.get("registration") or {}
-    if reg_cfg.get("enabled") is False:
-        raise HTTPException(status_code=400, detail="Registrations are closed for this event")
-    if showcase.get("event_status_badge") == "Completed":
-        raise HTTPException(status_code=400, detail="This event has ended — registrations are closed")
+
+    # Server-side gates: closed registrations, past deadline, full capacity.
+    await _assert_registration_open(db, showcase)
 
     canonical_slug = showcase.get("slug") or slug
     fee = float(reg_cfg.get("fee", 0) or 0)
@@ -1009,8 +1170,16 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
     if not (payload.full_name or "").strip() or not (payload.email or "").strip():
         raise HTTPException(status_code=400, detail="Full name and email are required")
 
+    # A real Razorpay gateway must be configured — no demo/mock order creation.
+    cfg = await _razorpay_config(db)
+    if not cfg:
+        raise HTTPException(
+            status_code=503,
+            detail="Online payments are temporarily unavailable — please try again later",
+        )
+
     email = (payload.email or "").strip().lower()
-    user_key = str(user["_id"]) if user else (email or payload.phone or "anon")
+    user_key = str(user["_id"]) if user else (email or (payload.phone or "").strip() or "anon")
 
     existing = await db.echo_registrations.find_one({"slug": canonical_slug, "user_key": user_key})
     if existing:
@@ -1019,13 +1188,12 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
             return {"already": True, "registration": _ser(existing)}
         order_id = (existing.get("payment_order") or {}).get("order_id")
         if order_id:
-            cfg = await _razorpay_config(db)
             return {
                 "already": False,
                 "order_id": order_id,
                 "amount": fee,
                 "currency": currency,
-                "key_id": (cfg or {}).get("key_id", ""),
+                "key_id": cfg.get("key_id", ""),
                 "receipt": existing.get("id"),
                 "pending": True,
             }
@@ -1034,17 +1202,14 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
     now_iso = _now()
 
     # Create the Razorpay order
-    cfg = await _razorpay_config(db)
-    order = None
-    if cfg:
-        order = await _razorpay_create_order(
-            db, fee, currency, reg_id,
-            {"slug": canonical_slug, "email": email, "name": payload.full_name},
-        )
-        if order is None:
-            raise HTTPException(status_code=502, detail="Payment gateway temporarily unavailable — please try again")
+    order = await _razorpay_create_order(
+        db, fee, currency, reg_id,
+        {"slug": canonical_slug, "email": email, "name": payload.full_name},
+    )
+    if order is None:
+        raise HTTPException(status_code=502, detail="Payment gateway temporarily unavailable — please try again")
 
-    # Persist a pending registration so verify-payment has a record to finalize
+    # Persist a pending registration so verify-payment / webhook has a record
     if not existing:
         reg = {
             "id": reg_id,
@@ -1063,45 +1228,46 @@ async def create_payment_order(slug: str, payload: PaymentOrderSchema, request: 
             "currency": currency,
             "payment": {
                 "payment_id": None,
-                "gateway": "razorpay" if cfg else "mock",
+                "gateway": "razorpay",
                 "amount": fee,
                 "currency": currency,
                 "status": "pending",
                 "paid_at": None,
                 "method": "upi",
             },
-            "payment_order": {"order_id": (order or {}).get("id"), "created_at": now_iso} if order else None,
+            "payment_order": {"order_id": order.get("id"), "created_at": now_iso},
             "qr_code_base64": None,
             "registered_at": now_iso,
             "status": "pending",
             "created_at": now_iso,
         }
         await db.echo_registrations.insert_one(dict(reg))
-        reg_id = reg_id
     else:
         reg_id = existing.get("id")
+        # Attach the freshly-created order to the pre-existing pending reg so
+        # verify-payment / webhook can resolve it by order id.
+        await db.echo_registrations.update_one(
+            {"_id": existing["_id"]},
+            {"$set": {"payment_order": {"order_id": order.get("id"), "created_at": now_iso}}},
+        )
 
-    if cfg and order:
-        return {
-            "already": False,
-            "order_id": order.get("id"),
-            "amount": fee,
-            "currency": currency,
-            "key_id": cfg["key_id"],
-            "receipt": reg_id,
-            "pending": True,
-        }
-
-    # No gateway configured → demo mode
-    return {"mock": True, "amount": fee, "currency": currency, "receipt": reg_id}
+    return {
+        "already": False,
+        "order_id": order.get("id"),
+        "amount": fee,
+        "currency": currency,
+        "key_id": cfg["key_id"],
+        "receipt": reg_id,
+        "pending": True,
+    }
 
 
 @router.post("/showcases/{slug}/verify-payment")
 async def verify_payment(slug: str, payload: VerifyPaymentSchema, request: Request):
-    """Verify a Razorpay payment and finalize the registration (paid + invoice + email).
+    """Verify a Razorpay payment (HMAC signature) and finalize the registration.
 
-    When no gateway is configured (demo), any submitted payment params are accepted
-    so the flow can be exercised end-to-end without real money.
+    Payment is only confirmed when the Razorpay signature validates against the
+    configured key secret — there is no demo/accept-anything path.
     """
     db = _get_db(request)
     user = await _resolve_user(request, db)
@@ -1111,61 +1277,102 @@ async def verify_payment(slug: str, payload: VerifyPaymentSchema, request: Reque
 
     canonical_slug = showcase.get("slug") or slug
     email = (payload.email or "").strip().lower()
-    user_key = str(user["_id"]) if user else (email or payload.phone or "anon")
+    user_key = str(user["_id"]) if user else (email or (payload.phone or "").strip() or "anon")
 
     reg = await db.echo_registrations.find_one({"slug": canonical_slug, "user_key": user_key})
     if not reg:
-        # Fallback: match by the pending receipt we created during order creation
-        reg = await db.echo_registrations.find_one({"id": payload.razorpay_order_id})
+        # Fallback: match the pending registration by the Razorpay order id we
+        # stored during order creation (reg.id is a hex token, not the order id).
+        reg = await db.echo_registrations.find_one({"payment_order.order_id": payload.razorpay_order_id})
     if not reg:
         raise HTTPException(status_code=404, detail="No pending registration found")
 
-    payment = reg.get("payment") or {}
+    # A real gateway must be configured — no demo acceptance.
     cfg = await _razorpay_config(db)
+    if not cfg:
+        raise HTTPException(
+            status_code=503,
+            detail="Online payments are temporarily unavailable — please try again later",
+        )
+    if not (payload.razorpay_payment_id and payload.razorpay_order_id and payload.razorpay_signature):
+        raise HTTPException(status_code=400, detail="Missing payment verification parameters")
+    if payload.razorpay_order_id != (reg.get("payment_order") or {}).get("order_id"):
+        raise HTTPException(status_code=400, detail="Order mismatch")
+    ok = await _razorpay_verify_signature(db, payload.razorpay_order_id, payload.razorpay_payment_id, payload.razorpay_signature)
+    if not ok:
+        raise HTTPException(status_code=400, detail="Payment verification failed — please contact support")
 
-    # Signature verification when a gateway is connected
-    if cfg:
-        if not (payload.razorpay_payment_id and payload.razorpay_order_id and payload.razorpay_signature):
-            raise HTTPException(status_code=400, detail="Missing payment verification parameters")
-        if payload.razorpay_order_id != (reg.get("payment_order") or {}).get("order_id"):
-            raise HTTPException(status_code=400, detail="Order mismatch")
-        ok = await _razorpay_verify_signature(db, payload.razorpay_order_id, payload.razorpay_payment_id, payload.razorpay_signature)
-        if not ok:
-            raise HTTPException(status_code=400, detail="Payment verification failed — please contact support")
-    else:
-        # Demo path
-        if not payload.razorpay_payment_id:
-            payload.razorpay_payment_id = f"PAY_{secrets.token_hex(8).upper()}"
+    finalized = await _finalize_paid_registration(db, reg, showcase, payload.razorpay_payment_id)
+    registration = finalized or _ser(reg)
+    return {"registration": registration, "invoice": registration.get("invoice")}
 
-    now_iso = _now()
-    paid_payment = {
-        "payment_id": payload.razorpay_payment_id,
-        "gateway": "razorpay" if cfg else "mock",
-        "amount": float(reg.get("fee") or 0),
-        "currency": reg.get("currency") or "INR",
-        "status": "paid",
-        "paid_at": now_iso,
-        "method": "upi" if cfg else (payment.get("method") or "mock"),
-    }
 
-    await db.echo_registrations.update_one(
-        {"_id": reg["_id"]},
-        {"$set": {
-            "payment": paid_payment,
-            "status": "registered",
-            "registered_at": now_iso,
-            "full_name": reg.get("full_name") or payload.full_name,
-            "email": reg.get("email") or email,
-            "qr_code_base64": generate_qr_code(f"ECHO:{canonical_slug}|{reg.get('user_key')}|{reg.get('id')}"),
-            "payment_order": None,
-        }}
-    )
+# ── Razorpay webhook ─────────────────────────────────────────────────────────
+@router.post("/showcases/webhook/razorpay")
+async def razorpay_webhook(request: Request):
+    """Server-confirmed payment capture webhook.
 
-    updated = await db.echo_registrations.find_one({"_id": reg["_id"]})
-    updated = _ser(updated)
-    await _mirror_to_event_registration(db, updated, showcase, user)
-    invoice = await _store_invoice_and_email(db, updated, showcase)
-    return {"registration": updated, "invoice": invoice}
+    Razorpay POSTs here when a payment is captured. We verify the HMAC signature
+    over the raw body, then finalize the matching pending ECHO registration
+    (QR + invoice + email + mirror). Always answers 200 so Razorpay does not
+    retry already-handled events; failures are logged and re-drivable via
+    verify-payment.
+    """
+    db = _get_db(request)
+    body = await request.body()
+    signature = request.headers.get("x-razorpay-signature", "")
+
+    cfg = await _razorpay_config(db)
+    if not cfg:
+        print("[ECHO-WEBHOOK] Razorpay webhook received but gateway not configured")
+        return {"received": True, "processed": False, "reason": "gateway_not_configured"}
+
+    if not signature or not await _razorpay_verify_webhook_signature(db, body, signature):
+        print("[ECHO-WEBHOOK] Razorpay webhook signature verification failed")
+        return {"received": True, "processed": False, "reason": "signature_failed"}
+
+    try:
+        event = json.loads(body)
+    except Exception as e:
+        print(f"[ECHO-WEBHOOK] Invalid JSON body: {e}")
+        return {"received": True, "processed": False, "reason": "invalid_json"}
+
+    event_name = event.get("event") or ""
+    entity = (event.get("payload") or {}).get("payment", {}).get("entity") or {}
+    order_id = entity.get("order_id") or ""
+    payment_id = entity.get("id") or ""
+    amount_paise = int(entity.get("amount") or 0)
+
+    print(f"[ECHO-WEBHOOK] event={event_name} order={order_id} payment={payment_id}")
+
+    if event_name != "payment.captured":
+        return {"received": True, "processed": False, "reason": "ignored_event"}
+
+    if not order_id:
+        print("[ECHO-WEBHOOK] payment.captured without order_id")
+        return {"received": True, "processed": False, "reason": "missing_order_id"}
+
+    # The order id is stored on the pending registration's payment_order.
+    reg = await db.echo_registrations.find_one({"payment_order.order_id": order_id})
+    if not reg:
+        # Also try receipt fallback (Razorpay puts our reg_id in receipt).
+        for r in await db.echo_registrations.find({"payment.status": "pending"}).to_list(200):
+            if r.get("id") == order_id or (r.get("payment_order") or {}).get("order_id") == order_id:
+                reg = r
+                break
+    if not reg:
+        print(f"[ECHO-WEBHOOK] No pending registration for order {order_id}")
+        return {"received": True, "processed": False, "reason": "no_registration"}
+
+    expected_amount = int(float(reg.get("fee") or 0) * 100)
+    if expected_amount and amount_paise != expected_amount:
+        print(f"[ECHO-WEBHOOK] Amount mismatch: expected {expected_amount} got {amount_paise} for order {order_id}")
+        return {"received": True, "processed": False, "reason": "amount_mismatch"}
+
+    showcase = await db.echo_showcases.find_one(_slug_query(reg.get("slug")))
+    finalized = await _finalize_paid_registration(db, reg, showcase, payment_id)
+    print(f"[ECHO-WEBHOOK] Finalized registration {reg.get('id')} (payment {payment_id})")
+    return {"received": True, "processed": True, "registration_id": reg.get("id")}
 
 
 # ── Invoices ─────────────────────────────────────────────────────────────────
@@ -1265,6 +1472,140 @@ async def admin_echo_registrations(
             "user_id": s.get("user_id"),
         })
     return {"items": items, "total": len(items)}
+
+
+# ── Ticket verification / check-in (venue staff) ─────────────────────────────
+class TicketVerifySchema(BaseModel):
+    ticket: str  # raw QR scan payload or a bare registration id
+
+
+def _parse_ticket(ticket: str) -> dict:
+    """Parse a QR payload into its components.
+
+    Accepts the full 'ECHO:<slug>|<user_key>|<reg_id>' payload (as encoded in the
+    registration QR) or a bare registration id. Returns {slug, user_key, reg_id}.
+    """
+    t = (ticket or "").strip()
+    if not t:
+        return {}
+    if t.startswith("ECHO:"):
+        parts = t.split("|")
+        if len(parts) >= 3:
+            return {"slug": parts[0][5:], "user_key": parts[1], "reg_id": parts[2]}
+        return {}
+    return {"reg_id": t}
+
+
+@router.post("/admin/registrations/verify")
+async def verify_ticket(payload: TicketVerifySchema, request: Request, _=Depends(_require_admin)):
+    """Verify an attendee ticket by QR payload (or registration id).
+
+    Returns attendee details + payment/check-in status without mutating anything,
+    so venue staff can confirm a ticket is valid before scanning someone in.
+    """
+    db = _get_db(request)
+    parsed = _parse_ticket(payload.ticket)
+    if not parsed:
+        raise HTTPException(status_code=400, detail="Invalid ticket code")
+
+    query: Dict[str, Any] = {}
+    if parsed.get("slug"):
+        query["slug"] = parsed["slug"]
+    if parsed.get("reg_id"):
+        query["id"] = parsed["reg_id"]
+
+    reg = await db.echo_registrations.find_one(query)
+    if not reg:
+        # Fallback: raw registration id
+        reg = await db.echo_registrations.find_one({"id": parsed.get("reg_id")})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    payment = reg.get("payment") or {}
+    ser = _ser(reg)
+    verified = payment.get("status") == "paid" and reg.get("status") == "registered"
+    checked_in = bool(reg.get("checked_in_at"))
+
+    return {
+        "valid": verified,
+        "checked_in": checked_in,
+        "checked_in_at": ser.get("checked_in_at"),
+        "registration": {
+            "id": ser.get("id"),
+            "slug": ser.get("slug"),
+            "event_title": ser.get("showcase_title"),
+            "full_name": ser.get("full_name"),
+            "email": ser.get("email"),
+            "phone": ser.get("phone"),
+            "branch": ser.get("branch"),
+            "year": ser.get("year"),
+            "college": ser.get("college"),
+            "fee": ser.get("fee"),
+            "currency": ser.get("currency"),
+            "payment_status": payment.get("status"),
+            "payment_id": payment.get("payment_id"),
+            "registered_at": ser.get("registered_at"),
+        },
+        "message": (
+            "Already checked in" if checked_in
+            else ("Valid ticket" if verified else "Ticket not confirmed (payment pending or invalid)")
+        ),
+    }
+
+
+@router.post("/admin/registrations/check-in")
+async def check_in_attendee(payload: TicketVerifySchema, request: Request, _=Depends(_require_admin)):
+    """Check an attendee in at the venue (idempotent).
+
+    Only confirmed (paid or free) registrations can be checked in. Returns the
+    attendee summary plus a 'first_checkin' flag.
+    """
+    db = _get_db(request)
+    parsed = _parse_ticket(payload.ticket)
+    if not parsed:
+        raise HTTPException(status_code=400, detail="Invalid ticket code")
+
+    query: Dict[str, Any] = {}
+    if parsed.get("slug"):
+        query["slug"] = parsed["slug"]
+    if parsed.get("reg_id"):
+        query["id"] = parsed["reg_id"]
+
+    reg = await db.echo_registrations.find_one(query)
+    if not reg:
+        reg = await db.echo_registrations.find_one({"id": parsed.get("reg_id")})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    payment = reg.get("payment") or {}
+    if payment.get("status") != "paid" or reg.get("status") != "registered":
+        raise HTTPException(status_code=400, detail="Ticket not confirmed — attendee cannot be checked in")
+
+    now_iso = _now()
+    first_checkin = not bool(reg.get("checked_in_at"))
+    await db.echo_registrations.update_one(
+        {"_id": reg["_id"]},
+        {"$set": {"checked_in_at": now_iso}, "$setOnInsert": {"checked_in_count": 1}},
+    )
+    if first_checkin:
+        await db.echo_registrations.update_one(
+            {"_id": reg["_id"]}, {"$inc": {"checked_in_count": 1}}
+        )
+
+    updated = _ser(await db.echo_registrations.find_one({"_id": reg["_id"]}))
+    return {
+        "ok": True,
+        "first_checkin": first_checkin,
+        "checked_in_at": updated.get("checked_in_at"),
+        "attendee": {
+            "id": updated.get("id"),
+            "event_title": updated.get("showcase_title"),
+            "full_name": updated.get("full_name"),
+            "email": updated.get("email"),
+            "phone": updated.get("phone"),
+            "college": updated.get("college"),
+        },
+    }
 
 
 @router.get("/admin/revenue")

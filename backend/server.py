@@ -58,7 +58,7 @@ import jwt
 import pyotp
 import qrcode
 from bson import ObjectId
-from fastapi import FastAPI, APIRouter, File, HTTPException, Depends, Request, Response, UploadFile
+from fastapi import FastAPI, APIRouter, File, HTTPException, Depends, Request, Response, UploadFile, Query
 # trigger reload
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -69,6 +69,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from core.middleware import get_real_ip, register_security_middleware
+from core.deps import get_current_user as _deps_get_current_user
 
 limiter = Limiter(key_func=get_real_ip, default_limits=["200/minute"])
 
@@ -278,7 +279,45 @@ app.include_router(newsletter_router)
 import os
 from fastapi.staticfiles import StaticFiles
 os.makedirs("uploads/echo", exist_ok=True)
+os.makedirs("uploads/general", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+
+# ----------------------------------------------------------------------------
+# Shared file upload endpoint (ads, coupons, promotions, newsletter)
+# ----------------------------------------------------------------------------
+@api_router.post("/admin/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    folder: str = Query("general"),
+    user: dict = Depends(_deps_get_current_user),
+):
+    """Upload an image file and return its static URL. Used by ads, coupons, promotions."""
+    role = (user.get("role") or "").lower()
+    if role not in ("admin", "superadmin", "super_admin"):
+        raise HTTPException(403, "Only admins can upload files")
+    from pathlib import Path
+    from datetime import datetime as _dt, timezone as _tz
+    allowed = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+    ext = Path(file.filename).suffix.lower() if file.filename else ".png"
+    if ext not in allowed:
+        raise HTTPException(400, f"File type {ext} not allowed. Use JPG, PNG, WebP, or GIF.")
+    contents = await file.read()
+    max_size = 5 * 1024 * 1024  # 5 MB
+    if len(contents) > max_size:
+        raise HTTPException(413, "File too large. Maximum 5 MB allowed.")
+    # Sanitize folder name to prevent path traversal
+    safe_folder = Path(folder).name if folder else "general"
+    upload_dir = Path("uploads") / safe_folder
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    ts = int(_dt.now(_tz).timestamp())
+    stem = Path(file.filename).stem.replace(" ", "_").replace("/", "_") if file.filename else "upload"
+    safe_name = f"{ts}_{stem}{ext}"
+    out_path = upload_dir / safe_name
+    with open(out_path, "wb") as f:
+        f.write(contents)
+    url = f"/uploads/{safe_folder}/{safe_name}"
+    return {"status": "ok", "url": url}
 
 
 # (Mongo warm-up and shutdown handling are now handled in the _lifespan context above)
@@ -1728,6 +1767,116 @@ async def verify_email_endpoint(payload: dict):
     await db.users.update_one({"email": email}, {"$set": {"email_verified": True}})
     await db.email_verifications.delete_one({"email": email, "token": token})
     return {"status": "ok", "message": "Email verified successfully"}
+
+
+@api_router.post("/auth/email-otp/send")
+async def send_email_otp(payload: dict):
+    """Send a 6-digit one-time code to the user's email for passwordless sign-in
+    or email verification. Stores a SHA-256 hash of the code (never plaintext)
+    with a 10-minute expiry on the user record + email_verifications doc.
+    """
+    email = (payload.get("email") or "").strip().lower()
+    if not email or "@" not in email:
+        raise HTTPException(400, "A valid email is required")
+
+    import random as _random
+    import hashlib as _hashlib
+
+    otp = str(_random.randint(100000, 999999))
+    otp_hash = _hashlib.sha256(otp.encode()).hexdigest()
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+
+    await db.email_verifications.update_one(
+        {"email": email},
+        {"$set": {
+            "email": email,
+            "otp_hash": otp_hash,
+            "otp_expires_at": expires_at,
+            "otp_attempts": 0,
+            "expires_at": expires_at,  # TTL index on this field purges stale docs
+            "created_at": datetime.now(timezone.utc),
+        }},
+        upsert=True,
+    )
+
+    body = f"""
+    <h2 style="margin:0 0 14px 0;color:#111827;">Your one-time sign-in code</h2>
+    <p style="margin:0 0 8px 0;color:#374151;">Use the code below to continue. It expires in 10 minutes.</p>
+    <p style="margin:0 0 20px 0;color:#374151;"><strong style="font-size:28px;letter-spacing:4px;color:#7C3AED;">{otp}</strong></p>
+    <p style="margin:0;color:#9ca3af;font-size:12px;">If you didn't request this code, you can safely ignore this email.</p>
+    """
+    sent = await send_email(email, "Your Student Alumni sign-in code", body)
+    if not sent:
+        # Don't leak the code — only log to server for ops debugging.
+        print(f"[EMAIL-OTP] OTP generated for {email} (delivery pending provider config)")
+    return {"status": "ok", "message": "OTP sent"}
+
+
+@api_router.post("/auth/verify-email-otp")
+async def verify_email_otp(payload: dict):
+    """Verify a 6-digit email OTP (sent via /auth/email-otp/send). On success,
+    marks the email verified and returns a short-lived auth token for
+    passwordless sign-in (or a plain success for pure verification).
+    """
+    email = (payload.get("email") or "").strip().lower()
+    otp = (payload.get("otp") or "").strip()
+    if not email or not otp:
+        raise HTTPException(400, "Email and OTP are required")
+
+    import hashlib as _hashlib
+
+    record = await db.email_verifications.find_one({"email": email})
+    if not record or not record.get("otp_hash"):
+        raise HTTPException(400, "No OTP found for this email — request a new code")
+
+    if record.get("otp_attempts", 0) >= 5:
+        await db.email_verifications.delete_one({"email": email})
+        raise HTTPException(429, "Too many attempts. Please request a new code.")
+
+    expires_at = record.get("otp_expires_at")
+    now_utc = datetime.now(timezone.utc)
+    if expires_at:
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if now_utc > expires_at:
+            await db.email_verifications.delete_one({"email": email})
+            raise HTTPException(400, "OTP has expired — request a new code")
+
+    if record["otp_hash"] != _hashlib.sha256(otp.encode()).hexdigest():
+        await db.email_verifications.update_one(
+            {"email": email}, {"$inc": {"otp_attempts": 1}}
+        )
+        raise HTTPException(400, "Invalid OTP")
+
+    user = await db.users.find_one({"email": email})
+    if user:
+        await db.users.update_one({"email": email}, {"$set": {"email_verified": True}})
+    await db.email_verifications.delete_one({"email": email})
+
+    result = {"status": "ok", "message": "Email verified successfully"}
+    if user:
+        # Use the platform's standard access-token factory so the token carries
+        # the required `type: "access"` + `exp` claims (get_current_user rejects
+        # anything without them).
+        token = create_access_token(str(user["_id"]), email, user.get("role"))
+        result["token"] = token
+        result["user"] = {
+            "id": str(user["_id"]),
+            "email": email,
+            "full_name": user.get("full_name"),
+            "role": user.get("role"),
+        }
+        try:
+            await db.auth_events.insert_one({
+                "event": "email_otp_login",
+                "email": email,
+                "user_id": str(user["_id"]),
+                "success": True,
+                "timestamp": datetime.now(timezone.utc),
+            })
+        except Exception:
+            pass
+    return result
 
 
 # ----------------------------------------------------------------------------

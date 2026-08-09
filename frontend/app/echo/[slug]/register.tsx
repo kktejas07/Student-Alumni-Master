@@ -4,7 +4,7 @@
  *
  * Two-column layout on wide screens:
  *   left  — poster image placeholder(s) (single or multiple, from CMS `poster_images`)
- *   right — registration form + payment (fee panel + external payment link or mock gateway)
+ *   right — registration form + payment (fee panel + Razorpay checkout)
  *
  * Everything (fee, currency, posters, payment link) is configured in the
  * superadmin CMS (Registration tab). On submit it registers the user in BOTH
@@ -21,7 +21,7 @@ import {
   ArrowLeft, Calendar, MapPin, Clock, Ticket, CreditCard,
   Check, ShieldCheck, Users, ChevronLeft, ChevronRight, ExternalLink,
 } from 'lucide-react-native';
-import { api } from '@/src/models/services/api';
+import { api, resolveImageUrl } from '@/src/models/services/api';
 import { PALETTE, FONTS, TYPO } from '@/src/views/web/portals/student/tokens';
 import { GRAD } from '@/src/views/web/portals/student/portalkit';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
@@ -141,13 +141,6 @@ export default function EchoRegisterPage() {
       // Paid event → create a payment order, then redirect to the gateway.
       const order = await api.createEchoPaymentOrder(canonicalSlug, contact);
 
-      // No real gateway connected → demo registration (records a paid mock).
-      if (order?.mock) {
-        const res = await api.registerEchoShowcase(canonicalSlug, regPayload);
-        setDone(res);
-        return;
-      }
-
       // Already paid → show the existing registration + invoice.
       if (order?.already) {
         setDone(order.registration);
@@ -233,8 +226,13 @@ export default function EchoRegisterPage() {
     );
   }
 
-  // Success screen with QR + payment confirmation
-  if (done?.id || existing?.id) {
+  // Success screen with QR + payment confirmation. Only shows for a
+  // CONFIRMED registration (paid or free both carry payment.status "paid");
+  // a `pending` payment means money wasn't captured, so keep the form up
+  // and let the user resume payment.
+  const confirmedReg =
+    (done?.payment?.status === 'paid') || (existing?.payment?.status === 'paid');
+  if (confirmedReg) {
     const reg = done || existing;
     const payment = reg.payment || {};
     const invoiceNo = reg.invoice?.invoice_no || done?.invoice?.invoice_no;
@@ -323,7 +321,7 @@ export default function EchoRegisterPage() {
         <View style={[s.posterCol, !isWide && s.posterColStack]}>
           <View style={s.posterWrap}>
             {activePoster ? (
-              <Image source={{ uri: activePoster }} style={s.poster} resizeMode="cover" />
+              <Image source={{ uri: resolveImageUrl(activePoster) }} style={s.poster} resizeMode="cover" />
             ) : (
               <LinearGradient colors={['rgba(123,61,191,0.35)', 'rgba(95,37,159,0.55)', 'rgba(30,10,80,0.85)']} style={s.poster}>
                 <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, gap: 10, padding: 20 }}>
