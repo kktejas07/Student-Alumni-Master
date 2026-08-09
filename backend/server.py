@@ -1576,7 +1576,6 @@ async def list_active_coupons_for_me(user: dict = Depends(get_current_user)):
     role = role_map.get(role, role)
     docs = await db.coupons.find({
         "active": True,
-        "locked": {"$ne": True},
         "$or": [{"audience": "all"}, {"audience": role}],
     }).sort("display_order", 1).to_list(100)
     return {"coupons": [_coupon_fields(d) for d in docs], "role": role}
