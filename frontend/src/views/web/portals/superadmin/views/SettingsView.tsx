@@ -97,7 +97,7 @@ const TOOL_DOCS: Record<string, string> = {
   'qdrant'          : 'https://cloud.qdrant.io/accounts/-/api-keys',
   'langsmith'       : 'https://smith.langchain.com/o/-/settings',
   'helicone'        : 'https://www.helicone.ai/developer',
-  'agent-k'         : 'https://emergent.sh/profile',
+  'agent-k'         : 'https://your-ai-provider.example/profile',
   'proxycurl'       : 'https://nubela.co/proxycurl/dashboard',
   'rchilli'         : 'https://www.rchilli.com/contact-us',
   'affinda'         : 'https://app.affinda.com/account/api-keys',
