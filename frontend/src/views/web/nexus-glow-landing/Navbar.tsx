@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "expo-router";
 import { Menu, X } from "lucide-react-native";
 import { SALogo } from "@/src/views/components";
+import { useBreakpoint } from "@/src/theme/breakpoints";
 
 // Module-scoped so a pending section survives the Navbar remount when we
 // navigate from an echo page (/echo/...) to the landing page (/welcome).
@@ -14,6 +15,8 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState("Agent K");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { atLeast, width } = useBreakpoint();
+  const isLargeScreen = atLeast("lg");
   // The app scrolls inside a container (body has overflow:hidden), not the
   // window, so framer-motion's useScroll() never fires. A capture-phase
   // listener catches scroll events from ANY scroll container on the page.
@@ -77,8 +80,8 @@ export function Navbar() {
       initial={{ y: -30, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled
-          ? "py-2 bg-[#0C0C0D]/80 backdrop-blur-md border-b border-white/10 shadow-2xl"
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled || mobileOpen
+          ? "py-2 bg-[#0C0C0D]/95 backdrop-blur-md border-b border-white/10 shadow-2xl"
           : "py-4 bg-transparent border-b border-transparent"
         }`}
     >
@@ -100,47 +103,51 @@ export function Navbar() {
           </a>
 
           {/* Nav links (desktop only) */}
-          <nav className="hidden lg:flex items-center gap-1 bg-[#121214] border border-white/5 rounded-full px-2 py-1.5">
-            <a
-              href="/echo"
-              onClick={goToEcho}
-              className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer ${
-                isEcho
-                  ? "text-white bg-white/10"
-                  : "text-gray-400 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              ECHO
-            </a>
-            {links.map((l) => {
-              const isActive = active === l;
-              const targetId = l.toLowerCase().replace(" ", "-");
-              return (
-                <a
-                  key={l}
-                  href={isLanding ? `#${targetId}` : `/welcome#${targetId}`}
-                  onClick={(e) => goToLandingSection(e, targetId)}
-                  className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer
-                    ${isActive
-                      ? "text-white bg-white/10"
-                      : "text-gray-400 hover:text-white hover:bg-white/5"
-                    }
-                  `}
-                >
-                  {l}
-                </a>
-              );
-            })}
-          </nav>
+          {isLargeScreen && (
+            <nav className="flex items-center gap-1 bg-[#121214] border border-white/5 rounded-full px-2 py-1.5">
+              <a
+                href="/echo"
+                onClick={goToEcho}
+                className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer ${
+                  isEcho
+                    ? "text-white bg-white/10"
+                    : "text-gray-400 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                ECHO
+              </a>
+              {links.map((l) => {
+                const isActive = active === l;
+                const targetId = l.toLowerCase().replace(" ", "-");
+                return (
+                  <a
+                    key={l}
+                    href={isLanding ? `#${targetId}` : `/welcome#${targetId}`}
+                    onClick={(e) => goToLandingSection(e, targetId)}
+                    className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-200 cursor-pointer
+                      ${isActive
+                        ? "text-white bg-white/10"
+                        : "text-gray-400 hover:text-white hover:bg-white/5"
+                      }
+                    `}
+                  >
+                    {l}
+                  </a>
+                );
+              })}
+            </nav>
+          )}
 
           {/* CTA buttons */}
           <div className="flex items-center gap-2 sm:gap-4">
-            <button
-              onClick={() => router.push('/(auth)/login')}
-              className="hidden min-[420px]:inline-flex text-xs font-semibold text-gray-400 hover:text-white transition-colors duration-200 cursor-pointer"
-            >
-              Sign in
-            </button>
+            {width >= 420 && (
+              <button
+                onClick={() => router.push('/(auth)/login')}
+                className="text-xs font-semibold text-gray-400 hover:text-white transition-colors duration-200 cursor-pointer"
+              >
+                Sign in
+              </button>
+            )}
             <button
               onClick={() => { setMobileOpen(false); router.push('/get-started'); }}
               className="group relative overflow-hidden rounded-full bg-primary px-4 sm:px-5 py-2 text-xs font-bold text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] cursor-pointer"
@@ -148,13 +155,15 @@ export function Navbar() {
               Get Started
             </button>
             {/* Hamburger (tablet + mobile) */}
-            <button
-              onClick={() => setMobileOpen((o) => !o)}
-              aria-label="Toggle menu"
-              className="lg:hidden flex items-center justify-center w-10 h-10 rounded-lg text-white bg-[#121214] border border-white/10 cursor-pointer"
-            >
-              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
+            {!isLargeScreen && (
+              <button
+                onClick={() => setMobileOpen((o) => !o)}
+                aria-label="Toggle menu"
+                className="flex items-center justify-center w-10 h-10 rounded-lg text-white bg-[#121214] border border-white/10 cursor-pointer"
+              >
+                {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -167,9 +176,9 @@ export function Navbar() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.25 }}
-            className="lg:hidden overflow-hidden bg-transparent border-b border-white/10"
+            className="lg:hidden overflow-hidden bg-[#0C0C0D] border-b border-white/10"
           >
-            <div className="px-6 py-4 flex flex-col gap-1">
+            <div className="px-6 pt-8 pb-6 flex flex-col gap-1">
               <a
                 href="/echo"
                 onClick={goToEcho}
