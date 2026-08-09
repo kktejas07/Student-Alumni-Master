@@ -518,7 +518,7 @@ export function CouponBanner({ portal, editable }: { portal: string; editable?: 
             decelerationRate="fast"
           >
             {coupons.map((c) => (
-              <Pressable key={c.id} onPress={() => setSelected(c)} style={[s.card, editable && !c.active && s.cardInactive, c.locked && { opacity: 0.6, borderColor: 'rgba(245,158,11,0.3)' }]}>
+              <Pressable key={c.id} onPress={() => setSelected(c)} style={[s.card, editable && !c.active && s.cardInactive, c.locked && { borderColor: 'rgba(245,158,11,0.4)' }]}>
                 <View style={s.cardImgWrap}>
                   {c.image_url ? (
                     <Image source={{ uri: c.image_url }} style={s.cardImg} resizeMode="contain" />
