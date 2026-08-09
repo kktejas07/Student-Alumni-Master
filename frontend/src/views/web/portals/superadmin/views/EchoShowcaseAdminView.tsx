@@ -27,6 +27,7 @@ import {
   Star, BookOpen, Upload, MoveUp, MoveDown, Images, FolderOpen,
   Copy, Check, Search, RefreshCw, PlusCircle, FileText, Link2,
   Image as ImageIcon, HardDrive, Calendar, Layout, ChevronUp, ChevronDown, Users,
+  Settings,
 } from 'lucide-react-native';
 import {
   GRAD, GradientButton, SecondaryButton, Card,
@@ -51,7 +52,7 @@ const GALLERY_LAYOUT_OPTIONS = ['grid', 'masonry', 'mixed', 'featured-grid', 'ca
 const VIDEO_PLATFORM_OPTIONS = ['youtube', 'vimeo', 'mp4'];
 const DOWNLOAD_CATEGORY_OPTIONS = ['Brochure', 'Schedule', 'Certificate', 'Presentation', 'Report', 'Document'];
 
-type PageTab = 'all' | 'create' | 'drafts' | 'media' | 'registrations';
+type PageTab = 'all' | 'create' | 'drafts' | 'media' | 'registrations' | 'settings';
 type StatusFilter = 'all' | 'published' | 'draft' | 'archived';
 type FormTab =
   | 'general' | 'hero' | 'statistics' | 'about' | 'gallery'
@@ -64,6 +65,7 @@ const PAGE_TABS: Array<{ id: PageTab; label: string; icon?: any }> = [
   { id: 'drafts', label: 'Drafts', icon: FileText },
   { id: 'registrations', label: 'Registrations & Payments', icon: Users },
   { id: 'media', label: 'Media Library', icon: Images },
+  { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
 const FILTER_TABS: Array<{ id: StatusFilter; label: string }> = [
@@ -1349,7 +1351,7 @@ const EMPTY: any = {
 const AUTOSAVE_KEY = 'echo_cms_autosave';
 
 // ── Showcase Editor Modal ─────────────────────────────────────────────────────
-function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash }: any) {
+function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPreview }: any) {
   const [tab, setTab] = useState<FormTab>('general');
   const [form, setForm] = useState<any>({ ...EMPTY });
   const [isDirty, setIsDirty] = useState(false);
@@ -1839,13 +1841,7 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash }: any
                           });
                           if (!resp.ok) throw new Error('Preview not available');
                           const data = await resp.json();
-                          const w = window.open('', '_blank');
-                          if (w) {
-                            w.document.open();
-                            w.document.write(data.html);
-                            w.document.close();
-                            w.focus();
-                          }
+                          onPreview?.(data.html);
                         } catch (err: any) {
                           flash?.(err?.message || 'Could not load preview');
                         }
@@ -2132,6 +2128,95 @@ function RegistrationsPanel() {
   );
 }
 
+function SettingsPanel() {
+  const [defaultTemplate, setDefaultTemplate] = useState('aurora');
+  const [saving, setSaving] = useState(false);
+  const { flash } = useToast();
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+        const { tokenStore } = await import('@/src/models/services/api');
+        const token = await tokenStore.getAccess();
+        const resp = await fetch(`${base}/api/echo/admin/settings`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          setDefaultTemplate(data.default_ticket_template || 'aurora');
+        }
+      } catch { /* use default */ }
+    })();
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const base = (process.env.EXPO_PUBLIC_BACKEND_URL as string) || '';
+      const { tokenStore } = await import('@/src/models/services/api');
+      const token = await tokenStore.getAccess();
+      const resp = await fetch(`${base}/api/echo/admin/settings`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ default_ticket_template: defaultTemplate }),
+      });
+      if (!resp.ok) throw new Error('Failed to save');
+      flash('Settings saved');
+    } catch (err: any) {
+      flash(err?.message || 'Failed to save settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <View style={{ gap: 16 }}>
+      <Card style={{ padding: 20, gap: 16 }}>
+        <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: SAC.text }}>Global Defaults</Text>
+        <Text style={{ fontFamily: FONTS.med, fontSize: 12, color: SAC.muted }}>
+          These defaults apply to all new events. Individual events can override them in their Registration tab.
+        </Text>
+
+        <View style={{ gap: 8 }}>
+          <Text style={{ fontFamily: FONTS.semi, fontSize: 11, color: SAC.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            Default Ticket / Pass Template
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            {[
+              { id: 'aurora', name: 'Aurora', desc: 'Dark gradient', gradient: 'linear-gradient(135deg,#312e81,#4C1D95)' },
+              { id: 'classic', name: 'Classic', desc: 'White + purple', gradient: 'linear-gradient(135deg,#fff,#f3f4f6)' },
+              { id: 'minimal', name: 'Minimal', desc: 'Borderless', gradient: 'linear-gradient(135deg,#f9fafb,#e5e7eb)' },
+            ].map((tpl) => (
+              <Pressable
+                key={tpl.id}
+                onPress={() => setDefaultTemplate(tpl.id)}
+                style={{
+                  flex: 1, borderRadius: 10, borderWidth: 2,
+                  borderColor: defaultTemplate === tpl.id ? '#7C3AED' : 'rgba(255,255,255,0.1)',
+                  backgroundColor: defaultTemplate === tpl.id ? 'rgba(124,58,237,0.08)' : 'rgba(255,255,255,0.03)',
+                  padding: 12, cursor: 'pointer',
+                }}
+              >
+                <View style={{ height: 6, borderRadius: 3, marginBottom: 8, background: tpl.gradient }} />
+                <Text style={{ fontFamily: FONTS.bold, fontSize: 12, color: defaultTemplate === tpl.id ? '#C4B5FD' : SAC.text }}>{tpl.name}</Text>
+                <Text style={{ fontFamily: FONTS.med, fontSize: 10, color: SAC.dim, marginTop: 2 }}>{tpl.desc}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        <GradientButton onPress={save} loading={saving} disabled={saving} size="md">
+          <Text style={{ color: '#fff', fontFamily: FONTS.bold, fontSize: 13 }}>Save Settings</Text>
+        </GradientButton>
+      </Card>
+    </View>
+  );
+}
+
 // ── Main View ─────────────────────────────────────────────────────────────────
 export function EchoShowcaseAdminView() {
   const [pageTab, setPageTab] = useState<PageTab>('all');
@@ -2143,6 +2228,8 @@ export function EchoShowcaseAdminView() {
   const [modalOpen, setModalOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const { toast, flash } = useToast();
 
   const load = useCallback(async () => {
@@ -2282,6 +2369,9 @@ export function EchoShowcaseAdminView() {
       {/* ── REGISTRATIONS & PAYMENTS ── */}
       {pageTab === 'registrations' && <RegistrationsPanel />}
 
+      {/* ── SETTINGS ── */}
+      {pageTab === 'settings' && <SettingsPanel />}
+
       {/* ── SHOWCASES LIST (All / Drafts) ── */}
       {(pageTab === 'all' || pageTab === 'drafts') && (
         <>
@@ -2333,7 +2423,30 @@ export function EchoShowcaseAdminView() {
       )}
 
       {/* Showcase Editor Modal */}
-      <ShowcaseModal visible={modalOpen} editing={editing} onClose={onClose} onSave={onSave} saving={saving} flash={flash} />
+      <ShowcaseModal visible={modalOpen} editing={editing} onClose={onClose} onSave={onSave} saving={saving} flash={flash} onPreview={(html: string) => setPreviewHtml(html)} />
+
+      {/* Ticket Preview Modal */}
+      <Modal visible={!!previewHtml} transparent animationType="fade" onRequestClose={() => setPreviewHtml(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: '#1e1b4b', borderRadius: 16, overflow: 'hidden', width: '100%', maxWidth: 800, maxHeight: '90vh', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
+              <Text style={{ fontFamily: FONTS.bold, fontSize: 14, color: '#fff' }}>Ticket Preview</Text>
+              <Pressable onPress={() => setPreviewHtml(null)} style={{ padding: 6 }}>
+                <X size={18} color="#94a3b8" />
+              </Pressable>
+            </View>
+            <View style={{ flex: 1, overflow: 'auto' }}>
+              {previewHtml ? (
+                <iframe
+                  srcDoc={previewHtml}
+                  style={{ width: '100%', height: 600, border: 'none', background: '#0f172a' }}
+                  title="Ticket Preview"
+                />
+              ) : null}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

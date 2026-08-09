@@ -2311,6 +2311,36 @@ async def admin_echo_revenue(request: Request, _=Depends(_require_admin)):
     return {"events": events, "totals": totals}
 
 
+# ── Admin settings ────────────────────────────────────────────────────────────
+@router.get("/admin/settings")
+async def get_echo_settings(request: Request, _=Depends(_require_admin)):
+    """Return global ECHO settings (default template, etc.)."""
+    db = _get_db(request)
+    settings = await db.echo_settings.find_one({"_id": "global"})
+    if not settings:
+        settings = {"_id": "global", "default_ticket_template": "aurora"}
+    return {
+        "default_ticket_template": settings.get("default_ticket_template", "aurora"),
+    }
+
+
+@router.put("/admin/settings")
+async def update_echo_settings(request: Request, admin=Depends(_require_admin)):
+    """Update global ECHO settings."""
+    db = _get_db(request)
+    body = await request.json()
+    update = {}
+    if "default_ticket_template" in body:
+        tpl = body["default_ticket_template"]
+        if tpl in TICKET_TEMPLATES:
+            update["default_ticket_template"] = tpl
+    if update:
+        await db.echo_settings.update_one(
+            {"_id": "global"}, {"$set": update}, upsert=True
+        )
+    return {"ok": True, **update}
+
+
 # ── Admin endpoints ───────────────────────────────────────────────────────────
 @router.get("/admin/showcases")
 async def admin_list_showcases(request: Request, _=Depends(_require_admin)):
