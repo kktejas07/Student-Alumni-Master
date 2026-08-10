@@ -1481,6 +1481,7 @@ class ShowcaseUpdateSchema(BaseModel):
     og_image_url: Optional[str] = None
     sections: Optional[Dict[str, bool]] = None
     registration: Optional[RegistrationConfig] = None
+    sessions: Optional[List[Dict[str, Any]]] = None
 
 
 # ── Seed Default Data ────────────────────────────────────────────────────────
