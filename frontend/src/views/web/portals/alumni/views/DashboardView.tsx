@@ -20,7 +20,7 @@ import {
 } from '../iconShims';
 import { SC, FONTS } from '../tokens';
 import { Av, Badge, KpiCard } from '../atoms';
-import * as MOCK from '../student/data';
+import * as MOCK from '../../student/data';
 import { usePortalData } from '@/src/lib/portalApi';
 import { TierBadge } from '@/src/views/web/TierBadge';
 import { LiveStrip } from '@/src/views/web/LiveStrip';
