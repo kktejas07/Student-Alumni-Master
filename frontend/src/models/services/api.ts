@@ -414,6 +414,8 @@ export const api = {
     request<any>(`/echo/admin/showcases/${id}/restore/${versionIndex}`, { method: 'POST' }),
   adminEchoRegistrations: () =>
     request<any>('/echo/admin/registrations'),
+  adminEchoDeleteRegistration: (regId: string) =>
+    request<any>(`/echo/admin/registrations/${regId}`, { method: 'DELETE' }),
   adminEchoRevenue: () =>
     request<any>('/echo/admin/revenue'),
   myEchoInvoices: () =>
