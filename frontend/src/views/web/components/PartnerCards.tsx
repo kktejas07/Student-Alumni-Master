@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Image, Pressable, StyleSheet, Platform, Linking } from 'react-native';
 import { fetchPortal } from '@/src/lib/portalApi';
+import { resolveImageUrl } from '@/src/models/services/api';
 
 type PartnerItem = {
   name: string;
@@ -27,7 +28,7 @@ export function PartnerCards() {
       {items.map((item, idx) => (
         <Pressable key={idx} onPress={() => item.url && Linking.openURL(item.url)} style={s.card}>
           {item.logo ? (
-            <Image source={{ uri: item.logo }} style={s.logo} resizeMode="contain" />
+            <Image source={{ uri: resolveImageUrl(item.logo) }} style={s.logo} resizeMode="contain" />
           ) : (
             <View style={[s.logo, { backgroundColor: 'rgba(255,255,255,0.06)', justifyContent: 'center', alignItems: 'center' }]}>
               <Text style={{ color: '#666', fontFamily: 'DMSans_700Bold', fontSize: 10, textAlign: 'center' }}>{item.name?.charAt(0) || '?'}</Text>

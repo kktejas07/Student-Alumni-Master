@@ -755,7 +755,7 @@ export function ProfileInfoPage({ draft, setDraft, completion, onUploadPhoto, on
               </View>
               <View style={st.modalDetailRow}>
                 <Text style={st.modalDetailLabel}>Classification Source:</Text>
-                <Text style={st.modalDetailValue}>{selectedSkill.source === 'ai' ? 'Emergent AI' : 'Taxonomy Engine'}</Text>
+                <Text style={st.modalDetailValue}>{selectedSkill.source === 'ai' ? 'AI' : 'Taxonomy Engine'}</Text>
               </View>
               <View style={st.modalDetailRow}>
                 <Text style={st.modalDetailLabel}>AI Confidence:</Text>

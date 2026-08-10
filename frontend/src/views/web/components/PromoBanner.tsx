@@ -18,7 +18,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { X, ArrowRight, Sparkles } from 'lucide-react-native';
-import { request } from '@/src/models/services/api';
+import { useAuthStore } from '@/src/viewmodels/stores/authStore';
+import { request, resolveImageUrl } from '@/src/models/services/api';
 
 export type PromoTone =
   | 'violet' | 'blue' | 'indigo' | 'teal' | 'amber' | 'rose' | 'emerald';
@@ -76,8 +77,10 @@ function writeDismissed(map: Record<string, number>) {
 export function PromoBanner({ portal }: { portal: 'student' | 'alumni' | 'college' | 'mentor' | 'super_admin' }) {
   const [items, setItems] = useState<Promotion[] | null>(null);
   const [dismissed, setDismissed] = useState<Record<string, number>>(() => readDismissed());
+  const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
+    if (!user) { setItems([]); return; }
     let cancelled = false;
     (async () => {
       try {
@@ -89,7 +92,7 @@ export function PromoBanner({ portal }: { portal: 'student' | 'alumni' | 'colleg
     })();
     return () => { cancelled = true; };
     // Reload when portal changes (different role context)
-  }, [portal]);
+  }, [portal, user]);
 
   const promo = useMemo(() => {
     const visible = (items || []).filter((p) => !dismissed[p.id]);
@@ -135,7 +138,7 @@ export function PromoBanner({ portal }: { portal: 'student' | 'alumni' | 'colleg
         {/* Optional image */}
         {promo.image_url ? (
           <View style={s.imgBox}>
-            <Image source={{ uri: promo.image_url }} style={s.img} resizeMode="cover" />
+            <Image source={{ uri: resolveImageUrl(promo.image_url) }} style={s.img} resizeMode="cover" />
           </View>
         ) : (
           <View style={[s.iconBox, { backgroundColor: tint, borderColor: tint.replace('0.22', '0.45') as any }]}>

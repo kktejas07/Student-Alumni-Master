@@ -10,7 +10,7 @@
  *
  * Uses exclusively existing student-portal tokens & primitives.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Platform,
   ActivityIndicator, useWindowDimensions, Modal, Image,
@@ -28,6 +28,7 @@ import { GlassCard } from '../glass';
 import { FadeInView, PressScale } from '../motion';
 import { GRAD } from '../portalkit';
 import { useRouter } from 'expo-router';
+import { EchoImg } from '@/src/views/web/components/EchoChrome';
 
 // ── Status badge colors ─────────────────────────────────────────────────────
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string; dot: string }> = {
@@ -54,6 +55,7 @@ const DEFAULT_SHOWCASE: any = {
   event_status_badge: '',
   category: '',
   hero_image_url: null,
+  hero_banners: [],
   organizer_name: '',
   organizer_logo_url: null,
   stats: [],
@@ -128,6 +130,189 @@ const lb = StyleSheet.create({
   counter: { color: PALETTE.muted, fontFamily: FONTS.med, fontSize: 13 },
 });
 
+// ── Hero Banner Carousel (full-width, title overlaid) ─────────────────────
+function HeroBannerCarousel({ banners, data, isWide, onBack, canonicalSlug, showRegistration, onRegister, onShare }: {
+  banners: string[]; data: any; isWide: boolean;
+  onBack?: () => void; canonicalSlug: string;
+  showRegistration: boolean; onRegister: () => void; onShare: () => void;
+}) {
+  const [idx, setIdx] = useState(0);
+  const timerRef = useRef<any>(null);
+  const validBanners = (banners || []).filter(Boolean);
+
+  const advance = useCallback(() => {
+    setIdx((prev) => (prev + 1) % validBanners.length);
+  }, [validBanners.length]);
+
+  useEffect(() => {
+    if (validBanners.length <= 1) return;
+    timerRef.current = setInterval(advance, 4000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [advance, validBanners.length]);
+
+  if (validBanners.length === 0) return null;
+
+  const statusKey = data?.event_status_badge || 'Upcoming';
+  const statusCol = STATUS_COLORS[statusKey] || STATUS_COLORS.default;
+
+  return (
+    <View style={bc.section}>
+      {/* Banner image layer */}
+      <View style={bc.imageWrap}>
+        <EchoImg
+          source={{ uri: resolveImageUrl(validBanners[idx]) }}
+          style={bc.image}
+          resizeMode="cover"
+          fallbackLabel={data?.title || 'Event Banner'}
+        />
+        {/* Gradient overlay from bottom (dark) to top (transparent) */}
+        <View style={bc.gradient} />
+      </View>
+
+      {/* Floating back button — top left */}
+      <PressScale onPress={onBack || (() => {})} style={bc.backBtn}>
+        <View style={bc.backBtnInner}>
+          <ArrowLeft size={14} color="#fff" />
+          <Text style={bc.btnText}>Back</Text>
+        </View>
+      </PressScale>
+
+      {/* Floating action buttons — bottom right */}
+      <View style={bc.actions}>
+        {showRegistration && (
+          <Pressable onPress={onRegister} style={{ borderRadius: 20, overflow: 'hidden' }}>
+            <LinearGradient colors={['#059669', '#047857']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={bc.registerPill}>
+              <Ticket size={13} color="#fff" />
+              <Text style={bc.pillText}>Register</Text>
+            </LinearGradient>
+          </Pressable>
+        )}
+        <PressScale onPress={onShare}>
+          <View style={bc.shareBtn}>
+            <Share2 size={13} color="#fff" />
+            <Text style={bc.btnText}>Share</Text>
+          </View>
+        </PressScale>
+      </View>
+
+      {/* Content overlaid on banner — bottom left */}
+      <View style={[bc.content, !isWide && { paddingHorizontal: 16 }]}>
+        <View style={bc.contentInner}>
+          {/* Status badge */}
+          <View style={[bc.statusBadge, { backgroundColor: statusCol.bg, borderColor: statusCol.border }]}>
+            <View style={[bc.statusDot, { backgroundColor: statusCol.dot }]} />
+            <Text style={[bc.statusText, { color: statusCol.text }]}>{statusKey.toUpperCase()}</Text>
+          </View>
+
+          {/* Title */}
+          <Text style={[bc.title, !isWide && { fontSize: 26 }]} numberOfLines={3}>
+            {data?.title?.split(' ').slice(0, -1).join(' ')}{' '}
+            <Text style={{ color: GRAD.from }}>{data?.title?.split(' ').slice(-1)[0]}</Text>
+          </Text>
+
+          {/* Subtitle */}
+          {data?.subtitle ? <Text style={bc.subtitle}>{data.subtitle}</Text> : null}
+
+          {/* Meta row */}
+          <View style={bc.metaRow}>
+            {data?.date ? (
+              <View style={bc.metaItem}><Calendar size={13} color="rgba(255,255,255,0.7)" /><Text style={bc.metaText}>{data.date}</Text></View>
+            ) : null}
+            {data?.time ? (
+              <View style={bc.metaItem}><Clock size={13} color="rgba(255,255,255,0.7)" /><Text style={bc.metaText}>{data.time}</Text></View>
+            ) : null}
+            {data?.venue ? (
+              <View style={bc.metaItem}><MapPin size={13} color="rgba(255,255,255,0.7)" /><Text style={bc.metaText}>{data.venue}</Text></View>
+            ) : null}
+          </View>
+        </View>
+      </View>
+
+      {/* Carousel dots */}
+      {validBanners.length > 1 && (
+        <View style={bc.dots}>
+          {validBanners.map((_: string, i: number) => (
+            <Pressable key={i} onPress={() => setIdx(i)}>
+              <View style={[bc.dot, i === idx && bc.dotActive]} />
+            </Pressable>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+const bc = StyleSheet.create({
+  section: {
+    width: '100%', position: 'relative', overflow: 'hidden',
+    marginBottom: 16, borderRadius: 14,
+    minHeight: 380, height: 440,
+  },
+  imageWrap: { ...StyleSheet.absoluteFillObject, borderRadius: 14 },
+  image: { width: '100%', height: '100%', borderRadius: 14 },
+  gradient: {
+    ...StyleSheet.absoluteFillObject, borderRadius: 14,
+    backgroundColor: 'transparent',
+    ...(Platform.OS === 'web' ? {
+      background: 'linear-gradient(to top, #080714 0%, rgba(8,7,20,0.75) 35%, rgba(8,7,20,0.2) 60%, transparent 80%)',
+    } as any : {
+      backgroundColor: 'rgba(8,7,20,0.5)',
+    }),
+  },
+  backBtn: {
+    position: 'absolute', top: 14, left: 14, zIndex: 10,
+  },
+  backBtnInner: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    height: 34, paddingHorizontal: 12, borderRadius: 17,
+    backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+  },
+  actions: {
+    position: 'absolute', bottom: 14, right: 14, zIndex: 10,
+    flexDirection: 'row', gap: 8, alignItems: 'center',
+  },
+  registerPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20,
+  },
+  shareBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    height: 34, paddingHorizontal: 12, borderRadius: 17,
+    backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+  },
+  btnText: { fontFamily: FONTS.bold, fontSize: 12, color: '#fff' },
+  pillText: { fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' },
+  content: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    paddingHorizontal: 24, paddingBottom: 18, paddingTop: 80,
+  },
+  contentInner: { maxWidth: 700 },
+  statusBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 999, borderWidth: 1, marginBottom: 10,
+  },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusText: { fontFamily: FONTS.bold, fontSize: 10, letterSpacing: 0.6 },
+  title: {
+    fontFamily: TYPO.display800, fontSize: 30, color: '#fff',
+    lineHeight: 36, letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontFamily: TYPO.body500, fontSize: 14, color: 'rgba(255,255,255,0.65)',
+    marginTop: 6, maxWidth: 550, lineHeight: 20,
+  },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 10 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  metaText: { fontFamily: FONTS.med, fontSize: 12.5, color: 'rgba(255,255,255,0.7)' },
+  dots: {
+    position: 'absolute', bottom: 14, alignSelf: 'center',
+    flexDirection: 'row', gap: 6,
+    backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
+  },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.35)' },
+  dotActive: { backgroundColor: '#fff', width: 18 },
+});
+
 // ── Stat Card ──────────────────────────────────────────────────────────────
 function StatCard({ stat }: { stat: any }) {
   const Icon = STAT_ICONS[stat.icon] || STAT_ICONS.default;
@@ -141,7 +326,7 @@ function StatCard({ stat }: { stat: any }) {
 }
 const st = StyleSheet.create({
   card: {
-    flex: 1, minWidth: 80, backgroundColor: 'rgba(255,255,255,0.04)',
+    flex: 1, minWidth: 140, backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 14, borderWidth: 1, borderColor: PALETTE.glassBorder,
     padding: 16, alignItems: 'center', gap: 6,
     ...(Platform.OS === 'web' ? { boxShadow: '0 4px 24px rgba(2,6,23,0.30)' } as any : {}),
@@ -348,13 +533,47 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
 
   return (
     <View style={{ flex: 1 }}>
-      {/* ── HEADER ─────────────────────────────────────────────────────── */}
-      <FadeInView delay={0}>
-        <View style={s.header}>
+      {/* ── HERO BANNERS CAROUSEL (replaces hero card when banners exist) ── */}
+      {showSection('hero') && (data?.hero_banners?.length > 0) && (
+        <FadeInView delay={50}>
+          <HeroBannerCarousel
+            banners={data.hero_banners}
+            data={data}
+            isWide={isWide}
+            onBack={onBack}
+            canonicalSlug={canonicalSlug}
+            showRegistration={showSection('registration') && (data?.registration?.enabled !== false) && (data?.event_status_badge !== 'Completed')}
+            onRegister={() => {
+              if (Platform.OS === 'web') {
+                window.location.assign(`/echo/${canonicalSlug}/register`);
+              } else {
+                router.push(`/echo/${canonicalSlug}/register` as any);
+              }
+            }}
+            onShare={() => {
+              const url = typeof window !== 'undefined' ? window.location.href : '';
+              const text = `Check out ${data?.title || 'this event'}!`;
+              if (Platform.OS === 'web' && navigator.share) {
+                navigator.share({ title: data?.title, text, url }).catch(() => {});
+              } else if (Platform.OS === 'web' && navigator.clipboard) {
+                navigator.clipboard.writeText(`${text}\n${url}`).then(() => {
+                  alert('Link copied to clipboard!');
+                }).catch(() => {});
+              }
+            }}
+          />
+        </FadeInView>
+      )}
+
+      {/* ── HERO CARD (shown only when NO banners) ────────────────────────── */}
+      {showSection('hero') && !(data?.hero_banners?.length > 0) && (
+      <FadeInView delay={60}>
+        {/* Floating action bar over hero card */}
+        <View style={s.heroActionBar}>
           <PressScale onPress={onBack || (() => {})}>
-            <View style={s.backBtn}>
+            <View style={s.floatingBtn}>
               <ArrowLeft size={14} color="#fff" />
-              <Text style={s.backText}>Back to Events</Text>
+              <Text style={s.floatingBtnText}>Back</Text>
             </View>
           </PressScale>
           <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -369,25 +588,30 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
                 }}
                 style={{ borderRadius: 20, overflow: 'hidden' }}
               >
-                <LinearGradient colors={['#059669', '#047857']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.registerBtn}>
+                <LinearGradient colors={['#059669', '#047857']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.floatingPill}>
                   <Ticket size={13} color="#fff" />
-                  <Text style={s.shareText}>Register</Text>
+                  <Text style={s.floatingPillText}>Register</Text>
                 </LinearGradient>
               </Pressable>
             )}
-            <PressScale>
-              <LinearGradient colors={[GRAD.from, GRAD.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.shareBtn}>
+            <PressScale onPress={() => {
+              const url = typeof window !== 'undefined' ? window.location.href : '';
+              const text = `Check out ${data?.title || 'this event'}!`;
+              if (Platform.OS === 'web' && navigator.share) {
+                navigator.share({ title: data?.title, text, url }).catch(() => {});
+              } else if (Platform.OS === 'web' && navigator.clipboard) {
+                navigator.clipboard.writeText(`${text}\n${url}`).then(() => {
+                  alert('Link copied to clipboard!');
+                }).catch(() => {});
+              }
+            }}>
+              <View style={s.floatingBtn}>
                 <Share2 size={13} color="#fff" />
-                <Text style={s.shareText}>Share Event</Text>
-              </LinearGradient>
+                <Text style={s.floatingBtnText}>Share</Text>
+              </View>
             </PressScale>
           </View>
         </View>
-      </FadeInView>
-
-      {/* ── HERO ───────────────────────────────────────────────────────── */}
-      {showSection('hero') && (
-      <FadeInView delay={60}>
         <GlassCard style={s.heroCard}>
           <View style={[s.heroInner, !isWide && { flexDirection: 'column' }]}>
             {/* Left content */}
@@ -425,7 +649,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
             {isWide && (
               <View style={s.heroRight}>
                 {data?.hero_image_url ? (
-                  <Image source={{ uri: resolveImageUrl(data.hero_image_url) }} style={s.heroImg} resizeMode="cover" />
+                  <EchoImg source={{ uri: resolveImageUrl(data.hero_image_url) }} style={s.heroImg} resizeMode="cover" fallbackLabel={data?.title || 'Event'} />
                 ) : (
                   <LinearGradient
                     colors={['rgba(123,61,191,0.35)', 'rgba(95,37,159,0.55)', 'rgba(30,10,80,0.80)']}
@@ -602,7 +826,7 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
             {data.sponsors.map((sp: any, i: number) => (
               <GlassCard key={i} style={{ flex: 1, minWidth: 160, padding: 14, alignItems: 'center', gap: 8 }}>
                 {sp.logo_url ? (
-                  <Image source={{ uri: sp.logo_url }} style={{ width: 100, height: 40 }} resizeMode="contain" />
+                  <Image source={{ uri: resolveImageUrl(sp.logo_url) }} style={{ width: 100, height: 40 }} resizeMode="contain" />
                 ) : (
                   <Building2 size={24} color={GRAD.from} />
                 )}
@@ -650,18 +874,20 @@ export function EchoShowcaseView({ slug, onBack }: { slug?: string; onBack?: () 
         <LinearGradient
           colors={['rgba(123,61,191,0.25)', 'rgba(95,37,159,0.40)']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={s.ctaBanner}
+          style={[s.ctaBanner, !isWide && s.ctaBannerStack]}
         >
-          <View style={s.ctaIconWrap}>
-            <Calendar size={22} color={GRAD.from} />
+          <View style={[s.ctaInner, !isWide && s.ctaInnerStack]}>
+            <View style={s.ctaIconWrap}>
+              <Calendar size={22} color={GRAD.from} />
+            </View>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={s.ctaTitle}>{data?.cta_title || ''}</Text>
+              <Text style={s.ctaSubtitle}>{data?.cta_subtitle || ''}</Text>
+            </View>
+            <LinearGradient colors={[GRAD.from, GRAD.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[s.ctaBtn, !isWide && s.ctaBtnFull]}>
+              <Text style={s.ctaBtnText}>{data?.cta_button_text || 'Learn More'}</Text>
+            </LinearGradient>
           </View>
-          <View style={{ flex: 1, gap: 4 }}>
-            <Text style={s.ctaTitle}>{data?.cta_title || ''}</Text>
-            <Text style={s.ctaSubtitle}>{data?.cta_subtitle || ''}</Text>
-          </View>
-          <LinearGradient colors={[GRAD.from, GRAD.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.ctaBtn}>
-            <Text style={s.ctaBtnText}>{data?.cta_button_text || 'Learn More'}</Text>
-          </LinearGradient>
         </LinearGradient>
       </FadeInView>
       )}
@@ -696,6 +922,22 @@ const s = StyleSheet.create({
 
   // Hero
   heroCard: { marginBottom: 16, padding: 0, overflow: 'hidden' },
+  heroActionBar: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 10, marginBottom: -44, zIndex: 10,
+    position: 'relative',
+  },
+  floatingBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    height: 34, paddingHorizontal: 12, borderRadius: 17,
+    backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+  },
+  floatingBtnText: { fontFamily: FONTS.bold, fontSize: 12, color: '#fff' },
+  floatingPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20,
+  },
+  floatingPillText: { fontFamily: FONTS.bold, fontSize: 12.5, color: '#fff' },
   heroInner: { flexDirection: 'row', minHeight: 260 },
   heroLeft: { flex: 1, padding: 28, gap: 10 },
   heroRight: { width: 320 },
@@ -715,7 +957,6 @@ const s = StyleSheet.create({
 
   // Stats
   statsRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginBottom: 16 },
-
   // About
   aboutRow: { flexDirection: 'row', gap: 14, marginBottom: 16 },
   aboutCard: { flex: 2 },
@@ -787,6 +1028,9 @@ const s = StyleSheet.create({
     borderRadius: 16, padding: 22, marginBottom: 16,
     borderWidth: 1, borderColor: 'rgba(123,61,191,0.25)',
   },
+  ctaBannerStack: { flexDirection: 'column', alignItems: 'stretch' },
+  ctaInner: { flexDirection: 'row', alignItems: 'center', gap: 16, flex: 1 },
+  ctaInnerStack: { flexDirection: 'column', alignItems: 'flex-start' },
   ctaIconWrap: {
     width: 48, height: 48, borderRadius: 24,
     backgroundColor: 'rgba(123,61,191,0.20)',
@@ -798,5 +1042,6 @@ const s = StyleSheet.create({
     paddingHorizontal: 18, paddingVertical: 11, borderRadius: 12,
     ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
+  ctaBtnFull: { alignSelf: 'stretch', alignItems: 'center', marginTop: 4 },
   ctaBtnText: { fontFamily: FONTS.bold, fontSize: 13, color: '#fff' },
 });

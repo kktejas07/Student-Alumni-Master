@@ -364,6 +364,14 @@ export const api = {
   // ── ECHO Showcase ──────────────────────────────────────────────────────────
   listEchoShowcases: () => request<any>('/echo/showcases'),
   getEchoShowcase: (slug: string) => request<any>(`/echo/showcases/${slug}`),
+  registerEchoShowcase: (slug: string, payload: any) =>
+    request<any>(`/echo/showcases/${slug}/register`, { method: 'POST', body: payload }),
+  myEchoRegistration: (slug: string) =>
+    request<any>(`/echo/showcases/${slug}/my-registration`),
+  createEchoPaymentOrder: (slug: string, payload: any) =>
+    request<any>(`/echo/showcases/${slug}/payment-order`, { method: 'POST', body: payload }),
+  verifyEchoPayment: (slug: string, payload: any) =>
+    request<any>(`/echo/showcases/${slug}/verify-payment`, { method: 'POST', body: payload }),
 
   // Public college autocomplete (registration / onboarding forms)
   searchColleges: (q: string, limit = 8) =>
@@ -404,6 +412,26 @@ export const api = {
     request<any>('/echo/admin/media/bulk-delete', { method: 'POST', body: { filenames } }),
   restoreEchoShowcaseVersion: (id: string, versionIndex: number) =>
     request<any>(`/echo/admin/showcases/${id}/restore/${versionIndex}`, { method: 'POST' }),
+  adminEchoRegistrations: () =>
+    request<any>('/echo/admin/registrations'),
+  adminEchoRevenue: () =>
+    request<any>('/echo/admin/revenue'),
+  myEchoInvoices: () =>
+    request<any>('/echo/my-invoices'),
+
+  // ── Newsletter ────────────────────────────────────────────────────────────
+  sendNewsletter: (payload: any) =>
+    request<any>('/newsletter/admin/send', { method: 'POST', body: payload }),
+  listNewsletterCampaigns: () =>
+    request<any>('/newsletter/admin/campaigns'),
+  newsletterUpcomingEvents: () =>
+    request<any>('/newsletter/admin/upcoming-events'),
+
+  // ── Individual notifications ──────────────────────────────────────────────
+  searchUsers: (q: string) =>
+    request<any>(`/newsletter/admin/search-users?q=${encodeURIComponent(q)}`),
+  sendIndividualNotification: (payload: any) =>
+    request<any>('/newsletter/admin/send-individual', { method: 'POST', body: payload }),
 };
 
 export function resolveImageUrl(url?: string | null): string {

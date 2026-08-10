@@ -7,7 +7,7 @@ import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, Platform, Act
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Search, Trash2, CheckCircle, XCircle, MapPin, Briefcase, GraduationCap, Star, X, Mail, Building2, ExternalLink, Calendar } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { request, tokenStore } from '@/src/models/services/api';
+import { request, tokenStore, resolveImageUrl } from '@/src/models/services/api';
 import { SAC, FONTS } from '../tokens';
 import { GRAD } from '../applekit';
 
@@ -254,7 +254,7 @@ export function TalentPoolView() {
 
               {/* Photo */}
               {(p as any).photo_url || (p as any).photo_data ? (
-                <Image source={{ uri: (p as any).photo_url || (p as any).photo_data }} style={s.avatar} />
+                <Image source={{ uri: resolveImageUrl((p as any).photo_url) || (p as any).photo_data }} style={s.avatar} />
               ) : (
                 <View style={s.avatarPlaceholder}>
                   <Text style={s.avatarInitial}>{(p.full_name || '?')[0].toUpperCase()}</Text>
@@ -386,7 +386,7 @@ function ProfileDetailModal({ visible, profile, onClose }: { visible: boolean; p
           {/* Hero */}
           <LinearGradient colors={[GRAD.from, GRAD.to]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.modalHero}>
             {p.photo_url || p.photo_data ? (
-              <Image source={{ uri: p.photo_url || p.photo_data! }} style={s.modalAvatar} />
+              <Image source={{ uri: resolveImageUrl(p.photo_url) || p.photo_data! }} style={s.modalAvatar} />
             ) : (
               <View style={s.modalAvatarPlaceholder}>
                 <Text style={s.modalAvatarInitial}>{(p.full_name || '?')[0].toUpperCase()}</Text>

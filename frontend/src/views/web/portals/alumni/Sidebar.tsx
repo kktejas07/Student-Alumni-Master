@@ -12,7 +12,7 @@ import { useRouter } from 'expo-router';
 import {
   LayoutDashboard, Sparkles, Briefcase, Users, Calendar, Wallet,
   Tag, CreditCard, GraduationCap, Home, User, ExternalLink, LogOut,
-  CalendarCheck, FileText, BookOpen,
+  CalendarCheck, FileText, BookOpen, Ticket,
 } from './iconShims';
 import { SC, FONTS } from './tokens';
 import { GRADS } from './gradients';
@@ -26,7 +26,7 @@ import { SALogo } from '@/src/views/components';
 export type StudentNavId =
   | 'dashboard' | 'career-ai' | 'internships' | 'network' | 'events'
   | 'financial' | 'deals' | 'wallet' | 'higher-ed' | 'rentals' | 'courses' | 'profile'
-  | 'my-bookings' | 'my-applications' | 'my-workshops';
+  | 'my-bookings' | 'my-applications' | 'my-workshops' | 'my-tickets';
 
 export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: boolean }> = [
   { id: 'dashboard',       label: 'Dashboard',          Icon: LayoutDashboard },
@@ -35,6 +35,7 @@ export const NAV: Array<{ id: StudentNavId; label: string; Icon: any; spark?: bo
   { id: 'my-applications', label: 'My Applications',    Icon: FileText },
   { id: 'network',         label: 'Network',            Icon: Users },
   { id: 'my-bookings',     label: 'My Bookings',        Icon: CalendarCheck },
+  { id: 'my-tickets',      label: 'My Tickets',         Icon: Ticket },
   { id: 'events',          label: 'Events',             Icon: Calendar },
   { id: 'my-workshops',    label: 'My Workshops',       Icon: BookOpen },
   { id: 'courses',         label: 'Courses',            Icon: BookOpen },
