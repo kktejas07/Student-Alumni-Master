@@ -2944,6 +2944,24 @@ async def my_coupons(slug: str, request: Request, email: Optional[str] = Query(N
     return {"coupons": coupons, "registration": {"id": reg["id"], "name": reg.get("full_name")}}
 
 
+@router.get("/scan/{code}")
+async def scan_coupon_get(code: str, request: Request):
+    """Look up a coupon by code (public GET — used by QR scanner and previews)."""
+    db = _get_db(request)
+    coupon = await db.echo_coupons.find_one({"coupon_code": code.upper()})
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Invalid coupon code")
+    return {
+        "ok": True,
+        "coupon_code": coupon.get("coupon_code"),
+        "session_name": coupon.get("session_name"),
+        "session_key": coupon.get("session_key"),
+        "used": coupon.get("used", False),
+        "used_at": coupon.get("used_at"),
+        "slug": coupon.get("slug"),
+    }
+
+
 @router.post("/admin/scan-coupon")
 async def scan_coupon(request: Request, admin=Depends(_require_admin)):
     """Scan a coupon QR code."""
