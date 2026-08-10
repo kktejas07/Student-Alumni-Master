@@ -2665,7 +2665,9 @@ async def archive_showcase(showcase_id: str, request: Request, _=Depends(_requir
 
 @router.post("/admin/upload")
 async def upload_echo_media(request: Request, file: UploadFile = File(None), admin=Depends(_require_admin)):
-    """Upload an image file and store it as base64 in the database."""
+    """Upload an image file to the filesystem and store its URL in the database."""
+    from pathlib import Path as _Path
+    from datetime import datetime as _dt, timezone as _tz
     db = _get_db(request)
     content_type_header = request.headers.get("content-type", "")
 
@@ -2689,7 +2691,7 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
     elif "application/json" in content_type_header:
         body = await request.json()
         data = body.get("data", "")
-        filename = body.get("filename") or f"upload_{int(datetime.now().timestamp())}.png"
+        filename = body.get("filename") or f"upload_{int(_dt.now(_tz.utc).timestamp())}.png"
         original_name = filename
         if "," in data:
             data = data.split(",", 1)[1]
@@ -2707,10 +2709,19 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
         raise HTTPException(status_code=400, detail=f"File type {ext} not allowed.")
 
     content_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
-    b64_data = base64.b64encode(file_bytes).decode("utf-8")
-    data_url = f"data:{content_type};base64,{b64_data}"
 
-    safe_name = file.filename.replace("/", "_").replace("\\", "_") if file.filename else f"upload_{int(datetime.now().timestamp())}{ext}"
+    # Save to filesystem instead of base64-in-MongoDB
+    upload_dir = _Path("uploads") / "echo"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    ts = int(_dt.now(_tz.utc).timestamp())
+    stem = Path(filename).stem.replace(" ", "_").replace("/", "_") if file.filename else f"upload_{ts}"
+    safe_name = f"{ts}_{stem}{ext}"
+    out_path = upload_dir / safe_name
+    with open(out_path, "wb") as f:
+        f.write(file_bytes)
+
+    url = f"/uploads/echo/{safe_name}"
+
     record = {
         "filename": safe_name,
         "original_name": original_name,
@@ -2718,7 +2729,7 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
         "size": len(file_bytes),
         "size_human": _human_size(len(file_bytes)),
         "ext": ext.lstrip("."),
-        "data_url": data_url,
+        "url": url,
         "uploaded_by": admin.get("sub") or admin.get("user_id") or "admin",
         "uploaded_at": _now(),
     }
@@ -2726,7 +2737,7 @@ async def upload_echo_media(request: Request, file: UploadFile = File(None), adm
 
     return {
         "ok": True,
-        "url": data_url,
+        "url": url,
         "filename": safe_name,
         "original_name": original_name,
         "size": len(file_bytes),
