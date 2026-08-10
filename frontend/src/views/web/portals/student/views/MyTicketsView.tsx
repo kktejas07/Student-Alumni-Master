@@ -182,7 +182,7 @@ export function MyTicketsView() {
                         onPress={() => setPreviewCoupon(c)}
                         style={[s.couponChip, c.used && s.couponChipUsed]}
                       >
-                        <Text style={[s.couponIcon]}>{c.session_locked ? '🔒' : c.used ? '✓' : '🎫'}</Text>
+                        <Ticket size={18} color={c.session_locked ? '#F59E0B' : c.used ? '#10B981' : '#A78BFA'} />
                         <View style={{ flex: 1 }}>
                           <Text style={[s.couponName, c.used && s.couponNameUsed]} numberOfLines={1}>
                             {c.session_name || c.session_key}
@@ -248,7 +248,7 @@ export function MyTicketsView() {
                 </Pressable>
               </View>
               <View style={{ alignItems: 'center', gap: 12 }}>
-                <Text style={{ fontSize: 48 }}>{previewCoupon.session_locked ? '🔒' : '🎫'}</Text>
+                <Ticket size={40} color={previewCoupon.session_locked ? '#F59E0B' : '#A78BFA'} />
                 <Text style={{ color: '#fff', fontFamily: FONTS.xbold, fontSize: 24, letterSpacing: 2 }}>
                   {previewCoupon.coupon_code}
                 </Text>
@@ -257,7 +257,10 @@ export function MyTicketsView() {
                 </Text>
                 {previewCoupon.qr_url ? (
                   <Text style={{ color: SC.accentBright, fontFamily: FONTS.med, fontSize: 11, marginTop: 8 }}>
-                    📱 {`${(process.env.EXPO_PUBLIC_BACKEND_URL as string) || ''}${previewCoupon.qr_url}`}
+                    <QrCode size={14} color={SC.accentBright} />
+                    <Text style={{ color: SC.accentBright, fontFamily: FONTS.med, fontSize: 11, marginTop: 8 }}>
+                      {`${(process.env.EXPO_PUBLIC_BACKEND_URL as string) || ''}${previewCoupon.qr_url}`}
+                    </Text>
                   </Text>
                 ) : null}
               </View>

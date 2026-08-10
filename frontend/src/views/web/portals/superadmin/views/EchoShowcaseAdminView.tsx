@@ -778,7 +778,7 @@ function PosterEditor({ posters, onChange }: { posters: string[]; onChange: (p: 
           </View>
           {url ? (
             <Text style={{ fontFamily: FONTS.med, fontSize: 10.5, color: SAC.muted }} numberOfLines={1}>
-              🖼 {url}
+                    <Ticket size={14} color={SAC.muted} /> {url}
             </Text>
           ) : null}
         </View>
@@ -1887,11 +1887,11 @@ function ShowcaseModal({ visible, editing, onClose, onSave, saving, flash, onPre
                   Enable food/amenity coupons for attendees. Each enabled session generates a unique QR coupon that can be scanned once at the venue.
                 </Text>
                 {[
-                  { key: 'breakfast', label: 'Breakfast', icon: '🍳' },
-                  { key: 'lunch', label: 'Lunch', icon: '🍽️' },
-                  { key: 'snacks', label: 'Snacks', icon: '🍪' },
-                  { key: 'tiffin', label: 'Tiffin', icon: '🥪' },
-                  { key: 'coffee', label: 'Coffee & Tea', icon: '☕' },
+                  { key: 'breakfast', label: 'Breakfast', icon: 'cup-soda' },
+                  { key: 'lunch', label: 'Lunch', icon: 'utensils' },
+                  { key: 'snacks', label: 'Snacks', icon: 'cookie' },
+                  { key: 'tiffin', label: 'Tiffin', icon: 'sandwich' },
+                  { key: 'coffee', label: 'Coffee & Tea', icon: 'coffee' },
                 ].map((s) => {
                   const sessions = (form.sessions || []);
                   const existing = sessions.find((x: any) => x.key === s.key);
@@ -2100,7 +2100,7 @@ function SessionPassesOverview({ events, onRefresh }: { events: any[]; onRefresh
                       const enabled = s.enabled ?? false;
                       return (
                         <View key={s.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, paddingHorizontal: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-                          <Text style={{ fontSize: 16, width: 24 }}>{s.icon || '🎫'}</Text>
+                          <Text style={{ fontSize: 16, width: 24 }}>{s.icon || 'ticket'}</Text>
                           <Text style={{ flex: 1, fontFamily: FONTS.med, fontSize: 12, color: SAC.text }}>{s.label}</Text>
                           {enabled && (
                             <>

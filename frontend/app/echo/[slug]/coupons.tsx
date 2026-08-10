@@ -12,8 +12,8 @@ import { api, resolveImageUrl } from '@/src/models/services/api';
 import { EchoHeader, EchoFooter, ECHO_TOP_PADDING } from '@/src/views/web/components/EchoChrome';
 
 const SESSION_ICONS: Record<string, string> = {
-  breakfast: '🍳', lunch: '🍽️', snacks: '🍪',
-  tiffin: '🥪', coffee: '☕',
+  breakfast: 'cup-soda', lunch: 'utensils', snacks: 'cookie',
+  tiffin: 'sandwich', coffee: 'coffee',
 };
 
 export default function EchoCouponsPage() {
