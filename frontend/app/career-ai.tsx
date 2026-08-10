@@ -177,7 +177,7 @@ export default function CareerAIPage({ embedded = false }: { embedded?: boolean 
   useEffect(() => { fetch(); }, [fetch]);
 
   /* ── Computed Metrics ── */
-  const targetRole = roadmap.target_role || 'top_internship';
+  const targetRole = roadmap.target_role || 'top_opportunity';
   const targetCo = roadmap.target_company_type || 'Top Company in your field';
   const progress = Math.min(100, Math.max(0, Number(roadmap.progress_pct || 10)));
   const estimatedWeeks = '~18 Weeks';

@@ -38,7 +38,7 @@ const SLIDES = [
   {
     emoji: '💼',
     accent: ['rgba(245,158,11,0.55)', 'rgba(217,119,6,0.25)'],
-    title: '10,000+ Internships\n& Jobs',
+    title: '10,000+ Career Opportunities\n& Jobs',
     body: 'Discover global opportunities curated to your goals — from tech to creative to research.',
   },
   {

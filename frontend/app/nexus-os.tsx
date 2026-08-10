@@ -457,7 +457,7 @@ function ActivityRow({ item }: { item: typeof ACTIVITY[number] }) {
 const NAV_OVERVIEW = [
   { id: 'dashboard', label: 'Dashboard', icon: 'view-dashboard-outline', active: true },
   { id: 'analytics', label: 'Analytics', icon: 'chart-pie',              active: false },
-  { id: 'finance',   label: 'Finance',   icon: 'wallet-outline',         active: false, badge: 'New' },
+  { id: 'finance',   label: 'Funding',   icon: 'wallet-outline',         active: false, badge: 'New' },
 ];
 const NAV_MGMT = [
   { id: 'team',     label: 'Team Members', icon: 'account-group-outline', active: false },

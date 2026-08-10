@@ -18,7 +18,7 @@ import { useAuthStore } from '@/src/viewmodels/stores/authStore';
 
 const SUGGESTIONS = [
   'What courses should I take next?',
-  'Suggest 3 internships for me',
+  'Suggest 3 career opportunities for me',
   'How do I prepare for top US universities?',
   'Help me plan my next 6 months',
 ];
@@ -183,7 +183,7 @@ export default function ChatScreen() {
                   Hi {firstName}, how can I help?
                 </Text>
                 <Text style={[Typography.body, { color: C.textSecondary, textAlign: 'center', marginTop: 8, paddingHorizontal: 20 }]}>
-                  I'm here to help you navigate courses, find internships, connect with mentors, and plan your career roadmap.
+                  I'm here to help you navigate courses, find career opportunities, connect with mentors, and plan your career roadmap.
                 </Text>
               </View>
               <View style={styles.suggestions}>

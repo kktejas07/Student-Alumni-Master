@@ -469,7 +469,7 @@ export default function DealsScreen() {
                     <View style={{ flex: 1 }}>
                       <Text style={s.claimSuccessTitle}>
                         {claimResult.credits_awarded > 0
-                          ? `+${claimResult.credits_awarded} SA Credits earned!`
+                          ? `+${claimResult.credits_awarded} SA points earned!`
                           : 'Daily quota reached — redirecting'}
                       </Text>
                       <Text style={s.claimSuccessSub}>
@@ -497,7 +497,7 @@ export default function DealsScreen() {
                     </>
                   )}
                 </Pressable>
-                <Text style={s.modalNote}>+20 SA Credits earned per claim · max 3 claims/day</Text>
+                <Text style={s.modalNote}>+20 SA points earned per claim · max 3 claims/day</Text>
               </>
             )}
           </View>
