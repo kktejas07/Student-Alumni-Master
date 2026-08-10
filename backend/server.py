@@ -121,13 +121,17 @@ logger = logging.getLogger(__name__)
 import time
 _t0_mongo = time.perf_counter()
 print("[DB TRACE] Mongo client created")
-# MONGO_URL configuration
-mongo_url = os.environ.get('MONGO_URL') or 'mongodb+srv://studentalumniadmin_db_user:wDruHz5sCPoEVuFy@studentalumniadmin.hhu4uao.mongodb.net/?appName=studentalumniadmin'
+# MONGO_URL configuration — REQUIRED from environment (never hardcode).
+mongo_url = os.environ.get('MONGO_URL')
+if not mongo_url:
+    raise RuntimeError("MONGO_URL is not set. Copy backend/.env.example to backend/.env and set MONGO_URL.")
 from db import client, db as _db_default, fetch_users_with_mock_limit
 db = _db_default
 
-# JWT configuration
-JWT_SECRET = os.environ.get('JWT_SECRET') or 'studentalumni_jwt_secret_key_2026'
+# JWT configuration — REQUIRED from environment (never hardcode).
+JWT_SECRET = os.environ.get('JWT_SECRET')
+if not JWT_SECRET:
+    raise RuntimeError("JWT_SECRET is not set. Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\" and add it to backend/.env")
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour — short-lived; use refresh token for re-auth
 REFRESH_TOKEN_EXPIRE_DAYS = 30

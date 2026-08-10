@@ -1,5 +1,0 @@
-﻿import asyncio; from motor.motor_asyncio import AsyncIOMotorClient; db = AsyncIOMotorClient('mongodb://localhost:27017')['student_alumni']
-async def main():
-    doc = await db.installed_tools.find_one({'tool_id': 'gmail'})
-    print(doc)
-asyncio.run(main())

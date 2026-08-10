@@ -125,7 +125,7 @@ async def _require_admin(request: Request):
         raise HTTPException(status_code=401, detail="Missing token")
     token = auth.split(" ", 1)[1]
     import jwt as _jwt
-    JWT_SECRET = os.environ.get("JWT_SECRET", "studentalumni_jwt_secret_key_2026")
+    JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
     try:
         payload = _jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
     except Exception:
@@ -1690,7 +1690,7 @@ async def register_for_showcase(
     if auth.startswith("Bearer "):
         try:
             import jwt as _jwt
-            JWT_SECRET = os.environ.get("JWT_SECRET", "studentalumni_jwt_secret_key_2026")
+            JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
             payload_token = _jwt.decode(auth.split(" ", 1)[1], JWT_SECRET, algorithms=["HS256"])
             user = await db.users.find_one({"_id": ObjectId(payload_token.get("sub"))})
         except Exception:
@@ -1830,7 +1830,7 @@ async def my_showcase_registration(slug: str, request: Request):
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Bearer "):
         import jwt as _jwt
-        JWT_SECRET = os.environ.get("JWT_SECRET", "studentalumni_jwt_secret_key_2026")
+        JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
         try:
             payload = _jwt.decode(auth.split(" ", 1)[1], JWT_SECRET, algorithms=["HS256"])
             user = await db.users.find_one({"_id": ObjectId(payload.get("sub"))})
@@ -1865,7 +1865,7 @@ async def _resolve_user(request: Request, db) -> Optional[dict]:
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Bearer "):
         import jwt as _jwt
-        JWT_SECRET = os.environ.get("JWT_SECRET", "studentalumni_jwt_secret_key_2026")
+        JWT_SECRET = os.environ.get("JWT_SECRET", "dev-only-insecure-secret-change-me")
         try:
             p = _jwt.decode(auth.split(" ", 1)[1], JWT_SECRET, algorithms=["HS256"])
             return await db.users.find_one({"_id": ObjectId(p.get("sub"))})
